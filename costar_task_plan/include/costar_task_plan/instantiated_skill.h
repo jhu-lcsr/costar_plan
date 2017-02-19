@@ -155,7 +155,7 @@ namespace costar {
                                                 TestFeaturesPtr features,
                                                 RobotKinematicsPtr robot,
                                                 unsigned int nbasis,
-                                                GridPlanner *checker = 0);
+                                                CostarPlanner *checker = 0);
 
     /**
      * create a new skill with dmps
@@ -165,7 +165,7 @@ namespace costar {
                                                 TestFeaturesPtr features,
                                                 RobotKinematicsPtr robot,
                                                 unsigned int nbasis,
-                                                GridPlanner *checker = 0);
+                                                CostarPlanner *checker = 0);
 
 
     /**
@@ -217,7 +217,7 @@ namespace costar {
      * execute as we reach nodes that require it
      * use gripper tool to send messages
      */
-    bool execute(GridPlanner &gp,
+    bool execute(CostarPlanner &gp,
                  actionlib::SimpleActionClient<costar_plan_msgs::CommandAction> &ac,
                  int horizon,
                  bool replan = false,

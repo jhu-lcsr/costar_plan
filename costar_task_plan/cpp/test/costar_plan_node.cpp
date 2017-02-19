@@ -5,7 +5,7 @@ using namespace costar;
 
 int main(int argc, char **argv) {
   ros::init(argc,argv,"costar_plan_node");
-  GridPlanner gp("robot_description","/joint_states","/planning_scene");
+  CostarPlanner gp("robot_description","/joint_states","/planning_scene");
 #if 0
   gp.SetDof(7);
   gp.SetNumBasisFunctions(5);

@@ -58,7 +58,7 @@ namespace costar {
                                                       TestFeaturesPtr features,
                                                       RobotKinematicsPtr robot,
                                                       unsigned int nbasis,
-                                                      GridPlanner *checker)
+                                                      CostarPlanner *checker)
   {
 
     Params p = readRosParams();
@@ -89,7 +89,7 @@ namespace costar {
                                                       TestFeaturesPtr features,
                                                       RobotKinematicsPtr robot,
                                                       unsigned int nbasis,
-                                                      GridPlanner *checker)
+                                                      CostarPlanner *checker)
   {
 
     Params p = readRosParams();

@@ -489,7 +489,7 @@ namespace costar {
    * execute as we reach nodes that require it
    * use gripper tool to send messages
    */
-  bool InstantiatedSkill::execute(GridPlanner &gp, actionlib::SimpleActionClient<costar_plan_msgs::CommandAction> &ac,
+  bool InstantiatedSkill::execute(CostarPlanner &gp, actionlib::SimpleActionClient<costar_plan_msgs::CommandAction> &ac,
                                   int horizon, bool replan, int replan_depth)
   {
 

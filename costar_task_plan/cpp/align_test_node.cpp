@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
 
   Params p = readRosParams();
   RobotKinematicsPtr robot = RobotKinematicsPtr(new RobotKinematics("robot_description","wam/base_link","wam/wrist_palm_link"));
-  GridPlanner gp("robot_description","/gazebo/barrett_manager/wam/joint_states","/gazebo/raw_planning_scene");
+  CostarPlanner gp("robot_description","/gazebo/barrett_manager/wam/joint_states","/gazebo/raw_planning_scene");
   gp.SetDof(robot->getDegreesOfFreedom());
   gp.SetCollisions("gbeam_soup",true);
   gp.SetCollisions("gbeam_soup.gbeam_link_1",true);
@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
   gp.SetCollisions("gbeam_soup.gbeam_node_1",true);
   gp.SetCollisions("gbeam_soup.gbeam_node_2",true);
 
-  GridPlanner *checker = 0;
+  CostarPlanner *checker = 0;
   if (p.detect_collisions) {
     checker = &gp;
   }

@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
   /* SET UP THE ROBOT KINEMATICS */
   RobotKinematicsPtr rk_ptr = RobotKinematicsPtr(new RobotKinematics("robot_description","wam/base_link","wam/wrist_palm_link"));
 
-  GridPlanner gp("robot_description","/gazebo/barrett_manager/wam/joint_states","/gazebo/planning_scene");
+  CostarPlanner gp("robot_description","/gazebo/barrett_manager/wam/joint_states","/gazebo/planning_scene");
   gp.SetDof(7);
   gp.SetNumBasisFunctions(5);
   gp.SetK(100);

@@ -24,22 +24,22 @@ using planning_scene_monitor::PlanningSceneMonitorPtr;
 
 namespace costar {
 
-  const std::string GridPlanner::TIME("time");
-  const std::string GridPlanner::GRIPPER("gripper");
-  const std::string GridPlanner::PS_TOPIC("monitored_planning_scene");
+  const std::string CostarPlanner::TIME("time");
+  const std::string CostarPlanner::GRIPPER("gripper");
+  const std::string CostarPlanner::PS_TOPIC("monitored_planning_scene");
 
-  const std::vector<double> &GridPlanner::currentPos() const {
+  const std::vector<double> &CostarPlanner::currentPos() const {
     boost::mutex::scoped_lock lock(*js_mutex);
     return x0;
   }
 
-  const std::vector<double> &GridPlanner::currentVel() const {
+  const std::vector<double> &CostarPlanner::currentVel() const {
     boost::mutex::scoped_lock lock(*js_mutex);
     return x0_dot;
   }
 
   /* keep robot joints up to date */
-  void GridPlanner::JointStateCallback(const sensor_msgs::JointState::ConstPtr &msg) {
+  void CostarPlanner::JointStateCallback(const sensor_msgs::JointState::ConstPtr &msg) {
     boost::mutex::scoped_lock lock(*js_mutex);
     if (state) {
       state->setVariableValues(*msg); // update the current robot state
@@ -56,7 +56,7 @@ namespace costar {
     //std::cout << std::endl;
   }
 
-  void GridPlanner::PlanningSceneCallback(const moveit_msgs::PlanningScene::ConstPtr &msg) {
+  void CostarPlanner::PlanningSceneCallback(const moveit_msgs::PlanningScene::ConstPtr &msg) {
     boost::mutex::scoped_lock lock(*ps_mutex);
     if (msg->is_diff) {
       scene->setPlanningSceneDiffMsg(*msg);
@@ -65,7 +65,7 @@ namespace costar {
     }
   }
 
-  GridPlanner::GridPlanner(const std::string &robot_description_,
+  CostarPlanner::CostarPlanner(const std::string &robot_description_,
                            const std::string &js_topic,
                            const std::string &scene_topic,
                            const double padding)
@@ -76,7 +76,7 @@ namespace costar {
       ps_mutex = boost::shared_ptr<boost::mutex>(new boost::mutex);
       js_mutex = boost::shared_ptr<boost::mutex>(new boost::mutex);
 
-      js_sub = nh.subscribe(js_topic.c_str(),1000,&GridPlanner::JointStateCallback,this);
+      js_sub = nh.subscribe(js_topic.c_str(),1000,&CostarPlanner::JointStateCallback,this);
 
       // needs to set up the Robot objects and listeners
       try {
@@ -107,11 +107,11 @@ namespace costar {
         std::cerr << ex.what() << std::endl;
       }
 
-      ps_sub = nh.subscribe(scene_topic.c_str(),1000,&GridPlanner::PlanningSceneCallback,this);
+      ps_sub = nh.subscribe(scene_topic.c_str(),1000,&CostarPlanner::PlanningSceneCallback,this);
     }
 
   /* destructor */
-  GridPlanner::~GridPlanner() {
+  CostarPlanner::~CostarPlanner() {
     using std::vector; 
 
     boost::mutex::scoped_lock ps_lock(*ps_mutex);
@@ -129,26 +129,26 @@ namespace costar {
   }
 
   /* add an object to the action here */
-  bool GridPlanner::AddObject(const std::string &object_name) {
-    ROS_WARN("\"GridPlanner::AddObject\" not yet implemented!");
+  bool CostarPlanner::AddObject(const std::string &object_name) {
+    ROS_WARN("\"CostarPlanner::AddObject\" not yet implemented!");
     return false;
   }
 
   /* add an action */
-  bool GridPlanner::AddAction(const std::string &action_name) {
-    ROS_WARN("\"GridPlanner::AddAction\" not yet implemented!");
+  bool CostarPlanner::AddAction(const std::string &action_name) {
+    ROS_WARN("\"CostarPlanner::AddAction\" not yet implemented!");
     return false;
   }
 
   /* instantiate a planning request with the given objects */
-  bool GridPlanner::Plan(const std::string &action1,
+  bool CostarPlanner::Plan(const std::string &action1,
                          const std::string &action2,
                          const std::unordered_map<std::string, std::string> &object_mapping)
   {
     return false;
   }
 
-  void GridPlanner::PrintInfo() const {
+  void CostarPlanner::PrintInfo() const {
 
     //moveit_msgs::PlanningScene ps_msg;
     //monitor->getPlanningScene()->getPlanningSceneMsg(ps_msg);
@@ -182,7 +182,7 @@ namespace costar {
 
   /* try a set of motion primitives; see if they work.
    * returns an empty trajectory if no valid path was found. */
-  Traj_t GridPlanner::TryPrimitives(std::vector<double> primitives) {
+  Traj_t CostarPlanner::TryPrimitives(std::vector<double> primitives) {
     boost::mutex::scoped_lock lock(*ps_mutex);
     scene->getCurrentStateNonConst().update(); 
 
@@ -286,13 +286,13 @@ namespace costar {
   }
 
   /* update planning scene topic */
-  void  GridPlanner::SetPlanningSceneTopic(const std::string &topic) {
+  void  CostarPlanner::SetPlanningSceneTopic(const std::string &topic) {
     //monitor->startSceneMonitor(topic);
-    ROS_WARN("\"GridPlanner::SetPlanningSceneTopic\" not currently implemented!");
+    ROS_WARN("\"CostarPlanner::SetPlanningSceneTopic\" not currently implemented!");
   }
 
   /* configure degrees of freedom */
-  void GridPlanner::SetDof(const unsigned int dof_) {
+  void CostarPlanner::SetDof(const unsigned int dof_) {
     dof = dof_;
     joint_names.resize(dof);
     goal.resize(dof);
@@ -310,34 +310,34 @@ namespace costar {
   }
 
   /* configure number of basis functions */
-  void GridPlanner::SetNumBasisFunctions(const unsigned int num_) {
+  void CostarPlanner::SetNumBasisFunctions(const unsigned int num_) {
     num_basis = num_;
   }
 
-  void GridPlanner::SetK(const double k_gain_) {
+  void CostarPlanner::SetK(const double k_gain_) {
     k_gain = k_gain_;
   }
 
-  void GridPlanner::SetD(const double d_gain_) {
+  void CostarPlanner::SetD(const double d_gain_) {
     d_gain = d_gain_;
   }
 
-  void GridPlanner::SetTau(const double tau_) {
+  void CostarPlanner::SetTau(const double tau_) {
     tau = tau_;
   }
 
-  void GridPlanner::SetGoalThreshold(const double threshold_) {
+  void CostarPlanner::SetGoalThreshold(const double threshold_) {
     threshold = threshold_;
     goal_threshold = std::vector<double>(dof,threshold);
   }
 
-  void GridPlanner::SetVerbose(const bool verbose_) {
+  void CostarPlanner::SetVerbose(const bool verbose_) {
     verbose = verbose_;
   }
 
 
   /* Are we allowed to collide? */
-  void GridPlanner::SetCollisions(const std::string obj, bool allowed) {
+  void CostarPlanner::SetCollisions(const std::string obj, bool allowed) {
     //std::vector<std::string> tmp;
     //scene->getAllowedCollisionMatrixNonConst().getAllEntryNames(tmp);
     //for (std::string &entry: tmp) {
@@ -349,12 +349,12 @@ namespace costar {
   }
 
   /* Robot object default entry */
-  void GridPlanner::SetDefaultCollisions(const std::string link, bool ignore) {
+  void CostarPlanner::SetDefaultCollisions(const std::string link, bool ignore) {
     scene->getAllowedCollisionMatrixNonConst().setDefaultEntry(link, ignore);
   }
 
   /* try a single trajectory and see if it works. */
-  bool GridPlanner::TryTrajectory(const std::vector <std::vector<double> > &traj) {
+  bool CostarPlanner::TryTrajectory(const std::vector <std::vector<double> > &traj) {
     boost::mutex::scoped_lock lock(*ps_mutex);
     scene->getCurrentStateNonConst().update(); 
 
@@ -396,7 +396,7 @@ namespace costar {
    * try a single trajectory and see if it works.
    * this is the joint trajectory version (so we can use a consistent message type)
    * */
-  bool GridPlanner::TryTrajectory(const Traj_t &traj, unsigned int step) {
+  bool CostarPlanner::TryTrajectory(const Traj_t &traj, unsigned int step) {
     boost::mutex::scoped_lock lock(*ps_mutex);
     scene->getCurrentStateNonConst().update(); 
 
@@ -448,14 +448,14 @@ namespace costar {
 
 
   /* reset all entries in the collision map */
-  void GridPlanner::ResetCollisionMap() {
+  void CostarPlanner::ResetCollisionMap() {
     cm.reset();
   }
 
 
 #ifdef GEN_PYTHON_BINDINGS
   /* get current joint positions */
-  boost::python::list GridPlanner::GetJointPositions() const {
+  boost::python::list CostarPlanner::GetJointPositions() const {
     boost::python::list res;
     for (double x: x0) {
       res.append<double>(x);
@@ -465,7 +465,7 @@ namespace costar {
 
   /* try a set of motion primitives; see if they work.
    * this is aimed at the python version of the code. */
-  boost::python::list GridPlanner::pyTryPrimitives(const boost::python::list &list) {
+  boost::python::list CostarPlanner::pyTryPrimitives(const boost::python::list &list) {
     std::vector<double> primitives = to_std_vector<double>(list);
 
     //moveit_msgs::PlanningScene ps_msg;
@@ -506,7 +506,7 @@ namespace costar {
 
     /* try a single trajectory and see if it works.
      * this is aimed at the python version of the code. */
-    bool GridPlanner::pyTryTrajectory(const boost::python::list &trajectory) {
+    bool CostarPlanner::pyTryTrajectory(const boost::python::list &trajectory) {
       std::vector< std::vector<double> > traj;
       std::vector< boost::python::list > tmp = to_std_vector<boost::python::list>(trajectory);
 
@@ -523,21 +523,21 @@ namespace costar {
 
 #ifdef GEN_PYTHON_BINDINGS
   BOOST_PYTHON_MODULE(pycostar_planner) {
-    class_<costar_task_plan::GridPlanner>("GridPlanner",init<std::string,std::string,std::string,double>())
-      .def("Plan", &costar::GridPlanner::Plan)
-      .def("AddAction", &costar::GridPlanner::AddAction)
-      .def("AddObject", &costar::GridPlanner::AddObject)
-      .def("TryPrimitives", &costar::GridPlanner::pyTryPrimitives)
-      .def("TryTrajectory", &costar::GridPlanner::pyTryTrajectory)
-      .def("SetK", &costar::GridPlanner::SetK)
-      .def("SetD", &costar::GridPlanner::SetD)
-      .def("SetTau", &costar::GridPlanner::SetTau)
-      .def("SetDof", &costar::GridPlanner::SetDof)
-      .def("SetNumBasisFunctions", &costar::GridPlanner::SetNumBasisFunctions)
-      .def("SetGoalThreshold", &costar::GridPlanner::SetGoalThreshold)
-      .def("SetVerbose", &costar::GridPlanner::SetVerbose)
-      .def("PrintInfo", &costar::GridPlanner::PrintInfo)
-      .def("GetJointPositions", &costar::GridPlanner::GetJointPositions)
-      .def("SetCollisions", &costar::GridPlanner::SetCollisions);
+    class_<costar::CostarPlanner>("CostarPlanner",init<std::string,std::string,std::string,double>())
+      .def("Plan", &costar::CostarPlanner::Plan)
+      .def("AddAction", &costar::CostarPlanner::AddAction)
+      .def("AddObject", &costar::CostarPlanner::AddObject)
+      .def("TryPrimitives", &costar::CostarPlanner::pyTryPrimitives)
+      .def("TryTrajectory", &costar::CostarPlanner::pyTryTrajectory)
+      .def("SetK", &costar::CostarPlanner::SetK)
+      .def("SetD", &costar::CostarPlanner::SetD)
+      .def("SetTau", &costar::CostarPlanner::SetTau)
+      .def("SetDof", &costar::CostarPlanner::SetDof)
+      .def("SetNumBasisFunctions", &costar::CostarPlanner::SetNumBasisFunctions)
+      .def("SetGoalThreshold", &costar::CostarPlanner::SetGoalThreshold)
+      .def("SetVerbose", &costar::CostarPlanner::SetVerbose)
+      .def("PrintInfo", &costar::CostarPlanner::PrintInfo)
+      .def("GetJointPositions", &costar::CostarPlanner::GetJointPositions)
+      .def("SetCollisions", &costar::CostarPlanner::SetCollisions);
   }
 #endif

@@ -45,7 +45,7 @@ namespace costar {
   }
 
   /** check for collisions */
-  void DmpTrajectoryDistribution::setCollisionChecker(GridPlanner *c) {
+  void DmpTrajectoryDistribution::setCollisionChecker(CostarPlanner *c) {
     checker = c;
   }
 

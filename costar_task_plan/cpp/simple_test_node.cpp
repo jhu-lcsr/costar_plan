@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
 
   Params p = readRosParams();
   RobotKinematicsPtr robot = RobotKinematicsPtr(new RobotKinematics("robot_description","wam/base_link","wam/wrist_palm_link"));
-  GridPlanner gp("robot_description","/gazebo/barrett_manager/wam/joint_states","/gazebo/raw_planning_scene",0.02);
+  CostarPlanner gp("robot_description","/gazebo/barrett_manager/wam/joint_states","/gazebo/raw_planning_scene",0.02);
   gp.SetDof(robot->getDegreesOfFreedom());
   gp.SetCollisions("gbeam_soup",true);
   gp.SetCollisions("gbeam_soup.gbeam_link_1",true);
@@ -80,7 +80,7 @@ int main(int argc, char **argv) {
 
   gp.SetVerbose(p.collisions_verbose);
 
-  GridPlanner gp2("robot_description","/gazebo/barrett_manager/wam/joint_states","/gazebo/raw_planning_scene",0.01);
+  CostarPlanner gp2("robot_description","/gazebo/barrett_manager/wam/joint_states","/gazebo/raw_planning_scene",0.01);
   gp2.SetDof(robot->getDegreesOfFreedom());
   gp2.SetCollisions("gbeam_soup",true);
 
@@ -100,8 +100,8 @@ int main(int argc, char **argv) {
     gp.PrintInfo();
   }
 
-  GridPlanner *checker = 0;
-  GridPlanner *checker2 = 0;
+  CostarPlanner *checker = 0;
+  CostarPlanner *checker2 = 0;
   if (p.detect_collisions) {
     checker = &gp;
     checker2 = &gp2;

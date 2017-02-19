@@ -51,19 +51,19 @@ namespace costar {
   typedef trajectory_msgs::JointTrajectoryPoint Traj_pt_t;
 
   /**
-   * GridPlanner
+   * CostarPlanner
    * This class defines a single planner.
    * It is associated with a robot model and listens to a planning scene.
    * To plan, we associate an object key ("link", for example) with a particular object in the world via TF frame.
    *
    * So, a query would go:
-   *  GridPlanner gp();
+   *  CostarPlanner gp();
    *  ...
    *  world = std::unordered_map<std::string,std::string>();
    *  world["link"] = "gbeam_link_1/gbeam_link";
    *  gp.plan("approach","grasp",world);
    *
-   *  We instantiate a GridPlanner by providing a set of labeled demonstrations for each "state".
+   *  We instantiate a CostarPlanner by providing a set of labeled demonstrations for each "state".
    *  We plan from state A at time 0 to state B at time 0.
    *
    *  Each state is associated with a single (FOR NOW) Gaussian representing features.
@@ -77,18 +77,18 @@ namespace costar {
    *  - maintain a robot model (with joint states, etc.)
    *  - call DMP code to generate trajectories
    */
-  class GridPlanner {
+  class CostarPlanner {
 
   public:
 
     /* constructor */
-    GridPlanner(const std::string &RobotDescription = std::string("robot_desciption"),
+    CostarPlanner(const std::string &RobotDescription = std::string("robot_desciption"),
                 const std::string &JointStateTopic = std::string("joint_states"),
                 const std::string &PlanningSceneTopic = std::string("planning_scene"),
                 double padding=0.0);
 
     /* destructor */
-    ~GridPlanner();
+    ~CostarPlanner();
 
     static const std::string TIME;
     static const std::string GRIPPER; // fixed to BHand for now!

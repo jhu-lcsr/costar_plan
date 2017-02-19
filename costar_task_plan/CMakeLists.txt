@@ -41,7 +41,18 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
+find_package(orocos_kdl REQUIRED)
+
+## System dependencies are found with CMake's conventions
+find_package(Boost REQUIRED COMPONENTS python thread)
+find_package(PythonLibs 2.7 REQUIRED)
+
+find_package(PkgConfig REQUIRED)
+
+find_package( PkgConfig )
+pkg_check_modules( EIGEN3 REQUIRED eigen3 )
+
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -246,7 +257,7 @@ target_link_libraries(moveit_robot_model_test ${ALL_LIBRARIES})
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
 # install(PROGRAMS
-#   scripts/my_python_script
+#   scripts/my_#ython_script
 #   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )
 

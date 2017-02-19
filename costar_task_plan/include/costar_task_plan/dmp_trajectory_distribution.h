@@ -23,7 +23,7 @@ using trajectory_msgs::JointTrajectoryPoint;
 
 namespace costar {
 
-  typedef std::shared_ptr<GridPlanner> TrajectoryCheckerPtr;
+  typedef std::shared_ptr<CostarPlanner> TrajectoryCheckerPtr;
 
   /**
    * Ideally this class would inherit from the same parent as TrajectoryDistribution
@@ -124,7 +124,7 @@ namespace costar {
     const Pose &getAttachedObjectFrame() const;
 
     /** check for collisions */
-    void setCollisionChecker(GridPlanner *);
+    void setCollisionChecker(CostarPlanner *);
 
     /**
      * set the skip between calling collision detection
@@ -133,7 +133,7 @@ namespace costar {
 
   protected:
     gcop::Gmm<> dist; // stores distributions
-    GridPlanner *checker;
+    CostarPlanner *checker;
 
     Pose initial;
     bool verbose;
