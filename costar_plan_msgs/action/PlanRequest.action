@@ -1,0 +1,13 @@
+# COSTAR PLAN REQUEST
+# By Chris Paxton
+# (c) 2017 The Johns Hopkins University
+# See License for more details
+
+# Takes a problem and a world state as a command
+# Executes this command given the next status
+string command
+---
+string ack
+---
+string status
+trajectory_msgs/JointTrajectory trajectory
