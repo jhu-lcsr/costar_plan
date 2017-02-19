@@ -218,7 +218,7 @@ namespace costar {
      * use gripper tool to send messages
      */
     bool execute(GridPlanner &gp,
-                 actionlib::SimpleActionClient<costar_task_plan::CommandAction> &ac,
+                 actionlib::SimpleActionClient<costar_plan_msgs::CommandAction> &ac,
                  int horizon,
                  bool replan = false,
                  int replan_depth = 0);

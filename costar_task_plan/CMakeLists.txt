@@ -171,23 +171,23 @@ set_target_properties(pycostar_planner
 
 ## Declare a cpp executable
 add_executable(costar_plan_node cpp/test/costar_plan_node.cpp)
-add_executable(features_test cpp/test/feature_computation_test.cpp)
-add_executable(trajectory_test cpp/test/trajectory_generation_test.cpp)
-add_executable(dmp_test cpp/test/dmp_generation_test.cpp)
-add_executable(training_test cpp/test/training_test_node.cpp)
-add_executable(execution_test cpp/test/execution_test_node.cpp)
-add_executable(dmp_execution_test cpp/test/dmp_execution_test_node.cpp)
+#add_executable(features_test cpp/test/feature_computation_test.cpp)
+#add_executable(trajectory_test cpp/test/trajectory_generation_test.cpp)
+#add_executable(dmp_test cpp/test/dmp_generation_test.cpp)
+#add_executable(training_test cpp/test/training_test_node.cpp)
+#add_executable(execution_test cpp/test/execution_test_node.cpp)
+#add_executable(dmp_execution_test cpp/test/dmp_execution_test_node.cpp)
 add_executable(moveit_robot_model_test cpp/test/moveit_robot_test.cpp)
 
-add_executable(task_test cpp/task_test_node.cpp)
-add_executable(simple_test cpp/simple_test_node.cpp)
-add_executable(align_test cpp/align_test_node.cpp)
+#add_executable(task_test cpp/task_test_node.cpp)
+#add_executable(simple_test cpp/simple_test_node.cpp)
+#add_executable(align_test cpp/align_test_node.cpp)
 
 ## Add cmake target dependencies of the executable/libname,rary
 ## as an example, message headers may need to be generated before nodes
 add_dependencies(costar_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(costar_plan_node costar_planner)
-add_dependencies(features_test costar_planner)
+#add_dependencies(features_test costar_planner)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(costar_planner
@@ -203,15 +203,15 @@ SET(ALL_LIBRARIES
 )
 
 target_link_libraries(costar_plan_node ${ALL_LIBRARIES})
-target_link_libraries(features_test ${ALL_LIBRARIES})
-target_link_libraries(trajectory_test ${ALL_LIBRARIES})
-target_link_libraries(dmp_test ${ALL_LIBRARIES})
-target_link_libraries(training_test ${ALL_LIBRARIES})
-target_link_libraries(execution_test ${ALL_LIBRARIES})
-target_link_libraries(dmp_execution_test ${ALL_LIBRARIES})
-target_link_libraries(task_test ${ALL_LIBRARIES})
-target_link_libraries(simple_test ${ALL_LIBRARIES})
-target_link_libraries(align_test ${ALL_LIBRARIES})
+#target_link_libraries(features_test ${ALL_LIBRARIES})
+#target_link_libraries(trajectory_test ${ALL_LIBRARIES})
+#target_link_libraries(dmp_test ${ALL_LIBRARIES})
+#target_link_libraries(training_test ${ALL_LIBRARIES})
+#target_link_libraries(execution_test ${ALL_LIBRARIES})
+#target_link_libraries(dmp_execution_test ${ALL_LIBRARIES})
+#target_link_libraries(task_test ${ALL_LIBRARIES})
+#target_link_libraries(simple_test ${ALL_LIBRARIES})
+#target_link_libraries(align_test ${ALL_LIBRARIES})
 target_link_libraries(moveit_robot_model_test ${ALL_LIBRARIES})
 
 ## Declare a C++ library
