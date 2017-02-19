@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>task_tree_search</name>
+  <name>costar_plan_msgs</name>
   <version>0.0.0</version>
   <description>The ltl_tree_search package</description>
 
