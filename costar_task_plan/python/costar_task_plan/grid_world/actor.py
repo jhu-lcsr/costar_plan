@@ -3,7 +3,7 @@
 (c) 2016 Chris Paxton
 """
 
-from task_tree_search.abstract import *
+from costar_task_search.abstract import *
 from world import *
 
 '''

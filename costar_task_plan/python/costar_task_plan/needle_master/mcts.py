@@ -1,5 +1,5 @@
-from task_tree_search.abstract import *
-from task_tree_search.mcts import *
+from costar_task_search.abstract import *
+from costar_task_search.mcts import *
 
 class NeedleMasterNode(AbstractNode):
   pass

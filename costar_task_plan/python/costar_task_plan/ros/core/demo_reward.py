@@ -1,5 +1,5 @@
-from task_tree_search.abstract import AbstractReward
-from task_tree_search.models import GMM
+from costar_task_search.abstract import AbstractReward
+from costar_task_search.models import GMM
 
 '''
 In this case, we want to learn a controller that sticks as close as possible

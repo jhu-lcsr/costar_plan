@@ -1,4 +1,4 @@
-from task_tree_search.abstract import *
+from costar_task_search.abstract import *
 from demo import *
 
 '''

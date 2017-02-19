@@ -2,7 +2,7 @@ from abstract import *
 from util import *
 import numpy as np
 
-import task_tree_search.datasets.tools as dt
+import costar_task_search.datasets.tools as dt
 
 '''
 Default trainer class.

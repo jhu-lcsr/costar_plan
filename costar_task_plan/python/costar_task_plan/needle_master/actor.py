@@ -1,4 +1,4 @@
-from task_tree_search.abstract import *
+from costar_task_search.abstract import *
 
 import matplotlib.pyplot as plt
 import numpy as np

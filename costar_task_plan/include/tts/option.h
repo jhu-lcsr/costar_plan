@@ -3,7 +3,7 @@
 #include "tts/goal.h"
 #include "tts/action.h"
 
-namespace task_tree_search {
+namespace costar_task_search {
 
 // Describe a single state, including both a goal and a path to get there.
 class Option {
@@ -12,4 +12,4 @@ class Option {
 };
 
 
-} // task_tree_search
+} // costar_task_search

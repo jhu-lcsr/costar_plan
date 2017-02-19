@@ -1,6 +1,6 @@
 
 from abstract import *
-from task_tree_search.models import AbstractOracle
+from costar_task_search.models import AbstractOracle
 
 '''
 Guided policy search trainer: implementation based on guided policy search/

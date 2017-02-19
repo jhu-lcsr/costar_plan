@@ -1,4 +1,4 @@
-from task_tree_search.abstract import AbstractDynamics
+from costar_task_search.abstract import AbstractDynamics
 from actor import *
 
 class NeedleMasterDynamics(AbstractDynamics):

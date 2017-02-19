@@ -1,7 +1,7 @@
 
 #include "tts/trajectory.h"
 
-namespace task_tree_search {
+namespace costar_task_search {
 
   // Describe a single state, including both a goal and a path to get there.
   class Goal {
@@ -18,4 +18,4 @@ namespace task_tree_search {
     }
   };
 
-} // task_tree_search
+} // costar_task_search

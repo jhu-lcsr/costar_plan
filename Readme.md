@@ -53,10 +53,10 @@ These may remain unused:
 
 There is a script named after each of these examples in the `scripts/gym` folder that will load and run a short version of its associated sub-problem.
 To run the learning and planning code:
-  - Train all models with `./scripts/gym/train.py` or `rosrun task_tree_search train.py`
-  - Visualize a single planning problem with `./scripts/gym/mcts_nn_test.py` or `rosrun task_tree_search mcts_nn_test.py`
-  - Use `./scripts/gym/option.py` or `rosrun task_tree_search option.py` to learn or visualize a particular road world sub-problem.
-  - Use `./scripts/gym/mcts.py` or `rosrun task_tree_search mcts.py` to look at planning results.
+  - Train all models with `./scripts/gym/train.py` or `rosrun costar_task_search train.py`
+  - Visualize a single planning problem with `./scripts/gym/mcts_nn_test.py` or `rosrun costar_task_search mcts_nn_test.py`
+  - Use `./scripts/gym/option.py` or `rosrun costar_task_search option.py` to learn or visualize a particular road world sub-problem.
+  - Use `./scripts/gym/mcts.py` or `rosrun costar_task_search mcts.py` to look at planning results.
 
 ### Training an Option
 

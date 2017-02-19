@@ -7,7 +7,7 @@ from actor import *
 from dynamics import *
 from js_listener import JointStateListener
 
-from task_tree_search.abstract import *
+from costar_task_search.abstract import *
 
 import logging
 from os.path import join

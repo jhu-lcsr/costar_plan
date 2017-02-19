@@ -7,8 +7,8 @@ from gym.utils import seeding
 from utils import *
 
 import pygame as pg
-import task_tree_search.road_world as rw
-import task_tree_search.abstract as abstract
+import costar_task_search.road_world as rw
+import costar_task_search.abstract as abstract
 
 from gym.spaces import Box
 

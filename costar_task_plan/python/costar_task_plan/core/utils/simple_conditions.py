@@ -1,4 +1,4 @@
-from task_tree_search.abstract import AbstractCondition
+from costar_task_search.abstract import AbstractCondition
 
 class FalseCondition(AbstractCondition):
     def __call__(self,*args,**kwargs):

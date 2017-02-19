@@ -174,8 +174,8 @@ include_directories(
 
 catkin_install_python(
   PROGRAMS
-    python/task_tree_search/road_world/ltl/ltl_binaries/ltl2ba
-    python/task_tree_search/road_world/ltl/ltl_binaries/ltl2dstar
+    python/costar_task_search/road_world/ltl/ltl_binaries/ltl2ba
+    python/costar_task_search/road_world/ltl/ltl_binaries/ltl2dstar
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 #############

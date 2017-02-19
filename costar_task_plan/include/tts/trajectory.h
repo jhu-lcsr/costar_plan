@@ -1,6 +1,6 @@
 #include "tts/goal.h"
 
-namespace task_tree_search {
+namespace costar_task_search {
 
   // Class to represent a physical set of end-effector positions.
   class InstantiatedTrajectory {
