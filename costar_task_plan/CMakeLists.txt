@@ -112,7 +112,6 @@ set(SOURCES
   cpp/training_features.cpp
   cpp/skill.cpp
   cpp/visualize.cpp
-  cpp/wam_training_features.cpp
   cpp/robot_kinematics.cpp
   cpp/task_model.cpp
   cpp/instantiated_skill.cpp
@@ -123,8 +122,6 @@ set(SOURCES
 
   cpp/utils/commander.cpp
   cpp/utils/params.cpp
-
-  cpp/wam/input.cpp
 
   cpp/dist/utils.cc
 )
@@ -144,15 +141,12 @@ set(HEADERS
   include/costar_task_plan/visualize.h
   include/costar_task_plan/trajectory_distribution.h
   include/costar_task_plan/dmp_trajectory_distribution.h
-  include/costar_task_plan/wam_training_features.h
   include/costar_task_plan/robot_kinematics.h
   include/costar_task_plan/task_model.h
   include/costar_task_plan/instantiated_skill.h
 
   include/costar_task_plan/utils/commander.h
   include/costar_task_plan/utils/params.h
-
-  include/costar_task_plan/wam/input.h
 
   include/costar_task_plan/dist/gmm.h
   include/costar_task_plan/dist/normal.h

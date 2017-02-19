@@ -1,7 +1,7 @@
 #include <ros/ros.h>
-#include <grid/costar_planner.h>
+#include <costar_task_plan/costar_planner.h>
 
-using namespace grid;
+using namespace costar;
 
 int main(int argc, char **argv) {
   ros::init(argc,argv,"costar_plan_node");

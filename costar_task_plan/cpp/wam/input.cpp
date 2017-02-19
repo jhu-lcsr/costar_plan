@@ -1,8 +1,8 @@
-#include <grid/wam/input.h>
+#include <costar_task_plan/wam/input.h>
 
-#include <grid/wam_training_features.h>
+#include <costar_task_plan/wam_training_features.h>
 
-namespace grid {
+namespace costar {
 
 
   void load_and_train_skill(Skill &skill, RobotKinematicsPtr &rk_ptr, const std::string filenames[], unsigned int len, int *downsample) {

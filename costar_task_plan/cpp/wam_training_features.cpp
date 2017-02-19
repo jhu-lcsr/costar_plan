@@ -1,9 +1,9 @@
-#include <grid/wam_training_features.h>
+#include <costar_task_plan/wam_training_features.h>
 #include <oro_barrett_msgs/BHandCmd.h>
 
 using oro_barrett_msgs::BHandCmd;
 
-namespace grid {
+namespace costar {
 
   /**
    * initialize training features with the necessary world objects to find

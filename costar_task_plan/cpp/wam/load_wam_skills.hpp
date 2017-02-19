@@ -1,9 +1,9 @@
 #ifndef _GRID_LOAD_WAM_SKILLS
 #define _GRID_LOAD_WAM_SKILLS
 
-#include <grid/skill.h>
+#include <costar_task_plan/skill.h>
 
-namespace grid {
+namespace costar {
 
   std::unordered_map<std::string, TestFeaturesPtr> setupTestFeaturesForTrials() {
 

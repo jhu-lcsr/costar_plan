@@ -1,6 +1,6 @@
-#include <grid/gripper.h>
+#include <costar_task_plan/gripper.h>
 
-namespace grid {
+namespace costar {
 
 
 

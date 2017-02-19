@@ -1,10 +1,10 @@
 #ifndef _GRID_TRAJECTORY_DISTRIBUTION
 #define _GRID_TRAJECTORY_DISTRIBUTION
 
-#include <costar/features.h>
-#include <costar/test_features.h>
-#include <costar/skill.h>
-#include <costar/dist/gmm.h>
+#include <costar_task_plan/features.h>
+#include <costar_task_plan/test_features.h>
+#include <costar_task_plan/skill.h>
+#include <costar_task_plan/dist/gmm.h>
 
 namespace costar {
   static const unsigned int SPLINE_POS1(0);

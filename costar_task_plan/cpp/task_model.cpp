@@ -1,6 +1,6 @@
-#include <grid/task_model.h>
+#include <costar_task_plan/task_model.h>
 
-namespace grid {
+namespace costar {
 
   /**
    * create an empty task model

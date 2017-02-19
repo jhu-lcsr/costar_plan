@@ -1,6 +1,6 @@
-#include <grid/instantiated_skill.h>
+#include <costar_task_plan/instantiated_skill.h>
 
-namespace grid {
+namespace costar {
 
   unsigned int InstantiatedSkill::next_id(0);
 

@@ -3,9 +3,9 @@
 
 #include <ros/ros.h>
 
-//#include <costar/trajectory.h>
-#include <costar/skill.h>
-#include <costar/robot_kinematics.h>
+//#include <costar_task_plan/trajectory.h>
+#include <costar_task_plan/skill.h>
+#include <costar_task_plan/robot_kinematics.h>
 
 namespace costar {
 

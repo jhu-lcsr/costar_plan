@@ -3,9 +3,9 @@
 
 #include <unordered_map>
 
-#include <costar/skill.h>
-#include <costar/instantiated_skill.h>
-#include <costar/trajectory_distribution.h>
+#include <costar_task_plan/skill.h>
+#include <costar_task_plan/instantiated_skill.h>
+#include <costar_task_plan/trajectory_distribution.h>
 
 namespace costar {
 

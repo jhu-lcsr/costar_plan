@@ -1,11 +1,11 @@
 #ifndef _GRID_DMP_TRAJECTORY_DISTRIBUTION
 #define _GRID_DMP_TRAJECTORY_DISTRIBUTION
 
-#include <costar/features.h>
-#include <costar/test_features.h>
-#include <costar/skill.h>
-#include <costar/dist/gmm.h>
-#include <costar/robot_kinematics.h>
+#include <costar_task_plan/features.h>
+#include <costar_task_plan/test_features.h>
+#include <costar_task_plan/skill.h>
+#include <costar_task_plan/dist/gmm.h>
+#include <costar_task_plan/robot_kinematics.h>
 
 #include <kdl/jntarray.hpp>
 

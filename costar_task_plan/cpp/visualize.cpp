@@ -1,4 +1,4 @@
-#include <grid/visualize.h>
+#include <costar_task_plan/visualize.h>
 
 #include <tf_conversions/tf_kdl.h>
 #include <tf/transform_datatypes.h>
@@ -10,7 +10,7 @@
 using namespace KDL;
 using namespace trajectory_msgs;
 
-namespace grid {
+namespace costar {
 
   /*  create a pose array message from a KDL trajectory */
   geometry_msgs::PoseArray toPoseArray(Trajectory *traj, double dt, const std::string &frame) {

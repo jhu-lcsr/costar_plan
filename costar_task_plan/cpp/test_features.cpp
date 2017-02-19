@@ -1,8 +1,8 @@
-#include <grid/test_features.h>
+#include <costar_task_plan/test_features.h>
 
 //#define DEBUG_PRINT_TF_POSE
 
-namespace grid {
+namespace costar {
 
   /* getPose
    * This function needs to be implemented by inheriting classes.

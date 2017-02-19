@@ -7,13 +7,13 @@
  */
 
 
-#include <grid/skill.h>
-#include <grid/task_model.h>
-#include <grid/robot_kinematics.h>
-#include <grid/costar_planner.h>
-#include <grid/visualize.h>
-#include <grid/utils/params.h>
-#include <grid/wam/input.h>
+#include <costar_task_plan/skill.h>
+#include <costar_task_plan/task_model.h>
+#include <costar_task_plan/robot_kinematics.h>
+#include <costar_task_plan/costar_planner.h>
+#include <costar_task_plan/visualize.h>
+#include <costar_task_plan/utils/params.h>
+#include <costar_task_plan/wam/input.h>
 
 #include "wam/load_wam_skills.hpp"
 #include "auto/load_wam_skills_auto_data.hpp"
@@ -23,9 +23,9 @@
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/client/terminal_state.h>
 
-#include <costar_plan_msgs/CommandAction.h>
+#include <costar_task_plan_plan_msgs/CommandAction.h>
 
-using namespace grid;
+using namespace costar;
 
 void update_features(std::unordered_map<std::string, TestFeaturesPtr> &features) {
   for (auto &nf: features) {
@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
   ros::init(argc,argv,"task_model_test_node");
   ros::NodeHandle nh;
 
-  actionlib::SimpleActionClient<costar_plan_msgs::CommandAction> ac("command", true);
+  actionlib::SimpleActionClient<costar_task_plan_plan_msgs::CommandAction> ac("command", true);
 
   Params p = readRosParams();
   RobotKinematicsPtr robot = RobotKinematicsPtr(new RobotKinematics("robot_description","wam/base_link","wam/wrist_palm_link"));

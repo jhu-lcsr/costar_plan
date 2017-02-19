@@ -1,11 +1,11 @@
 #ifndef _GRID_DEBUG
 #define _GRID_DEBUG
 
-#include <costar/features.h>
+#include <costar_task_plan/features.h>
 #include <geometry_msgs/PoseArray.h>
 #include <geometry_msgs/Pose.h>
 
-#include <costar/robot_kinematics.h>
+#include <costar_task_plan/robot_kinematics.h>
 
 #include <vector>
 

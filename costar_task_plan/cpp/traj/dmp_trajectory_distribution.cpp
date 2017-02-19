@@ -1,4 +1,4 @@
-#include <grid/dmp_trajectory_distribution.h>
+#include <costar_task_plan/dmp_trajectory_distribution.h>
 
 #include <Eigen/Dense>
 #include <trajectory_msgs/JointTrajectoryPoint.h>
@@ -9,7 +9,7 @@ using namespace Eigen;
 #define DEFAULT_SIGMA 0.005
 //#define DEFAULT_SIGMA 0.0000000001
 
-namespace grid {
+namespace costar {
 
   /**
    * Initialize a trajectory distribution with given params

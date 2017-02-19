@@ -1,4 +1,4 @@
-#include <grid/costar_planner.h>
+#include <costar_task_plan/costar_planner.h>
 #include <tf/transform_listener.h>
 
 #include <exception>
@@ -6,7 +6,7 @@
 
 //#include <ctime>
 #ifdef GEN_PYTHON_BINDINGS
-#include <grid/utils/python.hpp>
+#include <costar_task_plan/utils/python.hpp>
 #endif
 
 #define _DEBUG_OUTPUT 0
@@ -22,7 +22,7 @@ using collision_detection::CollisionRobot;
 using planning_scene_monitor::PlanningSceneMonitor;
 using planning_scene_monitor::PlanningSceneMonitorPtr;
 
-namespace grid {
+namespace costar {
 
   const std::string GridPlanner::TIME("time");
   const std::string GridPlanner::GRIPPER("gripper");
@@ -523,21 +523,21 @@ namespace grid {
 
 #ifdef GEN_PYTHON_BINDINGS
   BOOST_PYTHON_MODULE(pycostar_planner) {
-    class_<grid::GridPlanner>("GridPlanner",init<std::string,std::string,std::string,double>())
-      .def("Plan", &grid::GridPlanner::Plan)
-      .def("AddAction", &grid::GridPlanner::AddAction)
-      .def("AddObject", &grid::GridPlanner::AddObject)
-      .def("TryPrimitives", &grid::GridPlanner::pyTryPrimitives)
-      .def("TryTrajectory", &grid::GridPlanner::pyTryTrajectory)
-      .def("SetK", &grid::GridPlanner::SetK)
-      .def("SetD", &grid::GridPlanner::SetD)
-      .def("SetTau", &grid::GridPlanner::SetTau)
-      .def("SetDof", &grid::GridPlanner::SetDof)
-      .def("SetNumBasisFunctions", &grid::GridPlanner::SetNumBasisFunctions)
-      .def("SetGoalThreshold", &grid::GridPlanner::SetGoalThreshold)
-      .def("SetVerbose", &grid::GridPlanner::SetVerbose)
-      .def("PrintInfo", &grid::GridPlanner::PrintInfo)
-      .def("GetJointPositions", &grid::GridPlanner::GetJointPositions)
-      .def("SetCollisions", &grid::GridPlanner::SetCollisions);
+    class_<costar_task_plan::GridPlanner>("GridPlanner",init<std::string,std::string,std::string,double>())
+      .def("Plan", &costar::GridPlanner::Plan)
+      .def("AddAction", &costar::GridPlanner::AddAction)
+      .def("AddObject", &costar::GridPlanner::AddObject)
+      .def("TryPrimitives", &costar::GridPlanner::pyTryPrimitives)
+      .def("TryTrajectory", &costar::GridPlanner::pyTryTrajectory)
+      .def("SetK", &costar::GridPlanner::SetK)
+      .def("SetD", &costar::GridPlanner::SetD)
+      .def("SetTau", &costar::GridPlanner::SetTau)
+      .def("SetDof", &costar::GridPlanner::SetDof)
+      .def("SetNumBasisFunctions", &costar::GridPlanner::SetNumBasisFunctions)
+      .def("SetGoalThreshold", &costar::GridPlanner::SetGoalThreshold)
+      .def("SetVerbose", &costar::GridPlanner::SetVerbose)
+      .def("PrintInfo", &costar::GridPlanner::PrintInfo)
+      .def("GetJointPositions", &costar::GridPlanner::GetJointPositions)
+      .def("SetCollisions", &costar::GridPlanner::SetCollisions);
   }
 #endif

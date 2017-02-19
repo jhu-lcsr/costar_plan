@@ -3,12 +3,12 @@
 
 #include <memory>
 
-#include <costar/test_features.h>
-#include <costar/dmp_trajectory_distribution.h>
-#include <costar/trajectory_distribution.h>
-#include <costar/robot_kinematics.h>
-#include <costar/skill.h>
-#include <costar/utils/params.h>
+#include <costar_task_plan/test_features.h>
+#include <costar_task_plan/dmp_trajectory_distribution.h>
+#include <costar_task_plan/trajectory_distribution.h>
+#include <costar_task_plan/robot_kinematics.h>
+#include <costar_task_plan/skill.h>
+#include <costar_task_plan/utils/params.h>
 
 
 #include <actionlib/client/simple_action_client.h>
@@ -218,7 +218,7 @@ namespace costar {
      * use gripper tool to send messages
      */
     bool execute(GridPlanner &gp,
-                 actionlib::SimpleActionClient<costar_plan_msgs::CommandAction> &ac,
+                 actionlib::SimpleActionClient<costar_task_plan::CommandAction> &ac,
                  int horizon,
                  bool replan = false,
                  int replan_depth = 0);

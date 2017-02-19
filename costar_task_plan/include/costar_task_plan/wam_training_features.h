@@ -1,8 +1,8 @@
 #ifndef _GRID_WAM_TRAINING_FEATURES
 #define _GRID_WAM_TRAINING_FEATURES
 
-#include <costar/features.h>
-#include <costar/training_features.h>
+#include <costar_task_plan/features.h>
+#include <costar_task_plan/training_features.h>
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
 

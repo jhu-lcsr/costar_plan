@@ -1,13 +1,13 @@
-#include <grid/instantiated_skill.h>
-#include <grid/visualize.h>
-//#include <grid/utils/params.hpp>
+#include <costar_task_plan/instantiated_skill.h>
+#include <costar_task_plan/visualize.h>
+//#include <costar_task_plan/utils/params.hpp>
 
 using namespace costar_plan_msgs;
 
 using trajectory_msgs::JointTrajectory;
 using trajectory_msgs::JointTrajectoryPoint;
 
-namespace grid {
+namespace costar {
 
 
   /**
@@ -489,7 +489,7 @@ namespace grid {
    * execute as we reach nodes that require it
    * use gripper tool to send messages
    */
-  bool InstantiatedSkill::execute(GridPlanner &gp, actionlib::SimpleActionClient<costar_plan_msgs::CommandAction> &ac,
+  bool InstantiatedSkill::execute(GridPlanner &gp, actionlib::SimpleActionClient<costar_task_plan_plan_msgs::CommandAction> &ac,
                                   int horizon, bool replan, int replan_depth)
   {
 

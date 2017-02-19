@@ -1,4 +1,4 @@
-#include <grid/trajectory_distribution.h>
+#include <costar_task_plan/trajectory_distribution.h>
 
 /* KDL includes */
 #include <kdl/trajectory_composite.hpp>
@@ -17,7 +17,7 @@
 using namespace KDL;
 using namespace Eigen;
 
-namespace grid {
+namespace costar {
 
   /**
    * Initialize a trajectory distribution with velocity profile, etc.

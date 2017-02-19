@@ -1,7 +1,7 @@
 #ifndef _GRID_FLOAT_FEATURES
 #define _GRID_FLOAT_FEATURES
 
-#include <costar/features.h>
+#include <costar_task_plan/features.h>
 
 // training features reads the feature data from ROS topics
 #include <ros/ros.h>

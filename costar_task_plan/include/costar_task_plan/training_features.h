@@ -1,7 +1,7 @@
 #ifndef _GRID_TRAINING_FEATURES
 #define _GRID_TRAINING_FEATURES
 
-#include <costar/features.h>
+#include <costar_task_plan/features.h>
 
 #include <unordered_map>
 

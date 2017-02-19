@@ -4,11 +4,11 @@
 #include <vector>
 #include <string>
 
-#include <costar/features.h>
-#include <costar/training_features.h>
+#include <costar_task_plan/features.h>
+#include <costar_task_plan/training_features.h>
 
 // used for other type definitions
-#include <costar/dist/gmm.h>
+#include <costar_task_plan/dist/gmm.h>
 
 
 /**

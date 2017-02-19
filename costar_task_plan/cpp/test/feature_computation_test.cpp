@@ -1,6 +1,6 @@
 
-#include <grid/test_features.h>
-#include <grid/visualize.h>
+#include <costar_task_plan/test_features.h>
+#include <costar_task_plan/visualize.h>
 
 #include <ros/ros.h>
 #include <ctime>
@@ -16,7 +16,7 @@
 #include <kdl/rotational_interpolation_sa.hpp>
 #include <kdl/path_roundedcomposite.hpp>
 
-using namespace grid;
+using namespace costar;
 using namespace KDL;
 
 int main (int argc, char **argv) {
@@ -26,8 +26,8 @@ int main (int argc, char **argv) {
   ros::Publisher fpub = nh.advertise<geometry_msgs::PoseArray>("features",1000);
 
   TestFeatures test;
-  test.addFeature("node",grid::POSE_FEATURE);
-  test.addFeature("link",grid::POSE_FEATURE);
+  test.addFeature("node",costar::POSE_FEATURE);
+  test.addFeature("link",costar::POSE_FEATURE);
   test.setAgentFrame("wam/wrist_palm_link");
   test.setWorldFrame("world");
   test.setFrame("gbeam_node_1/gbeam_node","node");
@@ -129,7 +129,7 @@ int main (int argc, char **argv) {
 
         if (features[idx].size() < POSE_FEATURES_SIZE) continue;
 
-        grid::Pose featureFrame;
+        costar::Pose featureFrame;
         Features::featuresToPose(features[idx],featureFrame,0);
 
         geometry_msgs::Pose p;

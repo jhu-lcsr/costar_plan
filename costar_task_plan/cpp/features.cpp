@@ -1,6 +1,6 @@
-#include<grid/features.h>
+#include<costar_task_plan/features.h>
 
-namespace grid {
+namespace costar {
 
   /**
    * Do we need to use diff features to train this?

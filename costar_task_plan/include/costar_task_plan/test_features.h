@@ -1,7 +1,7 @@
 #ifndef _GRID_TEST_FEATURES
 #define _GRID_TEST_FEATURES
 
-#include <costar/features.h>
+#include <costar_task_plan/features.h>
 #include <tf/transform_listener.h>
 
 namespace costar {

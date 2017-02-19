@@ -1,10 +1,10 @@
 
-#include <grid/trajectory_distribution.h>
-#include <grid/test_features.h>
-#include <grid/wam_training_features.h>
-#include <grid/visualize.h>
+#include <costar_task_plan/trajectory_distribution.h>
+#include <costar_task_plan/test_features.h>
+#include <costar_task_plan/wam_training_features.h>
+#include <costar_task_plan/visualize.h>
 
-using namespace grid;
+using namespace costar;
 using namespace KDL;
 
 int main(int argc, char **argv) {
@@ -15,9 +15,9 @@ int main(int argc, char **argv) {
   RobotKinematicsPtr rk_ptr = RobotKinematicsPtr(new RobotKinematics("robot_description","wam/base_link","wam/wrist_palm_link"));
 
   TestFeatures test;
-  test.addFeature("node",grid::POSE_FEATURE);
-  test.addFeature("link",grid::POSE_FEATURE);
-  test.addFeature("time",grid::TIME_FEATURE);
+  test.addFeature("node",costar::POSE_FEATURE);
+  test.addFeature("link",costar::POSE_FEATURE);
+  test.addFeature("time",costar::TIME_FEATURE);
   test.setAgentFrame("wam/wrist_palm_link");
   //test.setBaseFrame("wam/base_link");
   //test.setWorldFrame("world");

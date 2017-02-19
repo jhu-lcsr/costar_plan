@@ -42,7 +42,7 @@
 #include <dmp/dmp.h>
 
 // costar dependencies
-#include <costar/collision_map.h>
+#include <costar_task_plan/collision_map.h>
 
 namespace costar {
 

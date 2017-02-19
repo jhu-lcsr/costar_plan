@@ -1,4 +1,4 @@
-#include <grid/robot_kinematics.h>
+#include <costar_task_plan/robot_kinematics.h>
 #include <urdf/model.h>
 #include <kdl_parser/kdl_parser.hpp>
 #include <ros/ros.h>
@@ -13,7 +13,7 @@ using trajectory_msgs::JointTrajectory;
 using trajectory_msgs::JointTrajectoryPoint;
 using KDL::Trajectory;
 
-namespace grid {
+namespace costar {
 
 
   RobotKinematics::RobotKinematics(const std::string &robot_description_param_, 

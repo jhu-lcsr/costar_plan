@@ -1,9 +1,9 @@
 #ifndef _GRID_LOAD_WAM_SKILLS_AUTO
 #define _GRID_LOAD_WAM_SKILLS_AUTO
 
-#include <grid/skill.h>
+#include <costar_task_plan/skill.h>
 
-namespace grid {
+namespace costar {
 
   std::unordered_map<std::string, SkillPtr> loadWamSkillsAuto() {
 

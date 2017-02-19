@@ -1,7 +1,7 @@
 #ifndef _GRID_ROBOT_KINEMATICS
 #define _GRID_ROBOT_KINEMATICS
 
-//#include <costar/features.h>
+//#include <costar_task_plan/features.h>
 //
 #include <kdl/frames.hpp>
 #include <kdl/trajectory.hpp>

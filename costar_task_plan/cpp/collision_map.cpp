@@ -1,7 +1,7 @@
-#include <grid/collision_map.h>
+#include <costar_task_plan/collision_map.h>
 #include <iostream>
 
-namespace grid {
+namespace costar {
 
   std::size_t CollisionMapHash::operator()(Position_t const& pos) const {
     std::size_t hash = 0;

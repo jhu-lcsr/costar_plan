@@ -1,8 +1,8 @@
-#include <grid/utils/params.h>
+#include <costar_task_plan/utils/params.h>
 #include <random>
 #include <ctime>
 
-namespace grid {
+namespace costar {
 
     Params readRosParams() {
       Params p;

@@ -1,14 +1,14 @@
 #include <ros/ros.h>
-#include <grid/training_features.h>
-#include <grid/wam_training_features.h>
-#include <grid/visualize.h>
-#include <grid/skill.h>
+#include <costar_task_plan/training_features.h>
+#include <costar_task_plan/wam_training_features.h>
+#include <costar_task_plan/visualize.h>
+#include <costar_task_plan/skill.h>
 
 #include <fstream>
 
-#include <grid/utils/params.h>
+#include <costar_task_plan/utils/params.h>
 
-using namespace grid;
+using namespace costar;
 
 int main(int argc, char **argv) {
   ros::init(argc,argv,"training_test_node");

@@ -1,15 +1,15 @@
 
-#include <grid/trajectory_distribution.h>
-#include <grid/test_features.h>
-#include <grid/wam_training_features.h>
-#include <grid/visualize.h>
-#include <grid/costar_planner.h>
+#include <costar_task_plan/trajectory_distribution.h>
+#include <costar_task_plan/test_features.h>
+#include <costar_task_plan/wam_training_features.h>
+#include <costar_task_plan/visualize.h>
+#include <costar_task_plan/costar_planner.h>
 
-#include <grid/wam/input.h>
+#include <costar_task_plan/wam/input.h>
 
 #include <trajectory_msgs/JointTrajectory.h>
 
-using namespace grid;
+using namespace costar;
 using namespace KDL;
 
 using trajectory_msgs::JointTrajectory;
@@ -32,9 +32,9 @@ int main(int argc, char **argv) {
   gp.SetGoalThreshold(0.1);
 
   TestFeatures test;
-  test.addFeature("node",grid::POSE_FEATURE);
-  test.addFeature("link",grid::POSE_FEATURE);
-  test.addFeature("time",grid::TIME_FEATURE);
+  test.addFeature("node",costar::POSE_FEATURE);
+  test.addFeature("link",costar::POSE_FEATURE);
+  test.addFeature("time",costar::TIME_FEATURE);
   test.setAgentFrame("wam/wrist_palm_link");
   //test.setBaseFrame("wam/base_link");
   //test.setWorldFrame("world");

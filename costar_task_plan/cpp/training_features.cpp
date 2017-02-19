@@ -1,4 +1,4 @@
-#include <grid/training_features.h>
+#include <costar_task_plan/training_features.h>
 
 // read in poses from topics
 #include <geometry_msgs/Pose.h>
@@ -6,7 +6,7 @@
 #include <iostream>
 #include <sstream>
 
-namespace grid {
+namespace costar {
 
 
   const std::vector<WorldConfiguration> &TrainingFeatures::getData() const {
