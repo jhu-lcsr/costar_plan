@@ -3,7 +3,7 @@
 
 #include <ros/ros.h>
 
-namespace grid {
+namespace costar {
 
 
   struct Params {

@@ -1,7 +1,7 @@
 #ifndef _GRID_ROBOT_KINEMATICS
 #define _GRID_ROBOT_KINEMATICS
 
-//#include <grid/features.h>
+//#include <costar/features.h>
 //
 #include <kdl/frames.hpp>
 #include <kdl/trajectory.hpp>
@@ -16,9 +16,9 @@
 
 #include <memory>
 
-namespace grid {
+namespace costar {
 
-  // grid (for robots) is going to be based on KDL
+  // costar (for robots) is going to be based on KDL
   typedef KDL::Frame Pose;
   typedef KDL::Twist Twist;
 

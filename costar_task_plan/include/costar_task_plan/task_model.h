@@ -3,11 +3,11 @@
 
 #include <unordered_map>
 
-#include <grid/skill.h>
-#include <grid/instantiated_skill.h>
-#include <grid/trajectory_distribution.h>
+#include <costar/skill.h>
+#include <costar/instantiated_skill.h>
+#include <costar/trajectory_distribution.h>
 
-namespace grid {
+namespace costar {
 
   /**
    * Defines the whole task model.

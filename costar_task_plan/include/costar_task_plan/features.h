@@ -15,9 +15,9 @@
 #include <Eigen/Dense>
 #include <Eigen/LU>
 #include <Eigen/Core>
-#include <grid/dist/utils.h>
+#include <costar/dist/utils.h>
 
-#include <grid/robot_kinematics.h>
+#include <costar/robot_kinematics.h>
 
 /**
  * Features
@@ -25,7 +25,7 @@
  * Abstract method produces appropriate poses given queries.
  */
 
-namespace grid {
+namespace costar {
 
   // feature distribution defined here as a GCOP gmm for now
 

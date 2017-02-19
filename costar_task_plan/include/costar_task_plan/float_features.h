@@ -1,12 +1,12 @@
 #ifndef _GRID_FLOAT_FEATURES
 #define _GRID_FLOAT_FEATURES
 
-#include <grid/features.h>
+#include <costar/features.h>
 
 // training features reads the feature data from ROS topics
 #include <ros/ros.h>
 
-namespace grid {
+namespace costar {
   
   class TrainingFeatures: public Features {
 

@@ -1,10 +1,10 @@
 #ifndef _GRID_TEST_FEATURES
 #define _GRID_TEST_FEATURES
 
-#include <grid/features.h>
+#include <costar/features.h>
 #include <tf/transform_listener.h>
 
-namespace grid {
+namespace costar {
 
   class TestFeatures : public Features {
 

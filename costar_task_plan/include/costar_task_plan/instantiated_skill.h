@@ -3,12 +3,12 @@
 
 #include <memory>
 
-#include <grid/test_features.h>
-#include <grid/dmp_trajectory_distribution.h>
-#include <grid/trajectory_distribution.h>
-#include <grid/robot_kinematics.h>
-#include <grid/skill.h>
-#include <grid/utils/params.h>
+#include <costar/test_features.h>
+#include <costar/dmp_trajectory_distribution.h>
+#include <costar/trajectory_distribution.h>
+#include <costar/robot_kinematics.h>
+#include <costar/skill.h>
+#include <costar/utils/params.h>
 
 
 #include <actionlib/client/simple_action_client.h>
@@ -16,7 +16,7 @@
 
 #include <random>
 
-namespace grid {
+namespace costar {
 
   typedef std::shared_ptr<TestFeatures> TestFeaturesPtr;
 

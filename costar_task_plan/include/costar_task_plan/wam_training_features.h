@@ -1,15 +1,15 @@
 #ifndef _GRID_WAM_TRAINING_FEATURES
 #define _GRID_WAM_TRAINING_FEATURES
 
-#include <grid/features.h>
-#include <grid/training_features.h>
+#include <costar/features.h>
+#include <costar/training_features.h>
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
 
 // training features reads the feature data from ROS topics
 #include <ros/ros.h>
 
-namespace grid {
+namespace costar {
 
   class WamTrainingFeatures: public TrainingFeatures {
   public:

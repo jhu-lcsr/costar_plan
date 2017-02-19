@@ -1,7 +1,7 @@
 #ifndef _GRID_GRIPPER
 #define _GRID_GRIPPER
 
-namespace grid {
+namespace costar {
 
 
   struct Gripper {

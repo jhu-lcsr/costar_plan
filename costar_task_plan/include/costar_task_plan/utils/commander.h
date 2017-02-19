@@ -3,11 +3,11 @@
 
 #include <ros/ros.h>
 
-//#include <grid/trajectory.h>
-#include <grid/skill.h>
-#include <grid/robot_kinematics.h>
+//#include <costar/trajectory.h>
+#include <costar/skill.h>
+#include <costar/robot_kinematics.h>
 
-namespace grid {
+namespace costar {
 
   /**
    * Commander class

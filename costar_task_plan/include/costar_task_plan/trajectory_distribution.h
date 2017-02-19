@@ -1,12 +1,12 @@
 #ifndef _GRID_TRAJECTORY_DISTRIBUTION
 #define _GRID_TRAJECTORY_DISTRIBUTION
 
-#include <grid/features.h>
-#include <grid/test_features.h>
-#include <grid/skill.h>
-#include <grid/dist/gmm.h>
+#include <costar/features.h>
+#include <costar/test_features.h>
+#include <costar/skill.h>
+#include <costar/dist/gmm.h>
 
-namespace grid {
+namespace costar {
   static const unsigned int SPLINE_POS1(0);
   static const unsigned int SPLINE_VEL1(1);
   static const unsigned int SPLINE_ACC1(2);

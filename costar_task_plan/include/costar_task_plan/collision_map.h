@@ -4,7 +4,7 @@
 #include <vector>
 #include <unordered_map>
 
-namespace grid {
+namespace costar {
 
   typedef std::vector<double> Position_t; // store a set of joint positions
 

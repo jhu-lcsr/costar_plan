@@ -4,11 +4,11 @@
 #include <vector>
 #include <string>
 
-#include <grid/features.h>
-#include <grid/training_features.h>
+#include <costar/features.h>
+#include <costar/training_features.h>
 
 // used for other type definitions
-#include <grid/dist/gmm.h>
+#include <costar/dist/gmm.h>
 
 
 /**
@@ -16,7 +16,7 @@
  * Probabilistic representation of the soft set of constraints on a single skill.
  * */
 
-namespace grid {
+namespace costar {
 
   typedef gcop::Gmm<> Gmm;
   typedef std::shared_ptr<gcop::Gmm<> > GmmPtr;

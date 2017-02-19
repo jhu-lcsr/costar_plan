@@ -1,17 +1,17 @@
 #ifndef _GRID_DEBUG
 #define _GRID_DEBUG
 
-#include <grid/features.h>
+#include <costar/features.h>
 #include <geometry_msgs/PoseArray.h>
 #include <geometry_msgs/Pose.h>
 
-#include <grid/robot_kinematics.h>
+#include <costar/robot_kinematics.h>
 
 #include <vector>
 
 #include <trajectory_msgs/JointTrajectory.h>
 
-namespace grid {
+namespace costar {
 
   /*  create a pose array message from a KDL trajectory */
   geometry_msgs::PoseArray toPoseArray(Trajectory *traj,

@@ -1,7 +1,7 @@
 #ifdef _GRID_TASK_SERVER
 #define _GRID_TASK_SERVER
 
-namespace grid {
+namespace costar {
 
   /**
    * run the task server

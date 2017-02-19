@@ -3,12 +3,12 @@
 
 #include <memory>
 
-#include <grid/features.h>
-#include <grid/test_features.h>
-#include <grid/skill.h>
-#include <grid/dist/gmm.h>
-#include <grid/robot_kinematics.h>
-#include <grid/costar_planner.h>
+#include <costar/features.h>
+#include <costar/test_features.h>
+#include <costar/skill.h>
+#include <costar/dist/gmm.h>
+#include <costar/robot_kinematics.h>
+#include <costar/costar_planner.h>
 
 #include <kdl/jntarray.hpp>
 
@@ -21,7 +21,7 @@
 using trajectory_msgs::JointTrajectory;
 using trajectory_msgs::JointTrajectoryPoint;
 
-namespace grid {
+namespace costar {
 
   typedef std::shared_ptr<GridPlanner> TrajectoryCheckerPtr;
 

@@ -1,7 +1,7 @@
 #ifndef _GRID_TRAINING_FEATURES
 #define _GRID_TRAINING_FEATURES
 
-#include <grid/features.h>
+#include <costar/features.h>
 
 #include <unordered_map>
 
@@ -13,7 +13,7 @@
 
 #include <memory>
 
-namespace grid {
+namespace costar {
 
   struct WorldConfiguration {
     ros::Time t; 

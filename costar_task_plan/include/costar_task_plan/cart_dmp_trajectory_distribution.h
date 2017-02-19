@@ -1,11 +1,11 @@
 #ifndef _GRID_DMP_TRAJECTORY_DISTRIBUTION
 #define _GRID_DMP_TRAJECTORY_DISTRIBUTION
 
-#include <grid/features.h>
-#include <grid/test_features.h>
-#include <grid/skill.h>
-#include <grid/dist/gmm.h>
-#include <grid/robot_kinematics.h>
+#include <costar/features.h>
+#include <costar/test_features.h>
+#include <costar/skill.h>
+#include <costar/dist/gmm.h>
+#include <costar/robot_kinematics.h>
 
 #include <kdl/jntarray.hpp>
 
@@ -17,7 +17,7 @@
 
 using trajectory_msgs::JointTrajectory;
 
-namespace grid {
+namespace costar {
 
 
   /**

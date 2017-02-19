@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace grid {
+namespace costar {
 
   /**
    * Defines a PREDICATE.

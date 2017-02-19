@@ -41,10 +41,10 @@
 // primitives for motion planning
 #include <dmp/dmp.h>
 
-// grid dependencies
-#include <grid/collision_map.h>
+// costar dependencies
+#include <costar/collision_map.h>
 
-namespace grid {
+namespace costar {
 
   //typedef std::vector< std::vector <double> > Traj_t;
   typedef trajectory_msgs::JointTrajectory Traj_t;
