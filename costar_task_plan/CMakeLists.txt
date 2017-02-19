@@ -39,7 +39,6 @@ find_package(catkin REQUIRED COMPONENTS
   # action
   actionlib
 )
-)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -101,33 +100,33 @@ include_directories(
   ${EIGEN3_INCLUDE_DIRS} )
 
 set(PY_SOURCES
-  src/costar_planner.cpp
-  src/collision_map.cpp
+  cpp/costar_planner.cpp
+  cpp/collision_map.cpp
 )
 
 set(SOURCES 
-  src/costar_planner.cpp
-  src/collision_map.cpp
-  src/features.cpp
-  src/test_features.cpp
-  src/training_features.cpp
-  src/skill.cpp
-  src/visualize.cpp
-  src/wam_training_features.cpp
-  src/robot_kinematics.cpp
-  src/task_model.cpp
-  src/instantiated_skill.cpp
-  src/instantiated_skill_init.cpp
+  cpp/costar_planner.cpp
+  cpp/collision_map.cpp
+  cpp/features.cpp
+  cpp/test_features.cpp
+  cpp/training_features.cpp
+  cpp/skill.cpp
+  cpp/visualize.cpp
+  cpp/wam_training_features.cpp
+  cpp/robot_kinematics.cpp
+  cpp/task_model.cpp
+  cpp/instantiated_skill.cpp
+  cpp/instantiated_skill_init.cpp
 
-  src/traj/trajectory_distribution.cpp
-  src/traj/dmp_trajectory_distribution.cpp
+  cpp/traj/trajectory_distribution.cpp
+  cpp/traj/dmp_trajectory_distribution.cpp
 
-  src/utils/commander.cpp
-  src/utils/params.cpp
+  cpp/utils/commander.cpp
+  cpp/utils/params.cpp
 
-  src/wam/input.cpp
+  cpp/wam/input.cpp
 
-  src/dist/utils.cc
+  cpp/dist/utils.cc
 )
 
 set(PY_HEADERS
@@ -172,23 +171,23 @@ set_target_properties(pycostar_planner
   PREFIX ""
   LIBRARY_OUTPUT_DIRECTORY ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_PYTHON_DESTINATION})
 #add_python_export_library(${PY_PROJECT_NAME} ${PY_PACKAGE_DIR}
-#  src/costar_planner.cpp
+#  cpp/costar_planner.cpp
 #  include/grid/costar_planner.h
 #)
 
 ## Declare a cpp executable
-add_executable(costar_plan_node src/test/costar_plan_node.cpp)
-add_executable(features_test src/test/feature_computation_test.cpp)
-add_executable(trajectory_test src/test/trajectory_generation_test.cpp)
-add_executable(dmp_test src/test/dmp_generation_test.cpp)
-add_executable(training_test src/test/training_test_node.cpp)
-add_executable(execution_test src/test/execution_test_node.cpp)
-add_executable(dmp_execution_test src/test/dmp_execution_test_node.cpp)
-add_executable(moveit_robot_model_test src/test/moveit_robot_test.cpp)
+add_executable(costar_plan_node cpp/test/costar_plan_node.cpp)
+add_executable(features_test cpp/test/feature_computation_test.cpp)
+add_executable(trajectory_test cpp/test/trajectory_generation_test.cpp)
+add_executable(dmp_test cpp/test/dmp_generation_test.cpp)
+add_executable(training_test cpp/test/training_test_node.cpp)
+add_executable(execution_test cpp/test/execution_test_node.cpp)
+add_executable(dmp_execution_test cpp/test/dmp_execution_test_node.cpp)
+add_executable(moveit_robot_model_test cpp/test/moveit_robot_test.cpp)
 
-add_executable(task_test src/task_test_node.cpp)
-add_executable(simple_test src/simple_test_node.cpp)
-add_executable(align_test src/align_test_node.cpp)
+add_executable(task_test cpp/task_test_node.cpp)
+add_executable(simple_test cpp/simple_test_node.cpp)
+add_executable(align_test cpp/align_test_node.cpp)
 
 ## Add cmake target dependencies of the executable/libname,rary
 ## as an example, message headers may need to be generated before nodes
@@ -223,7 +222,7 @@ target_link_libraries(moveit_robot_model_test ${ALL_LIBRARIES})
 
 ## Declare a C++ library
 # add_library(ltl_tree_search
-#   src/${PROJECT_NAME}/ltl_tree_search.cpp
+#   cpp/${PROJECT_NAME}/ltl_tree_search.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -232,7 +231,7 @@ target_link_libraries(moveit_robot_model_test ${ALL_LIBRARIES})
 # add_dependencies(ltl_tree_search ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-# add_executable(ltl_tree_search_node src/ltl_tree_search_node.cpp)
+# add_executable(ltl_tree_search_node cpp/ltl_tree_search_node.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
