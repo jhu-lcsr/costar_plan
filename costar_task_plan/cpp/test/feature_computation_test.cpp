@@ -20,7 +20,7 @@ using namespace grid;
 using namespace KDL;
 
 int main (int argc, char **argv) {
-  ros::init(argc,argv,"grid_features_test_node");
+  ros::init(argc,argv,"costar_features_test_node");
   ros::NodeHandle nh;
   ros::Publisher pub = nh.advertise<geometry_msgs::PoseArray>("trajectory",1000);
   ros::Publisher fpub = nh.advertise<geometry_msgs::PoseArray>("features",1000);

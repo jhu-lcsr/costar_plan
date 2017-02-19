@@ -12,7 +12,7 @@
 
 
 #include <actionlib/client/simple_action_client.h>
-#include <grid_plan_msgs/CommandAction.h>
+#include <costar_plan_msgs/CommandAction.h>
 
 #include <random>
 
@@ -218,7 +218,7 @@ namespace grid {
      * use gripper tool to send messages
      */
     bool execute(GridPlanner &gp,
-                 actionlib::SimpleActionClient<grid_plan_msgs::CommandAction> &ac,
+                 actionlib::SimpleActionClient<costar_plan_msgs::CommandAction> &ac,
                  int horizon,
                  bool replan = false,
                  int replan_depth = 0);

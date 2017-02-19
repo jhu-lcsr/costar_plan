@@ -8,7 +8,7 @@
 #include <grid/skill.h>
 #include <grid/dist/gmm.h>
 #include <grid/robot_kinematics.h>
-#include <grid/grid_planner.h>
+#include <grid/costar_planner.h>
 
 #include <kdl/jntarray.hpp>
 

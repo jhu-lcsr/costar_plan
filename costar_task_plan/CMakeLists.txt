@@ -1,12 +1,44 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(costar_task_plan)
 
+
+add_definitions(-g -std=c++0x -pthread -O1)
+
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   costar_plan_msgs
   rospy
+  
+  dmp
+  #costar_experiments
+  #costar_tasks
+
+  kdl_parser
+  urdf
+
+  # TF
+  tf
+  tf_conversions
+
+  # MoveIt stuff
+  moveit_core
+  moveit_msgs
+  moveit_ros_perception
+  moveit_ros_planning_interface
+  moveit_ros_planning
+
+  # messages
+  sensor_msgs
+  trajectory_msgs
+
+  # ros stuff
+  rosbag
+
+  # action
+  actionlib
+)
 )
 
 ## System dependencies are found with CMake's conventions
@@ -62,8 +94,132 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
   include
+  ${orocos_kdl_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
+  ${Boost_INCLUDE_DIRS}
+  ${PYTHON_INCLUDE_PATH}
+  ${EIGEN3_INCLUDE_DIRS} )
+
+set(PY_SOURCES
+  src/costar_planner.cpp
+  src/collision_map.cpp
 )
+
+set(SOURCES 
+  src/costar_planner.cpp
+  src/collision_map.cpp
+  src/features.cpp
+  src/test_features.cpp
+  src/training_features.cpp
+  src/skill.cpp
+  src/visualize.cpp
+  src/wam_training_features.cpp
+  src/robot_kinematics.cpp
+  src/task_model.cpp
+  src/instantiated_skill.cpp
+  src/instantiated_skill_init.cpp
+
+  src/traj/trajectory_distribution.cpp
+  src/traj/dmp_trajectory_distribution.cpp
+
+  src/utils/commander.cpp
+  src/utils/params.cpp
+
+  src/wam/input.cpp
+
+  src/dist/utils.cc
+)
+
+set(PY_HEADERS
+  include/grid/costar_planner.h
+  include/grid/collision_map.h
+)
+
+set(HEADERS
+  include/grid/costar_planner.h
+  include/grid/collision_map.h
+  include/grid/test_features.h
+  include/grid/skill.h
+  include/grid/training_features.h
+  include/grid/features.h
+  include/grid/visualize.h
+  include/grid/trajectory_distribution.h
+  include/grid/dmp_trajectory_distribution.h
+  include/grid/wam_training_features.h
+  include/grid/robot_kinematics.h
+  include/grid/task_model.h
+  include/grid/instantiated_skill.h
+
+  include/grid/utils/commander.h
+  include/grid/utils/params.h
+
+  include/grid/wam/input.h
+
+  include/grid/dist/gmm.h
+  include/grid/dist/normal.h
+  include/grid/dist/utils.h
+)
+
+## Declare a cpp library
+add_library(costar_planner ${SOURCES} ${HEADERS})
+add_library(pycostar_planner ${PY_SOURCES} ${PY_HEADERS})
+
+SET(PY_PROJECT_NAME grid)
+SET(PY_PACKAGE_DIR python/grid)
+
+set_target_properties(pycostar_planner
+  PROPERTIES COMPILE_FLAGS -DGEN_PYTHON_BINDINGS
+  PREFIX ""
+  LIBRARY_OUTPUT_DIRECTORY ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_PYTHON_DESTINATION})
+#add_python_export_library(${PY_PROJECT_NAME} ${PY_PACKAGE_DIR}
+#  src/costar_planner.cpp
+#  include/grid/costar_planner.h
+#)
+
+## Declare a cpp executable
+add_executable(costar_plan_node src/test/costar_plan_node.cpp)
+add_executable(features_test src/test/feature_computation_test.cpp)
+add_executable(trajectory_test src/test/trajectory_generation_test.cpp)
+add_executable(dmp_test src/test/dmp_generation_test.cpp)
+add_executable(training_test src/test/training_test_node.cpp)
+add_executable(execution_test src/test/execution_test_node.cpp)
+add_executable(dmp_execution_test src/test/dmp_execution_test_node.cpp)
+add_executable(moveit_robot_model_test src/test/moveit_robot_test.cpp)
+
+add_executable(task_test src/task_test_node.cpp)
+add_executable(simple_test src/simple_test_node.cpp)
+add_executable(align_test src/align_test_node.cpp)
+
+## Add cmake target dependencies of the executable/libname,rary
+## as an example, message headers may need to be generated before nodes
+add_dependencies(costar_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(costar_plan_node costar_planner)
+add_dependencies(features_test costar_planner)
+
+## Specify libraries to link a library or executable target against
+target_link_libraries(costar_planner
+  ${orocos_kdl_LIBRARIES} ${catkin_LIBRARIES} ${GCOP_LIBRARIES} ${Boost_LIBRARIES} ${EIGEN3_LIBRARIES} ${PYTHON_LIBRARIES}
+)
+target_link_libraries(pycostar_planner
+  ${orocos_kdl_LIBRARIES} ${catkin_LIBRARIES} ${GCOP_LIBRARIES} ${Boost_LIBRARIES} ${EIGEN3_LIBRARIES} ${PYTHON_LIBRARIES}
+  #${catkin_LIBRARIES} ${Boost_LIBRARIES} ${PYTHON_LIBRARIES}
+)
+
+SET(ALL_LIBRARIES 
+  costar_planner ${orocos_kdl_LIBRARIES} ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${EIGEN3_LIBRARIES} ${PYTHON_LIBRARIES}
+)
+
+target_link_libraries(costar_plan_node ${ALL_LIBRARIES})
+target_link_libraries(features_test ${ALL_LIBRARIES})
+target_link_libraries(trajectory_test ${ALL_LIBRARIES})
+target_link_libraries(dmp_test ${ALL_LIBRARIES})
+target_link_libraries(training_test ${ALL_LIBRARIES})
+target_link_libraries(execution_test ${ALL_LIBRARIES})
+target_link_libraries(dmp_execution_test ${ALL_LIBRARIES})
+target_link_libraries(task_test ${ALL_LIBRARIES})
+target_link_libraries(simple_test ${ALL_LIBRARIES})
+target_link_libraries(align_test ${ALL_LIBRARIES})
+target_link_libraries(moveit_robot_model_test ${ALL_LIBRARIES})
 
 ## Declare a C++ library
 # add_library(ltl_tree_search
@@ -121,13 +277,6 @@ include_directories(
 #   # myfile2
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
-
-
-catkin_install_python(
-  PROGRAMS
-    python/costar_task_plan/road_world/ltl/ltl_binaries/ltl2ba
-    python/costar_task_plan/road_world/ltl/ltl_binaries/ltl2dstar
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 #############
 ## Testing ##

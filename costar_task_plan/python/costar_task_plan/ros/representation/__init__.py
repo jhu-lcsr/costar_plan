@@ -1,9 +1,9 @@
 
 " types and utilities "
-from grid_types import Demonstration
-from grid_types import LoadYaml
-from grid_types import SaveYaml
-from grid_types import GetPoseMessage
+from costar_types import Demonstration
+from costar_types import LoadYaml
+from costar_types import SaveYaml
+from costar_types import GetPoseMessage
 
 " DMP tools for quick development and testing "
 from dmp_utils import RequestDMP

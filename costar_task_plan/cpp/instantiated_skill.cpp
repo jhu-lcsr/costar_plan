@@ -2,7 +2,7 @@
 #include <grid/visualize.h>
 //#include <grid/utils/params.hpp>
 
-using namespace grid_plan_msgs;
+using namespace costar_plan_msgs;
 
 using trajectory_msgs::JointTrajectory;
 using trajectory_msgs::JointTrajectoryPoint;
@@ -489,7 +489,7 @@ namespace grid {
    * execute as we reach nodes that require it
    * use gripper tool to send messages
    */
-  bool InstantiatedSkill::execute(GridPlanner &gp, actionlib::SimpleActionClient<grid_plan_msgs::CommandAction> &ac,
+  bool InstantiatedSkill::execute(GridPlanner &gp, actionlib::SimpleActionClient<costar_plan_msgs::CommandAction> &ac,
                                   int horizon, bool replan, int replan_depth)
   {
 

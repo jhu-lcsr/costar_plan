@@ -3,7 +3,7 @@
 #include <grid/test_features.h>
 #include <grid/wam_training_features.h>
 #include <grid/visualize.h>
-#include <grid/grid_planner.h>
+#include <grid/costar_planner.h>
 #include <grid/utils/params.h>
 
 #include <grid/wam/input.h>
@@ -18,7 +18,7 @@ using namespace KDL;
 using trajectory_msgs::JointTrajectory;
 
 int main(int argc, char **argv) {
-  ros::init(argc,argv,"grid_execution_test_node");
+  ros::init(argc,argv,"costar_execution_test_node");
   ros::NodeHandle nh;
   ros::Publisher pub = nh.advertise<geometry_msgs::PoseArray>("trajectory_examples",1000);
   ros::Publisher jpub = nh.advertise<trajectory_msgs::JointTrajectory>("trajectory",1000);

@@ -1,4 +1,4 @@
-#include <grid/grid_planner.h>
+#include <grid/costar_planner.h>
 #include <tf/transform_listener.h>
 
 #include <exception>
@@ -522,7 +522,7 @@ namespace grid {
   }
 
 #ifdef GEN_PYTHON_BINDINGS
-  BOOST_PYTHON_MODULE(pygrid_planner) {
+  BOOST_PYTHON_MODULE(pycostar_planner) {
     class_<grid::GridPlanner>("GridPlanner",init<std::string,std::string,std::string,double>())
       .def("Plan", &grid::GridPlanner::Plan)
       .def("AddAction", &grid::GridPlanner::AddAction)

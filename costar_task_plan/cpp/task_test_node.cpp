@@ -10,7 +10,7 @@
 #include <grid/skill.h>
 #include <grid/task_model.h>
 #include <grid/robot_kinematics.h>
-#include <grid/grid_planner.h>
+#include <grid/costar_planner.h>
 #include <grid/visualize.h>
 #include <grid/utils/params.h>
 #include <grid/wam/input.h>
@@ -23,7 +23,7 @@
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/client/terminal_state.h>
 
-#include <grid_plan_msgs/CommandAction.h>
+#include <costar_plan_msgs/CommandAction.h>
 
 using namespace grid;
 
@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
   ros::init(argc,argv,"task_model_test_node");
   ros::NodeHandle nh;
 
-  actionlib::SimpleActionClient<grid_plan_msgs::CommandAction> ac("command", true);
+  actionlib::SimpleActionClient<costar_plan_msgs::CommandAction> ac("command", true);
 
   Params p = readRosParams();
   RobotKinematicsPtr robot = RobotKinematicsPtr(new RobotKinematics("robot_description","wam/base_link","wam/wrist_palm_link"));

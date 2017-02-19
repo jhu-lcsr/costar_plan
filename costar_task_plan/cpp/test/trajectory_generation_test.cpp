@@ -8,7 +8,7 @@ using namespace grid;
 using namespace KDL;
 
 int main(int argc, char **argv) {
-  ros::init(argc,argv,"grid_trajectory_test_node");
+  ros::init(argc,argv,"costar_trajectory_test_node");
   ros::NodeHandle nh;
   ros::Publisher pub = nh.advertise<geometry_msgs::PoseArray>("trajectory_examples",1000);
 

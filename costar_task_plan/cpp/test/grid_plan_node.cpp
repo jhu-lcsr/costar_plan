@@ -1,10 +1,10 @@
 #include <ros/ros.h>
-#include <grid/grid_planner.h>
+#include <grid/costar_planner.h>
 
 using namespace grid;
 
 int main(int argc, char **argv) {
-  ros::init(argc,argv,"grid_plan_node");
+  ros::init(argc,argv,"costar_plan_node");
   GridPlanner gp("robot_description","/joint_states","/planning_scene");
 #if 0
   gp.SetDof(7);
