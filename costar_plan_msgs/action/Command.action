@@ -1,0 +1,14 @@
+# goal
+trajectory_msgs/JointTrajectory traj
+string name
+
+# world configuration
+string[] keys
+string[] values
+
+---
+# result 
+int32 result
+---
+# feedback
+float64 t
