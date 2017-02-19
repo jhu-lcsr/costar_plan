@@ -4,7 +4,12 @@ project(costar_plan_msgs)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS actionlib message_generation)
+find_package(catkin REQUIRED COMPONENTS
+  actionlib
+  message_generation
+  trajectory_msgs
+  actionlib_msgs
+  sensor_msgs)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -13,7 +18,7 @@ find_package(catkin REQUIRED COMPONENTS actionlib message_generation)
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
-catkin_python_setup()
+# catkin_python_setup()
 
 ################################################
 ## Declare ROS messages, services and actions ##
@@ -171,13 +176,6 @@ include_directories(
 #   # myfile2
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
-
-
-catkin_install_python(
-  PROGRAMS
-    python/task_tree_search/road_world/ltl/ltl_binaries/ltl2ba
-    python/task_tree_search/road_world/ltl/ltl_binaries/ltl2dstar
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 #############
 ## Testing ##
