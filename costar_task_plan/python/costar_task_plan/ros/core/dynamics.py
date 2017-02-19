@@ -1,7 +1,7 @@
 
 from actor import *
 
-from costar_task_search.abstract import AbstractDynamics
+from costar_task_plan.abstract import AbstractDynamics
 
 import rospy
 from sensor_msgs.msg import JointState

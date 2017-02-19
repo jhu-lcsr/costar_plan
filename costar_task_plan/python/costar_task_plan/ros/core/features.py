@@ -1,5 +1,5 @@
 
-from costar_task_search.abstract import AbstractFeatures
+from costar_task_plan.abstract import AbstractFeatures
 
 '''
 Standard CoSTAR features:

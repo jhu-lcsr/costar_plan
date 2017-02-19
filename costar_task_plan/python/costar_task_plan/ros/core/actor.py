@@ -1,5 +1,5 @@
 
-from costar_task_search.abstract import *
+from costar_task_plan.abstract import *
 
 '''
 State of a particular actor.

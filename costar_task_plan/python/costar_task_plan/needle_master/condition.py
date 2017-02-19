@@ -1,5 +1,5 @@
 
-from costar_task_search.abstract import Condition
+from costar_task_plan.abstract import Condition
 
 class InGateCondition(AbstractCondition):
   name = "in gate"

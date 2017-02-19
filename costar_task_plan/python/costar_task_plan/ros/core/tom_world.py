@@ -2,7 +2,7 @@
 # (c) 2017 The Johns Hopkins University
 # See License for more details
 
-from costar_task_search.datasets import TomDataset
+from costar_task_plan.datasets import TomDataset
 
 from world import *
 from demo_reward import *

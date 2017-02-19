@@ -1,7 +1,7 @@
 
 from node import Node
 
-from costar_task_search.abstract import *
+from costar_task_plan.abstract import *
 
 import operator
 import numpy as np

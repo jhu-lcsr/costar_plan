@@ -2,7 +2,7 @@ import os
 import numpy as np
 import pygame as pg
 
-from costar_task_search.mcts import Node
+from costar_task_plan.mcts import Node
 
 '''
 loop over all MCTS scenarios

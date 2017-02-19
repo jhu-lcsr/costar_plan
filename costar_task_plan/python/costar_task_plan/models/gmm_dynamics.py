@@ -1,7 +1,7 @@
 
 import numpy as np
 
-from costar_task_search.abstract import AbstractDynamics
+from costar_task_plan.abstract import AbstractDynamics
 
 from dynamics_gmm import DynamicsPriorGMM
 

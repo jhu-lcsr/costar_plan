@@ -1,4 +1,4 @@
-from costar_task_search.abstract import *
+from costar_task_plan.abstract import *
 
 import matplotlib.pyplot as plt
 import numpy as np

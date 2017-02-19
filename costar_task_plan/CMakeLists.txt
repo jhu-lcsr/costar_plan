@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(costar_task_search)
+project(costar_task_plan)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -174,8 +174,8 @@ include_directories(
 
 catkin_install_python(
   PROGRAMS
-    python/costar_task_search/road_world/ltl/ltl_binaries/ltl2ba
-    python/costar_task_search/road_world/ltl/ltl_binaries/ltl2dstar
+    python/costar_task_plan/road_world/ltl/ltl_binaries/ltl2ba
+    python/costar_task_plan/road_world/ltl/ltl_binaries/ltl2dstar
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 #############

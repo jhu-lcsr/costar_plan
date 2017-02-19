@@ -1,4 +1,4 @@
-from costar_task_search.abstract import *
+from costar_task_plan.abstract import *
 
 from environment import *
 from demo import *

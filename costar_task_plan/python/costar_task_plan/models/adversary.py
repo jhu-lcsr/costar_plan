@@ -1,7 +1,7 @@
 
 import numpy as np
 
-from costar_task_search.abstract.params import Params
+from costar_task_plan.abstract.params import Params
 
 '''
 Choose the opt we are going to use for our next trial.

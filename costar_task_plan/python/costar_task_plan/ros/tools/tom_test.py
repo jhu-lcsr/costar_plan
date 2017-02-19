@@ -6,8 +6,8 @@
 
 from tom_util import *
 
-from costar_task_search.ros.core import *
-from costar_task_search.abstract import AbstractReward
+from costar_task_plan.ros.core import *
+from costar_task_plan.abstract import AbstractReward
 
 import rospy
 
