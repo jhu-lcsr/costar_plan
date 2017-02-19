@@ -15,8 +15,9 @@ from datasets import *
 from needle_master import *
 from abstract import *
 from core import *
-from grid_world import *
-from road_world import *
+
+# NOTE: grid_world not currently supported
+#from grid_world import *
 
 # Creating packages if you think that's easier to deal with
 import abstract
