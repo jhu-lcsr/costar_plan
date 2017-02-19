@@ -130,41 +130,41 @@ set(SOURCES
 )
 
 set(PY_HEADERS
-  include/grid/costar_planner.h
-  include/grid/collision_map.h
+  include/costar_task_plan/costar_planner.h
+  include/costar_task_plan/collision_map.h
 )
 
 set(HEADERS
-  include/grid/costar_planner.h
-  include/grid/collision_map.h
-  include/grid/test_features.h
-  include/grid/skill.h
-  include/grid/training_features.h
-  include/grid/features.h
-  include/grid/visualize.h
-  include/grid/trajectory_distribution.h
-  include/grid/dmp_trajectory_distribution.h
-  include/grid/wam_training_features.h
-  include/grid/robot_kinematics.h
-  include/grid/task_model.h
-  include/grid/instantiated_skill.h
+  include/costar_task_plan/costar_planner.h
+  include/costar_task_plan/collision_map.h
+  include/costar_task_plan/test_features.h
+  include/costar_task_plan/skill.h
+  include/costar_task_plan/training_features.h
+  include/costar_task_plan/features.h
+  include/costar_task_plan/visualize.h
+  include/costar_task_plan/trajectory_distribution.h
+  include/costar_task_plan/dmp_trajectory_distribution.h
+  include/costar_task_plan/wam_training_features.h
+  include/costar_task_plan/robot_kinematics.h
+  include/costar_task_plan/task_model.h
+  include/costar_task_plan/instantiated_skill.h
 
-  include/grid/utils/commander.h
-  include/grid/utils/params.h
+  include/costar_task_plan/utils/commander.h
+  include/costar_task_plan/utils/params.h
 
-  include/grid/wam/input.h
+  include/costar_task_plan/wam/input.h
 
-  include/grid/dist/gmm.h
-  include/grid/dist/normal.h
-  include/grid/dist/utils.h
+  include/costar_task_plan/dist/gmm.h
+  include/costar_task_plan/dist/normal.h
+  include/costar_task_plan/dist/utils.h
 )
 
 ## Declare a cpp library
 add_library(costar_planner ${SOURCES} ${HEADERS})
 add_library(pycostar_planner ${PY_SOURCES} ${PY_HEADERS})
 
-SET(PY_PROJECT_NAME grid)
-SET(PY_PACKAGE_DIR python/grid)
+SET(PY_PROJECT_NAME costar_task_plan)
+SET(PY_PACKAGE_DIR python/costar_task_plan)
 
 set_target_properties(pycostar_planner
   PROPERTIES COMPILE_FLAGS -DGEN_PYTHON_BINDINGS
@@ -172,7 +172,7 @@ set_target_properties(pycostar_planner
   LIBRARY_OUTPUT_DIRECTORY ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_PYTHON_DESTINATION})
 #add_python_export_library(${PY_PROJECT_NAME} ${PY_PACKAGE_DIR}
 #  cpp/costar_planner.cpp
-#  include/grid/costar_planner.h
+#  include/costar_task_plan/costar_planner.h
 #)
 
 ## Declare a cpp executable
