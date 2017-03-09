@@ -30,6 +30,3 @@ from policy_oracle import *
 from adversary import *
 import adversary
 
-# for specific files
-import road_world
-

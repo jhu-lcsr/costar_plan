@@ -16,14 +16,11 @@ from needle_master import *
 from abstract import *
 from core import *
 
-# NOTE: costar_world not currently supported
-#from costar_world import *
-
 # Creating packages if you think that's easier to deal with
 import abstract
+import grid_world
 import needle_master
-import costar_world
-import road_world
+import robotics
 
 try:
   import ros

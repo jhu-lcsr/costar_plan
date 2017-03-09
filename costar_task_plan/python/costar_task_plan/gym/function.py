@@ -4,10 +4,7 @@ from gym import error, spaces
 from gym import utils
 from gym.utils import seeding
 
-from utils import *
-
 import pygame as pg
-import costar_task_plan.road_world as rw
 import costar_task_plan.abstract as abstract
 import costar_task_plan.draw as draw
 

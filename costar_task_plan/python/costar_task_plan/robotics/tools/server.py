@@ -2,9 +2,8 @@
 # (c) 2017 The Johns Hopkins University
 # See License for more details
 
-from costar_task_plan.ros.core import CostarWorld
-from costar_task_plan.ros.core import TomWorld
-
+from costar_task_plan.robotics.core import CostarWorld
+from costar_task_plan.robotics.core import TomWorld
 
 '''
 This takes a task definition and sets up an action server.

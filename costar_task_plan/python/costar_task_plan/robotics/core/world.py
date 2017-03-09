@@ -78,9 +78,9 @@ class CostarWorld(AbstractWorld):
           PoseArray,
           queue_size=1000)
 
-    def parse(self, cmd):
-        if self.cmd_parser is None:
-            raise RuntimeError('No command parser provided.)
+  def parse(self, cmd):
+    if self.cmd_parser is None:
+      raise RuntimeError('No command parser provided.')
 
   def getT(self,robot_config,*args,**kwargs):
     if self.fake:
