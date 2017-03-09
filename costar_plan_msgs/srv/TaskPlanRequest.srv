@@ -1,0 +1,6 @@
+costar_plan_msgs/ActionConfig[] actions
+costar_plan_msgs/ObjectConfig[] objects
+---
+int32 code
+trajectory_msgs/JointTrajectory[] trajectories
+string[] actions

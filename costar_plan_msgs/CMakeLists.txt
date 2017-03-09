@@ -49,6 +49,7 @@ add_message_files(
   FILES
     Statistics.msg
     ActionConfig.msg
+    ObjectConfig.msg
 )
 
 ## Generate services in the 'srv' folder
