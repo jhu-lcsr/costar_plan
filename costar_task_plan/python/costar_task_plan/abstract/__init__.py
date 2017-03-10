@@ -13,7 +13,7 @@ The important World functions to know about are:
   fork(action) -- split off a version of the world assuming the learner takes
                   a particular action at the current time step.
 '''
-from abstract_world import *
+from world import *
 
 '''
 Describe abstract feature generators.
