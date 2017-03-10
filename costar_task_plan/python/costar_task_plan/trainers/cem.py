@@ -10,6 +10,22 @@ from util import *
 import numpy as np
 
 '''
+Standard "get weights" function
+'''
+def nn_get_weights(model):
+  return model.get_weights()
+
+def nn_construct(actor, weights):
+  new_actor = clone_model(actor)
+  new_actor.set_weights(weights)
+  return new_actor
+
+def nn_predict(actor, state):
+  batch = np.array([state])
+  raw_action = actor.predict(batch)[0]
+  return raw_action
+
+'''
 default trainer class
 '''
 class CemTrainer(AbstractTrainer):
@@ -21,6 +37,9 @@ class CemTrainer(AbstractTrainer):
         sigma=1e-8, #add to covariance
         learning_rate=0.75, # learning rate
         elite=None, # number of elite members to choose
+        get_weights_fn=nn_get_weights,
+        construct_fn=nn_construct,
+        predict_fn=nn_predict,
         *args, **kwargs):
 
         # We sum along the whole trajectory to compute rewards.
@@ -32,6 +51,9 @@ class CemTrainer(AbstractTrainer):
 
         self.initial_trainer = initial_trainer
         self.initial_model = initial_model
+        self.get_weights_fn = get_weights_fn
+        self.construct_fn = construct_fn
+        self.predict_fn = predict_fn
 
         self.Z = []
         self.noise = noise
@@ -63,7 +85,7 @@ class CemTrainer(AbstractTrainer):
       R = [r  if r > 1e-20 else 0 for r in R]
       print "CEM weights = ", R
       for i, (_, model) in enumerate(data):
-        wts = model.get_weights()
+        wts = self.get_weights_fn(model)
         model_wt = R[i]
         for (mu, sigma, shape), wt in zip(self.Z, wts):
           mu += ((1 - self.learning_rate) * model_wt * wt).flatten()
@@ -86,18 +108,14 @@ class CemTrainer(AbstractTrainer):
           print sigma.shape
           raise e
         weights.append(wt.reshape(shape))
-      new_actor = clone_model(self.actor)
-      new_actor.set_weights(weights)
-      return new_actor
 
+      return self.construct_fn(self.actor, weights)
 
     '''
     Sample a particular command from a model
     '''
     def sample_from_model(self, state, model):
-      batch = np.array([state])
-      raw_action = model.predict(batch)[0]
-      return raw_action
+      return self.predict_fn(model, state)
 
     '''
     No compilation needed here --
