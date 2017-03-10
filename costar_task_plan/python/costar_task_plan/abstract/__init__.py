@@ -58,7 +58,9 @@ options.
 from task import Task
 
 
-__all__ = ['AbstractWorld', 'AbstractAction', 'Abstractstate',
-    'AbstractOption', 'AbstractPolicy', 'AbstractDynamics',
-    'Task','AbstractTrainer']
+__all__ = ['AbstractWorld', 'AbstractAction', 'AbstractState',
+           'AbstractOption', 'AbstractPolicy', 'AbstractDynamics', 'Task',
+           'StateTrajectory','AbstractTrajectoryAction', 'AbstractActor',
+           'AbstractTrajectoryDynamics', 'NullOption',
+           ]
 

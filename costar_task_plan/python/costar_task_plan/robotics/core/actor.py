@@ -1,4 +1,6 @@
 
+import numpy as np
+
 from costar_task_plan.abstract import *
 
 '''

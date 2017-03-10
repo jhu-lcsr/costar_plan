@@ -60,4 +60,30 @@ class AbstractOption(object):
         raise RuntimeError('option.checkPostcondition() requires an initial state!')
     raise NotImplementedError('option.checkPostcondition() not yet implemented!')
 
+'''
+Create an empty option for the root of the tree. It's always complete, and will
+therefore return an empty policy and an empty gating condition.
+'''
+class NullOption(AbstractOption):
 
+  def __init__(self):
+    super(NullOption, self).__init__(name="root")
+
+  @property
+  def get_name(self):
+    return name
+
+  def makeWorld(self, *args, **kwargs):
+    raise Exception('cannot make training world for this option')
+
+  def makePolicy(self):
+    return None
+
+  def getGatingCondition(self, state, *args, **kwargs):
+    return None
+
+  def checkPrecondition(self, world, state):
+    return True
+
+  def checkPostcondition(self, world, state):
+    return True
