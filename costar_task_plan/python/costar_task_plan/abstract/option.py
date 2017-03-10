@@ -40,3 +40,24 @@ class AbstractOption(object):
         raise RuntimeError('option.getGatingCondition() requires an initial state!')
     raise NotImplementedError('option.getGatingCondition() not yet implemented!')
 
+  '''
+  Is it ok to begin this option?
+  '''
+  def checkPrecondition(self, world, state):
+    if not isinstance(world, AbstractWorld):
+        raise RuntimeError('option.checkPrecondition() requires a valid world!')
+    if not isinstance(state, AbstractState):
+        raise RuntimeError('option.checkPrecondition() requires an initial state!')
+    raise NotImplementedError('option.checkPrecondition() not yet implemented!')
+
+  '''
+  Did we successfully complete this option?
+  '''
+  def checkPostcondition(self, world, state):
+    if not isinstance(world, AbstractWorld):
+        raise RuntimeError('option.checkPostcondition() requires a valid world!')
+    if not isinstance(state, AbstractState):
+        raise RuntimeError('option.checkPostcondition() requires an initial state!')
+    raise NotImplementedError('option.checkPostcondition() not yet implemented!')
+
+

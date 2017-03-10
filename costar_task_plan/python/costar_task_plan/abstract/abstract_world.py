@@ -1,41 +1,7 @@
 import copy
 
-class AbstractState(object):
-
-  def __init__(self):
-    self.predicates = []
-    self.event_info = None
-
-  '''
-  toArray(): convert this state to a numpy array
-  '''
-  def toArray(self):
-    raise Exception('conversion to array not implemented!')
-
-  def updatePredicates(self, world, actor):
-    self.predicates = [check(world, self, actor, actor.last_state)
-        for (name, check)
-        in world.predicates]
-
-  '''
-  compute distance metric to a state
-  '''
-  def dist(self, other_state):
-    return np.linalg.norm(self.toArray() - other_state.toArray())
-
-class AbstractAction(object):
-
-  '''
-  toArray(): convert this action to a numpy array
-  '''
-  def toArray(self):
-    raise Exception('conversion to array not implemented!')
-
-  '''
-  compute distance metric to an action
-  '''
-  def dist(self, other_action):
-    return np.linalg.norm(self.toArray() - other_action.toArray())
+from state import AbstractState
+from action import AbstractAction
 
 '''
 Nonspecific implementation that encapsulates a particular RL/planning problem.
@@ -60,9 +26,8 @@ class AbstractWorld(object):
     self.predicates = []
     self.predicate_idx = {}
     self.num_actors = 0
-    self.init_dra_states = {}
     self.sprites = []
-    self.dra = []
+    self.task = None
     self.dt = 0.1
     self.ticks = 0
     self.max_ticks = 100
@@ -73,8 +38,8 @@ class AbstractWorld(object):
     # This should be coupled with new collision conditions.
     self.draw_sprites = False
 
-  def addDra(self, dra):
-    self.dra.append(dra)
+  def setTask(self, task):
+    self.task = task
 
   def addActor(self, actor):
     actor.setId(len(self.actors))
