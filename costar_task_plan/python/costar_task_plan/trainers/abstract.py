@@ -29,6 +29,7 @@ class AbstractTrainer(object):
         max_rollout_length=1000,
         batch_size=1,
         discount=0.1,
+        learning_rate=0.1,
         train_args={}):
 
         self.env = env
@@ -38,6 +39,7 @@ class AbstractTrainer(object):
         self.discount = discount
         self.train_args = train_args
         self.max_rollout_length = max_rollout_length
+        self.learning_rate = learning_rate
 
         self._break = False
 

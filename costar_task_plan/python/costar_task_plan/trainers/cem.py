@@ -12,7 +12,6 @@ class CemTrainer(AbstractTrainer):
         initial_trainer=None,
         initial_model=None,
         noise=1e-1, # noise in initial covariance
-        alpha=0.75, # step size
         sigma=1e-8, #add to covariance
         elite=None, # number of elite members to choose
         *args, **kwargs):
@@ -25,7 +24,6 @@ class CemTrainer(AbstractTrainer):
 
         self.Z = []
         self.noise = noise
-        self.alpha = alpha
         self.actor = None
         self.elite = elite
         self.sigma_noise = sigma
@@ -47,8 +45,8 @@ class CemTrainer(AbstractTrainer):
       print "min = ", np.min(R)
 
       for (mu, sigma, _) in self.Z:
-        mu *= self.alpha
-        sigma *= self.alpha
+        mu *= self.learning_rate
+        sigma *= self.learning_rate
 
       R = [np.exp(r) / sum_r for r in R]
       R = [r  if r > 1e-20 else 0 for r in R]
@@ -57,10 +55,10 @@ class CemTrainer(AbstractTrainer):
         wts = model.get_weights()
         model_wt = R[i]
         for (mu, sigma, shape), wt in zip(self.Z, wts):
-          mu += ((1 - self.alpha) * model_wt * wt).flatten()
+          mu += ((1 - self.learning_rate) * model_wt * wt).flatten()
         for (mu, sigma, shape), wt in zip(self.Z, wts):
           dwt = wt.flatten() - mu
-          sigma += ((1 - self.alpha) * model_wt * np.dot(dwt.T, dwt))
+          sigma += ((1 - self.learning_rate) * model_wt * np.dot(dwt.T, dwt))
           sigma += np.eye(sigma.shape[0]) * self.sigma_noise
 
     '''

@@ -36,6 +36,7 @@ class ReinforceTrainer(AbstractTrainer):
 
         self.actor = actor # store RNN model
         self.std = std # store variance model
+        self.critic = critic # store value network
         self.grads = [] # store gradients
         self.optimizer = None
         self.reward_scale = reward_scale
@@ -77,7 +78,7 @@ class ReinforceTrainer(AbstractTrainer):
       std_values = self.std(self.x)
 
       # Define A3C cost and gradient update equations
-      self.a = tf.placeholder("float", [None, self.env.action_space.n])
+      self.a = tf.placeholder("float", [None,] + list(self.env.action_space.shape))
       self.R = tf.placeholder("float", [None, ])
 
       # A should be a one-hot vector, so this gives us a log probability.
