@@ -6,10 +6,10 @@ from costar_task_plan.trainers import CemTrainer
 from costar_task_plan.gym import PointEnv
 
 def get_weights(model):
-    return model
+    return [model]
 
 def construct(model, weights):
-    return weights
+    return weights[0]
 
 def predict(model, state):
     return model
@@ -21,11 +21,13 @@ def callback(data, reward, count):
   print count
 
 def test(center, guess):
+  print "start with: ", np.array(guess)
+  print "goal is: ", np.array(center)
   env = PointEnv(np.array(center))
   trainer = CemTrainer(env,
       initial_model=np.array(guess),
       noise=1e-1,
-      rollouts=25,
+      rollouts=1,
       learning_rate=0.5,
       callback=callback,
       get_weights_fn=get_weights,
