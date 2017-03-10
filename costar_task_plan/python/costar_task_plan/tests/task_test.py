@@ -48,7 +48,7 @@ def test1():
     'obj': ['apple', 'orange'],
     'goal': ['basket'],
   }
-  task.compile(args)
+  print task.compile(args)
   task.printNodes()
 
 if __name__ == '__main__':

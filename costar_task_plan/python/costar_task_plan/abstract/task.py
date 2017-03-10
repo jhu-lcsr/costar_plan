@@ -18,13 +18,11 @@ class Task(object):
   '''
   def __init__(self):
     self.option_templates = {None: NullOptionTemplate()}
-    self.initial_option_templates = []
     self.template_connections = []
 
     self.compiled = False
     self.nodes = {}
-    self.initial_nodes = []
-    self.T = {}
+    self.children = {}
 
   '''
   Note: we assume that each name uniquely identifies an action, and each action
@@ -42,8 +40,9 @@ class Task(object):
       self.option_templates[name] = OptionTemplate(**option_args)
 
     if parents is None or len(parents) == 0:
-      self.initial_option_templates.append(name)
       parents = [None]
+    elif not isinstance(parents, list):
+      parents = [parents]
 
     for parent in parents:
       self.template_connections.append((parent, name))
@@ -63,22 +62,27 @@ class Task(object):
     for parent, child in self.template_connections:
       self.option_templates[parent].connect(child)
 
-    # make list of args
+    # Make list of args
     arg_sets = get_arg_sets(arg_dict)
 
     for name, template in self.option_templates.items():
       for arg_set in arg_sets:
-        name, option = template.instantiate(name, arg_set)
+        iname, option = template.instantiate(name, arg_set)
+        self.nodes[iname] = option
+        self.children[iname] = template.children
+
+    self.compiled = True
+    return arg_sets
 
   def printNodes(self):
-    if self.compiled:
-      for child in self.nodes:
-        pass
+    if not self.compiled:
+      raise RuntimeError('Cannot print nodes from Task before compile() has been called!')
+    for name, node in self.nodes.items():
+      print name, "-->", self.children[name]
 
 ''' ===========================================================================
                         HELPERS AND INTERNAL CLASSES
 =========================================================================== '''
-
 
 '''
 Internal class that represents a single templated, non-instantiated Option.
@@ -95,7 +99,11 @@ class OptionTemplate(object):
     for arg in self.args:
       filled_args[arg] = arg_dict[arg]
 
-    iname = self.name_template%(name,str(filled_args)[1:-1])
+    if name is None:
+      name = "ROOT"
+
+  
+    iname = self.name_template%(name,make_str(filled_args))
     option = self.constructor(**filled_args)
 
     return iname, option
@@ -120,20 +128,30 @@ class TaskNode(object):
     self.option = option
     self.children = children
 
-  def addChildren(self, children):
-    for child in children:
-      self.children.append(child)
-
 def get_arg_sets(arg_dict):
+  
+  # empty set of arguments
   arg_sets = [{}]
+
+  # loop over all arguments
   for arg, vals in arg_dict.items():
-    prev_arg_sets = copy.copy(arg_sets)
+    prev_arg_sets = arg_sets
+    arg_sets = []
+
+    # loop over possible argument assignments
     for val in vals:
-      updated_arg_sets = copy.copy(prev_arg_sets)
+
       # add a version where arg=val
-      for arg_set in prev_arg_sets:
+      for prev_arg_set in prev_arg_sets:
+        arg_set = copy.copy(prev_arg_set)
         arg_set[arg] = val
         arg_sets.append(arg_set)
 
-  print arg_sets
+  # return the set of populated assignments
   return arg_sets
+
+def make_str(filled_args):
+  assignment_list = []
+  for arg, val in filled_args.items():
+    assignment_list.append("%s=%s"%(arg,val))
+  return str(assignment_list)[1:-1]
