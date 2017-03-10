@@ -36,6 +36,7 @@ class AbstractTrainer(object):
         batch_size=1,
         discount=0.1,
         learning_rate=0.1,
+        callback=None,
         train_args={}):
 
         self.env = env
@@ -46,13 +47,14 @@ class AbstractTrainer(object):
         self.train_args = train_args
         self.max_rollout_length = max_rollout_length
         self.learning_rate = learning_rate
+        self.callback = callback
 
         self._break = False
 
     '''
     Hook to add any functionality necessary to setup any models, etc.
     '''
-    def compile(self, optimizer=None, *args, **kwargs):
+    def compile(self, *args, **kwargs):
       pass
 
     def _catch_sigint(self, *args, **kwargs):
@@ -67,6 +69,8 @@ class AbstractTrainer(object):
       for i in xrange(self.steps):
         data, total, count = self._collect_rollouts()
         print "iter %d: collected %d samples, avg reward = %f"%(i,count,total/count)
+        if self.callback is not None:
+          self.callback(data, total, count)
         self._step(data, *args, **kwargs)
 
         if self._break:

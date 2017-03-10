@@ -1,10 +1,14 @@
 __all__ = [
   "FunctionEnv",
   "StepFunctionEnv",
+  "PointEnv",
+  "NeedleMasterEnv",
   ]
 
 from function import *
 from step_function import *
+from point import *
+from needle_master import *
 
 # -----------------------------------------------------------------------------
 # Import all the Gazebo environments here. They get their own special import
@@ -12,6 +16,7 @@ from step_function import *
 # code out.
 try:
   import gazebo
+  __all__ += ["GazeboEnv"]
 except ImportError, e:
   print "WARNING: failed to import gazebo environments. Is rospy installed?"
   print e

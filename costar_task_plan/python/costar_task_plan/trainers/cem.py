@@ -120,19 +120,19 @@ class CemTrainer(AbstractTrainer):
     '''
     No compilation needed here --
     '''
-    def compile(self, optimizer=None, *args, **kwargs):
+    def compile(self, *args, **kwargs):
 
-      if self.initial_model:
+      if self.initial_model is not None:
         self.actor = self.initial_model
-      elif self.initial_trainer:
-        self.initial_trainer.compile(optimizer, *args, **kwargs)
+      elif self.initial_trainer is not None:
+        self.initial_trainer.compile(*args, **kwargs)
         self.initial_trainer.train(shuffle=True, *args, **kwargs)
         self.actor = self.initial_trainer.getActorModel()
       else:
         raise RuntimeError('Must provide something to initialize CEM')
 
       self.Z = []
-      weights = self.actor.get_weights()
+      weights = self.get_weights_fn(self.actor)
       for w in weights:
         shape = w.shape
         mu = w.flatten()
