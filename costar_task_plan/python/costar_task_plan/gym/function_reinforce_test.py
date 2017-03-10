@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+'''
+By Chris Paxton
+(c) 2017 Johns Hopkins University
+See License for details
+'''
+
 from keras.models import Sequential, Model
 from keras.layers import Dense, Activation, Flatten, Input, merge, TimeDistributed
 from keras.layers.recurrent import LSTM
@@ -43,7 +49,7 @@ if __name__ == '__main__':
   sigma = getNeuralNet(env)
   V = getNeuralNet(env)
 
-  random_process = OrnsteinUhlenbeckProcess(theta=.15, mu=0., sigma=.15, size=1)
+  np.random.seed(10001)
   trainer = ReinforceTrainer(env,
       actor=mu,
       std=sigma,
@@ -53,6 +59,5 @@ if __name__ == '__main__':
       reward_scale=1.,
       reward_baseline=0.,)
   trainer.compile(Adam(lr=.001, clipnorm=1e-8))
-
-  np.random.seed(10001)
+  trainer.train()
 

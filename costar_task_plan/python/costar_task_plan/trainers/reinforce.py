@@ -1,3 +1,8 @@
+'''
+By Chris Paxton
+(c) 2017 Johns Hopkins University
+'''
+
 import numpy as np
 
 from abstract import *
@@ -69,7 +74,6 @@ class ReinforceTrainer(AbstractTrainer):
       critic_optimizer = tf.train.AdamOptimizer(self.learning_rate)
 
       self.x = self.actor.input
-      self.r = tf.placeholder(tf.float32, (None,), name="discounted_rewards")
 
       policy_network_params = self.actor.trainable_weights
       value_network_params = self.critic.trainable_weights
@@ -78,8 +82,12 @@ class ReinforceTrainer(AbstractTrainer):
       std_values = self.std(self.x)
 
       # Define A3C cost and gradient update equations
-      self.a = tf.placeholder("float", [None,] + list(self.env.action_space.shape))
-      self.R = tf.placeholder("float", [None, ])
+      self.a = tf.placeholder("float",
+          [None,] + list(self.env.action_space.shape),
+          name="actions")
+      self.R = tf.placeholder("float",
+          [None, ],
+          name="discounted_rewards")
 
       # A should be a one-hot vector, so this gives us a log probability.
       action_actor_values = tf.reduce_sum(tf.mul(actor_values, self.a), reduction_indices=1)

@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+'''
+By Chris Paxton
+(c) 2017 Johns Hopkins University
+See License for details
+'''
+
 from keras.models import Sequential, Model
 from keras.layers import Dense, Activation, Flatten, Input, merge, TimeDistributed
 from keras.layers.recurrent import LSTM
@@ -28,30 +34,26 @@ except ImportError, e:
   print "This example uses keras-rl!"
   raise e
 
-np.random.seed(10)
-def getNeuralNet(env):
-  actor = Sequential()
-  actor.add(Dense(2,input_shape=(2,)))
-  actor.add(Activation('relu'))
-  actor.add(Dense(1))
-  actor.add(Activation('linear'))
-  return actor
+if __name__ == '__main__':
+  np.random.seed(10)
+  def getNeuralNet(env):
+    actor = Sequential()
+    actor.add(Dense(2,input_shape=(2,)))
+    actor.add(Activation('relu'))
+    actor.add(Dense(1))
+    actor.add(Activation('linear'))
+    return actor
 
-env = ctpgym.FunctionEnv()
-mu = getNeuralNet(env)
-sigma = getNeuralNet(env)
-V = getNeuralNet(env)
+  env = ctpgym.FunctionEnv()
+  model = getNeuralNet(env)
 
-random_process = OrnsteinUhlenbeckProcess(theta=.15, mu=0., sigma=.15, size=1)
-trainer = ReinforceTrainer(env,
-    actor=mu,
-    std=sigma,
-    critic=V,
-    rollouts=10,
-    steps=1000,
-    reward_scale=1.,
-    reward_baseline=0.,)
-trainer.compile(Adam(lr=.001, clipnorm=1e-8))
+  np.random.seed(10001)
+  trainer = CemTrainer(env,
+      initial_model=model,
+      noise=1e-2,
+      rollouts=10,
+      learning_rate=0.75)
 
-np.random.seed(10001)
-trainer.train()
+  trainer.compile(Adam(lr=.001, clipnorm=1e-8))
+  trainer.train()
+

@@ -1,3 +1,9 @@
+'''
+By Chris Paxton
+(c) 2017 Johns Hopkins University
+See license for details
+'''
+
 from abstract import *
 from util import *
 
@@ -13,11 +19,16 @@ class CemTrainer(AbstractTrainer):
         initial_model=None,
         noise=1e-1, # noise in initial covariance
         sigma=1e-8, #add to covariance
+        learning_rate=0.75, # learning rate
         elite=None, # number of elite members to choose
         *args, **kwargs):
 
         # We sum along the whole trajectory to compute rewards.
-        super(CemTrainer, self).__init__(env, discount=1.0, *args, **kwargs)
+        super(CemTrainer, self).__init__(env,
+            discount=1.0,
+            learning_rate=learning_rate,
+            *args,
+            **kwargs)
 
         self.initial_trainer = initial_trainer
         self.initial_model = initial_model

@@ -1,3 +1,9 @@
+'''
+By Chris Paxton
+(c) 2017 Johns Hopkins University
+See license for details
+'''
+
 import sys
 import signal
 
