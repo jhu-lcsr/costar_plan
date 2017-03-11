@@ -21,6 +21,8 @@ class TomDataset(Dataset):
   right_arm_end_frame_topic = "/tom/arm_right/Xef_w"
   gripper_topic = "/tom/arm_right/hand/gripperState"
   arm_data_topic = "/tom/arm_right/RobotData"
+  vision_topic = "/tom/head/vision/manager/visual_info"
+  skin_topic = "/tom/arm_right/hand/semanticGripperCells"
 
   FOLDER = 0
   GOOD = 1
@@ -50,6 +52,12 @@ class TomDataset(Dataset):
     self.test_poses = []
     self.pickup_poses = []
 
+    self.trash_oranges = []
+    self.box_oranges = []
+    self.move_oranges = []
+    self.test_oranges = []
+    self.pickup_oranges = []
+
   def download(self, *args, **kwargs):
     raise RuntimeError('downloading this dataset is not yet supported')
 
@@ -71,27 +79,37 @@ class TomDataset(Dataset):
             self.box_bags.append(whole_filename)
           else:
             self.trash_bags.append(whole_filename)
+
     print "Extracting data..."
     print "\tExtracting data for box actions..."
-    trajs, poses = self._extract_samples(self.box_bags)
+    trajs, poses, oranges = self._extract_samples(self.box_bags)
     self.pickup_trajs = trajs[0]
     self.move_trajs = trajs[1]
     self.test_trajs = trajs[2]
     self.box = trajs[3]
+
     self.pickup_poses = poses[0]
     self.move_poses = poses[1]
     self.test_poses = poses[2]
     self.box_poses = poses[3]
+
+    self.pickup_oranges += oranges[0]
+    self.move_oranges += oranges[1]
+    self.test_oranges += oranges[2]
+    self.trash_oranges = oranges[3]
+
     print "\tExtracting data for trash actions..."
-    trajs, poses = self._extract_samples(self.trash_bags)
+    trajs, poses, oranges = self._extract_samples(self.trash_bags)
+
     self.pickup_trajs += trajs[0]
     self.move_trajs += trajs[1]
     self.test_trajs += trajs[2]
     self.trash = trajs[3]
-    self.pickup_poses += poses[0]
-    self.move_poses += poses[1]
-    self.test_poses += poses[2]
-    self.trash_poses = poses[3]
+
+    self.pickup_oranges += oranges[0]
+    self.move_oranges += oranges[1]
+    self.test_oranges += oranges[2]
+    self.trash_oranges = oranges[3]
 
 
   def _extract_samples(self, bag_files):
@@ -99,6 +117,8 @@ class TomDataset(Dataset):
             self.right_arm_end_frame_topic,
             self.gripper_topic,
             self.arm_data_topic,
+            self.vision_topic,
+            self.skin_topic,
             ]
     trajs = []
     for filename in bag_files:
@@ -108,6 +128,7 @@ class TomDataset(Dataset):
       pose = None
       gripper = None
       data = None
+      orange = None
       for topic, msg, t in bag.read_messages(topics):
         sec = t.to_sec()
         if topic == self.gripper_topic:
@@ -116,12 +137,14 @@ class TomDataset(Dataset):
             data = msg
         elif topic == self.right_arm_end_frame_topic:
             pose = msg
+        elif topic == self.vision_topic:
+            orange = msg.objData[0]
 
         if all([pose, gripper, data]):
             gripper_open = gripper.state == 'open'
             gripper_state = gripper.stateId
-            traj.append((sec, pose, data, gripper_open, gripper_state))
-            gripper, data, pose = None, None, None
+            traj.append((sec, pose, data, gripper_open, gripper_state, orange))
+            gripper, data, pose, orange = None, None, None, None
       trajs.append(traj)
 
     # =========================================================================
@@ -136,15 +159,20 @@ class TomDataset(Dataset):
     move_poses = []
     test_poses = []
     drop_poses = []
+    pickup_oranges = []
+    move_oranges = []
+    test_oranges = []
+    drop_oranges = []
     for traj in trajs:
         was_open = False
         print "was actually open:", traj[0][3]
         last_stage = 0
         stage = 0
         cropped_traj = []
+        cropped_orange = []
         done = False
 
-        for t, pose, data, gopen, gstate in traj:
+        for t, pose, data, gopen, gstate, orange in traj:
             if was_open and not gopen:
                 # pose is where we picked up an object
                 if stage < 1:
@@ -172,16 +200,23 @@ class TomDataset(Dataset):
             if not last_stage == stage:
                 if last_stage == 0:
                     pickup_trajs.append(cropped_traj)
+                    pickup_oranges.append(cropped_orange)
                 elif last_stage == 1:
                     move_trajs.append(cropped_traj)
+                    move_oranges.append(cropped_orange)
                 elif last_stage in [2, 3]:
                     test_trajs.append(cropped_traj)
+                    test_oranges.append(cropped_orange)
                 elif last_stage == 4:
                     drop_trajs.append(cropped_traj)
+                    drop_oranges.append(cropped_orange)
                 cropped_traj = []
             last_stage = stage
             cropped_traj.append((t, pose, data, gopen, gstate))
+            cropped_orange.append(orange)
 
             if done: break
 
-    return [pickup_trajs, move_trajs, test_trajs, drop_trajs], [pickup_poses, move_poses, test_poses, drop_poses]
+    return [pickup_trajs, move_trajs, test_trajs, drop_trajs], \
+           [pickup_poses, move_poses, test_poses, drop_poses], \
+           [pickup_oranges, move_oranges, test_oranges, drop_oranges]

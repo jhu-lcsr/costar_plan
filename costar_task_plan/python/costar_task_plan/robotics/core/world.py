@@ -3,6 +3,7 @@
 # See License for more details
 
 from frame import *
+from detected_object import *
 from actor import *
 from dynamics import *
 from js_listener import JointStateListener
@@ -34,8 +35,11 @@ class CostarWorld(AbstractWorld):
       *args, **kwargs):
     super(CostarWorld,self).__init__(reward, *args, **kwargs)
     self.objects = {}
+    self.object_classes = {}
     self.trajectories = {}
+    self.trajectory_data = {}
     self.traj_pubs = {}
+    self.traj_data_pubs = {}
     self.fake = fake
     self.predicates = []
     self.models = {}
@@ -64,17 +68,38 @@ class CostarWorld(AbstractWorld):
   '''
   Add an object to the list of tracked objects.
   '''
-  def addObject(self, name, tf_frame, obj_class):
-    self.objects[name] = Frame(name,
-            obj_class,
-            tf_frame,
-            namespace=self.namespace)
+  def addObject(self, name, obj_class, obj):
+
+    # Make sure this was a unique object
+    if obj in self.objects:
+      raise RuntimeError('Duplicate object inserted!')
+
+    # Add the object data
+    self.objects[name] = obj
+
+    # Update object class membership
+    if obj_class not in self.object_classes:
+      self.object_classes[obj_class] = [name]
+    else:
+      self.object_classes[obj_class].append(name)
+
+  '''
+  Empty the list of objects.
+  '''
+  def clearObjects(self):
+    self.objects = {}
+    self.object_classes = {}
   
-  def addTrajectories(self, name, trajectories):
+  def addTrajectories(self, name, trajectories, data):
     self.trajectories[name] = trajectories
+    self.trajectory_data[data] = data
     if not name in self.traj_pubs:
       self.traj_pubs[name] = rospy.Publisher(
           join(self.namespace,"trajectories",name),
+          PoseArray,
+          queue_size=1000)
+      self.traj_data_pubs[name] = rospy.Publisher(
+          join(self.namespace,"trajectory_data",name),
           PoseArray,
           queue_size=1000)
 
@@ -101,6 +126,11 @@ class CostarWorld(AbstractWorld):
           msg.poses.append(pose)
       self.traj_pubs[name].publish(msg)
 
+    for name, data in self.trajectory_data.items():
+      msg = self._dataToPose(data)
+      msg.header.frame_id = self.base_link
+      self.traj_data_pubs[name].publish(msg)
+
     # publish object frames
     for name, frame in self.objects.items():
       (trans, rot) = frame.tf_frame
@@ -109,8 +139,11 @@ class CostarWorld(AbstractWorld):
               frame.tf_name,
               self.base_link,)
 
+  def _dataToPose(self,data):
+    return PoseArray()
+
   def makeFeatureFunction(self):
-      pass
+    pass
 
   def makeRewardFunction(self, name):
     if name in self.models.keys():
@@ -127,4 +160,11 @@ class CostarWorld(AbstractWorld):
     self.models = {}
     for name, trajs in self.trajectories.items():
         data = []
+
+  '''
+  Gets the list of possible argument assigments for use in generating the final
+  task plan object.
+  '''
+  def getArgs(self):
+    return self.object_classes
 
