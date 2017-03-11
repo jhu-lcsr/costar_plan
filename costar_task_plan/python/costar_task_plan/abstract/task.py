@@ -74,11 +74,13 @@ class Task(object):
     self.compiled = True
     return arg_sets
 
-  def printNodes(self):
+  def nodeSummary(self):
     if not self.compiled:
       raise RuntimeError('Cannot print nodes from Task before compile() has been called!')
+    summary = ''
     for name, node in self.nodes.items():
-      print name, "-->", self.children[name]
+      summary += "%s --> %s\n"%(name,str(self.children[name]))
+    return summary
 
 ''' ===========================================================================
                         HELPERS AND INTERNAL CLASSES

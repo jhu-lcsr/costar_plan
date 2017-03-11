@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import unittest
+
 from costar_task_plan.abstract import Task
 from costar_task_plan.abstract import AbstractOption
 
@@ -42,14 +44,32 @@ def make_template():
   task.add("pick", ["drop"], None)
   return task
 
-def test1():
-  task = make_template();
-  args = {
-    'obj': ['apple', 'orange'],
-    'goal': ['basket'],
-  }
-  print task.compile(args)
-  task.printNodes()
+test1_res = """drop() --> ['pick']
+move('obj=orange', 'goal=basket') --> ['drop']
+pick('obj=orange') --> ['move', 'drop']
+ROOT() --> ['pick']
+pick('obj=apple') --> ['move', 'drop']
+move('obj=apple', 'goal=basket') --> ['drop']
+"""
+
+class TestTask(unittest.TestCase):
+
+  def test1(self):
+    task = make_template();
+    args = {
+      'obj': ['apple', 'orange'],
+      'goal': ['basket'],
+    }
+    args = task.compile(args)
+  
+    self.assertEqual(len(args), 2)
+    self.assertEqual(args[0]['obj'], 'apple')
+    self.assertEqual(args[0]['goal'], 'basket')
+    self.assertEqual(args[1]['obj'], 'orange')
+    self.assertEqual(args[1]['goal'], 'basket')
+
+    summary = task.nodeSummary()
+    self.assertEqual(summary, test1_res)
 
 if __name__ == '__main__':
-  test1()
+  unittest.main()
