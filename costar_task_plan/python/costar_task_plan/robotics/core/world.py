@@ -92,7 +92,7 @@ class CostarWorld(AbstractWorld):
   
   def addTrajectories(self, name, trajectories, data):
     self.trajectories[name] = trajectories
-    self.trajectory_data[data] = data
+    self.trajectory_data[name] = data
     if not name in self.traj_pubs:
       self.traj_pubs[name] = rospy.Publisher(
           join(self.namespace,"trajectories",name),

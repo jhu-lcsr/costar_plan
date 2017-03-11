@@ -3,6 +3,7 @@
 # See License for more details
 
 from tum_ics_msgs.msg import VisualInfo
+from geometry_msgs.msg import PoseArray, Pose
 
 from costar_task_plan.datasets import TomDataset
 
@@ -36,7 +37,7 @@ class TomWorld(CostarWorld):
     
     box = (0.67051013617,
            -0.5828498549,
-           -0.280936861547)
+           -0.280936861547), Pose
     squeeze_area = (0.542672622341,
                     0.013907504104,
                     -0.466499112972)
@@ -104,9 +105,10 @@ class TomWorld(CostarWorld):
 
   def _dataToPose(self,data):
     msg = PoseArray()
-    for orange in data:
-      if orange is not None:
-        msg.poses.append(Pose(position=(orange.position)))
+    for data_traj in data:
+      for orange in data_traj:
+        if orange is not None:
+          msg.poses.append(Pose(position=(orange.position)))
     return msg
 
   def vision_cb(self, msg):

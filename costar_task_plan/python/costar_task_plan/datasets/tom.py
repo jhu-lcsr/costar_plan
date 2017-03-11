@@ -176,22 +176,22 @@ class TomDataset(Dataset):
             if was_open and not gopen:
                 # pose is where we picked up an object
                 if stage < 1:
-                    print "picked up an object"
+                    #print "picked up an object"
                     pickup_poses.append(pose)
                     stage = 1
                 elif stage < 3:
                     stage = 3
                 elif stage == 3:
-                    print "done test; pickup obj"
+                    #print "done test; pickup obj"
                     test_poses.append(pose)
                     stage = 4
                 else: print "other?"
             elif not was_open and gopen and stage == 1:
-                print "dropped to test"
+                #print "dropped to test"
                 move_poses.append(pose)
                 stage = 2
             elif not was_open and gopen and stage == 4:
-                print "dropped an object"
+                #print "dropped an object"
                 drop_poses.append(pose)
                 stage = 5
                 done = True
