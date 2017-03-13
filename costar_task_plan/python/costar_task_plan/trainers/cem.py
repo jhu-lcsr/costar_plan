@@ -79,48 +79,47 @@ class CemTrainer(AbstractTrainer):
       print "max = ", np.max(R)
       print "min = ", np.min(R)
 
-      for (mu, sigma, _) in self.Z:
-        mu *= self.learning_rate
-        sigma *= self.learning_rate
-
       R = [np.exp(r) / sum_r for r in R]
       R = [r  if r > 1e-20 else 0 for r in R]
       print "CEM weights = ", R
-      new_Z = copy.deepcopy(self.Z)
+      new_Z = []
+      for md in self.Z:
+        new_Z.append((ModelDistribution(np.zeros(md.mu.shape), np.zeros(md.sigma.shape), md.shape)))
+
       for i, (_, model) in enumerate(data):
         wts = self.get_weights_fn(model)
         model_wt = R[i]
         #model_wt = (1.0 if R[i] == max(R) else 0.)
-        for (mu, sigma, shape), wt in zip(new_Z, wts):
-          mu += (model_wt * wt).flatten()
-        for (mu, sigma, shape), wt in zip(new_Z, wts):
-          dwt = wt.flatten() - mu
-          sigma += (model_wt * np.dot(dwt.T, dwt))
-          sigma += np.eye(sigma.shape[0]) * self.sigma_noise
+        for md, wt in zip(new_Z, wts):
+          md.mu += (model_wt * wt).flatten()
+        for md, wt in zip(new_Z, wts):
+          dwt = wt.flatten() - md.mu
+          md.sigma += (model_wt * np.dot(dwt.T, dwt))
+          md.sigma += np.eye(md.sigma.shape[0]) * self.sigma_noise
 
       print "UPDATING:",
-      for (mu, sigma, _), (new_mu, new_sigma, _) in zip(self.Z, new_Z):
-        print mu,
-        mu = (1 - self.learning_rate) * mu + \
-            self.learning_rate * new_mu
-        sigma = (1 - self.learning_rate * sigma) + \
-            self.learning_rate * new_sigma
-        print mu
+      for md, new_md in zip(self.Z, new_Z):
+        print md.mu,
+        md.mu = (1 - self.learning_rate) * md.mu + \
+            self.learning_rate * new_md.mu
+        md.sigma = (1 - self.learning_rate * md.sigma) + \
+            self.learning_rate * new_md.sigma
+        print md.mu
 
     '''
     Create a new neural net model via sampling from the distribution
     '''
     def sample_model(self):
       weights = []
-      for (mu, sigma, shape) in self.Z:
+      for md in self.Z:
         try:
-          wt = mu + np.dot(np.linalg.cholesky(sigma).T,
-              np.random.normal(0,1,size=mu.shape))
+          wt = md.mu + np.dot(np.linalg.cholesky(md.sigma).T,
+              np.random.normal(0,1,size=md.mu.shape))
         except np.linalg.LinAlgError, e:
-          print sigma
-          print sigma.shape
+          print md.sigma
+          print md.sigma.shape
           raise e
-        weights.append(wt.reshape(shape))
+        weights.append(wt.reshape(md.shape))
 
       return self.construct_fn(self.actor, weights)
 
@@ -150,7 +149,7 @@ class CemTrainer(AbstractTrainer):
         shape = w.shape
         mu = w.flatten()
         sigma = np.eye(mu.shape[0]) * self.noise
-        self.Z.append((mu,sigma,shape))
+        self.Z.append(ModelDistribution(mu,sigma,shape))
 
     '''
     Perform however many rollouts need to be executed on each time step.
@@ -196,3 +195,12 @@ class CemTrainer(AbstractTrainer):
 
     def save(self, filename):
       self.actor.save_weights(filename + "_actor.h5f")
+
+'''
+Represents a distribution over parameterized models.
+'''
+class ModelDistribution(object):
+  def __init__(self, mu, sigma, shape):
+    self.mu = mu
+    self.sigma = sigma
+    self.shape = shape
