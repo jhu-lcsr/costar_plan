@@ -26,9 +26,8 @@ class PointEnv(gym.Env):
     pass
 
   def _step(self, action):
-
-    r = -np.linalg.norm(self.center-action)
-
+    dx = self.center-action
+    r = -np.dot(dx.T,dx)
     return action, r, True, {}
 
   def _reset(self):

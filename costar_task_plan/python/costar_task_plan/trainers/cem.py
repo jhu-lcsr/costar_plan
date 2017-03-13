@@ -81,7 +81,7 @@ class CemTrainer(AbstractTrainer):
 
       R = [np.exp(r) / sum_r for r in R]
       R = [r  if r > 1e-20 else 0 for r in R]
-      print "CEM weights = ", R
+      #print "CEM weights = ", R
       new_Z = []
       for md in self.Z:
         new_Z.append((ModelDistribution(np.zeros(md.mu.shape), np.zeros(md.sigma.shape), md.shape)))
@@ -95,15 +95,15 @@ class CemTrainer(AbstractTrainer):
         for md, wt in zip(new_Z, wts):
           dwt = wt.flatten() - md.mu
           md.sigma += (model_wt * np.dot(dwt.T, dwt))
-          md.sigma += np.eye(md.sigma.shape[0]) * self.sigma_noise
 
       print "UPDATING:",
       for md, new_md in zip(self.Z, new_Z):
         print md.mu,
         md.mu = (1 - self.learning_rate) * md.mu + \
             self.learning_rate * new_md.mu
-        md.sigma = (1 - self.learning_rate * md.sigma) + \
+        md.sigma = (1 - self.learning_rate) * md.sigma + \
             self.learning_rate * new_md.sigma
+        md.sigma += np.eye(md.sigma.shape[0]) * self.sigma_noise
         print md.mu
 
     '''

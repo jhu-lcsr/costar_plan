@@ -26,10 +26,10 @@ def test(center, guess):
   env = PointEnv(np.array(center))
   trainer = CemTrainer(env,
       initial_model=np.array(guess),
-      noise=1.,
-      rollouts=10,
+      noise=1.e-1,
+      rollouts=100,
       learning_rate=0.5,
-      steps=2,
+      steps=100,
       callback=callback,
       get_weights_fn=get_weights,
       construct_fn=construct,
@@ -38,4 +38,4 @@ def test(center, guess):
   trainer.train()
 
 if __name__ == '__main__':
-  test([0.,0.],[0.5,0.5])
+  test([0.,0.],[0.4,0.4])
