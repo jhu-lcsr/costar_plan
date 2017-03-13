@@ -15,8 +15,8 @@ Toy environment.
 class PointEnv(gym.Env):
 
   def __init__(self, center):
-    self.observation_space = Box(np.array([-1,-1]),np.array([1,1]))
-    self.action_space = Box(np.array([-1,-1]),np.array([1,1]))
+    self.observation_space = Box(np.array([-1.,-1.]),np.array([1.,1.]))
+    self.action_space = Box(np.array([-1.,-1.]),np.array([1.,1.]))
     self.center = center
   
   def __del__(self):
@@ -32,7 +32,7 @@ class PointEnv(gym.Env):
     return action, r, True, {}
 
   def _reset(self):
-    return [0,0]
+    return [0.,0.]
 
   def _configure_environment(self):
     pass

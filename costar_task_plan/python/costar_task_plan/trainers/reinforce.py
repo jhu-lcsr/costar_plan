@@ -56,16 +56,16 @@ class ReinforceTrainer(AbstractTrainer):
     '''
     def _step(self, data):
       for samples in data:
-        #x, r = np.array([sample.s0 for sample in samples]), \
-        #       np.array([sample.R for sample in samples])
+        x, r = np.array([sample.s0 for sample in samples]), \
+               np.array([sample.R for sample in samples])
         #print x.shape, r.shape
         #self.train_fn([x,r,np.zeros(r.shape)])
         #self.train_fn([x, r, 0])
         #print "action =", [s.a0[0] for s in samples]
         #print "state =", [s.s0[0] for s in samples]
         #print "reward =", [s.R for s in samples]
-        for sample in samples:
-          self.train_fn([[sample.s0], [sample.R], 0])
+        #for sample in samples:
+        #  self.train_fn([[sample.s0], [sample.R], 0])
           
 
     def compile(self, optimizer=None, *args, **kwargs):
@@ -88,6 +88,9 @@ class ReinforceTrainer(AbstractTrainer):
       self.R = tf.placeholder("float",
           [None, ],
           name="discounted_rewards")
+      self.p = tf.placeholder("float",
+          [None, ],
+          name="action_probabilities")
 
       # A should be a one-hot vector, so this gives us a log probability.
       action_actor_values = tf.reduce_sum(tf.mul(actor_values, self.a), reduction_indices=1)
@@ -110,8 +113,9 @@ class ReinforceTrainer(AbstractTrainer):
     def sample(self, state):
       batch = np.array([state])
       raw_action = self.actor.predict(batch)
-      std = self.std.predict(batch)
-      p = 0
+
+      # standard deviation cannot be below some threshold
+      std = max(self.min_std, self.std.predict(batch))
 
       return raw_action.flatten(), p
 

@@ -4,6 +4,8 @@ By Chris Paxton
 See license for details
 '''
 
+import copy
+
 from abstract import *
 from util import *
 
@@ -84,15 +86,26 @@ class CemTrainer(AbstractTrainer):
       R = [np.exp(r) / sum_r for r in R]
       R = [r  if r > 1e-20 else 0 for r in R]
       print "CEM weights = ", R
+      new_Z = copy.deepcopy(self.Z)
       for i, (_, model) in enumerate(data):
         wts = self.get_weights_fn(model)
         model_wt = R[i]
-        for (mu, sigma, shape), wt in zip(self.Z, wts):
-          mu += ((1 - self.learning_rate) * model_wt * wt).flatten()
-        for (mu, sigma, shape), wt in zip(self.Z, wts):
+        #model_wt = (1.0 if R[i] == max(R) else 0.)
+        for (mu, sigma, shape), wt in zip(new_Z, wts):
+          mu += (model_wt * wt).flatten()
+        for (mu, sigma, shape), wt in zip(new_Z, wts):
           dwt = wt.flatten() - mu
-          sigma += ((1 - self.learning_rate) * model_wt * np.dot(dwt.T, dwt))
+          sigma += (model_wt * np.dot(dwt.T, dwt))
           sigma += np.eye(sigma.shape[0]) * self.sigma_noise
+
+      print "UPDATING:",
+      for (mu, sigma, _), (new_mu, new_sigma, _) in zip(self.Z, new_Z):
+        print mu,
+        mu = (1 - self.learning_rate) * mu + \
+            self.learning_rate * new_mu
+        sigma = (1 - self.learning_rate * sigma) + \
+            self.learning_rate * new_sigma
+        print mu
 
     '''
     Create a new neural net model via sampling from the distribution
@@ -150,7 +163,6 @@ class CemTrainer(AbstractTrainer):
       total_reward = 0
       count = 0
       for i in xrange(self.rollouts):
-        #print "-- ROLLOUT", i,
         done = False
         state0 = self.env.reset()
         self._reset_state()
