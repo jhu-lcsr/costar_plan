@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import unittest
+
 import numpy as np
 
 from costar_task_plan.trainers import CemTrainer
@@ -15,10 +17,10 @@ def predict(model, state):
     return model
 
 def callback(data, reward, count):
-  print "===================="
+  #print "===================="
   #print data
   print "reward =",reward
-  print "count =",count
+  #print "count =",count
 
 def test(center, guess):
   print "start with: ", np.array(guess)
@@ -26,9 +28,10 @@ def test(center, guess):
   env = PointEnv(np.array(center))
   trainer = CemTrainer(env,
       initial_model=np.array(guess),
-      noise=1.e-1,
-      rollouts=100,
-      learning_rate=0.5,
+      initial_noise=1.e+1,
+      sigma_regularization=1e-12,
+      rollouts=250,
+      learning_rate=0.75,
       steps=100,
       callback=callback,
       get_weights_fn=get_weights,
@@ -36,6 +39,15 @@ def test(center, guess):
       predict_fn=predict,)
   trainer.compile()
   trainer.train()
+  return trainer.getActorModel()
+
+class CemTest(unittest.TestCase):
+
+  def test1(self):
+    np.random.seed(101)
+    res = test([0.,0.,0.],[0.4,0.4,0.4])
+    print res
+    self.assertLessEqual(np.linalg.norm(res),1e-1)
 
 if __name__ == '__main__':
-  test([0.,0.],[0.4,0.4])
+  unittest.main()

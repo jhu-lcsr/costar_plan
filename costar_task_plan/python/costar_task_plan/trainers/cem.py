@@ -35,8 +35,8 @@ class CemTrainer(AbstractTrainer):
     def __init__(self, env,
         initial_trainer=None,
         initial_model=None,
-        noise=1e-1, # noise in initial covariance
-        sigma=1e-8, #add to covariance
+        initial_noise=1e-1, # noise in initial covariance
+        sigma_regularization=1e-8, #add to covariance
         learning_rate=0.75, # learning rate
         elite=None, # number of elite members to choose
         get_weights_fn=nn_get_weights,
@@ -58,10 +58,10 @@ class CemTrainer(AbstractTrainer):
         self.predict_fn = predict_fn
 
         self.Z = []
-        self.noise = noise
+        self.noise = initial_noise
         self.actor = None
         self.elite = elite
-        self.sigma_noise = sigma
+        self.sigma_noise = sigma_regularization
 
     def _step(self, data, *args, **kwargs):
 
@@ -73,11 +73,12 @@ class CemTrainer(AbstractTrainer):
         sum_r += np.exp(rollout[0].R)
         R.append(rollout[0].R)
 
-      print "--------------------"
-      print "mean = ", np.mean(R)
-      print "std = ", np.std(R)
-      print "max = ", np.max(R)
-      print "min = ", np.min(R)
+      if self.verbose:
+        print "--------------------"
+        print "mean = ", np.mean(R)
+        print "std = ", np.std(R)
+        print "max = ", np.max(R)
+        print "min = ", np.min(R)
 
       R = [np.exp(r) / sum_r for r in R]
       R = [r  if r > 1e-20 else 0 for r in R]
@@ -93,18 +94,18 @@ class CemTrainer(AbstractTrainer):
         for md, wt in zip(new_Z, wts):
           md.mu += (model_wt * wt).flatten()
         for md, wt in zip(new_Z, wts):
-          dwt = wt.flatten() - md.mu
+          dwt = np.array([wt.flatten() - md.mu])
           md.sigma += (model_wt * np.dot(dwt.T, dwt))
 
-      print "UPDATING:",
+      #print "UPDATING:",
       for md, new_md in zip(self.Z, new_Z):
-        print md.mu,
+        #print md.mu,
         md.mu = (1 - self.learning_rate) * md.mu + \
             self.learning_rate * new_md.mu
         md.sigma = (1 - self.learning_rate) * md.sigma + \
             self.learning_rate * new_md.sigma
         md.sigma += np.eye(md.sigma.shape[0]) * self.sigma_noise
-        print md.mu
+        #print md.mu
 
     '''
     Create a new neural net model via sampling from the distribution
@@ -128,6 +129,15 @@ class CemTrainer(AbstractTrainer):
     '''
     def sample_from_model(self, state, model):
       return self.predict_fn(model, state)
+
+    '''
+    Get the final actor model
+    '''
+    def getActorModel(self):
+      weights = []
+      for md in self.Z:
+        weights.append(copy.copy(md.mu).reshape(md.shape))
+      return self.construct_fn(self.actor, weights)
 
     '''
     No compilation needed here --

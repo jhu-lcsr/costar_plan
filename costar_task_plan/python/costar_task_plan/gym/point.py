@@ -26,8 +26,10 @@ class PointEnv(gym.Env):
     pass
 
   def _step(self, action):
+    #action[0] = 0.
     dx = self.center-action
     r = -np.dot(dx.T,dx)
+    #r = -np.sum(dx * dx)
     return action, r, True, {}
 
   def _reset(self):

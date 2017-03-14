@@ -37,6 +37,7 @@ class AbstractTrainer(object):
         discount=0.1,
         learning_rate=0.1,
         callback=None,
+        verbose=False,
         train_args={}):
 
         self.env = env
@@ -50,6 +51,7 @@ class AbstractTrainer(object):
         self.callback = callback
 
         self._break = False
+        self.verbose = verbose
 
     '''
     Hook to add any functionality necessary to setup any models, etc.
@@ -58,17 +60,21 @@ class AbstractTrainer(object):
       pass
 
     def _catch_sigint(self, *args, **kwargs):
-      print "Caught sigint, breaking..."
+      if self.verbose:
+        print "Caught sigint, breaking..."
       self._break = True
 
     def train(self, *args, **kwargs):
       self._break = False
       _catch_sigint = lambda *args, **kwargs: self._catch_sigint(*args, **kwargs)
       signal.signal(signal.SIGINT, _catch_sigint)
-      print "Start training:"
+      if self.verbose:
+        print "================================="
+        print "Training:"
       for i in xrange(self.steps):
         data, total, count = self._collect_rollouts()
-        print "iter %d: collected %d samples, avg reward = %f"%(i,count,total/count)
+        if self.verbose:
+          print "iter %d: collected %d samples, avg reward = %f"%(i,count,total/count)
         if self.callback is not None:
           self.callback(data, total, count)
         self._step(data, *args, **kwargs)
@@ -101,7 +107,6 @@ class AbstractTrainer(object):
       total_reward = 0
       count = 0
       for i in xrange(self.rollouts):
-        #print "-- ROLLOUT", i,
         done = False
         state0 = self.env.reset()
         self._reset_state()
