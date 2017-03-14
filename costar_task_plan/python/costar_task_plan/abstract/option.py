@@ -1,5 +1,5 @@
 
-from abstract_world import *
+from world import *
 from condition import *
 
 '''
