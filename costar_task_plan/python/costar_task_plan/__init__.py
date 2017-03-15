@@ -11,11 +11,6 @@ __all__ = ['World', 'HorizontalRoadMap', 'State', 'Action',
            'EvaluateDefaultActor', 'EvaluateAndGetFeatures', 'Evaluate',
            'RedactedDataset', 'VisrDataset']
 
-from datasets import *
-from needle_master import *
-from abstract import *
-from core import *
-
 # Creating packages if you think that's easier to deal with
 import abstract
 import grid_world

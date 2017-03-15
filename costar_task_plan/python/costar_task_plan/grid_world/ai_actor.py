@@ -3,7 +3,7 @@
 (c) 2016 Chris Paxton
 """
 
-import tensorflow as tf
+#import tensorflow as tf
 from actor import *
 
 
@@ -60,7 +60,7 @@ class RegressionActor(Actor):
             features = np.expand_dims(
                 nw.getFeatures(self, useIntersection=True, flattened=True),
                 axis=0)
-            y = self.action_index.eval(feed_dict={self.model_input: features})
+            y = self.model.eval(feed_dict={self.model_input: features})
 
             return self.actions[y[0]]
         else:
@@ -70,5 +70,5 @@ class RegressionActor(Actor):
         self.num_features = num_features
         self.model_input = x
         self.model = model
-        self.action_index = tf.argmax(self.model, 1)
+        #self.action_index = tf.argmax(self.model, 1)
 
