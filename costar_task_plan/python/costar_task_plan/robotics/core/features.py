@@ -21,3 +21,5 @@ class CostarFeatures(AbstractFeatures):
     self.base_frame = base_frame
     self.world_frame = world_frame
     self.frames = frames
+
+

@@ -32,8 +32,12 @@ try:
 	import oro_barrett_msgs
 	from oro_barrett_msgs.msg import BHandCmd as GripperCmd
 except ImportError:
-	print "[GRID.FEATURES] Warning: could not import Barrett messages."
-	from robotiq_c_model_control.msg import CModel_gripper_command as GripperCmd
+  rospy.logwarn("CTP.ROBOTICS.REPRESENTATION: Warning: could not import Barrett messages.")
+try:
+  from robotiq_c_model_control.msg import CModel_gripper_command as GripperCmd
+except ImportError:
+  rospy.logwarn("CTP.ROBOTICS.REPRESENTATION: Warning: could not import Robotiq C-model gripper messages.")
+
 
 # output message types
 from geometry_msgs.msg import Pose
@@ -69,6 +73,9 @@ def P_Gauss(x,mu,inv,det,wts):
 
     return np.log(p)
 
+'''
+Old class that holds and represents a robot.
+'''
 class RobotFeatures:
 
     '''
@@ -231,21 +238,26 @@ class RobotFeatures:
         else:
             return self.goal_model.score(X)
 
+    '''
+    Start recording on the specified topics.
+    '''
     def StartRecording(self):
         self.is_recording = True
         if self.recorded:
             return
 
         self.recorded = True
-        self.js_sub = rospy.Subscriber(self.js_topic,sensor_msgs.msg.JointState,self.js_cb)
-        self.gripper_sub = rospy.Subscriber(self.gripper_topic,GripperCmd,self.gripper_cb)
+        if self.js_sub is None:
+          self.js_sub = rospy.Subscriber(self.js_topic,sensor_msgs.msg.JointState,self._js_cb)
+          self.gripper_sub = rospy.Subscriber(self.gripper_topic,GripperCmd,self._gripper_cb)
 
+    '''
+    Stop recording and clear.
+    '''
     def StopRecording(self):
 
         self.is_recording = False
         self.recorded = False
-        #self.js_sub = None #rospy.Subscriber(self.js_topic,sensor_msgs.msg.JointState,self.js_cb)
-        #self.gripper_sub = None #rospy.Subscriber(self.gripper_topic,GripperCmd,self.gripper_cb)
 
         self.world_states = []
         self.joint_states = []
@@ -253,7 +265,10 @@ class RobotFeatures:
         self.times = []
 
 
-    def save(self,filename):
+    '''
+    stop recording, save data to disk.
+    '''
+    def Save(self,filename):
 
         self.is_recording = False
 
@@ -300,7 +315,7 @@ class RobotFeatures:
                 outbag.close()
 
 
-    def js_cb(self,msg):
+    def _js_cb(self,msg):
 
         if not self.is_recording:
             #print "[JOINTS] Not currently recording!"
@@ -322,7 +337,7 @@ class RobotFeatures:
         else:
             print "[JOINTS] Waiting for TF (updated=%d) and gripper..."%(updated)
 
-    def gripper_cb(self,msg):
+    def _gripper_cb(self,msg):
 
         self.gripper_cmd = msg
         self.last_gripper_msg = rospy.Time.now()
@@ -330,19 +345,21 @@ class RobotFeatures:
     '''
     Set up manipulation object frame
     '''
-    def UpdateManipObj(self,manip_objs):
+    def updateManipObj(self,manip_objs):
         if len(manip_objs) > 0:
             self.manip_obj = manip_objs[0]
         else:
             self.manip_obj = None
 
-    def ResetIndices(self):
+    def resetIndices(self):
         self.indices = {}
         self.diff_indices = {}
     
     '''
     Add an object we can use as a reference
     for now number of gripper, object variables are all hard coded
+    
+    Objects are all TF coordinate frames.
     '''
     def AddObject(self,obj,frame=""):
 

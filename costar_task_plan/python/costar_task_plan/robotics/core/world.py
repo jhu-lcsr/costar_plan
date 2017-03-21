@@ -9,6 +9,7 @@ from dynamics import *
 from js_listener import JointStateListener
 
 from costar_task_plan.abstract import *
+from costar_task_plan.robotics.representation import GMM
 
 import logging
 from os.path import join

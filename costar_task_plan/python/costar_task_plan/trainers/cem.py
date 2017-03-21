@@ -148,7 +148,7 @@ class CemTrainer(AbstractTrainer):
         self.actor = self.initial_model
       elif self.initial_trainer is not None:
         self.initial_trainer.compile(*args, **kwargs)
-        self.initial_trainer.train(shuffle=True, *args, **kwargs)
+        self.initial_trainer.train(shuffle=True)
         self.actor = self.initial_trainer.getActorModel()
       else:
         raise RuntimeError('Must provide something to initialize CEM')

@@ -1,9 +1,9 @@
 
 " types and utilities "
-from costar_types import Demonstration
-from costar_types import LoadYaml
-from costar_types import SaveYaml
-from costar_types import GetPoseMessage
+from types import Demonstration
+from types import LoadYaml
+from types import SaveYaml
+from types import GetPoseMessage
 
 " DMP tools for quick development and testing "
 from dmp_utils import RequestDMP
