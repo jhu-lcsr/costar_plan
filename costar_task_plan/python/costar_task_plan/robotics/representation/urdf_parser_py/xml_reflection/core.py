@@ -1,4 +1,4 @@
-from grid.urdf_parser_py.xml_reflection.basics import *
+from basics import *
 import sys
 import copy
 

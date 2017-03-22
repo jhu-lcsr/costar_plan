@@ -40,7 +40,7 @@ def load_tom_data_and_run():
     print "Failed to create world. Are you in the right directory?"
     raise e
 
-  rate = rospy.Rate(30)
+  rate = rospy.Rate(1)
   try:
     while True:
       world.tick(world.zeroAction())

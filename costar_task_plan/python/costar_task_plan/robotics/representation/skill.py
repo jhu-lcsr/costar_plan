@@ -30,10 +30,10 @@ import trajectory_msgs
 from trajectory_msgs.msg import JointTrajectoryPoint
 from sensor_msgs.msg import JointState
 try:
-	from oro_barrett_msgs.msg import BHandCmd as GripperCmd
+	#from oro_barrett_msgs.msg import BHandCmd as GripperCmd
+	from robotiq_c_model_control.msg import CModel_robot_input as GripperCmd
 except ImportError:
-	print "[GRID.SKILL] Warning: could not import Barrett messages."
-	from robotiq_c_model_control.msg import CModel_gripper_command as GripperCmd
+	print "[GRID.SKILL] Warning: could not import predefined gripper messages."
 
 
 # output message types

@@ -172,15 +172,12 @@ namespace costar {
    */
   void InstantiatedSkill::updateBest(unsigned int nsamples) {
     best_p = 0;
-    //if (skill) std::cout << skill->getName() << " ";
     for (unsigned int i = 0; i < nsamples; ++i) {
-      //std::cout << ps[i] << " ";
       if (ps[i] > best_p) {
         best_p = ps[i];
         best_idx = i;
       }
     }
-    //std::cout << "\n";
   }
 
   /**
@@ -210,7 +207,6 @@ namespace costar {
   void InstantiatedSkill::step(const std::vector<double> &prev_ps,
                                const std::vector<JointTrajectoryPoint> &prev_end_pts,
                                std::vector<double> &ps_out,
-                               //std::vector<unsigned int> &prev_counts,
                                double &probability,
                                unsigned int len,
                                int horizon,
@@ -346,7 +342,6 @@ namespace costar {
         unsigned int next_nsamples = floor((T[next_skill_idx]*nsamples));
         if (next_nsamples > 0) {
           ns->step(my_ps, end_pts,
-                   //next_ps[next_skill_idx], next_counts[next_skill_idx], T[next_skill_idx], // outputs
                    next_ps[next_skill_idx], T[next_skill_idx], // outputs
                    next_len, horizon-1, next_nsamples); // params
         }
