@@ -2,7 +2,15 @@
 <launch>
 
 	<!--arg name="scene" default="full"/-->
-	<arg name="scene" default="lacquey"/>
+  <arg name="scene" default="lacquey"/>
+  
+  <!-- By default, we are not in debug mode -->
+  <arg name="debug" default="false" />
+
+  <!-- Load the URDF, SRDF and other .yaml configuration files on the param server -->
+  <include file="$(find tom_full_moveit_config)/launch/planning_context.launch">
+    <arg name="load_robot_description" value="false"/>
+  </include>
 	
   <!-- Load the URDF, SRDF and other .yaml configuration files on the param server -->
   <include file="$(find tom_full_moveit_config)/launch/planning_context.launch">
@@ -31,5 +39,13 @@
   <node name="robot_state_publishervis" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen" />
 
 	<node name="rvizvis" pkg="rviz" type="rviz" args="-d $(find tom_bringup)/launch/rviz_conf/robot_tom.rviz" />
+
+  <!-- Run the main MoveIt executable without trajectory execution (we do not have controllers configured by default) -->
+  <include file="$(find tom_full_moveit_config)/launch/move_group.launch">
+    <arg name="allow_trajectory_execution" value="true"/>  
+    <arg name="fake_execution" value="false"/>
+    <arg name="info" value="true"/>
+    <arg name="debug" value="$(arg debug)"/>
+  </include>
 
 </launch>
