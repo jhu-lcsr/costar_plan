@@ -52,7 +52,7 @@ namespace costar {
 
   /**
    * CostarPlanner
-   * This class defines a single planner.
+   * This class defines a single planner interface.
    * It is associated with a robot model and listens to a planning scene.
    * To plan, we associate an object key ("link", for example) with a particular object in the world via TF frame.
    *
@@ -85,7 +85,9 @@ namespace costar {
     CostarPlanner(const std::string &RobotDescription = std::string("robot_desciption"),
                 const std::string &JointStateTopic = std::string("joint_states"),
                 const std::string &PlanningSceneTopic = std::string("planning_scene"),
-                double padding=0.0);
+                double padding=0.0,
+                unsigned int num_basis=5,
+                bool verbose=false);
 
     /* destructor */
     ~CostarPlanner();
@@ -165,8 +167,9 @@ namespace costar {
     CollisionMap cm;
 
     //std::unordered_map<std::string, std::string> object_lookup;
-    //robot_model::RobotModelPtr model;
-    //robot_model::RobotModelPtr model;
+    
+    robot_model_loader::RobotModelLoaderPtr robot_model_loader;
+    robot_model::RobotModelPtr model;
     //planning_scene_monitor::PlanningSceneMonitorPtr monitor;
 
     unsigned int dof;
@@ -179,8 +182,8 @@ namespace costar {
     //boost::shared_ptr<robot_state::RobotState> search_state;
     //boost::shared_ptr<robot_state::RobotState> state;
     //boost::shared_ptr<planning_scene::PlanningScene> scene;
-    robot_state::RobotState *search_state;
-    robot_state::RobotState *state;
+    //robot_state::RobotState *search_state;
+    //robot_state::RobotState *state;
     planning_scene::PlanningScene *scene;
 
     std::vector<double> goal;

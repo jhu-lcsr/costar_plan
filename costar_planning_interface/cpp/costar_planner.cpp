@@ -38,24 +38,20 @@ namespace costar {
     return x0_dot;
   }
 
-  /* keep robot joints up to date */
+  // Keep robot joints up to date.
   void CostarPlanner::JointStateCallback(const sensor_msgs::JointState::ConstPtr &msg) {
     boost::mutex::scoped_lock lock(*js_mutex);
-    if (state) {
-      state->setVariableValues(*msg); // update the current robot state
-      state->update(true);
-    }
-    //std::cout << "js cb = ";
+
     for (unsigned int i = 0; i < dof; ++i) {
-      //std::cout << msg->position[i] << " ";
       x0[i] = msg->position[i];
       if (msg->velocity.size() != 0)  {
         x0_dot[i] = msg->velocity[i];
       }
     }
-    //std::cout << std::endl;
   }
 
+  // Keep the planning scene up to date. This should track the robot's current
+  // position and the position of any dynamic obstacles we may need to consider.
   void CostarPlanner::PlanningSceneCallback(const moveit_msgs::PlanningScene::ConstPtr &msg) {
     boost::mutex::scoped_lock lock(*ps_mutex);
     if (msg->is_diff) {
@@ -68,36 +64,40 @@ namespace costar {
   CostarPlanner::CostarPlanner(const std::string &robot_description_,
                            const std::string &js_topic,
                            const std::string &scene_topic,
-                           const double padding)
+                           const double padding,
+                           const unsigned int num_basis_,
+                           bool verbose_)
 
-    : nh(), dof(7), num_basis(5), goal(7), x0(7), x0_dot(7), goal_threshold(7,0.1), threshold(0.1), verbose(false),
+    : nh(), dof(7), num_basis(num_basis_), goal(7), x0(7), x0_dot(7),
+    goal_threshold(7,0.1), threshold(0.1), verbose(verbose_),
     entry_names(), joint_names(7)
     {
       ps_mutex = boost::shared_ptr<boost::mutex>(new boost::mutex);
       js_mutex = boost::shared_ptr<boost::mutex>(new boost::mutex);
 
-      js_sub = nh.subscribe(js_topic.c_str(),1000,&CostarPlanner::JointStateCallback,this);
-
       // needs to set up the Robot objects and listeners
       try {
 
-        robot_model_loader::RobotModelLoader robot_model_loader(robot_description_);
+        std::vector<std::string> tmp_entry_names;
+        robot_model_loader = robot_model_loader::RobotModelLoaderPtr(
+            new robot_model_loader::RobotModelLoader(robot_description_));
+        model = robot_model::RobotModelPtr(robot_model_loader->getModel());
+
         ROS_INFO("Loaded model from \"%s\"!",robot_description_.c_str());
 
-        //model = (robot_model_loader.getModel());
-
-        std::vector<std::string> tmp_entry_names;
-
         //scene = boost::shared_ptr<PlanningScene>(new PlanningScene(robot_model_loader.getModel()));
-        scene = new PlanningScene(robot_model_loader.getModel());
+        //scene = new PlanningScene(robot_model_loader.getModel());
+        scene = new PlanningScene(model);
         scene->getAllowedCollisionMatrix().getAllEntryNames(tmp_entry_names);
         scene->getCollisionRobotNonConst()->setPadding(padding);
         scene->propogateRobotPadding();
 
         //state = boost::shared_ptr<RobotState>(new RobotState(robot_model_loader.getModel()));
         //search_state = boost::shared_ptr<RobotState>(new RobotState(robot_model_loader.getModel()));
-        state = (new RobotState(robot_model_loader.getModel()));
-        search_state = new RobotState(robot_model_loader.getModel());
+        //state = new RobotState(robot_model_loader.getModel());
+        //search_state = new RobotState(robot_model_loader.getModel());
+        //state = new RobotState(model);
+        //search_state = new RobotState(model);
 
         for (const std::string &entry: tmp_entry_names) {
           entry_names.push_back(std::string(entry));
@@ -107,25 +107,23 @@ namespace costar {
         std::cerr << ex.what() << std::endl;
       }
 
-      ps_sub = nh.subscribe(scene_topic.c_str(),1000,&CostarPlanner::PlanningSceneCallback,this);
+      //js_sub = nh.subscribe(js_topic.c_str(),1000,&CostarPlanner::JointStateCallback,this);
+      //ps_sub = nh.subscribe(scene_topic.c_str(),1000,&CostarPlanner::PlanningSceneCallback,this);
     }
 
   /* destructor */
   CostarPlanner::~CostarPlanner() {
-    using std::vector; 
 
-    boost::mutex::scoped_lock ps_lock(*ps_mutex);
-    boost::mutex::scoped_lock js_lock(*js_mutex);
+    js_sub.shutdown();
+    ps_sub.shutdown();
 
-    js_sub.~Subscriber();
-    ps_sub.~Subscriber();
+    {
+      boost::mutex::scoped_lock ps_lock(*ps_mutex);
+      boost::mutex::scoped_lock js_lock(*js_mutex);
 
-#if 0
-    state.~shared_ptr<RobotState>();
-    scene.~shared_ptr<PlanningScene>();
-    search_state.~shared_ptr<RobotState>();
-    //model.~RobotModelPtr();
-#endif
+      delete scene;
+      model.~RobotModelPtr();
+    }
   }
 
   /* add an object to the action here */
@@ -145,6 +143,7 @@ namespace costar {
                          const std::string &action2,
                          const std::unordered_map<std::string, std::string> &object_mapping)
   {
+    ROS_WARN("\"CostarPlanner::Plan\" not yet implemented!");
     return false;
   }
 
@@ -167,9 +166,9 @@ namespace costar {
     }
     std::cout << "--------------------------" << std::endl;
     std:: cout << name << std::endl;
-    state->printStateInfo(std::cout);
+    scene->getCurrentState().printStateInfo(std::cout);
 
-    bool colliding = scene->isStateColliding(*state,"",true);
+    bool colliding = scene->isStateColliding(scene->getCurrentState(),"",true);
     std::cout << "Colliding: " << colliding << std::endl;
 
     std::cout << "--------------------------" << std::endl;
@@ -192,7 +191,7 @@ namespace costar {
     collision_detection::CollisionRobotConstPtr robot1 = scene->getCollisionRobot();
     std::string name = robot1->getRobotModel()->getName();
 
-    state->update(); // not sure if this should be moved outside of the "if"
+    RobotState search_state = scene->getCurrentState();
 
     std::vector<DMPData> dmp_list;
 
@@ -238,7 +237,6 @@ namespace costar {
 
     if (verbose) {
       std::cout << "--------------------------" << std::endl;
-
       std::cout << "at goal: " << (unsigned int)at_goal << std::endl;
       std::cout << "points: " << plan.points.size() << std::endl;
     }
@@ -256,11 +254,11 @@ namespace costar {
         }
       }
 
-      search_state->setVariablePositions(joint_names,traj_pt.positions);
-      search_state->setVariableVelocities(joint_names,traj_pt.velocities);
-      search_state->update(true);
+      search_state.setVariablePositions(joint_names,traj_pt.positions);
+      search_state.setVariableVelocities(joint_names,traj_pt.velocities);
+      search_state.update(true);
 
-      drop_trajectory |= !scene->isStateValid(*search_state,"",verbose);
+      drop_trajectory |= !scene->isStateValid(search_state,"",verbose);
 
       if (verbose) {
         std::cout << " = dropped? " << drop_trajectory << std::endl;
@@ -301,7 +299,7 @@ namespace costar {
     goal_threshold = std::vector<double>(dof,threshold);
 
     int i = 0;
-    for (const std::string &name: search_state->getVariableNames()) {
+    for (const std::string &name: scene->getCurrentState().getVariableNames()) {
       std::cout << "setting up joint " << i << ":" << name << std::endl;
       joint_names[i] = std::string(name);
       i++;
@@ -363,7 +361,7 @@ namespace costar {
     collision_detection::CollisionRobotConstPtr robot1 = scene->getCollisionRobot();
     std::string name = robot1->getRobotModel()->getName();
 
-    state->update();
+    RobotState search_state = scene->getCurrentState();
 
     bool drop_trajectory = false;
     for (const std::vector<double> &positions: traj) {
@@ -374,15 +372,16 @@ namespace costar {
         }
       }
 
-      search_state->setVariablePositions(joint_names,positions);
-      search_state->update(true);
+      //search_state->setVariablePositions(joint_names,positions);
+      //search_state->update(true);
+      search_state.setVariablePositions(joint_names,positions);
+      search_state.update(true);
 
-      drop_trajectory |= !scene->isStateValid(*search_state,"",verbose);
+      drop_trajectory |= !scene->isStateValid(search_state,"",verbose);
 
       if (verbose) {
         std::cout << " = dropped? " << drop_trajectory << std::endl;
       }
-
 
       if (drop_trajectory) {
         break;
@@ -405,7 +404,7 @@ namespace costar {
     collision_detection::CollisionRobotConstPtr robot1 = scene->getCollisionRobot();
     std::string name = robot1->getRobotModel()->getName();
 
-    state->update();
+    RobotState search_state = scene->getCurrentState();
 
     bool drop_trajectory = false;
     //for (const auto &pt: traj.points) {
@@ -426,11 +425,10 @@ namespace costar {
 
       } else {
 
-        search_state->setVariablePositions(joint_names,pt.positions);
-        search_state->update(true);
+        search_state.setVariablePositions(joint_names,pt.positions);
+        search_state.update(true);
 
-
-        drop_trajectory |= !scene->isStateValid(*search_state,"",verbose);
+        drop_trajectory |= !scene->isStateValid(search_state,"",verbose);
 
       }
       if (verbose) {
