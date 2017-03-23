@@ -1,7 +1,6 @@
 
 import numpy as np
 import random
-import tensorflow as tf
 
 '''
 just a little structure to hold extra data
@@ -63,11 +62,6 @@ class Experience(object):
         self._idx = length
         self._length = length
 
-    def setModel(self, model_output, model_input):
-        self.model_output = model_output
-        self.max_output = tf.reduce_max(model_output, reduction_indices=1)
-        self.model_input = model_input
-
     '''
     withdraw a single minibatch
     also computes the rewards for training
@@ -87,15 +81,6 @@ class Experience(object):
         if num_non_terminal > 0:
             best = self.max_output.eval(feed_dict={self.model_input: x1nt})
             r[non_terminal_idx] += (self._discount * best).reshape(num_non_terminal, 1)
-            # print r[non_terminal_idx]
-        
-
-        # r[non_terminal_idx] = 
-
-        # for i in idx
-        #    if not self._terminal[i]:
-        # add in estimated for next step
-        #        r[i] = self._r[i] + 0
 
         return x, y, r
         

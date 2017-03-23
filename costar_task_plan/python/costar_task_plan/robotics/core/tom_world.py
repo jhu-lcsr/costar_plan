@@ -10,10 +10,18 @@ from costar_task_plan.datasets import TomDataset
 from world import *
 from demo_reward import *
 
-'''
-This is a simple world for the TOM task.
-'''
+# This is a simple world for the TOM task.
+# In this task, we pick up an orange and move it to either the trash or to a
+# bin. 
 class TomWorld(CostarWorld):
+
+  joint_names = [
+          'r_shoulder_pan_joint',
+          'r_shoulder_lift_joint',
+          'r_elbow_joint',
+          'r_wrist_1_joint',
+          'r_wrist_2_joint',
+          'r_wrist_3_joint',]
 
   def __init__(self, data_root='', fake=True, *args, **kwargs):
     '''
