@@ -6,7 +6,7 @@ Specifically it is a project for creating task and motion planning algorithms th
 
 To run these examples, you will need TensorFlow and Keras, plus a number of Python packages. If you want to stick to the toy examples, you do not need to use this as a ROS package.
 
-For some more information on the structure of the task planner package, check out the [design overview](design.md).
+For some more information on the structure of the task planner package, check out the [design overview](Design.md).
 
 ## Installation
 
