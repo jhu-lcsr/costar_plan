@@ -3,4 +3,4 @@
 # They're an important part of actually running a simulation.
 
 from test import *
-from tom_sim import TmSim
+from tom_sim import TomSim

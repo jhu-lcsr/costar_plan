@@ -7,10 +7,13 @@
 from tom_util import *
 
 from costar_task_plan.robotics.core import *
+from costar_task_plan.robotics.core import TomWorld
 from costar_task_plan.abstract import AbstractReward
 
 import rospy
 
+def load_tom_world():
+  return TomWorld('./')
 
 class NullReward(AbstractReward):
     def __call__(self, world, *args, **kwargs):

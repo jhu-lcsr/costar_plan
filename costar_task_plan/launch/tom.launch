@@ -21,8 +21,14 @@
   <!-- If needed, broadcast static tf for robot root -->
   <!--node pkg="tf" type="static_transform_publisher" name="virtual_joint_broadcaster_0vis" args="0 0 0 0 0 0 odom_combined base_footprint 1000" /-->
   
-  <node pkg="tf" type="static_transform_publisher" name="world_joint_broadcaster" args="0 0 0 0 0 0 base_link world 1000" />
-  <node pkg="tf" type="static_transform_publisher" name="base_joint_broadcaster" args="0 0 0 0 0 0 base_footprint base_link 1000" />
+  <node pkg="tf"
+    type="static_transform_publisher"
+    name="world_joint_broadcaster"
+    args="0 0 0 0 0 0 base_link world 1000" />
+  <node pkg="tf"
+    type="static_transform_publisher"
+    name="base_joint_broadcaster"
+    args="0 0 0 0 0 0 base_footprint base_link 1000" />
 
 
   <!-- If needed, broadcast static tf for robot root -->
@@ -42,7 +48,7 @@
 
   <!-- Run the main MoveIt executable without trajectory execution (we do not have controllers configured by default) -->
   <include file="$(find tom_full_moveit_config)/launch/move_group.launch">
-    <arg name="allow_trajectory_execution" value="true"/>  
+    <arg name="allow_trajectory_execution" value="false"/>  
     <arg name="fake_execution" value="false"/>
     <arg name="info" value="true"/>
     <arg name="debug" value="$(arg debug)"/>

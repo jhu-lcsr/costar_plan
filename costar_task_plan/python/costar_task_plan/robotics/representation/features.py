@@ -63,12 +63,7 @@ def P_Gauss(x,mu,inv,det,wts):
 
     for i in range(wts.shape[0]):
         res = (x - mu).dot(inv[0]) * (x - mu)
-        #print np.sum(res,axis=0).shape
         res = -0.5 * np.sum(res,axis=1)
-        #print res
-        #print wts[i]
-        #print (np.sqrt((2*np.pi)**nvar * np.abs(det[i])))
-        #print wts[i] * np.exp(res) / (np.sqrt((2*np.pi)**nvar * np.abs(det[i])))
         p += wts[i] * np.exp(res) / (np.sqrt((2*np.pi)**nvar * np.abs(det[i])))
 
     return np.log(p)

@@ -62,12 +62,12 @@ class AbstractDynamics(object):
   def apply(self, state, action):
     raise Exception('dynamics.apply not implemented')
 
-'''
-Policy class governs what actions are chosen
-'''
+# AbstractPolicy
+# Policy class governs what actions are chosen.
+# It takes a world state plus some extra information (determining for example
+# which actor should be taking the action, and what their predicted state will
+# be).
 class AbstractPolicy(object):
-
-  features = None
 
   def __init__(self, features=None):
     self.features = features
