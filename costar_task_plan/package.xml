@@ -45,8 +45,7 @@
   <run_depend>rospy</run_depend>
 
   <build_depend>costar_plan_msgs</build_depend>
-  <run_depend>costar_plan_msgs</run_depend>
-
+  <build_depend>costar_planning_interface</build_depend>
   <build_depend>rosbag</build_depend>
   <build_depend>dmp</build_depend>
   <build_depend>tf</build_depend>
@@ -61,6 +60,8 @@
   <build_depend>orocos_kdl</build_depend>
   <build_depend>kdl_parser</build_depend>
 
+  <run_depend>costar_plan_msgs</run_depend>
+  <run_depend>costar_planning_interface</run_depend>
   <run_depend>dmp</run_depend>
   <run_depend>rosbag</run_depend>
   <run_depend>tf</run_depend>
