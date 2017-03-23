@@ -468,9 +468,6 @@ namespace costar {
   boost::python::list CostarPlanner::pyTryPrimitives(const boost::python::list &list) {
     std::vector<double> primitives = to_std_vector<double>(list);
 
-    //moveit_msgs::PlanningScene ps_msg;
-    //monitor->getPlanningScene()->getPlanningSceneMsg(ps_msg);
-    //scene->setPlanningSceneMsg(ps_msg);
     scene->getCurrentStateNonConst().update(); 
 
 #if _DEBUG_OUTPUT

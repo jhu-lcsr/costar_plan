@@ -8,6 +8,9 @@ So the goal of this task planner is to combine learning and planning to let us q
 Our planner functions in two stages:
   - learning: get a mapping between a feature space and parameters.
 
+Our goal is to learn a stochastic high-level policy over options. Our options are something that makes sense in our domain: DMPs, custom car controllers, etc. The question is: given our initial state and features, which policy should we execute?
+
+There are also two parts to this; we also need to be able to predict (separately) the likelihood that each individual option will succeed.
 
 ## Options
 

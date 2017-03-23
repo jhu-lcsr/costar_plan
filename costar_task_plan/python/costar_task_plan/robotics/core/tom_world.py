@@ -23,7 +23,7 @@ class TomWorld(CostarWorld):
           'r_wrist_2_joint',
           'r_wrist_3_joint',]
 
-  def __init__(self, data_root='', fake=True, *args, **kwargs):
+  def __init__(self, data_root='', fake=True, load_dataset=True, *args, **kwargs):
     '''
     Drop positions for the various TOM objects:
 
@@ -72,34 +72,35 @@ class TomWorld(CostarWorld):
         'r_wrist_3_joint']
     }
 
-    self.dataset = TomDataset()
-    self.dataset.load(root_filepath=data_root)
-    super(TomWorld,self).__init__(None,
-        fake=fake,
-        robot_config=robot_config,
-        *args, **kwargs)
+    if load_dataset:
+      self.dataset = TomDataset()
+      self.dataset.load(root_filepath=data_root)
+      super(TomWorld,self).__init__(None,
+          fake=fake,
+          robot_config=robot_config,
+          *args, **kwargs)
 
-    self.addTrajectories("move",
-        self.dataset.move_trajs,
-        self.dataset.move_oranges,)
-    self.addTrajectories("pickup",
-        self.dataset.pickup_trajs,
-        self.dataset.pickup_oranges,)
-    self.addTrajectories("test",
-        self.dataset.test_trajs,
-        self.dataset.test_oranges,)
-    self.addTrajectories("box",
-        self.dataset.box,
-        self.dataset.box_oranges,)
-    self.addTrajectories("trash",
-        self.dataset.trash,
-        self.dataset.trash_oranges,)
+      self.addTrajectories("move",
+          self.dataset.move_trajs,
+          self.dataset.move_oranges,)
+      self.addTrajectories("pickup",
+          self.dataset.pickup_trajs,
+          self.dataset.pickup_oranges,)
+      self.addTrajectories("test",
+          self.dataset.test_trajs,
+          self.dataset.test_oranges,)
+      self.addTrajectories("box",
+          self.dataset.box,
+          self.dataset.box_oranges,)
+      self.addTrajectories("trash",
+          self.dataset.trash,
+          self.dataset.trash_oranges,)
 
-    self.ref_oranges = self.dataset.move_oranges + \
-                       self.dataset.pickup_oranges + \
-                       self.dataset.test_oranges + \
-                       self.dataset.box_oranges + \
-                       self.dataset.trash_oranges
+      self.ref_oranges = self.dataset.move_oranges + \
+                         self.dataset.pickup_oranges + \
+                         self.dataset.test_oranges + \
+                         self.dataset.box_oranges + \
+                         self.dataset.trash_oranges
 
     self.box = ['box']
     self.trash = ['trash']
