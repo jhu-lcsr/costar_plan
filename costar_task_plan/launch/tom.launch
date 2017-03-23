@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<launch>
+
+	<!--arg name="scene" default="full"/-->
+	<arg name="scene" default="lacquey"/>
+	
+  <!-- Load the URDF, SRDF and other .yaml configuration files on the param server -->
+  <include file="$(find tom_full_moveit_config)/launch/planning_context.launch">
+    <arg name="load_robot_description" value="true"/>
+    <arg name="robot" default="$(arg scene)"/>
+  </include>
+
+  <!-- If needed, broadcast static tf for robot root -->
+  <!--node pkg="tf" type="static_transform_publisher" name="virtual_joint_broadcaster_0vis" args="0 0 0 0 0 0 odom_combined base_footprint 1000" /-->
+  
+  <node pkg="tf" type="static_transform_publisher" name="world_joint_broadcaster" args="0 0 0 0 0 0 base_link world 1000" />
+  <node pkg="tf" type="static_transform_publisher" name="base_joint_broadcaster" args="0 0 0 0 0 0 base_footprint base_link 1000" />
+
+
+  <!-- If needed, broadcast static tf for robot root -->
+  <!--node pkg="tf" type="static_transform_publisher" name="left_hand_desired" args="-0.01 0 0 0 0 0 l_hand_base_link left_hand_desired_ef 10" /-->
+
+  <!-- loading the Park position as TOM zero position -->
+  <rosparam command="load" file="$(find tom_description)/config/tom_zeros.yaml"/>
+
+  <!-- We do not have a robot connected, so publish fake joint states -->
+  <node name="tom_sim" type="tom_sim.py" pkg="costar_task_plan"/>
+
+  
+  <!-- Given the published joint states, publish tf for the robot links -->
+  <node name="robot_state_publishervis" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen" />
+
+	<node name="rvizvis" pkg="rviz" type="rviz" args="-d $(find tom_bringup)/launch/rviz_conf/robot_tom.rviz" />
+
+</launch>
