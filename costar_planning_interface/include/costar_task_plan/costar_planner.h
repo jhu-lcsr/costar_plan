@@ -82,7 +82,7 @@ namespace costar {
 
   public:
 
-    /* constructor */
+    // Constructor
     CostarPlanner(const std::string &RobotDescription = std::string("robot_desciption"),
                 const std::string &JointStateTopic = std::string("joint_states"),
                 const std::string &PlanningSceneTopic = std::string("planning_scene"),
@@ -90,7 +90,7 @@ namespace costar {
                 unsigned int num_basis=5,
                 bool verbose=false);
 
-    /* destructor */
+    // Destructor
     ~CostarPlanner();
 
     static const std::string TIME;
@@ -151,19 +151,6 @@ namespace costar {
     /* reset all entries in the collision map */
     void ResetCollisionMap();
 
-#ifdef GEN_PYTHON_BINDINGS
-    /* try a set of motion primitives; see if they work.
-     * this is aimed at the python version of the code. */
-    boost::python::list pyTryPrimitives(const boost::python::list &primitives);
-
-    /* try a single trajectory and see if it works.
-     * this is aimed at the python version of the code. */
-    bool pyTryTrajectory(const boost::python::list &trajectory);
-
-    /* get current joint positions */
-    boost::python::list GetJointPositions() const;
-#endif
-
   private:
     CollisionMap cm;
 
@@ -210,6 +197,8 @@ namespace costar {
 
     /* keep scene up to date */
     void PlanningSceneCallback(const moveit_msgs::PlanningScene::ConstPtr &msg);
+
+    friend class PlanningInterfaceWrapper;
   };
 }
 

@@ -7,12 +7,17 @@ __all__ = [
         "CostarFeatures",
         # =====================================================================
         "DemoReward",
+        # =====================================================================
+        "DmpPolicy",
         ]
 
 from world import *
 from actor import *
 from features import *
 from dynamics import *
+
+# Policies
+from dmp_policy import DmpPolicy
 
 # LfD stuff
 from tom_world import *

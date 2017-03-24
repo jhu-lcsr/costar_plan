@@ -4,12 +4,9 @@
 #include <exception>
 #include <iostream>
 
-//#include <ctime>
 #ifdef GEN_PYTHON_BINDINGS
 #include <costar_task_plan/utils/python.hpp>
 #endif
-
-#define _DEBUG_OUTPUT 0
 
 using namespace dmp;
 
@@ -431,92 +428,4 @@ namespace costar {
     cm.reset();
   }
 
-
-#ifdef GEN_PYTHON_BINDINGS
-
-  // Helper function: get current joint positions (according to the joint
-  // listener, not to the planning scene).
-  boost::python::list CostarPlanner::GetJointPositions() const {
-    boost::python::list res;
-    for (double x: x0) {
-      res.append<double>(x);
-    }
-    return res;
-  }
-
-  // Try a set of motion primitives; see if they work.
-  // This is aimed at the python version of the code. It takes a python list
-  // containing the parameters of the motion as its only argument.
-  boost::python::list CostarPlanner::pyTryPrimitives(const boost::python::list &list) {
-    std::vector<double> primitives = to_std_vector<double>(list);
-
-    scene->getCurrentStateNonConst().update(); 
-
-#if _DEBUG_OUTPUT
-    std::vector<std::string> names = scene->getWorld()->getObjectIds();
-
-    std::cout << "==========================" << std::endl;
-    std::cout << "OBJECTS IN WORLD: " << std::endl;
-    for (const std::string &name: names) {
-      std::cout << " -- " << name << std::endl;
-    }
-    std::cout << "==========================" << std::endl;
-#endif
-
-    Traj_t traj = TryPrimitives(primitives);
-
-    boost::python::list res;
-
-    for (const Traj_pt_t &pt: traj.points) {
-      boost::python::list p;
-      boost::python::list v;
-
-      //for (const double &q: pt.positions) {
-      for (unsigned int i = 0; i < pt.positions.size(); ++i) {
-        p.append<double>(pt.positions[i]);
-        v.append<double>(pt.velocities[i]);
-      }
-
-      res.append<boost::python::tuple>(boost::python::make_tuple(p,v));
-    }
-
-    return res;
-    }
-
-    /* try a single trajectory and see if it works.
-     * this is aimed at the python version of the code. */
-    bool CostarPlanner::pyTryTrajectory(const boost::python::list &trajectory) {
-      std::vector< std::vector<double> > traj;
-      std::vector< boost::python::list > tmp = to_std_vector<boost::python::list>(trajectory);
-
-      for (boost::python::list &pt: tmp) {
-        traj.push_back(to_std_vector<double>(pt));
-      }
-
-      return TryTrajectory(traj);
-    }
-#endif
-
-
-  }
-
-#ifdef GEN_PYTHON_BINDINGS
-  BOOST_PYTHON_MODULE(pycostar_planner) {
-    class_<costar::CostarPlanner>("CostarPlanner",init<std::string,std::string,std::string,double>())
-      .def("Plan", &costar::CostarPlanner::Plan)
-      .def("AddAction", &costar::CostarPlanner::AddAction)
-      .def("AddObject", &costar::CostarPlanner::AddObject)
-      .def("TryPrimitives", &costar::CostarPlanner::pyTryPrimitives)
-      .def("TryTrajectory", &costar::CostarPlanner::pyTryTrajectory)
-      .def("SetK", &costar::CostarPlanner::SetK)
-      .def("SetD", &costar::CostarPlanner::SetD)
-      .def("SetTau", &costar::CostarPlanner::SetTau)
-      .def("SetDof", &costar::CostarPlanner::SetDof)
-      .def("SetNumBasisFunctions", &costar::CostarPlanner::SetNumBasisFunctions)
-      .def("SetGoalThreshold", &costar::CostarPlanner::SetGoalThreshold)
-      .def("SetVerbose", &costar::CostarPlanner::SetVerbose)
-      .def("PrintInfo", &costar::CostarPlanner::PrintInfo)
-      .def("GetJointPositions", &costar::CostarPlanner::GetJointPositions)
-      .def("SetCollisions", &costar::CostarPlanner::SetCollisions);
-  }
-#endif
+}

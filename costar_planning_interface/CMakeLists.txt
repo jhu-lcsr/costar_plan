@@ -92,7 +92,7 @@ catkin_python_setup()
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES ltl_tree_search
-#  CATKIN_DEPENDS rospy
+  CATKIN_DEPENDS costar_plan_msgs
 #  DEPENDS system_lib
 )
 
@@ -111,8 +111,7 @@ include_directories(
   ${EIGEN3_INCLUDE_DIRS} )
 
 set(PY_SOURCES
-  cpp/costar_planner.cpp
-  cpp/collision_map.cpp
+  cpp/planning_interface_wrapper.cpp
 )
 
 set(SOURCES 
@@ -138,8 +137,7 @@ set(SOURCES
 )
 
 set(PY_HEADERS
-  include/costar_task_plan/costar_planner.h
-  include/costar_task_plan/collision_map.h
+  include/costar_task_plan/planning_interface_wrapper.h
 )
 
 set(HEADERS
@@ -188,13 +186,14 @@ add_executable(moveit_robot_model_test cpp/test/moveit_robot_test.cpp)
 ## as an example, message headers may need to be generated before nodes
 add_dependencies(costar_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(costar_plan_node costar_planner)
+add_dependencies(pycostar_planner costar_planner)
 #add_dependencies(features_test costar_planner)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(costar_planner
   ${orocos_kdl_LIBRARIES} ${catkin_LIBRARIES} ${GCOP_LIBRARIES} ${Boost_LIBRARIES} ${EIGEN3_LIBRARIES} ${PYTHON_LIBRARIES}
 )
-target_link_libraries(pycostar_planner
+target_link_libraries(pycostar_planner costar_planner
   ${orocos_kdl_LIBRARIES} ${catkin_LIBRARIES} ${GCOP_LIBRARIES} ${Boost_LIBRARIES} ${EIGEN3_LIBRARIES} ${PYTHON_LIBRARIES}
   #${catkin_LIBRARIES} ${Boost_LIBRARIES} ${PYTHON_LIBRARIES}
 )

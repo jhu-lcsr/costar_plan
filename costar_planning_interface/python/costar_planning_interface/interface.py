@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 try:
-  from pycostar_planner import CostarPlanner
+  from pycostar_planner import PlanningInterfaceWrapper
 except ImportError, e:
   print "[COSTAR_PLANNING_INTERFACE] Could not create Boost::python bindings!"
 
@@ -17,7 +17,9 @@ class PlanningInterface(object):
                  robot_description="robot_description",
                  joint_states_topic="joint_states",
                  planning_scene_topic="planning_scene",
-                 padding=0.):
+                 padding=0.,
+                 num_basis_functions=5,
+                 verbose=False):
 
         global roscpp_set
         if not roscpp_set:
@@ -27,12 +29,13 @@ class PlanningInterface(object):
                 print e
 
         # Create the actual interface
-        self.interface = CostarPlanner(
+        self.interface = PlanningInterfaceWrapper(
                 robot_description,
                 joint_states_topic,
                 planning_scene_topic,
-                padding)
-
+                padding,
+                num_basis_functions,
+                verbose)
 
 if __name__ == '__main__':
     pi = PlanningInterface()
