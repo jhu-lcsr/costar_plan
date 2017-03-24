@@ -18,7 +18,7 @@
 #include <memory>
 
 // Boost
-#include <boost/thread/mutex.hpp>
+#include <boost/thread/recursive_mutex.hpp>
 
 // Boost Python
 #ifdef GEN_PYTHON_BINDINGS
@@ -32,6 +32,7 @@
 #include <moveit/robot_state/robot_state.h>
 #include <moveit/planning_scene/planning_scene.h>
 #include <moveit/planning_scene_monitor/planning_scene_monitor.h>
+
 
 // joint states
 #include <sensor_msgs/JointState.h>
@@ -196,8 +197,8 @@ namespace costar {
 
     bool verbose;
 
-    boost::shared_ptr<boost::mutex> ps_mutex;
-    boost::shared_ptr<boost::mutex> js_mutex;
+    boost::shared_ptr<boost::recursive_mutex> ps_mutex;
+    boost::shared_ptr<boost::recursive_mutex> js_mutex;
 
     ros::NodeHandle nh;
 

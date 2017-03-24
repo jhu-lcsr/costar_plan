@@ -2,6 +2,7 @@
 
 import rospy
 from sensor_msgs.msg import JointState
+from moveit_msgs.msg import PlanningScene
 
 # This is a very crude simulator that determines what TOM can do. We use this
 # thing to publish poses where we want the robot to go.
@@ -42,6 +43,7 @@ class TomSim(object):
       self.qs[name] = pose
 
     self.js_pub = rospy.Publisher('joint_states', JointState, queue_size=1000)
+    self.ps_pub = rospy.Publisher('planning_scene', PlanningScene, queue_size=1000)
 
 
   def tick(self):
@@ -50,6 +52,8 @@ class TomSim(object):
     msg.header.seq = self.seq
     msg.header.stamp = rospy.Time.now()
     self.js_pub.publish(msg)
+
+
 
 if __name__ == '__main__':
 

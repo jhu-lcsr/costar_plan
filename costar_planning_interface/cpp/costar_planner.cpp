@@ -29,18 +29,18 @@ namespace costar {
   const std::string CostarPlanner::PS_TOPIC("monitored_planning_scene");
 
   const std::vector<double> &CostarPlanner::currentPos() const {
-    boost::mutex::scoped_lock lock(*js_mutex);
+    boost::recursive_mutex::scoped_lock lock(*js_mutex);
     return x0;
   }
 
   const std::vector<double> &CostarPlanner::currentVel() const {
-    boost::mutex::scoped_lock lock(*js_mutex);
+    boost::recursive_mutex::scoped_lock lock(*js_mutex);
     return x0_dot;
   }
 
   // Keep robot joints up to date.
   void CostarPlanner::JointStateCallback(const sensor_msgs::JointState::ConstPtr &msg) {
-    boost::mutex::scoped_lock lock(*js_mutex);
+    boost::recursive_mutex::scoped_lock lock(*js_mutex);
 
     for (unsigned int i = 0; i < dof; ++i) {
       x0[i] = msg->position[i];
@@ -53,7 +53,7 @@ namespace costar {
   // Keep the planning scene up to date. This should track the robot's current
   // position and the position of any dynamic obstacles we may need to consider.
   void CostarPlanner::PlanningSceneCallback(const moveit_msgs::PlanningScene::ConstPtr &msg) {
-    boost::mutex::scoped_lock lock(*ps_mutex);
+    boost::recursive_mutex::scoped_lock lock(*ps_mutex);
     if (msg->is_diff) {
       scene->setPlanningSceneDiffMsg(*msg);
     } else {
@@ -72,9 +72,6 @@ namespace costar {
     goal_threshold(7,0.1), threshold(0.1), verbose(verbose_),
     entry_names(), joint_names(7)
     {
-      ps_mutex = boost::shared_ptr<boost::mutex>(new boost::mutex);
-      js_mutex = boost::shared_ptr<boost::mutex>(new boost::mutex);
-
       // needs to set up the Robot objects and listeners
       try {
 
@@ -85,19 +82,10 @@ namespace costar {
 
         ROS_INFO("Loaded model from \"%s\"!",robot_description_.c_str());
 
-        //scene = boost::shared_ptr<PlanningScene>(new PlanningScene(robot_model_loader.getModel()));
-        //scene = new PlanningScene(robot_model_loader.getModel());
         scene = new PlanningScene(model);
         scene->getAllowedCollisionMatrix().getAllEntryNames(tmp_entry_names);
         scene->getCollisionRobotNonConst()->setPadding(padding);
         scene->propogateRobotPadding();
-
-        //state = boost::shared_ptr<RobotState>(new RobotState(robot_model_loader.getModel()));
-        //search_state = boost::shared_ptr<RobotState>(new RobotState(robot_model_loader.getModel()));
-        //state = new RobotState(robot_model_loader.getModel());
-        //search_state = new RobotState(robot_model_loader.getModel());
-        //state = new RobotState(model);
-        //search_state = new RobotState(model);
 
         for (const std::string &entry: tmp_entry_names) {
           entry_names.push_back(std::string(entry));
@@ -113,17 +101,10 @@ namespace costar {
 
   /* destructor */
   CostarPlanner::~CostarPlanner() {
-
     js_sub.shutdown();
     ps_sub.shutdown();
 
-    {
-      boost::mutex::scoped_lock ps_lock(*ps_mutex);
-      boost::mutex::scoped_lock js_lock(*js_mutex);
-
-      delete scene;
-      model.~RobotModelPtr();
-    }
+    delete scene;
   }
 
   /* add an object to the action here */
@@ -182,7 +163,7 @@ namespace costar {
   /* try a set of motion primitives; see if they work.
    * returns an empty trajectory if no valid path was found. */
   Traj_t CostarPlanner::TryPrimitives(std::vector<double> primitives) {
-    boost::mutex::scoped_lock lock(*ps_mutex);
+    boost::recursive_mutex::scoped_lock lock(*ps_mutex);
     scene->getCurrentStateNonConst().update(); 
 
     Traj_t traj;
@@ -353,7 +334,7 @@ namespace costar {
 
   /* try a single trajectory and see if it works. */
   bool CostarPlanner::TryTrajectory(const std::vector <std::vector<double> > &traj) {
-    boost::mutex::scoped_lock lock(*ps_mutex);
+    boost::recursive_mutex::scoped_lock lock(*ps_mutex);
     scene->getCurrentStateNonConst().update(); 
 
     bool colliding, bounds_satisfied;
@@ -391,12 +372,10 @@ namespace costar {
     return !drop_trajectory;
   }
 
-  /*
-   * try a single trajectory and see if it works.
-   * this is the joint trajectory version (so we can use a consistent message type)
-   * */
+  // Try a single trajectory and see if it works.
+  // This is the joint trajectory version (so we can use a consistent message type)
   bool CostarPlanner::TryTrajectory(const Traj_t &traj, unsigned int step) {
-    boost::mutex::scoped_lock lock(*ps_mutex);
+    boost::recursive_mutex::scoped_lock lock(*ps_mutex);
     scene->getCurrentStateNonConst().update(); 
 
     bool colliding, bounds_satisfied;
@@ -407,8 +386,6 @@ namespace costar {
     RobotState search_state = scene->getCurrentState();
 
     bool drop_trajectory = false;
-    //for (const auto &pt: traj.points) {
-    //for (const auto pt = traj.points.begin(); pt < traj.points.end(); pt += step) {
     for (unsigned int i = 0; i < traj.points.size(); i += step) {
       const auto &pt = traj.points.at(i);
       if (verbose) {
@@ -418,41 +395,47 @@ namespace costar {
         }
       }
 
+      // Check with the (unfinished?) collision map class. We only set this up
+      // so we don't need to have a lot of repeated calls to the same or very
+      // similar joint states.
       int check_result = cm.check(pt.positions);
       if (check_result > -1) {
-
+        // If we already observed a collision during some other call this
+        // iteration, then we know this is a failure already.
         drop_trajectory |= (check_result == 1);
-
       } else {
-
+        // Check based on the search state.
         search_state.setVariablePositions(joint_names,pt.positions);
         search_state.update(true);
 
         drop_trajectory |= !scene->isStateValid(search_state,"",verbose);
-
       }
       if (verbose) {
         std::cout << " = dropped? " << drop_trajectory << std::endl;
       }
 
-
+      // Stop checking things in this trajectory, since we already know this
+      // was a failure.
       if (drop_trajectory) {
         break;
       }
     }
 
+    // True if the trajectory never hit an invalid state.
     return !drop_trajectory;
   }
 
 
-  /* reset all entries in the collision map */
+  // Reset all entries in the collision map
   void CostarPlanner::ResetCollisionMap() {
     cm.reset();
   }
 
 
 #ifdef GEN_PYTHON_BINDINGS
-  /* get current joint positions */
+
+  // Helper function: get current joint positions (according to the joint
+  // listener, not to the planning scene).
   boost::python::list CostarPlanner::GetJointPositions() const {
     boost::python::list res;
     for (double x: x0) {
@@ -461,8 +444,9 @@ namespace costar {
     return res;
   }
 
-  /* try a set of motion primitives; see if they work.
-   * this is aimed at the python version of the code. */
+  // Try a set of motion primitives; see if they work.
+  // This is aimed at the python version of the code. It takes a python list
+  // containing the parameters of the motion as its only argument.
   boost::python::list CostarPlanner::pyTryPrimitives(const boost::python::list &list) {
     std::vector<double> primitives = to_std_vector<double>(list);
 
