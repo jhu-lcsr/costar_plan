@@ -184,8 +184,8 @@ namespace costar {
 
     bool verbose;
 
-    boost::shared_ptr<boost::recursive_mutex> ps_mutex;
-    boost::shared_ptr<boost::recursive_mutex> js_mutex;
+    mutable boost::recursive_mutex ps_mutex;
+    mutable boost::recursive_mutex js_mutex;
 
     ros::NodeHandle nh;
 

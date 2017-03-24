@@ -26,18 +26,18 @@ namespace costar {
   const std::string CostarPlanner::PS_TOPIC("monitored_planning_scene");
 
   const std::vector<double> &CostarPlanner::currentPos() const {
-    boost::recursive_mutex::scoped_lock lock(*js_mutex);
+    boost::recursive_mutex::scoped_lock lock(js_mutex);
     return x0;
   }
 
   const std::vector<double> &CostarPlanner::currentVel() const {
-    boost::recursive_mutex::scoped_lock lock(*js_mutex);
+    boost::recursive_mutex::scoped_lock lock(js_mutex);
     return x0_dot;
   }
 
   // Keep robot joints up to date.
   void CostarPlanner::JointStateCallback(const sensor_msgs::JointState::ConstPtr &msg) {
-    boost::recursive_mutex::scoped_lock lock(*js_mutex);
+    boost::recursive_mutex::scoped_lock lock(js_mutex);
 
     for (unsigned int i = 0; i < dof; ++i) {
       x0[i] = msg->position[i];
@@ -50,7 +50,7 @@ namespace costar {
   // Keep the planning scene up to date. This should track the robot's current
   // position and the position of any dynamic obstacles we may need to consider.
   void CostarPlanner::PlanningSceneCallback(const moveit_msgs::PlanningScene::ConstPtr &msg) {
-    boost::recursive_mutex::scoped_lock lock(*ps_mutex);
+    boost::recursive_mutex::scoped_lock lock(ps_mutex);
     if (msg->is_diff) {
       scene->setPlanningSceneDiffMsg(*msg);
     } else {
@@ -92,8 +92,8 @@ namespace costar {
         std::cerr << ex.what() << std::endl;
       }
 
-      //js_sub = nh.subscribe(js_topic.c_str(),1000,&CostarPlanner::JointStateCallback,this);
-      //ps_sub = nh.subscribe(scene_topic.c_str(),1000,&CostarPlanner::PlanningSceneCallback,this);
+      js_sub = nh.subscribe(js_topic.c_str(),1000,&CostarPlanner::JointStateCallback,this);
+      ps_sub = nh.subscribe(scene_topic.c_str(),1000,&CostarPlanner::PlanningSceneCallback,this);
     }
 
   /* destructor */
@@ -160,7 +160,7 @@ namespace costar {
   /* try a set of motion primitives; see if they work.
    * returns an empty trajectory if no valid path was found. */
   Traj_t CostarPlanner::TryPrimitives(std::vector<double> primitives) {
-    boost::recursive_mutex::scoped_lock lock(*ps_mutex);
+    boost::recursive_mutex::scoped_lock lock(ps_mutex);
     scene->getCurrentStateNonConst().update(); 
 
     Traj_t traj;
@@ -331,7 +331,7 @@ namespace costar {
 
   /* try a single trajectory and see if it works. */
   bool CostarPlanner::TryTrajectory(const std::vector <std::vector<double> > &traj) {
-    boost::recursive_mutex::scoped_lock lock(*ps_mutex);
+    boost::recursive_mutex::scoped_lock lock(ps_mutex);
     scene->getCurrentStateNonConst().update(); 
 
     bool colliding, bounds_satisfied;
@@ -372,7 +372,7 @@ namespace costar {
   // Try a single trajectory and see if it works.
   // This is the joint trajectory version (so we can use a consistent message type)
   bool CostarPlanner::TryTrajectory(const Traj_t &traj, unsigned int step) {
-    boost::recursive_mutex::scoped_lock lock(*ps_mutex);
+    boost::recursive_mutex::scoped_lock lock(ps_mutex);
     scene->getCurrentStateNonConst().update(); 
 
     bool colliding, bounds_satisfied;
