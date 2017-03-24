@@ -45,6 +45,10 @@ class TomSim(object):
     self.js_pub = rospy.Publisher('joint_states', JointState, queue_size=1000)
     self.ps_pub = rospy.Publisher('planning_scene', PlanningScene, queue_size=1000)
 
+    # Get the first planning scene, containing the loaded geometry and meshes
+    # and all that.
+    rospy.wait_for_service('/get_planning_scene')
+
 
   def tick(self):
     self.seq += 1
@@ -53,7 +57,10 @@ class TomSim(object):
     msg.header.stamp = rospy.Time.now()
     self.js_pub.publish(msg)
 
-
+    ps_msg = PlanningScene()
+    ps_msg.scene.robot_state.joint_state.name = self.qs.keys()
+    ps_msg.scene.robot_state.joint_state.position = self.qs.values()
+    ps_msg.world.collision_objects = []
 
 if __name__ == '__main__':
 
