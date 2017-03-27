@@ -3,6 +3,9 @@
 import rospy
 from sensor_msgs.msg import JointState
 from moveit_msgs.msg import PlanningScene
+from moveit_msgs.msg import CollisionObject
+from shape_msgs.msg import SolidPrimitive
+from geometry_msgs.msg import Pose, Point
 
 # This is a very crude simulator that determines what TOM can do. We use this
 # thing to publish poses where we want the robot to go.
@@ -14,7 +17,6 @@ class TomSim(object):
 
   def __init__(self):
     self.seq = 0
-    self.obstacles = []
 
     # Create the list of joint names for the simple TOM simulator
     self.joint_names = ['l_front_wheel_joint', 'l_rear_wheel_joint',
@@ -49,6 +51,21 @@ class TomSim(object):
     # and all that.
     rospy.wait_for_service('/get_planning_scene')
 
+    primitive_table = SolidPrimitive(
+            type=SolidPrimitive.BOX, dimensions=[0.6,1.4,0.7])
+    pose_table = Pose(position=Point(0.85,0.,-0.06))
+    primitive_trash = SolidPrimitive(
+            type=SolidPrimitive.BOX, dimensions=[0.2,0.2,0.16])
+    pose_trash = Pose(position=Point(0.65,-0.55,0.35))
+
+    table = CollisionObject(id="table",
+        primitives=[primitive_table, primitive_trash],
+        primitive_poses=[pose_table, pose_trash])
+    table.header.frame_id = "world"
+
+    # Collision objects
+    self.obstacles = [table]
+
 
   def tick(self):
     self.seq += 1
@@ -60,7 +77,8 @@ class TomSim(object):
     ps_msg = PlanningScene()
     ps_msg.robot_state.joint_state.name = self.qs.keys()
     ps_msg.robot_state.joint_state.position = self.qs.values()
-    ps_msg.world.collision_objects = []
+    ps_msg.world.collision_objects = self.obstacles
+    self.ps_pub.publish(ps_msg)
 
 if __name__ == '__main__':
 
