@@ -4,8 +4,6 @@
 # (c) 2017 The Johns Hopkins University
 # See License for more details
 
-from tom_util import *
-
 from costar_task_plan.robotics.core import *
 from costar_task_plan.robotics.core import TomWorld
 from costar_task_plan.abstract import AbstractReward
