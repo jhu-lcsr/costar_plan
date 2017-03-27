@@ -58,8 +58,8 @@ class TomSim(object):
     self.js_pub.publish(msg)
 
     ps_msg = PlanningScene()
-    ps_msg.scene.robot_state.joint_state.name = self.qs.keys()
-    ps_msg.scene.robot_state.joint_state.position = self.qs.values()
+    ps_msg.robot_state.joint_state.name = self.qs.keys()
+    ps_msg.robot_state.joint_state.position = self.qs.values()
     ps_msg.world.collision_objects = []
 
 if __name__ == '__main__':
