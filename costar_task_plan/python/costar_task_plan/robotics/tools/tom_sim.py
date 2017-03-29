@@ -3,6 +3,8 @@
 import rospy
 import tf
 
+#from moveit_commander import PlanningSceneInterface
+
 from sensor_msgs.msg import JointState
 from moveit_msgs.msg import PlanningScene
 from moveit_msgs.msg import CollisionObject
@@ -49,6 +51,7 @@ class TomSim(object):
 
     self.js_pub = rospy.Publisher('joint_states', JointState, queue_size=1000)
     self.ps_pub = rospy.Publisher('planning_scene', PlanningScene, queue_size=1000)
+    self.co_pub = rospy.Publisher('collision_object', CollisionObject, queue_size=1000)
 
     # Get the first planning scene, containing the loaded geometry and meshes
     # and all that.
@@ -64,10 +67,18 @@ class TomSim(object):
     table = CollisionObject(id="table",
         primitives=[primitive_table, primitive_trash],
         primitive_poses=[pose_table, pose_trash])
+    table.operation = CollisionObject.ADD
     table.header.frame_id = "odom_combined"
 
     # Collision objects
     self.obstacles = [table]
+
+  def start(self):
+
+    rospy.wait_for_service('/get_planning_scene')
+
+    for co in self.obstacles:
+        self.co_pub.publish(co)
 
 
   def tick(self):
@@ -79,11 +90,11 @@ class TomSim(object):
 
     # Send set of obstacles so that we can avoid different objects that we
     # already know about.
-    ps_msg = PlanningScene()
-    ps_msg.robot_state.joint_state.name = self.qs.keys()
-    ps_msg.robot_state.joint_state.position = self.qs.values()
-    ps_msg.world.collision_objects = self.obstacles
-    self.ps_pub.publish(ps_msg)
+    #ps_msg = PlanningScene()
+    #ps_msg.robot_state.joint_state.name = self.qs.keys()
+    #ps_msg.robot_state.joint_state.position = self.qs.values()
+    #ps_msg.world.collision_objects = self.obstacles
+    #self.ps_pub.publish(ps_msg)
 
     # Send identity transform from world to odometry frame
     self.tf_pub.sendTransform((0,0,0),
@@ -96,7 +107,14 @@ if __name__ == '__main__':
 
   rospy.init_node('costar_tom_sim')
   
+  # set up sim
   sim = TomSim()
+
+  # wait for move group
+  # send initial planning scene updates
+  sim.start()
+
+  # loop
   rate = rospy.Rate(30)
   try:
     while not rospy.is_shutdown():
