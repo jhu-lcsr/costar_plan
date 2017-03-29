@@ -3,13 +3,12 @@
 import rospy
 import tf
 
-#from moveit_commander import PlanningSceneInterface
-
-from sensor_msgs.msg import JointState
+from geometry_msgs.msg import Pose, Point
 from moveit_msgs.msg import PlanningScene
 from moveit_msgs.msg import CollisionObject
+from sensor_msgs.msg import JointState
 from shape_msgs.msg import SolidPrimitive
-from geometry_msgs.msg import Pose, Point
+from trajectory_msgs.msg import JointTrajectoryPoint
 
 # This is a very crude simulator that determines what TOM can do. We use this
 # thing to publish poses where we want the robot to go.
@@ -52,6 +51,7 @@ class TomSim(object):
     self.js_pub = rospy.Publisher('joint_states', JointState, queue_size=1000)
     self.ps_pub = rospy.Publisher('planning_scene', PlanningScene, queue_size=1000)
     self.co_pub = rospy.Publisher('collision_object', CollisionObject, queue_size=1000)
+    self.cmd_sub = rospy.Subscriber('joint_states_cmd', JointState, self.cmd_cb)
 
     # Get the first planning scene, containing the loaded geometry and meshes
     # and all that.
@@ -73,6 +73,10 @@ class TomSim(object):
     # Collision objects
     self.obstacles = [table]
 
+  # Publish initial message:
+  # - wait for a while until move_group is running
+  # - then publish collision objects so that we can check them and make sure 
+  #   that we don't hit them.
   def start(self):
 
     rospy.wait_for_service('/get_planning_scene')
@@ -80,7 +84,22 @@ class TomSim(object):
     for co in self.obstacles:
         self.co_pub.publish(co)
 
+  # Callback to update the world.
+  def cmd_cb(self, msg):
+    if not isinstance(msg, JointState):
+        raise RuntimeError('must send a joint state')
+    elif len(msg.name) is not len(msg.position):
+        raise RuntimeError('number of positions and joint names must match')
 
+    for name, pos in zip(msg.name, msg.position):
+        if not name in self.qs:
+            raise RuntimeError('world sent joint that does not exist')
+        self.qs[name] = pos
+
+  # Tick once to update the current world state based on inputs from the world.
+  # - world needs to send all the right information when it does its own tick.
+  #   Basically, when in execution mode, our dynamics function will send a set
+  #   of joint states here.
   def tick(self):
     self.seq += 1
     msg = JointState(name=self.qs.keys(), position=self.qs.values())

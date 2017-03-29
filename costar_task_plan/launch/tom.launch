@@ -25,10 +25,10 @@
     type="static_transform_publisher"
     name="world_joint_broadcaster"
     args="0 0 0 0 0 0 base_link world 1000" />
-  <node pkg="tf"
+  <!--<node pkg="tf"
     type="static_transform_publisher"
     name="base_joint_broadcaster"
-    args="0 0 0 0 0 0 base_footprint base_link 1000" />
+    args="0 0 0 0 0 0 base_footprint base_link 1000" />-->
 
 
   <!-- If needed, broadcast static tf for robot root -->
@@ -44,7 +44,7 @@
   <node name="robot_state_publishervis"
     pkg="robot_state_publisher"
     type="robot_state_publisher"
-    respawn="true"
+    respawn="false"
     output="screen" />
 
   <node name="rvizvis"
