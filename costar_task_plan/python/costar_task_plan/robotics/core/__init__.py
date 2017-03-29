@@ -1,6 +1,6 @@
 __all__ = [
         # =====================================================================
-        "CostarWorld", "TomWorld",
+        "CostarWorld",
         # =====================================================================
         "CostarActor",
         "CostarState", "CostarAction",
@@ -17,8 +17,7 @@ from features import *
 from dynamics import *
 
 # Policies
-from dmp_policy import DmpPolicy
+from dmp_policy import DmpPolicy, JointDmpPolicy, CartesianDmpPolicy
 
 # LfD stuff
-from tom_world import *
 from demo_reward import *

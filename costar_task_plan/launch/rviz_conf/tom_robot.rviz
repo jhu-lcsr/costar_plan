@@ -180,9 +180,9 @@ Visualization Manager:
       MoveIt_Warehouse_Port: 33829
       MoveIt_Workspace:
         Center:
-          X: 0
+          X: 0.5
           Y: 0
-          Z: 0
+          Z: 0.5
         Size:
           X: 2
           Y: 2
@@ -466,7 +466,7 @@ Visualization Manager:
         Planning Group: right_arm
         Query Goal State: true
         Query Start State: false
-        Show Workspace: false
+        Show Workspace: true
         Start State Alpha: 1
         Start State Color: 0; 255; 0
       Planning Scene Topic: move_group/monitored_planning_scene
@@ -759,7 +759,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 2.81642
+      Distance: 3.74489
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
@@ -771,10 +771,10 @@ Visualization Manager:
         Z: 0.152532
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.729796
+      Pitch: 0.734795
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.750415
+      Yaw: 0.760415
     Saved: ~
 Window Geometry:
   Displays:

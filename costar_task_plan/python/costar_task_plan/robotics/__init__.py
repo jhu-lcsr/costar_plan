@@ -11,6 +11,8 @@ __all__ = [
         ]
 
 from core import *
+from tom import *
 
 import core
 import tools
+import tom

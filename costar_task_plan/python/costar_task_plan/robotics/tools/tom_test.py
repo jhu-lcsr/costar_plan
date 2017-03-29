@@ -5,7 +5,7 @@
 # See License for more details
 
 from costar_task_plan.robotics.core import *
-from costar_task_plan.robotics.core import TomWorld
+from costar_task_plan.robotics.tom import TomWorld
 from costar_task_plan.abstract import AbstractReward
 
 import rospy

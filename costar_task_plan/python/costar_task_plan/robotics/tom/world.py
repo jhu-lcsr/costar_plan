@@ -7,8 +7,8 @@ from geometry_msgs.msg import PoseArray, Pose
 
 from costar_task_plan.datasets import TomDataset
 
-from world import *
-from demo_reward import *
+from costar_task_plan.robotics.core import CostarWorld
+from costar_task_plan.robotics.core import DemoReward
 
 # This is a simple world for the TOM task.
 # In this task, we pick up an orange and move it to either the trash or to a
