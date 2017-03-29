@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 import rospy
+import tf
+
 from sensor_msgs.msg import JointState
 from moveit_msgs.msg import PlanningScene
 from moveit_msgs.msg import CollisionObject
@@ -17,6 +19,7 @@ class TomSim(object):
 
   def __init__(self):
     self.seq = 0
+    self.tf_pub = tf.TransformBroadcaster()
 
     # Create the list of joint names for the simple TOM simulator
     self.joint_names = ['l_front_wheel_joint', 'l_rear_wheel_joint',
@@ -61,7 +64,7 @@ class TomSim(object):
     table = CollisionObject(id="table",
         primitives=[primitive_table, primitive_trash],
         primitive_poses=[pose_table, pose_trash])
-    table.header.frame_id = "world"
+    table.header.frame_id = "odom_combined"
 
     # Collision objects
     self.obstacles = [table]
@@ -74,11 +77,20 @@ class TomSim(object):
     msg.header.stamp = rospy.Time.now()
     self.js_pub.publish(msg)
 
+    # Send set of obstacles so that we can avoid different objects that we
+    # already know about.
     ps_msg = PlanningScene()
     ps_msg.robot_state.joint_state.name = self.qs.keys()
     ps_msg.robot_state.joint_state.position = self.qs.values()
     ps_msg.world.collision_objects = self.obstacles
     self.ps_pub.publish(ps_msg)
+
+    # Send identity transform from world to odometry frame
+    self.tf_pub.sendTransform((0,0,0),
+            (0,0,0,1),
+            rospy.Time.now(), 
+            "/odom_combined",
+            "/world")
 
 if __name__ == '__main__':
 
