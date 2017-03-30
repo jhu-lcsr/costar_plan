@@ -11,7 +11,7 @@ class LfD(object):
   # Train things
   def train(self):
     for name, traj in self.world.trajectories.items():
-      data = self.world.trajectory_data[data]
+      data = self.world.trajectory_data[name]
   
       for obj in data:
         pass

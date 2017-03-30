@@ -33,7 +33,7 @@ def load_tom_data_and_run():
   try:
     rospy.init_node('tom_test_node')
     world = load_tom_world()
-    world.makeRewardFunction("box")
+    #world.makeRewardFunction("box")
     world.reward = NullReward()
   except RuntimeError, e:
     print "Failed to create world. Are you in the right directory?"

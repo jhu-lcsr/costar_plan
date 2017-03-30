@@ -146,6 +146,8 @@ class TomDataset(Dataset):
             traj.append((sec, pose, data, gripper_open, gripper_state, orange))
             gripper, data, pose, orange = None, None, None, None
       trajs.append(traj)
+      if len(traj) > 0:
+        break
 
     # =========================================================================
     # Split into pickup, place, and drop trajectories
