@@ -71,7 +71,10 @@ class CostarWorld(AbstractWorld):
         else:
           s0 = CostarState(self, q=np.zeros((robot['dof'],)))
 
-      self.addActor(CostarActor(robot, state=s0, dynamics=self.getT(robot)))
+      self.addActor(CostarActor(robot,
+        state=s0,
+        dynamics=self.getT(robot),
+        policy=NullPolicy()))
 
   # Helper function to add an object to the list of tracked objects.
   def addObject(self, name, obj_class, obj):
