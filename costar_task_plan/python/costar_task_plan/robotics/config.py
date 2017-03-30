@@ -6,6 +6,7 @@ DEFAULT_MODEL_CONFIG = {
 }
 
 DEFAULT_ROBOT_CONFIG = {
+    'name': 'robot',
     'robot_description_param': "robot_description",
     'ee_link': "ee_link",
     'base_link': "base_link",

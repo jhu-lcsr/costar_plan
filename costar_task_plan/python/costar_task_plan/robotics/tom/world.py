@@ -2,7 +2,7 @@
 # (c) 2017 The Johns Hopkins University
 # See License for more details
 
-from config import 
+from config import TOM_LEFT_CONFIG, TOM_RIGHT_CONFIG
 
 from tum_ics_msgs.msg import VisualInfo
 from geometry_msgs.msg import PoseArray, Pose
@@ -18,6 +18,11 @@ from costar_task_plan.robotics.core import DemoReward
 class TomWorld(CostarWorld):
 
   def __init__(self, data_root='', fake=True, load_dataset=False, *args, **kwargs):
+    super(TomWorld,self).__init__(None,
+        namespace='/tom',
+        robot_config=[TOM_RIGHT_CONFIG, TOM_LEFT_CONFIG],
+        fake=fake,
+        *args, **kwargs)
 
     # These are the preset positions for the various TOM objects. These are 
     # reference frames used for computing features. These are the ones
@@ -41,10 +46,6 @@ class TomWorld(CostarWorld):
     if load_dataset:
       self.dataset = TomDataset()
       self.dataset.load(root_filepath=data_root)
-      super(TomWorld,self).__init__(None,
-          fake=fake,
-          robot_config=robot_config,
-          *args, **kwargs)
 
       self.addTrajectories("move",
           self.dataset.move_trajs,
@@ -104,9 +105,8 @@ class TomWorld(CostarWorld):
 
   def make_task_plan(self):
     args = self.getArgs()
-'''
-Represent the TOM orange as an object in the world.
-'''
+
+# Represent the TOM orange as an object in the world.
 class TomObject(object):
   def __init__(self, msg=None, pos=None):
     if msg is not None:

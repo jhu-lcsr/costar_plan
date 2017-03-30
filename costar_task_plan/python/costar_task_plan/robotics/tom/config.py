@@ -1,5 +1,6 @@
 
 TOM_RIGHT_CONFIG = {
+    'name':'right',
     'robot_description_param': "robot_description",
     'ee_link': "r_ee_link",
     'base_link': "torso_link",
@@ -16,6 +17,7 @@ TOM_RIGHT_CONFIG = {
     }
 
 TOM_LEFT_CONFIG = {
+    'name':'left',
     'robot_description_param': "robot_description",
     'ee_link': "l_ee_link",
     'base_link': "torso_link",
@@ -23,8 +25,8 @@ TOM_LEFT_CONFIG = {
     'dof': 6,
     'q0': None,
     'namespace': 'tom',
-    'joints': ['l_shouldel_pan_joint',
-      'l_shouldel_lift_joint',
+    'joints': ['l_shoulder_pan_joint',
+      'l_shoulder_lift_joint',
       'l_elbow_joint',
       'l_wrist_1_joint',
       'l_wrist_2_joint',

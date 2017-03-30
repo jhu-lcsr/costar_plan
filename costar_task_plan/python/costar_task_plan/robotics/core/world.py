@@ -24,12 +24,16 @@ from ..config import DEFAULT_ROBOT_CONFIG
 
 LOGGER = logging.getLogger(__name__)
 
-'''
-This version of the world listens to objects as TF frames.
-'''
+# This is the basic Robotics world class.
+# This version of the world listens to objects as TF frames.
+# POLICIES:
+#  - managed policies that listen to CoSTAR proper, or something else like that
+#  - specific policies that follow DMPs, etc
+# At the end of every loop, we can publish all the information associated with
+# each step.
 class CostarWorld(AbstractWorld):
   def __init__(self, reward,
-      namespace='/costar',
+      namespace = '/costar',
       fake=True,
       robot_config=None,
       cmd_parser=None,
@@ -45,30 +49,31 @@ class CostarWorld(AbstractWorld):
     self.predicates = []
     self.models = {}
     self.cmd_parser = cmd_parser
+    self.namespace = namespace
 
     if robot_config is None:
-      robot_config = DEFAULT_ROBOT_CONFIG
+      robot_config = [DEFAULT_ROBOT_CONFIG]
 
     # set up actors and things
-    self.namespace = robot_config['namespace']
-    self.base_link = robot_config['base_link']
-    self.js_listener = JointStateListener(robot_config)
-    if robot_config['q0'] is not None:
-      s0 = CostarState(self, q=robot_config['q0'])
-    else:
-      rospy.sleep(1.0)
-      if self.js_listener.q0 is not None:
-        s0 = CostarState(self, q=self.js_listener.q0)
-      else:
-        s0 = CostarState(self, q=np.zeros((robot_config['dof'],)))
-
+    self.js_listeners = {} 
     self.tf_pub = tf.TransformBroadcaster()
 
-    self.addActor(CostarActor(robot_config, state=s0, dynamics=self.getT(robot_config)))
+    # Create and add all the robots we want in this world.
+    for robot in robot_config:
+      if robot['q0'] is not None:
+        s0 = CostarState(self, q=robot['q0'])
+      else:
+        js_listener = JointStateListener(robot)
+        self.js_listeners[robot['name']] = js_listener
+        rospy.sleep(0.1)
+        if js_listener.q0 is not None:
+          s0 = CostarState(self, q=js_listener.q0)
+        else:
+          s0 = CostarState(self, q=np.zeros((robot['dof'],)))
 
-  '''
-  Add an object to the list of tracked objects.
-  '''
+      self.addActor(CostarActor(robot, state=s0, dynamics=self.getT(robot)))
+
+  # Helper function to add an object to the list of tracked objects.
   def addObject(self, name, obj_class, obj):
 
     # Make sure this was a unique object
@@ -84,13 +89,12 @@ class CostarWorld(AbstractWorld):
     else:
       self.object_classes[obj_class].append(name)
 
-  '''
-  Empty the list of objects.
-  '''
+  # Empty the list of objects.
   def clearObjects(self):
     self.objects = {}
     self.object_classes = {}
   
+  # Add a bunch of trajectory for use in learning.
   def addTrajectories(self, name, trajectories, data):
     self.trajectories[name] = trajectories
     self.trajectory_data[name] = data
@@ -104,21 +108,26 @@ class CostarWorld(AbstractWorld):
           PoseArray,
           queue_size=1000)
 
+  # Parse a command
   def parse(self, cmd):
     if self.cmd_parser is None:
       raise RuntimeError('No command parser provided.')
 
+  # Create the set of dynamics used for this particular option/option distribution.
   def getT(self,robot_config,*args,**kwargs):
     if self.fake:
       return SimulatedDynamics(robot_config)
     else:
-      return SubscriberDynamics(self.js_listener)
+      return SubscriberDynamics(self.js_listeners[robot_config['name']])
   
-  '''
-  Publish all training trajectories for visualization
-  '''
+  # Hook is called after the world updates each actor according to its policy.
+  # It has a few responsibilities:
+  # 1) publish all training trajectories for visualization
+  # 2) publish the current command/state associated with each actor too the sim.
   def hook(self):
-    # publish trajectory demonstrations
+
+    # Publish trajectory demonstrations for easy comparison to the existing
+    # stuff.
     for name, trajs in self.trajectories.items():
       msg = PoseArray()
       msg.header.frame_id = self.base_link
@@ -126,19 +135,25 @@ class CostarWorld(AbstractWorld):
         for t, pose, _, _, _ in traj:
           msg.poses.append(pose)
       self.traj_pubs[name].publish(msg)
-
     for name, data in self.trajectory_data.items():
       msg = self._dataToPose(data)
       msg.header.frame_id = self.base_link
       self.traj_data_pubs[name].publish(msg)
 
-    # publish object frames
+    # Publish object frames
     for name, frame in self.objects.items():
       (trans, rot) = frame.tf_frame
       self.tf_pub.sendTransform(trans, rot,
               rospy.Time.now(),
               frame.tf_name,
               self.base_link,)
+
+    # Publish actor states
+    for actor in self.actors:
+      msg = JointState(
+          name=actor.joints,
+          position=actor.state.q,
+          velocity=actor.state.dq)
 
   def _dataToPose(self,data):
     return PoseArray()
