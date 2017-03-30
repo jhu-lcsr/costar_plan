@@ -2,6 +2,8 @@
 # (c) 2017 The Johns Hopkins University
 # See License for more details
 
+from config import 
+
 from tum_ics_msgs.msg import VisualInfo
 from geometry_msgs.msg import PoseArray, Pose
 
@@ -15,34 +17,11 @@ from costar_task_plan.robotics.core import DemoReward
 # bin. 
 class TomWorld(CostarWorld):
 
-  joint_names = [
-          'r_shoulder_pan_joint',
-          'r_shoulder_lift_joint',
-          'r_elbow_joint',
-          'r_wrist_1_joint',
-          'r_wrist_2_joint',
-          'r_wrist_3_joint',]
+  def __init__(self, data_root='', fake=True, load_dataset=False, *args, **kwargs):
 
-  def __init__(self, data_root='', fake=True, load_dataset=True, *args, **kwargs):
-    '''
-    Drop positions for the various TOM objects:
-
-    Box:
-     x: 0.67051013617
-     y: -0.5828498549
-     z: -0.280936861547
-
-    Squeeze_Area:
-     x: 0.542672622341
-     y: 0.013907504104
-     z: -0.466499112972
-
-    Trash:
-     x: 0.29702347941
-     y: 0.0110837137159
-     z: -0.41238342306
-    '''
-    
+    # These are the preset positions for the various TOM objects. These are 
+    # reference frames used for computing features. These are the ones
+    # associated with the main TOM dataset.
     box = (0.67051013617,
            -0.5828498549,
            -0.280936861547), Pose
@@ -53,25 +32,12 @@ class TomWorld(CostarWorld):
              0.0110837137159,
              -0.41238342306)
 
-    # pointing down at the table
+    # Rotation frame for all of these is pointing down at the table.
     rot = (0, 0, 0, 0)
 
-    robot_config = {
-      'robot_description_param': "robot_description",
-      'ee_link': "r_ee_link",
-      'base_link': "torso_link",
-      'joint_states_topic': "/joint_states",
-      'dof': 6,
-      'q0': None,
-      'namespace': 'tom',
-      'joints': ['r_shoulder_pan_joint',
-        'r_shoulder_lift_joint',
-        'r_elbow_joint',
-        'r_wrist_1_joint',
-        'r_wrist_2_joint',
-        'r_wrist_3_joint']
-    }
-
+    # Remove this logic in the future. This is where we load the data set,
+    # annd then use this data to create and save a bunch of DMPs corresponding
+    # to the different actions we might want to take.
     if load_dataset:
       self.dataset = TomDataset()
       self.dataset.load(root_filepath=data_root)
@@ -102,15 +68,15 @@ class TomWorld(CostarWorld):
                          self.dataset.box_oranges + \
                          self.dataset.trash_oranges
 
-    self.box = ['box']
-    self.trash = ['trash']
-    self.squeeze_area = ['squeeze_area']
-    self.oranges = []
+      self.box = ['box']
+      self.trash = ['trash']
+      self.squeeze_area = ['squeeze_area']
+      self.oranges = []
 
-    self.fitTrajectories()
-    
-    # update the feature function based on known object frames
-    self.makeFeatureFunction()
+      self.fitTrajectories()
+      
+      # update the feature function based on known object frames
+      self.makeFeatureFunction()
 
   def _dataToPose(self,data):
     msg = PoseArray()

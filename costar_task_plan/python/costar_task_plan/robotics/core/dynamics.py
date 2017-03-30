@@ -16,6 +16,8 @@ class SubscriberDynamics(AbstractDynamics):
     self.listener = listener
 
   def apply(self, state, action, dt):
+    raise NotImplementedError('no subscriber dynamics yet!')
+
     # publish joint command to whatever topic
 
     # then update and return
@@ -33,6 +35,6 @@ class SimulatedDynamics(AbstractDynamics):
 
   def apply(self, state, action, dt):
     q = state.q + (action.dq * dt)
-    return CostarState(state.world, q=q)
+    return CostarState(state.world, q=q, dq=action.dq)
 
 

@@ -7,9 +7,10 @@ from costar_task_plan.abstract import *
 State of a particular actor.
 '''
 class CostarState(AbstractState):
-  def __init__(self, world, q=np.array([])):
+  def __init__(self, world, q=np.array([]), dq=np.array([])):
     self.predicates = []
     self.q = q
+    self.q_dot = 
     self.world = world
 
   def toArray(self):
@@ -30,9 +31,12 @@ This actor represents a robot in the world.
 '''
 class CostarActor(AbstractActor):
 
-  def __init__(self, config, *args, **kwargs):
+  def __init__(self, config, joint_set, *args, **kwargs):
     super(CostarActor, self).__init__(*args, **kwargs)
     self.config = config
+    if isinstance(joint_set, list):
+      self.joints = a
+
     self.dof = self.config['dof']
 
   def addArm(*args, **kwargs):
