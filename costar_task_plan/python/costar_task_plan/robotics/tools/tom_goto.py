@@ -6,7 +6,7 @@
 
 import rospy
 from costar_robot import InverseKinematicsUR5
-from costar_task_plan.robotics.tom.config import TOM_RIGHT_CONFIG
+from costar_task_plan.robotics.tom.config import TOM_LEFT_CONFIG as CONFIG
 
 from sensor_msgs.msg import JointState
 import tf_conversions.posemath as pm
@@ -19,7 +19,7 @@ def goto(ik, pub, trans, rot):
         -0.8972388608399999, 1.25538042294, -0.028902652380000227,])
   print "Closest joints =", Q
 
-  msg = JointState(name=TOM_RIGHT_CONFIG['joints'],
+  msg = JointState(name=CONFIG['joints'],
                    position=Q)
   pub.publish(msg)
 
@@ -41,6 +41,11 @@ if __name__ == '__main__':
       w: -0.0288384391252
   """
 
-  goto(ik, pub, (0.64, -0.56, -0.26), (-0.4, 0.92, -0.01, -0.03))
+  rate = rospy.Rate(30)
+  try:
+    while not rospy.is_shutdown():
+      goto(ik, pub, (0.64, -0.56, -0.26), (-0.4, 0.92, -0.01, -0.03))
+      rate.sleep()
+  except rospy.ROSInterruptException, e:
+    pass
 
-  rospy.spin()

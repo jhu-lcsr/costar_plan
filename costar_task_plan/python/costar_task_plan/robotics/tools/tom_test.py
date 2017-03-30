@@ -19,14 +19,12 @@ class NullReward(AbstractReward):
     def evaluate(self, world, *args, **kwargs):
         return 0., 0.
 
-'''
-Main function:
-  - create a TOM world
-  - verify that the data is being managed correctly
-  - fit models to data
-  - create Reward objects as appropriate
-  - create Policy objects as appropriate
-'''
+# Main function:
+#   - create a TOM world
+#   - verify that the data is being managed correctly
+#   - fit models to data
+#   - create Reward objects as appropriate
+#   - create Policy objects as appropriate
 def load_tom_data_and_run():
 
   import signal
@@ -44,6 +42,7 @@ def load_tom_data_and_run():
   rate = rospy.Rate(1)
   try:
     while True:
+      # Pass a zero action down to the first actr, and only to the first actor.
       world.tick(world.zeroAction())
       rate.sleep()
   except rospy.ROSInterruptException, e:
