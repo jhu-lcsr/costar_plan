@@ -11,6 +11,17 @@ from costar_task_plan.datasets import TomDataset
 
 from costar_task_plan.robotics.core import CostarWorld
 from costar_task_plan.robotics.core import DemoReward
+from costar_task_plan.robotics.core import DmpOption
+
+def __pick_args():
+  return {
+    "constructor": TomDmpOption,
+    "args": ["obj", "goal"],
+      }
+
+def MakeTomTaskModel():
+  task = Task()
+
 
 # This is a simple world for the TOM task.
 # In this task, we pick up an orange and move it to either the trash or to a

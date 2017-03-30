@@ -8,7 +8,9 @@ __all__ = [
         # =====================================================================
         "DemoReward",
         # =====================================================================
-        "DmpPolicy",
+        "DmpPolicy", "JointDmpPolicy", "CartesianDmpPolicy",
+        # =====================================================================
+        "DmpOption",
         ]
 
 from world import *
@@ -18,6 +20,9 @@ from dynamics import *
 
 # Policies
 from dmp_policy import DmpPolicy, JointDmpPolicy, CartesianDmpPolicy
+
+# Options
+from dmp_option import DmpOption
 
 # LfD stuff
 from demo_reward import *

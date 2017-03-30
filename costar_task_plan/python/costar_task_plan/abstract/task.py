@@ -82,24 +82,29 @@ class Task(object):
       summary += "%s --> %s\n"%(name,str(self.children[name]))
     return summary
 
-''' ===========================================================================
+''' =======================================================================
                         HELPERS AND INTERNAL CLASSES
-=========================================================================== '''
+    ======================================================================= '''
 
 '''
 Internal class that represents a single templated, non-instantiated Option.
 '''
 class OptionTemplate(object):
-  def __init__(self, constructor, args, name_template="%s(%s)"):
+  def __init__(self, constructor, args, remap=None, name_template="%s(%s)"):
     self.constructor = constructor
     self.args = args
+    self.remap = remap
     self.name_template = name_template
     self.children = []
 
   def instantiate(self, name, arg_dict):
     filled_args = {}
     for arg in self.args:
-      filled_args[arg] = arg_dict[arg]
+      if self.remap is not None:
+        filled_arg_name = self.remap[arg]
+      else:
+        filled_arg_name = arg
+      filled_args[filled_arg_name] = arg_dict[arg]
 
     if name is None:
       name = "ROOT"

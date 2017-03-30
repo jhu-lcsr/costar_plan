@@ -15,6 +15,13 @@ def pick_args():
       "args": ["obj"],
       }
 
+def pick2_args():
+  return {
+      "constructor": PickOption,
+      "args": ["orange"],
+      "remap": {"orange":"obj"},
+      }
+
 class MoveOption(AbstractOption):
   def __init__(self, obj, goal):
     self.obj = obj
@@ -44,6 +51,13 @@ def make_template():
   task.add("pick", ["drop"], None)
   return task
 
+def make_template_test2():
+  task = Task()
+  task.add("pick2", None, pick2_args())
+  task.add("drop", ["pick2"], drop_args())
+  task.add("pick2", ["drop"], None)
+  return task
+
 test1_res = """drop() --> ['pick']
 move('obj=orange', 'goal=basket') --> ['drop']
 pick('obj=orange') --> ['move', 'drop']
@@ -70,6 +84,18 @@ class TestTask(unittest.TestCase):
 
     summary = task.nodeSummary()
     self.assertEqual(summary, test1_res)
+
+  def test2(self):
+    task = make_template_test2();
+    args = {
+      'orange': ['that_one', 'this_one'],
+      'goal': ['basket'],
+    }
+    args = task.compile(args)
+    print args
+    print len(args)
+    summary = task.nodeSummary()
+    print summary
 
 if __name__ == '__main__':
   unittest.main()
