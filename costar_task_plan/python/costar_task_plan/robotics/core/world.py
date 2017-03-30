@@ -2,6 +2,7 @@
 # (c) 2017 The Johns Hopkins University
 # See License for more details
 
+from lfd import LfD
 from frame import *
 from detected_object import *
 from actor import *
@@ -75,6 +76,8 @@ class CostarWorld(AbstractWorld):
         state=s0,
         dynamics=self.getT(robot),
         policy=NullPolicy()))
+
+    self.lfd = LfD(self)
 
   # Helper function to add an object to the list of tracked objects.
   def addObject(self, name, obj_class, obj):
@@ -175,15 +178,12 @@ class CostarWorld(AbstractWorld):
     q = np.zeros((self.actors[0].dof,))
     return CostarAction(dq=q)
 
+  # Create te
   def fitTrajectories(self):
-    self.models = {}
-    for name, trajs in self.trajectories.items():
-        data = []
+    self.models = self.lfd.train()
 
-  '''
-  Gets the list of possible argument assigments for use in generating the final
-  task plan object.
-  '''
+  # Gets the list of possible argument assigments for use in generating the
+  # final task plan object.
   def getArgs(self):
     return self.object_classes
 

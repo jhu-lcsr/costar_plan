@@ -108,7 +108,6 @@ class OptionTemplate(object):
 
     if name is None:
       name = "ROOT"
-
   
     iname = self.name_template%(name,make_str(filled_args))
     option = self.constructor(**filled_args)
