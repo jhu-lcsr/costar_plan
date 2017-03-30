@@ -7,6 +7,8 @@ from costar_task_plan.abstract import *
 class CostarState(AbstractState):
   def __init__(self, world, q=np.array([]), dq=np.array([])):
     self.predicates = []
+    if isinstance(q, list):
+      q = np.array(q)
     self.q = q
     self.dq = dq
 
@@ -22,6 +24,8 @@ class CostarState(AbstractState):
 # joint motion, normalized over some period of time.
 class CostarAction(AbstractAction):
   def __init__(self, dq=np.array([])):
+    if isinstance(dq, list):
+      dq = np.array(dq)
     self.dq = dq
 
   def toArray(self):
@@ -38,6 +42,7 @@ class CostarActor(AbstractActor):
     self.config = config
     self.joints = config['joints']
     self.dof = self.config['dof']
+    self.base_link = self.config['base_link']
     if not self.dof == len(self.joints):
       raise RuntimeError('You configured the robot joints wrong')
 

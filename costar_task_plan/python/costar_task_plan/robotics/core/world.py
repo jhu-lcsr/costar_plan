@@ -133,14 +133,14 @@ class CostarWorld(AbstractWorld):
     # stuff.
     for name, trajs in self.trajectories.items():
       msg = PoseArray()
-      msg.header.frame_id = self.base_link
+      msg.header.frame_id = self.actors[0].base_link
       for traj in trajs:
         for t, pose, _, _, _ in traj:
           msg.poses.append(pose)
       self.traj_pubs[name].publish(msg)
     for name, data in self.trajectory_data.items():
       msg = self._dataToPose(data)
-      msg.header.frame_id = self.base_link
+      msg.header.frame_id = self.actors[0].base_link
       self.traj_data_pubs[name].publish(msg)
 
     # Publish object frames
