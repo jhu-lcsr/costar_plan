@@ -21,11 +21,11 @@ def goto(ik, pub, listener, trans, rot):
             rospy.Time(0))
 
     T_bt = pm.fromTf((tbt, tbr))
-    T = pm.toMatrix(pm.fromTf((trans, rot)))
+    T = pm.fromTf((trans, rot))
 
     print trans, rot, tbt, tbr
 
-    Q = ik.findClosestIK(pm.toMatrix(T_bt)*T,
+    Q = ik.findClosestIK(pm.toMatrix((T.Inverse()*T_bt).Inverse()),
           [-1.0719114121799995, -1.1008140645600006, 1.7366724169200003,
             -0.8972388608399999, 1.25538042294, -0.028902652380000227,])
     print "Closest joints =", Q
