@@ -42,6 +42,7 @@ class LfD(object):
 
       for traj, world in zip(trajs, data):
         print len(traj), len(world)
+        print world[0]['orange']
 
         break
       break

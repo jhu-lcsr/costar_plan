@@ -58,6 +58,15 @@ class TomSim(object):
     self.trash = (0.29702347941,
              0.0110837137159,
              -0.41238342306)
+    self.orange1 = (0.641782207489,
+              -0.224464386702,
+              -0.523829042912)
+    self.orange2 = (0.69,
+              -0.31,
+              -0.523829042912)
+    self.orange3 = (0.68,
+              -0.10,
+              -0.523829042912)
 
     # Rotation frame for all of these is pointing down at the table.
     self.rot = (0, 0, 0, 1)
@@ -157,6 +166,21 @@ class TomSim(object):
             (0,0,0,1),
             rospy.Time.now(), 
             "/squeeze_area1",
+            "/torso_link")
+    self.tf_pub.sendTransform(self.orange1,
+            (0,0,0,1),
+            rospy.Time.now(), 
+            "/orange1",
+            "/torso_link")
+    self.tf_pub.sendTransform(self.orange2,
+            (0,0,0,1),
+            rospy.Time.now(), 
+            "/orange2",
+            "/torso_link")
+    self.tf_pub.sendTransform(self.orange3,
+            (0,0,0,1),
+            rospy.Time.now(), 
+            "/orange3",
             "/torso_link")
 
 if __name__ == '__main__':
