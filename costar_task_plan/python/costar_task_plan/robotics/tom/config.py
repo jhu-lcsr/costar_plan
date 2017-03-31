@@ -2,9 +2,10 @@
 TOM_RIGHT_CONFIG = {
     'name':'right',
     'robot_description_param': "robot_description",
-    'ee_link': "r_gripper_base_link",
     'base_link': "torso_link",
+    'end_link': "r_gripper_base_link",
     'joint_states_topic': "/joint_states",
+    'ik_solver': 'kdl',
     'dof': 6,
     'q0': None,
     'namespace': 'tom',
@@ -19,9 +20,10 @@ TOM_RIGHT_CONFIG = {
 TOM_LEFT_CONFIG = {
     'name':'left',
     'robot_description_param': "robot_description",
-    'ee_link': "l_gripper_link",
     'base_link': "torso_link",
+    'end_link': "l_gripper_link",
     'joint_states_topic': "/joint_states",
+    'ik_solver': 'kdl',
     'dof': 6,
     'q0': None,
     'namespace': 'tom',

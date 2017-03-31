@@ -19,9 +19,7 @@ These are based on the sample code from http://wiki.ros.org/dmp
 (sample code by Scott Niekum)
 """
 
-'''
-Put together a DMP request
-'''
+# Put together a DMP request
 def RequestDMP(u,dt,k_gain,d_gain,num_basis_functions):
 
     ndims = len(u[0])

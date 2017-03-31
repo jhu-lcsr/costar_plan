@@ -16,9 +16,8 @@ from pykdl_utils.kdl_kinematics import KDLKinematics
 from urdf_parser_py.urdf import URDF
 
 
-base_link = 'r_base_link'
-#end_link = 'r_ee_link'
-end_link = 'r_gripper_base_link'
+base_link = CONFIG['base_link']
+end_link = CONFIG['end_link']
 
 def goto(ik, kdl_kin, pub, listener, trans, rot): 
 
