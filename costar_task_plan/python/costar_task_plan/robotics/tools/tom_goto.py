@@ -5,7 +5,6 @@
 # See license for more details
 
 import rospy
-from costar_robot import InverseKinematicsUR5
 from costar_task_plan.robotics.tom.config import TOM_RIGHT_CONFIG as CONFIG
 
 from sensor_msgs.msg import JointState
@@ -55,7 +54,6 @@ if __name__ == '__main__':
   rospy.init_node('tom_simple_goto')
 
   pub = rospy.Publisher('joint_states_cmd', JointState, queue_size=1000)
-  ik = InverseKinematicsUR5()
 
   robot = URDF.from_parameter_server()
   tree = kdl_tree_from_urdf_model(robot)
