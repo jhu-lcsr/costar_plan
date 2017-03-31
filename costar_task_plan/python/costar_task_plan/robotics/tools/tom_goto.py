@@ -86,11 +86,18 @@ if __name__ == '__main__':
       w: -0.0288384391252
   """
 
+  ee_g_trans = [0.045, 0.000, 0.000]
+  ee_g_rot = [0.653, -0.271, 0.653, -0.271]
+  trans, rot = (0.64, -0.56, -0.26), (-0.4, 0.92, -0.01, -0.03)
+  T = pm.fromTf((trans, rot))
+  Teg = pm.fromTf((ee_g_trans, ee_g_rot))
+  trans, rot = pm.toTf(T * Teg.Inverse())
+
   rate = rospy.Rate(30)
   listener = tf.TransformListener()
   try:
     while not rospy.is_shutdown():
-      goto(ik, kdl_kin, pub, listener, (0.64, -0.56, -0.26), (-0.4, 0.92, -0.01, -0.03))
+      goto(ik, kdl_kin, pub, listener, trans, rot)
       rate.sleep()
   except rospy.ROSInterruptException, e:
     pass
