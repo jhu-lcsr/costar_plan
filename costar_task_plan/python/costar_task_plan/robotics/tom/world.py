@@ -17,7 +17,7 @@ def __pick_args():
   return {
     "constructor": TomDmpOption,
     "args": ["orange"],
-    "remap": ["orange": "goal_frame"],
+    "remap": {"orange": "goal_frame"},
       }
 
 def MakeTomTaskModel():

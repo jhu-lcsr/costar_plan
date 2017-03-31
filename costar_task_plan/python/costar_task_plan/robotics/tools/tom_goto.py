@@ -22,23 +22,17 @@ end_link = CONFIG['end_link']
 def goto(kdl_kin, pub, listener, trans, rot): 
 
   try:
-    tbt, tbr = listener.lookupTransform(
-            'torso_link',
-            base_link,
-            rospy.Time(0))
     bet, ber = listener.lookupTransform(
             base_link,
             end_link,
             rospy.Time(0))
-
-    T_bt = pm.fromTf((tbt, tbr))
     T_eb = pm.fromTf((bet, ber))
     T = pm.fromTf((trans, rot))
 
     q0 = [-1.0719114121799995, -1.1008140645600006, 1.7366724169200003,
             -0.8972388608399999, 1.25538042294, -0.028902652380000227,]
 
-    T_pose = pm.toMatrix(T_bt.Inverse() * T)
+    T_pose = pm.toMatrix(T)
     Q = kdl_kin.inverse(T_pose, q0)
 
     print "Closest joints =", Q
