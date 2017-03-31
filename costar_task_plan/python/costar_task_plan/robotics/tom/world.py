@@ -16,7 +16,8 @@ from costar_task_plan.robotics.core import DmpOption
 def __pick_args():
   return {
     "constructor": TomDmpOption,
-    "args": ["obj", "goal"],
+    "args": ["orange"],
+    "remap": ["orange": "goal_frame"],
       }
 
 def MakeTomTaskModel():
