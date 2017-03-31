@@ -42,11 +42,22 @@ def goto(kdl_kin, pub, listener, trans, rot):
     T_pose = pm.toMatrix(T)
     Q = kdl_kin.inverse(T_pose, q0)
 
-    print "Closest joints =", Q
+    print "----------------------------"
+    print "[ORIG] Closest joints =", Q
 
-    msg = JointState(name=CONFIG['joints'],
-                       position=Q)
+    msg = JointState(name=CONFIG['joints'], position=Q)
     pub.publish(msg)
+    rospy.sleep(0.2)
+
+    T_goal = T_orig.Inverse() * T
+    T2 = T_new * T_goal
+    T2_pose = pm.toMatrix(T2)
+    Q = kdl_kin.inverse(T2_pose, q0)
+    print "[NEW] Closest joints =", Q
+    msg = JointState(name=CONFIG['joints'], position=Q)
+    pub.publish(msg)
+    rospy.sleep(0.2)
+
   except  (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException), e:
     pass
 
