@@ -35,16 +35,13 @@ class LfD(object):
   # Train things
   def train(self):
 
-    for name, traj in self.world.trajectories.items():
+    for name, trajs in self.world.trajectories.items():
 
       data = self.world.trajectory_data[name]
-
-      print traj
-      print data
-
       features = RobotFeatures(self.config, self.kdl_kin)
-  
-      for obj in data:
-        pass
 
+      for traj, world in zip(trajs, data):
+        print len(traj), len(world)
+
+        break
       break

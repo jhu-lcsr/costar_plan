@@ -103,6 +103,7 @@ class CostarWorld(AbstractWorld):
   # Add a bunch of trajectory for use in learning.
   def addTrajectories(self, name, trajectories, data):
     self.trajectories[name] = trajectories
+    self._preprocessData(data)
     self.trajectory_data[name] = data
     if not name in self.traj_pubs:
       self.traj_pubs[name] = rospy.Publisher(
@@ -161,8 +162,13 @@ class CostarWorld(AbstractWorld):
           position=actor.state.q,
           velocity=actor.state.dq)
 
+  # Overload this to set up data visualization; it should return a pose array.
   def _dataToPose(self,data):
     return PoseArray()
+
+  # Process the data set
+  def _preprocessData(self,data):
+    pass
 
   def makeFeatureFunction(self):
     pass

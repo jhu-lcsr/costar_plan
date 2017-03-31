@@ -89,6 +89,16 @@ class TomWorld(CostarWorld):
       # update the feature function based on known object frames
       self.makeFeatureFunction()
 
+  def _preprocessData(self,data):
+    for traj in data:
+      orange_pose = None
+      # find first non-None orange
+      for world in traj:
+        if world['orange'] is not None:
+          orange_pose = world['orange']
+          break
+      for world in traj:
+        world['orange'] = orange_pose
 
   # Get visualization information as a vector of poses for whatever object we
   # are currently manipulating.
