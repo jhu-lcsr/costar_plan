@@ -2,7 +2,7 @@
 TOM_RIGHT_CONFIG = {
     'name':'right',
     'robot_description_param': "robot_description",
-    'ee_link': "r_ee_link",
+    'ee_link': "r_gripper_base_link",
     'base_link': "torso_link",
     'joint_states_topic': "/joint_states",
     'dof': 6,
@@ -19,7 +19,7 @@ TOM_RIGHT_CONFIG = {
 TOM_LEFT_CONFIG = {
     'name':'left',
     'robot_description_param': "robot_description",
-    'ee_link': "l_ee_link",
+    'ee_link': "l_gripper_link",
     'base_link': "torso_link",
     'joint_states_topic': "/joint_states",
     'dof': 6,

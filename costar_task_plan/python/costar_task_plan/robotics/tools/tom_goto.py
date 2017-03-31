@@ -16,43 +16,33 @@ from pykdl_utils.kdl_parser import kdl_tree_from_urdf_model
 from pykdl_utils.kdl_kinematics import KDLKinematics
 from urdf_parser_py.urdf import URDF
 
+
+base_link = 'r_base_link'
+#end_link = 'r_ee_link'
+end_link = 'r_gripper_base_link'
+
 def goto(ik, kdl_kin, pub, listener, trans, rot): 
 
   try:
     tbt, tbr = listener.lookupTransform(
             'torso_link',
-            'r_base_link',
+            base_link,
             rospy.Time(0))
     bet, ber = listener.lookupTransform(
-            'r_base_link',
-            'r_ee_link',
+            base_link,
+            end_link,
             rospy.Time(0))
 
     T_bt = pm.fromTf((tbt, tbr))
     T_eb = pm.fromTf((bet, ber))
     T = pm.fromTf((trans, rot))
 
-    eet,eer = (0.40920895691643877, -0.46954606404578286, 0.16391727813414897), (0.9200878789467755, -0.36755317350262856, 0.09490153683812817, 0.09662638340086906)
-
     q0 = [-1.0719114121799995, -1.1008140645600006, 1.7366724169200003,
             -0.8972388608399999, 1.25538042294, -0.028902652380000227,]
-    T_fwd = pm.toTf(pm.fromMatrix(kdl_kin.forward(q0)))
-    Q = kdl_kin.inverse(T_fwd, q0)
-    T_test = pm.fromTf((bet,ber))
-    #print pm.toMatrix(T_test) - kdl_kin.forward(q0)
-    #Q = ik.solveIK(pm.toMatrix(T_test))
-    Q = kdl_kin.inverse(pm.toMatrix(T_test), q0)
 
     T_pose = pm.toMatrix(T_bt.Inverse() * T)
-    print "-----"
-    print Q
-    print q0
     Q = kdl_kin.inverse(T_pose, q0)
-    print Q
 
-    print "to pose", trans, rot
-    print "base torso", tbt, tbr
-    print "end base", bet, ber
     print "Closest joints =", Q
 
     msg = JointState(name=CONFIG['joints'],
@@ -67,8 +57,6 @@ if __name__ == '__main__':
   pub = rospy.Publisher('joint_states_cmd', JointState, queue_size=1000)
   ik = InverseKinematicsUR5()
 
-  base_link = 'r_base_link'
-  end_link = 'r_ee_link'
   robot = URDF.from_parameter_server()
   tree = kdl_tree_from_urdf_model(robot)
   chain = tree.getChain(base_link, end_link)
@@ -86,12 +74,7 @@ if __name__ == '__main__':
       w: -0.0288384391252
   """
 
-  ee_g_trans = [0.045, 0.000, 0.000]
-  ee_g_rot = [0.653, -0.271, 0.653, -0.271]
   trans, rot = (0.64, -0.56, -0.26), (-0.4, 0.92, -0.01, -0.03)
-  T = pm.fromTf((trans, rot))
-  Teg = pm.fromTf((ee_g_trans, ee_g_rot))
-  trans, rot = pm.toTf(T * Teg.Inverse())
 
   rate = rospy.Rate(30)
   listener = tf.TransformListener()
