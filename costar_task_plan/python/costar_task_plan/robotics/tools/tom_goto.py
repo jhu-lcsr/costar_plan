@@ -32,6 +32,13 @@ def goto(kdl_kin, pub, listener, trans, rot):
     q0 = [-1.0719114121799995, -1.1008140645600006, 1.7366724169200003,
             -0.8972388608399999, 1.25538042294, -0.028902652380000227,]
 
+    # DEFAULT
+    objt, objr = ((0.470635159016, 0.0047549889423, -0.428045094013),(0,0,0,1))
+    T_orig = pm.fromTf((objt,objr))
+    # MOVEd
+    objt, objr = ((0.52, 0.00, -0.43),(0,0,0,1))
+    T_new = pm.fromTf((objt,objr))
+
     T_pose = pm.toMatrix(T)
     Q = kdl_kin.inverse(T_pose, q0)
 
