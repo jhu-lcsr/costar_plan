@@ -18,6 +18,8 @@ from trajectory_msgs.msg import JointTrajectoryPoint
 # And it publishes joint states, too! Wow!
 class TomSim(object):
 
+  
+
   def __init__(self):
     self.seq = 0
     self.tf_pub = tf.TransformBroadcaster()
@@ -43,6 +45,26 @@ class TomSim(object):
         -2.5773626100600002, -1.1008140645600006, -0.8256105484199994,
         0.0026895523773320003, -0.0006283185307176531, 0.0, 0.0, 0.0, 0.0, 0.0,
         0.0, 0.0, 0.0, 0.0, 0.0]
+
+    # These are the preset positions for the various TOM objects. These are 
+    # reference frames used for computing features. These are the ones
+    # associated with the main TOM dataset.
+    self.box = (0.67051013617,
+           -0.5828498549,
+           -0.280936861547)
+    self.squeeze_area = (0.542672622341,
+                    0.013907504104,
+                    -0.466499112972)
+    self.trash = (0.29702347941,
+             0.0110837137159,
+             -0.41238342306)
+
+    # Rotation frame for all of these is pointing down at the table.
+    self.rot = (0, 0, 0, 1)
+
+    #self.box = pm.toMsg(pm.fromTf((box, rot)))
+    #self.trash = pn.toMsg(pm.fromTf((trash, rot)))
+    #self.squeeze_area = pm.toMsg(pm.fromTf((trash, rot)))
 
     self.qs = {}
     for name, pose in zip(self.joint_names, self.default_pose):
@@ -121,6 +143,21 @@ class TomSim(object):
             rospy.Time.now(), 
             "/odom_combined",
             "/world")
+    self.tf_pub.sendTransform(self.box,
+            (0,0,0,1),
+            rospy.Time.now(), 
+            "/box1",
+            "/torso_link")
+    self.tf_pub.sendTransform(self.trash,
+            (0,0,0,1),
+            rospy.Time.now(), 
+            "/trash1",
+            "/torso_link")
+    self.tf_pub.sendTransform(self.squeeze_area,
+            (0,0,0,1),
+            rospy.Time.now(), 
+            "/squeeze_area1",
+            "/torso_link")
 
 if __name__ == '__main__':
 

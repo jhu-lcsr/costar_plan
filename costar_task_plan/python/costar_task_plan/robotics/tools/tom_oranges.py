@@ -27,7 +27,33 @@ def __release_args():
     "args": [],
       }
 
+def __move_args():
+  return {
+    "constructor": DmpOption,
+    "args": ["squeeze_area","kinematics"],
+    "remap": {"squeeze_area": "goal_frame"},
+      }
 
+def __test_args():
+  return {
+    "constructor": DmpOption,
+    "args": ["squeeze_area","kinematics"],
+    "remap": {"squeeze_area": "goal_frame"},
+      }
+
+def __box_args():
+  return {
+    "constructor": DmpOption,
+    "args": ["box","kinematics"],
+    "remap": {"box": "goal_frame"},
+      }
+
+def __trash_args():
+  return {
+    "constructor": DmpOption,
+    "args": ["box","kinematics"],
+    "remap": {"box": "goal_frame"},
+      }
 
 # Instantiate the whole task model based on our data. We must make sure to
 # provide the lfd object containing models, etc., or we will not properly
@@ -37,10 +63,19 @@ def MakeTomTaskModel(lfd):
   task.add("pick", None, __pick_args())
   task.add("grasp1", ["pick"], __grasp_args())
   task.add("move", ["grasp"], __move_args())
-  task.add("release", ["move"], __move_args())
+  task.add("release", ["move"], __release_args())
   task.add("test", None, __test_args())
   task.add("grasp2", ["test"], __grasp_args())
   task.add("box", ["grasp2"], __box_args())
-  task.add("trash", ["grasp2"], __box_args())
+  task.add("trash", ["grasp2"], __trash_args())
+  return task
 
+if __name___ == '__main__':
+  task = MakeTomTaskModel()
 
+  args = {
+    'orange': ['orange1', 'orange2', 'orange3'],
+    'squeeze_area': ['squeeze_area1'],
+    'box': ['box1'],
+    'trash': ['trash1'],
+  }

@@ -166,7 +166,7 @@ class TomDataset(Dataset):
              -0.41238342306)
 
     # Rotation frame for all of these is pointing down at the table.
-    rot = (0, 0, 0, 0)
+    rot = (0, 0, 0, 1)
 
     box_msg = pm.toMsg(pm.fromTf((box,rot)))
     squeeze_area_msg = pm.toMsg(pm.fromTf((squeeze_area,rot)))
