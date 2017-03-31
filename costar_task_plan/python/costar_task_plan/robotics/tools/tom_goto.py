@@ -19,7 +19,7 @@ from urdf_parser_py.urdf import URDF
 base_link = CONFIG['base_link']
 end_link = CONFIG['end_link']
 
-def goto(ik, kdl_kin, pub, listener, trans, rot): 
+def goto(kdl_kin, pub, listener, trans, rot): 
 
   try:
     tbt, tbr = listener.lookupTransform(
@@ -77,7 +77,7 @@ if __name__ == '__main__':
   listener = tf.TransformListener()
   try:
     while not rospy.is_shutdown():
-      goto(ik, kdl_kin, pub, listener, trans, rot)
+      goto(kdl_kin, pub, listener, trans, rot)
       rate.sleep()
   except rospy.ROSInterruptException, e:
     pass
