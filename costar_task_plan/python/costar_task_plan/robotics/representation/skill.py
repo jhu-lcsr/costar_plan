@@ -29,12 +29,6 @@ import sensor_msgs
 import trajectory_msgs
 from trajectory_msgs.msg import JointTrajectoryPoint
 from sensor_msgs.msg import JointState
-try:
-	#from oro_barrett_msgs.msg import BHandCmd as GripperCmd
-	from robotiq_c_model_control.msg import CModel_robot_input as GripperCmd
-except ImportError:
-	print "[GRID.SKILL] Warning: could not import predefined gripper messages."
-
 
 # output message types
 from geometry_msgs.msg import Pose
@@ -58,11 +52,15 @@ class RobotSkill:
     def __init__(self,data=[],goals=[],action_k=4,goal_k=4,objs=[],manip_objs=[],name="",filename=None,num_gripper_vars=3,normalize=True):
         self.name = name
 
-        self.num_gripper_vars = num_gripper_vars
         self.action_model = GMM(n_components=action_k,covariance_type="full")
         self.goal_model = GMM(n_components=goal_k,covariance_type="full")
         self.trajectory_model = GMM(n_components=1,covariance_type="full")
+
+        # NOTE: gripper stuff is currently not supported. Take a look at this
+        # later on if you want to use it.
+        self.num_gripper_vars = num_gripper_vars
         self.gripper_model = GMM(n_components=action_k,covariance_type="full")
+
         self.objs = objs
         self.manip_objs = manip_objs
 

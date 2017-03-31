@@ -68,62 +68,39 @@ def P_Gauss(x,mu,inv,det,wts):
 
     return np.log(p)
 
-'''
-Old class that holds and represents a robot.
-'''
+# Old class that holds and represents a robot -- for one skill and one skill
+# alone. Goals of this class:
+# - collect data based on the list of specified objects
+# - fit models for policies like DMPs
 class RobotFeatures:
 
-    '''
-    create a robot
-    loads robot description and kinematics from parameter server if available
-    configured as a kinematic chain; uses KDLKinematics for robot forward kinematics
-    '''
+    # create a robot
+    # loads robot description and kinematics from parameter server if available
+    # configured as a kinematic chain; uses KDLKinematics for robot forward
+    # kinematics by default if no kinematics were provided.
     def __init__(self,
-            base_link='wam/base_link',
-            end_link='wam/wrist_palm_link',
-            world_frame='/world',
-            js_topic='/gazebo/barrett_manager/wam/joint_states',
-            gripper_topic='/gazebo/barrett_manager/hand/cmd',
+            config, kinematics=None,
             objects={}, indices={}, diff_indices={},
-            robot_description_param='robot_description',
-            dof=7,
-            preset='wam7_sim',
             filename=None
             ):
 
-        self.sync_gripper = True
+        self.sync_gripper = False
         self.is_recording = False
-        if preset == 'wam7_sim':
-            base_link='wam/base_link'
-            end_link='wam/wrist_palm_link'
-            js_topic='/gazebo/barrett_manager/wam/joint_states'
-            gripper_topic='/gazebo/barrett_manager/hand/cmd'
-        elif preset == 'ur5':
-            base_link='base_link'
-            end_link='ee_link'
-            js_topic='/joint_states'
-            gripper_topic='/robotiq_c_model_gripper/gripper_command'
-            self.sync_gripper = False
-        elif preset == 'ur5_with_joint_limits':
-            base_link='base_link'
-            end_link='ee_fixed_link'
-            js_topic='/joint_states'
-            gripper_topic='/robotiq_c_model_gripper/gripper_command'
-            self.sync_gripper = False
 
-        self.dof = dof;
-        self.world_frame = world_frame
-        self.base_link = base_link
-        self.end_link = end_link
-        self.robot_description_param=robot_description_param
+        self.dof = config['dof'];
+        self.obj_frame = config['obj_frame']
+        self.base_link = config['base_link']
+        self.end_link = config['end_link']
+        self.robot_description_param = config['robot_description_param']
+        self.js_topic = config['joint_states_topic']
+        self.gripper_topic = config['gripper_topic']
 
-        if not robot_description_param == 'robot_description':
-            pass
+        if kinematics is None:
+          robot = URDF.from_parameter_server(self.robot_description_param)
+          self.kinematics = KDLKinematics(robot, base_link, end_link)
         else:
-            self.robot = URDF.from_parameter_server()
-            self.tree = kdl_tree_from_urdf_model(self.robot)
-            self.chain = self.tree.getChain(base_link, end_link)
-            self.kdl_kin = KDLKinematics(self.robot, base_link, end_link)
+          self.kinematics = kinematics
+          
 
         # create transform listener to get object information
         self.tfl = tf.TransformListener()
@@ -147,9 +124,6 @@ class RobotFeatures:
 
         self.feature_model = None
         self.sub_model = None
-
-        self.js_topic = js_topic
-        self.gripper_topic = gripper_topic
 
         self.manip_obj = None
         self.manip_frame = None
@@ -180,9 +154,9 @@ class RobotFeatures:
             self.times = data['times']
             self.base_tform = data['base_tform']
             self.manip_obj = data['manip_obj']
-            self.world_frame = data['world_frame']
+            self.obj_frame = data['obj_frame']
             self.base_link = data['base_link']
-            #self.end_link = data['end_link']
+            self.end_link = data['end_link']
             #print end_link
             #print self.end_link
             #print data['end_link']
@@ -272,7 +246,7 @@ class RobotFeatures:
 
             data = {}
             data['times'] = self.times
-            data['world_frame'] = self.world_frame
+            data['obj_frame'] = self.obj_frame
             data['gripper_cmds'] = self.gripper_cmds
             data['joint_states'] = self.joint_states
             data['world_states'] = self.world_states
@@ -388,7 +362,7 @@ class RobotFeatures:
     def GetForward(self,q):
 
         #q = [0,0,0,0,0,0,0]
-        mat = self.kdl_kin.forward(q)
+        mat = self.kinematics.forward(q)
         f = pm.fromMatrix(mat)
 
         if not self.manip_frame is None:
@@ -410,7 +384,7 @@ class RobotFeatures:
     def TfUpdateWorld(self):
         for (obj,frame) in self.objects.items():
             try:
-                (trans,rot) = self.tfl.lookupTransform(self.world_frame,frame,rospy.Time(0))
+                (trans,rot) = self.tfl.lookupTransform(self.obj_frame,frame,rospy.Time(0))
                 self.world[obj] = pm.fromTf((trans,rot))
 
             except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException), e:
@@ -419,7 +393,7 @@ class RobotFeatures:
                 return False
 
         try:
-            (trans,rot) = self.tfl.lookupTransform(self.world_frame,self.base_link,rospy.Time(0))
+            (trans,rot) = self.tfl.lookupTransform(self.obj_frame,self.base_link,rospy.Time(0))
             self.base_tform = pm.fromTf((trans,rot))
 
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException), e:
@@ -432,7 +406,7 @@ class RobotFeatures:
             obj_frame = self.world[self.manip_obj]
             
             try:
-                (trans,rot) = self.tfl.lookupTransform(self.world_frame,self.end_link,rospy.Time(0))
+                (trans,rot) = self.tfl.lookupTransform(self.obj_frame,self.end_link,rospy.Time(0))
                 ee_tform = pm.fromTf((trans,rot))
                 #(trans,rot) = self.tfl.lookupTransform(self.objects[self.manip_obj],self.end_link,rospy.Time(0))
                 #ee_tform2 = pm.fromTf((trans,rot))
@@ -476,10 +450,11 @@ class RobotFeatures:
     def GetWorldPoseMsg(self,frame):
 
         msg = PoseArray()
-        msg.header.frame_id = self.world_frame
+        msg.header.frame_id = self.obj_frame
 
         for i in range(len(self.world_states)): 
-            pmsg = pm.toMsg(self.world_states[i][frame] * PyKDL.Frame(PyKDL.Rotation.RotY(-1*np.pi/2)))
+            #pmsg = pm.toMsg(self.world_states[i][frame] * PyKDL.Frame(PyKDL.Rotation.RotY(-1*np.pi/2)))
+            pmsg = pm.toMsg(self.world_states[i][frame])
             msg.poses.append(pmsg)
 
         return msg
@@ -491,10 +466,10 @@ class RobotFeatures:
     def GetFwdPoseMsg(self):
 
         msg = PoseArray()
-        msg.header.frame_id = self.world_frame
+        msg.header.frame_id = self.obj_frame
 
         for i in range(len(self.world_states)): 
-            mat = self.kdl_kin.forward(self.joint_states[i].position[:7])
+            mat = self.kinematics.forward(self.joint_states[i].position[:self.dof])
             ee_frame = self.base_tform * pm.fromMatrix(mat)
             pmsg = pm.toMsg(ee_frame * PyKDL.Frame(PyKDL.Rotation.RotY(-1*np.pi/2)))
             msg.poses.append(pmsg)
@@ -566,14 +541,12 @@ class RobotFeatures:
         if not gripper is None:
             for i in range(npts):
                 t = float(i+1) / (npts+1)
-                #features[i] = self.GetFeatures(ee_frame[i],t,world,objs,gripper[i]) + diffs[i]
                 features[i] = self.GetFeatures(ee_frame[i],t,world,objs,gripper[i]) #+ diffs[i]
             goal_features = self.GetFeatures(ee_frame[-1],0.0,world,objs,gripper[i-1])
         else:
             for i in range(npts):
                 t = float(i+1) / (npts+1)
-                #features[i] = self.GetFeatures(ee_frame[i],t,world,objs) + diffs[i]
-                features[i] = self.GetFeatures(ee_frame[i],t,world,objs) #+ diffs[i]
+                features[i] = self.GetFeatures(ee_frame[i],t,world,objs)
             goal_features = self.GetFeatures(ee_frame[-1],0.0,world,objs)
 
         return np.array(features),np.array([goal_features])
@@ -600,7 +573,8 @@ class RobotFeatures:
                 obj_frame = world[obj]
 
                 # ... so get object offset to end effector ...
-                offset = (obj_frame*PyKDL.Frame(PyKDL.Rotation.RotY(np.pi/2))).Inverse() * (ee_frame)
+                #offset = (obj_frame*PyKDL.Frame(PyKDL.Rotation.RotY(np.pi/2))).Inverse() * (ee_frame)
+                offset = obj_frame.Inverse() * (ee_frame)
                 #offset = obj_frame.Inverse() * (self.base_tform * ee_frame)
 
                 # ... use position offset and distance ...
@@ -779,7 +753,7 @@ def LoadRobotFeatures(filename):
 
     r = RobotFeatures(base_link=data['base_link'],
             end_link=data['end_link']
-            ,world_frame=data['world_frame'],
+            ,obj_frame=data['obj_frame'],
             robot_description_param=data['robot_description_param'],preset=None)
 
     r.gripper_cmds = data['gripper_cmds']
@@ -787,9 +761,8 @@ def LoadRobotFeatures(filename):
     r.world_states = data['world_states']
     r.times = data['times']
     r.base_tform = data['base_tform']
-    r.world_frame = data['world_frame']
+    r.obj_frame = data['obj_frame']
     r.base_link = data['base_link']
-    #r.end_link = data['end_link']
 
     if data.has_key('indices'):
         r.indices = data['indices']

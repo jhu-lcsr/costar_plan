@@ -33,6 +33,19 @@ def MakeTomTaskModel(lfd):
 # bin. 
 class TomWorld(CostarWorld):
 
+  # These are the preset positions for the various TOM objects. These are 
+  # reference frames used for computing features. These are the ones
+  # associated with the main TOM dataset.
+  box = (0.67051013617,
+         -0.5828498549,
+         -0.280936861547)
+  squeeze_area = (0.542672622341,
+                  0.013907504104,
+                  -0.466499112972)
+  trash = (0.29702347941,
+           0.0110837137159,
+           -0.41238342306)
+
   def __init__(self, data_root='', fake=True, load_dataset=False, *args, **kwargs):
     super(TomWorld,self).__init__(None,
         namespace='/tom',
@@ -40,21 +53,7 @@ class TomWorld(CostarWorld):
         fake=fake,
         *args, **kwargs)
 
-    # These are the preset positions for the various TOM objects. These are 
-    # reference frames used for computing features. These are the ones
-    # associated with the main TOM dataset.
-    box = (0.67051013617,
-           -0.5828498549,
-           -0.280936861547), Pose
-    squeeze_area = (0.542672622341,
-                    0.013907504104,
-                    -0.466499112972)
-    trash = (0.29702347941,
-             0.0110837137159,
-             -0.41238342306)
-
-    # Rotation frame for all of these is pointing down at the table.
-    rot = (0, 0, 0, 0)
+    self.oranges = []
 
     # Remove this logic in the future. This is where we load the data set,
     # annd then use this data to create and save a bunch of DMPs corresponding
@@ -65,50 +64,51 @@ class TomWorld(CostarWorld):
 
       self.addTrajectories("move",
           self.dataset.move_trajs,
-          self.dataset.move_oranges,)
+          self.dataset.move_data,)
       self.addTrajectories("pickup",
           self.dataset.pickup_trajs,
-          self.dataset.pickup_oranges,)
+          self.dataset.pickup_data,)
       self.addTrajectories("test",
           self.dataset.test_trajs,
-          self.dataset.test_oranges,)
+          self.dataset.test_data,)
       self.addTrajectories("box",
           self.dataset.box,
-          self.dataset.box_oranges,)
+          self.dataset.box_data,)
       self.addTrajectories("trash",
           self.dataset.trash,
-          self.dataset.trash_oranges,)
+          self.dataset.trash_data,)
 
-      self.ref_oranges = self.dataset.move_oranges + \
-                         self.dataset.pickup_oranges + \
-                         self.dataset.test_oranges + \
-                         self.dataset.box_oranges + \
-                         self.dataset.trash_oranges
-
-      self.box = ['box']
-      self.trash = ['trash']
-      self.squeeze_area = ['squeeze_area']
-      self.oranges = []
+      self.ref_data = self.dataset.move_data + \
+                         self.dataset.pickup_data + \
+                         self.dataset.test_data + \
+                         self.dataset.box_data + \
+                         self.dataset.trash_data
 
       self.fitTrajectories()
       
       # update the feature function based on known object frames
       self.makeFeatureFunction()
 
+
+  # Get visualization information as a vector of poses for whatever object we
+  # are currently manipulating.
   def _dataToPose(self,data):
     msg = PoseArray()
-    for data_traj in data:
-      for orange in data_traj:
-        if orange is not None:
-          msg.poses.append(Pose(position=(orange.position)))
+    for traj in data:
+      for world in traj:
+        if world['orange'] is not None:
+          msg.poses.append(world['orange'])
+        msg.poses.append(world['box'])
+        msg.poses.append(world['trash'])
+        msg.poses.append(world['squeeze_area'])
     return msg
 
   def vision_cb(self, msg):
 
     self.clearObjects()
-    self.addObject("box", "box", TomObject(pos=box))
-    self.addObject("squeeze_area", "squeeze_area", TomObject(pos=squeeze_area))
-    self.addObject("trash", "trash", TomObject(pos=trash))
+    self.addObject("box", "box", TomObject(pos=self.box))
+    self.addObject("squeeze_area", "squeeze_area", TomObject(pos=self.squeeze_area))
+    self.addObject("trash", "trash", TomObject(pos=self.trash))
 
     self.oranges = []
 

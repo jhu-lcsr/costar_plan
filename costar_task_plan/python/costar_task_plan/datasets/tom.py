@@ -5,6 +5,9 @@
 from dataset import Dataset
 import os, logging
 
+from tf_conversions import posemath as pm
+from geometry_msgs.msg import Pose
+
 LOGGER = logging.getLogger(__name__)
 
 try:
@@ -52,11 +55,11 @@ class TomDataset(Dataset):
     self.test_poses = []
     self.pickup_poses = []
 
-    self.trash_oranges = []
-    self.box_oranges = []
-    self.move_oranges = []
-    self.test_oranges = []
-    self.pickup_oranges = []
+    self.trash_data = []
+    self.box_data = []
+    self.move_data = []
+    self.test_data = []
+    self.pickup_data = []
 
   def download(self, *args, **kwargs):
     raise RuntimeError('downloading this dataset is not yet supported')
@@ -93,10 +96,10 @@ class TomDataset(Dataset):
     self.test_poses = poses[2]
     self.box_poses = poses[3]
 
-    self.pickup_oranges += oranges[0]
-    self.move_oranges += oranges[1]
-    self.test_oranges += oranges[2]
-    self.trash_oranges = oranges[3]
+    self.pickup_data += oranges[0]
+    self.move_data += oranges[1]
+    self.test_data += oranges[2]
+    self.trash_data = oranges[3]
 
     print "\tExtracting data for trash actions..."
     trajs, poses, oranges = self._extract_samples(self.trash_bags)
@@ -106,10 +109,10 @@ class TomDataset(Dataset):
     self.test_trajs += trajs[2]
     self.trash = trajs[3]
 
-    self.pickup_oranges += oranges[0]
-    self.move_oranges += oranges[1]
-    self.test_oranges += oranges[2]
-    self.trash_oranges = oranges[3]
+    self.pickup_data += oranges[0]
+    self.move_data += oranges[1]
+    self.test_data += oranges[2]
+    self.trash_data = oranges[3]
 
 
   def _extract_samples(self, bag_files):
@@ -149,6 +152,26 @@ class TomDataset(Dataset):
       if len(traj) > 0:
         break
 
+    # These are the preset positions for the various TOM objects. These are 
+    # reference frames used for computing features. These are the ones
+    # associated with the main TOM dataset.
+    box = (0.67051013617,
+           -0.5828498549,
+           -0.280936861547)
+    squeeze_area = (0.542672622341,
+                    0.013907504104,
+                    -0.466499112972)
+    trash = (0.29702347941,
+             0.0110837137159,
+             -0.41238342306)
+
+    # Rotation frame for all of these is pointing down at the table.
+    rot = (0, 0, 0, 0)
+
+    box_msg = pm.toMsg(pm.fromTf((box,rot)))
+    squeeze_area_msg = pm.toMsg(pm.fromTf((squeeze_area,rot)))
+    trash_msg = pm.toMsg(pm.fromTf((trash,rot)))
+
     # =========================================================================
     # Split into pickup, place, and drop trajectories
     # We know what is done after each step
@@ -167,7 +190,7 @@ class TomDataset(Dataset):
     drop_oranges = []
     for traj in trajs:
         was_open = False
-        print "was actually open:", traj[0][3]
+        #print "was actually open:", traj[0][3]
         last_stage = 0
         stage = 0
         cropped_traj = []
@@ -215,7 +238,16 @@ class TomDataset(Dataset):
                 cropped_traj = []
             last_stage = stage
             cropped_traj.append((t, pose, data, gopen, gstate))
-            cropped_orange.append(orange)
+            if orange is not None:
+              orange_msg = Pose(position=(orange.position))
+            else:
+              orange_msg = None
+            world = {
+                'box': box_msg,
+                'trash': trash_msg,
+                'squeeze_area': squeeze_area_msg,
+                'orange': orange_msg}
+            cropped_orange.append(world)
 
             if done: break
 
