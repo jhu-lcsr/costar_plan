@@ -5,7 +5,7 @@ from costar_task_plan.abstract import AbstractOption
 
 class DmpOption(AbstractOption):
 
-  def __init__(self, policy_type, goal_frame):
+  def __init__(self, policy_type, goal_frame, attached_frame=None, kinematics):
     if isinstance(policy_type, str):
       # parse into appropriate constructor
       if policy_type == 'joint':

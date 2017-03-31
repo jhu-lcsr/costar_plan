@@ -13,14 +13,18 @@ from costar_task_plan.robotics.core import CostarWorld
 from costar_task_plan.robotics.core import DemoReward
 from costar_task_plan.robotics.core import DmpOption
 
+# Set up the "pick" action that we want to performm
 def __pick_args():
   return {
     "constructor": TomDmpOption,
-    "args": ["orange"],
+    "args": ["orange","kinematics"],
     "remap": {"orange": "goal_frame"},
       }
 
-def MakeTomTaskModel():
+# Instantiate the whole task model based on our data. We must make sure to
+# provide the lfd object containing models, etc., or we will not properly
+# create all of the different DMP models.
+def MakeTomTaskModel(lfd):
   task = Task()
 
 
