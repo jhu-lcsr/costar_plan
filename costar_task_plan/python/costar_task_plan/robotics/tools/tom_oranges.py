@@ -101,5 +101,3 @@ if __name__ == '__main__':
   # the MCTS data types that we are performing our search over.
   print task.nodeSummary()
 
-
-  print task.children['ROOT()']
