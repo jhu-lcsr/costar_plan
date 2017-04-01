@@ -12,10 +12,10 @@ from costar_task_plan.robotics.tom import TomGripperOption, TomGripperCloseOptio
 from costar_task_plan.mcts import *
 
 # Set up the "pick" action that we want to performm
-def __pick_args():
+def __pick_args(dmp_maker):
   return {
-    "constructor": DmpOption,
-    "args": ["orange","kinematics","policy_type"],
+    "constructor": dmp_maker,
+    "args": ["orange"],
     "remap": {"orange": "goal_frame"},
       }
 
@@ -31,54 +31,60 @@ def __release_args():
     "args": [],
       }
 
-def __move_args():
+def __move_args(dmp_maker):
   return {
-    "constructor": DmpOption,
-    "args": ["squeeze_area","kinematics","policy_type"],
+    "constructor": dmp_maker,
+    "args": ["squeeze_area"],
     "remap": {"squeeze_area": "goal_frame"},
       }
 
-def __test_args():
+def __test_args(dmp_maker):
   return {
-    "constructor": DmpOption,
-    "args": ["squeeze_area","kinematics","policy_type"],
+    "constructor": dmp_maker,
+    "args": ["squeeze_area"],
     "remap": {"squeeze_area": "goal_frame"},
       }
 
-def __box_args():
+def __box_args(dmp_maker):
   return {
-    "constructor": DmpOption,
-    "args": ["box","kinematics","policy_type"],
+    "constructor": dmp_maker,
+    "args": ["box"],
     "remap": {"box": "goal_frame"},
       }
 
-def __trash_args():
+def __trash_args(dmp_maker):
   return {
-    "constructor": DmpOption,
-    "args": ["box","kinematics","policy_type"],
+    "constructor": dmp_maker,
+    "args": ["box"],
     "remap": {"box": "goal_frame"},
       }
 
 # Instantiate the whole task model based on our data. We must make sure to
 # provide the lfd object containing models, etc., or we will not properly
 # create all of the different DMP models.
-def MakeTomTaskModel():
+def MakeTomTaskModel(lfd):
+
+  dmp_maker = lambda goal_frame: DmpOption(
+      goal_frame=goal_frame,
+      kinematics=lfd.kdl_kin,
+      policy_type=CartesianDmpPolicy)
+
   task = Task()
-  task.add("pick", None, __pick_args())
+  task.add("pick", None, __pick_args(dmp_maker))
   task.add("grasp1", ["pick"], __grasp_args())
-  task.add("move", ["grasp1"], __move_args())
+  task.add("move", ["grasp1"], __move_args(dmp_maker))
   task.add("release", ["move"], __release_args())
-  task.add("test", ["release"], __test_args())
+  task.add("test", ["release"], __test_args(dmp_maker))
   task.add("grasp2", ["test"], __grasp_args())
-  task.add("box", ["grasp2"], __box_args())
-  task.add("trash", ["grasp2"], __trash_args())
+  task.add("box", ["grasp2"], __box_args(dmp_maker))
+  task.add("trash", ["grasp2"], __trash_args(dmp_maker))
   return task
 
 if __name__ == '__main__':
 
   # Create the task model
-  task = MakeTomTaskModel()
   world = TomWorld('./',load_dataset=False)
+  task = MakeTomTaskModel(world.lfd)
 
   # Set up arguments for tom sim task
   args = {
@@ -86,8 +92,6 @@ if __name__ == '__main__':
     'squeeze_area': ['squeeze_area1'],
     'box': ['box1'],
     'trash': ['trash1'],
-    'kinematics': [world.lfd.kdl_kin],
-    'policy_type': [CartesianDmpPolicy],
   }
 
   # Create task definition
@@ -98,3 +102,4 @@ if __name__ == '__main__':
   print task.nodeSummary()
 
 
+  print task.children['ROOT()']

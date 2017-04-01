@@ -75,9 +75,13 @@ class TaskSampler(AbstractSample):
     return 1
 
   def getOption(self, node, idx):
-    return MctsAction(policy=self.policy, id=0, ticks=self.ticks)
+    opts = self.task.children[node.task_node]
+    return MctsAction(
+        policy=self.policy,
+        id=0, ticks=self.ticks)
 
   def _sample(self, node):
+    opts = self.task.children[node.task_node]
     return MctsAction(policy=self.policy, id=0, ticks=self.ticks)
 
   def getPolicies(self, node):

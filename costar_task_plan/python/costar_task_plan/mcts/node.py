@@ -8,12 +8,12 @@ class Node(AbstractState):
 
     next_idx = 0
 
-    def __init__(self, world=None, action=None, prior=1.):
+    def __init__(self, world=None, action=None, prior=1.,task_node='ROOT()'):
       if world is None and action is None:
         raise RuntimeError('must provide either a world or an action!')
 
       self.n_visits = 0
-      self.task_node = "ROOT"
+      self.task_node = task_node
       self.n_rollouts = 0
       self.world = world
       self.action = action
