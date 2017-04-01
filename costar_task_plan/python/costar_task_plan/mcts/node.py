@@ -13,6 +13,7 @@ class Node(AbstractState):
         raise RuntimeError('must provide either a world or an action!')
 
       self.n_visits = 0
+      self.task_node = "ROOT"
       self.n_rollouts = 0
       self.world = world
       self.action = action

@@ -62,3 +62,26 @@ class LearnedOrderPolicySample(AbstractSample):
 
   def getName(self):
     return "learned"+self.sampler.getName()
+
+'''
+Sample options from a task
+'''
+class TaskSampler(AbstractSample):
+
+  def __init__(self, task):
+    self.task = task
+
+  def numOptions(self):
+    return 1
+
+  def getOption(self, node, idx):
+    return MctsAction(policy=self.policy, id=0, ticks=self.ticks)
+
+  def _sample(self, node):
+    return MctsAction(policy=self.policy, id=0, ticks=self.ticks)
+
+  def getPolicies(self, node):
+    return [self.policy]
+
+  def getName(self):
+    return "single"

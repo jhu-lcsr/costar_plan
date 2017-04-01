@@ -100,7 +100,7 @@ class OptionTemplate(object):
   def instantiate(self, name, arg_dict):
     filled_args = {}
     for arg in self.args:
-      if self.remap is not None:
+      if self.remap is not None and arg in self.remap:
         filled_arg_name = self.remap[arg]
       else:
         filled_arg_name = arg

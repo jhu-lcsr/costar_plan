@@ -9,10 +9,10 @@ class TomGripperOption(AbstractOption):
 # Send an open command and wait until that's successful
 class TomGripperOpenOption(TomGripperOption):
   def __init__(self):
-    super(TomGripperOpenOption,self).__init___(False)
+    super(TomGripperOpenOption,self).__init__(False)
 
 # Send a close command and wait until that's successful
 class TomGripperCloseOption(TomGripperOption):
   def __init__(self):
-    super(TomGripperCloseOption,self).__init___(True)
+    super(TomGripperCloseOption,self).__init__(True)
 
