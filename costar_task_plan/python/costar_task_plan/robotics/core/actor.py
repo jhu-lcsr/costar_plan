@@ -11,6 +11,7 @@ class CostarState(AbstractState):
       q = np.array(q)
     self.q = q
     self.dq = dq
+    self.seq = 0
 
     # This should (hopefully) be a reference the world. it hardly matters
     # for something like this, though -- our states hold very little
@@ -23,10 +24,12 @@ class CostarState(AbstractState):
 # Actions for a particular actor. This is very simple, and just represents a
 # joint motion, normalized over some period of time.
 class CostarAction(AbstractAction):
-  def __init__(self, dq=np.array([])):
+  def __init__(self, dq=np.array([]), reset_seq=False):
     if isinstance(dq, list):
       dq = np.array(dq)
+
     self.dq = dq
+    self.reset_seq = reset_seq
 
   def toArray(self):
     return self.dq

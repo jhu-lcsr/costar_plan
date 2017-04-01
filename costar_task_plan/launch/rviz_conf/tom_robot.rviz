@@ -317,19 +317,216 @@ Visualization Manager:
       Value: true
       Visual Enabled: true
     - Class: rviz/TF
-      Enabled: false
+      Enabled: true
       Frame Timeout: 15
       Frames:
         All Enabled: false
+        ICS_logo_blue_link:
+          Value: true
+        ICS_logo_grey_link:
+          Value: true
+        base_footprint:
+          Value: true
+        base_link:
+          Value: true
+        box1:
+          Value: true
+        box_tom_link:
+          Value: true
+        front_laser_scanner_link:
+          Value: true
+        l_base_link:
+          Value: true
+        l_ee_link:
+          Value: true
+        l_forearm_link:
+          Value: true
+        l_front_wheel_link:
+          Value: true
+        l_gripper_base_link:
+          Value: true
+        l_gripper_left_finger_base_link:
+          Value: true
+        l_gripper_left_finger_link:
+          Value: true
+        l_gripper_mid_finger_base_link:
+          Value: true
+        l_gripper_mid_finger_link:
+          Value: true
+        l_gripper_palm_link:
+          Value: true
+        l_gripper_right_finger_base_link:
+          Value: true
+        l_gripper_right_finger_link:
+          Value: true
+        l_hand_base_adapter_link:
+          Value: true
+        l_rear_wheel_link:
+          Value: true
+        l_shoulder_link:
+          Value: true
+        l_upper_arm_link:
+          Value: true
+        l_wrist_1_link:
+          Value: true
+        l_wrist_2_link:
+          Value: true
+        l_wrist_3_link:
+          Value: true
+        odom_combined:
+          Value: true
+        orange1:
+          Value: true
+        orange2:
+          Value: true
+        orange3:
+          Value: true
+        r_base_link:
+          Value: true
+        r_ee_link:
+          Value: true
+        r_forearm_link:
+          Value: true
+        r_front_wheel_link:
+          Value: true
+        r_gripper_base_link:
+          Value: true
+        r_gripper_left_finger_base_link:
+          Value: true
+        r_gripper_left_finger_link:
+          Value: true
+        r_gripper_mid_finger_base_link:
+          Value: true
+        r_gripper_mid_finger_link:
+          Value: true
+        r_gripper_palm_link:
+          Value: true
+        r_gripper_right_finger_base_link:
+          Value: true
+        r_gripper_right_finger_link:
+          Value: true
+        r_hand_base_adapter_link:
+          Value: true
+        r_rear_wheel_link:
+          Value: true
+        r_shoulder_link:
+          Value: true
+        r_upper_arm_link:
+          Value: true
+        r_wrist_1_link:
+          Value: true
+        r_wrist_2_link:
+          Value: true
+        r_wrist_3_link:
+          Value: true
+        rear_laser_scanner_link:
+          Value: true
+        squeeze_area1:
+          Value: true
+        table_tom_link:
+          Value: true
+        tom_head_link:
+          Value: true
+        tom_left_camera_link:
+          Value: true
+        torso_link:
+          Value: true
+        trash1:
+          Value: true
+        world:
+          Value: true
       Marker Scale: 0.2
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
-        {}
+        base_footprint:
+          base_link:
+            ICS_logo_blue_link:
+              {}
+            ICS_logo_grey_link:
+              {}
+            front_laser_scanner_link:
+              {}
+            l_front_wheel_link:
+              {}
+            l_rear_wheel_link:
+              {}
+            r_front_wheel_link:
+              {}
+            r_rear_wheel_link:
+              {}
+            rear_laser_scanner_link:
+              {}
+            torso_link:
+              box1:
+                {}
+              l_base_link:
+                l_shoulder_link:
+                  l_upper_arm_link:
+                    l_forearm_link:
+                      l_wrist_1_link:
+                        l_wrist_2_link:
+                          l_wrist_3_link:
+                            l_ee_link:
+                              l_hand_base_adapter_link:
+                                l_gripper_base_link:
+                                  l_gripper_left_finger_base_link:
+                                    l_gripper_left_finger_link:
+                                      {}
+                                  l_gripper_mid_finger_base_link:
+                                    l_gripper_mid_finger_link:
+                                      {}
+                                  l_gripper_palm_link:
+                                    {}
+                                  l_gripper_right_finger_base_link:
+                                    l_gripper_right_finger_link:
+                                      {}
+              orange1:
+                {}
+              orange2:
+                {}
+              orange3:
+                {}
+              r_base_link:
+                r_shoulder_link:
+                  r_upper_arm_link:
+                    r_forearm_link:
+                      r_wrist_1_link:
+                        r_wrist_2_link:
+                          r_wrist_3_link:
+                            r_ee_link:
+                              r_hand_base_adapter_link:
+                                r_gripper_base_link:
+                                  r_gripper_left_finger_base_link:
+                                    r_gripper_left_finger_link:
+                                      {}
+                                  r_gripper_mid_finger_base_link:
+                                    r_gripper_mid_finger_link:
+                                      {}
+                                  r_gripper_palm_link:
+                                    {}
+                                  r_gripper_right_finger_base_link:
+                                    r_gripper_right_finger_link:
+                                      {}
+              squeeze_area1:
+                {}
+              tom_head_link:
+                {}
+              tom_left_camera_link:
+                {}
+              trash1:
+                {}
+            world:
+              odom_combined:
+                {}
+          box_tom_link:
+            {}
+          table_tom_link:
+            {}
       Update Interval: 0
-      Value: false
+      Value: true
     - Class: rviz/MarkerArray
       Enabled: false
       Marker Topic: visualization_marker_array
@@ -528,15 +725,15 @@ Visualization Manager:
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.130087
-        Y: -0.169528
-        Z: 0.152532
+        X: 0.231192
+        Y: -0.431397
+        Z: 0.336554
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.699793
+      Pitch: 0.614792
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.36541
+      Yaw: 0.745394
     Saved: ~
 Window Geometry:
   Displays:
