@@ -71,11 +71,17 @@ def MakeTomTaskModel(lfd):
   return task
 
 if __name___ == '__main__':
+
+  # Create the task model
   task = MakeTomTaskModel()
 
+  # Set up arguments for tom sim task
   args = {
     'orange': ['orange1', 'orange2', 'orange3'],
     'squeeze_area': ['squeeze_area1'],
     'box': ['box1'],
     'trash': ['trash1'],
   }
+
+  # Create task definition
+  args = task.compile(args)

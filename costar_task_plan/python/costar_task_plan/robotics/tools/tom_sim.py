@@ -70,6 +70,7 @@ class TomSim(object):
 
     # Rotation frame for all of these is pointing down at the table.
     self.rot = (0, 0, 0, 1)
+    self.gripper_open = True
 
     #self.box = pm.toMsg(pm.fromTf((box, rot)))
     #self.trash = pn.toMsg(pm.fromTf((trash, rot)))
