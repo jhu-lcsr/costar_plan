@@ -168,9 +168,9 @@ class TomDataset(Dataset):
     # Rotation frame for all of these is pointing down at the table.
     rot = (0, 0, 0, 1)
 
-    box_msg = pm.toMsg(pm.fromTf((box,rot)))
-    squeeze_area_msg = pm.toMsg(pm.fromTf((squeeze_area,rot)))
-    trash_msg = pm.toMsg(pm.fromTf((trash,rot)))
+    box_pose = pm.fromTf((box,rot))
+    squeeze_area_pose = pm.fromTf((squeeze_area,rot))
+    trash_pose = pm.fromTf((trash,rot))
 
     # =========================================================================
     # Split into pickup, place, and drop trajectories
@@ -236,17 +236,19 @@ class TomDataset(Dataset):
                     drop_trajs.append(cropped_traj)
                     drop_oranges.append(cropped_orange)
                 cropped_traj = []
+                cropped_orange = []
             last_stage = stage
-            cropped_traj.append((t, pose, data, gopen, gstate))
+            #cropped_traj.append((t, pose, data, gopen, gstate))
+            cropped_traj.append((t, pose, gopen, gstate))
             if orange is not None:
-              orange_msg = Pose(position=(orange.position))
+              orange_pose = pm.fromMsg(Pose(position=(orange.position)))
             else:
-              orange_msg = None
+              orange_pose = None
             world = {
-                'box': box_msg,
-                'trash': trash_msg,
-                'squeeze_area': squeeze_area_msg,
-                'orange': orange_msg}
+                'box': box_pose,
+                'trash': trash_pose,
+                'squeeze_area': squeeze_area_pose,
+                'orange': orange_pose}
             cropped_orange.append(world)
 
             if done: break
