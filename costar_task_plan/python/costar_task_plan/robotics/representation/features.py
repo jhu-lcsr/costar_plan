@@ -535,7 +535,6 @@ class RobotFeatures:
         npts = len(ee_frame)-1
         features = [[]]*(npts)
 
-        #ee_frame = [self.GetForward(q[:self.dof]) for q in traj]
         #diffs = self.GetDiffFeatures(ee_frame,world,objs)
 
         if not gripper is None:

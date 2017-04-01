@@ -49,19 +49,24 @@ class TomWorld(CostarWorld):
 
       self.addTrajectories("move",
           self.dataset.move_trajs,
-          self.dataset.move_data,)
+          self.dataset.move_data,
+          ['time','squeeze_area'])
       self.addTrajectories("pickup",
           self.dataset.pickup_trajs,
-          self.dataset.pickup_data,)
+          self.dataset.pickup_data,
+          ['time', 'orange'])
       self.addTrajectories("test",
           self.dataset.test_trajs,
-          self.dataset.test_data,)
+          self.dataset.test_data,
+          ['time', 'squeeze_area'])
       self.addTrajectories("box",
           self.dataset.box,
-          self.dataset.box_data,)
+          self.dataset.box_data,
+          ['time', 'box'])
       self.addTrajectories("trash",
           self.dataset.trash,
-          self.dataset.trash_data,)
+          self.dataset.trash_data,
+          ['time', 'trash'])
 
       self.ref_data = self.dataset.move_data + \
                          self.dataset.pickup_data + \

@@ -16,6 +16,7 @@ import logging
 from os.path import join
 from geometry_msgs.msg import PoseArray
 import tf
+from tf_conversions import posemath as pm
 
 # use this for now -- because it's simple and works pretty well
 import gmr
@@ -43,6 +44,7 @@ class CostarWorld(AbstractWorld):
     self.objects = {}
     self.object_classes = {}
     self.trajectories = {}
+    self.objs = {}
     self.trajectory_data = {}
     self.traj_pubs = {}
     self.traj_data_pubs = {}
@@ -101,8 +103,9 @@ class CostarWorld(AbstractWorld):
     self.object_classes = {}
   
   # Add a bunch of trajectory for use in learning.
-  def addTrajectories(self, name, trajectories, data):
+  def addTrajectories(self, name, trajectories, data, objs):
     self.trajectories[name] = trajectories
+    self.objs[name] = objs
     self._preprocessData(data)
     self.trajectory_data[name] = data
     if not name in self.traj_pubs:
@@ -139,7 +142,7 @@ class CostarWorld(AbstractWorld):
       msg = PoseArray()
       msg.header.frame_id = self.actors[0].base_link
       for traj in trajs:
-        for t, pose, _, _, _ in traj:
+        for _, pose, _, _ in traj:
           msg.poses.append(pose)
       self.traj_pubs[name].publish(msg)
     for name, data in self.trajectory_data.items():
