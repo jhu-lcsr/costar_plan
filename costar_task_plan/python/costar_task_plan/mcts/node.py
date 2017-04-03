@@ -21,6 +21,7 @@ class Node(AbstractState):
       self.max_reward = -float('inf')
       self.total_reward = 0
       self.avg_reward = 0
+      self.prev_reward = 0
       self.max_final_reward = -float('inf')
       self.prior = prior
       self.initialized = self.world is not None
@@ -59,6 +60,8 @@ class Node(AbstractState):
         raise TypeError('node.expand() takes an Environment action, not an MCTS action.')
       new_world = self.world.fork(action)
       n = Node(world=new_world)
+      n.prev_reward = self.prev_reward + self.reward
+      n.parent = self
       return n
 
     '''
@@ -73,13 +76,19 @@ class Node(AbstractState):
         if child.action is None:
           raise RuntimeError('Cannot instantiate a node with an empty action!')
 
-        new_world = self.world.fork(child.action.getAction(self))
-        child.world = new_world
-        child.state = child.world.actors[0].state
-        child.initialized = True
-        child.terminal = child.world.done
-        child.rewards = [new_world.initial_reward]
-        child.action.update(child)
+            action = child.action.getAction(self)
+            new_world = self.world.fork(action)
+            child.world = new_world
+            child.state = child.world.actors[0].state
+            child.initialized = True
+            child.terminal = child.world.done
+            child.rewards = [new_world.initial_reward]
+            child.reward += new_world.initial_reward
+            child.parent = self
+            child.prev_reward = self.prev_reward + self.reward
+            child.traj.append((self.world.actors[0].state, action))
+            child.ticks = 1
+            child.action.update(child)
 
     '''
     tick() to advance the state of the world associated with a particular

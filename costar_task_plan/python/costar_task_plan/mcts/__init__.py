@@ -26,6 +26,9 @@ __all__ = [
   # ===========================================================================
   # Validator: print out graphs showing what happened
   "Validator",
+  # ===========================================================================
+  # Tree search functions
+  "MonteCarloTreeSearch", "DepthFirstTreeSearch",
   ]
 
 # Basics
@@ -33,6 +36,9 @@ from abstract import *
 from planning_problem import *
 from node import *
 from action import *
+
+# Search algorithms
+from search import *
 
 # Defines default set of policies
 from default_policies import *

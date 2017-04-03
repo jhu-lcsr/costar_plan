@@ -152,7 +152,23 @@ class AbstractMctsPolicies(object):
     for node, reward in reversed(visited):
         acc_reward += reward
         node.update(acc_reward, final_reward, steps)
-    print "--------------"
+
+  '''
+  Instantiate the specified child by forking from the current parent.
+  '''
+  def instantiate(self, parent, child):
+    if not child.initialized:
+      # fork the world and apply the correct action
+      parent.instantiate(child)
+      if self._initialize:
+          self._initialize(child)
+
+  '''
+  Initialize the specified node.
+  '''
+  def initialize(self, node): 
+    if self._initialize:
+      self._initialize(node)
 
   '''
   Descend through the tree until we reach the next node we want to expland.
@@ -343,3 +359,20 @@ Outputs:
 class AbstractExtract(object):
   def __call__(self, node):
     raise NotImplementedError('extract.__call__() not implemented!')
+
+'''
+Run a whole search. May or may not use all of these different things we set up
+above, passed in via the policies struct.
+
+Inputs:
+  - a root node
+  - a set of policies for creating new nodes
+
+Outputs:
+  - elapsed time
+  - a list of nodes
+'''
+class AbstractSearch(object):
+    def __call__(self, node, policies, *args, **kwargs):
+        raise NotImplementedError('extract.__call__() not implemented!')
+
