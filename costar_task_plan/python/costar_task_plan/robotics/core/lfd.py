@@ -4,7 +4,10 @@ from pykdl_utils.kdl_parser import kdl_tree_from_urdf_model
 from pykdl_utils.kdl_kinematics import KDLKinematics
 from urdf_parser_py.urdf import URDF
 
+# Include representations for either (a) the generic skill or (b) an instance
+# of a skill represented as a goal-directed set of motion primitives.
 from costar_task_plan.robotics.representation import RobotFeatures
+from costar_task_plan.robotics.representation import CartesianSkillInstanceModel
 
 # Compute features for trajectories, objects.
 # This all must take a world.
@@ -54,6 +57,7 @@ class LfD(object):
 
         # compute features?
         f,g = features.GetFeaturesForTrajectory(ee, world[0], objs)
+        instance = CartesianSkillInstanceModel(ee, world, objs)
 
         # update
 
