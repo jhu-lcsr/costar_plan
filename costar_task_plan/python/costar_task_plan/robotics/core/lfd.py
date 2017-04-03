@@ -52,10 +52,9 @@ class LfD(object):
         if not len(ee) == len(gripper) and len(gripper) == len(world):
           raise RuntimeError('counting error')
 
-        print 'AASOIFOISA',objs,world[0]['orange']
+        # compute features?
         f,g = features.GetFeaturesForTrajectory(ee, world[0], objs)
 
-        print "features=",f
-        print "goal=",g
+        # update
 
       break
