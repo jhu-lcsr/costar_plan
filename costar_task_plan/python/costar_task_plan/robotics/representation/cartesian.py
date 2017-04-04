@@ -47,7 +47,7 @@ class CartesianSkillInstance(object):
     for i, (ee,goal) in enumerate(zip(self.ee_frames, goal_frame)):
         pose = goal.Inverse() * ee
         u[i,0] = pose.p[0]
-        u[i,2] = pose.p[1]
+        u[i,1] = pose.p[1]
         u[i,2] = pose.p[2]
 
         # make sure all our motions are nice and continuous -- or strange things will happen
@@ -75,7 +75,13 @@ class CartesianSkillInstance(object):
         last_rpy = adj_rpy
 
     resp = RequestDMP(u,self.dt,k_gain,d_gain,num_basis)
-    pass
+
+    self.dmp_list = resp.dmp_list
+    self.tau = resp.tau
+
+    u
+    print self.dmp_list
+    print self.tau
 
   # Given a world state and a robot state, generate a trajectory. This will
   # create both the joint state

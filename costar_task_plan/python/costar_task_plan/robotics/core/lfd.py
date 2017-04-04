@@ -1,7 +1,8 @@
 
-from tf_conversions import posemath as pm
+import numpy as np
 from pykdl_utils.kdl_parser import kdl_tree_from_urdf_model
 from pykdl_utils.kdl_kinematics import KDLKinematics
+from tf_conversions import posemath as pm
 from urdf_parser_py.urdf import URDF
 
 # Include representations for either (a) the generic skill or (b) an instance
@@ -35,6 +36,9 @@ class LfD(object):
     self.base_link = base_link
     self.end_link = end_link
 
+    self.skill_instances = {}
+    self.skill_features = {}
+
 
   # Train things
   def train(self):
@@ -42,12 +46,15 @@ class LfD(object):
     for name, trajs in self.world.trajectories.items():
 
       data = self.world.trajectory_data[name]
-      print "==============="
-      print len(trajs), len(data)
       features = RobotFeatures(self.config, self.kdl_kin)
       objs = self.world.objs[name]
 
+      self.skill_instances[name] = []
+
       for traj, world in zip(trajs, data):
+
+        ts = [t for t,_,_,_ in traj]
+        dt = np.mean(np.diff(ts))
 
         ee = [pm.fromMsg(pose) for _,pose,_,_ in traj]
         gripper = [gopen for _,_,gopen,_ in traj]
@@ -61,8 +68,13 @@ class LfD(object):
             world,
             self.kdl_kin,
             self.config,
-            dt=self.world.dt,
+            dt=dt,
             objs=objs,
             visualize=True)
 
-      break
+        self.skill_instances[name].append(instance)
+        if name not in self.skill_features:
+          self.skill_features[name] = f
+        else:
+          np.concatenate((self.skill_features[name], f), axis=0)
+
