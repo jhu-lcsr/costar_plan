@@ -70,25 +70,32 @@ class Node(AbstractState):
     '''
     def instantiate(self, child):
 
+      if child.parent is None:
+        child.parent = self
+      elif child.parent is not self:
+        raise RuntimeError('Cannot instantiate node with a node other than its parent!')
+
       if child.world is None:
         if not isinstance(child, Node):
           raise RuntimeError('Cannot instantiate someting that is not an MCTS node.')
         if child.action is None:
           raise RuntimeError('Cannot instantiate a node with an empty action!')
 
-            action = child.action.getAction(self)
-            new_world = self.world.fork(action)
-            child.world = new_world
-            child.state = child.world.actors[0].state
-            child.initialized = True
-            child.terminal = child.world.done
-            child.rewards = [new_world.initial_reward]
-            child.reward += new_world.initial_reward
-            child.parent = self
-            child.prev_reward = self.prev_reward + self.reward
-            child.traj.append((self.world.actors[0].state, action))
-            child.ticks = 1
-            child.action.update(child)
+        action = child.action.getAction(self)
+        new_world = self.world.fork(action)
+        child.world = new_world
+        child.state = child.world.actors[0].state
+        child.initialized = True
+        child.terminal = child.world.done
+        child.rewards = [new_world.initial_reward]
+        child.reward += new_world.initial_reward
+        child.parent = self
+        child.prev_reward = self.prev_reward + self.reward
+        child.traj.append((self.world.actors[0].state, action))
+        child.ticks = 1
+        child.action.update(child)
+      else:
+        raise RuntimeError('Cannot instantiate a node that already has been instantiated!')
 
     '''
     tick() to advance the state of the world associated with a particular

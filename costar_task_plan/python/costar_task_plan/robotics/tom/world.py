@@ -6,6 +6,7 @@ from config import TOM_LEFT_CONFIG, TOM_RIGHT_CONFIG
 
 from tum_ics_msgs.msg import VisualInfo
 from geometry_msgs.msg import PoseArray, Pose
+from tf_conversions import posemath as pm
 
 from costar_task_plan.datasets import TomDataset
 
@@ -97,10 +98,10 @@ class TomWorld(CostarWorld):
     for traj in data:
       for world in traj:
         if world['orange'] is not None:
-          msg.poses.append(world['orange'])
-        msg.poses.append(world['box'])
-        msg.poses.append(world['trash'])
-        msg.poses.append(world['squeeze_area'])
+          msg.poses.append(pm.toMsg(world['orange']))
+        msg.poses.append(pm.toMsg(world['box']))
+        msg.poses.append(pm.toMsg(world['trash']))
+        msg.poses.append(pm.toMsg(world['squeeze_area']))
     return msg
 
   def vision_cb(self, msg):

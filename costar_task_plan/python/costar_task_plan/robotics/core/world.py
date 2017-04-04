@@ -145,6 +145,9 @@ class CostarWorld(AbstractWorld):
         for _, pose, _, _ in traj:
           msg.poses.append(pose)
       self.traj_pubs[name].publish(msg)
+
+    # Publish trajectory data. These are the observed world states associated
+    # with each of the various trajectories we are interested in.
     for name, data in self.trajectory_data.items():
       msg = self._dataToPose(data)
       msg.header.frame_id = self.actors[0].base_link
