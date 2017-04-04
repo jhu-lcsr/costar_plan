@@ -61,6 +61,7 @@ class LfD(object):
             world,
             self.kdl_kin,
             self.config,
+            dt=self.world.dt,
             objs=objs,
             visualize=True)
 
