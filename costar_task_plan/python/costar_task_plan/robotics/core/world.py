@@ -64,6 +64,7 @@ class CostarWorld(AbstractWorld):
     self.traj_pubs = {}
     self.traj_data_pubs = {}
     self.skill_pubs = {}
+    self.tf_listener = None
 
     # Other things
     self.fake = fake
@@ -76,8 +77,10 @@ class CostarWorld(AbstractWorld):
     self.observation = {}
 
     if robot_config is None:
-      robot_config = [DEFAULT_ROBOT_CONFIG]
+      raise RuntimeError('Must provide a robot config!')
 
+    # -------------------------- ROBOT INFORMATION ----------------------------
+    # Base link, end effector, etc. for easy reference
     # set up actors and things
     self.js_listeners = {} 
     self.tf_pub = tf.TransformBroadcaster()
@@ -99,6 +102,9 @@ class CostarWorld(AbstractWorld):
         state=s0,
         dynamics=self.getT(robot),
         policy=NullPolicy()))
+
+    # The base link for the scene as a whole
+    self.base_link = self.actors[0].base_link
 
     self.lfd = LfD(self)
   
@@ -135,7 +141,7 @@ class CostarWorld(AbstractWorld):
     # stuff.
     for name, trajs in self.trajectories.items():
       msg = PoseArray()
-      msg.header.frame_id = self.actors[0].base_link
+      msg.header.frame_id = self.base_link
       for traj in trajs:
         for _, pose, _, _ in traj:
           msg.poses.append(pose)
@@ -145,16 +151,8 @@ class CostarWorld(AbstractWorld):
     # with each of the various trajectories we are interested in.
     for name, data in self.trajectory_data.items():
       msg = self._dataToPose(data)
-      msg.header.frame_id = self.actors[0].base_link
+      msg.header.frame_id = self.base_link
       self.traj_data_pubs[name].publish(msg)
-
-    # Publish object frames
-    for name, frame in self.objects.items():
-      (trans, rot) = frame.tf_frame
-      self.tf_pub.sendTransform(trans, rot,
-              rospy.Time.now(),
-              frame.tf_name,
-              self.base_link,)
 
     # Publish actor states
     for actor in self.actors:
@@ -169,10 +167,16 @@ class CostarWorld(AbstractWorld):
   # various options/policies to choose and use them intelligently.
   def updateObservation(self, objs):
     self.observation = {}
+    if self.tf_listener is None:
+      self.tf_listener = tf.TransformListener()
+
     try:
       for obj in objs:
-        pass
-    except:
+        (trans, rot) = self.tf_listener.lookupTransform(obj, self.base_link, rospy.Time(0.))
+        self.observation[obj] = pm.fromTf((trans, rot))
+
+    except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+      pass
       
 
 

@@ -4,6 +4,8 @@
 # (c) 2017 The Johns Hopkins University
 # See License for more details
 
+from tom_oranges import MakeTomTaskModel
+
 from costar_task_plan.robotics.core import *
 from costar_task_plan.robotics.tom import TomWorld
 from costar_task_plan.abstract import AbstractReward
@@ -38,6 +40,11 @@ def load_tom_data_and_run():
   except RuntimeError, e:
     print "Failed to create world. Are you in the right directory?"
     raise e
+
+  # Set up the task model
+  task = MakeTomTaskModel(world.lfd)
+  args = OrangesTaskArgs()
+  filled_args = task.compile(args)
 
   rate = rospy.Rate(1)
   try:

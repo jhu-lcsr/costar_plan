@@ -80,22 +80,25 @@ def MakeTomTaskModel(lfd):
   task.add("trash", ["grasp2"], __trash_args(dmp_maker))
   return task
 
-if __name__ == '__main__':
-
-  # Create the task model
-  world = TomWorld('./',load_dataset=False)
-  task = MakeTomTaskModel(world.lfd)
-
-  # Set up arguments for tom sim task
+# Set up arguments for tom sim task
+def OrangesTaskArgs():
   args = {
     'orange': ['orange1', 'orange2', 'orange3'],
     'squeeze_area': ['squeeze_area1'],
     'box': ['box1'],
     'trash': ['trash1'],
   }
+  return args
+
+if __name__ == '__main__':
+
+  # Create the task model
+  world = TomWorld('./',load_dataset=False)
+  task = MakeTomTaskModel(world.lfd)
+  args = OrangesTaskArgs()
 
   # Create task definition
-  args = task.compile(args)
+  filled_args = task.compile(args)
 
   # Print out a summary of our task model. We then need to use this to create 
   # the MCTS data types that we are performing our search over.

@@ -19,20 +19,6 @@ from costar_task_plan.robotics.core import DemoReward
 # bin. 
 class TomWorld(CostarWorld):
 
-  # These are the preset positions for the various TOM objects. These are 
-  # reference frames used for computing features. These are the ones
-  # associated with the main TOM dataset.
-  box = (0.67051013617,
-         -0.5828498549,
-         -0.280936861547)
-  squeeze_area = (0.542672622341,
-                  0.013907504104,
-                  -0.466499112972)
-  trash = (0.29702347941,
-           0.0110837137159,
-           -0.41238342306)
-
-
   def __init__(self, data_root='', fake=True, load_dataset=False, *args, **kwargs):
     super(TomWorld,self).__init__(None,
         namespace='/tom',
@@ -76,11 +62,13 @@ class TomWorld(CostarWorld):
                          self.dataset.box_data + \
                          self.dataset.trash_data
 
+      # Call the learning after we've loaded our data
       self.fitTrajectories()
       
       # update the feature function based on known object frames
       self.makeFeatureFunction()
 
+  # This is used for putting data in the right form for learning
   def _preprocessData(self,data):
     for traj in data:
       orange_pose = None
