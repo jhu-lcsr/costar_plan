@@ -58,10 +58,14 @@ class CostarWorld(AbstractWorld):
     # skills.
     self.models = {}
 
-    # 
+    # ------------------------- VISUALIZATION TOOLS ---------------------------
+    # These are publishers for pose arrays that help us visualize data and
+    # learned actions.
     self.traj_pubs = {}
     self.traj_data_pubs = {}
+    self.skill_pubs = {}
 
+    # Other things
     self.fake = fake
     self.predicates = []
     self.namespace = namespace

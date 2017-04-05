@@ -44,6 +44,9 @@ def load_tom_data_and_run():
     while True:
       # Pass a zero action down to the first actr, and only to the first actor.
       world.tick(world.zeroAction())
+      world.visualize()
+      objects = ['box1', 'orange1', 'orange2', 'orange3', 'trash1', 'squeeze_area1']
+      world.updateObservation(objects)
       rate.sleep()
   except rospy.ROSInterruptException, e:
     pass
