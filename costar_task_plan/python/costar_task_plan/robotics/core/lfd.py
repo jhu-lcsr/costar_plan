@@ -77,7 +77,25 @@ class LfD(object):
           self.skill_features[name] = f
         else:
           np.concatenate((self.skill_features[name], f), axis=0)
+        print name, self.skill_features[name].shape
+
+    return self._makeOptions()
 
   # Save models after they have been fit.
   def save(self, dir='./data/'):
     pass
+
+
+  # Save models after they have been fit.
+  def load(self, dir='./data/'):
+    pass
+
+  # Return a dictionary of DMP options based on the observed skill instances and data 
+  def _makeOptions(self):
+    for name, instances in self.skill_instances:
+
+      # make gmm
+
+      # provide gmm and dmp to the option
+
+      pass

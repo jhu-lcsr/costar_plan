@@ -28,7 +28,7 @@ __all__ = [
   "Validator",
   # ===========================================================================
   # Tree search functions
-  "MonteCarloTreeSearch", "DepthFirstTreeSearch",
+  "MonteCarloTreeSearch", "DepthFirstSearch",
   ]
 
 # Basics

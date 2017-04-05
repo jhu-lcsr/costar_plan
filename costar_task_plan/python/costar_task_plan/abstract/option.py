@@ -28,7 +28,7 @@ class AbstractOption(object):
   def makeWorld(self, *args, **kwargs):
     raise Exception('cannot make training world for this option')
 
-  def makePolicy(self):
+  def makePolicy(self, *args, **kwargs):
     raise Exception('option.makePolicy not implemented!')
 
   '''
