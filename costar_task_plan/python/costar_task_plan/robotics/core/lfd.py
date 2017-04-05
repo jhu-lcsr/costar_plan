@@ -78,3 +78,6 @@ class LfD(object):
         else:
           np.concatenate((self.skill_features[name], f), axis=0)
 
+  # Save models after they have been fit.
+  def save(self, dir='./data/'):
+    pass

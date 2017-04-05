@@ -79,10 +79,6 @@ class CartesianSkillInstance(object):
     self.dmp_list = resp.dmp_list
     self.tau = resp.tau
 
-    u
-    print self.dmp_list
-    print self.tau
-
   # Given a world state and a robot state, generate a trajectory. This will
   # create both the joint state
   def generate(self, world, state):

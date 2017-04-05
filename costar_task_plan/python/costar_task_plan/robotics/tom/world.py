@@ -32,6 +32,7 @@ class TomWorld(CostarWorld):
            0.0110837137159,
            -0.41238342306)
 
+
   def __init__(self, data_root='', fake=True, load_dataset=False, *args, **kwargs):
     super(TomWorld,self).__init__(None,
         namespace='/tom',
@@ -104,36 +105,6 @@ class TomWorld(CostarWorld):
         msg.poses.append(pm.toMsg(world['squeeze_area']))
     return msg
 
-  def vision_cb(self, msg):
-
-    self.clearObjects()
-    self.addObject("box", "box", TomObject(pos=self.box))
-    self.addObject("squeeze_area", "squeeze_area", TomObject(pos=self.squeeze_area))
-    self.addObject("trash", "trash", TomObject(pos=self.trash))
-
-    self.oranges = []
-
-    for obj in msg.objData:
-      if obj.objType == "Orange":
-        # add it to our list of detected objects
-        self.addObject("orange",
-            "orange%d"%count,
-            TomObject(msg=obj))
-
   def make_task_plan(self):
     args = self.getArgs()
-
-# Represent the TOM orange as an object in the world.
-class TomObject(object):
-  def __init__(self, msg=None, pos=None):
-    if msg is not None:
-      self.x = msg.position.x
-      self.y = msg.position.y
-      self.z = msg.position.z
-    elif pos is not None:
-      self.x = pos[0]
-      self.y = pos[1]
-      self.z = pos[2]
-    else:
-      raise RuntimeError('Must provide either a message or a tuple!')
 

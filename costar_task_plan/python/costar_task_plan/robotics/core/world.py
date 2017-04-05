@@ -38,21 +38,38 @@ class CostarWorld(AbstractWorld):
       namespace = '/costar',
       fake=True,
       robot_config=None,
-      cmd_parser=None,
+
       *args, **kwargs):
     super(CostarWorld,self).__init__(reward, *args, **kwargs)
-    self.objects = {}
-    self.object_classes = {}
+
+    # This is the set of trajectory data we will use for learning later on.
     self.trajectories = {}
+    
+    # This is the set of object information we will use for learning later on
+    # It tells us which objects/features each individual skill should depend on
+    # and is used when extracting a set of features.
     self.objs = {}
+
+    # This is extra data -- such as world state observations -- that is
+    # associated with our training trajectories.
     self.trajectory_data = {}
+
+    # This is where we actually store all the information about our learned
+    # skills.
+    self.models = {}
+
+    # 
     self.traj_pubs = {}
     self.traj_data_pubs = {}
+
     self.fake = fake
     self.predicates = []
-    self.models = {}
-    self.cmd_parser = cmd_parser
     self.namespace = namespace
+
+    # This is the current state of all non-robot objects in the world --
+    # which is to say, for now, it's just a dictionary of frames by TF frame
+    # identifier.
+    self.observation = {}
 
     if robot_config is None:
       robot_config = [DEFAULT_ROBOT_CONFIG]
@@ -80,28 +97,8 @@ class CostarWorld(AbstractWorld):
         policy=NullPolicy()))
 
     self.lfd = LfD(self)
-
-  # Helper function to add an object to the list of tracked objects.
-  def addObject(self, name, obj_class, obj):
-
-    # Make sure this was a unique object
-    if obj in self.objects:
-      raise RuntimeError('Duplicate object inserted!')
-
-    # Add the object data
-    self.objects[name] = obj
-
-    # Update object class membership
-    if obj_class not in self.object_classes:
-      self.object_classes[obj_class] = [name]
-    else:
-      self.object_classes[obj_class].append(name)
-
-  # Empty the list of objects.
-  def clearObjects(self):
-    self.objects = {}
-    self.object_classes = {}
   
+  # [LEARNING HELPER FUNCTION ONLY]
   # Add a bunch of trajectory for use in learning.
   def addTrajectories(self, name, trajectories, data, objs):
     self.trajectories[name] = trajectories
@@ -118,11 +115,6 @@ class CostarWorld(AbstractWorld):
           PoseArray,
           queue_size=1000)
 
-  # Parse a command
-  def parse(self, cmd):
-    if self.cmd_parser is None:
-      raise RuntimeError('No command parser provided.')
-
   # Create the set of dynamics used for this particular option/option distribution.
   def getT(self,robot_config,*args,**kwargs):
     if self.fake:
@@ -134,8 +126,7 @@ class CostarWorld(AbstractWorld):
   # It has a few responsibilities:
   # 1) publish all training trajectories for visualization
   # 2) publish the current command/state associated with each actor too the sim.
-  def hook(self):
-
+  def visualize(self):
     # Publish trajectory demonstrations for easy comparison to the existing
     # stuff.
     for name, trajs in self.trajectories.items():
@@ -167,6 +158,19 @@ class CostarWorld(AbstractWorld):
           name=actor.joints,
           position=actor.state.q,
           velocity=actor.state.dq)
+
+  # Look up what the world should look like, based on the provided arguments.
+  # "objs" should be a list of all possible objects that we might want to
+  # aggregate. They'll be saved in the "obs" dictionary. It's the role of the
+  # various options/policies to choose and use them intelligently.
+  def updateObservation(self, objs):
+    self.observation = {}
+    try:
+      for obj in objs:
+        pass
+    except:
+      
+
 
   # Overload this to set up data visualization; it should return a pose array.
   def _dataToPose(self,data):
