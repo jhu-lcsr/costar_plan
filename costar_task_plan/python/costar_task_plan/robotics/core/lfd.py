@@ -9,6 +9,7 @@ from urdf_parser_py.urdf import URDF
 # of a skill represented as a goal-directed set of motion primitives.
 from costar_task_plan.robotics.representation import RobotFeatures
 from costar_task_plan.robotics.representation import CartesianSkillInstance
+from costar_task_plan.robotics.representation import GMM
 
 # Compute features for trajectories, objects.
 # This all must take a world.
@@ -38,6 +39,7 @@ class LfD(object):
 
     self.skill_instances = {}
     self.skill_features = {}
+    self.skill_models = {}
 
 
   # Train things
@@ -77,9 +79,11 @@ class LfD(object):
           self.skill_features[name] = f
         else:
           np.concatenate((self.skill_features[name], f), axis=0)
-        print name, self.skill_features[name].shape
 
-    return self._makeOptions()
+        print name, self.skill_features[name].shape
+        self.skill_models[name] = GMM(self.config['gmm_k'], self.skill_features[name])
+
+    return self.skill_models
 
   # Save models after they have been fit.
   def save(self, dir='./data/'):
@@ -90,12 +94,3 @@ class LfD(object):
   def load(self, dir='./data/'):
     pass
 
-  # Return a dictionary of DMP options based on the observed skill instances and data 
-  def _makeOptions(self):
-    for name, instances in self.skill_instances:
-
-      # make gmm
-
-      # provide gmm and dmp to the option
-
-      pass

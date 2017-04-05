@@ -11,6 +11,11 @@ from costar_task_plan.robotics.tom import TomWorld
 from costar_task_plan.robotics.tom import TomGripperOption, TomGripperCloseOption, TomGripperOpenOption
 from costar_task_plan.mcts import *
 
+# TOM ORANGES TASK
+# This one defines the task we want to finish putting together for the
+# different robots. It creates the world observation information -- which
+# objects we can see -- and also the task structure.
+
 # Set up the "pick" action that we want to performm
 def __pick_args(dmp_maker):
   return {
@@ -59,25 +64,30 @@ def __trash_args(dmp_maker):
     "remap": {"box": "goal_frame"},
       }
 
+
+def __get_dmp_maker(skill_name,lfd):
+
+  dmp_maker = lambda goal_frame: DmpOption(
+      goal_frame=goal_frame,
+      instances=lfd.skill_instances[skill_name],
+      model=lfd.skill_models[skill_name],
+      kinematics=lfd.kdl_kin,
+      policy_type=CartesianDmpPolicy)
+
 # Instantiate the whole task model based on our data. We must make sure to
 # provide the lfd object containing models, etc., or we will not properly
 # create all of the different DMP models.
 def MakeTomTaskModel(lfd):
 
-  dmp_maker = lambda goal_frame: DmpOption(
-      goal_frame=goal_frame,
-      kinematics=lfd.kdl_kin,
-      policy_type=CartesianDmpPolicy)
-
   task = Task()
-  task.add("pick", None, __pick_args(dmp_maker))
+  task.add("pick", None, __pick_args(lfd))
   task.add("grasp1", ["pick"], __grasp_args())
-  task.add("move", ["grasp1"], __move_args(dmp_maker))
+  task.add("move", ["grasp1"], __move_args(lfd))
   task.add("release", ["move"], __release_args())
-  task.add("test", ["release"], __test_args(dmp_maker))
+  task.add("test", ["release"], __test_args(lfd))
   task.add("grasp2", ["test"], __grasp_args())
-  task.add("box", ["grasp2"], __box_args(dmp_maker))
-  task.add("trash", ["grasp2"], __trash_args(dmp_maker))
+  task.add("box", ["grasp2"], __box_args(lfd))
+  task.add("trash", ["grasp2"], __trash_args(lfd))
   return task
 
 # Set up arguments for tom sim task
