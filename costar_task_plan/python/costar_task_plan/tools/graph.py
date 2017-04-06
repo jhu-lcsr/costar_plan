@@ -1,4 +1,5 @@
 
+import matplotlib.pyplot as plt
 import networkx as nx
 
 def makeGraph(root):
@@ -51,3 +52,57 @@ def add_to_graph(g, parent_name, node, good, bad, mid, nid):
 
   return nid
 
+def showGraph(root,filename='test.dot'):
+  g, good, bad, mid = makeGraph(root)
+  plt.figure(figsize=(10, 10), dpi=80)
+  nx.write_dot(g, filename)
+
+  # same layout using matplotlib with no labels
+  pos=nx.graphviz_layout(g,prog='dot')
+
+  nx.draw_networkx_edges(g, pos, width=1.0, alpha=1., arrows=False)
+  ALPHA=1.0
+  colors = [(0.2,0.8,0.2)]*len(good)
+  nx.draw_networkx_nodes(g, pos,
+      nodelist=good,
+      node_color=colors,
+      alpha=ALPHA,
+
+      node_shape='s',
+      node_size=1600)
+  colors = [(0.9,0.4,0.4)]*len(bad)
+  nx.draw_networkx_nodes(g, pos,
+      nodelist=bad,
+      node_color=colors,
+      alpha=ALPHA,
+      node_shape='8',
+      node_size=1600)
+  colors = [(0.8,0.8,0.8)]*len(mid)
+  nx.draw_networkx_nodes(g, pos,
+      nodelist=mid,
+      node_color=colors,
+      node_shape='s',
+      alpha=ALPHA,
+      node_size=1600)
+  labels = {}
+  lookup = {
+    "NODE": "0",
+    "Default": "D",
+    "Left": "L",
+    "Right": "R",
+    "Pass": "P",
+    "Stop": "S",
+    "Wait": "W",
+    "Follow": "F",
+    "Finish": "C",
+  }
+  for name in good:
+    labels[name] = lookup[name.split(' ')[0]]
+  for name in bad:
+    labels[name] = lookup[name.split(' ')[0]]
+  for name in mid:
+    labels[name] = lookup[name.split(' ')[0]]
+  nx.draw_networkx_labels(g,pos,labels,font_size=20)
+
+  plt.axis('off')
+  plt.show()

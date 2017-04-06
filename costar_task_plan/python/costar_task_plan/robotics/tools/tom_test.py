@@ -6,9 +6,10 @@
 
 from tom_oranges import MakeTomTaskModel, OrangesTaskArgs
 
+from costar_task_plan.abstract import AbstractReward
 from costar_task_plan.robotics.core import *
 from costar_task_plan.robotics.tom import TomWorld
-from costar_task_plan.abstract import AbstractReward
+from costar_task_plan.tools import showTask
 
 import rospy
 
@@ -47,8 +48,9 @@ def load_tom_data_and_run():
   filled_args = task.compile(args)
 
   print "========================================"
-  print filled_args
   print task.nodeSummary()
+
+  showTask(task)
 
   rate = rospy.Rate(1)
   try:

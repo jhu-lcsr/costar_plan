@@ -10,6 +10,7 @@ from costar_task_plan.robotics.core import JointDmpPolicy, CartesianDmpPolicy
 from costar_task_plan.robotics.tom import TomWorld
 from costar_task_plan.robotics.tom import TomGripperOption, TomGripperCloseOption, TomGripperOpenOption
 from costar_task_plan.mcts import *
+from costar_task_plan.tools import showGraph
 
 # TOM ORANGES TASK
 # This one defines the task we want to finish putting together for the
@@ -121,3 +122,4 @@ if __name__ == '__main__':
   print task.nodeSummary()
 
   print task.children['root()']
+
