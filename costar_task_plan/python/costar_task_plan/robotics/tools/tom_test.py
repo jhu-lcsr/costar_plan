@@ -4,7 +4,7 @@
 # (c) 2017 The Johns Hopkins University
 # See License for more details
 
-from tom_oranges import MakeTomTaskModel
+from tom_oranges import MakeTomTaskModel, OrangesTaskArgs
 
 from costar_task_plan.robotics.core import *
 from costar_task_plan.robotics.tom import TomWorld
@@ -45,6 +45,10 @@ def load_tom_data_and_run():
   task = MakeTomTaskModel(world.lfd)
   args = OrangesTaskArgs()
   filled_args = task.compile(args)
+
+  print "========================================"
+  print filled_args
+  print task.nodeSummary()
 
   rate = rospy.Rate(1)
   try:

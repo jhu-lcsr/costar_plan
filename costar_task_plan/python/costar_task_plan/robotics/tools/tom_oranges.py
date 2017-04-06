@@ -16,8 +16,9 @@ from costar_task_plan.mcts import *
 # different robots. It creates the world observation information -- which
 # objects we can see -- and also the task structure.
 
-# Set up the "pick" action that we want to performm
-def __pick_args(dmp_maker):
+# Set up the "pickup" action that we want to performm
+def __pick_args(lfd):
+  dmp_maker = __get_dmp_maker("pickup", lfd)
   return {
     "constructor": dmp_maker,
     "args": ["orange"],
@@ -36,28 +37,32 @@ def __release_args():
     "args": [],
       }
 
-def __move_args(dmp_maker):
+def __move_args(lfd):
+  dmp_maker = __get_dmp_maker("pickup", lfd)
   return {
     "constructor": dmp_maker,
     "args": ["squeeze_area"],
     "remap": {"squeeze_area": "goal_frame"},
       }
 
-def __test_args(dmp_maker):
+def __test_args(lfd):
+  dmp_maker = __get_dmp_maker("pickup", lfd)
   return {
     "constructor": dmp_maker,
     "args": ["squeeze_area"],
     "remap": {"squeeze_area": "goal_frame"},
       }
 
-def __box_args(dmp_maker):
+def __box_args(lfd):
+  dmp_maker = __get_dmp_maker("pickup", lfd)
   return {
     "constructor": dmp_maker,
     "args": ["box"],
     "remap": {"box": "goal_frame"},
       }
 
-def __trash_args(dmp_maker):
+def __trash_args(lfd):
+  dmp_maker = __get_dmp_maker("pickup", lfd)
   return {
     "constructor": dmp_maker,
     "args": ["box"],
@@ -73,6 +78,7 @@ def __get_dmp_maker(skill_name,lfd):
       model=lfd.skill_models[skill_name],
       kinematics=lfd.kdl_kin,
       policy_type=CartesianDmpPolicy)
+  return dmp_maker
 
 # Instantiate the whole task model based on our data. We must make sure to
 # provide the lfd object containing models, etc., or we will not properly
@@ -80,8 +86,8 @@ def __get_dmp_maker(skill_name,lfd):
 def MakeTomTaskModel(lfd):
 
   task = Task()
-  task.add("pick", None, __pick_args(lfd))
-  task.add("grasp1", ["pick"], __grasp_args())
+  task.add("pickup", None, __pick_args(lfd))
+  task.add("grasp1", ["pickup"], __grasp_args())
   task.add("move", ["grasp1"], __move_args(lfd))
   task.add("release", ["move"], __release_args())
   task.add("test", ["release"], __test_args(lfd))
@@ -114,3 +120,4 @@ if __name__ == '__main__':
   # the MCTS data types that we are performing our search over.
   print task.nodeSummary()
 
+  print task.children['root()']

@@ -39,6 +39,9 @@
 
   <!-- We do not have a robot connected, so publish fake joint states -->
   <node name="tom_sim" type="tom_sim.py" pkg="costar_task_plan"/>
+
+  <!-- start up the DMP server -->
+  <include file="$(find dmp)/launch/dmp.launch"/>
   
   <!-- Given the published joint states, publish tf for the robot links -->
   <node name="robot_state_publishervis"

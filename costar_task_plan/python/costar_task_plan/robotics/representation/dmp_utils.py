@@ -34,16 +34,13 @@ def RequestDMP(u,dt,k_gain,d_gain,num_basis_functions):
         ex.points.append(pt)
         ex.times.append(dt * i) # make sure times are reasonable
 
-    print "Waiting for DMP service..."
     rospy.wait_for_service('learn_dmp_from_demo')
 
-    print "Sending DMP learning request..."
     try:
         lfd = rospy.ServiceProxy('learn_dmp_from_demo', LearnDMPFromDemo)
         resp = lfd(ex, k_gains, d_gains, num_basis_functions)
     except rospy.ServiceException, e:
         print "Service call failed: %s"%e
-    print "LfD done"    
             
     return resp;
 

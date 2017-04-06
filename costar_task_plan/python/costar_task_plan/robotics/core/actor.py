@@ -5,13 +5,20 @@ from costar_task_plan.abstract import *
 
 # State of a particular actor. It's the joint state, nice and simple.
 class CostarState(AbstractState):
-  def __init__(self, world, q=np.array([]), dq=np.array([])):
+  def __init__(self, world, q=np.array([]), dq=np.array([]), reference=None, seq=0, gripper_closed=False):
     self.predicates = []
     if isinstance(q, list):
       q = np.array(q)
     self.q = q
     self.dq = dq
-    self.seq = 0
+
+    # These are used to tell us which high-level action the robot was
+    # performing, and how far along it was.
+    self.reference = reference
+    self.seq = seq
+
+    # Is the gripper open or closed?
+    self.gripper_closed = gripper_closed
 
     # This should (hopefully) be a reference the world. it hardly matters
     # for something like this, though -- our states hold very little
@@ -24,12 +31,14 @@ class CostarState(AbstractState):
 # Actions for a particular actor. This is very simple, and just represents a
 # joint motion, normalized over some period of time.
 class CostarAction(AbstractAction):
-  def __init__(self, dq=np.array([]), reset_seq=False):
+  def __init__(self, dq=np.array([]), reset_seq=False, reference=None, close_gripper=None):
     if isinstance(dq, list):
       dq = np.array(dq)
 
     self.dq = dq
     self.reset_seq = reset_seq
+    self.reference = reference
+    self.close_gripper = close_gripper
 
   def toArray(self):
     return self.dq

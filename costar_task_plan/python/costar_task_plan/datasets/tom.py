@@ -6,7 +6,7 @@ from dataset import Dataset
 import os, logging
 
 from tf_conversions import posemath as pm
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose, Quaternion
 
 LOGGER = logging.getLogger(__name__)
 
@@ -241,7 +241,7 @@ class TomDataset(Dataset):
             #cropped_traj.append((t, pose, data, gopen, gstate))
             cropped_traj.append((t, pose, gopen, gstate))
             if orange is not None:
-              orange_pose = pm.fromMsg(Pose(position=(orange.position)))
+              orange_pose = pm.fromMsg(Pose(position=(orange.position),orientation=Quaternion(0,0,0,1)))
             else:
               orange_pose = None
             world = {

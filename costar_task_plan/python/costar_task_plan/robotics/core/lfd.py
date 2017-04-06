@@ -45,6 +45,7 @@ class LfD(object):
   # Train things
   def train(self):
 
+    print "Training:"
     for name, trajs in self.world.trajectories.items():
 
       data = self.world.trajectory_data[name]
@@ -80,8 +81,8 @@ class LfD(object):
         else:
           np.concatenate((self.skill_features[name], f), axis=0)
 
-        print name, self.skill_features[name].shape
         self.skill_models[name] = GMM(self.config['gmm_k'], self.skill_features[name])
+        print "> Skill ", name, "extracted with dataset of shape", self.skill_features[name].shape
 
     return self.skill_models
 
