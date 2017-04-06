@@ -65,11 +65,22 @@ class Task(object):
     # Make list of args
     arg_sets = get_arg_sets(arg_dict)
 
-    for name, template in self.option_templates.items():
-      for arg_set in arg_sets:
+    for arg_set in arg_sets:
+
+      inodes = {}
+
+      # create the nodes
+      for name, template in self.option_templates.items():
         iname, option = template.instantiate(name, arg_set)
+        inodes[name] = iname
         self.nodes[iname] = option
-        self.children[iname] = template.children
+
+      # connect nodes and their children
+      for name, template in self.option_templates.items():
+        iname = inodes[name]
+        children = [inodes[child] for child in template.children]
+        print children
+        self.children[iname] = children
 
     self.compiled = True
     return arg_sets
