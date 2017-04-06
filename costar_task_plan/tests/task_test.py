@@ -58,18 +58,18 @@ def make_template_test2():
   task.add("pick2", ["drop"], None)
   return task
 
-test1_res = """drop() --> ["pick('obj=orange')"]
+test1_res = """drop() --> ["pick('obj=apple')", "pick('obj=orange')"]
 move('obj=orange', 'goal=basket') --> ['drop()']
 pick('obj=orange') --> ["move('obj=orange', 'goal=basket')", 'drop()']
-ROOT() --> ["pick('obj=orange')"]
+ROOT() --> ["pick('obj=apple')", "pick('obj=orange')"]
 pick('obj=apple') --> ["move('obj=apple', 'goal=basket')", 'drop()']
 move('obj=apple', 'goal=basket') --> ['drop()']
 """
 
-test2_res = """drop() --> ["pick2('obj=this_one')"]
+test2_res = """drop() --> ["pick2('obj=that_one')", "pick2('obj=this_one')"]
 pick2('obj=that_one') --> ['drop()']
 pick2('obj=this_one') --> ['drop()']
-ROOT() --> ["pick2('obj=this_one')"]
+ROOT() --> ["pick2('obj=that_one')", "pick2('obj=this_one')"]
 """
 
 class TestTask(unittest.TestCase):
