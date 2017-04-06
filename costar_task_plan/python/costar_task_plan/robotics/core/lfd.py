@@ -75,14 +75,19 @@ class LfD(object):
             objs=objs,
             visualize=True)
 
+        print "adding ", name, f.shape
         self.skill_instances[name].append(instance)
         if name not in self.skill_features:
           self.skill_features[name] = f
         else:
           np.concatenate((self.skill_features[name], f), axis=0)
 
+      # only fit models if we have an example of that skill
+      if name in self.skill_features:
         self.skill_models[name] = GMM(self.config['gmm_k'], self.skill_features[name])
-        print "> Skill ", name, "extracted with dataset of shape", self.skill_features[name].shape
+        print "> Skill", name, "extracted with dataset of shape", self.skill_features[name].shape
+      else:
+        print " ... skipping skill", name, "(no data)"
 
     return self.skill_models
 

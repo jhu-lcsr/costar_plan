@@ -2,18 +2,14 @@ from abstract import *
 from util import *
 import numpy as np
 
-import task_tree_search.datasets.tools as dt
+import costar_task_plan.datasets.tools as dt
 
-'''
-Default trainer class.
-
-Does a bunch of rollouts, keeps the good ones, and fits a supervised model to
-them that will predict actions.
-'''
-
-
+# Default trainer class.
+# Does a bunch of rollouts, keeps the good ones, and fits a supervised model to
+# them that will predict actions.
 class SupervisedTrainer(AbstractTrainer):
 
+    # Create a supervised trainer.
     def __init__(self, policy, actor, R_threshold, *args, **kwargs):
         super(SupervisedTrainer, self).__init__(steps=1, *args, **kwargs)
         assert(self.steps is 1)
@@ -22,6 +18,7 @@ class SupervisedTrainer(AbstractTrainer):
         self.R_threshold = R_threshold
         self.train_test_split = 0.8
 
+    # We only ever perform one step with this trainer. It calls fit.
     def _step(self, data, *args, **kwargs):
         X, Y = [], []
         for samples in data:
@@ -72,14 +69,8 @@ class SupervisedTrainer(AbstractTrainer):
     def getAllModels(self):
         return [self.actor]
 
-
-'''
-Modified version for recurrent networks.
-
-We need to modify the step() function primarily
-'''
-
-
+# Modified version for recurrent networks.
+# We need to modify the step() function primarily
 class SupervisedRecurrentTrainer(SupervisedTrainer):
 
     def __init__(self, policy, actor, R_threshold, window_length,
