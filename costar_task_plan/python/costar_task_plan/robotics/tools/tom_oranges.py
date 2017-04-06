@@ -66,8 +66,8 @@ def __trash_args(lfd):
   dmp_maker = __get_dmp_maker("pickup", lfd)
   return {
     "constructor": dmp_maker,
-    "args": ["box"],
-    "remap": {"box": "goal_frame"},
+    "args": ["trash"],
+    "remap": {"trash": "goal_frame"},
       }
 
 
