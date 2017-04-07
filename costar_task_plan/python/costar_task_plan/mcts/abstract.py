@@ -210,17 +210,6 @@ class AbstractMctsPolicies(object):
   Explore the tree down from the root.
   '''
   def explore(self, node):
-    # check if the root should be initialized
-    if node.features() is None:
-      node.world.updateFeatures()
-
-    if node.n_visits == 0:
-      if self._initialize:
-        self._initialize(node)
-      elif not self._can_widen:
-        raise RuntimeError('How do you expect to build a tree without a' + \
-            ' way of adding any nodes to the root?')
-
     self.select(node, self.max_depth, True)
 
 

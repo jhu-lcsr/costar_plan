@@ -1,4 +1,13 @@
 
+from actor import CostarAction
+
+import numpy as np
+import rospy
+import tf_conversions.posemath as pm
+
+# dmp message types
+from dmp.srv import *
+
 from costar_task_plan.abstract import AbstractPolicy
 from costar_task_plan.robotics.representation import PlanDMP, RequestActiveDMP
 
@@ -7,9 +16,12 @@ from costar_task_plan.robotics.representation import PlanDMP, RequestActiveDMP
 # tick rate before recomputing the DMP.
 class DmpPolicy(AbstractPolicy):
 
-  def __init__(self, goal_frame, dmp, kinematics):
+  def __init__(self, goal, dmp, kinematics):
     self.dmp = dmp
     self.kinematics = kinematics
+    self.goal = goal
+    self.activate = rospy.ServiceProxy('set_active_dmp', SetActiveDMP)
+    self.plan = rospy.ServiceProxy('get_dmp_plan', GetDMPPlan)
 
   def evaluate(self, world, state, actor=None):
     raise NotImplementedError('DMP policy not set up!')
@@ -39,20 +51,19 @@ class CartesianDmpPolicy(DmpPolicy):
   # just compute a joint difference.
   def __init__(self, *args, **kwargs):
     super(CartesianDmpPolicy, self).__init__(*args, **kwargs)
+    self.traj = None
 
   def evaluate(self, world, state, actor=None):
-    if state.seq > 0 and self.traj is None:
-        raise RuntimeError('dmp received bad state')
-
+    # =========================================================================
     # make the trajectory based on the current state
-    T = self.kinematics.forward(state.q)
-
-    if state.seq == 0:
-        RequestActiveDmp(self.dmp.dmp_list)
-        print self.goal_frame
-        print world.obs[self.goal_frame]
-        print self.dmp.goal_pose
-        goal = world.obs[self.goal_frame] * self.dmp.goal_pose
+    reset_seq = state.reference is not self
+    if state.seq == 0 or reset_seq:
+        T = pm.fromMatrix(self.kinematics.forward(state.q))
+        self.activate(self.dmp.dmp_list)
+        #print self.goal
+        #print world.observation[self.goal]
+        #print self.dmp.goal_pose
+        goal = world.observation[self.goal] * self.dmp.goal_pose
         ee_rpy = T.M.GetRPY()
         rpy = goal.M.GetRPY()
         adj_rpy = [0,0,0]
@@ -65,10 +76,36 @@ class CartesianDmpPolicy(DmpPolicy):
                 adj_rpy[j] = var
         x = [T.p[0], T.p[1], T.p[2], ee_rpy[0], ee_rpy[1], ee_rpy[2]]
         g = [goal.p[0], goal.p[1], goal.p[2], adj_rpy[0], adj_rpy[1], adj_rpy[2]]
-        print "goal = ", g
         x0 = [0.]*6
-        g_threshold = [1e-2]*6
-        res = PlanDMP(x,x0,0.,g,g_threshold,1.,self.dmp.tau,world.dt,integrate_iter=10)
-        print "========"
-        print res
+        g_threshold = [1e-1]*6
+        integrate_iter=10
+        res = self.plan(x,x0,0.,g,g_threshold,self.dmp.tau,1.0,world.dt,integrate_iter)
+        #print "========"
+        #print res
+        #print "from =", x
+        #print "goal = ", g
+        q = state.q
+        self.traj = res.plan
+    
+    # =========================================================================
+    # Compute the joint velocity to take us to the next position
+    if state.seq < len(self.traj.points):
+      pt = self.traj.points[state.seq]
+
+      T = pm.Frame(pm.Rotation.RPY(pt.positions[3],pt.positions[4],pt.positions[5]))
+      T.p[0] = pt.positions[0]
+      T.p[1] = pt.positions[1]
+      T.p[2] = pt.positions[2]
+      q = self.kinematics.inverse(pm.toMatrix(T), state.q)
+      #print "======="
+      #print q
+      if q is not None:
+        #print (q - state.q) / world.dt
+        dq = (q - state.q) / world.dt
+        return CostarAction(dq=dq, reset_seq=reset_seq, reference=self)
+      else:
+        return None
+    else:
+        return world.zeroAction()
+
         

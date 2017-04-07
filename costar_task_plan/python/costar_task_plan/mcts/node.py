@@ -12,6 +12,7 @@ class Node(AbstractState):
       if world is None and action is None:
         raise RuntimeError('must provide either a world or an action!')
 
+      self.parent = None
       self.n_visits = 0
       self.n_rollouts = 0
       self.world = world
@@ -83,11 +84,17 @@ class Node(AbstractState):
           raise RuntimeError('Cannot instantiate a node with an empty action!')
 
         action = child.action.getAction(self)
+        if action is None:
+            failed = True
+            action = self.world.zeroAction()
+        else:
+            failed = False
+
         new_world = self.world.fork(action)
         child.world = new_world
         child.state = child.world.actors[0].state
         child.initialized = True
-        child.terminal = child.world.done
+        child.terminal = child.world.done and not failed
         child.rewards = [new_world.initial_reward]
         child.reward += new_world.initial_reward
         child.parent = self
@@ -108,13 +115,20 @@ class Node(AbstractState):
       elif self.terminal:
         raise RuntimeError('Tried to advance from a terminal state!')
       else:
+
+        if action is None:
+          action = self.world.zeroAction()
+          failed = True
+        else:
+          failed = False
+
         # advance the current state of the world
         (res, S0, A0, S1, F1, r) = self.world.tick(action)
 
         self.traj.append((S0, A0))
         self.rewards.append(r)
         self.reward += r
-        self.terminal = self.world.done
+        self.terminal = self.world.done and not failed
         self.state = S0
 
         return res, S0, A0, S1, F1, r

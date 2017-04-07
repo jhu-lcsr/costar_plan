@@ -34,7 +34,15 @@ class SimulatedDynamics(AbstractDynamics):
     self.dof = self.dof
 
   def apply(self, state, action, dt):
+    if action.reset_seq or action.reference is not state.reference \
+            or action.reference is None:
+      seq = 0
+    else:
+      seq = state.seq + 1
+
+
     q = state.q + (action.dq * dt)
-    return CostarState(state.world, q=q, dq=action.dq)
+    print "q =", q, "dq =", action.dq, "seq =", seq
+    return CostarState(state.world, q=q, dq=action.dq, seq=seq, reference=action.reference)
 
 

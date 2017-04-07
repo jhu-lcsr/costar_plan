@@ -23,7 +23,7 @@ def __pick_args(lfd):
   return {
     "constructor": dmp_maker,
     "args": ["orange"],
-    "remap": {"orange": "goal_frame"},
+    "remap": {"orange": "goal"},
       }
 
 def __grasp_args():
@@ -43,7 +43,7 @@ def __move_args(lfd):
   return {
     "constructor": dmp_maker,
     "args": ["squeeze_area"],
-    "remap": {"squeeze_area": "goal_frame"},
+    "remap": {"squeeze_area": "goal"},
       }
 
 def __test_args(lfd):
@@ -51,7 +51,7 @@ def __test_args(lfd):
   return {
     "constructor": dmp_maker,
     "args": ["squeeze_area"],
-    "remap": {"squeeze_area": "goal_frame"},
+    "remap": {"squeeze_area": "goal"},
       }
 
 def __box_args(lfd):
@@ -59,7 +59,7 @@ def __box_args(lfd):
   return {
     "constructor": dmp_maker,
     "args": ["box"],
-    "remap": {"box": "goal_frame"},
+    "remap": {"box": "goal"},
       }
 
 def __trash_args(lfd):
@@ -67,14 +67,14 @@ def __trash_args(lfd):
   return {
     "constructor": dmp_maker,
     "args": ["trash"],
-    "remap": {"trash": "goal_frame"},
+    "remap": {"trash": "goal"},
       }
 
 
 def __get_dmp_maker(skill_name,lfd):
 
-  dmp_maker = lambda goal_frame: DmpOption(
-      goal_frame=goal_frame,
+  dmp_maker = lambda goal: DmpOption(
+      goal=goal,
       instances=lfd.skill_instances[skill_name],
       model=lfd.skill_models[skill_name],
       kinematics=lfd.kdl_kin,
@@ -89,13 +89,13 @@ def MakeTomTaskModel(lfd):
   task = Task()
   task.add("pickup", None, __pick_args(lfd))
   task.add("grasp1", ["pickup"], __grasp_args())
-  task.add("move", ["grasp1"], __move_args(lfd))
-  task.add("release1", ["move"], __release_args())
-  task.add("test", ["release1"], __test_args(lfd))
-  task.add("grasp2", ["test"], __grasp_args())
-  task.add("box", ["grasp2"], __box_args(lfd))
-  task.add("trash", ["grasp2"], __trash_args(lfd))
-  task.add("release2", ["box", "trash"], __release_args())
+  #task.add("move", ["grasp1"], __move_args(lfd))
+  #task.add("release1", ["move"], __release_args())
+  #task.add("test", ["release1"], __test_args(lfd))
+  #task.add("grasp2", ["test"], __grasp_args())
+  #task.add("box", ["grasp2"], __box_args(lfd))
+  #task.add("trash", ["grasp2"], __trash_args(lfd))
+  #task.add("release2", ["box", "trash"], __release_args())
   return task
 
 # Set up arguments for tom sim task

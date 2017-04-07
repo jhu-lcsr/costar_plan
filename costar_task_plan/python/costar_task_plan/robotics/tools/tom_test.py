@@ -71,10 +71,12 @@ def load_tom_data_and_run():
       objects = ['box1', 'orange1', 'orange2', 'orange3', 'trash1', 'squeeze_area1']
       world.updateObservation(objects)
 
-      root = Node(world=world,root=True)
-      elapsed, path = search(root)
-      print "-- ", elapsed, len(path)
+      # Alternately, we could just recompile the task here.
+      if len(world.observation) > 0:
 
+          root = Node(world=world,root=True)
+          elapsed, path = search(root,iter=10)
+          print "-- ", elapsed, len(path)
 
       rate.sleep()
   except rospy.ROSInterruptException, e:

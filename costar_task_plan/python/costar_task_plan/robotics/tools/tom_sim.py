@@ -25,26 +25,47 @@ class TomSim(object):
     self.tf_pub = tf.TransformBroadcaster()
 
     # Create the list of joint names for the simple TOM simulator
-    self.joint_names = ['l_front_wheel_joint', 'l_rear_wheel_joint',
-        'r_front_wheel_joint', 'r_rear_wheel_joint', 'r_shoulder_pan_joint',
-        'r_shoulder_lift_joint', 'r_elbow_joint', 'r_wrist_1_joint',
-        'r_wrist_2_joint', 'r_wrist_3_joint', 'l_shoulder_pan_joint',
-        'l_shoulder_lift_joint', 'l_elbow_joint', 'l_wrist_1_joint',
-        'l_wrist_2_joint', 'l_wrist_3_joint', 'r_gripper_left_finger_joint',
-        'r_gripper_left_finger_base_joint', 'r_gripper_right_finger_joint',
-        'r_gripper_right_finger_base_joint', 'r_gripper_mid_finger_joint',
-        'r_gripper_mid_finger_base_joint', 'l_gripper_left_finger_joint',
-        'l_gripper_left_finger_base_joint', 'l_gripper_right_finger_joint',
-        'l_gripper_right_finger_base_joint', 'l_gripper_mid_finger_joint',
-        'l_gripper_mid_finger_base_joint']
+    #self.joint_names = ['l_front_wheel_joint', 'l_rear_wheel_joint',
+    #    'r_front_wheel_joint', 'r_rear_wheel_joint', 'r_shoulder_pan_joint',
+    #    'r_shoulder_lift_joint', 'r_elbow_joint', 'r_wrist_1_joint',
+    #    'r_wrist_2_joint', 'r_wrist_3_joint', 'l_shoulder_pan_joint',
+    #    'l_shoulder_lift_joint', 'l_elbow_joint', 'l_wrist_1_joint',
+    #    'l_wrist_2_joint', 'l_wrist_3_joint', 'r_gripper_left_finger_joint',
+    #    'r_gripper_left_finger_base_joint', 'r_gripper_right_finger_joint',
+    #    'r_gripper_right_finger_base_joint', 'r_gripper_mid_finger_joint',
+    #    'r_gripper_mid_finger_base_joint', 'l_gripper_left_finger_joint',
+    #    'l_gripper_left_finger_base_joint', 'l_gripper_right_finger_joint',
+    #    'l_gripper_right_finger_base_joint', 'l_gripper_mid_finger_joint',
+    #    'l_gripper_mid_finger_base_joint']
 
-    self.default_pose = [0.0, 0.0, 0.0, 0.20294688542190054,
-        -1.0719114121799995, -1.1008140645600006, 1.7366724169200003,
-        -0.8972388608399999, 1.25538042294, -0.028902652380000227,
-        1.2151680370199998, -1.6210618074000003, -2.05585823016,
-        -2.5773626100600002, -1.1008140645600006, -0.8256105484199994,
-        0.0026895523773320003, -0.0006283185307176531, 0.0, 0.0, 0.0, 0.0, 0.0,
-        0.0, 0.0, 0.0, 0.0, 0.0]
+    #self.default_pose = [0.0, 0.0, 0.0, 0.20294688542190054,
+    #    -1.0719114121799995, -1.1008140645600006, 1.7366724169200003,
+    #    -0.8972388608399999, 1.25538042294, -0.028902652380000227,
+    #    1.2151680370199998, -1.6210618074000003, -2.05585823016,
+    #    -2.5773626100600002, -1.1008140645600006, -0.8256105484199994,
+    #    0.0026895523773320003, -0.0006283185307176531, 0.0, 0.0, 0.0, 0.0, 0.0,
+    #    0.0, 0.0, 0.0, 0.0, 0.0]
+
+    self.joint_names = ['r_shoulder_lift_joint', 'r_front_wheel_joint',
+            'r_gripper_right_finger_joint', 'l_shoulder_pan_joint',
+            'l_gripper_left_finger_base_joint', 'l_wrist_2_joint',
+            'r_gripper_right_finger_base_joint',
+            'l_gripper_mid_finger_base_joint', 'l_gripper_mid_finger_joint',
+            'r_wrist_2_joint', 'r_gripper_left_finger_joint',
+            'r_gripper_left_finger_base_joint', 'l_wrist_3_joint',
+            'l_gripper_right_finger_joint', 'l_elbow_joint',
+            'r_gripper_mid_finger_base_joint', 'r_shoulder_pan_joint',
+            'r_wrist_3_joint', 'l_shoulder_lift_joint', 'r_rear_wheel_joint',
+            'r_elbow_joint', 'l_gripper_right_finger_base_joint',
+            'l_gripper_left_finger_joint', 'l_rear_wheel_joint',
+            'r_wrist_1_joint', 'l_wrist_1_joint', 'r_gripper_mid_finger_joint',
+            'l_front_wheel_joint']
+    self.default_pose = [-1.3024941653962576, 0.0, 0.0, 1.2151680370199998,
+            0.0, -1.1008140645600006, 0.0, 0.0, 0.0, 2.2992189762402173,
+            0.0026895523773320003, -0.0006283185307176531, -0.8256105484199994,
+            0.0, -2.05585823016, 0.0, -0.7340859109337838, 1.4271237788102449,
+            -1.6210618074000003, 0.20294688542190054, 1.5361204651811313, 0.0,
+            0.0, 0.0, -2.0823833025971066, -2.5773626100600002, 0.0, 0.0]
 
     # These are the preset positions for the various TOM objects. These are 
     # reference frames used for computing features. These are the ones

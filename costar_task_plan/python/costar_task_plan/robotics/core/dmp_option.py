@@ -7,7 +7,7 @@ from costar_task_plan.abstract import AbstractOption, AbstractCondition
 
 class DmpOption(AbstractOption):
 
-  def __init__(self, policy_type, kinematics, goal_frame, model, instances=[], attached_frame=None):
+  def __init__(self, policy_type, kinematics, goal, model, instances=[], attached_frame=None):
     if isinstance(policy_type, str):
       # parse into appropriate constructor
       if policy_type == 'joint':
@@ -22,6 +22,7 @@ class DmpOption(AbstractOption):
     if attached_frame is not None:
       raise NotImplementedError('attached frame is not yet supported')
 
+    self.goal = goal
     self.policy_type = policy_type
     self.kinematics = kinematics
     self.instances = instances
@@ -29,10 +30,9 @@ class DmpOption(AbstractOption):
     self.attached_frame = attached_frame
 
   # Make a policy.
-  def makePolicy(self,node):
-    raise Exception('option.makePolicy not implemented!')
+  def makePolicy(self, *args, **kwargs):
     return self.policy_type(
-            goal_frame=self.goal_frame,
+            goal=self.goal,
             dmp=self.instances[0],
             kinematics=self.kinematics)
 
@@ -40,7 +40,7 @@ class DmpOption(AbstractOption):
   # - execution should continue until such time as this condition is true.
   def getGatingCondition(self, *args, **kwargs):
     return DmpCondition(
-            goal_frame=self.goal_frame,
+            goal=self.goal,
             dmp=self.instances[0],
             kinematics=self.kinematics,)
 
@@ -65,8 +65,8 @@ class DmpOption(AbstractOption):
 # within tolerances and we are nearly stopped, it returns false.
 class DmpCondition(AbstractCondition):
 
-  def __init__(self, goal_frame, dmp, kinematics):
-      self.goal_frame = goal_frame
+  def __init__(self, goal, dmp, kinematics):
+      self.goal = goal
       self.dmp = dmp
       self.kinematics = kinematics
 
@@ -74,4 +74,4 @@ class DmpCondition(AbstractCondition):
     if actor is None:
       actor = world.actors[0]
     
-    return state.seq == 0 or np.all(state.q_dot < 1e-2)
+    return state.seq == 0 or np.all(state.dq > 1e-2)
