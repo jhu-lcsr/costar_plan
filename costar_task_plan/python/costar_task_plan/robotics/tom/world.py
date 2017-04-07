@@ -47,6 +47,7 @@ class TomWorld(CostarWorld):
           self.dataset.test_trajs,
           self.dataset.test_data,
           ['time', 'squeeze_area'])
+      print "===================="
       self.addTrajectories("box",
           self.dataset.box,
           self.dataset.box_data,

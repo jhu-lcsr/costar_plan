@@ -7,9 +7,6 @@ from option import AbstractOption, NullOption
 Model of a task as a state machine. We can specify this in any number of
 different ways: in CoSTAR, we use a Behavior Tree; PDDL or LTL can give us a 
 slightly different task plan.
-
-- add an option with an argument
-- 
 '''
 class Task(object):
 
@@ -46,6 +43,18 @@ class Task(object):
 
     for parent in parents:
       self.template_connections.append((parent, name))
+
+  def getChildren(self, node):
+    if node in self.children:
+      return self.children[node]
+    else:
+      return []
+
+  def getOption(self, node):
+    if node in self.nodes:
+      return self.nodes[node]
+    else:
+      raise RuntimeError('node %s does not exist'%node)
 
   '''
   Instantiate this task for a particular world. This takes the task model and

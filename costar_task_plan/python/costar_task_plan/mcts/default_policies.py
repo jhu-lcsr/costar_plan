@@ -5,6 +5,7 @@ from node import *
 from score import *
 from widen import *
 from extract import *
+from initialize import *
 
 import numpy as np
 
@@ -29,4 +30,10 @@ class DefaultMctsPolicies(AbstractMctsPolicies):
       initialize=initialize,
       *args, **kwargs)
 
+class DefaultTaskMctsPolicies(DefaultMctsPolicies):
+    def __init__(self, task, *args, **kwargs):
+        super(DefaultTaskMctsPolicies,self).__init__(
+          sample=None,
+          initialize=TaskModelInitialize(task),
+          *args,**kwargs)
 

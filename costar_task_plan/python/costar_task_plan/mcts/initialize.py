@@ -79,3 +79,18 @@ class SteeringAngleNNPolicyInitialize(PolicyInitialize):
     super(SteeringAngleNNPolicyInitialize,self).__init__(policies)
 
 
+'''
+Initialize based on a task model.
+'''
+class TaskModelInitialize(AbstractInitialize):
+  def __init__(self, task):
+    self.task = task
+
+  def __call__(self, node):
+    children = self.task.getChildren(node.tag)
+    for child in children:
+      print node.tag, "-->", child
+      option = self.task.getOption(child)
+      node.children.append(Node(action=MctsAction(
+        policy=option.getPolicy(),
+        condition=option.getGatingCondition(),)))

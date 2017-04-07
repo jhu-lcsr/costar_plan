@@ -4,7 +4,10 @@ __all__ = [
   "AbstractSample", "AbstractRollout", "AbstractScore", "AbstractExtract",
   "AbstractInitialize", "AbstractWiden",
   # The Basics
-  "DefaultMctsPolicies", "Node", "MctsAction",
+  "Node", "MctsAction",
+  # ===========================================================================
+  # Default policies
+  "DefaultTaskMctsPolicies", "DefaultMctsPolicies",
   # ===========================================================================
   # Rollout functions: estimate value of a leaf
   "SimulationRollout", "ActionValueRollout",
@@ -16,6 +19,7 @@ __all__ = [
   "NullInitialize", "PolicyInitialize",
   "LateralMotionNNPolicyInitialize",
   "SteeringAngleNNPolicyInitialize",
+  "TaskModelInitialize",
   # ===========================================================================
   # Extract functions:
   "MostVisitedExtract", "MostVisitedPositiveExtract",

@@ -76,6 +76,7 @@ class CartesianSkillInstance(object):
 
     resp = RequestDMP(u,self.dt,k_gain,d_gain,num_basis)
 
+    self.goal_pose = pose
     self.dmp_list = resp.dmp_list
     self.tau = resp.tau
 

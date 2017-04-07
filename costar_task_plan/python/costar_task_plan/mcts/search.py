@@ -8,9 +8,12 @@ Search through the tree exhaustively.
 '''
 class DepthFirstSearch(AbstractSearch):
 
-  def __call__(self, root, policies, max_expansions=10, *args, **kwargs):
+  def __init__(self, policies):
+      self.policies = policies
+
+  def __call__(self, root, max_expansions=10, *args, **kwargs):
     start_time = timeit.default_timer()
-    policies.initialize(root)
+    self.policies.initialize(root)
     nodes_to_visit = [root]
 
     best_reward = -float('inf')
@@ -29,7 +32,7 @@ class DepthFirstSearch(AbstractSearch):
         # add any possible children from the root
         for child in node.children:
           expanded += 1
-          policies.instantiate(node, child)
+          self.policies.instantiate(node, child)
           nodes_to_visit.append(child)
 
           if expanded > max_expansions:
@@ -52,12 +55,15 @@ iterations according to the full set of policies provided.
 '''
 class MonteCarloTreeSearch(AbstractSearch):
 
-  def __call__(self, root, policies, iter=100, *args, **kwargs):
-    policies.initialize(root)
+  def __init__(self, policies):
+      self.policies = policies
+
+  def __call__(self, root, iter=100, *args, **kwargs):
+    self.policies.initialize(root)
     start_time = timeit.default_timer()
     for i in xrange(iter):
-        policies.explore(root)
-    path = policies.extract(root)
+        self.policies.explore(root)
+    path = self.policies.extract(root)
 
     elapsed = timeit.default_timer() - start_time
     return elapsed, path

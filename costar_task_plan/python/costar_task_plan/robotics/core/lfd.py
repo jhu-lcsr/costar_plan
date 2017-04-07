@@ -75,7 +75,6 @@ class LfD(object):
             objs=objs,
             visualize=True)
 
-        print "adding ", name, f.shape
         self.skill_instances[name].append(instance)
         if name not in self.skill_features:
           self.skill_features[name] = f

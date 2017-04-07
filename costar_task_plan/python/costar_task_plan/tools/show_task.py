@@ -1,6 +1,7 @@
 
 import matplotlib.pyplot as plt
 import networkx as nx
+from networkx.drawing.nx_agraph import graphviz_layout
 
 def showTask(task,root="ROOT()",filename="task.dot"):
 
@@ -15,9 +16,8 @@ def showTask(task,root="ROOT()",filename="task.dot"):
       g.add_edge(node, child)
     nodes += children
 
-  nx.write_dot(g, filename)
-  pos=nx.graphviz_layout(g,prog='dot')
-  nx.draw(g, pos, node_size=1000, width=1.0, alpha=1., arrows=False)
+  pos = graphviz_layout(g)
+  nx.draw(g, pos, prog='dot', node_size=1000, width=1.0, alpha=1., arrows=False)
 
   plt.axis('off')
   plt.show()

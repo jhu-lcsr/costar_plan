@@ -1,7 +1,9 @@
 
 from dmp_policy import JointDmpPolicy, CartesianDmpPolicy
 
-from costar_task_plan.abstract import AbstractOption
+import numpy as np
+
+from costar_task_plan.abstract import AbstractOption, AbstractCondition
 
 class DmpOption(AbstractOption):
 
@@ -26,15 +28,21 @@ class DmpOption(AbstractOption):
     self.model = model
     self.attached_frame = attached_frame
 
-  def makePolicy(self,):
+  # Make a policy.
+  def makePolicy(self,node):
     raise Exception('option.makePolicy not implemented!')
+    return self.policy_type(
+            goal_frame=self.goal_frame,
+            dmp=self.instances[0],
+            kinematics=self.kinematics)
 
   # Get the gating condition for a specific option.
   # - execution should continue until such time as this condition is true.
-  def getGatingCondition(self, state, *args, **kwargs):
-    if not isinstance(state, AbstractState):
-        raise RuntimeError('option.getGatingCondition() requires an initial state!')
-    raise NotImplementedError('option.getGatingCondition() not yet implemented!')
+  def getGatingCondition(self, *args, **kwargs):
+    return DmpCondition(
+            goal_frame=self.goal_frame,
+            dmp=self.instances[0],
+            kinematics=self.kinematics,)
 
   # Is it ok to begin this option?
   def checkPrecondition(self, world, state):
@@ -51,3 +59,19 @@ class DmpOption(AbstractOption):
     if not isinstance(state, AbstractState):
         raise RuntimeError('option.checkPostcondition() requires an initial state!')
     raise NotImplementedError('option.checkPostcondition() not yet implemented!')
+
+# This condition tells us whether or not we successfully arrived at the end of 
+# an action. It is true while we should continue executing. If our ee pose is
+# within tolerances and we are nearly stopped, it returns false.
+class DmpCondition(AbstractCondition):
+
+  def __init__(self, goal_frame, dmp, kinematics):
+      self.goal_frame = goal_frame
+      self.dmp = dmp
+      self.kinematics = kinematics
+
+  def __call__(self, world, state, actor=None, prev_state=None):
+    if actor is None:
+      actor = world.actors[0]
+    
+    return state.seq == 0 or np.all(state.q_dot < 1e-2)

@@ -52,12 +52,14 @@ class TomDataset(Dataset):
     self.trash_poses = []
     self.box_poses = []
     self.move_poses = []
+    self.lift_poses = []
     self.test_poses = []
     self.pickup_poses = []
 
     self.trash_data = []
     self.box_data = []
     self.move_data = []
+    self.lift_data = []
     self.test_data = []
     self.pickup_data = []
 
@@ -99,7 +101,7 @@ class TomDataset(Dataset):
     self.pickup_data += oranges[0]
     self.move_data += oranges[1]
     self.test_data += oranges[2]
-    self.trash_data = oranges[3]
+    self.box_data = oranges[3]
 
     print "\tExtracting data for trash actions..."
     trajs, poses, oranges = self._extract_samples(self.trash_bags)

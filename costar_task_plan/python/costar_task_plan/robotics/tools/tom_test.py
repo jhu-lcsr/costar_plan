@@ -6,7 +6,8 @@
 
 from tom_oranges import MakeTomTaskModel, OrangesTaskArgs
 
-from costar_task_plan.abstract import AbstractReward
+from costar_task_plan.abstract import AbstractReward, AbstractFeatures
+from costar_task_plan.mcts import DefaultTaskMctsPolicies, Node, MonteCarloTreeSearch
 from costar_task_plan.robotics.core import *
 from costar_task_plan.robotics.tom import TomWorld
 from costar_task_plan.tools import showTask
@@ -17,10 +18,13 @@ def load_tom_world():
   return TomWorld('./',load_dataset=True)
 
 class NullReward(AbstractReward):
-    def __call__(self, world, *args, **kwargs):
-        return 0., 0.
-    def evaluate(self, world, *args, **kwargs):
-        return 0., 0.
+  def __call__(self, world, *args, **kwargs):
+    return 0., 0.
+  def evaluate(self, world, *args, **kwargs):
+    return 0., 0.
+class NullFeatures(AbstractFeatures):
+  def __call__(self, world, *args, **kwargs):
+    return [0.]
 
 # Main function:
 #   - create a TOM world
@@ -38,6 +42,7 @@ def load_tom_data_and_run():
     world = load_tom_world()
     #world.makeRewardFunction("box")
     world.reward = NullReward()
+    world.features = NullFeatures()
   except RuntimeError, e:
     print "Failed to create world. Are you in the right directory?"
     raise e
@@ -49,8 +54,13 @@ def load_tom_data_and_run():
 
   print "========================================"
   print task.nodeSummary()
+  #showTask(task)
 
-  showTask(task)
+  print "========================================"
+  print "Setting up MCTS"
+  policies = DefaultTaskMctsPolicies(task)
+  #world.reward = LfdReward(world.lfd)
+  search = MonteCarloTreeSearch(policies)
 
   rate = rospy.Rate(1)
   try:
@@ -60,6 +70,12 @@ def load_tom_data_and_run():
       world.visualize()
       objects = ['box1', 'orange1', 'orange2', 'orange3', 'trash1', 'squeeze_area1']
       world.updateObservation(objects)
+
+      root = Node(world=world,root=True)
+      elapsed, path = search(root)
+      print "-- ", elapsed, len(path)
+
+
       rate.sleep()
   except rospy.ROSInterruptException, e:
     pass
