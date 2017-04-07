@@ -65,15 +65,23 @@ def load_tom_data_and_run():
   rate = rospy.Rate(1)
   try:
     while True:
-      # Pass a zero action down to the first actr, and only to the first actor.
-      world.tick(world.zeroAction())
-      world.visualize()
+
+      # Update observations about the world
       objects = ['box1', 'orange1', 'orange2', 'orange3', 'trash1', 'squeeze_area1']
       world.updateObservation(objects)
 
+      # Pass a zero action down to the first actr, and only to the first actor.
+      new_world = world.fork(world.zeroAction())
+      new_world.visualize()
+      debug_objs = {
+          'box':'box1',
+          'orange':'orange1',
+          'trash':'trash1',
+          'squeeze_area':'squeeze_area1'}
+
       # Alternately, we could just recompile the task here.
       if len(world.observation) > 0:
-        world.lfd.debug()
+        world.debugLfD(debug_objs)
       #    root = Node(world=world,root=True)
       #    elapsed, path = search(root,iter=10)
       #    print "-- ", elapsed, len(path)

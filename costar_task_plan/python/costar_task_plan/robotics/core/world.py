@@ -128,7 +128,7 @@ class CostarWorld(AbstractWorld):
   # Create the set of dynamics used for this particular option/option distribution.
   def getT(self,robot_config,*args,**kwargs):
     if self.fake:
-      return SimulatedDynamics(robot_config)
+      return SimulatedDynamics()
     else:
       return SubscriberDynamics(self.js_listeners[robot_config['name']])
   
@@ -160,6 +160,8 @@ class CostarWorld(AbstractWorld):
           name=actor.joints,
           position=actor.state.q,
           velocity=actor.state.dq)
+  def debugLfD(self, args):
+    self.lfd.debug(self, args)
 
   # Look up what the world should look like, based on the provided arguments.
   # "objs" should be a list of all possible objects that we might want to

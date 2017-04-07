@@ -27,11 +27,9 @@ class SubscriberDynamics(AbstractDynamics):
 Apply the motion at each of the joints to get the next point we want to move to
 '''
 class SimulatedDynamics(AbstractDynamics):
-  def __init__(self, config):
-    self.q0 = None
-    self.dof = config['dof']
-    self.old_q0 = [0] * self.dof
-    self.dof = self.dof
+
+  def __init__(self):
+    pass
 
   def apply(self, state, action, dt):
     if action.reset_seq or action.reference is not state.reference \
