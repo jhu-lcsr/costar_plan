@@ -73,10 +73,10 @@ def load_tom_data_and_run():
 
       # Alternately, we could just recompile the task here.
       if len(world.observation) > 0:
-
-          root = Node(world=world,root=True)
-          elapsed, path = search(root,iter=10)
-          print "-- ", elapsed, len(path)
+        world.lfd.debug()
+      #    root = Node(world=world,root=True)
+      #    elapsed, path = search(root,iter=10)
+      #    print "-- ", elapsed, len(path)
 
       rate.sleep()
   except rospy.ROSInterruptException, e:

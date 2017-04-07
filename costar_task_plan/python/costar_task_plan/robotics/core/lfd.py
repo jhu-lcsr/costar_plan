@@ -1,4 +1,7 @@
 
+from dmp_policy import CartesianDmpPolicy
+from dmp_option import DmpOption
+
 import numpy as np
 from pykdl_utils.kdl_parser import kdl_tree_from_urdf_model
 from pykdl_utils.kdl_kinematics import KDLKinematics
@@ -89,6 +92,17 @@ class LfD(object):
         print " ... skipping skill", name, "(no data)"
 
     return self.skill_models
+
+  def debug(self):
+    for name, instances in self.skill_instances.items():
+      model = self.skill_models[name]
+      trajs = self.world.trajectories[name]
+      data = self.world.trajectory_data[name]
+      goal = self.world.objs[name][1]
+      print " -- goal =", goal, "others =", self.world.objs[name]
+      option = DmpOption(CartesianDmpPolicy, self.kdl_kin, goal, model, instances)
+
+      raise NotImplementedError('generate DMPs here')
 
   # Save models after they have been fit.
   def save(self, dir='./data/'):

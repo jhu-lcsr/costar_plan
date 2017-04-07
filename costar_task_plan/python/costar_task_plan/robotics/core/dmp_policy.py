@@ -57,6 +57,7 @@ class CartesianDmpPolicy(DmpPolicy):
     # =========================================================================
     # make the trajectory based on the current state
     reset_seq = state.reference is not self
+    #print "reset?", (state.reference is not self), state.reference, self
     if state.seq == 0 or reset_seq:
         T = pm.fromMatrix(self.kinematics.forward(state.q))
         self.activate(self.dmp.dmp_list)
@@ -106,6 +107,9 @@ class CartesianDmpPolicy(DmpPolicy):
       else:
         return None
     else:
-        return world.zeroAction()
+        action = world.zeroAction()
+        action.reference = self
+        return action
+        
 
         

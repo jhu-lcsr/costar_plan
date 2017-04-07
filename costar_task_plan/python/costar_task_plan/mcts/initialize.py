@@ -92,6 +92,7 @@ class TaskModelInitialize(AbstractInitialize):
       print node.tag, "-->", child
       option = self.task.getOption(child)
       node.children.append(Node(action=MctsAction(
+        tag=child,
         policy=option.makePolicy(),
         condition=option.getGatingCondition(),),
         prior=1.0,))

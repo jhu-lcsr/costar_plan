@@ -74,4 +74,4 @@ class DmpCondition(AbstractCondition):
     if actor is None:
       actor = world.actors[0]
     
-    return state.seq == 0 or np.all(state.dq > 1e-2)
+    return state.seq == 0 or np.any(np.abs(state.dq) > 1e-2)

@@ -42,7 +42,6 @@ class SimulatedDynamics(AbstractDynamics):
 
 
     q = state.q + (action.dq * dt)
-    #print "q =", q, "dq =", action.dq, "seq =", seq
     return CostarState(state.world,
             q=q,
             dq=action.dq,
