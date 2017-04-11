@@ -11,6 +11,8 @@ __all__ = [
         "DmpPolicy", "JointDmpPolicy", "CartesianDmpPolicy",
         # =====================================================================
         "DmpOption",
+        # =====================================================================
+        "AbstractGripperStatusListener",
         ]
 
 from world import *

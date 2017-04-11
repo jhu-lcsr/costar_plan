@@ -61,12 +61,10 @@ class CartesianDmpPolicy(DmpPolicy):
     if state.seq == 0 or reset_seq:
         T = pm.fromMatrix(self.kinematics.forward(state.q))
         self.activate(self.dmp.dmp_list)
-        #print self.goal
-        #print world.observation[self.goal]
-        #print self.dmp.goal_pose
-        goal = world.observation[self.goal] * self.dmp.goal_pose
+        goal = world.observation[self.goal]
         ee_rpy = T.M.GetRPY()
-        rpy = goal.M.GetRPY()
+        relative_goal = goal * self.dmp.goal_pose
+        rpy = relative_goal.M.GetRPY()
         adj_rpy = [0,0,0]
         for j, (lvar, var) in enumerate(zip(ee_rpy, rpy)):
             if lvar < 0 and var > lvar + np.pi:
@@ -76,15 +74,12 @@ class CartesianDmpPolicy(DmpPolicy):
             else:
                 adj_rpy[j] = var
         x = [T.p[0], T.p[1], T.p[2], ee_rpy[0], ee_rpy[1], ee_rpy[2]]
-        g = [goal.p[0], goal.p[1], goal.p[2], adj_rpy[0], adj_rpy[1], adj_rpy[2]]
+        g = [relative_goal.p[0], relative_goal.p[1], relative_goal.p[2],
+                adj_rpy[0], adj_rpy[1], adj_rpy[2]]
         x0 = [0.]*6
         g_threshold = [1e-1]*6
         integrate_iter=10
         res = self.plan(x,x0,0.,g,g_threshold,self.dmp.tau,1.0,world.dt,integrate_iter)
-        #print "========"
-        #print res
-        #print "from =", x
-        #print "goal = ", g
         q = state.q
         self.traj = res.plan
     

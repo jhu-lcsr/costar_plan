@@ -34,7 +34,7 @@ class SimulatedDynamics(AbstractDynamics):
   def apply(self, state, action, dt):
     if action.reset_seq or action.reference is not state.reference \
             or action.reference is None:
-      seq = 0
+      seq = 1
     else:
       seq = state.seq + 1
 
