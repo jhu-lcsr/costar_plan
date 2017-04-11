@@ -22,11 +22,6 @@ end_link = CONFIG['end_link']
 def goto(kdl_kin, pub, listener, trans, rot): 
 
   try:
-    bet, ber = listener.lookupTransform(
-            base_link,
-            end_link,
-            rospy.Time(0))
-    T_eb = pm.fromTf((bet, ber))
     T = pm.fromTf((trans, rot))
 
     q0 = [-1.0719114121799995, -1.1008140645600006, 1.7366724169200003,

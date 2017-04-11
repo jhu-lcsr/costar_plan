@@ -40,6 +40,7 @@ class CartesianSkillInstance(object):
       pass
       goal_frame = [pm.fromMatrix(np.eye(4))] * len(self.worlds)
     else:
+      print "creating goal w.r.t. ", self.objs[0]
       goal_frame = [world[self.objs[0]] for world in self.worlds]
 
     u = np.zeros((len(goal_frame),6))
@@ -77,6 +78,7 @@ class CartesianSkillInstance(object):
     resp = RequestDMP(u,self.dt,k_gain,d_gain,num_basis)
 
     self.goal_pose = pose
+    self.goal_object_position = goal
     self.dmp_list = resp.dmp_list
     self.tau = resp.tau
 

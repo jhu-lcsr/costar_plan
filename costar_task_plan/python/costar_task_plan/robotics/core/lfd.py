@@ -126,12 +126,15 @@ class LfD(object):
       #self.pubs[name].publish(PoseArray(poses))
 
       goal = args[goal_type]
-      T = pm.fromMatrix(self.kdl_kin.forward(state.q))
       RequestActiveDMP(instances[0].dmp_list)
-      goal = world.observation[goal] * instances[0].goal_pose
+      goal = world.observation[goal]
+      T = pm.fromMatrix(self.kdl_kin.forward(state.q))
       ee_rpy = T.M.GetRPY()
-      rpy = goal.M.GetRPY()
+      relative_goal = goal * instances[0].goal_pose
+      rpy = relative_goal.M.GetRPY()
       adj_rpy = [0,0,0]
+
+      # Fix rotations
       for j, (lvar, var) in enumerate(zip(ee_rpy, rpy)):
         if lvar < 0 and var > lvar + np.pi:
           adj_rpy[j] = var - 2*np.pi
@@ -139,12 +142,19 @@ class LfD(object):
           adj_rpy[j] = var + 2*np.pi
         else:
           adj_rpy[j] = var
+
+      # Create start and goal poses
       x = [T.p[0], T.p[1], T.p[2], ee_rpy[0], ee_rpy[1], ee_rpy[2]]
-      g = [goal.p[0], goal.p[1], goal.p[2], adj_rpy[0], adj_rpy[1], adj_rpy[2]]
+      g = [relative_goal.p[0], relative_goal.p[1], relative_goal.p[2],
+              adj_rpy[0], adj_rpy[1], adj_rpy[2]]
       x0 = [0.]*6
       g_threshold = [1e-1]*6
       integrate_iter=10
+
+      # Get DMP result
       res = PlanDMP(x,x0,0.,g,g_threshold,instances[0].tau,1.0,world.dt,integrate_iter)
+
+      # Convert to poses
       poses = []
       for pt in res.plan.points:
         T = pm.Frame(pm.Rotation.RPY(pt.positions[3],pt.positions[4],pt.positions[5]))
@@ -152,6 +162,11 @@ class LfD(object):
         T.p[1] = pt.positions[1]
         T.p[2] = pt.positions[2]
         poses.append(pm.toMsg(T))
+
+      # This is the final goal position in the new setting
+      #poses.append(pm.toMsg(goal * instances[0].goal_pose))
+      #poses.append(pm.toMsg(instances[0].goal_object_position * instances[0].goal_pose))
+
       msg = PoseArray(poses=poses)
       msg.header.frame_id = self.base_link
       self.pubs[name].publish(msg)
