@@ -125,6 +125,27 @@ class CostarWorld(AbstractWorld):
           PoseArray,
           queue_size=1000)
 
+  # Execute a sequence of nodes. We use the policy and condition from each
+  # node, together with a set of subscriber dynamics, to update the world.
+  def execute(self, path, actor_id=0):
+      # start publishers
+
+      # loop over the path
+      for node in path:
+          if node.action is None:
+              rospy.logwarn('Done execution.')
+              break
+          policy = node.action.policy
+          condition = node.action.condition
+          actor = self.actors[actor__id].state
+
+          # check condition -- same loop as in the tree search.
+          while not condition(self, self.actors[actor_id].state, ):
+              #cmd = policy.evaluate(self, 
+              pass
+
+      # Done.
+
   # Create the set of dynamics used for this particular option/option distribution.
   def getT(self,robot_config,*args,**kwargs):
     if self.fake:

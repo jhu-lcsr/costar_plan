@@ -39,12 +39,6 @@ class MctsAction(AbstractMctsAction):
   '''
   def update(self, node):
     if not node.terminal:
-      if self.condition is None:
-        for i in xrange(self.ticks_after_fork):
-          (res, S0, A0, S1, F1, r) = node.tick(self.getAction(node))
-          if not res:
-            break
-      else:
         while self.condition(node.world,
                                node.state,
                                node.world.actors[0],

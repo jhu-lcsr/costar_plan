@@ -33,6 +33,9 @@ __all__ = [
   # ===========================================================================
   # Tree search functions
   "MonteCarloTreeSearch", "DepthFirstSearch",
+  # ===========================================================================
+  # Generic tree search result execution (closed-loop)
+  "ExecutionPlan",
   ]
 
 # Basics
@@ -43,6 +46,9 @@ from action import *
 
 # Search algorithms
 from search import *
+
+# Execute plan results
+from execution import *
 
 # Defines default set of policies
 from default_policies import *
