@@ -174,7 +174,7 @@ class CostarWorld(AbstractWorld):
 
     try:
       for obj in objs:
-        (trans, rot) = self.tf_listener.lookupTransform(obj, self.base_link, rospy.Time(0.))
+        (trans, rot) = self.tf_listener.lookupTransform(self.base_link, obj, rospy.Time(0.))
         self.observation[obj] = pm.fromTf((trans, rot))
 
     except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
