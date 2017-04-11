@@ -23,9 +23,9 @@ class SubscriberDynamics(AbstractDynamics):
     # then update and return
     return CostarState(state.world, q=self.listener.q0)
 
-'''
-Apply the motion at each of the joints to get the next point we want to move to
-'''
+# Apply the motion at each of the joints to get the next point we want to move
+# to. This will also update the gripper state if it's one of the basic gripper
+# operations, i.e. gripper_cmd in {open, close}.
 class SimulatedDynamics(AbstractDynamics):
 
   def __init__(self):
@@ -38,6 +38,13 @@ class SimulatedDynamics(AbstractDynamics):
     else:
       seq = state.seq + 1
 
+    if action.gripper_cmd is not None:
+      if action.gripper_cmd == "close":
+        gripper_closed = True
+      elif action.gripper_cmd == "open":
+        gripper_closed = False
+      else:
+        raise RuntimeError('Unrecognized gripper command: "%s"'%(str(action.gripper_cmd)))
 
     q = state.q + (action.dq * dt)
     return CostarState(state.world,
