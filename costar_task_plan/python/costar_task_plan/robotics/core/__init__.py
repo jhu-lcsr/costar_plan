@@ -28,3 +28,6 @@ from dmp_option import DmpOption
 
 # LfD stuff
 from demo_reward import *
+
+# Generic ROS interface
+from gripper_status_listener import *
