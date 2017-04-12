@@ -45,12 +45,15 @@ class SimulatedDynamics(AbstractDynamics):
         gripper_closed = False
       else:
         raise RuntimeError('Unrecognized gripper command: "%s"'%(str(action.gripper_cmd)))
+    else:
+      gripper_closed = state.gripper_closed
 
     q = state.q + (action.dq * dt)
     return CostarState(state.world,
             q=q,
             dq=action.dq,
             seq=seq,
+            gripper_closed=gripper_closed,
             reference=action.reference)
 
 

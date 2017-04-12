@@ -4,6 +4,8 @@ from costar_task_plan.abstract import *
 # This connects two different decision points.
 class MctsAction(AbstractMctsAction):
 
+  penalty = -1e6
+
   def __init__(self, policy=None, id=0, ticks=10, condition=None, tag=None, *args,**kwargs):
     super(MctsAction, self).__init__(*args,**kwargs)
     self.policy = policy
@@ -44,7 +46,7 @@ class MctsAction(AbstractMctsAction):
                                node.world.actors[0],
                                node.world.actors[0].last_state):
           (res, S0, A0, S1, F1, r) = node.tick(self.getAction(node))
-          print node.tag, S0.seq, S0.q, S1.seq, S1.q
+          print node.tag, S0.seq, A0.reset_seq, S1.seq, A0.dq
           if not res:
             break
     return node

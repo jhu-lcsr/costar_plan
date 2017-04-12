@@ -94,7 +94,7 @@ class Node(AbstractState):
         child.world = new_world
         child.state = child.world.actors[0].state
         child.initialized = True
-        child.terminal = child.world.done and not failed
+        child.terminal = child.world.done or failed
         child.rewards = [new_world.initial_reward]
         child.reward += new_world.initial_reward
         child.parent = self
@@ -119,6 +119,7 @@ class Node(AbstractState):
         if action is None:
           action = self.world.zeroAction()
           failed = True
+          print "!!!!!! FAILED"
         else:
           failed = False
 
@@ -128,10 +129,10 @@ class Node(AbstractState):
         self.traj.append((S0, A0))
         self.rewards.append(r)
         self.reward += r
-        self.terminal = self.world.done and not failed
+        self.terminal = self.world.done or failed
         self.state = S0
 
-        return res, S0, A0, S1, F1, r
+        return res and not failed, S0, A0, S1, F1, r
 
     ''' -----------------------------------------------------------------------
     NOTE: these are helper functions for accessing and updating the world state

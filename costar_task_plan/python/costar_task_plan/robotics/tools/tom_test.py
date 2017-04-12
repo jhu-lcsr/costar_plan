@@ -54,14 +54,16 @@ def load_tom_data_and_run():
     args = OrangesTaskArgs()
     filled_args = task.compile(args)
 
-    print "========================================"
-    print task.nodeSummary()
-
     # Perform the search
     objects = ['box1', 'orange1', 'orange2', 'orange3', 'trash1',
             'squeeze_area1']
+    debug_objects = {"box":"box1",
+                     "orange":"orange1",
+                     "trash":"trash1",
+                     "squeeze_area":"squeeze_area1"}
 
     path = do_search(world, task, objects)
+    print "Done planning."
     plan = ExecutionPlan(path)
 
     rate = rospy.Rate(1)
@@ -76,7 +78,7 @@ def load_tom_data_and_run():
             # Pass a zero action down to the first actr, and only to the first actor.
             world.visualize()
             world.visualizePlan(plan)
-            plan.step(world)
+            #plan.step(world)
 
         rate.sleep()
     except rospy.ROSInterruptException, e:

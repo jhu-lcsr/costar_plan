@@ -129,9 +129,7 @@ class AbstractWorld(object):
     if not res and self.scale_reward_to_max_ticks:
         # compute difference here
         d_ticks = max(0, self.max_ticks - self.ticks)
-        #print "orig reward = ", r, d_ticks,
         r *= 1 + d_ticks
-        #print "scaled = ", r
 
     # update features and reward
     self.initial_features = F1
