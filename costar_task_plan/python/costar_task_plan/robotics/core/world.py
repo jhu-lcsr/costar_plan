@@ -103,6 +103,17 @@ class CostarWorld(AbstractWorld):
         dynamics=self.getT(robot),
         policy=NullPolicy()))
 
+    # -------------------------------------------------------------------------
+    # For grippers. We check these on a hook() to get the current gripper state.
+    self.gripper_status_listeners = {}
+
+    # -------------------------------------------------------------------------
+    # Visualization helper
+    self.plan_pub = rospy.Publisher(
+            join(self.namespace, "plan"),
+            PoseArray,
+            queue_size=1000)
+
     # The base link for the scene as a whole
     self.base_link = self.actors[0].base_link
 
@@ -124,6 +135,9 @@ class CostarWorld(AbstractWorld):
           join(self.namespace,"trajectory_data",name),
           PoseArray,
           queue_size=1000)
+
+  def addGripperStatusListener(self, robot_name, listener):
+    self.gripper_status_listeners[robot_name] = listener
 
   # Execute a sequence of nodes. We use the policy and condition from each
   # node, together with a set of subscriber dynamics, to update the world.
@@ -181,6 +195,23 @@ class CostarWorld(AbstractWorld):
           name=actor.joints,
           position=actor.state.q,
           velocity=actor.state.dq)
+
+  def visualizePlan(self, plan):
+    actor = self.actors[plan.actor_id]
+    msg = PoseArray()
+    msg.header.frame_id = actor.base_link
+
+    if plan.actor_id is not 0:
+        raise NotImplementedError('kdl kinematics only created for actor 0 right now')
+
+    # Show a trajectory of task plans.
+    for node in plan.nodes:
+        for state, action in node.traj:
+            T = self.lfd.kdl_kin.forward(state.q)
+            msg.poses.append(pm.toMsg(pm.fromMatrix(T)))
+            print state.q
+    self.plan_pub.publish(msg)
+
   def debugLfD(self, args):
     self.lfd.debug(self, args)
 

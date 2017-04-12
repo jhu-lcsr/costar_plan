@@ -89,7 +89,6 @@ class TaskModelInitialize(AbstractInitialize):
   def __call__(self, node):
     children = self.task.getChildren(node.tag)
     for child in children:
-      print node.tag, "-->", child
       option = self.task.getOption(child)
       node.children.append(Node(action=MctsAction(
         tag=child,

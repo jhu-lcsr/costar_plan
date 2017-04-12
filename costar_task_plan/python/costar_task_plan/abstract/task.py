@@ -1,5 +1,6 @@
 
 import copy
+from sets import Set
 
 from option import AbstractOption, NullOption
 
@@ -86,13 +87,14 @@ class Task(object):
         else:
           inodes[name] = iname
           self.nodes[iname] = option
-          self.children[iname] = []
+          self.children[iname] = Set()
 
       # connect nodes and their children
       for name, template in self.option_templates.items():
         iname = inodes[name]
-        children = [inodes[child] for child in template.children]
-        self.children[iname] += children
+        for child in template.children:
+            if child in inodes:
+                self.children[iname].add(inodes[child])
 
     self.compiled = True
     return arg_sets

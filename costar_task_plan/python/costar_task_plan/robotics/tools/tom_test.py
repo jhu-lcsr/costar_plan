@@ -9,6 +9,7 @@ from tom_oranges import MakeTomTaskModel, OrangesTaskArgs
 from costar_task_plan.abstract import AbstractReward, AbstractFeatures
 from costar_task_plan.mcts import DefaultTaskMctsPolicies, Node
 from costar_task_plan.mcts import MonteCarloTreeSearch
+from costar_task_plan.mcts import ExecutionPlan
 from costar_task_plan.robotics.core import *
 from costar_task_plan.robotics.tom import TomWorld
 from costar_task_plan.tools import showTask
@@ -59,7 +60,8 @@ def load_tom_data_and_run():
     # Perform the search
     objects = ['box1', 'orange1', 'orange2', 'orange3', 'trash1',
             'squeeze_area1']
-    path = do_search(world, objects)
+
+    path = do_search(world, task, objects)
     plan = ExecutionPlan(path)
 
     rate = rospy.Rate(1)
@@ -80,7 +82,7 @@ def load_tom_data_and_run():
     except rospy.ROSInterruptException, e:
         pass
 
-def do_search(world, objects):
+def do_search(world, task, objects):
 
     policies = DefaultTaskMctsPolicies(task)
     #world.reward = LfdReward(world.lfd)
@@ -90,6 +92,7 @@ def do_search(world, objects):
     world.updateObservation(objects)
 
     while len(world.observation) == 0:
+        rospy.sleep(0.1)
         world.updateObservation(objects)
 
     print "================================================"

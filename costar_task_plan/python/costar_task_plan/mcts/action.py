@@ -1,7 +1,7 @@
 from abstract import *
 from costar_task_plan.abstract import *
 
-
+# This connects two different decision points.
 class MctsAction(AbstractMctsAction):
 
   def __init__(self, policy=None, id=0, ticks=10, condition=None, tag=None, *args,**kwargs):
