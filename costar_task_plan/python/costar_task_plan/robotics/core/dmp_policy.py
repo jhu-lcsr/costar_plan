@@ -96,7 +96,7 @@ class CartesianDmpPolicy(DmpPolicy):
       #print "======="
       #print q
       if q is not None:
-        #print (q - state.q) / world.dt
+        print "action.dq =", ((q - state.q) / world.dt), "seq =", state.seq, len(self.traj.points)
         dq = (q - state.q) / world.dt
         return CostarAction(dq=dq, reset_seq=reset_seq, reference=self)
       else:
