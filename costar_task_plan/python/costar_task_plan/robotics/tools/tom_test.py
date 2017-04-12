@@ -76,6 +76,7 @@ def load_tom_data_and_run():
             world.updateObservation(objects)
 
             # Pass a zero action down to the first actr, and only to the first actor.
+            world.debugLfD(debug_objects)
             world.visualize()
             world.visualizePlan(plan)
             #plan.step(world)
