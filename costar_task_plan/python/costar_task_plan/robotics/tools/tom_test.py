@@ -101,7 +101,7 @@ def do_search(world, task, objects):
     print "================================================"
     print "Performing MCTS over options:"
     root = Node(world=world,root=True)
-    elapsed, path = search(root,iter=1)
+    elapsed, path = search(root,iter=10)
     print "-- ", elapsed, len(path)
     return path
 

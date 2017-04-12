@@ -110,7 +110,6 @@ class LfD(object):
       data = self.world.trajectory_data[name]
       goal_type = self.world.objs[name][1]
 
-      print " -- goal =", goal_type, "others =", self.world.objs[name]
       option = DmpOption(CartesianDmpPolicy, self.kdl_kin, args[goal_type], model, instances)
       policy = option.makePolicy(world)
       dynamics = SimulatedDynamics()
@@ -156,12 +155,16 @@ class LfD(object):
 
       # Convert to poses
       poses = []
-      for pt in res.plan.points:
+      q = state.q
+      for i, pt in enumerate(res.plan.points):
         T = pm.Frame(pm.Rotation.RPY(pt.positions[3],pt.positions[4],pt.positions[5]))
         T.p[0] = pt.positions[0]
         T.p[1] = pt.positions[1]
         T.p[2] = pt.positions[2]
         poses.append(pm.toMsg(T))
+        new_q = self.kdl_kin.inverse(pm.toMatrix(T), q)
+        print i, "/", len(res.plan.points), "q =", new_q
+        q = new_q
 
       # This is the final goal position in the new setting
       #poses.append(pm.toMsg(goal * instances[0].goal_pose))
