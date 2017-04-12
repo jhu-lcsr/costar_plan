@@ -46,6 +46,10 @@ class HighestAverageRewardExtract(AbstractExtract):
     nodes = [node]
     while not node.terminal and len(node.children) > 0:
       reward = [(i, child.avg_reward) for (i, child) in enumerate(node.children)]
+
+      if len(reward) == 0:
+          break
+
       max_idx, max_rewar = max(reward, key=operator.itemgetter(1))
 
       node = node.children[max_idx]
