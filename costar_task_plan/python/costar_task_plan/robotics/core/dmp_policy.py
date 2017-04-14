@@ -96,6 +96,7 @@ class CartesianDmpPolicy(DmpPolicy):
       T.p[1] = pt.positions[1]
       T.p[2] = pt.positions[2]
       q = self.kinematics.inverse(pm.toMatrix(T), state.q)
+      #print "q0 =", state.q, "to", q
       #q = self.kinematics.inverse(pm.toMatrix(T), self.q)
       #print "======="
       #print q

@@ -196,6 +196,8 @@ class CostarWorld(AbstractWorld):
           position=actor.state.q,
           velocity=actor.state.dq)
 
+  # Debug tool: print poses associated with a set of plans to a message and
+  # publish this message.
   def visualizePlan(self, plan):
     actor = self.actors[plan.actor_id]
     msg = PoseArray()
@@ -209,7 +211,6 @@ class CostarWorld(AbstractWorld):
         for state, action in node.traj:
             T = self.lfd.kdl_kin.forward(state.q)
             msg.poses.append(pm.toMsg(pm.fromMatrix(T)))
-            print state.q
     self.plan_pub.publish(msg)
 
   def debugLfD(self, args):
