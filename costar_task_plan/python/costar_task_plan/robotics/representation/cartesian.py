@@ -45,6 +45,7 @@ class CartesianSkillInstance(object):
 
     u = np.zeros((len(goal_frame),6))
     last_rpy = None
+
     for i, (ee,goal) in enumerate(zip(self.ee_frames, goal_frame)):
         pose = goal.Inverse() * ee
         u[i,0] = pose.p[0]
@@ -62,10 +63,12 @@ class CartesianSkillInstance(object):
                     adj_rpy[j] = var + 2*np.pi
                 else:
                     adj_rpy[j] = var
+        else:
+            adj_rpy = rpy
 
-        u[i,3] = rpy[0]
-        u[i,4] = rpy[1]
-        u[i,5] = rpy[2]
+        u[i,3] = adj_rpy[0]
+        u[i,4] = adj_rpy[1]
+        u[i,5] = adj_rpy[2]
 
         # Sanity check!
         if last_rpy is not None:

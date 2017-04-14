@@ -52,12 +52,14 @@ class CartesianDmpPolicy(DmpPolicy):
   def __init__(self, *args, **kwargs):
     super(CartesianDmpPolicy, self).__init__(*args, **kwargs)
     self.traj = None
+    #self.q = None
 
   def evaluate(self, world, state, actor=None):
     # =========================================================================
     # make the trajectory based on the current state
     reset_seq = state.reference is not self
     #print "reset?", (state.reference is not self), state.reference, self
+    g = []
     if state.seq == 0 or reset_seq:
         T = pm.fromMatrix(self.kinematics.forward(state.q))
         self.activate(self.dmp.dmp_list)
@@ -82,7 +84,8 @@ class CartesianDmpPolicy(DmpPolicy):
         res = self.plan(x,x0,0.,g,g_threshold,self.dmp.tau,1.0,world.dt,integrate_iter)
         q = state.q
         self.traj = res.plan
-    
+        #self.q = state.q
+
     # =========================================================================
     # Compute the joint velocity to take us to the next position
     if state.seq < len(self.traj.points):
@@ -93,9 +96,11 @@ class CartesianDmpPolicy(DmpPolicy):
       T.p[1] = pt.positions[1]
       T.p[2] = pt.positions[2]
       q = self.kinematics.inverse(pm.toMatrix(T), state.q)
+      #q = self.kinematics.inverse(pm.toMatrix(T), self.q)
       #print "======="
       #print q
       if q is not None:
+        #self.q = q
         dq = (q - state.q) / world.dt
         return CostarAction(dq=dq, reset_seq=reset_seq, reference=self)
       else:
