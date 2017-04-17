@@ -59,9 +59,6 @@ class LfD(object):
     print "Training:"
     for name, trajs in self.world.trajectories.items():
 
-      if not name == 'pickup':
-            continue
-
       self.pubs[name] = rospy.Publisher(join('costar','lfd',name), PoseArray, queue_size=1000)
 
       data = self.world.trajectory_data[name]
@@ -109,9 +106,6 @@ class LfD(object):
   def debug(self, world, args):
     for name, instances in self.skill_instances.items():
 
-      if not name == 'pickup':
-            continue
-
       model = self.skill_models[name]
       trajs = self.world.trajectories[name]
       data = self.world.trajectory_data[name]
@@ -123,19 +117,11 @@ class LfD(object):
       condition = option.getGatingCondition()
 
       state = world.actors[0].state
-      #poses = [pm.toMsg(pm.fromMatrix(self.kdl_kin.forward(state.q)))]
-      #while condition(world, state, world.actors[0]):
-      #  action = policy(world, state, world.actors[0])
-      #  state = dynamics(world, state, action)
-      #  if state is not None:
-      #    poses.append(pm.toMsg(pm.fromMatrix(self.kdl_kin.forward(state.q))))
-      #self.pubs[name].publish(PoseArray(poses))
 
       goal = args[goal_type]
       RequestActiveDMP(instances[0].dmp_list)
       goal = world.observation[goal]
-      print "=============================================="
-      print "skill name =", name, "uses =", goal_type
+
       T = pm.fromMatrix(self.kdl_kin.forward(state.q))
       ee_rpy = T.M.GetRPY()
       relative_goal = goal * instances[0].goal_pose
@@ -172,7 +158,7 @@ class LfD(object):
         T.p[2] = pt.positions[2]
         poses.append(pm.toMsg(T))
         new_q = self.kdl_kin.inverse(pm.toMatrix(T), q)
-        print i, "/", len(res.plan.points), "q =", new_q
+        #print i, "/", len(res.plan.points), "q =", new_q
         q = new_q
 
       msg = PoseArray(poses=poses)
