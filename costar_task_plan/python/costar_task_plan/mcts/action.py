@@ -46,7 +46,6 @@ class MctsAction(AbstractMctsAction):
                                node.world.actors[0],
                                node.world.actors[0].last_state):
           (res, S0, A0, S1, F1, r) = node.tick(self.getAction(node))
-          print node.tag, S0.seq, A0.reset_seq, S1.seq, A0.dq
           if not res:
             break
     return node

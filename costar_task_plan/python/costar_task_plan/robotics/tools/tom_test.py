@@ -79,7 +79,7 @@ def load_tom_data_and_run():
             world.debugLfD(debug_objects)
             world.visualize()
             world.visualizePlan(plan)
-            #plan.step(world)
+            plan.step(world)
 
         rate.sleep()
     except rospy.ROSInterruptException, e:

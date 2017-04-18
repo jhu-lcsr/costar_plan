@@ -89,3 +89,33 @@ class TaskSampler(AbstractSample):
 
   def getName(self):
     return "single"
+
+'''
+Sample directly from a list of actions
+'''
+class ActionSample(AbstractSample):
+
+    def __init__(selfl, actions):
+        self.actions = actions
+
+    def _sample(self, node, *args, **kwargs):
+        idx = len(node.children)
+        return actions[idx]
+
+class CombinedSample(AbstractSample):
+    def __init__(self, samples):
+        self.samples = samples
+        self.bases = [0] + [s.numOptions() for s in self.samples[:-1]]
+    def _sample(self, node, *args, **kwargs):
+        idx = len(node.children)
+        for base, sample in zip(self.bases, self.samples):
+            adj_idx = idx - base
+            if adj_idx < 0:
+                continue
+            action = sample.getOption(node, adj_idx)
+            if action is not None:
+                action.id = idx
+                return action
+            else:
+                continue
+
