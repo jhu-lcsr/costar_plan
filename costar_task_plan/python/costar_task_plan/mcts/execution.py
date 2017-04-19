@@ -20,78 +20,80 @@ class DefaultExecute(AbstractExecute):
 #   observable behavior.
 class ExecutionPlan(object):
 
-    def __init__(self, plan, execute_fn=AbstractExecute(), verbose=True, actor_id=0):
-        self.nodes = []
-        self.execute = execute_fn
+  def __init__(self, plan, execute_fn=AbstractExecute(), verbose=True, actor_id=0):
+    self.nodes = []
+    self.execute = execute_fn
 
-        print "Creating execution plan from tree search results:"
-        for i, node in enumerate(plan):
-            print "node =", node.tag, 
-            
-            # check node
-            if node.action is None and i == 0:
-                print " -- skipping root"
-                continue
-            elif node.action is None:
-                raise RuntimeError('execution plan must contain a whole sequence of actions')
+    print "Creating execution plan from tree search results:"
+    for i, node in enumerate(plan):
+      print "node =", node.tag, 
+      
+      # check node
+      if node.action is None and i == 0:
+          print " -- skipping root"
+          continue
+      elif node.action is None:
+          raise RuntimeError('execution plan must contain a whole sequence of actions')
 
-            # check policy
-            if node.action.policy is None:
-                raise RuntimeError('execution plan must contain a whole sequence of policies')
+      # check policy
+      if node.action.policy is None:
+          raise RuntimeError('execution plan must contain a whole sequence of policies')
 
-            # check condition
-            if node.action.condition is None:
-                raise RuntimeError('execution plan must contain a whole sequence of conditions')
+      # check condition
+      if node.action.condition is None:
+          raise RuntimeError('execution plan must contain a whole sequence of conditions')
 
-            print "action =", node.action.tag
-            self.nodes.append(node)
+      print "action =", node.action.tag
+      self.nodes.append(node)
 
-        self.reset(actor_id)
+    self.reset(actor_id)
 
-    # set counters to zero
-    def reset(self, actor_id=0):
-        self.idx = 0
-        self.world = None
-        self.actor_id = actor_id
+  # set counters to zero
+  def reset(self, actor_id=0):
+    self.idx = 0
+    self.world = None
+    self.actor_id = actor_id
 
-    
-    def step(self, world):
-        actor = world.actors[self.actor_id]
-        state = actor.state
+  
+  def step(self, world):
+    actor = world.actors[self.actor_id]
+    state = actor.state
+    cmd = None
+    done = world.done
+
+    # Check to see if we can even be executing at this point. If not, then
+    # we should just quit. This also applies if we somehow blundered into
+    # a terminal state.
+    if done:
+      return True
+
+    # Main loop. Check each action and see if it's still active. If it is
+    # not active any more, then move on to the next action. Get the control
+    # associated with the newest action that you found.
+    while cmd is None and self.idx < len(self.nodes):
+      # If we are advancing along a trajectory get the next action, as
+      # long as that trajectory's gating conditions hold. Once they are
+      # no longer true, then we can try to move on to the next trajectory
+      # (or action, or option; use your preferred nomenclature here).
+      condition = self.nodes[self.idx].action.condition
+      if condition(world, state, actor, actor.last_state):
+          policy = self.nodes[self.idx].action.policy
+          cmd = policy.evaluate(world, state, actor)
+      else:
         cmd = None
-        done = world.done
+        self.idx += 1
+      print "action", self.idx, "/", len(self.nodes)
 
-        # Check to see if we can even be executing at this point. If not, then
-        # we should just quit. This also applies if we somehow blundered into
-        # a terminal state.
-        if done:
-          return True
+    # If we could not come up with a set of controls to execute, execute
+    # the default fallback action. For us this is just a zero motion.
+    if cmd is None:
+      print "done"
+      cmd = world.zeroAction(0)
+      done = True
 
-        # Main loop. Check each action and see if it's still active. If it is
-        # not active any more, then move on to the next action. Get the control
-        # associated with the newest action that you found.
-        while cmd is None and self.idx < len(self.nodes):
-            # If we are advancing along a trajectory get the next action, as
-            # long as that trajectory's gating conditions hold. Once they are
-            # no longer true, then we can try to move on to the next trajectory
-            # (or action, or option; use your preferred nomenclature here).
-            condition = self.nodes[self.idx].action.condition
-            if condition(world, state, actor, actor.last_state):
-                policy = self.nodes[self.idx].action.policy
-                cmd = policy.evaluate(world, state, actor)
-            else:
-              cmd = None
-              self.idx += 1
-
-        # If we could not come up with a set of controls to execute, execute
-        # the default fallback action. For us this is just a zero motion.
-        if cmd is None:
-            cmd = world.zeroAction()
-            done = True
-
-        # Call our execute function. In general this will either:
-        #   (a) send a command to a robot or a simulation running in another
-        #       thread; or
-        #   (b) tick the world and possibly display test metrics.
-        self.execute(cmd)
-        return done
+    # Call our execute function. In general this will either:
+    #   (a) send a command to a robot or a simulation running in another
+    #       thread; or
+    #   (b) tick the world and possibly display test metrics.
+    self.execute(cmd)
+    return done

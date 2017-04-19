@@ -96,10 +96,8 @@ class CartesianDmpPolicy(DmpPolicy):
       T.p[1] = pt.positions[1]
       T.p[2] = pt.positions[2]
       q = self.kinematics.inverse(pm.toMatrix(T), state.q)
-      #print "q0 =", state.q, "to", q
-      #q = self.kinematics.inverse(pm.toMatrix(T), self.q)
-      #print "======="
-      #print q
+      print "q0 =", state.q, "to", q
+      print q
       if q is not None:
         #self.q = q
         dq = (q - state.q) / world.dt
@@ -111,6 +109,7 @@ class CartesianDmpPolicy(DmpPolicy):
       # Compute a zero action from the current world state. This involves
       # looking up actor information from the current world.
       action = world.zeroAction(state.actor_id)
+      print "DONE:", action.q, action.dq
       action.reference = self
       return action
         

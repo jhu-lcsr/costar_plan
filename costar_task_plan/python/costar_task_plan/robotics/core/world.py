@@ -262,9 +262,10 @@ class CostarWorld(AbstractWorld):
     else:
         LOGGER.warning('model "%s" does not exist'%name)
 
+  # Zero actions give us the same set point as we saw before.
   def zeroAction(self, actor_id):
-    q = np.zeros((self.actors[actor_id].dof,))
-    return CostarAction(dq=q)
+    dq = np.zeros((self.actors[actor_id].dof,))
+    return CostarAction(q=self.actors[actor_id].state.q, dq=dq)
 
   # Create te
   def fitTrajectories(self):
