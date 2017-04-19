@@ -5,7 +5,7 @@ from sensor_msgs.msg import JointState
 from costar_task_plan.mcts import AbstractExecute
 
 # This sends a single point (and associated joints) off to the remote robot.
-class ClosedLoopTomExecute(AbstractExecute):
+class OpenLoopTomExecute(AbstractExecute):
     def __init__(self, world, actor_id, namespace="",):
 
         # We only really want the publish function -- and I wanted to see if

@@ -86,7 +86,6 @@ class Node(AbstractState):
         action = child.action.getAction(self)
         if action is None:
             failed = True
-            action = self.world.zeroAction()
         else:
             failed = False
 
@@ -117,9 +116,7 @@ class Node(AbstractState):
       else:
 
         if action is None:
-          action = self.world.zeroAction()
           failed = True
-          print "!!!!!! FAILED"
         else:
           failed = False
 

@@ -89,6 +89,11 @@ class AbstractWorld(object):
     #new_world.actors = copy.deepcopy(self.actors)
     new_world.actors = [copy.copy(actor) for actor in self.actors]
 
+    # If the action is not valid, take a zero action and update the world
+    # appropriately.
+    if action is None:
+      action = self.zeroAction(0)
+
     (res, S0, A0, S1, F1, r) = new_world.tick(action)
     return new_world
 
