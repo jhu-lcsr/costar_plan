@@ -58,9 +58,16 @@ options.
 from task import Task
 
 
+'''
+Observe
+This is a simple update function that should take in a version of the world
+and update it with current information from sensors or simulation.
+'''
+from observe import *
+
 __all__ = ['AbstractWorld', 'AbstractAction', 'AbstractState',
            'AbstractOption', 'AbstractPolicy', 'AbstractDynamics', 'Task',
            'StateTrajectory','AbstractTrajectoryAction', 'AbstractActor',
-           'AbstractTrajectoryDynamics', 'NullOption',
+           'AbstractTrajectoryDynamics', 'NullOption', 'AbstractObserve',
            ]
 

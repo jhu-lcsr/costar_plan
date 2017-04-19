@@ -11,7 +11,7 @@ from costar_task_plan.mcts import DefaultTaskMctsPolicies, Node
 from costar_task_plan.mcts import MonteCarloTreeSearch
 from costar_task_plan.mcts import ExecutionPlan, DefaultExecute
 from costar_task_plan.robotics.core import *
-from costar_task_plan.robotics.tom import TomWorld, TomPointExecute
+from costar_task_plan.robotics.tom import TomWorld, ClosedLoopTomExecute
 from costar_task_plan.tools import showTask
 
 import rospy
@@ -68,7 +68,7 @@ def load_tom_data_and_run():
     # Tom execution works by sending a joint state message with just the robot
     # joints for the arm we want to move. The idea is that we can treat the two
     # arms and the base all as separate "actors."
-    plan = ExecutionPlan(path, TomPointExecute(joints=world.actors[0].joints))
+    plan = ExecutionPlan(path, ClosedLoopTomExecute(world, 0))
 
     rate = rospy.Rate(10)
     try:
