@@ -39,9 +39,11 @@ import mcts
 import gym
 
 # =============================================================================
-# Draw and interat with programs
-import draw
+# Draw and interact with programs
 import tools
+# NOTE: currently draw does not contain anything we need for robotics, etc. so
+# it has been disabled. It does contain a troublesome dependency on pygame...
+#import draw
 
 # =============================================================================
 # Third Party Code

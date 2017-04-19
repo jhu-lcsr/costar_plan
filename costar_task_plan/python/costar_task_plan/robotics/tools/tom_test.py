@@ -9,7 +9,7 @@ from tom_oranges import MakeTomTaskModel, OrangesTaskArgs
 from costar_task_plan.abstract import AbstractReward, AbstractFeatures
 from costar_task_plan.mcts import DefaultTaskMctsPolicies, Node
 from costar_task_plan.mcts import MonteCarloTreeSearch
-from costar_task_plan.mcts import ExecutionPlan
+from costar_task_plan.mcts import ExecutionPlan, DefaultExecute
 from costar_task_plan.robotics.core import *
 from costar_task_plan.robotics.tom import TomWorld
 from costar_task_plan.tools import showTask
@@ -64,7 +64,7 @@ def load_tom_data_and_run():
 
     path = do_search(world, task, objects)
     print "Done planning."
-    plan = ExecutionPlan(path)
+    plan = ExecutionPlan(path, DefaultExecute(world))
 
     rate = rospy.Rate(1)
     try:
@@ -79,6 +79,10 @@ def load_tom_data_and_run():
             world.debugLfD(debug_objects)
             world.visualize()
             world.visualizePlan(plan)
+
+            # This world is the observation -- it's not necessarily what the
+            # robot is actually going to be changing. Of course, in our case,
+            # it totally is.
             plan.step(world)
 
         rate.sleep()

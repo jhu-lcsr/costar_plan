@@ -5,6 +5,8 @@ __all__ = [
     "showTask",
     ]
 
-from animate import *
+# NOTE: removing pygame dependencies for now, because they're terrible
+#from animate import *
+
 from graph import makeGraph, showGraph
 from show_task import showTask
