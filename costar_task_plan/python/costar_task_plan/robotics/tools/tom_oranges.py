@@ -101,8 +101,7 @@ def MakeTomTaskModel(lfd):
 # Set up arguments for tom sim task
 def OrangesTaskArgs():
   args = {
-    #'orange': ['orange1', 'orange2', 'orange3'],
-    'orange': ['orange1'],
+    'orange': ['orange1', 'orange2', 'orange3'],
     'squeeze_area': ['squeeze_area1'],
     'box': ['box1'],
     'trash': ['trash1'],

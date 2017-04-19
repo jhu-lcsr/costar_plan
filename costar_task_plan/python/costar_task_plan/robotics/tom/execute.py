@@ -23,6 +23,8 @@ class TomPointExecute(AbstractExecute):
         if cmd.q.shape[0] == 0:
             raise RuntimeError('Passed empty joint state to execution!')
 
+        rospy.loginfo(cmd.q)
+
         msg = JointState(name=self.joints,
                          position=cmd.q)
 

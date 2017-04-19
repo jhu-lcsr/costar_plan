@@ -70,26 +70,25 @@ def load_tom_data_and_run():
     # arms and the base all as separate "actors."
     plan = ExecutionPlan(path, TomPointExecute(joints=world.actors[0].joints))
 
-    rate = rospy.Rate(1)
+    rate = rospy.Rate(10)
     try:
         while True:
+          # Update observations about the world
+          objects = ['box1', 'orange1', 'orange2', 'orange3', 'trash1',
+                  'squeeze_area1']
+          world.updateObservation(objects)
 
-            # Update observations about the world
-            objects = ['box1', 'orange1', 'orange2', 'orange3', 'trash1',
-                    'squeeze_area1']
-            world.updateObservation(objects)
+          # Print out visualization information about the world.
+          world.visualize()
+          world.visualizePlan(plan)
 
-            # Pass a zero action down to the first actr, and only to the first actor.
-            world.debugLfD(debug_objects)
-            world.visualize()
-            world.visualizePlan(plan)
+          # This world is the observation -- it's not necessarily what the
+          # robot is actually going to be changing. Of course, in our case,
+          # it totally is.
+          plan.step(world)
 
-            # This world is the observation -- it's not necessarily what the
-            # robot is actually going to be changing. Of course, in our case,
-            # it totally is.
-            plan.step(world)
+          rate.sleep()
 
-        rate.sleep()
     except rospy.ROSInterruptException, e:
         pass
 
@@ -101,6 +100,7 @@ def do_search(world, task, objects):
 
     objects = ['box1', 'orange1', 'orange2', 'orange3', 'trash1', 'squeeze_area1']
     world.updateObservation(objects)
+    world = world.fork(world.zeroAction(0))
 
     while len(world.observation) == 0:
         rospy.sleep(0.1)
