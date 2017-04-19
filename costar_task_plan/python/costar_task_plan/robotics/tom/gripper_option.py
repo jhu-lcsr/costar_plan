@@ -36,15 +36,25 @@ class TomGripperCloseOption(TomGripperOption):
   def getGatingCondition(self, *args, **kwargs):
     return TomGripperIsClosedCondition()
 
+# =============================================================================
+# POLICIES
+
 # Close the gripper
 class TomCloseGripperPolicy(AbstractPolicy):
-    def __call__(self, *args, **kwargs):
-        return CostarAction(dq=np.zeros((6,)), gripper_cmd="close")
+  def __call__(self, world, state, *args, **kwargs):
+    return CostarAction(q=state.q,
+                        dq=np.zeros(state.q.shape),
+                        gripper_cmd="close")
 
 # Open the gripper
 class TomOpenGripperPolicy(AbstractPolicy):
-    def __call__(self, *args, **kwargs):
-        return CostarAction(dq=np.zeros((6,)), gripper_cmd="open")
+  def __call__(self, world, state, *args, **kwargs):
+    return CostarAction(q=state.q,
+                        dq=np.zeros(state.q.shape),
+                        gripper_cmd="open")
+
+# =============================================================================
+# Conditions
 
 # Determines whether or not a gripper has been set to the appropriate state.
 # This is based on the world information.
