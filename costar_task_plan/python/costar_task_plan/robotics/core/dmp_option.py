@@ -74,4 +74,7 @@ class DmpCondition(AbstractCondition):
     if actor is None:
       actor = world.actors[0]
     
-    return state.seq == 0 or np.any(np.abs(state.dq) > 1e-2)
+    # Determine if we finished the last action so we can switch active DMPs.
+    ok_to_start = self.dmp is not state.reference and \
+        (state.finished_last_sequence or state.reference is None)
+    return ok_to_start or np.any(np.abs(state.dq) > 1e-2)

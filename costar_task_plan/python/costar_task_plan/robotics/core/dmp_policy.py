@@ -57,7 +57,7 @@ class CartesianDmpPolicy(DmpPolicy):
   def evaluate(self, world, state, actor=None):
     # =========================================================================
     # make the trajectory based on the current state
-    reset_seq = state.reference is not self
+    reset_seq = state.reference is not self.dmp
     #print "reset?", (state.reference is not self), state.reference, self
     g = []
     if state.seq == 0 or reset_seq:
@@ -96,12 +96,11 @@ class CartesianDmpPolicy(DmpPolicy):
       T.p[1] = pt.positions[1]
       T.p[2] = pt.positions[2]
       q = self.kinematics.inverse(pm.toMatrix(T), state.q)
-      print "q0 =", state.q, "to", q
-      print q
+      #print "q0 =", state.q, "to", q
       if q is not None:
         #self.q = q
         dq = (q - state.q) / world.dt
-        return CostarAction(q=q, dq=dq, reset_seq=reset_seq, reference=self)
+        return CostarAction(q=q, dq=dq, reset_seq=reset_seq, reference=self.dmp)
       else:
         print "!!!!!!!!!!!!!"
         return None
@@ -109,8 +108,9 @@ class CartesianDmpPolicy(DmpPolicy):
       # Compute a zero action from the current world state. This involves
       # looking up actor information from the current world.
       action = world.zeroAction(state.actor_id)
-      print "DONE:", action.q, action.dq
-      action.reference = self
+      #print "DONE:", action.q, action.dq
+      action.reference = self.dmp
+      action.finish_sequence = True
       return action
         
 

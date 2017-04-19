@@ -58,12 +58,15 @@ class SimulatedDynamics(AbstractDynamics):
       # Use the provided velocities to compute a position based on the time stamp.
       q = state.q + (action.dq * dt)
 
+    # Costar states also include some state information for the sake of our
+    # dynamic movement primitives.
     return CostarState(state.world,
             state.actor_id,
             q=q,
             dq=action.dq,
             seq=seq,
             gripper_closed=gripper_closed,
+            finished_last_sequence=action.finish_sequence,
             reference=action.reference)
 
 
