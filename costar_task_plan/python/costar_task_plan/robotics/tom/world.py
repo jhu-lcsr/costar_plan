@@ -20,10 +20,14 @@ from costar_task_plan.robotics.core import DemoReward
 class TomWorld(CostarWorld):
 
   def __init__(self, data_root='', fake=True, load_dataset=False, *args, **kwargs):
+    if not fake:
+      raise NotImplementedError('Not quite set up yet')
+    else:
+      observe = None
     super(TomWorld,self).__init__(None,
         namespace='/tom',
+        observe=observe,
         robot_config=[TOM_RIGHT_CONFIG, TOM_LEFT_CONFIG],
-        fake=fake,
         *args, **kwargs)
 
     self.oranges = []

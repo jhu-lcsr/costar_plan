@@ -36,7 +36,7 @@ LOGGER = logging.getLogger(__name__)
 class CostarWorld(AbstractWorld):
   def __init__(self, reward,
       namespace = '/costar',
-      fake=True,
+      observe=None,
       robot_config=None,
 
       *args, **kwargs):
@@ -67,7 +67,7 @@ class CostarWorld(AbstractWorld):
     self.tf_listener = None
 
     # Other things
-    self.fake = fake
+    self.observe = observe
     self.predicates = []
     self.namespace = namespace
 
@@ -86,22 +86,23 @@ class CostarWorld(AbstractWorld):
     self.tf_pub = tf.TransformBroadcaster()
 
     # Create and add all the robots we want in this world.
-    for robot in robot_config:
+    for i, robot in enumerate(robot_config):
       if robot['q0'] is not None:
-        s0 = CostarState(self, q=robot['q0'])
+        s0 = CostarState(self, i, q=robot['q0'])
       else:
         js_listener = JointStateListener(robot)
         self.js_listeners[robot['name']] = js_listener
         rospy.sleep(0.1)
         if js_listener.q0 is not None:
-          s0 = CostarState(self, q=js_listener.q0)
+          s0 = CostarState(self, i, q=js_listener.q0)
         else:
-          s0 = CostarState(self, q=np.zeros((robot['dof'],)))
+          s0 = CostarState(self, i, q=np.zeros((robot['dof'],)))
 
-      self.addActor(CostarActor(robot,
-        state=s0,
-        dynamics=self.getT(robot),
-        policy=NullPolicy()))
+      self.addActor(
+        CostarActor(robot,
+          state=s0,
+          dynamics=self.getT(robot),
+          policy=NullPolicy()))
 
     # -------------------------------------------------------------------------
     # For grippers. We check these on a hook() to get the current gripper state.
@@ -118,6 +119,14 @@ class CostarWorld(AbstractWorld):
     self.base_link = self.actors[0].base_link
 
     self.lfd = LfD(self)
+
+  # This is the standard update performed at every tick. If we're actually
+  # observing the world somehow, then this needs to update object information.
+  def hook(self):
+    if self.observe is not None:
+      # This calls the observe function with this world as an argument in order
+      # to update any of its internal information.
+      self.observe(self)
   
   # [LEARNING HELPER FUNCTION ONLY]
   # Add a bunch of trajectory for use in learning.
@@ -162,10 +171,10 @@ class CostarWorld(AbstractWorld):
 
   # Create the set of dynamics used for this particular option/option distribution.
   def getT(self,robot_config,*args,**kwargs):
-    if self.fake:
+    if self.observe is None:
       return SimulatedDynamics()
     else:
-      return SubscriberDynamics(self.js_listeners[robot_config['name']])
+      return self.observe.dynamics(self, robot_config)
   
   # Hook is called after the world updates each actor according to its policy.
   # It has a few responsibilities:
@@ -253,8 +262,8 @@ class CostarWorld(AbstractWorld):
     else:
         LOGGER.warning('model "%s" does not exist'%name)
 
-  def zeroAction(self):
-    q = np.zeros((self.actors[0].dof,))
+  def zeroAction(self, actor_id):
+    q = np.zeros((self.actors[actor_id].dof,))
     return CostarAction(dq=q)
 
   # Create te

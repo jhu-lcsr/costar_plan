@@ -103,14 +103,16 @@ class CartesianDmpPolicy(DmpPolicy):
       if q is not None:
         #self.q = q
         dq = (q - state.q) / world.dt
-        return CostarAction(dq=dq, reset_seq=reset_seq, reference=self)
+        return CostarAction(q=q, dq=dq, reset_seq=reset_seq, reference=self)
       else:
         print "!!!!!!!!!!!!!"
         return None
     else:
-        action = world.zeroAction()
-        action.reference = self
-        return action
+      # Compute a zero action from the current world state. This involves
+      # looking up actor information from the current world.
+      action = world.zeroAction(state.actor_id)
+      action.reference = self
+      return action
         
 
         

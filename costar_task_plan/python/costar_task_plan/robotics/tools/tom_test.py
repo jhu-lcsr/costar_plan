@@ -64,7 +64,11 @@ def load_tom_data_and_run():
 
     path = do_search(world, task, objects)
     print "Done planning."
-    plan = ExecutionPlan(path, TomPointExecute(joints=world.actors[0].joints, dt=world.dt))
+
+    # Tom execution works by sending a joint state message with just the robot
+    # joints for the arm we want to move. The idea is that we can treat the two
+    # arms and the base all as separate "actors."
+    plan = ExecutionPlan(path, TomPointExecute(joints=world.actors[0].joints))
 
     rate = rospy.Rate(1)
     try:

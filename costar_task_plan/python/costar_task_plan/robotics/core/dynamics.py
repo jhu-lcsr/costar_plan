@@ -21,7 +21,7 @@ class SubscriberDynamics(AbstractDynamics):
     # publish joint command to whatever topic
 
     # then update and return
-    return CostarState(state.world, q=self.listener.q0)
+    return CostarState(state.world, state.actor_id, q=self.listener.q0)
 
 # Apply the motion at each of the joints to get the next point we want to move
 # to. This will also update the gripper state if it's one of the basic gripper
@@ -59,6 +59,7 @@ class SimulatedDynamics(AbstractDynamics):
       q = state.q + (action.dq * dt)
 
     return CostarState(state.world,
+            state.actor_id,
             q=q,
             dq=action.dq,
             seq=seq,

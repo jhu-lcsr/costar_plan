@@ -38,6 +38,10 @@ class AbstractWorld(object):
     # This should be coupled with new collision conditions.
     self.draw_sprites = False
 
+  def zeroAction(self, actor_id=0):
+    raise NotImplementedError('This should be overridden by the child class '
+        'implementing the world.')
+
   def setTask(self, task):
     self.task = task
 
@@ -52,7 +56,10 @@ class AbstractWorld(object):
 
   # override this if there's some cleanup logic that needs to happen after dynamics updates
   def hook(self):
-    pass
+    raise NotImplementedError('This should be overridden by the child class '
+        'implementing the world. It implements the world global update rules, '
+        'and ensures the world is in a valid state after all actors collect '
+        'independent updates.')
 
   def getFeatureBounds(self):
     return self.features.getBounds()

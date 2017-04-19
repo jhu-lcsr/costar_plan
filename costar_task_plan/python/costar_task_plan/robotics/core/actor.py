@@ -5,7 +5,12 @@ from costar_task_plan.abstract import *
 
 # State of a particular actor. It's the joint state, nice and simple.
 class CostarState(AbstractState):
-  def __init__(self, world, q=np.array([]), dq=np.array([]), reference=None, seq=0, gripper_closed=False):
+  def __init__(self, world, actor_id,
+      q=np.array([]),
+      dq=np.array([]),
+      reference=None, seq=0, gripper_closed=False):
+
+    # Set up list of predicates
     self.predicates = []
     if isinstance(q, list):
       q = np.array(q)
@@ -22,8 +27,10 @@ class CostarState(AbstractState):
 
     # This should (hopefully) be a reference the world. it hardly matters
     # for something like this, though -- our states hold very little
-    # information.
+    # information. The actor ID is important for looking up config information
+    # for the actor when updating their state or computing motion plans.
     self.world = world
+    self.actor_id = actor_id
 
   def toArray(self):
     return self.q
