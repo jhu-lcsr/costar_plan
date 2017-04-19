@@ -90,7 +90,7 @@ def MakeTomTaskModel(lfd):
   task.add("pickup", None, __pick_args(lfd))
   task.add("grasp1", ["pickup"], __grasp_args())
   task.add("move", ["grasp1"], __move_args(lfd))
-  task.add("release1", ["move"], __release_args())
+  #task.add("release1", ["move"], __release_args())
   #task.add("test", ["release1"], __test_args(lfd))
   #task.add("grasp2", ["test"], __grasp_args())
   #task.add("box", ["grasp2"], __box_args(lfd))

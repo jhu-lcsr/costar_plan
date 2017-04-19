@@ -34,8 +34,9 @@ class SimulatedDynamics(AbstractDynamics):
   # Simulated dynamics assume we can get from our current state to the next
   # set point from a DMP trajectory, or whatever.
   def apply(self, state, action, dt):
-    if action.reset_seq or action.reference is not state.reference \
-            or action.reference is None:
+    if action.reset_seq \
+        or action.reference is not state.reference \
+        or action.reference is None:
       seq = 0
     else:
       seq = state.seq + 1

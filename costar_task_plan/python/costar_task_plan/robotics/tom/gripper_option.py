@@ -22,7 +22,7 @@ class TomGripperOpenOption(TomGripperOption):
 
   # Holds until the world reports that TOM's gripper is closed
   def getGatingCondition(self, *args, **kwargs):
-    return TomGripperNotClosedCondition()
+    return TomGripperIsClosedCondition()
 
 # Send a close command and wait until that's successful
 class TomGripperCloseOption(TomGripperOption):
@@ -30,27 +30,35 @@ class TomGripperCloseOption(TomGripperOption):
     super(TomGripperCloseOption,self).__init__(True)
 
   def makePolicy(self):
-    return TomOpenGripperPolicy()
+    return TomCloseGripperPolicy()
 
   # Holds until the world reports TOM's gripper is open
   def getGatingCondition(self, *args, **kwargs):
-    return TomGripperIsClosedCondition()
+    return TomGripperNotClosedCondition()
 
 # =============================================================================
 # POLICIES
 
 # Close the gripper
 class TomCloseGripperPolicy(AbstractPolicy):
-  def __call__(self, world, state, *args, **kwargs):
+  def evaluate(self, world, state, *args, **kwargs):
+    print "======================"
+    print "close"
+    print "======================"
     return CostarAction(q=state.q,
                         dq=np.zeros(state.q.shape),
+                        reference=None,
                         gripper_cmd="close")
 
 # Open the gripper
 class TomOpenGripperPolicy(AbstractPolicy):
-  def __call__(self, world, state, *args, **kwargs):
+  def evaluate(self, world, state, *args, **kwargs):
+    print "======================"
+    print "open"
+    print "======================"
     return CostarAction(q=state.q,
                         dq=np.zeros(state.q.shape),
+                        reference=None,
                         gripper_cmd="open")
 
 # =============================================================================
@@ -64,7 +72,7 @@ class TomGripperCondition(AbstractCondition):
       self.gripper_closed = gripper_closed
 
   def __call__(self, world, state, actor=None, prev_state=None):
-      pass
+    return state.gripper_closed == self.gripper_closed
 
 # Hodls while the gripper is open or closing
 class TomGripperNotClosedCondition(TomGripperCondition):
