@@ -17,24 +17,21 @@ TTS can be installed either as a ROS catkin package or as an independent python 
 
 To install the python packages on which TTS depends:
 ```
-pip install h5py Theano pygame sympy matplotlib pygame gmr networkx dtw pypr
+pip install h5py Theano pygame sympy matplotlib pygame gmr networkx dtw pypr gym
 ```
+
+This includes:
+  - [OpenAI Gym](https://github.com/openai/gym) -- note that you can install from `pip` as well, TTS defines its own gym environments. You do not need any of the environments, so this is best installed via `pip`.
 
 Other Required Libraries:
   - [TensorFlow](https://www.tensorflow.org/)
   - [Keras 1.1.2](https://github.com/fchollet/keras)
   - [Keras-RL](https://github.com/matthiasplappert/keras-rl/) -- it may be useful to look at [my fork](https://github.com/cpaxton/keras-rl) if you run into any issues.
-  - [OpenAI Gym](https://github.com/openai/gym) -- note that you can install from `pip` as well, TTS defines its own gym environments.
-
-Included executables (for now you need to add these to your path if you want to use LTL):
-  - `ltl2ba` tool from [here](http://www.lsv.ens-cachan.fr/~gastin/ltl2ba/download.php)
-  - `ltl2dstar` tool from [here](http://www.ltl2dstar.de/)
 
 **[For developers]** Libraries referenced, but not needed as prerequisites:
   - [Tensorflow-Reinforce](https://github.com/yukezhu/tensorflow-reinforce)
   - [Guided Policy Search](https://github.com/cbfinn/gps) - `traj_opt` directly included
   - [KeRLym](https://github.com/osh/kerlym) - referenced during `Trainer` implementation
-
 
 ## Problem Domains
 
