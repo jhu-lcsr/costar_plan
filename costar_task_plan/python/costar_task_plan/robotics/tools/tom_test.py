@@ -11,7 +11,7 @@ from costar_task_plan.mcts import DefaultTaskMctsPolicies, Node
 from costar_task_plan.mcts import MonteCarloTreeSearch
 from costar_task_plan.mcts import ExecutionPlan, DefaultExecute
 from costar_task_plan.robotics.core import *
-from costar_task_plan.robotics.tom import TomWorld
+from costar_task_plan.robotics.tom import TomWorld, TomPointExecute
 from costar_task_plan.tools import showTask
 
 import rospy
@@ -64,7 +64,7 @@ def load_tom_data_and_run():
 
     path = do_search(world, task, objects)
     print "Done planning."
-    plan = ExecutionPlan(path, DefaultExecute(world))
+    plan = ExecutionPlan(path, TomPointExecute(joints=world.actors[0].joints, dt=world.dt))
 
     rate = rospy.Rate(1)
     try:

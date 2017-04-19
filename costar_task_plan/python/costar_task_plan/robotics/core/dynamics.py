@@ -31,6 +31,8 @@ class SimulatedDynamics(AbstractDynamics):
   def __init__(self):
     pass
 
+  # Simulated dynamics assume we can get from our current state to the next
+  # set point from a DMP trajectory, or whatever.
   def apply(self, state, action, dt):
     if action.reset_seq or action.reference is not state.reference \
             or action.reference is None:
@@ -48,7 +50,14 @@ class SimulatedDynamics(AbstractDynamics):
     else:
       gripper_closed = state.gripper_closed
 
-    q = state.q + (action.dq * dt)
+    if state.q.shape == action.q.shape:
+      # If we got a position just assume that the action gets there
+      # successfully.
+      q = action.q
+    else:
+      # Use the provided velocities to compute a position based on the time stamp.
+      q = state.q + (action.dq * dt)
+
     return CostarState(state.world,
             q=q,
             dq=action.dq,

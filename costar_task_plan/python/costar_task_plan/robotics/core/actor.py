@@ -35,7 +35,10 @@ class CostarAction(AbstractAction):
           reference=None, gripper_cmd=None):
     if isinstance(dq, list):
       dq = np.array(dq)
+    if isinstance(q, list):
+      q = np.array(q)
 
+    self.q = q
     self.dq = dq
     self.reset_seq = reset_seq
     self.reference = reference
