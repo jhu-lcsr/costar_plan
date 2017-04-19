@@ -51,6 +51,9 @@ class ExecutionPlan(object):
         if cmd is None:
             cmd = world.zeroAction()
             done = True
+
+        # Send the command
+        rospy.logwarn("Command is: " + str(cmd.dq))
         
         # If we did not perform any other action, just update and tick the
         # world. Otherwise cmd will hold the value of the next policy.
