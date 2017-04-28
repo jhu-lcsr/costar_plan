@@ -1,0 +1,102 @@
+<?xml version="1.0" ?>
+<robot name="ur5_robotiq_parallel" xmlns:xacro="http://ros.org/wiki/xacro">
+	
+  <!-- common stuff -->
+  <xacro:include filename="$(find ur5_robotiq_parallel_description)/urdf/ur5/ur5.gazebo.urdf.xacro" />
+
+  <!-- ur5 -->
+  <xacro:include filename="$(find ur5_robotiq_parallel_description)/urdf/ur5/ur5.urdf.xacro" />
+  <xacro:include filename="$(find ur5_robotiq_parallel_description)/urdf/ur5/ur5.transmission.xacro" />
+	
+  <!-- Robotiq gripper -->
+  <xacro:include filename="$(find ur5_robotiq_parallel_description)/urdf/robotiq_85/robotiq_85_gripper.urdf.xacro" />
+  <xacro:include filename="$(find ur5_robotiq_parallel_description)/urdf/robotiq_85/gripper.transmission.xacro" />
+
+
+  <!-- Kinect -->
+   <xacro:include filename="$(find ur5_robotiq_parallel_description)/urdf/kinect/kinect.xacro"/>
+   <xacro:include filename="$(find ur5_robotiq_parallel_description)/urdf/kinect/kinect_properties2.xacro"/>
+   <xacro:include filename="$(find ur5_robotiq_parallel_description)/urdf/kinect/kinect_gazebo2.urdf.xacro"/>
+
+ <property name="M_PI" value="3.14159"/>
+
+	<!-- property list -->
+	
+	<xacro:property name="robot_stand_height" value="0.75"/>
+	<xacro:property name="kinect_stand_length" value="1.5"/>
+	<xacro:property name="kinect_stand_distance" value="0.10"/>
+	<xacro:ur5_robot prefix="" joint_limited="true"/>
+	<xacro:robotiq_85_gripper prefix=""/>
+	<!-- color macros -->
+	
+	
+	<xacro:macro name="material_orange_transparent">
+		<material name="orange_transparent">
+			<color rgba="1 0.5 0 0.4"/>
+		</material>
+	</xacro:macro>
+	<xacro:macro name="material_blue_transparent">
+		<material name="blue_transparent">
+			<color rgba="0 0.8 1 0.4"/>
+		</material>
+	</xacro:macro>
+	
+	<xacro:material_orange_transparent />
+	
+	<xacro:material_blue_transparent />
+	<!-- end of color macros -->
+
+	
+	<link name="world"/>
+	<link name="stand">
+		<visual>
+		<geometry>
+		<cylinder radius="0.0735" length="${robot_stand_height}"/>
+		</geometry>
+		<material name="orange_transparent"/>
+		</visual>
+		<collision>
+		<geometry>
+		<cylinder radius="0.0735" length="${robot_stand_height}"/>
+		</geometry>
+		<material name="blue_transparent"/>
+		</collision>
+	</link>
+	
+
+	<!-- instantiating sensor definitions -->
+
+	
+	<!--sensor_kinect  parent="stand"/-->
+	<!-- end of sensor definitions -->
+	<!-- fixing barrett hand to the ur5 -->
+	
+        <xacro:sensor_kinect  parent="stand" >
+     <!--origin xyz="0 1.8 0" rpy="0 0 0"/-->
+  </xacro:sensor_kinect >
+	
+	<joint name="arm_to_gripper" type="fixed">
+		<parent link="ee_link"/>
+		
+		<child link="robotiq_85_root"/>
+		<origin xyz="0 0 0" rpy="0 0 0"/>
+	</joint>
+	<!-- Hand attached to the arm -->
+
+	<joint name="world_to_stand" type="fixed">
+		<parent link="world"/>
+		<child link="stand"/>
+		<origin xyz="0 0 0" rpy="0 0 0"/>
+	</joint>
+	
+
+		
+	<joint name="stand_to_base" type="fixed">
+		<parent link="stand"/>
+		<!--child link="${arm_prefix}base_link"/-->
+		<child link="base_link"/>
+		<origin xyz="0 0 ${robot_stand_height * 0.5}" rpy="0 0 1.57"/>
+	</joint>
+		
+	
+</robot>
