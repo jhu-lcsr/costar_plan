@@ -88,6 +88,11 @@ class LfD(object):
             objs=objs,
             visualize=True)
 
+        if name == "test":
+          print f
+          print "goal"
+          print g
+
         self.skill_instances[name].append(instance)
         if name not in self.skill_features:
           self.skill_features[name] = f

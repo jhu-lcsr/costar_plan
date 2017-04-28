@@ -231,7 +231,7 @@ class TomDataset(Dataset):
                 elif last_stage == 1:
                     move_trajs.append(cropped_traj)
                     move_oranges.append(cropped_orange)
-                elif last_stage in [2, 3]:
+                elif last_stage == 2:
                     test_trajs.append(cropped_traj)
                     test_oranges.append(cropped_orange)
                 elif last_stage == 4:

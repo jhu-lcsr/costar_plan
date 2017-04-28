@@ -33,7 +33,10 @@ class MctsAction(AbstractMctsAction):
   At each MCTs step, we apply() our Mcts action to the new node.
   '''
   def apply(self, node):
-    child = node.expand(self.getAction(node))
+    u = self.getAction(node)
+    if a is None:
+      print self.tag, "failed"
+    child = node.expand(u)
     return self.update(child)
 
   '''

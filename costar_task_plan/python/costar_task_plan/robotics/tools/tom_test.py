@@ -81,6 +81,7 @@ def load_tom_data_and_run():
           # Print out visualization information about the world.
           world.visualize()
           world.visualizePlan(plan)
+          world.debugLfD(filled_args[0])
 
           # This world is the observation -- it's not necessarily what the
           # robot is actually going to be changing. Of course, in our case,
