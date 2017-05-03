@@ -1,0 +1,36 @@
+<?xml version='1.0'?>
+<sdf version="1.4" xmlns:xacro="http://www.ros.org/wiki/xacro" >
+  <xacro:include filename="$(find gbeam_sim)/gbeam_def.sdf.xacro"/>
+
+  <model name="gbeam_soup">
+
+    <plugin name="assembly_soup" filename="libassembly_soup_plugin.so">
+
+      <!-- Frame that poses are broadcasted in -->
+      <tf_world_frame>world</tf_world_frame>
+      <!-- do we want to publish a list of joined mates for analysis? -->
+      <publish_active_mates>1</publish_active_mates>
+
+
+      <!-- Mate Models -->
+      <xacro:gbeam_mate
+        linear_attach="0.004"
+        angular_attach="0.1"
+        linear_detach="0.015"
+        angular_detach="0.2"/>
+
+      <!-- Atom Models -->
+      <xacro:gbeam_link_atom/>
+      <xacro:gbeam_node_atom/>
+
+    </plugin>
+
+    <xacro:gbeam_node suffix="_1" pose="0.5 0.85 0.5 0 0 0"/>
+    <xacro:gbeam_node suffix="_2" pose="0.5 1.05 0.5 0 0 0"/>
+
+    <xacro:gbeam_link suffix="_1" pose="0.70 0.85 0.5 1.5708 0 0"/>
+    <xacro:gbeam_link suffix="_2" pose="0.70 1.05 0.5 1.5708 0 0"/>
+
+  </model>
+</sdf>
+

@@ -1,0 +1,11 @@
+<?xml version='1.0'?>
+<sdf version="1.4" xmlns:xacro="http://www.ros.org/wiki/xacro" >
+  <xacro:include filename="$(find grid_tasks)/assembly/double.sdf.xacro"/>
+  <xacro:training_gbeams
+    node_pos2="0.45 0.8 0.4"
+    link_pos1="0.6 0.7 0.5"
+    node_pos1="0.4 0.6 0.4"
+    node_rot2="0 0 0.7853975"
+    fix_nodes="true"
+    />
+</sdf>

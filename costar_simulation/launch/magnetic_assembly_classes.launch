@@ -1,0 +1,77 @@
+<launch>
+  <arg name="output" default="screen"/>
+
+  <node name="assembly_predicator_fake_class_node"
+    type="fake_classes.py"
+    pkg="predicator_fake_classification"
+    output="$(arg output)">
+
+    <rosparam param="class_info">
+      - name: robot
+        members:
+          - wam
+      - name: object
+        members:
+          - gbeam_node_1
+          - gbeam_node_2
+          - gbeam_link_1
+          - gbeam_link_2
+          - wam
+          - wam2
+          - stage
+      - name: node
+        members:
+          - gbeam_node_1
+          - gbeam_node_2
+      - name: link
+        members:
+          - gbeam_link_1
+          - gbeam_link_2
+    </rosparam>
+
+    <rosparam param="param_class_info">
+      - name: component
+        parent: wam
+        members:
+          - wam/shoulder_yaw_link
+          - wam/shoulder_pitch_link
+          - wam/upper_arm_link
+          - wam/forearm_link
+          - wam/wrist_yaw_link
+          - wam/wrist_pitch_link
+          - wam/wrist_palm_link
+      - name: component
+        parent: wam2
+        members:
+          - wam2/shoulder_yaw_link
+          - wam2/shoulder_pitch_link
+          - wam2/upper_arm_link
+          - wam2/forearm_link
+          - wam2/wrist_yaw_link
+          - wam2/wrist_pitch_link
+          - wam2/wrist_palm_link
+      - name: component
+        parent: gbeam_link_1
+        members:
+          - gbeam_link_1/gbeam_link
+      - name: component
+        parent: gbeam_link_2
+        members:
+          - gbeam_link_2/gbeam_link
+      - name: component
+        parent: gbeam_node_1
+        members:
+          - gbeam_node_1/gbeam_node
+      - name: component
+        parent: gbeam_node_2
+        members:
+          - gbeam_node_2/gbeam_node
+      - name: component
+        parent: stage
+        members:
+          - stage_link
+    </rosparam>
+
+
+  </node>
+</launch>
