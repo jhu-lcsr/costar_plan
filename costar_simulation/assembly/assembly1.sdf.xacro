@@ -25,11 +25,11 @@
 
     </plugin>
 
-    <xacro:gbeam_node suffix="_1" pose="0.5 0.85 0.5 0 0 0"/>
-    <xacro:gbeam_node suffix="_2" pose="0.5 1.05 0.5 0 0 0"/>
+    <xacro:gbeam_node prefix="" fixed="false" suffix="_1" pose="0.5 0.85 0.5 0 0 0"/>
+    <xacro:gbeam_node prefix="" fixed="false" suffix="_2" pose="0.5 1.05 0.5 0 0 0"/>
 
-    <xacro:gbeam_link suffix="_1" pose="0.70 0.85 0.5 1.5708 0 0"/>
-    <xacro:gbeam_link suffix="_2" pose="0.70 1.05 0.5 1.5708 0 0"/>
+    <xacro:gbeam_link prefix="" fixed="false" suffix="_1" pose="0.70 0.85 0.5 1.5708 0 0"/>
+    <xacro:gbeam_link prefix="" fixed="false" suffix="_2" pose="0.70 1.05 0.5 1.5708 0 0"/>
 
   </model>
 </sdf>
