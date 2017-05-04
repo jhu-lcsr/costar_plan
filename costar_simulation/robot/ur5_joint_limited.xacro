@@ -22,6 +22,9 @@
 
   <!-- property list -->
 
+  <xacro:property name="robot_table_y" value="1.5"/>
+  <xacro:property name="robot_on_table_x" value="0.0"/>
+  <xacro:property name="robot_on_table_y" value="-0.5"/>
   <xacro:property name="robot_table_height" value="0.75"/>
   <xacro:property name="robot_table_length" value="1.5"/>
   <xacro:property name="robot_table_width" value="0.75"/>
@@ -80,14 +83,14 @@
   <joint name="world_to_table" type="fixed">
     <parent link="world"/>
     <child link="table"/>
-    <origin xyz="0 0.75 0" rpy="0 0 0"/>
+    <origin xyz="0 ${robot_table_y} 0" rpy="0 0 0"/>
   </joint>
 
   <joint name="table_to_base" type="fixed">
     <parent link="table"/>
     <!--child link="${arm_prefix}base_link"/-->
     <child link="base_link"/>
-    <origin xyz="0 0 ${robot_table_height * 0.5}" rpy="0 0 1.57"/>
+    <origin xyz="${robot_on_table_x} ${robot_on_table_y} ${robot_table_height * 0.5}" rpy="0 0 1.57"/>
   </joint>
 
   <!-- Create the planning scene for this world and publish it -->
