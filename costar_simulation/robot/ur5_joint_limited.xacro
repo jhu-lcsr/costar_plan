@@ -90,7 +90,7 @@
     <parent link="table"/>
     <!--child link="${arm_prefix}base_link"/-->
     <child link="base_link"/>
-    <origin xyz="${robot_on_table_x} ${robot_on_table_y} ${robot_table_height * 0.5}" rpy="0 0 1.57"/>
+    <origin xyz="${robot_on_table_x} ${robot_on_table_y} ${robot_table_height * 0.5}" rpy="0 0 -1.57"/>
   </joint>
 
   <!-- Create the planning scene for this world and publish it -->
