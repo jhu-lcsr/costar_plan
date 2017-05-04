@@ -4,6 +4,7 @@
 Use this script to launch the whole simulation, not the various launch files.
 '''
 
+from gazebo_msgs.srv import DeleteModel
 from gazebo_msgs.srv import SetModelConfiguration
 from std_srvs.srv import Empty as EmptySrv
 
@@ -39,6 +40,9 @@ class CostarSimulation(object):
         configure(model_name=self.model_name,
                 joint_names=self.joint_names,
                 joint_positions=self.joint_positions)
+        rospy.wait_for_service("gazebo/delete_model")
+        delete_model = rospy.ServiceProxy("gazebo/delete_model", DeleteModel)
+        delete_model("gbeam_soup")
         res = subprocess.call([
             "roslaunch",
             "costar_simulation",
