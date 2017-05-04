@@ -15,6 +15,14 @@ import sys
 import time
 
 class CostarSimulation(object):
+    '''
+    Creates and manages a gazebo simulation. Start this with:
+
+    > rosrun costar_simulation start
+
+    No need for a roscore to be running before hand. This will start and
+    hopefully manage that roscore for you.
+    '''
 
     model_name = "robot"
     joint_names = ["shoulder_pan_joint",
@@ -34,6 +42,11 @@ class CostarSimulation(object):
         time.sleep(t)
 
     def reset(self):
+        '''
+        Reset the robot's position to its start state. Create new objects to
+        manipulate based on experimental parameters.
+        '''
+
         self.pause()
         rospy.wait_for_service("gazebo/set_model_configuration")
         configure = rospy.ServiceProxy("gazebo/set_model_configuration", SetModelConfiguration)
@@ -60,6 +73,11 @@ class CostarSimulation(object):
         self.reset()
 
     def run(self):
+        '''
+        Bring up all necessary components of the simulation. You should only
+        need to do this once: after the first call to run(), you can repeatedly
+        call reset() to restore the simulation to a good state.
+        '''
 
         # ---------------------------------------------------------------------
         # Start the roscore
@@ -93,6 +111,9 @@ class CostarSimulation(object):
         self.reset_srv = rospy.Service("reset_simulation", EmptySrv, self.reset_srv_cb)
 
     def shutdown(self):
+        '''
+        Terminate all managed processes, including spawners and CoSTAR tools.
+        '''
 
         # Send terminate signal to all managed processes.
         for proc in reversed(self.procs):
