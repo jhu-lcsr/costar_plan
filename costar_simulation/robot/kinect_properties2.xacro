@@ -58,7 +58,7 @@
   </xacro:property>
 
 	<property name="pi" value="3.14159265" />
-	<property name="cam_px" value="-2" />
+	<property name="cam_px" value="0" />
 <!--	<property name="cam_py" value="-0.0125" /> Y varies for different configurations. get sets in sensors_urdf -->
 	<property name="cam_pz" value="1" />
 	<property name="cam_or" value="0" />

@@ -3,7 +3,7 @@
   <xacro:include filename="$(find costar_simulation)/robot/kinect_gazebo2.urdf.xacro"/>
   <xacro:include filename="$(find costar_simulation)/robot/kinect_properties2.xacro"/>
   
-  <xacro:property name="kinect_cam_py" value="0"/>
+  <xacro:property name="kinect_cam_py" value="1"/>
   <!-- Parameterised in part by the values in turtlebot_properties.urdf.xacro -->
   <xacro:macro name="sensor_kinect" params="parent">
     <joint name="camera_rgb_joint" type="fixed">

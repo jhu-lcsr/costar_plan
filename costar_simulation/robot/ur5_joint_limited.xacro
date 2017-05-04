@@ -14,9 +14,9 @@
 
 
   <!-- Kinect -->
-  <xacro:include filename="$(find ur5_robotiq_parallel_description)/urdf/kinect/kinect.xacro"/>
-  <xacro:include filename="$(find ur5_robotiq_parallel_description)/urdf/kinect/kinect_properties2.xacro"/>
-  <xacro:include filename="$(find ur5_robotiq_parallel_description)/urdf/kinect/kinect_gazebo2.urdf.xacro"/>
+  <xacro:include filename="$(find costar_simulation)/robot/kinect.xacro"/>
+  <xacro:include filename="$(find costar_simulation)/robot/kinect_properties2.xacro"/>
+  <xacro:include filename="$(find costar_simulation)/robot/kinect_gazebo2.urdf.xacro"/>
 
   <property name="M_PI" value="3.14159"/>
 
