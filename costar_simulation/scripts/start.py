@@ -66,14 +66,22 @@ class CostarSimulation(object):
         self.procs.append(roscontrol)
 
     def shutdown(self):
+
+        # Send terminate signal to all managed processes.
         for proc in reversed(self.procs):
             proc.terminate()
+
+        # Wait and kill everything.
         self.sleep()
         try:
             for proc in reversed(self.procs):
                 proc.kill()
         except Exception, e:
             pass
+
+        # For some reason gazebo does not shut down nicely.
+        self.sleep()
+        subprocess.call(["pkill","gzserver"])
 
     def shutdownAndExitHandler(self, *args, **kwargs):
         print('You pressed Ctrl+C! Shutting down all processes.')

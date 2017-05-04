@@ -2,12 +2,19 @@
 <robot name="sensor_kinect" xmlns:xacro="http://ros.org/wiki/xacro">
   <xacro:include filename="$(find costar_simulation)/robot/kinect_gazebo2.urdf.xacro"/>
   <xacro:include filename="$(find costar_simulation)/robot/kinect_properties2.xacro"/>
+
+	<property name="pi" value="3.14159265" />
+	<property name="cam_px" value="1.0" />
+  <property name="cam_py" value="1.0"/>
+	<property name="cam_pz" value="1.0" />
+  <property name="cam_or" value="0.0" />
+	<property name="cam_op" value="${pi*0.25}" />
+	<property name="cam_oy" value="${pi*-0.5}" />
   
-  <xacro:property name="kinect_cam_py" value="3"/>
   <!-- Parameterised in part by the values in turtlebot_properties.urdf.xacro -->
   <xacro:macro name="sensor_kinect" params="parent">
     <joint name="camera_rgb_joint" type="fixed">
-      <origin xyz="${cam_px} ${kinect_cam_py} ${cam_pz}" rpy="${cam_or} ${cam_op} ${cam_oy}"/>
+      <origin xyz="${cam_px} ${cam_py} ${cam_pz}" rpy="${cam_or} ${cam_op} ${cam_oy}"/>
 	
       <parent link="${parent}"/>
       <child link="camera_rgb_frame" />
@@ -22,7 +29,7 @@
     <link name="camera_rgb_optical_frame"/>
 
     <joint name="camera_joint" type="fixed">
-      <origin xyz="-0.031 ${-kinect_cam_py} -0.016" rpy="0 0 0"/>
+      <origin xyz="-0.031 ${-cam_py} -0.016" rpy="0 0 0"/>
       <parent link="camera_rgb_frame"/>
       <child link="camera_link"/>
     </joint>  
@@ -52,7 +59,7 @@
          files. However, for Gazebo simulation we need them, so we add them here.
          (Hence, don't publish them additionally!) -->
 	<joint name="camera_depth_joint" type="fixed">
-    <!--<origin xyz="0 ${2 * -kinect_cam_py} 0" rpy="0 0 0" />-->
+    <!--<origin xyz="0 ${2 * -cam_py} 0" rpy="0 0 0" />-->
 	  <origin xyz="0 0 0" rpy="0 0 0" />
 	  <parent link="camera_rgb_frame" />
 	  <child link="camera_depth_frame" />
