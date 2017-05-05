@@ -121,6 +121,16 @@ class CostarSimulation(object):
         self.procs.append(roscontrol)
 
         # ---------------------------------------------------------------------
+        # Start moveit
+
+
+        # ---------------------------------------------------------------------
+        # Start rviz
+        if self.rviz:
+            rviz = subprocess.Popen(['roslaunch', 'costar_simulation', 'rviz.launch'])
+            self.procs.append(rviz)
+
+        # ---------------------------------------------------------------------
         # Start reset service
         self.reset_srv = rospy.Service("costar_simulation/reset", EmptySrv, self.reset_srv_cb)
         self.resume()

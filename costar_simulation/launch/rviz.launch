@@ -1,0 +1,8 @@
+<launch>
+
+  <arg name="rviz_config" default="$(find costar_simulation)/rviz/simulation.rviz" doc="(string) rviz config file for user interface"/>
+
+  <!-- start rviz and load the appropriate rviz configuration if desired -->
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(arg rviz_config)" />
+
+</launch>
