@@ -34,6 +34,8 @@ class CostarSimulation(object):
             "wrist_3_joint"]
     joint_positions = [0.30, -1.33, -1.80, -0.27, 1.50, 1.60]
     experiment = "assembly1"
+    gui = False
+    rviz = True
 
     def __init__(self):
         self.procs = []
@@ -98,7 +100,7 @@ class CostarSimulation(object):
         
         # ---------------------------------------------------------------------
         # Start gazebo
-        gazebo = subprocess.Popen(['roslaunch', 'costar_simulation', 'ur5.launch'])
+        gazebo = subprocess.Popen(['roslaunch', 'costar_simulation', 'ur5.launch', 'gui:=%s'%str(self.gui)])
         self.procs.append(gazebo)
         self.sleep(5.)
 
