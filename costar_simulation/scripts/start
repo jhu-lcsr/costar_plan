@@ -7,6 +7,7 @@ Use this script to launch the whole simulation, not the various launch files.
 from gazebo_msgs.srv import DeleteModel
 from gazebo_msgs.srv import SetModelConfiguration
 from std_srvs.srv import Empty as EmptySrv
+from std_srvs.srv import EmptyResponse as EmptySrvResponse
 
 import rospy
 import signal
@@ -37,6 +38,8 @@ class CostarSimulation(object):
     def __init__(self):
         self.procs = []
         self.reset_srv = None
+        self.pause_srv = None
+        self.unpause_srv = None
 
     def sleep(self, t=1.0):
         time.sleep(t)
@@ -61,16 +64,21 @@ class CostarSimulation(object):
             "costar_simulation",
             "magnetic_assembly.launch",
             "experiment:=%s"%self.experiment])
-        self.resume()
 
     def pause(self):
-        pass
+        if self.pause_srv is None:
+            raise RuntimeError('Service Proxy not created! Is sim running?')
+        self.pause_srv()
 
     def resume(self):
-        pass
+        if self.unpause_srv is None:
+            raise RuntimeError('Service Proxy not created! Is sim running?')
+        self.unpause_srv()
 
     def reset_srv_cb(self, msg):
         self.reset()
+        self.unpause()
+        return EmptySrvResponse()
 
     def run(self):
         '''
@@ -94,6 +102,10 @@ class CostarSimulation(object):
         self.procs.append(gazebo)
         self.sleep(5.)
 
+        rospy.wait_for_service('gazebo/unpause_physics')
+        self.pause_srv = rospy.ServiceProxy('gazebo/pause_physics',EmptySrv)
+        self.unpause_srv = rospy.ServiceProxy('gazebo/unpause_physics',EmptySrv)
+
         # ---------------------------------------------------------------------
         # Reset the simulation. This puts the robot into its initial state, and
         # is also responsible for creating and updating positions of any objects.
@@ -109,6 +121,7 @@ class CostarSimulation(object):
         # ---------------------------------------------------------------------
         # Start reset service
         self.reset_srv = rospy.Service("costar_simulation/reset", EmptySrv, self.reset_srv_cb)
+        self.resume()
 
     def shutdown(self):
         '''
@@ -142,8 +155,8 @@ if __name__ == '__main__':
     try:
         sim.run()
     except Exception, e:
-        print e
         sim.shutdown()
+        raise e
         sys.exit(-1)
     signal.pause()
 
