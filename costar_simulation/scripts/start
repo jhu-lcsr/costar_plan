@@ -108,7 +108,7 @@ class CostarSimulation(object):
 
         # ---------------------------------------------------------------------
         # Start reset service
-        self.reset_srv = rospy.Service("reset_simulation", EmptySrv, self.reset_srv_cb)
+        self.reset_srv = rospy.Service("costar_simulation/reset", EmptySrv, self.reset_srv_cb)
 
     def shutdown(self):
         '''
