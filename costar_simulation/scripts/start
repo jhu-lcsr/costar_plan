@@ -66,6 +66,7 @@ class CostarSimulation(object):
             "costar_simulation",
             "magnetic_assembly.launch",
             "experiment:=%s"%self.experiment])
+        res = subprocess.call(["rosservice","call","publish_planning_scene"])
 
     def pause(self):
         if self.pause_srv is None:
@@ -75,11 +76,12 @@ class CostarSimulation(object):
     def resume(self):
         if self.unpause_srv is None:
             raise RuntimeError('Service Proxy not created! Is sim running?')
+        res = subprocess.call(["rosservice","call","publish_planning_scene"])
         self.unpause_srv()
 
     def reset_srv_cb(self, msg):
         self.reset()
-        self.unpause()
+        self.resume()
         return EmptySrvResponse()
 
     def run(self):
@@ -109,6 +111,13 @@ class CostarSimulation(object):
         self.unpause_srv = rospy.ServiceProxy('gazebo/unpause_physics',EmptySrv)
 
         # ---------------------------------------------------------------------
+        # Start rviz
+        if self.rviz:
+            rviz = subprocess.Popen(['roslaunch', 'costar_simulation', 'rviz.launch'])
+            self.procs.append(rviz)
+            self.sleep(1.)
+        
+        # ---------------------------------------------------------------------
         # Reset the simulation. This puts the robot into its initial state, and
         # is also responsible for creating and updating positions of any objects.
         self.reset()
@@ -123,16 +132,19 @@ class CostarSimulation(object):
         # ---------------------------------------------------------------------
         # Start moveit
 
+        # resent the whole planning scene
+        self.sleep(1.)
+        subprocess.call(["rosservice","call","publish_planning_scene"])
 
         # ---------------------------------------------------------------------
+        # Start reset servi        # ---------------------------------------------------------------------
         # Start rviz
         if self.rviz:
             rviz = subprocess.Popen(['roslaunch', 'costar_simulation', 'rviz.launch'])
             self.procs.append(rviz)
-
-        # ---------------------------------------------------------------------
-        # Start reset service
         self.reset_srv = rospy.Service("costar_simulation/reset", EmptySrv, self.reset_srv_cb)
+        self.sleep(5.)
+        res = subprocess.call(["rosservice","call","publish_planning_scene"])
         self.resume()
 
     def shutdown(self):
