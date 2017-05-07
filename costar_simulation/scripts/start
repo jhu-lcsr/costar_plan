@@ -137,11 +137,7 @@ class CostarSimulation(object):
         subprocess.call(["rosservice","call","publish_planning_scene"])
 
         # ---------------------------------------------------------------------
-        # Start reset servi        # ---------------------------------------------------------------------
-        # Start rviz
-        if self.rviz:
-            rviz = subprocess.Popen(['roslaunch', 'costar_simulation', 'rviz.launch'])
-            self.procs.append(rviz)
+        # Start reset service
         self.reset_srv = rospy.Service("costar_simulation/reset", EmptySrv, self.reset_srv_cb)
         self.sleep(5.)
         res = subprocess.call(["rosservice","call","publish_planning_scene"])

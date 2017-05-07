@@ -22,14 +22,14 @@
     <link name="camera_rgb_frame"/>
 
     <joint name="camera_rgb_optical_joint" type="fixed">
-      <origin xyz="0 0 0" rpy="${-M_PI/2} 0 ${-M_PI/2}" />
+      <origin xyz="0 ${-cam_py} 0" rpy="${-M_PI/2} 0 ${-M_PI/2}" />
       <parent link="camera_rgb_frame" />
       <child link="camera_rgb_optical_frame" />
     </joint>
     <link name="camera_rgb_optical_frame"/>
 
     <joint name="camera_joint" type="fixed">
-      <origin xyz="-0.031 ${-cam_py} -0.016" rpy="0 0 0"/>
+      <origin xyz="-0.031 0 -0.016" rpy="0 0 0"/>
       <parent link="camera_rgb_frame"/>
       <child link="camera_link"/>
     </joint>  
