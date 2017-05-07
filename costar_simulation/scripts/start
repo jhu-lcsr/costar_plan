@@ -115,7 +115,7 @@ class CostarSimulation(object):
         if self.rviz:
             rviz = subprocess.Popen(['roslaunch', 'costar_simulation', 'rviz.launch'])
             self.procs.append(rviz)
-            self.sleep(1.)
+            self.sleep(3.)
         
         # ---------------------------------------------------------------------
         # Reset the simulation. This puts the robot into its initial state, and

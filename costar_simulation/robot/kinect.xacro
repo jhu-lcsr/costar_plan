@@ -4,7 +4,7 @@
   <xacro:include filename="$(find costar_simulation)/robot/kinect_properties2.xacro"/>
 
 	<property name="pi" value="3.14159265" />
-	<property name="cam_px" value="1.0" />
+	<property name="cam_px" value="0.0" />
   <property name="cam_py" value="1.0"/>
 	<property name="cam_pz" value="1.0" />
   <property name="cam_or" value="0.0" />
@@ -22,7 +22,7 @@
     <link name="camera_rgb_frame"/>
 
     <joint name="camera_rgb_optical_joint" type="fixed">
-      <origin xyz="0 ${-cam_py} 0" rpy="${-M_PI/2} 0 ${-M_PI/2}" />
+      <origin xyz="0 0 0" rpy="${-M_PI/2} 0 ${-M_PI/2}" />
       <parent link="camera_rgb_frame" />
       <child link="camera_rgb_optical_frame" />
     </joint>
