@@ -1,0 +1,23 @@
+<?xml version="1.0" ?>
+<robot name="ur5_robotiq_parallel" xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <!-- common stuff -->
+  <xacro:include filename="$(find ur5_robotiq_parallel_description)/urdf/ur5/ur5.gazebo.urdf.xacro" />
+
+  <!-- ur5 -->
+  <xacro:include filename="$(find ur5_robotiq_parallel_description)/urdf/ur5/ur5.urdf.xacro" />
+  <xacro:include filename="$(find ur5_robotiq_parallel_description)/urdf/ur5/ur5.transmission.xacro" />
+
+  <!-- Robotiq gripper -->
+  <xacro:include filename="$(find ur5_robotiq_parallel_description)/urdf/robotiq_85/robotiq_85_gripper.urdf.xacro" />
+  <xacro:include filename="$(find ur5_robotiq_parallel_description)/urdf/robotiq_85/gripper.transmission.xacro" />
+
+  <xacro:ur5_robot prefix="" joint_limited="true"/>
+  <xacro:robotiq_85_gripper prefix=""/>
+  <joint name="arm_to_gripper" type="fixed">
+    <parent link="ee_link"/>
+
+    <child link="robotiq_85_root"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+</robot>
