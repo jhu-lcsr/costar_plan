@@ -13,11 +13,11 @@
   <xacro:include filename="$(find ur5_robotiq_parallel_description)/urdf/robotiq_85/gripper.transmission.xacro" />
 
   <xacro:ur5_robot prefix="" joint_limited="true"/>
-  <xacro:robotiq_85_gripper prefix=""/>
+  <!--<xacro:robotiq_85_gripper prefix=""/>
   <joint name="arm_to_gripper" type="fixed">
     <parent link="ee_link"/>
 
     <child link="robotiq_85_root"/>
     <origin xyz="0 0 0" rpy="0 0 0"/>
-  </joint>
+  </joint>-->
 </robot>
