@@ -9,9 +9,8 @@
   <xacro:include filename="$(find ur5_robotiq_parallel_description)/urdf/ur5/ur5.transmission.xacro" />
 
   <!-- Robotiq gripper -->
-  <xacro:include filename="$(find ur5_robotiq_parallel_description)/urdf/robotiq_85/robotiq_85_gripper.urdf.xacro" />
-  <xacro:include filename="$(find ur5_robotiq_parallel_description)/urdf/robotiq_85/gripper.transmission.xacro" />
-
+  <xacro:include filename="$(find costar_simulation)/robot/robotiq_85_gripper/urdf/robotiq_85_gripper.urdf.xacro" />
+  <xacro:include filename="$(find costar_simulation)/robot/robotiq_85_gripper/urdf/robotiq_85_gripper.transmission.xacro" />
 
   <!-- Kinect -->
   <xacro:include filename="$(find costar_simulation)/robot/kinect.xacro"/>
@@ -31,11 +30,13 @@
   <xacro:property name="kinect_table_length" value="1.5"/>
   <xacro:property name="kinect_table_distance" value="0.10"/>
   <xacro:property name="robot_name" value="ur5"/>
+
   <xacro:ur5_robot prefix="" joint_limited="true"/>
-  <xacro:robotiq_85_gripper prefix=""/>
+  <xacro:robotiq_85_gripper prefix="" parent="ee_link">
+    <origin xyz="0.0 0.0 0.0" rpy="${M_PI / 2} 0 0"/>
+  </xacro:robotiq_85_gripper>
+
   <!-- color macros -->
-
-
   <xacro:macro name="material_orange_transparent">
     <material name="orange_transparent">
       <color rgba="1 0.5 0 0.4"/>
@@ -72,14 +73,7 @@
 
   <xacro:sensor_kinect  parent="table"/>
 
-  <joint name="arm_to_gripper" type="fixed">
-    <parent link="ee_link"/>
-
-    <child link="robotiq_85_root"/>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-  </joint>
   <!-- Hand attached to the arm -->
-
   <joint name="world_to_table" type="fixed">
     <parent link="world"/>
     <child link="table"/>
