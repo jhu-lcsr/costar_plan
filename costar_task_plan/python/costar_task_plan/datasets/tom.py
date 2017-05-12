@@ -141,6 +141,12 @@ class TomDataset(Dataset):
         elif topic == self.arm_data_topic:
             data = msg
         elif topic == self.right_arm_end_frame_topic:
+            # convert pose from this representation to a KDL frame
+            pose = pm.fromMsg(msg)
+
+            # move it back some amount
+            pose = pose * pm.Frame(pm.Vector(-0.1, 0, 0))
+            raise NotImplementedError('need to fix this distance -- from grasp frame')
             pose = msg
         elif topic == self.vision_topic:
             orange = msg.objData[0]
