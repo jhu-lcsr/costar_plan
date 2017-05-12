@@ -9,6 +9,7 @@ from moveit_msgs.msg import CollisionObject
 from sensor_msgs.msg import JointState
 from shape_msgs.msg import SolidPrimitive
 from std_srvs.srv import Empty as EmptySrv
+from std_srvs.srv import EmptyResponse
 from trajectory_msgs.msg import JointTrajectoryPoint
 
 # This is a very crude simulator that determines what TOM can do. We use this
@@ -22,6 +23,7 @@ class TomSim(object):
     def reset_cb(self, msg):
         for name, q in zip(self.joint_names, self.default_pose):
             self.qs[name] = q
+        return EmptyResponse()
 
     def __init__(self):
         self.seq = 0

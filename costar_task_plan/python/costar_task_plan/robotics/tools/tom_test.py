@@ -69,6 +69,7 @@ def load_tom_data_and_run():
     # joints for the arm we want to move. The idea is that we can treat the two
     # arms and the base all as separate "actors."
     plan = ExecutionPlan(path, OpenLoopTomExecute(world, 0))
+    execute = False
 
     rate = rospy.Rate(10)
     try:
@@ -86,7 +87,8 @@ def load_tom_data_and_run():
           # This world is the observation -- it's not necessarily what the
           # robot is actually going to be changing. Of course, in our case,
           # it totally is.
-          plan.step(world)
+          if execute:
+            plan.step(world)
 
           rate.sleep()
 
