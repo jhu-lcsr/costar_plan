@@ -145,9 +145,10 @@ class TomDataset(Dataset):
             pose = pm.fromMsg(msg)
 
             # move it back some amount
-            pose = pose * pm.Frame(pm.Vector(-0.1, 0, 0))
-            raise NotImplementedError('need to fix this distance -- from grasp frame')
-            pose = msg
+            pose = pose * pm.Frame(pm.Vector(0, 0, -0.12))
+
+            # still saved as messages
+            pose = pm.toMsg(pose)
         elif topic == self.vision_topic:
             orange = msg.objData[0]
 
