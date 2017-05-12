@@ -34,7 +34,8 @@ def build_image_input(sess,train=True, novel=True):
     data_dir = os.path.expanduser('~/Downloads/google_brainrobotdata_grasp')
   else:
     data_dir = os.path.expanduser('~/Downloads/google_brainrobotdata_grasp')
-  #filenames = gfile.Glob(os.path.join(data_dir, '*.tfrecord*'))
+  filenames = gfile.Glob(os.path.join(data_dir, '*.tfrecord*'))
+  feature_csv_files = gfile.Glob(os.path.join(data_dir, '*.csv*'))
   #filenames = ['/Users/athundt/Downloads/google_brainrobotdata_grasp/grasping_dataset_052.tfrecord']
   filenames = ['/Users/athundt/Downloads/google_brainrobotdata_grasp/grasping_dataset_102.tfrecord-00000-of-00219']
 
