@@ -11,7 +11,7 @@ import time
 Wrapper for talking to a single robot.
 '''
 class CostarBulletSimulation(object):
-    def __init__(self, robot, task, gui=False, ros=True, ros_name="simulation", *args, **kwargs):
+    def __init__(self, robot, task, gui=False, ros=False, ros_name="simulation", *args, **kwargs):
         self.gui = gui
         self.robot = GetRobotInterface(robot)
         self.task = GetTaskDefinition(task, self.robot)
