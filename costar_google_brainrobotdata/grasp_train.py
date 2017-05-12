@@ -10,6 +10,11 @@ from tensorflow.python.platform import gfile
 
 import moviepy.editor as mpy
 
+tf.flags.DEFINE_string('data_dir', '~/Downloads/google_brainrobotdata_grasp', """Path to dataset in TFRecord format
+                       (aka Example protobufs). If not specified,
+                       synthetic data will be used.""")
+tf.flags.DEFINE_integer('batch_size', 25, 'batch size per compute device')
+
 FLAGS = flags.FLAGS
 
 # Original image dimensions
@@ -30,23 +35,14 @@ def build_image_input(sess, train=True, novel=True):
     Raises:
       RuntimeError: if no files found.
     """
-    if train:
-        data_dir = os.path.expanduser('~/Downloads/google_brainrobotdata_grasp')
-    elif novel:
-        data_dir = os.path.expanduser('~/Downloads/google_brainrobotdata_grasp')
-    else:
-        data_dir = os.path.expanduser('~/Downloads/google_brainrobotdata_grasp')
 
-    feature_csv_files = gfile.Glob(os.path.join(data_dir, '*.csv*'))
+    feature_csv_files = gfile.Glob(os.path.join(os.path.expanduser(FLAGS.data_dir), '*.csv*'))
     for feature_csv_file in feature_csv_files:
         print(feature_csv_file)
         features = np.genfromtxt(feature_csv_file, dtype=str)
         feature_count = int(features[0])
         attempt_count = int(features[1])
-        filenames = gfile.Glob(os.path.join(data_dir, '*{}.tfrecord*-of-*'.format(feature_count)))
-
-        # filenames = ['/Users/athundt/Downloads/google_brainrobotdata_grasp/grasping_dataset_052.tfrecord']
-        # filenames = ['/Users/athundt/Downloads/google_brainrobotdata_grasp/grasping_dataset_102.tfrecord-00000-of-00219']
+        filenames = gfile.Glob(os.path.join(os.path.expanduser(FLAGS.data_dir), '*{}.tfrecord*-of-*'.format(feature_count)))
 
         print(filenames)
         if not filenames:
@@ -75,7 +71,7 @@ def build_image_input(sess, train=True, novel=True):
 
     image_batch = tf.train.batch(
         [image_seq],
-        BATCH_SIZE,
+        FLAGS.batch_size,
         num_threads=1,
         capacity=1)
 
@@ -92,7 +88,7 @@ tf.train.start_queue_runners(sess)
 sess.run(tf.global_variables_initializer())
 train_videos = sess.run(train_image_tensor)
 
-for i in range(BATCH_SIZE):
+for i in range(FLAGS.batch_size):
     video = train_videos[i]
     npy_to_gif(video, '~/grasp_' + str(i) + '.gif')
 
