@@ -18,7 +18,10 @@ def ParseBulletArgs():
                         help="Task to load. This will determine what objects appear in the world as well as the reward function.",
                         choices=GetAvailableTasks(),
                         default=GetAvailableTasks()[0])
-    parser.add_argument('--name',
+    parser.add_argument('--start_ros','--ros','-R',
+                        help="Start as a ROS node.",
+                        action="store_true")
+    parser.add_argument('--ros_name','--rn',
                         help="ROS node name for client (optional; only advanced users need to worry about this)",
                         default="costar_bullet_simulation")
     parser.add_argument('--algorithm',

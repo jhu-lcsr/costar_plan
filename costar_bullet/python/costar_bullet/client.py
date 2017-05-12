@@ -11,16 +11,19 @@ import time
 Wrapper for talking to a single robot.
 '''
 class CostarBulletSimulation(object):
-    def __init__(self, robot, task, gui=False, name="simulation", *args, **kwargs):
+    def __init__(self, robot, task, gui=False, ros=True, ros_name="simulation", *args, **kwargs):
         self.gui = gui
         self.robot = GetRobotInterface(robot)
         self.task = GetTaskDefinition(task, self.robot)
 
-        # managed list of processes
+        # managed list of processes and other metadata
         self.procs = []
+        self.ros = ros
 
-        # boot up ROS and open a connection to the simulation server
-        self._start_ros(name)
+        if ros:
+            # boot up ROS and open a connection to the simulation server
+            self._start_ros(ros_name)
+
         self.open()
 
     def _start_ros(self, name):
