@@ -15,6 +15,7 @@ from costar_task_plan.robotics.tom import TomWorld, OpenLoopTomExecute
 from costar_task_plan.tools import showTask
 from std_srvs.srv import Empty as EmptySrv
 
+import argparse
 import rospy
 
 def load_tom_world():
@@ -39,6 +40,16 @@ def load_tom_data_and_run():
 
     import signal
     signal.signal(signal.SIGINT, exit)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-l','--loop',
+                        action="store_true",
+                        help="loop")
+    parser.add_argument('-e','--execute',
+                        action="store_true",
+                        help="execute plan by sending points and gripper commands")
+
+    test_args = parser.parse_args()
 
     try:
       rospy.init_node('tom_test_node')
@@ -87,15 +98,18 @@ def load_tom_data_and_run():
           world.debugLfD(filled_args[0])
 
           res = False
+
           # This world is the observation -- it's not necessarily what the
           # robot is actually going to be changing. Of course, in our case,
           # it totally is.
-          if execute:
+          if test_args.execute:
             res = plan.step(world)
 
-          if res:
+          if res and test_args.loop:
             reset()
-            plan.reset()
+            world.updateObservation(objects)
+            path = do_search(world, task, objects)
+            plan = ExecutionPlan(path, OpenLoopTomExecute(world, 0))
 
           rate.sleep()
 
@@ -111,6 +125,10 @@ def do_search(world, task, objects):
     objects = ['box1', 'orange1', 'orange2', 'orange3', 'trash1', 'squeeze_area1']
     world.updateObservation(objects)
     world = world.fork(world.zeroAction(0))
+
+    for actor in world.actors:
+        actor.state.ref = None
+        actor.state.seq = 0
 
     while len(world.observation) == 0:
         rospy.sleep(0.1)
