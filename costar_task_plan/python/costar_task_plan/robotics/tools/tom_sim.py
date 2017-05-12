@@ -8,6 +8,7 @@ from moveit_msgs.msg import PlanningScene
 from moveit_msgs.msg import CollisionObject
 from sensor_msgs.msg import JointState
 from shape_msgs.msg import SolidPrimitive
+from std_srvs.srv import Empty as EmptySrv
 from trajectory_msgs.msg import JointTrajectoryPoint
 
 # This is a very crude simulator that determines what TOM can do. We use this
@@ -18,7 +19,7 @@ from trajectory_msgs.msg import JointTrajectoryPoint
 # And it publishes joint states, too! Wow!
 class TomSim(object):
 
-    def reset_cb(self):
+    def reset_cb(self, msg):
         for name, q in zip(self.joint_names, self.default_pose):
             self.qs[name] = q
 
@@ -102,6 +103,8 @@ class TomSim(object):
         self.qs = {}
         for name, pose in zip(self.joint_names, self.default_pose):
           self.qs[name] = pose
+
+        self.reset_srv = rospy.Service('tom_sim/reset', EmptySrv, self.reset_cb)
 
         self.js_pub = rospy.Publisher('joint_states', JointState, queue_size=1000)
         self.ps_pub = rospy.Publisher('planning_scene', PlanningScene, queue_size=1000)
