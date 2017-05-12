@@ -10,10 +10,5 @@ if __name__ == '__main__':
   The client actually manages everything, including the ROS core.
   '''
 
-  args = ParseBulletArgs()
-  sim = CostarBulletSimulation(args.robot,
-                               args.task,
-                               args.gui,
-                               args.name,
-                               args.algorithm)
+  CostarBulletSimulation(**ParseBulletArgs())
   rospy.spin()

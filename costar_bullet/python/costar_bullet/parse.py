@@ -32,4 +32,4 @@ def ParseBulletArgs():
                         help="MDP discount factor gamma. Must be set so that 0 < gamma <= 1. Low gamma decreases significance of future rewards.",
                         default=1.)
 
-    return parser.parse_args()
+    return vars(parser.parse_args())
