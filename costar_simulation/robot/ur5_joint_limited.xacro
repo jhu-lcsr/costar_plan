@@ -1,0 +1,101 @@
+<?xml version="1.0" ?>
+<robot name="ur5_robotiq_parallel" xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <!-- common stuff -->
+  <xacro:include filename="$(find ur5_robotiq_parallel_description)/urdf/ur5/ur5.gazebo.urdf.xacro" />
+
+  <!-- ur5 -->
+  <xacro:include filename="$(find ur5_robotiq_parallel_description)/urdf/ur5/ur5.urdf.xacro" />
+  <xacro:include filename="$(find ur5_robotiq_parallel_description)/urdf/ur5/ur5.transmission.xacro" />
+
+  <!-- Robotiq gripper -->
+  <xacro:include filename="$(find costar_simulation)/robot/robotiq_85_gripper/urdf/robotiq_85_gripper.urdf.xacro" />
+  <xacro:include filename="$(find costar_simulation)/robot/robotiq_85_gripper/urdf/robotiq_85_gripper.transmission.xacro" />
+
+  <!-- Kinect -->
+  <xacro:include filename="$(find costar_simulation)/robot/kinect.xacro"/>
+  <xacro:include filename="$(find costar_simulation)/robot/kinect_properties2.xacro"/>
+  <xacro:include filename="$(find costar_simulation)/robot/kinect_gazebo2.urdf.xacro"/>
+
+  <property name="M_PI" value="3.14159"/>
+
+  <!-- property list -->
+
+  <xacro:property name="robot_table_y" value="1.5"/>
+  <xacro:property name="robot_on_table_x" value="0.0"/>
+  <xacro:property name="robot_on_table_y" value="-0.5"/>
+  <xacro:property name="robot_table_height" value="0.75"/>
+  <xacro:property name="robot_table_length" value="1.5"/>
+  <xacro:property name="robot_table_width" value="0.75"/>
+  <xacro:property name="kinect_table_length" value="1.5"/>
+  <xacro:property name="kinect_table_distance" value="0.10"/>
+  <xacro:property name="robot_name" value="ur5"/>
+
+  <xacro:ur5_robot prefix="" joint_limited="true"/>
+  <xacro:robotiq_85_gripper prefix="" parent="ee_link">
+    <origin xyz="0.0 0.0 0.0" rpy="${M_PI / 2} 0 0"/>
+  </xacro:robotiq_85_gripper>
+
+  <!-- color macros -->
+  <xacro:macro name="material_orange_transparent">
+    <material name="orange_transparent">
+      <color rgba="1 0.5 0 0.4"/>
+    </material>
+  </xacro:macro>
+  <xacro:macro name="material_blue_transparent">
+    <material name="blue_transparent">
+      <color rgba="0 0.8 1 0.4"/>
+    </material>
+  </xacro:macro>
+
+  <xacro:material_orange_transparent />
+
+  <xacro:material_blue_transparent />
+  <!-- end of color macros -->
+
+
+  <link name="world"/>
+  <link name="table">
+    <visual>
+      <geometry>
+        <box size = "${robot_table_width} ${robot_table_length} ${robot_table_height}"/>
+        <cylinder radius="0.0735" length="${robot_table_height}"/>
+      </geometry>
+      <material name="orange_transparent"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size = "${robot_table_width} ${robot_table_length} ${robot_table_height}"/>
+      </geometry>
+      <material name="blue_transparent"/>
+    </collision>
+  </link>
+
+  <xacro:sensor_kinect  parent="table"/>
+
+  <!-- Hand attached to the arm -->
+  <joint name="world_to_table" type="fixed">
+    <parent link="world"/>
+    <child link="table"/>
+    <origin xyz="0 ${robot_table_y} 0" rpy="0 0 0"/>
+  </joint>
+
+  <joint name="table_to_base" type="fixed">
+    <parent link="table"/>
+    <!--child link="${arm_prefix}base_link"/-->
+    <child link="base_link"/>
+    <origin xyz="${robot_on_table_x} ${robot_on_table_y} ${robot_table_height * 0.5}" rpy="0 0 -1.57"/>
+  </joint>
+
+  <!-- Create the planning scene for this world and publish it -->
+  <gazebo>
+    <plugin filename="libgazebo_ros_moveit_planning_scene.so" name="gazebo_ros_moveit_planning_scene">
+      <topicName>/planning_scene</topicName>
+      <sceneName>${robot_name}_scene</sceneName>
+      <robotName>${robot_name}</robotName>
+      <updatePeriod>0.01</updatePeriod>
+    </plugin>
+  </gazebo>
+
+
+</robot>

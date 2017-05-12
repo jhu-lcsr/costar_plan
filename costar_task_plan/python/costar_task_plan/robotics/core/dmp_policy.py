@@ -103,6 +103,7 @@ class CartesianDmpPolicy(DmpPolicy):
         return CostarAction(q=q, dq=dq, reset_seq=reset_seq, reference=self.dmp)
       else:
         print "!!!!!!!!!!!!!"
+        print pt, state.q
         return None
     else:
       # Compute a zero action from the current world state. This involves

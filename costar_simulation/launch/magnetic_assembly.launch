@@ -1,0 +1,13 @@
+<launch>
+  <arg name="experiment" default="assembly1"/>
+
+  <param name="experiment_sdf"
+    command="$(find xacro)/xacro.py '$(find costar_simulation)/assembly/$(arg experiment).sdf.xacro'"/>
+
+  <node name="$(anon sdf_spawner)"
+    pkg="gazebo_ros"
+    type="spawn_model"
+    respawn="false" output="screen"
+    args="-b -sdf -model gbeam_soup -param experiment_sdf"/>
+
+</launch>

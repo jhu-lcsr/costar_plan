@@ -1,0 +1,16 @@
+#!/usr/bin/env python
+'''
+Really simple script: reset the simulation
+'''
+
+from std_srvs.srv import Empty as EmptySrv
+
+import rospy
+
+if __name__ == '__main__':
+    rospy.init_node('costar_simulation_reset')
+    rospy.wait_for_service('costar_simulation/reset')
+    reset = rospy.ServiceProxy('costar_simulation/reset', EmptySrv)
+    reset()
+
+
