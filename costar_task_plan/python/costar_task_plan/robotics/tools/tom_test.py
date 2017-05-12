@@ -13,6 +13,7 @@ from costar_task_plan.mcts import ExecutionPlan, DefaultExecute
 from costar_task_plan.robotics.core import *
 from costar_task_plan.robotics.tom import TomWorld, OpenLoopTomExecute
 from costar_task_plan.tools import showTask
+from std_srvs.srv import Empty as EmptySrv
 
 import rospy
 
@@ -53,6 +54,7 @@ def load_tom_data_and_run():
     task = MakeTomTaskModel(world.lfd)
     args = OrangesTaskArgs()
     filled_args = task.compile(args)
+    execute = True
 
     # Perform the search
     objects = ['box1', 'orange1', 'orange2', 'orange3', 'trash1',
@@ -69,8 +71,8 @@ def load_tom_data_and_run():
     # joints for the arm we want to move. The idea is that we can treat the two
     # arms and the base all as separate "actors."
     plan = ExecutionPlan(path, OpenLoopTomExecute(world, 0))
-    execute = False
 
+    reset = rospy.ServiceProxy('tom_sim/reset',EmptySrv)
     rate = rospy.Rate(10)
     try:
         while True:
@@ -84,11 +86,16 @@ def load_tom_data_and_run():
           world.visualizePlan(plan)
           world.debugLfD(filled_args[0])
 
+          res = False
           # This world is the observation -- it's not necessarily what the
           # robot is actually going to be changing. Of course, in our case,
           # it totally is.
           if execute:
-            plan.step(world)
+            res = plan.step(world)
+
+          if res:
+            reset()
+            plan.reset()
 
           rate.sleep()
 

@@ -88,7 +88,7 @@ class CartesianDmpPolicy(DmpPolicy):
         x0 = [0.]*6
         g_threshold = [1e-1]*6
         integrate_iter=10
-        res = self.plan(x,x0,0.,g,g_threshold,self.dmp.tau,1.0,world.dt,integrate_iter)
+        res = self.plan(x,x0,0.,g,g_threshold,2*self.dmp.tau,1.0,world.dt,integrate_iter)
         q = state.q
         self.traj = res.plan
         #self.q = state.q
