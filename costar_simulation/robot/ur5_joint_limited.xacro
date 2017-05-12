@@ -2,11 +2,11 @@
 <robot name="ur5_robotiq_parallel" xmlns:xacro="http://ros.org/wiki/xacro">
 
   <!-- common stuff -->
-  <xacro:include filename="$(find ur5_robotiq_parallel_description)/urdf/ur5/ur5.gazebo.urdf.xacro" />
+  <xacro:include filename="$(find costar_simulation)/robot/ur5/ur5.gazebo.urdf.xacro" />
 
   <!-- ur5 -->
-  <xacro:include filename="$(find ur5_robotiq_parallel_description)/urdf/ur5/ur5.urdf.xacro" />
-  <xacro:include filename="$(find ur5_robotiq_parallel_description)/urdf/ur5/ur5.transmission.xacro" />
+  <xacro:include filename="$(find costar_simulation)/robot/ur5/ur5.urdf.xacro" />
+  <xacro:include filename="$(find costar_simulation)/robot/ur5/ur5.transmission.xacro" />
 
   <!-- Robotiq gripper -->
   <xacro:include filename="$(find costar_simulation)/robot/robotiq_85_gripper/urdf/robotiq_85_gripper.urdf.xacro" />
