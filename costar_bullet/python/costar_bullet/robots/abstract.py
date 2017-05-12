@@ -15,4 +15,9 @@ class AbstractRobotInterface(object):
         '''
         pass
 
-
+    def load(self):
+        '''
+        This function should take the robot, load it from file somehow, and put
+        that model into the simulation.
+        '''
+        raise NotImplementedError('This has to put the robot into the simulation.')

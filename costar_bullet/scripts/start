@@ -5,10 +5,15 @@ from costar_bullet import *
 import rospy
 
 if __name__ == '__main__':
+  '''
+  This simple tool should parse arguments and pass them to a simulation client.
+  The client actually manages everything, including the ROS core.
+  '''
 
   args = ParseBulletArgs()
-
-  procs = []
-
-  sim = CostarBulletSimulation(args.robot, args.task, args.gui, args.name)
+  sim = CostarBulletSimulation(args.robot,
+                               args.task,
+                               args.gui,
+                               args.name,
+                               args.algorithm)
   rospy.spin()

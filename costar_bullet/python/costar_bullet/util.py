@@ -8,6 +8,9 @@ def GetAvailableTasks():
 def GetAvailableRobots():
     return ["ur5_robotiq"]
 
+def GetAvailableAlgorithms():
+    return [None, "ddpg", "cdqn"]
+
 def GetTaskDefinition(task, robot, *args, **kwargs):
     '''
     Returns a particular task definition in the simulation.
