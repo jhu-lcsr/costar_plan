@@ -1,5 +1,6 @@
 
 from config import *
+from util import GetTaskDefinition, GetRobotInterface
 
 import pybullet as pb
 import rospy
@@ -12,8 +13,8 @@ Wrapper for talking to a single robot.
 class CostarBulletSimulation(object):
     def __init__(self, robot, task, gui=False, name="simulation", *args, **kwargs):
         self.gui = gui
-        self.robot = robot
-        self.task = task
+        self.robot = GetRobotInterface(robot)
+        self.task = GetTaskDefinition(task, self.robot)
 
         # managed list of processes
         self.procs = []
@@ -44,6 +45,11 @@ class CostarBulletSimulation(object):
                 raise RuntimeError('Could not connect to ROS core!')
 
     def _start_process(self, cmd, time_to_wait):
+        '''
+        Simple internal function to launch a process and wait for some amount
+        of time to pass. These are added to the client's list of managed
+        processes so we can kill them all later.
+        '''
         proc = subprocess.Popen(cmd)
         self.procs.append(proc)
         time.sleep(time_to_wait)
@@ -59,6 +65,9 @@ class CostarBulletSimulation(object):
             connect_type = pb.DIRECT
         self.client = pb.connect(connect_type)
         pb.setGravity(*GRAVITY)
+
+        # place the robot in the world
+        # starts a robot spawner script...
 
     def close(self):
         '''
