@@ -2,8 +2,13 @@
 
 from costar_bullet import *
 
+import rospy
+
 if __name__ == '__main__':
 
-  args = ParseBullet()
+  args = ParseBulletArgs()
 
-  client = BulletClient(args.robot, args.task, args.gui)
+  procs = []
+
+  sim = CostarBulletSimulation(args.robot, args.task, args.gui, args.name)
+  rospy.spin()

@@ -17,7 +17,7 @@ def GetTaskDefinition(task, robot, *args, **kwargs):
                 'blocks': BlocksTaskDefinition(robot, *args, **kwargs),
         }[task]
     except KeyError, e:
-        raise new NotImplementedError('Task %s not implemented!'%task)
+        raise NotImplementedError('Task %s not implemented!'%task)
 
 def GetRobotInterface(robot, *args, **kwargs):
     '''
@@ -29,4 +29,4 @@ def GetRobotInterface(robot, *args, **kwargs):
                 'ur5_robotiq': Ur5RobotiqInterface(*args, **kwargs),
         }[robot]
     except KeyError, e:
-        raise new NotImplementedError('Robot %s not implemented!'%robot)
+        raise NotImplementedError('Robot %s not implemented!'%robot)

@@ -16,5 +16,7 @@ def ParseBulletArgs():
     parser.add_argument("--task",
                         choices=GetAvailableTasks(),
                         default=GetAvailableTasks()[0])
+    parser.add_argument('--name',
+                        default="costar_bullet_simulation")
 
-    return args
+    return parser.parse_args()
