@@ -54,7 +54,15 @@ def build_image_input(sess, train=True, novel=True):
         image_seq = []
 
         num_grasp_steps_name = 'num_grasp_steps'
-        images_feature_names = [str(image_feature_name) for image_feature_name in features if '/image/' in image_feature_name]
+        images_feature_names = []
+        # some silly tricks to get the feature names in the right order while
+        # allowing variation between the various datasets
+        images_feature_names.extend([str(image_feature_name) for image_feature_name in features if ('grasp/image/encoded' in image_feature_name) and not ('post' in image_feature_name)])
+        images_feature_names.extend([str(image_feature_name) for image_feature_name in features if ('/image/' in image_feature_name) and ('grasp/' in image_feature_name) and not ('grasp/image/encoded' in image_feature_name)])
+        images_feature_names.extend([str(image_feature_name) for image_feature_name in features if ('grasp/image/encoded' in image_feature_name) and ('post' in image_feature_name)])
+        images_feature_names.extend([str(image_feature_name) for image_feature_name in features if ('/image/' in image_feature_name) and ('present/' in image_feature_name)])
+        images_feature_names.extend([str(image_feature_name) for image_feature_name in features if ('/image/' in image_feature_name) and ('drop/' in image_feature_name)])
+        print(images_feature_names)
         for image_name in images_feature_names:
             features_dict = {image_name: tf.FixedLenFeature([1], tf.string),
                              num_grasp_steps_name: tf.FixedLenFeature([1], tf.string)}
