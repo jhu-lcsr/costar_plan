@@ -141,7 +141,14 @@ class TomDataset(Dataset):
         elif topic == self.arm_data_topic:
             data = msg
         elif topic == self.right_arm_end_frame_topic:
-            pose = msg
+            # convert pose from this representation to a KDL frame
+            pose = pm.fromMsg(msg)
+
+            # move it back some amount
+            pose = pose * pm.Frame(pm.Vector(0, 0, -0.12))
+
+            # still saved as messages
+            pose = pm.toMsg(pose)
         elif topic == self.vision_topic:
             orange = msg.objData[0]
 

@@ -6,37 +6,35 @@ project(costar_task_plan)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  costar_plan_msgs
-  rospy
-  costar_planning_interface
+  #costar_plan_msgs
+  #rospy
+  #costar_planning_interface
   
-  dmp
-  #costar_experiments
-  #costar_tasks
+  #dmp
 
-  kdl_parser
-  urdf
+  #kdl_parser
+  #urdf
 
-  # TF
-  tf
-  tf_conversions
+  ## TF
+  #tf
+  #tf_conversions
 
-  # MoveIt stuff
-  moveit_core
-  moveit_msgs
-  moveit_ros_perception
-  moveit_ros_planning_interface
-  moveit_ros_planning
+  ## MoveIt stuff
+  #moveit_core
+  #moveit_msgs
+  #moveit_ros_perception
+  #moveit_ros_planning_interface
+  #moveit_ros_planning
 
-  # messages
-  sensor_msgs
-  trajectory_msgs
+  ## messages
+  #sensor_msgs
+  #trajectory_msgs
 
-  # ros stuff
-  rosbag
+  ## ros stuff
+  #rosbag
 
-  # action
-  actionlib
+  ## action
+  #actionlib
 )
 
 find_package(PkgConfig REQUIRED)
@@ -82,7 +80,7 @@ catkin_python_setup()
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  CATKIN_DEPENDS costar_plan_msgs costar_planning_interface
+  CATKIN_DEPENDS #costar_plan_msgs costar_planning_interface
 )
 
 #############

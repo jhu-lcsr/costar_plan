@@ -46,15 +46,22 @@ class JointDmpPolicy(DmpPolicy):
 # velocities, and efforts.
 class CartesianDmpPolicy(DmpPolicy):
 
-  # This needs to instantiate slightly different things from the other one. In
-  # general it's not going to need to compute joint motions itself -- it can
-  # just compute a joint difference.
   def __init__(self, *args, **kwargs):
+    '''
+    This needs to instantiate slightly different things from the other one. In
+    general it's not going to need to compute joint motions itself -- it can
+    just compute a joint difference.
+    '''
     super(CartesianDmpPolicy, self).__init__(*args, **kwargs)
     self.traj = None
     #self.q = None
 
   def evaluate(self, world, state, actor=None):
+    '''
+    Evaluate a DMP policy by moving along a trajectory to the next feasible
+    point.
+    '''
+
     # =========================================================================
     # make the trajectory based on the current state
     reset_seq = state.reference is not self.dmp
@@ -81,10 +88,21 @@ class CartesianDmpPolicy(DmpPolicy):
         x0 = [0.]*6
         g_threshold = [1e-1]*6
         integrate_iter=10
-        res = self.plan(x,x0,0.,g,g_threshold,self.dmp.tau,1.0,world.dt,integrate_iter)
+        res = self.plan(x,x0,0.,g,g_threshold,2*self.dmp.tau,1.0,world.dt,integrate_iter)
         q = state.q
         self.traj = res.plan
         #self.q = state.q
+
+        print "q =", state.q
+        print "x = ", x
+        for pt in self.traj.points:
+            T = pm.Frame(pm.Rotation.RPY(pt.positions[3],pt.positions[4],pt.positions[5]))
+            T.p[0] = pt.positions[0]
+            T.p[1] = pt.positions[1]
+            T.p[2] = pt.positions[2]
+            q = self.kinematics.inverse(pm.toMatrix(T), state.q)
+            print pt.positions, q
+        print "g =", g
 
     # =========================================================================
     # Compute the joint velocity to take us to the next position
@@ -96,15 +114,14 @@ class CartesianDmpPolicy(DmpPolicy):
       T.p[1] = pt.positions[1]
       T.p[2] = pt.positions[2]
       q = self.kinematics.inverse(pm.toMatrix(T), state.q)
-      #print "q0 =", state.q, "to", q
       if q is not None:
-        #self.q = q
         dq = (q - state.q) / world.dt
         return CostarAction(q=q, dq=dq, reset_seq=reset_seq, reference=self.dmp)
       else:
-        print "!!!!!!!!!!!!!"
-        print pt, state.q
-        return None
+        rospy.logwarn("could not get inverse kinematics for position")
+        print pt.positions
+        print state.q
+        return CostarAction(q=state.q, dq=np.zeros(state.q.shape), reset_seq=reset_seq, reference=self.dmp)
     else:
       # Compute a zero action from the current world state. This involves
       # looking up actor information from the current world.
