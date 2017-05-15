@@ -58,10 +58,13 @@ def build_image_input(sess, train=True, novel=True):
         # some silly tricks to get the feature names in the right order while
         # allowing variation between the various datasets
         images_feature_names.extend([str(image_feature_name) for image_feature_name in features if ('grasp/image/encoded' in image_feature_name) and not ('post' in image_feature_name)])
-        images_feature_names.extend([str(image_feature_name) for image_feature_name in features if ('/image/' in image_feature_name) and ('grasp/' in image_feature_name) and not ('grasp/image/encoded' in image_feature_name)])
-        images_feature_names.extend([str(image_feature_name) for image_feature_name in features if ('grasp/image/encoded' in image_feature_name) and ('post' in image_feature_name)])
-        images_feature_names.extend([str(image_feature_name) for image_feature_name in features if ('/image/' in image_feature_name) and ('present/' in image_feature_name)])
-        images_feature_names.extend([str(image_feature_name) for image_feature_name in features if ('/image/' in image_feature_name) and ('drop/' in image_feature_name)])
+        for i in range(10):
+            fstr = 'grasp/{}/image/encoded'.format(i)
+            print(fstr)
+            images_feature_names.extend([str(image_feature_name) for image_feature_name in features if (fstr in image_feature_name)])
+        images_feature_names.extend([str(image_feature_name) for image_feature_name in features if ('post_grasp/image/encoded' in image_feature_name)])
+        images_feature_names.extend([str(image_feature_name) for image_feature_name in features if ('present/image/encoded' in image_feature_name)])
+        images_feature_names.extend([str(image_feature_name) for image_feature_name in features if ('post_drop/image/encoded' in image_feature_name)])
         print(images_feature_names)
         for image_name in images_feature_names:
             features_dict = {image_name: tf.FixedLenFeature([1], tf.string),
@@ -87,7 +90,7 @@ def build_image_input(sess, train=True, novel=True):
 
 
 def npy_to_gif(npy, filename):
-    clip = mpy.ImageSequenceClip(list(npy), fps=10)
+    clip = mpy.ImageSequenceClip(list(npy), fps=2)
     clip.write_gif(filename)
 
 sess = tf.InteractiveSession()
