@@ -83,7 +83,7 @@
     <link name="${prefix}base_link" >
       <visual>
         <geometry>
-          <mesh filename="package://costar_simulation/meshes/ur5/visual/Base.dae" />
+          <mesh filename="package://costar_simulation/meshes/ur5/visual/Base.dae.obj" />
         </geometry>
         <material name="LightGrey">
           <color rgba="0.7 0.7 0.7 1.0"/>
@@ -182,7 +182,7 @@
     <link name="${prefix}forearm_link">
       <visual>
         <geometry>
-          <mesh filename="package://costar_simulation/meshes/ur5/visual/Forearm.dae" />
+          <mesh filename="package://costar_simulation/meshes/ur5/visual/Forearm.dae.obj" />
         </geometry>
         <material name="LightGrey">
           <color rgba="0.7 0.7 0.7 1.0"/>
