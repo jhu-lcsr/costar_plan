@@ -82,6 +82,7 @@
 
     <link name="${prefix}base_link" >
       <visual>
+        <origin rpy="${0.5 * pi} 0 0" xyz="0.0 0.0 0.0"/>
         <geometry>
           <mesh filename="package://costar_simulation/meshes/ur5/visual/Base.dae.obj" />
         </geometry>
@@ -181,6 +182,7 @@
 
     <link name="${prefix}forearm_link">
       <visual>
+        <origin rpy="${0.5 * pi} 0 0" xyz="0.0 0.0 0.0"/>
         <geometry>
           <mesh filename="package://costar_simulation/meshes/ur5/visual/Forearm.dae.obj" />
         </geometry>

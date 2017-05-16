@@ -64,6 +64,7 @@
   <!-- Robotiq gripper -->
   <link name="base_link">
     <visual>
+      <origin rpy="1.570795 0 0" xyz="0.0 0.0 0.0"/>
       <geometry>
         <mesh filename="package://costar_simulation/meshes/ur5/visual/Base.dae.obj"/>
       </geometry>
@@ -148,6 +149,7 @@
   </joint>
   <link name="forearm_link">
     <visual>
+      <origin rpy="1.570795 0 0" xyz="0.0 0.0 0.0"/>
       <geometry>
         <mesh filename="package://costar_simulation/meshes/ur5/visual/Forearm.dae.obj"/>
       </geometry>
