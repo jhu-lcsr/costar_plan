@@ -8,9 +8,15 @@ class AbstractTaskDefinition(object):
     basic BulletWorld.
     '''
     
-    def __init__(self, *args, **kwargs):
+    def __init__(self, seed=None, *args, **kwargs):
         '''
         We do not create a world here, but we may need to cache things or read
         them off of the ROS parameter server as necessary.
         '''
-        pass
+        self.seed = seed
+
+    def init(self):
+        '''
+        Create task by adding objects to the scene
+        '''
+        raise NotImplementedError('Must override the init() function!')
