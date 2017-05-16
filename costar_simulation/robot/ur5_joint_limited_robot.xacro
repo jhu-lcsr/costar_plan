@@ -9,8 +9,8 @@
   <xacro:include filename="$(find costar_simulation)/robot/ur5/ur5.transmission.xacro" />
 
   <!-- Robotiq gripper -->
-  <xacro:include filename="$(find costar_simulation)/robot/robotiq_85/robotiq_85_gripper.urdf.xacro" />
-  <xacro:include filename="$(find costar_simulation)/robot/robotiq_85/gripper.transmission.xacro" />
+  <xacro:include filename="$(find costar_simulation)/robot/robotiq_85_gripper/urdf/robotiq_85_gripper.urdf.xacro" />
+  <xacro:include filename="$(find costar_simulation)/robot/robotiq_85_gripper/urdf/robotiq_85_gripper.transmission.xacro" />
 
   <xacro:ur5_robot prefix="" joint_limited="true"/>
   <!--<xacro:robotiq_85_gripper prefix=""/>

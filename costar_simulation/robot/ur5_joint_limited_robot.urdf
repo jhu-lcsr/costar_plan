@@ -62,35 +62,10 @@
   <!-- manually measured -->
   <!-- manually measured -->
   <!-- Robotiq gripper -->
-  <!--xacro:include filename="$(find dual_arm_ur5_description)/urdf/robotiq_85/gripper.transmission.xacro" /-->
-  <gazebo>
-    <plugin filename="libroboticsgroup_gazebo_mimic_joint_plugin.so" name="MimicJointPlugin_right_knuckle">
-      <joint>robotiq_85_left_knuckle_joint</joint>
-      <mimicJoint>robotiq_85_left_inner_knuckle_joint</mimicJoint>
-    </plugin>
-    <plugin filename="libroboticsgroup_gazebo_mimic_joint_plugin.so" name="MimicJointPlugin_left_finger_tip">
-      <joint>robotiq_85_left_knuckle_joint</joint>
-      <mimicJoint>robotiq_85_left_finger_tip_joint</mimicJoint>
-      <multiplier>-1</multiplier>
-    </plugin>
-    <plugin filename="libroboticsgroup_gazebo_mimic_joint_plugin.so" name="MimicJointPlugin_right_inner_knuckle">
-      <joint>robotiq_85_left_knuckle_joint</joint>
-      <mimicJoint>robotiq_85_right_inner_knuckle_joint</mimicJoint>
-    </plugin>
-    <plugin filename="libroboticsgroup_gazebo_mimic_joint_plugin.so" name="MimicJointPlugin_right_finger_tip">
-      <joint>robotiq_85_left_knuckle_joint</joint>
-      <mimicJoint>robotiq_85_right_finger_tip_joint</mimicJoint>
-      <multiplier>-1</multiplier>
-    </plugin>
-    <plugin filename="libroboticsgroup_gazebo_mimic_joint_plugin.so" name="Mimic_right_knuckle">
-      <joint>robotiq_85_left_knuckle_joint</joint>
-      <mimicJoint>robotiq_85_right_knuckle_joint</mimicJoint>
-    </plugin>
-  </gazebo>
   <link name="base_link">
     <visual>
       <geometry>
-        <mesh filename="package://ur5_barrett_description/meshes/ur5/visual/Base.dae"/>
+        <mesh filename="package://costar_simulation/meshes/ur5/visual/Base.dae.obj"/>
       </geometry>
       <material name="LightGrey">
         <color rgba="0.7 0.7 0.7 1.0"/>
@@ -98,7 +73,7 @@
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://ur5_barrett_description/meshes/ur5/collision/base.stl"/>
+        <mesh filename="package://costar_simulation/meshes/ur5/collision/base.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -118,7 +93,7 @@
   <link name="shoulder_link">
     <visual>
       <geometry>
-        <mesh filename="package://ur5_barrett_description/meshes/ur5/visual/Shoulder.dae"/>
+        <mesh filename="package://costar_simulation/meshes/ur5/visual/Shoulder.dae"/>
       </geometry>
       <material name="LightGrey">
         <color rgba="0.7 0.7 0.7 1.0"/>
@@ -126,7 +101,7 @@
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://ur5_barrett_description/meshes/ur5/collision/shoulder.stl"/>
+        <mesh filename="package://costar_simulation/meshes/ur5/collision/shoulder.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -146,7 +121,7 @@
   <link name="upper_arm_link">
     <visual>
       <geometry>
-        <mesh filename="package://ur5_barrett_description/meshes/ur5/visual/UpperArm.dae"/>
+        <mesh filename="package://costar_simulation/meshes/ur5/visual/UpperArm.dae"/>
       </geometry>
       <material name="LightGrey">
         <color rgba="0.7 0.7 0.7 1.0"/>
@@ -154,7 +129,7 @@
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://ur5_barrett_description/meshes/ur5/collision/upper_arm.stl"/>
+        <mesh filename="package://costar_simulation/meshes/ur5/collision/upper_arm.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -174,7 +149,7 @@
   <link name="forearm_link">
     <visual>
       <geometry>
-        <mesh filename="package://ur5_barrett_description/meshes/ur5/visual/Forearm.dae"/>
+        <mesh filename="package://costar_simulation/meshes/ur5/visual/Forearm.dae.obj"/>
       </geometry>
       <material name="LightGrey">
         <color rgba="0.7 0.7 0.7 1.0"/>
@@ -182,7 +157,7 @@
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://ur5_barrett_description/meshes/ur5/collision/forearm.stl"/>
+        <mesh filename="package://costar_simulation/meshes/ur5/collision/forearm.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -202,7 +177,7 @@
   <link name="wrist_1_link">
     <visual>
       <geometry>
-        <mesh filename="package://ur5_barrett_description/meshes/ur5/visual/Wrist1.dae"/>
+        <mesh filename="package://costar_simulation/meshes/ur5/visual/Wrist1.dae"/>
       </geometry>
       <material name="LightGrey">
         <color rgba="0.7 0.7 0.7 1.0"/>
@@ -210,7 +185,7 @@
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://ur5_barrett_description/meshes/ur5/collision/wrist_1.stl"/>
+        <mesh filename="package://costar_simulation/meshes/ur5/collision/wrist_1.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -230,7 +205,7 @@
   <link name="wrist_2_link">
     <visual>
       <geometry>
-        <mesh filename="package://ur5_barrett_description/meshes/ur5/visual/Wrist2.dae"/>
+        <mesh filename="package://costar_simulation/meshes/ur5/visual/Wrist2.dae"/>
       </geometry>
       <material name="LightGrey">
         <color rgba="0.7 0.7 0.7 1.0"/>
@@ -238,7 +213,7 @@
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://ur5_barrett_description/meshes/ur5/collision/wrist_2.stl"/>
+        <mesh filename="package://costar_simulation/meshes/ur5/collision/wrist_2.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -258,7 +233,7 @@
   <link name="wrist_3_link">
     <visual>
       <geometry>
-        <mesh filename="package://ur5_barrett_description/meshes/ur5/visual/Wrist3.dae"/>
+        <mesh filename="package://costar_simulation/meshes/ur5/visual/Wrist3.dae"/>
       </geometry>
       <material name="LightGrey">
         <color rgba="0.7 0.7 0.7 1.0"/>
@@ -266,7 +241,7 @@
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://ur5_barrett_description/meshes/ur5/collision/wrist_3.stl"/>
+        <mesh filename="package://costar_simulation/meshes/ur5/collision/wrist_3.stl"/>
       </geometry>
     </collision>
     <inertial>
