@@ -11,8 +11,7 @@ from tensorflow.python.platform import gfile
 import moviepy.editor as mpy
 
 tf.flags.DEFINE_string('data_dir', '~/Downloads/google_brainrobotdata_grasp', """Path to dataset in TFRecord format
-                       (aka Example protobufs). If not specified,
-                       synthetic data will be used.""")
+                       (aka Example protobufs) and feature csv files.""")
 tf.flags.DEFINE_integer('batch_size', 25, 'batch size per compute device')
 
 FLAGS = flags.FLAGS
