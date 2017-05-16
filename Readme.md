@@ -43,6 +43,8 @@ Other Required Libraries:
 
 These examples are designed to work with ROS and a simulation of the Universal Robots UR5, KUKA LBR iiwa, or other robot. ***NOTE THAT THIS FUNCTIONALITY IS STILL IN DEVELOPMENT.***
 
+![UR5 Simulation](docs/pybullet_ur5.png)
+
 Our examples are based around the `costar_bullet` package, which uses the open-source Bullet simulator. To start, simply run:
 ```
 rosrun costar_bullet start
