@@ -6,7 +6,7 @@ Specifically it is a project for creating task and motion planning algorithms th
 
 To run these examples, you will need TensorFlow and Keras, plus a number of Python packages. If you want to stick to the toy examples, you do not need to use this as a ROS package.
 
-For some more information on the structure of the task planner package, check out the [design overview](Design.md).
+For some more information on the structure of the task planner package, check out the [design overview](docs/design.md).
 
 ## Installation
 
@@ -35,9 +35,24 @@ Other Required Libraries:
 
 ## Problem Domains
 
+  - Robotics: mimic an expert task performance in a new environment.
   - Grid World: navigate a busy road in a discrete grid task.
   - Needle Master: steer a needle through a sequence of gates while avoiding obstacles. In many ways this is a simplified driving problem, with an associated set of demonstrations.
-  - Robotics: mimic an expert task performance in a new environment.
+
+### Robotics
+
+These examples are designed to work with ROS and a simulation of the Universal Robots UR5, KUKA LBR iiwa, or other robot. ***NOTE THAT THIS FUNCTIONALITY IS STILL IN DEVELOPMENT.***
+
+Our examples are based around the `costar_bullet` package, which uses the open-source Bullet simulator. To start, simply run:
+```
+rosrun costar_bullet start
+```
+
+You can run this with the `-h` or `--help` flag to get a list of potential arguments. The `start` command can be configured to bring up a robot and a task. For example, you may want to run:
+```
+rosrun costar_bullet start --robot ur5_robotiq --task blocks --gui
+```
+To bring up the standard CoSTAR UR5 with Robotiq 85 gripper, a block-stacking task, and a basic Bullet GUI to see things.
 
 ### Grid World
 
@@ -58,13 +73,7 @@ learn_simple.py
 
 Example from a simple Android game. This comes with a dataset that can be used; the goal is to generate task and motion plans that align with the expert training data.
 
-Note that this is a "driving" task, just like Road World, and they actually have a lot of similarities. The primary difference is that Needle Master, as a "planning" domain, operates over motion primitives by default.
-
 One sub-task from the Needle Master domain is trajectory optimization. The goal is to generate an optimal trajectory in the shortest possible amount of time.
-
-### Robotics
-
-These examples are designed to work with ROS and a simulation of the Universal Robots UR5, KUKA LBR iiwa, or other robot. Currently in the planning stages and not developed yet.
 
 ## Contact
 
