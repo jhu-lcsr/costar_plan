@@ -1,6 +1,10 @@
 
 # Development Notes
 
+These notes include practices for CoSTAR in general and for CoSTAR PLAN, its learning and planning module, in particular.
+
+***Philosophy:*** Largely, we subscribe to the "single repository" school of software development. All dependencies are inside the main CoSTAR plan repository, wherever this is practical. Individual components may be spun out as separate packages, assuming there's any demand.
+
 ## CoSTAR Component
 
 All CoSTAR classes that represent components should ideally extend the `CostarComponent` class in `costar_stack/costar_component`.
