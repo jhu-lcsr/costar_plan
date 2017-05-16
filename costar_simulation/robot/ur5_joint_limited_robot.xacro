@@ -1,6 +1,8 @@
 <?xml version="1.0" ?>
 <robot name="ur5_robotiq_parallel" xmlns:xacro="http://ros.org/wiki/xacro">
 
+  <property name="M_PI" value="3.14159"/>
+
   <!-- common stuff -->
   <xacro:include filename="$(find costar_simulation)/robot/ur5/ur5.gazebo.urdf.xacro" />
 
@@ -13,11 +15,8 @@
   <xacro:include filename="$(find costar_simulation)/robot/robotiq_85_gripper/urdf/robotiq_85_gripper.transmission.xacro" />
 
   <xacro:ur5_robot prefix="" joint_limited="true"/>
-  <!--<xacro:robotiq_85_gripper prefix=""/>
-  <joint name="arm_to_gripper" type="fixed">
-    <parent link="ee_link"/>
+  <xacro:robotiq_85_gripper prefix="" parent="ee_link">
+    <origin xyz="0.0 0.0 0.0" rpy="${M_PI / 2} 0 0"/>
+  </xacro:robotiq_85_gripper>
 
-    <child link="robotiq_85_root"/>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-  </joint>-->
 </robot>
