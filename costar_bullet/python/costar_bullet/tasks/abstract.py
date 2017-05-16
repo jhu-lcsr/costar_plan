@@ -8,15 +8,30 @@ class AbstractTaskDefinition(object):
     basic BulletWorld.
     '''
     
-    def __init__(self, seed=None, *args, **kwargs):
+    def __init__(self, robot, seed=None, *args, **kwargs):
         '''
         We do not create a world here, but we may need to cache things or read
         them off of the ROS parameter server as necessary.
         '''
         self.seed = seed
+        self.robot = robot
 
-    def init(self):
+    def setup(self):
         '''
-        Create task by adding objects to the scene
+        Create task by adding objects to the scene, including the robot.
         '''
-        raise NotImplementedError('Must override the init() function!')
+        handle = self.robot.load()
+        self._setupRobot(handle)
+        self._setup()
+
+    def _setup(self):
+        '''
+        Setup any world objects after the robot has been created.
+        '''
+        raise NotImplementedError('Must override the _setup() function!')
+
+    def _setupRobot(self, handle):
+        '''
+        Do anything you need to do to the robot before it 
+        '''
+        raise NotImplementedError('Must override the _setupRobot() function!')

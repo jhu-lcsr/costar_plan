@@ -69,8 +69,14 @@ class CostarBulletSimulation(object):
         self.client = pb.connect(connect_type)
         pb.setGravity(*GRAVITY)
 
-        # place the robot in the world
-        # starts a robot spawner script...
+        # place the robot in the world and set up the task
+        self.reset()
+
+    def reset(self):
+        '''
+        Reset the robot and task
+        '''
+        self.task.setup()
 
     def close(self):
         '''

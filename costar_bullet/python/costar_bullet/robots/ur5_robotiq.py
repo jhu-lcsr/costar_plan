@@ -1,4 +1,7 @@
+import os
 import pybullet as pb
+import rospkg
+import subprocess
 
 from abstract import AbstractRobotInterface
 
@@ -8,7 +11,8 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
     standard "costar" robot used for many of our experiments.
     '''
 
-    xacro_filename = '.xacro'
+    xacro_filename = 'robot/ur5_joint_limited_robot.xacro'
+    urdf_filename = 'ur5_joint_limited_robot.urdf'
     
     def __init__(self, *args, **kwargs):
         super(Ur5RobotiqInterface, self).__init__(*args, **kwargs)
@@ -21,7 +25,12 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         and then load that urdf with PyBullet.
         '''
 
-        raise NotImplementedError('this does not work yet')
-        subprocess.call(['rosrun','xacro','xacro.py',self.urdf_filename])
+        rospack = rospkg.RosPack()
+        path = rospack.get_path('costar_simulation')
+        filename = os.path.join(path, self.xacro_filename)
+        urdf = open(self.urdf_filename, "w")
 
-        pb.loadURDF('ur5_joint_limited_robot.urdf')
+        # Recompile the URDF to make sure it's up to date
+        subprocess.call(['rosrun','xacro','xacro.py',filename], stdout=urdf)
+
+        return pb.loadURDF(self.urdf_filename)
