@@ -47,7 +47,7 @@ class SimulatedDynamics(AbstractDynamics):
         if action.reset_seq \
             or action.reference is not state.reference \
                 or action.reference is None:
-            seq = 0
+            seq = 1
         else:
             seq = state.seq + 1
 
@@ -76,7 +76,6 @@ class SimulatedDynamics(AbstractDynamics):
         else:
             traj = action.traj
 
-        print "Asfas", action.dq
         # Costar states also include some state information for the sake of our
         # dynamic movement primitives.
         return CostarState(state.world,

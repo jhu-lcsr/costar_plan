@@ -72,9 +72,9 @@ class CartesianDmpPolicy(DmpPolicy):
     # Generate the trajectory based on the current state
     reset_seq = state.reference is not self.dmp or state.traj is None
     g = []
-    print ">>>", state.seq, reset_seq
-    if state.seq == 0 or reset_seq:
+    if reset_seq:
         q = state.q
+        #q = [-0.73408591, -1.30249417,  1.53612047, -2.0823833,   2.29921898,  1.42712378]
         T = pm.fromMatrix(self.kinematics.forward(q))
         self.activate(self.dmp.dmp_list)
         goal = world.observation[self.goal]
@@ -107,6 +107,8 @@ class CartesianDmpPolicy(DmpPolicy):
     else:
         traj = state.traj
 
+    print len(traj.points), state.seq
+
     # =========================================================================
     # Compute the joint velocity to take us to the next position
     if state.seq < len(traj.points):
@@ -137,11 +139,10 @@ class CartesianDmpPolicy(DmpPolicy):
       # Compute a zero action from the current world state. This involves
       # looking up actor information from the current world.
       action = world.zeroAction(state.actor_id)
-      print "DONE:", action.q, action.dq
       action.reference = self.dmp
       action.finish_sequence = True
       if state.seq > len(traj.points):
-          raise RuntimeError('asdf')
+          raise RuntimeError('Went past end of trajectory.')
       return action
         
 
