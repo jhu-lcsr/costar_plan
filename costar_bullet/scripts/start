@@ -2,8 +2,7 @@
 
 from costar_task_plan.simulation import *
 
-import datetime
-import rospy
+import time
 
 if __name__ == '__main__':
     '''
@@ -13,4 +12,6 @@ if __name__ == '__main__':
 
     args = ParseBulletArgs()
     CostarBulletSimulation(**args)
-
+    
+    while True:
+        time.sleep(0.1)
