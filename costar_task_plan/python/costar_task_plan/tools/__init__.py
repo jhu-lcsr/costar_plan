@@ -3,6 +3,7 @@ __all__ = [
     "animate",
     "makeGraph", "showGraph",
     "showTask",
+    "mctsLoop",
     ]
 
 # NOTE: removing pygame dependencies for now, because they're terrible
@@ -10,3 +11,4 @@ __all__ = [
 
 from graph import makeGraph, showGraph
 from show_task import showTask
+from evaluate_mcts import mctsLoop
