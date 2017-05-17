@@ -6,7 +6,7 @@ from gym.utils import seeding
 
 import pygame as pg
 import costar_task_plan.abstract as abstract
-import costar_task_plan.draw as draw
+import costar_task_plan.tools.draw as draw
 
 from gym.spaces import Box
 
