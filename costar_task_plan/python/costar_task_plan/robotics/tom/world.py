@@ -14,10 +14,12 @@ from costar_task_plan.robotics.core import CostarWorld
 from costar_task_plan.robotics.core import DemoReward
 
 
-# This is a simple world for the TOM task.
-# In this task, we pick up an orange and move it to either the trash or to a
-# bin. 
 class TomWorld(CostarWorld):
+  '''
+  This is a simple world for the TOM task.
+  In this task, we pick up an orange and move it to either the trash or to a
+  bin. 
+  '''
 
   def __init__(self, data_root='', fake=True, load_dataset=False, *args, **kwargs):
     if not fake:
@@ -51,7 +53,6 @@ class TomWorld(CostarWorld):
           self.dataset.test_trajs,
           self.dataset.test_data,
           ['time', 'squeeze_area'])
-      print "===================="
       self.addTrajectories("box",
           self.dataset.box,
           self.dataset.box_data,
@@ -73,8 +74,10 @@ class TomWorld(CostarWorld):
       # update the feature function based on known object frames
       self.makeFeatureFunction()
 
-  # This is used for putting data in the right form for learning
   def _preprocessData(self,data):
+    '''
+    This is used for putting data in the right form for learning
+    '''
     for traj in data:
       orange_pose = None
       # find first non-None orange
@@ -85,9 +88,11 @@ class TomWorld(CostarWorld):
       for world in traj:
         world['orange'] = orange_pose
 
-  # Get visualization information as a vector of poses for whatever object we
-  # are currently manipulating.
   def _dataToPose(self,data):
+    '''
+    Get visualization information as a vector of poses for whatever object we
+    are currently manipulating.
+    '''
     msg = PoseArray()
     for traj in data:
       for world in traj:
