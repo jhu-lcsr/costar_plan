@@ -65,6 +65,7 @@ class CartesianDmpPolicy(DmpPolicy):
     reset_seq = state.reference is not self.dmp or state.traj is None
     #print "reset?", (state.reference is not self), state.reference, self
     g = []
+    print ">>>>>> ", state.seq, reset_seq, state.reference is self.dmp, state.traj is None
     if state.seq == 0 or reset_seq:
         q = [-0.73408591, -1.30249417,  1.53612047, -2.0823833,   2.29921898,  1.42712378]
         #T = pm.fromMatrix(self.kinematics.forward(state.q))

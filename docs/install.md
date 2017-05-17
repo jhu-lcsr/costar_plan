@@ -47,10 +47,8 @@ rosdep install -y --from-paths ./ --ignore-src --rosdistro $ROS_DISTRO
 This is listed separately for now.
 ```
 cd path/to/your/catkin_ws/src
-git clone git@github.com:cpaxton/ur5_robotiq_parallel.git
+git clone git@github.com:jhu-lcsr/costar_objects.git
 git clone git@github.com:cpaxton/lcsr_assembly.git --branch devel
-git clone git@github.com:cpaxton/ur5_barrett_bringup.git
-git clone git@github.com:jontromanab/ur5_barrett_description.git
 rosdep install -y --from-paths ./ --ignore-src --rosdistro $ROS_DISTRO
 ```
 
