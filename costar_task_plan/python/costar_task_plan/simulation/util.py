@@ -2,14 +2,18 @@
 from tasks import *
 from robots import *
 
+
 def GetAvailableTasks():
     return ["blocks", "clutter"]
+
 
 def GetAvailableRobots():
     return ["ur5_robotiq"]
 
+
 def GetAvailableAlgorithms():
     return [None, "ddpg", "cdqn"]
+
 
 def GetTaskDefinition(task, robot, *args, **kwargs):
     '''
@@ -17,11 +21,12 @@ def GetTaskDefinition(task, robot, *args, **kwargs):
     '''
     try:
         return {
-                'blocks': BlocksTaskDefinition(robot, *args, **kwargs),
-                'clutter': ClutterTaskDefinition(robot, *args, **kwargs),
-                } [task]
+            'blocks': BlocksTaskDefinition(robot, *args, **kwargs),
+            'clutter': ClutterTaskDefinition(robot, *args, **kwargs),
+        }[task]
     except KeyError, e:
-        raise NotImplementedError('Task %s not implemented!'%task)
+        raise NotImplementedError('Task %s not implemented!' % task)
+
 
 def GetRobotInterface(robot, *args, **kwargs):
     '''
@@ -30,7 +35,7 @@ def GetRobotInterface(robot, *args, **kwargs):
     '''
     try:
         return {
-                'ur5_robotiq': Ur5RobotiqInterface(*args, **kwargs),
-                }[robot]
+            'ur5_robotiq': Ur5RobotiqInterface(*args, **kwargs),
+        }[robot]
     except KeyError, e:
-        raise NotImplementedError('Robot %s not implemented!'%robot)
+        raise NotImplementedError('Robot %s not implemented!' % robot)

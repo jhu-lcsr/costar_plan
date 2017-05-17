@@ -3,7 +3,9 @@ from abstract import AbstractTaskDefinition
 
 import pybullet as pb
 
+
 class BlocksTaskDefinition(AbstractTaskDefinition):
+
     '''
     Define a simple task. The robot needs to pick up and stack blocks of
     different colors in a particular order.
@@ -24,7 +26,6 @@ class BlocksTaskDefinition(AbstractTaskDefinition):
         Create task by adding objects to the scene
         '''
         pass
-
 
     def _setupRobot(self, handle):
         for i, q in enumerate(self.joint_positions):

@@ -1,6 +1,8 @@
 import pybullet as pb
 
+
 class AbstractRobotInterface(object):
+
     '''
     This defines the functions needed to send commands to a simulated robot,
     whatever that robot might be. It should check values then call the
@@ -20,4 +22,5 @@ class AbstractRobotInterface(object):
         This function should take the robot, load it from file somehow, and put
         that model into the simulation.
         '''
-        raise NotImplementedError('This has to put the robot into the simulation.')
+        raise NotImplementedError(
+            'This has to put the robot into the simulation.')

@@ -5,7 +5,9 @@ import os
 import pybullet as pb
 import rospkg
 
+
 class ClutterTaskDefinition(AbstractTaskDefinition):
+
     '''
     Clutter task description in general
     '''
@@ -20,7 +22,6 @@ class ClutterTaskDefinition(AbstractTaskDefinition):
         '''
         super(ClutterTaskDefinition, self).__init__(*args, **kwargs)
 
-
     def _setup(self):
         '''
         Create random objects at random positions. Load random objects from the
@@ -28,16 +29,18 @@ class ClutterTaskDefinition(AbstractTaskDefinition):
         switch from using the list of "all" objects to a subset that we can
         actually pick up and manipulate.
         '''
-        
+
         rospack = rospkg.RosPack()
         path = rospack.get_path('costar_objects')
         sdf_dir = os.path.join(path, self.sdf_dir)
-        objs = [obj for obj in os.listdir(sdf_dir) if os.path.isdir(os.path.join(sdf_dir, obj))]
+        objs = [obj for obj in os.listdir(
+            sdf_dir) if os.path.isdir(os.path.join(sdf_dir, obj))]
 
-        randn = np.random.randint(1,len(objs))
+        randn = np.random.randint(1, len(objs))
 
         objs_to_add = np.random.choice(objs, randn)
-        objs_to_add = [os.path.join(sdf_dir, obj, self.model_file_name) for obj in objs_to_add]
+        objs_to_add = [os.path.join(sdf_dir, obj, self.model_file_name)
+                       for obj in objs_to_add]
 
         # load sdfs for all objects and initialize positions
         for obj in objs_to_add:

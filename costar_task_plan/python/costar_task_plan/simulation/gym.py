@@ -55,7 +55,8 @@ Create a generic Bullet OpenAI gym environment.
         proccount = tmp.count('gzclient')
         if proccount < 1:
             subprocess.Popen("gzclient")
-            self.gzclient_pid = int(subprocess.check_output(["pidof","-s","gzclient"]))
+            self.gzclient_pid = int(
+                subprocess.check_output(["pidof", "-s", "gzclient"]))
         else:
             self.gzclient_pid = 0
 
@@ -77,7 +78,7 @@ Create a generic Bullet OpenAI gym environment.
         if roscore_count > 0:
             os.system("killall -9 roscore")
 
-        if (gzclient_count or gzserver_count or roscore_count or rosmaster_count >0):
+        if (gzclient_count or gzserver_count or roscore_count or rosmaster_count > 0):
             os.wait()
 
     def _configure(self):
@@ -90,7 +91,6 @@ Create a generic Bullet OpenAI gym environment.
     def _seed(self):
 
         # TODO
-        # From OpenAI API: Sets the seed for this env's random number generator(s)  
+        # From OpenAI API: Sets the seed for this env's random number
+        # generator(s)
         pass
-
-

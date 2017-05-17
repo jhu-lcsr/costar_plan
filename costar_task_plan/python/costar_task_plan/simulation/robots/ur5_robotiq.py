@@ -5,7 +5,9 @@ import subprocess
 
 from abstract import AbstractRobotInterface
 
+
 class Ur5RobotiqInterface(AbstractRobotInterface):
+
     '''
     Defines action space for the ur5 with a robotiq 85 gripper. This is the
     standard "costar" robot used for many of our experiments.
@@ -13,7 +15,7 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
 
     xacro_filename = 'robot/ur5_joint_limited_robot.xacro'
     urdf_filename = 'ur5_joint_limited_robot.urdf'
-    
+
     def __init__(self, *args, **kwargs):
         super(Ur5RobotiqInterface, self).__init__(*args, **kwargs)
 
@@ -31,6 +33,6 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         urdf = open(self.urdf_filename, "w")
 
         # Recompile the URDF to make sure it's up to date
-        subprocess.call(['rosrun','xacro','xacro.py',filename], stdout=urdf)
+        subprocess.call(['rosrun', 'xacro', 'xacro.py', filename], stdout=urdf)
 
         return pb.loadURDF(self.urdf_filename)
