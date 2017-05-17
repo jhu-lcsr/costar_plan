@@ -36,9 +36,18 @@ def mkdir_p(path):
             raise
 
 
-def download():
+def download(dataset=''):
     '''Google Grasping Dataset - about 1TB total size
     https://sites.google.com/site/brainrobotdata/home/grasping-dataset
+
+    Downloads to `~/.keras/datasets/grasping` by default.
+
+    # Arguments
+
+        dataset: The name of the dataset to download, downloads all by default
+            with the '' parameter, 102 will download the 102 feature dataset
+            found in grasp_listing.txt.
+
     '''
     mkdir_p(FLAGS.data_dir)
     print(FLAGS.data_dir)
@@ -46,7 +55,9 @@ def download():
     grasp_listing_path = get_file('grasp_listing.txt', listing_url, cache_subdir=FLAGS.data_dir)
     grasp_files = np.genfromtxt(grasp_listing_path, dtype=str)
     url_prefix = 'https://storage.googleapis.com/brain-robotics-data/'
-    return [get_file(fpath.split('/')[-1], url_prefix + fpath, cache_subdir=FLAGS.data_dir) for fpath in grasp_files]
+    return [get_file(fpath.split('/')[-1], url_prefix + fpath, cache_subdir=FLAGS.data_dir)
+            for fpath in grasp_files
+            if dataset in fpath]
 
 
 def build_image_input(sess, train=True, novel=True):
@@ -82,14 +93,14 @@ def build_image_input(sess, train=True, novel=True):
         images_feature_names = []
         # some silly tricks to get the feature names in the right order while
         # allowing variation between the various datasets
-        images_feature_names.extend([str(image_feature_name) for image_feature_name in features if ('grasp/image/encoded' in image_feature_name) and not ('post' in image_feature_name)])
+        images_feature_names.extend([str(ifname) for ifname in features if ('grasp/image/encoded' in ifname) and not ('post' in ifname)])
         for i in range(10):
             fstr = 'grasp/{}/image/encoded'.format(i)
             print(fstr)
-            images_feature_names.extend([str(image_feature_name) for image_feature_name in features if (fstr in image_feature_name)])
-        images_feature_names.extend([str(image_feature_name) for image_feature_name in features if ('post_grasp/image/encoded' in image_feature_name)])
-        images_feature_names.extend([str(image_feature_name) for image_feature_name in features if ('present/image/encoded' in image_feature_name)])
-        images_feature_names.extend([str(image_feature_name) for image_feature_name in features if ('post_drop/image/encoded' in image_feature_name)])
+            images_feature_names.extend([str(ifname) for ifname in features if (fstr in ifname)])
+        images_feature_names.extend([str(ifname) for ifname in features if ('post_grasp/image/encoded' in ifname)])
+        images_feature_names.extend([str(ifname) for ifname in features if ('present/image/encoded' in ifname)])
+        images_feature_names.extend([str(ifname) for ifname in features if ('post_drop/image/encoded' in ifname)])
         print(images_feature_names)
         for image_name in images_feature_names:
             features_dict = {image_name: tf.FixedLenFeature([1], tf.string),
