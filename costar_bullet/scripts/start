@@ -2,15 +2,15 @@
 
 from costar_task_plan.simulation import *
 
+import datetime
 import rospy
 
 if __name__ == '__main__':
-  '''
-  This simple tool should parse arguments and pass them to a simulation client.
-  The client actually manages everything, including the ROS core.
-  '''
+    '''
+    This simple tool should parse arguments and pass them to a simulation client.
+    The client actually manages everything, including the ROS core.
+    '''
 
-  args = ParseBulletArgs()
-  args['ros'] = True
-  CostarBulletSimulation(**args)
-  rospy.spin()
+    args = ParseBulletArgs()
+    CostarBulletSimulation(**args)
+
