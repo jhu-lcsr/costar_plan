@@ -70,8 +70,9 @@ class CartesianDmpPolicy(DmpPolicy):
 
     # =========================================================================
     # Generate the trajectory based on the current state
-    reset_seq = state.reference is not self or state.traj is None
+    reset_seq = state.reference is not self.dmp or state.traj is None
     g = []
+    print ">>>", state.seq, reset_seq
     if state.seq == 0 or reset_seq:
         q = state.q
         T = pm.fromMatrix(self.kinematics.forward(q))
@@ -121,7 +122,7 @@ class CartesianDmpPolicy(DmpPolicy):
         return CostarAction(q=q,
                 dq=dq,
                 reset_seq=reset_seq,
-                reference=self,
+                reference=self.dmp,
                 traj=traj)
       else:
         rospy.logwarn("could not get inverse kinematics for position")
@@ -130,15 +131,17 @@ class CartesianDmpPolicy(DmpPolicy):
         return CostarAction(q=state.q,
                 dq=np.zeros(state.q.shape),
                 reset_seq=reset_seq,
-                reference=self,
+                reference=self.dmp,
                 traj=traj)
     else:
       # Compute a zero action from the current world state. This involves
       # looking up actor information from the current world.
       action = world.zeroAction(state.actor_id)
-      #print "DONE:", action.q, action.dq
-      action.reference = self
+      print "DONE:", action.q, action.dq
+      action.reference = self.dmp
       action.finish_sequence = True
+      if state.seq > len(traj.points):
+          raise RuntimeError('asdf')
       return action
         
 

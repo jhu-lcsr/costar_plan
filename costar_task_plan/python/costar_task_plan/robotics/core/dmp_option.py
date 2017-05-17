@@ -78,4 +78,5 @@ class DmpCondition(AbstractCondition):
     ok_to_start = self.dmp is not state.reference and \
         (state.finished_last_sequence or state.reference is None)
     print "check: ", (self.dmp is state.reference), ok_to_start, state.reference
+    print "check 2:", ok_to_start or np.any(np.abs(state.dq) > 1e-2), state.dq
     return ok_to_start or np.any(np.abs(state.dq) > 1e-2)

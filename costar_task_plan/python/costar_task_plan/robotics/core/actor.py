@@ -5,9 +5,7 @@ from costar_task_plan.abstract import *
 
 # State of a particular actor. It's the joint state, nice and simple.
 class CostarState(AbstractState):
-  def __init__(self, world, actor_id,
-      q=np.array([]),
-      dq=np.array([]),
+  def __init__(self, world, actor_id, q, dq,
       finished_last_sequence=False,
       reference=None,
       traj=None,
@@ -44,7 +42,7 @@ class CostarState(AbstractState):
 # Actions for a particular actor. This is very simple, and just represents a
 # joint motion, normalized over some period of time.
 class CostarAction(AbstractAction):
-  def __init__(self, q=np.array([]), dq=np.array([]), reset_seq=False, 
+  def __init__(self, q, dq, reset_seq=False, 
           finish_sequence=False,
           reference=None,
           traj=None,
@@ -83,5 +81,5 @@ class CostarActor(AbstractActor):
 # Simple policy for these actors
 class NullPolicy(AbstractPolicy):
   def evaluate(self, world, state, actor=None):
-    return CostarAction(dq=np.zeros(state.q.shape))
+    return CostarAction(q=state.q, dq=np.zeros(state.q.shape))
 
