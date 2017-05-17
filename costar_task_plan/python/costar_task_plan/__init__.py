@@ -15,10 +15,11 @@ __all__ = ['World', 'HorizontalRoadMap', 'State', 'Action',
 import abstract
 import grid_world
 import needle_master
-import robotics
+import simulation
 
 try:
   import ros
+  import robotics
 except ImportError, e:
   print "[WARNING] ROS/CoSTAR failed to import. ROS may be missing."
 
