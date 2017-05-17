@@ -37,6 +37,7 @@ By default, the AbstractWorld holds a list of conditions that fire if they are
 violated. Each is associated with a weight.
 '''
 from condition import *
+from simple_conditions import *
 
 '''
 Option
@@ -69,5 +70,7 @@ __all__ = ['AbstractWorld', 'AbstractAction', 'AbstractState',
            'AbstractOption', 'AbstractPolicy', 'AbstractDynamics', 'Task',
            'StateTrajectory','AbstractTrajectoryAction', 'AbstractActor',
            'AbstractTrajectoryDynamics', 'NullOption', 'AbstractObserve',
+           # Basic conditions that are useful for testing
+            'FalseCondition', 'TrueCondition',
            ]
 

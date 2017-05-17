@@ -1,4 +1,4 @@
-from costar_task_plan.abstract import AbstractCondition
+from condition import AbstractCondition
 
 class FalseCondition(AbstractCondition):
     def __call__(self,*args,**kwargs):
