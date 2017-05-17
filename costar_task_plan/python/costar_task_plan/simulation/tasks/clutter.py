@@ -9,7 +9,8 @@ import rospkg
 class ClutterTaskDefinition(AbstractTaskDefinition):
 
     '''
-    Clutter task description in general
+    Clutter task description in general. This task should create a bunch of
+    objects and bins to put them all in.
     '''
 
     joint_positions = [0.30, -1.33, -1.80, -0.27, 1.50, 1.60]
