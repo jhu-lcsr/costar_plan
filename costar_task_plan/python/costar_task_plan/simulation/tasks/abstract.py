@@ -1,5 +1,6 @@
 import pybullet as pb
-
+import rospkg
+import os
 
 class AbstractTaskDefinition(object):
 
@@ -22,9 +23,17 @@ class AbstractTaskDefinition(object):
         '''
         Create task by adding objects to the scene, including the robot.
         '''
+        rospack = rospkg.RosPack()
+        path = rospack.get_path('costar_simulation')
+        static_plane_path = os.path.join(path,'meshes','world','plane.urdf')
+        pb.loadURDF(static_plane_path)
+
         self._setup()
         handle = self.robot.load()
         self._setupRobot(handle)
+        pb.setGravity(0,0,-9.807)
+        for i in range(1000):
+            pb.stepSimulation()
 
     def _setup(self):
         '''
