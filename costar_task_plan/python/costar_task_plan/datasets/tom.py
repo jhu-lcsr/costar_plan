@@ -128,16 +128,13 @@ class TomDataset(Dataset):
     trajs = []
     for filename in bag_files:
       traj = []
-      print ">>>>> making bag"
       bag = rosbag.Bag(filename)
-      print ">>>>> done"
       # extract the end pose of the robot arm
       pose = None
       gripper = None
       data = None
       orange = None
       for topic, msg, t in bag.read_messages(topics):
-        print topic, t
         sec = t.to_sec()
         if topic == self.gripper_topic:
             gripper = msg
