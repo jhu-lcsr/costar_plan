@@ -3,7 +3,7 @@ from tasks import *
 from robots import *
 
 def GetAvailableTasks():
-    return ["blocks"]
+    return ["blocks", "clutter"]
 
 def GetAvailableRobots():
     return ["ur5_robotiq"]
@@ -18,7 +18,8 @@ def GetTaskDefinition(task, robot, *args, **kwargs):
     try:
         return {
                 'blocks': BlocksTaskDefinition(robot, *args, **kwargs),
-        }[task]
+                'clutter': ClutterTaskDefinition(robot, *args, **kwargs),
+                } [task]
     except KeyError, e:
         raise NotImplementedError('Task %s not implemented!'%task)
 
@@ -30,6 +31,6 @@ def GetRobotInterface(robot, *args, **kwargs):
     try:
         return {
                 'ur5_robotiq': Ur5RobotiqInterface(*args, **kwargs),
-        }[robot]
+                }[robot]
     except KeyError, e:
         raise NotImplementedError('Robot %s not implemented!'%robot)
