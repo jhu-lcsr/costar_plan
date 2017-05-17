@@ -22,9 +22,9 @@ class AbstractTaskDefinition(object):
         '''
         Create task by adding objects to the scene, including the robot.
         '''
+        self._setup()
         handle = self.robot.load()
         self._setupRobot(handle)
-        self._setup()
 
     def _setup(self):
         '''
