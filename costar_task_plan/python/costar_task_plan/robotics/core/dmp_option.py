@@ -60,10 +60,12 @@ class DmpOption(AbstractOption):
         raise RuntimeError('option.checkPostcondition() requires an initial state!')
     raise NotImplementedError('option.checkPostcondition() not yet implemented!')
 
-# This condition tells us whether or not we successfully arrived at the end of 
-# an action. It is true while we should continue executing. If our ee pose is
-# within tolerances and we are nearly stopped, it returns false.
 class DmpCondition(AbstractCondition):
+  '''
+  This condition tells us whether or not we successfully arrived at the end of 
+  an action. It is true while we should continue executing. If our ee pose is
+  within tolerances and we are nearly stopped, it returns false.
+  '''
 
   def __init__(self, goal, dmp, kinematics):
       self.goal = goal

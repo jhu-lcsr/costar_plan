@@ -74,7 +74,8 @@ class CartesianDmpPolicy(DmpPolicy):
     g = []
     if reset_seq:
         q = state.q
-        #q = [-0.73408591, -1.30249417,  1.53612047, -2.0823833,   2.29921898,  1.42712378]
+        #q = [-0.73408591, -1.30249417,  1.53612047,
+        #    -2.0823833, 2.29921898,  1.42712378]
         T = pm.fromMatrix(self.kinematics.forward(q))
         self.activate(self.dmp.dmp_list)
         goal = world.observation[self.goal]
@@ -99,7 +100,12 @@ class CartesianDmpPolicy(DmpPolicy):
         traj = res.plan
 
         for pt in traj.points:
-            T = pm.Frame(pm.Rotation.RPY(pt.positions[3],pt.positions[4],pt.positions[5]))
+            T = pm.Frame(
+                    pm.Rotation.RPY(
+                        pt.positions[3],
+                        pt.positions[4],
+                        pt.positions[5]))
+
             T.p[0] = pt.positions[0]
             T.p[1] = pt.positions[1]
             T.p[2] = pt.positions[2]
