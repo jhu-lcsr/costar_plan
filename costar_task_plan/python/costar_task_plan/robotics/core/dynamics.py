@@ -48,6 +48,8 @@ class SimulatedDynamics(AbstractDynamics):
             or action.reference is not state.reference \
                 or action.reference is None:
             seq = 1
+        elif action.finish_sequence:
+            seq = 0
         else:
             seq = state.seq + 1
 

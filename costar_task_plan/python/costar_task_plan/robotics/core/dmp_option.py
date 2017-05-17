@@ -77,4 +77,4 @@ class DmpCondition(AbstractCondition):
     # Determine if we finished the last action so we can switch active DMPs.
     ok_to_start = self.dmp is not state.reference and \
         (state.finished_last_sequence or state.reference is None)
-    return ok_to_start or np.any(np.abs(state.dq) > 1e-2)
+    return ok_to_start or np.any(np.abs(state.dq) > 1e-2) or state.seq > 0

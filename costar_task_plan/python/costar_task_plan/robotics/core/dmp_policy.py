@@ -107,7 +107,7 @@ class CartesianDmpPolicy(DmpPolicy):
     else:
         traj = state.traj
 
-    print len(traj.points), state.seq
+    print state.seq, "/", len(traj.points)
 
     # =========================================================================
     # Compute the joint velocity to take us to the next position
@@ -136,8 +136,10 @@ class CartesianDmpPolicy(DmpPolicy):
                 reference=self.dmp,
                 traj=traj)
     else:
-      # Compute a zero action from the current world state. This involves
-      # looking up actor information from the current world.
+      '''
+      Compute a zero action from the current world state. This involves
+      looking up actor information from the current world.
+      '''
       action = world.zeroAction(state.actor_id)
       action.reference = self.dmp
       action.finish_sequence = True

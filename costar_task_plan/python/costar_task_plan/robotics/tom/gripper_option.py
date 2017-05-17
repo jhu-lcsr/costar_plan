@@ -42,7 +42,7 @@ class TomGripperCloseOption(TomGripperOption):
 # Close the gripper
 class TomCloseGripperPolicy(AbstractPolicy):
   def evaluate(self, world, state, *args, **kwargs):
-    print " === close ==="
+    print "=== close ==="
     return CostarAction(q=state.q,
                         dq=np.zeros(state.q.shape),
                         reference=None,
