@@ -11,10 +11,12 @@ from dmp.srv import *
 from costar_task_plan.abstract import AbstractPolicy
 from costar_task_plan.robotics.representation import PlanDMP, RequestActiveDMP
 
-# This class takes the planning scene interface from the world and uses
-# it to compute (and follow!) a DMP. It will check the current time vs. its
-# tick rate before recomputing the DMP.
 class DmpPolicy(AbstractPolicy):
+  '''
+  This class takes the planning scene interface from the world and uses
+  it to compute (and follow!) a DMP. It will check the current time vs. its
+  tick rate before recomputing the DMP.
+  '''
 
   def __init__(self, goal, dmp, kinematics):
     self.dmp = dmp
@@ -26,25 +28,31 @@ class DmpPolicy(AbstractPolicy):
   def evaluate(self, world, state, actor=None):
     raise NotImplementedError('DMP policy not set up!')
         
-# DMP instance used if we are interested in a joint-space motion.
 class JointDmpPolicy(DmpPolicy):
+  '''
+  DMP instance used if we are interested in a joint-space motion.
+  '''
 
-  # This needs to instantiate slightly different things from the other one. In
-  # general it's not going to need to compute joint motions itself -- it can
-  # just compute a joint difference.
   def __init__(self, *args, **kwargs):
+    '''
+    This needs to instantiate slightly different things from the other one. In
+    general it's not going to need to compute joint motions itself -- it can
+    just compute a joint difference.
+    '''
     super(JointDmpPolicy, self).__init__(*args, **kwargs)
     raise NotImplementedError('DMP policy not set up!')
 
   def evaluate(self, world, state, actor=None):
     raise NotImplementedError('DMP policy not set up!')
 
-# DMP instance used if we are interested in describing cartesian movements. In
-# this case, we are going to compute inverse kinematics using PyKDL. We can
-# then use these to compute the actual commands that get sent to the robot's
-# joints -- since all robot actions take the form of joint positions,
-# velocities, and efforts.
 class CartesianDmpPolicy(DmpPolicy):
+  '''
+  DMP instance used if we are interested in describing cartesian movements. In
+  this case, we are going to compute inverse kinematics using PyKDL. We can
+  then use these to compute the actual commands that get sent to the robot's
+  joints -- since all robot actions take the form of joint positions,
+  velocities, and efforts.
+  '''
 
   def __init__(self, *args, **kwargs):
     '''
@@ -61,15 +69,11 @@ class CartesianDmpPolicy(DmpPolicy):
     '''
 
     # =========================================================================
-    # make the trajectory based on the current state
-    reset_seq = state.reference is not self.dmp or state.traj is None
-    #print "reset?", (state.reference is not self), state.reference, self
+    # Generate the trajectory based on the current state
+    reset_seq = state.reference is not self or state.traj is None
     g = []
-    print ">>>>>> ", state.seq, reset_seq, state.reference is not self.dmp, state.traj is None
-    print ">>>>>> ", state.reference, self
     if state.seq == 0 or reset_seq:
-        q = [-0.73408591, -1.30249417,  1.53612047, -2.0823833,   2.29921898,  1.42712378]
-        #T = pm.fromMatrix(self.kinematics.forward(state.q))
+        q = state.q
         T = pm.fromMatrix(self.kinematics.forward(q))
         self.activate(self.dmp.dmp_list)
         goal = world.observation[self.goal]
@@ -91,20 +95,14 @@ class CartesianDmpPolicy(DmpPolicy):
         g_threshold = [1e-1]*6
         integrate_iter=10
         res = self.plan(x,x0,0.,g,g_threshold,2*self.dmp.tau,1.0,world.dt,integrate_iter)
-        q = state.q
         traj = res.plan
 
-        print "q =", q
-        print "x = ", x
-        print "g =", g
-        print "pts = ", len(traj.points)
         for pt in traj.points:
             T = pm.Frame(pm.Rotation.RPY(pt.positions[3],pt.positions[4],pt.positions[5]))
             T.p[0] = pt.positions[0]
             T.p[1] = pt.positions[1]
             T.p[2] = pt.positions[2]
             q = self.kinematics.inverse(pm.toMatrix(T), state.q)
-            print pt.positions, q
     else:
         traj = state.traj
 
@@ -123,7 +121,7 @@ class CartesianDmpPolicy(DmpPolicy):
         return CostarAction(q=q,
                 dq=dq,
                 reset_seq=reset_seq,
-                reference=self.dmp,
+                reference=self,
                 traj=traj)
       else:
         rospy.logwarn("could not get inverse kinematics for position")
@@ -132,14 +130,14 @@ class CartesianDmpPolicy(DmpPolicy):
         return CostarAction(q=state.q,
                 dq=np.zeros(state.q.shape),
                 reset_seq=reset_seq,
-                reference=self.dmp,
+                reference=self,
                 traj=traj)
     else:
       # Compute a zero action from the current world state. This involves
       # looking up actor information from the current world.
       action = world.zeroAction(state.actor_id)
       #print "DONE:", action.q, action.dq
-      action.reference = self.dmp
+      action.reference = self
       action.finish_sequence = True
       return action
         

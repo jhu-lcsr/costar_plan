@@ -76,6 +76,8 @@ class SimulatedDynamics(AbstractDynamics):
         else:
             traj = action.traj
 
+        print seq, traj is not None, action.reference
+
         # Costar states also include some state information for the sake of our
         # dynamic movement primitives.
         return CostarState(state.world,

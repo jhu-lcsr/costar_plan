@@ -127,7 +127,7 @@ class LfD(object):
       RequestActiveDMP(instances[0].dmp_list)
       goal = world.observation[goal]
 
-      q = [-0.73408591, -1.30249417,  1.53612047, -2.0823833,   2.29921898,  1.42712378]
+      q = state.q
       T = pm.fromMatrix(self.kdl_kin.forward(q))
       ee_rpy = T.M.GetRPY()
       relative_goal = goal * instances[0].goal_pose
@@ -153,14 +153,9 @@ class LfD(object):
 
       # Get DMP result
       res = PlanDMP(x,x0,0.,g,g_threshold,2*instances[0].tau,1.0,world.dt,integrate_iter)
-      #print "[DEBUG] q =", q
-      #print "[DEBUG] x = ", x
-      #print "[DEBUG] g =", g
-      #print "[DEBUG] pts = ", len(res.plan.points)
 
       # Convert to poses
       poses = []
-      q = state.q
       for i, pt in enumerate(res.plan.points):
         T = pm.Frame(pm.Rotation.RPY(pt.positions[3],pt.positions[4],pt.positions[5]))
         T.p[0] = pt.positions[0]
@@ -168,7 +163,6 @@ class LfD(object):
         T.p[2] = pt.positions[2]
         poses.append(pm.toMsg(T))
         new_q = self.kdl_kin.inverse(pm.toMatrix(T), q)
-        #print i, "/", len(res.plan.points), "q =", new_q
         q = new_q
 
       msg = PoseArray(poses=poses)
