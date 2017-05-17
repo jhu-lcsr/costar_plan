@@ -21,8 +21,8 @@ class ClutterTaskDefinition(AbstractTaskDefinition):
         'mallet_black_white', 'mallet_drilling', 'mallet_fiber',
         'mug', 'old_hammer', 'pepsi_can', 'sander']
     models = set(list_of_models_to_manipulate)
-    spawn_pos_min = np.array([-0.5,-0.5, 0.0])
-    spawn_pos_max = np.array([-1.5, 0.5, 0.5])
+    spawn_pos_min = np.array([-0.4 ,-0.25, 0.1])
+    spawn_pos_max = np.array([-0.65, 0.25, 0.3])
     spawn_pos_delta = spawn_pos_max - spawn_pos_min
 
     def __init__(self, *args, **kwargs):
@@ -57,7 +57,6 @@ class ClutterTaskDefinition(AbstractTaskDefinition):
             if objs_name_to_add[obj_index] in self.models:
                 try:
                     print 'Loading object: ', obj
-                    # Assumed that sdf only contains 1 objects
                     obj_id_list = pb.loadSDF(obj)
                     for obj_id in obj_id_list:
                         random_position = np.random.rand(3)*self.spawn_pos_delta + self.spawn_pos_min
@@ -70,5 +69,7 @@ class ClutterTaskDefinition(AbstractTaskDefinition):
         Configure the robot so that it is ready to begin the task. Robot should
         be oriented so the gripper is near the cluttered area.
         '''
+        pb.createConstraint(handle,-1,-1,-1,pb.JOINT_FIXED,[0,0,0],[0,0,0],[0,0,0])
         for i, q in enumerate(self.joint_positions):
             pb.resetJointState(handle, i, q)
+            pb.setJointMotorControl2(handle,i, pb.POSITION_CONTROL,targetPosition=q)

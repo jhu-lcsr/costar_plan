@@ -28,5 +28,8 @@ class BlocksTaskDefinition(AbstractTaskDefinition):
         pass
 
     def _setupRobot(self, handle):
+        pb.createConstraint(handle,-1,-1,-1,pb.JOINT_FIXED,[0,0,0],[0,0,0],[0,0,0])
         for i, q in enumerate(self.joint_positions):
             pb.resetJointState(handle, i, q)
+            pb.setJointMotorControl2(handle,i, pb.POSITION_CONTROL,targetPosition=q)
+
