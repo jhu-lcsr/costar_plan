@@ -5,6 +5,12 @@ These notes include practices for CoSTAR in general and for CoSTAR PLAN, its lea
 
 ***Philosophy:*** Largely, we subscribe to the "single repository" school of software development. All dependencies are inside the main CoSTAR plan repository, wherever this is practical. Individual components may be spun out as separate packages, assuming there's any demand.
 
+We use **PEP8** formatting where ever possible, 80 chars per line. Run:
+```
+autopep8 -ri
+```
+on your files and make sure they look nice before adding them.
+
 ## CoSTAR Component
 
 All CoSTAR classes that represent components should ideally extend the `CostarComponent` class in `costar_stack/costar_component`.
