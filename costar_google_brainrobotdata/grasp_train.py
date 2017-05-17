@@ -1,16 +1,18 @@
 """Code for building the input for the prediction model."""
 
 import os
+import errno
 
 import numpy as np
 import tensorflow as tf
 
 from tensorflow.python.platform import flags
 from tensorflow.python.platform import gfile
+from keras.utils import get_file
 
 import moviepy.editor as mpy
 
-tf.flags.DEFINE_string('data_dir', '~/Downloads/google_brainrobotdata_grasp', """Path to dataset in TFRecord format
+tf.flags.DEFINE_string('data_dir', os.path.join(os.path.expanduser("~"), '.keras', 'datasets', 'grasping'), """Path to dataset in TFRecord format
                        (aka Example protobufs) and feature csv files.""")
 tf.flags.DEFINE_integer('batch_size', 25, 'batch size per compute device')
 
@@ -21,6 +23,30 @@ ORIGINAL_WIDTH = 640
 ORIGINAL_HEIGHT = 512
 COLOR_CHAN = 3
 BATCH_SIZE = 25
+
+
+def mkdir_p(path):
+    # http://stackoverflow.com/questions/600268/mkdir-p-functionality-in-python
+    try:
+        os.makedirs(path)
+    except OSError as exc:  # Python >2.5
+        if exc.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else:
+            raise
+
+
+def download():
+    '''Google Grasping Dataset - about 1TB total size
+    https://sites.google.com/site/brainrobotdata/home/grasping-dataset
+    '''
+    mkdir_p(FLAGS.data_dir)
+    print(FLAGS.data_dir)
+    listing_url = 'https://sites.google.com/site/brainrobotdata/home/grasping-dataset/grasp_listing.txt'
+    grasp_listing_path = get_file('grasp_listing.txt', listing_url, cache_subdir=FLAGS.data_dir)
+    grasp_files = np.genfromtxt(grasp_listing_path, dtype=str)
+    url_prefix = 'https://storage.googleapis.com/brain-robotics-data/'
+    return [get_file(fpath.split('/')[-1], url_prefix + fpath, cache_subdir=FLAGS.data_dir) for fpath in grasp_files]
 
 
 def build_image_input(sess, train=True, novel=True):
@@ -92,13 +118,16 @@ def npy_to_gif(npy, filename):
     clip = mpy.ImageSequenceClip(list(npy), fps=2)
     clip.write_gif(filename)
 
-sess = tf.InteractiveSession()
-train_image_tensor = build_image_input(sess)
-tf.train.start_queue_runners(sess)
-sess.run(tf.global_variables_initializer())
-train_videos = sess.run(train_image_tensor)
 
-for i in range(FLAGS.batch_size):
-    video = train_videos[i]
-    npy_to_gif(video, '~/grasp_' + str(i) + '.gif')
+if __name__ == '__main__':
+    #download()
+    sess = tf.InteractiveSession()
+    train_image_tensor = build_image_input(sess)
+    tf.train.start_queue_runners(sess)
+    sess.run(tf.global_variables_initializer())
+    train_videos = sess.run(train_image_tensor)
+
+    for i in range(FLAGS.batch_size):
+        video = train_videos[i]
+        npy_to_gif(video, '~/grasp_' + str(i) + '.gif')
 
