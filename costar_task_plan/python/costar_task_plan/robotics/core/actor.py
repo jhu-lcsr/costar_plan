@@ -9,7 +9,10 @@ class CostarState(AbstractState):
       q=np.array([]),
       dq=np.array([]),
       finished_last_sequence=False,
-      reference=None, seq=0, gripper_closed=False):
+      reference=None,
+      traj=None,
+      seq=0,
+      gripper_closed=False):
 
     # Set up list of predicates
     self.predicates = []
@@ -21,6 +24,7 @@ class CostarState(AbstractState):
     # These are used to tell us which high-level action the robot was
     # performing, and how far along it was.
     self.reference = reference
+    self.traj = traj
     self.finished_last_sequence = finished_last_sequence
     self.seq = seq
 
@@ -43,6 +47,7 @@ class CostarAction(AbstractAction):
   def __init__(self, q=np.array([]), dq=np.array([]), reset_seq=False, 
           finish_sequence=False,
           reference=None,
+          traj=None,
           gripper_cmd=None):
     if isinstance(dq, list):
       dq = np.array(dq)
@@ -54,6 +59,7 @@ class CostarAction(AbstractAction):
     self.reset_seq = reset_seq
     self.finish_sequence = finish_sequence
     self.reference = reference
+    self.traj = traj
     self.gripper_cmd = gripper_cmd
 
   def toArray(self):

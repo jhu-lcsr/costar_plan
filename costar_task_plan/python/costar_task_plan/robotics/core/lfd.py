@@ -151,7 +151,11 @@ class LfD(object):
       integrate_iter=10
 
       # Get DMP result
-      res = PlanDMP(x,x0,0.,g,g_threshold,instances[0].tau,1.0,world.dt,integrate_iter)
+      res = PlanDMP(x,x0,0.,g,g_threshold,2*instances[0].tau,1.0,world.dt,integrate_iter)
+      print "[DEBUG] q =", state.q
+      print "[DEBUG] x = ", x
+      print "[DEBUG] g =", g
+      print "[DEBUG] pts = ", len(res.plan.points)
 
       # Convert to poses
       poses = []
