@@ -23,7 +23,10 @@ class ClutterTaskDefinition(AbstractTaskDefinition):
 
     def _setup(self):
         '''
-        Create random objects at random positions
+        Create random objects at random positions. Load random objects from the
+        scene and create them in different places. In the future we may want to
+        switch from using the list of "all" objects to a subset that we can
+        actually pick up and manipulate.
         '''
         
         rospack = rospkg.RosPack()
@@ -45,7 +48,8 @@ class ClutterTaskDefinition(AbstractTaskDefinition):
 
     def _setupRobot(self, handle):
         '''
-        Configure the robot so that it is ready to begin the task.
+        Configure the robot so that it is ready to begin the task. Robot should
+        be oriented so the gripper is near the cluttered area.
         '''
         for i, q in enumerate(self.joint_positions):
             pb.resetJointState(handle, i, q)
