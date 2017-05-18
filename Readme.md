@@ -10,34 +10,20 @@ To run these examples, you will need TensorFlow and Keras, plus a number of Pyth
 
 For some more information on the structure of the task planner package, check out the [design overview](docs/design.md).
 
-## Installation
+Contents:
+  - [Installation Guide](docs/install.md)
+  - [Design Overview](docs/design.md)
+  - [Development Notes](docs/development.md)
+  - [Machine Learning Notes](docs/learning.md)
+  - [Notes on installing Gazebo](docs/gazebo.md) -- may be out of date. PyBullet3 is now our preferred simulation environment.
 
-TTS can be installed either as a ROS catkin package or as an independent python package. Most features will work just fine if it is used without ROS.
+## Getting started
 
-  - To install TTS as a ROS package, just `git clone` it into your catkin workspace, build, re-source, and start running scripts.
-  - To install TTS as an independent python package, use the `setup.py` file in the `python` directory.
-
-To install the python packages on which TTS depends:
-```
-pip install h5py Theano pygame sympy matplotlib pygame gmr networkx dtw pypr gym
-```
-
-This includes:
-  - [OpenAI Gym](https://github.com/openai/gym) -- note that you can install from `pip` as well, TTS defines its own gym environments. You do not need any of the environments, so this is best installed via `pip`.
-
-Other Required Libraries:
-  - [TensorFlow](https://www.tensorflow.org/)
-  - [Keras 1.1.2](https://github.com/fchollet/keras)
-  - [Keras-RL](https://github.com/matthiasplappert/keras-rl/) -- it may be useful to look at [my fork](https://github.com/cpaxton/keras-rl) if you run into any issues.
-
-**[For developers]** Libraries referenced, but not needed as prerequisites:
-  - [Tensorflow-Reinforce](https://github.com/yukezhu/tensorflow-reinforce)
-  - [Guided Policy Search](https://github.com/cbfinn/gps) - `traj_opt` directly included
-  - [KeRLym](https://github.com/osh/kerlym) - referenced during `Trainer` implementation
+Get started by running one of our robotics examples.
 
 ## Problem Domains
 
-  - Robotics: mimic an expert task performance in a new environment.
+  - Robotics: mimic an expert task performance in a new environment, or 
   - Grid World: navigate a busy road in a discrete grid task.
   - Needle Master: steer a needle through a sequence of gates while avoiding obstacles. In many ways this is a simplified driving problem, with an associated set of demonstrations.
 

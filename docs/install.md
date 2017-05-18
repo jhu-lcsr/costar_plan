@@ -2,15 +2,32 @@
 
 Note: CoSTAR installation has only been tested on ROS Indigo (Ubuntu 14.04 LTS). For instructions on Indigo installation, please see [here](http://wiki.ros.org/indigo/Installation/Ubuntu). There is a prototype install script available [here](install_indigo.sh) that you can try out as well.
 
+
+## Installation
+
+TTS can be installed either as a ROS catkin package or as an independent python package. Most features will work just fine if it is used without ROS.
+
+  - To install TTS as a ROS package, just `git clone` it into your catkin workspace, build, re-source, and start running scripts.
+  - To install TTS as an independent python package, use the `setup.py` file in the `python` directory.
+
+To install the python packages on which TTS depends:
+```
+pip install h5py Theano pygame sympy matplotlib pygame gmr networkx dtw pypr gym
+```
+
 ## Prerequisites
 
-To use the CoSTAR system, you will need to install the following software packages:
+To use the CoSTAR plan system, you will need to install the following software packages:
 
-* Python (tested version 2.7.12)
-* Git (tested version 1.9.1)
-* ROS (tested ROS Indigo, Ubuntu 14.04)
-* Catkin Build Tools
-* OpenCV 2.4 nonfree (for CoSTAR perception only)
+  - Python (tested version 2.7.12)
+  - Git (tested version 1.9.1)
+  - ROS (tested ROS Indigo, Ubuntu 14.04)
+  - Catkin Build Tools
+  - [OpenAI Gym](https://github.com/openai/gym) -- note that you can install from `pip` as well, TTS defines its own gym environments. You do not need any of the environments, so this is best installed via `pip`.
+  - [TensorFlow](https://www.tensorflow.org/)
+  - [Keras 1.1.2](https://github.com/fchollet/keras)
+  - [Keras-RL](https://github.com/matthiasplappert/keras-rl/) -- it may be useful to look at [my fork](https://github.com/cpaxton/keras-rl) if you run into any issues.
+
 
 You can download all the required packages to use CoSTAR with ROS Indigo from the Ubuntu repositories with this command:
 
@@ -80,7 +97,7 @@ CoSTAR is distributed as a single large package. This means that
 `sudo apt-get install ros-indigo-joint-state-controller`
 
 
-## Step 3. Run simulation
+## Step 4. Run simulation
 [Optional] Checkout an example CoSTAR workspace from github into ~/.costar by running:
 
 ```
@@ -103,6 +120,3 @@ CoSTAR is currently set up to launch our two testbed systems: a KUKA LBR iiwa 14
 
 If you are interested in supporting another platform or run into other issues trying to run this code, please contact Chris Paxton (cpaxton@jhu.edu).
 
-##  Other Information
-
- - [Notes on installing Gazebo](docs/gazebo.md)
