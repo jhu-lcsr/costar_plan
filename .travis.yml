@@ -90,9 +90,9 @@ install:
   - git clone https://github.com/cpaxton/dmp.git --branch indigo
   - git clone https://github.com/cpaxton/costar_stack.git  
   - git clone https://github.com/ThomasTimm/ur_modern_driver.git
-  - git clone https://github.com:cburbridge/python_pcd.git
-  - git clone https://github.com:jhu-lcsr/costar_objects.git
-  - git clone https://github.com:cpaxton/lcsr_assembly.git --branch devel
+  - git clone https://github.com/cburbridge/python_pcd.git
+  - git clone https://github.com/jhu-lcsr/costar_objects.git
+  - git clone https://github.com/cpaxton/lcsr_assembly.git --branch devel
   # Disable CoSTAR perception
   # It requires OpenCV-nonfree, which is not automatically installed.
   - touch costar_stack/costar_perception/CATKIN_IGNORE
