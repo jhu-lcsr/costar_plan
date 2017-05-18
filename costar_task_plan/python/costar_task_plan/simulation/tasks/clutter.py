@@ -16,8 +16,8 @@ class ClutterTaskDefinition(AbstractTaskDefinition):
     joint_positions = [0.30, -1.33, -1.80, -0.27, 1.50, 1.60]
     sdf_dir = "sdf"
     model_file_name = "model.sdf"
-    list_of_models_to_manipulate = ['c_clamp', 'drill_blue_small', 'driller_point_metal', 
-        'driller_small', 'hammer', 'handspot', 'keyboard', 'mallet_ball_pein',
+    list_of_models_to_manipulate = ['c_clamp', 'drill_blue_small', 'driller_point_metal',
+        'driller_small', 'keyboard', 'mallet_ball_pein',
         'mallet_black_white', 'mallet_drilling', 'mallet_fiber',
         'mug', 'old_hammer', 'pepsi_can', 'sander']
     models = set(list_of_models_to_manipulate)
