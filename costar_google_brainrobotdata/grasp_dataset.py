@@ -12,16 +12,27 @@ from keras.utils import get_file
 
 import moviepy.editor as mpy
 
-tf.flags.DEFINE_string('data_dir', os.path.join(os.path.expanduser("~"),
-                       '.keras', 'datasets', 'grasping'),
+tf.flags.DEFINE_string('data_dir',
+                       os.path.join(os.path.expanduser("~"),
+                                    '.keras', 'datasets', 'grasping'),
                        """Path to dataset in TFRecord format
                        (aka Example protobufs) and feature csv files.""")
 tf.flags.DEFINE_integer('batch_size', 25, 'batch size per compute device')
 tf.flags.DEFINE_integer('sensor_image_width', 640, 'Camera Image Width')
 tf.flags.DEFINE_integer('sensor_image_height', 512, 'Camera Image Height')
-tf.flags.DEFINE_integer('sensor_color_channels', 3, 'Number of color channels (3, RGB)')
+tf.flags.DEFINE_integer('sensor_color_channels', 3,
+                        'Number of color channels (3, RGB)')
+tf.flags.DEFINE_string('grasp_download', None,
+                       """Filter the subset of 1TB Grasp datasets to download.
+                       None by default. 'all' will download all datasets.
+                       '052' and '057' will download the small starter datasets.
+                       '102' will download the dataset with 102 features,
+                       around 110 GB.
+                       See https://sites.google.com/site/brainrobotdata/home
+                       for a full listing.""")
 
 FLAGS = flags.FLAGS
+
 
 def mkdir_p(path):
     # http://stackoverflow.com/questions/600268/mkdir-p-functionality-in-python
@@ -59,6 +70,10 @@ class GraspDataset:
                 found in grasp_listing.txt.
 
         '''
+        if dataset is None:
+            return []
+        if dataset is 'all':
+            dataset = ''
         mkdir_p(FLAGS.data_dir)
         print(FLAGS.data_dir)
         listing_url = 'https://sites.google.com/site/brainrobotdata/home/grasping-dataset/grasp_listing.txt'
@@ -158,6 +173,6 @@ class GraspDataset:
 if __name__ == '__main__':
     sess = tf.InteractiveSession()
     gd = GraspDataset()
-    # gd.download()
+    gd.download(FLAGS.grasp_download)
     gd.create_gif(sess)
 
