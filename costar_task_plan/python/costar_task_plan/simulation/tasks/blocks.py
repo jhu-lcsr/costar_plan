@@ -31,5 +31,5 @@ class BlocksTaskDefinition(AbstractTaskDefinition):
         pb.createConstraint(handle,-1,-1,-1,pb.JOINT_FIXED,[0,0,0],[0,0,0],[0,0,0])
         for i, q in enumerate(self.joint_positions):
             pb.resetJointState(handle, i, q)
-            pb.setJointMotorControl2(handle,i, pb.POSITION_CONTROL,targetPosition=q)
-
+        self.robot.arm(self.joint_positions, pb.POSITION_CONTROL)
+        self.robot.gripper(0, pb.POSITION_CONTROL)

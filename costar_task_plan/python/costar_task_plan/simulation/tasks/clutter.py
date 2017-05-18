@@ -72,4 +72,4 @@ class ClutterTaskDefinition(AbstractTaskDefinition):
         for i, q in enumerate(self.joint_positions):
             pb.resetJointState(handle, i, q)
         self.robot.arm(self.joint_positions, pb.POSITION_CONTROL)
-        self.robot.gripper(0, self.POSITION_CONTROL)
+        self.robot.gripper(0, pb.POSITION_CONTROL)

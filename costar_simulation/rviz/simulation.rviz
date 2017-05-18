@@ -9,6 +9,8 @@ Panels:
         - /scene geometry1/Scene Geometry1
         - /scene geometry1/Scene Robot1
         - /kinect output1
+        - /robot model1
+        - /TF1
       Splitter Ratio: 0.5
     Tree Height: 567
   - Class: rviz/Selection
@@ -88,7 +90,7 @@ Visualization Manager:
       Transport Hint: raw
       Unreliable: false
       Value: true
-    - Alpha: 1
+    - Alpha: 0.5
       Class: rviz/RobotModel
       Collision Enabled: false
       Enabled: true
@@ -228,19 +230,105 @@ Visualization Manager:
       Value: true
       Visual Enabled: true
     - Class: rviz/TF
-      Enabled: false
+      Enabled: true
       Frame Timeout: 15
       Frames:
         All Enabled: true
-      Marker Scale: 1
+        base:
+          Value: true
+        base_link:
+          Value: true
+        camera_depth_frame:
+          Value: true
+        camera_depth_optical_frame:
+          Value: true
+        camera_link:
+          Value: true
+        camera_rgb_frame:
+          Value: true
+        camera_rgb_optical_frame:
+          Value: true
+        ee_link:
+          Value: true
+        forearm_link:
+          Value: true
+        robotiq_85_base_link:
+          Value: true
+        robotiq_85_left_finger_link:
+          Value: true
+        robotiq_85_left_finger_tip_link:
+          Value: true
+        robotiq_85_left_inner_knuckle_link:
+          Value: true
+        robotiq_85_left_knuckle_link:
+          Value: true
+        robotiq_85_right_finger_link:
+          Value: true
+        robotiq_85_right_finger_tip_link:
+          Value: true
+        robotiq_85_right_inner_knuckle_link:
+          Value: true
+        robotiq_85_right_knuckle_link:
+          Value: true
+        shoulder_link:
+          Value: true
+        table:
+          Value: true
+        tool0:
+          Value: true
+        upper_arm_link:
+          Value: true
+        world:
+          Value: true
+        wrist_1_link:
+          Value: true
+        wrist_2_link:
+          Value: true
+        wrist_3_link:
+          Value: true
+      Marker Scale: 0.1
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
-        {}
+        world:
+          table:
+            base_link:
+              base:
+                {}
+              shoulder_link:
+                upper_arm_link:
+                  forearm_link:
+                    wrist_1_link:
+                      wrist_2_link:
+                        wrist_3_link:
+                          ee_link:
+                            robotiq_85_base_link:
+                              robotiq_85_left_inner_knuckle_link:
+                                robotiq_85_left_finger_tip_link:
+                                  {}
+                              robotiq_85_left_knuckle_link:
+                                robotiq_85_left_finger_link:
+                                  {}
+                              robotiq_85_right_inner_knuckle_link:
+                                robotiq_85_right_finger_tip_link:
+                                  {}
+                              robotiq_85_right_knuckle_link:
+                                robotiq_85_right_finger_link:
+                                  {}
+                          tool0:
+                            {}
+            camera_rgb_frame:
+              camera_depth_frame:
+                camera_depth_optical_frame:
+                  {}
+              camera_link:
+                {}
+              camera_rgb_optical_frame:
+                {}
       Update Interval: 0
-      Value: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -265,22 +353,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 3.49352
+      Distance: 1.88765
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.681604
-        Y: 0.71514
-        Z: -0.300175
+        X: -0.623616
+        Y: 0.714669
+        Z: -0.320412
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.860398
+      Pitch: 0.939797
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.655399
+      Yaw: 1.0054
     Saved: ~
 Window Geometry:
   Displays:
