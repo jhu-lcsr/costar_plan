@@ -17,10 +17,12 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
     urdf_filename = 'ur5_joint_limited_robot.urdf'
 
     left_knuckle = 8
+    left_finger = 9
     left_inner_knuckle = 12
     left_fingertip = 13
 
     right_knuckle = 10
+    right_finger = 11
     right_inner_knuckle = 14
     right_fingertip = 15
 
@@ -47,14 +49,14 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
 
         pb.createConstraint(self.handle,-1,-1,-1,pb.JOINT_FIXED,[0,0,0],[0,0,0],[0,0,0])
 
-        #pb.createConstraint(handle, self.left_knuckle,
-        #        handle,self.left_fingertip,
-        #        pb.JOINT_POINT2POINT,
-        #        [0,0,0],[0,0,0],[0,0,0])
-        #pb.createConstraint(handle, self.right_knuckle,
-        #        handle,self.right_fingertip,
-        #        pb.JOINT_POINT2POINT,
-        #        [0,0,0],[0,0,0],[0,0,0])
+        pb.createConstraint(self.handle, self.left_finger,
+                self.handle,self.left_fingertip,
+                pb.JOINT_POINT2POINT,
+                [0,0,1],[0.05,0,0],[0,0,0])
+        pb.createConstraint(self.handle, self.right_finger,
+                self.handle,self.right_fingertip,
+                pb.JOINT_POINT2POINT,
+                [0,0,1],[0.05,0,0],[0,0,0])
 
         return self.handle
 
