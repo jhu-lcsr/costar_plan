@@ -27,6 +27,7 @@ To use the CoSTAR plan system, you will need to install the following software p
   - [TensorFlow](https://www.tensorflow.org/)
   - [Keras 1.1.2](https://github.com/fchollet/keras)
   - [Keras-RL](https://github.com/matthiasplappert/keras-rl/) -- it may be useful to look at [my fork](https://github.com/cpaxton/keras-rl) if you run into any issues.
+  - [Bullet3](https://github.com/bulletphysics/bullet3.git) -- for `costar_bullet` and for simulation examples
 
 
 You can download all the required packages to use CoSTAR with ROS Indigo from the Ubuntu repositories with this command:
