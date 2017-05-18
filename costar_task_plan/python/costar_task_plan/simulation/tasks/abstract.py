@@ -30,10 +30,10 @@ class AbstractTaskDefinition(object):
 
         self._setup()
         handle = self.robot.load()
-        self._setupRobot(handle)
         pb.setGravity(0,0,-9.807)
         for i in range(1000):
             pb.stepSimulation()
+        self._setupRobot(handle)
 
     def _setup(self):
         '''
