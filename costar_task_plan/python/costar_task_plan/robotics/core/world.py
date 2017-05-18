@@ -296,3 +296,8 @@ class CostarWorld(AbstractWorld):
     '''
     return self.object_classes
 
+  def loadModels(self, project):
+    self.lfd.load(project)
+
+  def saveModels(self, project):
+    self.lfd.save(project)

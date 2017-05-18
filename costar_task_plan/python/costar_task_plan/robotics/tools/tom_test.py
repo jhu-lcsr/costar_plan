@@ -11,15 +11,18 @@ from costar_task_plan.mcts import DefaultTaskMctsPolicies, Node
 from costar_task_plan.mcts import MonteCarloTreeSearch
 from costar_task_plan.mcts import ExecutionPlan, DefaultExecute
 from costar_task_plan.robotics.core import *
-from costar_task_plan.robotics.tom import TomWorld, OpenLoopTomExecute
+from costar_task_plan.robotics.tom import TomWorld, OpenLoopTomExecute, ParseTomArgs
 from costar_task_plan.tools import showTask
 from std_srvs.srv import Empty as EmptySrv
 
 import argparse
 import rospy
 
-def load_tom_world():
-    return TomWorld('./',load_dataset=True)
+def load_tom_world(regenerate_models):
+    world = TomWorld('./',load_dataset=regenerate_models)
+    if regenerate_models:
+        world.saveModels('tom')
+    return world
 
 class NullReward(AbstractReward):
     def __call__(self, world, *args, **kwargs):
@@ -30,31 +33,24 @@ class NullFeatures(AbstractFeatures):
     def __call__(self, world, *args, **kwargs):
       return [0.]
 
-# Main function:
-# - create a TOM world
-# - verify that the data is being managed correctly
-# - fit models to data
-# - create Reward objects as appropriate
-# - create Policy objects as appropriate
 def load_tom_data_and_run():
+    '''
+    Main function:
+     - create a TOM world
+     - verify that the data is being managed correctly
+     - fit models to data
+     - create Reward objects as appropriate
+     - create Policy objects as appropriate
+    '''
 
     import signal
     signal.signal(signal.SIGINT, exit)
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-l','--loop',
-                        action="store_true",
-                        help="loop")
-    parser.add_argument('-e','--execute',
-                        action="store_true",
-                        help="execute plan by sending points and gripper commands")
-
-    test_args = parser.parse_args()
+    test_args = ParseTomArgs()
 
     try:
       rospy.init_node('tom_test_node')
-      world = load_tom_world()
-      #world.makeRewardFunction("box")
+      world = load_tom_world(test_args.regenerate_models)
       world.reward = NullReward()
       world.features = NullFeatures()
     except RuntimeError, e:

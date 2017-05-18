@@ -35,7 +35,7 @@ class TomWorld(CostarWorld):
     self.oranges = []
 
     # Remove this logic in the future. This is where we load the data set,
-    # annd then use this data to create and save a bunch of DMPs corresponding
+    # and then use this data to create and save a bunch of DMPs corresponding
     # to the different actions we might want to take.
     if load_dataset:
       self.dataset = TomDataset()
@@ -70,9 +70,12 @@ class TomWorld(CostarWorld):
 
       # Call the learning after we've loaded our data
       self.fitTrajectories()
+    else:
+      self.loadModels('tom')
       
-      # update the feature function based on known object frames
-      self.makeFeatureFunction()
+    # update the feature function based on known object frames
+    self.makeFeatureFunction()
+
 
   def _preprocessData(self,data):
     '''

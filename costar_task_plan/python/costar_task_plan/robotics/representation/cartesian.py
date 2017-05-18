@@ -1,16 +1,22 @@
 
-import numpy as np
-from tf_conversions import posemath as pm
-
-# for outputting things to ROS
+from dmp_utils import RequestDMP, PlanDMP
 from geometry_msgs.msg import PoseArray
 from sensor_msgs.msg import JointState
+from tf_conversions import posemath as pm
 
-from dmp_utils import RequestDMP, PlanDMP
+import numpy as np
+import yaml
+
+try:
+  from yaml import CLoader as Loader, CDumper as Dumper
+except ImportError:
+  from yaml import Loader, Dumper
 
 # Model an instance of a skill as a cartesian DMP. We use this to create all
 # of the different skills we may need.
-class CartesianSkillInstance(object):
+class CartesianSkillInstance(yaml.YAMLObject):
+
+  yaml_tag = u'!CartesianSkillInstance'
 
   # Needs:
   # - a vector of end effector poses
@@ -85,9 +91,9 @@ class CartesianSkillInstance(object):
     self.dmp_list = resp.dmp_list
     self.tau = resp.tau
 
-  # Given a world state and a robot state, generate a trajectory. This will
-  # create both the joint state
   def generate(self, world, state):
+    # Given a world state and a robot state, generate a trajectory. This will
+    # create both the joint state
     Fx0 = self.kinematics.forward(state.q)
     x0 = [Fx0.p[0], Fx0.p[1], Fx0.p[2],]
     x0_dot = [0.,0.,0.,]
@@ -99,4 +105,14 @@ class CartesianSkillInstance(object):
     if visualize:
       msg = PoseArray()
     pass
+
+  @classmethod
+  def from_yaml(cls, loader, node):
+    skill = CartesianSkillInstance()
+    skill.__dict__.update(loader.construct_mapping(node))
+    return skill
+
+  @classmethod
+  def to_yaml(cls, dumper, data):
+    return dumper.represent_mapping(CartesianSkillInstance.yaml_tag,data.dict())
 

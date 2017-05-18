@@ -20,6 +20,13 @@ from costar_task_plan.robotics.representation import RequestActiveDMP, PlanDMP
 import numpy as np
 import os
 import rospy
+import yaml
+
+try:
+  from yaml import CLoader as Loader, CDumper as Dumper
+except ImportError:
+  from yaml import Loader, Dumper
+
 
 class LfD(object):
 
@@ -187,23 +194,51 @@ class LfD(object):
             msg.header.frame_id = self.base_link
             self.pubs[name].publish(msg)
 
-    # Save models after they have been fit.
     def save(self, project_name):
-        skills_dir = os.path.join(project_name, 'skills')
-        models_dir = os.path.join(project_name, 'models')
-        os.mkdir(project_name)
-        os.mkdir(skills_dir)
-        os.mkdir(models_dir)
+        '''
+        Save models after we fit them. Models for skill instances and for
+        expected feature observations are recorded separately.
+        '''
+        skills_dir = os.path.join(project_name, 'skill_models')
+        models_dir = os.path.join(project_name, 'feature_models')
+        if not os.path.exists(project_name):
+            os.mkdir(project_name)
+        if not os.path.exists(skills_dir):
+            os.mkdir(skills_dir)
+        if not os.path.exists(models_dir):
+            os.mkdir(models_dir)
 
         for name in self.skill_instances.keys():
             for i, skill in enumerate(self.skill_instances[name]):
-                filename = os.path.join(skills_dir, '%s%02d.yml'%name)
-                skill.save(filename)
+                filename = os.path.join(skills_dir, '%s#%02d.yml'%(name,i))
+                yaml_save(skill, filename)
             model_filename = os.path.join(models_dir, '%s_gmm.yml'%name)
-            # also save the list of skills as a YML file
+            yaml_save(self.skill_models[name], model_filename)
 
-    # Save models after they have been fit.
+        skill_filename = os.path.join(project_name, "skills.yml")
+        yaml_save(self.skill_instances.keys(), skill_filename)
+
     def load(self, project_name):
-        skills_dir = os.path.join(project_name, 'skills')
-        models_dir = os.path.join(project_name, 'models')
-        pass
+        '''
+        Load saved models into this object.
+        '''
+        skills_dir = os.path.join(project_name, 'skill_models')
+        models_dir = os.path.join(project_name, 'feature_models')
+        skill_filename = os.path.join(project_name, "skills.yml")
+        skills = yaml_load(skill_filename)
+        for name in skills:
+            self.skill_instances[name] = []
+            for filename in os.listdir(skills_dir):
+                if filename.split('#')[0] == name:
+                    joined_filename = os.path.join(skills_dir, filename)
+                    dmp = yaml_load(joined_filename)
+            model_filename = os.path.join(models_dir, '%s_gmm.yml'%name)
+            self.skill_models[name] = yaml_load(model_filename)
+
+def yaml_save(obj, filename):
+    with open(filename, 'w') as outfile:
+        yaml.dump(obj, outfile, default_flow_style=False)
+
+def yaml_load(filename):
+    with open(filename, 'r') as infile:
+        return yaml.load(infile)

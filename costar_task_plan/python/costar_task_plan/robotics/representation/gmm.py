@@ -14,22 +14,24 @@ class GMM(yaml.YAMLObject):
   
   yaml_tag = u'!GMM'
 
-  def __init__(self,k=1,data=None,config=None,diag=1e-8):
-
-    self.k = 1
-    self.invsigma = [None]*k
-    self.det = [None]*k
-
-    if isinstance(data,np.ndarray):
-      self.fit(data)
-    elif not config == None:
-      self.mu = config['mu']
-      self.sigma = config['sigma']
-      self.updateInvSigma()
-      self.pi = config['pi']
-      self.k = config['k']
+  def __init__(self,k=1,data=None,config=None,diag=1e-8,rawdata=None):
+    if rawdata is not None:
+        self.__dict__.update(rawdata)
     else:
-      raise RuntimeError('Must provide either data array or config')
+        self.k = 1
+        self.invsigma = [None]*k
+        self.det = [None]*k
+
+        if isinstance(data,np.ndarray):
+          self.fit(data)
+        elif not config == None:
+          self.mu = config['mu']
+          self.sigma = config['sigma']
+          self.updateInvSigma()
+          self.pi = config['pi']
+          self.k = config['k']
+        else:
+          raise RuntimeError('Must provide either data array or config')
 
   def addNoise(self,noise):
     for i in range(len(self.sigma)):
@@ -91,7 +93,8 @@ class GMM(yaml.YAMLObject):
 
   @classmethod
   def from_yaml(cls, loader, node):
-    return GMM(config=loader.construct_mapping(node))
+    gmm = GMM(rawdata=loader.construct_mapping(node))
+    return gmm
 
   @classmethod
   def to_yaml(cls, dumper, data):
