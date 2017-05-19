@@ -150,10 +150,11 @@ class GraspDataset:
             num_grasp_steps_name = 'num_grasp_steps'
             images_feature_names = self.get_time_ordered_image_features(features)
             print(images_feature_names)
+            features_dict = {image_name: tf.FixedLenFeature([1], tf.string) for image_name in images_feature_names}
+            features_dict[num_grasp_steps_name] = tf.FixedLenFeature([1], tf.string)
+            features = tf.parse_single_example(serialized_example, features=features_dict)
+
             for image_name in images_feature_names:
-                features_dict = {image_name: tf.FixedLenFeature([1], tf.string),
-                                num_grasp_steps_name: tf.FixedLenFeature([1], tf.string)}
-                features = tf.parse_single_example(serialized_example, features=features_dict)
                 image_buffer = tf.reshape(features[image_name], shape=[])
                 image = tf.image.decode_jpeg(image_buffer, channels=FLAGS.sensor_color_channels)
                 image.set_shape([FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels])
