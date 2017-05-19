@@ -97,6 +97,33 @@ class GraspDataset:
         tfrecord_paths = gfile.Glob(os.path.join(os.path.expanduser(FLAGS.data_dir), '*{}.tfrecord*-of-*'.format(feature_count)))
         return features, feature_count, attempt_count, tfrecord_paths
 
+    def get_time_ordered_image_features(self, features, phase='all'):
+        """Get list of all image features ordered by time.
+
+        # Arguments
+
+            features: list of feature TFRecord strings
+            phase: string indicating which parts of the grasp sequence should be returned.
+                Options are 'all', 'test_success' with the pre and post drop images, '
+
+        # Returns
+
+           list of image features organized by time step in a single grasp
+        """
+        images_feature_names = []
+        # some silly tricks to get the feature names in the right order while
+        # allowing variation between the various datasets
+        images_feature_names.extend([str(ifname) for ifname in features if ('grasp/image/encoded' in ifname) and not ('post' in ifname)])
+        for i in range(10):
+            fstr = 'grasp/{}/image/encoded'.format(i)
+            print(fstr)
+            images_feature_names.extend([str(ifname) for ifname in features if (fstr in ifname)])
+        images_feature_names.extend([str(ifname) for ifname in features if ('gripper/image/encoded' in ifname)])
+        images_feature_names.extend([str(ifname) for ifname in features if ('post_grasp/image/encoded' in ifname)])
+        images_feature_names.extend([str(ifname) for ifname in features if ('present/image/encoded' in ifname)])
+        images_feature_names.extend([str(ifname) for ifname in features if ('post_drop/image/encoded' in ifname)])
+        return images_feature_names
+
     def build_image_input(self, sess, train=True, novel=True):
         """Create input tfrecord tensors.
 
@@ -121,17 +148,7 @@ class GraspDataset:
             image_seq = []
 
             num_grasp_steps_name = 'num_grasp_steps'
-            images_feature_names = []
-            # some silly tricks to get the feature names in the right order while
-            # allowing variation between the various datasets
-            images_feature_names.extend([str(ifname) for ifname in features if ('grasp/image/encoded' in ifname) and not ('post' in ifname)])
-            for i in range(10):
-                fstr = 'grasp/{}/image/encoded'.format(i)
-                print(fstr)
-                images_feature_names.extend([str(ifname) for ifname in features if (fstr in ifname)])
-            images_feature_names.extend([str(ifname) for ifname in features if ('post_grasp/image/encoded' in ifname)])
-            images_feature_names.extend([str(ifname) for ifname in features if ('present/image/encoded' in ifname)])
-            images_feature_names.extend([str(ifname) for ifname in features if ('post_drop/image/encoded' in ifname)])
+            images_feature_names = self.get_time_ordered_image_features(features)
             print(images_feature_names)
             for image_name in images_feature_names:
                 features_dict = {image_name: tf.FixedLenFeature([1], tf.string),
@@ -171,8 +188,8 @@ class GraspDataset:
 
 
 if __name__ == '__main__':
-    sess = tf.InteractiveSession()
-    gd = GraspDataset()
-    gd.download(FLAGS.grasp_download)
-    gd.create_gif(sess)
+    with tf.Session() as sess:
+        gd = GraspDataset()
+        gd.download(FLAGS.grasp_download)
+        gd.create_gif(sess)
 
