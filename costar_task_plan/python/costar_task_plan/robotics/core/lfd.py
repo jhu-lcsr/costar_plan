@@ -132,9 +132,7 @@ class LfD(object):
         for name, instances in self.skill_instances.items():
 
             model = self.skill_models[name]
-            trajs = self.world.trajectories[name]
-            data = self.world.trajectory_data[name]
-            goal_type = self.world.objs[name][1]
+            goal_type = instances[0].objs[0]
 
             option = DmpOption(
                 CartesianDmpPolicy, self.kdl_kin, args[goal_type], model, instances)
@@ -230,6 +228,12 @@ class LfD(object):
         skill_filename = os.path.join(project_name, "skills.yml")
         skills = yaml_load(skill_filename)
         for name, count in skills.items():
+
+            # For debugging only
+            if name not in self.pubs:
+                self.pubs[name] = rospy.Publisher(
+                    join('costar', 'lfd', name), PoseArray, queue_size=1000)
+
             self.skill_instances[name] = []
             for i in xrange(count):
                 filename = os.path.join(skills_dir, '%s%02d.yml'%(name,i))
