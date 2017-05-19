@@ -12,19 +12,23 @@ try:
 except ImportError:
   from yaml import Loader, Dumper
 
-# Model an instance of a skill as a cartesian DMP. We use this to create all
-# of the different skills we may need.
 class CartesianSkillInstance(yaml.YAMLObject):
+  '''
+  Model an instance of a skill as a cartesian DMP. We use this to create all
+  of the different skills we may need.
+  '''
 
   yaml_tag = u'!CartesianSkillInstance'
 
-  # Needs:
-  # - a vector of end effector poses
-  # - a vector of world state observations (dictionaries)
-  # - a kinematics model
-  # Assume that end effector and worlds are in the same coordinate system,
-  # which is supposed to be the base link.
   def __init__(self, ee_frames, worlds, kinematics, config, objs=[], dt=0.1, visualize=False):
+    '''
+    Needs:
+    - a vector of end effector poses
+    - a vector of world state observations (dictionaries)
+    - a kinematics model
+    Assume that end effector and worlds are in the same coordinate system,
+    which is supposed to be the base link.
+    '''
     self.config = config
     self.ee_frames = ee_frames
     self.worlds = worlds
@@ -33,8 +37,10 @@ class CartesianSkillInstance(yaml.YAMLObject):
     self.objs = [obj for obj in objs if obj not in ['time', 'gripper']]
     self._fit()
 
-  # call to create the dmp based on this observation
   def _fit(self):
+    '''
+    call to create the dmp based on this observation
+    '''
     k_gain = self.config['dmp_k']
     d_gain = self.config['dmp_d']
     num_basis = self.config['dmp_basis']
@@ -92,8 +98,10 @@ class CartesianSkillInstance(yaml.YAMLObject):
     self.tau = resp.tau
 
   def generate(self, world, state):
-    # Given a world state and a robot state, generate a trajectory. This will
-    # create both the joint state
+    '''
+    Given a world state and a robot state, generate a trajectory. This will
+    create both the joint state
+    '''
     Fx0 = self.kinematics.forward(state.q)
     x0 = [Fx0.p[0], Fx0.p[1], Fx0.p[2],]
     x0_dot = [0.,0.,0.,]
@@ -105,15 +113,4 @@ class CartesianSkillInstance(yaml.YAMLObject):
     if visualize:
       msg = PoseArray()
     pass
-
-  @classmethod
-  def from_yaml(cls, loader, node):
-    skill = CartesianSkillInstance()
-    print "asdfasdf"
-    skill.__dict__.update(loader.construct_mapping(node))
-    return skill
-
-  @classmethod
-  def to_yaml(cls, dumper, data):
-    return dumper.represent_mapping(CartesianSkillInstance.yaml_tag,data.dict())
 

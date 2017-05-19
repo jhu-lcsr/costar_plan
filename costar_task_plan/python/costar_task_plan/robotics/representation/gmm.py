@@ -6,11 +6,11 @@ try:
 except ImportError:
   from yaml import Loader, Dumper
 
-'''
-Wraps some PyPr functions for easy grouping of different GMMs.
-Uses a couple different functions.
-'''
 class GMM(yaml.YAMLObject):
+  '''
+  Wraps some PyPr functions for easy grouping of different GMMs.
+  Uses a couple different functions.
+  '''
   
   yaml_tag = u'!GMM'
 

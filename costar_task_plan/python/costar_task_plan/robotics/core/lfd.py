@@ -208,15 +208,18 @@ class LfD(object):
         if not os.path.exists(models_dir):
             os.mkdir(models_dir)
 
+        skill_counts = {}
+
         for name in self.skill_instances.keys():
+            skill_counts[name] = len(self.skill_instances[name])
             for i, skill in enumerate(self.skill_instances[name]):
-                filename = os.path.join(skills_dir, '%s#%02d.yml'%(name,i))
+                filename = os.path.join(skills_dir, '%s%02d.yml'%(name,i))
                 yaml_save(skill, filename)
             model_filename = os.path.join(models_dir, '%s_gmm.yml'%name)
             yaml_save(self.skill_models[name], model_filename)
 
         skill_filename = os.path.join(project_name, "skills.yml")
-        yaml_save(self.skill_instances.keys(), skill_filename)
+        yaml_save(skill_counts, skill_filename)
 
     def load(self, project_name):
         '''
@@ -226,12 +229,12 @@ class LfD(object):
         models_dir = os.path.join(project_name, 'feature_models')
         skill_filename = os.path.join(project_name, "skills.yml")
         skills = yaml_load(skill_filename)
-        for name in skills:
+        for name, count in skills.items():
             self.skill_instances[name] = []
-            for filename in os.listdir(skills_dir):
-                if filename.split('#')[0] == name:
-                    joined_filename = os.path.join(skills_dir, filename)
-                    dmp = yaml_load(joined_filename)
+            for i in xrange(count):
+                filename = os.path.join(skills_dir, '%s%02d.yml'%(name,i))
+                dmp = yaml_load(filename)
+                self.skill_instances[name].append(dmp)
             model_filename = os.path.join(models_dir, '%s_gmm.yml'%name)
             self.skill_models[name] = yaml_load(model_filename)
 
