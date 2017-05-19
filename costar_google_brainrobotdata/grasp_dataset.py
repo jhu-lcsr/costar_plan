@@ -20,7 +20,7 @@ tf.flags.DEFINE_string('data_dir',
                        (aka Example protobufs) and feature csv files.""")
 tf.flags.DEFINE_string('gif_dir',
                        os.path.join(os.path.expanduser("~"),
-                                    '.keras', 'datasets', 'grasping'),
+                                    '.keras', 'datasets', 'grasping', 'images_extracted_grasp'),
                        """Path to output image gifs for visualization.""")
 tf.flags.DEFINE_integer('batch_size', 25, 'batch size per compute device')
 tf.flags.DEFINE_integer('sensor_image_width', 640, 'Camera Image Width')
@@ -67,6 +67,10 @@ class GraspDataset:
         https://sites.google.com/site/brainrobotdata/home/grasping-dataset
 
         Downloads to `~/.keras/datasets/grasping` by default.
+        Includes grasp_listing.txt with all files in all datasets;
+        the feature csv files which specify the dataset size,
+        the features (data channels), and the number of grasps;
+        and the tfrecord files which actually contain all the data.
 
         # Arguments
 
@@ -74,13 +78,17 @@ class GraspDataset:
                 with the '' parameter, 102 will download the 102 feature dataset
                 found in grasp_listing.txt.
 
+        # Returns
+
+           list of paths to the downloaded files
+
         '''
         if dataset is None:
             return []
         if dataset is 'all':
             dataset = ''
         mkdir_p(FLAGS.data_dir)
-        print(FLAGS.data_dir)
+        print('Downloading datasets to: ', FLAGS.data_dir)
         listing_url = 'https://sites.google.com/site/brainrobotdata/home/grasping-dataset/grasp_listing.txt'
         grasp_listing_path = get_file('grasp_listing.txt', listing_url, cache_subdir=self.data_dir)
         grasp_files = np.genfromtxt(grasp_listing_path, dtype=str)
@@ -90,11 +98,25 @@ class GraspDataset:
                  if '_' + dataset in fpath]
         return files
 
-    def get_feature_csv_files(self):
+    def get_feature_csv_file_paths(self):
+        """List feature csv files with full paths in the data_dir.
+        Feature csv files identify each dataset, the size, and its data channels.
+        One example is: 'features_102.csv'
+        """
         return gfile.Glob(os.path.join(os.path.expanduser(self.data_dir), '*.csv*'))
 
-    def get_tfrecord_filenames(self, feature_csv_file):
-        print(feature_csv_file)
+    def get_tfrecord_settings_from_feature_csv_file(self, feature_csv_file):
+        """
+        # Arguments
+
+            feature_csv_file: path to the feature csv file for this dataset
+
+        # Returns
+            features: list of all features
+            feature_count: total number of features
+            attempt_count: total number of grasp attempts
+            tfrecord_paths: paths to all tfrecords for this dataset
+        """
         features = np.genfromtxt(feature_csv_file, dtype=str)
         feature_count = int(features[0])
         attempt_count = int(features[1])
@@ -206,7 +228,7 @@ class GraspDataset:
             matching_features.extend(match_feature(features, r'^post_drop/', feature_type))
         return matching_features
 
-    def build_image_input(self, sess, train=True, novel=True):
+    def build_image_input(self, sess, feature_csv_file, train=True, novel=True):
         """Create input tfrecord tensors.
 
         Args:
@@ -217,33 +239,31 @@ class GraspDataset:
         Raises:
         RuntimeError: if no files found.
         """
-        feature_csv_files = self.get_feature_csv_files()
-        for feature_csv_file in feature_csv_files:
-            features, feature_count, attempt_count, tfrecord_paths = self.get_tfrecord_filenames(feature_csv_file)
-            print(tfrecord_paths)
-            if not tfrecord_paths:
-                raise RuntimeError('No tfrecords found for {}.'.format(feature_csv_file))
-            filename_queue = tf.train.string_input_producer(tfrecord_paths, shuffle=False)
-            reader = tf.TFRecordReader()
-            _, serialized_example = reader.read(filename_queue)
+        features, feature_count, attempt_count, tfrecord_paths = self.get_tfrecord_settings_from_feature_csv_file(feature_csv_file)
+        print(tfrecord_paths)
+        if not tfrecord_paths:
+            raise RuntimeError('No tfrecords found for {}.'.format(feature_csv_file))
+        filename_queue = tf.train.string_input_producer(tfrecord_paths, shuffle=False)
+        reader = tf.TFRecordReader()
+        _, serialized_example = reader.read(filename_queue)
 
-            image_seq = []
+        image_seq = []
 
-            num_grasp_steps_name = 'num_grasp_steps'
-            images_feature_names = self.get_time_ordered_features(features)
-            print(images_feature_names)
-            features_dict = {image_name: tf.FixedLenFeature([1], tf.string) for image_name in images_feature_names}
-            features_dict[num_grasp_steps_name] = tf.FixedLenFeature([1], tf.string)
-            features = tf.parse_single_example(serialized_example, features=features_dict)
+        num_grasp_steps_name = 'num_grasp_steps'
+        images_feature_names = self.get_time_ordered_features(features)
+        print(images_feature_names)
+        features_dict = {image_name: tf.FixedLenFeature([1], tf.string) for image_name in images_feature_names}
+        features_dict[num_grasp_steps_name] = tf.FixedLenFeature([1], tf.string)
+        features = tf.parse_single_example(serialized_example, features=features_dict)
 
-            for image_name in images_feature_names:
-                image_buffer = tf.reshape(features[image_name], shape=[])
-                image = tf.image.decode_jpeg(image_buffer, channels=FLAGS.sensor_color_channels)
-                image.set_shape([FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels])
+        for image_name in images_feature_names:
+            image_buffer = tf.reshape(features[image_name], shape=[])
+            image = tf.image.decode_jpeg(image_buffer, channels=FLAGS.sensor_color_channels)
+            image.set_shape([FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels])
 
-                image = tf.reshape(image, [1, FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels])
-                # image = tf.image.resize_bicubic(image, [IMG_HEIGHT, IMG_WIDTH])
-                image_seq.append(image)
+            image = tf.reshape(image, [1, FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels])
+            # image = tf.image.resize_bicubic(image, [IMG_HEIGHT, IMG_WIDTH])
+            image_seq.append(image)
 
         image_seq = tf.concat(image_seq, 0)
 
@@ -260,14 +280,21 @@ class GraspDataset:
         clip.write_gif(filename)
 
     def create_gif(self, sess):
-        train_image_tensor = self.build_image_input(sess)
-        tf.train.start_queue_runners(sess)
-        sess.run(tf.global_variables_initializer())
-        train_videos = sess.run(train_image_tensor)
+        """ Create gifs of all datasets
+        """
+        mkdir_p(FLAGS.gif_dir)
+        feature_csv_files = self.get_feature_csv_file_paths()
+        for feature_csv_file in feature_csv_files:
+            train_image_tensor = self.build_image_input(sess, feature_csv_file)
+            tf.train.start_queue_runners(sess)
+            sess.run(tf.global_variables_initializer())
+            train_videos = sess.run(train_image_tensor)
 
-        for i in range(FLAGS.batch_size):
-            video = train_videos[i]
-            self.npy_to_gif(video, os.path.join(FLAGS.gif_dir, 'grasp_' + str(i) + '.gif'))
+            for i in range(FLAGS.batch_size):
+                video = train_videos[i]
+                gif_filename = os.path.basename(feature_csv_file)[:-4] + '_grasp_' + str(i) + '.gif'
+                gif_path = os.path.join(FLAGS.gif_dir, gif_filename)
+                self.npy_to_gif(video, gif_path)
 
 
 if __name__ == '__main__':
