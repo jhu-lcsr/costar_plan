@@ -87,7 +87,7 @@ class GraspDataset:
         url_prefix = 'https://storage.googleapis.com/brain-robotics-data/'
         files = [get_file(fpath.split('/')[-1], url_prefix + fpath, cache_subdir=self.data_dir)
                  for fpath in grasp_files
-                 if dataset in fpath]
+                 if '_' + dataset in fpath]
         return files
 
     def get_feature_csv_files(self):
