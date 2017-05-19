@@ -109,6 +109,7 @@ class CartesianSkillInstance(yaml.YAMLObject):
   @classmethod
   def from_yaml(cls, loader, node):
     skill = CartesianSkillInstance()
+    print "asdfasdf"
     skill.__dict__.update(loader.construct_mapping(node))
     return skill
 
