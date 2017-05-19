@@ -73,6 +73,6 @@ __all__ = ['AbstractWorld', 'AbstractAction', 'AbstractState',
            # Basic conditions that are useful for testing
            'FalseCondition', 'TrueCondition',
            # Simple reward function
-           'NullReward',
+           'NullReward', 'NullDynamics',
            ]
 

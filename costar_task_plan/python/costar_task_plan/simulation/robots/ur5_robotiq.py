@@ -40,7 +40,8 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         rospack = rospkg.RosPack()
         path = rospack.get_path('costar_simulation')
         filename = os.path.join(path, self.xacro_filename)
-        urdf = open(self.urdf_filename, "w")
+        urdf_filename = os.path.join(path, 'robot', self.urdf_filename)
+        urdf = open(urdf_filename, "w")
 
         # Recompile the URDF to make sure it's up to date
         subprocess.call(['rosrun', 'xacro', 'xacro.py', filename], stdout=urdf)
