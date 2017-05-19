@@ -14,12 +14,13 @@ class AbstractTaskDefinition(object):
     basic BulletWorld.
     '''
 
-    def __init__(self, robot, seed=None, *args, **kwargs):
+    def __init__(self, robot, seed=None, option=None, *args, **kwargs):
         '''
         We do not create a world here, but we may need to cache things or read
         them off of the ROS parameter server as necessary.
         '''
         self.seed = seed
+        self.option = option
         self.robot = robot
 
     def setup(self):

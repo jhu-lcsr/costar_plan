@@ -1,4 +1,9 @@
 
+from abstract import AbstractTaskDefinition
+
+import pybullet as pb
+
+
 class RingsTaskDefinition(AbstractTaskDefinition):
 
     '''
