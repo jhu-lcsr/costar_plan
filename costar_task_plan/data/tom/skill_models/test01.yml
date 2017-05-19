@@ -1,0 +1,6427 @@
+!CartesianSkillInstance
+config:
+  base_link: torso_link
+  dmp_basis: 10
+  dmp_d: 20
+  dmp_k: 100
+  dof: 6
+  end_link: r_gripper_base_link
+  gmm_k: 2
+  gripper_topic: ''
+  ik_solver: kdl
+  joint_states_topic: /joint_states
+  joints:
+  - r_shoulder_pan_joint
+  - r_shoulder_lift_joint
+  - r_elbow_joint
+  - r_wrist_1_joint
+  - r_wrist_2_joint
+  - r_wrist_3_joint
+  name: right
+  namespace: tom
+  obj_frame: torso_link
+  q0: null
+  robot_description_param: robot_description
+dmp_list:
+- !!python/object/new:dmp.msg._DMPData.DMPData
+  state:
+  - 100.0
+  - 20.0
+  - !!python/tuple
+    - -0.0077150715637713755
+    - 0.01165278353846836
+    - -0.007711500175478839
+    - 0.007874638374106265
+    - -0.023488999152840105
+    - 0.03358877852434722
+    - -0.04744248519628572
+    - 0.05234208257111405
+    - -0.049562042088415914
+    - 0.05289957545088318
+    - -0.042093703557705836
+- !!python/object/new:dmp.msg._DMPData.DMPData
+  state:
+  - 100.0
+  - 20.0
+  - !!python/tuple
+    - -0.0074004365727542085
+    - 0.036161482472270114
+    - -0.05784617259087108
+    - 0.0606406865385134
+    - -0.04814787809628005
+    - 0.030396520665481912
+    - -0.011848780945872422
+    - -0.006416181980887141
+    - 0.015965362612464912
+    - -0.02680400423218011
+    - 0.031230666301002127
+- !!python/object/new:dmp.msg._DMPData.DMPData
+  state:
+  - 100.0
+  - 20.0
+  - !!python/tuple
+    - -0.03305193754873069
+    - 0.2648635854330267
+    - -0.41802576544008924
+    - 0.4210809813959251
+    - -0.3876289888665035
+    - 0.3065828565803411
+    - -0.229394796694033
+    - 0.13652351701388482
+    - -0.0782731280768297
+    - 0.025766181437959314
+    - 0.019094829649949074
+- !!python/object/new:dmp.msg._DMPData.DMPData
+  state:
+  - 100.0
+  - 20.0
+  - !!python/tuple
+    - 0.013635039526920153
+    - -0.13681224551469798
+    - 0.20655772881846488
+    - -0.2094119638109649
+    - 0.17332426640673204
+    - -0.1076390971580873
+    - 0.0469867855704625
+    - 0.021821985561369033
+    - -0.048485592421072185
+    - 0.08580701134673466
+    - -0.10466807153653619
+- !!python/object/new:dmp.msg._DMPData.DMPData
+  state:
+  - 100.0
+  - 20.0
+  - !!python/tuple
+    - 0.016416859273027103
+    - -0.20800688969484643
+    - 0.3227664830237336
+    - -0.32277070959468157
+    - 0.2572818419717193
+    - -0.14778065683894925
+    - 0.044808829977734076
+    - 0.06260520465846976
+    - -0.10442336683308469
+    - 0.15927967590927106
+    - -0.17722820039100445
+- !!python/object/new:dmp.msg._DMPData.DMPData
+  state:
+  - 100.0
+  - 20.0
+  - !!python/tuple
+    - -0.030734285633698177
+    - 0.23274099912488747
+    - -0.33543041199373236
+    - 0.34236488688309724
+    - -0.29895509740915455
+    - 0.20503139719919275
+    - -0.12288076846141048
+    - 0.020419806644703713
+    - 0.02095954621747189
+    - -0.0747709628446536
+    - 0.11150639478939578
+dt: !!python/object/apply:numpy.core.multiarray.scalar
+- &id001 !!python/object/apply:numpy.dtype
+  args:
+  - f8
+  - 0
+  - 1
+  state: !!python/tuple
+  - 3
+  - <
+  - null
+  - null
+  - null
+  - -1
+  - -1
+  - 0
+- !!binary |
+  GIZhGNIQoT8=
+ee_frames:
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6776782577614082
+        - -0.7337774970041182
+        - -0.04819506040906867
+        - -0.7329454499148258
+        - 0.6793073670560201
+        - -0.03650299320016172
+        - 0.0595243345751633
+        - 0.010587065400234925
+        - -0.9981707106700712
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.550401467356528
+        - 0.007696965116326138
+        - -0.3323707627072576
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6775091294818427
+        - -0.7339113308573557
+        - -0.04853388412172125
+        - -0.7330740704632996
+        - 0.679160309052224
+        - -0.036656265800770596
+        - 0.05986473655771756
+        - 0.010743977255769178
+        - -0.9981486764353307
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5502599618513112
+        - 0.0077184554947402765
+        - -0.3321742791863457
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.677192457991034
+        - -0.7341640247941139
+        - -0.04912799139156229
+        - -0.7333200451381539
+        - 0.6788822686796464
+        - -0.03688599559389061
+        - 0.06043249323532662
+        - 0.011047622843134054
+        - -0.9981111480145276
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5500746842025455
+        - 0.007764438642781564
+        - -0.3318366514224789
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6767279917213407
+        - -0.7345367880424264
+        - -0.04994929662284266
+        - -0.7336852307030114
+        - 0.6784716258479673
+        - -0.03717842341311466
+        - 0.06119810020801303
+        - 0.011487381404460713
+        - -0.9980595335947644
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.549864782669442
+        - 0.007829525577558357
+        - -0.3313473887562421
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6761316324366318
+        - -0.7350172788281139
+        - -0.05094718287295224
+        - -0.7341579833839887
+        - 0.6779415028354256
+        - -0.037514985896296454
+        - 0.0621133725708914
+        - 0.012038212382201771
+        - -0.997996498185495
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.549652888632458
+        - 0.00790649111172174
+        - -0.3307101237020123
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6754243966430834
+        - -0.7355885661000541
+        - -0.052070585191571886
+        - -0.7347216971346633
+        - 0.6773100632134804
+        - -0.037882793314524904
+        - 0.06313408096176257
+        - 0.012670425905129144
+        - -0.9979246204641391
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5494543567255636
+        - 0.007987534060121093
+        - -0.3299342216891078
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6746782715676604
+        - -0.7361919522725824
+        - -0.05320375253267597
+        - -0.7353183831515302
+        - 0.6766417488376961
+        - -0.038246818551138796
+        - 0.06415688017581597
+        - 0.013317399856877169
+        - -0.9978509616105795
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.549288776483869
+        - 0.008062217039694064
+        - -0.32908804598417174
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6738220673161828
+        - -0.7368844313174656
+        - -0.0544532504051074
+        - -0.7360044498016003
+        - 0.6758729315543313
+        - -0.038642337719116356
+        - 0.06527841503889051
+        - 0.01403977471649475
+        - -0.9977683164221647
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5491414590488735
+        - 0.008135419390748376
+        - -0.3280787325250782
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6729254322348458
+        - -0.7376091524440046
+        - -0.05571445846800327
+        - -0.7367236057418486
+        - 0.6750662095977008
+        - -0.039037692069613855
+        - 0.06640550725862142
+        - 0.014776700925106129
+        - -0.9976832952974078
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.549028862799816
+        - 0.008199031364983135
+        - -0.32697152818588665
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6720634088273125
+        - -0.7383050470796451
+        - -0.05688964731948985
+        - -0.7374150357466622
+        - 0.6742895260528965
+        - -0.039404315881756816
+        - 0.0674524986205969
+        - 0.015469082457714925
+        - -0.9976025600998402
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.548955026427617
+        - 0.008248334884444639
+        - -0.32585273457559993
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6711460302736276
+        - -0.7390444201268351
+        - -0.058106377682152245
+        - -0.7381505010560858
+        - 0.6734620891319977
+        - -0.03978256267027651
+        - 0.06853352346552911
+        - 0.016191342790366964
+        - -0.9975174166800521
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5489100713360688
+        - 0.008288461575138396
+        - -0.32459559324799236
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6702397126451539
+        - -0.7397734520042365
+        - -0.05927872555206281
+        - -0.7388763919285251
+        - 0.6726439707000579
+        - -0.040146807239729056
+        - 0.06957301951206156
+        - 0.016891666306053044
+        - -0.9974338406959026
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.548895774426853
+        - 0.008315232475791731
+        - -0.3232788038245271
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6694059285523234
+        - -0.7404427177748552
+        - -0.06033477035000382
+        - -0.7395433736914463
+        - 0.6718909218556521
+        - -0.040474529732112276
+        - 0.07050745526591753
+        - 0.017526289457497235
+        - -0.9973572719591393
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5489070841163104
+        - 0.008328205493459846
+        - -0.32199366593358925
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6685499303164263
+        - -0.7411283591782605
+        - -0.061398256454401466
+        - -0.7402272683708397
+        - 0.6711174519306667
+        - -0.040803883079111244
+        - 0.07144635633918683
+        - 0.01816923046879445
+        - -0.9972789465490713
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5489432869954068
+        - 0.008329068540325404
+        - -0.32058893573886327
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6677312450768339
+        - -0.7417827105245656
+        - -0.06239707296796531
+        - -0.7408804139617247
+        - 0.6703774137571096
+        - -0.04111368789384637
+        - 0.07232701124783662
+        - 0.018775875243447683
+        - -0.9972042268025131
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5490009169468333
+        - 0.008316880955229373
+        - -0.31915161090434035
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6669986876194535
+        - -0.7423669202053315
+        - -0.06327800959873787
+        - -0.7414638820739593
+        - 0.6697151414156474
+        - -0.04138769066320734
+        - 0.07310309359897561
+        - 0.019312823291034245
+        - -0.9971373789818475
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5490716869395569
+        - 0.008294585179763812
+        - -0.3177745815483145
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.666263531572099
+        - -0.742951833455275
+        - -0.06415200435309858
+        - -0.7420483677878155
+        - 0.6690505644906575
+        - -0.04166007703031276
+        - 0.07387236533720658
+        - 0.019847300072751768
+        - -0.9970701872583037
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5491617713660298
+        - 0.008260721009481636
+        - -0.31629070935654374
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6655360121514738
+        - -0.7435292910747013
+        - -0.06500776756253993
+        - -0.7426257191748975
+        - 0.6683929663408213
+        - -0.04192712446714868
+        - 0.07462477972818052
+        - 0.020372428919241164
+        - -0.9970035638805163
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5492714505014324
+        - 0.008214558867417579
+        - -0.3147016596879062
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.664934555743696
+        - -0.7440056758438792
+        - -0.06570837762436635
+        - -0.7431022841257146
+        - 0.6678493449142417
+        - -0.04214555521954948
+        - 0.07523982924674713
+        - 0.02080400946237909
+        - -0.9969484245863522
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5493794987911587
+        - 0.008165404930122223
+        - -0.3132781083231827
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6643506374432712
+        - -0.7444676420876922
+        - -0.06637891542584069
+        - -0.7435651031263356
+        - 0.667321157854296
+        - -0.04234866813399907
+        - 0.07582326781035688
+        - 0.021222680424333715
+        - -0.9968953956630381
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5495087209205193
+        - 0.008104942204407117
+        - -0.3117636330637076
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6638532974004672
+        - -0.7448624178088078
+        - -0.06692367343880579
+        - -0.7439618788188985
+        - 0.666869173775452
+        - -0.04249974037921389
+        - 0.07628579418726245
+        - 0.021575069039591444
+        - -0.996852543760187
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.54966694442632
+        - 0.008032823686572146
+        - -0.31027230662150407
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6635441026194957
+        - -0.7451131925976874
+        - -0.06719787270271063
+        - -0.7442169933659543
+        - 0.6665821311590517
+        - -0.042536210512876885
+        - 0.07648719281178454
+        - 0.021785147149798595
+        - -0.9968325419544822
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5498818731186764
+        - 0.007949207248934123
+        - -0.30894843487102314
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6634374257586659
+        - -0.7452139812073307
+        - -0.06713348133260091
+        - -0.744322660410551
+        - 0.6664689881408197
+        - -0.04246015833592339
+        - 0.07638428701031624
+        - 0.021799313284413195
+        - -0.996840122907507
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5501787814683679
+        - 0.00782753559118106
+        - -0.3076847216991634
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6635336660194733
+        - -0.7451617665211053
+        - -0.06676088505931882
+        - -0.7442743320451178
+        - 0.6665331683718964
+        - -0.042299575871571356
+        - 0.07601837092145342
+        - 0.0216212204851328
+        - -0.9968719727764351
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5505035250761515
+        - 0.007673517526170855
+        - -0.3065768592145108
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6637803179183865
+        - -0.7449919020951487
+        - -0.06620238180623389
+        - -0.744107201281622
+        - 0.6667327190905161
+        - -0.042094587478662585
+        - 0.07549942082557831
+        - 0.021320110384784083
+        - -0.9969178954899862
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5508069183717386
+        - 0.007508659681029394
+        - -0.3056698899268817
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6641786110657305
+        - -0.7447029873380594
+        - -0.06545405451587194
+        - -0.7438204525296207
+        - 0.6670687556214405
+        - -0.041837897560617864
+        - 0.07481916199361649
+        - 0.020898227758172842
+        - -0.9969781126359496
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5511095511262588
+        - 0.007322684147106574
+        - -0.3048384077043231
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.664753337183201
+        - -0.7442737964630051
+        - -0.06449431449625988
+        - -0.7433931248639278
+        - 0.6675647259736874
+        - -0.04152106141128604
+        - 0.073957167393308
+        - 0.020343365852790528
+        - -0.9970539026837704
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5514119279578767
+        - 0.007111921913112814
+        - -0.3040527314241695
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6653523490477338
+        - -0.743817839570232
+        - -0.06357100875191204
+        - -0.7429385936336708
+        - 0.6680890047023267
+        - -0.04122290486462918
+        - 0.07313342400220549
+        - 0.019801599251767034
+        - -0.9971255683015989
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5516457112411909
+        - 0.00692744856476722
+        - -0.3034620970873745
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6660052742955987
+        - -0.743314068024311
+        - -0.0626192533298994
+        - -0.7424361936888263
+        - 0.6686659025119615
+        - -0.04091954445874699
+        - 0.0722874325957952
+        - 0.01923816766258813
+        - -0.9971982851939198
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5518440933323343
+        - 0.006751071220806316
+        - -0.3029630336641297
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6666887703550588
+        - -0.7427809878444696
+        - -0.061664313660771054
+        - -0.7419043915398718
+        - 0.6692741601448291
+        - -0.04061985199735076
+        - 0.0714419855289082
+        - 0.018668225926099895
+        - -0.9972700436915067
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5520068160464663
+        - 0.006584875218104692
+        - -0.3025416468100531
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.667292287833401
+        - -0.742305015041702
+        - -0.060862691708504855
+        - -0.7414268556680103
+        - 0.6698159653420912
+        - -0.04040779958238518
+        - 0.07076171487685477
+        - 0.01816142111128488
+        - -0.997327901189426
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5520748968257007
+        - 0.006430320647442449
+        - -0.30212950447354275
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6677365208920492
+        - -0.7419465646362335
+        - -0.06035920718062339
+        - -0.7410664318281768
+        - 0.6702219317748864
+        - -0.04028778705009513
+        - 0.07034544963561222
+        - 0.017828555534051965
+        - -0.9973633542110582
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5520479206067676
+        - 0.006307400650897929
+        - -0.30165621806441245
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.66804828110882
+        - -0.741687122479206
+        - -0.06009747462303516
+        - -0.7408050959104667
+        - 0.6705139665378342
+        - -0.04023469337256334
+        - 0.07013775003972783
+        - 0.017641797703613023
+        - -0.9973813027088233
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5519773925670173
+        - 0.006218989036222997
+        - -0.30111051430960806
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6682756669290852
+        - -0.7414916119260722
+        - -0.059981850869753855
+        - -0.7406089653445787
+        - 0.6707324268436702
+        - -0.0402041295345772
+        - 0.07004279721512338
+        - 0.017555655034078313
+        - -0.9973894954001697
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5519111327925729
+        - 0.006161700941245321
+        - -0.30050677444501356
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6685359043322451
+        - -0.74127314975697
+        - -0.05978178709312611
+        - -0.7403925557481683
+        - 0.6709767462031789
+        - -0.04011320789079198
+        - 0.06984703294602047
+        - 0.01744487042013454
+        - -0.9974051676649073
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5519171533880478
+        - 0.006113752394058612
+        - -0.29992251414688276
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6688443841211229
+        - -0.7410225633742626
+        - -0.059436944738710445
+        - -0.7401444837312023
+        - 0.6712584449947079
+        - -0.03997803428832414
+        - 0.06952217654754128
+        - 0.01725284305624556
+        - -0.9974312038304038
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5519715869306454
+        - 0.006052104361981986
+        - -0.2993919871871568
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6691919211941842
+        - -0.7407452266731289
+        - -0.05898035070607369
+        - -0.7398696362781352
+        - 0.6715710760115621
+        - -0.03981471057702943
+        - 0.06910205439852389
+        - 0.016994087961626866
+        - -0.9974648400080355
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.552049289090288
+        - 0.005976097875242223
+        - -0.298921739149366
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6695737029409253
+        - -0.7404424290882179
+        - -0.05844711743034738
+        - -0.7395692076817963
+        - 0.671912589456289
+        - -0.03963406589115606
+        - 0.06861809804197058
+        - 0.01668776006790093
+        - -0.9975034211896312
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5521350151521062
+        - 0.005890591620524066
+        - -0.2985110931993442
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6699839543467827
+        - -0.7401168879432681
+        - -0.05786616540794944
+        - -0.7392459331641693
+        - 0.6722794410377667
+        - -0.03944367450155275
+        - 0.06809516295659167
+        - 0.01635069842911409
+        - -0.9975448378107098
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.552219326595215
+        - 0.005800521874727444
+        - -0.29815621311180196
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6703895242057004
+        - -0.7397939315188584
+        - -0.057295939848522055
+        - -0.7389250484829264
+        - 0.6726428310800089
+        - -0.039260597565187114
+        - 0.06758445501562926
+        - 0.016017511808686727
+        - -0.9975849742030495
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5522923914227476
+        - 0.005715069781845658
+        - -0.29786851735456565
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6708335369315239
+        - -0.7394386965065898
+        - -0.05668138880247559
+        - -0.7385719761487193
+        - 0.673041816769226
+        - -0.0390659561223787
+        - 0.06703582456953637
+        - 0.01565653181951125
+        - -0.9976277217658236
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5523605218889536
+        - 0.0056262187596258
+        - -0.2976066959656612
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6712834779092889
+        - -0.7390768629692779
+        - -0.05607033894583373
+        - -0.738212281767143
+        - 0.6734474130790203
+        - -0.038874269965155556
+        - 0.06649149820960355
+        - 0.015296157709266787
+        - -0.9976697390545509
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5524176544399628
+        - 0.005541223230559795
+        - -0.29738458397317435
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6717061553190653
+        - -0.7387352962653632
+        - -0.05550678299276358
+        - -0.7378727127091972
+        - 0.6738295598523524
+        - -0.038698631866715634
+        - 0.06599015642995631
+        - 0.014962831313331766
+        - -0.9977080800181176
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5524612603407114
+        - 0.005465823729628837
+        - -0.29720707531376184
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6721488071695911
+        - -0.7383759537510326
+        - -0.054926605053919456
+        - -0.7375154751219666
+        - 0.6742308485512022
+        - -0.038518655448318034
+        - 0.06547446048740009
+        - 0.01461895290981458
+        - -0.9977471529599596
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5524973181208002
+        - 0.005391237290762251
+        - -0.2970473659085542
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6726050984961064
+        - -0.7380038933516375
+        - -0.05433815303143737
+        - -0.7371456173990685
+        - 0.6746455596361346
+        - -0.03833676580767955
+        - 0.06495167608606543
+        - 0.014269627222587504
+        - -0.9977863786966322
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5525249926189326
+        - 0.005318784399647985
+        - -0.296905973876061
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6730682546825675
+        - -0.7376246363879035
+        - -0.0537496077397367
+        - -0.7367686454283879
+        - 0.6750675024535883
+        - -0.03815534359290796
+        - 0.06442893489869837
+        - 0.013919875167820764
+        - -0.9978252098554793
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5525439487433187
+        - 0.005249600115234425
+        - -0.2967827390898382
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6734636668743852
+        - -0.7372996554184913
+        - -0.053253239524757245
+        - -0.7364456633654312
+        - 0.6754284454749124
+        - -0.038002630877261113
+        - 0.06398807943951068
+        - 0.013624726166694044
+        - -0.9978576514345749
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5525533167846836
+        - 0.005193851267117477
+        - -0.2966914255809515
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6738393667100627
+        - -0.7369899121876416
+        - -0.05278614596116983
+        - -0.7361378662751622
+        - 0.6757719505294492
+        - -0.03785911664943309
+        - 0.0635731838720793
+        - 0.013346917669488444
+        - -0.9978879246093174
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5525567158765723
+        - 0.005143606269881486
+        - -0.29661507732957043
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6741740593289465
+        - -0.7367132252703945
+        - -0.05237328937180802
+        - -0.7358629552237597
+        - 0.6760783815017049
+        - -0.03773238920861477
+        - 0.06320639886344882
+        - 0.013101365490976218
+        - -0.9979144779814484
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5525554240975208
+        - 0.005101018450197847
+        - -0.2965547371566298
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6745091498536027
+        - -0.7364355318925336
+        - -0.051962622431235506
+        - -0.7355870825461902
+        - 0.6763855415976711
+        - -0.03760642377054152
+        - 0.06284147320802129
+        - 0.012857156909139463
+        - -0.9979407010244944
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5525502022161836
+        - 0.005060385965825916
+        - -0.29650091354057
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6748230810523757
+        - -0.7361747841137345
+        - -0.05158000110581025
+        - -0.7353280816245529
+        - 0.6766736125937471
+        - -0.037489123671835295
+        - 0.06250137321158454
+        - 0.012629697321146327
+        - -0.9979649638600758
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.552541852932292
+        - 0.0050241101560181385
+        - -0.2964559869428851
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6751161714421623
+        - -0.7359308521049096
+        - -0.05122436898019017
+        - -0.7350858182954002
+        - 0.6769428077605624
+        - -0.03738013860632539
+        - 0.06218516541956566
+        - 0.012418371124588844
+        - -0.9979873692889871
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5525311176629156
+        - 0.0049917877138751605
+        - -0.2964184903806099
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6753889949715961
+        - -0.7357033743273727
+        - -0.050894503382731264
+        - -0.7348599281053976
+        - 0.6771935887332832
+        - -0.03727907514231539
+        - 0.06189177276655513
+        - 0.01222245400295482
+        - -0.9980080260608921
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5525186276194738
+        - 0.00496303100505947
+        - -0.29638719176972855
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6756566212121168
+        - -0.7354798560851803
+        - -0.05057184498461741
+        - -0.7346380006737354
+        - 0.6774397671279246
+        - -0.037180235068646456
+        - 0.06160469282711
+        - 0.01203092708752749
+        - -0.9980281151426005
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.552504077443145
+        - 0.00493606377184412
+        - -0.29635966343594217
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6759165529033395
+        - -0.7352624215231535
+        - -0.05025917833765079
+        - -0.7344221441599624
+        - 0.6776790219428992
+        - -0.03708446286517973
+        - 0.06132640278665045
+        - 0.01184545121235125
+        - -0.9980474726218314
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5524877985546919
+        - 0.004911048251597746
+        - -0.2963357674254049
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6761305676685728
+        - -0.7350831511842179
+        - -0.050002163045751294
+        - -0.7342441983832203
+        - 0.6778761188746906
+        - -0.037005737392582345
+        - 0.06109756627522843
+        - 0.0116930878927139
+        - -0.998063304149981
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5524728253695187
+        - 0.004891323723171223
+        - -0.2963180876317656
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6763281079836464
+        - -0.7349174895711943
+        - -0.04976518736661929
+        - -0.7340797803011678
+        - 0.6780581234809543
+        - -0.03693314682607122
+        - 0.060886505107868555
+        - 0.011552692493975378
+        - -0.9980778370407236
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.552457757293765
+        - 0.004873819535808749
+        - -0.296303295878547
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6764998952712168
+        - -0.7347732796577602
+        - -0.049559249379017956
+        - -0.7339366686152848
+        - 0.6782164589838907
+        - -0.03687005865536618
+        - 0.06070303254311454
+        - 0.011430759569311721
+        - -0.9980904165333612
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.552443686018867
+        - 0.0048591483633915475
+        - -0.29629157823954577
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6766683686925374
+        - -0.7346317235060167
+        - -0.049357366517672335
+        - -0.7337962051183817
+        - 0.6783717898925196
+        - -0.03680820603997618
+        - 0.06052312091128677
+        - 0.011311299509735556
+        - -0.9981027033018991
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.552429015849694
+        - 0.004845261613799796
+        - -0.2962810852850245
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6768233384264944
+        - -0.7345014041125317
+        - -0.049171698342993335
+        - -0.7336669048099256
+        - 0.678514711508354
+        - -0.03675131362766678
+        - 0.06035761217807319
+        - 0.01120150094651471
+        - -0.9981139639483593
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5524147629087036
+        - 0.00483292992536918
+        - -0.2962722782612904
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6769577159948665
+        - -0.7343883183952794
+        - -0.04901069841949847
+        - -0.7335547139030708
+        - 0.6786386718288678
+        - -0.03670197282073236
+        - 0.06021405538242054
+        - 0.011106345164076235
+        - -0.9981236980612668
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5524018165840292
+        - 0.004822582782992492
+        - -0.2962652772081108
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6770891731423474
+        - -0.7342776173747467
+        - -0.048853170172235255
+        - -0.7334448984969923
+        - 0.6787599634638616
+        - -0.036653688317462886
+        - 0.06007355892694345
+        - 0.011013292922743126
+        - -0.9981331949679105
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5523886243497081
+        - 0.00481277438898242
+        - -0.2962589837933912
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6772166037031121
+        - -0.7341702397092852
+        - -0.048700418828104
+        - -0.7333383892201354
+        - 0.6788775623903501
+        - -0.03660685972537725
+        - 0.059937288600996744
+        - 0.010923113482291521
+        - -0.9981423781340083
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5523753385961555
+        - 0.004803565742165324
+        - -0.29625339379590554
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6773267143235724
+        - -0.7340774040762945
+        - -0.0485683733332955
+        - -0.7332463119737531
+        - 0.6789791944186939
+        - -0.036566371482978026
+        - 0.05981946205478131
+        - 0.010845200373902616
+        - -0.9981502960918894
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5523634639576172
+        - 0.004795848536160794
+        - -0.2962489583219987
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6774276664202526
+        - -0.7339922482843491
+        - -0.04844725200563441
+        - -0.7331618581681276
+        - 0.6790723859523046
+        - -0.03652922616895506
+        - 0.059711359856137534
+        - 0.010773768863817625
+        - -0.9981575423792578
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5523522552465835
+        - 0.0047889707020845615
+        - -0.29624520583677505
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6775201836188751
+        - -0.7339141730819603
+        - -0.0483361907732507
+        - -0.7330844320218186
+        - 0.6791578011246401
+        - -0.036495159936508786
+        - 0.0596122161665988
+        - 0.010708301497723118
+        - -0.9981641728507092
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5523417124424924
+        - 0.004782835202918143
+        - -0.2962420250637978
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6776001582428434
+        - -0.7338466564581787
+        - -0.04824013219742908
+        - -0.733017480955017
+        - 0.6792316438720166
+        - -0.03646569041275807
+        - 0.059526449277904736
+        - 0.010651702590177064
+        - -0.998169896895461
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.552332390050902
+        - 0.004777662062727725
+        - -0.2962394705473691
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6776781852121743
+        - -0.7337807611808954
+        - -0.04814635820412277
+        - -0.7329521415490393
+        - 0.6793036944460176
+        - -0.03643691686557118
+        - 0.059442707594885756
+        - 0.010596472657311805
+        - -0.998175475195124
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5523231077017521
+        - 0.004772732795099167
+        - -0.29623714929179107
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6777496277412804
+        - -0.7337204070767336
+        - -0.048060444605807766
+        - -0.7328923000087637
+        - 0.6793696699057805
+        - -0.03641055066838506
+        - 0.05936597244566819
+        - 0.010545892625241228
+        - -0.9981805775831931
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5523144463933568
+        - 0.00476832263820231
+        - -0.2962351694639784
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6778150265264339
+        - -0.733665142600312
+        - -0.04798175015808936
+        - -0.7328375078030389
+        - 0.6794300680329945
+        - -0.036386395942869146
+        - 0.05929567414238931
+        - 0.01049958027466509
+        - -0.9981852442518149
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5523063815329512
+        - 0.004764372881547501
+        - -0.2962334770129821
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6778970331512487
+        - -0.7335961052241673
+        - -0.04787866795000893
+        - -0.7327694849146971
+        - 0.6795054707769997
+        - -0.03634827591478569
+        - 0.05919877044824666
+        - 0.010443638449333652
+        - -0.9981915828103117
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5523034887656876
+        - 0.004759290467015571
+        - -0.29623796737668107
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.677991422352599
+        - -0.7335179325606043
+        - -0.047739646294419326
+        - -0.7326935375704098
+        - 0.6795908477444945
+        - -0.03628304927204281
+        - 0.05905769398527013
+        - 0.010378934142576473
+        - -0.998200614359261
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5523217881344825
+        - 0.004749650193790278
+        - -0.29626869986820403
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6782196544449172
+        - -0.7333326396431664
+        - -0.047342792044862164
+        - -0.7325152023259239
+        - 0.6797934431980778
+        - -0.03608812749800866
+        - 0.05864792141268124
+        - 0.010203637532152806
+        - -0.9982265810401386
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5524204743364047
+        - 0.004713576241972869
+        - -0.2964113936165335
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6786156545024985
+        - -0.7330146274442397
+        - -0.04658700910048089
+        - -0.7322065322421014
+        - 0.6801418908995501
+        - -0.03578550524418006
+        - 0.05791707525542215
+        - 0.009826708318012495
+        - -0.9982730328910477
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5525784378205106
+        - 0.004618449161536033
+        - -0.2967267897158328
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6791602676348222
+        - -0.7325756633509989
+        - -0.04554369695183581
+        - -0.7317783207361562
+        - 0.6806223429517915
+        - -0.035407846240421634
+        - 0.0569369841734519
+        - 0.009280287746513419
+        - -0.9983346413365481
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5527574044292851
+        - 0.004467875508937222
+        - -0.2972228030529949
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6797997664081382
+        - -0.7320550940443998
+        - -0.044357827664182864
+        - -0.7312688871906227
+        - 0.6811906054357663
+        - -0.035002481241225424
+        - 0.055839880179212736
+        - 0.008642820702690138
+        - -0.9984023284387272
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5529270806565995
+        - 0.004286412405453565
+        - -0.29785352450971003
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6806946278582143
+        - -0.7313175492969617
+        - -0.04277225380141776
+        - -0.7305454084380965
+        - 0.6819928255165659
+        - -0.03448466548983248
+        - 0.054389611278090375
+        - 0.007773547080758135
+        - -0.9984895303160677
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5531102684616606
+        - 0.004035658191579625
+        - -0.2987954381508112
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6815876674665073
+        - -0.73057193822449
+        - -0.041266143949706215
+        - -0.7298128021027521
+        - 0.6828005162843617
+        - -0.03401071667487053
+        - 0.05302381959548833
+        - 0.006935275100621367
+        - -0.9985691646124387
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5532436111086761
+        - 0.0037930246611931184
+        - -0.2997941979005545
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6825338541794678
+        - -0.7297725018351594
+        - -0.03974460295654506
+        - -0.7290265420068417
+        - 0.6836630212066974
+        - -0.03354362061670736
+        - 0.0516511272719962
+        - 0.006080213794189812
+        - -0.9986466802887541
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5533406333002258
+        - 0.003546118258952128
+        - -0.3009148142371758
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6835130764226345
+        - -0.7289360772989828
+        - -0.03823701833612323
+        - -0.7282036409919943
+        - 0.6845617862555295
+        - -0.0330850123868984
+        - 0.05029246071995593
+        - 0.005230297372992687
+        - -0.9987208380644321
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5534066501682458
+        - 0.003303041904527751
+        - -0.3021408218236693
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6845055135629835
+        - -0.7280802471439108
+        - -0.036760789174580144
+        - -0.7273614668782152
+        - 0.6854778159760261
+        - -0.032641389454317854
+        - 0.048964256377966725
+        - 0.0043951704857862345
+        - -0.9987908610283506
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5534443950880655
+        - 0.003066821058136473
+        - -0.30345820689128
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6854313622405832
+        - -0.7272750639121447
+        - -0.03542356657091436
+        - -0.7265690131625501
+        - 0.6863364765872134
+        - -0.03224453469732819
+        - 0.0477631319012507
+        - 0.003636250463723737
+        - -0.9988520715869534
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.55345407265613
+        - 0.0028539333231639807
+        - -0.3047661477699929
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6863820133986269
+        - -0.7264417264129069
+        - -0.034090318406877824
+        - -0.7257484348732933
+        - 0.6872220630167831
+        - -0.031859776865532694
+        - 0.04657189025380116
+        - 0.0028730174367284766
+        - -0.9989108092362382
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5534330815690429
+        - 0.002641305455440928
+        - -0.30620708608377495
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6872610389655449
+        - -0.7256645346421544
+        - -0.03291272523789546
+        - -0.7249822887392903
+        - 0.6880451988121115
+        - -0.03153546267208442
+        - 0.04552960942441936
+        - 0.002188048031340947
+        - -0.9989605933726677
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5533686909307597
+        - 0.0024508405035545233
+        - -0.3076647961683925
+- !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - -0.6880377869467075
+        - -0.7249714231570393
+        - -0.03194431622580367
+        - -0.7242978451620966
+        - 0.6887770602568799
+        - -0.03128566376847193
+        - 0.044683724408566924
+        - 0.0016114805451079833
+        - -0.9989998838355447
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.5532584863000687
+        - 0.0022915338032253223
+        - -0.3091022570505485
+goal_object_position: &id136 !!python/object/apply:sip._unpickle_type
+- PyKDL
+- Frame
+- !!python/tuple
+  - !!python/object/apply:sip._unpickle_type
+    - PyKDL
+    - Rotation
+    - !!python/tuple
+      - 1.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 1.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 1.0
+  - !!python/object/apply:sip._unpickle_type
+    - PyKDL
+    - Vector
+    - !!python/tuple
+      - 0.542672622341
+      - 0.013907504104
+      - -0.466499112972
+goal_pose: !!python/object/apply:sip._unpickle_type
+- PyKDL
+- Frame
+- !!python/tuple
+  - !!python/object/apply:sip._unpickle_type
+    - PyKDL
+    - Rotation
+    - !!python/tuple
+      - -0.6880377869467075
+      - -0.7249714231570393
+      - -0.03194431622580367
+      - -0.7242978451620966
+      - 0.6887770602568799
+      - -0.03128566376847193
+      - 0.044683724408566924
+      - 0.0016114805451079833
+      - -0.9989998838355447
+  - !!python/object/apply:sip._unpickle_type
+    - PyKDL
+    - Vector
+    - !!python/tuple
+      - 0.010585863959068686
+      - -0.01161597030077468
+      - 0.15739685592145147
+kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
+  _dyn_kdl: !!python/object:PyKDL.ChainDynParam {}
+  _fk_kdl: !!python/object:PyKDL.ChainFkSolverPos_recursive {}
+  _ik_p_kdl: !!python/object:PyKDL.ChainIkSolverPos_NR {}
+  _ik_v_kdl: !!python/object:PyKDL.ChainIkSolverVel_pinv {}
+  _jac_kdl: !!python/object:PyKDL.ChainJntToJacSolver {}
+  base_link: torso_link
+  chain: !!python/object:PyKDL.Chain {}
+  end_link: r_gripper_base_link
+  joint_limits_lower: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - &id002 !!python/name:numpy.ndarray ''
+    - !!python/tuple
+      - 0
+    - b
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 6
+    - *id001
+    - false
+    - !!binary |
+      8dTIU/shGcDx1MhT+yEZwPHUyFP7IRnA8dTIU/shGcDx1MhT+yEZwPHUyFP7IRnA
+  joint_limits_upper: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id002
+    - !!python/tuple
+      - 0
+    - b
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 6
+    - *id001
+    - false
+    - !!binary |
+      8dTIU/shGUDx1MhT+yEZQPHUyFP7IRlA8dTIU/shGUDx1MhT+yEZQPHUyFP7IRlA
+  joint_safety_lower: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id002
+    - !!python/tuple
+      - 0
+    - b
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 6
+    - *id001
+    - false
+    - !!binary |
+      8dTIU/shGcDx1MhT+yEZwPHUyFP7IRnA8dTIU/shGcDx1MhT+yEZwPHUyFP7IRnA
+  joint_safety_upper: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id002
+    - !!python/tuple
+      - 0
+    - b
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 6
+    - *id001
+    - false
+    - !!binary |
+      8dTIU/shGUDx1MhT+yEZQPHUyFP7IRlA8dTIU/shGUDx1MhT+yEZQPHUyFP7IRlA
+  joint_types: !!python/object/apply:numpy.core.multiarray._reconstruct
+    args:
+    - *id002
+    - !!python/tuple
+      - 0
+    - b
+    state: !!python/tuple
+    - 1
+    - !!python/tuple
+      - 6
+    - !!python/object/apply:numpy.dtype
+      args:
+      - S8
+      - 0
+      - 1
+      state: !!python/tuple
+      - 3
+      - '|'
+      - null
+      - null
+      - null
+      - 8
+      - 1
+      - 0
+    - false
+    - revoluterevoluterevoluterevoluterevoluterevolute
+  num_joints: 6
+  tree: !!python/object:PyKDL.Tree {}
+  urdf: !!python/object:urdf_parser_py.urdf.Robot
+    aggregate_order:
+    - &id102 !!python/object:urdf_parser_py.urdf.Link
+      collision: !!python/object:urdf_parser_py.urdf.Collision
+        geometry: !!python/object:urdf_parser_py.urdf.Box
+          size:
+          - 0.001
+          - 0.001
+          - 0.001
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+      inertial: null
+      name: base_footprint
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Box
+          size:
+          - 0.01
+          - 0.01
+          - 0.01
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: null
+          name: White
+          texture: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+    - &id055 !!python/object:urdf_parser_py.urdf.Joint
+      axis: null
+      calibration: null
+      child: base_link
+      dynamics: null
+      limit: null
+      mimic: null
+      name: base_footprint_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 0.0
+        - 0.0
+        xyz:
+        - 0.0
+        - 0.0
+        - 0.051
+      parent: base_footprint
+      safety_controller: null
+      type: fixed
+    - &id104 !!python/object:urdf_parser_py.urdf.Link
+      collision: !!python/object:urdf_parser_py.urdf.Collision
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/base/item_profile.dae
+          scale: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 1.57079632679
+          - 0.0
+          - 1.57079632679
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+      inertial: !!python/object:urdf_parser_py.urdf.Inertial
+        inertia: !!python/object:urdf_parser_py.urdf.Inertia
+          ixx: 0.0
+          ixy: 0.0
+          ixz: 0.0
+          iyy: 0.0
+          iyz: 0.0
+          izz: 0.0
+        mass: 10.0
+        origin: null
+      name: base_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/base/item_profile.dae
+          scale: null
+        material: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 1.57079632679
+          - 0.0
+          - 1.57079632679
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+    - &id105 !!python/object:urdf_parser_py.urdf.Link
+      collision: !!python/object:urdf_parser_py.urdf.Collision
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/base/green_parts.dae
+          scale: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 1.57
+          - 0.0
+          - 1.57
+          xyz:
+          - -0.01614
+          - 0.0
+          - -0.76268
+      inertial: !!python/object:urdf_parser_py.urdf.Inertial
+        inertia: !!python/object:urdf_parser_py.urdf.Inertia
+          ixx: 0.0
+          ixy: 0.0
+          ixz: 0.0
+          iyy: 0.0
+          iyz: 0.0
+          izz: 0.0
+        mass: 10.0
+        origin: null
+      name: torso_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/base/green_parts.dae
+          scale: null
+        material: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 1.57
+          - 0.0
+          - 1.57
+          xyz:
+          - -0.01614
+          - 0.0
+          - -0.76268
+    - &id057 !!python/object:urdf_parser_py.urdf.Joint
+      axis: null
+      calibration: null
+      child: torso_link
+      dynamics: null
+      limit: null
+      mimic: null
+      name: base_to_torso
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy: null
+        xyz:
+        - 0.01614
+        - 0.0
+        - 0.76268
+      parent: base_link
+      safety_controller: null
+      type: fixed
+    - &id106 !!python/object:urdf_parser_py.urdf.Link
+      collision: !!python/object:urdf_parser_py.urdf.Collision
+        geometry: !!python/object:urdf_parser_py.urdf.Cylinder
+          length: 0.075
+          radius: 0.1
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+      inertial: !!python/object:urdf_parser_py.urdf.Inertial
+        inertia: !!python/object:urdf_parser_py.urdf.Inertia
+          ixx: 0.012411765597
+          ixy: -0.000711733678
+          ixz: 0.00050272983
+          iyy: 0.015218160428
+          iyz: -4.273467e-06
+          izz: 0.011763977943
+        mass: 0.44036
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy: null
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+      name: l_front_wheel_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/wheels/wheels.dae
+          scale: null
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 1.0
+            - 1.0
+            - 1.0
+            - 1.0
+          name: white
+          texture: null
+        origin: null
+    - &id058 !!python/object:urdf_parser_py.urdf.Joint
+      axis:
+      - 0.0
+      - 0.0
+      - 1.0
+      calibration: null
+      child: l_front_wheel_link
+      dynamics: null
+      limit: null
+      mimic: null
+      name: l_front_wheel_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - -1.57
+        - 0.0
+        - 0.0
+        xyz:
+        - 0.0
+        - 0.303
+        - -0.4
+      parent: base_link
+      safety_controller: null
+      type: continuous
+    - &id107 !!python/object:urdf_parser_py.urdf.Link
+      collision: !!python/object:urdf_parser_py.urdf.Collision
+        geometry: !!python/object:urdf_parser_py.urdf.Cylinder
+          length: 0.075
+          radius: 0.1
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+      inertial: !!python/object:urdf_parser_py.urdf.Inertial
+        inertia: !!python/object:urdf_parser_py.urdf.Inertia
+          ixx: 0.012411765597
+          ixy: -0.000711733678
+          ixz: 0.00050272983
+          iyy: 0.015218160428
+          iyz: -4.273467e-06
+          izz: 0.011763977943
+        mass: 0.44036
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy: null
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+      name: l_rear_wheel_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/wheels/wheels.dae
+          scale: null
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 1.0
+            - 1.0
+            - 1.0
+            - 1.0
+          name: white
+          texture: null
+        origin: null
+    - &id059 !!python/object:urdf_parser_py.urdf.Joint
+      axis:
+      - 0.0
+      - 0.0
+      - 1.0
+      calibration: null
+      child: l_rear_wheel_link
+      dynamics: null
+      limit: null
+      mimic: null
+      name: l_rear_wheel_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - -1.57
+        - 0.0
+        - 0.0
+        xyz:
+        - -0.8115
+        - 0.303
+        - -0.4
+      parent: base_link
+      safety_controller: null
+      type: continuous
+    - &id108 !!python/object:urdf_parser_py.urdf.Link
+      collision: !!python/object:urdf_parser_py.urdf.Collision
+        geometry: !!python/object:urdf_parser_py.urdf.Cylinder
+          length: 0.075
+          radius: 0.1
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+      inertial: !!python/object:urdf_parser_py.urdf.Inertial
+        inertia: !!python/object:urdf_parser_py.urdf.Inertia
+          ixx: 0.012411765597
+          ixy: -0.000711733678
+          ixz: 0.00050272983
+          iyy: 0.015218160428
+          iyz: -4.273467e-06
+          izz: 0.011763977943
+        mass: 0.44036
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy: null
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+      name: r_front_wheel_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/wheels/wheels.dae
+          scale: null
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 1.0
+            - 1.0
+            - 1.0
+            - 1.0
+          name: white
+          texture: null
+        origin: null
+    - &id060 !!python/object:urdf_parser_py.urdf.Joint
+      axis:
+      - 0.0
+      - 0.0
+      - 1.0
+      calibration: null
+      child: r_front_wheel_link
+      dynamics: null
+      limit: null
+      mimic: null
+      name: r_front_wheel_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - -1.57
+        - 0.0
+        - 0.0
+        xyz:
+        - 0.0
+        - -0.303
+        - -0.4
+      parent: base_link
+      safety_controller: null
+      type: continuous
+    - &id109 !!python/object:urdf_parser_py.urdf.Link
+      collision: !!python/object:urdf_parser_py.urdf.Collision
+        geometry: !!python/object:urdf_parser_py.urdf.Cylinder
+          length: 0.075
+          radius: 0.1
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+      inertial: !!python/object:urdf_parser_py.urdf.Inertial
+        inertia: !!python/object:urdf_parser_py.urdf.Inertia
+          ixx: 0.012411765597
+          ixy: -0.000711733678
+          ixz: 0.00050272983
+          iyy: 0.015218160428
+          iyz: -4.273467e-06
+          izz: 0.011763977943
+        mass: 0.44036
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy: null
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+      name: r_rear_wheel_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/wheels/wheels.dae
+          scale: null
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 1.0
+            - 1.0
+            - 1.0
+            - 1.0
+          name: white
+          texture: null
+        origin: null
+    - &id061 !!python/object:urdf_parser_py.urdf.Joint
+      axis:
+      - 0.0
+      - 0.0
+      - 1.0
+      calibration: null
+      child: r_rear_wheel_link
+      dynamics: null
+      limit: null
+      mimic: null
+      name: r_rear_wheel_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - -1.57
+        - 0.0
+        - 0.0
+        xyz:
+        - -0.8115
+        - -0.303
+        - -0.4
+      parent: base_link
+      safety_controller: null
+      type: continuous
+    - &id110 !!python/object:urdf_parser_py.urdf.Link
+      collision: !!python/object:urdf_parser_py.urdf.Collision
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/base/logo_blue.dae
+          scale: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 1.57
+          - 0.0
+          - 1.57
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+      inertial: null
+      name: ICS_logo_blue_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/base/logo_blue.dae
+          scale: null
+        material: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 1.57
+          - 0.0
+          - 1.57
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+    - &id062 !!python/object:urdf_parser_py.urdf.Joint
+      axis: null
+      calibration: null
+      child: ICS_logo_blue_link
+      dynamics: null
+      limit: null
+      mimic: null
+      name: ICS_logo_blue
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy: null
+        xyz:
+        - 0.0
+        - 0.0
+        - 0.0
+      parent: base_link
+      safety_controller: null
+      type: fixed
+    - &id111 !!python/object:urdf_parser_py.urdf.Link
+      collision: !!python/object:urdf_parser_py.urdf.Collision
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/base/logo_grey.dae
+          scale: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 1.57
+          - 0.0
+          - 1.57
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+      inertial: null
+      name: ICS_logo_grey_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/base/logo_grey.dae
+          scale: null
+        material: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 1.57
+          - 0.0
+          - 1.57
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+    - &id063 !!python/object:urdf_parser_py.urdf.Joint
+      axis: null
+      calibration: null
+      child: ICS_logo_grey_link
+      dynamics: null
+      limit: null
+      mimic: null
+      name: ICS_logo_grey
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy: null
+        xyz:
+        - 0.0
+        - 0.0
+        - 0.0
+      parent: base_link
+      safety_controller: null
+      type: fixed
+    - &id112 !!python/object:urdf_parser_py.urdf.Link
+      collision: null
+      inertial: null
+      name: tom_left_camera_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Box
+          size:
+          - 0.0
+          - 0.0
+          - 0.0
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 0.45
+            - 0.45
+            - 0.45
+            - 1.0
+          name: orange
+          texture: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+    - &id113 !!python/object:urdf_parser_py.urdf.Link
+      collision: null
+      inertial: null
+      name: tom_head_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/head/head.stl
+          scale:
+          - 0.001
+          - 0.001
+          - 0.001
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 0.0
+            - 0.8
+            - 0.0
+            - 1.0
+          name: green
+          texture: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 1.57079632679
+          - 0.0
+          - -1.57079632679
+          xyz:
+          - 1.0
+          - 1.255
+          - -0.838
+    - &id064 !!python/object:urdf_parser_py.urdf.Joint
+      axis: null
+      calibration: null
+      child: tom_head_link
+      dynamics: null
+      limit: null
+      mimic: null
+      name: table_head_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 0.0
+        - 0.0
+        xyz:
+        - 0.0
+        - 0.0
+        - 0.0
+      parent: torso_link
+      safety_controller: null
+      type: fixed
+    - &id065 !!python/object:urdf_parser_py.urdf.Joint
+      axis: null
+      calibration: null
+      child: tom_left_camera_link
+      dynamics: null
+      limit: null
+      mimic: null
+      name: tom_left_camera_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - -2.43606
+        - -0.193804
+        - -1.648299
+        xyz:
+        - 0.075241
+        - 0.032279
+        - 0.211305
+      parent: torso_link
+      safety_controller: null
+      type: fixed
+    - &id114 !!python/object:urdf_parser_py.urdf.Link
+      collision: !!python/object:urdf_parser_py.urdf.Collision
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/arm/ur5/collision/base.stl
+          scale: null
+        origin: null
+      inertial: !!python/object:urdf_parser_py.urdf.Inertial
+        inertia: !!python/object:urdf_parser_py.urdf.Inertia
+          ixx: 0.00443333156
+          ixy: 0.0
+          ixz: 0.0
+          iyy: 0.00443333156
+          iyz: 0.0
+          izz: 0.0072
+        mass: 4.0
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+      name: r_base_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/arm/ur5/visual/Base.dae
+          scale: null
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 0.7
+            - 0.7
+            - 0.7
+            - 1.0
+          name: LightGrey
+          texture: null
+        origin: null
+    - &id066 !!python/object:urdf_parser_py.urdf.Joint
+      axis:
+      - 0.0
+      - 0.0
+      - 1.0
+      calibration: null
+      child: r_shoulder_link
+      dynamics: !!python/object:urdf_parser_py.urdf.JointDynamics
+        damping: 0.0
+        friction: 0.0
+      limit: !!python/object:urdf_parser_py.urdf.JointLimit
+        effort: 150.0
+        lower: -6.2831853
+        upper: 6.2831853
+        velocity: 3.15
+      mimic: null
+      name: r_shoulder_pan_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 0.0
+        - 0.0
+        xyz:
+        - 0.0
+        - 0.0
+        - 0.089159
+      parent: r_base_link
+      safety_controller: null
+      type: revolute
+    - &id115 !!python/object:urdf_parser_py.urdf.Link
+      collision: !!python/object:urdf_parser_py.urdf.Collision
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/arm/ur5/collision/shoulder.stl
+          scale: null
+        origin: null
+      inertial: !!python/object:urdf_parser_py.urdf.Inertial
+        inertia: !!python/object:urdf_parser_py.urdf.Inertia
+          ixx: 0.010267495893
+          ixy: 0.0
+          ixz: 0.0
+          iyy: 0.010267495893
+          iyz: 0.0
+          izz: 0.00666
+        mass: 3.7
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+      name: r_shoulder_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/arm/ur5/visual/Shoulder.dae
+          scale: null
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 0.7
+            - 0.7
+            - 0.7
+            - 1.0
+          name: LightGrey
+          texture: null
+        origin: null
+    - &id067 !!python/object:urdf_parser_py.urdf.Joint
+      axis:
+      - 0.0
+      - 1.0
+      - 0.0
+      calibration: null
+      child: r_upper_arm_link
+      dynamics: !!python/object:urdf_parser_py.urdf.JointDynamics
+        damping: 0.0
+        friction: 0.0
+      limit: !!python/object:urdf_parser_py.urdf.JointLimit
+        effort: 150.0
+        lower: -6.2831853
+        upper: 6.2831853
+        velocity: 3.15
+      mimic: null
+      name: r_shoulder_lift_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 1.570796325
+        - 0.0
+        xyz:
+        - 0.0
+        - 0.13585
+        - 0.0
+      parent: r_shoulder_link
+      safety_controller: null
+      type: revolute
+    - &id116 !!python/object:urdf_parser_py.urdf.Link
+      collision: !!python/object:urdf_parser_py.urdf.Collision
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/arm/ur5/collision/upper_arm.stl
+          scale: null
+        origin: null
+      inertial: !!python/object:urdf_parser_py.urdf.Inertial
+        inertia: !!python/object:urdf_parser_py.urdf.Inertia
+          ixx: 0.22689067591
+          ixy: 0.0
+          ixz: 0.0
+          iyy: 0.22689067591
+          iyz: 0.0
+          izz: 0.0151074
+        mass: 8.393
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.28
+      name: r_upper_arm_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/arm/ur5/visual/UpperArm.dae
+          scale: null
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 0.7
+            - 0.7
+            - 0.7
+            - 1.0
+          name: LightGrey
+          texture: null
+        origin: null
+    - &id068 !!python/object:urdf_parser_py.urdf.Joint
+      axis:
+      - 0.0
+      - 1.0
+      - 0.0
+      calibration: null
+      child: r_forearm_link
+      dynamics: !!python/object:urdf_parser_py.urdf.JointDynamics
+        damping: 0.0
+        friction: 0.0
+      limit: !!python/object:urdf_parser_py.urdf.JointLimit
+        effort: 150.0
+        lower: -6.2831853
+        upper: 6.2831853
+        velocity: 3.15
+      mimic: null
+      name: r_elbow_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 0.0
+        - 0.0
+        xyz:
+        - 0.0
+        - -0.1197
+        - 0.425
+      parent: r_upper_arm_link
+      safety_controller: null
+      type: revolute
+    - &id117 !!python/object:urdf_parser_py.urdf.Link
+      collision: !!python/object:urdf_parser_py.urdf.Collision
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/arm/ur5/collision/forearm.stl
+          scale: null
+        origin: null
+      inertial: !!python/object:urdf_parser_py.urdf.Inertial
+        inertia: !!python/object:urdf_parser_py.urdf.Inertia
+          ixx: 0.049443313556
+          ixy: 0.0
+          ixz: 0.0
+          iyy: 0.049443313556
+          iyz: 0.0
+          izz: 0.004095
+        mass: 2.275
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.25
+      name: r_forearm_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/arm/ur5/visual/Forearm.dae
+          scale: null
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 0.7
+            - 0.7
+            - 0.7
+            - 1.0
+          name: LightGrey
+          texture: null
+        origin: null
+    - &id069 !!python/object:urdf_parser_py.urdf.Joint
+      axis:
+      - 0.0
+      - 1.0
+      - 0.0
+      calibration: null
+      child: r_wrist_1_link
+      dynamics: !!python/object:urdf_parser_py.urdf.JointDynamics
+        damping: 0.0
+        friction: 0.0
+      limit: !!python/object:urdf_parser_py.urdf.JointLimit
+        effort: 28.0
+        lower: -6.2831853
+        upper: 6.2831853
+        velocity: 3.2
+      mimic: null
+      name: r_wrist_1_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 1.570796325
+        - 0.0
+        xyz:
+        - 0.0
+        - 0.0
+        - 0.39225
+      parent: r_forearm_link
+      safety_controller: null
+      type: revolute
+    - &id118 !!python/object:urdf_parser_py.urdf.Link
+      collision: !!python/object:urdf_parser_py.urdf.Collision
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/arm/ur5/collision/wrist_1.stl
+          scale: null
+        origin: null
+      inertial: !!python/object:urdf_parser_py.urdf.Inertial
+        inertia: !!python/object:urdf_parser_py.urdf.Inertia
+          ixx: 0.111172755531
+          ixy: 0.0
+          ixz: 0.0
+          iyy: 0.111172755531
+          iyz: 0.0
+          izz: 0.21942
+        mass: 1.219
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+      name: r_wrist_1_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/arm/ur5/visual/Wrist1.dae
+          scale: null
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 0.7
+            - 0.7
+            - 0.7
+            - 1.0
+          name: LightGrey
+          texture: null
+        origin: null
+    - &id070 !!python/object:urdf_parser_py.urdf.Joint
+      axis:
+      - 0.0
+      - 0.0
+      - 1.0
+      calibration: null
+      child: r_wrist_2_link
+      dynamics: !!python/object:urdf_parser_py.urdf.JointDynamics
+        damping: 0.0
+        friction: 0.0
+      limit: !!python/object:urdf_parser_py.urdf.JointLimit
+        effort: 28.0
+        lower: -6.2831853
+        upper: 6.2831853
+        velocity: 3.2
+      mimic: null
+      name: r_wrist_2_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 0.0
+        - 0.0
+        xyz:
+        - 0.0
+        - 0.093
+        - 0.0
+      parent: r_wrist_1_link
+      safety_controller: null
+      type: revolute
+    - &id119 !!python/object:urdf_parser_py.urdf.Link
+      collision: !!python/object:urdf_parser_py.urdf.Collision
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/arm/ur5/collision/wrist_2.stl
+          scale: null
+        origin: null
+      inertial: !!python/object:urdf_parser_py.urdf.Inertial
+        inertia: !!python/object:urdf_parser_py.urdf.Inertia
+          ixx: 0.111172755531
+          ixy: 0.0
+          ixz: 0.0
+          iyy: 0.111172755531
+          iyz: 0.0
+          izz: 0.21942
+        mass: 1.219
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+      name: r_wrist_2_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/arm/ur5/visual/Wrist2.dae
+          scale: null
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 0.7
+            - 0.7
+            - 0.7
+            - 1.0
+          name: LightGrey
+          texture: null
+        origin: null
+    - &id071 !!python/object:urdf_parser_py.urdf.Joint
+      axis:
+      - 0.0
+      - 1.0
+      - 0.0
+      calibration: null
+      child: r_wrist_3_link
+      dynamics: !!python/object:urdf_parser_py.urdf.JointDynamics
+        damping: 0.0
+        friction: 0.0
+      limit: !!python/object:urdf_parser_py.urdf.JointLimit
+        effort: 28.0
+        lower: -6.2831853
+        upper: 6.2831853
+        velocity: 3.2
+      mimic: null
+      name: r_wrist_3_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 0.0
+        - 0.0
+        xyz:
+        - 0.0
+        - 0.0
+        - 0.09465
+      parent: r_wrist_2_link
+      safety_controller: null
+      type: revolute
+    - &id120 !!python/object:urdf_parser_py.urdf.Link
+      collision: !!python/object:urdf_parser_py.urdf.Collision
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/arm/ur5/collision/wrist_3.stl
+          scale: null
+        origin: null
+      inertial: !!python/object:urdf_parser_py.urdf.Inertial
+        inertia: !!python/object:urdf_parser_py.urdf.Inertia
+          ixx: 0.0171364731454
+          ixy: 0.0
+          ixz: 0.0
+          iyy: 0.0171364731454
+          iyz: 0.0
+          izz: 0.033822
+        mass: 0.1879
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+      name: r_wrist_3_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/arm/ur5/visual/Wrist3.dae
+          scale: null
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 0.7
+            - 0.7
+            - 0.7
+            - 1.0
+          name: LightGrey
+          texture: null
+        origin: null
+    - &id072 !!python/object:urdf_parser_py.urdf.Joint
+      axis: null
+      calibration: null
+      child: r_ee_link
+      dynamics: null
+      limit: null
+      mimic: null
+      name: r_ee_fixed_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 0.0
+        - 1.570796325
+        xyz:
+        - 0.0
+        - 0.0823
+        - 0.0
+      parent: r_wrist_3_link
+      safety_controller: null
+      type: fixed
+    - &id121 !!python/object:urdf_parser_py.urdf.Link
+      collision: !!python/object:urdf_parser_py.urdf.Collision
+        geometry: !!python/object:urdf_parser_py.urdf.Box
+          size:
+          - 0.01
+          - 0.01
+          - 0.01
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - -0.01
+          - 0.0
+          - 0.0
+      inertial: null
+      name: r_ee_link
+      origin: null
+      visual: null
+    - &id130 !!python/object:urdf_parser_py.urdf.Transmission
+      actuators:
+      - &id003 !!python/object:urdf_parser_py.urdf.Actuator
+        mechanicalReduction: 1.0
+        name: r_shoulder_pan_motor
+      aggregate_order:
+      - &id004 !!python/object:urdf_parser_py.urdf.TransmissionJoint
+        aggregate_order:
+        - EffortJointInterface
+        aggregate_type:
+          EffortJointInterface: hardwareInterface
+        hardwareInterfaces:
+        - EffortJointInterface
+        name: r_shoulder_pan_joint
+      - *id003
+      aggregate_type:
+        *id003: actuator
+        *id004: joint
+      joints:
+      - *id004
+      name: r_shoulder_pan_trans
+      type: transmission_interface/SimpleTransmission
+    - &id131 !!python/object:urdf_parser_py.urdf.Transmission
+      actuators:
+      - &id005 !!python/object:urdf_parser_py.urdf.Actuator
+        mechanicalReduction: 1.0
+        name: r_shoulder_lift_motor
+      aggregate_order:
+      - &id006 !!python/object:urdf_parser_py.urdf.TransmissionJoint
+        aggregate_order:
+        - EffortJointInterface
+        aggregate_type:
+          EffortJointInterface: hardwareInterface
+        hardwareInterfaces:
+        - EffortJointInterface
+        name: r_shoulder_lift_joint
+      - *id005
+      aggregate_type:
+        *id005: actuator
+        *id006: joint
+      joints:
+      - *id006
+      name: r_shoulder_lift_trans
+      type: transmission_interface/SimpleTransmission
+    - &id132 !!python/object:urdf_parser_py.urdf.Transmission
+      actuators:
+      - &id007 !!python/object:urdf_parser_py.urdf.Actuator
+        mechanicalReduction: 1.0
+        name: r_elbow_motor
+      aggregate_order:
+      - &id008 !!python/object:urdf_parser_py.urdf.TransmissionJoint
+        aggregate_order:
+        - EffortJointInterface
+        aggregate_type:
+          EffortJointInterface: hardwareInterface
+        hardwareInterfaces:
+        - EffortJointInterface
+        name: r_elbow_joint
+      - *id007
+      aggregate_type:
+        *id007: actuator
+        *id008: joint
+      joints:
+      - *id008
+      name: r_elbow_trans
+      type: transmission_interface/SimpleTransmission
+    - &id133 !!python/object:urdf_parser_py.urdf.Transmission
+      actuators:
+      - &id009 !!python/object:urdf_parser_py.urdf.Actuator
+        mechanicalReduction: 1.0
+        name: r_wrist_1_motor
+      aggregate_order:
+      - &id010 !!python/object:urdf_parser_py.urdf.TransmissionJoint
+        aggregate_order:
+        - EffortJointInterface
+        aggregate_type:
+          EffortJointInterface: hardwareInterface
+        hardwareInterfaces:
+        - EffortJointInterface
+        name: r_wrist_1_joint
+      - *id009
+      aggregate_type:
+        *id009: actuator
+        *id010: joint
+      joints:
+      - *id010
+      name: r_wrist_1_trans
+      type: transmission_interface/SimpleTransmission
+    - &id134 !!python/object:urdf_parser_py.urdf.Transmission
+      actuators:
+      - &id011 !!python/object:urdf_parser_py.urdf.Actuator
+        mechanicalReduction: 1.0
+        name: r_wrist_2_motor
+      aggregate_order:
+      - &id012 !!python/object:urdf_parser_py.urdf.TransmissionJoint
+        aggregate_order:
+        - EffortJointInterface
+        aggregate_type:
+          EffortJointInterface: hardwareInterface
+        hardwareInterfaces:
+        - EffortJointInterface
+        name: r_wrist_2_joint
+      - *id011
+      aggregate_type:
+        *id011: actuator
+        *id012: joint
+      joints:
+      - *id012
+      name: r_wrist_2_trans
+      type: transmission_interface/SimpleTransmission
+    - &id135 !!python/object:urdf_parser_py.urdf.Transmission
+      actuators:
+      - &id013 !!python/object:urdf_parser_py.urdf.Actuator
+        mechanicalReduction: 1.0
+        name: r_wrist_3_motor
+      aggregate_order:
+      - &id014 !!python/object:urdf_parser_py.urdf.TransmissionJoint
+        aggregate_order:
+        - EffortJointInterface
+        aggregate_type:
+          EffortJointInterface: hardwareInterface
+        hardwareInterfaces:
+        - EffortJointInterface
+        name: r_wrist_3_joint
+      - *id013
+      aggregate_type:
+        *id013: actuator
+        *id014: joint
+      joints:
+      - *id014
+      name: r_wrist_3_trans
+      type: transmission_interface/SimpleTransmission
+    - &id073 !!python/object:urdf_parser_py.urdf.Joint
+      axis: null
+      calibration: null
+      child: r_base_link
+      dynamics: null
+      limit: null
+      mimic: null
+      name: torso_to_r_arm
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 2.6061
+        - -0.6271
+        - -0.5355
+        xyz:
+        - 0.0
+        - -0.225
+        - 0.0
+      parent: torso_link
+      safety_controller: null
+      type: fixed
+    - &id122 !!python/object:urdf_parser_py.urdf.Link
+      collision: !!python/object:urdf_parser_py.urdf.Collision
+        geometry: !!python/object:urdf_parser_py.urdf.Cylinder
+          length: 0.05
+          radius: 0.035
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - 0.0
+          - 0.0
+          - -0.025
+      inertial: null
+      name: r_hand_base_adapter_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/arm/hand_mount.dae
+          scale: null
+        material: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 1.57079632679
+          - 0.0
+          - 1.57079632679
+          xyz:
+          - 0.0
+          - 0.0
+          - -0.045
+    - &id074 !!python/object:urdf_parser_py.urdf.Joint
+      axis: null
+      calibration: null
+      child: r_hand_base_adapter_link
+      dynamics: null
+      limit: null
+      mimic: null
+      name: r_hand_base_adapter_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 1.57079632679
+        - 2.356
+        - 1.57079632679
+        xyz:
+        - 0.045
+        - 0.0
+        - 0.0
+      parent: r_ee_link
+      safety_controller: null
+      type: fixed
+    - &id123 !!python/object:urdf_parser_py.urdf.Link
+      collision: !!python/object:urdf_parser_py.urdf.Collision
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/arm/ur5/collision/base.stl
+          scale: null
+        origin: null
+      inertial: !!python/object:urdf_parser_py.urdf.Inertial
+        inertia: !!python/object:urdf_parser_py.urdf.Inertia
+          ixx: 0.00443333156
+          ixy: 0.0
+          ixz: 0.0
+          iyy: 0.00443333156
+          iyz: 0.0
+          izz: 0.0072
+        mass: 4.0
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+      name: l_base_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/arm/ur5/visual/Base.dae
+          scale: null
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 0.7
+            - 0.7
+            - 0.7
+            - 1.0
+          name: LightGrey
+          texture: null
+        origin: null
+    - &id027 !!python/object:urdf_parser_py.urdf.Joint
+      axis:
+      - 0.0
+      - 0.0
+      - 1.0
+      calibration: null
+      child: l_shoulder_link
+      dynamics: !!python/object:urdf_parser_py.urdf.JointDynamics
+        damping: 0.0
+        friction: 0.0
+      limit: !!python/object:urdf_parser_py.urdf.JointLimit
+        effort: 150.0
+        lower: -6.2831853
+        upper: 6.2831853
+        velocity: 3.15
+      mimic: null
+      name: l_shoulder_pan_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 0.0
+        - 0.0
+        xyz:
+        - 0.0
+        - 0.0
+        - 0.089159
+      parent: l_base_link
+      safety_controller: null
+      type: revolute
+    - &id075 !!python/object:urdf_parser_py.urdf.Link
+      collision: !!python/object:urdf_parser_py.urdf.Collision
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/arm/ur5/collision/shoulder.stl
+          scale: null
+        origin: null
+      inertial: !!python/object:urdf_parser_py.urdf.Inertial
+        inertia: !!python/object:urdf_parser_py.urdf.Inertia
+          ixx: 0.010267495893
+          ixy: 0.0
+          ixz: 0.0
+          iyy: 0.010267495893
+          iyz: 0.0
+          izz: 0.00666
+        mass: 3.7
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+      name: l_shoulder_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/arm/ur5/visual/Shoulder.dae
+          scale: null
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 0.7
+            - 0.7
+            - 0.7
+            - 1.0
+          name: LightGrey
+          texture: null
+        origin: null
+    - &id028 !!python/object:urdf_parser_py.urdf.Joint
+      axis:
+      - 0.0
+      - 1.0
+      - 0.0
+      calibration: null
+      child: l_upper_arm_link
+      dynamics: !!python/object:urdf_parser_py.urdf.JointDynamics
+        damping: 0.0
+        friction: 0.0
+      limit: !!python/object:urdf_parser_py.urdf.JointLimit
+        effort: 150.0
+        lower: -6.2831853
+        upper: 6.2831853
+        velocity: 3.15
+      mimic: null
+      name: l_shoulder_lift_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 1.570796325
+        - 0.0
+        xyz:
+        - 0.0
+        - 0.13585
+        - 0.0
+      parent: l_shoulder_link
+      safety_controller: null
+      type: revolute
+    - &id076 !!python/object:urdf_parser_py.urdf.Link
+      collision: !!python/object:urdf_parser_py.urdf.Collision
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/arm/ur5/collision/upper_arm.stl
+          scale: null
+        origin: null
+      inertial: !!python/object:urdf_parser_py.urdf.Inertial
+        inertia: !!python/object:urdf_parser_py.urdf.Inertia
+          ixx: 0.22689067591
+          ixy: 0.0
+          ixz: 0.0
+          iyy: 0.22689067591
+          iyz: 0.0
+          izz: 0.0151074
+        mass: 8.393
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.28
+      name: l_upper_arm_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/arm/ur5/visual/UpperArm.dae
+          scale: null
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 0.7
+            - 0.7
+            - 0.7
+            - 1.0
+          name: LightGrey
+          texture: null
+        origin: null
+    - &id029 !!python/object:urdf_parser_py.urdf.Joint
+      axis:
+      - 0.0
+      - 1.0
+      - 0.0
+      calibration: null
+      child: l_forearm_link
+      dynamics: !!python/object:urdf_parser_py.urdf.JointDynamics
+        damping: 0.0
+        friction: 0.0
+      limit: !!python/object:urdf_parser_py.urdf.JointLimit
+        effort: 150.0
+        lower: -6.2831853
+        upper: 6.2831853
+        velocity: 3.15
+      mimic: null
+      name: l_elbow_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 0.0
+        - 0.0
+        xyz:
+        - 0.0
+        - -0.1197
+        - 0.425
+      parent: l_upper_arm_link
+      safety_controller: null
+      type: revolute
+    - &id077 !!python/object:urdf_parser_py.urdf.Link
+      collision: !!python/object:urdf_parser_py.urdf.Collision
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/arm/ur5/collision/forearm.stl
+          scale: null
+        origin: null
+      inertial: !!python/object:urdf_parser_py.urdf.Inertial
+        inertia: !!python/object:urdf_parser_py.urdf.Inertia
+          ixx: 0.049443313556
+          ixy: 0.0
+          ixz: 0.0
+          iyy: 0.049443313556
+          iyz: 0.0
+          izz: 0.004095
+        mass: 2.275
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.25
+      name: l_forearm_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/arm/ur5/visual/Forearm.dae
+          scale: null
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 0.7
+            - 0.7
+            - 0.7
+            - 1.0
+          name: LightGrey
+          texture: null
+        origin: null
+    - &id030 !!python/object:urdf_parser_py.urdf.Joint
+      axis:
+      - 0.0
+      - 1.0
+      - 0.0
+      calibration: null
+      child: l_wrist_1_link
+      dynamics: !!python/object:urdf_parser_py.urdf.JointDynamics
+        damping: 0.0
+        friction: 0.0
+      limit: !!python/object:urdf_parser_py.urdf.JointLimit
+        effort: 28.0
+        lower: -6.2831853
+        upper: 6.2831853
+        velocity: 3.2
+      mimic: null
+      name: l_wrist_1_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 1.570796325
+        - 0.0
+        xyz:
+        - 0.0
+        - 0.0
+        - 0.39225
+      parent: l_forearm_link
+      safety_controller: null
+      type: revolute
+    - &id078 !!python/object:urdf_parser_py.urdf.Link
+      collision: !!python/object:urdf_parser_py.urdf.Collision
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/arm/ur5/collision/wrist_1.stl
+          scale: null
+        origin: null
+      inertial: !!python/object:urdf_parser_py.urdf.Inertial
+        inertia: !!python/object:urdf_parser_py.urdf.Inertia
+          ixx: 0.111172755531
+          ixy: 0.0
+          ixz: 0.0
+          iyy: 0.111172755531
+          iyz: 0.0
+          izz: 0.21942
+        mass: 1.219
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+      name: l_wrist_1_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/arm/ur5/visual/Wrist1.dae
+          scale: null
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 0.7
+            - 0.7
+            - 0.7
+            - 1.0
+          name: LightGrey
+          texture: null
+        origin: null
+    - &id031 !!python/object:urdf_parser_py.urdf.Joint
+      axis:
+      - 0.0
+      - 0.0
+      - 1.0
+      calibration: null
+      child: l_wrist_2_link
+      dynamics: !!python/object:urdf_parser_py.urdf.JointDynamics
+        damping: 0.0
+        friction: 0.0
+      limit: !!python/object:urdf_parser_py.urdf.JointLimit
+        effort: 28.0
+        lower: -6.2831853
+        upper: 6.2831853
+        velocity: 3.2
+      mimic: null
+      name: l_wrist_2_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 0.0
+        - 0.0
+        xyz:
+        - 0.0
+        - 0.093
+        - 0.0
+      parent: l_wrist_1_link
+      safety_controller: null
+      type: revolute
+    - &id079 !!python/object:urdf_parser_py.urdf.Link
+      collision: !!python/object:urdf_parser_py.urdf.Collision
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/arm/ur5/collision/wrist_2.stl
+          scale: null
+        origin: null
+      inertial: !!python/object:urdf_parser_py.urdf.Inertial
+        inertia: !!python/object:urdf_parser_py.urdf.Inertia
+          ixx: 0.111172755531
+          ixy: 0.0
+          ixz: 0.0
+          iyy: 0.111172755531
+          iyz: 0.0
+          izz: 0.21942
+        mass: 1.219
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+      name: l_wrist_2_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/arm/ur5/visual/Wrist2.dae
+          scale: null
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 0.7
+            - 0.7
+            - 0.7
+            - 1.0
+          name: LightGrey
+          texture: null
+        origin: null
+    - &id032 !!python/object:urdf_parser_py.urdf.Joint
+      axis:
+      - 0.0
+      - 1.0
+      - 0.0
+      calibration: null
+      child: l_wrist_3_link
+      dynamics: !!python/object:urdf_parser_py.urdf.JointDynamics
+        damping: 0.0
+        friction: 0.0
+      limit: !!python/object:urdf_parser_py.urdf.JointLimit
+        effort: 28.0
+        lower: -6.2831853
+        upper: 6.2831853
+        velocity: 3.2
+      mimic: null
+      name: l_wrist_3_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 0.0
+        - 0.0
+        xyz:
+        - 0.0
+        - 0.0
+        - 0.09465
+      parent: l_wrist_2_link
+      safety_controller: null
+      type: revolute
+    - &id080 !!python/object:urdf_parser_py.urdf.Link
+      collision: !!python/object:urdf_parser_py.urdf.Collision
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/arm/ur5/collision/wrist_3.stl
+          scale: null
+        origin: null
+      inertial: !!python/object:urdf_parser_py.urdf.Inertial
+        inertia: !!python/object:urdf_parser_py.urdf.Inertia
+          ixx: 0.0171364731454
+          ixy: 0.0
+          ixz: 0.0
+          iyy: 0.0171364731454
+          iyz: 0.0
+          izz: 0.033822
+        mass: 0.1879
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+      name: l_wrist_3_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/arm/ur5/visual/Wrist3.dae
+          scale: null
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 0.7
+            - 0.7
+            - 0.7
+            - 1.0
+          name: LightGrey
+          texture: null
+        origin: null
+    - &id033 !!python/object:urdf_parser_py.urdf.Joint
+      axis: null
+      calibration: null
+      child: l_ee_link
+      dynamics: null
+      limit: null
+      mimic: null
+      name: l_ee_fixed_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 0.0
+        - 1.570796325
+        xyz:
+        - 0.0
+        - 0.0823
+        - 0.0
+      parent: l_wrist_3_link
+      safety_controller: null
+      type: fixed
+    - &id081 !!python/object:urdf_parser_py.urdf.Link
+      collision: !!python/object:urdf_parser_py.urdf.Collision
+        geometry: !!python/object:urdf_parser_py.urdf.Box
+          size:
+          - 0.01
+          - 0.01
+          - 0.01
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - -0.01
+          - 0.0
+          - 0.0
+      inertial: null
+      name: l_ee_link
+      origin: null
+      visual: null
+    - &id124 !!python/object:urdf_parser_py.urdf.Transmission
+      actuators:
+      - &id015 !!python/object:urdf_parser_py.urdf.Actuator
+        mechanicalReduction: 1.0
+        name: l_shoulder_pan_motor
+      aggregate_order:
+      - &id016 !!python/object:urdf_parser_py.urdf.TransmissionJoint
+        aggregate_order:
+        - EffortJointInterface
+        aggregate_type:
+          EffortJointInterface: hardwareInterface
+        hardwareInterfaces:
+        - EffortJointInterface
+        name: l_shoulder_pan_joint
+      - *id015
+      aggregate_type:
+        *id015: actuator
+        *id016: joint
+      joints:
+      - *id016
+      name: l_shoulder_pan_trans
+      type: transmission_interface/SimpleTransmission
+    - &id125 !!python/object:urdf_parser_py.urdf.Transmission
+      actuators:
+      - &id017 !!python/object:urdf_parser_py.urdf.Actuator
+        mechanicalReduction: 1.0
+        name: l_shoulder_lift_motor
+      aggregate_order:
+      - &id018 !!python/object:urdf_parser_py.urdf.TransmissionJoint
+        aggregate_order:
+        - EffortJointInterface
+        aggregate_type:
+          EffortJointInterface: hardwareInterface
+        hardwareInterfaces:
+        - EffortJointInterface
+        name: l_shoulder_lift_joint
+      - *id017
+      aggregate_type:
+        *id017: actuator
+        *id018: joint
+      joints:
+      - *id018
+      name: l_shoulder_lift_trans
+      type: transmission_interface/SimpleTransmission
+    - &id126 !!python/object:urdf_parser_py.urdf.Transmission
+      actuators:
+      - &id019 !!python/object:urdf_parser_py.urdf.Actuator
+        mechanicalReduction: 1.0
+        name: l_elbow_motor
+      aggregate_order:
+      - &id020 !!python/object:urdf_parser_py.urdf.TransmissionJoint
+        aggregate_order:
+        - EffortJointInterface
+        aggregate_type:
+          EffortJointInterface: hardwareInterface
+        hardwareInterfaces:
+        - EffortJointInterface
+        name: l_elbow_joint
+      - *id019
+      aggregate_type:
+        *id019: actuator
+        *id020: joint
+      joints:
+      - *id020
+      name: l_elbow_trans
+      type: transmission_interface/SimpleTransmission
+    - &id127 !!python/object:urdf_parser_py.urdf.Transmission
+      actuators:
+      - &id021 !!python/object:urdf_parser_py.urdf.Actuator
+        mechanicalReduction: 1.0
+        name: l_wrist_1_motor
+      aggregate_order:
+      - &id022 !!python/object:urdf_parser_py.urdf.TransmissionJoint
+        aggregate_order:
+        - EffortJointInterface
+        aggregate_type:
+          EffortJointInterface: hardwareInterface
+        hardwareInterfaces:
+        - EffortJointInterface
+        name: l_wrist_1_joint
+      - *id021
+      aggregate_type:
+        *id021: actuator
+        *id022: joint
+      joints:
+      - *id022
+      name: l_wrist_1_trans
+      type: transmission_interface/SimpleTransmission
+    - &id128 !!python/object:urdf_parser_py.urdf.Transmission
+      actuators:
+      - &id023 !!python/object:urdf_parser_py.urdf.Actuator
+        mechanicalReduction: 1.0
+        name: l_wrist_2_motor
+      aggregate_order:
+      - &id024 !!python/object:urdf_parser_py.urdf.TransmissionJoint
+        aggregate_order:
+        - EffortJointInterface
+        aggregate_type:
+          EffortJointInterface: hardwareInterface
+        hardwareInterfaces:
+        - EffortJointInterface
+        name: l_wrist_2_joint
+      - *id023
+      aggregate_type:
+        *id023: actuator
+        *id024: joint
+      joints:
+      - *id024
+      name: l_wrist_2_trans
+      type: transmission_interface/SimpleTransmission
+    - &id129 !!python/object:urdf_parser_py.urdf.Transmission
+      actuators:
+      - &id025 !!python/object:urdf_parser_py.urdf.Actuator
+        mechanicalReduction: 1.0
+        name: l_wrist_3_motor
+      aggregate_order:
+      - &id026 !!python/object:urdf_parser_py.urdf.TransmissionJoint
+        aggregate_order:
+        - EffortJointInterface
+        aggregate_type:
+          EffortJointInterface: hardwareInterface
+        hardwareInterfaces:
+        - EffortJointInterface
+        name: l_wrist_3_joint
+      - *id025
+      aggregate_type:
+        *id025: actuator
+        *id026: joint
+      joints:
+      - *id026
+      name: l_wrist_3_trans
+      type: transmission_interface/SimpleTransmission
+    - &id034 !!python/object:urdf_parser_py.urdf.Joint
+      axis: null
+      calibration: null
+      child: l_base_link
+      dynamics: null
+      limit: null
+      mimic: null
+      name: torso_to_l_arm
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 2.6061
+        - 0.6271
+        - -2.6061
+        xyz:
+        - 0.0
+        - 0.225
+        - 0.0
+      parent: torso_link
+      safety_controller: null
+      type: fixed
+    - &id082 !!python/object:urdf_parser_py.urdf.Link
+      collision: !!python/object:urdf_parser_py.urdf.Collision
+        geometry: !!python/object:urdf_parser_py.urdf.Cylinder
+          length: 0.05
+          radius: 0.035
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - 0.0
+          - 0.0
+          - -0.025
+      inertial: null
+      name: l_hand_base_adapter_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/arm/hand_mount.dae
+          scale: null
+        material: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 1.57079632679
+          - 0.0
+          - 1.57079632679
+          xyz:
+          - 0.0
+          - 0.0
+          - -0.045
+    - &id056 !!python/object:urdf_parser_py.urdf.Joint
+      axis: null
+      calibration: null
+      child: l_hand_base_adapter_link
+      dynamics: null
+      limit: null
+      mimic: null
+      name: l_hand_base_adapter_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 1.57079632679
+        - 0.785
+        - 1.57079632679
+        xyz:
+        - 0.045
+        - 0.0
+        - 0.0
+      parent: l_ee_link
+      safety_controller: null
+      type: fixed
+    - &id103 !!python/object:urdf_parser_py.urdf.Link
+      collision: null
+      inertial: null
+      name: r_gripper_base_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/lacquey/Lacquey_BumperRing_2.STL
+          scale:
+          - 0.001
+          - 0.001
+          - 0.001
+        material: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - -0.065
+          - -0.065
+          - 0.003
+    - &id083 !!python/object:urdf_parser_py.urdf.Link
+      collision: null
+      inertial: null
+      name: r_gripper_palm_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/lacquey/Lacquey_Palm.STL
+          scale:
+          - 0.001
+          - 0.001
+          - 0.001
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 0.7
+            - 0.7
+            - 0.7
+            - 1.0
+          name: LightGrey
+          texture: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 1.57079632679
+          - 0.0
+          - 1.57079632679
+          xyz:
+          - -0.046
+          - -0.04
+          - 0.0
+    - &id035 !!python/object:urdf_parser_py.urdf.Joint
+      axis: null
+      calibration: null
+      child: r_gripper_palm_link
+      dynamics: null
+      limit: null
+      mimic: null
+      name: r_gripper_palm_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 0.0
+        - 0.0
+        xyz:
+        - 0.0
+        - 0.0
+        - 0.0
+      parent: r_gripper_base_link
+      safety_controller: null
+      type: fixed
+    - &id084 !!python/object:urdf_parser_py.urdf.Link
+      collision: null
+      inertial: null
+      name: r_gripper_left_finger_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/lacquey/Lacquey_Left_Finger.STL
+          scale:
+          - 0.001
+          - 0.001
+          - 0.001
+        material: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 1.57079632679
+          - 0.0
+          - 3.14159265359
+          xyz:
+          - 0.0115
+          - -0.005
+          - -0.01
+    - &id036 !!python/object:urdf_parser_py.urdf.Joint
+      axis:
+      - 0.0
+      - -1.0
+      - 0.0
+      calibration: null
+      child: r_gripper_left_finger_link
+      dynamics: null
+      limit: !!python/object:urdf_parser_py.urdf.JointLimit
+        effort: 0.0
+        lower: 0.0
+        upper: 1.16937059884
+        velocity: 0.0
+      mimic: null
+      name: r_gripper_left_finger_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 0.0
+        - 0.0
+        xyz:
+        - 0.0
+        - 0.0
+        - 0.054
+      parent: r_gripper_left_finger_base_link
+      safety_controller: null
+      type: revolute
+    - &id085 !!python/object:urdf_parser_py.urdf.Link
+      collision: null
+      inertial: null
+      name: r_gripper_left_finger_base_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/lacquey/Lacquey_proxph.STL
+          scale:
+          - 0.001
+          - 0.001
+          - 0.001
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 0.7
+            - 0.7
+            - 0.7
+            - 1.0
+          name: LightGrey
+          texture: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 1.57079632679
+          - 0.0
+          - 3.14159265359
+          xyz:
+          - 0.018
+          - -0.0075
+          - -0.005
+    - &id037 !!python/object:urdf_parser_py.urdf.Joint
+      axis:
+      - 0.0
+      - -1.0
+      - 0.0
+      calibration: null
+      child: r_gripper_left_finger_base_link
+      dynamics: null
+      limit: !!python/object:urdf_parser_py.urdf.JointLimit
+        effort: 0.0
+        lower: -0.785398163397
+        upper: 0.0
+        velocity: 0.0
+      mimic: null
+      name: r_gripper_left_finger_base_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 0.0
+        - -1.57079632679
+        xyz:
+        - 0.02
+        - -0.028
+        - 0.072
+      parent: r_gripper_base_link
+      safety_controller: null
+      type: revolute
+    - &id086 !!python/object:urdf_parser_py.urdf.Link
+      collision: null
+      inertial: null
+      name: r_gripper_right_finger_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/lacquey/Lacquey_Right_Finger.STL
+          scale:
+          - 0.001
+          - 0.001
+          - 0.001
+        material: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 1.57079632679
+          - 0.0
+          - 3.14159265359
+          xyz:
+          - 0.0115
+          - -0.02571
+          - -0.01
+    - &id038 !!python/object:urdf_parser_py.urdf.Joint
+      axis:
+      - 0.0
+      - -1.0
+      - 0.0
+      calibration: null
+      child: r_gripper_right_finger_link
+      dynamics: null
+      limit: !!python/object:urdf_parser_py.urdf.JointLimit
+        effort: 0.0
+        lower: 0.0
+        upper: 1.16937059884
+        velocity: 0.0
+      mimic: null
+      name: r_gripper_right_finger_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 0.0
+        - 0.0
+        xyz:
+        - 0.0
+        - 0.0
+        - 0.054
+      parent: r_gripper_right_finger_base_link
+      safety_controller: null
+      type: revolute
+    - &id087 !!python/object:urdf_parser_py.urdf.Link
+      collision: null
+      inertial: null
+      name: r_gripper_right_finger_base_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/lacquey/Lacquey_proxph.STL
+          scale:
+          - 0.001
+          - 0.001
+          - 0.001
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 0.7
+            - 0.7
+            - 0.7
+            - 1.0
+          name: LightGrey
+          texture: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 1.57079632679
+          - 0.0
+          - 3.14159265359
+          xyz:
+          - 0.018
+          - -0.0075
+          - -0.005
+    - &id039 !!python/object:urdf_parser_py.urdf.Joint
+      axis:
+      - 0.0
+      - -1.0
+      - 0.0
+      calibration: null
+      child: r_gripper_right_finger_base_link
+      dynamics: null
+      limit: !!python/object:urdf_parser_py.urdf.JointLimit
+        effort: 0.0
+        lower: -0.785398163397
+        upper: 0.0
+        velocity: 0.0
+      mimic: null
+      name: r_gripper_right_finger_base_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 0.0
+        - -1.57079632679
+        xyz:
+        - -0.023
+        - -0.028
+        - 0.072
+      parent: r_gripper_base_link
+      safety_controller: null
+      type: revolute
+    - &id088 !!python/object:urdf_parser_py.urdf.Link
+      collision: null
+      inertial: null
+      name: r_gripper_mid_finger_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/lacquey/Lacquey_Mid_Finger.STL
+          scale:
+          - 0.001
+          - 0.001
+          - 0.001
+        material: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 1.57079632679
+          - 0.0
+          - 3.14159265359
+          xyz:
+          - 0.0115
+          - -0.01386
+          - -0.01
+    - &id040 !!python/object:urdf_parser_py.urdf.Joint
+      axis:
+      - 0.0
+      - -1.0
+      - 0.0
+      calibration: null
+      child: r_gripper_mid_finger_link
+      dynamics: null
+      limit: !!python/object:urdf_parser_py.urdf.JointLimit
+        effort: 0.0
+        lower: 0.0
+        upper: 1.16937059884
+        velocity: 0.0
+      mimic: null
+      name: r_gripper_mid_finger_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 0.0
+        - 0.0
+        xyz:
+        - 0.0
+        - 0.0
+        - 0.054
+      parent: r_gripper_mid_finger_base_link
+      safety_controller: null
+      type: revolute
+    - &id089 !!python/object:urdf_parser_py.urdf.Link
+      collision: null
+      inertial: null
+      name: r_gripper_mid_finger_base_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/lacquey/Lacquey_proxph.STL
+          scale:
+          - 0.001
+          - 0.001
+          - 0.001
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 0.7
+            - 0.7
+            - 0.7
+            - 1.0
+          name: LightGrey
+          texture: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 1.57079632679
+          - 0.0
+          - 3.14159265359
+          xyz:
+          - 0.018
+          - -0.0075
+          - -0.005
+    - &id041 !!python/object:urdf_parser_py.urdf.Joint
+      axis:
+      - 0.0
+      - -1.0
+      - 0.0
+      calibration: null
+      child: r_gripper_mid_finger_base_link
+      dynamics: null
+      limit: !!python/object:urdf_parser_py.urdf.JointLimit
+        effort: 0.0
+        lower: -0.785398163397
+        upper: 0.0
+        velocity: 0.0
+      mimic: null
+      name: r_gripper_mid_finger_base_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 0.0
+        - 1.57079632679
+        xyz:
+        - 0.0
+        - 0.028
+        - 0.072
+      parent: r_gripper_base_link
+      safety_controller: null
+      type: revolute
+    - &id042 !!python/object:urdf_parser_py.urdf.Joint
+      axis: null
+      calibration: null
+      child: r_gripper_base_link
+      dynamics: null
+      limit: null
+      mimic: null
+      name: r_gripper_base_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 0.0
+        - 4.71238898038
+        xyz:
+        - 0.0
+        - 0.0
+        - 0.0
+      parent: r_hand_base_adapter_link
+      safety_controller: null
+      type: fixed
+    - &id090 !!python/object:urdf_parser_py.urdf.Link
+      collision: null
+      inertial: null
+      name: l_gripper_base_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/lacquey/Lacquey_BumperRing_2.STL
+          scale:
+          - 0.001
+          - 0.001
+          - 0.001
+        material: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - -0.065
+          - -0.065
+          - 0.003
+    - &id091 !!python/object:urdf_parser_py.urdf.Link
+      collision: null
+      inertial: null
+      name: l_gripper_palm_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/lacquey/Lacquey_Palm.STL
+          scale:
+          - 0.001
+          - 0.001
+          - 0.001
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 0.7
+            - 0.7
+            - 0.7
+            - 1.0
+          name: LightGrey
+          texture: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 1.57079632679
+          - 0.0
+          - 1.57079632679
+          xyz:
+          - -0.046
+          - -0.04
+          - 0.0
+    - &id043 !!python/object:urdf_parser_py.urdf.Joint
+      axis: null
+      calibration: null
+      child: l_gripper_palm_link
+      dynamics: null
+      limit: null
+      mimic: null
+      name: l_gripper_palm_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 0.0
+        - 0.0
+        xyz:
+        - 0.0
+        - 0.0
+        - 0.0
+      parent: l_gripper_base_link
+      safety_controller: null
+      type: fixed
+    - &id092 !!python/object:urdf_parser_py.urdf.Link
+      collision: null
+      inertial: null
+      name: l_gripper_left_finger_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/lacquey/Lacquey_Left_Finger.STL
+          scale:
+          - 0.001
+          - 0.001
+          - 0.001
+        material: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 1.57079632679
+          - 0.0
+          - 3.14159265359
+          xyz:
+          - 0.0115
+          - -0.005
+          - -0.01
+    - &id044 !!python/object:urdf_parser_py.urdf.Joint
+      axis:
+      - 0.0
+      - -1.0
+      - 0.0
+      calibration: null
+      child: l_gripper_left_finger_link
+      dynamics: null
+      limit: !!python/object:urdf_parser_py.urdf.JointLimit
+        effort: 0.0
+        lower: 0.0
+        upper: 1.16937059884
+        velocity: 0.0
+      mimic: null
+      name: l_gripper_left_finger_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 0.0
+        - 0.0
+        xyz:
+        - 0.0
+        - 0.0
+        - 0.054
+      parent: l_gripper_left_finger_base_link
+      safety_controller: null
+      type: revolute
+    - &id093 !!python/object:urdf_parser_py.urdf.Link
+      collision: null
+      inertial: null
+      name: l_gripper_left_finger_base_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/lacquey/Lacquey_proxph.STL
+          scale:
+          - 0.001
+          - 0.001
+          - 0.001
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 0.7
+            - 0.7
+            - 0.7
+            - 1.0
+          name: LightGrey
+          texture: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 1.57079632679
+          - 0.0
+          - 3.14159265359
+          xyz:
+          - 0.018
+          - -0.0075
+          - -0.005
+    - &id045 !!python/object:urdf_parser_py.urdf.Joint
+      axis:
+      - 0.0
+      - -1.0
+      - 0.0
+      calibration: null
+      child: l_gripper_left_finger_base_link
+      dynamics: null
+      limit: !!python/object:urdf_parser_py.urdf.JointLimit
+        effort: 0.0
+        lower: -0.785398163397
+        upper: 0.0
+        velocity: 0.0
+      mimic: null
+      name: l_gripper_left_finger_base_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 0.0
+        - -1.57079632679
+        xyz:
+        - 0.02
+        - -0.028
+        - 0.072
+      parent: l_gripper_base_link
+      safety_controller: null
+      type: revolute
+    - &id094 !!python/object:urdf_parser_py.urdf.Link
+      collision: null
+      inertial: null
+      name: l_gripper_right_finger_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/lacquey/Lacquey_Right_Finger.STL
+          scale:
+          - 0.001
+          - 0.001
+          - 0.001
+        material: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 1.57079632679
+          - 0.0
+          - 3.14159265359
+          xyz:
+          - 0.0115
+          - -0.02571
+          - -0.01
+    - &id046 !!python/object:urdf_parser_py.urdf.Joint
+      axis:
+      - 0.0
+      - -1.0
+      - 0.0
+      calibration: null
+      child: l_gripper_right_finger_link
+      dynamics: null
+      limit: !!python/object:urdf_parser_py.urdf.JointLimit
+        effort: 0.0
+        lower: 0.0
+        upper: 1.16937059884
+        velocity: 0.0
+      mimic: null
+      name: l_gripper_right_finger_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 0.0
+        - 0.0
+        xyz:
+        - 0.0
+        - 0.0
+        - 0.054
+      parent: l_gripper_right_finger_base_link
+      safety_controller: null
+      type: revolute
+    - &id095 !!python/object:urdf_parser_py.urdf.Link
+      collision: null
+      inertial: null
+      name: l_gripper_right_finger_base_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/lacquey/Lacquey_proxph.STL
+          scale:
+          - 0.001
+          - 0.001
+          - 0.001
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 0.7
+            - 0.7
+            - 0.7
+            - 1.0
+          name: LightGrey
+          texture: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 1.57079632679
+          - 0.0
+          - 3.14159265359
+          xyz:
+          - 0.018
+          - -0.0075
+          - -0.005
+    - &id047 !!python/object:urdf_parser_py.urdf.Joint
+      axis:
+      - 0.0
+      - -1.0
+      - 0.0
+      calibration: null
+      child: l_gripper_right_finger_base_link
+      dynamics: null
+      limit: !!python/object:urdf_parser_py.urdf.JointLimit
+        effort: 0.0
+        lower: -0.785398163397
+        upper: 0.0
+        velocity: 0.0
+      mimic: null
+      name: l_gripper_right_finger_base_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 0.0
+        - -1.57079632679
+        xyz:
+        - -0.023
+        - -0.028
+        - 0.072
+      parent: l_gripper_base_link
+      safety_controller: null
+      type: revolute
+    - &id096 !!python/object:urdf_parser_py.urdf.Link
+      collision: null
+      inertial: null
+      name: l_gripper_mid_finger_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/lacquey/Lacquey_Mid_Finger.STL
+          scale:
+          - 0.001
+          - 0.001
+          - 0.001
+        material: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 1.57079632679
+          - 0.0
+          - 3.14159265359
+          xyz:
+          - 0.0115
+          - -0.01386
+          - -0.01
+    - &id048 !!python/object:urdf_parser_py.urdf.Joint
+      axis:
+      - 0.0
+      - -1.0
+      - 0.0
+      calibration: null
+      child: l_gripper_mid_finger_link
+      dynamics: null
+      limit: !!python/object:urdf_parser_py.urdf.JointLimit
+        effort: 0.0
+        lower: 0.0
+        upper: 1.16937059884
+        velocity: 0.0
+      mimic: null
+      name: l_gripper_mid_finger_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 0.0
+        - 0.0
+        xyz:
+        - 0.0
+        - 0.0
+        - 0.054
+      parent: l_gripper_mid_finger_base_link
+      safety_controller: null
+      type: revolute
+    - &id097 !!python/object:urdf_parser_py.urdf.Link
+      collision: null
+      inertial: null
+      name: l_gripper_mid_finger_base_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/lacquey/Lacquey_proxph.STL
+          scale:
+          - 0.001
+          - 0.001
+          - 0.001
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 0.7
+            - 0.7
+            - 0.7
+            - 1.0
+          name: LightGrey
+          texture: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 1.57079632679
+          - 0.0
+          - 3.14159265359
+          xyz:
+          - 0.018
+          - -0.0075
+          - -0.005
+    - &id049 !!python/object:urdf_parser_py.urdf.Joint
+      axis:
+      - 0.0
+      - -1.0
+      - 0.0
+      calibration: null
+      child: l_gripper_mid_finger_base_link
+      dynamics: null
+      limit: !!python/object:urdf_parser_py.urdf.JointLimit
+        effort: 0.0
+        lower: -0.785398163397
+        upper: 0.0
+        velocity: 0.0
+      mimic: null
+      name: l_gripper_mid_finger_base_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 0.0
+        - 1.57079632679
+        xyz:
+        - 0.0
+        - 0.028
+        - 0.072
+      parent: l_gripper_base_link
+      safety_controller: null
+      type: revolute
+    - &id050 !!python/object:urdf_parser_py.urdf.Joint
+      axis: null
+      calibration: null
+      child: l_gripper_base_link
+      dynamics: null
+      limit: null
+      mimic: null
+      name: l_gripper_base_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 0.0
+        - -1.57079632679
+        xyz:
+        - 0.0
+        - 0.0
+        - 0.0
+      parent: l_hand_base_adapter_link
+      safety_controller: null
+      type: fixed
+    - &id098 !!python/object:urdf_parser_py.urdf.Link
+      collision: !!python/object:urdf_parser_py.urdf.Collision
+        geometry: !!python/object:urdf_parser_py.urdf.Cylinder
+          length: 0.05
+          radius: 0.02
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+      inertial: null
+      name: front_laser_scanner_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Cylinder
+          length: 0.05
+          radius: 0.02
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 0.5
+            - 0.5
+            - 0.5
+            - 1.0
+          name: light_grey
+          texture: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+    - &id051 !!python/object:urdf_parser_py.urdf.Joint
+      axis: null
+      calibration: null
+      child: front_laser_scanner_link
+      dynamics: null
+      limit: null
+      mimic: null
+      name: front_laser_scanner
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 3.14
+        - 0.0
+        - 0.785
+        xyz:
+        - 0.01464
+        - 0.26511
+        - -0.22
+      parent: base_link
+      safety_controller: null
+      type: fixed
+    - &id099 !!python/object:urdf_parser_py.urdf.Link
+      collision: !!python/object:urdf_parser_py.urdf.Collision
+        geometry: !!python/object:urdf_parser_py.urdf.Cylinder
+          length: 0.05
+          radius: 0.02
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+      inertial: null
+      name: rear_laser_scanner_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Cylinder
+          length: 0.05
+          radius: 0.02
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: null
+          name: light_grey
+          texture: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 0.0
+          - 0.0
+          - 0.0
+          xyz:
+          - 0.0
+          - 0.0
+          - 0.0
+    - &id052 !!python/object:urdf_parser_py.urdf.Joint
+      axis: null
+      calibration: null
+      child: rear_laser_scanner_link
+      dynamics: null
+      limit: null
+      mimic: null
+      name: rear_laser_scanner
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 3.14
+        - 0.0
+        - -2.355
+        xyz:
+        - -0.86614
+        - -0.26415
+        - -0.22
+      parent: base_link
+      safety_controller: null
+      type: fixed
+    - &id100 !!python/object:urdf_parser_py.urdf.Link
+      collision: null
+      inertial: null
+      name: table_tom_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/objects/TOMMTABLE.STL
+          scale:
+          - 0.001
+          - 0.001
+          - 0.001
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 0.0
+            - 0.25
+            - 1.0
+            - 1.0
+          name: blue
+          texture: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 1.57079632679
+          - 0.0
+          - 1.57079632679
+          xyz:
+          - -0.9
+          - -0.91
+          - -0.42
+    - &id101 !!python/object:urdf_parser_py.urdf.Link
+      collision: null
+      inertial: null
+      name: box_tom_link
+      origin: null
+      visual: !!python/object:urdf_parser_py.urdf.Visual
+        geometry: !!python/object:urdf_parser_py.urdf.Mesh
+          filename: package://tom_description/meshes/objects/TOMMBox.STL
+          scale:
+          - 0.001
+          - 0.001
+          - 0.001
+        material: !!python/object:urdf_parser_py.urdf.LinkMaterial
+          color: !!python/object:urdf_parser_py.urdf.Color
+            rgba:
+            - 0.92
+            - 0.63
+            - 0.08
+            - 1.0
+          name: orange
+          texture: null
+        origin: !!python/object:urdf_parser_py.urdf.Pose
+          rpy:
+          - 1.57079632679
+          - 0.0
+          - 0.0
+          xyz:
+          - 0.55
+          - -0.441
+          - 0.255
+    - &id053 !!python/object:urdf_parser_py.urdf.Joint
+      axis: null
+      calibration: null
+      child: box_tom_link
+      dynamics: null
+      limit: null
+      mimic: null
+      name: box_tom_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 0.0
+        - 0.0
+        xyz:
+        - 0.0
+        - 0.0
+        - 0.0
+      parent: base_footprint
+      safety_controller: null
+      type: fixed
+    - &id054 !!python/object:urdf_parser_py.urdf.Joint
+      axis: null
+      calibration: null
+      child: table_tom_link
+      dynamics: null
+      limit: null
+      mimic: null
+      name: table_tom_joint
+      origin: !!python/object:urdf_parser_py.urdf.Pose
+        rpy:
+        - 0.0
+        - 0.0
+        - 0.0
+        xyz:
+        - 0.0
+        - 0.0
+        - 0.0
+      parent: base_footprint
+      safety_controller: null
+      type: fixed
+    aggregate_type:
+      *id027: joint
+      *id028: joint
+      *id029: joint
+      *id030: joint
+      *id031: joint
+      *id032: joint
+      *id033: joint
+      *id034: joint
+      *id035: joint
+      *id036: joint
+      *id037: joint
+      *id038: joint
+      *id039: joint
+      *id040: joint
+      *id041: joint
+      *id042: joint
+      *id043: joint
+      *id044: joint
+      *id045: joint
+      *id046: joint
+      *id047: joint
+      *id048: joint
+      *id049: joint
+      *id050: joint
+      *id051: joint
+      *id052: joint
+      *id053: joint
+      *id054: joint
+      *id055: joint
+      *id056: joint
+      *id057: joint
+      *id058: joint
+      *id059: joint
+      *id060: joint
+      *id061: joint
+      *id062: joint
+      *id063: joint
+      *id064: joint
+      *id065: joint
+      *id066: joint
+      *id067: joint
+      *id068: joint
+      *id069: joint
+      *id070: joint
+      *id071: joint
+      *id072: joint
+      *id073: joint
+      *id074: joint
+      *id075: link
+      *id076: link
+      *id077: link
+      *id078: link
+      *id079: link
+      *id080: link
+      *id081: link
+      *id082: link
+      *id083: link
+      *id084: link
+      *id085: link
+      *id086: link
+      *id087: link
+      *id088: link
+      *id089: link
+      *id090: link
+      *id091: link
+      *id092: link
+      *id093: link
+      *id094: link
+      *id095: link
+      *id096: link
+      *id097: link
+      *id098: link
+      *id099: link
+      *id100: link
+      *id101: link
+      *id102: link
+      *id103: link
+      *id104: link
+      *id105: link
+      *id106: link
+      *id107: link
+      *id108: link
+      *id109: link
+      *id110: link
+      *id111: link
+      *id112: link
+      *id113: link
+      *id114: link
+      *id115: link
+      *id116: link
+      *id117: link
+      *id118: link
+      *id119: link
+      *id120: link
+      *id121: link
+      *id122: link
+      *id123: link
+      *id124: transmission
+      *id125: transmission
+      *id126: transmission
+      *id127: transmission
+      *id128: transmission
+      *id129: transmission
+      *id130: transmission
+      *id131: transmission
+      *id132: transmission
+      *id133: transmission
+      *id134: transmission
+      *id135: transmission
+    child_map:
+      base_footprint:
+      - !!python/tuple
+        - base_footprint_joint
+        - base_link
+      - !!python/tuple
+        - box_tom_joint
+        - box_tom_link
+      - !!python/tuple
+        - table_tom_joint
+        - table_tom_link
+      base_link:
+      - !!python/tuple
+        - base_to_torso
+        - torso_link
+      - !!python/tuple
+        - l_front_wheel_joint
+        - l_front_wheel_link
+      - !!python/tuple
+        - l_rear_wheel_joint
+        - l_rear_wheel_link
+      - !!python/tuple
+        - r_front_wheel_joint
+        - r_front_wheel_link
+      - !!python/tuple
+        - r_rear_wheel_joint
+        - r_rear_wheel_link
+      - !!python/tuple
+        - ICS_logo_blue
+        - ICS_logo_blue_link
+      - !!python/tuple
+        - ICS_logo_grey
+        - ICS_logo_grey_link
+      - !!python/tuple
+        - front_laser_scanner
+        - front_laser_scanner_link
+      - !!python/tuple
+        - rear_laser_scanner
+        - rear_laser_scanner_link
+      l_base_link:
+      - !!python/tuple
+        - l_shoulder_pan_joint
+        - l_shoulder_link
+      l_ee_link:
+      - !!python/tuple
+        - l_hand_base_adapter_joint
+        - l_hand_base_adapter_link
+      l_forearm_link:
+      - !!python/tuple
+        - l_wrist_1_joint
+        - l_wrist_1_link
+      l_gripper_base_link:
+      - !!python/tuple
+        - l_gripper_palm_joint
+        - l_gripper_palm_link
+      - !!python/tuple
+        - l_gripper_left_finger_base_joint
+        - l_gripper_left_finger_base_link
+      - !!python/tuple
+        - l_gripper_right_finger_base_joint
+        - l_gripper_right_finger_base_link
+      - !!python/tuple
+        - l_gripper_mid_finger_base_joint
+        - l_gripper_mid_finger_base_link
+      l_gripper_left_finger_base_link:
+      - !!python/tuple
+        - l_gripper_left_finger_joint
+        - l_gripper_left_finger_link
+      l_gripper_mid_finger_base_link:
+      - !!python/tuple
+        - l_gripper_mid_finger_joint
+        - l_gripper_mid_finger_link
+      l_gripper_right_finger_base_link:
+      - !!python/tuple
+        - l_gripper_right_finger_joint
+        - l_gripper_right_finger_link
+      l_hand_base_adapter_link:
+      - !!python/tuple
+        - l_gripper_base_joint
+        - l_gripper_base_link
+      l_shoulder_link:
+      - !!python/tuple
+        - l_shoulder_lift_joint
+        - l_upper_arm_link
+      l_upper_arm_link:
+      - !!python/tuple
+        - l_elbow_joint
+        - l_forearm_link
+      l_wrist_1_link:
+      - !!python/tuple
+        - l_wrist_2_joint
+        - l_wrist_2_link
+      l_wrist_2_link:
+      - !!python/tuple
+        - l_wrist_3_joint
+        - l_wrist_3_link
+      l_wrist_3_link:
+      - !!python/tuple
+        - l_ee_fixed_joint
+        - l_ee_link
+      r_base_link:
+      - !!python/tuple
+        - r_shoulder_pan_joint
+        - r_shoulder_link
+      r_ee_link:
+      - !!python/tuple
+        - r_hand_base_adapter_joint
+        - r_hand_base_adapter_link
+      r_forearm_link:
+      - !!python/tuple
+        - r_wrist_1_joint
+        - r_wrist_1_link
+      r_gripper_base_link:
+      - !!python/tuple
+        - r_gripper_palm_joint
+        - r_gripper_palm_link
+      - !!python/tuple
+        - r_gripper_left_finger_base_joint
+        - r_gripper_left_finger_base_link
+      - !!python/tuple
+        - r_gripper_right_finger_base_joint
+        - r_gripper_right_finger_base_link
+      - !!python/tuple
+        - r_gripper_mid_finger_base_joint
+        - r_gripper_mid_finger_base_link
+      r_gripper_left_finger_base_link:
+      - !!python/tuple
+        - r_gripper_left_finger_joint
+        - r_gripper_left_finger_link
+      r_gripper_mid_finger_base_link:
+      - !!python/tuple
+        - r_gripper_mid_finger_joint
+        - r_gripper_mid_finger_link
+      r_gripper_right_finger_base_link:
+      - !!python/tuple
+        - r_gripper_right_finger_joint
+        - r_gripper_right_finger_link
+      r_hand_base_adapter_link:
+      - !!python/tuple
+        - r_gripper_base_joint
+        - r_gripper_base_link
+      r_shoulder_link:
+      - !!python/tuple
+        - r_shoulder_lift_joint
+        - r_upper_arm_link
+      r_upper_arm_link:
+      - !!python/tuple
+        - r_elbow_joint
+        - r_forearm_link
+      r_wrist_1_link:
+      - !!python/tuple
+        - r_wrist_2_joint
+        - r_wrist_2_link
+      r_wrist_2_link:
+      - !!python/tuple
+        - r_wrist_3_joint
+        - r_wrist_3_link
+      r_wrist_3_link:
+      - !!python/tuple
+        - r_ee_fixed_joint
+        - r_ee_link
+      torso_link:
+      - !!python/tuple
+        - table_head_joint
+        - tom_head_link
+      - !!python/tuple
+        - tom_left_camera_joint
+        - tom_left_camera_link
+      - !!python/tuple
+        - torso_to_r_arm
+        - r_base_link
+      - !!python/tuple
+        - torso_to_l_arm
+        - l_base_link
+    gazebos: []
+    joint_map:
+      ICS_logo_blue: *id062
+      ICS_logo_grey: *id063
+      base_footprint_joint: *id055
+      base_to_torso: *id057
+      box_tom_joint: *id053
+      front_laser_scanner: *id051
+      l_ee_fixed_joint: *id033
+      l_elbow_joint: *id029
+      l_front_wheel_joint: *id058
+      l_gripper_base_joint: *id050
+      l_gripper_left_finger_base_joint: *id045
+      l_gripper_left_finger_joint: *id044
+      l_gripper_mid_finger_base_joint: *id049
+      l_gripper_mid_finger_joint: *id048
+      l_gripper_palm_joint: *id043
+      l_gripper_right_finger_base_joint: *id047
+      l_gripper_right_finger_joint: *id046
+      l_hand_base_adapter_joint: *id056
+      l_rear_wheel_joint: *id059
+      l_shoulder_lift_joint: *id028
+      l_shoulder_pan_joint: *id027
+      l_wrist_1_joint: *id030
+      l_wrist_2_joint: *id031
+      l_wrist_3_joint: *id032
+      r_ee_fixed_joint: *id072
+      r_elbow_joint: *id068
+      r_front_wheel_joint: *id060
+      r_gripper_base_joint: *id042
+      r_gripper_left_finger_base_joint: *id037
+      r_gripper_left_finger_joint: *id036
+      r_gripper_mid_finger_base_joint: *id041
+      r_gripper_mid_finger_joint: *id040
+      r_gripper_palm_joint: *id035
+      r_gripper_right_finger_base_joint: *id039
+      r_gripper_right_finger_joint: *id038
+      r_hand_base_adapter_joint: *id074
+      r_rear_wheel_joint: *id061
+      r_shoulder_lift_joint: *id067
+      r_shoulder_pan_joint: *id066
+      r_wrist_1_joint: *id069
+      r_wrist_2_joint: *id070
+      r_wrist_3_joint: *id071
+      rear_laser_scanner: *id052
+      table_head_joint: *id064
+      table_tom_joint: *id054
+      tom_left_camera_joint: *id065
+      torso_to_l_arm: *id034
+      torso_to_r_arm: *id073
+    joints:
+    - *id055
+    - *id057
+    - *id058
+    - *id059
+    - *id060
+    - *id061
+    - *id062
+    - *id063
+    - *id064
+    - *id065
+    - *id066
+    - *id067
+    - *id068
+    - *id069
+    - *id070
+    - *id071
+    - *id072
+    - *id073
+    - *id074
+    - *id027
+    - *id028
+    - *id029
+    - *id030
+    - *id031
+    - *id032
+    - *id033
+    - *id034
+    - *id056
+    - *id035
+    - *id036
+    - *id037
+    - *id038
+    - *id039
+    - *id040
+    - *id041
+    - *id042
+    - *id043
+    - *id044
+    - *id045
+    - *id046
+    - *id047
+    - *id048
+    - *id049
+    - *id050
+    - *id051
+    - *id052
+    - *id053
+    - *id054
+    link_map:
+      ICS_logo_blue_link: *id110
+      ICS_logo_grey_link: *id111
+      base_footprint: *id102
+      base_link: *id104
+      box_tom_link: *id101
+      front_laser_scanner_link: *id098
+      l_base_link: *id123
+      l_ee_link: *id081
+      l_forearm_link: *id077
+      l_front_wheel_link: *id106
+      l_gripper_base_link: *id090
+      l_gripper_left_finger_base_link: *id093
+      l_gripper_left_finger_link: *id092
+      l_gripper_mid_finger_base_link: *id097
+      l_gripper_mid_finger_link: *id096
+      l_gripper_palm_link: *id091
+      l_gripper_right_finger_base_link: *id095
+      l_gripper_right_finger_link: *id094
+      l_hand_base_adapter_link: *id082
+      l_rear_wheel_link: *id107
+      l_shoulder_link: *id075
+      l_upper_arm_link: *id076
+      l_wrist_1_link: *id078
+      l_wrist_2_link: *id079
+      l_wrist_3_link: *id080
+      r_base_link: *id114
+      r_ee_link: *id121
+      r_forearm_link: *id117
+      r_front_wheel_link: *id108
+      r_gripper_base_link: *id103
+      r_gripper_left_finger_base_link: *id085
+      r_gripper_left_finger_link: *id084
+      r_gripper_mid_finger_base_link: *id089
+      r_gripper_mid_finger_link: *id088
+      r_gripper_palm_link: *id083
+      r_gripper_right_finger_base_link: *id087
+      r_gripper_right_finger_link: *id086
+      r_hand_base_adapter_link: *id122
+      r_rear_wheel_link: *id109
+      r_shoulder_link: *id115
+      r_upper_arm_link: *id116
+      r_wrist_1_link: *id118
+      r_wrist_2_link: *id119
+      r_wrist_3_link: *id120
+      rear_laser_scanner_link: *id099
+      table_tom_link: *id100
+      tom_head_link: *id113
+      tom_left_camera_link: *id112
+      torso_link: *id105
+    links:
+    - *id102
+    - *id104
+    - *id105
+    - *id106
+    - *id107
+    - *id108
+    - *id109
+    - *id110
+    - *id111
+    - *id112
+    - *id113
+    - *id114
+    - *id115
+    - *id116
+    - *id117
+    - *id118
+    - *id119
+    - *id120
+    - *id121
+    - *id122
+    - *id123
+    - *id075
+    - *id076
+    - *id077
+    - *id078
+    - *id079
+    - *id080
+    - *id081
+    - *id082
+    - *id103
+    - *id083
+    - *id084
+    - *id085
+    - *id086
+    - *id087
+    - *id088
+    - *id089
+    - *id090
+    - *id091
+    - *id092
+    - *id093
+    - *id094
+    - *id095
+    - *id096
+    - *id097
+    - *id098
+    - *id099
+    - *id100
+    - *id101
+    materials: []
+    name: tom
+    parent_map:
+      ICS_logo_blue_link: !!python/tuple
+      - ICS_logo_blue
+      - base_link
+      ICS_logo_grey_link: !!python/tuple
+      - ICS_logo_grey
+      - base_link
+      base_link: !!python/tuple
+      - base_footprint_joint
+      - base_footprint
+      box_tom_link: !!python/tuple
+      - box_tom_joint
+      - base_footprint
+      front_laser_scanner_link: !!python/tuple
+      - front_laser_scanner
+      - base_link
+      l_base_link: !!python/tuple
+      - torso_to_l_arm
+      - torso_link
+      l_ee_link: !!python/tuple
+      - l_ee_fixed_joint
+      - l_wrist_3_link
+      l_forearm_link: !!python/tuple
+      - l_elbow_joint
+      - l_upper_arm_link
+      l_front_wheel_link: !!python/tuple
+      - l_front_wheel_joint
+      - base_link
+      l_gripper_base_link: !!python/tuple
+      - l_gripper_base_joint
+      - l_hand_base_adapter_link
+      l_gripper_left_finger_base_link: !!python/tuple
+      - l_gripper_left_finger_base_joint
+      - l_gripper_base_link
+      l_gripper_left_finger_link: !!python/tuple
+      - l_gripper_left_finger_joint
+      - l_gripper_left_finger_base_link
+      l_gripper_mid_finger_base_link: !!python/tuple
+      - l_gripper_mid_finger_base_joint
+      - l_gripper_base_link
+      l_gripper_mid_finger_link: !!python/tuple
+      - l_gripper_mid_finger_joint
+      - l_gripper_mid_finger_base_link
+      l_gripper_palm_link: !!python/tuple
+      - l_gripper_palm_joint
+      - l_gripper_base_link
+      l_gripper_right_finger_base_link: !!python/tuple
+      - l_gripper_right_finger_base_joint
+      - l_gripper_base_link
+      l_gripper_right_finger_link: !!python/tuple
+      - l_gripper_right_finger_joint
+      - l_gripper_right_finger_base_link
+      l_hand_base_adapter_link: !!python/tuple
+      - l_hand_base_adapter_joint
+      - l_ee_link
+      l_rear_wheel_link: !!python/tuple
+      - l_rear_wheel_joint
+      - base_link
+      l_shoulder_link: !!python/tuple
+      - l_shoulder_pan_joint
+      - l_base_link
+      l_upper_arm_link: !!python/tuple
+      - l_shoulder_lift_joint
+      - l_shoulder_link
+      l_wrist_1_link: !!python/tuple
+      - l_wrist_1_joint
+      - l_forearm_link
+      l_wrist_2_link: !!python/tuple
+      - l_wrist_2_joint
+      - l_wrist_1_link
+      l_wrist_3_link: !!python/tuple
+      - l_wrist_3_joint
+      - l_wrist_2_link
+      r_base_link: !!python/tuple
+      - torso_to_r_arm
+      - torso_link
+      r_ee_link: !!python/tuple
+      - r_ee_fixed_joint
+      - r_wrist_3_link
+      r_forearm_link: !!python/tuple
+      - r_elbow_joint
+      - r_upper_arm_link
+      r_front_wheel_link: !!python/tuple
+      - r_front_wheel_joint
+      - base_link
+      r_gripper_base_link: !!python/tuple
+      - r_gripper_base_joint
+      - r_hand_base_adapter_link
+      r_gripper_left_finger_base_link: !!python/tuple
+      - r_gripper_left_finger_base_joint
+      - r_gripper_base_link
+      r_gripper_left_finger_link: !!python/tuple
+      - r_gripper_left_finger_joint
+      - r_gripper_left_finger_base_link
+      r_gripper_mid_finger_base_link: !!python/tuple
+      - r_gripper_mid_finger_base_joint
+      - r_gripper_base_link
+      r_gripper_mid_finger_link: !!python/tuple
+      - r_gripper_mid_finger_joint
+      - r_gripper_mid_finger_base_link
+      r_gripper_palm_link: !!python/tuple
+      - r_gripper_palm_joint
+      - r_gripper_base_link
+      r_gripper_right_finger_base_link: !!python/tuple
+      - r_gripper_right_finger_base_joint
+      - r_gripper_base_link
+      r_gripper_right_finger_link: !!python/tuple
+      - r_gripper_right_finger_joint
+      - r_gripper_right_finger_base_link
+      r_hand_base_adapter_link: !!python/tuple
+      - r_hand_base_adapter_joint
+      - r_ee_link
+      r_rear_wheel_link: !!python/tuple
+      - r_rear_wheel_joint
+      - base_link
+      r_shoulder_link: !!python/tuple
+      - r_shoulder_pan_joint
+      - r_base_link
+      r_upper_arm_link: !!python/tuple
+      - r_shoulder_lift_joint
+      - r_shoulder_link
+      r_wrist_1_link: !!python/tuple
+      - r_wrist_1_joint
+      - r_forearm_link
+      r_wrist_2_link: !!python/tuple
+      - r_wrist_2_joint
+      - r_wrist_1_link
+      r_wrist_3_link: !!python/tuple
+      - r_wrist_3_joint
+      - r_wrist_2_link
+      rear_laser_scanner_link: !!python/tuple
+      - rear_laser_scanner
+      - base_link
+      table_tom_link: !!python/tuple
+      - table_tom_joint
+      - base_footprint
+      tom_head_link: !!python/tuple
+      - table_head_joint
+      - torso_link
+      tom_left_camera_link: !!python/tuple
+      - tom_left_camera_joint
+      - torso_link
+      torso_link: !!python/tuple
+      - base_to_torso
+      - base_link
+    transmissions:
+    - *id130
+    - *id131
+    - *id132
+    - *id133
+    - *id134
+    - *id135
+    - *id124
+    - *id125
+    - *id126
+    - *id127
+    - *id128
+    - *id129
+objs:
+- squeeze_area
+tau: 2.799842357635498
+worlds:
+- box: &id137 !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - 1.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 1.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 1.0
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.67051013617
+        - -0.5828498549
+        - -0.280936861547
+  orange: &id138 !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - 1.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 1.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 1.0
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.4761895668506622
+        - 0.006743268109858036
+        - -0.43888407945632935
+  squeeze_area: *id136
+  trash: &id139 !!python/object/apply:sip._unpickle_type
+  - PyKDL
+  - Frame
+  - !!python/tuple
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Rotation
+      - !!python/tuple
+        - 1.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 1.0
+        - 0.0
+        - 0.0
+        - 0.0
+        - 1.0
+    - !!python/object/apply:sip._unpickle_type
+      - PyKDL
+      - Vector
+      - !!python/tuple
+        - 0.29702347941
+        - 0.0110837137159
+        - -0.41238342306
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
+- box: *id137
+  orange: *id138
+  squeeze_area: *id136
+  trash: *id139
