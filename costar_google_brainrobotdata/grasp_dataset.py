@@ -99,7 +99,8 @@ class GraspDataset:
         feature_count = int(features[0])
         attempt_count = int(features[1])
         features = features[2:]
-        tfrecord_paths = gfile.Glob(os.path.join(os.path.expanduser(FLAGS.data_dir), '*{}.tfrecord*-of-*'.format(feature_count)))
+        # note that the tfrecords are often named '*{}.tfrecord*-of-*'
+        tfrecord_paths = gfile.Glob(os.path.join(os.path.expanduser(FLAGS.data_dir), '*{}.tfrecord*'.format(feature_count)))
         return features, feature_count, attempt_count, tfrecord_paths
 
     def get_time_ordered_features(self, features, step='all', feature_type='/image/encoded'):
@@ -108,6 +109,8 @@ class GraspDataset:
             for mostly correct details.
             These slides also help make the order much more clear:
             https://docs.google.com/presentation/d/13RdgkZQ_neqeXwYU3at2fP4RLl4qb1r74CTehq8d_Qc/edit?usp=sharing
+            Also see the downloaded grasp_listing.txt and feature_*.csv files that the downloader puts
+            into ~/.keras/datasets/grasping by default.
         # Arguments
 
             features: list of feature TFRecord strings
@@ -117,6 +120,8 @@ class GraspDataset:
                 'move_to_grasp' are the up to 10 steps when the gripper is moving towards an object
                     it will try to grasp, also known as the grasp phase.
                 'close_gripper' when the gripper is actually closed.
+                'camera' get camera intrinsics matrix and/or camera_T_base transform
+                'robot' get robot name
 
             feature_type: feature data type, one of
                 transforms/base_T_endeffector/vec_quat_7		A pose is a 6 degree of freedom rigid transform represented with 7 values:
@@ -136,6 +141,8 @@ class GraspDataset:
                 '/image/encoded' Camera RGB images are stored in JPEG format, be careful not to mismatch on depth_image/encoded.
                 params		This is a simplified representation of a commanded robot pose and gripper status.
                             These are the values that were solved for in the network, the output of the Cross Entropy Method.
+                name        A string indicating the name of the robot
+                status      Unknown, but only feature is 'gripper/status', so probably an indicator of how open/closed the gripper is.
 
         # Returns
 
@@ -143,8 +150,8 @@ class GraspDataset:
         """
         matching_features = []
 
-        def match_feature(features, feature_name, feature_type='', exclude_substring=None, exclude_regex=None):
-            """Get first feature from the list that meet requirements.
+        def match_feature(features, feature_name_regex, feature_type='', exclude_substring=None, exclude_regex=None):
+            """Get first feature from the list that meets requirements.
             Used to ensure correct ordering and easy selection of features.
             some silly tricks to get the feature names in the right order while
             allowing variation between the various datasets.
@@ -154,30 +161,49 @@ class GraspDataset:
             `r'/\\d+/'` (single backslash) regex will exclude /0/, /1/, and /10/.
             """
             for ifname in features:
-                if ((feature_name in ifname) and
+                if (bool(re.search(feature_name_regex, ifname)) and  # feature name matches
                         ((exclude_substring is None) or (exclude_substring not in ifname)) and
                         ((exclude_regex is None) or not bool(re.search(exclude_regex, ifname))) and
                         (feature_type in ifname)):
                     return [str(ifname)]
             return []
+        if step in ['camera', 'all', '']:
+            # the r'^ in r'^camera/' makes sure the start of the string matches
+            matching_features.extend(match_feature(features, r'^camera/', feature_type))
+        if step in ['robot', 'all', '']:
+            matching_features.extend(match_feature(features, r'^robot/', feature_type))
         # r'/\d/' is a regex that will exclude things like /0/, /1/, through /10/
         # this is the first pre grasp image, even though it is called grasp
         if step in ['view_clear_scene', 'all', '']:
-            matching_features.extend(match_feature(features, 'grasp/', feature_type, 'post', r'/\d+/'))
-        # up to 10 grasp steps in the datasets
+            matching_features.extend(match_feature(features, r'^initial/', feature_type))
+            matching_features.extend(match_feature(features, r'^approach/', feature_type))
+            matching_features.extend(match_feature(features, r'^approach_sequence/', feature_type))
+            matching_features.extend(match_feature(features, r'^pregrasp/', feature_type, 'post', r'/\d+/'))
+            matching_features.extend(match_feature(features, r'^grasp/', feature_type, 'post', r'/\d+/'))
 
+        # up to 11 grasp steps in the datasets
         if step in ['move_to_grasp', 'all', '']:
-            max_grasp_steps = 11
+            max_grasp_steps = 11  # 0 through 10
             for i in range(max_grasp_steps):
-                matching_features.extend(match_feature(features, 'grasp/{}/'.format(i), feature_type, 'post'))
+                matching_features.extend(match_feature(features, r'^grasp/{}/'.format(i), feature_type, 'post'))
         # closing the gripper
         if step in ['close_gripper', 'all', '']:
-            matching_features.extend(match_feature(features, 'gripper/', feature_type, 'post'))
-            matching_features.extend(match_feature(features, 'post_grasp/', feature_type))
+            matching_features.extend(match_feature(features, r'^gripper/', feature_type, 'post'))
+            # Not totally sure, but probably the transforms and angles from as the gripper is closing (might shift a bit)
+            matching_features.extend(match_feature(features, r'^gripper_sequence/', feature_type, 'post'))
+            # Withdraw the closed gripper from the bin vertically upward, roughly 10 cm above the bin surface.
+            matching_features.extend(match_feature(features, r'^withdraw_sequence/', feature_type))
+            matching_features.extend(match_feature(features, r'^post_grasp/', feature_type))
 
         if step in ['test_success', 'all', '']:
-            matching_features.extend(match_feature(features, 'present/', feature_type))
-            matching_features.extend(match_feature(features, 'post_drop/', feature_type))
+            matching_features.extend(match_feature(features, r'^present/', feature_type))
+            matching_features.extend(match_feature(features, r'^present_sequence/', feature_type))
+            # After presentation (or after withdraw, if present is skipped), the object is moved to a random position about 10 cm above the bin to drop the object.
+            matching_features.extend(match_feature(features, r'^raise/', feature_type))
+            # Open the gripper and drop the object (if any object is held) into the bin.
+            matching_features.extend(match_feature(features, r'^drop/', feature_type))
+            # Images recorded after withdraw, raise, and the drop.
+            matching_features.extend(match_feature(features, r'^post_drop/', feature_type))
         return matching_features
 
     def build_image_input(self, sess, train=True, novel=True):
@@ -196,7 +222,7 @@ class GraspDataset:
             features, feature_count, attempt_count, tfrecord_paths = self.get_tfrecord_filenames(feature_csv_file)
             print(tfrecord_paths)
             if not tfrecord_paths:
-                raise RuntimeError('No data files found.')
+                raise RuntimeError('No tfrecords found for {}.'.format(feature_csv_file))
             filename_queue = tf.train.string_input_producer(tfrecord_paths, shuffle=False)
             reader = tf.TFRecordReader()
             _, serialized_example = reader.read(filename_queue)
