@@ -5,6 +5,7 @@ import errno
 
 import numpy as np
 import tensorflow as tf
+import re
 
 from tensorflow.python.platform import flags
 from tensorflow.python.platform import gfile
@@ -17,6 +18,10 @@ tf.flags.DEFINE_string('data_dir',
                                     '.keras', 'datasets', 'grasping'),
                        """Path to dataset in TFRecord format
                        (aka Example protobufs) and feature csv files.""")
+tf.flags.DEFINE_string('gif_dir',
+                       os.path.join(os.path.expanduser("~"),
+                                    '.keras', 'datasets', 'grasping'),
+                       """Path to output image gifs for visualization.""")
 tf.flags.DEFINE_integer('batch_size', 25, 'batch size per compute device')
 tf.flags.DEFINE_integer('sensor_image_width', 640, 'Camera Image Width')
 tf.flags.DEFINE_integer('sensor_image_height', 512, 'Camera Image Height')
@@ -97,32 +102,83 @@ class GraspDataset:
         tfrecord_paths = gfile.Glob(os.path.join(os.path.expanduser(FLAGS.data_dir), '*{}.tfrecord*-of-*'.format(feature_count)))
         return features, feature_count, attempt_count, tfrecord_paths
 
-    def get_time_ordered_image_features(self, features, phase='all'):
-        """Get list of all image features ordered by time.
-
+    def get_time_ordered_features(self, features, step='all', feature_type='/image/encoded'):
+        """Get list of all image features ordered by time, features are identified by a string path.
+            See https://docs.google.com/spreadsheets/d/1GiPt57nCCbA_2EVkFTtf49Q9qeDWgmgEQ6DhxxAIIao/edit#gid=0
+            for mostly correct details.
+            These slides also help make the order much more clear:
+            https://docs.google.com/presentation/d/13RdgkZQ_neqeXwYU3at2fP4RLl4qb1r74CTehq8d_Qc/edit?usp=sharing
         # Arguments
 
             features: list of feature TFRecord strings
-            phase: string indicating which parts of the grasp sequence should be returned.
-                Options are 'all', 'test_success' with the pre and post drop images, '
+            step: string indicating which parts of the grasp sequence should be returned.
+                Options are 'all', 'test_success' with the pre and post drop images,
+                'view_clear_scene' shows the clear scene before the arm enters the camera view.
+                'move_to_grasp' are the up to 10 steps when the gripper is moving towards an object
+                    it will try to grasp, also known as the grasp phase.
+                'close_gripper' when the gripper is actually closed.
+
+            feature_type: feature data type, one of
+                transforms/base_T_endeffector/vec_quat_7		A pose is a 6 degree of freedom rigid transform represented with 7 values:
+                                                                    vector (x, y, z) and quaternion (x, y, z, w).
+                                                                A pose is always annotated with the target and source frames of reference.
+                                                                For example, base_T_camera is a transform that takes a point in the camera frame
+                                                                of reference and transforms it to the base frame of reference.
+                commanded_pose		Commanded pose is the input to the inverse kinematics computation, which is used to determine desired joint positions.
+                reached_pose		Pose calculated by forward kinetics from current robot state in status updates.
+                joint/commanded_torques		Commanded torques are the torque values calculated from the inverse kinematics
+                                            of the commanded pose and the robot driver.
+                joint/external_torques		External torques are torques at each joint that are a result of gravity and other external forces.
+                                            These values are reported by the robot status query.
+                joint/positions		Robot joint positions as reported by the robot status query.
+                joint/velocities		Robot joint velocities as reported by the robot status query.
+                depth_image		Depth image is encoded as an RGB PNG image where the RGB 24-bit value is an integer depth with scale 1/256 of a millimeter.
+                '/image/encoded' Camera RGB images are stored in JPEG format, be careful not to mismatch on depth_image/encoded.
+                params		This is a simplified representation of a commanded robot pose and gripper status.
+                            These are the values that were solved for in the network, the output of the Cross Entropy Method.
 
         # Returns
 
            list of image features organized by time step in a single grasp
         """
-        images_feature_names = []
-        # some silly tricks to get the feature names in the right order while
-        # allowing variation between the various datasets
-        images_feature_names.extend([str(ifname) for ifname in features if ('grasp/image/encoded' in ifname) and not ('post' in ifname)])
-        for i in range(10):
-            fstr = 'grasp/{}/image/encoded'.format(i)
-            print(fstr)
-            images_feature_names.extend([str(ifname) for ifname in features if (fstr in ifname)])
-        images_feature_names.extend([str(ifname) for ifname in features if ('gripper/image/encoded' in ifname)])
-        images_feature_names.extend([str(ifname) for ifname in features if ('post_grasp/image/encoded' in ifname)])
-        images_feature_names.extend([str(ifname) for ifname in features if ('present/image/encoded' in ifname)])
-        images_feature_names.extend([str(ifname) for ifname in features if ('post_drop/image/encoded' in ifname)])
-        return images_feature_names
+        matching_features = []
+
+        def match_feature(features, feature_name, feature_type='', exclude_substring=None, exclude_regex=None):
+            """Get first feature from the list that meet requirements.
+            Used to ensure correct ordering and easy selection of features.
+            some silly tricks to get the feature names in the right order while
+            allowing variation between the various datasets.
+            For example, we need to make sure 'grasp/image/encoded comes'
+            before grasp/0/* and post_grasp/*, but with a simple substring
+            match 'grasp/', all of the above will be matched in the wrong order.
+            `r'/\\d+/'` (single backslash) regex will exclude /0/, /1/, and /10/.
+            """
+            for ifname in features:
+                if ((feature_name in ifname) and
+                        ((exclude_substring is None) or (exclude_substring not in ifname)) and
+                        ((exclude_regex is None) or not bool(re.search(exclude_regex, ifname))) and
+                        (feature_type in ifname)):
+                    return [str(ifname)]
+            return []
+        # r'/\d/' is a regex that will exclude things like /0/, /1/, through /10/
+        # this is the first pre grasp image, even though it is called grasp
+        if step in ['view_clear_scene', 'all', '']:
+            matching_features.extend(match_feature(features, 'grasp/', feature_type, 'post', r'/\d+/'))
+        # up to 10 grasp steps in the datasets
+
+        if step in ['move_to_grasp', 'all', '']:
+            max_grasp_steps = 11
+            for i in range(max_grasp_steps):
+                matching_features.extend(match_feature(features, 'grasp/{}/'.format(i), feature_type, 'post'))
+        # closing the gripper
+        if step in ['close_gripper', 'all', '']:
+            matching_features.extend(match_feature(features, 'gripper/', feature_type, 'post'))
+            matching_features.extend(match_feature(features, 'post_grasp/', feature_type))
+
+        if step in ['test_success', 'all', '']:
+            matching_features.extend(match_feature(features, 'present/', feature_type))
+            matching_features.extend(match_feature(features, 'post_drop/', feature_type))
+        return matching_features
 
     def build_image_input(self, sess, train=True, novel=True):
         """Create input tfrecord tensors.
@@ -148,7 +204,7 @@ class GraspDataset:
             image_seq = []
 
             num_grasp_steps_name = 'num_grasp_steps'
-            images_feature_names = self.get_time_ordered_image_features(features)
+            images_feature_names = self.get_time_ordered_features(features)
             print(images_feature_names)
             features_dict = {image_name: tf.FixedLenFeature([1], tf.string) for image_name in images_feature_names}
             features_dict[num_grasp_steps_name] = tf.FixedLenFeature([1], tf.string)
@@ -185,7 +241,7 @@ class GraspDataset:
 
         for i in range(FLAGS.batch_size):
             video = train_videos[i]
-            self.npy_to_gif(video, '~/grasp_' + str(i) + '.gif')
+            self.npy_to_gif(video, os.path.join(FLAGS.gif_dir, 'grasp_' + str(i) + '.gif'))
 
 
 if __name__ == '__main__':
