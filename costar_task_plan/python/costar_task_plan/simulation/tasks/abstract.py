@@ -1,3 +1,6 @@
+
+from costar_task_plan.abstract import NullReward
+
 import pybullet as pb
 import rospkg
 import os
@@ -35,6 +38,9 @@ class AbstractTaskDefinition(object):
             pb.stepSimulation()
         self._setupRobot(handle)
 
+    def getReward(self):
+        return NullReward()
+
     def _setup(self):
         '''
         Setup any world objects after the robot has been created.
@@ -46,3 +52,4 @@ class AbstractTaskDefinition(object):
         Do anything you need to do to the robot before it
         '''
         raise NotImplementedError('Must override the _setupRobot() function!')
+

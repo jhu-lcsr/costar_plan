@@ -106,3 +106,7 @@ class AbstractControllerPolicy(AbstractPolicy):
       return self._default()
     else:
       return self.action
+
+class NullReward(AbstractReward):
+    def __call__(self, world):
+        return 0.

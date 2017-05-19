@@ -75,6 +75,9 @@ class CostarBulletSimulation(object):
         # place the robot in the world and set up the task
         self.reset()
 
+    def getReward(self):
+        return self.task.getReward()
+
     def reset(self):
         '''
         Reset the robot and task

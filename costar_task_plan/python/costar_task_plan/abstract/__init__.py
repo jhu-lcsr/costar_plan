@@ -71,6 +71,8 @@ __all__ = ['AbstractWorld', 'AbstractAction', 'AbstractState',
            'StateTrajectory','AbstractTrajectoryAction', 'AbstractActor',
            'AbstractTrajectoryDynamics', 'NullOption', 'AbstractObserve',
            # Basic conditions that are useful for testing
-            'FalseCondition', 'TrueCondition',
+           'FalseCondition', 'TrueCondition',
+           # Simple reward function
+           'NullReward',
            ]
 
