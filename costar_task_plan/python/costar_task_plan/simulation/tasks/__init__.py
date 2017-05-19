@@ -3,10 +3,14 @@ from blocks import BlocksTaskDefinition
 from clutter import ClutterTaskDefinition
 from mug import MugTaskDefinition
 from sorting import SortingTaskDefinition
+from rings import RingsTaskDefinition
+from explore import ExploreTaskDefinition
 
 __all__ = ["AbstractTaskDefinition",
            "BlocksTaskDefinition",
            "ClutterTaskDefinition",
            "MugTaskDefinition",
            "SortingTaskDefinition",
+           "RingsTaskDefinition",
+           "ExploreTaskDefinition",
            ]

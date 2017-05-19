@@ -48,3 +48,9 @@ class AbstractRobotInterface(object):
         Send a command to the base.
         '''
         raise NotImplementedError('base')
+
+    def mobile(self):
+        '''
+        Overload this for a mobile robot like the Husky.
+        '''
+        return False
