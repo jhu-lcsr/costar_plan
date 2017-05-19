@@ -3,7 +3,7 @@ from world import TomWorld
 from gripper_option import TomGripperOption, TomGripperOpenOption, TomGripperCloseOption
 from execute import OpenLoopTomExecute
 from parse import ParseTomArgs
-from orange import TomOranges, TomOrangesState, TomOrangesAction
+from orange import TomOranges, TomOrangesState, TomOrangesAction, TomOrangesExpectedDynamics
 
 __all__ = ["TomWorld",
            "TomGripperOption", "TomGripperOpenOption", "TomGripperCloseOption",
@@ -11,6 +11,7 @@ __all__ = ["TomWorld",
            # ==================================================================
            # Oranges for hidden world state
            "TomOranges", "TomOrangesState", "TomOrangesAction",
+           "TomOrangesExpectedDynamics",
            # ==================================================================
            # This is the execution function that sends data over to the robot.
            "OpenLoopTomExecute",
