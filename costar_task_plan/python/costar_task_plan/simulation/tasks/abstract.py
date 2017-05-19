@@ -53,3 +53,6 @@ class AbstractTaskDefinition(object):
         '''
         raise NotImplementedError('Must override the _setupRobot() function!')
 
+    def cloneRobot(self):
+        robot_type = type(self.robot)
+        return robot_type()

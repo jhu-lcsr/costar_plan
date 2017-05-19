@@ -9,9 +9,10 @@ import rospkg
 class SortingTaskDefinition(AbstractTaskDefinition):
     joint_positions = [0.30, -0.5, -1.80, -0.27, 1.50, 1.60]
     urdf_dir = "urdf"
-    urdf_dir = "urdf"
-    model_file_name = "model.urdf"
-    model = "mug"
+
+    blue_urdf = "blue.urdf"
+    red_urdf = "red.urdf"
+    model = "ball"
 
     tray_dir = "tray"
     tray_urdf = "traybox.urdf"
@@ -51,8 +52,11 @@ class SortingTaskDefinition(AbstractTaskDefinition):
         Configure the robot so that it is ready to begin the task. Robot should
         be oriented so the gripper is near the cluttered area with the mug.
         '''
-        for i, q in enumerate(self.joint_positions):
-            pb.resetJointState(handle, i, q)
+        self.robot.place([0,0,0],[0,0,0,1],self.joint_positions)
+        self.robot2 = self.cloneRobot()
+        self.robot2.load()
+        self.robot2.place([-1,0,0],[0,0,1,0],
+                self.joint_positions)
         self.robot.arm(self.joint_positions, pb.POSITION_CONTROL)
         self.robot.gripper(0, pb.POSITION_CONTROL)
 

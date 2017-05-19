@@ -48,8 +48,6 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
 
         self.handle = pb.loadURDF(self.urdf_filename)
 
-        pb.createConstraint(self.handle,-1,-1,-1,pb.JOINT_FIXED,[0,0,0],[0,0,0],[0,0,0])
-
         pb.createConstraint(self.handle, self.left_finger,
                 self.handle,self.left_fingertip,
                 pb.JOINT_POINT2POINT,
@@ -61,6 +59,11 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
 
         return self.handle
 
+    def place(self, pos, rot, joints):
+        pb.resetBasePositionAndOrientation(self.handle, pos, rot)
+        pb.createConstraint(self.handle,-1,-1,-1,pb.JOINT_FIXED,pos,[0,0,0],rot)
+        for i, q in enumerate(joints):
+            pb.resetJointState(self.handle, i, q)
 
     def arm(self, cmd, mode):
         if len(cmd) > 6:

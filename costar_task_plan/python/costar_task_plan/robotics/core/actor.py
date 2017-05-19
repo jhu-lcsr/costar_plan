@@ -42,7 +42,7 @@ class CostarState(AbstractState):
 # Actions for a particular actor. This is very simple, and just represents a
 # joint motion, normalized over some period of time.
 class CostarAction(AbstractAction):
-  def __init__(self, q, dq, reset_seq=False, 
+  def __init__(self, q, dq, ee=None, reset_seq=False, 
           finish_sequence=False,
           reference=None,
           traj=None,
@@ -53,6 +53,7 @@ class CostarAction(AbstractAction):
       q = np.array(q)
 
     self.q = q
+    self.ee = ee
     self.dq = dq
     self.reset_seq = reset_seq
     self.finish_sequence = finish_sequence
@@ -68,6 +69,8 @@ class CostarAction(AbstractAction):
 # is defined in the world's hook() function that gets called after every
 # update.
 class CostarActor(AbstractActor):
+
+  actor_type = 'robot'
 
   def __init__(self, config, *args, **kwargs):
     super(CostarActor, self).__init__(*args, **kwargs)

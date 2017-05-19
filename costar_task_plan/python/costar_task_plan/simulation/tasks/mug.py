@@ -47,8 +47,12 @@ class MugTaskDefinition(AbstractTaskDefinition):
         Configure the robot so that it is ready to begin the task. Robot should
         be oriented so the gripper is near the cluttered area with the mug.
         '''
-        for i, q in enumerate(self.joint_positions):
-            pb.resetJointState(handle, i, q)
+        self.robot.place([0,0,0],[0,0,0,1],self.joint_positions)
         self.robot.arm(self.joint_positions, pb.POSITION_CONTROL)
         self.robot.gripper(0, pb.POSITION_CONTROL)
 
+    def arm(self, cmd, mode):
+        '''
+        Send a command to the arm.
+        '''
+        raise NotImplementedError('arm')

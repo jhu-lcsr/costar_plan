@@ -28,8 +28,6 @@ class BlocksTaskDefinition(AbstractTaskDefinition):
         pass
 
     def _setupRobot(self, handle):
-        pb.createConstraint(handle,-1,-1,-1,pb.JOINT_FIXED,[0,0,0],[0,0,0],[0,0,0])
-        for i, q in enumerate(self.joint_positions):
-            pb.resetJointState(handle, i, q)
+        self.robot.place([0,0,0],[0,0,0,1],self.joint_positions)
         self.robot.arm(self.joint_positions, pb.POSITION_CONTROL)
         self.robot.gripper(0, pb.POSITION_CONTROL)

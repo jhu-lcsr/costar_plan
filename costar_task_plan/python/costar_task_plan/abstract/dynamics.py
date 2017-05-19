@@ -3,6 +3,8 @@ from world import *
 
 
 class AbstractActor(object):
+
+  actor_type = ''
   
   def __init__(self, state=None, policy=None, dynamics=None, features=None):
     self.policy = policy
