@@ -25,11 +25,13 @@ class SortingTaskDefinition(AbstractTaskDefinition):
                   np.array([0., +0.6, 0.0]),
                   np.array([-1.0, -0.6, 0.0])]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, robot, red=3, blue=3, *args, **kwargs):
         '''
         Your desription here
         '''
-        super(SortingTaskDefinition, self).__init__(*args, **kwargs)
+        super(SortingTaskDefinition, self).__init__(robot, *args, **kwargs)
+        self.num_red = red
+        self.num_blue = blue
 
     def _setup(self):
         '''
@@ -37,15 +39,29 @@ class SortingTaskDefinition(AbstractTaskDefinition):
         roughly towards the robot. Robot's job is to grab and lift.
         '''
 
+
         rospack = rospkg.RosPack()
         path = rospack.get_path('costar_objects')
         urdf_dir = os.path.join(path, self.urdf_dir)
         tray_filename = os.path.join(urdf_dir, self.tray_dir, self.tray_urdf)
+        red_filename = os.path.join(urdf_dir, self.model, self.red_urdf)
+        blue_filename = os.path.join(urdf_dir, self.model, self.blue_urdf)
 
-        identity_orientation = pb.getQuaternionFromEuler([0,0,0])
         for position in self.tray_poses:
             obj_id = pb.loadURDF(tray_filename)
-            pb.resetBasePositionAndOrientation(obj_id, position, identity_orientation)
+            pb.resetBasePositionAndOrientation(obj_id, position, (0,0,0,1))
+
+        self._add_balls(self.num_red, red_filename)
+        self._add_balls(self.num_blue, blue_filename)
+
+    def _add_balls(self, num, filename):
+        '''
+        Helper function to spawn a whole bunch of random balls.
+        '''
+        for i in xrange(num):
+            obj_id = pb.loadURDF(filename)
+            random_position = np.random.rand(3)*self.spawn_pos_delta + self.spawn_pos_min
+            pb.resetBasePositionAndOrientation(obj_id, random_position, (0,0,0,1))
 
     def _setupRobot(self, handle):
         '''
