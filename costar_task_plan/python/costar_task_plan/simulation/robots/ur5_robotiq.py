@@ -42,20 +42,29 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         filename = os.path.join(path, self.xacro_filename)
         urdf_filename = os.path.join(path, 'robot', self.urdf_filename)
         urdf = open(urdf_filename, "w")
+        print urdf_filename
 
         # Recompile the URDF to make sure it's up to date
         subprocess.call(['rosrun', 'xacro', 'xacro.py', filename], stdout=urdf)
 
-        self.handle = pb.loadURDF(self.urdf_filename)
+        self.handle = pb.loadURDF(urdf_filename)
 
+        """
         pb.createConstraint(self.handle, self.left_finger,
                 self.handle,self.left_fingertip,
-                pb.JOINT_POINT2POINT,
-                [0,0,1],[0.05,0,0],[0,0,0])
+                pb.JOINT_FIXED,
+                [0.01,0.02,0], # joint axis in child frame
+                [0.045, -0.012, 0.0],
+                [0.01,0.02,0], # joint axis in child frame
+                )
         pb.createConstraint(self.handle, self.right_finger,
                 self.handle,self.right_fingertip,
-                pb.JOINT_POINT2POINT,
-                [0,0,1],[0.05,0,0],[0,0,0])
+                pb.JOINT_FIXED,
+                [0,0,0], # joint axis in child frame
+                [0.045, -0.012, 0.00],
+                [0,0,0],
+                )
+        """
 
         return self.handle
 
@@ -65,14 +74,33 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         for i, q in enumerate(joints):
             pb.resetJointState(self.handle, i, q)
 
-    def arm(self, cmd, mode):
+        # gripper
+        pb.resetJointState(self.handle, self.left_knuckle, 0)
+        pb.resetJointState(self.handle, self.right_knuckle, 0)
+
+        pb.resetJointState(self.handle, self.left_finger, 0)
+        pb.resetJointState(self.handle, self.right_finger, 0)
+
+        pb.resetJointState(self.handle, self.left_fingertip, 0)
+        pb.resetJointState(self.handle, self.right_fingertip, 0)
+
+        self.arm(joints,)
+        self.gripper(0)
+
+    def arm(self, cmd, mode=pb.POSITION_CONTROL):
         if len(cmd) > 6:
             raise RuntimeError('too many joint positions')
         for i, q in enumerate(cmd):
             pb.setJointMotorControl2(self.handle, i, mode, q)
 
-    def gripper(self, cmd, mode):
-        pb.setJointMotorControl2(self.handle, self.left_knuckle, mode,  cmd)
-        pb.setJointMotorControl2(self.handle, self.left_inner_knuckle, mode,  cmd)
+    def gripper(self, cmd, mode=pb.POSITION_CONTROL):
+        pb.setJointMotorControl2(self.handle, self.left_knuckle, mode,  -cmd)
+        pb.setJointMotorControl2(self.handle, self.left_inner_knuckle, mode,  -cmd)
+        pb.setJointMotorControl2(self.handle, self.left_finger, mode,  cmd)
+        pb.setJointMotorControl2(self.handle, self.left_fingertip, mode,  cmd)
+
         pb.setJointMotorControl2(self.handle, self.right_knuckle, mode,  -cmd)
         pb.setJointMotorControl2(self.handle, self.right_inner_knuckle, mode,  -cmd)
+        pb.setJointMotorControl2(self.handle, self.right_finger, mode,  cmd)
+        pb.setJointMotorControl2(self.handle, self.right_fingertip, mode,  cmd)
+
