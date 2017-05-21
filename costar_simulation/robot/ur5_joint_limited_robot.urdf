@@ -430,13 +430,11 @@
         <mesh filename="package://costar_simulation/robot/robotiq_85_gripper/meshes/visual/robotiq_85_finger_link.dae"/>
       </geometry>
     </visual>
-    <!-- TODO(cpaxton): re-enable this
-            <collision>
-                <geometry>
-                    <mesh filename="package://costar_simulation/robot/robotiq_85_gripper/meshes/collision/robotiq_85_finger_link.stl"/>
-                </geometry>
-            </collision>
-            -->
+    <collision>
+      <geometry>
+        <mesh filename="package://costar_simulation/robot/robotiq_85_gripper/meshes/collision/robotiq_85_finger_link.stl"/>
+      </geometry>
+    </collision>
     <inertial>
       <mass value="0.027309"/>
       <origin xyz="0.0 0.0 0.0"/>
@@ -449,13 +447,11 @@
         <mesh filename="package://costar_simulation/robot/robotiq_85_gripper/meshes/visual/robotiq_85_finger_link.dae"/>
       </geometry>
     </visual>
-    <!-- TODO(cpaxton): re-enable this
-            <collision>
-                <geometry>
-                    <mesh filename="package://costar_simulation/robot/robotiq_85_gripper/meshes/collision/robotiq_85_finger_link.stl"/>
-                </geometry>
-            </collision>
-            -->
+    <collision>
+      <geometry>
+        <mesh filename="package://costar_simulation/robot/robotiq_85_gripper/meshes/collision/robotiq_85_finger_link.stl"/>
+      </geometry>
+    </collision>
     <inertial>
       <mass value="0.027309"/>
       <origin xyz="0.0 0.0 0.0"/>
