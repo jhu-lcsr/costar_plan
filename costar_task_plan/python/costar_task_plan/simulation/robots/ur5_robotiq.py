@@ -42,7 +42,6 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         filename = os.path.join(path, self.xacro_filename)
         urdf_filename = os.path.join(path, 'robot', self.urdf_filename)
         urdf = open(urdf_filename, "w")
-        print urdf_filename
 
         # Recompile the URDF to make sure it's up to date
         subprocess.call(['rosrun', 'xacro', 'xacro.py', filename], stdout=urdf)
