@@ -6,4 +6,11 @@ class AbstractAgent(object):
     neural net model for robot actions.
     '''
 
-    pass
+    name = None
+    
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def fit(self, env):
+        raise NotImplementedError('fit() should run algorithm on the environment')
+

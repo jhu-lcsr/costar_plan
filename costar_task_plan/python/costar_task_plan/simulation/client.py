@@ -7,12 +7,12 @@ import rospy
 import subprocess
 import time
 
-'''
-Wrapper for talking to a single robot.
-'''
-
-
 class CostarBulletSimulation(object):
+    '''
+    Wrapper for talking to a single robot and performing a task. This brings
+    things up if necessary. All this functionality could be moved into the Bullet
+    gym environment.
+    '''
 
     def __init__(self, robot, task, gui=False, ros=False, ros_name="simulation", option=None, *args, **kwargs):
         self.gui = gui
@@ -84,11 +84,11 @@ class CostarBulletSimulation(object):
         '''
         self.task.reset()
 
-    def act(self, action):
+    def tick(self, action):
         '''
         Parse action via the robot
         '''
-        self.robot.act(action)
+        self.task.tick(action)
 
     def close(self):
         '''
@@ -98,14 +98,6 @@ class CostarBulletSimulation(object):
 
     def observe(self):
         pass
-
-    def step(self):
-        '''
-        We most likely do not need this interface, but it provides an extra
-        layer of abstraction for us to shield against changes in the underlying
-        pybullet API.
-        '''
-        pb.stepSimulation()
 
     def __delete__(self):
         '''

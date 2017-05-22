@@ -18,7 +18,7 @@ class BulletSimulationEnv(gym.Env, utils.EzPickle):
         '''
         Tick world with this action
         '''
-        self.client.act(action)
+        self.client.tick(action)
         return self.client.observe()
 
     def _reset(self):

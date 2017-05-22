@@ -1,5 +1,5 @@
-
 from costar_task_plan.abstract import NullReward
+from costar_task_plan.simulation.world import *
 
 import pybullet as pb
 import rospkg
@@ -22,6 +22,7 @@ class AbstractTaskDefinition(object):
         self.seed = seed
         self.option = option
         self.robot = robot
+        self.world = None
 
     def setup(self):
         '''
@@ -32,12 +33,15 @@ class AbstractTaskDefinition(object):
         static_plane_path = os.path.join(path,'meshes','world','plane.urdf')
         pb.loadURDF(static_plane_path)
 
+        self.world = SimulationWorld()
         self._setup()
         handle = self.robot.load()
         pb.setGravity(0,0,-9.807)
         for i in range(1000):
             pb.stepSimulation()
         self._setupRobot(handle)
+
+        world.addActor(SimulationRobotActor(robot=self.robot))
 
     def reset(self):
         '''

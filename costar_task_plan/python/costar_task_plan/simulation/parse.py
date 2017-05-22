@@ -1,5 +1,5 @@
 
-
+from costar_task_plan.agent import GetAgents
 from util import GetAvailableTasks, GetAvailableRobots, GetAvailableAlgorithms
 
 import argparse
@@ -25,10 +25,9 @@ def ParseBulletArgs():
     parser.add_argument('--ros_name', '--rn',
                         help="ROS node name for client (optional; only advanced users need to worry about this)",
                         default="costar_bullet_simulation")
-    parser.add_argument('--algorithm',
+    parser.add_argument('--agent',
                         help="Algorithm to use when training.",
-                        default=None,
-                        choices=GetAvailableAlgorithms())
+                        choices=GetAgents())
     parser.add_argument('-l', '--lr', '--learning_rate',
                         help="Learning rate to be used in algorithm.",
                         default=1e-3)

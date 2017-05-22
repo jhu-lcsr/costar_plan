@@ -2,6 +2,7 @@
 
 from costar_task_plan.simulation import ParseBulletArgs
 from costar_task_plan.gym import BulletSimulationEnv
+from costar_task_plan.agent import GetAgents, MakeAgent
 
 
 import time
@@ -13,7 +14,12 @@ if __name__ == '__main__':
     '''
 
     args = ParseBulletArgs()
-    BulletSimulationEnv(**args)
-    
+    env = BulletSimulationEnv(**args)
+    if 'agent' in args:
+        agent = MakeAgent(args['agent'])    
+        agent.fit(env)
+        print "========================"
+        print "...done."
+
     while True:
         time.sleep(0.1)
