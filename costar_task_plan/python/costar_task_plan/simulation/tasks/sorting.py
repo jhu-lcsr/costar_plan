@@ -87,7 +87,8 @@ class SortingTaskDefinition(AbstractTaskDefinition):
         self.robot2.load()
         self.robot2.place([-1,0,0],[0,0,1,0],
                 self.joint_positions)
-        self.world.addActor(SimulationRobotActor(robot=self.robot2))
+        state = self.robot2.getState()
+        self.world.addActor(SimulationRobotActor(robot=self.robot2), state=state)
         self.robot.arm(self.joint_positions, pb.POSITION_CONTROL)
         self.robot.gripper(0, pb.POSITION_CONTROL)
 

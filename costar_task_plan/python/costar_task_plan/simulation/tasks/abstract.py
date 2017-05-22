@@ -37,11 +37,10 @@ class AbstractTaskDefinition(object):
         self._setup()
         handle = self.robot.load()
         pb.setGravity(0,0,-9.807)
-        for i in range(1000):
-            pb.stepSimulation()
         self._setupRobot(handle)
 
-        world.addActor(SimulationRobotActor(robot=self.robot))
+        state = self.robot.getState()
+        world.addActor(SimulationRobotActor(robot=self.robot), state=state)
 
     def reset(self):
         '''

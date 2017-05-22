@@ -1,3 +1,6 @@
+
+from costar_task_plan.simulation.world import *
+
 import pybullet as pb
 
 
@@ -54,6 +57,21 @@ class AbstractRobotInterface(object):
         Overload this for a mobile robot like the Husky.
         '''
         return False
+
+    def _getArmPosition(self):
+        raise NotImplementedError('get joints')
+
+    def _getGripper(self):
+        raise NotImplementedError('get gripper')
+
+    def getState(self):
+        (pos, rot) = pb.getBasePositionAndOrientation(self.handle)
+        return SimulationRobotState(robot=self,
+                base_pos=pos,
+                base_rot=rot,
+                arm=self._getArmPosition(),
+                gripper=self._getGripper())
+
 
     def act(self, action):
         '''

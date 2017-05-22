@@ -26,17 +26,30 @@ class SimulationWorld(AbstractWorld):
 class SimulationDyamics(AbstractDynamics):
     '''
     Send robot's command over to the actor in the current simulation.
+    This assumes the world is in the correct configuration, as represented
+    by "state."
     '''
     def __call__(self, state, action):
-        state.robot.act(action)
+        state.robot.act(action.cmd)
 
 class SimulationRobotState(AbstractState):
     '''
     Includes full state necessary for this robot, including gripper, base, and 
     arm position.
     '''
-    def __init__(self, robot, simulation_id=0):
-        pass
+    def __init__(self, robot,
+            base_pos=(0,0,0),
+            base_rot=(0,0,0,1),
+            arm=[],
+            gripper=0.,
+            simulation_id=0):
+
+        self.predicates = []
+        self.arm = arm
+        self.gripper = 0.
+        self.base_pos = base_pos
+        self.base_rot = base_rot
+        self.robot = robot
 
 class SimulationRobotAction(AbstractAction):
     '''
@@ -47,4 +60,5 @@ class SimulationRobotAction(AbstractAction):
 
 class SimulationRobotActor(AbstractActor):
     def __init__(self, robot, *args, **kwargs):
+        super(SimulationRobotActor, self).__init__(*args, **kwargs)
         self.robot = robot
