@@ -72,6 +72,11 @@ class AbstractRobotInterface(object):
                 arm=self._getArmPosition(),
                 gripper=self._getGripper())
 
+    def getActionSpace(self):
+        '''
+        Defines the action space used by the robot.
+        '''
+        raise NotImplementedError('no getActionSpace() implemented')
 
     def act(self, action):
         '''

@@ -1,10 +1,12 @@
+
+from abstract import AbstractRobotInterface
+
+import gym; from gym import spaces
+import numpy as np
 import os
 import pybullet as pb
 import rospkg
 import subprocess
-
-from abstract import AbstractRobotInterface
-
 
 class Ur5RobotiqInterface(AbstractRobotInterface):
 
@@ -118,6 +120,9 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         assert(len(action) == 7)
         self.arm(action[:6])
         self.gripper(action[6])
+
+    def getActionSpace(self):
+        return spaces.Tuple((spaces.Box(-np.pi,np.pi,6),spaces.Box(-0.6,0.6,1)))
 
     def _getArmPosition(self):
         q = [0.] * 6

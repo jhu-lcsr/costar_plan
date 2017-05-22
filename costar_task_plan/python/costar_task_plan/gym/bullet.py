@@ -13,6 +13,7 @@ class BulletSimulationEnv(gym.Env, utils.EzPickle):
 
     def __init__(self, *args, **kwargs):
         self.client = CostarBulletSimulation(*args, **kwargs)
+        self.action_space = self.client.robot.getActionSpace()
 
     def _step(self, action):
         '''

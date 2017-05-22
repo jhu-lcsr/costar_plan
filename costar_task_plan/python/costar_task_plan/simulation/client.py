@@ -1,6 +1,7 @@
 
 from config import *
 from util import GetTaskDefinition, GetRobotInterface
+from world import *
 
 import pybullet as pb
 import rospy
@@ -88,7 +89,13 @@ class CostarBulletSimulation(object):
         '''
         Parse action via the robot
         '''
-        self.task.tick(action)
+        cmd = []
+        if type(action) is tuple:
+            for term in action:
+                cmd += term.tolist()
+        else:
+            cmd = action.tolist()
+        self.task.world.tick(SimulationRobotAction(cmd=cmd))
 
     def close(self):
         '''

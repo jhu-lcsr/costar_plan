@@ -81,8 +81,8 @@ class CostarActor(AbstractActor):
     if not self.dof == len(self.joints):
       raise RuntimeError('You configured the robot joints wrong')
 
+
 # Simple policy for these actors
 class NullPolicy(AbstractPolicy):
   def evaluate(self, world, state, actor=None):
     return CostarAction(q=state.q, dq=np.zeros(state.q.shape))
-

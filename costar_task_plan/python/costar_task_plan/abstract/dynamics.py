@@ -115,4 +115,5 @@ class NullDynamics(AbstractDynamics):
 
 class NullReward(AbstractReward):
     def __call__(self, world):
-        return 0.
+        return 0., 0.
+

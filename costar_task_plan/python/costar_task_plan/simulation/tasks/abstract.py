@@ -40,7 +40,11 @@ class AbstractTaskDefinition(object):
         self._setupRobot(handle)
 
         state = self.robot.getState()
-        world.addActor(SimulationRobotActor(robot=self.robot), state=state)
+        self.world.addActor(SimulationRobotActor(
+            robot=self.robot,
+            dynamics=SimulationDynamics(self.world),
+            policy=NullPolicy(),
+            state=state))
 
     def reset(self):
         '''

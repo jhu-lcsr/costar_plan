@@ -1,10 +1,13 @@
 
 from costar_task_plan.abstract import *
 
+import pybullet as pb
+
 class SimulationWorld(AbstractWorld):
 
     def __init__(self, dt = 0.02, num_steps=1, *args, **kwargs):
-        super(SimulationWorld, self).__init__(None, *args, **kwargs)
+        super(SimulationWorld, self).__init__(NullReward(), *args, **kwargs)
+        self.num_steps = num_steps
 
     def hook(self):
         '''
@@ -18,19 +21,21 @@ class SimulationWorld(AbstractWorld):
 
         # Update the states of all actors.
         for actor in self.actors:
-            pass
+            actor.state = actor.robot.getState()
+
     
     def zeroAction(self, actor):
-        pass
+        return SimulationRobotAction(cmd=None)
 
-class SimulationDyamics(AbstractDynamics):
+class SimulationDynamics(AbstractDynamics):
     '''
     Send robot's command over to the actor in the current simulation.
     This assumes the world is in the correct configuration, as represented
     by "state."
     '''
-    def __call__(self, state, action):
-        state.robot.act(action.cmd)
+    def __call__(self, state, action, dt):
+        if action.cmd is not None:
+            state.robot.act(action.cmd)
 
 class SimulationRobotState(AbstractState):
     '''
@@ -62,3 +67,7 @@ class SimulationRobotActor(AbstractActor):
     def __init__(self, robot, *args, **kwargs):
         super(SimulationRobotActor, self).__init__(*args, **kwargs)
         self.robot = robot
+
+class NullPolicy(AbstractPolicy):
+  def evaluate(self, world, state, actor=None):
+    return SimulationRobotAction(cmd=None)
