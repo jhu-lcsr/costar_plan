@@ -22,6 +22,8 @@ sudo apt-get update -qq
 sudo apt-get install -y python-catkin-pkg python-rosdep python-wstool python-catkin-tools ros-$ROS_DISTRO-catkin python-dev 
 sudo pip install h5py pygame sympy matplotlib pygame gmr networkx tensorflow
 source /opt/ros/$ROS_DISTRO/setup.bash
+sudo rosdep init
+sudo rosdep update
 
 echo "======================================================"
 echo "CATKIN"
