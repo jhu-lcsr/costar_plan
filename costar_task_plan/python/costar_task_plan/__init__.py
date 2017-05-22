@@ -13,21 +13,29 @@ __all__ = ['World', 'HorizontalRoadMap', 'State', 'Action',
 
 # Creating packages if you think that's easier to deal with
 import abstract
-import grid_world
 import needle_master
-import simulation
+import grid_world
 
 try:
-  import ros
-  import robotics
+    import simulation
 except ImportError, e:
-  print "[WARNING] ROS/CoSTAR failed to import. ROS may be missing."
+    print "WARNING] simulation requires pybullet3"
+
+try:
+    import ros
+    import robotics
+except ImportError, e:
+    print "[WARNING] ROS/CoSTAR failed to import. ROS may be missing."
 
 # =============================================================================
 # Neural Nets
 # Learning, training, and utilities.
-import models
-import trainers
+try:
+    import agent
+    import models
+    import trainers
+except ImportError, e:
+    print "[WARNING] keras/tensorflow required for some tools"
 
 # =============================================================================
 # Task Planning
@@ -42,12 +50,9 @@ import gym
 # =============================================================================
 # Draw and interact with programs
 import tools
-# NOTE: currently draw does not contain anything we need for robotics, etc. so
-# it has been disabled. It does contain a troublesome dependency on pygame...
-#import draw
 
 # =============================================================================
 # Third Party Code
 # At some point I may contribute from these back to their parents. But not
 # right now.
-import traj_opt
+# import traj_opt
