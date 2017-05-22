@@ -19,7 +19,19 @@ Contents:
 
 ## Getting started
 
-Get started by running one of our robotics examples.
+Try setting up Bullet3. Then in python:
+
+```
+import costar_task_plan as ctp
+import pybullet as pb
+
+pb.connect(pb.GUI)
+robot = ctp.simulation.robots.Ur5RobotiqRobotInterface()
+task = ctp.simulation.tasks.SortingTaskDefinition(robot)
+task.load()
+```
+
+And then interact as you would normally with the PyBullet interface.
 
 ## Problem Domains
 
