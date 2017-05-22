@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-from costar_task_plan.simulation import ParseBulletArgs, CostarBulletSimulation
+from costar_task_plan.simulation import ParseBulletArgs
+from costar_task_plan.gym import BulletSimulationEnv
 
 
 import time
@@ -12,7 +13,7 @@ if __name__ == '__main__':
     '''
 
     args = ParseBulletArgs()
-    CostarBulletSimulation(**args)
+    BulletSimulationEnv(**args)
     
     while True:
         time.sleep(0.1)

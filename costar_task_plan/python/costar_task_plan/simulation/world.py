@@ -6,6 +6,7 @@ class SimulationWorld(AbstractWorld):
     def __init__(self, client, dt = 0.02, num_steps=5, *args, **kwargs):
         super(SimulationWorld, self).__init__(client.getReward(), *args, **kwargs)
         self.client = client
+        
 
     def hook(self):
         '''

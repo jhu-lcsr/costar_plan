@@ -39,6 +39,12 @@ class AbstractTaskDefinition(object):
             pb.stepSimulation()
         self._setupRobot(handle)
 
+    def reset(self):
+        '''
+        Reset the whole simulation into a working configuration.
+        '''
+        raise NotImplementedError('Task must override the reset() function!')
+
     def getReward(self):
         return NullReward()
 

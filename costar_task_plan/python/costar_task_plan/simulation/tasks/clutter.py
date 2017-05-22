@@ -30,6 +30,7 @@ class ClutterTaskDefinition(AbstractTaskDefinition):
         Your desription here
         '''
         super(ClutterTaskDefinition, self).__init__(*args, **kwargs)
+        self.objs = []
 
     def _setup(self):
         '''
@@ -59,10 +60,17 @@ class ClutterTaskDefinition(AbstractTaskDefinition):
                     print 'Loading object: ', obj
                     obj_id_list = pb.loadSDF(obj)
                     for obj_id in obj_id_list:
+                        self.objs.append(obj_id)
                         random_position = np.random.rand(3)*self.spawn_pos_delta + self.spawn_pos_min
                         pb.resetBasePositionAndOrientation(obj_id, random_position, identity_orientation)
                 except Exception, e:
                     print e
+
+    def reset(self):
+        for obj in self.objs:
+            pb.removeBody(obj)
+        self._setup()
+        self._setupRobot(self.robot.handle)
 
     def _setupRobot(self, handle):
         '''

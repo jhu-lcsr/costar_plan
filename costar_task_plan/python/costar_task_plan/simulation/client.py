@@ -73,7 +73,7 @@ class CostarBulletSimulation(object):
         pb.setGravity(*GRAVITY)
 
         # place the robot in the world and set up the task
-        self.reset()
+        self.task.setup()
 
     def getReward(self):
         return self.task.getReward()
@@ -82,13 +82,22 @@ class CostarBulletSimulation(object):
         '''
         Reset the robot and task
         '''
-        self.task.setup()
+        self.task.reset()
+
+    def act(self, action):
+        '''
+        Parse action via the robot
+        '''
+        self.robot.act(action)
 
     def close(self):
         '''
         Close connection to bullet sim.
         '''
         pb.disconnect()
+
+    def observe(self):
+        pass
 
     def step(self):
         '''

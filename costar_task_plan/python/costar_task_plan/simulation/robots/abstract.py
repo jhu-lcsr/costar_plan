@@ -54,3 +54,10 @@ class AbstractRobotInterface(object):
         Overload this for a mobile robot like the Husky.
         '''
         return False
+
+    def act(self, action):
+        '''
+        Parse a robot action. Should call the base(), gripper(), or arm()
+        functions to set the appropriate commands.
+        '''
+        raise NotImplementedError('act')

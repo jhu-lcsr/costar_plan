@@ -54,6 +54,19 @@ class SortingTaskDefinition(AbstractTaskDefinition):
         self._add_balls(self.num_red, red_filename)
         self._add_balls(self.num_blue, blue_filename)
 
+    def reset(self):
+        for obj_id, position in zip(self.trays, self.tray_poses):
+            pb.resetBasePositionAndOrientation(obj_id, position, (0,0,0,1))
+        for obj_id in zip(self.balls):
+            obj_id = pb.loadURDF(filename)
+            random_position = np.random.rand(3)*self.spawn_pos_delta + self.spawn_pos_min
+        self.robot.place([0,0,0],[0,0,0,1],self.joint_positions)
+        self.robot2 = self.cloneRobot()
+        self.robot2.place([-1,0,0],[0,0,1,0],
+                self.joint_positions)
+        self.robot.arm(self.joint_positions, pb.POSITION_CONTROL)
+        self.robot.gripper(0, pb.POSITION_CONTROL)
+
     def _add_balls(self, num, filename):
         '''
         Helper function to spawn a whole bunch of random balls.

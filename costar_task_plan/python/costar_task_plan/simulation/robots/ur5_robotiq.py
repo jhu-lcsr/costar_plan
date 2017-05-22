@@ -87,12 +87,19 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         self.gripper(0)
 
     def arm(self, cmd, mode=pb.POSITION_CONTROL):
+        '''
+        Set joint commands for the robot arm.
+        '''
         if len(cmd) > 6:
             raise RuntimeError('too many joint positions')
         for i, q in enumerate(cmd):
             pb.setJointMotorControl2(self.handle, i, mode, q)
 
     def gripper(self, cmd, mode=pb.POSITION_CONTROL):
+        '''
+        Gripper commands need to be mirrored to simulate behavior of the actual
+        UR5.
+        '''
         pb.setJointMotorControl2(self.handle, self.left_knuckle, mode,  -cmd)
         pb.setJointMotorControl2(self.handle, self.left_inner_knuckle, mode,  -cmd)
         pb.setJointMotorControl2(self.handle, self.left_finger, mode,  cmd)
@@ -103,3 +110,11 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         pb.setJointMotorControl2(self.handle, self.right_finger, mode,  cmd)
         pb.setJointMotorControl2(self.handle, self.right_fingertip, mode,  cmd)
 
+
+    def act(self, action):
+        '''
+        Parse a list of continuous commands and send it off to the robot.
+        '''
+        assert(len(action) == 7)
+        self.arm(action[:6])
+        self.gripper(action[6])
