@@ -5,8 +5,8 @@ export ROS_CI_DESKTOP="`lsb_release -cs`"  # e.g. [precise|trusty|...]
 export CI_SOURCE_PATH=$(pwd)
 export CATKIN_OPTIONS=$CI_SOURCE_PATH/catkin.options
 export ROS_PARALLEL_JOBS='-j8 -l6'
-export CATKIN_WS = $HOME/costar_ws
-export COSTAR_PLAN_DIR = $HOME/costar_ws/src/costar_plan
+export CATKIN_WS=$HOME/costar_ws
+export COSTAR_PLAN_DIR=$HOME/costar_ws/src/costar_plan
 
 echo "======================================================"
 echo "PYTHON"
