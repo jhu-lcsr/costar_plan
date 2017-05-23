@@ -9,6 +9,7 @@ import re
 
 from tensorflow.python.platform import flags
 from tensorflow.python.platform import gfile
+from tensorflow.python.ops import data_flow_ops
 from keras.utils import get_file
 
 import moviepy.editor as mpy
@@ -54,7 +55,13 @@ class GraspDataset:
     """Google Grasping Dataset - about 1TB total size
         https://sites.google.com/site/brainrobotdata/home/grasping-dataset
 
+        Data from https://arxiv.org/abs/1603.02199
+
         Downloads to `~/.keras/datasets/grasping` by default.
+
+        grasp_listing.txt lists all the files in all grasping datasets;
+        *.csv lists the number of features, the number of grasp attempts, and all feature names;
+        *.tfrecord and *.tfrecord*-of-* is the actual data stored in the tfrecord.
 
     """
     def __init__(self, data_dir=None):
@@ -105,14 +112,15 @@ class GraspDataset:
         """
         return gfile.Glob(os.path.join(os.path.expanduser(self.data_dir), '*.csv*'))
 
-    def get_tfrecord_settings_from_feature_csv_file(self, feature_csv_file):
+    @staticmethod
+    def get_grasp_tfrecord_info(feature_csv_file):
         """
         # Arguments
 
             feature_csv_file: path to the feature csv file for this dataset
 
         # Returns
-            features: list of all features
+            features: complete list of all features for this dataset aka tfrecord group
             feature_count: total number of features
             attempt_count: total number of grasp attempts
             tfrecord_paths: paths to all tfrecords for this dataset
@@ -125,7 +133,8 @@ class GraspDataset:
         tfrecord_paths = gfile.Glob(os.path.join(os.path.expanduser(FLAGS.data_dir), '*{}.tfrecord*'.format(feature_count)))
         return features, feature_count, attempt_count, tfrecord_paths
 
-    def get_time_ordered_features(self, features, step='all', feature_type='/image/encoded'):
+    @staticmethod
+    def get_time_ordered_features(features, step='all', feature_type='/image/encoded'):
         """Get list of all image features ordered by time, features are identified by a string path.
             See https://docs.google.com/spreadsheets/d/1GiPt57nCCbA_2EVkFTtf49Q9qeDWgmgEQ6DhxxAIIao/edit#gid=0
             for mostly correct details.
@@ -146,25 +155,26 @@ class GraspDataset:
                 'robot' get robot name
 
             feature_type: feature data type, one of
-                transforms/base_T_endeffector/vec_quat_7		A pose is a 6 degree of freedom rigid transform represented with 7 values:
+                'transforms/base_T_endeffector/vec_quat_7'		A pose is a 6 degree of freedom rigid transform represented with 7 values:
                                                                     vector (x, y, z) and quaternion (x, y, z, w).
                                                                 A pose is always annotated with the target and source frames of reference.
                                                                 For example, base_T_camera is a transform that takes a point in the camera frame
                                                                 of reference and transforms it to the base frame of reference.
-                commanded_pose		Commanded pose is the input to the inverse kinematics computation, which is used to determine desired joint positions.
-                reached_pose		Pose calculated by forward kinetics from current robot state in status updates.
-                joint/commanded_torques		Commanded torques are the torque values calculated from the inverse kinematics
+                'camera/transforms/camera_T_base/matrix44'        Same as base_T_endeffector but from the camera center to the robot base
+                'commanded_pose'		Commanded pose is the input to the inverse kinematics computation, which is used to determine desired joint positions.
+                'reached_pose'		Pose calculated by forward kinetics from current robot state in status updates.
+                'joint/commanded_torques'		Commanded torques are the torque values calculated from the inverse kinematics
                                             of the commanded pose and the robot driver.
-                joint/external_torques		External torques are torques at each joint that are a result of gravity and other external forces.
+                'joint/external_torques'		External torques are torques at each joint that are a result of gravity and other external forces.
                                             These values are reported by the robot status query.
-                joint/positions		Robot joint positions as reported by the robot status query.
-                joint/velocities		Robot joint velocities as reported by the robot status query.
-                depth_image		Depth image is encoded as an RGB PNG image where the RGB 24-bit value is an integer depth with scale 1/256 of a millimeter.
+                'joint/positions'		Robot joint positions as reported by the robot status query.
+                'joint/velocities'		Robot joint velocities as reported by the robot status query.
+                'depth_image'		Depth image is encoded as an RGB PNG image where the RGB 24-bit value is an integer depth with scale 1/256 of a millimeter.
                 '/image/encoded' Camera RGB images are stored in JPEG format, be careful not to mismatch on depth_image/encoded.
-                params		This is a simplified representation of a commanded robot pose and gripper status.
+                'params'		This is a simplified representation of a commanded robot pose and gripper status.
                             These are the values that were solved for in the network, the output of the Cross Entropy Method.
-                name        A string indicating the name of the robot
-                status      Unknown, but only feature is 'gripper/status', so probably an indicator of how open/closed the gripper is.
+                'name'        A string indicating the name of the robot
+                'status'      Unknown, but only feature is 'gripper/status', so probably an indicator of how open/closed the gripper is.
 
         # Returns
 
@@ -220,13 +230,136 @@ class GraspDataset:
         if step in ['test_success', 'all', '']:
             matching_features.extend(match_feature(features, r'^present/', feature_type))
             matching_features.extend(match_feature(features, r'^present_sequence/', feature_type))
-            # After presentation (or after withdraw, if present is skipped), the object is moved to a random position about 10 cm above the bin to drop the object.
+            # After presentation (or after withdraw, if present is skipped),
+            # the object is moved to a random position about 10 cm above the bin to drop the object.
             matching_features.extend(match_feature(features, r'^raise/', feature_type))
             # Open the gripper and drop the object (if any object is held) into the bin.
             matching_features.extend(match_feature(features, r'^drop/', feature_type))
             # Images recorded after withdraw, raise, and the drop.
             matching_features.extend(match_feature(features, r'^post_drop/', feature_type))
         return matching_features
+
+    @staticmethod
+    def tfrecord_minibatch(tfrecord_path_glob_pattern,
+                           gpu_device_count,
+                           batch_size,
+                           parse_example_proto_fn=None,
+                           preprocessing_fn=None,
+                           create_data_and_label_op_lists_fn=None,
+                           random_seed=301,
+                           parallelism=64,
+                           buffer_size=10000):
+        """TODO: High Performance Distributed Training Batches - Adapt for grasping dataset & then broader reuse
+        see https://github.com/tensorflow/benchmarks/blob/master/scripts/tf_cnn_benchmarks/preprocessing.py
+        """
+        with tf.name_scope('batch_processing'):
+            # Split the data among all the GPU devices
+            if batch_size % gpu_device_count != 0:
+                raise ValueError(
+                    ('batch_size must be a multiple of gpu_device_count: '
+                     'batch_size %d, gpu_device_count: %d') %
+                    (batch_size, gpu_device_count))
+                batch_size_per_device = batch_size // gpu_device_count
+            images = [[] for i in range(gpu_device_count)]
+            labels = [[] for i in range(gpu_device_count)]
+            record_input = data_flow_ops.RecordInput(
+                file_pattern=tfrecord_path_glob_pattern,
+                seed=random_seed,
+                parallelism=parallelism,
+                buffer_size=buffer_size,
+                batch_size=batch_size,
+                name='record_input')
+            records = record_input.get_yield_op()
+            records = tf.split(records, batch_size, 0)
+            records = [tf.reshape(record, []) for record in records]
+            feature_op_dicts = []
+            preprocessed_data_ops = []
+            for device_i in xrange(batch_size):
+                protobuf = records[i]
+                feature_op_dict = parse_example_proto_fn(protobuf)
+                preprocessed_data = None
+                if preprocessing_fn is not None:
+                    # thread_id should be distortion_method_id, and calculated later
+                    preprocessed_data = preprocessing_fn(feature_op_dict, i)
+                device_index = i % gpu_device_count
+                feature_op_dict[device_index].append(image)
+                labels[device_index].append(label_index)
+            label_index_batch = [None] * gpu_device_count
+            return create_data_and_label_op_lists_fn(feature_op_dicts, preprocessed_data_ops, gpu_device_count)
+
+    @staticmethod
+    def parse_grasp_attempt_protobuf(features_complete_list, serialized_grasp_attempt_proto):
+        """Parses an Example protobuf containing a training example of an image.
+        The output of the build_image_data.py image preprocessing script is a dataset
+        containing serialized Example protocol buffers. Each Example proto contains
+        the fields described in get_time_ordered_features.
+        Args:
+            example_serialized: scalar Tensor tf.string containing a serialized
+            Example protocol buffer.
+
+            list of tensors corresponding to images, actions, and states. Each images
+            tensor is 4D, batch x height x width x channels. The state and
+            action tensors are 3D, batch x time x dimension.
+        Returns:
+            feature_op_dict: dictionary of Tensors for every feature,
+                use `get_time_ordered_features` to select the subsets you need.
+        """
+        # Dense features in Example proto.
+        num_grasp_steps_name = 'num_grasp_steps'
+        camera_to_base_name = 'camera/transforms/camera_T_base/matrix44'
+        camera_intrinsics_name = 'camera/intrinsics/matrix33'
+
+        # setup one time features like the camera and number of grasp steps
+        features_dict = {
+            num_grasp_steps_name: tf.FixedLenFeature([1], tf.string),
+            camera_to_base_name: tf.FixedLenFeature([1], tf.float32),
+            camera_intrinsics_name: tf.FixedLenFeature([1], tf.float32)
+        }
+
+        # load all the images
+        ordered_image_feature_names = GraspDataset.get_time_ordered_features(features_complete_list)
+        features_dict.update({image_name: tf.FixedLenFeature([1], tf.string) for image_name in ordered_image_feature_names})
+
+        # load all vec/quat base to end effector transforms
+        base_to_endeffector_names = GraspDataset.get_time_ordered_features(
+            features_complete_list,
+            feature_type='transforms/base_T_endeffector/vec_quat_7'
+            )
+        features_dict.update({x_form: tf.FixedLenFeature([1], tf.float32) for x_form in base_to_endeffector_names})
+
+        # load transforms that were modified for their network from the original paper
+        transform_adapted_for_network = GraspDataset.get_time_ordered_features(
+            features_complete_list,
+            feature_type='params'
+            )
+        features_dict.update({x_form: tf.FixedLenFeature([1], tf.float32) for x_form in transform_adapted_for_network})
+
+        feature_op_dict = tf.parse_single_example(serialized_grasp_attempt_proto, features=features_dict)
+        # # Consider using feature_phase_dict_dict if it is convenient,
+        # # but move it to the class or something
+        # feature_phase_dict_dict = {
+        #     'robot': {
+        #         'name': 'robot/name'
+        #     },
+        #     'camera': {
+        #         'camera_to_base_name': camera_to_base_name,
+        #         'camera_intrinsics_name': camera_intrinsics_name
+        #     },
+
+        #     'view_clear_scene': {
+
+        #     },
+
+        #     'test_success': {
+
+        #     },
+
+        #     'move_to_grasp': {
+        #         'base_to_endeffector_names': move_to_grasp_base_to_endeffector_names,
+
+        #     }
+        # }
+        return feature_op_dict
 
     def build_image_input(self, sess, feature_csv_file, train=True, novel=True):
         """Create input tfrecord tensors.
@@ -239,7 +372,7 @@ class GraspDataset:
         Raises:
         RuntimeError: if no files found.
         """
-        features, feature_count, attempt_count, tfrecord_paths = self.get_tfrecord_settings_from_feature_csv_file(feature_csv_file)
+        features_complete_list, feature_count, attempt_count, tfrecord_paths = self.get_grasp_tfrecord_info(feature_csv_file)
         print(tfrecord_paths)
         if not tfrecord_paths:
             raise RuntimeError('No tfrecords found for {}.'.format(feature_csv_file))
@@ -250,14 +383,14 @@ class GraspDataset:
         image_seq = []
 
         num_grasp_steps_name = 'num_grasp_steps'
-        images_feature_names = self.get_time_ordered_features(features)
+        images_feature_names = self.get_time_ordered_features(features_complete_list)
         print(images_feature_names)
         features_dict = {image_name: tf.FixedLenFeature([1], tf.string) for image_name in images_feature_names}
         features_dict[num_grasp_steps_name] = tf.FixedLenFeature([1], tf.string)
-        features = tf.parse_single_example(serialized_example, features=features_dict)
+        features_op_dict = tf.parse_single_example(serialized_example, features=features_dict)
 
         for image_name in images_feature_names:
-            image_buffer = tf.reshape(features[image_name], shape=[])
+            image_buffer = tf.reshape(features_op_dict[image_name], shape=[])
             image = tf.image.decode_jpeg(image_buffer, channels=FLAGS.sensor_color_channels)
             image.set_shape([FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels])
 
