@@ -18,7 +18,8 @@ class DmpPolicy(AbstractPolicy):
   tick rate before recomputing the DMP.
   '''
 
-  def __init__(self, goal, dmp, kinematics):
+  def __init__(self, skill_name, goal, dmp, kinematics):
+    self.skill_name = skill_name
     self.dmp = dmp
     self.kinematics = kinematics
     self.goal = goal
@@ -136,7 +137,8 @@ class CartesianDmpPolicy(DmpPolicy):
         rospy.logwarn("could not get inverse kinematics for position")
         print pt.positions
         print state.q
-        return CostarAction(q=state.q,
+        return CostarAction(
+                q=state.q,
                 dq=np.zeros(state.q.shape),
                 reset_seq=reset_seq,
                 reference=self.dmp,
@@ -152,6 +154,4 @@ class CartesianDmpPolicy(DmpPolicy):
       if state.seq > len(traj.points):
           raise RuntimeError('Went past end of trajectory.')
       return action
-        
 
-        

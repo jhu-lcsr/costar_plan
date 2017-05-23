@@ -7,7 +7,7 @@ from costar_task_plan.abstract import AbstractOption, AbstractCondition
 
 class DmpOption(AbstractOption):
 
-  def __init__(self, policy_type, kinematics, goal, model, instances=[], attached_frame=None):
+  def __init__(self, policy_type, kinematics, goal, skill_name, model, instances=[], attached_frame=None):
     if isinstance(policy_type, str):
       # parse into appropriate constructor
       if policy_type == 'joint':
@@ -27,11 +27,13 @@ class DmpOption(AbstractOption):
     self.kinematics = kinematics
     self.instances = instances
     self.model = model
+    self.skill_name = skill_name
     self.attached_frame = attached_frame
 
   # Make a policy.
   def makePolicy(self, *args, **kwargs):
     return self.policy_type(
+            skill_name=self.skill_name,
             goal=self.goal,
             dmp=self.instances[0],
             kinematics=self.kinematics)

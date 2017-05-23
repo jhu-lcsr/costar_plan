@@ -12,6 +12,7 @@ from costar_task_plan.datasets import TomDataset
 
 from costar_task_plan.robotics.core import CostarWorld
 from costar_task_plan.robotics.core import DemoReward
+from costar_task_plan.robotics.core import ValidStateCondition
 
 
 class TomWorld(CostarWorld):
@@ -31,6 +32,8 @@ class TomWorld(CostarWorld):
         observe=observe,
         robot_config=[TOM_RIGHT_CONFIG, TOM_LEFT_CONFIG],
         *args, **kwargs)
+
+    self.addCondition(ValidStateCondition(), -100, "valid_state")
 
     self.oranges = []
 
