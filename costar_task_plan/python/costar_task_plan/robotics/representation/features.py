@@ -29,14 +29,14 @@ from trajectory_msgs.msg import JointTrajectoryPoint
 from sensor_msgs.msg import JointState
 
 try:
-	import oro_barrett_msgs
-	from oro_barrett_msgs.msg import BHandCmd as GripperCmd
+    import oro_barrett_msgs
+    from oro_barrett_msgs.msg import BHandCmd as GripperCmd
 except ImportError:
-  rospy.logwarn("CTP.ROBOTICS.REPRESENTATION: Warning: could not import Barrett messages.")
+    rospy.logwarn("CTP.ROBOTICS.REPRESENTATION: Warning: could not import Barrett messages.")
 try:
-  from robotiq_c_model_control.msg import CModel_gripper_command as GripperCmd
+    from robotiq_c_model_control.msg import CModel_gripper_command as GripperCmd
 except ImportError:
-  rospy.logwarn("CTP.ROBOTICS.REPRESENTATION: Warning: could not import Robotiq C-model gripper messages.")
+    rospy.logwarn("CTP.ROBOTICS.REPRESENTATION: Warning: could not import Robotiq C-model gripper messages.")
 
 
 # output message types

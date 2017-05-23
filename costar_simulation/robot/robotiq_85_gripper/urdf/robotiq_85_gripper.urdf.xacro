@@ -48,7 +48,7 @@
             <axis xyz="0 0 1"/>
             <origin rpy="0.0 0.0 0.0" xyz="0.05490451627 -0.03060114443 0.0"/>
             <limit lower="-3.14" upper="3.14" velocity="100.0" effort="1000"/>
-            <mimic joint="${prefix}robotiq_85_left_knuckle_joint"/>
+            <mimic joint="${prefix}robotiq_85_left_knuckle_joint" multiplier="1"/>
         </joint>
 
         <link name="${prefix}robotiq_85_left_knuckle_link">

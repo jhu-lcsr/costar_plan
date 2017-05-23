@@ -11,6 +11,7 @@ class JointStateListener(object):
     self.joints = config['joints']
     self.dof = config['dof']
     self.q0 = None
+    self.dq = None
     self.old_q0 = [0] * self.dof
 
     print self.joints
@@ -29,6 +30,7 @@ class JointStateListener(object):
 
       self.old_q0 = self.q0
       self.q0 = [entries[name] for name in self.joints]
+      self.dq = [0.] * len(self.q0)
     else:
       rospy.logwarn('Incorrect joint state message dimensionality!')
 

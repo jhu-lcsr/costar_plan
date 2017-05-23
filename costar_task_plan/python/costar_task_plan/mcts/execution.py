@@ -82,12 +82,10 @@ class ExecutionPlan(object):
       else:
         cmd = None
         self.idx += 1
-      print "action", self.idx, "/", len(self.nodes)
 
     # If we could not come up with a set of controls to execute, execute
     # the default fallback action. For us this is just a zero motion.
     if cmd is None:
-      print "done"
       cmd = world.zeroAction(0)
       done = True
 

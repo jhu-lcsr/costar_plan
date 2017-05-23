@@ -127,7 +127,7 @@ class Node(AbstractState):
         self.rewards.append(r)
         self.reward += r
         self.terminal = self.world.done or failed
-        self.state = S0
+        self.state = S1
 
         return res and not failed, S0, A0, S1, F1, r
 

@@ -3,6 +3,8 @@ from world import *
 
 
 class AbstractActor(object):
+
+  actor_type = ''
   
   def __init__(self, state=None, policy=None, dynamics=None, features=None):
     self.policy = policy
@@ -106,3 +108,12 @@ class AbstractControllerPolicy(AbstractPolicy):
       return self._default()
     else:
       return self.action
+
+class NullDynamics(AbstractDynamics):
+  def apply(self, state, action):
+      return None
+
+class NullReward(AbstractReward):
+    def __call__(self, world):
+        return 0., 0.
+

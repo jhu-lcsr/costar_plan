@@ -5,11 +5,12 @@ from costar_task_plan.abstract import *
 
 # State of a particular actor. It's the joint state, nice and simple.
 class CostarState(AbstractState):
-  def __init__(self, world, actor_id,
-      q=np.array([]),
-      dq=np.array([]),
+  def __init__(self, world, actor_id, q, dq,
       finished_last_sequence=False,
-      reference=None, seq=0, gripper_closed=False):
+      reference=None,
+      traj=None,
+      seq=0,
+      gripper_closed=False):
 
     # Set up list of predicates
     self.predicates = []
@@ -21,6 +22,7 @@ class CostarState(AbstractState):
     # These are used to tell us which high-level action the robot was
     # performing, and how far along it was.
     self.reference = reference
+    self.traj = traj
     self.finished_last_sequence = finished_last_sequence
     self.seq = seq
 
@@ -40,9 +42,10 @@ class CostarState(AbstractState):
 # Actions for a particular actor. This is very simple, and just represents a
 # joint motion, normalized over some period of time.
 class CostarAction(AbstractAction):
-  def __init__(self, q=np.array([]), dq=np.array([]), reset_seq=False, 
+  def __init__(self, q, dq, ee=None, reset_seq=False, 
           finish_sequence=False,
           reference=None,
+          traj=None,
           gripper_cmd=None):
     if isinstance(dq, list):
       dq = np.array(dq)
@@ -50,10 +53,12 @@ class CostarAction(AbstractAction):
       q = np.array(q)
 
     self.q = q
+    self.ee = ee
     self.dq = dq
     self.reset_seq = reset_seq
     self.finish_sequence = finish_sequence
     self.reference = reference
+    self.traj = traj
     self.gripper_cmd = gripper_cmd
 
   def toArray(self):
@@ -65,6 +70,8 @@ class CostarAction(AbstractAction):
 # update.
 class CostarActor(AbstractActor):
 
+  actor_type = 'robot'
+
   def __init__(self, config, *args, **kwargs):
     super(CostarActor, self).__init__(*args, **kwargs)
     self.config = config
@@ -74,8 +81,8 @@ class CostarActor(AbstractActor):
     if not self.dof == len(self.joints):
       raise RuntimeError('You configured the robot joints wrong')
 
+
 # Simple policy for these actors
 class NullPolicy(AbstractPolicy):
   def evaluate(self, world, state, actor=None):
-    return CostarAction(dq=np.zeros(state.q.shape))
-
+    return CostarAction(q=state.q, dq=np.zeros(state.q.shape))

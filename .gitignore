@@ -1,3 +1,13 @@
 *.swp
 *.swo
 *.pyc
+*~
+
+# Python deployable
+*.swl
+*.swm
+*.swn
+
+# Careful with these -- we want them to be generated at runtime from the
+# associated xacro file.
+*.urdf

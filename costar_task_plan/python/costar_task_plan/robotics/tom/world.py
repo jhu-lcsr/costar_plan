@@ -12,12 +12,15 @@ from costar_task_plan.datasets import TomDataset
 
 from costar_task_plan.robotics.core import CostarWorld
 from costar_task_plan.robotics.core import DemoReward
+from costar_task_plan.robotics.core import ValidStateCondition
 
 
-# This is a simple world for the TOM task.
-# In this task, we pick up an orange and move it to either the trash or to a
-# bin. 
 class TomWorld(CostarWorld):
+  '''
+  This is a simple world for the TOM task.
+  In this task, we pick up an orange and move it to either the trash or to a
+  bin. 
+  '''
 
   def __init__(self, data_root='', fake=True, load_dataset=False, *args, **kwargs):
     if not fake:
@@ -30,10 +33,12 @@ class TomWorld(CostarWorld):
         robot_config=[TOM_RIGHT_CONFIG, TOM_LEFT_CONFIG],
         *args, **kwargs)
 
+    self.addCondition(ValidStateCondition(), -100, "valid_state")
+
     self.oranges = []
 
     # Remove this logic in the future. This is where we load the data set,
-    # annd then use this data to create and save a bunch of DMPs corresponding
+    # and then use this data to create and save a bunch of DMPs corresponding
     # to the different actions we might want to take.
     if load_dataset:
       self.dataset = TomDataset()
@@ -51,7 +56,6 @@ class TomWorld(CostarWorld):
           self.dataset.test_trajs,
           self.dataset.test_data,
           ['time', 'squeeze_area'])
-      print "===================="
       self.addTrajectories("box",
           self.dataset.box,
           self.dataset.box_data,
@@ -69,12 +73,17 @@ class TomWorld(CostarWorld):
 
       # Call the learning after we've loaded our data
       self.fitTrajectories()
+    else:
+      self.loadModels('tom')
       
-      # update the feature function based on known object frames
-      self.makeFeatureFunction()
+    # update the feature function based on known object frames
+    self.makeFeatureFunction()
 
-  # This is used for putting data in the right form for learning
+
   def _preprocessData(self,data):
+    '''
+    This is used for putting data in the right form for learning
+    '''
     for traj in data:
       orange_pose = None
       # find first non-None orange
@@ -85,9 +94,11 @@ class TomWorld(CostarWorld):
       for world in traj:
         world['orange'] = orange_pose
 
-  # Get visualization information as a vector of poses for whatever object we
-  # are currently manipulating.
   def _dataToPose(self,data):
+    '''
+    Get visualization information as a vector of poses for whatever object we
+    are currently manipulating.
+    '''
     msg = PoseArray()
     for traj in data:
       for world in traj:

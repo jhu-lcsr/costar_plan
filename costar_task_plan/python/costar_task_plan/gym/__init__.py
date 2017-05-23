@@ -3,12 +3,14 @@ __all__ = [
   "StepFunctionEnv",
   "PointEnv",
   "NeedleMasterEnv",
+  "BulletSimulationEnv",
   ]
 
 from function import *
 from step_function import *
 from point import *
 from needle_master import *
+from bullet import *
 
 # -----------------------------------------------------------------------------
 # Import all the Gazebo environments here. They get their own special import

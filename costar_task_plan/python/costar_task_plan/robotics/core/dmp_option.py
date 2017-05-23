@@ -7,7 +7,7 @@ from costar_task_plan.abstract import AbstractOption, AbstractCondition
 
 class DmpOption(AbstractOption):
 
-  def __init__(self, policy_type, kinematics, goal, model, instances=[], attached_frame=None):
+  def __init__(self, policy_type, kinematics, goal, skill_name, model, instances=[], attached_frame=None):
     if isinstance(policy_type, str):
       # parse into appropriate constructor
       if policy_type == 'joint':
@@ -27,11 +27,13 @@ class DmpOption(AbstractOption):
     self.kinematics = kinematics
     self.instances = instances
     self.model = model
+    self.skill_name = skill_name
     self.attached_frame = attached_frame
 
   # Make a policy.
   def makePolicy(self, *args, **kwargs):
     return self.policy_type(
+            skill_name=self.skill_name,
             goal=self.goal,
             dmp=self.instances[0],
             kinematics=self.kinematics)
@@ -60,10 +62,12 @@ class DmpOption(AbstractOption):
         raise RuntimeError('option.checkPostcondition() requires an initial state!')
     raise NotImplementedError('option.checkPostcondition() not yet implemented!')
 
-# This condition tells us whether or not we successfully arrived at the end of 
-# an action. It is true while we should continue executing. If our ee pose is
-# within tolerances and we are nearly stopped, it returns false.
 class DmpCondition(AbstractCondition):
+  '''
+  This condition tells us whether or not we successfully arrived at the end of 
+  an action. It is true while we should continue executing. If our ee pose is
+  within tolerances and we are nearly stopped, it returns false.
+  '''
 
   def __init__(self, goal, dmp, kinematics):
       self.goal = goal
@@ -77,5 +81,4 @@ class DmpCondition(AbstractCondition):
     # Determine if we finished the last action so we can switch active DMPs.
     ok_to_start = self.dmp is not state.reference and \
         (state.finished_last_sequence or state.reference is None)
-    print "check: ", (self.dmp is state.reference), ok_to_start, state.reference
-    return ok_to_start or np.any(np.abs(state.dq) > 1e-2)
+    return ok_to_start or np.any(np.abs(state.dq) > 1e-2) or state.seq > 0

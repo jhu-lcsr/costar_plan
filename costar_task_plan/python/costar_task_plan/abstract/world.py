@@ -119,10 +119,14 @@ class AbstractWorld(object):
     # update all actors in a separate loop
     for actor, action in zip(self.actors, actions):
       s = actor.update(action, self.dt)
-      actor.state.predicates = [0] * len(self.predicates)
-    S1 = self.actors[0].state
 
     self.hook() # run update hook for this environment
+
+    S1 = self.actors[0].state
+
+    # set up vectors of predicates properly
+    for actor in self.actors:
+        actor.state.predicates = [0] * len(self.predicates)
    
     # update all actors
     #self.predicates = [check(world, self, actor, actor.last_state)

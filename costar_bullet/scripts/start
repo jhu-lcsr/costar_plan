@@ -1,14 +1,25 @@
 #!/usr/bin/env python
 
-from costar_bullet import *
+from costar_task_plan.simulation import ParseBulletArgs
+from costar_task_plan.gym import BulletSimulationEnv
+from costar_task_plan.agent import GetAgents, MakeAgent
 
-import rospy
+
+import time
 
 if __name__ == '__main__':
-  '''
-  This simple tool should parse arguments and pass them to a simulation client.
-  The client actually manages everything, including the ROS core.
-  '''
+    '''
+    This simple tool should parse arguments and pass them to a simulation client.
+    The client actually manages everything, including the ROS core.
+    '''
 
-  CostarBulletSimulation(**ParseBulletArgs())
-  rospy.spin()
+    args = ParseBulletArgs()
+    env = BulletSimulationEnv(**args)
+    if 'agent' in args:
+        agent = MakeAgent(args['agent'])    
+        agent.fit(env)
+        print "========================"
+        print "...done."
+
+    while True:
+        time.sleep(0.1)

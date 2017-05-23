@@ -1,24 +1,34 @@
 
-import numpy as np
-from tf_conversions import posemath as pm
-
-# for outputting things to ROS
+from dmp_utils import RequestDMP, PlanDMP
 from geometry_msgs.msg import PoseArray
 from sensor_msgs.msg import JointState
+from tf_conversions import posemath as pm
 
-from dmp_utils import RequestDMP, PlanDMP
+import numpy as np
+import yaml
 
-# Model an instance of a skill as a cartesian DMP. We use this to create all
-# of the different skills we may need.
-class CartesianSkillInstance(object):
+try:
+  from yaml import CLoader as Loader, CDumper as Dumper
+except ImportError:
+  from yaml import Loader, Dumper
 
-  # Needs:
-  # - a vector of end effector poses
-  # - a vector of world state observations (dictionaries)
-  # - a kinematics model
-  # Assume that end effector and worlds are in the same coordinate system,
-  # which is supposed to be the base link.
+class CartesianSkillInstance(yaml.YAMLObject):
+  '''
+  Model an instance of a skill as a cartesian DMP. We use this to create all
+  of the different skills we may need.
+  '''
+
+  yaml_tag = u'!CartesianSkillInstance'
+
   def __init__(self, ee_frames, worlds, kinematics, config, objs=[], dt=0.1, visualize=False):
+    '''
+    Needs:
+    - a vector of end effector poses
+    - a vector of world state observations (dictionaries)
+    - a kinematics model
+    Assume that end effector and worlds are in the same coordinate system,
+    which is supposed to be the base link.
+    '''
     self.config = config
     self.ee_frames = ee_frames
     self.worlds = worlds
@@ -27,8 +37,10 @@ class CartesianSkillInstance(object):
     self.objs = [obj for obj in objs if obj not in ['time', 'gripper']]
     self._fit()
 
-  # call to create the dmp based on this observation
   def _fit(self):
+    '''
+    call to create the dmp based on this observation
+    '''
     k_gain = self.config['dmp_k']
     d_gain = self.config['dmp_d']
     num_basis = self.config['dmp_basis']
@@ -85,9 +97,11 @@ class CartesianSkillInstance(object):
     self.dmp_list = resp.dmp_list
     self.tau = resp.tau
 
-  # Given a world state and a robot state, generate a trajectory. This will
-  # create both the joint state
   def generate(self, world, state):
+    '''
+    Given a world state and a robot state, generate a trajectory. This will
+    create both the joint state
+    '''
     Fx0 = self.kinematics.forward(state.q)
     x0 = [Fx0.p[0], Fx0.p[1], Fx0.p[2],]
     x0_dot = [0.,0.,0.,]

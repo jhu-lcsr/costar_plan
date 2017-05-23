@@ -76,6 +76,7 @@ def __get_dmp_maker(skill_name,lfd):
   dmp_maker = lambda goal: DmpOption(
       goal=goal,
       instances=lfd.skill_instances[skill_name],
+      skill_name=skill_name,
       model=lfd.skill_models[skill_name],
       kinematics=lfd.kdl_kin,
       policy_type=CartesianDmpPolicy)
@@ -91,7 +92,8 @@ def MakeTomTaskModel(lfd):
   task.add("grasp1", ["pickup"], __grasp_args())
   task.add("move", ["grasp1"], __move_args(lfd))
   task.add("release1", ["move"], __release_args())
-  task.add("test", ["release1"], __test_args(lfd))
+  #task.add("test", ["release1"], __test_args(lfd))
+
   #task.add("grasp2", ["test"], __grasp_args())
   #task.add("box", ["grasp2"], __box_args(lfd))
   #task.add("trash", ["grasp2"], __trash_args(lfd))
@@ -101,7 +103,7 @@ def MakeTomTaskModel(lfd):
 # Set up arguments for tom sim task
 def OrangesTaskArgs():
   args = {
-    'orange': ['orange1', ],#'orange2', 'orange3'],
+    'orange': ['orange1', 'orange2', 'orange3'],
     'squeeze_area': ['squeeze_area1'],
     'box': ['box1'],
     'trash': ['trash1'],
@@ -121,6 +123,5 @@ if __name__ == '__main__':
   # Print out a summary of our task model. We then need to use this to create 
   # the MCTS data types that we are performing our search over.
   print task.nodeSummary()
-
-  print task.children['root()']
+  print task.children['ROOT()']
 

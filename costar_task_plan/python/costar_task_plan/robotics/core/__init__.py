@@ -17,12 +17,18 @@ __all__ = [
         # =====================================================================
         # Observation of the world
         "AbstractObserve",
+        # =====================================================================
+        # Conditions
+        "ValidStateCondition",
         ]
 
 from world import *
 from actor import *
 from features import *
 from dynamics import *
+
+# conditions
+from condition import *
 
 # Policies
 from dmp_policy import DmpPolicy, JointDmpPolicy, CartesianDmpPolicy

@@ -26,14 +26,17 @@ from ..config import DEFAULT_ROBOT_CONFIG
 
 LOGGER = logging.getLogger(__name__)
 
-# This is the basic Robotics world class.
-# This version of the world listens to objects as TF frames.
-# POLICIES:
-#  - managed policies that listen to CoSTAR proper, or something else like that
-#  - specific policies that follow DMPs, etc
-# At the end of every loop, we can publish all the information associated with
-# each step.
 class CostarWorld(AbstractWorld):
+  '''
+  This is the basic Robotics world class.
+  This version of the world listens to objects as TF frames.
+  POLICIES:
+   - managed policies that listen to CoSTAR proper, or something else like that
+   - specific policies that follow DMPs, etc
+  At the end of every loop, we can publish all the information associated with
+  each step.
+  '''
+
   def __init__(self, reward,
       namespace = '/costar',
       observe=None,
@@ -94,9 +97,9 @@ class CostarWorld(AbstractWorld):
         self.js_listeners[robot['name']] = js_listener
         rospy.sleep(0.1)
         if js_listener.q0 is not None:
-          s0 = CostarState(self, i, q=js_listener.q0)
+          s0 = CostarState(self, i, q=js_listener.q0, dq=js_listener.dq)
         else:
-          s0 = CostarState(self, i, q=np.zeros((robot['dof'],)))
+          s0 = CostarState(self, i, q=np.zeros((robot['dof'],)), dq=np.zeros((robot['dof'],)))
 
       self.addActor(
         CostarActor(robot,
@@ -128,9 +131,11 @@ class CostarWorld(AbstractWorld):
       # to update any of its internal information.
       self.observe(self)
   
-  # [LEARNING HELPER FUNCTION ONLY]
-  # Add a bunch of trajectory for use in learning.
   def addTrajectories(self, name, trajectories, data, objs):
+    '''
+    [LEARNING HELPER FUNCTION ONLY]
+    Add a bunch of trajectory for use in learning.
+    '''
     self.trajectories[name] = trajectories
     self.objs[name] = objs
     self._preprocessData(data)
@@ -148,10 +153,11 @@ class CostarWorld(AbstractWorld):
   def addGripperStatusListener(self, robot_name, listener):
     self.gripper_status_listeners[robot_name] = listener
 
-  # Execute a sequence of nodes. We use the policy and condition from each
-  # node, together with a set of subscriber dynamics, to update the world.
   def execute(self, path, actor_id=0):
-      # start publishers
+      '''
+      Execute a sequence of nodes. We use the policy and condition from each
+      node, together with a set of subscriber dynamics, to update the world.
+      '''
 
       # loop over the path
       for node in path:
@@ -176,11 +182,14 @@ class CostarWorld(AbstractWorld):
     else:
       return self.observe.dynamics(self, robot_config)
   
-  # Hook is called after the world updates each actor according to its policy.
-  # It has a few responsibilities:
-  # 1) publish all training trajectories for visualization
-  # 2) publish the current command/state associated with each actor too the sim.
   def visualize(self):
+    '''
+    Hook is called after the world updates each actor according to its policy.
+    It has a few responsibilities:
+    1) publish all training trajectories for visualization
+    2) publish the current command/state associated with each actor too the sim.
+    '''
+
     # Publish trajectory demonstrations for easy comparison to the existing
     # stuff.
     for name, trajs in self.trajectories.items():
@@ -205,9 +214,11 @@ class CostarWorld(AbstractWorld):
           position=actor.state.q,
           velocity=actor.state.dq)
 
-  # Debug tool: print poses associated with a set of plans to a message and
-  # publish this message.
   def visualizePlan(self, plan):
+    '''
+    Debug tool: print poses associated with a set of plans to a message and
+    publish this message.
+    '''
     actor = self.actors[plan.actor_id]
     msg = PoseArray()
     msg.header.frame_id = actor.base_link
@@ -225,11 +236,13 @@ class CostarWorld(AbstractWorld):
   def debugLfD(self, args):
     self.lfd.debug(self, args)
 
-  # Look up what the world should look like, based on the provided arguments.
-  # "objs" should be a list of all possible objects that we might want to
-  # aggregate. They'll be saved in the "obs" dictionary. It's the role of the
-  # various options/policies to choose and use them intelligently.
   def updateObservation(self, objs):
+    '''
+    Look up what the world should look like, based on the provided arguments.
+    "objs" should be a list of all possible objects that we might want to
+    aggregate. They'll be saved in the "obs" dictionary. It's the role of the
+    various options/policies to choose and use them intelligently.
+    '''
     self.observation = {}
     if self.tf_listener is None:
       self.tf_listener = tf.TransformListener()
@@ -244,12 +257,16 @@ class CostarWorld(AbstractWorld):
       
 
 
-  # Overload this to set up data visualization; it should return a pose array.
   def _dataToPose(self,data):
+    '''
+    Overload this to set up data visualization; it should return a pose array.
+    '''
     return PoseArray()
 
-  # Process the data set
   def _preprocessData(self,data):
+    '''
+    Process the data set
+    '''
     pass
 
   def makeFeatureFunction(self):
@@ -262,17 +279,25 @@ class CostarWorld(AbstractWorld):
     else:
         LOGGER.warning('model "%s" does not exist'%name)
 
-  # Zero actions give us the same set point as we saw before.
   def zeroAction(self, actor_id):
+    '''
+    Zero actions give us the same set point as we saw before.
+    '''
     dq = np.zeros((self.actors[actor_id].dof,))
     return CostarAction(q=self.actors[actor_id].state.q, dq=dq)
 
-  # Create te
   def fitTrajectories(self):
     self.models = self.lfd.train()
 
-  # Gets the list of possible argument assigments for use in generating the
-  # final task plan object.
   def getArgs(self):
+    '''
+    Gets the list of possible argument assigments for use in generating the
+    final task plan object.
+    '''
     return self.object_classes
 
+  def loadModels(self, project):
+    self.lfd.load(project)
+
+  def saveModels(self, project):
+    self.lfd.save(project)

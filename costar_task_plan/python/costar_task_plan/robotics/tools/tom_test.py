@@ -11,14 +11,18 @@ from costar_task_plan.mcts import DefaultTaskMctsPolicies, Node
 from costar_task_plan.mcts import MonteCarloTreeSearch
 from costar_task_plan.mcts import ExecutionPlan, DefaultExecute
 from costar_task_plan.robotics.core import *
-from costar_task_plan.robotics.tom import TomWorld, OpenLoopTomExecute
+from costar_task_plan.robotics.tom import TomWorld, OpenLoopTomExecute, ParseTomArgs
 from costar_task_plan.tools import showTask
 from std_srvs.srv import Empty as EmptySrv
 
+import argparse
 import rospy
 
-def load_tom_world():
-    return TomWorld('./',load_dataset=True)
+def load_tom_world(regenerate_models):
+    world = TomWorld('./',load_dataset=regenerate_models)
+    if regenerate_models:
+        world.saveModels('tom')
+    return world
 
 class NullReward(AbstractReward):
     def __call__(self, world, *args, **kwargs):
@@ -29,21 +33,24 @@ class NullFeatures(AbstractFeatures):
     def __call__(self, world, *args, **kwargs):
       return [0.]
 
-# Main function:
-# - create a TOM world
-# - verify that the data is being managed correctly
-# - fit models to data
-# - create Reward objects as appropriate
-# - create Policy objects as appropriate
 def load_tom_data_and_run():
+    '''
+    Main function:
+     - create a TOM world
+     - verify that the data is being managed correctly
+     - fit models to data
+     - create Reward objects as appropriate
+     - create Policy objects as appropriate
+    '''
 
     import signal
     signal.signal(signal.SIGINT, exit)
 
+    test_args = ParseTomArgs()
+
     try:
       rospy.init_node('tom_test_node')
-      world = load_tom_world()
-      #world.makeRewardFunction("box")
+      world = load_tom_world(test_args.regenerate_models)
       world.reward = NullReward()
       world.features = NullFeatures()
     except RuntimeError, e:
@@ -87,15 +94,18 @@ def load_tom_data_and_run():
           world.debugLfD(filled_args[0])
 
           res = False
+
           # This world is the observation -- it's not necessarily what the
           # robot is actually going to be changing. Of course, in our case,
           # it totally is.
-          if execute:
+          if test_args.execute:
             res = plan.step(world)
 
-          if res:
+          if res and test_args.loop:
             reset()
-            plan.reset()
+            world.updateObservation(objects)
+            path = do_search(world, task, objects)
+            plan = ExecutionPlan(path, OpenLoopTomExecute(world, 0))
 
           rate.sleep()
 
@@ -111,6 +121,10 @@ def do_search(world, task, objects):
     objects = ['box1', 'orange1', 'orange2', 'orange3', 'trash1', 'squeeze_area1']
     world.updateObservation(objects)
     world = world.fork(world.zeroAction(0))
+
+    for actor in world.actors:
+        actor.state.ref = None
+        actor.state.seq = 0
 
     while len(world.observation) == 0:
         rospy.sleep(0.1)

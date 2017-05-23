@@ -23,7 +23,7 @@
     output="screen" />
 
   <!--Camera Pipeline -->
-  <include file="$(find ur5_robotiq_parallel_bringup)/launch/camera.launch.xml" />
+  <include file="$(find costar_simulation)/launch/camera.launch.xml" />
 
   <!-- Robot state -->
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
