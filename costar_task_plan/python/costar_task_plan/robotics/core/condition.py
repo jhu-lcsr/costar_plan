@@ -23,8 +23,8 @@ class ValidStateCondition(AbstractCondition):
                 position=state.q,
                 )
         rs = RobotState(joint_state=js)
-        print rs
         res = self.srv(robot_state=rs)
-        print res
+        if not res.valid:
+            print res
         return res.valid
     

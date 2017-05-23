@@ -117,6 +117,7 @@ class TomSim(object):
         # and all that.
         rospy.wait_for_service('/get_planning_scene')
 
+
         primitive_table = SolidPrimitive(
                 type=SolidPrimitive.BOX, dimensions=[0.6,1.4,0.7])
         #pose_table = Pose(position=Point(0.85,0.,-0.06))
@@ -133,7 +134,8 @@ class TomSim(object):
         table.header.frame_id = "odom_combined"
 
         # Collision objects
-        self.obstacles = [table]
+        #self.obstacles = [table]
+        self.obstacles = []
 
     def start(self):
         '''
