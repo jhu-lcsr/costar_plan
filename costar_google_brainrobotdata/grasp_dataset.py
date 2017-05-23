@@ -241,18 +241,19 @@ class GraspDataset:
 
     @staticmethod
     def tfrecord_minibatch(tfrecord_path_glob_pattern,
-                           gpu_device_count,
                            batch_size,
-                           parse_example_proto_fn=None,
+                           gpu_device_count=1,
+                           parse_example_protobuf_fn=None,
                            preprocessing_fn=None,
-                           create_data_and_label_op_lists_fn=None,
+                           data_label_op_lists_create_fn=None,
                            random_seed=301,
                            parallelism=64,
-                           buffer_size=10000):
+                           buffer_size=10000,
+                           name='batch_processing'):
         """TODO: High Performance Distributed Training Batches - Adapt for grasping dataset & then broader reuse
         see https://github.com/tensorflow/benchmarks/blob/master/scripts/tf_cnn_benchmarks/preprocessing.py
         """
-        with tf.name_scope('batch_processing'):
+        with tf.name_scope(name):
             # Split the data among all the GPU devices
             if batch_size % gpu_device_count != 0:
                 raise ValueError(
@@ -276,16 +277,16 @@ class GraspDataset:
             preprocessed_data_ops = []
             for device_i in xrange(batch_size):
                 protobuf = records[i]
-                feature_op_dict = parse_example_proto_fn(protobuf)
+                feature_op_dict = parse_example_protobuf_fn(protobuf)
                 preprocessed_data = None
                 if preprocessing_fn is not None:
                     # thread_id should be distortion_method_id, and calculated later
                     preprocessed_data = preprocessing_fn(feature_op_dict, i)
                 device_index = i % gpu_device_count
-                feature_op_dict[device_index].append(image)
-                labels[device_index].append(label_index)
-            label_index_batch = [None] * gpu_device_count
-            return create_data_and_label_op_lists_fn(feature_op_dicts, preprocessed_data_ops, gpu_device_count)
+                feature_op_dicts[device_index].append(feature_op_dict)
+                preprocessed_data_ops[device_index].append(preprocessed_data)
+            # label_index_batch = [None] * gpu_device_count
+            return data_label_op_lists_create_fn(feature_op_dicts, preprocessed_data_ops, gpu_device_count)
 
     @staticmethod
     def parse_grasp_attempt_protobuf(features_complete_list, serialized_grasp_attempt_proto):
