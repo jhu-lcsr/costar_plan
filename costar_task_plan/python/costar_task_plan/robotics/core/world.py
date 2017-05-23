@@ -269,9 +269,6 @@ class CostarWorld(AbstractWorld):
     '''
     pass
 
-  def makeFeatureFunction(self):
-    pass
-
   def makeRewardFunction(self, name):
     if name in self.models.keys():
         model = self.models[name]

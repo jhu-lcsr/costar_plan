@@ -26,4 +26,5 @@ class DemoReward(AbstractReward):
         '''
         # get world features for this state
         f = world.initial_features
-
+        model = self.models[world.actors[0].state.reference.skill_name]
+        return gmm.score(f)
