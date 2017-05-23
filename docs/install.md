@@ -44,23 +44,7 @@ sudo rosdep init
 rosdep update
 ```
 
-## Step 1. Get CoSTAR Packages From Git
-
-We suggest that you download all the required packages before building your catkin workspace. Change directory to the `src` directory in your catkin workspace. Then download the main CoSTAR stack and its ROS dependencies from GitHub and use `rosdep` to get other dependencies:
-```
-cd path/to/your/catkin_ws/src
-git clone https://github.com/cpaxton/costar_stack.git  
-git clone https://github.com/SalvoVirga/iiwa_stack.git  
-git clone https://github.com/ros-industrial/robotiq.git  
-git clone https://github.com/jbohren/rqt_dot.git  
-git clone https://github.com/sniekum/ar_track_alvar.git  
-git clone https://github.com/sniekum/ar_track_alvar_msgs.git  
-git clone https://github.com/gt-ros-pkg/hrl-kdl.git
-git clone https://github.com/ThomasTimm/ur_modern_driver.git
-rosdep install -y --from-paths ./ --ignore-src --rosdistro $ROS_DISTRO
-```
-
-## Step 2. Get CoSTAR Planning and Simulation Packages from Git
+## Step 1. Get CoSTAR Planning and Simulation Packages from Git
 
 This is listed separately for now.
 ```
@@ -73,7 +57,7 @@ git clone https://github.com/cpaxton/robotiq_85_gripper.git
 rosdep install -y --from-paths ./ --ignore-src --rosdistro $ROS_DISTRO
 ```
 
-## Step 3. Build catkin workspace
+## Step 2. Build catkin workspace
 
 Change directory into catkin workspace folder and run:
 
@@ -98,7 +82,7 @@ CoSTAR is distributed as a single large package. This means that
 `sudo apt-get install ros-indigo-joint-state-controller`
 
 
-## Step 4. Run simulation
+## Step 3. Run simulation
 [Optional] Checkout an example CoSTAR workspace from github into ~/.costar by running:
 
 ```
