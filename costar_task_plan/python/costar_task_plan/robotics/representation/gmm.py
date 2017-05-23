@@ -93,13 +93,3 @@ class GMM(yaml.YAMLObject):
   def dict(self):
     return {'mu':self.mu, 'sigma':self.sigma, 'pi':self.pi, 'k':self.k}
 
-  @classmethod
-  def from_yaml(cls, loader, node):
-    gmm = GMM(rawdata=loader.construct_mapping(node))
-    gmm.updateInvSigma()
-    return gmm
-
-  @classmethod
-  def to_yaml(cls, dumper, data):
-    return dumper.represent_mapping(GMM.yaml_tag,data.dict())
-

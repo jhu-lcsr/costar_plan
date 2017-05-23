@@ -116,7 +116,7 @@ class LfD(object):
             if name in self.skill_features:
                 self.skill_models[name] = GMM(
                     self.config['gmm_k'], self.skill_features[name])
-                print "> Skill", name, "extracted with dataset of shape", self.skill_features[name].shape
+                print "> Skill", name, "extracted with dataset of shape", self.skill_features[name].shape, "k = ", self.config['gmm_k']
             else:
                 print " ... skipping skill", name, "(no data)"
 

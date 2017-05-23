@@ -6,7 +6,7 @@ config:
   dmp_k: 100
   dof: 6
   end_link: r_gripper_base_link
-  gmm_k: 2
+  gmm_k: 3
   gripper_topic: ''
   ik_solver: kdl
   joint_states_topic: /joint_states
@@ -12928,7 +12928,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
   tree: !!python/object:PyKDL.Tree {}
   urdf: !!python/object:urdf_parser_py.urdf.Robot
     aggregate_order:
-    - &id102 !!python/object:urdf_parser_py.urdf.Link
+    - &id123 !!python/object:urdf_parser_py.urdf.Link
       collision: !!python/object:urdf_parser_py.urdf.Collision
         geometry: !!python/object:urdf_parser_py.urdf.Box
           size:
@@ -12966,7 +12966,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           - 0.0
           - 0.0
           - 0.0
-    - &id055 !!python/object:urdf_parser_py.urdf.Joint
+    - &id074 !!python/object:urdf_parser_py.urdf.Joint
       axis: null
       calibration: null
       child: base_link
@@ -12986,7 +12986,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: base_footprint
       safety_controller: null
       type: fixed
-    - &id104 !!python/object:urdf_parser_py.urdf.Link
+    - &id075 !!python/object:urdf_parser_py.urdf.Link
       collision: !!python/object:urdf_parser_py.urdf.Collision
         geometry: !!python/object:urdf_parser_py.urdf.Mesh
           filename: package://tom_description/meshes/base/item_profile.dae
@@ -13026,7 +13026,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           - 0.0
           - 0.0
           - 0.0
-    - &id105 !!python/object:urdf_parser_py.urdf.Link
+    - &id076 !!python/object:urdf_parser_py.urdf.Link
       collision: !!python/object:urdf_parser_py.urdf.Collision
         geometry: !!python/object:urdf_parser_py.urdf.Mesh
           filename: package://tom_description/meshes/base/green_parts.dae
@@ -13066,7 +13066,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           - -0.01614
           - 0.0
           - -0.76268
-    - &id057 !!python/object:urdf_parser_py.urdf.Joint
+    - &id027 !!python/object:urdf_parser_py.urdf.Joint
       axis: null
       calibration: null
       child: torso_link
@@ -13083,7 +13083,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: base_link
       safety_controller: null
       type: fixed
-    - &id106 !!python/object:urdf_parser_py.urdf.Link
+    - &id077 !!python/object:urdf_parser_py.urdf.Link
       collision: !!python/object:urdf_parser_py.urdf.Collision
         geometry: !!python/object:urdf_parser_py.urdf.Cylinder
           length: 0.075
@@ -13128,7 +13128,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           name: white
           texture: null
         origin: null
-    - &id058 !!python/object:urdf_parser_py.urdf.Joint
+    - &id028 !!python/object:urdf_parser_py.urdf.Joint
       axis:
       - 0.0
       - 0.0
@@ -13151,7 +13151,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: base_link
       safety_controller: null
       type: continuous
-    - &id107 !!python/object:urdf_parser_py.urdf.Link
+    - &id078 !!python/object:urdf_parser_py.urdf.Link
       collision: !!python/object:urdf_parser_py.urdf.Collision
         geometry: !!python/object:urdf_parser_py.urdf.Cylinder
           length: 0.075
@@ -13196,7 +13196,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           name: white
           texture: null
         origin: null
-    - &id059 !!python/object:urdf_parser_py.urdf.Joint
+    - &id029 !!python/object:urdf_parser_py.urdf.Joint
       axis:
       - 0.0
       - 0.0
@@ -13219,7 +13219,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: base_link
       safety_controller: null
       type: continuous
-    - &id108 !!python/object:urdf_parser_py.urdf.Link
+    - &id079 !!python/object:urdf_parser_py.urdf.Link
       collision: !!python/object:urdf_parser_py.urdf.Collision
         geometry: !!python/object:urdf_parser_py.urdf.Cylinder
           length: 0.075
@@ -13264,7 +13264,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           name: white
           texture: null
         origin: null
-    - &id060 !!python/object:urdf_parser_py.urdf.Joint
+    - &id030 !!python/object:urdf_parser_py.urdf.Joint
       axis:
       - 0.0
       - 0.0
@@ -13287,7 +13287,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: base_link
       safety_controller: null
       type: continuous
-    - &id109 !!python/object:urdf_parser_py.urdf.Link
+    - &id080 !!python/object:urdf_parser_py.urdf.Link
       collision: !!python/object:urdf_parser_py.urdf.Collision
         geometry: !!python/object:urdf_parser_py.urdf.Cylinder
           length: 0.075
@@ -13332,7 +13332,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           name: white
           texture: null
         origin: null
-    - &id061 !!python/object:urdf_parser_py.urdf.Joint
+    - &id031 !!python/object:urdf_parser_py.urdf.Joint
       axis:
       - 0.0
       - 0.0
@@ -13355,7 +13355,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: base_link
       safety_controller: null
       type: continuous
-    - &id110 !!python/object:urdf_parser_py.urdf.Link
+    - &id081 !!python/object:urdf_parser_py.urdf.Link
       collision: !!python/object:urdf_parser_py.urdf.Collision
         geometry: !!python/object:urdf_parser_py.urdf.Mesh
           filename: package://tom_description/meshes/base/logo_blue.dae
@@ -13386,7 +13386,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           - 0.0
           - 0.0
           - 0.0
-    - &id062 !!python/object:urdf_parser_py.urdf.Joint
+    - &id032 !!python/object:urdf_parser_py.urdf.Joint
       axis: null
       calibration: null
       child: ICS_logo_blue_link
@@ -13403,7 +13403,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: base_link
       safety_controller: null
       type: fixed
-    - &id111 !!python/object:urdf_parser_py.urdf.Link
+    - &id082 !!python/object:urdf_parser_py.urdf.Link
       collision: !!python/object:urdf_parser_py.urdf.Collision
         geometry: !!python/object:urdf_parser_py.urdf.Mesh
           filename: package://tom_description/meshes/base/logo_grey.dae
@@ -13434,7 +13434,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           - 0.0
           - 0.0
           - 0.0
-    - &id063 !!python/object:urdf_parser_py.urdf.Joint
+    - &id033 !!python/object:urdf_parser_py.urdf.Joint
       axis: null
       calibration: null
       child: ICS_logo_grey_link
@@ -13451,7 +13451,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: base_link
       safety_controller: null
       type: fixed
-    - &id112 !!python/object:urdf_parser_py.urdf.Link
+    - &id083 !!python/object:urdf_parser_py.urdf.Link
       collision: null
       inertial: null
       name: tom_left_camera_link
@@ -13480,7 +13480,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           - 0.0
           - 0.0
           - 0.0
-    - &id113 !!python/object:urdf_parser_py.urdf.Link
+    - &id084 !!python/object:urdf_parser_py.urdf.Link
       collision: null
       inertial: null
       name: tom_head_link
@@ -13510,7 +13510,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           - 1.0
           - 1.255
           - -0.838
-    - &id064 !!python/object:urdf_parser_py.urdf.Joint
+    - &id034 !!python/object:urdf_parser_py.urdf.Joint
       axis: null
       calibration: null
       child: tom_head_link
@@ -13530,7 +13530,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: torso_link
       safety_controller: null
       type: fixed
-    - &id065 !!python/object:urdf_parser_py.urdf.Joint
+    - &id035 !!python/object:urdf_parser_py.urdf.Joint
       axis: null
       calibration: null
       child: tom_left_camera_link
@@ -13550,7 +13550,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: torso_link
       safety_controller: null
       type: fixed
-    - &id114 !!python/object:urdf_parser_py.urdf.Link
+    - &id085 !!python/object:urdf_parser_py.urdf.Link
       collision: !!python/object:urdf_parser_py.urdf.Collision
         geometry: !!python/object:urdf_parser_py.urdf.Mesh
           filename: package://tom_description/meshes/arm/ur5/collision/base.stl
@@ -13590,7 +13590,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           name: LightGrey
           texture: null
         origin: null
-    - &id066 !!python/object:urdf_parser_py.urdf.Joint
+    - &id036 !!python/object:urdf_parser_py.urdf.Joint
       axis:
       - 0.0
       - 0.0
@@ -13619,7 +13619,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: r_base_link
       safety_controller: null
       type: revolute
-    - &id115 !!python/object:urdf_parser_py.urdf.Link
+    - &id086 !!python/object:urdf_parser_py.urdf.Link
       collision: !!python/object:urdf_parser_py.urdf.Collision
         geometry: !!python/object:urdf_parser_py.urdf.Mesh
           filename: package://tom_description/meshes/arm/ur5/collision/shoulder.stl
@@ -13659,7 +13659,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           name: LightGrey
           texture: null
         origin: null
-    - &id067 !!python/object:urdf_parser_py.urdf.Joint
+    - &id037 !!python/object:urdf_parser_py.urdf.Joint
       axis:
       - 0.0
       - 1.0
@@ -13688,7 +13688,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: r_shoulder_link
       safety_controller: null
       type: revolute
-    - &id116 !!python/object:urdf_parser_py.urdf.Link
+    - &id087 !!python/object:urdf_parser_py.urdf.Link
       collision: !!python/object:urdf_parser_py.urdf.Collision
         geometry: !!python/object:urdf_parser_py.urdf.Mesh
           filename: package://tom_description/meshes/arm/ur5/collision/upper_arm.stl
@@ -13728,7 +13728,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           name: LightGrey
           texture: null
         origin: null
-    - &id068 !!python/object:urdf_parser_py.urdf.Joint
+    - &id038 !!python/object:urdf_parser_py.urdf.Joint
       axis:
       - 0.0
       - 1.0
@@ -13757,7 +13757,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: r_upper_arm_link
       safety_controller: null
       type: revolute
-    - &id117 !!python/object:urdf_parser_py.urdf.Link
+    - &id088 !!python/object:urdf_parser_py.urdf.Link
       collision: !!python/object:urdf_parser_py.urdf.Collision
         geometry: !!python/object:urdf_parser_py.urdf.Mesh
           filename: package://tom_description/meshes/arm/ur5/collision/forearm.stl
@@ -13797,7 +13797,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           name: LightGrey
           texture: null
         origin: null
-    - &id069 !!python/object:urdf_parser_py.urdf.Joint
+    - &id039 !!python/object:urdf_parser_py.urdf.Joint
       axis:
       - 0.0
       - 1.0
@@ -13826,7 +13826,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: r_forearm_link
       safety_controller: null
       type: revolute
-    - &id118 !!python/object:urdf_parser_py.urdf.Link
+    - &id089 !!python/object:urdf_parser_py.urdf.Link
       collision: !!python/object:urdf_parser_py.urdf.Collision
         geometry: !!python/object:urdf_parser_py.urdf.Mesh
           filename: package://tom_description/meshes/arm/ur5/collision/wrist_1.stl
@@ -13866,7 +13866,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           name: LightGrey
           texture: null
         origin: null
-    - &id070 !!python/object:urdf_parser_py.urdf.Joint
+    - &id040 !!python/object:urdf_parser_py.urdf.Joint
       axis:
       - 0.0
       - 0.0
@@ -13895,7 +13895,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: r_wrist_1_link
       safety_controller: null
       type: revolute
-    - &id119 !!python/object:urdf_parser_py.urdf.Link
+    - &id090 !!python/object:urdf_parser_py.urdf.Link
       collision: !!python/object:urdf_parser_py.urdf.Collision
         geometry: !!python/object:urdf_parser_py.urdf.Mesh
           filename: package://tom_description/meshes/arm/ur5/collision/wrist_2.stl
@@ -13935,7 +13935,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           name: LightGrey
           texture: null
         origin: null
-    - &id071 !!python/object:urdf_parser_py.urdf.Joint
+    - &id041 !!python/object:urdf_parser_py.urdf.Joint
       axis:
       - 0.0
       - 1.0
@@ -13964,7 +13964,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: r_wrist_2_link
       safety_controller: null
       type: revolute
-    - &id120 !!python/object:urdf_parser_py.urdf.Link
+    - &id091 !!python/object:urdf_parser_py.urdf.Link
       collision: !!python/object:urdf_parser_py.urdf.Collision
         geometry: !!python/object:urdf_parser_py.urdf.Mesh
           filename: package://tom_description/meshes/arm/ur5/collision/wrist_3.stl
@@ -14004,7 +14004,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           name: LightGrey
           texture: null
         origin: null
-    - &id072 !!python/object:urdf_parser_py.urdf.Joint
+    - &id042 !!python/object:urdf_parser_py.urdf.Joint
       axis: null
       calibration: null
       child: r_ee_link
@@ -14024,7 +14024,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: r_wrist_3_link
       safety_controller: null
       type: fixed
-    - &id121 !!python/object:urdf_parser_py.urdf.Link
+    - &id092 !!python/object:urdf_parser_py.urdf.Link
       collision: !!python/object:urdf_parser_py.urdf.Collision
         geometry: !!python/object:urdf_parser_py.urdf.Box
           size:
@@ -14044,7 +14044,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       name: r_ee_link
       origin: null
       visual: null
-    - &id130 !!python/object:urdf_parser_py.urdf.Transmission
+    - &id124 !!python/object:urdf_parser_py.urdf.Transmission
       actuators:
       - &id003 !!python/object:urdf_parser_py.urdf.Actuator
         mechanicalReduction: 1.0
@@ -14066,7 +14066,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       - *id004
       name: r_shoulder_pan_trans
       type: transmission_interface/SimpleTransmission
-    - &id131 !!python/object:urdf_parser_py.urdf.Transmission
+    - &id125 !!python/object:urdf_parser_py.urdf.Transmission
       actuators:
       - &id005 !!python/object:urdf_parser_py.urdf.Actuator
         mechanicalReduction: 1.0
@@ -14088,7 +14088,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       - *id006
       name: r_shoulder_lift_trans
       type: transmission_interface/SimpleTransmission
-    - &id132 !!python/object:urdf_parser_py.urdf.Transmission
+    - &id126 !!python/object:urdf_parser_py.urdf.Transmission
       actuators:
       - &id007 !!python/object:urdf_parser_py.urdf.Actuator
         mechanicalReduction: 1.0
@@ -14110,7 +14110,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       - *id008
       name: r_elbow_trans
       type: transmission_interface/SimpleTransmission
-    - &id133 !!python/object:urdf_parser_py.urdf.Transmission
+    - &id127 !!python/object:urdf_parser_py.urdf.Transmission
       actuators:
       - &id009 !!python/object:urdf_parser_py.urdf.Actuator
         mechanicalReduction: 1.0
@@ -14132,7 +14132,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       - *id010
       name: r_wrist_1_trans
       type: transmission_interface/SimpleTransmission
-    - &id134 !!python/object:urdf_parser_py.urdf.Transmission
+    - &id128 !!python/object:urdf_parser_py.urdf.Transmission
       actuators:
       - &id011 !!python/object:urdf_parser_py.urdf.Actuator
         mechanicalReduction: 1.0
@@ -14154,7 +14154,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       - *id012
       name: r_wrist_2_trans
       type: transmission_interface/SimpleTransmission
-    - &id135 !!python/object:urdf_parser_py.urdf.Transmission
+    - &id129 !!python/object:urdf_parser_py.urdf.Transmission
       actuators:
       - &id013 !!python/object:urdf_parser_py.urdf.Actuator
         mechanicalReduction: 1.0
@@ -14176,7 +14176,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       - *id014
       name: r_wrist_3_trans
       type: transmission_interface/SimpleTransmission
-    - &id073 !!python/object:urdf_parser_py.urdf.Joint
+    - &id043 !!python/object:urdf_parser_py.urdf.Joint
       axis: null
       calibration: null
       child: r_base_link
@@ -14196,7 +14196,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: torso_link
       safety_controller: null
       type: fixed
-    - &id122 !!python/object:urdf_parser_py.urdf.Link
+    - &id093 !!python/object:urdf_parser_py.urdf.Link
       collision: !!python/object:urdf_parser_py.urdf.Collision
         geometry: !!python/object:urdf_parser_py.urdf.Cylinder
           length: 0.05
@@ -14227,7 +14227,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           - 0.0
           - 0.0
           - -0.045
-    - &id074 !!python/object:urdf_parser_py.urdf.Joint
+    - &id044 !!python/object:urdf_parser_py.urdf.Joint
       axis: null
       calibration: null
       child: r_hand_base_adapter_link
@@ -14247,7 +14247,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: r_ee_link
       safety_controller: null
       type: fixed
-    - &id123 !!python/object:urdf_parser_py.urdf.Link
+    - &id094 !!python/object:urdf_parser_py.urdf.Link
       collision: !!python/object:urdf_parser_py.urdf.Collision
         geometry: !!python/object:urdf_parser_py.urdf.Mesh
           filename: package://tom_description/meshes/arm/ur5/collision/base.stl
@@ -14287,7 +14287,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           name: LightGrey
           texture: null
         origin: null
-    - &id027 !!python/object:urdf_parser_py.urdf.Joint
+    - &id045 !!python/object:urdf_parser_py.urdf.Joint
       axis:
       - 0.0
       - 0.0
@@ -14316,7 +14316,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: l_base_link
       safety_controller: null
       type: revolute
-    - &id075 !!python/object:urdf_parser_py.urdf.Link
+    - &id095 !!python/object:urdf_parser_py.urdf.Link
       collision: !!python/object:urdf_parser_py.urdf.Collision
         geometry: !!python/object:urdf_parser_py.urdf.Mesh
           filename: package://tom_description/meshes/arm/ur5/collision/shoulder.stl
@@ -14356,7 +14356,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           name: LightGrey
           texture: null
         origin: null
-    - &id028 !!python/object:urdf_parser_py.urdf.Joint
+    - &id046 !!python/object:urdf_parser_py.urdf.Joint
       axis:
       - 0.0
       - 1.0
@@ -14385,7 +14385,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: l_shoulder_link
       safety_controller: null
       type: revolute
-    - &id076 !!python/object:urdf_parser_py.urdf.Link
+    - &id096 !!python/object:urdf_parser_py.urdf.Link
       collision: !!python/object:urdf_parser_py.urdf.Collision
         geometry: !!python/object:urdf_parser_py.urdf.Mesh
           filename: package://tom_description/meshes/arm/ur5/collision/upper_arm.stl
@@ -14425,7 +14425,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           name: LightGrey
           texture: null
         origin: null
-    - &id029 !!python/object:urdf_parser_py.urdf.Joint
+    - &id047 !!python/object:urdf_parser_py.urdf.Joint
       axis:
       - 0.0
       - 1.0
@@ -14454,7 +14454,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: l_upper_arm_link
       safety_controller: null
       type: revolute
-    - &id077 !!python/object:urdf_parser_py.urdf.Link
+    - &id097 !!python/object:urdf_parser_py.urdf.Link
       collision: !!python/object:urdf_parser_py.urdf.Collision
         geometry: !!python/object:urdf_parser_py.urdf.Mesh
           filename: package://tom_description/meshes/arm/ur5/collision/forearm.stl
@@ -14494,7 +14494,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           name: LightGrey
           texture: null
         origin: null
-    - &id030 !!python/object:urdf_parser_py.urdf.Joint
+    - &id048 !!python/object:urdf_parser_py.urdf.Joint
       axis:
       - 0.0
       - 1.0
@@ -14523,7 +14523,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: l_forearm_link
       safety_controller: null
       type: revolute
-    - &id078 !!python/object:urdf_parser_py.urdf.Link
+    - &id098 !!python/object:urdf_parser_py.urdf.Link
       collision: !!python/object:urdf_parser_py.urdf.Collision
         geometry: !!python/object:urdf_parser_py.urdf.Mesh
           filename: package://tom_description/meshes/arm/ur5/collision/wrist_1.stl
@@ -14563,7 +14563,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           name: LightGrey
           texture: null
         origin: null
-    - &id031 !!python/object:urdf_parser_py.urdf.Joint
+    - &id049 !!python/object:urdf_parser_py.urdf.Joint
       axis:
       - 0.0
       - 0.0
@@ -14592,7 +14592,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: l_wrist_1_link
       safety_controller: null
       type: revolute
-    - &id079 !!python/object:urdf_parser_py.urdf.Link
+    - &id099 !!python/object:urdf_parser_py.urdf.Link
       collision: !!python/object:urdf_parser_py.urdf.Collision
         geometry: !!python/object:urdf_parser_py.urdf.Mesh
           filename: package://tom_description/meshes/arm/ur5/collision/wrist_2.stl
@@ -14632,7 +14632,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           name: LightGrey
           texture: null
         origin: null
-    - &id032 !!python/object:urdf_parser_py.urdf.Joint
+    - &id050 !!python/object:urdf_parser_py.urdf.Joint
       axis:
       - 0.0
       - 1.0
@@ -14661,7 +14661,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: l_wrist_2_link
       safety_controller: null
       type: revolute
-    - &id080 !!python/object:urdf_parser_py.urdf.Link
+    - &id100 !!python/object:urdf_parser_py.urdf.Link
       collision: !!python/object:urdf_parser_py.urdf.Collision
         geometry: !!python/object:urdf_parser_py.urdf.Mesh
           filename: package://tom_description/meshes/arm/ur5/collision/wrist_3.stl
@@ -14701,7 +14701,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           name: LightGrey
           texture: null
         origin: null
-    - &id033 !!python/object:urdf_parser_py.urdf.Joint
+    - &id051 !!python/object:urdf_parser_py.urdf.Joint
       axis: null
       calibration: null
       child: l_ee_link
@@ -14721,7 +14721,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: l_wrist_3_link
       safety_controller: null
       type: fixed
-    - &id081 !!python/object:urdf_parser_py.urdf.Link
+    - &id101 !!python/object:urdf_parser_py.urdf.Link
       collision: !!python/object:urdf_parser_py.urdf.Collision
         geometry: !!python/object:urdf_parser_py.urdf.Box
           size:
@@ -14741,7 +14741,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       name: l_ee_link
       origin: null
       visual: null
-    - &id124 !!python/object:urdf_parser_py.urdf.Transmission
+    - &id130 !!python/object:urdf_parser_py.urdf.Transmission
       actuators:
       - &id015 !!python/object:urdf_parser_py.urdf.Actuator
         mechanicalReduction: 1.0
@@ -14763,7 +14763,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       - *id016
       name: l_shoulder_pan_trans
       type: transmission_interface/SimpleTransmission
-    - &id125 !!python/object:urdf_parser_py.urdf.Transmission
+    - &id131 !!python/object:urdf_parser_py.urdf.Transmission
       actuators:
       - &id017 !!python/object:urdf_parser_py.urdf.Actuator
         mechanicalReduction: 1.0
@@ -14785,7 +14785,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       - *id018
       name: l_shoulder_lift_trans
       type: transmission_interface/SimpleTransmission
-    - &id126 !!python/object:urdf_parser_py.urdf.Transmission
+    - &id132 !!python/object:urdf_parser_py.urdf.Transmission
       actuators:
       - &id019 !!python/object:urdf_parser_py.urdf.Actuator
         mechanicalReduction: 1.0
@@ -14807,7 +14807,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       - *id020
       name: l_elbow_trans
       type: transmission_interface/SimpleTransmission
-    - &id127 !!python/object:urdf_parser_py.urdf.Transmission
+    - &id133 !!python/object:urdf_parser_py.urdf.Transmission
       actuators:
       - &id021 !!python/object:urdf_parser_py.urdf.Actuator
         mechanicalReduction: 1.0
@@ -14829,7 +14829,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       - *id022
       name: l_wrist_1_trans
       type: transmission_interface/SimpleTransmission
-    - &id128 !!python/object:urdf_parser_py.urdf.Transmission
+    - &id134 !!python/object:urdf_parser_py.urdf.Transmission
       actuators:
       - &id023 !!python/object:urdf_parser_py.urdf.Actuator
         mechanicalReduction: 1.0
@@ -14851,7 +14851,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       - *id024
       name: l_wrist_2_trans
       type: transmission_interface/SimpleTransmission
-    - &id129 !!python/object:urdf_parser_py.urdf.Transmission
+    - &id135 !!python/object:urdf_parser_py.urdf.Transmission
       actuators:
       - &id025 !!python/object:urdf_parser_py.urdf.Actuator
         mechanicalReduction: 1.0
@@ -14873,7 +14873,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       - *id026
       name: l_wrist_3_trans
       type: transmission_interface/SimpleTransmission
-    - &id034 !!python/object:urdf_parser_py.urdf.Joint
+    - &id052 !!python/object:urdf_parser_py.urdf.Joint
       axis: null
       calibration: null
       child: l_base_link
@@ -14893,7 +14893,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: torso_link
       safety_controller: null
       type: fixed
-    - &id082 !!python/object:urdf_parser_py.urdf.Link
+    - &id102 !!python/object:urdf_parser_py.urdf.Link
       collision: !!python/object:urdf_parser_py.urdf.Collision
         geometry: !!python/object:urdf_parser_py.urdf.Cylinder
           length: 0.05
@@ -14924,7 +14924,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           - 0.0
           - 0.0
           - -0.045
-    - &id056 !!python/object:urdf_parser_py.urdf.Joint
+    - &id053 !!python/object:urdf_parser_py.urdf.Joint
       axis: null
       calibration: null
       child: l_hand_base_adapter_link
@@ -14966,7 +14966,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           - -0.065
           - -0.065
           - 0.003
-    - &id083 !!python/object:urdf_parser_py.urdf.Link
+    - &id104 !!python/object:urdf_parser_py.urdf.Link
       collision: null
       inertial: null
       name: r_gripper_palm_link
@@ -14996,7 +14996,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           - -0.046
           - -0.04
           - 0.0
-    - &id035 !!python/object:urdf_parser_py.urdf.Joint
+    - &id054 !!python/object:urdf_parser_py.urdf.Joint
       axis: null
       calibration: null
       child: r_gripper_palm_link
@@ -15016,7 +15016,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: r_gripper_base_link
       safety_controller: null
       type: fixed
-    - &id084 !!python/object:urdf_parser_py.urdf.Link
+    - &id105 !!python/object:urdf_parser_py.urdf.Link
       collision: null
       inertial: null
       name: r_gripper_left_finger_link
@@ -15038,7 +15038,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           - 0.0115
           - -0.005
           - -0.01
-    - &id036 !!python/object:urdf_parser_py.urdf.Joint
+    - &id055 !!python/object:urdf_parser_py.urdf.Joint
       axis:
       - 0.0
       - -1.0
@@ -15065,7 +15065,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: r_gripper_left_finger_base_link
       safety_controller: null
       type: revolute
-    - &id085 !!python/object:urdf_parser_py.urdf.Link
+    - &id106 !!python/object:urdf_parser_py.urdf.Link
       collision: null
       inertial: null
       name: r_gripper_left_finger_base_link
@@ -15095,7 +15095,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           - 0.018
           - -0.0075
           - -0.005
-    - &id037 !!python/object:urdf_parser_py.urdf.Joint
+    - &id056 !!python/object:urdf_parser_py.urdf.Joint
       axis:
       - 0.0
       - -1.0
@@ -15122,7 +15122,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: r_gripper_base_link
       safety_controller: null
       type: revolute
-    - &id086 !!python/object:urdf_parser_py.urdf.Link
+    - &id107 !!python/object:urdf_parser_py.urdf.Link
       collision: null
       inertial: null
       name: r_gripper_right_finger_link
@@ -15144,7 +15144,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           - 0.0115
           - -0.02571
           - -0.01
-    - &id038 !!python/object:urdf_parser_py.urdf.Joint
+    - &id057 !!python/object:urdf_parser_py.urdf.Joint
       axis:
       - 0.0
       - -1.0
@@ -15171,7 +15171,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: r_gripper_right_finger_base_link
       safety_controller: null
       type: revolute
-    - &id087 !!python/object:urdf_parser_py.urdf.Link
+    - &id108 !!python/object:urdf_parser_py.urdf.Link
       collision: null
       inertial: null
       name: r_gripper_right_finger_base_link
@@ -15201,7 +15201,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           - 0.018
           - -0.0075
           - -0.005
-    - &id039 !!python/object:urdf_parser_py.urdf.Joint
+    - &id058 !!python/object:urdf_parser_py.urdf.Joint
       axis:
       - 0.0
       - -1.0
@@ -15228,7 +15228,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: r_gripper_base_link
       safety_controller: null
       type: revolute
-    - &id088 !!python/object:urdf_parser_py.urdf.Link
+    - &id109 !!python/object:urdf_parser_py.urdf.Link
       collision: null
       inertial: null
       name: r_gripper_mid_finger_link
@@ -15250,7 +15250,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           - 0.0115
           - -0.01386
           - -0.01
-    - &id040 !!python/object:urdf_parser_py.urdf.Joint
+    - &id059 !!python/object:urdf_parser_py.urdf.Joint
       axis:
       - 0.0
       - -1.0
@@ -15277,7 +15277,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: r_gripper_mid_finger_base_link
       safety_controller: null
       type: revolute
-    - &id089 !!python/object:urdf_parser_py.urdf.Link
+    - &id110 !!python/object:urdf_parser_py.urdf.Link
       collision: null
       inertial: null
       name: r_gripper_mid_finger_base_link
@@ -15307,7 +15307,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           - 0.018
           - -0.0075
           - -0.005
-    - &id041 !!python/object:urdf_parser_py.urdf.Joint
+    - &id060 !!python/object:urdf_parser_py.urdf.Joint
       axis:
       - 0.0
       - -1.0
@@ -15334,7 +15334,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: r_gripper_base_link
       safety_controller: null
       type: revolute
-    - &id042 !!python/object:urdf_parser_py.urdf.Joint
+    - &id061 !!python/object:urdf_parser_py.urdf.Joint
       axis: null
       calibration: null
       child: r_gripper_base_link
@@ -15354,7 +15354,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: r_hand_base_adapter_link
       safety_controller: null
       type: fixed
-    - &id090 !!python/object:urdf_parser_py.urdf.Link
+    - &id111 !!python/object:urdf_parser_py.urdf.Link
       collision: null
       inertial: null
       name: l_gripper_base_link
@@ -15376,7 +15376,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           - -0.065
           - -0.065
           - 0.003
-    - &id091 !!python/object:urdf_parser_py.urdf.Link
+    - &id112 !!python/object:urdf_parser_py.urdf.Link
       collision: null
       inertial: null
       name: l_gripper_palm_link
@@ -15406,7 +15406,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           - -0.046
           - -0.04
           - 0.0
-    - &id043 !!python/object:urdf_parser_py.urdf.Joint
+    - &id062 !!python/object:urdf_parser_py.urdf.Joint
       axis: null
       calibration: null
       child: l_gripper_palm_link
@@ -15426,7 +15426,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: l_gripper_base_link
       safety_controller: null
       type: fixed
-    - &id092 !!python/object:urdf_parser_py.urdf.Link
+    - &id113 !!python/object:urdf_parser_py.urdf.Link
       collision: null
       inertial: null
       name: l_gripper_left_finger_link
@@ -15448,7 +15448,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           - 0.0115
           - -0.005
           - -0.01
-    - &id044 !!python/object:urdf_parser_py.urdf.Joint
+    - &id063 !!python/object:urdf_parser_py.urdf.Joint
       axis:
       - 0.0
       - -1.0
@@ -15475,7 +15475,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: l_gripper_left_finger_base_link
       safety_controller: null
       type: revolute
-    - &id093 !!python/object:urdf_parser_py.urdf.Link
+    - &id114 !!python/object:urdf_parser_py.urdf.Link
       collision: null
       inertial: null
       name: l_gripper_left_finger_base_link
@@ -15505,7 +15505,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           - 0.018
           - -0.0075
           - -0.005
-    - &id045 !!python/object:urdf_parser_py.urdf.Joint
+    - &id064 !!python/object:urdf_parser_py.urdf.Joint
       axis:
       - 0.0
       - -1.0
@@ -15532,7 +15532,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: l_gripper_base_link
       safety_controller: null
       type: revolute
-    - &id094 !!python/object:urdf_parser_py.urdf.Link
+    - &id115 !!python/object:urdf_parser_py.urdf.Link
       collision: null
       inertial: null
       name: l_gripper_right_finger_link
@@ -15554,7 +15554,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           - 0.0115
           - -0.02571
           - -0.01
-    - &id046 !!python/object:urdf_parser_py.urdf.Joint
+    - &id065 !!python/object:urdf_parser_py.urdf.Joint
       axis:
       - 0.0
       - -1.0
@@ -15581,7 +15581,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: l_gripper_right_finger_base_link
       safety_controller: null
       type: revolute
-    - &id095 !!python/object:urdf_parser_py.urdf.Link
+    - &id116 !!python/object:urdf_parser_py.urdf.Link
       collision: null
       inertial: null
       name: l_gripper_right_finger_base_link
@@ -15611,7 +15611,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           - 0.018
           - -0.0075
           - -0.005
-    - &id047 !!python/object:urdf_parser_py.urdf.Joint
+    - &id066 !!python/object:urdf_parser_py.urdf.Joint
       axis:
       - 0.0
       - -1.0
@@ -15638,7 +15638,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: l_gripper_base_link
       safety_controller: null
       type: revolute
-    - &id096 !!python/object:urdf_parser_py.urdf.Link
+    - &id117 !!python/object:urdf_parser_py.urdf.Link
       collision: null
       inertial: null
       name: l_gripper_mid_finger_link
@@ -15660,7 +15660,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           - 0.0115
           - -0.01386
           - -0.01
-    - &id048 !!python/object:urdf_parser_py.urdf.Joint
+    - &id067 !!python/object:urdf_parser_py.urdf.Joint
       axis:
       - 0.0
       - -1.0
@@ -15687,7 +15687,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: l_gripper_mid_finger_base_link
       safety_controller: null
       type: revolute
-    - &id097 !!python/object:urdf_parser_py.urdf.Link
+    - &id118 !!python/object:urdf_parser_py.urdf.Link
       collision: null
       inertial: null
       name: l_gripper_mid_finger_base_link
@@ -15717,7 +15717,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           - 0.018
           - -0.0075
           - -0.005
-    - &id049 !!python/object:urdf_parser_py.urdf.Joint
+    - &id068 !!python/object:urdf_parser_py.urdf.Joint
       axis:
       - 0.0
       - -1.0
@@ -15744,7 +15744,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: l_gripper_base_link
       safety_controller: null
       type: revolute
-    - &id050 !!python/object:urdf_parser_py.urdf.Joint
+    - &id069 !!python/object:urdf_parser_py.urdf.Joint
       axis: null
       calibration: null
       child: l_gripper_base_link
@@ -15764,7 +15764,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: l_hand_base_adapter_link
       safety_controller: null
       type: fixed
-    - &id098 !!python/object:urdf_parser_py.urdf.Link
+    - &id119 !!python/object:urdf_parser_py.urdf.Link
       collision: !!python/object:urdf_parser_py.urdf.Collision
         geometry: !!python/object:urdf_parser_py.urdf.Cylinder
           length: 0.05
@@ -15803,7 +15803,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           - 0.0
           - 0.0
           - 0.0
-    - &id051 !!python/object:urdf_parser_py.urdf.Joint
+    - &id070 !!python/object:urdf_parser_py.urdf.Joint
       axis: null
       calibration: null
       child: front_laser_scanner_link
@@ -15823,7 +15823,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: base_link
       safety_controller: null
       type: fixed
-    - &id099 !!python/object:urdf_parser_py.urdf.Link
+    - &id120 !!python/object:urdf_parser_py.urdf.Link
       collision: !!python/object:urdf_parser_py.urdf.Collision
         geometry: !!python/object:urdf_parser_py.urdf.Cylinder
           length: 0.05
@@ -15857,7 +15857,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           - 0.0
           - 0.0
           - 0.0
-    - &id052 !!python/object:urdf_parser_py.urdf.Joint
+    - &id071 !!python/object:urdf_parser_py.urdf.Joint
       axis: null
       calibration: null
       child: rear_laser_scanner_link
@@ -15877,7 +15877,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: base_link
       safety_controller: null
       type: fixed
-    - &id100 !!python/object:urdf_parser_py.urdf.Link
+    - &id121 !!python/object:urdf_parser_py.urdf.Link
       collision: null
       inertial: null
       name: table_tom_link
@@ -15907,7 +15907,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           - -0.9
           - -0.91
           - -0.42
-    - &id101 !!python/object:urdf_parser_py.urdf.Link
+    - &id122 !!python/object:urdf_parser_py.urdf.Link
       collision: null
       inertial: null
       name: box_tom_link
@@ -15937,7 +15937,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
           - 0.55
           - -0.441
           - 0.255
-    - &id053 !!python/object:urdf_parser_py.urdf.Joint
+    - &id072 !!python/object:urdf_parser_py.urdf.Joint
       axis: null
       calibration: null
       child: box_tom_link
@@ -15957,7 +15957,7 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       parent: base_footprint
       safety_controller: null
       type: fixed
-    - &id054 !!python/object:urdf_parser_py.urdf.Joint
+    - &id073 !!python/object:urdf_parser_py.urdf.Joint
       axis: null
       calibration: null
       child: table_tom_link
@@ -16263,73 +16263,55 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
         - l_base_link
     gazebos: []
     joint_map:
-      ICS_logo_blue: *id062
-      ICS_logo_grey: *id063
-      base_footprint_joint: *id055
-      base_to_torso: *id057
-      box_tom_joint: *id053
-      front_laser_scanner: *id051
-      l_ee_fixed_joint: *id033
-      l_elbow_joint: *id029
-      l_front_wheel_joint: *id058
-      l_gripper_base_joint: *id050
-      l_gripper_left_finger_base_joint: *id045
-      l_gripper_left_finger_joint: *id044
-      l_gripper_mid_finger_base_joint: *id049
-      l_gripper_mid_finger_joint: *id048
-      l_gripper_palm_joint: *id043
-      l_gripper_right_finger_base_joint: *id047
-      l_gripper_right_finger_joint: *id046
-      l_hand_base_adapter_joint: *id056
-      l_rear_wheel_joint: *id059
-      l_shoulder_lift_joint: *id028
-      l_shoulder_pan_joint: *id027
-      l_wrist_1_joint: *id030
-      l_wrist_2_joint: *id031
-      l_wrist_3_joint: *id032
-      r_ee_fixed_joint: *id072
-      r_elbow_joint: *id068
-      r_front_wheel_joint: *id060
-      r_gripper_base_joint: *id042
-      r_gripper_left_finger_base_joint: *id037
-      r_gripper_left_finger_joint: *id036
-      r_gripper_mid_finger_base_joint: *id041
-      r_gripper_mid_finger_joint: *id040
-      r_gripper_palm_joint: *id035
-      r_gripper_right_finger_base_joint: *id039
-      r_gripper_right_finger_joint: *id038
-      r_hand_base_adapter_joint: *id074
-      r_rear_wheel_joint: *id061
-      r_shoulder_lift_joint: *id067
-      r_shoulder_pan_joint: *id066
-      r_wrist_1_joint: *id069
-      r_wrist_2_joint: *id070
-      r_wrist_3_joint: *id071
-      rear_laser_scanner: *id052
-      table_head_joint: *id064
-      table_tom_joint: *id054
-      tom_left_camera_joint: *id065
-      torso_to_l_arm: *id034
-      torso_to_r_arm: *id073
+      ICS_logo_blue: *id032
+      ICS_logo_grey: *id033
+      base_footprint_joint: *id074
+      base_to_torso: *id027
+      box_tom_joint: *id072
+      front_laser_scanner: *id070
+      l_ee_fixed_joint: *id051
+      l_elbow_joint: *id047
+      l_front_wheel_joint: *id028
+      l_gripper_base_joint: *id069
+      l_gripper_left_finger_base_joint: *id064
+      l_gripper_left_finger_joint: *id063
+      l_gripper_mid_finger_base_joint: *id068
+      l_gripper_mid_finger_joint: *id067
+      l_gripper_palm_joint: *id062
+      l_gripper_right_finger_base_joint: *id066
+      l_gripper_right_finger_joint: *id065
+      l_hand_base_adapter_joint: *id053
+      l_rear_wheel_joint: *id029
+      l_shoulder_lift_joint: *id046
+      l_shoulder_pan_joint: *id045
+      l_wrist_1_joint: *id048
+      l_wrist_2_joint: *id049
+      l_wrist_3_joint: *id050
+      r_ee_fixed_joint: *id042
+      r_elbow_joint: *id038
+      r_front_wheel_joint: *id030
+      r_gripper_base_joint: *id061
+      r_gripper_left_finger_base_joint: *id056
+      r_gripper_left_finger_joint: *id055
+      r_gripper_mid_finger_base_joint: *id060
+      r_gripper_mid_finger_joint: *id059
+      r_gripper_palm_joint: *id054
+      r_gripper_right_finger_base_joint: *id058
+      r_gripper_right_finger_joint: *id057
+      r_hand_base_adapter_joint: *id044
+      r_rear_wheel_joint: *id031
+      r_shoulder_lift_joint: *id037
+      r_shoulder_pan_joint: *id036
+      r_wrist_1_joint: *id039
+      r_wrist_2_joint: *id040
+      r_wrist_3_joint: *id041
+      rear_laser_scanner: *id071
+      table_head_joint: *id034
+      table_tom_joint: *id073
+      tom_left_camera_joint: *id035
+      torso_to_l_arm: *id052
+      torso_to_r_arm: *id043
     joints:
-    - *id055
-    - *id057
-    - *id058
-    - *id059
-    - *id060
-    - *id061
-    - *id062
-    - *id063
-    - *id064
-    - *id065
-    - *id066
-    - *id067
-    - *id068
-    - *id069
-    - *id070
-    - *id071
-    - *id072
-    - *id073
     - *id074
     - *id027
     - *id028
@@ -16339,7 +16321,6 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
     - *id032
     - *id033
     - *id034
-    - *id056
     - *id035
     - *id036
     - *id037
@@ -16360,77 +16341,76 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
     - *id052
     - *id053
     - *id054
+    - *id055
+    - *id056
+    - *id057
+    - *id058
+    - *id059
+    - *id060
+    - *id061
+    - *id062
+    - *id063
+    - *id064
+    - *id065
+    - *id066
+    - *id067
+    - *id068
+    - *id069
+    - *id070
+    - *id071
+    - *id072
+    - *id073
     link_map:
-      ICS_logo_blue_link: *id110
-      ICS_logo_grey_link: *id111
-      base_footprint: *id102
-      base_link: *id104
-      box_tom_link: *id101
-      front_laser_scanner_link: *id098
-      l_base_link: *id123
-      l_ee_link: *id081
-      l_forearm_link: *id077
-      l_front_wheel_link: *id106
-      l_gripper_base_link: *id090
-      l_gripper_left_finger_base_link: *id093
-      l_gripper_left_finger_link: *id092
-      l_gripper_mid_finger_base_link: *id097
-      l_gripper_mid_finger_link: *id096
-      l_gripper_palm_link: *id091
-      l_gripper_right_finger_base_link: *id095
-      l_gripper_right_finger_link: *id094
-      l_hand_base_adapter_link: *id082
-      l_rear_wheel_link: *id107
-      l_shoulder_link: *id075
-      l_upper_arm_link: *id076
-      l_wrist_1_link: *id078
-      l_wrist_2_link: *id079
-      l_wrist_3_link: *id080
-      r_base_link: *id114
-      r_ee_link: *id121
-      r_forearm_link: *id117
-      r_front_wheel_link: *id108
+      ICS_logo_blue_link: *id081
+      ICS_logo_grey_link: *id082
+      base_footprint: *id123
+      base_link: *id075
+      box_tom_link: *id122
+      front_laser_scanner_link: *id119
+      l_base_link: *id094
+      l_ee_link: *id101
+      l_forearm_link: *id097
+      l_front_wheel_link: *id077
+      l_gripper_base_link: *id111
+      l_gripper_left_finger_base_link: *id114
+      l_gripper_left_finger_link: *id113
+      l_gripper_mid_finger_base_link: *id118
+      l_gripper_mid_finger_link: *id117
+      l_gripper_palm_link: *id112
+      l_gripper_right_finger_base_link: *id116
+      l_gripper_right_finger_link: *id115
+      l_hand_base_adapter_link: *id102
+      l_rear_wheel_link: *id078
+      l_shoulder_link: *id095
+      l_upper_arm_link: *id096
+      l_wrist_1_link: *id098
+      l_wrist_2_link: *id099
+      l_wrist_3_link: *id100
+      r_base_link: *id085
+      r_ee_link: *id092
+      r_forearm_link: *id088
+      r_front_wheel_link: *id079
       r_gripper_base_link: *id103
-      r_gripper_left_finger_base_link: *id085
-      r_gripper_left_finger_link: *id084
-      r_gripper_mid_finger_base_link: *id089
-      r_gripper_mid_finger_link: *id088
-      r_gripper_palm_link: *id083
-      r_gripper_right_finger_base_link: *id087
-      r_gripper_right_finger_link: *id086
-      r_hand_base_adapter_link: *id122
-      r_rear_wheel_link: *id109
-      r_shoulder_link: *id115
-      r_upper_arm_link: *id116
-      r_wrist_1_link: *id118
-      r_wrist_2_link: *id119
-      r_wrist_3_link: *id120
-      rear_laser_scanner_link: *id099
-      table_tom_link: *id100
-      tom_head_link: *id113
-      tom_left_camera_link: *id112
-      torso_link: *id105
+      r_gripper_left_finger_base_link: *id106
+      r_gripper_left_finger_link: *id105
+      r_gripper_mid_finger_base_link: *id110
+      r_gripper_mid_finger_link: *id109
+      r_gripper_palm_link: *id104
+      r_gripper_right_finger_base_link: *id108
+      r_gripper_right_finger_link: *id107
+      r_hand_base_adapter_link: *id093
+      r_rear_wheel_link: *id080
+      r_shoulder_link: *id086
+      r_upper_arm_link: *id087
+      r_wrist_1_link: *id089
+      r_wrist_2_link: *id090
+      r_wrist_3_link: *id091
+      rear_laser_scanner_link: *id120
+      table_tom_link: *id121
+      tom_head_link: *id084
+      tom_left_camera_link: *id083
+      torso_link: *id076
     links:
-    - *id102
-    - *id104
-    - *id105
-    - *id106
-    - *id107
-    - *id108
-    - *id109
-    - *id110
-    - *id111
-    - *id112
-    - *id113
-    - *id114
-    - *id115
-    - *id116
-    - *id117
-    - *id118
-    - *id119
-    - *id120
-    - *id121
-    - *id122
     - *id123
     - *id075
     - *id076
@@ -16440,7 +16420,6 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
     - *id080
     - *id081
     - *id082
-    - *id103
     - *id083
     - *id084
     - *id085
@@ -16460,6 +16439,27 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
     - *id099
     - *id100
     - *id101
+    - *id102
+    - *id103
+    - *id104
+    - *id105
+    - *id106
+    - *id107
+    - *id108
+    - *id109
+    - *id110
+    - *id111
+    - *id112
+    - *id113
+    - *id114
+    - *id115
+    - *id116
+    - *id117
+    - *id118
+    - *id119
+    - *id120
+    - *id121
+    - *id122
     materials: []
     name: tom
     parent_map:
@@ -16608,18 +16608,18 @@ kinematics: !!python/object:pykdl_utils.kdl_kinematics.KDLKinematics
       - base_to_torso
       - base_link
     transmissions:
-    - *id130
-    - *id131
-    - *id132
-    - *id133
-    - *id134
-    - *id135
     - *id124
     - *id125
     - *id126
     - *id127
     - *id128
     - *id129
+    - *id130
+    - *id131
+    - *id132
+    - *id133
+    - *id134
+    - *id135
 objs:
 - orange
 tau: 17.53322672843933

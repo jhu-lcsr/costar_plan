@@ -1,6 +1,9 @@
 !GMM
-k: 1
-mu:
+det:
+- null
+- null
+- null
+invsigma:
 - !!python/object/apply:numpy.core.multiarray._reconstruct
   args:
   - &id001 !!python/name:numpy.ndarray ''
@@ -10,6 +13,7 @@ mu:
   state: !!python/tuple
   - 1
   - !!python/tuple
+    - 9
     - 9
   - &id002 !!python/object/apply:numpy.dtype
     args:
@@ -25,6 +29,35 @@ mu:
     - -1
     - -1
     - 0
+  - false
+  - !!binary |
+    a+XUdEDckEB+dbiARDdQwFBX3mYbJrDAJB18rhGArsAdF28QDWe1QIn3sT1CVyFBBvsAkWgRMsG9
+    X/9GZML3QJ+QpuL5Ls1AwZC3gEQ3UMDCFSgikjTgQDnmqKGeaN9A/xBKlOR/zUDcaG41Zs3vwLZT
+    X4eRsDLBM+tmaTbAQkFcDufPhJwYwfkltzD/btDAYVTeZhsmsMBR6qihnmjfQMMDJ8juselAHalQ
+    uS9p4EAKWRY9w/LzwPgrvQRSfkrBLdZPjPa9XEErdUoDzFgRwbMly8AZuwLBsht8rhGArsAnG0qU
+    5H/NQMWqULkvaeBA5hmRTwnL3ECjgBonZuDmwBtYWRHw/UjBYQx6kgvpW0HZyE5PkU/GwHY5KHz3
+    NgnBHxBvEA1ntUAua241Zs3vwABYFj3D8vPAG3waJ2bg5sBgot7FpAwDQcqhbZrAhlRBsbR8Do7L
+    ZMHqhAjBlbc2Qa6iw8aPFPhAtfmxPUJXIUEqbF+HkbAywWM4vQRSfkrBll1ZEfD9SME2r22awIZU
+    Qeu+p9LDtslBWbhEfJbV28G+HzAtcgugQZjLVTjeeIdB6P0AkWgRMsF5BmdpNsBCQY/kT4z2vVxB
+    IxN6kgvpW0Hzw3wOjstkwS+5RHyW1dvBWUBp4G7o7kGEfW9yI8mgwZCz/Az8cJ7Brlf/RmTC90B2
+    FOfPhJwYwfJwSgPMWBHBqnNNT5FPxsBDhQjBlbc2QUoXMC1yC6BBKGpvciPJoMH4b0oDkfutQY6/
+    Zvu203PBVKim4vkuzUDXl7cw/27QwOg3y8AZuwLBl0QofPc2CcEB6sPGjxT4QJTRVTjeeIdBRLn8
+    DPxwnsG/uWb7ttNzwextknw071xB
+- null
+- null
+k: 1
+mu:
+- !!python/object/apply:numpy.core.multiarray._reconstruct
+  args:
+  - *id001
+  - !!python/tuple
+    - 0
+  - b
+  state: !!python/tuple
+  - 1
+  - !!python/tuple
+    - 9
+  - *id002
   - false
   - !!binary |
     ////////3z+8wAtS1vu4PxJ5rlrKmYu/hi5mCv3uuj8ToniHv0rGP3O1Tvi5gdm/VdqBlzpV7T81
