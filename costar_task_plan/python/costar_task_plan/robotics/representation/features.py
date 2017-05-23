@@ -161,9 +161,6 @@ class RobotFeatures:
             self.obj_frame = data['obj_frame']
             self.base_link = data['base_link']
             self.end_link = data['end_link']
-            #print end_link
-            #print self.end_link
-            #print data['end_link']
 
             if data.has_key('indices') and data.has_key('diff_indices'):
                 self.indices = data['indices']

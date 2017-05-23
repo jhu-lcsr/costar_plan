@@ -68,10 +68,6 @@ class GMM(yaml.YAMLObject):
   return log likelihoods
   '''
   def score(self,data):
-    print data
-    print self.mu
-    print self.pi
-    print self.loglikelihood(data)
     return gmm.gm_log_likelihood(data,self.mu,self.sigma,self.pi)
 
   def loglikelihood(self,data):
