@@ -28,12 +28,20 @@ tf.flags.DEFINE_integer('sensor_image_width', 640, 'Camera Image Width')
 tf.flags.DEFINE_integer('sensor_image_height', 512, 'Camera Image Height')
 tf.flags.DEFINE_integer('sensor_color_channels', 3,
                         'Number of color channels (3, RGB)')
-tf.flags.DEFINE_string('grasp_download', None,
+tf.flags.DEFINE_string('grasp_download', '057',
                        """Filter the subset of 1TB Grasp datasets to download.
                        None by default. 'all' will download all datasets.
                        '052' and '057' will download the small starter datasets.
-                       '102' will download the dataset with 102 features,
-                       around 110 GB.
+                       '102' will download the main dataset with 102 features,
+                       around 110 GB and 38k grasp attempts.
+                       See https://sites.google.com/site/brainrobotdata/home
+                       for a full listing.""")
+tf.flags.DEFINE_string('grasp_dataset', '057',
+                       """Filter the subset of 1TB Grasp datasets to run.
+                       None by default. 'all' will run all datasets in data_dir.
+                       '052' and '057' will download the small starter datasets.
+                       '102' will download the main dataset with 102 features,
+                       around 110 GB and 38k grasp attempts.
                        See https://sites.google.com/site/brainrobotdata/home
                        for a full listing.""")
 
@@ -51,7 +59,7 @@ def mkdir_p(path):
             raise
 
 
-class GraspDataset:
+class GraspDataset(object):
     """Google Grasping Dataset - about 1TB total size
         https://sites.google.com/site/brainrobotdata/home/grasping-dataset
 
@@ -63,13 +71,38 @@ class GraspDataset:
         *.csv lists the number of features, the number of grasp attempts, and all feature names;
         *.tfrecord and *.tfrecord*-of-* is the actual data stored in the tfrecord.
 
+        @TODO(ahundt) update to use new TF Dataset API https://github.com/tensorflow/tensorflow/tree/master/tensorflow/contrib/data
+
+        # Arguments
+
+        data_dir: Path to dataset in TFRecord format
+            (aka Example protobufs) and feature csv files.
+
+        dataset: Filter the subset of 1TB Grasp datasets to run.
+            None by default. 'all' will run all datasets in data_dir.
+            '052' and '057' will download the small starter datasets.
+            '102' will download the main dataset with 102 features,
+            around 110 GB and 38k grasp attempts.
+            See https://sites.google.com/site/brainrobotdata/home
+            for a full listing.
+
+        download_subset: Filter the subset to actually download.
+            Specify in the same manner as the `dataset` parameter.
     """
-    def __init__(self, data_dir=None):
+    def __init__(self, data_dir=None, dataset=None, download_subset=None):
         if data_dir is None:
             data_dir = FLAGS.data_dir
         self.data_dir = data_dir
+        if dataset is None:
+            dataset = FLAGS.grasp_dataset
+        self.dataset = dataset
+        if download_subset is None:
+            download_subset = FLAGS.grasp_download
+        self.download_subset = download_subset
+        if download_subset is not None:
+            self.download(download_subset)
 
-    def download(self, dataset=''):
+    def download(self, dataset='all'):
         '''Google Grasping Dataset - about 1TB total size
         https://sites.google.com/site/brainrobotdata/home/grasping-dataset
 
@@ -90,10 +123,7 @@ class GraspDataset:
            list of paths to the downloaded files
 
         '''
-        if dataset is None:
-            return []
-        if dataset is 'all':
-            dataset = ''
+        dataset = self._update_dataset_param(dataset)
         mkdir_p(FLAGS.data_dir)
         print('Downloading datasets to: ', FLAGS.data_dir)
         listing_url = 'https://sites.google.com/site/brainrobotdata/home/grasping-dataset/grasp_listing.txt'
@@ -105,15 +135,52 @@ class GraspDataset:
                  if '_' + dataset in fpath]
         return files
 
-    def get_feature_csv_file_paths(self):
+    def _update_dataset_param(self, dataset):
+        """Internal function to configure which subset of the datasets is being used.
+        Helps to choose a reasonable default action based on previous user parameters.
+        """
+        if dataset is None and self.dataset is None:
+            return []
+        if dataset is 'all':
+            dataset = ''
+        if dataset is None and self.dataset is not None:
+            dataset = self.dataset
+        return dataset
+
+    def get_feature_csv_file_paths(self, dataset=None):
         """List feature csv files with full paths in the data_dir.
         Feature csv files identify each dataset, the size, and its data channels.
         One example is: 'features_102.csv'
         """
-        return gfile.Glob(os.path.join(os.path.expanduser(self.data_dir), '*.csv*'))
+        dataset = self._update_dataset_param(dataset)
+        return gfile.Glob(os.path.join(os.path.expanduser(self.data_dir), '*{}*.csv'.format(dataset)))
 
-    @staticmethod
-    def get_grasp_tfrecord_info(feature_csv_file):
+    def get_features(self, dataset=None):
+        """Get all features associated with the dataset specified when this class
+        was constructed. Use when only one dataset will be processed.
+        """
+        dataset = self._update_dataset_param(dataset)
+        csv_files = self.get_feature_csv_file_paths(dataset)
+        features_complete_list, _, _, _ = self.get_grasp_tfrecord_info(csv_files[-1])
+        return features_complete_list
+
+    def get_tfrecord_path_glob_pattern(self, dataset=None):
+        """Get the Glob string pattern for matching the specified dataset tfrecords.
+
+        This will often be used in conjunction with the RecordInput class if you need
+        a custom dataset loading function.
+
+        # Arguments
+            data_dir: The path to the folder containing the grasp dataset.
+
+            dataset: The name of the dataset to download, downloads all by default
+                with the '' parameter, 102 will download the 102 feature dataset
+                found in grasp_listing.txt.
+        """
+        dataset = self._update_dataset_param(dataset)
+        return os.path.join(os.path.expanduser(self.data_dir), '*{}.tfrecord*'.format(dataset))
+
+    def get_grasp_tfrecord_info(self, feature_csv_file):
         """
         # Arguments
 
@@ -121,17 +188,17 @@ class GraspDataset:
 
         # Returns
             features: complete list of all features for this dataset aka tfrecord group
+            tfrecord_paths: paths to all tfrecords for this dataset
             feature_count: total number of features
             attempt_count: total number of grasp attempts
-            tfrecord_paths: paths to all tfrecords for this dataset
         """
-        features = np.genfromtxt(feature_csv_file, dtype=str)
+        features = np.genfromtxt(os.path.join(os.path.expanduser(self.data_dir), feature_csv_file), dtype=str)
         feature_count = int(features[0])
         attempt_count = int(features[1])
         features = features[2:]
         # note that the tfrecords are often named '*{}.tfrecord*-of-*'
-        tfrecord_paths = gfile.Glob(os.path.join(os.path.expanduser(FLAGS.data_dir), '*{}.tfrecord*'.format(feature_count)))
-        return features, feature_count, attempt_count, tfrecord_paths
+        tfrecord_paths = gfile.Glob(self.get_tfrecord_path_glob_pattern())
+        return features, tfrecord_paths, feature_count, attempt_count
 
     @staticmethod
     def get_time_ordered_features(features, step='all', feature_type='/image/encoded'):
@@ -155,26 +222,46 @@ class GraspDataset:
                 'robot' get robot name
 
             feature_type: feature data type, one of
-                'transforms/base_T_endeffector/vec_quat_7'		A pose is a 6 degree of freedom rigid transform represented with 7 values:
-                                                                    vector (x, y, z) and quaternion (x, y, z, w).
-                                                                A pose is always annotated with the target and source frames of reference.
-                                                                For example, base_T_camera is a transform that takes a point in the camera frame
-                                                                of reference and transforms it to the base frame of reference.
-                'camera/transforms/camera_T_base/matrix44'        Same as base_T_endeffector but from the camera center to the robot base
-                'commanded_pose'		Commanded pose is the input to the inverse kinematics computation, which is used to determine desired joint positions.
-                'reached_pose'		Pose calculated by forward kinetics from current robot state in status updates.
-                'joint/commanded_torques'		Commanded torques are the torque values calculated from the inverse kinematics
-                                            of the commanded pose and the robot driver.
-                'joint/external_torques'		External torques are torques at each joint that are a result of gravity and other external forces.
-                                            These values are reported by the robot status query.
-                'joint/positions'		Robot joint positions as reported by the robot status query.
-                'joint/velocities'		Robot joint velocities as reported by the robot status query.
-                'depth_image'		Depth image is encoded as an RGB PNG image where the RGB 24-bit value is an integer depth with scale 1/256 of a millimeter.
-                '/image/encoded' Camera RGB images are stored in JPEG format, be careful not to mismatch on depth_image/encoded.
-                'params'		This is a simplified representation of a commanded robot pose and gripper status.
-                            These are the values that were solved for in the network, the output of the Cross Entropy Method.
-                'name'        A string indicating the name of the robot
-                'status'      Unknown, but only feature is 'gripper/status', so probably an indicator of how open/closed the gripper is.
+                'transforms/base_T_endeffector/vec_quat_7'
+                    A pose is a 6 degree of freedom rigid transform represented with 7 values:
+                       vector (x, y, z) and quaternion (x, y, z, w).
+                       A pose is always annotated with the target and source frames of reference.
+                       For example, base_T_camera is a transform that takes a point in the camera frame
+                       of reference and transforms it to the base frame of reference.
+                'camera/transforms/camera_T_base/matrix44'
+                    Same as base_T_endeffector but from the camera center to the robot base
+                'camera/intrinsics/matrix33'
+                    The 3x3 camera intrinsics matrix.
+                'commanded_pose'
+                    Commanded pose is the input to the inverse kinematics computation,
+                    which is used to determine desired joint positions.
+                'reached_pose'
+                    Pose calculated by forward kinetics from current robot state in status updates.
+                'joint/commanded_torques'
+                    Commanded torques are the torque values calculated from the inverse kinematics
+                    of the commanded pose and the robot driver.
+                'joint/external_torques'
+                    External torques are torques at each joint that are a result of gravity and
+                    other external forces. These values are reported by the robot status query.
+                'joint/positions'
+                    Robot joint positions as reported by the robot status query.
+                'joint/velocities'
+                    Robot joint velocities as reported by the robot status query.
+                'depth_image'
+                    Depth image is encoded as an RGB PNG image where the RGB 24-bit value is an
+                    integer depth with scale 1/256 of a millimeter. See `depth_image_encoding.py`.
+                '/image/encoded'
+                    Camera RGB images are stored in JPEG format, be careful not to mismatch on
+                    depth_image/encoded.
+                'params'
+                    This is a simplified representation of a commanded robot pose and gripper status.
+                    These are the values that were solved for in the network, the output of
+                    the Cross Entropy Method.
+                'name'
+                    A string indicating the name of the robot
+                'status'
+                    Unknown, but only feature is 'gripper/status', so probably
+                    an indicator of how open/closed the gripper is.
 
         # Returns
 
@@ -240,55 +327,6 @@ class GraspDataset:
         return matching_features
 
     @staticmethod
-    def tfrecord_minibatch(tfrecord_path_glob_pattern,
-                           batch_size,
-                           gpu_device_count=1,
-                           parse_example_protobuf_fn=None,
-                           preprocessing_fn=None,
-                           data_label_op_lists_create_fn=None,
-                           random_seed=301,
-                           parallelism=64,
-                           buffer_size=10000,
-                           name='batch_processing'):
-        """TODO: High Performance Distributed Training Batches - Adapt for grasping dataset & then broader reuse
-        see minibatch in https://github.com/tensorflow/benchmarks/blob/master/scripts/tf_cnn_benchmarks/preprocessing.py
-        """
-        with tf.name_scope(name):
-            # Split the data among all the GPU devices
-            if batch_size % gpu_device_count != 0:
-                raise ValueError(
-                    ('batch_size must be a multiple of gpu_device_count: '
-                     'batch_size %d, gpu_device_count: %d') %
-                    (batch_size, gpu_device_count))
-                batch_size_per_device = batch_size // gpu_device_count
-            images = [[] for i in range(gpu_device_count)]
-            labels = [[] for i in range(gpu_device_count)]
-            record_input = data_flow_ops.RecordInput(
-                file_pattern=tfrecord_path_glob_pattern,
-                seed=random_seed,
-                parallelism=parallelism,
-                buffer_size=buffer_size,
-                batch_size=batch_size,
-                name='record_input')
-            records = record_input.get_yield_op()
-            records = tf.split(records, batch_size, 0)
-            records = [tf.reshape(record, []) for record in records]
-            feature_op_dicts = []
-            preprocessed_data_ops = []
-            for device_i in xrange(batch_size):
-                protobuf = records[i]
-                feature_op_dict = parse_example_protobuf_fn(protobuf)
-                preprocessed_data = None
-                if preprocessing_fn is not None:
-                    # thread_id should be distortion_method_id, and calculated later
-                    preprocessed_data = preprocessing_fn(feature_op_dict, i)
-                device_index = i % gpu_device_count
-                feature_op_dicts[device_index].append(feature_op_dict)
-                preprocessed_data_ops[device_index].append(preprocessed_data)
-            # label_index_batch = [None] * gpu_device_count
-            return data_label_op_lists_create_fn(feature_op_dicts, preprocessed_data_ops, gpu_device_count)
-
-    @staticmethod
     def parse_grasp_attempt_protobuf(features_complete_list, serialized_grasp_attempt_proto):
         """Parses an Example protobuf containing a training example of an image.
         The output of the build_image_data.py image preprocessing script is a dataset
@@ -321,6 +359,11 @@ class GraspDataset:
         ordered_image_feature_names = GraspDataset.get_time_ordered_features(features_complete_list)
         features_dict.update({image_name: tf.FixedLenFeature([1], tf.string) for image_name in ordered_image_feature_names})
 
+        # load all the depth images
+        ordered_depth_feature_names = GraspDataset.get_time_ordered_features(features_complete_list,
+                                                                             feature_type='depth_image')
+        features_dict.update({image_name: tf.FixedLenFeature([1], tf.string) for image_name in ordered_depth_feature_names})
+
         # load all vec/quat base to end effector transforms
         base_to_endeffector_names = GraspDataset.get_time_ordered_features(
             features_complete_list,
@@ -335,7 +378,7 @@ class GraspDataset:
             )
         features_dict.update({x_form: tf.FixedLenFeature([1], tf.float32) for x_form in transform_adapted_for_network})
 
-        feature_op_dict = tf.parse_single_example(serialized_grasp_attempt_proto, features=features_dict)
+        features_op_dict = tf.parse_single_example(serialized_grasp_attempt_proto, features=features_dict)
         # # Consider using feature_phase_dict_dict if it is convenient,
         # # but move it to the class or something
         # feature_phase_dict_dict = {
@@ -360,9 +403,9 @@ class GraspDataset:
 
         #     }
         # }
-        return feature_op_dict
+        return features_op_dict
 
-    def build_image_input(self, sess, feature_csv_file, train=True, novel=True):
+    def build_image_input(self, feature_csv_file, train=True, novel=True):
         """Create input tfrecord tensors.
 
         Args:
@@ -373,11 +416,12 @@ class GraspDataset:
         Raises:
         RuntimeError: if no files found.
         """
-        features_complete_list, feature_count, attempt_count, tfrecord_paths = self.get_grasp_tfrecord_info(feature_csv_file)
-        print(tfrecord_paths)
+        features_complete_list, tfrecord_paths, _, _ = self.get_grasp_tfrecord_info(feature_csv_file)
+        print tfrecord_paths
         if not tfrecord_paths:
             raise RuntimeError('No tfrecords found for {}.'.format(feature_csv_file))
         filename_queue = tf.train.string_input_producer(tfrecord_paths, shuffle=False)
+        # note that this API is deprecated
         reader = tf.TFRecordReader()
         _, serialized_example = reader.read(filename_queue)
 
@@ -419,7 +463,7 @@ class GraspDataset:
         mkdir_p(FLAGS.gif_dir)
         feature_csv_files = self.get_feature_csv_file_paths()
         for feature_csv_file in feature_csv_files:
-            train_image_tensor = self.build_image_input(sess, feature_csv_file)
+            train_image_tensor = self.build_image_input(feature_csv_file)
             tf.train.start_queue_runners(sess)
             sess.run(tf.global_variables_initializer())
             train_videos = sess.run(train_image_tensor)
