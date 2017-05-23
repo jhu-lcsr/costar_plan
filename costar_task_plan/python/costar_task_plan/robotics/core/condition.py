@@ -12,6 +12,7 @@ class ValidStateCondition(AbstractCondition):
     '''
 
     def __init__(self):
+        rospy.wait_for_service('check_state_validity', 5.0)
         self.srv = rospy.ServiceProxy('check_state_validity', GetStateValidity)
 
     def __call__(self, world, state, actor=None, prev_state=None):
@@ -22,7 +23,6 @@ class ValidStateCondition(AbstractCondition):
                 position=state.q,
                 )
         rs = RobotState(joint_state=js)
-        print "----"
         print rs
         res = self.srv(robot_state=rs)
         print res
