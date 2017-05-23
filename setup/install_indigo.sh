@@ -41,5 +41,5 @@ git clone https://github.com/cpaxton/robotiq_85_gripper.git
 rosdep install -y --from-paths ./ --ignore-src --rosdistro $ROS_DISTRO
 cd $CATKIN_WS/src
 catkin build
-source $CATKIN_WS/devel/setup.bash
+#source $CATKIN_WS/devel/setup.bash
 
