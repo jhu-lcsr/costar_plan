@@ -52,11 +52,11 @@ NUM_GRIPPER_VARS = 3
 NUM_GRIPPER_DIFF_VARS = 0
 NUM_TIME_VARS = 1
 
-'''
-P_Gauss
-Compute the Gaussian probability of something
-'''
 def P_Gauss(x,mu,inv,det,wts):
+    '''
+    P_Gauss
+    Compute the Gaussian probability of something
+    '''
 
     nvar = mu.shape[1]
     p = np.zeros(x.shape[0])
@@ -68,21 +68,25 @@ def P_Gauss(x,mu,inv,det,wts):
 
     return np.log(p)
 
-# Old class that holds and represents a robot -- for one skill and one skill
-# alone. Goals of this class:
-# - collect data based on the list of specified objects
-# - fit models for policies like DMPs
 class RobotFeatures:
+    '''
+    Old class that holds and represents a robot -- for one skill and one skill
+    alone. Goals of this class:
+    - collect data based on the list of specified objects
+    - fit models for policies like DMPs
+    '''
 
-    # create a robot
-    # loads robot description and kinematics from parameter server if available
-    # configured as a kinematic chain; uses KDLKinematics for robot forward
-    # kinematics by default if no kinematics were provided.
     def __init__(self,
             config, kinematics=None,
             objects={}, indices={}, diff_indices={},
             filename=None
             ):
+        '''
+        Create a robot
+        loads robot description and kinematics from parameter server if available
+        configured as a kinematic chain; uses KDLKinematics for robot forward
+        kinematics by default if no kinematics were provided.
+        '''
 
         self.sync_gripper = False
         self.is_recording = False

@@ -1,6 +1,7 @@
 from costar_task_plan.abstract import AbstractFeatures
 from costar_task_plan.robotics.representation import RobotFeatures
 
+import numpy as np
 import tf_conversions.posemath as pm
 
 class DemoFeatures(AbstractFeatures):
@@ -23,12 +24,12 @@ class DemoFeatures(AbstractFeatures):
                 gripper = 1.
             else:
                 gripper = 0.
-            f = self.features.GetFeatures(
+            f = np.array(self.features.GetFeatures(
                     ee,
-                    state.seq / len(state.traj),
+                    state.seq / len(state.traj.points),
                     world.observation,
-                    [state.reference.goal],
-                    gripper)
+                    ['time', state.reference.goal],
+                    gripper))
             return f
         else:
             return None

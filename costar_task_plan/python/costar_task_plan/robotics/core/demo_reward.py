@@ -26,5 +26,10 @@ class DemoReward(AbstractReward):
         '''
         # get world features for this state
         f = world.initial_features
-        model = self.models[world.actors[0].state.reference.skill_name]
-        return gmm.score(f)
+        state = world.actors[0].state
+        if state.reference is not None and f is not None:
+            model = self.models[state.reference.skill_name]
+            p = model.score(f) / len(state.traj.points)
+        else:
+            p = 0.
+        return p, 0.

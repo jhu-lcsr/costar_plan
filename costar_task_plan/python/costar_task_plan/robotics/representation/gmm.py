@@ -16,6 +16,7 @@ class GMM(yaml.YAMLObject):
 
   def __init__(self,k=1,data=None,config=None,diag=1e-8,rawdata=None):
     if rawdata is not None:
+        print rawdata
         self.__dict__.update(rawdata)
     else:
         self.k = 1
@@ -40,6 +41,8 @@ class GMM(yaml.YAMLObject):
   def updateInvSigma(self):
     for i in range(self.k):
       try:
+        print i
+        print self.sigma[i]
         self.invsigma[i] = np.linalg.inv(self.sigma[i])
       except np.linalg.linalg.LinAlgError, e:
         print "Inverse failed for cluster %d!"%i
@@ -65,6 +68,9 @@ class GMM(yaml.YAMLObject):
   return log likelihoods
   '''
   def score(self,data):
+    print data
+    print self.mu
+    print self.pi
     print self.loglikelihood(data)
     return gmm.gm_log_likelihood(data,self.mu,self.sigma,self.pi)
 
@@ -94,6 +100,7 @@ class GMM(yaml.YAMLObject):
   @classmethod
   def from_yaml(cls, loader, node):
     gmm = GMM(rawdata=loader.construct_mapping(node))
+    gmm.updateInvSigma()
     return gmm
 
   @classmethod
