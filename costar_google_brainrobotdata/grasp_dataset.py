@@ -251,7 +251,7 @@ class GraspDataset:
                            buffer_size=10000,
                            name='batch_processing'):
         """TODO: High Performance Distributed Training Batches - Adapt for grasping dataset & then broader reuse
-        see https://github.com/tensorflow/benchmarks/blob/master/scripts/tf_cnn_benchmarks/preprocessing.py
+        see minibatch in https://github.com/tensorflow/benchmarks/blob/master/scripts/tf_cnn_benchmarks/preprocessing.py
         """
         with tf.name_scope(name):
             # Split the data among all the GPU devices
