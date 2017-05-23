@@ -33,7 +33,7 @@ class DmpOption(AbstractOption):
   # Make a policy.
   def makePolicy(self, *args, **kwargs):
     return self.policy_type(
-            skill_name=self.skill_name,
+            skill=self,
             goal=self.goal,
             dmp=self.instances[0],
             kinematics=self.kinematics)
@@ -42,8 +42,8 @@ class DmpOption(AbstractOption):
   # - execution should continue until such time as this condition is true.
   def getGatingCondition(self, *args, **kwargs):
     return DmpCondition(
+            parent=self,
             goal=self.goal,
-            dmp=self.instances[0],
             kinematics=self.kinematics,)
 
   # Is it ok to begin this option?
@@ -69,9 +69,9 @@ class DmpCondition(AbstractCondition):
   within tolerances and we are nearly stopped, it returns false.
   '''
 
-  def __init__(self, goal, dmp, kinematics):
+  def __init__(self, parent, goal, kinematics):
       self.goal = goal
-      self.dmp = dmp
+      self.parent = parent
       self.kinematics = kinematics
 
   def __call__(self, world, state, actor=None, prev_state=None):
@@ -79,6 +79,6 @@ class DmpCondition(AbstractCondition):
       actor = world.actors[0]
     
     # Determine if we finished the last action so we can switch active DMPs.
-    ok_to_start = self.dmp is not state.reference and \
+    ok_to_start = self.parent is not state.reference and \
         (state.finished_last_sequence or state.reference is None)
     return ok_to_start or np.any(np.abs(state.dq) > 1e-2) or state.seq > 0

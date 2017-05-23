@@ -18,8 +18,8 @@ class DmpPolicy(AbstractPolicy):
   tick rate before recomputing the DMP.
   '''
 
-  def __init__(self, skill_name, goal, dmp, kinematics):
-    self.skill_name = skill_name
+  def __init__(self, skill, goal, dmp, kinematics):
+    self.skill = skill
     self.dmp = dmp
     self.kinematics = kinematics
     self.goal = goal
@@ -71,7 +71,7 @@ class CartesianDmpPolicy(DmpPolicy):
 
     # =========================================================================
     # Generate the trajectory based on the current state
-    reset_seq = state.reference is not self.dmp or state.traj is None
+    reset_seq = state.reference is not self.skill or state.traj is None
     g = []
     if reset_seq:
         q = state.q
@@ -131,7 +131,7 @@ class CartesianDmpPolicy(DmpPolicy):
         return CostarAction(q=q,
                 dq=dq,
                 reset_seq=reset_seq,
-                reference=self.dmp,
+                reference=self.skill,
                 traj=traj)
       else:
         rospy.logwarn("could not get inverse kinematics for position")
@@ -141,7 +141,7 @@ class CartesianDmpPolicy(DmpPolicy):
                 q=state.q,
                 dq=np.zeros(state.q.shape),
                 reset_seq=reset_seq,
-                reference=self.dmp,
+                reference=self.skill,
                 traj=traj)
     else:
       '''
@@ -149,7 +149,7 @@ class CartesianDmpPolicy(DmpPolicy):
       looking up actor information from the current world.
       '''
       action = world.zeroAction(state.actor_id)
-      action.reference = self.dmp
+      action.reference = self.skill
       action.finish_sequence = True
       if state.seq > len(traj.points):
           raise RuntimeError('Went past end of trajectory.')
