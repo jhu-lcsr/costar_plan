@@ -18,7 +18,6 @@ except:
     print ('')
 
 import tensorflow as tf
-import re
 
 from tensorflow.python.platform import flags
 from tensorflow.python.platform import gfile
@@ -38,35 +37,58 @@ tf.flags.DEFINE_integer('vrepCommThreadCycleInMs', 5, 'time between communicatio
 FLAGS = flags.FLAGS
 
 
-class VREPSimulation:
+class VREPGraspSimulation(object):
 
     def __init__(self):
-        return
-
-    def start(self):
         """Start the connection to the remote V-REP simulation
         """
         print 'Program started'
         # just in case, close all opened connections
         v.simxFinish(-1)
         # Connect to V-REP
-        clientID = v.simxStart(FLAGS.vrepConnectionAddress,
-                               FLAGS.vrepConnectionPort,
-                               FLAGS.vrepWaitUntilConnected,
-                               FLAGS.vrepDoNotReconnectOnceDisconnected,
-                               FLAGS.vrepTimeOutInMs,
-                               FLAGS.vrepCommThreadCycleInMs)
-        if clientID != -1:
+        client_id = v.simxStart(FLAGS.vrepConnectionAddress,
+                                FLAGS.vrepConnectionPort,
+                                FLAGS.vrepWaitUntilConnected,
+                                FLAGS.vrepDoNotReconnectOnceDisconnected,
+                                FLAGS.vrepTimeOutInMs,
+                                FLAGS.vrepCommThreadCycleInMs)
+        if client_id != -1:
             print 'Connected to remote API server'
+        return
+
+    def visualize(self, tf_session, dataset=None):
+        """Visualize one dataset in V-REP
+        """
+        grasp_dataset = GraspDataset(dataset)
+        tf_glob = grasp_dataset.get_tfrecord_path_glob_pattern()
+        features_complete_list = grasp_dataset.get_features()
+        record_input = data_flow_ops.RecordInput(tf_glob)
+        records_op = record_input.get_yield_op()
+        # TODO(ahundt) https://www.tensorflow.org/performance/performance_models
+        # make sure records are always ready to go
+        # staging_area = tf.contrib.staging.StagingArea()
+        features_op_dict = grasp_dataset.parse_grasp_attempt_protobuf(features_complete_list, records_op)
+        base_to_endeffector_transforms = grasp_dataset.get_time_ordered_features(
+            features_complete_list,
+            feature_type='transforms/base_T_endeffector/vec_quat_7')
+        camera_to_base_transform = 'camera/transforms/camera_T_base/matrix44'
+        camera_intrinsics = 'camera/intrinsics/matrix33'
+        tf_session.run(tf.global_variables_initializer())
+
+        # TODO(ahundt) put a loop here
+        output_features_dict = tf_session.run(features_op_dict)
+        gripper_positions = [output_features_dict[transform_name] for transform_name in camera_to_base_transform]
+        print gripper_positions
+        print output_features_dict[camera_to_base_transform]
+        print output_features_dict[camera_intrinsics]
+
+    def __del__(self):
+        v.simxFinish(-1)
 
 
 if __name__ == '__main__':
 
     with tf.Session() as sess:
-        gd = GraspDataset()
-        gd.download(FLAGS.grasp_download)
-        sim = VREPSimulation()
-        sim.start()
-
-        gd.create_gif(sess)
+        sim = VREPGraspSimulation()
+        sim.visualize(sess)
 
