@@ -18,8 +18,8 @@ class SortingTaskDefinition(AbstractTaskDefinition):
     tray_dir = "tray"
     tray_urdf = "traybox.urdf"
 
-    spawn_pos_min = np.array([-0.4 ,-0.25, 0.05])
-    spawn_pos_max = np.array([-0.65, 0.25, 0.055])
+    spawn_pos_min = np.array([-0.4 ,-0.25, 0.10])
+    spawn_pos_max = np.array([-0.65, 0.25, 0.155])
     spawn_pos_delta = spawn_pos_max - spawn_pos_min
 
     tray_poses = [np.array([-0.5, 0., 0.0]),
