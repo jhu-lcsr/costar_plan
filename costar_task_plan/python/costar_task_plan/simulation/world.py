@@ -9,6 +9,12 @@ class SimulationWorld(AbstractWorld):
         super(SimulationWorld, self).__init__(NullReward(), *args, **kwargs)
         self.num_steps = num_steps
 
+        # stores object handles and names
+        self.objects = {}
+
+        # stores object class information
+        self.object_classes = {}
+
     def hook(self):
         '''
         Step the simulation forward after all actors have given their comments
@@ -37,6 +43,18 @@ class SimulationDynamics(AbstractDynamics):
         if action.cmd is not None:
             state.robot.act(action.cmd)
 
+class SimulationObjectState(AbstractState):
+    '''
+    Represents state and position of an arbitrary rigid object, and any
+    associated predicates.
+    '''
+    def __init__(self, handle,
+            base_pos=(0,0,0),
+            base_rot=(0,0,0,1)):
+        self.predicates = []
+        self.base_pos = base_pos
+        self.base_rot = base_rot
+
 class SimulationRobotState(AbstractState):
     '''
     Includes full state necessary for this robot, including gripper, base, and 
@@ -46,8 +64,7 @@ class SimulationRobotState(AbstractState):
             base_pos=(0,0,0),
             base_rot=(0,0,0,1),
             arm=[],
-            gripper=0.,
-            simulation_id=0):
+            gripper=0.):
 
         self.predicates = []
         self.arm = arm

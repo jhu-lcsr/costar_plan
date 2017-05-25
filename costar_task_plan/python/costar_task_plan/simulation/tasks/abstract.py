@@ -46,6 +46,8 @@ class AbstractTaskDefinition(object):
             policy=NullPolicy(),
             state=state))
 
+        self._updateWorld()
+
     def reset(self):
         '''
         Reset the whole simulation into a working configuration.
@@ -66,6 +68,12 @@ class AbstractTaskDefinition(object):
         Do anything you need to do to the robot before it
         '''
         raise NotImplementedError('Must override the _setupRobot() function!')
+
+    def _updateWorld(self):
+        '''
+        Do anything necessary to add other agents to the world.
+        '''
+        pass
 
     def cloneRobot(self):
         robot_type = type(self.robot)
