@@ -48,6 +48,7 @@ class AbstractTaskDefinition(object):
         static_plane_path = os.path.join(path,'meshes','world','plane.urdf')
         pb.loadURDF(static_plane_path)
 
+        self.task = self._makeTask()
         self.world = SimulationWorld()
         self._setup()
         handle = self.robot.load()
@@ -89,6 +90,12 @@ class AbstractTaskDefinition(object):
         Do anything necessary to add other agents to the world.
         '''
         pass
+
+    def _makeTask(self):
+        '''
+        Create the task model that we are attempting to learn policies for.
+        '''
+        raise NotImplementedError('Must override the _makeTask() function!')
 
     def cloneRobot(self):
         robot_type = type(self.robot)

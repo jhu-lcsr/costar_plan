@@ -1,7 +1,7 @@
 
-from abstract import *
+from costar_task_plan.abstract import AbstractOption, AbstractCondition
 
-class GoalDirectedMotionOption(AbstactOption):
+class GoalDirectedMotionOption(AbstractOption):
     '''
     This represents a goal that will move us somewhere relative to a particular
     object, the "goal."

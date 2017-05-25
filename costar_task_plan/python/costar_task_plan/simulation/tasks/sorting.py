@@ -1,5 +1,6 @@
 from abstract import AbstractTaskDefinition
 from costar_task_plan.simulation.world import *
+from costar_task_plan.simulation.option import *
 
 import numpy as np
 import os
@@ -35,7 +36,40 @@ class SortingTaskDefinition(AbstractTaskDefinition):
         self.num_blue = blue
 
     def _makeTask(self):
-        pass
+        grasp_args = {
+                "constructor": GoalDirectedMotionOption,
+                "args": ["red"],
+                "remap": {"red", "goal"},
+                }
+        lift_args = {
+                "constructor": GeneralMotionOption,
+                "args": []
+                }
+        wait_args = {
+                "constructor": GeneralMotionOption,
+                "args": []
+                }
+        place_args = {
+                "constructor": GeneralMotionOption,
+                "args": []
+                }
+        close_gripper_args = {
+                "constructor": GeneralMotionOption,
+                "args": []
+                }
+        open_gripper_args = {
+                "constructor": GeneralMotionOption,
+                "args": []
+                }
+
+        # Create a task model
+        task = Task()
+        task.add("grasp", None, grasp_args)
+        task.add("close_gripper", "grasp", close_gripper_args)
+        task.add("lift", "close_gripper", grasp_args)
+        task.add("place", "lift", grasp_args)
+        task.add("open_gripper", "place", open_gripper_args)
+
 
     def _setup(self):
         '''
