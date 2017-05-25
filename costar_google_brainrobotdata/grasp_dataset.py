@@ -201,7 +201,7 @@ class GraspDataset(object):
         return features, tfrecord_paths, feature_count, attempt_count
 
     @staticmethod
-    def get_time_ordered_features(features, step='all', feature_type='/image/encoded'):
+    def get_time_ordered_features(features, step='all', feature_type='/image/encoded', exclude_substring='sequence'):
         """Get list of all image features ordered by time, features are identified by a string path.
             See https://docs.google.com/spreadsheets/d/1GiPt57nCCbA_2EVkFTtf49Q9qeDWgmgEQ6DhxxAIIao/edit#gid=0
             for mostly correct details.
@@ -265,7 +265,8 @@ class GraspDataset(object):
 
         # Returns
 
-           list of image features organized by time step in a single grasp
+           list of fixed length features organized by time step in a single grasp and
+           list of sequence features organized by time step in a single grasp
         """
         matching_features = []
 
@@ -295,8 +296,8 @@ class GraspDataset(object):
         # this is the first pre grasp image, even though it is called grasp
         if step in ['view_clear_scene', 'all', '']:
             matching_features.extend(match_feature(features, r'^initial/', feature_type))
-            matching_features.extend(match_feature(features, r'^approach/', feature_type))
-            matching_features.extend(match_feature(features, r'^approach_sequence/', feature_type))
+            matching_features.extend(match_feature(features, r'^approach/', feature_type, exclude_substring))
+            matching_features.extend(match_feature(features, r'^approach_sequence/', feature_type, exclude_substring))
             matching_features.extend(match_feature(features, r'^pregrasp/', feature_type, 'post', r'/\d+/'))
             matching_features.extend(match_feature(features, r'^grasp/', feature_type, 'post', r'/\d+/'))
 
@@ -307,16 +308,16 @@ class GraspDataset(object):
                 matching_features.extend(match_feature(features, r'^grasp/{}/'.format(i), feature_type, 'post'))
         # closing the gripper
         if step in ['close_gripper', 'all', '']:
-            matching_features.extend(match_feature(features, r'^gripper/', feature_type, 'post'))
+            matching_features.extend(match_feature(features, r'^gripper/', feature_type, exclude_substring))
             # Not totally sure, but probably the transforms and angles from as the gripper is closing (might shift a bit)
-            matching_features.extend(match_feature(features, r'^gripper_sequence/', feature_type, 'post'))
+            matching_features.extend(match_feature(features, r'^gripper_sequence/', feature_type, exclude_substring))
             # Withdraw the closed gripper from the bin vertically upward, roughly 10 cm above the bin surface.
-            matching_features.extend(match_feature(features, r'^withdraw_sequence/', feature_type))
+            matching_features.extend(match_feature(features, r'^withdraw_sequence/', feature_type, exclude_substring))
             matching_features.extend(match_feature(features, r'^post_grasp/', feature_type))
 
         if step in ['test_success', 'all', '']:
-            matching_features.extend(match_feature(features, r'^present/', feature_type))
-            matching_features.extend(match_feature(features, r'^present_sequence/', feature_type))
+            matching_features.extend(match_feature(features, r'^present/', feature_type, exclude_substring))
+            matching_features.extend(match_feature(features, r'^present_sequence/', feature_type, exclude_substring))
             # After presentation (or after withdraw, if present is skipped),
             # the object is moved to a random position about 10 cm above the bin to drop the object.
             matching_features.extend(match_feature(features, r'^raise/', feature_type))
@@ -342,6 +343,7 @@ class GraspDataset(object):
         Returns:
             feature_op_dict: dictionary of Tensors for every feature,
                 use `get_time_ordered_features` to select the subsets you need.
+            sequence_feature_op_dict: dictionary of sequence tensors for every features.
         """
         # Dense features in Example proto.
         num_grasp_steps_name = 'num_grasp_steps'
@@ -351,8 +353,8 @@ class GraspDataset(object):
         # setup one time features like the camera and number of grasp steps
         features_dict = {
             num_grasp_steps_name: tf.FixedLenFeature([1], tf.string),
-            camera_to_base_name: tf.FixedLenFeature([1], tf.float32),
-            camera_intrinsics_name: tf.FixedLenFeature([1], tf.float32)
+            camera_to_base_name: tf.FixedLenFeature([4, 4], tf.float32),
+            camera_intrinsics_name: tf.FixedLenFeature([3, 3], tf.float32)
         }
 
         # load all the images
@@ -364,46 +366,32 @@ class GraspDataset(object):
                                                                              feature_type='depth_image')
         features_dict.update({image_name: tf.FixedLenFeature([1], tf.string) for image_name in ordered_depth_feature_names})
 
-        # load all vec/quat base to end effector transforms
+        # load all vec/quat base to end effector transforms that aren't sequences
         base_to_endeffector_names = GraspDataset.get_time_ordered_features(
             features_complete_list,
             feature_type='transforms/base_T_endeffector/vec_quat_7'
             )
-        features_dict.update({x_form: tf.FixedLenFeature([1], tf.float32) for x_form in base_to_endeffector_names})
+        features_dict.update({x_form: tf.FixedLenFeature([7], tf.float32) for x_form in base_to_endeffector_names})
+
+        # load all vec/quat base to end effector transforms that are sequences
+        base_to_endeffector_sequence_names = GraspDataset.get_time_ordered_features(
+            features_complete_list,
+            feature_type='sequence/transforms/base_T_endeffector/vec_quat_7',
+            exclude_substring=None  # Don't exclude sequences
+            )
+        sequence_features_dict = {x_form: tf.FixedLenSequenceFeature([7], tf.float32, allow_missing=True) for x_form in base_to_endeffector_sequence_names}
 
         # load transforms that were modified for their network from the original paper
         transform_adapted_for_network = GraspDataset.get_time_ordered_features(
             features_complete_list,
             feature_type='params'
             )
-        features_dict.update({x_form: tf.FixedLenFeature([1], tf.float32) for x_form in transform_adapted_for_network})
-
-        features_op_dict = tf.parse_single_example(serialized_grasp_attempt_proto, features=features_dict)
-        # # Consider using feature_phase_dict_dict if it is convenient,
-        # # but move it to the class or something
-        # feature_phase_dict_dict = {
-        #     'robot': {
-        #         'name': 'robot/name'
-        #     },
-        #     'camera': {
-        #         'camera_to_base_name': camera_to_base_name,
-        #         'camera_intrinsics_name': camera_intrinsics_name
-        #     },
-
-        #     'view_clear_scene': {
-
-        #     },
-
-        #     'test_success': {
-
-        #     },
-
-        #     'move_to_grasp': {
-        #         'base_to_endeffector_names': move_to_grasp_base_to_endeffector_names,
-
-        #     }
-        # }
-        return features_op_dict
+        features_dict.update({x_form: tf.FixedLenFeature([5], tf.float32) for x_form in transform_adapted_for_network})
+        print serialized_grasp_attempt_proto
+        print features_dict
+        return tf.parse_single_sequence_example(serialized_grasp_attempt_proto,
+                                                context_features=features_dict,
+                                                sequence_features=sequence_features_dict)
 
     def build_image_input(self, feature_csv_file, train=True, novel=True):
         """Create input tfrecord tensors.
@@ -426,15 +414,10 @@ class GraspDataset(object):
         _, serialized_example = reader.read(filename_queue)
 
         image_seq = []
+        features_op_dict, feature_sequence_op_dict = self.parse_grasp_attempt_protobuf(features_complete_list, serialized_example)
 
-        num_grasp_steps_name = 'num_grasp_steps'
-        images_feature_names = self.get_time_ordered_features(features_complete_list)
-        print(images_feature_names)
-        features_dict = {image_name: tf.FixedLenFeature([1], tf.string) for image_name in images_feature_names}
-        features_dict[num_grasp_steps_name] = tf.FixedLenFeature([1], tf.string)
-        features_op_dict = tf.parse_single_example(serialized_example, features=features_dict)
-
-        for image_name in images_feature_names:
+        ordered_image_feature_names = GraspDataset.get_time_ordered_features(features_complete_list)
+        for image_name in ordered_image_feature_names:
             image_buffer = tf.reshape(features_op_dict[image_name], shape=[])
             image = tf.image.decode_jpeg(image_buffer, channels=FLAGS.sensor_color_channels)
             image.set_shape([FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels])
