@@ -93,7 +93,9 @@ class SortingTaskDefinition(AbstractTaskDefinition):
 
     def _updateWorld(self):
         '''
-        Add the other robot, and actors for the different objects.
+        Add the other robot, and actors for the different objects. These are
+        mostly to add them to the update loops - so we can compute features that
+        are relevant to whatever we actually want to do.
         '''
         state = self.robot2.getState()
         self.world.addActor(SimulationRobotActor(
@@ -105,8 +107,5 @@ class SortingTaskDefinition(AbstractTaskDefinition):
         for handle, (obj_type, obj_name) in self._type_and_name_by_obj.items():
             # Create an object and add it to the World
             state = GetObjectState(handle)
-            self.world.addActor(SimulationObjectActor(
-                dynamics=SimulationDynamics(self.world),
-                policy=NullPolicy(),
-                state=state))
+            self.world.addObject(obj_name, obj_type, state)
 

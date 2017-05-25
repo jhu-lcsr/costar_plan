@@ -46,10 +46,12 @@ class AbstractWorld(object):
     self.task = task
 
   def addActor(self, actor):
-    actor.setId(len(self.actors))
+    actor_id = len(self.actors)
+    actor.setId(actor_id)
     actor.state.updatePredicates(self, actor)
     self.actors.append(actor)
     self.num_actors = len(self.actors)
+    return actor_id
 
   def addCondition(self, condition, weight, name):
     self.conditions.append((condition, weight, name))

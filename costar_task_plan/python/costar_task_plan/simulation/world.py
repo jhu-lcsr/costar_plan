@@ -10,10 +10,23 @@ class SimulationWorld(AbstractWorld):
         self.num_steps = num_steps
 
         # stores object handles and names
-        self.objects = {}
+        self.class_by_object = {}
+        self.object_by_class = {}
 
-        # stores object class information
-        self.object_classes = {}
+    def addObject(self, obj_name, obj_class, state):
+        '''
+        Wraps add actor function for objects. Make sure they have the right
+        policy and are added so we can easily look them up later on.
+        '''
+        
+        obj_id = self.addActor(SimulationObjectActor(
+            name=obj_name,
+            dynamics=SimulationDynamics(self),
+            policy=NullPolicy(),
+            state=state))
+        self.class_by_object[obj_id] = obj_class
+        self.object_by_class[obj_class] = obj_id
+        return obj_id
 
     def hook(self):
         '''
@@ -60,8 +73,9 @@ class SimulationObjectActor(AbstractActor):
     Not currently any different from the default actor.
     '''
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, name, *args, **kwargs):
         super(SimulationObjectActor, self).__init__(*args, **kwargs)
+        self.name = name
 
 class SimulationRobotState(AbstractState):
     '''
