@@ -52,8 +52,8 @@ class SortingTaskDefinition(AbstractTaskDefinition):
             obj_id = pb.loadURDF(tray_filename)
             pb.resetBasePositionAndOrientation(obj_id, position, (0,0,0,1))
 
-        self._add_balls(self.num_red, red_filename)
-        self._add_balls(self.num_blue, blue_filename)
+        self._add_balls(self.num_red, red_filename, "red")
+        self._add_balls(self.num_blue, blue_filename, "blue")
 
     def reset(self):
         for obj_id, position in zip(self.trays, self.tray_poses):
@@ -68,7 +68,7 @@ class SortingTaskDefinition(AbstractTaskDefinition):
         self.robot.arm(self.joint_positions, pb.POSITION_CONTROL)
         self.robot.gripper(0, pb.POSITION_CONTROL)
 
-    def _add_balls(self, num, filename):
+    def _add_balls(self, num, filename, typename):
         '''
         Helper function to spawn a whole bunch of random balls.
         '''
@@ -76,6 +76,7 @@ class SortingTaskDefinition(AbstractTaskDefinition):
             obj_id = pb.loadURDF(filename)
             random_position = np.random.rand(3)*self.spawn_pos_delta + self.spawn_pos_min
             pb.resetBasePositionAndOrientation(obj_id, random_position, (0,0,0,1))
+            self.addObject(typename, obj_id)
 
     def _setupRobot(self, handle):
         '''
@@ -100,3 +101,12 @@ class SortingTaskDefinition(AbstractTaskDefinition):
             dynamics=SimulationDynamics(self.world),
             policy=NullPolicy(),
             state=state))
+
+        for handle, (obj_type, obj_name) in self._type_and_name_by_obj.items():
+            # Create an object and add it to the World
+            state = GetObjectState(handle)
+            self.world.addActor(SimulationObjectActor(
+                dynamics=SimulationDynamics(self.world),
+                policy=NullPolicy(),
+                state=state))
+

@@ -24,6 +24,21 @@ class AbstractTaskDefinition(object):
         self.robot = robot
         self.world = None
 
+        # local storage for object info
+        self._objs_by_type = {}
+        self._type_and_name_by_obj = {}
+
+    def addObject(self, typename, obj_id):
+        if typename not in self._objs_by_type:
+            self._objs_by_type[typename] = [obj_id]
+            num = 0
+        else:
+            num = len(self._objs_by_type[typename])
+            self._objs_by_type[typename].append(obj_id)
+
+        objname = "%s%03d"%(typename,num)
+        self._type_and_name_by_obj[obj_id] = (typename, objname)
+
     def setup(self):
         '''
         Create task by adding objects to the scene, including the robot.

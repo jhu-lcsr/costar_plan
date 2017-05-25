@@ -55,6 +55,14 @@ class SimulationObjectState(AbstractState):
         self.base_pos = base_pos
         self.base_rot = base_rot
 
+class SimulationObjectActor(AbstractActor):
+    '''
+    Not currently any different from the default actor.
+    '''
+
+    def __init__(self, *args, **kwargs):
+        super(SimulationObjectActor, self).__init__(*args, **kwargs)
+
 class SimulationRobotState(AbstractState):
     '''
     Includes full state necessary for this robot, including gripper, base, and 
@@ -88,3 +96,15 @@ class SimulationRobotActor(AbstractActor):
 class NullPolicy(AbstractPolicy):
   def evaluate(self, world, state, actor=None):
     return SimulationRobotAction(cmd=None)
+
+# =============================================================================
+# Helper Fucntions
+def GetObjectState(handle):
+    '''
+    Look up the handle and get its base position and eventually other
+    information, if we find that necessary.
+    '''
+    pos, rot = pb.getBasePositionAndOrientation(handle)
+    return SimulationObjectState(handle,
+                                 base_pos=pos,
+                                 base_rot=rot)
