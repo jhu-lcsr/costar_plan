@@ -34,6 +34,9 @@ class SortingTaskDefinition(AbstractTaskDefinition):
         self.num_red = red
         self.num_blue = blue
 
+    def _makeTask(self):
+        pass
+
     def _setup(self):
         '''
         Create the mug at a random position on the ground, handle facing
