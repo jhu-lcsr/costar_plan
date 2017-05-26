@@ -70,6 +70,8 @@ class SortingTaskDefinition(AbstractTaskDefinition):
         task.add("place", "lift", grasp_args)
         task.add("open_gripper", "place", open_gripper_args)
 
+        return task
+
 
     def _setup(self):
         '''
