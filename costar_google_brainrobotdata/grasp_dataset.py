@@ -454,10 +454,12 @@ class GraspDataset(object):
         # staging_area = tf.contrib.staging.StagingArea()
         dict_and_feature_tuple_list = []
         for feature_op_dict, sequence_op_dict in feature_op_dicts:
-            features_op_dict, extended_features_complete_list = GraspDataset._image_decode(feature_op_dict, features_complete_list)
-            dict_and_feature_tuple_list.append((features_op_dict, sequence_op_dict, extended_features_complete_list))
+            features_op_dict, new_feature_list = GraspDataset._image_decode(feature_op_dict)
+            dict_and_feature_tuple_list.append((features_op_dict, sequence_op_dict))
+        # the new_feature_list should be the same for all the ops
+        features_complete_list = np.append(features_complete_list, new_feature_list)
 
-        return dict_and_feature_tuple_list
+        return dict_and_feature_tuple_list, features_complete_list
 
     def get_simple_tfrecordreader_dataset_ops(self, batch_size=1):
         """Get a dataset reading op from tfrecordreader.
@@ -488,10 +490,11 @@ class GraspDataset(object):
         dict_and_feature_tuple_list = []
         for feature_op_dict, sequence_op_dict in feature_op_dicts:
             features_op_dict, new_feature_list = GraspDataset._image_decode(feature_op_dict)
-            extended_features_complete_list = np.append(features_complete_list, new_feature_list)
-            dict_and_feature_tuple_list.append((features_op_dict, sequence_op_dict, extended_features_complete_list))
+            dict_and_feature_tuple_list.append((features_op_dict, sequence_op_dict))
+        # the new_feature_list should be the same for all the ops
+        features_complete_list = np.append(features_complete_list, new_feature_list)
 
-        return dict_and_feature_tuple_list
+        return dict_and_feature_tuple_list, features_complete_list
 
     @staticmethod
     def _image_decode(feature_op_dict):
@@ -531,7 +534,7 @@ class GraspDataset(object):
         clip.write_gif(filename)
 
     def create_gif(self, sess):
-        """ Create gifs of all datasets
+        """ Create gifs of loaded dataset
         """
         mkdir_p(FLAGS.gif_dir)
         feature_csv_files = self.get_feature_csv_file_paths()
@@ -547,7 +550,7 @@ class GraspDataset(object):
             RuntimeError: if no files found.
             """
             # decode all the image ops
-            [(features_op_dict, sequence_opt_dict, features_complete_list)] = self.get_simple_tfrecordreader_dataset_ops()
+            [(features_op_dict, _)], features_complete_list = self.get_simple_tfrecordreader_dataset_ops()
             print features_complete_list
             ordered_image_feature_names = GraspDataset.get_time_ordered_features(features_complete_list, '/image/decoded')
 
