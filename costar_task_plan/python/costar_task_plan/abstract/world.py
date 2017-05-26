@@ -3,12 +3,12 @@ import copy
 from state import AbstractState
 from action import AbstractAction
 
-'''
-Nonspecific implementation that encapsulates a particular RL/planning problem.
-It contains actors, condition, and a reward function.
-In particular, it points to one actor called the LEARNER, who we care about.
-'''
 class AbstractWorld(object):
+  '''
+  Nonspecific implementation that encapsulates a particular RL/planning problem.
+  It contains actors, condition, and a reward function.
+  In particular, it points to one actor called the LEARNER, who we care about.
+  '''
 
   # This is fixed: it's the actor that is doing learning and planning in the
   # world.
@@ -76,16 +76,14 @@ class AbstractWorld(object):
     predicate_check.setIndex(idx)
     self.predicates.append((predicate, predicate_check))
 
-  '''
-  For use in planning:
-  - take an action
-  - take an optional set of policies
-
-  Create a copy of the world and tick() with the appropriate new action.
-
-  If we have policies, actors will be reset appropriately to use new policies.
-  '''
   def fork(self, action, policies={}):
+    '''
+    For use in planning:
+    - take an action
+    - take an optional set of policies
+    Create a copy of the world and tick() with the appropriate new action. If
+    we have policies, actors will be reset appropriately to use new policies.
+    '''
     new_world = copy.copy(self)
     # NOTE: this is where the inefficiency lies.
     #new_world.actors = copy.deepcopy(self.actors)
@@ -99,13 +97,13 @@ class AbstractWorld(object):
     (res, S0, A0, S1, F1, r) = new_world.tick(action)
     return new_world
 
-  '''
-  Main update loop for the World class.
-  
-  This resolves all the logic in the world by updating each actor according to
-  its last observation of the world state.
-  '''
   def tick(self, A0):
+    '''
+    Main update loop for the World class. 
+    This resolves all the logic in the world by updating each actor according
+    to its last observation of the world state. It also calls the hook()
+    function to complete application-specific world update logic.
+    '''
     self.ticks += 1
 
     S0 = self.actors[0].state
@@ -180,44 +178,65 @@ class AbstractWorld(object):
 
     return res, F1, r, rt
 
-  '''
-  May be overridden in some cases
-  '''
   def computeFeatures(self):
+    '''
+    May be overridden in some cases
+    '''
     return self.features(self, self.actors[0].state)
 
   def updateFeatures(self):
     self.initial_features = self.computeFeatures()
 
-  '''
-  Destroy all current actors.
-  '''
   def reset(self):
+    '''
+    Destroy all current actors.
+    '''
     self.actors = []
     self._reset()
 
-  '''
-  Specify graphics to use when drawing this world.
-  '''
   def setSprites(self, sprites):
+    '''
+    Specify graphics to use when drawing this world. Not used for the various
+    robotics-based tasks at all.
+    TODO(cpaxton): refactor this and put it in the right subclass of World.
+    '''
     self.sprites = sprites
     self.draw_sprites = len(sprites) > 0
 
-  '''
-  Clear any graphics used to draw this world.
-  '''
   def clearSprites(self):
+    '''
+    Clear any graphics used to draw this world. Again, this is not used for the
+    various robotics tasks.
+    TODO(cpaxton): refactor this and put it in the right subclass of World.
+    '''
     self.sprites = []
     self.draw_sprites = False
 
+  def getObjects(self):
+    '''
+    Return information about specific objects in the world. This should tell us
+    for some semantic identifier which entities in the world correspond to that.
+    As an example:
+        {
+            "goal": ["goal1", "goal2"]
+        }
+    Would be a reasonable response, saying that there are two goals called
+    goal1 and goal2.
+    '''
+    return {}
+
   def debugPredicates(self, state):
+    '''
+    Just prints out a bunch of predicate information for all the current set of
+    predicates on a particular state.
+    '''
     for p, (n, c) in zip(state.predicates, self.predicates):
       print n,"=",p,","
     print ""
 
-  '''
-  This is the "player" whose moves we want to optimize.
-  '''
   def getLearner(self):
+    '''
+    This is the "player" whose moves we want to optimize.
+    '''
     return self.actors[0]
 

@@ -1,8 +1,9 @@
 
-import copy
-from sets import Set
-
 from option import AbstractOption, NullOption
+from sets import Set
+from world import AbstractWorld
+
+import copy
 
 '''
 Model of a task as a state machine. We can specify this in any number of
@@ -57,16 +58,19 @@ class Task(object):
     else:
       raise RuntimeError('node %s does not exist'%node)
 
-  '''
-  Instantiate this task for a particular world. This takes the task model and
-  turns it into a "real" task, with appropriate options being created.
-
-  Procedure:
-    - loop over all options
-    - for each option: loop over all args
-    - create option with those args
-  '''
   def compile(self, arg_dict, unroll_depth=None):
+    '''
+    Instantiate this task for a particular world. This takes the task model and
+    turns it into a "real" task, with appropriate options being created.
+
+    Procedure:
+     - loop over all options
+     - for each option: loop over all args
+     - create option with those args
+    '''
+
+    if isinstance(arg_dict, AbstractWorld):
+        arg_dict = arg_dict.getObjects()
 
     # First: connect templates (parent -> child)
     for parent, child in self.template_connections:

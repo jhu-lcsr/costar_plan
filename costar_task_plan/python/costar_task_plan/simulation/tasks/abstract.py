@@ -63,6 +63,7 @@ class AbstractTaskDefinition(object):
             state=state))
 
         self._updateWorld()
+        self.task.compile(self.world)
 
     def reset(self):
         '''

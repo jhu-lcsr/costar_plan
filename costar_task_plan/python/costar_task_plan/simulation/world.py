@@ -25,8 +25,25 @@ class SimulationWorld(AbstractWorld):
             policy=NullPolicy(),
             state=state))
         self.class_by_object[obj_id] = obj_class
-        self.object_by_class[obj_class] = obj_id
+        if obj_class not in self.object_by_class:
+            self.object_by_class[obj_class] = [obj_id]
+        else:
+            self.object_by_class[obj_class].append(obj_id)
+
         return obj_id
+
+    def getObjects(self):
+        '''
+        Return information about specific objects in the world. This should tell us
+        for some semantic identifier which entities in the world correspond to that.
+        As an example:
+            {
+                "goal": ["goal1", "goal2"]
+            }
+        Would be a reasonable response, saying that there are two goals called
+        goal1 and goal2.
+        '''
+        return self.object_by_class
 
     def hook(self):
         '''
