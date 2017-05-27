@@ -1,4 +1,6 @@
 
+from costar_task_plan.tools import showTask
+
 from config import *
 from util import GetTaskDefinition, GetRobotInterface
 from world import *
@@ -6,6 +8,7 @@ from world import *
 import pybullet as pb
 import rospy
 import subprocess
+import sys
 import time
 
 class CostarBulletSimulation(object):
@@ -15,8 +18,8 @@ class CostarBulletSimulation(object):
     gym environment.
     '''
 
-    def __init__(self, robot, task, gui=False, ros=False, ros_name="simulation", option=None, *args, **kwargs):
-        self.gui = gui
+    def __init__(self, robot, task, gui=False, ros=False, ros_name="simulation", option=None, plot_task=False, *args, **kwargs):
+        self.gui = gui and not plot_task
         self.robot = GetRobotInterface(robot)
         self.task = GetTaskDefinition(task, self.robot, option=option)
 
@@ -29,6 +32,10 @@ class CostarBulletSimulation(object):
             self._start_ros(ros_name)
 
         self.open()
+
+        if plot_task:
+            showTask(self.task.task)
+            sys.exit(0)
 
     def _start_ros(self, name):
         '''

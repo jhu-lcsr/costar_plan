@@ -37,5 +37,8 @@ def ParseBulletArgs():
     parser.add_argument('-o','--option',
                         help="Specific sub-option to train. Exact list depends on the chosen task.",
                         default=None)
+    parser.add_argument('-p','--plot_task','--pt',
+                        help="Display a plot of the chosen task and exit.",
+                        action="store_true")
 
     return vars(parser.parse_args())

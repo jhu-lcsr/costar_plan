@@ -39,7 +39,7 @@ class SortingTaskDefinition(AbstractTaskDefinition):
         grasp_args = {
                 "constructor": GoalDirectedMotionOption,
                 "args": ["red"],
-                "remap": {"red", "goal"},
+                "remap": {"red": "goal"},
                 }
         lift_args = {
                 "constructor": GeneralMotionOption,
