@@ -80,11 +80,12 @@ class VREPGraspSimulation(object):
             for i, transform_name in zip(range(len(base_to_endeffector_transforms)), base_to_endeffector_transforms):
                 # 2. Now create a dummy object at coordinate 0.1,0.2,0.3 with name 'MyDummyName':
                 empty_buffer = bytearray()
+                # 3 cartesian (x, y, z) and 4 quaternion (x, y, z, w) elements, same as vrep
                 gripper_pose = features_dict_np[transform_name]
-                # 3 cartesian and 4 quaternion elements
-                transform_display_name = str(i) + '_' + transform_name.replace('/', '-').split('-')[0]
+                # format the dummy string nicely for display
+                transform_display_name = str(i).zfill(2) + '_' + transform_name.replace('/transforms/base_T_endeffector/vec_quat_7', '').replace('/', '_')
                 print transform_name, transform_display_name, gripper_pose
-                res, retInts, retFloats, retStrings, retBuffer = v.simxCallScriptFunction(
+                res, ret_ints, ret_floats, ret_strings, ret_buffer = v.simxCallScriptFunction(
                     self.client_id,
                     'remoteApiCommandServer',
                     v.sim_scripttype_childscript,
@@ -95,14 +96,13 @@ class VREPGraspSimulation(object):
                     empty_buffer,
                     v.simx_opmode_blocking)
                 if res == v.simx_return_ok:
-                    print ('Dummy handle: ', retInts[0])  # display the reply from V-REP (in this case, the handle of the created dummy)
+                    print ('Dummy handle: ', ret_ints[0])  # display the reply from V-REP (in this case, the handle of the created dummy)
                 else:
-                    print ('Remote function call failed')
+                    print 'Remote function call failed'
             # print gripper_positions
             print features_dict_np[camera_to_base_transform]
             print features_dict_np[camera_intrinsics]
             # returnCode, dummyHandle = v.simxCreateDummy(self.client_id, 0.1, colors=None, operationMode=simx_opmode_blocking)
-
 
     def __del__(self):
         v.simxFinish(-1)
