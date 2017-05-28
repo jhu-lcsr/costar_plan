@@ -46,13 +46,13 @@ class VREPGraspSimulation(object):
         # just in case, close all opened connections
         v.simxFinish(-1)
         # Connect to V-REP
-        client_id = v.simxStart(FLAGS.vrepConnectionAddress,
-                                FLAGS.vrepConnectionPort,
-                                FLAGS.vrepWaitUntilConnected,
-                                FLAGS.vrepDoNotReconnectOnceDisconnected,
-                                FLAGS.vrepTimeOutInMs,
-                                FLAGS.vrepCommThreadCycleInMs)
-        if client_id != -1:
+        self.client_id = v.simxStart(FLAGS.vrepConnectionAddress,
+                                     FLAGS.vrepConnectionPort,
+                                     FLAGS.vrepWaitUntilConnected,
+                                     FLAGS.vrepDoNotReconnectOnceDisconnected,
+                                     FLAGS.vrepTimeOutInMs,
+                                     FLAGS.vrepCommThreadCycleInMs)
+        if self.client_id != -1:
             print 'Connected to remote API server'
         return
 
@@ -76,10 +76,33 @@ class VREPGraspSimulation(object):
             camera_intrinsics = 'camera/intrinsics/matrix33'
 
             # TODO(ahundt) put a loop here
-            gripper_positions = [output_features_dict[transform_name] for transform_name in camera_to_base_transform]
-            print gripper_positions
-            print output_features_dict[camera_to_base_transform]
-            print output_features_dict[camera_intrinsics]
+            # gripper_positions = [features_dict_np[transform_name] for transform_name in base_to_endeffector_transforms]
+            for i, transform_name in zip(range(len(base_to_endeffector_transforms)), base_to_endeffector_transforms):
+                # 2. Now create a dummy object at coordinate 0.1,0.2,0.3 with name 'MyDummyName':
+                empty_buffer = bytearray()
+                gripper_pose = features_dict_np[transform_name]
+                # 3 cartesian and 4 quaternion elements
+                transform_display_name = str(i) + '_' + transform_name.replace('/', '-').split('-')[0]
+                print transform_name, transform_display_name, gripper_pose
+                res, retInts, retFloats, retStrings, retBuffer = v.simxCallScriptFunction(
+                    self.client_id,
+                    'remoteApiCommandServer',
+                    v.sim_scripttype_childscript,
+                    'createDummy_function',
+                    [],
+                    gripper_pose,
+                    [transform_display_name],
+                    empty_buffer,
+                    v.simx_opmode_blocking)
+                if res == v.simx_return_ok:
+                    print ('Dummy handle: ', retInts[0])  # display the reply from V-REP (in this case, the handle of the created dummy)
+                else:
+                    print ('Remote function call failed')
+            # print gripper_positions
+            print features_dict_np[camera_to_base_transform]
+            print features_dict_np[camera_intrinsics]
+            # returnCode, dummyHandle = v.simxCreateDummy(self.client_id, 0.1, colors=None, operationMode=simx_opmode_blocking)
+
 
     def __del__(self):
         v.simxFinish(-1)
