@@ -36,13 +36,15 @@ class SortingTaskDefinition(AbstractTaskDefinition):
         self.num_blue = blue
 
     def _makeTask(self):
+        GraspOption = lambda goal: GoalDirectedMotionOption
         grasp_args = {
-                "constructor": GoalDirectedMotionOption,
+                "constructor": GraspOption,
                 "args": ["red"],
                 "remap": {"red": "goal"},
                 }
+        LiftOption = lambda: GeneralMotionOption
         lift_args = {
-                "constructor": GeneralMotionOption,
+                "constructor": LiftOption,
                 "args": []
                 }
         wait_args = {
@@ -142,9 +144,4 @@ class SortingTaskDefinition(AbstractTaskDefinition):
             dynamics=SimulationDynamics(self.world),
             policy=NullPolicy(),
             state=state))
-
-        for handle, (obj_type, obj_name) in self._type_and_name_by_obj.items():
-            # Create an object and add it to the World
-            state = GetObjectState(handle)
-            self.world.addObject(obj_name, obj_type, state)
 

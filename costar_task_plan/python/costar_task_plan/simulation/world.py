@@ -13,7 +13,7 @@ class SimulationWorld(AbstractWorld):
         self.class_by_object = {}
         self.object_by_class = {}
 
-    def addObject(self, obj_name, obj_class, state):
+    def addObject(self, obj_name, obj_class, handle, state):
         '''
         Wraps add actor function for objects. Make sure they have the right
         policy and are added so we can easily look them up later on.
@@ -21,6 +21,7 @@ class SimulationWorld(AbstractWorld):
         
         obj_id = self.addActor(SimulationObjectActor(
             name=obj_name,
+            handle=handle,
             dynamics=SimulationDynamics(self),
             policy=NullPolicy(),
             state=state))
@@ -57,7 +58,7 @@ class SimulationWorld(AbstractWorld):
 
         # Update the states of all actors.
         for actor in self.actors:
-            actor.state = actor.robot.getState()
+            actor.state = actor.getState()
 
     
     def zeroAction(self, actor):
@@ -90,9 +91,11 @@ class SimulationObjectActor(AbstractActor):
     Not currently any different from the default actor.
     '''
 
-    def __init__(self, name, *args, **kwargs):
+    def __init__(self, name, handle, *args, **kwargs):
         super(SimulationObjectActor, self).__init__(*args, **kwargs)
         self.name = name
+        self.handle = handle
+        self.getState = lambda: GetObjectState(self.handle)
 
 class SimulationRobotState(AbstractState):
     '''
@@ -123,6 +126,7 @@ class SimulationRobotActor(AbstractActor):
     def __init__(self, robot, *args, **kwargs):
         super(SimulationRobotActor, self).__init__(*args, **kwargs)
         self.robot = robot
+        self.getState = self.robot.getState
 
 class NullPolicy(AbstractPolicy):
   def evaluate(self, world, state, actor=None):
