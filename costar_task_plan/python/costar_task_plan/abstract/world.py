@@ -14,6 +14,9 @@ class AbstractWorld(object):
   # world.
   learner = 0
 
+  # ID of the current trace; should be completely unique
+  next_trace_id = 0
+
   def __init__(self, reward, verbose=False):
     self.reward = reward
     self.verbose = verbose
@@ -37,6 +40,10 @@ class AbstractWorld(object):
     # boxes instead of actors' circles.
     # This should be coupled with new collision conditions.
     self.draw_sprites = False
+
+  def updateTraceID(self):
+    self.trace_id = self.next_trace_id
+    self.next_trace_id += 1
 
   def zeroAction(self, actor_id=0):
     raise NotImplementedError('This should be overridden by the child class '
@@ -88,6 +95,7 @@ class AbstractWorld(object):
     # NOTE: this is where the inefficiency lies.
     #new_world.actors = copy.deepcopy(self.actors)
     new_world.actors = [copy.copy(actor) for actor in self.actors]
+    new_world.updateTraceID()
 
     # If the action is not valid, take a zero action and update the world
     # appropriately.

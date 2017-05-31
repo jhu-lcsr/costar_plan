@@ -40,5 +40,8 @@ def ParseBulletArgs():
     parser.add_argument('-p','--plot_task','--pt',
                         help="Display a plot of the chosen task and exit.",
                         action="store_true")
+    parser.add_argument('--save',
+                        help="Save training data",
+                        action="store_true")
 
     return vars(parser.parse_args())

@@ -145,3 +145,5 @@ class SortingTaskDefinition(AbstractTaskDefinition):
             policy=NullPolicy(),
             state=state))
 
+    def getName(self):
+        return "sorting"

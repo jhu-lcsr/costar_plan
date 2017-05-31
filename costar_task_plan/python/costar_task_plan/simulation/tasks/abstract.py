@@ -14,7 +14,7 @@ class AbstractTaskDefinition(object):
     basic BulletWorld.
     '''
 
-    def __init__(self, robot, seed=None, option=None, *args, **kwargs):
+    def __init__(self, robot, seed=None, option=None, save=False, *args, **kwargs):
         '''
         We do not create a world here, but we may need to cache things or read
         them off of the ROS parameter server as necessary.
@@ -23,12 +23,18 @@ class AbstractTaskDefinition(object):
         self.option = option
         self.robot = robot
         self.world = None
+        self.save_world = save
 
         # local storage for object info
         self._objs_by_type = {}
         self._type_and_name_by_obj = {}
 
     def addObject(self, typename, obj_id):
+        '''
+        Create an object and add it to the world. This will automatically track
+        and update useful information based on the object's current position
+        during each world update.
+        '''
         if typename not in self._objs_by_type:
             self._objs_by_type[typename] = [obj_id]
             num = 0
@@ -38,6 +44,9 @@ class AbstractTaskDefinition(object):
 
         objname = "%s%03d"%(typename,num)
         self._type_and_name_by_obj[obj_id] = (typename, objname)
+
+    def getName(self):
+        raise NotImplementedError('should return name describing this task')
 
     def setup(self):
         '''
@@ -49,7 +58,9 @@ class AbstractTaskDefinition(object):
         pb.loadURDF(static_plane_path)
 
         self.task = self._makeTask()
-        self.world = SimulationWorld()
+        self.world = SimulationWorld(
+                save_hook=self.save_world,
+                task_name=self.getName())
         self._setup()
         handle = self.robot.load()
         pb.setGravity(0,0,-9.807)

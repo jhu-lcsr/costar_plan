@@ -21,7 +21,7 @@ class CostarBulletSimulation(object):
     def __init__(self, robot, task, gui=False, ros=False, ros_name="simulation", option=None, plot_task=False, *args, **kwargs):
         self.gui = gui and not plot_task
         self.robot = GetRobotInterface(robot)
-        self.task = GetTaskDefinition(task, self.robot, option=option)
+        self.task = GetTaskDefinition(task, self.robot, *args, **kwargs)
 
         # managed list of processes and other metadata
         self.procs = []
