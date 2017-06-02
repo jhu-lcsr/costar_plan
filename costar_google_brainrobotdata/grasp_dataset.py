@@ -254,13 +254,19 @@ class GraspDataset(object):
                 'depth_image/encoded'
                     Depth image is encoded as an RGB PNG image where the RGB 24-bit value is an
                     integer depth with scale 1/256 of a millimeter. See `depth_image_encoding.py`.
-                    There may also be uncompressed ops '/depath_image/decoded'
-                    if `_image_decode()` is called.
+                'depth_image/decoded'
+                    This feature is calculated at runtime if `_image_decode()` is called.
+                    Uncompressed 'depth_image/encoded'.
+                    There may also be uncompressed ops 'depth_image/decoded'
                 '/image/encoded'
                     Camera RGB images are stored in JPEG format, be careful not to mismatch on
                     depth_image/encoded, so include the leading slash.
                     There may also be uncompressed ops '/image/decoded'
                     if `_image_decode()` is called.
+                '/image/decoded'
+                    This feature is calculated at runtime if `_image_decode()` is called.
+                    Uncompressed '/image/encoded'.
+                    There may also be uncompressed ops '/image/decoded'
                 'params'
                     This is a simplified representation of a commanded robot pose and gripper status.
                     These are the values that were solved for in the network, the output of
@@ -507,20 +513,14 @@ class GraspDataset(object):
         """
         features = [feature for (feature, tf_op) in iteritems(feature_op_dict)]
         image_features = GraspDataset.get_time_ordered_features(features, '/image/encoded')
+        image_features.extend(GraspDataset.get_time_ordered_features(features, 'depth_image/encoded'))
         new_feature_list = []
         for image_feature in image_features:
             image_buffer = tf.reshape(feature_op_dict[image_feature], shape=[])
-            image = tf.image.decode_jpeg(image_buffer, channels=FLAGS.sensor_color_channels)
-            image.set_shape([FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels])
-            image = tf.reshape(image, [1, FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels])
-            decoded_image_feature = image_feature.replace('encoded', 'decoded')
-            feature_op_dict[decoded_image_feature] = image
-            new_feature_list.append(decoded_image_feature)
-
-        depth_image_features = GraspDataset.get_time_ordered_features(features, 'depth_image/encoded')
-        for image_feature in depth_image_features:
-            image_buffer = tf.reshape(feature_op_dict[image_feature], shape=[])
-            image = tf.image.decode_png(image_buffer, channels=FLAGS.sensor_color_channels)
+            if 'depth' in image_feature:
+                image = tf.image.decode_png(image_buffer, channels=FLAGS.sensor_color_channels)
+            else:
+                image = tf.image.decode_jpeg(image_buffer, channels=FLAGS.sensor_color_channels)
             image.set_shape([FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels])
             image = tf.reshape(image, [1, FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels])
             decoded_image_feature = image_feature.replace('encoded', 'decoded')
