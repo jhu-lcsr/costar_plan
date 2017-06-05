@@ -9,6 +9,10 @@ import rospkg
 
 
 class SortingTaskDefinition(AbstractTaskDefinition):
+    '''
+    Define the simple sorting task.
+    '''
+
     joint_positions = [0.30, -0.5, -1.80, -0.27, 1.50, 1.60]
     urdf_dir = "urdf"
 
