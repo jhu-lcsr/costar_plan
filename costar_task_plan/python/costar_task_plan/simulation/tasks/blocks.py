@@ -23,7 +23,7 @@ class BlocksTaskDefinition(AbstractTaskDefinition):
     # define object filenames
     block_urdf = "%s.urdf"
     model = "block"
-    blocks = ["red","blue","yellow","green"]
+    blocks = ["red", "blue", "yellow", "green"]
 
     # Objects are placed into a random stack.
     stack_pos = [
@@ -86,7 +86,7 @@ class BlocksTaskDefinition(AbstractTaskDefinition):
         Helper function that generats a tower containing listed blocks at the
         specific position
         '''
-        z = 0.
+        z = 0.025
         for block in blocks:
             urdf_filename = os.path.join(urdf_dir, self.model, self.block_urdf%block)
             obj_id = pb.loadURDF(urdf_filename)
