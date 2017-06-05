@@ -125,3 +125,6 @@ if __name__ == '__main__':
   print task.nodeSummary()
   print task.children['ROOT()']
 
+  from costar_task_plan.tools import showTask
+  showTask(task)
+
