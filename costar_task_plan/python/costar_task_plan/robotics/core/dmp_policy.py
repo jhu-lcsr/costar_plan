@@ -75,8 +75,6 @@ class CartesianDmpPolicy(DmpPolicy):
     g = []
     if reset_seq:
         q = state.q
-        #q = [-0.73408591, -1.30249417,  1.53612047,
-        #    -2.0823833, 2.29921898,  1.42712378]
         T = pm.fromMatrix(self.kinematics.forward(q))
         self.activate(self.dmp.dmp_list)
         goal = world.observation[self.goal]

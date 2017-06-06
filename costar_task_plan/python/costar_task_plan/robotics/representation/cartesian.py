@@ -20,7 +20,7 @@ class CartesianSkillInstance(yaml.YAMLObject):
 
   yaml_tag = u'!CartesianSkillInstance'
 
-  def __init__(self, ee_frames, worlds, kinematics, config, objs=[], dt=0.1, visualize=False):
+  def __init__(self, kinematics, config, params=None, ee_frames=None, worlds=None, objs=[], dt=0.1, visualize=False):
     '''
     Needs:
     - a vector of end effector poses
@@ -35,7 +35,12 @@ class CartesianSkillInstance(yaml.YAMLObject):
     self.kinematics = kinematics
     self.dt = dt
     self.objs = [obj for obj in objs if obj not in ['time', 'gripper']]
-    self._fit()
+    if self.worlds is not None:
+        self._fit()
+    elif params is not None:
+        self._fromParams(params)
+    else:
+        raise RuntimeError('Must provide world data or params')
 
   def _fit(self):
     '''
@@ -96,6 +101,13 @@ class CartesianSkillInstance(yaml.YAMLObject):
     self.goal_object_position = goal
     self.dmp_list = resp.dmp_list
     self.tau = resp.tau
+
+  def params(self):
+    params = [self.tau,] + list(self.goal_pose.p)
+    print params
+    #for dmp in self.dmp_list:
+    
+  def _fromParams(self):
 
   def generate(self, world, state):
     '''
