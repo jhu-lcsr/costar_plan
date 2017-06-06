@@ -24,15 +24,6 @@ def load_tom_world(regenerate_models):
         world.saveModels('tom')
     return world
 
-class NullReward(AbstractReward):
-    def __call__(self, world, *args, **kwargs):
-      return 0., 0.
-    def evaluate(self, world, *args, **kwargs):
-      return 0., 0.
-class NullFeatures(AbstractFeatures):
-    def __call__(self, world, *args, **kwargs):
-      return [0.]
-
 def load_tom_data_and_run():
     '''
     Main function:

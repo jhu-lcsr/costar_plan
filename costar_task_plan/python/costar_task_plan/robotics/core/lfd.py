@@ -107,6 +107,12 @@ class LfD(object):
                                                   visualize=True)
 
                 self.skill_instances[name].append(instance)
+                print "====================================="
+                print instance.params()
+                print instance.goal_pose
+                print instance.dmp_list
+                print instance.tau
+
                 if name not in self.skill_features:
                     self.skill_features[name] = f
                 else:

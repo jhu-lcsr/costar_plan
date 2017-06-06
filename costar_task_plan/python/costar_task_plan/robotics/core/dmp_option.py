@@ -38,6 +38,9 @@ class DmpOption(AbstractOption):
             dmp=self.instances[0],
             kinematics=self.kinematics)
 
+  def samplePolicy(self, *args, **kwargs):
+      pass
+
   # Get the gating condition for a specific option.
   # - execution should continue until such time as this condition is true.
   def getGatingCondition(self, *args, **kwargs):

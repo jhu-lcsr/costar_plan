@@ -12,7 +12,7 @@ from costar_task_plan.mcts import MonteCarloTreeSearch
 from costar_task_plan.mcts import ExecutionPlan, DefaultExecute
 from costar_task_plan.robotics.core import *
 from costar_task_plan.robotics.tom import TomWorld, OpenLoopTomExecute, ParseTomArgs
-from costar_task_plan.tools import showTask
+from costar_task_plan.tools import showTask, OptimizePolicy
 from std_srvs.srv import Empty as EmptySrv
 
 import argparse
@@ -24,21 +24,12 @@ def load_tom_world(regenerate_models):
         world.saveModels('tom')
     return world
 
-class NullReward(AbstractReward):
-    def __call__(self, world, *args, **kwargs):
-      return 0., 0.
-    def evaluate(self, world, *args, **kwargs):
-      return 0., 0.
-class NullFeatures(AbstractFeatures):
-    def __call__(self, world, *args, **kwargs):
-      return [0.]
-
 if __name__ == '__main__':
     '''
     Main function:
      - create a TOM world
      - verify that the data is being managed correctly
-     - fit models to data
+     - fit models to data (optional)
      - create Reward objects as appropriate
      - create Policy objects as appropriate
     '''
@@ -69,6 +60,5 @@ if __name__ == '__main__':
                      "trash":"trash1",
                      "squeeze_area":"squeeze_area1"}
 
-    path = do_search(world, task, objects)
-    print "Done planning."
+    OptimizePolicy(world, task)
 

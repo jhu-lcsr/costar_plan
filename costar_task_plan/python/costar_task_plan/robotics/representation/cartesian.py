@@ -103,11 +103,14 @@ class CartesianSkillInstance(yaml.YAMLObject):
     self.tau = resp.tau
 
   def params(self):
-    params = [self.tau,] + list(self.goal_pose.p)
-    print params
-    #for dmp in self.dmp_list:
+    params = [len(self.dmp_list), self.tau,] + list(self.goal_pose.p)
+    for dmp in self.dmp_list:
+        print dmp
+    return params
     
-  def _fromParams(self):
+  def _fromParams(self, params):
+    num_dmps = params[0]
+
 
   def generate(self, world, state):
     '''
