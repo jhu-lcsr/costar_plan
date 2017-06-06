@@ -1,6 +1,6 @@
 
 
-def OptimizePolicy(world, task, num_iter=100, num_samples=25, *args, **kwargs):
+def OptimizePolicy(world, task, mu, sigma, num_iter=100, num_samples=25, *args, **kwargs):
     '''
     Run a cross-entropy like sampling loop to optimize some parameterized
     policy.

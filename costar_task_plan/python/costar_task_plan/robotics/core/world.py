@@ -298,3 +298,16 @@ class CostarWorld(AbstractWorld):
 
   def saveModels(self, project):
     self.lfd.save(project)
+
+  def getParamDistributions(self):
+    Z = {}
+    for skill, instances in self.lfd.skill_instances.items():
+      params = []
+      for instance in instances:
+        params.append(instance.params())
+
+    # get mean
+    # get std dev
+
+    raise RuntimeError('asdf')
+    return Z

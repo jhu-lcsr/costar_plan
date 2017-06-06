@@ -241,12 +241,6 @@ class LfD(object):
                 dmp = yaml_load(filename)
                 self.skill_instances[name].append(dmp)
 
-                print "====================================="
-                print dmp.params()
-                print dmp.goal_pose
-                print dmp.dmp_list
-                print dmp.tau
-
             model_filename = os.path.join(models_dir, '%s_gmm.yml'%name)
             self.skill_models[name] = yaml_load(model_filename)
 
