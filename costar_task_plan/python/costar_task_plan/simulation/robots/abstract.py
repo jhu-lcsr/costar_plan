@@ -65,12 +65,26 @@ class AbstractRobotInterface(object):
         raise NotImplementedError('get gripper')
 
     def getState(self):
+        '''
+        Simple tool: take the current simulation and get a state representing
+        what the robot will look like.
+        '''
         (pos, rot) = pb.getBasePositionAndOrientation(self.handle)
         return SimulationRobotState(robot=self,
                 base_pos=pos,
                 base_rot=rot,
                 arm=self._getArmPosition(),
                 gripper=self._getGripper())
+
+    def inverse(self, pose):
+        '''
+        The inverse() command is used by various agents and problem domains
+        to recover a command vector that will move the robot arm to the right
+        pose.
+        '''
+        raise NotImplementedError('The inverse() command takes a position' + \
+                                  'and gets inverse kinematics associated' + \
+                                  'with it.')
 
     def getActionSpace(self):
         '''
