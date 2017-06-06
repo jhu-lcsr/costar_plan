@@ -107,11 +107,6 @@ class LfD(object):
                                                   visualize=True)
 
                 self.skill_instances[name].append(instance)
-                print "====================================="
-                print instance.params()
-                print instance.goal_pose
-                print instance.dmp_list
-                print instance.tau
 
                 if name not in self.skill_features:
                     self.skill_features[name] = f
@@ -245,6 +240,13 @@ class LfD(object):
                 filename = os.path.join(skills_dir, '%s%02d.yml'%(name,i))
                 dmp = yaml_load(filename)
                 self.skill_instances[name].append(dmp)
+
+                print "====================================="
+                print dmp.params()
+                print dmp.goal_pose
+                print dmp.dmp_list
+                print dmp.tau
+
             model_filename = os.path.join(models_dir, '%s_gmm.yml'%name)
             self.skill_models[name] = yaml_load(model_filename)
 

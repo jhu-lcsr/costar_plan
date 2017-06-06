@@ -60,5 +60,6 @@ if __name__ == '__main__':
                      "trash":"trash1",
                      "squeeze_area":"squeeze_area1"}
 
+    # Run the policy optimization loop
     OptimizePolicy(world, task)
 
