@@ -98,10 +98,10 @@ class LfD(object):
 
                 # compute features?
                 f, g = features.GetFeaturesForTrajectory(ee, world[0], objs)
-                instance = CartesianSkillInstance(ee,
-                                                  world,
-                                                  self.kdl_kin,
+                instance = CartesianSkillInstance(self.kdl_kin,
                                                   self.config,
+                                                  ee_frames=ee,
+                                                  worlds=world,
                                                   dt=dt,
                                                   objs=objs,
                                                   visualize=True)

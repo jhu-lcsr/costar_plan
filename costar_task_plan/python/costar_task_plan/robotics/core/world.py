@@ -11,6 +11,7 @@ from js_listener import JointStateListener
 
 from costar_task_plan.abstract import *
 from costar_task_plan.robotics.representation import GMM
+from costar_task_plan.robotics.representation import Distribution
 
 import logging
 from os.path import join
@@ -313,8 +314,11 @@ class CostarWorld(AbstractWorld):
             for instance in instances:
                 params.append(instance.params())
 
-        # get mean
-        # get std dev
+            # get mean and get std dev
+            params = np.array(params)
+            mu = np.mean(params,axis=0)
+            sigma = np.cov(params)
+            Z[skill] = Distribution(mu, sigma)
 
-        raise RuntimeError('asdf')
+        print Z
         return Z
