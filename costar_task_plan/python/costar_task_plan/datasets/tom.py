@@ -144,7 +144,9 @@ class TomDataset(Dataset):
             # convert pose from this representation to a KDL frame
             pose = pm.fromMsg(msg)
 
-            # move it back some amount
+            # Move it back some amount.
+            # TODO(cpaxton): make sure this is correct! May need to correct the
+            # position of the end effector extracted from these bag files.
             pose = pose * pm.Frame(pm.Vector(0, 0, -0.12))
 
             # still saved as messages
@@ -158,8 +160,6 @@ class TomDataset(Dataset):
             traj.append((sec, pose, data, gripper_open, gripper_state, orange))
             gripper, data, pose, orange = None, None, None, None
       trajs.append(traj)
-      if len(traj) > 0:
-        break
 
     # These are the preset positions for the various TOM objects. These are 
     # reference frames used for computing features. These are the ones
