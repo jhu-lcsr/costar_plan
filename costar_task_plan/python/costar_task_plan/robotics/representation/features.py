@@ -22,22 +22,14 @@ from pykdl_utils.kdl_parser import kdl_tree_from_urdf_model
 import tf
 import tf_conversions.posemath as pm
 
+# for fast feature computation
+from numba import jit
+
 # input message types 
 import sensor_msgs
 import trajectory_msgs
 from trajectory_msgs.msg import JointTrajectoryPoint
 from sensor_msgs.msg import JointState
-
-try:
-    import oro_barrett_msgs
-    from oro_barrett_msgs.msg import BHandCmd as GripperCmd
-except ImportError:
-    rospy.logwarn("CTP.ROBOTICS.REPRESENTATION: Warning: could not import Barrett messages.")
-try:
-    from robotiq_c_model_control.msg import CModel_gripper_command as GripperCmd
-except ImportError:
-    rospy.logwarn("CTP.ROBOTICS.REPRESENTATION: Warning: could not import Robotiq C-model gripper messages.")
-
 
 # output message types
 from geometry_msgs.msg import Pose
@@ -46,12 +38,14 @@ from geometry_msgs.msg import PoseArray
 TIME = 'time'
 GRIPPER = 'gripper'
 JOINT = 'joint' # features indicating total joint velocity/effort
+
 NUM_OBJ_VARS = 8
 NUM_OBJ_DIFF_VARS = 1
-NUM_GRIPPER_VARS = 3
+NUM_GRIPPER_VARS = 1
 NUM_GRIPPER_DIFF_VARS = 0
 NUM_TIME_VARS = 1
 
+@jit
 def P_Gauss(x,mu,inv,det,wts):
     '''
     P_Gauss
@@ -312,10 +306,10 @@ class RobotFeatures:
         self.gripper_cmd = msg
         self.last_gripper_msg = rospy.Time.now()
 
-    '''
-    Set up manipulation object frame
-    '''
     def updateManipObj(self,manip_objs):
+        '''
+        Set up manipulation object frame
+        '''
         if len(manip_objs) > 0:
             self.manip_obj = manip_objs[0]
         else:
@@ -325,13 +319,13 @@ class RobotFeatures:
         self.indices = {}
         self.diff_indices = {}
     
-    '''
-    Add an object we can use as a reference
-    for now number of gripper, object variables are all hard coded
-    
-    Objects are all TF coordinate frames.
-    '''
     def AddObject(self,obj,frame=""):
+        '''
+        Add an object we can use as a reference
+        for now number of gripper, object variables are all hard coded
+        
+        Objects are all TF coordinate frames.
+        '''
 
         self.max_index = max([0]+[v[1] for k,v in self.indices.items()])
 
@@ -477,13 +471,14 @@ class RobotFeatures:
 #
         return msg
 
-    '''
-    GetTrajectoryWeight()
-    - z is the trajectory params
-    - Z is the trajectory distribution
-    - p_obs is the probability of these feature observations (fixed at one)
-    '''
+
     def GetTrajectoryWeight(self,traj,world,objs,p_z,p_obs=0,t_lambda=0.5):
+        '''
+        GetTrajectoryWeight()
+        - z is the trajectory params
+        - Z is the trajectory distribution
+        - p_obs is the probability of these feature observations (fixed at one)
+        '''
 
         weights = [0.0]*len(traj)
 
@@ -509,13 +504,13 @@ class RobotFeatures:
 
         return np.exp(avg + goal_prob - denom),np.exp(avg + goal_prob)
 
-    '''
-    GetTrajectoryLikelihood
-    slow computation of trajectory likelihood...
-    Computes the same features as before
-    Will then score them as per usual
-    '''
     def GetTrajectoryLikelihood(self,traj,world,objs,step=1.,sigma=0.000):
+        '''
+        GetTrajectoryLikelihood
+        slow computation of trajectory likelihood...
+        Computes the same features as before
+        Will then score them as per usual
+        '''
 
         ee_frame = [self.base_tform * self.GetForward(q[:self.dof]) for q in traj]
         features,goal_features = self.GetFeaturesForTrajectory(ee_frame,world,objs)
@@ -527,10 +522,10 @@ class RobotFeatures:
 
         return self.goal_model.score(goal_features) + avg
 
-    '''
-    GetFeaturesForTrajectory
-    '''
     def GetFeaturesForTrajectory(self,ee_frame,world,objs,gripper=None):
+        '''
+        GetFeaturesForTrajectory
+        '''
 
         #features = [[]]*(len(traj)-1)
         npts = len(ee_frame)-1
@@ -551,11 +546,11 @@ class RobotFeatures:
 
         return np.array(features),np.array([goal_features])
 
-    '''
-    GetFeatures
-    Gets the features for a particular combination of world, time, and point.
-    '''
     def GetFeatures(self,ee_frame,t,world,objs,gripper=[0]*NUM_GRIPPER_VARS):
+        '''
+        GetFeatures
+        Gets the features for a particular combination of world, time, and point.
+        '''
 
         # initialize empty features list
         # TODO: allocate this more intelligently
