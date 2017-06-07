@@ -54,7 +54,7 @@
     output="screen" />
 
   <node name="rvizvis"
-    if="%(arg rviz)"
+    if="$(arg rviz)"
     pkg="rviz"
     type="rviz"
     args="-d $(find costar_task_plan)/launch/rviz_conf/tom_robot.rviz" />
