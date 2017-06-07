@@ -62,5 +62,5 @@ if __name__ == '__main__':
 
     # Run the policy optimization loop
     Z = world.getParamDistributions()
-    OptimizePolicy(world, task, mu, sigma)
+    OptimizePolicy(world, task, Z)
 
