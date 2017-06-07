@@ -6,7 +6,9 @@ from sensor_msgs.msg import JointState
 
 import rospy
 
+
 class ValidStateCondition(AbstractCondition):
+
     '''
     Check to see if a particular state is valid
     '''
@@ -19,12 +21,11 @@ class ValidStateCondition(AbstractCondition):
         if actor is None:
             actor = world.actors[0]
         js = JointState(
-                name=actor.joints,
-                position=state.q,
-                )
+            name=actor.joints,
+            position=state.q,
+        )
         rs = RobotState(joint_state=js)
         res = self.srv(robot_state=rs)
         if not res.valid:
             print res
         return res.valid
-    

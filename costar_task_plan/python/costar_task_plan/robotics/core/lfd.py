@@ -23,9 +23,9 @@ import rospy
 import yaml
 
 try:
-  from yaml import CLoader as Loader, CDumper as Dumper
+    from yaml import CLoader as Loader, CDumper as Dumper
 except ImportError:
-  from yaml import Loader, Dumper
+    from yaml import Loader, Dumper
 
 
 class LfD(object):
@@ -212,9 +212,9 @@ class LfD(object):
         for name in self.skill_instances.keys():
             skill_counts[name] = len(self.skill_instances[name])
             for i, skill in enumerate(self.skill_instances[name]):
-                filename = os.path.join(skills_dir, '%s%02d.yml'%(name,i))
+                filename = os.path.join(skills_dir, '%s%02d.yml' % (name, i))
                 yaml_save(skill, filename)
-            model_filename = os.path.join(models_dir, '%s_gmm.yml'%name)
+            model_filename = os.path.join(models_dir, '%s_gmm.yml' % name)
             yaml_save(self.skill_models[name], model_filename)
 
         skill_filename = os.path.join(project_name, "skills.yml")
@@ -237,16 +237,18 @@ class LfD(object):
 
             self.skill_instances[name] = []
             for i in xrange(count):
-                filename = os.path.join(skills_dir, '%s%02d.yml'%(name,i))
+                filename = os.path.join(skills_dir, '%s%02d.yml' % (name, i))
                 dmp = yaml_load(filename)
                 self.skill_instances[name].append(dmp)
 
-            model_filename = os.path.join(models_dir, '%s_gmm.yml'%name)
+            model_filename = os.path.join(models_dir, '%s_gmm.yml' % name)
             self.skill_models[name] = yaml_load(model_filename)
+
 
 def yaml_save(obj, filename):
     with open(filename, 'w') as outfile:
         yaml.dump(obj, outfile, default_flow_style=False)
+
 
 def yaml_load(filename):
     with open(filename, 'r') as infile:

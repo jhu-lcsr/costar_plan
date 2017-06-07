@@ -4,12 +4,14 @@ from costar_task_plan.robotics.representation import RobotFeatures
 import numpy as np
 import tf_conversions.posemath as pm
 
+
 class DemoFeatures(AbstractFeatures):
+
     '''
     Wrap old feature computation code
     '''
 
-    def __init__(self,kdl_kin,config):
+    def __init__(self, kdl_kin, config):
         self.config = config
         self.kdl_kin = kdl_kin
         self.features = RobotFeatures(self.config, self.kdl_kin)
@@ -25,11 +27,11 @@ class DemoFeatures(AbstractFeatures):
             else:
                 gripper = 0.
             f = np.array(self.features.GetFeatures(
-                    ee,
-                    state.seq / len(state.traj.points),
-                    world.observation,
-                    ['time', state.reference.goal],
-                    gripper))
+                ee,
+                state.seq / len(state.traj.points),
+                world.observation,
+                ['time', state.reference.goal],
+                gripper))
             return f
         else:
             return None
