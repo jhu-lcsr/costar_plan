@@ -44,4 +44,4 @@ from demo_features import *
 from gripper_status_listener import *
 
 # Other stuff
-from observe import AbstractObserve
+#from observe import AbstractObserve
