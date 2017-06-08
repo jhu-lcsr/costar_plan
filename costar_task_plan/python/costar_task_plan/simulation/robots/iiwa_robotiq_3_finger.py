@@ -8,7 +8,7 @@ import pybullet as pb
 import rospkg
 import subprocess
 
-class Ur5RobotiqInterface(AbstractRobotInterface):
+class IiwaRobotiq3FingerInterface(AbstractRobotInterface):
 
     '''
     Defines action space for the ur5 with a robotiq 85 gripper. This is the
@@ -18,8 +18,8 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
     xacro_filename = 'robot/ur5_joint_limited_robot.xacro'
     urdf_filename = 'ur5_joint_limited_robot.urdf'
 
-    arm_name = "ur5"
-    gripper_name = "robotiq_2_finger"
+    arm_name = "iiwa14"
+    gripper_name = "robotiq_3_finger"
     base_name = None
 
     left_knuckle = 8
@@ -33,7 +33,7 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
     right_fingertip = 15
 
     def __init__(self, *args, **kwargs):
-        super(Ur5RobotiqInterface, self).__init__(*args, **kwargs)
+        super(IiwaRobotiq3FingerInterface, self).__init__(*args, **kwargs)
 
     def load(self):
         '''
