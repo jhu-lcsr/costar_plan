@@ -37,42 +37,7 @@ class OrangesTaskDefinition(AbstractTaskDefinition):
         '''
         Create the high-level task definition used for data generation.
         '''
-        GraspOption = lambda goal: GoalDirectedMotionOption
-        grasp_args = {
-                "constructor": GraspOption,
-                "args": ["red"],
-                "remap": {"red": "goal"},
-                }
-        LiftOption = lambda: GeneralMotionOption
-        lift_args = {
-                "constructor": LiftOption,
-                "args": []
-                }
-        wait_args = {
-                "constructor": GeneralMotionOption,
-                "args": []
-                }
-        place_args = {
-                "constructor": GeneralMotionOption,
-                "args": []
-                }
-        close_gripper_args = {
-                "constructor": GeneralMotionOption,
-                "args": []
-                }
-        open_gripper_args = {
-                "constructor": GeneralMotionOption,
-                "args": []
-                }
-
-        # Create a task model
         task = Task()
-        task.add("grasp", None, grasp_args)
-        task.add("close_gripper", "grasp", close_gripper_args)
-        task.add("lift", "close_gripper", grasp_args)
-        task.add("place", "lift", grasp_args)
-        task.add("open_gripper", "place", open_gripper_args)
-
         return task
 
 
@@ -90,6 +55,23 @@ class OrangesTaskDefinition(AbstractTaskDefinition):
         for position in self.tray_poses:
             obj_id = pb.loadURDF(tray_filename)
             pb.resetBasePositionAndOrientation(obj_id, position, (0,0,0,1))
+
+    def _setupRobot(self, handle):
+        '''
+        Properly place and configure the robot.
+        '''
+        self.robot.place([0,0,0],[0,0,0,1],self.joint_positions)
+        if self.robot.arm_name == "ur5":
+            self.robot.arm(self.joint_positions, pb.POSITION_CONTROL)
+        elif self.robot.arm_name == "iiwa":
+            raise NotImplementedError('iiwa')
+        else:
+            raise NotImplementedError('whatever you entered: "%s"'%self.robot.arm_name)
+
+        if self.robot.gripper_name == "robotiq_2_finger":
+            self.robot.gripper(0, pb.POSITION_CONTROL)
+        else:
+            raise NotImplementedError('whatever you entered: "%s"'%self.robot.gripper_name)
 
     def reset(self):
         for obj_id, position in zip(self.trays, self.tray_poses):
