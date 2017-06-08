@@ -69,7 +69,6 @@ class Task(object):
      - create option with those args
     '''
 
-    print arg_dict
     if isinstance(arg_dict, AbstractWorld):
         arg_dict = arg_dict.getObjects()
 
@@ -93,13 +92,21 @@ class Task(object):
           inodes[name] = iname
           self.nodes[iname] = option
           self.children[iname] = Set()
+          print "> inodes ", name, iname, (name in inodes)
 
+      print self.option_templates.items()
       # connect nodes and their children
       for name, template in self.option_templates.items():
+        print "---------------------------------------"
+        print "???", name, (name in inodes), (inodes.keys())
+        print "< ", inodes[name], name
+        print inodes
         iname = inodes[name]
         for child in template.children:
             if child in inodes:
                 self.children[iname].add(inodes[child])
+        print inodes
+      print "==================="
 
     self.compiled = True
     return arg_sets

@@ -15,7 +15,6 @@ class JointStateListener(object):
         self.dq = None
         self.old_q0 = [0] * self.dof
 
-        print self.joints
         if self.joints is not None:
             assert self.dof == len(self.joints)
 

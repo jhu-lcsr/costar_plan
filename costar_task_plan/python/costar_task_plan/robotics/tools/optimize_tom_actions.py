@@ -52,8 +52,9 @@ if __name__ == '__main__':
     filled_args = task.compile(args)
     execute = True
 
-    for obj_class, name in args.items():
-        world.addObject(name, obj_class)
+    for obj_class, names in args.items():
+        for name in names:
+            world.addObject(name, obj_class)
 
     # Run the policy optimization loop
     policies = DefaultTaskMctsPolicies(task)

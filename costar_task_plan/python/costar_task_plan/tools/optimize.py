@@ -16,10 +16,13 @@ def OptimizePolicy(world, task, policies, num_iter=100, num_samples=25, *args, *
 
 
 def ForwardPass(world, task, policies):
-    print world.getObjects()
+    '''
+    Complete a single optimization forward pass.
+    '''
     task.compile(world)
     root = Node(world=world,root=True)
     search = RandomSearch()
     t, path = search(root)
+    print "---------------------"
     print "time =", t
     print path

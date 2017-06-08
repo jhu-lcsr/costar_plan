@@ -99,13 +99,10 @@ class LfD(object):
 
                 # compute features?
                 f, g = features.GetFeaturesForTrajectory(ee, world[0], objs)
-                instance = CartesianSkillInstance(self.kdl_kin,
-                                                  self.config,
-                                                  ee_frames=ee,
-                                                  worlds=world,
+                instance = CartesianSkillInstance(self.config,
                                                   dt=dt,
-                                                  objs=objs,
-                                                  visualize=True)
+                                                  objs=objs)
+                instance.fit(ee_frames=ee, worlds=world)
 
                 self.skill_instances[name].append(instance)
 
@@ -268,5 +265,5 @@ def yaml_save(obj, filename):
 
 def yaml_load(filename):
     with open(filename, 'r') as infile:
-        return yaml.load(infile)
+        return yaml.load(infile, Loader=Loader)
 

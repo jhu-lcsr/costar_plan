@@ -20,32 +20,27 @@ class CartesianSkillInstance(yaml.YAMLObject):
 
   yaml_tag = u'!CartesianSkillInstance'
 
-  def __init__(self, kinematics, config, params=None, ee_frames=None, worlds=None, objs=[], dt=0.1, visualize=False):
+  def __init__(self, config, params=None, objs=[], dt=0.1):
     '''
     Needs:
     - a vector of end effector poses
     - a vector of world state observations (dictionaries)
-    - a kinematics model
     Assume that end effector and worlds are in the same coordinate system,
     which is supposed to be the base link.
     '''
     self.config = config
-    self.ee_frames = ee_frames
-    self.worlds = worlds
-    self.kinematics = kinematics
     self.dt = dt
     self.objs = [obj for obj in objs if obj not in ['time', 'gripper']]
-    if self.worlds is not None:
-        self._fit()
-    elif params is not None:
+    if params is not None:
         self._fromParams(params)
-    else:
-        raise RuntimeError('Must provide world data or params')
 
-  def _fit(self):
+  def fit(self, ee_frames, worlds):
     '''
     call to create the dmp based on this observation
     '''
+
+    assert len(worlds) == len(ee_frames)
+
     k_gain = self.config['dmp_k']
     d_gain = self.config['dmp_d']
     num_basis = self.config['dmp_basis']
@@ -55,15 +50,15 @@ class CartesianSkillInstance(yaml.YAMLObject):
     elif len(self.objs) is 0:
       # goal
       pass
-      goal_frame = [pm.fromMatrix(np.eye(4))] * len(self.worlds)
+      goal_frame = [pm.fromMatrix(np.eye(4))] * len(worlds)
     else:
       print "creating goal w.r.t. ", self.objs[0]
-      goal_frame = [world[self.objs[0]] for world in self.worlds]
+      goal_frame = [world[self.objs[0]] for world in worlds]
 
     u = np.zeros((len(goal_frame),6))
     last_rpy = None
 
-    for i, (ee,goal) in enumerate(zip(self.ee_frames, goal_frame)):
+    for i, (ee,goal) in enumerate(zip(ee_frames, goal_frame)):
         pose = goal.Inverse() * ee
         u[i,0] = pose.p[0]
         u[i,1] = pose.p[1]
@@ -122,21 +117,4 @@ class CartesianSkillInstance(yaml.YAMLObject):
     idx = 7
     for i in xrange(num_dmps):
         weights = params[idx:(idx+num_basis)]
-
-  def generate(self, world, state):
-    '''
-    Given a world state and a robot state, generate a trajectory. This will
-    create both the joint state
-    '''
-    Fx0 = self.kinematics.forward(state.q)
-    x0 = [Fx0.p[0], Fx0.p[1], Fx0.p[2],]
-    x0_dot = [0.,0.,0.,]
-    goal_thresh = [1e-1, 1e-1, 1e-1]
-    tau = 1.0
-    integrate_iter = 5
-    dt = 0.1
-    resp = PlanDMP(x0, x0_dot, 0., goal, goal_thresh, tau, dt, integrate_iter)
-    if visualize:
-      msg = PoseArray()
-    pass
 
