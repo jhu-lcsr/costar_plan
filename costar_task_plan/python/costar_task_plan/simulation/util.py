@@ -8,7 +8,7 @@ def GetAvailableTasks():
 
 
 def GetAvailableRobots():
-    return ["ur5_robotiq"]
+    return ["ur5_2_finger", "iiwa_3_finger"]
 
 
 def GetAvailableAlgorithms():
@@ -40,7 +40,8 @@ def GetRobotInterface(robot, *args, **kwargs):
     '''
     try:
         return {
-            'ur5_robotiq': Ur5RobotiqInterface(*args, **kwargs),
+            'ur5_2_finger': Ur5RobotiqInterface(*args, **kwargs),
+            'iiwa_3_finger': IiwaRobotiq3FingerInterface(*args, **kwargs),
         }[robot]
     except KeyError, e:
         raise NotImplementedError('Robot %s not implemented!' % robot)
