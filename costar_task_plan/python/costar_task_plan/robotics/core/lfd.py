@@ -14,6 +14,7 @@ from urdf_parser_py.urdf import URDF
 from costar_task_plan.robotics.representation import RobotFeatures
 from costar_task_plan.robotics.representation import CartesianSkillInstance
 from costar_task_plan.robotics.representation import GMM
+from costar_task_plan.robotics.representation import Distribution
 from costar_task_plan.robotics.representation import RequestActiveDMP, PlanDMP
 
 # Important libraries

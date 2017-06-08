@@ -1,12 +1,13 @@
 
+from costar_task_plan.abstract import AbstractOption, AbstractCondition
 from dmp_policy import JointDmpPolicy, CartesianDmpPolicy
 
 import numpy as np
 
-from costar_task_plan.abstract import AbstractOption, AbstractCondition
-
 
 class DmpOption(AbstractOption):
+    '''
+    '''
 
     def __init__(self,
             policy_type, # what kind of DMP are we creating
@@ -52,7 +53,16 @@ class DmpOption(AbstractOption):
             kinematics=self.kinematics)
 
     def samplePolicy(self, *args, **kwargs):
-        pass
+        '''
+        Randomly create a policy
+        '''
+        params = np.random.multivariate_normal(self.traj_dist.mu, self.traj_dist.sigma)
+        skill_instance = CartesianSkillInstance(params=params)
+        return self.policy_type(
+            skill=self,
+            goal=self.goal,
+            dmp=skill_instance,
+            kinematics=self.kinematics)
 
     # Get the gating condition for a specific option.
     # - execution should continue until such time as this condition is true.

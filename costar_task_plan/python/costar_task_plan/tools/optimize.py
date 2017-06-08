@@ -1,6 +1,6 @@
 from costar_task_plan.mcts.search import RandomSearch
 
-def OptimizePolicy(world, task, skills, policies, num_iter=100, num_samples=25, *args, **kwargs):
+def OptimizePolicy(world, task, policies, num_iter=100, num_samples=25, *args, **kwargs):
     '''
     Run a cross-entropy like sampling loop to optimize some parameterized
     policy.

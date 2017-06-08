@@ -4,7 +4,7 @@
 # (c) 2017 The Johns Hopkins University
 # See License for more details
 
-from tom_oranges import MakeTomTaskModel, OrangesTaskArgs
+from tom_oranges import MakeTomTaskModel, OrangesTaskArgs, OrangesDefaultTaskArgs
 
 from costar_task_plan.abstract import AbstractReward, AbstractFeatures
 from costar_task_plan.mcts import DefaultTaskMctsPolicies, Node
@@ -52,8 +52,8 @@ if __name__ == '__main__':
     filled_args = task.compile(args)
     execute = True
 
-    for obj, name in args.items():
-        world.addObject(obj, name)
+    for obj_class, name in args.items():
+        world.addObject(name, obj_class)
 
     # Run the policy optimization loop
     policies = DefaultTaskMctsPolicies(task)
