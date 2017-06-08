@@ -82,6 +82,11 @@ class CostarWorld(AbstractWorld):
         # identifier.
         self.observation = {}
 
+        # Object class information
+        # TODO(cpaxton): this is a duplicate, remove it after state has been
+        # fixed a little
+        self.object_by_class = {}
+
         if robot_config is None:
             raise RuntimeError('Must provide a robot config!')
 
@@ -265,6 +270,22 @@ class CostarWorld(AbstractWorld):
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             pass
 
+    def addObject(self, obj_name, obj_class, *args):
+        '''
+        Wraps add actor function for objects. Make sure they have the right
+        policy and are added so we can easily look them up later on.
+        TODO(cpaxton): update this when we have a more unified way of thinking
+        about objects.
+        '''
+        
+        self.class_by_object[obj_id] = obj_class
+        if obj_class not in self.object_by_class:
+            self.object_by_class[obj_class] = [obj_id]
+        else:
+            self.object_by_class[obj_class].append(obj_id)
+
+        return -1
+
     def _dataToPose(self, data):
         '''
         Overload this to set up data visualization; it should return a pose array.
@@ -307,17 +328,3 @@ class CostarWorld(AbstractWorld):
     def saveModels(self, project):
         self.lfd.save(project)
 
-    def getParamDistributions(self):
-        Z = {}
-        for skill, instances in self.lfd.skill_instances.items():
-            params = []
-            for instance in instances:
-                params.append(instance.params())
-
-            # get mean and get std dev
-            params = np.array(params)
-            mu = np.mean(params,axis=0)
-            sigma = np.cov(params)
-            Z[skill] = Distribution(mu, sigma)
-
-        return Z

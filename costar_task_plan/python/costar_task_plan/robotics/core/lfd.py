@@ -244,6 +244,21 @@ class LfD(object):
             model_filename = os.path.join(models_dir, '%s_gmm.yml' % name)
             self.skill_models[name] = yaml_load(model_filename)
 
+    def getParamDistribution(self, skill):
+        '''
+        Get the mean and covariance associated with our observed expert
+        policies. We can then use these together with our expected feature
+        counts to optimize to a new environment.
+        '''
+        params = []
+        for instance in self.skill_instances[skill]:
+            params.append(instance.params())
+
+        # get mean and get std dev
+        params = np.array(params)
+        mu = np.mean(params,axis=0)
+        sigma = np.cov(params)
+        return Distribution(mu, sigma)
 
 def yaml_save(obj, filename):
     with open(filename, 'w') as outfile:
@@ -253,3 +268,4 @@ def yaml_save(obj, filename):
 def yaml_load(filename):
     with open(filename, 'r') as infile:
         return yaml.load(infile)
+

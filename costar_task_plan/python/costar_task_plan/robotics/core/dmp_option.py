@@ -8,7 +8,15 @@ from costar_task_plan.abstract import AbstractOption, AbstractCondition
 
 class DmpOption(AbstractOption):
 
-    def __init__(self, policy_type, kinematics, goal, skill_name, model, instances=[], attached_frame=None):
+    def __init__(self,
+            policy_type, # what kind of DMP are we creating
+            kinematics, # kinematics of the robot 
+            goal, # type of object to arrive at 
+            skill_name, # name of this skill
+            feature_model, # feature model
+            skill_instance=None,
+            traj_dist=None,
+            attached_frame=None):
         if isinstance(policy_type, str):
             # parse into appropriate constructor
             if policy_type == 'joint':
@@ -28,17 +36,19 @@ class DmpOption(AbstractOption):
         self.goal = goal
         self.policy_type = policy_type
         self.kinematics = kinematics
-        self.instances = instances
-        self.model = model
+        self.skill_instance = skill_instance
+        self.feature_model = feature_model
         self.skill_name = skill_name
         self.attached_frame = attached_frame
 
-    # Make a policy.
     def makePolicy(self, *args, **kwargs):
+        '''
+        Deterministically select the first policy from the list.
+        '''
         return self.policy_type(
             skill=self,
             goal=self.goal,
-            dmp=self.instances[0],
+            dmp=self.skill_instance,
             kinematics=self.kinematics)
 
     def samplePolicy(self, *args, **kwargs):

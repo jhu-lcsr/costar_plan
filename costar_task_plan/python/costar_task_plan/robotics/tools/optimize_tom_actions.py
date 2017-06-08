@@ -48,20 +48,14 @@ if __name__ == '__main__':
 
     # Set up the task model
     task = MakeTomTaskModel(world.lfd)
-    args = OrangesTaskArgs()
+    args = OrangesDefaultTaskArgs()
     filled_args = task.compile(args)
     execute = True
 
-    # Perform the search
-    objects = ['box1', 'orange1', 'orange2', 'orange3', 'trash1',
-            'squeeze_area1']
-    debug_objects = {"box":"box1",
-                     "orange":"orange1",
-                     "trash":"trash1",
-                     "squeeze_area":"squeeze_area1"}
+    for obj, name in args.items():
+        world.addObject(obj, name)
 
     # Run the policy optimization loop
     policies = DefaultTaskMctsPolicies(task)
-    Z = world.getParamDistributions()
-    OptimizePolicy(world, task, Z, policies)
+    OptimizePolicy(world, task, policies)
 
