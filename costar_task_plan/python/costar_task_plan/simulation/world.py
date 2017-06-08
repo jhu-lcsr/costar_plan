@@ -14,6 +14,7 @@ class SimulationWorld(AbstractWorld):
         # stores object handles and names
         self.class_by_object = {}
         self.object_by_class = {}
+        self.id_by_object = {}
 
     def addObject(self, obj_name, obj_class, handle, state):
         '''
@@ -27,11 +28,12 @@ class SimulationWorld(AbstractWorld):
             dynamics=SimulationDynamics(self),
             policy=NullPolicy(),
             state=state))
-        self.class_by_object[obj_id] = obj_class
+        self.class_by_object[obj_name] = obj_class
+        self.id_by_object[obj_name] = obj_id
         if obj_class not in self.object_by_class:
-            self.object_by_class[obj_class] = [obj_id]
+            self.object_by_class[obj_class] = [obj_name]
         else:
-            self.object_by_class[obj_class].append(obj_id)
+            self.object_by_class[obj_class].append(obj_name)
 
         return obj_id
 

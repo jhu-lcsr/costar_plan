@@ -280,9 +280,9 @@ class CostarWorld(AbstractWorld):
         
         #self.class_by_object[obj_id] = obj_class
         if obj_class not in self.object_by_class:
-            self.object_by_class[obj_class] = [obj_id]
+            self.object_by_class[obj_class] = [obj_name]
         else:
-            self.object_by_class[obj_class].append(obj_id)
+            self.object_by_class[obj_class].append(obj_name)
 
         return -1
 
