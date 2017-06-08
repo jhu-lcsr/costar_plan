@@ -265,5 +265,5 @@ def yaml_save(obj, filename):
 
 def yaml_load(filename):
     with open(filename, 'r') as infile:
-        return yaml.load(infile, Loader=Loader)
+        return yaml.load(infile)#, Loader=Loader)
 
