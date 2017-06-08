@@ -61,6 +61,7 @@ if __name__ == '__main__':
                      "squeeze_area":"squeeze_area1"}
 
     # Run the policy optimization loop
+    policies = DefaultTaskMctsPolicies(task)
     Z = world.getParamDistributions()
-    OptimizePolicy(world, task, Z)
+    OptimizePolicy(world, task, Z, policies)
 

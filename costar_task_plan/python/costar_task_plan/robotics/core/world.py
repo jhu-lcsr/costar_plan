@@ -320,5 +320,4 @@ class CostarWorld(AbstractWorld):
             sigma = np.cov(params)
             Z[skill] = Distribution(mu, sigma)
 
-        print Z
         return Z

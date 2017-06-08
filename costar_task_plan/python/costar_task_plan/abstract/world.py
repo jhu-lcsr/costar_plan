@@ -105,6 +105,16 @@ class AbstractWorld(object):
     (res, S0, A0, S1, F1, r) = new_world.tick(action)
     return new_world
 
+  def duplicate(self):
+    '''
+    Create an exact copy of the world at its current state. This is useful for
+    advancing world state for optimization and things like that without using
+    an OpenAI gym environment.
+    '''
+    new_world = copy.copy(self)
+    new_world.actors = [copy.copy(actor) for actor in self.actors]
+    new_world.updateTraceID()
+
   def tick(self, A0):
     '''
     Main update loop for the World class. 
