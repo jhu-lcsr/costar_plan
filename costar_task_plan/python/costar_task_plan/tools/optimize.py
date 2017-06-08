@@ -15,6 +15,7 @@ def OptimizePolicy(world, task, policies, num_iter=100, num_samples=25, *args, *
             # Forward pass: draw samples from the associated policy until
             # completion.
             reward, traj = ForwardPass(world, task, policies)
+            print reward
 
 
 def ForwardPass(world, task, policies):
@@ -24,6 +25,5 @@ def ForwardPass(world, task, policies):
     root = Node(world=world,root=True)
     search = RandomSearch(policies)
     t, path = search(root)
-    print "---------------------"
-    print "time =", t
-    print path
+
+    return path[-1].reward, path

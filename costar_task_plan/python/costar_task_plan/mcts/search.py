@@ -78,11 +78,18 @@ class RandomSearch(AbstractSearch):
     def __call__(self, root, *args, **kwargs):
         start_time = timeit.default_timer()
         node = root
-        while node is not None: 
+        path = []
+        while True:
+            path.append(node)
             n_children = len(node.children)
             if n_children > 0:
                 idx = np.random.randint(n_children)
                 child = node.children[idx]
                 self.policies.instantiate(node, child)
                 node = child
+            else:
+                break
+
         elapsed = timeit.default_timer() - start_time
+        return elapsed, path
+
