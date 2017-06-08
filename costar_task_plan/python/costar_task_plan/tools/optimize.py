@@ -1,3 +1,5 @@
+
+from costar_task_plan.mcts import Node
 from costar_task_plan.mcts.search import RandomSearch
 
 def OptimizePolicy(world, task, policies, num_iter=100, num_samples=25, *args, **kwargs):
@@ -19,9 +21,8 @@ def ForwardPass(world, task, policies):
     '''
     Complete a single optimization forward pass.
     '''
-    task.compile(world)
     root = Node(world=world,root=True)
-    search = RandomSearch()
+    search = RandomSearch(policies)
     t, path = search(root)
     print "---------------------"
     print "time =", t
