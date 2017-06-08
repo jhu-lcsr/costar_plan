@@ -8,13 +8,14 @@ import pybullet as pb
 import rospkg
 
 
-class SortingTaskDefinition(AbstractTaskDefinition):
+class OrangesTaskDefinition(AbstractTaskDefinition):
     '''
     Define the simple sorting task.
     '''
 
     joint_positions = [0.30, -0.5, -1.80, -0.27, 1.50, 1.60]
 
+    urdf_dir = "urdf"
     tray_dir = "tray"
     tray_urdf = "traybox.urdf"
 
@@ -30,7 +31,7 @@ class SortingTaskDefinition(AbstractTaskDefinition):
         '''
         Your desription here
         '''
-        super(SortingTaskDefinition, self).__init__(robot, *args, **kwargs)
+        super(OrangesTaskDefinition, self).__init__(robot, *args, **kwargs)
 
     def _makeTask(self):
         '''
