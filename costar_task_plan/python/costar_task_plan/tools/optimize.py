@@ -16,7 +16,7 @@ def OptimizePolicy(world, task, policies, num_iter=100, num_samples=25, *args, *
 
 
 def ForwardPass(world, task, policies):
-    world = world.duplicate()
+    print world.getObjects()
     task.compile(world)
     root = Node(world=world,root=True)
     search = RandomSearch()

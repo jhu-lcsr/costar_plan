@@ -69,6 +69,7 @@ class Task(object):
      - create option with those args
     '''
 
+    print arg_dict
     if isinstance(arg_dict, AbstractWorld):
         arg_dict = arg_dict.getObjects()
 

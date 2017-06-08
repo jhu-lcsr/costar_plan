@@ -286,6 +286,19 @@ class CostarWorld(AbstractWorld):
 
         return -1
 
+    def getObjects(self):
+        '''
+        Return information about specific objects in the world. This should tell us
+        for some semantic identifier which entities in the world correspond to that.
+        As an example:
+            {
+                "goal": ["goal1", "goal2"]
+            }
+        Would be a reasonable response, saying that there are two goals called
+        goal1 and goal2.
+        '''
+        return self.object_by_class
+
     def _dataToPose(self, data):
         '''
         Overload this to set up data visualization; it should return a pose array.
