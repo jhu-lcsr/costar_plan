@@ -1,7 +1,9 @@
 from costar_task_plan.abstract import AbstractReward
 from costar_task_plan.models import GMM
 
+
 class DemoReward(AbstractReward):
+
     '''
     In this case, we want to learn a controller that sticks as close as
     possible to the demonstrated trajectory.

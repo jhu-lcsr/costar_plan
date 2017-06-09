@@ -1,6 +1,7 @@
 
 " types and utilities "
 from types import Demonstration
+from types import Distribution
 from types import LoadYaml
 from types import SaveYaml
 from types import GetPoseMessage

@@ -69,6 +69,8 @@ class Task(object):
      - create option with those args
     '''
 
+    assert not self.compiled
+
     if isinstance(arg_dict, AbstractWorld):
         arg_dict = arg_dict.getObjects()
 

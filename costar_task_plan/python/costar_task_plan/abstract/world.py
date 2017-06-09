@@ -85,9 +85,14 @@ class AbstractWorld(object):
 
   def fork(self, action, policies={}):
     '''
+    Create an exact copy of the world at its current state. This is useful for
+    advancing world state for optimization and things like that without using
+    an OpenAI gym environment.
+
     For use in planning:
     - take an action
     - take an optional set of policies
+
     Create a copy of the world and tick() with the appropriate new action. If
     we have policies, actors will be reset appropriately to use new policies.
     '''
@@ -104,6 +109,13 @@ class AbstractWorld(object):
 
     (res, S0, A0, S1, F1, r) = new_world.tick(action)
     return new_world
+
+  def duplicate(self):
+    '''
+    '''
+    new_world = copy.copy(self)
+    new_world.actors = [copy.copy(actor) for actor in self.actors]
+    new_world.updateTraceID()
 
   def tick(self, A0):
     '''
@@ -248,3 +260,15 @@ class AbstractWorld(object):
     '''
     return self.actors[0]
 
+  def _createObjectActor(self, *args):
+      '''
+      This function is a helper that should return an individual ACTOR. This actor
+      stores information pertaining to a particular entity in the world that has
+      an associated state and must be checked by the world on each iteration.
+
+      In general, some actors will have an associated policy and will take actions;
+      actors added via this function should not do so.
+      '''
+      raise NotImplementedError('if your world wants to support adding '
+                                'objects, then you must implement the '
+                                '_createObjectActor function.')

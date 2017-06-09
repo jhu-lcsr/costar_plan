@@ -12,3 +12,5 @@ __all__ = [
 from graph import makeGraph, showGraph
 from show_task import showTask
 from evaluate_mcts import mctsLoop
+
+from optimize import OptimizePolicy
