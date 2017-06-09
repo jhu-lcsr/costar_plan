@@ -5,6 +5,7 @@ from mug import MugTaskDefinition
 from sorting import SortingTaskDefinition
 from rings import RingsTaskDefinition
 from explore import ExploreTaskDefinition
+from oranges import OrangesTaskDefinition
 
 __all__ = ["AbstractTaskDefinition",
            "BlocksTaskDefinition",
@@ -13,4 +14,5 @@ __all__ = ["AbstractTaskDefinition",
            "SortingTaskDefinition",
            "RingsTaskDefinition",
            "ExploreTaskDefinition",
+           "OrangesTaskDefinition",
            ]

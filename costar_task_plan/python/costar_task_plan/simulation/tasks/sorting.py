@@ -1,5 +1,6 @@
 from abstract import AbstractTaskDefinition
 from costar_task_plan.simulation.world import *
+from costar_task_plan.simulation.option import *
 
 import numpy as np
 import os
@@ -8,6 +9,10 @@ import rospkg
 
 
 class SortingTaskDefinition(AbstractTaskDefinition):
+    '''
+    Define the simple sorting task.
+    '''
+
     joint_positions = [0.30, -0.5, -1.80, -0.27, 1.50, 1.60]
     urdf_dir = "urdf"
 
@@ -18,8 +23,8 @@ class SortingTaskDefinition(AbstractTaskDefinition):
     tray_dir = "tray"
     tray_urdf = "traybox.urdf"
 
-    spawn_pos_min = np.array([-0.4 ,-0.25, 0.05])
-    spawn_pos_max = np.array([-0.65, 0.25, 0.055])
+    spawn_pos_min = np.array([-0.4 ,-0.25, 0.10])
+    spawn_pos_max = np.array([-0.65, 0.25, 0.155])
     spawn_pos_delta = spawn_pos_max - spawn_pos_min
 
     tray_poses = [np.array([-0.5, 0., 0.0]),
@@ -33,6 +38,46 @@ class SortingTaskDefinition(AbstractTaskDefinition):
         super(SortingTaskDefinition, self).__init__(robot, *args, **kwargs)
         self.num_red = red
         self.num_blue = blue
+
+    def _makeTask(self):
+        GraspOption = lambda goal: GoalDirectedMotionOption
+        grasp_args = {
+                "constructor": GraspOption,
+                "args": ["red"],
+                "remap": {"red": "goal"},
+                }
+        LiftOption = lambda: GeneralMotionOption
+        lift_args = {
+                "constructor": LiftOption,
+                "args": []
+                }
+        wait_args = {
+                "constructor": GeneralMotionOption,
+                "args": []
+                }
+        place_args = {
+                "constructor": GeneralMotionOption,
+                "args": []
+                }
+        close_gripper_args = {
+                "constructor": GeneralMotionOption,
+                "args": []
+                }
+        open_gripper_args = {
+                "constructor": GeneralMotionOption,
+                "args": []
+                }
+
+        # Create a task model
+        task = Task()
+        task.add("grasp", None, grasp_args)
+        task.add("close_gripper", "grasp", close_gripper_args)
+        task.add("lift", "close_gripper", grasp_args)
+        task.add("place", "lift", grasp_args)
+        task.add("open_gripper", "place", open_gripper_args)
+
+        return task
+
 
     def _setup(self):
         '''
@@ -52,8 +97,8 @@ class SortingTaskDefinition(AbstractTaskDefinition):
             obj_id = pb.loadURDF(tray_filename)
             pb.resetBasePositionAndOrientation(obj_id, position, (0,0,0,1))
 
-        self._add_balls(self.num_red, red_filename)
-        self._add_balls(self.num_blue, blue_filename)
+        self._add_balls(self.num_red, red_filename, "red")
+        self._add_balls(self.num_blue, blue_filename, "blue")
 
     def reset(self):
         for obj_id, position in zip(self.trays, self.tray_poses):
@@ -68,7 +113,7 @@ class SortingTaskDefinition(AbstractTaskDefinition):
         self.robot.arm(self.joint_positions, pb.POSITION_CONTROL)
         self.robot.gripper(0, pb.POSITION_CONTROL)
 
-    def _add_balls(self, num, filename):
+    def _add_balls(self, num, filename, typename):
         '''
         Helper function to spawn a whole bunch of random balls.
         '''
@@ -76,6 +121,7 @@ class SortingTaskDefinition(AbstractTaskDefinition):
             obj_id = pb.loadURDF(filename)
             random_position = np.random.rand(3)*self.spawn_pos_delta + self.spawn_pos_min
             pb.resetBasePositionAndOrientation(obj_id, random_position, (0,0,0,1))
+            self.addObject(typename, obj_id)
 
     def _setupRobot(self, handle):
         '''
@@ -87,12 +133,21 @@ class SortingTaskDefinition(AbstractTaskDefinition):
         self.robot2.load()
         self.robot2.place([-1,0,0],[0,0,1,0],
                 self.joint_positions)
+        self.robot.arm(self.joint_positions, pb.POSITION_CONTROL)
+        self.robot.gripper(0, pb.POSITION_CONTROL)
+
+    def _updateWorld(self):
+        '''
+        Add the other robot, and actors for the different objects. These are
+        mostly to add them to the update loops - so we can compute features that
+        are relevant to whatever we actually want to do.
+        '''
         state = self.robot2.getState()
         self.world.addActor(SimulationRobotActor(
             robot=self.robot2,
             dynamics=SimulationDynamics(self.world),
             policy=NullPolicy(),
             state=state))
-        self.robot.arm(self.joint_positions, pb.POSITION_CONTROL)
-        self.robot.gripper(0, pb.POSITION_CONTROL)
 
+    def getName(self):
+        return "sorting"

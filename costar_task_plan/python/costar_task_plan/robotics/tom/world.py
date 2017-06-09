@@ -11,6 +11,7 @@ from tf_conversions import posemath as pm
 from costar_task_plan.datasets import TomDataset
 
 from costar_task_plan.robotics.core import CostarWorld
+from costar_task_plan.robotics.core import DemoFeatures
 from costar_task_plan.robotics.core import DemoReward
 from costar_task_plan.robotics.core import ValidStateCondition
 
@@ -75,9 +76,9 @@ class TomWorld(CostarWorld):
       self.fitTrajectories()
     else:
       self.loadModels('tom')
-      
-    # update the feature function based on known object frames
-    self.makeFeatureFunction()
+
+    self.features = DemoFeatures(self.lfd.kdl_kin, TOM_RIGHT_CONFIG)
+    self.reward = DemoReward(self.lfd.skill_models)
 
 
   def _preprocessData(self,data):

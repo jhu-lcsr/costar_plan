@@ -38,7 +38,6 @@ git clone gttps://github.com/jhu-lcsr/costar_objects.git
 git clone https://github.com/cpaxton/lcsr_assembly.git --branch devel
 git clone https://github.com/cpaxton/dmp.git --branch indigo
 git clone https://github.com/cpaxton/robotiq_85_gripper.git
-ln -s $CI_SOURCE_PATH .
 rosdep install -y --from-paths ./ --ignore-src --rosdistro $ROS_DISTRO
 cd $CATKIN_WS/src
 catkin build

@@ -81,32 +81,3 @@ One sub-task from the Needle Master domain is trajectory optimization. The goal 
 
 This code is maintained by Chris Paxton (cpaxton@jhu.edu).
 
-## Known Issues
-
-TTS is currently under development. This section will document missing features, bugs, or short-term implementation decisions that may influence the behavior of this code and its examples.
-
-Missing components and features:
-
-  - NeedleMaster conditions are wrong
-  - NeedleMaster needs predicates to be implemented
-  - NeedleMaster cost function is missing
-  - Specify options `{Approach, Pass-Through, Connect, Exit}` for Needle Master.
-  - Robotics examples:
-    - TOM
-    - CoSTAR UR5
-  - Missing/incomplete trainers:
-    - Implementation of REINFORCE for recurrent nets
-    - Implementation of REINFORCE for continuous action spaces
-    - Guided Policy Search
-  - Robotics examples:
-    - Possibly fit neural nets or other models for these policies
-    - JointStateListener needs to prune unused joint states
-    - GMM policy can be fit based on data
-    - Feature function based on relative position and orientation to objects
-    - Demonstration reward function
-  - MCTS:
-    - continuous RAVE
-    - kernel regression
-    - double progressive widening
-
-

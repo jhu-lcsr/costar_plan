@@ -67,3 +67,29 @@ class MonteCarloTreeSearch(AbstractSearch):
 
     elapsed = timeit.default_timer() - start_time
     return elapsed, path
+
+class RandomSearch(AbstractSearch):
+    '''
+    Randomly explore the task tree.
+    '''
+    def __init__(self, policies):
+        self.policies = policies
+    
+    def __call__(self, root, *args, **kwargs):
+        start_time = timeit.default_timer()
+        node = root
+        path = []
+        while True:
+            path.append(node)
+            n_children = len(node.children)
+            if n_children > 0:
+                idx = np.random.randint(n_children)
+                child = node.children[idx]
+                self.policies.instantiate(node, child)
+                node = child
+            else:
+                break
+
+        elapsed = timeit.default_timer() - start_time
+        return elapsed, path
+

@@ -12,4 +12,5 @@ def MakeAgent(name, *args, **kwargs):
                 'random': RandomAgent(*args, **kwargs),
                 }[name]
     except KeyError, e:
-        print 'Agent "%s" not implemented'%name
+        raise NotImplementedError('Agent "%s" not implemented'%name)
+

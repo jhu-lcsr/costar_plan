@@ -1,26 +1,26 @@
 __all__ = [
-        # =====================================================================
-        "CostarWorld",
-        # =====================================================================
-        "CostarActor",
-        "CostarState", "CostarAction",
-        "CostarFeatures",
-        # =====================================================================
-        "DemoReward",
-        # =====================================================================
-        "DmpPolicy", "JointDmpPolicy", "CartesianDmpPolicy",
-        # =====================================================================
-        "DmpOption",
-        # =====================================================================
-        # Update the gripper
-        "AbstractGripperStatusListener",
-        # =====================================================================
-        # Observation of the world
-        "AbstractObserve",
-        # =====================================================================
-        # Conditions
-        "ValidStateCondition",
-        ]
+    # =====================================================================
+    "CostarWorld",
+    # =====================================================================
+    "CostarActor",
+    "CostarState", "CostarAction",
+    "CostarFeatures",
+    # =====================================================================
+    "DemoReward",
+    # =====================================================================
+    "DmpPolicy", "JointDmpPolicy", "CartesianDmpPolicy",
+    # =====================================================================
+    "DmpOption",
+    # =====================================================================
+    # Update the gripper
+    "AbstractGripperStatusListener",
+    # =====================================================================
+    # Observation of the world
+    "AbstractObserve",
+    # =====================================================================
+    # Conditions
+    "ValidStateCondition",
+]
 
 from world import *
 from actor import *
@@ -38,6 +38,7 @@ from dmp_option import DmpOption
 
 # LfD stuff
 from demo_reward import *
+from demo_features import *
 
 # Generic ROS interface
 from gripper_status_listener import *

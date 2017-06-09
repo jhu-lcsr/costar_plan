@@ -75,10 +75,11 @@ def __get_dmp_maker(skill_name,lfd):
 
   dmp_maker = lambda goal: DmpOption(
       goal=goal,
-      instances=lfd.skill_instances[skill_name],
+      skill_instance=lfd.skill_instances[skill_name][0],
       skill_name=skill_name,
-      model=lfd.skill_models[skill_name],
+      feature_model=lfd.skill_models[skill_name],
       kinematics=lfd.kdl_kin,
+      traj_dist=lfd.getParamDistribution(skill_name),
       policy_type=CartesianDmpPolicy)
   return dmp_maker
 
@@ -100,10 +101,25 @@ def MakeTomTaskModel(lfd):
   #task.add("release2", ["box", "trash"], __release_args())
   return task
 
-# Set up arguments for tom sim task
 def OrangesTaskArgs():
+  '''
+  Set up arguments for tom sim task
+  '''
   args = {
     'orange': ['orange1', 'orange2', 'orange3'],
+    'squeeze_area': ['squeeze_area1'],
+    'box': ['box1'],
+    'trash': ['trash1'],
+  }
+  return args
+
+def OrangesDefaultTaskArgs():
+  '''
+  Set up a simplified set of arguments. These are for the optimization loop, 
+  where we expect to only have one object to grasp at a time.
+  '''
+  args = {
+    'orange': ['orange1'],
     'squeeze_area': ['squeeze_area1'],
     'box': ['box1'],
     'trash': ['trash1'],
@@ -124,4 +140,7 @@ if __name__ == '__main__':
   # the MCTS data types that we are performing our search over.
   print task.nodeSummary()
   print task.children['ROOT()']
+
+  from costar_task_plan.tools import showTask
+  showTask(task)
 

@@ -8,6 +8,7 @@ from util import GetTaskDefinition, GetRobotInterface, GetAvailableRobots, \
 from actor import *
 from condition import *
 from world import *
+from option import *
 
 __all__ = ["CostarBulletSimulation",
            "ParseBulletArgs",
@@ -23,4 +24,6 @@ __all__ = ["CostarBulletSimulation",
            "SimulationWorld",
            # Conditions
            "CollisionCondition",
+           # Options
+           "GoalDirectedMotionOption", "GeneralMotionOption",
            ]

@@ -69,7 +69,7 @@ before_install:
   - wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
   - sudo apt-get update -qq
   - sudo apt-get install -y python-catkin-pkg python-rosdep python-wstool python-catkin-tools ros-$ROS_DISTRO-catkin python-dev 
-  - sudo pip install h5py pygame sympy matplotlib pygame gmr networkx tensorflow
+  - sudo pip install h5py pygame sympy matplotlib pygame gmr networkx tensorflow numba pyyaml
   - source /opt/ros/$ROS_DISTRO/setup.bash
   # Prepare rosdep to install dependencies.
   - sudo rosdep init
@@ -79,15 +79,16 @@ before_install:
 install:
   # Run install script
   - $CI_SOURCE_PATH/setup/install_indigo.sh
-  # Add the package under integration to the workspace using a symlink.
   - cd ~/costar_ws/src
+  # Add the package under integration to the workspace using a symlink.
   - ln -s $CI_SOURCE_PATH .
+  - rosdep install -y --from-paths ./ --ignore-src --rosdistro $ROS_DISTRO
+  - catkin build
 
 # Install all dependencies, using wstool first and rosdep second.
 # wstool looks for a ROSINSTALL_FILE defined in the environment variables.
 before_script:
   - cd ~/costar_ws/src
-  - rosdep install -y --from-paths src --ignore-src --rosdistro $ROS_DISTRO
 
 # Compile and test (mark the build as failed if any step fails). If the
 # CATKIN_OPTIONS file exists, use it as an argument to catkin_make, for example

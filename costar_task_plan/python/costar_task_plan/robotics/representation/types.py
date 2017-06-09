@@ -1,30 +1,29 @@
-from dtw import dtw
-import numpy as np
 
-" loading data "
+from dtw import dtw
+from geometry_msgs.msg import Pose
+from geometry_msgs.msg import PoseArray
+
+import collections
+import numpy as np
+import PyKDL
+import tf_conversions.posemath as pm
 import yaml
+
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
 except ImportError:
     from yaml import Loader, Dumper
 
-" message types "
-from geometry_msgs.msg import Pose
-from geometry_msgs.msg import PoseArray
+Distribution = collections.namedtuple('Distribution','mu sigma')
 
-" tf/ros utilities "
-import tf_conversions.posemath as pm
-import PyKDL
-import numpy as np
-
-'''
-Demonstration
-struct to hold robot task demonstration data.
-
-Provides:
-    - get_features: computes alignment between different data sources and returns a simplified set of data
-'''
 class Demonstration:
+    '''
+    Demonstration
+    struct to hold robot task demonstration data.
+
+    Provides:
+        - getFeatures: computes alignment between different data sources and returns a simplified set of data
+    '''
     def __init__(self,filename=None):
         self.joint_p = []
         self.joint_v = []
@@ -44,11 +43,11 @@ class Demonstration:
             self.tform = demo.tform
             self.world_t = demo.world_t
 
-    '''
-    get_features returns a task-space view of the demonstration
-    and a merged version of the trajectory
-    '''
-    def get_features(self,frames=[]):
+    def getFeatures(self,frames=[]):
+        '''
+        getFeatures returns a task-space view of the demonstration
+        and a merged version of the trajectory
+        '''
 
         # make times into floats
         jt = [t.to_sec() for t in self.joint_t]
@@ -91,7 +90,10 @@ class Demonstration:
 
         return fx, x, u, gt
 
-    def get_world_pose_msg(self,frame):
+    def getWorldPoseMsg(self,frame):
+        '''
+        Return pose array message in the world frame.
+        '''
 
         msg = PoseArray()
         msg.header.frame_id = "/world"
@@ -102,11 +104,11 @@ class Demonstration:
 
         return msg
 
-'''
-get_pose_message
-Returns a pose array for debugging purposes
-'''
 def GetPoseMessage(fx, idx, frame_id="/world"):
+    '''
+    get_pose_message
+    Returns a pose array for debugging purposes
+    '''
 
     msg = PoseArray()
     msg.header.frame_id = frame_id
@@ -125,21 +127,23 @@ def GetPoseMessage(fx, idx, frame_id="/world"):
 
     return msg
 
-'''
-LoadYaml
-Really simple function to quickly load from a yaml file
-'''
 def LoadYaml(filename):
+    '''
+    LoadYaml
+    Really simple function to quickly load from a yaml file
+    '''
+
     stream = file(filename,'r')
     demo = yaml.load(stream,Loader=Loader)
 
     return demo
 
-'''
-SaveYaml
-Really simple function to quickly load from a yaml file
-'''
 def SaveYaml(filename,demo):
+    '''
+    SaveYaml
+    Really simple function to quickly load from a yaml file
+    '''
+
     stream = file(filename,'w')
     yaml.dump(demo,stream,Dumper=Dumper)
 
