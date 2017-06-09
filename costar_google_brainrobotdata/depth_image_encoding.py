@@ -227,19 +227,36 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix):
 
       transform: 4x4 Rt matrix for rotating and translating the point cloud
     """
-    rows, cols = depth.shape
-    # c is cols aka x, r is rows aka y
-    x, y = np.mgrid[:rows, :cols]  # , sparse=True)
-    # 4xN matrix of x, y, d, 1
-    C_matrix = np.stack((x.flatten(), y.flatten(), depth.flatten()))
-    xyd1 = np.dot(intrinsics_matrix, C_matrix)
-    # TODO(ahundt) scale X, Y here by D?
-    # if transform is not None:
-    #     xyd1 = np.dot(transform, xyd1)
+    # https://github.com/tensorflow/models/blob/master/cognitive_mapping_and_planning/src/depth_utils.py
+    fx = intrinsics_matrix[0, 0]
+    fy = intrinsics_matrix[1, 1]
+    cx = intrinsics_matrix[0, 2]
+    cy = intrinsics_matrix[1, 2]
+    Y = depth
+    x, z = np.meshgrid(np.arange(depth.shape[-1]),
+                       np.arange(depth.shape[-2]-1, -1, -1))
+    for i in range(Y.ndim-2):
+        x = np.expand_dims(x, axis=0)
+        z = np.expand_dims(z, axis=0)
+    X = (x - cx) * Y / fx
+    Z = (z - cy) * Y / fy
+    XYZ = np.concatenate((X[..., np.newaxis], Y[..., np.newaxis],
+                          Z[..., np.newaxis]), axis=X.ndim)
+    return XYZ
+    # rows, cols = depth.shape
+    # # c is cols aka x, r is rows aka y
+    # x, y = np.mgrid[:rows, :cols]  # , sparse=True)
+    # # 4xN matrix of x, y, d, 1
+    # C_matrix = np.stack((x.flatten(), y.flatten(), depth.flatten()))
+    # xyd1 = np.dot(intrinsics_matrix, C_matrix)
+    # print xyd1.shape
+    # # TODO(ahundt) scale X, Y here by D?
+    # # if transform is not None:
+    # #     xyd1 = np.dot(transform, xyd1)
 
-    # valid = (depth > min_depth) & (depth < max_depth)
+    # # valid = (depth > min_depth) & (depth < max_depth)
 
-    # z = np.where(valid, depth / 256.0, np.nan)
-    # x = np.where(valid, z * (c - self.cx) / self.fx, 0)
-    # y = np.where(valid, z * (r - self.cy) / self.fy, 0)
-    return np.stack((xyd1[:, 0], xyd1[:, 1], xyd1[:, 2]))
+    # # z = np.where(valid, depth / 256.0, np.nan)
+    # # x = np.where(valid, z * (c - self.cx) / self.fx, 0)
+    # # y = np.where(valid, z * (r - self.cy) / self.fy, 0)
+    # return np.stack((xyd1[0, :], xyd1[1, :], xyd1[2, :]))

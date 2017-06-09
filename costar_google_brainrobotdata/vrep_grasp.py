@@ -24,6 +24,7 @@ from tensorflow.python.platform import flags
 from tensorflow.python.platform import gfile
 from tensorflow.python.ops import data_flow_ops
 from keras.utils import get_file
+from ply import Ply
 
 import moviepy.editor as mpy
 from grasp_dataset import GraspDataset
@@ -45,6 +46,7 @@ tf.flags.DEFINE_integer('vrepTimeOutInMs', 5000, 'Timeout in milliseconds upon w
 tf.flags.DEFINE_integer('vrepCommThreadCycleInMs', 5, 'time between communication cycles')
 
 FLAGS = flags.FLAGS
+
 
 
 def matrix_to_vector_quaternion_array(matrix, inverse=False):
@@ -216,12 +218,25 @@ class VREPGraspSimulation(object):
             if np.count_nonzero(depth_image_float_format) is 0:
                 print 'WARNING: DEPTH IMAGE IS ALL ZEROS'
             print depth_name, depth_image_float_format.shape, depth_image_float_format
-            # mp.pyplot.imshow(depth_image_float_format, block=True)
-            print 'plot done'
-            point_cloud = depth_image_to_point_cloud(depth_image_float_format, camera_intrinsics_matrix)
-            point_cloud_display_name = str(i).zfill(2) + '_rgbd_' + depth_name.replace('/depth_image/decoded', '').replace('/', '_')
+            if i is 1:
+                # only output one depth image while debugging
+                # mp.pyplot.imshow(depth_image_float_format, block=True)
+                print 'plot done'
+                # TODO(ahundt) uncomment next line after debugging is done
+                # point_cloud = depth_image_to_point_cloud(depth_image_float_format, camera_intrinsics_matrix)
+                fake_depth_image = np.ones(depth_image_float_format.shape)
+                point_cloud = depth_image_to_point_cloud(fake_depth_image, camera_intrinsics_matrix)
+                print 'point_cloud.shape:', point_cloud.shape, 'rgb_image.shape:', rgb_image.shape
+                point_cloud_display_name = str(i).zfill(2) + '_rgbd_' + depth_name.replace('/depth_image/decoded', '').replace('/', '_')
+                print 'point_cloud:', point_cloud.transpose()[:30, :3]
+                path = os.path.expanduser('~/grasp.ply')
+                print 'point_cloud.size:', point_cloud.size
+                xyz = point_cloud.reshape([point_cloud.size/3, 3])
+                rgb = np.squeeze(rgb_image).reshape([point_cloud.size/3, 3])
+                ply = Ply(xyz, rgb)
+                ply.write(path)
 
-            self.create_point_cloud(point_cloud_display_name, point_cloud, base_to_camera_vec_quat_7, rgb_image, parent_handle)
+                self.create_point_cloud(point_cloud_display_name, xyz[:30, :], base_to_camera_vec_quat_7, rgb, parent_handle)
 
     def __del__(self):
         v.simxFinish(-1)

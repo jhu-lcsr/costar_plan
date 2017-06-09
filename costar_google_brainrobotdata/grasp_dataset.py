@@ -29,9 +29,9 @@ tf.flags.DEFINE_integer('sensor_image_width', 640, 'Camera Image Width')
 tf.flags.DEFINE_integer('sensor_image_height', 512, 'Camera Image Height')
 tf.flags.DEFINE_integer('sensor_color_channels', 3,
                         'Number of color channels (3, RGB)')
-tf.flags.DEFINE_boolean('grasp_download', True,
+tf.flags.DEFINE_boolean('grasp_download', False,
                         """Download the grasp_dataset to data_dir if it is not already present.""")
-tf.flags.DEFINE_string('grasp_dataset', '057',
+tf.flags.DEFINE_string('grasp_dataset', '102',
                        """Filter the subset of 1TB Grasp datasets to run.
                        None by default. 'all' will run all datasets in data_dir.
                        '052' and '057' will download the small starter datasets.
