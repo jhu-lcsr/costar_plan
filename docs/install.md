@@ -5,6 +5,10 @@ Note: CoSTAR installation has only been tested on ROS Indigo (Ubuntu 14.04 LTS).
 
 ## Installation
 
+We provide two setup scripts to create most of your workspace:
+  - [Setup script for ROS Indigo/Ubuntu 14.04](setup/setup_indigo.sh)
+  - [Setup script for ROS Kinetic/Ubuntu 16.04](setup/setup_kinetic.sh)
+
 TTS can be installed either as a ROS catkin package or as an independent python package. Most features will work just fine if it is used without ROS.
 
   - To install TTS as a ROS package, just `git clone` it into your catkin workspace, build, re-source, and start running scripts.
