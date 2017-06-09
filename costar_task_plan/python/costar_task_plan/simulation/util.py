@@ -4,7 +4,7 @@ from robots import *
 
 
 def GetAvailableTasks():
-    return ["blocks", "clutter", "mug", "sorting", "explore", "oranges"]
+    return ["blocks", "clutter", "mug", "sorting", "oranges"]
 
 
 def GetAvailableRobots():
@@ -25,7 +25,6 @@ def GetTaskDefinition(task, robot, *args, **kwargs):
             'clutter': ClutterTaskDefinition(robot, *args, **kwargs),
             'mug': MugTaskDefinition(robot, *args, **kwargs),
             'sorting': SortingTaskDefinition(robot, *args, **kwargs),
-            'explore': ExploreTaskDefinition(robot, *args, **kwargs),
             'rings': RingsTaskDefinition(robot, *args, **kwargs),
             'oranges': OrangesTaskDefinition(robot, *args, **kwargs),
         }[task]

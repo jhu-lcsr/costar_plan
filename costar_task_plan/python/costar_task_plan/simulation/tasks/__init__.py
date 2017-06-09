@@ -4,7 +4,6 @@ from clutter import ClutterTaskDefinition
 from mug import MugTaskDefinition
 from sorting import SortingTaskDefinition
 from rings import RingsTaskDefinition
-from explore import ExploreTaskDefinition
 from oranges import OrangesTaskDefinition
 
 __all__ = ["AbstractTaskDefinition",
@@ -13,6 +12,5 @@ __all__ = ["AbstractTaskDefinition",
            "MugTaskDefinition",
            "SortingTaskDefinition",
            "RingsTaskDefinition",
-           "ExploreTaskDefinition",
            "OrangesTaskDefinition",
            ]
