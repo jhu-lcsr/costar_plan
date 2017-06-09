@@ -16,6 +16,14 @@ sudo apt-get install python-scipy python-pygame
 echo "Installing smaller libraries from pip..."
 sudo pip install h5py keras sympy matplotlib pygame gmr networkx dtw pypr gym
 
+echo "======================================================"
+echo "ROS"
+sudo apt-get update -qq
+sudo apt-get install -y python-catkin-pkg python-rosdep python-wstool python-catkin-tools ros-$ROS_DISTRO-catkin python-dev 
+sudo pip install h5py pygame sympy matplotlib pygame gmr networkx tensorflow
+source /opt/ros/$ROS_DISTRO/setup.bash
+sudo rosdep init
+rosdep update
 
 echo "======================================================"
 echo "CATKIN"
