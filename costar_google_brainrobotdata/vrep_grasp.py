@@ -235,8 +235,9 @@ class VREPGraspSimulation(object):
                 rgb = np.squeeze(rgb_image).reshape([point_cloud.size/3, 3])
                 ply = Ply(xyz, rgb)
                 ply.write(path)
-
-                self.create_point_cloud(point_cloud_display_name, xyz[:30, :], base_to_camera_vec_quat_7, rgb, parent_handle)
+                xyz = xyz[:3000, :]
+                # xyz = np.array([[0,0,0], [0,0,1], [0,1,0], [1,0,0]])
+                self.create_point_cloud(point_cloud_display_name, xyz, base_to_camera_vec_quat_7, rgb, parent_handle)
 
     def __del__(self):
         v.simxFinish(-1)
