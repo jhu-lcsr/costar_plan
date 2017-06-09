@@ -12,7 +12,7 @@ TTS can be installed either as a ROS catkin package or as an independent python 
 
 To install the python packages on which TTS depends:
 ```
-pip install h5py Theano pygame sympy matplotlib pygame gmr networkx dtw pypr gym numba yaml
+pip install h5py Theano pygame sympy matplotlib pygame gmr networkx dtw pypr gym numba pyyaml
 ```
 
 ## Prerequisites
