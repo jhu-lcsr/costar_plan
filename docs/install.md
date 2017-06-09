@@ -65,44 +65,4 @@ Change directory into catkin workspace folder and run:
 ```
 catkin build
 ```
- 
-Note: Please use this command to build your catkin workspace instead of `catkin_make`.
-
-***Debugging:***
-
-CoSTAR is distributed as a single large package. This means that 
-
-* For problems with message: "Assertion failed: check for file existence, but filename (RT_LIBRARY-NOTFOUND) unset.  Message: RT Library." Please clean the catkin build folder and rebuild.  
-* For problems in relation to predicator_collision, please use the following command:  
-`cd path/to/costar_stack/costar_predicator/predicator_collision`  
-`touch CATKIN_IGNORE`
-3. For problems with message: "Errors: iiwa_hw:make". Please use the following command:
-`cd path/to/iiwa_stack/iiwa_hw`  
-`touch CATKIN_IGNORE`
-4. For problems with message: "[ERROR] [1474482887.121864954, 0.669000000]: Initializing controller 'joint_state_controller' failed". Please try installing the following packages:  
-`sudo apt-get install ros-indigo-joint-state-controller`
-
-
-## Step 3. Run simulation
-[Optional] Checkout an example CoSTAR workspace from github into ~/.costar by running:
-
-```
-cd && git clone git@github.com:cpaxton/costar_files.git .costar\
-```
-
-Now you can run the simulation with following commands. Please remember to run `source ~/catkin_ws/devel/setup.bash` before executing any of these commands, and consider adding this line to ~/.bashrc.
-
-```
-roslaunch iiwa_gazebo iiwa_gazebo.launch trajectory:=false  
-roslaunch costar_bringup iiwa14_s_model.launch sim:=true start_sim:=false  
-```
-
-
-*If everything shows up, CoSTAR system is then successfully installed. Enjoy!*
-
-The top should say "Robot Mode: Idle." If you installed the sample workspace, open the Menu (lower right) and click Waypoints. Put the robot into Servo mode, highlight some waypoints, and click Servo to Waypoint (the purple button on the Waypoints popup). Not all the waypoints are guaranteed to work for this robot, but you should be able to get the robot to move.
-
-CoSTAR is currently set up to launch our two testbed systems: a KUKA LBR iiwa 14 with a 3-finger Robotiq gripper and a Universal Robots UR5 with a 2-finger Robotiq gripper. We plan to add some funcitonality to support additional platforms.
-
-If you are interested in supporting another platform or run into other issues trying to run this code, please contact Chris Paxton (cpaxton@jhu.edu).
 
