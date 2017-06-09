@@ -212,8 +212,10 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix):
     """Transform a depth image into a point cloud in the camera frame with one point for each
     pixel in the image, using the camera transform for a camera
     centred at cx, cy with field of view fx, fy.
+
+    Based on:
+    https://github.com/tensorflow/models/blob/master/cognitive_mapping_and_planning/src/depth_utils.py
     https://codereview.stackexchange.com/a/84990/10101
-    http://ksimek.github.io/2013/08/13/intrinsic/
 
     # Arguments
 
@@ -223,11 +225,10 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix):
       NaN for the z-coordinate in the result.
 
       intrinsics_matris: 3x3 matrix for projecting depth values to z values
-      in the point cloud frame.
+      in the point cloud frame. http://ksimek.github.io/2013/08/13/intrinsic/
 
       transform: 4x4 Rt matrix for rotating and translating the point cloud
     """
-    # https://github.com/tensorflow/models/blob/master/cognitive_mapping_and_planning/src/depth_utils.py
     fx = intrinsics_matrix[0, 0]
     fy = intrinsics_matrix[1, 1]
     cx = intrinsics_matrix[0, 2]
@@ -243,20 +244,3 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix):
     XYZ = np.concatenate((X[..., np.newaxis], Y[..., np.newaxis],
                           Z[..., np.newaxis]), axis=X.ndim)
     return XYZ
-    # rows, cols = depth.shape
-    # # c is cols aka x, r is rows aka y
-    # x, y = np.mgrid[:rows, :cols]  # , sparse=True)
-    # # 4xN matrix of x, y, d, 1
-    # C_matrix = np.stack((x.flatten(), y.flatten(), depth.flatten()))
-    # xyd1 = np.dot(intrinsics_matrix, C_matrix)
-    # print xyd1.shape
-    # # TODO(ahundt) scale X, Y here by D?
-    # # if transform is not None:
-    # #     xyd1 = np.dot(transform, xyd1)
-
-    # # valid = (depth > min_depth) & (depth < max_depth)
-
-    # # z = np.where(valid, depth / 256.0, np.nan)
-    # # x = np.where(valid, z * (c - self.cx) / self.fx, 0)
-    # # y = np.where(valid, z * (r - self.cy) / self.fy, 0)
-    # return np.stack((xyd1[0, :], xyd1[1, :], xyd1[2, :]))

@@ -66,3 +66,18 @@ class Ply(object):
             stacked,
             delimiter='\n',
             fmt="%f %f %f %d %d %d")
+
+
+def write_xyz_rgb_as_ply(point_cloud, rgb_image, path):
+    """Write a point cloud with associated rgb image to a ply file
+
+    # Arguments
+
+        point_cloud: xyz point cloud in format [height, width, channels]
+        rgb_image: uint8 image in format [height, width, channels]
+        path: Where to save the file, ex: '/path/to/folder/file.ply'
+    """
+    xyz = point_cloud.reshape([point_cloud.size/3, 3])
+    rgb = np.squeeze(rgb_image).reshape([point_cloud.size/3, 3])
+    ply = Ply(xyz, rgb)
+    ply.write(path)

@@ -20,10 +20,10 @@ tf.flags.DEFINE_string('data_dir',
                                     '.keras', 'datasets', 'grasping'),
                        """Path to dataset in TFRecord format
                        (aka Example protobufs) and feature csv files.""")
-tf.flags.DEFINE_string('gif_dir',
+tf.flags.DEFINE_string('visualization_dir',
                        os.path.join(os.path.expanduser("~"),
                                     '.keras', 'datasets', 'grasping', 'images_extracted_grasp'),
-                       """Path to output image gifs for visualization.""")
+                       """Path to output data visualizations such as image gifs and ply clouds.""")
 tf.flags.DEFINE_integer('batch_size', 25, 'batch size per compute device')
 tf.flags.DEFINE_integer('sensor_image_width', 640, 'Camera Image Width')
 tf.flags.DEFINE_integer('sensor_image_height', 512, 'Camera Image Height')
@@ -536,7 +536,7 @@ class GraspDataset(object):
     def create_gif(self, sess):
         """ Create gifs of loaded dataset
         """
-        mkdir_p(FLAGS.gif_dir)
+        mkdir_p(FLAGS.visualization_dir)
         feature_csv_files = self.get_feature_csv_file_paths()
         for feature_csv_file in feature_csv_files:
             """Create input tfrecord tensors.
@@ -572,7 +572,7 @@ class GraspDataset(object):
             for i in range(FLAGS.batch_size):
                 video = train_videos[i]
                 gif_filename = os.path.basename(feature_csv_file)[:-4] + '_grasp_' + str(i) + '.gif'
-                gif_path = os.path.join(FLAGS.gif_dir, gif_filename)
+                gif_path = os.path.join(FLAGS.visualization_dir, gif_filename)
                 self.npy_to_gif(video, gif_path)
 
 
