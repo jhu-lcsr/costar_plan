@@ -227,6 +227,13 @@ class AbstractSample(object):
   def _sample(self, node):
     raise NotImplementedError('sampler._sample() not implemented!')
 
+  def update(self, action, r): 
+    '''
+    This function is provided as a way of updating an expected value function
+    in the case where we have a continuous function.
+    '''
+    pass
+
   '''
   Implementing this function should return an entry from the whole list of
   MCTS actions that this sampler might generate from a particular state. It's
