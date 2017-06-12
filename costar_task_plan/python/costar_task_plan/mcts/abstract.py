@@ -75,16 +75,19 @@ class AbstractMctsPolicies(object):
     Main loop: continue until we reach the end of the tree or abort for one
     reason or another.
     '''
-    while not done and steps < max_depth:
+    while steps < max_depth:
       assert node.initialized
 
       steps += 1
       node.n_visits += 1
 
       length = len(node.children)
+      cur_reward = node.reward
+      final_reward = node.reward
+
       # optionally expand internal nodes
       if node.terminal:
-        done = True
+        break
       elif self._can_widen and \
               (can_widen or (length == 0 and self._dfs)) \
               and self._widen(node):
@@ -96,57 +99,30 @@ class AbstractMctsPolicies(object):
           can_widen = False
           length += 1
 
-      cur_reward = node.reward
-      final_reward = node.reward
-      if not done and (node.n_visits == 0 or length == 0):
-        '''
-        In the case where we are not doing depth-first search...
-
-        If this is an unvisited node, or a node with no children, we perform a
-        simulation rollout in order to get a better picture of the node's
-        value.
-
-        Perform a rollout: use a unique function to simulate the task out to
-        our decision-making horizon.
-        '''
-
-        # This tracks the number of times we reached a final state.
-        node.n_rollouts = node.n_rollouts + 1
-        if self._rollout is not None:
-          # Use rollout function that has been provided
-          (rollout_reward, final_reward, sim_steps) = self._rollout(node, max_depth - 1)
-          steps += sim_steps
-          cur_reward += rollout_reward
-
-        # If we performed a rollout -- then we don't want to keep exploring.
-        done = True
-
       # Add this node's reward to the vector of visited states.
       visited.append((node, cur_reward))
 
-      if not done:
-        '''
-        This is a visited node, which means that it has children we can
-        consider. We want to score these children using our provided scoring
-        function and select the next one to expand upon.
-        '''
-        # compute  scores
-        score = [0]*length
-        for i, child in enumerate(node.children):
-          score[i] = self._score(node, child)
+      # This is a visited node, which means that it has children we can
+      # consider. We want to score these children using our provided scoring
+      # function and select the next one to expand upon.
+      # -----------------------------------------------------------------------
+      # Compute  scores
+      score = [0]*length
+      for i, child in enumerate(node.children):
+        score[i] = self._score(node, child)
 
-        # choose the child with the best score
-        max_idx, max_score = max(enumerate(score), key=operator.itemgetter(1))
+      # choose the child with the best score
+      max_idx, max_score = max(enumerate(score), key=operator.itemgetter(1))
 
-        # instantiate child and select it
-        child = node.children[max_idx]
-        if not child.initialized:
-          # fork the world and apply the correct action
-          node.instantiate(child)
-          if self._initialize:
-            self._initialize(child)
+      # instantiate child and select it
+      child = node.children[max_idx]
+      if not child.initialized:
+        # fork the world and apply the correct action
+        node.instantiate(child)
+        if self._initialize:
+          self._initialize(child)
 
-        node = child
+      node = child
 
     acc_reward = 0
     for node, reward in reversed(visited):
