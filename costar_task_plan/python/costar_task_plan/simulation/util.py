@@ -42,6 +42,7 @@ def GetRobotInterface(robot, *args, **kwargs):
         return {
             'ur5_2_finger': Ur5RobotiqInterface(*args, **kwargs),
             'iiwa_3_finger': IiwaRobotiq3FingerInterface(*args, **kwargs),
+            'jaco':JacoRobotiqInterface(*args, **kwargs),
         }[robot]
     except KeyError, e:
         raise NotImplementedError('Robot %s not implemented!' % robot)
