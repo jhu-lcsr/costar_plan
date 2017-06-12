@@ -11,9 +11,10 @@ class GoalDirectedMotionOption(AbstractOption):
     running on the robot will be enough to take us to the goal position.
     '''
 
-    def __init__(self, world, goal, pose, *args, **kwargs):
+    def __init__(self, world, goal, pose=None, *args, **kwargs):
         self.goal_id = world.getObjectId[goal]
-        self.position, self.rotation = pose
+        if pose is not None:
+            self.position, self.rotation = pose
 
     def makePolicy(self):
         pass
@@ -55,4 +56,5 @@ class GeneralMotionOption(AbstractOption):
     sample policies that will take us twoards this goal. 
     '''
     def __init__(self, pose, *args, **kwargs):
-        self.pose = pose
+        if pose is not None:
+            self.position, self.rotation = pose

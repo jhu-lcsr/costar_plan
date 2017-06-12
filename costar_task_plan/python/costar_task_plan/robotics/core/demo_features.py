@@ -4,7 +4,7 @@ from costar_task_plan.robotics.representation import RobotFeatures
 import numpy as np
 import tf_conversions.posemath as pm
 
-fron jumba import jit
+from numba import jit
 
 
 class DemoFeatures(AbstractFeatures):

@@ -41,13 +41,13 @@ class BlocksTaskDefinition(AbstractTaskDefinition):
         super(BlocksTaskDefinition, self).__init__(*args, **kwargs)
 
     def _makeTask(self):
-        GraspOption = lambda goal: GoalDirectedMotionOption
+        GraspOption = lambda goal: GoalDirectedMotionOption(self.world, goal, (None, None))
         grasp_args = {
                 "constructor": GraspOption,
                 "args": ["block"],
                 "remap": {"block": "goal"},
                 }
-        LiftOption = lambda: GeneralMotionOption
+        LiftOption = lambda: GeneralMotionOption(None)
         lift_args = {
                 "constructor": LiftOption,
                 "args": []
