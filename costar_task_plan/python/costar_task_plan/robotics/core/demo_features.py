@@ -36,6 +36,7 @@ class DemoFeatures(AbstractFeatures):
                 gripper))
             return f
         else:
+            print "!!!! DemoFeatures " 
             return None
 
     def updateBounds(self, world):

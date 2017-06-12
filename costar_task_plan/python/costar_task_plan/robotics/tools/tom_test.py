@@ -104,7 +104,6 @@ def load_tom_data_and_run():
 def do_search(world, task, objects):
 
     policies = DefaultTaskMctsPolicies(task)
-    #world.reward = LfdReward(world.lfd)
     search = MonteCarloTreeSearch(policies)
 
     objects = ['box1', 'orange1', 'orange2', 'orange3', 'trash1', 'squeeze_area1']
