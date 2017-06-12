@@ -15,6 +15,39 @@ class GoalDirectedMotionOption(AbstractOption):
         self.goal_id = world.getObjectId[goal]
         self.position, self.rotation = pose
 
+    def makePolicy(self):
+        pass
+
+    def samplePolicy(self):
+        pass
+
+    def getGatingCondition(self, *args, **kwargs):
+        # Get the gating condition for a specific option.
+        # - execution should continue until such time as this condition is true.
+        raise NotImplementedError('not supported')
+
+    def checkPrecondition(self, world, state):
+        # Is it ok to begin this option?
+        if not isinstance(world, AbstractWorld):
+            raise RuntimeError(
+                'option.checkPrecondition() requires a valid world!')
+        if not isinstance(state, AbstractState):
+            raise RuntimeError(
+                'option.checkPrecondition() requires an initial state!')
+        raise NotImplementedError(
+            'option.checkPrecondition() not yet implemented!')
+
+    def checkPostcondition(self, world, state):
+        # Did we successfully complete this option?
+        if not isinstance(world, AbstractWorld):
+            raise RuntimeError(
+                'option.checkPostcondition() requires a valid world!')
+        if not isinstance(state, AbstractState):
+            raise RuntimeError(
+                'option.checkPostcondition() requires an initial state!')
+        raise NotImplementedError(
+            'option.checkPostcondition() not yet implemented!')
+
 
 class GeneralMotionOption(AbstractOption):
     '''

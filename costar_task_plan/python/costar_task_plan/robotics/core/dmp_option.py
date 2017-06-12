@@ -64,16 +64,16 @@ class DmpOption(AbstractOption):
             dmp=skill_instance,
             kinematics=self.kinematics)
 
-    # Get the gating condition for a specific option.
-    # - execution should continue until such time as this condition is true.
     def getGatingCondition(self, *args, **kwargs):
+        # Get the gating condition for a specific option.
+        # - execution should continue until such time as this condition is true.
         return DmpCondition(
             parent=self,
             goal=self.goal,
             kinematics=self.kinematics,)
 
-    # Is it ok to begin this option?
     def checkPrecondition(self, world, state):
+        # Is it ok to begin this option?
         if not isinstance(world, AbstractWorld):
             raise RuntimeError(
                 'option.checkPrecondition() requires a valid world!')
@@ -83,8 +83,8 @@ class DmpOption(AbstractOption):
         raise NotImplementedError(
             'option.checkPrecondition() not yet implemented!')
 
-    # Did we successfully complete this option?
     def checkPostcondition(self, world, state):
+        # Did we successfully complete this option?
         if not isinstance(world, AbstractWorld):
             raise RuntimeError(
                 'option.checkPostcondition() requires a valid world!')
