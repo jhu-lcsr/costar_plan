@@ -4,6 +4,8 @@ from costar_task_plan.robotics.representation import RobotFeatures
 import numpy as np
 import tf_conversions.posemath as pm
 
+fron jumba import jit
+
 
 class DemoFeatures(AbstractFeatures):
 
@@ -41,3 +43,13 @@ class DemoFeatures(AbstractFeatures):
 
     def getBounds(self):
         raise Exception('feature.getBounds not yet implemented!')
+
+@jit(nopython=True)
+def GetFeatures(ee, world, objs, size):
+    f = np.zeros((size,))
+    return f
+
+@jit(nopython=True)
+def GetFeaturesForTrajectory(ee, world, objs, size):
+    f = np.zeros((len(ees),size))
+    return f
