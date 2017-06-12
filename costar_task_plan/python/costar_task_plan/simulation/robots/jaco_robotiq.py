@@ -15,7 +15,7 @@ class JacoRobotiqInterface(AbstractRobotInterface):
     '''
 
     xacro_filename = 'robot/jaco_robot.xacro'
-    urdf_filename = 'jaco_robot.urdf'
+    #urdf_filename = 'jaco_robot.urdf'
 
     arm_name = "jaco_arm"
     gripper_name = "robotiq_2_finger"
