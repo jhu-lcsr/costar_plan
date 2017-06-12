@@ -3,6 +3,8 @@
 #include <Eigen/Dense>
 #include <trajectory_msgs/JointTrajectoryPoint.h>
 
+#include <math.h>
+
 using namespace Eigen;
 
 #define SHOW_SAMPLED_VALUES 0
@@ -389,7 +391,7 @@ namespace costar {
     unsigned int nsamples = full_nsamples;
     double psum = 0;
     for (unsigned int i = 0; i < full_nsamples; ++i) {
-      assert(not isnan(ps[i]));
+      assert(not std::isnan(ps[i]));
       if (params[i].size() == 0) {
         std::cout << __FILE__ << ":" << __LINE__ << ": Not enough params; skipping the rest.\n";
         nsamples = i;
@@ -417,7 +419,7 @@ namespace costar {
         //std::cout << "mu rows = " << dist.ns[0].mu.rows() << ", vec rows = " << vec.rows() << std::endl;
         //std::cout << "mu cols = " << dist.ns[0].mu.cols() << ", vec cols = " << vec.cols() << std::endl;
         double wt = step_size * ps[i] / psum;
-        assert (not isnan(wt));
+        assert (not std::isnan(wt));
         dist.ns[0].mu += params[i] * wt;
       }
 
