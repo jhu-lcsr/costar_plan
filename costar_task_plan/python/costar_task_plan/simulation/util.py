@@ -8,7 +8,7 @@ def GetAvailableTasks():
 
 
 def GetAvailableRobots():
-    return ["ur5_2_finger", "iiwa_3_finger"]
+    return ["jaco", "ur5_2_finger", "iiwa_3_finger"]
 
 
 def GetAvailableAlgorithms():
