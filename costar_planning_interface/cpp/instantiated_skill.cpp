@@ -2,6 +2,8 @@
 #include <costar_task_plan/visualize.h>
 //#include <costar_task_plan/utils/params.hpp>
 
+#include <math.h>
+
 using namespace costar_plan_msgs;
 
 using trajectory_msgs::JointTrajectory;
@@ -109,7 +111,7 @@ namespace costar {
     }
     for (double &d: acc) {
       d /= acc[len-1];
-      assert (not isnan(d));
+      assert (not std::isnan(d));
     }
 
     if (p.verbosity > 3) {
