@@ -44,7 +44,7 @@ tf.flags.DEFINE_boolean('vrepWaitUntilConnected', True, 'block startup call unti
 tf.flags.DEFINE_boolean('vrepDoNotReconnectOnceDisconnected', True, '')
 tf.flags.DEFINE_integer('vrepTimeOutInMs', 5000, 'Timeout in milliseconds upon which connection fails')
 tf.flags.DEFINE_integer('vrepCommThreadCycleInMs', 5, 'time between communication cycles')
-tf.flags.DEFINE_string('vrepDebugMode', '', """Options are: '', 'fixed_depth'""")
+tf.flags.DEFINE_string('vrepDebugMode', 'save_ply', """Options are: '', 'fixed_depth', 'save_ply'.""")
 
 FLAGS = flags.FLAGS
 
@@ -224,7 +224,7 @@ class VREPGraspSimulation(object):
                 print 'plot done'
                 # TODO(ahundt) uncomment next line after debugging is done
                 point_cloud = depth_image_to_point_cloud(depth_image_float_format, camera_intrinsics_matrix)
-                if FLAGS.vrepDebugMode is 'fixed_depth':
+                if 'fixed_depth' in FLAGS.vrepDebugMode:
                     point_cloud = depth_image_to_point_cloud(np.ones(depth_image_float_format.shape), camera_intrinsics_matrix)
                 print 'point_cloud.shape:', point_cloud.shape, 'rgb_image.shape:', rgb_image.shape
                 point_cloud_display_name = str(i).zfill(2) + '_rgbd_' + depth_name.replace('/depth_image/decoded', '').replace('/', '_')
@@ -233,7 +233,8 @@ class VREPGraspSimulation(object):
                 print 'point_cloud.size:', point_cloud.size
                 xyz = point_cloud.reshape([point_cloud.size/3, 3])
                 rgb = np.squeeze(rgb_image).reshape([point_cloud.size/3, 3])
-                write_xyz_rgb_as_ply(xyz, rgb, path)
+                if 'save_ply' in FLAGS.vrepDebugMode:
+                    write_xyz_rgb_as_ply(xyz, rgb, path)
                 xyz = xyz[:3000, :]
                 # xyz = np.array([[0,0,0], [0,0,1], [0,1,0], [1,0,0]])
                 self.create_point_cloud(point_cloud_display_name, xyz, base_to_camera_vec_quat_7, rgb, parent_handle)
