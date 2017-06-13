@@ -75,6 +75,7 @@ class TomWorld(CostarWorld):
       # Call the learning after we've loaded our data
       self.fitTrajectories()
     else:
+      print "load models"
       self.loadModels('tom')
 
     self.features = DemoFeatures(self.lfd.kdl_kin, TOM_RIGHT_CONFIG)

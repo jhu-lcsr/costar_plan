@@ -10,6 +10,8 @@
   <!-- By default do not bring up rviz -->
   <arg name="rviz" default="false"/>
 
+  <param name="use_sim_time" value="false"/>
+
   <!-- Load the URDF, SRDF and other .yaml configuration files on the param server -->
   <include file="$(find tom_full_moveit_config)/launch/planning_context.launch">
     <arg name="load_robot_description" value="false"/>
