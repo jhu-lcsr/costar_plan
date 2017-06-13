@@ -1,4 +1,5 @@
 from abstract import AbstractTaskDefinition
+from default import DefaultTaskDefinition
 from costar_task_plan.simulation.world import *
 from costar_task_plan.simulation.option import *
 
@@ -8,17 +9,12 @@ import pybullet as pb
 import rospkg
 
 
-class BlocksTaskDefinition(AbstractTaskDefinition):
+class BlocksTaskDefinition(DefaultTaskDefinition):
 
     '''
     Define a simple task. The robot needs to pick up and stack blocks of
     different colors in a particular order.
     '''
-
-    joint_positions = [0.30, -1.33, -1.80, -0.27, 1.50, 1.60]
-
-    # define folder for blocks
-    urdf_dir = "urdf"
 
     # define object filenames
     block_urdf = "%s.urdf"
@@ -113,11 +109,6 @@ class BlocksTaskDefinition(AbstractTaskDefinition):
                 if idx == i:
                     blocks.append(block)
             self._addTower(pos, blocks, urdf_dir)
-
-    def _setupRobot(self, handle):
-        self.robot.place([0,0,0],[0,0,0,1],self.joint_positions)
-        self.robot.arm(self.joint_positions, pb.POSITION_CONTROL)
-        self.robot.gripper(0, pb.POSITION_CONTROL)
 
     def reset(self):
         pass

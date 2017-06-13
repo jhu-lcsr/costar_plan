@@ -1,4 +1,5 @@
 from abstract import AbstractTaskDefinition
+from default import DefaultTaskDefinition
 
 import numpy as np
 import os
@@ -6,16 +7,13 @@ import pybullet as pb
 import rospkg
 
 
-class ClutterTaskDefinition(AbstractTaskDefinition):
+class ClutterTaskDefinition(DefaultTaskDefinition):
 
     '''
     Clutter task description in general. This task should create a bunch of
     objects and bins to put them all in.
     '''
 
-    joint_positions = [0.30, -1.33, -1.80, -0.27, 1.50, 1.60]
-    sdf_dir = "sdf"
-    model_file_name = "model.sdf"
     list_of_models_to_manipulate = ['c_clamp', 'drill_blue_small', 'driller_point_metal',
         'driller_small', 'keyboard', 'mallet_ball_pein',
         'mallet_black_white', 'mallet_drilling', 'mallet_fiber',
@@ -30,7 +28,6 @@ class ClutterTaskDefinition(AbstractTaskDefinition):
         Your desription here
         '''
         super(ClutterTaskDefinition, self).__init__(*args, **kwargs)
-        self.objs = []
 
     def _setup(self):
         '''
@@ -65,12 +62,6 @@ class ClutterTaskDefinition(AbstractTaskDefinition):
                         pb.resetBasePositionAndOrientation(obj_id, random_position, identity_orientation)
                 except Exception, e:
                     print e
-
-    def reset(self):
-        for obj in self.objs:
-            pb.removeBody(obj)
-        self._setup()
-        self._setupRobot(self.robot.handle)
 
     def _setupRobot(self, handle):
         '''

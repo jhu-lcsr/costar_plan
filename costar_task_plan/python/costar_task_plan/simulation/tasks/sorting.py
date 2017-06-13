@@ -1,4 +1,5 @@
 from abstract import AbstractTaskDefinition
+from default import DefaultTaskDefinition
 from costar_task_plan.simulation.world import *
 from costar_task_plan.simulation.option import *
 
@@ -8,13 +9,10 @@ import pybullet as pb
 import rospkg
 
 
-class SortingTaskDefinition(AbstractTaskDefinition):
+class SortingTaskDefinition(DefaultTaskDefinition):
     '''
     Define the simple sorting task.
     '''
-
-    joint_positions = [0.30, -0.5, -1.80, -0.27, 1.50, 1.60]
-    urdf_dir = "urdf"
 
     blue_urdf = "blue.urdf"
     red_urdf = "red.urdf"
