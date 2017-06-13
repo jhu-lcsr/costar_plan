@@ -60,6 +60,9 @@ class DmpOption(AbstractOption):
         if self.traj_dist is None:
             raise RuntimeError('Attempted to sample from a mis-specified'
                     ' action!')
+        print self.traj_dist
+        print self.traj_dist.mu.shape
+        print self.traj_dist.sigma.shape
         params = np.random.multivariate_normal(
                 self.traj_dist.mu,
                 self.traj_dist.sigma)
