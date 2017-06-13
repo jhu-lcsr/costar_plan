@@ -106,6 +106,12 @@ class Task(object):
             if child in inodes:
                 self.children[iname].add(inodes[child])
 
+    # WARNING: this is kind of terrible and might be sort of inefficient.
+    # Convert to a list
+    for node, children in self.children.items():
+        children = [child for child in children]
+        self.children[node] = children
+
     self.compiled = True
     return arg_sets
 

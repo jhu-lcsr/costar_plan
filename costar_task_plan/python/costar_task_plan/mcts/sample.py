@@ -96,11 +96,13 @@ class ContinuousTaskSample(AbstractSample):
   def _sample(self, node):
     children = self.task.children[node.tag]
     idx = np.random.randint(len(children))
-    child = children[idx]
-    print "sampling child", child, child.option
+    tag = children[idx]
+    option = self.task.nodes[tag]
+    print "tag=",tag,option
     return MctsAction(
-            policy=self.option.samplePolicy(node.world),
+            policy=option.samplePolicy(node.world),
             id=idx,
+            tag=tag,
             ticks=self.ticks)
 
   def getPolicies(self, node):
