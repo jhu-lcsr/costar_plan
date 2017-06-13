@@ -22,6 +22,7 @@ class DemoFeatures(AbstractFeatures):
         '''
         Compute LfD features
         '''
+        print "asdf"
         if state.reference is not None:
             ee = pm.fromMatrix(self.kdl_kin.forward(state.q))
             if state.gripper_closed:

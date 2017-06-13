@@ -80,6 +80,7 @@ class RandomSearch(AbstractSearch):
         node = root
         path = []
         while True:
+            print "adding", node, node.children
             path.append(node)
             n_children = len(node.children)
             if n_children > 0:

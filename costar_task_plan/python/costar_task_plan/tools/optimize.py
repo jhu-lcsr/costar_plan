@@ -9,20 +9,21 @@ def OptimizePolicy(world, task, policies, num_iter=100, num_samples=25, *args, *
 
     - samples a single stochastic trace through the world
     '''
+    print world.features
+    print world.reward
     for i in xrange(num_iter):
         # Number of iterations for policy search
         for j in xrange(num_samples):
             # Forward pass: draw samples from the associated policy until
             # completion.
             reward, traj = ForwardPass(world, task, policies)
-            print reward
 
 
 def ForwardPass(world, task, policies):
     '''
     Complete a single optimization forward pass.
     '''
-    root = Node(world=world,root=True)
+    root = task.makeRoot(world)
     search = RandomSearch(policies)
     t, path = search(root)
 
