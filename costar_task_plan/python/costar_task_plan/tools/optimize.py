@@ -2,7 +2,7 @@
 from costar_task_plan.mcts import Node
 from costar_task_plan.mcts.search import RandomSearch
 
-def OptimizePolicy(world, task, policies, num_iter=100, num_samples=25, *args, **kwargs):
+def OptimizePolicy(world, policies, num_iter=100, num_samples=25, *args, **kwargs):
     '''
     Run a cross-entropy like sampling loop to optimize some parameterized
     policy.
@@ -14,11 +14,11 @@ def OptimizePolicy(world, task, policies, num_iter=100, num_samples=25, *args, *
         for j in xrange(num_samples):
             # Forward pass: draw samples from the associated policy until
             # completion.
-            reward, traj = ForwardPass(world, task, policies)
+            reward, traj = ForwardPass(world, policies)
             print reward
 
 
-def ForwardPass(world, task, policies):
+def ForwardPass(world, policies):
     '''
     Complete a single optimization forward pass.
     '''

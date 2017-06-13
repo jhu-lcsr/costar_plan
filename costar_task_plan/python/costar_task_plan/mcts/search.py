@@ -81,14 +81,14 @@ class RandomSearch(AbstractSearch):
         path = []
         while True:
             path.append(node)
-            n_children = len(node.children)
-            if n_children > 0:
-                idx = np.random.randint(n_children)
-                child = node.children[idx]
-                self.policies.instantiate(node, child)
-                node = child
-            else:
-                break
+            action = policies.sample(node)
+            if action is not None:
+              node.children.append(Node(action=action))
+              child = node.children[-1]
+              node.instantiate(child)
+              if self._initialize:
+                self._initialize(child)
+              node = child
 
         elapsed = timeit.default_timer() - start_time
         return elapsed, path
