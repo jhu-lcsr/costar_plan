@@ -8,7 +8,7 @@ def GetAvailableTasks():
 
 
 def GetAvailableRobots():
-    return ["ur5_2_finger", "iiwa_3_finger"]
+    return ["ur5_2_finger",]
 
 
 def GetAvailableAlgorithms():
@@ -23,10 +23,7 @@ def GetTaskDefinition(task, robot, *args, **kwargs):
         return {
             'blocks': BlocksTaskDefinition(robot, *args, **kwargs),
             'clutter': ClutterTaskDefinition(robot, *args, **kwargs),
-            'mug': MugTaskDefinition(robot, *args, **kwargs),
             'sorting': SortingTaskDefinition(robot, *args, **kwargs),
-            'explore': ExploreTaskDefinition(robot, *args, **kwargs),
-            'rings': RingsTaskDefinition(robot, *args, **kwargs),
             'oranges': OrangesTaskDefinition(robot, *args, **kwargs),
         }[task]
     except KeyError, e:
@@ -41,7 +38,6 @@ def GetRobotInterface(robot, *args, **kwargs):
     try:
         return {
             'ur5_2_finger': Ur5RobotiqInterface(*args, **kwargs),
-            'iiwa_3_finger': IiwaRobotiq3FingerInterface(*args, **kwargs),
         }[robot]
     except KeyError, e:
         raise NotImplementedError('Robot %s not implemented!' % robot)
