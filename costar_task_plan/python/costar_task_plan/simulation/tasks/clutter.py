@@ -1,6 +1,8 @@
 from abstract import AbstractTaskDefinition
 from default import DefaultTaskDefinition
 
+from costar_task_plan.abstract import Task
+
 import numpy as np
 import os
 import pybullet as pb
@@ -63,6 +65,9 @@ class ClutterTaskDefinition(DefaultTaskDefinition):
                 except Exception, e:
                     print e
 
+    def _makeTask(self):
+        return Task()
+
     def _setupRobot(self, handle):
         '''
         Configure the robot so that it is ready to begin the task. Robot should
@@ -71,3 +76,6 @@ class ClutterTaskDefinition(DefaultTaskDefinition):
         self.robot.place([0,0,0],[0,0,0,1],self.joint_positions)
         self.robot.arm(self.joint_positions, pb.POSITION_CONTROL)
         self.robot.gripper(0, pb.POSITION_CONTROL)
+
+    def getName(self):
+        return "clutter"
