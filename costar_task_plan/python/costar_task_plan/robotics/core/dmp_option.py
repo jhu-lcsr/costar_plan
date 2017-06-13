@@ -41,6 +41,7 @@ class DmpOption(AbstractOption):
         self.feature_model = feature_model
         self.skill_name = skill_name
         self.attached_frame = attached_frame
+        self.traj_dist = traj_dist
 
     def makePolicy(self, *args, **kwargs):
         '''
@@ -56,7 +57,12 @@ class DmpOption(AbstractOption):
         '''
         Randomly create a policy
         '''
-        params = np.random.multivariate_normal(self.traj_dist.mu, self.traj_dist.sigma)
+        if self.traj_dist is None:
+            raise RuntimeError('Attempted to sample from a mis-specified'
+                    ' action!')
+        params = np.random.multivariate_normal(
+                self.traj_dist.mu,
+                self.traj_dist.sigma)
         skill_instance = CartesianSkillInstance(params=params)
         return self.policy_type(
             skill=self,
