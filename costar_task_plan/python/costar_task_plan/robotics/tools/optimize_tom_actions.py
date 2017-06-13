@@ -58,5 +58,5 @@ if __name__ == '__main__':
 
     # Run the policy optimization loop
     policies = DefaultTaskMctsPolicies(task)
-    OptimizePolicy(world, task, policies)
+    OptimizePolicy(world, policies)
 

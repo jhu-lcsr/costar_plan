@@ -23,7 +23,7 @@ def ForwardPass(world, search):
     '''
     Complete a single optimization forward pass.
     '''
-    root = task.makeRoot(world)
+    root = Node(world=world, root=True)
     t, path = search(root)
 
     return path[-1].reward, path

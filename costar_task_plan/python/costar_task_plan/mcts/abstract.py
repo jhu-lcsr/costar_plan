@@ -35,7 +35,7 @@ class AbstractMctsPolicies(object):
     self.max_depth = max_depth
     self._rollout = rollout
     self._initialize = initialize
-    self._sample = sample
+    self.sample = sample
     self._score = score
     self._widen = widen
     self._extract = extract
@@ -53,7 +53,7 @@ class AbstractMctsPolicies(object):
       print "WIDEN:", widen
       print "=========================================="
 
-    self._can_widen = self._sample is not None and self._widen is not None
+    self._can_widen = self.sample is not None and self._widen is not None
 
   '''
   Choose a possible future to expand. Grow the tree if it is appropriate.
@@ -92,7 +92,7 @@ class AbstractMctsPolicies(object):
               (can_widen or (length == 0 and self._dfs)) \
               and self._widen(node):
         # sample an action from this node that we haven't explored yet
-        action = self._sample(node)
+        action = self.sample(node)
         if action:
           # add this action as a new child
           node.children.append(Node(action=action))

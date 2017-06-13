@@ -14,6 +14,7 @@ __all__ = [
   # ===========================================================================
   # Sample functions: add via progressive widening
   "SinglePolicySample", "NullSample", "LearnedOrderPolicySample",
+  "ContinuousTaskSample",
   # ===========================================================================
   # Initialize functions: create initial set of children
   "NullInitialize", "PolicyInitialize",
@@ -56,7 +57,7 @@ from continuous_policies import *
 
 # MCTS functions
 from rollout import *
-from sampler import *
+from sample import *
 from initialize import *
 from extract import *
 from widen import *

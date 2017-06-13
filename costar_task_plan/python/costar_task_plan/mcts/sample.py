@@ -42,10 +42,10 @@ class NullSample(object):
   def getName(self):
     return "null"
 
-'''
-Take a normal sampler and put it in a weird order
-'''
 class LearnedOrderPolicySample(AbstractSample):
+  '''
+  Take a normal sampler and put it in a weird order
+  '''
   def __init__(self, model, weights_filename, sampler):
     self.model = model
     self.model.load_weights(weights_filename)
@@ -63,26 +63,40 @@ class LearnedOrderPolicySample(AbstractSample):
   def getName(self):
     return "learned"+self.sampler.getName()
 
-'''
-Sample options from a task
-'''
-class TaskSampler(AbstractSample):
+class ContinuousTaskSample(AbstractSample):
+  '''
+  Sample options from a task.
 
-  def __init__(self, task):
+  This uses some prior information to guide the sampling process, as provided
+  in the second parameter.
+  '''
+
+  def __init__(self, task, Z, unordered=False):
     self.task = task
+    self.unordered = unordered
 
   def numOptions(self):
-    return 1
+    '''
+    Num options changes depending on the particular node -- this does not
+    make sense as a part of this sampler.
+    '''
+    return None
 
   def getOption(self, node, idx):
-    opts = self.task.children[node.task_node]
+    opts = self.task.children[node.tag]
     return MctsAction(
         policy=self.policy,
         id=0, ticks=self.ticks)
 
   def _sample(self, node):
-    opts = self.task.children[node.task_node]
-    return MctsAction(policy=self.policy, id=0, ticks=self.ticks)
+    children = self.task.children[node.tag]
+    idx = np.random.randint(len(children))
+    child = children[idx]
+    print "sampling child", child, child.option
+    return MctsAction(
+            policy=self.option.samplePolicy(node.world),
+            id=idx,
+            ticks=self.ticks)
 
   def getPolicies(self, node):
     return [self.policy]
