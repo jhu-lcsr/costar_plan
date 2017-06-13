@@ -1,4 +1,8 @@
 
+# By Chris Paxton
+# (c) 2017 The Johns Hopkins University
+# See License for more details
+
 import timeit
 
 from abstract import AbstractSearch
@@ -49,11 +53,11 @@ class DepthFirstSearch(AbstractSearch):
     elapsed = timeit.default_timer() - start_time
     return elapsed, path
 
-'''
-The "default" method for performing a search. Runs a certain number of
-iterations according to the full set of policies provided.
-'''
 class MonteCarloTreeSearch(AbstractSearch):
+  '''
+  The "default" method for performing a search. Runs a certain number of
+  iterations according to the full set of policies provided.
+  '''
 
   def __init__(self, policies):
       self.policies = policies

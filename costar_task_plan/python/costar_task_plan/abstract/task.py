@@ -1,4 +1,8 @@
 
+# By Chris Paxton
+# (c) 2017 The Johns Hopkins University
+# See License for more details
+
 from option import AbstractOption, NullOption
 from sets import Set
 from world import AbstractWorld

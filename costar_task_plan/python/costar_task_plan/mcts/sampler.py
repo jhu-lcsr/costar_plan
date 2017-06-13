@@ -1,3 +1,8 @@
+
+# By Chris Paxton
+# (c) 2017 The Johns Hopkins University
+# See License for more details
+
 from abstract import *
 from action import *
 
@@ -63,10 +68,10 @@ class LearnedOrderPolicySample(AbstractSample):
   def getName(self):
     return "learned"+self.sampler.getName()
 
-'''
-Sample options from a task
-'''
 class TaskSampler(AbstractSample):
+  '''
+  Sample options from a task FSM
+  '''
 
   def __init__(self, task):
     self.task = task

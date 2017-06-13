@@ -1,4 +1,8 @@
 
+# By Chris Paxton
+# (c) 2017 The Johns Hopkins University
+# See License for more details
+
 from node import Node
 
 from costar_task_plan.abstract import *

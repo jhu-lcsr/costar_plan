@@ -1,4 +1,8 @@
 
+# By Chris Paxton
+# (c) 2017 The Johns Hopkins University
+# See License for more details
+
 from dmp_policy import CartesianDmpPolicy
 from dmp_option import DmpOption
 from dynamics import SimulatedDynamics
