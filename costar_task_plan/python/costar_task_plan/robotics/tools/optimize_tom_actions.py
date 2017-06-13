@@ -57,6 +57,6 @@ if __name__ == '__main__':
             world.addObject(name, obj_class)
 
     # Run the policy optimization loop
-    policies = DefaultTaskMctsPolicies(task)
-    OptimizePolicy(world, task, policies)
+    policies = ContinuousSamplerTaskPolicies(task)
+    OptimizePolicy(world, policies)
 

@@ -170,6 +170,7 @@ class AbstractWorld(object):
 
   def _process(self):
     # compute features
+    print "features", self.features
     if self.features is not None:
       # NOTE: this is about 0.1 second right now in larger trees
       F1 = self.computeFeatures()
@@ -177,6 +178,7 @@ class AbstractWorld(object):
       F1 = None
     r, bonus = self.reward(self)
     rt = bonus
+    print F1, r, bonus
 
     # determine if we should terminate
     res = True

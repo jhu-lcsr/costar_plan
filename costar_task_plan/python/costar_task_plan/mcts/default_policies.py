@@ -2,6 +2,7 @@ from abstract import *
 from node import *
 
 # all the components we may need
+from sample import *
 from score import *
 from widen import *
 from extract import *
@@ -31,9 +32,13 @@ class DefaultMctsPolicies(AbstractMctsPolicies):
       *args, **kwargs)
 
 class DefaultTaskMctsPolicies(DefaultMctsPolicies):
+    '''
+    Create a version of the task associated with exploring through a task
+    model. This should create and initialize the right nodes associated with
+    exploring the state machine that results from the task "grammar."
+    '''
     def __init__(self, task, *args, **kwargs):
         super(DefaultTaskMctsPolicies,self).__init__(
-          sample=None,
           initialize=TaskModelInitialize(task),
           *args,**kwargs)
 
