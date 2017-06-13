@@ -7,8 +7,9 @@
 from tom_oranges import MakeTomTaskModel, OrangesTaskArgs, OrangesDefaultTaskArgs
 
 from costar_task_plan.abstract import AbstractReward, AbstractFeatures
-from costar_task_plan.mcts import DefaultTaskMctsPolicies, Node
+from costar_task_plan.mcts import ContinuousSamplerTaskPolicies, Node
 from costar_task_plan.mcts import MonteCarloTreeSearch
+from costar_task_plan.mcts import ContinuousTaskSample
 from costar_task_plan.mcts import ExecutionPlan, DefaultExecute
 from costar_task_plan.robotics.core import *
 from costar_task_plan.robotics.tom import TomWorld, OpenLoopTomExecute, ParseTomArgs

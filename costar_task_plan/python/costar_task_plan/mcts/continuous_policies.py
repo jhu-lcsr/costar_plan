@@ -1,4 +1,8 @@
 from abstract import AbstractMctsPolicies
+from extract import *
+from sample import ContinuousTaskSample
+from score import *
+from widen import *
 
 class ContinuousMctsPolicies(AbstractMctsPolicies):
     '''
@@ -44,7 +48,7 @@ class ContinuousSamplerTaskPolicies(AbstractMctsPolicies):
 
         sample = ContinuousTaskSample(task, Z, unordered)
 
-        super(DefaultMctsPolicies, self).__init__(
+        super(ContinuousSamplerTaskPolicies, self).__init__(
                 score=PriorProbabilityScore(score_c),
                 widen=ProgressiveWiden(pw_C, pw_alpha),
                 extract=MostVisitedExtract(),
