@@ -32,6 +32,9 @@ class ContinuousSamplerTaskPolicies(AbstractMctsPolicies):
     optimization. It assumes continuous parameters for each action are on a
     Gaussian distribution.
 
+    Provide both a task model and expected parameter distributions (hopefully
+    fit based on expert data or something).
+
     Parameters:
     -----------
     task: a Task model
