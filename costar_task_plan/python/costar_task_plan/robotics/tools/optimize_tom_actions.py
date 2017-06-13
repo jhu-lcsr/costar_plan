@@ -19,9 +19,7 @@ import argparse
 import rospy
 
 def load_tom_world(regenerate_models):
-    print "loading"
     world = TomWorld('./',load_dataset=regenerate_models)
-    print "done"
     if regenerate_models:
         world.saveModels('tom')
     return world
