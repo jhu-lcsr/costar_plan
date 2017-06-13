@@ -48,22 +48,17 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                 "constructor": LiftOption,
                 "args": []
                 }
-        PlaceOption = lambda goal: GoalDirectedMotionOption
-        grasp_args = {
-                "constructor": PlaceOption,
-                "args": ["block"],
-                "remap": {"block": "goal"},
-                }
+        PlaceOption = lambda: GeneralMotionOption(None)
         place_args = {
-                "constructor": GeneralMotionOption,
+                "constructor": PlaceOption,
                 "args": []
                 }
         close_gripper_args = {
-                "constructor": GeneralMotionOption,
+                "constructor": PlaceOption,
                 "args": []
                 }
         open_gripper_args = {
-                "constructor": GeneralMotionOption,
+                "constructor": PlaceOption,
                 "args": []
                 }
 
@@ -71,8 +66,8 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         task = Task()
         task.add("grasp", None, grasp_args)
         task.add("close_gripper", "grasp", close_gripper_args)
-        task.add("lift", "close_gripper", grasp_args)
-        task.add("place", "lift", grasp_args)
+        task.add("lift", "close_gripper", lift_args)
+        task.add("place", "lift", place_args)
         task.add("open_gripper", "place", open_gripper_args)
 
         return task

@@ -44,25 +44,27 @@ class SortingTaskDefinition(DefaultTaskDefinition):
                 "args": ["red"],
                 "remap": {"red": "goal"},
                 }
-        LiftOption = lambda: GeneralMotionOption
+        LiftOption = lambda: GeneralMotionOption(None)
         lift_args = {
                 "constructor": LiftOption,
                 "args": []
                 }
+        WaitOption = lambda: RelativeMotionOption(None)
         wait_args = {
                 "constructor": GeneralMotionOption,
                 "args": []
                 }
+        PlaceOption = lambda: GeneralMotionOption(None)
         place_args = {
-                "constructor": GeneralMotionOption,
+                "constructor": PlaceOption,
                 "args": []
                 }
         close_gripper_args = {
-                "constructor": GeneralMotionOption,
+                "constructor": PlaceOption,
                 "args": []
                 }
         open_gripper_args = {
-                "constructor": GeneralMotionOption,
+                "constructor": PlaceOption,
                 "args": []
                 }
 
