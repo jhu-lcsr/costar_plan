@@ -8,6 +8,7 @@ __all__ = [
   # ===========================================================================
   # Default policies
   "DefaultTaskMctsPolicies", "DefaultMctsPolicies",
+  "ContinuousSamplerTaskPolicies",
   # ===========================================================================
   # Rollout functions: estimate value of a leaf
   "SimulationRollout", "ActionValueRollout",
