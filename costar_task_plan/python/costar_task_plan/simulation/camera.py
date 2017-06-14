@@ -15,7 +15,13 @@ class Camera(object):
   image_width: width of image to capture
   '''
 
-  def __init__(self, name, pos, target, up=(0,0,1), image_height=128, image_width=128, fov=60, near_plane=0.1, far_plane=1000):
+  def __init__(self, name, pos, target,
+          up=(0,0,1),
+          image_height=128,
+          image_width=128,
+          fov=60,
+          near_plane=0.1,
+          far_plane=1000):
     '''
     Create camera matrix for a particular position in the simulation. Task 
     definitions should produce these and 
