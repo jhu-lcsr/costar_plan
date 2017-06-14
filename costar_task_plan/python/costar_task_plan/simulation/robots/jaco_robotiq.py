@@ -14,11 +14,11 @@ class JacoRobotiqInterface(AbstractRobotInterface):
     Defines action space for the Jaco arm.
     '''
 
-    xacro_filename = 'robot/jaco_robot.xacro'
-    #urdf_filename = 'jaco_robot.urdf'
+    xacro_filename = 'robot/jaco_robot.urdf.xacro'
+    urdf_filename = 'jaco_robot.urdf'
 
     arm_name = "jaco_arm"
-    gripper_name = "robotiq_2_finger"
+    gripper_name = "None"
     base_name = None
 
     left_knuckle = 8
@@ -46,10 +46,11 @@ class JacoRobotiqInterface(AbstractRobotInterface):
         path = rospack.get_path('costar_simulation')
         filename = os.path.join(path, self.xacro_filename)
         urdf_filename = os.path.join(path, 'robot', self.urdf_filename)
-        urdf = open(urdf_filename, "w")
+        #urdf = open(urdf_filename, "w")
+	urdf = open("/home/albert/costar_ws/src/costar_plan/costar_simulation/robot/jaco_robot.urdf", "r")
 
         # Recompile the URDF to make sure it's up to date
-        subprocess.call(['rosrun', 'xacro', 'xacro.py', filename], stdout=urdf)
+        #subprocess.call(['rosrun', 'xacro', 'xacro.py', filename], stdout=urdf)
 
         self.handle = pb.loadURDF(urdf_filename)
 

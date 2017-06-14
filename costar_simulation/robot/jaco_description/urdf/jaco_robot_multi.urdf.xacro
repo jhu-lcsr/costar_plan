@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+
+<robot name="jaco_robot" xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <link name="robot_root">
+  </link>
+
+  <xacro:include filename="$(find jaco_description)/urdf/jaco.urdf.xacro" />
+  <xacro:jaco_arm parent="robot_root" mass_divider="1" finger_mass_divider="1" jaco_prefix="jaco1">
+     <origin xyz="0 0 0" rpy="0 0 0" />
+  </xacro:jaco_arm>
+
+  <xacro:jaco_arm parent="robot_root" mass_divider="1" finger_mass_divider="1" jaco_prefix="jaco2">
+     <origin xyz="1 0 0" rpy="0 0 0" />
+  </xacro:jaco_arm>
+
+</robot>
