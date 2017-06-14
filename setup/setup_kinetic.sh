@@ -14,7 +14,7 @@ echo "Installing python dependencies:"
 echo "Installing basics from apt-get..."
 sudo apt-get install python-scipy python-pygame
 echo "Installing smaller libraries from pip..."
-sudo pip install h5py keras sympy matplotlib pygame gmr networkx dtw pypr gym
+sudo pip install h5py keras sympy matplotlib pygame gmr networkx dtw pypr gym Pillow
 
 echo "======================================================"
 echo "ROS"
