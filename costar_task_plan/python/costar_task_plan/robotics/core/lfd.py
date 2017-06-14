@@ -259,7 +259,8 @@ class LfD(object):
         # get mean and get std dev
         params = np.array(params)
         mu = np.mean(params,axis=0)
-        sigma = np.cov(params)
+        sigma = np.cov(params.T)
+        assert mu.shape[0] == sigma.shape[0]
         return Distribution(mu, sigma)
 
 def yaml_save(obj, filename):
