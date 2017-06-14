@@ -10,6 +10,9 @@ import keras.backend as K
 from keras.layers import Input, Dense, Convolution2D, MaxPooling2D, UpSampling2D
 from keras.models import Model
 
+'''
+This block adapts between Tensorflow ordering and Theano ordering.
+'''
 if K.image_data_format() == "channels_last":
     mnist_shape = (28, 28, 1)
 else:
