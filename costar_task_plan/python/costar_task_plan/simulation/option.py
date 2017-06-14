@@ -12,7 +12,7 @@ class GoalDirectedMotionOption(AbstractOption):
     '''
 
     def __init__(self, world, goal, pose=None, *args, **kwargs):
-        self.goal_id = world.getObjectId[goal]
+        self.goal_id = world.getObjectId(goal)
         if pose is not None:
             self.position, self.rotation = pose
 
