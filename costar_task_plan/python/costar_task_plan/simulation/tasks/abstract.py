@@ -35,12 +35,11 @@ class AbstractTaskDefinition(object):
         assert isinstance(camera, Camera)
         self._cameras.append(camera)
 
-    def capture(self, template="img.png"):
+    def capture(self):
+        imgs = []
         for camera in self._cameras:
-            img = camera.capture()
-            print "---"
-            print type(img)
-            print img
+            imgs.append((camera.name, camera.capture()))
+        return imgs
 
     def addObject(self, typename, obj_id):
         '''

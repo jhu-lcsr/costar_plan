@@ -5,6 +5,9 @@ from config import *
 from util import GetTaskDefinition, GetRobotInterface
 from world import *
 
+from PIL import Image as PILImage
+
+import os
 import pybullet as pb
 import rospy
 import subprocess
@@ -120,8 +123,15 @@ class CostarBulletSimulation(object):
 
         if self.save:
             if self.capture:
-                self.task.capture(self.directory)
-            # handle other stuff
+                imgs = self.task.capture()
+                for name, data in imgs:
+                    path = os.path.join(self.directory,
+                            "%s%04d"%(name, self.task.world.ticks))
+                    print "asdf", data.shape
+                    img = PILImage.fromarray(data)
+                    img.save(path, ".png")
+
+            # TODO: handle other stuff
 
     def close(self):
         '''

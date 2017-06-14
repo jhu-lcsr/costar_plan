@@ -20,7 +20,7 @@ class DefaultTaskDefinition(AbstractTaskDefinition):
     def __init__(self,*args,**kwargs):
         super(DefaultTaskDefinition, self).__init__(*args, **kwargs)
         self.objs = []
-        self.addCamera(Camera([0.5,0,0.5],[0.,0.5,0.]))
+        self.addCamera(Camera("right", [0.5,0,0.5],[0.,0.5,0.]))
 
     def _setupRobot(self, handle):
         self.robot.place([0,0,0],[0,0,0,1],self.joint_positions)
