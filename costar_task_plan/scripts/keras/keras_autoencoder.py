@@ -20,20 +20,20 @@ else:
 
 input_img = Input(shape=mnist_shape)
 
-x = Convolution2D(16, (3, 3), activation='relu', padding='same')(input_img)
+x = Convolution2D(16, (3, 3), activation='selu', padding='same')(input_img)
 x = MaxPooling2D((2, 2), padding='same')(x)
-x = Convolution2D(8, (3, 3), activation='relu', padding='same')(x)
+x = Convolution2D(8, (3, 3), activation='selu', padding='same')(x)
 x = MaxPooling2D((2, 2), padding='same')(x)
-x = Convolution2D(8, (3, 3), activation='relu', padding='same')(x)
+x = Convolution2D(8, (3, 3), activation='selu', padding='same')(x)
 encoded = MaxPooling2D((2, 2), padding='same')(x)
 
 # at this point the representation is (8, 4, 4) i.e. 128-dimensional
 
-x = Convolution2D(8, (3, 3), activation='relu', padding='same')(encoded)
+x = Convolution2D(8, (3, 3), activation='selu', padding='same')(encoded)
 x = UpSampling2D((2, 2))(x)
-x = Convolution2D(8, (3, 3), activation='relu', padding='same')(x)
+x = Convolution2D(8, (3, 3), activation='selu', padding='same')(x)
 x = UpSampling2D((2, 2))(x)
-x = Convolution2D(16, (3, 3), activation='relu')(x)
+x = Convolution2D(16, (3, 3), activation='selu')(x)
 x = UpSampling2D((2, 2))(x)
 decoded = Convolution2D(1, (3, 3), activation='sigmoid', padding='same')(x)
 

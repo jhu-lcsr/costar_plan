@@ -18,7 +18,16 @@ class CostarBulletSimulation(object):
     gym environment.
     '''
 
-    def __init__(self, robot, task, gui=False, ros=False, ros_name="simulation", option=None, plot_task=False, *args, **kwargs):
+    def __init__(self, robot, task,
+            gui=False,
+            ros=False,
+            ros_name="simulation",
+            option=None,
+            plot_task=False,
+            directory='./',
+            save=False,
+            capture=False,
+            *args, **kwargs):
         self.gui = gui and not plot_task
         self.robot = GetRobotInterface(robot)
         self.task = GetTaskDefinition(task, self.robot, *args, **kwargs)
@@ -26,6 +35,11 @@ class CostarBulletSimulation(object):
         # managed list of processes and other metadata
         self.procs = []
         self.ros = ros
+
+        # saving
+        self.save = save or capture
+        self.capture = capture
+        self.directory = directory
 
         if ros:
             # boot up ROS and open a connection to the simulation server
@@ -103,6 +117,11 @@ class CostarBulletSimulation(object):
         else:
             cmd = action.tolist()
         self.task.world.tick(SimulationRobotAction(cmd=cmd))
+
+        if self.save:
+            if self.capture:
+                self.task.capture(self.directory)
+            # handle other stuff
 
     def close(self):
         '''

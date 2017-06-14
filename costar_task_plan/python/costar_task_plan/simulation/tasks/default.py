@@ -1,6 +1,8 @@
 
 from abstract import AbstractTaskDefinition
 
+from costar_task_plan.simulation.camera import Camera
+
 import numpy as np
 import os
 import pybullet as pb
@@ -18,6 +20,7 @@ class DefaultTaskDefinition(AbstractTaskDefinition):
     def __init__(self,*args,**kwargs):
         super(DefaultTaskDefinition, self).__init__(*args, **kwargs)
         self.objs = []
+        self.addCamera(Camera([0.5,0,0.5],[0.,0.5,0.]))
 
     def _setupRobot(self, handle):
         self.robot.place([0,0,0],[0,0,0,1],self.joint_positions)
