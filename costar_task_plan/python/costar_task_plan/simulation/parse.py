@@ -49,5 +49,8 @@ def ParseBulletArgs():
     parser.add_argument('-d', '--directory',
                         help="Directory to store data from trials",
                         default="./")
+    parser.add_argument('--show_images',
+                        help="Display images from cameras for debugging.",
+                        action="store_true")
 
     return vars(parser.parse_args())

@@ -5,6 +5,7 @@ from config import *
 from util import GetTaskDefinition, GetRobotInterface
 from world import *
 
+import matplotlib.pyplot as plt
 import os
 import png
 import pybullet as pb
@@ -29,6 +30,7 @@ class CostarBulletSimulation(object):
             directory='./',
             save=False,
             capture=False,
+            show_images=False,
             *args, **kwargs):
         self.gui = gui and not plot_task
         self.robot = GetRobotInterface(robot)
@@ -39,8 +41,9 @@ class CostarBulletSimulation(object):
         self.ros = ros
 
         # saving
-        self.save = save or capture
-        self.capture = capture
+        self.save = save
+        self.capture = capture or show_images
+        self.show_images = show_images
         self.directory = directory
 
         if ros:
@@ -120,10 +123,13 @@ class CostarBulletSimulation(object):
             cmd = action.tolist()
         self.task.world.tick(SimulationRobotAction(cmd=cmd))
 
-        if self.save:
-            if self.capture:
-                imgs = self.task.capture()
-                for name, data in imgs:
+        if self.capture:
+            imgs = self.task.capture()
+            for name, data in imgs:
+                if self.show_images:
+                    plt.imshow(data)
+                    plt.pause(0.01)
+                if self.save:
                     path = os.path.join(self.directory,
                             "%s%04d.png"%(name, self.task.world.ticks))
                     img = png.fromarray(data, "L")
