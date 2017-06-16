@@ -17,7 +17,7 @@ echo "Installing basics from apt-get..."
 sudo apt-get -y install python-pygame python-dev
 echo "Installing smaller libraries from pip..."
 sudo -H pip install numpy --no-binary numpy
-sudo -H pip install h5py keras sympy matplotlib pygame gmr networkx dtw pypr gym PyPNG
+sudo -H pip install h5py keras sympy matplotlib pygame gmr networkx dtw pypr gym PyPNG pybullet
 
 echo "======================================================"
 echo "ROS"
