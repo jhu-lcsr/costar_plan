@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 export ROS_DISTRO=kinetic
 export ROS_CI_DESKTOP="`lsb_release -cs`"  # e.g. [precise|trusty|...]
@@ -22,7 +22,7 @@ echo "======================================================"
 echo "ROS"
 sudo apt-get install -y python-catkin-pkg python-rosdep python-wstool python-catkin-tools ros-$ROS_DISTRO-catkin ros-$ROS_DISTRO-ros-base
 echo "--> source ROS setup in /opt/ros/$ROS_DISTRO/setup.bash"
-sh /opt/ros/$ROS_DISTRO/setup.bash
+bash /opt/ros/$ROS_DISTRO/setup.bash
 sudo rosdep init
 rosdep update
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 export ROS_DISTRO=indigo
 export ROS_CI_DESKTOP="`lsb_release -cs`"  # e.g. [precise|trusty|...]
@@ -26,7 +26,7 @@ echo "--> source ROS setup in /opt/ros/$ROS_DISTRO/setup.bash"
 ls /opt/ros
 ls /opt/ros/$ROS_DISTRO
 ls /opt/ros/indigo
-sh /opt/ros/$ROS_DISTRO/setup.sh
+source /opt/ros/$ROS_DISTRO/setup.bash
 sudo rosdep init
 rosdep update
 
