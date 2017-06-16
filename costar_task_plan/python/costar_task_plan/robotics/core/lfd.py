@@ -1,4 +1,3 @@
-
 # By Chris Paxton
 # (c) 2017 The Johns Hopkins University
 # See License for more details
@@ -80,6 +79,8 @@ class LfD(object):
 
         print "Training:"
         for name, trajs in self.world.trajectories.items():
+
+            print "training skill", name
 
             self.pubs[name] = rospy.Publisher(
                 join('costar', 'lfd', name), PoseArray, queue_size=1000)
@@ -241,9 +242,7 @@ class LfD(object):
             self.skill_instances[name] = []
             for i in xrange(count):
                 filename = os.path.join(skills_dir, '%s%02d.yml' % (name, i))
-                print i, filename
                 dmp = yaml_load(filename)
-                print dmp
                 self.skill_instances[name].append(dmp)
 
             model_filename = os.path.join(models_dir, '%s_gmm.yml' % name)
@@ -273,6 +272,5 @@ def yaml_save(obj, filename):
 
 def yaml_load(filename):
     with open(filename, 'r') as infile:
-        print filename, infile
         return yaml.load(infile)#, Loader=Loader)
 

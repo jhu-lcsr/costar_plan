@@ -17,9 +17,7 @@ class ValidStateCondition(AbstractCondition):
         rospy.wait_for_service('check_state_validity', 5.0)
         self.srv = rospy.ServiceProxy('check_state_validity', GetStateValidity)
 
-    def __call__(self, world, state, actor=None, prev_state=None):
-        if actor is None:
-            actor = world.actors[0]
+    def __call__(self, world, state, actor, prev_state=None):
         js = JointState(
             name=actor.joints,
             position=state.q,

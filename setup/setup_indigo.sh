@@ -16,7 +16,8 @@ echo "Installing python dependencies:"
 echo "Installing basics from apt-get..."
 sudo apt-get -y install python-pygame python-dev
 echo "Installing smaller libraries from pip..."
-sudo pip install h5py keras sympy matplotlib pygame gmr networkx dtw pypr gym PyPNG
+sudo -H pip install numpy --no-binary numpy
+sudo -H pip install h5py keras sympy matplotlib pygame gmr networkx dtw pypr gym PyPNG
 
 echo "======================================================"
 echo "ROS"
@@ -34,6 +35,7 @@ cd $CATKIN_WS
 catkin init
 cd $CATKIN_WS/src
 
+git clone git@github.com:cpaxton/hrl-kdl.git --branch indigo-devel
 git clone https://github.com/cburbridge/python_pcd.git
 git clone https://github.com/jhu-lcsr/costar_objects.git
 git clone https://github.com/cpaxton/dmp.git --branch indigo

@@ -17,8 +17,11 @@ from std_srvs.srv import Empty as EmptySrv
 
 import argparse
 import rospy
+import sys
 
 test_args = None
+
+sys.settrace
 
 def load_tom_world(regenerate_models):
     print "========================================="

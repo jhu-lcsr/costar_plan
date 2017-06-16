@@ -127,38 +127,32 @@ class TomDataset(Dataset):
             ]
     trajs = []
     for filename in bag_files:
+      print '\t', filename
       traj = []
       bag = rosbag.Bag(filename)
       # extract the end pose of the robot arm
       pose = None
       gripper = None
-      data = None
       orange = None
       for topic, msg, t in bag.read_messages(topics):
         sec = t.to_sec()
         if topic == self.gripper_topic:
             gripper = msg
         elif topic == self.arm_data_topic:
-            data = msg
-        elif topic == self.right_arm_end_frame_topic:
             # convert pose from this representation to a KDL frame
+            print msg.q
             pose = pm.fromMsg(msg)
-
-            # Move it back some amount.
-            # TODO(cpaxton): make sure this is correct! May need to correct the
-            # position of the end effector extracted from these bag files.
-            pose = pose * pm.Frame(pm.Vector(0, 0, -0.12))
 
             # still saved as messages
             pose = pm.toMsg(pose)
         elif topic == self.vision_topic:
             orange = msg.objData[0]
 
-        if all([pose, gripper, data]):
+        if all([pose, gripper]):
             gripper_open = gripper.state == 'open'
             gripper_state = gripper.stateId
-            traj.append((sec, pose, data, gripper_open, gripper_state, orange))
-            gripper, data, pose, orange = None, None, None, None
+            traj.append((sec, pose, gripper_open, gripper_state, orange))
+            gripper, pose, orange = None, None, None, None
       trajs.append(traj)
 
     # These are the preset positions for the various TOM objects. These are 
@@ -206,7 +200,7 @@ class TomDataset(Dataset):
         cropped_orange = []
         done = False
 
-        for t, pose, data, gopen, gstate, orange in traj:
+        for t, pose, gopen, gstate, orange in traj:
             if was_open and not gopen:
                 # pose is where we picked up an object
                 if stage < 1:
@@ -247,7 +241,6 @@ class TomDataset(Dataset):
                 cropped_traj = []
                 cropped_orange = []
             last_stage = stage
-            #cropped_traj.append((t, pose, data, gopen, gstate))
             cropped_traj.append((t, pose, gopen, gstate))
             if orange is not None:
               orange_pose = pm.fromMsg(Pose(position=(orange.position),orientation=Quaternion(0,0,0,1)))

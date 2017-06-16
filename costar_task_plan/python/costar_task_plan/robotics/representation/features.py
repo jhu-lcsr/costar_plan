@@ -19,8 +19,8 @@ import numpy as np
 
 # KDL utilities
 import PyKDL
-from pykdl_utils.kdl_kinematics import KDLKinematics
 from pykdl_utils.kdl_parser import kdl_tree_from_urdf_model
+from pykdl_utils.kdl_kinematics import KDLKinematics
 
 # tf stuff
 import tf
