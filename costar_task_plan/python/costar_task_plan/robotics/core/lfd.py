@@ -231,6 +231,7 @@ class LfD(object):
         skill_filename = os.path.join(project_name, "skills.yml")
         skills = yaml_load(skill_filename)
         for name, count in skills.items():
+            print "Loading skill %s/%s - %d examples"%(project_name, name, count)
 
             # For debugging only
             if name not in self.pubs:
@@ -240,7 +241,9 @@ class LfD(object):
             self.skill_instances[name] = []
             for i in xrange(count):
                 filename = os.path.join(skills_dir, '%s%02d.yml' % (name, i))
+                print i, filename
                 dmp = yaml_load(filename)
+                print dmp
                 self.skill_instances[name].append(dmp)
 
             model_filename = os.path.join(models_dir, '%s_gmm.yml' % name)
@@ -270,5 +273,6 @@ def yaml_save(obj, filename):
 
 def yaml_load(filename):
     with open(filename, 'r') as infile:
+        print filename, infile
         return yaml.load(infile)#, Loader=Loader)
 

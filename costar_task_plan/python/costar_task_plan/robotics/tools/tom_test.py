@@ -18,6 +18,8 @@ from std_srvs.srv import Empty as EmptySrv
 import argparse
 import rospy
 
+test_args = None
+
 def load_tom_world(regenerate_models):
     print "========================================="
     print "Loading world..."
@@ -26,6 +28,13 @@ def load_tom_world(regenerate_models):
         world.saveModels('tom')
     print "done."
     return world
+
+pWorld = None
+pTask = None
+pObjects = None
+
+def profile_do_search():
+    do_search(pWorld, pTask, pObjects)
 
 def load_tom_data_and_run():
     '''
@@ -39,8 +48,6 @@ def load_tom_data_and_run():
 
     import signal
     signal.signal(signal.SIGINT, exit)
-
-    test_args = ParseTomArgs()
 
     try:
       rospy.init_node('tom_test_node')
@@ -69,6 +76,13 @@ def load_tom_data_and_run():
                      "trash":"trash1",
                      "squeeze_area":"squeeze_area1"}
 
+    if test_args.profile:
+        import cProfile
+        global pWorld, pTask, pObjects
+        pWorld = world
+        pTask = task
+        pObjects = objects
+        cProfile.run("profile_do_search()")
     path = do_search(world, task, objects)
     print "done."
 
@@ -108,6 +122,7 @@ def load_tom_data_and_run():
             path = do_search(world, task, objects)
             plan = ExecutionPlan(path, OpenLoopTomExecute(world, 0))
 
+          break
           rate.sleep()
 
     except rospy.ROSInterruptException, e:
@@ -138,6 +153,11 @@ def do_search(world, task, objects):
     return path
 
 if __name__ == "__main__":
+    test_args = ParseTomArgs()
+    #if test_args.profile:
+    #    import cProfile
+    #    cProfile.run("load_tom_data_and_run()")
+    #else:
     load_tom_data_and_run()
 
 
