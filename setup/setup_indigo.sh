@@ -26,8 +26,6 @@ echo "--> source ROS setup in /opt/ros/$ROS_DISTRO/setup.bash"
 ls /opt/ros
 ls /opt/ros/$ROS_DISTRO
 ls /opt/ros/indigo
-source /opt/ros/$ROS_DISTRO/setup.bash
-bash /opt/ros/$ROS_DISTRO/setup.bash
 sh /opt/ros/$ROS_DISTRO/setup.sh
 sudo rosdep init
 rosdep update

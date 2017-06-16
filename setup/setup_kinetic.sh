@@ -22,7 +22,7 @@ echo "======================================================"
 echo "ROS"
 sudo apt-get install -y python-catkin-pkg python-rosdep python-wstool python-catkin-tools ros-$ROS_DISTRO-catkin ros-$ROS_DISTRO-ros-base
 echo "--> source ROS setup in /opt/ros/$ROS_DISTRO/setup.bash"
-source /opt/ros/$ROS_DISTRO/setup.bash
+sh /opt/ros/$ROS_DISTRO/setup.bash
 sudo rosdep init
 rosdep update
 
