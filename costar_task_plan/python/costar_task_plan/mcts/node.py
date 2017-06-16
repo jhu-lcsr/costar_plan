@@ -49,6 +49,7 @@ class Node(AbstractState):
       self.max_reward = max(reward, self.max_reward)
       self.max_final_reward = max(reward, self.max_final_reward)
       self.avg_reward = self.total_reward / self.n_visits
+      self.reward = 0 # reset counter for this trace
 
     '''
     expand() creates a new child world from a particular environment. We can

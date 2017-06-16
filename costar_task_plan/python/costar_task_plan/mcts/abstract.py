@@ -86,8 +86,10 @@ class AbstractMctsPolicies(object):
       node.n_visits += 1
 
       length = len(node.children)
-      cur_reward = node.reward
       final_reward = node.reward
+
+      # Add this node's reward to the vector of visited states.
+      visited.append((node, final_reward))
 
       # optionally expand internal nodes
       if node.terminal:
@@ -105,9 +107,6 @@ class AbstractMctsPolicies(object):
 
       if length is 0:
           break
-
-      # Add this node's reward to the vector of visited states.
-      visited.append((node, cur_reward))
 
       # This is a visited node, which means that it has children we can
       # consider. We want to score these children using our provided scoring

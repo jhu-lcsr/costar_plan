@@ -59,17 +59,12 @@ def load_tom_data_and_run():
 
 
     # Set up the task model
-    print "========================================="
-    print "Setting up task model..."
     task = MakeTomTaskModel(world.lfd)
     args = OrangesTaskArgs()
     filled_args = task.compile(args)
     execute = True
-    print "done."
 
     # Perform the search
-    print "========================================="
-    print "Searching..."
     objects = ['box1', 'orange1', 'orange2', 'orange3', 'trash1',
             'squeeze_area1']
     debug_objects = {"box":"box1",
@@ -85,18 +80,14 @@ def load_tom_data_and_run():
         pObjects = objects
         cProfile.run("profile_do_search()")
     path = do_search(world, task, objects)
-    print "done."
 
     # Tom execution works by sending a joint state message with just the robot
     # joints for the arm we want to move. The idea is that we can treat the two
     # arms and the base all as separate "actors."
 
-    print "========================================="
-    print "Setting up for execution..."
     plan = ExecutionPlan(path, OpenLoopTomExecute(world, 0))
     reset = rospy.ServiceProxy('tom_sim/reset',EmptySrv)
     rate = rospy.Rate(10)
-    print "done."
     try:
         while True:
           # Update observations about the world
