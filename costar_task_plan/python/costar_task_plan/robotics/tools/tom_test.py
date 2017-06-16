@@ -19,9 +19,12 @@ import argparse
 import rospy
 
 def load_tom_world(regenerate_models):
+    print "========================================="
+    print "Loading world..."
     world = TomWorld('./',load_dataset=regenerate_models)
     if regenerate_models:
         world.saveModels('tom')
+    print "done."
     return world
 
 def load_tom_data_and_run():
@@ -46,13 +49,19 @@ def load_tom_data_and_run():
       print "Failed to create world. Are you in the right directory?"
       raise e
 
+
     # Set up the task model
+    print "========================================="
+    print "Setting up task model..."
     task = MakeTomTaskModel(world.lfd)
     args = OrangesTaskArgs()
     filled_args = task.compile(args)
     execute = True
+    print "done."
 
     # Perform the search
+    print "========================================="
+    print "Searching..."
     objects = ['box1', 'orange1', 'orange2', 'orange3', 'trash1',
             'squeeze_area1']
     debug_objects = {"box":"box1",
@@ -61,15 +70,18 @@ def load_tom_data_and_run():
                      "squeeze_area":"squeeze_area1"}
 
     path = do_search(world, task, objects)
-    print "Done planning."
+    print "done."
 
     # Tom execution works by sending a joint state message with just the robot
     # joints for the arm we want to move. The idea is that we can treat the two
     # arms and the base all as separate "actors."
-    plan = ExecutionPlan(path, OpenLoopTomExecute(world, 0))
 
+    print "========================================="
+    print "Setting up for execution..."
+    plan = ExecutionPlan(path, OpenLoopTomExecute(world, 0))
     reset = rospy.ServiceProxy('tom_sim/reset',EmptySrv)
     rate = rospy.Rate(10)
+    print "done."
     try:
         while True:
           # Update observations about the world

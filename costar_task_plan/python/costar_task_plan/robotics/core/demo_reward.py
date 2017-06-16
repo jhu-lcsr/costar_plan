@@ -33,7 +33,6 @@ class DemoReward(AbstractReward):
             model = self.models[state.reference.skill_name]
             p = model.score(f) / len(state.traj.points)
         else:
-            print "warning: state missing attributes: ", state.reference is None, f is None
+            #print "warning: state missing attributes: ", state.reference is None, f is None
             p = 0.
-        print p
         return p, 0.

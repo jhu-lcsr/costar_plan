@@ -22,7 +22,6 @@ class DemoFeatures(AbstractFeatures):
         '''
         Compute LfD features
         '''
-        print "asdf"
         if state.reference is not None:
             ee = pm.fromMatrix(self.kdl_kin.forward(state.q))
             if state.gripper_closed:
@@ -37,7 +36,6 @@ class DemoFeatures(AbstractFeatures):
                 gripper))
             return f
         else:
-            print "!!!! DemoFeatures " 
             return None
 
     def updateBounds(self, world):
