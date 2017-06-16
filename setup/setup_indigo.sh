@@ -8,18 +8,19 @@ export ROS_PARALLEL_JOBS='-j8 -l6'
 export CATKIN_WS="$HOME/costar_ws"
 export COSTAR_PLAN_DIR="$HOME/costar_ws/src/costar_plan"
 
+sudo apt-get update -qq
+
 echo "======================================================"
 echo "PYTHON"
 echo "Installing python dependencies:"
 echo "Installing basics from apt-get..."
-sudo apt-get -y install python-pygame python-pip
+sudo apt-get -y install python-pygame python-dev-all
 echo "Installing smaller libraries from pip..."
 sudo pip install -H h5py keras sympy matplotlib pygame gmr networkx dtw pypr gym PyPNG
 
 echo "======================================================"
 echo "ROS"
-sudo apt-get update -qq
-sudo apt-get install -y python-catkin-pkg python-rosdep python-wstool python-catkin-tools ros-$ROS_DISTRO-catkin python-dev 
+sudo apt-get install -y python-catkin-pkg python-rosdep python-wstool python-catkin-tools ros-$ROS_DISTRO-catkin ros-$ROS_DISTRO-ros-base
 source /opt/ros/$ROS_DISTRO/setup.bash
 sudo rosdep init
 rosdep update
