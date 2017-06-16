@@ -12,7 +12,7 @@ echo "======================================================"
 echo "PYTHON"
 echo "Installing python dependencies:"
 echo "Installing basics from apt-get..."
-sudo apt-get install python-pygame python-pip
+sudo apt-get -y install python-pygame python-pip
 echo "Installing smaller libraries from pip..."
 sudo pip install -H h5py keras sympy matplotlib pygame gmr networkx dtw pypr gym PyPNG
 
