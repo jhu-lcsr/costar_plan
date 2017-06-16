@@ -10,7 +10,10 @@ import rospy
 class ValidStateCondition(AbstractCondition):
 
     '''
-    Check to see if a particular state is valid
+    Check to see if a particular state is valid.
+
+    TODO: make this more efficient by taking a reference to the C++ object that
+    checks for collisions.
     '''
 
     def __init__(self):
@@ -25,5 +28,5 @@ class ValidStateCondition(AbstractCondition):
         rs = RobotState(joint_state=js)
         res = self.srv(robot_state=rs)
         if not res.valid:
-            print res
+            print "[ValidStateCondition] Invalid state!"
         return res.valid
