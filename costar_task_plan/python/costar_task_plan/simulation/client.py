@@ -125,14 +125,19 @@ class CostarBulletSimulation(object):
 
         if self.capture:
             imgs = self.task.capture()
-            for name, data in imgs:
+            for name, rgb, depth, mask in imgs:
                 if self.show_images:
-                    plt.imshow(data)
+                    plt.subplot(1,3,1)
+                    plt.imshow(rgb, interpolation="none")
+                    plt.subplot(1,3,2)
+                    plt.imshow(depth, interpolation="none")
+                    plt.subplot(1,3,3)
+                    plt.imshow(mask, interpolation="none")
                     plt.pause(0.01)
                 if self.save:
                     path = os.path.join(self.directory,
-                            "%s%04d.png"%(name, self.task.world.ticks))
-                    img = png.fromarray(data, "L")
+                            "%s%04d_rgb.png"%(name, self.task.world.ticks))
+                    img = png.fromarray(rgb, "L")
                     img.save(path)
 
             # TODO: handle other stuff

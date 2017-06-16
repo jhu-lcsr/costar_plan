@@ -1,6 +1,9 @@
 
-
 import pybullet as pb
+
+from collections import namedtuple
+
+ImageData = namedtuple('ImageData',['name', 'rgb', 'depth', 'mask'], verbose=False)
 
 class Camera(object):
   '''
@@ -15,11 +18,13 @@ class Camera(object):
   image_width: width of image to capture
   '''
 
-  def __init__(self, name, pos, target,
-          up=(0,0,1),
-          image_height=128,
-          image_width=128,
-          fov=60,
+  def __init__(self, name, target,
+          distance,
+          roll, pitch, yaw,
+          up_idx=2,
+          image_width=1024/4,
+          image_height=768/4,
+          fov=45,
           near_plane=0.1,
           far_plane=1000):
     '''
@@ -27,7 +32,7 @@ class Camera(object):
     definitions should produce these and 
     '''
     self.name = name
-    self.matrix = pb.computeViewMatrix(pos, target, up)
+    self.matrix = pb.computeViewMatrixFromYawPitchRoll(target, distance, yaw, pitch, roll, up_idx)
     self.image_height = image_height
     self.image_width = image_width
     self.aspect_ratio = self.image_width / self.image_height
@@ -41,4 +46,5 @@ class Camera(object):
             self.far_plane)
 
   def capture(self):
-    return pb.getCameraImage(self.image_width, self.image_height, self.matrix)[2]
+    _, _, rgb, depth, mask = pb.getCameraImage(self.image_width, self.image_height, viewMatrix=self.matrix, projectionMatrix=self.projection_matrix)
+    return ImageData(self.name, rgb, depth, mask)
