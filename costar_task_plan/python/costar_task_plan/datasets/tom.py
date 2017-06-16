@@ -3,10 +3,12 @@
 # See License for more details
 
 from dataset import Dataset
-import os, logging
-
-from tf_conversions import posemath as pm
 from geometry_msgs.msg import Pose, Quaternion
+from pykdl_utils.kdl_parser import kdl_tree_from_urdf_model
+from pykdl_utils.kdl_kinematics import KDLKinematics
+from tf_conversions import posemath as pm
+from urdf_parser_py.urdf import URDF
+import os, logging
 
 LOGGER = logging.getLogger(__name__)
 
@@ -62,6 +64,16 @@ class TomDataset(Dataset):
     self.lift_data = []
     self.test_data = []
     self.pickup_data = []
+
+    self.robot = URDF.from_parameter_server()
+    self.base_link = "torso_link"
+    self.end_link = "r_gripper_base_link"
+
+    # set up kinematics stuff
+    self.tree = kdl_tree_from_urdf_model(self.robot)
+    self.chain = self.tree.getChain(self.base_link, self.end_link)
+    self.kdl_kin = KDLKinematics(self.robot, self.base_link, self.end_link)
+
 
   def download(self, *args, **kwargs):
     raise RuntimeError('downloading this dataset is not yet supported')
@@ -140,8 +152,7 @@ class TomDataset(Dataset):
             gripper = msg
         elif topic == self.arm_data_topic:
             # convert pose from this representation to a KDL frame
-            print msg.q
-            pose = pm.fromMsg(msg)
+            pose = pm.fromMatrix(self.kdl_kin.forward(msg.qf))
 
             # still saved as messages
             pose = pm.toMsg(pose)
@@ -152,7 +163,7 @@ class TomDataset(Dataset):
             gripper_open = gripper.state == 'open'
             gripper_state = gripper.stateId
             traj.append((sec, pose, gripper_open, gripper_state, orange))
-            gripper, pose, orange = None, None, None, None
+            gripper, pose, orange = None, None, None
       trajs.append(traj)
 
     # These are the preset positions for the various TOM objects. These are 
