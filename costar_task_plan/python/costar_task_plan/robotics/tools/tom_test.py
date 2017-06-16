@@ -21,8 +21,6 @@ import sys
 
 test_args = None
 
-sys.settrace
-
 def load_tom_world(regenerate_models):
     print "========================================="
     print "Loading world..."
