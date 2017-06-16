@@ -26,6 +26,10 @@ class ValidStateCondition(AbstractCondition):
             position=state.q,
         )
         rs = RobotState(joint_state=js)
+
+        # TODO(cpaxton): this is about 75% of the current speed. Commenting
+        # this out makes a huge difference. We should be able to drastically
+        # reduce it by adding a C++ interface to run the check.
         res = self.srv(robot_state=rs)
         if not res.valid:
             print "[ValidStateCondition] Invalid state!"
