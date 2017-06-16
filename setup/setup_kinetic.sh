@@ -12,15 +12,14 @@ echo "======================================================"
 echo "PYTHON"
 echo "Installing python dependencies:"
 echo "Installing basics from apt-get..."
-sudo apt-get install python-scipy python-pygame
+sudo apt-get install python-pygame python-pip
 echo "Installing smaller libraries from pip..."
-sudo pip install h5py keras sympy matplotlib pygame gmr networkx dtw pypr gym PyPNG
+sudo pip install -H h5py keras sympy matplotlib pygame gmr networkx dtw pypr gym PyPNG
 
 echo "======================================================"
 echo "ROS"
 sudo apt-get update -qq
 sudo apt-get install -y python-catkin-pkg python-rosdep python-wstool python-catkin-tools ros-$ROS_DISTRO-catkin python-dev 
-sudo pip install h5py pygame sympy matplotlib pygame gmr networkx tensorflow
 source /opt/ros/$ROS_DISTRO/setup.bash
 sudo rosdep init
 rosdep update
