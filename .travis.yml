@@ -67,7 +67,6 @@ env:
 before_install:
   - sudo sh -c "echo \"deb http://packages.ros.org/ros/ubuntu $ROS_CI_DESKTOP main\" > /etc/apt/sources.list.d/ros-latest.list"
   - wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
-  - source /opt/ros/$ROS_DISTRO/setup.bash
 
 # Create a catkin workspace with the package under integration.
 install:
