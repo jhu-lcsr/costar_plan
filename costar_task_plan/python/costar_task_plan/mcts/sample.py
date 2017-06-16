@@ -103,7 +103,7 @@ class ContinuousTaskSample(AbstractSample):
             policy=option.samplePolicy(node.world),
             id=idx,
             tag=tag,
-            ticks=self.ticks)
+            ticks=None)
 
   def getPolicies(self, node):
     return [self.policy]

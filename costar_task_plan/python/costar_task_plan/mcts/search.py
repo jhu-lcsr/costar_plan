@@ -6,6 +6,7 @@
 import timeit
 
 from abstract import AbstractSearch
+from node import Node
 
 '''
 Search through the tree exhaustively.

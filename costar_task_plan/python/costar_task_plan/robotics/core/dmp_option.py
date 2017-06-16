@@ -1,5 +1,6 @@
 
 from costar_task_plan.abstract import AbstractOption, AbstractCondition
+from costar_task_plan.robotics.representation import CartesianSkillInstance
 from dmp_policy import JointDmpPolicy, CartesianDmpPolicy
 
 import numpy as np
@@ -11,6 +12,7 @@ class DmpOption(AbstractOption):
 
     def __init__(self,
             policy_type, # what kind of DMP are we creating
+            config, # robot config file
             kinematics, # kinematics of the robot 
             goal, # type of object to arrive at 
             skill_name, # name of this skill
@@ -34,6 +36,7 @@ class DmpOption(AbstractOption):
         if attached_frame is not None:
             raise NotImplementedError('attached frame is not yet supported')
 
+        self.config = config
         self.goal = goal
         self.policy_type = policy_type
         self.kinematics = kinematics
@@ -66,7 +69,7 @@ class DmpOption(AbstractOption):
         params = np.random.multivariate_normal(
                 self.traj_dist.mu,
                 self.traj_dist.sigma)
-        skill_instance = CartesianSkillInstance(params=params)
+        skill_instance = CartesianSkillInstance(config=self.config, params=params)
         return self.policy_type(
             skill=self,
             goal=self.goal,
