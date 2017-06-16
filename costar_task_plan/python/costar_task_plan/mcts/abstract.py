@@ -103,6 +103,9 @@ class AbstractMctsPolicies(object):
           can_widen = False
           length += 1
 
+      if length is 0:
+          break
+
       # Add this node's reward to the vector of visited states.
       visited.append((node, cur_reward))
 
