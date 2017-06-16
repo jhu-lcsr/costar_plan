@@ -6,6 +6,7 @@ from util import GetTaskDefinition, GetRobotInterface
 from world import *
 
 import matplotlib.pyplot as plt
+import numpy as np
 import os
 import png
 import pybullet as pb
@@ -31,6 +32,7 @@ class CostarBulletSimulation(object):
             save=False,
             capture=False,
             show_images=False,
+            randomize_color=False,
             *args, **kwargs):
         self.gui = gui and not plot_task
         self.robot = GetRobotInterface(robot)
@@ -45,12 +47,20 @@ class CostarBulletSimulation(object):
         self.capture = capture or show_images
         self.show_images = show_images
         self.directory = directory
+        self.randomize_color = randomize_color
 
         if ros:
             # boot up ROS and open a connection to the simulation server
             self._start_ros(ros_name)
 
         self.open()
+
+        if randomize_color:
+            for i in xrange(pb.getNumJoints(self.robot.handle)):
+                color = np.random.random((4,))
+                color[3] = 1.
+                pb.changeVisualShape(self.robot.handle, i, rgbaColor=color,
+                        physicsClientId=self.client)
 
         if plot_task:
             showTask(self.task.task)

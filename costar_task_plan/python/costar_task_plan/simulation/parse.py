@@ -52,5 +52,8 @@ def ParseBulletArgs():
     parser.add_argument('--show_images',
                         help="Display images from cameras for debugging.",
                         action="store_true")
+    parser.add_argument('--randomize_color',
+                        help="Randomize colors for the loaded robot.",
+                        action="store_true")
 
     return vars(parser.parse_args())
