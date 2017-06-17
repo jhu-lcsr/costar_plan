@@ -139,7 +139,13 @@ class LfD(object):
             goal_type = instances[0].objs[0]
 
             option = DmpOption(
-                CartesianDmpPolicy, self.kdl_kin, args[goal_type], name, model, instances)
+                policy_type=CartesianDmpPolicy,
+                config=self.config,
+                kinematics=self.kdl_kin,
+                goal=args[goal_type],
+                skill_name=name,
+                feature_model=model,
+                traj_dist=self.getParamDistribution(name))
             policy = option.makePolicy(world)
             dynamics = SimulatedDynamics()
             condition = option.getGatingCondition()

@@ -104,15 +104,12 @@ class CartesianSkillInstance(yaml.YAMLObject):
     params = [self.tau,] + list(self.goal_pose.p) + list(self.goal_pose.M.GetQuaternion())
     for dmp in self.dmp_list:
         params += dmp.weights
-    print "=========================="
-    print "FROM:", params
-    print self.tau
-    print self.goal_pose
     return params
     
   def _fromParams(self, params):
     '''
-    Parse in the cartesian skill from a set of parameters and a config
+    Parse in the cartesian skill from a set of parameters and a config. Saves
+    rotations as a quaternion instead of as RPY.
     '''
     k_gain = self.config['dmp_k']
     d_gain = self.config['dmp_d']
@@ -128,10 +125,6 @@ class CartesianSkillInstance(yaml.YAMLObject):
     self.goal_pose.p[1] = y
     self.goal_pose.p[2] = z
 
-    print "=========================="
-    print "TO:", params
-    print self.tau
-    print self.goal_pose
     idx = 8
     for i in xrange(num_dmps):
         weights = params[idx:(idx+num_basis+1)]

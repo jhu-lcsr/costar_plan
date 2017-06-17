@@ -17,8 +17,7 @@ class DmpOption(AbstractOption):
             goal, # type of object to arrive at 
             skill_name, # name of this skill
             feature_model, # feature model
-            traj_dist=None,
-            attached_frame=None):
+            traj_dist=None,):
         if isinstance(policy_type, str):
             # parse into appropriate constructor
             if policy_type == 'joint':
@@ -32,8 +31,6 @@ class DmpOption(AbstractOption):
                     'invalid option for DMP policy type: %s' % policy_type)
         if not isinstance(policy_type, type):
             raise RuntimeError('invalid data type for DMP policy')
-        if attached_frame is not None:
-            raise NotImplementedError('attached frame is not yet supported')
 
         self.config = config
         self.goal = goal
@@ -41,7 +38,6 @@ class DmpOption(AbstractOption):
         self.kinematics = kinematics
         self.feature_model = feature_model
         self.skill_name = skill_name
-        self.attached_frame = attached_frame
         self.traj_dist = traj_dist
         self.skill_instance = CartesianSkillInstance(self.config, self.traj_dist.mu)
 
