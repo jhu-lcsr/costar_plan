@@ -19,13 +19,15 @@ import grid_world
 try:
     import simulation
 except ImportError, e:
-    print "WARNING] simulation requires pybullet3"
+    print "[WARNING] simulation requires pybullet3"
+    print e
 
 try:
     import ros
     import robotics
 except ImportError, e:
     print "[WARNING] ROS/CoSTAR failed to import. ROS may be missing."
+    print e
 
 # =============================================================================
 # Neural Nets
@@ -36,6 +38,7 @@ try:
     import trainers
 except ImportError, e:
     print "[WARNING] keras/tensorflow required for some tools"
+    print e
 
 # =============================================================================
 # Task Planning
