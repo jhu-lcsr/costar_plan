@@ -77,7 +77,6 @@ def __get_dmp_maker(skill_name,lfd):
   dmp_maker = lambda goal: DmpOption(
       goal=goal,
       config=TOM_RIGHT_CONFIG,
-      skill_instance=lfd.skill_instances[skill_name][0],
       skill_name=skill_name,
       feature_model=lfd.skill_models[skill_name],
       kinematics=lfd.kdl_kin,

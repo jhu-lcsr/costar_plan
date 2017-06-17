@@ -16,7 +16,6 @@ class DmpOption(AbstractOption):
             kinematics, # kinematics of the robot 
             goal, # type of object to arrive at 
             skill_name, # name of this skill
-            skill_instance, # skill instance
             feature_model, # feature model
             traj_dist=None,
             attached_frame=None):
@@ -44,8 +43,6 @@ class DmpOption(AbstractOption):
         self.skill_name = skill_name
         self.attached_frame = attached_frame
         self.traj_dist = traj_dist
-
-        self.skill_instance = skill_instance
         self.skill_instance = CartesianSkillInstance(self.config, self.traj_dist.mu)
 
     def makePolicy(self, *args, **kwargs):
