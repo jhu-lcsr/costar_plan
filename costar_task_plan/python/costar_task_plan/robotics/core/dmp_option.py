@@ -16,8 +16,8 @@ class DmpOption(AbstractOption):
             kinematics, # kinematics of the robot 
             goal, # type of object to arrive at 
             skill_name, # name of this skill
+            skill_instance, # skill instance
             feature_model, # feature model
-            skill_instance=None,
             traj_dist=None,
             attached_frame=None):
         if isinstance(policy_type, str):
@@ -40,11 +40,13 @@ class DmpOption(AbstractOption):
         self.goal = goal
         self.policy_type = policy_type
         self.kinematics = kinematics
-        self.skill_instance = skill_instance
         self.feature_model = feature_model
         self.skill_name = skill_name
         self.attached_frame = attached_frame
         self.traj_dist = traj_dist
+
+        self.skill_instance = skill_instance
+        self.skill_instance = CartesianSkillInstance(self.config, self.traj_dist.mu)
 
     def makePolicy(self, *args, **kwargs):
         '''
@@ -63,9 +65,6 @@ class DmpOption(AbstractOption):
         if self.traj_dist is None:
             raise RuntimeError('Attempted to sample from a mis-specified'
                     ' action!')
-        print self.traj_dist
-        print self.traj_dist.mu.shape
-        print self.traj_dist.sigma.shape
         params = np.random.multivariate_normal(
                 self.traj_dist.mu,
                 self.traj_dist.sigma)
