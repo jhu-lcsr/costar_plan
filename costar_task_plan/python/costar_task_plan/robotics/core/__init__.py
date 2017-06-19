@@ -43,5 +43,3 @@ from demo_features import *
 # Generic ROS interface
 from gripper_status_listener import *
 
-# Other stuff
-#from observe import AbstractObserve
