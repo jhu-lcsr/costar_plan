@@ -27,6 +27,7 @@ def ParseBulletArgs():
                         default="costar_bullet_simulation")
     parser.add_argument('--agent',
                         help="Algorithm to use when training.",
+                        default="null",
                         choices=GetAgents())
     parser.add_argument('-l', '--lr', '--learning_rate',
                         help="Learning rate to be used in algorithm.",
