@@ -1,6 +1,7 @@
 from abstract import AbstractAgent
 from costar_task_plan.mcts import ContinuousSamplerTaskPolicies
 from costar_task_plan.mcts import RandomSearch
+from costar_task_plan.mcts import Node
 
 
 class TaskAgent(AbstractAgent):
@@ -18,7 +19,7 @@ class TaskAgent(AbstractAgent):
     name = "random"
 
     def __init__(self, iter=10000, *args, **kwargs):
-        super(RandomAgent, self).__init__(*args, **kwargs)
+        super(TaskAgent, self).__init__(*args, **kwargs)
         self.iter = iter
 
     def fit(self, env):
@@ -31,8 +32,27 @@ class TaskAgent(AbstractAgent):
         search = RandomSearch(policies)
 
         while True:
-            cmd = env.action_space.sample()
-            env.step(cmd)
+
+            action = None
+            control = None
+            node = Node(world=env.world, root=True)
+
+            if action is None:
+                action = policies.sample(node)
+                print "sampled ", action, action.condition
+        
+            if action.condition(node.world,
+                    node.state,
+                    node.world.actors[0],
+                    node.world.actors[0].last_state):
+                control = action.getAction(node)
+            else:
+                action = None
+
+            if control is not None:
+                print "sending command",
+                print control.cmd
+                env.step(control.cmd)
 
         return None
         
