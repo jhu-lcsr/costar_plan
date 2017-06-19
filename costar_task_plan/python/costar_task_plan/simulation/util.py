@@ -6,7 +6,6 @@ from robots import *
 def GetAvailableTasks():
     return ["blocks", "clutter", "sorting",]
 
-
 def GetAvailableRobots():
     return ["ur5_2_finger",]
 
