@@ -1,5 +1,7 @@
 
-# This defines a simple class that 
+# This defines a simple class that
+
+
 class AbstractGripperStatusListener(object):
 
     def callback(self, msg):

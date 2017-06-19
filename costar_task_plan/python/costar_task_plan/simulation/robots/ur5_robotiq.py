@@ -18,6 +18,10 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
     xacro_filename = 'robot/ur5_joint_limited_robot.xacro'
     urdf_filename = 'ur5_joint_limited_robot.urdf'
 
+    arm_name = "ur5"
+    gripper_name = "robotiq_2_finger"
+    base_name = None
+
     left_knuckle = 8
     left_finger = 9
     left_inner_knuckle = 12
@@ -49,23 +53,6 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         subprocess.call(['rosrun', 'xacro', 'xacro.py', filename], stdout=urdf)
 
         self.handle = pb.loadURDF(urdf_filename)
-
-        """
-        pb.createConstraint(self.handle, self.left_finger,
-                self.handle,self.left_fingertip,
-                pb.JOINT_FIXED,
-                [0.01,0.02,0], # joint axis in child frame
-                [0.045, -0.012, 0.0],
-                [0.01,0.02,0], # joint axis in child frame
-                )
-        pb.createConstraint(self.handle, self.right_finger,
-                self.handle,self.right_fingertip,
-                pb.JOINT_FIXED,
-                [0,0,0], # joint axis in child frame
-                [0.045, -0.012, 0.00],
-                [0,0,0],
-                )
-        """
 
         return self.handle
 

@@ -134,8 +134,7 @@ class TomSim(object):
         table.header.frame_id = "odom_combined"
 
         # Collision objects
-        #self.obstacles = [table]
-        self.obstacles = []
+        self.obstacles = [] #table]
 
     def start(self):
         '''

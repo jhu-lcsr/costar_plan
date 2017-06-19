@@ -1,7 +1,9 @@
 from costar_task_plan.abstract import AbstractReward
 from costar_task_plan.models import GMM
 
+
 class DemoReward(AbstractReward):
+
     '''
     In this case, we want to learn a controller that sticks as close as
     possible to the demonstrated trajectory.
@@ -31,5 +33,6 @@ class DemoReward(AbstractReward):
             model = self.models[state.reference.skill_name]
             p = model.score(f) / len(state.traj.points)
         else:
+            #print "warning: state missing attributes: ", state.reference is None, f is None
             p = 0.
         return p, 0.

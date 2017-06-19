@@ -1,3 +1,6 @@
+# By Chris Paxton
+# (c) 2017 The Johns Hopkins University
+# See License for more details
 
 from dmp_policy import CartesianDmpPolicy
 from dmp_option import DmpOption
@@ -14,6 +17,7 @@ from urdf_parser_py.urdf import URDF
 from costar_task_plan.robotics.representation import RobotFeatures
 from costar_task_plan.robotics.representation import CartesianSkillInstance
 from costar_task_plan.robotics.representation import GMM
+from costar_task_plan.robotics.representation import Distribution
 from costar_task_plan.robotics.representation import RequestActiveDMP, PlanDMP
 
 # Important libraries
@@ -23,9 +27,9 @@ import rospy
 import yaml
 
 try:
-  from yaml import CLoader as Loader, CDumper as Dumper
+    from yaml import CLoader as Loader, CDumper as Dumper
 except ImportError:
-  from yaml import Loader, Dumper
+    from yaml import Loader, Dumper
 
 
 class LfD(object):
@@ -76,6 +80,8 @@ class LfD(object):
         print "Training:"
         for name, trajs in self.world.trajectories.items():
 
+            print "training skill", name
+
             self.pubs[name] = rospy.Publisher(
                 join('costar', 'lfd', name), PoseArray, queue_size=1000)
 
@@ -98,15 +104,13 @@ class LfD(object):
 
                 # compute features?
                 f, g = features.GetFeaturesForTrajectory(ee, world[0], objs)
-                instance = CartesianSkillInstance(ee,
-                                                  world,
-                                                  self.kdl_kin,
-                                                  self.config,
+                instance = CartesianSkillInstance(self.config,
                                                   dt=dt,
-                                                  objs=objs,
-                                                  visualize=True)
+                                                  objs=objs)
+                instance.fit(ee_frames=ee, worlds=world)
 
                 self.skill_instances[name].append(instance)
+
                 if name not in self.skill_features:
                     self.skill_features[name] = f
                 else:
@@ -135,7 +139,13 @@ class LfD(object):
             goal_type = instances[0].objs[0]
 
             option = DmpOption(
-                CartesianDmpPolicy, self.kdl_kin, args[goal_type], name, model, instances)
+                policy_type=CartesianDmpPolicy,
+                config=self.config,
+                kinematics=self.kdl_kin,
+                goal=args[goal_type],
+                skill_name=name,
+                feature_model=model,
+                traj_dist=self.getParamDistribution(name))
             policy = option.makePolicy(world)
             dynamics = SimulatedDynamics()
             condition = option.getGatingCondition()
@@ -211,9 +221,9 @@ class LfD(object):
         for name in self.skill_instances.keys():
             skill_counts[name] = len(self.skill_instances[name])
             for i, skill in enumerate(self.skill_instances[name]):
-                filename = os.path.join(skills_dir, '%s%02d.yml'%(name,i))
+                filename = os.path.join(skills_dir, '%s%02d.yml' % (name, i))
                 yaml_save(skill, filename)
-            model_filename = os.path.join(models_dir, '%s_gmm.yml'%name)
+            model_filename = os.path.join(models_dir, '%s_gmm.yml' % name)
             yaml_save(self.skill_models[name], model_filename)
 
         skill_filename = os.path.join(project_name, "skills.yml")
@@ -228,6 +238,7 @@ class LfD(object):
         skill_filename = os.path.join(project_name, "skills.yml")
         skills = yaml_load(skill_filename)
         for name, count in skills.items():
+            print "Loading skill %s/%s - %d examples"%(project_name, name, count)
 
             # For debugging only
             if name not in self.pubs:
@@ -236,16 +247,36 @@ class LfD(object):
 
             self.skill_instances[name] = []
             for i in xrange(count):
-                filename = os.path.join(skills_dir, '%s%02d.yml'%(name,i))
+                filename = os.path.join(skills_dir, '%s%02d.yml' % (name, i))
                 dmp = yaml_load(filename)
                 self.skill_instances[name].append(dmp)
-            model_filename = os.path.join(models_dir, '%s_gmm.yml'%name)
+
+            model_filename = os.path.join(models_dir, '%s_gmm.yml' % name)
             self.skill_models[name] = yaml_load(model_filename)
+
+    def getParamDistribution(self, skill):
+        '''
+        Get the mean and covariance associated with our observed expert
+        policies. We can then use these together with our expected feature
+        counts to optimize to a new environment.
+        '''
+        params = []
+        for instance in self.skill_instances[skill]:
+            params.append(instance.params())
+
+        # get mean and get std dev
+        params = np.array(params)
+        mu = np.mean(params,axis=0)
+        sigma = np.cov(params.T)
+        assert mu.shape[0] == sigma.shape[0]
+        return Distribution(mu, sigma)
 
 def yaml_save(obj, filename):
     with open(filename, 'w') as outfile:
         yaml.dump(obj, outfile, default_flow_style=False)
 
+
 def yaml_load(filename):
     with open(filename, 'r') as infile:
-        return yaml.load(infile)
+        return yaml.load(infile)#, Loader=Loader)
+

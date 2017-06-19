@@ -1,0 +1,189 @@
+!CartesianSkillInstance
+config:
+  base_link: torso_link
+  dmp_basis: 10
+  dmp_d: 20
+  dmp_k: 100
+  dof: 6
+  end_link: r_gripper_base_link
+  gmm_k: 3
+  gripper_topic: ''
+  ik_solver: kdl
+  joint_states_topic: /joint_states
+  joints:
+  - r_shoulder_pan_joint
+  - r_shoulder_lift_joint
+  - r_elbow_joint
+  - r_wrist_1_joint
+  - r_wrist_2_joint
+  - r_wrist_3_joint
+  name: right
+  namespace: tom
+  obj_frame: torso_link
+  q0: null
+  robot_description_param: robot_description
+dmp_list:
+- !!python/object/new:dmp.msg._DMPData.DMPData
+  state:
+  - 100.0
+  - 20.0
+  - !!python/tuple
+    - -0.1311438440931144
+    - 0.06997526231572271
+    - 0.03245199273211642
+    - 0.09282286322806846
+    - 0.1590681917647395
+    - -0.09390216230594171
+    - -0.036246533549798315
+    - -0.14879774951307032
+    - -0.010286839336481592
+    - 0.06415226335029724
+    - 0.00024086774153075918
+- !!python/object/new:dmp.msg._DMPData.DMPData
+  state:
+  - 100.0
+  - 20.0
+  - !!python/tuple
+    - 0.3363021978648461
+    - -0.017026062961385813
+    - -0.0016140174721164247
+    - -0.13363363483437973
+    - -0.25026393778672
+    - -0.06363977654185958
+    - -0.1769832334371998
+    - -0.25234175175703694
+    - 0.09151224216638229
+    - -0.06392784994711286
+    - 0.543739762673259
+- !!python/object/new:dmp.msg._DMPData.DMPData
+  state:
+  - 100.0
+  - 20.0
+  - !!python/tuple
+    - 0.13405221171545334
+    - 0.8568028992066499
+    - -0.5734913194896479
+    - -0.7294300908147778
+    - 0.5344026316478585
+    - -0.5008502034535747
+    - 0.7836909737389836
+    - -0.6556639441068828
+    - 0.3451320720172558
+    - -0.2174558875262519
+    - -0.2215834741084229
+- !!python/object/new:dmp.msg._DMPData.DMPData
+  state:
+  - 100.0
+  - 20.0
+  - !!python/tuple
+    - 0.08131442872017178
+    - 0.0274437539605063
+    - -0.21043286582951806
+    - 0.035879570604259794
+    - 0.14027907890379215
+    - -0.074771020776986
+    - 0.20149226441149162
+    - -0.45472951896269553
+    - 0.4983450193210274
+    - -0.6595675348683403
+    - 0.7644112660516635
+- !!python/object/new:dmp.msg._DMPData.DMPData
+  state:
+  - 100.0
+  - 20.0
+  - !!python/tuple
+    - 0.021885606299472463
+    - -0.017842329880040725
+    - -0.04286882067082475
+    - 0.06858512245125738
+    - -0.020071868015836485
+    - 0.0033682587795502913
+    - 0.02834868012705978
+    - -0.12189422570954736
+    - 0.16400221073379234
+    - -0.25957114704358747
+    - 0.27938124663134195
+- !!python/object/new:dmp.msg._DMPData.DMPData
+  state:
+  - 100.0
+  - 20.0
+  - !!python/tuple
+    - -0.036395388806339524
+    - -0.08551660768291104
+    - 0.2317790699224263
+    - -0.14543036880049443
+    - 0.007214345324579222
+    - -0.06284152114581938
+    - -0.018422773826610714
+    - 0.19482354754303163
+    - -0.16316180095204508
+    - 0.37054263871148424
+    - -0.30921097026514355
+dt: !!python/object/apply:numpy.core.multiarray.scalar
+- !!python/object/apply:numpy.dtype
+  args:
+  - f8
+  - 0
+  - 1
+  state: !!python/tuple
+  - 3
+  - <
+  - null
+  - null
+  - null
+  - -1
+  - -1
+  - 0
+- !!binary |
+  HKPXZgoRoT8=
+goal_object_position: !!python/object/apply:sip._unpickle_type
+- PyKDL
+- Frame
+- !!python/tuple
+  - !!python/object/apply:sip._unpickle_type
+    - PyKDL
+    - Rotation
+    - !!python/tuple
+      - 1.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 1.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 1.0
+  - !!python/object/apply:sip._unpickle_type
+    - PyKDL
+    - Vector
+    - !!python/tuple
+      - 0.5077019166946412
+      - -0.22812719643115997
+      - -0.5162371397018433
+goal_pose: !!python/object/apply:sip._unpickle_type
+- PyKDL
+- Frame
+- !!python/tuple
+  - !!python/object/apply:sip._unpickle_type
+    - PyKDL
+    - Rotation
+    - !!python/tuple
+      - 0.03690605675012599
+      - -0.9980537290723135
+      - -0.05026625965799268
+      - -0.9988774575802379
+      - -0.035348390948994717
+      - -0.03153277652469136
+      - 0.02969457380053772
+      - 0.05137358408915313
+      - -0.9982379411466178
+  - !!python/object/apply:sip._unpickle_type
+    - PyKDL
+    - Vector
+    - !!python/tuple
+      - -0.01253150643444434
+      - -0.004405372024461757
+      - 0.1250621547571915
+objs:
+- orange
+tau: 30.866482734680176

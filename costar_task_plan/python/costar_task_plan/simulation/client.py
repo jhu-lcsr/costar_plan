@@ -5,6 +5,10 @@ from config import *
 from util import GetTaskDefinition, GetRobotInterface
 from world import *
 
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+import png
 import pybullet as pb
 import rospy
 import subprocess
@@ -18,7 +22,18 @@ class CostarBulletSimulation(object):
     gym environment.
     '''
 
-    def __init__(self, robot, task, gui=False, ros=False, ros_name="simulation", option=None, plot_task=False, *args, **kwargs):
+    def __init__(self, robot, task,
+            gui=False,
+            ros=False,
+            ros_name="simulation",
+            option=None,
+            plot_task=False,
+            directory='./',
+            save=False,
+            capture=False,
+            show_images=False,
+            randomize_color=False,
+            *args, **kwargs):
         self.gui = gui and not plot_task
         self.robot = GetRobotInterface(robot)
         self.task = GetTaskDefinition(task, self.robot, *args, **kwargs)
@@ -27,11 +42,25 @@ class CostarBulletSimulation(object):
         self.procs = []
         self.ros = ros
 
+        # saving
+        self.save = save
+        self.capture = capture or show_images
+        self.show_images = show_images
+        self.directory = directory
+        self.randomize_color = randomize_color
+
         if ros:
             # boot up ROS and open a connection to the simulation server
             self._start_ros(ros_name)
 
         self.open()
+
+        if randomize_color:
+            for i in xrange(pb.getNumJoints(self.robot.handle)):
+                color = np.random.random((4,))
+                color[3] = 1.
+                pb.changeVisualShape(self.robot.handle, i, rgbaColor=color,
+                        physicsClientId=self.client)
 
         if plot_task:
             showTask(self.task.task)
@@ -103,6 +132,25 @@ class CostarBulletSimulation(object):
         else:
             cmd = action.tolist()
         self.task.world.tick(SimulationRobotAction(cmd=cmd))
+
+        if self.capture:
+            imgs = self.task.capture()
+            for name, rgb, depth, mask in imgs:
+                if self.show_images:
+                    plt.subplot(1,3,1)
+                    plt.imshow(rgb, interpolation="none")
+                    plt.subplot(1,3,2)
+                    plt.imshow(depth, interpolation="none")
+                    plt.subplot(1,3,3)
+                    plt.imshow(mask, interpolation="none")
+                    plt.pause(0.01)
+                if self.save:
+                    path = os.path.join(self.directory,
+                            "%s%04d_rgb.png"%(name, self.task.world.ticks))
+                    img = png.fromarray(rgb, "L")
+                    img.save(path)
+
+            # TODO: handle other stuff
 
     def close(self):
         '''

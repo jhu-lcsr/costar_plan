@@ -4,12 +4,16 @@ from costar_task_plan.robotics.representation import RobotFeatures
 import numpy as np
 import tf_conversions.posemath as pm
 
+from numba import jit
+
+
 class DemoFeatures(AbstractFeatures):
+
     '''
     Wrap old feature computation code
     '''
 
-    def __init__(self,kdl_kin,config):
+    def __init__(self, kdl_kin, config):
         self.config = config
         self.kdl_kin = kdl_kin
         self.features = RobotFeatures(self.config, self.kdl_kin)
@@ -25,11 +29,11 @@ class DemoFeatures(AbstractFeatures):
             else:
                 gripper = 0.
             f = np.array(self.features.GetFeatures(
-                    ee,
-                    state.seq / len(state.traj.points),
-                    world.observation,
-                    ['time', state.reference.goal],
-                    gripper))
+                ee,
+                state.seq / len(state.traj.points),
+                world.observation,
+                ['time', state.reference.goal],
+                gripper))
             return f
         else:
             return None
@@ -39,3 +43,13 @@ class DemoFeatures(AbstractFeatures):
 
     def getBounds(self):
         raise Exception('feature.getBounds not yet implemented!')
+
+@jit(nopython=True)
+def GetFeatures(ee, world, objs, size):
+    f = np.zeros((size,))
+    return f
+
+@jit(nopython=True)
+def GetFeaturesForTrajectory(ee, world, objs, size):
+    f = np.zeros((len(ees),size))
+    return f
