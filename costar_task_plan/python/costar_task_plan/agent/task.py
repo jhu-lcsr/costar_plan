@@ -1,4 +1,6 @@
 from abstract import AbstractAgent
+from costar_task_plan.mcts import ContinuousSamplerTaskPolicies
+from costar_task_plan.mcts import RandomSearch
 
 
 class TaskAgent(AbstractAgent):
@@ -24,6 +26,9 @@ class TaskAgent(AbstractAgent):
         task = env.taskModel()
         if not task.compiled:
             raise RuntimeError('environment must have associated compiled task model!')
+
+        policies = ContinuousSamplerTaskPolicies(task)
+        search = RandomSearch(policies)
 
         while True:
             cmd = env.action_space.sample()
