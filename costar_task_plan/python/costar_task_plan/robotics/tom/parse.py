@@ -12,5 +12,8 @@ def ParseTomArgs():
     parser.add_argument('-e','--execute',
                         action="store_true",
                         help="execute plan by sending points and gripper commands")
+    parser.add_argument('-p','--profile',
+                        action="store_true",
+                        help="Run under CProfile")
 
     return parser.parse_args()

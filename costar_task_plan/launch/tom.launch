@@ -10,16 +10,17 @@
   <!-- By default do not bring up rviz -->
   <arg name="rviz" default="false"/>
 
-  <!-- Load the URDF, SRDF and other .yaml configuration files on the param server -->
-  <include file="$(find tom_full_moveit_config)/launch/planning_context.launch">
-    <arg name="load_robot_description" value="false"/>
-  </include>
-	
+  <!-- simulation mode -->
+  <param name="use_sim_time" value="false"/>
+
   <!-- Load the URDF, SRDF and other .yaml configuration files on the param server -->
   <include file="$(find tom_full_moveit_config)/launch/planning_context.launch">
     <arg name="load_robot_description" value="true"/>
     <arg name="robot" default="$(arg scene)"/>
   </include>
+
+  <!-- loading the Park position as TOM zero position -->
+  <rosparam command="load" file="$(find tom_description)/config/tom_zeros.yaml"/>
 
   <!-- If needed, broadcast static tf for robot root -->
   <!--node pkg="tf" type="static_transform_publisher" name="virtual_joint_broadcaster_0vis" args="0 0 0 0 0 0 odom_combined base_footprint 1000" /-->

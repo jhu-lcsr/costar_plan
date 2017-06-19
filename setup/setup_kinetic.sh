@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 export ROS_DISTRO=kinetic
 export ROS_CI_DESKTOP="`lsb_release -cs`"  # e.g. [precise|trusty|...]
@@ -8,19 +8,20 @@ export ROS_PARALLEL_JOBS='-j8 -l6'
 export CATKIN_WS="$HOME/costar_ws"
 export COSTAR_PLAN_DIR="$HOME/costar_ws/src/costar_plan"
 
+sudo apt-get update -qq
+
 echo "======================================================"
 echo "PYTHON"
 echo "Installing python dependencies:"
 echo "Installing basics from apt-get..."
-sudo apt-get install python-scipy python-pygame
+sudo apt-get -y install python-pygame python-dev
 echo "Installing smaller libraries from pip..."
-sudo pip install h5py keras sympy matplotlib pygame gmr networkx dtw pypr gym
+sudo -H pip install h5py keras sympy matplotlib pygame gmr networkx dtw pypr gym PyPNG pybullet
 
 echo "======================================================"
 echo "ROS"
-sudo apt-get update -qq
-sudo apt-get install -y python-catkin-pkg python-rosdep python-wstool python-catkin-tools ros-$ROS_DISTRO-catkin python-dev 
-sudo pip install h5py pygame sympy matplotlib pygame gmr networkx tensorflow
+sudo apt-get install -y python-catkin-pkg python-rosdep python-wstool python-catkin-tools ros-$ROS_DISTRO-catkin ros-$ROS_DISTRO-ros-base
+echo "--> source ROS setup in /opt/ros/$ROS_DISTRO/setup.bash"
 source /opt/ros/$ROS_DISTRO/setup.bash
 sudo rosdep init
 rosdep update
@@ -30,10 +31,10 @@ echo "CATKIN"
 echo "Create catkin workspace..."
 mkdir -p $CATKIN_WS/src
 cd $CATKIN_WS
-source /opt/ros/$ROS_DISTRO/setup.bash
 catkin init
 cd $CATKIN_WS/src
 
+git clone git@github.com:cpaxton/hrl-kdl.git --branch indigo-devel
 git clone https://github.com/cburbridge/python_pcd.git
 git clone https://github.com/jhu-lcsr/costar_objects.git
 git clone https://github.com/cpaxton/dmp.git --branch indigo
