@@ -8,7 +8,7 @@ from util import *
 
 __all__ = [
         # ============================
-        "RandomAgent",
+        "RandomAgent", "NullAgent",
         "RandomGoalAgent",
         "KerasDDPGAgent",
         "KerasNAFAgent",
