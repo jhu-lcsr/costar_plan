@@ -1,0 +1,46 @@
+<launch>
+    # Uses $(find jaco_description)/launch/jaco_gazebo.launch to launch
+    # the standalone jaco arm. For description of arguments please
+    # refer to this launch file.
+
+    # the robot's xacro file
+	<arg name="robot_xacro" default="$(find jaco_description)/urdf/jaco_robot.urdf.xacro"/>
+
+    # Specify a name for the robot
+	<arg name="robot_name" default="jaco"/>
+
+	# if the xacro file (robot_xacro) needs additional arguments to xacro.py, put them in here.
+	<arg name="xacro_arguments" default=""/>
+
+    <arg name="x" default="0"/>
+    <arg name="y" default="0"/>
+    <arg name="z" default="1"/>
+    <arg name="gazebo_world_file" default="worlds/empty.world"/>
+	<arg name="load_joint_state_publisher" default="false"/>
+	<arg name="joint_state_publisher_topic" default="jaco/joint_control"/>
+	<arg name="load_robot_state_publisher" default="false"/>
+	<arg name="joint_states_topic" default="jaco/joint_state"/>
+    <arg name="extra_gazebo_args" default=""/>	
+
+	#####################################
+	# Load robot_description on parameter server
+	#####################################
+	<param name="robot_description" command="$(find xacro)/xacro --inorder '$(arg robot_xacro)' $(arg xacro_arguments)"/>
+	<!-- 
+      for indigo or ealier, use this instead:
+      <param name="robot_description" command="$(find xacro)/xacro.py '$(arg robot_xacro)' $(arg xacro_arguments)"/>
+    -->
+
+	<include file="$(find jaco_description)/launch/jaco_gazebo.launch">
+        <arg name="x" value="$(arg x)"/>
+        <arg name="y" value="$(arg y)"/>
+        <arg name="z" value="$(arg z)"/>
+        <arg name="robot_name" value="$(arg robot_name)"/>
+        <arg name="gazebo_world_file" value="$(arg gazebo_world_file)"/>
+        <arg name="load_joint_state_publisher" value="$(arg load_joint_state_publisher)"/>
+        <arg name="joint_state_publisher_topic" value="$(arg joint_state_publisher_topic)"/>
+        <arg name="load_robot_state_publisher" value="$(arg load_robot_state_publisher)"/>
+        <arg name="joint_states_topic" value="$(arg joint_states_topic)"/>
+        <arg name="extra_gazebo_args" value="$(arg extra_gazebo_args)"/>	
+	</include>
+</launch>

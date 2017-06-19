@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root 
+ xmlns:sensor="http://playerstage.sourceforge.net/gazebo/xmlschema/#sensor"
+ xmlns:controller="http://playerstage.sourceforge.net/gazebo/xmlschema/#controller"
+ xmlns:interface="http://playerstage.sourceforge.net/gazebo/xmlschema/#interface"
+ xmlns:xacro="http://ros.org/wiki/xacro">
+
+<xacro:macro name="jaco_joint_control_vel" params="jaco_prefix:=jaco">
+
+    <transmission name="${jaco_prefix}_arm_0_vel_transmission">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="${jaco_prefix}_arm_0_joint">
+            <hardwareInterface>VelocityJointInterface</hardwareInterface>
+        </joint>
+        <actuator name="${jaco_prefix}_arm_0_velocity_motor">
+            <hardwareInterface>VelocityJointInterface</hardwareInterface>
+            <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+    </transmission>
+
+    <transmission name="${jaco_prefix}_arm_1_vel_transmission">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="${jaco_prefix}_arm_1_joint">
+            <hardwareInterface>VelocityJointInterface</hardwareInterface>
+        </joint>
+        <actuator name="${jaco_prefix}_arm_1_velocity_motor">
+            <hardwareInterface>VelocityJointInterface</hardwareInterface>
+            <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+    </transmission>
+
+    <transmission name="${jaco_prefix}_arm_2_vel_transmission">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="${jaco_prefix}_arm_2_joint">
+            <hardwareInterface>VelocityJointInterface</hardwareInterface>
+        </joint>
+        <actuator name="${jaco_prefix}_arm_2_velocity_motor">
+            <hardwareInterface>VelocityJointInterface</hardwareInterface>
+            <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+    </transmission>
+
+    <transmission name="${jaco_prefix}_arm_3_vel_transmission">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="${jaco_prefix}_arm_3_joint">
+            <hardwareInterface>VelocityJointInterface</hardwareInterface>
+        </joint>
+        <actuator name="${jaco_prefix}_arm_3_velocity_motor">
+            <hardwareInterface>VelocityJointInterface</hardwareInterface>
+            <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+    </transmission>
+
+    <transmission name="${jaco_prefix}_arm_4_vel_transmission">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="${jaco_prefix}_arm_4_joint">
+            <hardwareInterface>VelocityJointInterface</hardwareInterface>
+        </joint>
+        <actuator name="${jaco_prefix}_arm_4_velocity_motor">
+            <hardwareInterface>VelocityJointInterface</hardwareInterface>
+            <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+    </transmission>
+
+    <transmission name="${jaco_prefix}_arm_5_vel_transmission">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="${jaco_prefix}_arm_5_joint">
+            <hardwareInterface>VelocityJointInterface</hardwareInterface>
+        </joint>
+        <actuator name="${jaco_prefix}_arm_5_velocity_motor">
+            <hardwareInterface>VelocityJointInterface</hardwareInterface>
+            <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+    </transmission>
+
+    <transmission name="${jaco_prefix}_finger_joint_0_vel_transmission">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="${jaco_prefix}_finger_joint_0">
+            <hardwareInterface>VelocityJointInterface</hardwareInterface>
+        </joint>
+        <actuator name="${jaco_prefix}_finger_joint_0_velocity_motor">
+            <hardwareInterface>VelocityJointInterface</hardwareInterface>
+            <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+    </transmission>
+
+    <transmission name="${jaco_prefix}_finger_joint_2_vel_transmission">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="${jaco_prefix}_finger_joint_2">
+            <hardwareInterface>VelocityJointInterface</hardwareInterface>
+        </joint>
+        <actuator name="${jaco_prefix}_finger_joint_2_velocity_motor">
+            <hardwareInterface>VelocityJointInterface</hardwareInterface>
+            <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+    </transmission>
+
+    <transmission name="${jaco_prefix}_finger_joint_4_vel_transmission">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="${jaco_prefix}_finger_joint_4">
+            <hardwareInterface>VelocityJointInterface</hardwareInterface>
+        </joint>
+        <actuator name="${jaco_prefix}_finger_joint_4_velocity_motor">
+            <hardwareInterface>VelocityJointInterface</hardwareInterface>
+            <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+    </transmission>
+</xacro:macro>
+</root>

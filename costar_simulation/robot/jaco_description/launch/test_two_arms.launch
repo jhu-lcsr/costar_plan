@@ -1,0 +1,16 @@
+<launch>
+    # Uses $(find jaco_description)/launch/jaco_gazebo.launch to launch
+    # the standalone jaco arm. For description of arguments please
+    # refer to this launch file.
+
+    # the robot's xacro file
+	<arg name="robot_xacro" default="$(find jaco_description)/urdf/jaco_robot_multi.urdf.xacro"/>
+
+    # Specify a name for the robot
+	<arg name="robot_name" default="jaco_multi"/>
+
+	<include file="$(find jaco_description)/launch/jaco_standalone_gazebo.launch">
+        <arg name="robot_xacro" value="$(arg robot_xacro)"/>
+        <arg name="robot_name" value="$(arg robot_name)"/>
+    </include>
+</launch>
