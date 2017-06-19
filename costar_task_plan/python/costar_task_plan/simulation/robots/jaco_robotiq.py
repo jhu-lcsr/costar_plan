@@ -54,6 +54,7 @@ class JacoRobotiqInterface(AbstractRobotInterface):
         #subprocess.call(['rosrun', 'xacro', 'xacro.py', filename], stdout=urdf)
 
         self.handle = pb.loadURDF(urdf_filename)
+        self.grasp_idx = self.findGraspFrame()
 
         return self.handle
 

@@ -21,7 +21,7 @@ class AbstractRobotInterface(object):
         Handle should contain the ID of the robot.
         '''
         self.handle = None
-        pass
+        self.grasp_idx = None
 
     def load(self):
         '''
@@ -30,6 +30,22 @@ class AbstractRobotInterface(object):
         '''
         raise NotImplementedError(
             'This has to put the robot into the simulation.')
+
+    def findGraspFrame(self):
+        '''
+        Helper function to look up the grasp frame associated with a robot.
+        '''
+        joints = pb.getNumJoints(self.handle)
+        grasp_idx = None
+        for i in xrange(joints):
+            idx, name, jtype, qidx, \
+                uidx, flags, damping, friction, \
+                lower, upper, max_force, max_vel, \
+                link_name = pb.getJointInfo(self.handle, i)
+            if link_name == "grasp_link":
+                grasp_idx = i
+                break
+        return grasp_idx
 
     def place(self, pos, joints):
         '''
