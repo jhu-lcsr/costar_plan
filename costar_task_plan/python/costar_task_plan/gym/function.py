@@ -4,7 +4,6 @@ from gym import error, spaces
 from gym import utils
 from gym.utils import seeding
 
-import pygame as pg
 import costar_task_plan.abstract as abstract
 import costar_task_plan.tools.draw as draw
 

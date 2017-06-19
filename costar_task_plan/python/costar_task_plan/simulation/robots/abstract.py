@@ -17,7 +17,10 @@ class AbstractRobotInterface(object):
         Parse through the config, save anything that needs to be saved, and
         initialize anything that needs to be initialized. May connect to ROS
         for additional parameters.
+
+        Handle should contain the ID of the robot.
         '''
+        self.handle = None
         pass
 
     def load(self):

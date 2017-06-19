@@ -6,27 +6,36 @@ From this tutorial: https://blog.keras.io/building-autoencoders-in-keras.html
 '''
 
 import keras
+import keras.backend as K
 from keras.layers import Input, Dense, Convolution2D, MaxPooling2D, UpSampling2D
 from keras.models import Model
 
-input_img = Input(shape=(1, 28, 28))
+'''
+This block adapts between Tensorflow ordering and Theano ordering.
+'''
+if K.image_data_format() == "channels_last":
+    mnist_shape = (28, 28, 1)
+else:
+    mnist_shape = (1, 28, 28)
 
-x = Convolution2D(16, 3, 3, activation='relu', border_mode='same')(input_img)
-x = MaxPooling2D((2, 2), border_mode='same')(x)
-x = Convolution2D(8, 3, 3, activation='relu', border_mode='same')(x)
-x = MaxPooling2D((2, 2), border_mode='same')(x)
-x = Convolution2D(8, 3, 3, activation='relu', border_mode='same')(x)
-encoded = MaxPooling2D((2, 2), border_mode='same')(x)
+input_img = Input(shape=mnist_shape)
+
+x = Convolution2D(16, (3, 3), activation='selu', padding='same')(input_img)
+x = MaxPooling2D((2, 2), padding='same')(x)
+x = Convolution2D(8, (3, 3), activation='selu', padding='same')(x)
+x = MaxPooling2D((2, 2), padding='same')(x)
+x = Convolution2D(8, (3, 3), activation='selu', padding='same')(x)
+encoded = MaxPooling2D((2, 2), padding='same')(x)
 
 # at this point the representation is (8, 4, 4) i.e. 128-dimensional
 
-x = Convolution2D(8, 3, 3, activation='relu', border_mode='same')(encoded)
+x = Convolution2D(8, (3, 3), activation='selu', padding='same')(encoded)
 x = UpSampling2D((2, 2))(x)
-x = Convolution2D(8, 3, 3, activation='relu', border_mode='same')(x)
+x = Convolution2D(8, (3, 3), activation='selu', padding='same')(x)
 x = UpSampling2D((2, 2))(x)
-x = Convolution2D(16, 3, 3, activation='relu')(x)
+x = Convolution2D(16, (3, 3), activation='selu')(x)
 x = UpSampling2D((2, 2))(x)
-decoded = Convolution2D(1, 3, 3, activation='sigmoid', border_mode='same')(x)
+decoded = Convolution2D(1, (3, 3), activation='sigmoid', padding='same')(x)
 
 autoencoder = Model(input_img, decoded)
 autoencoder.compile(optimizer='adadelta', loss='binary_crossentropy')
@@ -45,8 +54,8 @@ import numpy as np
 
 x_train = x_train.astype('float32') / 255.
 x_test = x_test.astype('float32') / 255.
-x_train = np.reshape(x_train, (len(x_train), 1, 28, 28))
-x_test = np.reshape(x_test, (len(x_test), 1, 28, 28))
+x_train = np.reshape(x_train, (len(x_train),) + mnist_shape)
+x_test = np.reshape(x_test, (len(x_test),) + mnist_shape)
 
 '''
 TRAIN ON DATA

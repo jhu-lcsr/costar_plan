@@ -29,17 +29,11 @@ class AbstractWorld(object):
     self.predicates = []
     self.predicate_idx = {}
     self.num_actors = 0
-    self.sprites = []
     self.task = None
     self.dt = 0.1
     self.ticks = 0
     self.max_ticks = 100
     self.scale_reward_to_max_ticks = False
-
-    # This variable allows us to change the draw mode to show actors'
-    # boxes instead of actors' circles.
-    # This should be coupled with new collision conditions.
-    self.draw_sprites = False
 
   def updateTraceID(self):
     self.trace_id = self.next_trace_id

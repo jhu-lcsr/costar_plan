@@ -9,12 +9,13 @@ class MctsAction(AbstractMctsAction):
   def __init__(self, policy=None, id=0, ticks=10, condition=None, tag=None, *args,**kwargs):
     super(MctsAction, self).__init__(*args,**kwargs)
     self.policy = policy
-    self.ticks_after_fork = ticks - 1
     self.condition = condition
     self.tag = tag
     self.id = id
-    if self.ticks_after_fork < 0:
-      raise RuntimeError('negative number of ticks does not make sense')
+    if ticks is not None:
+        self.ticks_after_fork = ticks - 1
+        if self.ticks_after_fork < 0:
+            raise RuntimeError('negative number of ticks does not make sense')
 
   '''
   Take the current node/world state and compute the action we would get
