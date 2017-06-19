@@ -53,6 +53,17 @@ class SimulationWorld(AbstractWorld):
         '''
         return self.object_by_class
 
+    def getObject(self, name):
+        '''
+        Look up the particular actor we are interested in for this world.
+
+        Params:
+        -------
+        name: name of the actor (string)
+        '''
+        idx = self.id_by_object[name]
+        return self.actors[idx]
+
     def hook(self):
         '''
         Step the simulation forward after all actors have given their comments
