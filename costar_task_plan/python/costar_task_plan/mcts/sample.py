@@ -88,10 +88,15 @@ class ContinuousTaskSample(AbstractSample):
     return None
 
   def getOption(self, node, idx):
-    opts = self.task.children[node.tag]
+    children = self.task.children[node.tag]
+    tag = children[idx]
+    option = self.task.nodes[tag]
     return MctsAction(
-        policy=self.policy,
-        id=0, ticks=self.ticks)
+            policy=option.samplePolicy(node.world),
+            condition=option.getGatingCondition(node.world),
+            id=idx,
+            tag=tag,
+            ticks=None)
 
   def _sample(self, node):
     children = self.task.children[node.tag]
@@ -101,6 +106,7 @@ class ContinuousTaskSample(AbstractSample):
     print "tag=",tag,option
     return MctsAction(
             policy=option.samplePolicy(node.world),
+            condition=option.getGatingCondition(node.world),
             id=idx,
             tag=tag,
             ticks=None)
