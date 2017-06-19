@@ -11,3 +11,6 @@
 # Careful with these -- we want them to be generated at runtime from the
 # associated xacro file.
 *.urdf
+
+# Files from Bullet
+0_VRDemoSettings.txt
