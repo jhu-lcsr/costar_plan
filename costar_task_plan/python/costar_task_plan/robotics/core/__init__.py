@@ -15,9 +15,6 @@ __all__ = [
     # Update the gripper
     "AbstractGripperStatusListener",
     # =====================================================================
-    # Observation of the world
-    "AbstractObserve",
-    # =====================================================================
     # Conditions
     "ValidStateCondition",
 ]
