@@ -1,0 +1,160 @@
+<launch>
+    ##############################################
+    # Helper launch file which can be included to 
+    # launch the jaco arm in gazebo. It allows
+    # you to specify the name of the robot which will
+    # be used in the gazebo world. It expects
+    # the robot to be loaded on the parameter server
+    # in "robot_description". This model has to be
+    # the one to which the arm is attached.
+    # Additionally, this launch file provides 
+    # the option to launch a joint_state_publisher
+    # and a robot_state_publisher.
+    # 
+    # You will probably also need to load gazebo
+    # "world" plugins to control the arm. You can use
+    # the argument extra_gazebo_args to do this.
+    # See comment below with the argument.
+    #
+    # Also, after gazebo is launched, you will
+    # probably need to send out a service request
+    # to gazebo to set the physics properties.
+    # These properties can be set with the gazebo service
+    # gazebo_msgs/SetPhysicsProperties.srv
+    # which has a field in which you can set the 
+    # ODE physics properties:
+    # gazebo_msgs/ODEPhysics.msg
+    ##############################################
+
+    # The robot name to use in the gazebo world 
+	<arg name="robot_name"/>
+	
+    # The x position where to spawn the robot in the world
+    <arg name="x" default="0"/>
+
+    # The y position where to spawn the robot in the world
+    <arg name="y" default="0"/>
+
+    # The z position where to spawn the robot in the world
+    <arg name="z" default="0"/>
+	
+    # Specify a world file if you want to load another world than the empty world
+    <arg name="gazebo_world_file" default="worlds/empty.world"/>
+ 
+	# set to true if you want to load the GUI to set the joint angles.
+    # You may also choose the topic onto which the joint states are published
+    # with joint_state_publisher_topic
+	<arg name="load_joint_state_publisher" default="false"/>
+
+	# The topic onto which the joint state publisher (if loaded by
+    # arg load_joint_state_publisher) publishes the joint states.
+    # The joint state publisher can be used to control the joints with the
+    # graphical interface.
+	<arg name="joint_state_publisher_topic" default="jaco/joint_control"/>
+
+    # set true if a robot_state_publisher should be launched to
+    # publish tf messages which are being published as JointState messages
+    # in the topic specified in argument joint_states_topic.
+	<arg name="load_robot_state_publisher" default="false"/>
+
+	# This is the topic robot_state_publisher subscribes to in order to
+    # receive JointState messages which it then publishes as tf messages.
+    # It is also the topic onto which the joint state messages are published
+    # by the robot.
+	<arg name="joint_states_topic" default="jaco/joint_state"/>
+
+    # Prefix name in URDF
+    <arg name="jaco_prefix_name" default="jaco"/>
+
+    # Parameter required for gazebo_joint_control/GazeboJointStatePublisher.
+    # We need to publish values NOT between -PI and PI for arm joints 1 and 2, because
+    # its lower limit is lower than -PI. When using Gazebo, it was not possible to use lower limit
+    # greater than higher limit in the URDF, e.g. 2.5..0.73.
+    # MoveIt however will detect an angle of 3.0 as invalid if we have limits such as -3.9..0.73.
+    # So we need to publish angles between -3.9..0.73. This has to be done for all revolute joints
+    # with such limits where lower_limit is greater than higher_limit.
+    <arg name="preserve_original_angles" default="$(arg jaco_prefix_name)_arm_1_joint, $(arg jaco_prefix_name)_arm_2_joint"/>
+
+    # set the joint state topic such that any subscribers can read it from parameter	
+    <param name="joint_state_control_topic" value="$(arg joint_state_publisher_topic)"/>
+
+    # Parameter required for gazebo_joint_control/GazeboJointStatePublisher.
+    # set the joint states topic as ROS parameter: The joint state publisher
+    # will publish the joint states on this topic. 
+    <param name="publish_joint_states_topic" value="$(arg joint_states_topic)"/>
+    
+    # Parameter required for gazebo_joint_control/GazeboJointStatePublisher.
+    # Separated by commas, specify the joint names for which the published values
+    # should *not* be capped between -PI and PI, and instead the original values
+    # in gazebo should be published.
+    <param name="preserve_original_angles" value="$(arg preserve_original_angles)"/>
+
+
+    ##############################################
+    # Launch files including this one may load
+    # required *system* plugins by setting the
+    # "extras_gazebo_args" argument (see also
+    # $(find gazebo_ros)/launch/empty_world.launch).
+    # Plugins can be loaded with the '-s | --server-plugin'
+    # argument (see also gzserver --help).
+    # Important: should not forget to also set
+    # required plugin ROS parameters, if needed.
+    ##############################################
+    <arg name="extra_gazebo_args" default=""/>	
+
+	###############################################
+	# launch gazebo 
+	###############################################
+	<include file="$(find gazebo_ros)/launch/empty_world.launch">
+		<arg name="world_name" value="$(arg gazebo_world_file)"/> 
+		<arg name="paused" value="false"/>
+		<arg name="verbose" value="false"/>
+		<arg name="use_sim_time" value="true"/>
+		<arg name="gui" value="true"/>
+		<arg name="headless" value="false"/>
+		<arg name="debug" value="false"/>
+        <arg name="extra_gazebo_args" value="$(arg extra_gazebo_args)"/>	
+	</include>
+
+
+	###############################################
+	# spawn robot 
+	###############################################
+	<node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" 
+        args="-param robot_description -urdf -x $(arg x) -y $(arg y) -z $(arg z) -model $(arg robot_name)"/>
+
+  
+	###############################################
+	# Given the published joint states, publish tf for the robot links
+	# !!! Had some problems with /tf. Errors in the form
+	# "Could not find a connection between 'camera_depth_optical_frame' and '6_hand_limb' because they 
+	# are not part of the same tree. Tf has two or more unconnected trees."
+	# This happened always with camera_depth_optical_frame, but with different other links. 
+	# Starting only gazebo, but without any MoveIt!, a  
+	#  $ rosrun tf tf_echo camera_depth_optical_frame 6_hand_limb
+	# revealed sometimes the same error, sometimes it said camera_depth_optical_frame does not exist..... 
+	# However, a 
+	#  $ rosrun tf view_frames
+	# listening to tf for 5 seconds showed the right three.
+	# So it seems tf is not waited for long enough by MoveIt..
+	# Hence, the only solution now is to start gazebo first, wait until the first /tf transforms have
+	# come in, and then start MoveIt.
+	###############################################
+	<node if="$(arg load_robot_state_publisher)" name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen">
+		<remap from="joint_states" to="$(arg joint_states_topic)"/>
+		<param name="publish_frequency" type="double" value="100.0"/>
+	</node>
+
+
+    #############################################
+	# joint_state_publisher is the GUI to set the target joint angles. 
+    # It publishes to joint_states, which we will remap to joint_control
+    #############################################
+	
+    <node if="$(arg load_joint_state_publisher)" name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
+		<param name="use_gui" value="true" />
+		<param name="rate" value="10" />
+		<remap from="joint_states" to="$(arg joint_state_publisher_topic)" />
+	</node>
+
+</launch>
