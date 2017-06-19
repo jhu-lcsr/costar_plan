@@ -12,6 +12,10 @@ import numpy as np
 class BulletSimulationEnv(gym.Env, utils.EzPickle):
 
     def __init__(self, *args, **kwargs):
+        '''
+        Read in args to set up client information
+        '''
+
         self.client = CostarBulletSimulation(*args, **kwargs)
         self.action_space = self.client.robot.getActionSpace()
 
