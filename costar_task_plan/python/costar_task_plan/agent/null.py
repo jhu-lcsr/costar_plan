@@ -1,5 +1,6 @@
 from abstract import AbstractAgent
 
+import gym; from gym import spaces
 import numpy as np
 
 class NullAgent(AbstractAgent):
@@ -12,7 +13,12 @@ class NullAgent(AbstractAgent):
 
     def fit(self, env):
         for i in xrange(10000):
-            cmd = np.zeros(env.action_space,))
+            if isinstance(env.action_space, spaces.Tuple):
+                cmd = ()
+                for space in env.action_space.spaces:
+                    cmd += (np.zeros(space.shape),)
+            else:
+                cmd = np.zeros(space.shape)
             env.step(cmd)
 
         return None
