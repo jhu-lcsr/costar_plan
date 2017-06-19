@@ -47,7 +47,7 @@ class JacoRobotiqInterface(AbstractRobotInterface):
         path = rospack.get_path('costar_simulation')
         filename = os.path.join(path, self.xacro_filename)
         urdf_filename = os.path.join(path, 'robot', self.urdf_filename)
-        urdf = open(urdf_filename, "w")
+        urdf = open(urdf_filename, "r")
 	#urdf = open("/home/albert/costar_ws/src/costar_plan/costar_simulation/robot/jaco_robot.urdf", "r")
 
         # Recompile the URDF to make sure it's up to date
