@@ -32,3 +32,9 @@ class BulletSimulationEnv(gym.Env, utils.EzPickle):
         Return current features
         '''
         self.client.reset()
+
+    def taskModel(self):
+        '''
+        Returns a usable task model.
+        '''
+        return self.client.task.task
