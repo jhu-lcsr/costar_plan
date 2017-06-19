@@ -610,5 +610,12 @@
       <offset>0.0</offset>
     </plugin>
   </gazebo>
+  <!-- Create a grasp link to specify the end of the robot arm -->
+  <link name="grasp_link"/>
+  <joint name="ee_to_grasp_link" type="fixed">
+    <parent link="ee_link"/>
+    <child link="grasp_link"/>
+    <origin rpy="0 0 0" xyz="0.15 0.0 0.0"/>
+  </joint>
 </robot>
 
