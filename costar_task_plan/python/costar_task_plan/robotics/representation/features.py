@@ -1,4 +1,8 @@
 
+# By Chris Paxton
+# (c) 2017 The Johns Hopkins University
+# See License for more details
+
 # ROS stuff
 import rospy
 import rosbag
@@ -15,8 +19,8 @@ import numpy as np
 
 # KDL utilities
 import PyKDL
-from pykdl_utils.kdl_kinematics import KDLKinematics
 from pykdl_utils.kdl_parser import kdl_tree_from_urdf_model
+from pykdl_utils.kdl_kinematics import KDLKinematics
 
 # tf stuff
 import tf
@@ -99,11 +103,6 @@ class RobotFeatures:
         else:
           self.kinematics = kinematics
           
-
-        # create transform listener to get object information
-        self.tfl = tf.TransformListener()
-
-        # empty list of objects
         self.objects = objects
         self.world = {}
 
@@ -372,58 +371,6 @@ class RobotFeatures:
     def SetWorld(self,frames):
         for obj in self.objects.keys():
             self.world[obj] = frames[obj]
-
-    '''
-    TfUpdateWorld
-    '''
-    def TfUpdateWorld(self):
-        for (obj,frame) in self.objects.items():
-            try:
-                (trans,rot) = self.tfl.lookupTransform(self.obj_frame,frame,rospy.Time(0))
-                self.world[obj] = pm.fromTf((trans,rot))
-
-            except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException), e:
-                if not self.quiet:
-                    print "ERR: %s"%(e)
-                return False
-
-        try:
-            (trans,rot) = self.tfl.lookupTransform(self.obj_frame,self.base_link,rospy.Time(0))
-            self.base_tform = pm.fromTf((trans,rot))
-
-        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException), e:
-            if not self.quiet:
-                print "ERR: %s"%(e)
-            return False
-
-        if (not self.manip_obj is None) and (self.manip_obj in self.world.keys()):
-            #print self.manip_obj
-            obj_frame = self.world[self.manip_obj]
-            
-            try:
-                (trans,rot) = self.tfl.lookupTransform(self.obj_frame,self.end_link,rospy.Time(0))
-                ee_tform = pm.fromTf((trans,rot))
-                #(trans,rot) = self.tfl.lookupTransform(self.objects[self.manip_obj],self.end_link,rospy.Time(0))
-                #ee_tform2 = pm.fromTf((trans,rot))
-                print "-- manip frame ---"
-                print " ... obj=%s"%(self.manip_obj)
-                print " ... tf=%s"%(self.objects[self.manip_obj])
-                #print ee_tform2
-                self.manip_frame = ee_tform.Inverse() * obj_frame
-
-            except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException), e:
-                if not self.quiet:
-                    print "ERR: %s"%(e)
-                return False
-
-        return True
-
-    '''
-    Create a world and return it; just calls TfUpdateWorld() to do this (the updated world is the local copy)
-    '''
-    def TfCreateWorld(self):
-        self.TfUpdateWorld()
-        return self.world
 
     '''
     Get an actual trajectory: the things we are trying to learn how to reproduce

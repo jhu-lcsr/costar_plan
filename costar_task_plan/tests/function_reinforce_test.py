@@ -10,7 +10,6 @@ from keras.models import Sequential, Model
 from keras.layers import Dense, Activation, Flatten, Input, merge, TimeDistributed
 from keras.layers.recurrent import LSTM
 from keras.optimizers import Adam
-from keras.initializations import *
 from keras.regularizers import *
 
 import gym

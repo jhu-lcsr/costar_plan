@@ -34,7 +34,7 @@ class TomWorld(CostarWorld):
         robot_config=[TOM_RIGHT_CONFIG, TOM_LEFT_CONFIG],
         *args, **kwargs)
 
-    self.addCondition(ValidStateCondition(), -100, "valid_state")
+    self.addCondition(ValidStateCondition(), -1e10, "valid_state")
 
     self.oranges = []
 
