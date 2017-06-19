@@ -37,6 +37,9 @@ class SimulationWorld(AbstractWorld):
 
         return obj_id
 
+    def getObjectId(self, obj_name):
+      return self.id_by_object[obj_name]
+
     def getObjects(self):
         '''
         Return information about specific objects in the world. This should tell us

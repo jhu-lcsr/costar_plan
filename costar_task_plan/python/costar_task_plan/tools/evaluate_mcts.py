@@ -1,6 +1,7 @@
 import os
 import numpy as np
-import pygame as pg
+# TODO(cpaxton): remove pygame from this
+#import pygame as pg
 
 from costar_task_plan.mcts import Node
 
@@ -60,9 +61,9 @@ def mctsLoop(env, policies, seed, save, animate, **kwargs):
             if animate:
                 # show the current window
                 pass
-            if save:
-                # Save pygame image to disk
-                pg.image.save(window, "%s/iter%d.png"%(dirname,iter))
+            #if save:
+            #    # Save pygame image to disk
+            #    pg.image.save(window, "%s/iter%d.png"%(dirname,iter))
             if done:
                 break
 

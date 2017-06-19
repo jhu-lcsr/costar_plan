@@ -40,8 +40,20 @@ def ParseBulletArgs():
     parser.add_argument('-p','--plot_task','--pt',
                         help="Display a plot of the chosen task and exit.",
                         action="store_true")
-    parser.add_argument('--save',
+    parser.add_argument('-s', '--save',
                         help="Save training data",
+                        action="store_true")
+    parser.add_argument('-c', '--capture',
+                        help="Capture images as a part of the training data",
+                        action="store_true")
+    parser.add_argument('-d', '--directory',
+                        help="Directory to store data from trials",
+                        default="./")
+    parser.add_argument('--show_images',
+                        help="Display images from cameras for debugging.",
+                        action="store_true")
+    parser.add_argument('--randomize_color',
+                        help="Randomize colors for the loaded robot.",
                         action="store_true")
 
     return vars(parser.parse_args())

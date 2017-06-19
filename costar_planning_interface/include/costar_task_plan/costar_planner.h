@@ -16,6 +16,7 @@
 #include <string>
 #include <unordered_map>
 #include <memory>
+#include <math.h>
 
 // Boost
 #include <boost/thread/recursive_mutex.hpp>

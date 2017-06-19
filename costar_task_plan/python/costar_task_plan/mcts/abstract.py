@@ -1,4 +1,8 @@
 
+# By Chris Paxton
+# (c) 2017 The Johns Hopkins University
+# See License for more details
+
 from node import Node
 
 from costar_task_plan.abstract import *
@@ -35,7 +39,7 @@ class AbstractMctsPolicies(object):
     self.max_depth = max_depth
     self._rollout = rollout
     self._initialize = initialize
-    self._sample = sample
+    self.sample = sample
     self._score = score
     self._widen = widen
     self._extract = extract
@@ -53,7 +57,7 @@ class AbstractMctsPolicies(object):
       print "WIDEN:", widen
       print "=========================================="
 
-    self._can_widen = self._sample is not None and self._widen is not None
+    self._can_widen = self.sample is not None and self._widen is not None
 
   '''
   Choose a possible future to expand. Grow the tree if it is appropriate.
@@ -75,78 +79,56 @@ class AbstractMctsPolicies(object):
     Main loop: continue until we reach the end of the tree or abort for one
     reason or another.
     '''
-    while not done and steps < max_depth:
+    while steps < max_depth:
       assert node.initialized
 
       steps += 1
       node.n_visits += 1
 
       length = len(node.children)
+      final_reward = node.reward
+
+      # Add this node's reward to the vector of visited states.
+      visited.append((node, final_reward))
+
       # optionally expand internal nodes
       if node.terminal:
-        done = True
+        break
       elif self._can_widen and \
               (can_widen or (length == 0 and self._dfs)) \
               and self._widen(node):
         # sample an action from this node that we haven't explored yet
-        action = self._sample(node)
+        action = self.sample(node)
         if action:
           # add this action as a new child
           node.children.append(Node(action=action))
           can_widen = False
           length += 1
 
-      cur_reward = node.reward
-      final_reward = node.reward
-      if not done and (node.n_visits == 0 or length == 0):
-        '''
-        In the case where we are not doing depth-first search...
+      if length is 0:
+          break
 
-        If this is an unvisited node, or a node with no children, we perform a
-        simulation rollout in order to get a better picture of the node's
-        value.
+      # This is a visited node, which means that it has children we can
+      # consider. We want to score these children using our provided scoring
+      # function and select the next one to expand upon.
+      # -----------------------------------------------------------------------
+      # Compute  scores
+      score = [0]*length
+      for i, child in enumerate(node.children):
+        score[i] = self._score(node, child)
 
-        Perform a rollout: use a unique function to simulate the task out to
-        our decision-making horizon.
-        '''
+      # choose the child with the best score
+      max_idx, max_score = max(enumerate(score), key=operator.itemgetter(1))
 
-        # This tracks the number of times we reached a final state.
-        node.n_rollouts = node.n_rollouts + 1
-        if self._rollout is not None:
-          # Use rollout function that has been provided
-          (rollout_reward, final_reward, sim_steps) = self._rollout(node, max_depth - 1)
-          steps += sim_steps
-          cur_reward += rollout_reward
+      # instantiate child and select it
+      child = node.children[max_idx]
+      if not child.initialized:
+        # fork the world and apply the correct action
+        node.instantiate(child)
+        if self._initialize:
+          self._initialize(child)
 
-        # If we performed a rollout -- then we don't want to keep exploring.
-        done = True
-
-      # Add this node's reward to the vector of visited states.
-      visited.append((node, cur_reward))
-
-      if not done:
-        '''
-        This is a visited node, which means that it has children we can
-        consider. We want to score these children using our provided scoring
-        function and select the next one to expand upon.
-        '''
-        # compute  scores
-        score = [0]*length
-        for i, child in enumerate(node.children):
-          score[i] = self._score(node, child)
-
-        # choose the child with the best score
-        max_idx, max_score = max(enumerate(score), key=operator.itemgetter(1))
-
-        # instantiate child and select it
-        child = node.children[max_idx]
-        if not child.initialized:
-          # fork the world and apply the correct action
-          node.instantiate(child)
-          if self._initialize:
-            self._initialize(child)
-
-        node = child
+      node = child
 
     acc_reward = 0
     for node, reward in reversed(visited):
@@ -250,6 +232,13 @@ class AbstractSample(object):
 
   def _sample(self, node):
     raise NotImplementedError('sampler._sample() not implemented!')
+
+  def update(self, action, r): 
+    '''
+    This function is provided as a way of updating an expected value function
+    in the case where we have a continuous function.
+    '''
+    pass
 
   '''
   Implementing this function should return an entry from the whole list of

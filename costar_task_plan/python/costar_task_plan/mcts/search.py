@@ -1,7 +1,12 @@
 
+# By Chris Paxton
+# (c) 2017 The Johns Hopkins University
+# See License for more details
+
 import timeit
 
 from abstract import AbstractSearch
+from node import Node
 
 '''
 Search through the tree exhaustively.
@@ -49,11 +54,11 @@ class DepthFirstSearch(AbstractSearch):
     elapsed = timeit.default_timer() - start_time
     return elapsed, path
 
-'''
-The "default" method for performing a search. Runs a certain number of
-iterations according to the full set of policies provided.
-'''
 class MonteCarloTreeSearch(AbstractSearch):
+  '''
+  The "default" method for performing a search. Runs a certain number of
+  iterations according to the full set of policies provided.
+  '''
 
   def __init__(self, policies):
       self.policies = policies
@@ -80,15 +85,16 @@ class RandomSearch(AbstractSearch):
         node = root
         path = []
         while True:
+            print "adding", node, node.children
             path.append(node)
-            n_children = len(node.children)
-            if n_children > 0:
-                idx = np.random.randint(n_children)
-                child = node.children[idx]
-                self.policies.instantiate(node, child)
-                node = child
-            else:
-                break
+            action = self.policies.sample(node)
+            if action is not None:
+              node.children.append(Node(action=action))
+              child = node.children[-1]
+              node.instantiate(child)
+              if self._initialize:
+                self._initialize(child)
+              node = child
 
         elapsed = timeit.default_timer() - start_time
         return elapsed, path

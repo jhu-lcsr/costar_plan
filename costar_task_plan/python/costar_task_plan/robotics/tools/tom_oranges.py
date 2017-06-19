@@ -9,6 +9,7 @@ from costar_task_plan.robotics.core import DmpOption
 from costar_task_plan.robotics.core import JointDmpPolicy, CartesianDmpPolicy
 from costar_task_plan.robotics.tom import TomWorld
 from costar_task_plan.robotics.tom import TomGripperOption, TomGripperCloseOption, TomGripperOpenOption
+from costar_task_plan.robotics.tom import TOM_RIGHT_CONFIG, TOM_LEFT_CONFIG
 from costar_task_plan.mcts import *
 from costar_task_plan.tools import showGraph
 
@@ -75,7 +76,7 @@ def __get_dmp_maker(skill_name,lfd):
 
   dmp_maker = lambda goal: DmpOption(
       goal=goal,
-      skill_instance=lfd.skill_instances[skill_name][0],
+      config=TOM_RIGHT_CONFIG,
       skill_name=skill_name,
       feature_model=lfd.skill_models[skill_name],
       kinematics=lfd.kdl_kin,

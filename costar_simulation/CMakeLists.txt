@@ -10,10 +10,6 @@ project(costar_simulation)
 find_package(catkin REQUIRED COMPONENTS
   gazebo_ros
   gazebo_plugins
-  roboticsgroup_gazebo_plugins
-  robotiq_85_bringup
-  robotiq_85_description
-  ur_description
 )
 
 ## System dependencies are found with CMake's conventions

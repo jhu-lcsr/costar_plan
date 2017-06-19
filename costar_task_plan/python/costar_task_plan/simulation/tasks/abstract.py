@@ -1,5 +1,6 @@
 from costar_task_plan.abstract import NullReward
 from costar_task_plan.simulation.world import *
+from costar_task_plan.simulation.camera import *
 
 import pybullet as pb
 import rospkg
@@ -28,6 +29,17 @@ class AbstractTaskDefinition(object):
         # local storage for object info
         self._objs_by_type = {}
         self._type_and_name_by_obj = {}
+        self._cameras = []
+
+    def addCamera(self, camera):
+        assert isinstance(camera, Camera)
+        self._cameras.append(camera)
+
+    def capture(self):
+        imgs = []
+        for camera in self._cameras:
+            imgs.append(camera.capture())
+        return imgs
 
     def addObject(self, typename, obj_id):
         '''
