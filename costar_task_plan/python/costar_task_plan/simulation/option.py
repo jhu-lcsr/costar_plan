@@ -95,14 +95,13 @@ class CartesianMotionPolicy(AbstractPolicy):
         in global coordinates.
         '''
 
-        compos, comorn, ifpos, iforn, lwpos, lworn = pb.getLinkState(actor.robot.handle, actor.robot.grasp_idx)
         if self.goal is not None:
             # Get position of the object we are grasping
             obj = world.getObject(self.goal)
             pos = obj.state.base_pos
             rot = obj.state.base_rot
 
-            p = kdl.Vector(*lwpos)
+            p = kdl.Vector(*pos)
             R = kdl.Rotation.Quaternion(*rot)
             T = kdl.Frame(R,p) * self.T
             #position = [T.p[0], T.p[1], T.p[2]]
