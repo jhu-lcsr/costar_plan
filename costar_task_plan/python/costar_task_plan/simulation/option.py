@@ -127,4 +127,4 @@ class CartesianMotionPolicy(AbstractPolicy):
         print actor.robot.kinematics.forward(state.arm)
         cmd = actor.robot.ik(T, state.arm)
         print "q =",cmd
-        return SimulationRobotAction(cmd=cmd)
+        return SimulationRobotAction(arm_cmd=cmd)

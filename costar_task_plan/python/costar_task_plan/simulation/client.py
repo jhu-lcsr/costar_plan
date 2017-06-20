@@ -125,13 +125,15 @@ class CostarBulletSimulation(object):
         '''
         Parse action via the robot
         '''
-        cmd = []
-        if type(action) is tuple:
-            for term in action:
-                cmd += term.tolist()
-        else:
-            cmd = action.tolist()
-        self.task.world.tick(SimulationRobotAction(cmd=cmd))
+        #cmd = []
+        #if type(action) is tuple:
+        #    for term in action:
+        #        cmd += term.tolist()
+        #else:
+        #    cmd = action.tolist()
+        if not isinstance(action, SimulationRobotAction):
+            action = SimulationRobotAction(*action)
+        self.task.world.tick(action)
 
         if self.capture:
             imgs = self.task.capture()

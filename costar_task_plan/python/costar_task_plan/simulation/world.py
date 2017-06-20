@@ -89,8 +89,10 @@ class SimulationDynamics(AbstractDynamics):
     by "state."
     '''
     def __call__(self, state, action, dt):
-        if action.cmd is not None:
-            state.robot.act(action.cmd)
+        if action.arm_cmd is not None :
+            state.robot.arm(action.arm_cmd)
+        if action.gripper_cmd is not None:
+            state.robot.gripper(action.gripper_cmd)
 
 class SimulationObjectState(AbstractState):
     '''
@@ -137,8 +139,9 @@ class SimulationRobotAction(AbstractAction):
     '''
     Includes the command that gets sent to robot.act()
     '''
-    def __init__(self, cmd):
-        self.cmd = cmd
+    def __init__(self, arm_cmd=None, gripper_cmd=None):
+        self.arm_cmd = arm_cmd
+        self.gripper_cmd = gripper_cmd
 
 class SimulationRobotActor(AbstractActor):
     def __init__(self, robot, *args, **kwargs):
@@ -148,7 +151,7 @@ class SimulationRobotActor(AbstractActor):
 
 class NullPolicy(AbstractPolicy):
   def evaluate(self, world, state, actor=None):
-    return SimulationRobotAction(cmd=None)
+    return SimulationRobotAction()
 
 # =============================================================================
 # Helper Fucntions

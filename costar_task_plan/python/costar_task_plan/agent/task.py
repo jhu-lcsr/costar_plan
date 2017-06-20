@@ -50,9 +50,7 @@ class TaskAgent(AbstractAgent):
                 action = None
 
             if control is not None:
-                print "sending command",
-                print control.cmd
-                env.step(control.cmd)
+                env.step(control)
 
         return None
         

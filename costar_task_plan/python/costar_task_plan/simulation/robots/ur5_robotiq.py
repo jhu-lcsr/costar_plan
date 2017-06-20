@@ -101,15 +101,6 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         pb.setJointMotorControl2(self.handle, self.right_finger, mode,  cmd)
         pb.setJointMotorControl2(self.handle, self.right_fingertip, mode,  cmd)
 
-
-    def act(self, action):
-        '''
-        Parse a list of continuous commands and send it off to the robot.
-        '''
-        assert(len(action) == 7)
-        self.arm(action[:6])
-        self.gripper(action[6])
-
     def getActionSpace(self):
         return spaces.Tuple((spaces.Box(-np.pi,np.pi,6),spaces.Box(-0.6,0.6,1)))
 
