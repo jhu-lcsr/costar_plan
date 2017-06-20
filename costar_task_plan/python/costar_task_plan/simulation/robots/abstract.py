@@ -70,8 +70,8 @@ class AbstractRobotInterface(object):
         chain = tree.getChain(base_link, self.grasp_link)
         self.kinematics = KDLKinematics(urdf, base_link, self.grasp_link)
 
-    def ik(self, pose):
-        return self.kinematics.inverse(pm.toMatrix(pose))
+    def ik(self, pose, q0):
+        return self.kinematics.inverse(pm.toMatrix(pose), q0)
 
     def place(self, pos, joints):
         '''

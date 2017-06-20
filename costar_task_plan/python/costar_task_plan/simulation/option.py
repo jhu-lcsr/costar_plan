@@ -96,15 +96,14 @@ class CartesianMotionPolicy(AbstractPolicy):
         '''
 
         compos, comorn, ifpos, iforn, lwpos, lworn = pb.getLinkState(actor.robot.handle, actor.robot.grasp_idx)
-        print lwpos, lworn, "arm=",state.arm
         if self.goal is not None:
             # Get position of the object we are grasping
             obj = world.getObject(self.goal)
             pos = obj.state.base_pos
             rot = obj.state.base_rot
 
-            p = kdl.Vector(*pos)
-            R = kdl.Rotation.Quaternion(*lworn)
+            p = kdl.Vector(*lwpos)
+            R = kdl.Rotation.Quaternion(*rot)
             T = kdl.Frame(R,p) * self.T
             #position = [T.p[0], T.p[1], T.p[2]]
             #rotation = T.M.GetQuaternion()
@@ -123,6 +122,10 @@ class CartesianMotionPolicy(AbstractPolicy):
         #                                  actor.robot.grasp_idx,
         #                                  targetPosition=position,
         #                                  targetOrientation=rotation)
-        cmd = actor.robot.ik(T)
+        from tf_conversions import posemath as pm
+        mat = pm.toMatrix(T)
+        print mat
+        print actor.robot.kinematics.forward(state.arm)
+        cmd = actor.robot.ik(T, state.arm)
         print "q =",cmd
         return SimulationRobotAction(cmd=cmd)
