@@ -2,6 +2,10 @@ from abstract import AbstractAgent
 
 
 class RandomAgent(AbstractAgent):
+    '''
+    Really simple test agent that just generates a random set of positions to
+    move to.
+    '''
 
     name = "random"
 
@@ -10,7 +14,7 @@ class RandomAgent(AbstractAgent):
         self.iter = iter
 
     def fit(self, env):
-        while True:
+        for _ in xrange(self.iter):
             cmd = env.action_space.sample()
             env.step(cmd)
 

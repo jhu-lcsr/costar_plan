@@ -121,10 +121,10 @@ class CartesianMotionPolicy(AbstractPolicy):
         #                                  actor.robot.grasp_idx,
         #                                  targetPosition=position,
         #                                  targetOrientation=rotation)
-        from tf_conversions import posemath as pm
-        mat = pm.toMatrix(T)
-        print mat
-        print actor.robot.kinematics.forward(state.arm)
+        #from tf_conversions import posemath as pm
+        #mat = pm.toMatrix(T)
+        #print mat
+        #print actor.robot.kinematics.forward(state.arm)
         cmd = actor.robot.ik(T, state.arm)
-        print "q =",cmd
+        print "q =",cmd, "goal =", T.p, T.M.GetRPY()
         return SimulationRobotAction(arm_cmd=cmd)
