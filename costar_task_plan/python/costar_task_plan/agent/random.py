@@ -10,7 +10,7 @@ class RandomAgent(AbstractAgent):
         self.iter = iter
 
     def fit(self, env):
-        while True:
+        for _ in xrange(self.iter):
             cmd = env.action_space.sample()
             env.step(cmd)
 

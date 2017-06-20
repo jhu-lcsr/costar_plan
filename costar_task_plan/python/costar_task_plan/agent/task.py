@@ -31,26 +31,28 @@ class TaskAgent(AbstractAgent):
         policies = ContinuousSamplerTaskPolicies(task)
         search = RandomSearch(policies)
 
-        while True:
+        for _ in xrange(self.iter):
 
             action = None
             control = None
-            node = Node(world=env.world, root=True)
 
-            if action is None:
-                action = policies.sample(node)
-                print "sampled ", action, action.condition
-        
-            if action.condition(node.world,
-                    node.state,
-                    node.world.actors[0],
-                    node.world.actors[0].last_state):
-                control = action.getAction(node)
-            else:
-                action = None
+            while True:
 
-            if control is not None:
-                env.step(control)
+                node = Node(world=env.world, root=True)
+
+                if action is None:
+                    action = policies.sample(node)
+            
+                if action.condition(node.world,
+                        node.state,
+                        node.world.actors[0],
+                        node.world.actors[0].last_state):
+                    control = action.getAction(node)
+                else:
+                    action = None
+
+                if control is not None:
+                    env.step(control)
 
         return None
         
