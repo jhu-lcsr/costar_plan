@@ -1,5 +1,6 @@
 
 from condition import GoalPositionCondition
+from world import *
 
 from costar_task_plan.abstract import AbstractOption
 from costar_task_plan.abstract import AbstractCondition
@@ -103,21 +104,22 @@ class CartesianMotionPolicy(AbstractPolicy):
             p = kdl.Vector(*pos)
             R = kdl.Rotation.Quaternion(*rot)
             T = kdl.Frame(R,p) * self.T
-            print T, obj, rot
-            position = T.p[0], T.p[1], T.p[2]
-            rotation = T.M.GetQuaternion()
+            #position = [T.p[0], T.p[1], T.p[2]]
+            #rotation = T.M.GetQuaternion()
         else:
-            position = self.pos
-            rotation = self.rot
+            #position = self.pos
+            #rotation = self.rot
+            T = self.T
 
         if actor.robot.grasp_idx is None:
             raise RuntimeError('Did you properly set up the robot URDF to specify grasp frame?')
 
-        print position, rotation
-        q = pb.calculateInverseKinematics(actor.robot.handle, actor.robot.grasp_idx, position, rotation)
-        print q
-
-        # Take a step
-    
-        return SimulationRobotAction(cmd=q)
-        pass
+        # Issue computing inverse kinematics
+        #compos, comorn, ifpos, iforn, lwpos, lworn = pb.getLinkState(actor.robot.handle, actor.robot.grasp_idx)
+        #q = pb.calculateInverseKinematics(actor.robot.handle,
+        #                                  actor.robot.grasp_idx,
+        #                                  targetPosition=position,
+        #                                  targetOrientation=rotation)
+        cmd = actor.robot.ik(T)
+        print "q =",cmd
+        return SimulationRobotAction(cmd=cmd)
