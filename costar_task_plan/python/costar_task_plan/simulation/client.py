@@ -9,6 +9,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import png
+
+from PIL import Image
+
 import pybullet as pb
 import rospy
 import subprocess
@@ -147,10 +150,25 @@ class CostarBulletSimulation(object):
                     plt.imshow(mask, interpolation="none")
                     plt.pause(0.01)
                 if self.save:
-                    path = os.path.join(self.directory,
+                    path1 = os.path.join(self.directory,
                             "%s%04d_rgb.png"%(name, self.task.world.ticks))
-                    img = png.fromarray(rgb, "L")
-                    img.save(path)
+                    path2 = os.path.join(self.directory,
+                            "%s%04d_depth.png"%(name, self.task.world.ticks))
+                    path3 = os.path.join(self.directory,
+                            "%s%04d_label.png"%(name, self.task.world.ticks))
+
+
+                    #img = png.fromarray(rgb, "L")
+                    #temp_im_rgb = Image.fromarray(rgb, mode='L')
+                    #temp_im_rgb.save(path)
+                    #temp_im_rgb = cv2.imwrite(path1, rgb)
+
+                    plt.imsave(path1, rgb)
+                    plt.imsave(path2, depth)
+                    plt.imsave(path3, mask)
+
+                    #temp1 = plt.imsave(path, rgb)		    
+                    #img.save(path)
 
             # TODO: handle other stuff
 
