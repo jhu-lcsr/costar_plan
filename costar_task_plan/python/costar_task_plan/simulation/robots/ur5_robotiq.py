@@ -116,7 +116,8 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
     def _getArmPosition(self):
         q = [0.] * 6
         for i in xrange(6):
-            q = pb.getJointState(self.handle, i)
+            q[i] = pb.getJointState(self.handle, i)[0]
+        return q
 
     def _getGripper(self):
         return pb.getJointState(self.handle, self.left_finger)
