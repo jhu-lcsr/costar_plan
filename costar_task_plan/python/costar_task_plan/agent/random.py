@@ -2,6 +2,10 @@ from abstract import AbstractAgent
 
 
 class RandomAgent(AbstractAgent):
+    '''
+    Really simple test agent that just generates a random set of positions to
+    move to.
+    '''
 
     name = "random"
 
