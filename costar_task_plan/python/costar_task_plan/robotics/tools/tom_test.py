@@ -120,6 +120,10 @@ def load_tom_data_and_run():
         pass
 
 def do_search(world, task, objects):
+    '''
+    Run through a single experiment, generating a trajectory that will satisfy
+    all of our conditions and producing a list of policies to execute.
+    '''
 
     policies = DefaultTaskMctsPolicies(task)
     search = MonteCarloTreeSearch(policies)
