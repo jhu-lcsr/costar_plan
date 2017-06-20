@@ -24,7 +24,7 @@ class AbstractActor(object):
       raise Exception('Actor not initialized! Cannot evaluate.')
 
     # send the actor through to the policy
-    a = self.policy(world, self.state, self)
+    a = self.policy(world, world.actors[self.id].state, self)
     return a
 
   # note: id determines which actor is which
@@ -82,7 +82,7 @@ class AbstractPolicy(object):
   def setFeatures(self, features):
     self.features = features
 
-  def evaluate(self, world, state, actor=None):
+  def evaluate(self, world, state, actor):
     raise Exception('policy.evaluate not implemented')
 
 '''

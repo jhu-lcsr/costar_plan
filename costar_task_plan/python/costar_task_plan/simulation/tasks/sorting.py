@@ -38,7 +38,10 @@ class SortingTaskDefinition(DefaultTaskDefinition):
         self.num_blue = blue
 
     def _makeTask(self):
-        GraspOption = lambda goal: GoalDirectedMotionOption
+        GraspOption = lambda goal: GoalDirectedMotionOption(
+                self.world,
+                goal,
+                pose=((0.05,0,0),(0,0,0,1)))
         grasp_args = {
                 "constructor": GraspOption,
                 "args": ["red"],

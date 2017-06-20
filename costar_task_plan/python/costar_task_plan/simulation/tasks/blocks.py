@@ -37,7 +37,10 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         super(BlocksTaskDefinition, self).__init__(*args, **kwargs)
 
     def _makeTask(self):
-        GraspOption = lambda goal: GoalDirectedMotionOption(self.world, goal, (None, None))
+        GraspOption = lambda goal: GoalDirectedMotionOption(
+                self.world,
+                goal, 
+                pose=((0.05,0,0.5),(0,0.7,0.7,0)))
         grasp_args = {
                 "constructor": GraspOption,
                 "args": ["block"],

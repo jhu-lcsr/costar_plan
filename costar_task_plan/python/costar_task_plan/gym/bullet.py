@@ -19,6 +19,9 @@ class BulletSimulationEnv(gym.Env, utils.EzPickle):
         self.client = CostarBulletSimulation(*args, **kwargs)
         self.action_space = self.client.robot.getActionSpace()
 
+        self.world = self.client.task.world
+        self.task = self.client.task.task
+
     def _step(self, action):
         '''
         Tick world with this action
@@ -32,3 +35,10 @@ class BulletSimulationEnv(gym.Env, utils.EzPickle):
         Return current features
         '''
         self.client.reset()
+        self.world = self.client.task.world
+
+    def taskModel(self):
+        '''
+        Returns a usable task model.
+        '''
+        return self.task

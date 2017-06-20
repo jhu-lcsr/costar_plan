@@ -1,6 +1,11 @@
 
 from costar_task_plan.simulation.world import *
 
+from pykdl_utils.kdl_parser import kdl_tree_from_urdf_model
+from pykdl_utils.kdl_kinematics import KDLKinematics
+from tf_conversions import posemath as pm
+from urdf_parser_py.urdf import URDF
+
 import pybullet as pb
 
 
@@ -12,6 +17,8 @@ class AbstractRobotInterface(object):
     appropriate PyBullet functions to send over to the server.
     '''
 
+    grasp_link = "grasp_link"
+
     def __init__(self, *args, **kwargs):
         '''
         Parse through the config, save anything that needs to be saved, and
@@ -21,7 +28,8 @@ class AbstractRobotInterface(object):
         Handle should contain the ID of the robot.
         '''
         self.handle = None
-        pass
+        self.grasp_idx = None
+        self.kinematics = None
 
     def load(self):
         '''
@@ -30,6 +38,40 @@ class AbstractRobotInterface(object):
         '''
         raise NotImplementedError(
             'This has to put the robot into the simulation.')
+
+    def findGraspFrame(self):
+        '''
+        Helper function to look up the grasp frame associated with a robot.
+        '''
+        joints = pb.getNumJoints(self.handle)
+        grasp_idx = None
+        for i in xrange(joints):
+            idx, name, jtype, qidx, \
+                uidx, flags, damping, friction, \
+                lower, upper, max_force, max_vel, \
+                link_name = pb.getJointInfo(self.handle, i)
+            if link_name == self.grasp_link:
+                grasp_idx = i
+                break
+        return grasp_idx
+
+    def loadKinematicsFromURDF(self, filename, base_link):
+        '''
+        Load KDL kinematics class for easy lookup of posiitons from the urdf
+        model of a particular robot.
+
+        Params:
+        --------
+        filename: absolute path to URDF file
+        base_link: root of kinematic tree
+        '''
+        urdf = URDF.from_xml_file(filename)
+        tree = kdl_tree_from_urdf_model(urdf)
+        chain = tree.getChain(base_link, self.grasp_link)
+        self.kinematics = KDLKinematics(urdf, base_link, self.grasp_link)
+
+    def ik(self, pose, q0):
+        return self.kinematics.inverse(pm.toMatrix(pose), q0)
 
     def place(self, pos, joints):
         '''

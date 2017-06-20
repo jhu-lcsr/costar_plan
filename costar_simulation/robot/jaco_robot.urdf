@@ -1066,5 +1066,15 @@
     <parent link="jaco_8_finger_pinkie"/>
     <child link="jaco_9_finger_pinkie_tip"/>
   </joint>
+
+  <!-- Create a grasp link to specify the end of the robot arm -->
+  <link name="grasp_link"/>
+  <joint name="ee_to_grasp_link" type="fixed">
+    <parent link="jaco6_hand_limb" />
+    <child link="grasp_link" />
+    <origin xyz="0.15 0.0 0.0" rpy="0 0 0"/>
+  </joint>
+
+
 </robot>
 
