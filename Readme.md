@@ -52,7 +52,7 @@ rosrun costar_bullet start
 
 You can run this with the `-h` or `--help` flag to get a list of potential arguments. The `start` command can be configured to bring up a robot and a task. For example, you may want to run:
 ```
-rosrun costar_bullet start --robot ur5_robotiq --task blocks --gui
+rosrun costar_bullet start --robot ur5_2_finger --task blocks --gui
 ```
 To bring up the standard CoSTAR UR5 with Robotiq 85 gripper, a block-stacking task, and a basic Bullet GUI to see things.
 
