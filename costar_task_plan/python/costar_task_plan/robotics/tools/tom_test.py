@@ -114,7 +114,6 @@ def load_tom_data_and_run():
             path = do_search(world, task, objects)
             plan = ExecutionPlan(path, OpenLoopTomExecute(world, 0))
 
-          break
           rate.sleep()
 
     except rospy.ROSInterruptException, e:
