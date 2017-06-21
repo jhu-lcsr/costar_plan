@@ -15,7 +15,7 @@ class AbstractTaskDefinition(object):
     basic BulletWorld.
     '''
 
-    def __init__(self, robot, seed=None, option=None, save=False, *args, **kwargs):
+    def __init__(self, robot, features, seed=None, option=None, save=False, *args, **kwargs):
         '''
         We do not create a world here, but we may need to cache things or read
         them off of the ROS parameter server as necessary.
@@ -24,6 +24,7 @@ class AbstractTaskDefinition(object):
         self.option = option
         self.robot = robot
         self.world = None
+        self.features = features
         self.save_world = save
 
         # local storage for object info
@@ -72,7 +73,9 @@ class AbstractTaskDefinition(object):
         self.task = self._makeTask()
         self.world = SimulationWorld(
                 save_hook=self.save_world,
-                task_name=self.getName())
+                task_name=self.getName(),
+                cameras=self._cameras)
+        self.world.features = self.features
         self._setup()
         handle = self.robot.load()
         pb.setGravity(0,0,-9.807)

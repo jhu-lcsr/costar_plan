@@ -13,16 +13,16 @@ def GetAvailableAlgorithms():
     return [None, "ddpg", "cdqn"]
 
 
-def GetTaskDefinition(task, robot, *args, **kwargs):
+def GetTaskDefinition(task, robot, features, *args, **kwargs):
     '''
     Returns a particular task definition in the simulation.
     '''
     try:
         return {
-            'blocks': BlocksTaskDefinition(robot, *args, **kwargs),
-            'clutter': ClutterTaskDefinition(robot, *args, **kwargs),
-            'sorting': SortingTaskDefinition(robot, *args, **kwargs),
-            'oranges': OrangesTaskDefinition(robot, *args, **kwargs),
+            'blocks': BlocksTaskDefinition(robot, features=features, *args, **kwargs),
+            'clutter': ClutterTaskDefinition(robot, features=features, *args, **kwargs),
+            'sorting': SortingTaskDefinition(robot, features=features, *args, **kwargs),
+            'oranges': OrangesTaskDefinition(robot, features=features, *args, **kwargs),
         }[task]
     except KeyError, e:
         raise NotImplementedError('Task %s not implemented!' % task)
