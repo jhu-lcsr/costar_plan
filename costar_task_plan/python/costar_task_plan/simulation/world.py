@@ -2,6 +2,7 @@
 from costar_task_plan.abstract import *
 
 import pybullet as pb
+import PyKDL as kdl
 
 class SimulationWorld(AbstractWorld):
 
@@ -105,6 +106,9 @@ class SimulationObjectState(AbstractState):
         self.predicates = []
         self.base_pos = base_pos
         self.base_rot = base_rot
+        p = kdl.Vector(*base_pos)
+        R = kdl.Rotation.Quaternion(*base_rot)
+        self.T = kdl.Frame(R,p)
 
 class SimulationObjectActor(AbstractActor):
     '''

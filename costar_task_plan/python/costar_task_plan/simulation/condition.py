@@ -35,9 +35,37 @@ class GoalPositionCondition(AbstractCondition):
         pg = kdl.Vector(*self.pos)
         Rg = kdl.Rotation.Quaternion(*self.rot)
         self.T = kdl.Frame(Rg, pg)
-        print "distance = ", self.dist
-        print "pose = ", self.T
-
 
     def _check(self, world, state, actor, prev_state=None):
+        '''
+        Returns true if within tolerance of position or any closer to goal
+        object.
+        '''
+        return True
+
+
+class AbsolutePositionCondition(AbstractCondition):
+    '''
+    True until the robot has gotten within some distance of a particular point
+    in the world's coordinate frame.
+    '''
+    def __init__(self, goal, pos, rot, pos_tol, rot_tol):
+        self.pos_tol = pos_tol
+        self.rot_tol = rot_tol
+
+        self.pos = pos
+        self.rot = rot
+        self.goal = goal
+        
+        # If we are within this distance, the action failed.
+        self.dist = np.linalg.norm(self.pos)
+
+        pg = kdl.Vector(*self.pos)
+        Rg = kdl.Rotation.Quaternion(*self.rot)
+        self.T = kdl.Frame(Rg, pg)
+
+    def _check(self, world, state, actor, prev_state=None):
+        '''
+        Returns true until we are within tolerance of position
+        '''
         return True
