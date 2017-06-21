@@ -14,3 +14,8 @@ class AbstractAgent(object):
     def fit(self, env):
         raise NotImplementedError('fit() should run algorithm on the environment')
 
+    def data(self):
+        '''
+        Returns dataset.
+        '''
+        raise NotImplementedError('not yet working')
