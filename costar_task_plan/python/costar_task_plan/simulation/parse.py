@@ -59,6 +59,6 @@ def ParseBulletArgs():
                         action="store_true")
     parser.add_argument('--features',
                         help="Specify feature function",
-                        default="depth")
+                        default="null")
 
     return vars(parser.parse_args())
