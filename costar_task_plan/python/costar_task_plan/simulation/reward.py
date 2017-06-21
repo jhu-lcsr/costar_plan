@@ -22,5 +22,4 @@ class EuclideanReward(AbstractReward):
         robot_actor = world.actors[0]
         T_ee = pm.fromMatrix(robot_actor.robot.fwd(robot_actor.state.arm))
         T_obj = world.getObject(self.goal).state.T
-        print -(T_obj.p - T_ee.p).Norm()
-        return 0, 0
+        return -(T_obj.p - T_ee.p).Norm(), 0
