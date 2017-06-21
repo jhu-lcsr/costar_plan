@@ -5,11 +5,12 @@ import pybullet as pb
 
 class SimulationWorld(AbstractWorld):
 
-    def __init__(self, dt = 0.0001, num_steps=1, save_hook=False, task_name="", *args, **kwargs):
+    def __init__(self, dt = 0.0001, num_steps=1, save_hook=False, task_name="", cameras=[], *args, **kwargs):
         super(SimulationWorld, self).__init__(NullReward(), *args, **kwargs)
         self.num_steps = num_steps
         self.save_hook = save_hook
         self.task_name = task_name
+        self.cameras = cameras
 
         # stores object handles and names
         self.class_by_object = {}

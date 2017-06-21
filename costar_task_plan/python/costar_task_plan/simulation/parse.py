@@ -1,6 +1,7 @@
 
 from costar_task_plan.agent import GetAgents
 from util import GetAvailableTasks, GetAvailableRobots, GetAvailableAlgorithms
+from features import GetFeatures, GetAvailableFeatures
 
 import argparse
 import sys
@@ -56,5 +57,8 @@ def ParseBulletArgs():
     parser.add_argument('--randomize_color',
                         help="Randomize colors for the loaded robot.",
                         action="store_true")
+    parser.add_argument('--features',
+                        help="Specify feature function",
+                        default="null")
 
     return vars(parser.parse_args())
