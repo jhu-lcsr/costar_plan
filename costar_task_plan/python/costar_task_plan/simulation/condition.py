@@ -1,6 +1,8 @@
 from costar_task_plan.abstract import AbstractCondition
 
+import numpy as np
 import pybullet as pb
+import PyKDL as kdl
 
 class CollisionCondition(AbstractCondition):
     '''
@@ -19,11 +21,23 @@ class GoalPositionCondition(AbstractCondition):
     True if the robot has not yet arrived at its goal position. The goal
     position is here defined as being within a certain distance of a point.
     '''
-    def __init__(self, pos, rot, pos_tol, rot_tol):
-        self.pos = pos
-        self.rot = rot
+    def __init__(self, goal, pos, rot, pos_tol, rot_tol):
         self.pos_tol = pos_tol
         self.rot_tol = rot_tol
+
+        self.pos = pos
+        self.rot = rot
+        self.goal = goal
+        
+        # If we are within this distance, the action failed.
+        self.dist = np.linalg.norm(self.pos)
+
+        pg = kdl.Vector(*self.pos)
+        Rg = kdl.Rotation.Quaternion(*self.rot)
+        self.T = kdl.Frame(Rg, pg)
+        print "distance = ", self.dist
+        print "pose = ", self.T
+
 
     def _check(self, world, state, actor, prev_state=None):
         return True

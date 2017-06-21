@@ -39,8 +39,10 @@ class GoalDirectedMotionOption(AbstractOption):
     def getGatingCondition(self, *args, **kwargs):
         # Get the gating condition for a specific option.
         # - execution should continue until such time as this condition is true.
-        return GoalPositionCondition(self.position,
-                self.rotation, 
+        return GoalPositionCondition(
+                self.goal, # what object we care about
+                self.position, # where we want to grab it
+                self.rotation, # rotation with which we want to grab it
                 self.position_tolerance,
                 self.rotation_tolerance)
         
