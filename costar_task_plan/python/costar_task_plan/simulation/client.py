@@ -2,6 +2,7 @@
 from costar_task_plan.tools import showTask
 
 from config import *
+from features import GetFeatures
 from util import GetTaskDefinition, GetRobotInterface
 from world import *
 
@@ -28,6 +29,7 @@ class CostarBulletSimulation(object):
     def __init__(self, robot, task,
             gui=False,
             ros=False,
+            features="",
             ros_name="simulation",
             option=None,
             plot_task=False,
@@ -39,7 +41,8 @@ class CostarBulletSimulation(object):
             *args, **kwargs):
         self.gui = gui and not plot_task
         self.robot = GetRobotInterface(robot)
-        self.task = GetTaskDefinition(task, self.robot, *args, **kwargs)
+        features = GetFeatures(features)
+        self.task = GetTaskDefinition(task, self.robot, features, *args, **kwargs)
 
         # managed list of processes and other metadata
         self.procs = []
