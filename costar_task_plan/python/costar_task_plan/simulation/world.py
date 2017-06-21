@@ -10,7 +10,7 @@ class SimulationWorld(AbstractWorld):
         self.num_steps = num_steps
         self.save_hook = save_hook
         self.task_name = task_name
-        self.cameras = []
+        self.cameras = cameras
 
         # stores object handles and names
         self.class_by_object = {}
