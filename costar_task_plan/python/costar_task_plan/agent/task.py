@@ -22,6 +22,16 @@ class TaskAgent(AbstractAgent):
         super(TaskAgent, self).__init__(*args, **kwargs)
         self.iter = iter
 
+    def _addToDataset(self, action_name, world, control, features, reward, done):
+        '''
+        Takes as input features, reward, action, and other information. Saves
+        all of this to create a dataset.
+        '''
+
+        # Save both the generic, non-parameterized action name and the action
+        # name.
+        generic_action_name = action_name.split('(')[0]
+
     def fit(self, env):
 
         task = env.taskModel()
@@ -52,7 +62,8 @@ class TaskAgent(AbstractAgent):
                     action = None
 
                 if control is not None:
-                    env.step(control)
+                    features, reward, done = env.step(control)
+                    self._addToDataset(action.tag, env.world, control, features, reward, done)
 
         return None
         

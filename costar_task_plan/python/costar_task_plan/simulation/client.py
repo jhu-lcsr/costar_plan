@@ -136,7 +136,9 @@ class CostarBulletSimulation(object):
         #    cmd = action.tolist()
         if not isinstance(action, SimulationRobotAction):
             action = SimulationRobotAction(*action)
-        self.task.world.tick(action)
+
+        # Get state, action, features, reward from update
+        (ok, S0, A0, S1, F1, reward) = self.task.world.tick(action)
 
         if self.capture:
             imgs = self.task.capture()
@@ -172,14 +174,14 @@ class CostarBulletSimulation(object):
 
             # TODO: handle other stuff
 
+        # Return world information
+        return F1, reward, not ok
+
     def close(self):
         '''
         Close connection to bullet sim.
         '''
         pb.disconnect()
-
-    def observe(self):
-        pass
 
     def __delete__(self):
         '''
