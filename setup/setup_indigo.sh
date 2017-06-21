@@ -42,12 +42,13 @@ source /opt/ros/$ROS_DISTRO/setup.bash
 catkin init
 cd $CATKIN_WS/src
 
-git clone git@github.com:cpaxton/hrl-kdl.git --branch indigo-devel
+git clone https://github.com/cpaxton/hrl-kdl.git --branch indigo-devel
 git clone https://github.com/cburbridge/python_pcd.git
 git clone https://github.com/jhu-lcsr/costar_objects.git
 git clone https://github.com/cpaxton/dmp.git --branch indigo
 git clone https://github.com/cpaxton/robotiq_85_gripper.git
 git clone https://github.com/alee156/costar_plan.git
+
 rosdep install -y --from-paths ./ --ignore-src --rosdistro $ROS_DISTRO
 cd $CATKIN_WS/src
 catkin build
