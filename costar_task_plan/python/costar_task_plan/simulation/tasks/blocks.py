@@ -2,6 +2,7 @@ from abstract import AbstractTaskDefinition
 from default import DefaultTaskDefinition
 from costar_task_plan.simulation.world import *
 from costar_task_plan.simulation.option import *
+from costar_task_plan.simulation.reward import *
 
 import numpy as np
 import os
@@ -40,7 +41,6 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         GraspOption = lambda goal: GoalDirectedMotionOption(
                 self.world,
                 goal, 
-                #pose=((0.05,0,0.15),(0,0.7,0.7,0)))
                 pose=((0.0,0,0.0),(-0.27,0.65,0.65,0.27)))
         grasp_args = {
                 "constructor": GraspOption,
@@ -108,6 +108,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                 if idx == i:
                     blocks.append(block)
             self._addTower(pos, blocks, urdf_dir)
+        self.world.reward = EuclideanReward("block001")
 
     def reset(self):
         pass

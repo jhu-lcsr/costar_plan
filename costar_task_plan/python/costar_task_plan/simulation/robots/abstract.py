@@ -73,6 +73,9 @@ class AbstractRobotInterface(object):
     def ik(self, pose, q0):
         return self.kinematics.inverse(pm.toMatrix(pose), q0)
 
+    def fwd(self, q):
+        return pm.fromMatrix(self.kinematics.forward(q))
+
     def place(self, pos, joints):
         '''
         Update the robot's position.

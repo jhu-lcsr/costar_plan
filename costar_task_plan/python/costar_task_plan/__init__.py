@@ -23,7 +23,6 @@ except ImportError, e:
     print e
 
 try:
-    import ros
     import robotics
 except ImportError, e:
     print "[WARNING] ROS/CoSTAR failed to import. ROS may be missing."

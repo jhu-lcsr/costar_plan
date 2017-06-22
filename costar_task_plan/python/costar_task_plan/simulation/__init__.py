@@ -9,6 +9,8 @@ from actor import *
 from condition import *
 from world import *
 from option import *
+from features import *
+from reward import *
 
 __all__ = ["CostarBulletSimulation",
            "ParseBulletArgs",
