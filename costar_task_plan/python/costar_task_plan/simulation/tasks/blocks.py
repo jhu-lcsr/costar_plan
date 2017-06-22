@@ -3,6 +3,7 @@ from default import DefaultTaskDefinition
 from costar_task_plan.simulation.world import *
 from costar_task_plan.simulation.option import *
 from costar_task_plan.simulation.reward import *
+from costar_task_plan.simulation.condition import *
 
 import numpy as np
 import os
@@ -110,7 +111,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                     blocks.append(block)
             self._addTower(pos, blocks, urdf_dir)
             
-        #self.world.reward = EuclideanDistanceReward("block000")
+        self.world.addCondition(JointLimitViolationCondition(), -100, "joints_in_limits")
         self.world.reward = EuclideanReward("block001")
 
     def reset(self):

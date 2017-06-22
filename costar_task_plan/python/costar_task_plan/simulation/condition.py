@@ -16,6 +16,35 @@ class CollisionCondition(AbstractCondition):
     def _check(self, world, state, actor, prev_state=None):
         pass
 
+class JointLimitViolationCondition(AbstractCondition):
+    '''
+    True if all arm positions are within joint limits as defined by the
+    robot's kinematics.
+    '''
+    def __init__(self):
+        pass
+
+    def _check(self, world, state, actor, prev_state=None):
+        '''
+        Use KDL kinematics to determine if the joint limits were acceptable
+        '''
+        print state.arm
+        return actor.robot.kinematics.joints_in_limits(state.arm).all()
+
+class SafeJointLimitViolationCondition(AbstractCondition):
+    '''
+    True if all arm positions are within joint limits as defined by the
+    robot's kinematics.
+    '''
+    def __init__(self):
+        pass
+
+    def _check(self, world, state, actor, prev_state=None):
+        '''
+        Use KDL kinematics to determine if the joint limits were acceptable
+        '''
+        return actor.robot.kinematics.joints_in_safe_limits(state.arm).all()
+
 class GoalPositionCondition(AbstractCondition):
     '''
     True if the robot has not yet arrived at its goal position. The goal
