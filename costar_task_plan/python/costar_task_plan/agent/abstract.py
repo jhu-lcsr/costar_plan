@@ -11,7 +11,7 @@ class AbstractAgent(object):
     def __init__(self, *args, **kwargs):
         pass
 
-    def fit(self, env):
+    def fit(self):
         raise NotImplementedError('fit() should run algorithm on the environment')
 
     def data(self):

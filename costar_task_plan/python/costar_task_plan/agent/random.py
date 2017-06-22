@@ -9,14 +9,27 @@ class RandomAgent(AbstractAgent):
 
     name = "random"
 
-    def __init__(self, iter=10000, *args, **kwargs):
+    def __init__(self, env, iter=10000, *args, **kwargs):
         super(RandomAgent, self).__init__(*args, **kwargs)
         self.iter = iter
+        self.env = env
 
-    def fit(self, env):
+    def fit(self):
         for _ in xrange(self.iter):
-            cmd = env.action_space.sample()
-            env.step(cmd)
+            cmd = self.env.action_space.sample()
+            print ">>>>CMD0 " + str(len (cmd))
+            print ">>>>CMD0 " + str(type(cmd))
+
+
+            print ">>>>CMD0 " + str(len (cmd[0]))
+            print ">>>>CMD0 " + str(type(cmd[0]))
+            print ">>>>CMD0 " + str(cmd[0])
+            
+            print ">>>>CMD1 " + str(len (cmd[1]))
+            print ">>>>CMD1 " + str(type(cmd[1]))
+            print ">>>>CMD1 " + str(cmd[1])
+
+            self.env.step(cmd)
 
         return None
         

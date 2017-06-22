@@ -72,6 +72,9 @@ class AbstractRobotInterface(object):
 
     def ik(self, pose, q0):
         return self.kinematics.inverse(pm.toMatrix(pose), q0)
+    
+    def forward(self, position):
+        return self.kinematics.forward(position)
 
     def place(self, pos, joints):
         '''
