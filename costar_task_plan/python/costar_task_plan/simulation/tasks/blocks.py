@@ -2,7 +2,8 @@ from abstract import AbstractTaskDefinition
 from default import DefaultTaskDefinition
 from costar_task_plan.simulation.world import *
 from costar_task_plan.simulation.option import *
-from costar_task_plan.simulation.reward import *
+from costar_task_plan.simulation.rewards import EuclideanDistanceReward
+#from costar_task_plan.simulation.reward import *
 
 import numpy as np
 import os
@@ -36,6 +37,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         blocks are placed at random.
         '''
         super(BlocksTaskDefinition, self).__init__(*args, **kwargs)
+        
 
     def _makeTask(self):
         GraspOption = lambda goal: GoalDirectedMotionOption(
@@ -108,7 +110,9 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                 if idx == i:
                     blocks.append(block)
             self._addTower(pos, blocks, urdf_dir)
-        self.world.reward = EuclideanReward("block001")
+            
+        self.world.reward = EuclideanDistanceReward("block000")
+        #self.world.reward = EuclideanReward("block001")
 
     def reset(self):
         pass

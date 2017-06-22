@@ -84,6 +84,7 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         if len(cmd) > 6:
             raise RuntimeError('too many joint positions')
         for i, q in enumerate(cmd):
+            print ">>>>>> " + str(i) + " " + str(q)
             pb.setJointMotorControl2(self.handle, i, mode, q)
 
     def gripper(self, cmd, mode=pb.POSITION_CONTROL):
