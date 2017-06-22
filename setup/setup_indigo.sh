@@ -42,7 +42,7 @@ source /opt/ros/$ROS_DISTRO/setup.bash
 catkin init
 cd $CATKIN_WS/src
 
-git clone https://github.com/cpaxton/hrl-kdl.git --branch indigo-devel
+git clone https://github.com:cpaxton/hrl-kdl.git --branch indigo-devel
 git clone https://github.com/cburbridge/python_pcd.git
 git clone https://github.com/jhu-lcsr/costar_objects.git
 git clone https://github.com/cpaxton/dmp.git --branch indigo

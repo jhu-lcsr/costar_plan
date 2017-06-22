@@ -19,7 +19,7 @@ class GoalDirectedMotionOption(AbstractOption):
     running on the robot will be enough to take us to the goal position.
     '''
 
-    def __init__(self, world, goal, pose, pose_tolerance=(1e-2,1e-2), *args, **kwargs):
+    def __init__(self, world, goal, pose, pose_tolerance=(1e-3,1e-3), *args, **kwargs):
         self.goal = goal
         self.goal_id = world.getObjectId(goal)
         if pose is not None:
@@ -39,8 +39,10 @@ class GoalDirectedMotionOption(AbstractOption):
     def getGatingCondition(self, *args, **kwargs):
         # Get the gating condition for a specific option.
         # - execution should continue until such time as this condition is true.
-        return GoalPositionCondition(self.position,
-                self.rotation, 
+        return GoalPositionCondition(
+                self.goal, # what object we care about
+                self.position, # where we want to grab it
+                self.rotation, # rotation with which we want to grab it
                 self.position_tolerance,
                 self.rotation_tolerance)
         
@@ -96,19 +98,14 @@ class CartesianMotionPolicy(AbstractPolicy):
         '''
 
         if self.goal is not None:
-            # Get position of the object we are grasping
+            # Get position of the object we are grasping. Since we compute a
+            # KDL transform whenever we update the world's state, we can use
+            # that for computing positions and stuff like that.
             obj = world.getObject(self.goal)
-            pos = obj.state.base_pos
-            rot = obj.state.base_rot
-
-            p = kdl.Vector(*pos)
-            R = kdl.Rotation.Quaternion(*rot)
-            T = kdl.Frame(R,p) * self.T
-            #position = [T.p[0], T.p[1], T.p[2]]
-            #rotation = T.M.GetQuaternion()
+            T = obj.state.T * self.T
         else:
-            #position = self.pos
-            #rotation = self.rot
+            # We can just use the cached position, since this is a known world
+            # position and not something special.
             T = self.T
 
         if actor.robot.grasp_idx is None:
@@ -126,5 +123,5 @@ class CartesianMotionPolicy(AbstractPolicy):
         #print mat
         #print actor.robot.kinematics.forward(state.arm)
         cmd = actor.robot.ik(T, state.arm)
-        print "q =",cmd, "goal =", T.p, T.M.GetRPY()
+        #print "q =",cmd, "goal =", T.p, T.M.GetRPY()
         return SimulationRobotAction(arm_cmd=cmd)

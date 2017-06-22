@@ -2,6 +2,7 @@ from abstract import AbstractTaskDefinition
 from default import DefaultTaskDefinition
 from costar_task_plan.simulation.world import *
 from costar_task_plan.simulation.option import *
+from costar_task_plan.simulation.reward import *
 
 import numpy as np
 import os
@@ -151,6 +152,7 @@ class SortingTaskDefinition(DefaultTaskDefinition):
             dynamics=SimulationDynamics(self.world),
             policy=NullPolicy(),
             state=state))
+        self.world.reward = EuclideanReward("red001")
 
     def getName(self):
         return "sorting"
