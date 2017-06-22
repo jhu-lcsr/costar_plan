@@ -93,7 +93,7 @@ class AbstractReward(object):
     return self.evaluate(world)
 
   def evaluate(self, world):
-    raise Exception('policy.evaluate not implemented')
+    raise Exception('reward.evaluate() not implemented')
 
 class AbstractControllerPolicy(AbstractPolicy):
   action = None
