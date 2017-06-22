@@ -11,5 +11,5 @@ class EuclideanDistanceReward(AbstractReward):
     def __call__(self, world):
         robot = world.actors[0]
         T_ee = pm.fromMatrix(robot.robot.forward(robot.state.arm))
-        T_obj = world.getObject(self.goal).T
+        T_obj = world.getObject(self.goal).state.T
         return np.linalg.norm(T_obj.p.tolist(), T_ee.p.tolist())
