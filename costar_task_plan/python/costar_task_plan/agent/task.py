@@ -18,9 +18,10 @@ class TaskAgent(AbstractAgent):
 
     name = "random"
 
-    def __init__(self, iter=10000, *args, **kwargs):
+    def __init__(self, env, iter=10000, *args, **kwargs):
         super(TaskAgent, self).__init__(*args, **kwargs)
         self.iter = iter
+        self.env = env
 
     def _addToDataset(self, action_name, world, control, features, reward, done):
         '''
@@ -32,9 +33,9 @@ class TaskAgent(AbstractAgent):
         # name.
         generic_action_name = action_name.split('(')[0]
 
-    def fit(self, env):
+    def fit(self):
 
-        task = env.taskModel()
+        task = self.env.taskModel()
         if not task.compiled:
             raise RuntimeError('environment must have associated compiled task model!')
 
@@ -48,7 +49,7 @@ class TaskAgent(AbstractAgent):
 
             while True:
 
-                node = Node(world=env.world, root=True)
+                node = Node(world=self.env.world, root=True)
 
                 if action is None:
                     action = policies.sample(node)
@@ -62,8 +63,8 @@ class TaskAgent(AbstractAgent):
                     action = None
 
                 if control is not None:
-                    features, reward, done = env.step(control)
-                    self._addToDataset(action.tag, env.world, control, features, reward, done)
+                    features, reward, done, info = self.env.step(control)
+                    self._addToDataset(action.tag, self.env.world, control, features, reward, done)
 
         return None
         
