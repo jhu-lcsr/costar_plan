@@ -37,6 +37,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         blocks are placed at random.
         '''
         super(BlocksTaskDefinition, self).__init__(*args, **kwargs)
+        self.block_ids = []
         
 
     def _makeTask(self):
@@ -84,6 +85,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         specific position
         '''
         z = 0.025
+        ids = []
         for block in blocks:
             urdf_filename = os.path.join(urdf_dir, self.model, self.block_urdf%block)
             obj_id = pb.loadURDF(urdf_filename)
@@ -93,6 +95,8 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                     (0,0,0,1))
             self.addObject("block", obj_id)
             z += 0.05
+            ids.append(obj_id)
+        return ids
 
     def _setup(self):
         '''
@@ -109,13 +113,38 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             for idx, block in zip(placement, self.blocks):
                 if idx == i:
                     blocks.append(block)
-            self._addTower(pos, blocks, urdf_dir)
+            ids = self._addTower(pos, blocks, urdf_dir)
+            self.block_ids += ids
             
         self.world.addCondition(JointLimitViolationCondition(), -100, "joints_in_limits")
         self.world.reward = EuclideanReward("block001")
 
     def reset(self):
-        pass
+        '''
+        Reset blocks to new random towers
+        '''
+
+        placement = np.random.randint(
+                0,
+                len(self.stack_pos),
+                (len(self.blocks),))
+
+        # loop over all stacks
+        # pull out ids now associated with a stack
+        for i, pos in enumerate(self.stack_pos):
+            blocks = []
+            for idx, block in zip(placement, self.blocks):
+                    if idx == i:
+                        blocks.append(block)
+
+            # add blocks to tower
+            z = 0.025
+            for block_id in self.block_ids:
+                pb.resetBasePositionAndOrientation(
+                        block_id,
+                    (pos[0], pos[1], z),
+                    (0,0,0,1))
+                z += 0.05
 
     def getName(self):
         return "blocks"
