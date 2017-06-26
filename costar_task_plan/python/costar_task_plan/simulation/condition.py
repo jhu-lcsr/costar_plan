@@ -14,6 +14,7 @@ class CollisionCondition(AbstractCondition):
         self.allowed = allowed
 
     def _check(self, world, state, actor, prev_state=None):
+        rasie NotImplementedError('come on, this does not work yet')
         pass
 
 class JointLimitViolationCondition(AbstractCondition):
@@ -28,7 +29,6 @@ class JointLimitViolationCondition(AbstractCondition):
         '''
         Use KDL kinematics to determine if the joint limits were acceptable
         '''
-        print state.arm
         return actor.robot.kinematics.joints_in_limits(state.arm).all()
 
 class SafeJointLimitViolationCondition(AbstractCondition):
