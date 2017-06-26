@@ -11,8 +11,11 @@ def GetFeatures(features):
     '''
     try:
         return {
+            '': EmptyFeatures(),
             'null': EmptyFeatures(),
+            'empty': EmptyFeatures(),
             'depth': DepthImageFeatures(),
+            'rgb': RgbImageFeatures(),
         }[features]
     except KeyError, e:
         raise NotImplementedError('Feature function %s not implemented!' % task)
@@ -28,7 +31,10 @@ class EmptyFeatures(AbstractFeatures):
       return np.array([0]), np.array([0])
 
 class DepthImageFeatures(AbstractFeatures):
-
+  '''
+  The only features we return are the depths associated with each camera pixel.
+  So we get 2.5D data here.
+  '''
   def compute(self, world, state):
       return world.cameras[0].capture().depth
 
@@ -37,3 +43,12 @@ class DepthImageFeatures(AbstractFeatures):
 
   def getBounds(self):
     raise Exception('feature.getBounds not yet implemented!')
+
+class RgbImageFeatures(AbstractFeatures):
+  '''
+  The only feature data we return will be a single RGB image from the first
+  camera placed in the world, where ever that may be.
+  '''
+  def compute(self, world, state):
+      return world.cameras[0].capture().rgb
+
