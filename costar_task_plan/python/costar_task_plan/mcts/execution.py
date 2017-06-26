@@ -1,3 +1,8 @@
+'''
+By Chris Paxton
+Copyright (c) 2017, The Johns Hopkins University
+See license for details.
+'''
 
 # This is the simple callable that sends the command to be executed to whatever
 # robot, simulation, etc. that actually performs the commands and gets the next

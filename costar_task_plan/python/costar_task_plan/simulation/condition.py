@@ -70,7 +70,16 @@ class GoalPositionCondition(AbstractCondition):
         Returns true if within tolerance of position or any closer to goal
         object.
         '''
-        return True
+
+        # Get position of the object we are grasping. Since we compute a
+        # KDL transform whenever we update the world's state, we can use
+        # that for computing positions and stuff like that.
+        obj = world.getObject(self.goal)
+        T = obj.state.T * self.T
+        T_robot = state.robot.fwd(state.arm)
+        dist = (T_robot - self.T).Norm()
+
+        return dist < self.pos_tol
 
 
 class AbsolutePositionCondition(AbstractCondition):
@@ -97,4 +106,7 @@ class AbsolutePositionCondition(AbstractCondition):
         '''
         Returns true until we are within tolerance of position
         '''
-        return True
+        T_robot = state.robot.fwd(state.arm)
+        dist = (T_robot - self.T).Norm()
+
+        return dist < self.pos_tol
