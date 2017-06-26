@@ -14,7 +14,7 @@ class CollisionCondition(AbstractCondition):
         self.allowed = allowed
 
     def _check(self, world, state, actor, prev_state=None):
-        rasie NotImplementedError('come on, this does not work yet')
+        raise NotImplementedError('come on, this does not work yet')
         pass
 
 class JointLimitViolationCondition(AbstractCondition):
@@ -77,7 +77,7 @@ class GoalPositionCondition(AbstractCondition):
         obj = world.getObject(self.goal)
         T = obj.state.T * self.T
         T_robot = state.robot.fwd(state.arm)
-        dist = (T_robot - self.T).Norm()
+        dist = (T_robot.p - self.T.p).Norm()
 
         return dist > self.pos_tol
 
@@ -107,6 +107,6 @@ class AbsolutePositionCondition(AbstractCondition):
         Returns true until we are within tolerance of position
         '''
         T_robot = state.robot.fwd(state.arm)
-        dist = (T_robot - self.T).Norm()
+        dist = (T_robot.p - self.T.p).Norm()
 
         return dist > self.pos_tol
