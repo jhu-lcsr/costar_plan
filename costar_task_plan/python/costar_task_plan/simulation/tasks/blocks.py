@@ -25,10 +25,14 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
 
     # Objects are placed into a random stack.
     stack_pos = [
-            np.array([-0.5, 0., 0.]),
-            np.array([-0.5, 0.2, 0.]),
-            np.array([-0.5, -0.2, 0.]),
+            #np.array([-0.5, 0., 0.]),
+            np.array([-0.5, 0.15, 0.]),
+            np.array([-0.5, 0.3, 0.]),
+            np.array([-0.5, -0.15, 0.]),
+            np.array([-0.5, -0.3, 0.]),
             ]
+
+    final_stack_pos = np.array([-0.5, 0., 0.])
 
     def __init__(self, *args, **kwargs):
         '''
@@ -107,7 +111,9 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         path = rospack.get_path('costar_objects')
         urdf_dir = os.path.join(path, self.urdf_dir)
 
-        placement = np.random.randint(0,len(self.stack_pos),(len(self.blocks),))
+        #placement = np.random.randint(0,len(self.stack_pos),(len(self.blocks),))
+        placement = np.array(range(len(self.stack_pos)))
+        np.random.shuffle(placement)
         for i, pos in enumerate(self.stack_pos):
             blocks = []
             for idx, block in zip(placement, self.blocks):
@@ -124,10 +130,12 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         Reset blocks to new random towers
         '''
 
-        placement = np.random.randint(
-                0,
-                len(self.stack_pos),
-                (len(self.blocks),))
+        #placement = np.random.randint(
+        #        0,
+        #        len(self.stack_pos),
+        #        (len(self.blocks),))
+        placement = np.array(range(len(self.stack_pos)))
+        np.random.shuffle(placement)
 
         # loop over all stacks
         # pull out ids now associated with a stack

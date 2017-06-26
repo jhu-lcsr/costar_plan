@@ -78,7 +78,10 @@ class GoalPositionCondition(AbstractCondition):
         T = obj.state.T * self.T
         T_robot = state.robot.fwd(state.arm)
         dist = (T_robot.p - self.T.p).Norm()
-
+        
+        print T_robot.p, T.p,
+        print obj.state.T.p,
+        print dist, self.pos_tol
         return dist > self.pos_tol
 
 
