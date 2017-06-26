@@ -79,7 +79,7 @@ class GoalPositionCondition(AbstractCondition):
         T_robot = state.robot.fwd(state.arm)
         dist = (T_robot - self.T).Norm()
 
-        return dist < self.pos_tol
+        return dist > self.pos_tol
 
 
 class AbsolutePositionCondition(AbstractCondition):
@@ -109,4 +109,4 @@ class AbsolutePositionCondition(AbstractCondition):
         T_robot = state.robot.fwd(state.arm)
         dist = (T_robot - self.T).Norm()
 
-        return dist < self.pos_tol
+        return dist > self.pos_tol
