@@ -22,7 +22,7 @@ if [ nvidia-smi ]
 then
   sudo -H pip install tensorflow-gpu
 else
-  sudo -H pip install tensorflow-gpu
+  sudo -H pip install tensorflow
 fi
 
 echo "======================================================"
