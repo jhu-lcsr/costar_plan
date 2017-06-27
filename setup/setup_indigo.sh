@@ -17,7 +17,11 @@ echo "Installing basics from apt-get..."
 sudo apt-get -y install python-pygame python-dev
 echo "Installing smaller libraries from pip..."
 sudo -H pip install --no-binary numpy
-sudo -H pip install h5py keras sympy matplotlib pygame gmr networkx dtw pypr gym PyPNG pybullet
+sudo -H pip install h5py keras keras-rl sympy matplotlib pygame gmr networkx \
+  dtw pypr gym PyPNG pybullet
+
+# TODO(cpaxton): come up with a better way to install tensorflow here. We want
+# to ensure that everything is configured properly for tests.
 if [ nvidia-smi ]
 then
   sudo -H pip install tensorflow
@@ -27,7 +31,8 @@ fi
 
 echo "======================================================"
 echo "ROS"
-sudo apt-get install -y python-catkin-pkg python-rosdep python-wstool python-catkin-tools ros-$ROS_DISTRO-catkin ros-$ROS_DISTRO-ros-base
+sudo apt-get install -y python-catkin-pkg python-rosdep python-wstool \
+  python-catkin-tools ros-$ROS_DISTRO-catkin ros-$ROS_DISTRO-ros-base
 echo "--> source ROS setup in /opt/ros/$ROS_DISTRO/setup.bash"
 source /opt/ros/$ROS_DISTRO/setup.bash
 sudo rosdep init
