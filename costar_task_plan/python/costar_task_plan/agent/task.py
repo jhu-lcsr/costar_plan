@@ -49,29 +49,20 @@ class TaskAgent(AbstractAgent):
 
         for _ in xrange(self.iter):
 
-            action = None
-            control = None
+            plan = None
 
             while True:
 
-                node = Node(world=self.env.world, root=True)
-
-                if action is None:
-                    action = policies.sample(node)
-                    print action.tag
-            
-                if action.condition(node.world,
-                        node.state,
-                        node.world.actors[0],
-                        node.world.actors[0].last_state):
-                    control = action.getAction(node)
-                else:
-                    action = None
-                    control = None
-
-                if control is not None:
-                    features, reward, done, info = self.env.step(control)
-                    self._addToDataset(action.tag, self.env.world, control, features, reward, done)
+                if plan is None:
+                    root = Node(world=self.env.world, root=True)
+                    path = search(root)
+                    plan = ExecutionPlan(path)
+                    
+                if plan is not None:
+                    control = plan.apply(self.env.world)
+                    if control is not None:
+                        features, reward, done, info = self.env.step(control)
+                        self._addToDataset(action.tag, self.env.world, control, features, reward, done)
 
         return None
         

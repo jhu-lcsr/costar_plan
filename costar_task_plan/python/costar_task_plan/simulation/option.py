@@ -29,7 +29,9 @@ class GoalDirectedMotionOption(AbstractOption):
             raise RuntimeError('Must specify pose.')
 
     def makePolicy(self, world):
-        return CartesianMotionPolicy(self.position, self.rotation)
+        return CartesianMotionPolicy(self.position,
+                self.rotation,
+                goal=self.goal)
 
     def samplePolicy(self, world):
         return CartesianMotionPolicy(self.position,
@@ -78,6 +80,13 @@ class GeneralMotionOption(AbstractOption):
         if pose is not None:
             self.position, self.rotation = pose
 
+    def makePolicy(self, world):
+        return CartesianMotionPolicy(self.position, self.rotation, goal=None)
+
+    def samplePolicy(self, world):
+        return CartesianMotionPolicy(self.position,
+                self.rotation,
+                goal=None)
 
 class CartesianMotionPolicy(AbstractPolicy):
     def __init__(self, pos, rot, goal=None):

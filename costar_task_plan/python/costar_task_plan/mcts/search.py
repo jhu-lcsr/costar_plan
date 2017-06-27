@@ -92,8 +92,8 @@ class RandomSearch(AbstractSearch):
               node.children.append(Node(action=action))
               child = node.children[-1]
               node.instantiate(child)
-              if self._initialize:
-                self._initialize(child)
+              if self.policies._initialize:
+                self.policies._initialize(child)
               node = child
 
         elapsed = timeit.default_timer() - start_time
