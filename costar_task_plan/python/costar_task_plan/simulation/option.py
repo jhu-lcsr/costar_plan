@@ -19,7 +19,7 @@ class GoalDirectedMotionOption(AbstractOption):
     running on the robot will be enough to take us to the goal position.
     '''
 
-    def __init__(self, world, goal, pose, pose_tolerance=(1e-3,1e-3), *args, **kwargs):
+    def __init__(self, world, goal, pose, pose_tolerance=(1e-2,1e-2), *args, **kwargs):
         self.goal = goal
         self.goal_id = world.getObjectId(goal)
         if pose is not None:
