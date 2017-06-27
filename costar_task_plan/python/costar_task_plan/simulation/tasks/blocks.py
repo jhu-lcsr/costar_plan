@@ -32,7 +32,9 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             np.array([-0.5, -0.3, 0.]),
             ]
 
-    final_stack_pos = np.array([-0.5, 0., 0.])
+    over_final_stack_pos = np.array([-0.5, 0., 0.])
+    final_stack_pos = np.array([-0.5, 0., 0.5])
+    grasp_q = (-0.27,0.65,0.65,0.27)
 
     def __init__(self, *args, **kwargs):
         '''
@@ -48,7 +50,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         AlignOption = lambda goal: GoalDirectedMotionOption(
                 self.world,
                 goal, 
-                pose=((0.05,0,0.05),(-0.27,0.65,0.65,0.27)),
+                pose=((0.05,0,0.05),self.grasp_q),
                 pose_tolerance=(0.025,0.025))
         align_args = {
                 "constructor": AlignOption,
@@ -58,19 +60,23 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         GraspOption = lambda goal: GoalDirectedMotionOption(
                 self.world,
                 goal, 
-                pose=((0.0,0,0.0),(-0.27,0.65,0.65,0.27)),
-                pose_tolerance=(0.01,0.01))
+                pose=((0.0,0,0.0),self.grasp_q),
+                pose_tolerance=(0.025,0.025))
         grasp_args = {
                 "constructor": GraspOption,
                 "args": ["block"],
                 "remap": {"block": "goal"},
                 }
-        LiftOption = lambda: GeneralMotionOption(None)
+        LiftOption = lambda: GeneralMotionOption(
+                pose=(self.over_final_stack_pos, self.grasp_q),
+                pose_tolerance=(0.025,0.025))
         lift_args = {
                 "constructor": LiftOption,
                 "args": []
                 }
-        PlaceOption = lambda: GeneralMotionOption(None)
+        PlaceOption = lambda: GeneralMotionOption(
+                pose=(self.final_stack_pos, self.grasp_q),
+                pose_tolerance=(0.025,0.025))
         place_args = {
                 "constructor": PlaceOption,
                 "args": []

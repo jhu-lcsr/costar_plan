@@ -1,5 +1,5 @@
 
-from condition import GoalPositionCondition
+from condition import GoalPositionCondition, AbsolutePositionCondition
 from world import *
 
 from costar_task_plan.abstract import AbstractOption
@@ -76,9 +76,12 @@ class GeneralMotionOption(AbstractOption):
     This motion is not parameterized by anything in particular. This lets us 
     sample policies that will take us twoards this goal. 
     '''
-    def __init__(self, pose, *args, **kwargs):
+    def __init__(self, pose, pose_tolerance, *args, **kwargs):
         if pose is not None:
             self.position, self.rotation = pose
+            self.position_tolerance, self.rotation_tolerance = pose_tolerance
+        else:
+            raise RuntimeError('must provide a position to move to.')
 
     def makePolicy(self, world):
         return CartesianMotionPolicy(self.position, self.rotation, goal=None)
@@ -87,6 +90,16 @@ class GeneralMotionOption(AbstractOption):
         return CartesianMotionPolicy(self.position,
                 self.rotation,
                 goal=None)
+
+    def getGatingCondition(self, *args, **kwargs):
+        # Get the gating condition for this specific option.
+        # - execution should continue until such time as this condition is true.
+        return AbsolutePositionCondition(
+                self.position, # where we want to grab it
+                self.rotation, # rotation with which we want to grab it
+                self.position_tolerance,
+                self.rotation_tolerance,
+                )
 
 class CartesianMotionPolicy(AbstractPolicy):
     def __init__(self, pos, rot, goal=None):

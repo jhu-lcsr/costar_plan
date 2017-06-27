@@ -91,13 +91,12 @@ class AbsolutePositionCondition(AbstractCondition):
     True until the robot has gotten within some distance of a particular point
     in the world's coordinate frame.
     '''
-    def __init__(self, goal, pos, rot, pos_tol, rot_tol):
+    def __init__(self, pos, rot, pos_tol, rot_tol):
         self.pos_tol = pos_tol
         self.rot_tol = rot_tol
 
         self.pos = pos
         self.rot = rot
-        self.goal = goal
         
         # If we are within this distance, the action failed.
         self.dist = np.linalg.norm(self.pos)
