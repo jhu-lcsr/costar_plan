@@ -82,11 +82,11 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                 "args": []
                 }
         close_gripper_args = {
-                "constructor": PlaceOption,
+                "constructor": CloseGripperOption,
                 "args": []
                 }
         open_gripper_args = {
-                "constructor": PlaceOption,
+                "constructor": OpenGripperOption,
                 "args": []
                 }
 

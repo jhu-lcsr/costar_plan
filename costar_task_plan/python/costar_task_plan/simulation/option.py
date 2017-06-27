@@ -3,7 +3,7 @@ from condition import GoalPositionCondition, AbsolutePositionCondition
 from world import *
 
 from costar_task_plan.abstract import AbstractOption
-from costar_task_plan.abstract import AbstractCondition
+from costar_task_plan.abstract import AbstractCondition, TimeCondition
 from costar_task_plan.abstract import AbstractPolicy
 
 import pybullet as pb
@@ -101,6 +101,37 @@ class GeneralMotionOption(AbstractOption):
                 self.rotation_tolerance,
                 )
 
+class OpenGripperOption(AbstractOption):
+    '''
+    Look up the robot for the specific actor, and perform the appropriate "open
+    gripper" action, as specified.
+
+    This is something that we need to set from the particular robot, since each
+    robot can have its own ways of closing a gripper and its own commands that
+    are appropriate for this.
+    '''
+    def makePolicy(self, world):
+        return OpenGripperPolicy()
+    def samplePolicy(self, world):
+        return OpenGripperPolicy()
+    def getGatingCondition(self, world, *args, **kwargs):
+        return TimeCondition(world.time() + 1.0)
+        
+
+class CloseGripperOption(AbstractOption):
+    '''
+    As above, this option creates the approprite policies for closing a gripper,
+    and does nothing else. These policies count on certain information
+    associated with the actor's state in order to function.
+    '''
+    def makePolicy(self, world):
+        return CloseGripperPolicy()
+    def samplePolicy(self, world):
+        return CloseGripperPolicy()
+    def getGatingCondition(self, world, *args, **kwargs):
+        #return GripperCloseCondition()
+        return TimeCondition(world.time() + 1.0)
+
 class CartesianMotionPolicy(AbstractPolicy):
     def __init__(self, pos, rot, goal=None):
         self.pos = pos
@@ -147,3 +178,9 @@ class CartesianMotionPolicy(AbstractPolicy):
         cmd = actor.robot.ik(T, state.arm)
         #print "q =",cmd, "goal =", T.p, T.M.GetRPY()
         return SimulationRobotAction(arm_cmd=cmd)
+
+class OpenGripperPolicy(AbstractPolicy):
+    pass
+
+class CloseGripperPolicy(AbstractPolicy):
+    pass

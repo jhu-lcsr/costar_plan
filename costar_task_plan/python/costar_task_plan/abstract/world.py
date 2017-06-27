@@ -35,6 +35,9 @@ class AbstractWorld(object):
     self.max_ticks = 100
     self.scale_reward_to_max_ticks = False
 
+  def time(self):
+      return self.dt * self.ticks
+
   def updateTraceID(self):
     self.trace_id = self.next_trace_id
     self.next_trace_id += 1
