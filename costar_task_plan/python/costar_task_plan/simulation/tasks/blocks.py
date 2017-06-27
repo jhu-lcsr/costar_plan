@@ -141,13 +141,13 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         # pull out ids now associated with a stack
         for i, pos in enumerate(self.stack_pos):
             blocks = []
-            for idx, block in zip(placement, self.blocks):
+            for idx, block in zip(placement, self.block_ids):
                     if idx == i:
                         blocks.append(block)
 
             # add blocks to tower
             z = 0.025
-            for block_id in self.block_ids:
+            for block_id in blocks:
                 pb.resetBasePositionAndOrientation(
                         block_id,
                     (pos[0], pos[1], z),
