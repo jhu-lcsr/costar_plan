@@ -91,9 +91,10 @@ class ContinuousTaskSample(AbstractSample):
     children = self.task.children[node.tag]
     tag = children[idx]
     option = self.task.nodes[tag]
+    policy,condition = option.samplePolicy(node.world)
     return MctsAction(
-            policy=option.samplePolicy(node.world),
-            condition=option.getGatingCondition(node.world),
+            policy=policy,
+            condition=condition,
             id=idx,
             tag=tag,
             ticks=None)
@@ -103,10 +104,11 @@ class ContinuousTaskSample(AbstractSample):
     idx = np.random.randint(len(children))
     tag = children[idx]
     option = self.task.nodes[tag]
-    print "tag=",tag,option
+    policy,condition = option.samplePolicy(node.world)
+    #print "tag=",tag,option
     return MctsAction(
-            policy=option.samplePolicy(node.world),
-            condition=option.getGatingCondition(node.world),
+            policy=policy,
+            condition=condition,
             id=idx,
             tag=tag,
             ticks=None)

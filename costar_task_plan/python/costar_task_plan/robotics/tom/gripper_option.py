@@ -16,9 +16,9 @@ class TomGripperOpenOption(TomGripperOption):
   def __init__(self):
     super(TomGripperOpenOption,self).__init__(False)
 
-  #Create a policy that will send a command to close the gripper
-  def makePolicy(self):
-    return TomOpenGripperPolicy()
+  def makePolicy(self, world):
+    #Create a policy that will send a command to close the gripper
+    return TomOpenGripperPolicy(), getGatingCondition()
 
   # Holds until the world reports that TOM's gripper is closed
   def getGatingCondition(self, *args, **kwargs):
@@ -30,10 +30,10 @@ class TomGripperCloseOption(TomGripperOption):
     super(TomGripperCloseOption,self).__init__(True)
 
   def makePolicy(self):
-    return TomCloseGripperPolicy()
+    return TomCloseGripperPolicy(), getGatingCondition()
 
-  # Holds until the world reports TOM's gripper is open
   def getGatingCondition(self, *args, **kwargs):
+    # Holds until the world reports TOM's gripper is open
     return TomGripperNotClosedCondition()
 
 # =============================================================================

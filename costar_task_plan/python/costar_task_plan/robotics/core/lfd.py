@@ -146,9 +146,9 @@ class LfD(object):
                 skill_name=name,
                 feature_model=model,
                 traj_dist=self.getParamDistribution(name))
-            policy = option.makePolicy(world)
+
+            policy, condition = option.makePolicy(world)
             dynamics = SimulatedDynamics()
-            condition = option.getGatingCondition()
 
             state = world.actors[0].state
 

@@ -31,23 +31,29 @@ class GoalDirectedMotionOption(AbstractOption):
     def makePolicy(self, world):
         return CartesianMotionPolicy(self.position,
                 self.rotation,
-                goal=self.goal)
-
-    def samplePolicy(self, world):
-        return CartesianMotionPolicy(self.position,
-                self.rotation,
-                goal=self.goal)
-
-    def getGatingCondition(self, *args, **kwargs):
-        # Get the gating condition for a specific option.
-        # - execution should continue until such time as this condition is true.
-        return GoalPositionCondition(
+                goal=self.goal),
+            # Get the gating condition for a specific option.
+            # - execution should continue until such time as this condition is true.
+            GoalPositionCondition(
                 self.goal, # what object we care about
                 self.position, # where we want to grab it
                 self.rotation, # rotation with which we want to grab it
                 self.position_tolerance,
                 self.rotation_tolerance)
-        
+
+    def samplePolicy(self, world):
+        return CartesianMotionPolicy(self.position,
+                self.rotation,
+                goal=self.goal),
+            # Get the gating condition for a specific option.
+            # - execution should continue until such time as this condition is true.
+            GoalPositionCondition(
+                self.goal, # what object we care about
+                self.position, # where we want to grab it
+                self.rotation, # rotation with which we want to grab it
+                self.position_tolerance,
+                self.rotation_tolerance)
+
     def checkPrecondition(self, world, state):
         # Is it ok to begin this option?
         if not isinstance(world, AbstractWorld):
@@ -89,12 +95,10 @@ class GeneralMotionOption(AbstractOption):
     def samplePolicy(self, world):
         return CartesianMotionPolicy(self.position,
                 self.rotation,
-                goal=None)
-
-    def getGatingCondition(self, *args, **kwargs):
-        # Get the gating condition for this specific option.
-        # - execution should continue until such time as this condition is true.
-        return AbsolutePositionCondition(
+                goal=None),
+            # Get the gating condition for this specific option.
+            # - execution should continue until such time as this condition is true.
+            AbsolutePositionCondition(
                 self.position, # where we want to grab it
                 self.rotation, # rotation with which we want to grab it
                 self.position_tolerance,
@@ -111,12 +115,9 @@ class OpenGripperOption(AbstractOption):
     are appropriate for this.
     '''
     def makePolicy(self, world):
-        return OpenGripperPolicy()
+        return OpenGripperPolicy(), TimeCondition(world.time() + 1.0)
     def samplePolicy(self, world):
-        return OpenGripperPolicy()
-    def getGatingCondition(self, world, *args, **kwargs):
-        return TimeCondition(world.time() + 1.0)
-        
+        return OpenGripperPolicy(), TimeCondition(world.time() + 1.0)
 
 class CloseGripperOption(AbstractOption):
     '''
@@ -125,12 +126,9 @@ class CloseGripperOption(AbstractOption):
     associated with the actor's state in order to function.
     '''
     def makePolicy(self, world):
-        return CloseGripperPolicy()
+        return CloseGripperPolicy(), TimeCondition(world.time() + 1.0)
     def samplePolicy(self, world):
-        return CloseGripperPolicy()
-    def getGatingCondition(self, world, *args, **kwargs):
-        #return GripperCloseCondition()
-        return TimeCondition(world.time() + 1.0)
+        return CloseGripperPolicy(), TimeCondition(world.time() + 1.0)
 
 class CartesianMotionPolicy(AbstractPolicy):
     def __init__(self, pos, rot, goal=None):
