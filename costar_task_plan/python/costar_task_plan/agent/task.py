@@ -58,12 +58,12 @@ class TaskAgent(AbstractAgent):
 
                 if action is None:
                     action = policies.sample(node)
+                    print action.tag
             
                 if action.condition(node.world,
                         node.state,
                         node.world.actors[0],
                         node.world.actors[0].last_state):
-                    print action.tag
                     control = action.getAction(node)
                 else:
                     action = None

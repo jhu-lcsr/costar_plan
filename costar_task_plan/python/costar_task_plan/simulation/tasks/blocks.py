@@ -48,7 +48,8 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         AlignOption = lambda goal: GoalDirectedMotionOption(
                 self.world,
                 goal, 
-                pose=((0.05,0,0.05),(-0.27,0.65,0.65,0.27)))
+                pose=((0.05,0,0.05),(-0.27,0.65,0.65,0.27)),
+                pose_tolerance=(0.025,0.025))
         align_args = {
                 "constructor": AlignOption,
                 "args": ["block"],
@@ -57,7 +58,8 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         GraspOption = lambda goal: GoalDirectedMotionOption(
                 self.world,
                 goal, 
-                pose=((0.0,0,0.0),(-0.27,0.65,0.65,0.27)))
+                pose=((0.0,0,0.0),(-0.27,0.65,0.65,0.27)),
+                pose_tolerance=(0.01,0.01))
         grasp_args = {
                 "constructor": GraspOption,
                 "args": ["block"],
