@@ -16,11 +16,11 @@ echo "Installing python dependencies:"
 echo "Installing basics from apt-get..."
 sudo apt-get -y install python-pygame python-dev
 echo "Installing smaller libraries from pip..."
-sudo -H pip install numpy --no-binary numpy
+sudo -H pip install --no-binary numpy
 sudo -H pip install h5py keras sympy matplotlib pygame gmr networkx dtw pypr gym PyPNG pybullet
 if [ nvidia-smi ]
 then
-  sudo -H pip install tensorflow-gpu
+  sudo -H pip install tensorflow
 else
   sudo -H pip install tensorflow
 fi
@@ -42,7 +42,7 @@ source /opt/ros/$ROS_DISTRO/setup.bash
 catkin init
 cd $CATKIN_WS/src
 
-git clone https://github.com:cpaxton/hrl-kdl.git --branch indigo-devel
+git clone https://github.com/cpaxton/hrl-kdl.git  --branch indigo-devel
 git clone https://github.com/cburbridge/python_pcd.git
 git clone https://github.com/jhu-lcsr/costar_objects.git
 git clone https://github.com/cpaxton/dmp.git --branch indigo

@@ -4,7 +4,9 @@ class GAN(object):
         pass
 
 class SimpleGAN(GAN):
-    pass
+    
+    def __init__(self, input_shape, output_shape):
+        pass
 
 class SimpleLSTMGAN(GAN):
     pass

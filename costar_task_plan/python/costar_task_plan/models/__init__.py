@@ -10,9 +10,6 @@ __all__ = [
     'HostileAdversary',
     ]
 
-# general interfaces
-from oracle import *
-
 # general learning utilites
 from sampler import *
 from fast import *
@@ -23,3 +20,5 @@ from gmm_dynamics import *
 from adversary import *
 import adversary
 
+# neural net models
+import gan
