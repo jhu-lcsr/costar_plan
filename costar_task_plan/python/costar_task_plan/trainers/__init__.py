@@ -4,11 +4,10 @@ __all__ = [
   "SupervisedRecurrentTrainer",
   "ReinforceTrainer",
   "DiscreteReinforceTrainer",
-  "GuidedPolicySearchTrainer",
   ]
 
 from abstract import *
 from basic import *
 from cem import *
 from actor_critic import *
-from gps import *
+
