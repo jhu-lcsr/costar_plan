@@ -18,7 +18,7 @@ sudo apt-get -y install python-pygame python-dev
 echo "Installing smaller libraries from pip..."
 sudo -H pip install --no-binary numpy
 sudo -H pip install h5py keras keras-rl sympy matplotlib pygame gmr networkx \
-  dtw pypr gym PyPNG pybullet
+  dtw pypr gym PyPNG pybullet numba
 
 # TODO(cpaxton): come up with a better way to install tensorflow here. We want
 # to ensure that everything is configured properly for tests.
