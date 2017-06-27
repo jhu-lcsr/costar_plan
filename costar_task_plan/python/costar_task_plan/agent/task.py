@@ -34,6 +34,11 @@ class TaskAgent(AbstractAgent):
         generic_action_name = action_name.split('(')[0]
 
     def fit(self):
+        '''
+        This is a "fake" agent -- it does not fit any model in particular, it
+        just generates some data. You almost certainly just want to call fit()
+        to generate training data that can be used with some other options.
+        '''
 
         task = self.env.taskModel()
         if not task.compiled:
