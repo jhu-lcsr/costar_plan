@@ -58,9 +58,11 @@ class TaskAgent(AbstractAgent):
                         node.state,
                         node.world.actors[0],
                         node.world.actors[0].last_state):
+                    print action.tag
                     control = action.getAction(node)
                 else:
                     action = None
+                    control = None
 
                 if control is not None:
                     features, reward, done, info = self.env.step(control)
