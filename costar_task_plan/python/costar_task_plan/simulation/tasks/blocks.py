@@ -45,6 +45,15 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         
 
     def _makeTask(self):
+        AlignOption = lambda goal: GoalDirectedMotionOption(
+                self.world,
+                goal, 
+                pose=((0.05,0,0.05),(-0.27,0.65,0.65,0.27)))
+        align_args = {
+                "constructor": AlignOption,
+                "args": ["block"],
+                "remap": {"block": "goal"},
+                }
         GraspOption = lambda goal: GoalDirectedMotionOption(
                 self.world,
                 goal, 
@@ -75,7 +84,8 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
 
         # Create a task model
         task = Task()
-        task.add("grasp", None, grasp_args)
+        task.add("align", None, align_args)
+        task.add("grasp", "align", grasp_args)
         task.add("close_gripper", "grasp", close_gripper_args)
         task.add("lift", "close_gripper", lift_args)
         task.add("place", "lift", place_args)
