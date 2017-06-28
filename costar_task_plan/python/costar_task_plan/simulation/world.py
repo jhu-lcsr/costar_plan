@@ -82,7 +82,7 @@ class SimulationWorld(AbstractWorld):
 
     
     def zeroAction(self, actor):
-        return SimulationRobotAction(cmd=None)
+        return SimulationRobotAction()
 
 class SimulationDynamics(AbstractDynamics):
     '''

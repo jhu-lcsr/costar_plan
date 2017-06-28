@@ -9,10 +9,10 @@ from action import *
 import numpy as np
 import operator
 
-'''
-Policy that represents only a single policy
-'''
 class SinglePolicySample(AbstractSample):
+  '''
+  Policy that represents only a single policy
+  '''
   def __init__(self, policy, ticks=10):
     self.policy = policy
     self.ticks = ticks
@@ -32,10 +32,10 @@ class SinglePolicySample(AbstractSample):
   def getName(self):
     return "single"
 
-'''
-Empty sampler for fixed-width trees
-'''
 class NullSample(object):
+  '''
+  Empty sampler for fixed-width trees
+  '''
   def _sample(self, node):
     return None
   def getOption(self, node, idx):
@@ -119,10 +119,10 @@ class ContinuousTaskSample(AbstractSample):
   def getName(self):
     return "single"
 
-'''
-Sample directly from a list of actions
-'''
 class ActionSample(AbstractSample):
+    '''
+    Sample directly from a list of actions
+    '''
 
     def __init__(selfl, actions):
         self.actions = actions

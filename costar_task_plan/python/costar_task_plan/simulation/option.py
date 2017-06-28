@@ -179,7 +179,9 @@ class CartesianMotionPolicy(AbstractPolicy):
         return SimulationRobotAction(arm_cmd=cmd)
 
 class OpenGripperPolicy(AbstractPolicy):
-    pass
+    def evaluate(self, world, state, actor):
+        pass
 
 class CloseGripperPolicy(AbstractPolicy):
-    pass
+    def evaluate(self, world, state, actor):
+        pass
