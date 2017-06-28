@@ -148,12 +148,6 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         '''
         Reset blocks to new random towers
         '''
-<<<<<<< HEAD
-        placement = np.random.randint(
-                0,
-                len(self.stack_pos),
-                (len(self.blocks),))
-=======
 
         #placement = np.random.randint(
         #        0,
@@ -161,7 +155,6 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         #        (len(self.blocks),))
         placement = np.array(range(len(self.stack_pos)))
         np.random.shuffle(placement)
->>>>>>> 84864b9f41050629b925af82aec82416715b52b8
 
         # loop over all stacks
         # pull out ids now associated with a stack

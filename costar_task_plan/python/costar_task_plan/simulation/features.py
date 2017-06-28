@@ -15,11 +15,8 @@ def GetFeatures(features):
             'null': EmptyFeatures(),
             'empty': EmptyFeatures(),
             'depth': DepthImageFeatures(),
-<<<<<<< HEAD
             'joint_state' : JointStateFeatures(),
-=======
             'rgb': RgbImageFeatures(),
->>>>>>> 84864b9f41050629b925af82aec82416715b52b8
         }[features]
     except KeyError, e:
         raise NotImplementedError('Feature function %s not implemented!' % task)
@@ -48,7 +45,7 @@ class DepthImageFeatures(AbstractFeatures):
   def getBounds(self):
     raise Exception('feature.getBounds not yet implemented!')
 
-<<<<<<< HEAD
+
 
 class JointStateFeatures(AbstractFeatures):
 
@@ -61,7 +58,7 @@ class JointStateFeatures(AbstractFeatures):
 
   def getBounds(self):
     raise Exception('feature.getBounds not yet implemented!')
-=======
+
 class RgbImageFeatures(AbstractFeatures):
   '''
   The only feature data we return will be a single RGB image from the first
@@ -70,4 +67,4 @@ class RgbImageFeatures(AbstractFeatures):
   def compute(self, world, state):
       return world.cameras[0].capture().rgb
 
->>>>>>> 84864b9f41050629b925af82aec82416715b52b8
+

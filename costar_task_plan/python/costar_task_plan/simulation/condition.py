@@ -29,10 +29,6 @@ class JointLimitViolationCondition(AbstractCondition):
         '''
         Use KDL kinematics to determine if the joint limits were acceptable
         '''
-<<<<<<< HEAD
-        #print state.arm
-=======
->>>>>>> 84864b9f41050629b925af82aec82416715b52b8
         return actor.robot.kinematics.joints_in_limits(state.arm).all()
 
 class SafeJointLimitViolationCondition(AbstractCondition):
