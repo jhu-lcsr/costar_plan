@@ -29,30 +29,33 @@ class GoalDirectedMotionOption(AbstractOption):
             raise RuntimeError('Must specify pose.')
 
     def makePolicy(self, world):
+        # Make the policy.
+        # Get the gating condition for a specific option.
+        # - execution should continue until such time as this condition
+        # is true.
         return CartesianMotionPolicy(self.position,
                 self.rotation,
-                goal=self.goal),
-            # Get the gating condition for a specific option.
-            # - execution should continue until such time as this condition is true.
-            GoalPositionCondition(
-                self.goal, # what object we care about
-                self.position, # where we want to grab it
-                self.rotation, # rotation with which we want to grab it
-                self.position_tolerance,
-                self.rotation_tolerance)
+                goal=self.goal), \
+                GoalPositionCondition(
+                        self.goal, # what object we care about
+                        self.position, # where we want to grab it
+                        self.rotation, # rotation with which we want to grab it
+                        self.position_tolerance,
+                        self.rotation_tolerance)
 
     def samplePolicy(self, world):
+        # Get the gating condition for a specific option.
+        # - execution should continue until such time as this condition
+        # is true. 
         return CartesianMotionPolicy(self.position,
                 self.rotation,
-                goal=self.goal),
-            # Get the gating condition for a specific option.
-            # - execution should continue until such time as this condition is true.
-            GoalPositionCondition(
-                self.goal, # what object we care about
-                self.position, # where we want to grab it
-                self.rotation, # rotation with which we want to grab it
-                self.position_tolerance,
-                self.rotation_tolerance)
+                goal=self.goal), \
+                GoalPositionCondition(
+                        self.goal, # what object we care about
+                        self.position, # where we want to grab it
+                        self.rotation, # rotation with which we want to grab it
+                        self.position_tolerance,
+                        self.rotation_tolerance)
 
     def checkPrecondition(self, world, state):
         # Is it ok to begin this option?
@@ -95,15 +98,13 @@ class GeneralMotionOption(AbstractOption):
     def samplePolicy(self, world):
         return CartesianMotionPolicy(self.position,
                 self.rotation,
-                goal=None),
-            # Get the gating condition for this specific option.
-            # - execution should continue until such time as this condition is true.
-            AbsolutePositionCondition(
-                self.position, # where we want to grab it
-                self.rotation, # rotation with which we want to grab it
-                self.position_tolerance,
-                self.rotation_tolerance,
-                )
+                goal=None), \
+                AbsolutePositionCondition(
+                            self.position, # where we want to grab it
+                            self.rotation, # rotation with which we want to grab it
+                            self.position_tolerance,
+                            self.rotation_tolerance,
+                            )
 
 class OpenGripperOption(AbstractOption):
     '''
