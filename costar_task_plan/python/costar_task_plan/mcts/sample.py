@@ -101,6 +101,8 @@ class ContinuousTaskSample(AbstractSample):
 
   def _sample(self, node):
     children = self.task.children[node.tag]
+    if len(children) == 0:
+        return None
     idx = np.random.randint(len(children))
     tag = children[idx]
     option = self.task.nodes[tag]
