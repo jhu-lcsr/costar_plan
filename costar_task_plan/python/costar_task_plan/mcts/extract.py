@@ -1,3 +1,8 @@
+'''
+By Chris Paxton
+Copyright (c) 2017, The Johns Hopkins University
+All rights reserved. See license for details.
+'''
 
 from abstract import AbstractExtract
 

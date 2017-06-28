@@ -34,6 +34,11 @@ class TaskAgent(AbstractAgent):
         generic_action_name = action_name.split('(')[0]
 
     def fit(self):
+        '''
+        This is a "fake" agent -- it does not fit any model in particular, it
+        just generates some data. You almost certainly just want to call fit()
+        to generate training data that can be used with some other options.
+        '''
 
         task = self.env.taskModel()
         if not task.compiled:
@@ -44,27 +49,23 @@ class TaskAgent(AbstractAgent):
 
         for _ in xrange(self.iter):
 
-            action = None
-            control = None
+            plan = None
 
             while True:
 
-                node = Node(world=self.env.world, root=True)
-
-                if action is None:
-                    action = policies.sample(node)
-            
-                if action.condition(node.world,
-                        node.state,
-                        node.world.actors[0],
-                        node.world.actors[0].last_state):
-                    control = action.getAction(node)
-                else:
-                    action = None
-
-                if control is not None:
-                    features, reward, done, info = self.env.step(control)
-                    self._addToDataset(action.tag, self.env.world, control, features, reward, done)
+                if plan is None:
+                    root = Node(world=self.env.world, root=True)
+                    path = search(root)
+                    plan = ExecutionPlan(path)
+                    
+                if plan is not None:
+                    control = plan.apply(self.env.world)
+                    if control is not None:
+                        features, reward, done, info = self.env.step(control)
+                        self._addToDataset(action.tag, self.env.world, control, features, reward, done)
+                    else:
+                        self.env.reset()
+                        plan = None
 
         return None
         

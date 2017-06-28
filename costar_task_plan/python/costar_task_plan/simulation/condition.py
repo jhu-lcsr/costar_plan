@@ -14,6 +14,7 @@ class CollisionCondition(AbstractCondition):
         self.allowed = allowed
 
     def _check(self, world, state, actor, prev_state=None):
+        raise NotImplementedError('come on, this does not work yet')
         pass
 
 class JointLimitViolationCondition(AbstractCondition):
@@ -28,7 +29,6 @@ class JointLimitViolationCondition(AbstractCondition):
         '''
         Use KDL kinematics to determine if the joint limits were acceptable
         '''
-        print state.arm
         return actor.robot.kinematics.joints_in_limits(state.arm).all()
 
 class SafeJointLimitViolationCondition(AbstractCondition):
@@ -70,7 +70,20 @@ class GoalPositionCondition(AbstractCondition):
         Returns true if within tolerance of position or any closer to goal
         object.
         '''
-        return True
+
+        # Get position of the object we are grasping. Since we compute a
+        # KDL transform whenever we update the world's state, we can use
+        # that for computing positions and stuff like that.
+        obj = world.getObject(self.goal)
+        T = obj.state.T * self.T
+        T_robot = state.robot.fwd(state.arm)
+        dist = (T_robot.p - T.p).Norm()
+
+        #print (self.T.p.Norm())
+        #print (obj.state.T.p - T.p).Norm()
+        #print T_robot.p, T.p, dist
+        
+        return dist > self.pos_tol
 
 
 class AbsolutePositionCondition(AbstractCondition):
@@ -78,13 +91,12 @@ class AbsolutePositionCondition(AbstractCondition):
     True until the robot has gotten within some distance of a particular point
     in the world's coordinate frame.
     '''
-    def __init__(self, goal, pos, rot, pos_tol, rot_tol):
+    def __init__(self, pos, rot, pos_tol, rot_tol):
         self.pos_tol = pos_tol
         self.rot_tol = rot_tol
 
         self.pos = pos
         self.rot = rot
-        self.goal = goal
         
         # If we are within this distance, the action failed.
         self.dist = np.linalg.norm(self.pos)
@@ -97,4 +109,7 @@ class AbsolutePositionCondition(AbstractCondition):
         '''
         Returns true until we are within tolerance of position
         '''
-        return True
+        T_robot = state.robot.fwd(state.arm)
+        dist = (T_robot.p - self.T.p).Norm()
+
+        return dist > self.pos_tol

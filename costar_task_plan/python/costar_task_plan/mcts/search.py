@@ -85,15 +85,14 @@ class RandomSearch(AbstractSearch):
         node = root
         path = []
         while True:
-            print "adding", node, node.children
             path.append(node)
             action = self.policies.sample(node)
             if action is not None:
               node.children.append(Node(action=action))
               child = node.children[-1]
               node.instantiate(child)
-              if self._initialize:
-                self._initialize(child)
+              if self.policies._initialize:
+                self.policies._initialize(child)
               node = child
 
         elapsed = timeit.default_timer() - start_time
