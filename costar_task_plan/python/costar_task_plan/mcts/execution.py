@@ -1,3 +1,8 @@
+'''
+By Chris Paxton
+Copyright (c) 2017, The Johns Hopkins University
+See license for details.
+'''
 
 # This is the simple callable that sends the command to be executed to whatever
 # robot, simulation, etc. that actually performs the commands and gets the next
@@ -54,8 +59,11 @@ class ExecutionPlan(object):
     self.world = None
     self.actor_id = actor_id
 
-  
-  def step(self, world):
+  def apply(self, world):
+    '''
+    Return the next command that we should be applying according to this task
+    plan.
+    '''
     actor = world.actors[self.actor_id]
     state = actor.state
     cmd = None
@@ -88,7 +96,10 @@ class ExecutionPlan(object):
     if cmd is None:
       cmd = world.zeroAction(0)
       done = True
+    return cmd
 
+  def step(self, world):
+    cmd = self.apply(world)
     # Call our execute function. In general this will either:
     #   (a) send a command to a robot or a simulation running in another
     #       thread; or

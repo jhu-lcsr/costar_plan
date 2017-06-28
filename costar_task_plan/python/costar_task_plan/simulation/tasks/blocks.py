@@ -25,10 +25,16 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
 
     # Objects are placed into a random stack.
     stack_pos = [
-            np.array([-0.5, 0., 0.]),
-            np.array([-0.5, 0.2, 0.]),
-            np.array([-0.5, -0.2, 0.]),
+            #np.array([-0.5, 0., 0.]),
+            np.array([-0.5, 0.15, 0.]),
+            np.array([-0.5, 0.3, 0.]),
+            np.array([-0.5, -0.15, 0.]),
+            np.array([-0.5, -0.3, 0.]),
             ]
+
+    over_final_stack_pos = np.array([-0.5, 0., 0.5])
+    final_stack_pos = np.array([-0.5, 0., 0.])
+    grasp_q = (-0.27,0.65,0.65,0.27)
 
     def __init__(self, *args, **kwargs):
         '''
@@ -41,41 +47,58 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         
 
     def _makeTask(self):
+        AlignOption = lambda goal: GoalDirectedMotionOption(
+                self.world,
+                goal, 
+                pose=((0.05,0,0.05),self.grasp_q),
+                pose_tolerance=(0.025,0.025))
+        align_args = {
+                "constructor": AlignOption,
+                "args": ["block"],
+                "remap": {"block": "goal"},
+                }
         GraspOption = lambda goal: GoalDirectedMotionOption(
                 self.world,
                 goal, 
-                pose=((0.0,0,0.0),(-0.27,0.65,0.65,0.27)))
+                pose=((0.0,0,0.0),self.grasp_q),
+                pose_tolerance=(0.025,0.025))
         grasp_args = {
                 "constructor": GraspOption,
                 "args": ["block"],
                 "remap": {"block": "goal"},
                 }
-        LiftOption = lambda: GeneralMotionOption(None)
+        LiftOption = lambda: GeneralMotionOption(
+                pose=(self.over_final_stack_pos, self.grasp_q),
+                pose_tolerance=(0.025,0.025))
         lift_args = {
                 "constructor": LiftOption,
                 "args": []
                 }
-        PlaceOption = lambda: GeneralMotionOption(None)
+        PlaceOption = lambda: GeneralMotionOption(
+                pose=(self.final_stack_pos, self.grasp_q),
+                pose_tolerance=(0.025,0.025))
         place_args = {
                 "constructor": PlaceOption,
                 "args": []
                 }
         close_gripper_args = {
-                "constructor": PlaceOption,
+                "constructor": CloseGripperOption,
                 "args": []
                 }
         open_gripper_args = {
-                "constructor": PlaceOption,
+                "constructor": OpenGripperOption,
                 "args": []
                 }
 
         # Create a task model
         task = Task()
-        task.add("grasp", None, grasp_args)
+        task.add("align", None, align_args)
+        task.add("grasp", "align", grasp_args)
         task.add("close_gripper", "grasp", close_gripper_args)
         task.add("lift", "close_gripper", lift_args)
         task.add("place", "lift", place_args)
         task.add("open_gripper", "place", open_gripper_args)
+        task.add("done", "open_gripper", lift_args)
 
         return task
 
@@ -107,7 +130,9 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         path = rospack.get_path('costar_objects')
         urdf_dir = os.path.join(path, self.urdf_dir)
 
-        placement = np.random.randint(0,len(self.stack_pos),(len(self.blocks),))
+        #placement = np.random.randint(0,len(self.stack_pos),(len(self.blocks),))
+        placement = np.array(range(len(self.stack_pos)))
+        np.random.shuffle(placement)
         for i, pos in enumerate(self.stack_pos):
             blocks = []
             for idx, block in zip(placement, self.blocks):
@@ -123,22 +148,32 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         '''
         Reset blocks to new random towers
         '''
+<<<<<<< HEAD
         placement = np.random.randint(
                 0,
                 len(self.stack_pos),
                 (len(self.blocks),))
+=======
+
+        #placement = np.random.randint(
+        #        0,
+        #        len(self.stack_pos),
+        #        (len(self.blocks),))
+        placement = np.array(range(len(self.stack_pos)))
+        np.random.shuffle(placement)
+>>>>>>> 84864b9f41050629b925af82aec82416715b52b8
 
         # loop over all stacks
         # pull out ids now associated with a stack
         for i, pos in enumerate(self.stack_pos):
             blocks = []
-            for idx, block in zip(placement, self.blocks):
+            for idx, block in zip(placement, self.block_ids):
                     if idx == i:
                         blocks.append(block)
 
             # add blocks to tower
             z = 0.025
-            for block_id in self.block_ids:
+            for block_id in blocks:
                 pb.resetBasePositionAndOrientation(
                         block_id,
                     (pos[0], pos[1], z),

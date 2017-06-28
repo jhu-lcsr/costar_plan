@@ -58,18 +58,34 @@ def make_template_test2():
   task.add("pick2", ["drop"], None)
   return task
 
-test1_res = """drop() --> ["pick('obj=apple')", "pick('obj=orange')"]
+test1_res = \
+"""drop() --> ["pick('obj=apple')", "pick('obj=orange')"]
 move('obj=orange', 'goal=basket') --> ['drop()']
 pick('obj=orange') --> ["move('obj=orange', 'goal=basket')", 'drop()']
 ROOT() --> ["pick('obj=apple')", "pick('obj=orange')"]
 pick('obj=apple') --> ["move('obj=apple', 'goal=basket')", 'drop()']
 move('obj=apple', 'goal=basket') --> ['drop()']
 """
+test1_res_b = \
+"""drop() --> ["pick('obj=orange')", "pick('obj=apple')"]
+move('obj=orange', 'goal=basket') --> ['drop()']
+pick('obj=orange') --> ['drop()', "move('obj=orange', 'goal=basket')"]
+ROOT() --> ["pick('obj=orange')", "pick('obj=apple')"]
+pick('obj=apple') --> ['drop()', "move('obj=apple', 'goal=basket')"]
+move('obj=apple', 'goal=basket') --> ['drop()']
+"""
 
-test2_res = """drop() --> ["pick2('obj=that_one')", "pick2('obj=this_one')"]
+test2_res = \
+"""drop() --> ["pick2('obj=that_one')", "pick2('obj=this_one')"]
 pick2('obj=that_one') --> ['drop()']
 pick2('obj=this_one') --> ['drop()']
 ROOT() --> ["pick2('obj=that_one')", "pick2('obj=this_one')"]
+"""
+test2_res_b = \
+"""drop() --> ["pick2('obj=this_one')", "pick2('obj=that_one')"]
+pick2('obj=that_one') --> ['drop()']
+pick2('obj=this_one') --> ['drop()']
+ROOT() --> ["pick2('obj=this_one')", "pick2('obj=that_one')"]
 """
 
 class TestTask(unittest.TestCase):
@@ -89,7 +105,7 @@ class TestTask(unittest.TestCase):
     self.assertEqual(args[1]['goal'], 'basket')
 
     summary = task.nodeSummary()
-    self.assertEqual(summary, test1_res)
+    self.assertTrue((summary == test1_res) or summary == test1_res_b)
 
   def test2(self):
     task = make_template_test2();
@@ -99,7 +115,7 @@ class TestTask(unittest.TestCase):
     }
     args = task.compile(args)
     summary = task.nodeSummary()
-    self.assertEqual(summary, test2_res)
+    self.assertTrue((summary == test2_res) or summary == test2_res_b)
 
 if __name__ == '__main__':
   unittest.main()
