@@ -200,7 +200,18 @@ class CostarBulletSimulation(object):
 
         # Get state, action, features, reward from update
         (ok, S0, A0, S1, F1, reward) = self.task.world.tick(action)
+        
+        if self.save:
+            np.savez('data', s0=s0, A0=A0, S1=S1, F1=F1, reward=reward)
 
+        if self.load:
+            in_data = np.load('data.npz')
+            s0 = in_data['s0']
+            A0 = in_data['A0']
+            S1 = in_data['S1']
+            F1 = in_data['F1']
+            reward = in_data['reward']
+            
         if self.capture:
             imgs = self.task.capture()
             for name, rgb, depth, mask in imgs:
