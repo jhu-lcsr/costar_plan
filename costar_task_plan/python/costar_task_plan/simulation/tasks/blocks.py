@@ -123,7 +123,6 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         '''
         Reset blocks to new random towers
         '''
-
         placement = np.random.randint(
                 0,
                 len(self.stack_pos),

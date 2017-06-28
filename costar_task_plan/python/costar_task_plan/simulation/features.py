@@ -13,6 +13,7 @@ def GetFeatures(features):
         return {
             'null': EmptyFeatures(),
             'depth': DepthImageFeatures(),
+            'joint_state' : JointStateFeatures(),
         }[features]
     except KeyError, e:
         raise NotImplementedError('Feature function %s not implemented!' % task)
@@ -31,6 +32,19 @@ class DepthImageFeatures(AbstractFeatures):
 
   def compute(self, world, state):
       return world.cameras[0].capture().depth
+
+  def updateBounds(self, world):
+    raise Exception('feature.updateBounds not yet implemented!')
+
+  def getBounds(self):
+    raise Exception('feature.getBounds not yet implemented!')
+
+
+class JointStateFeatures(AbstractFeatures):
+
+  def compute(self, world, state):
+      return np.append(state.arm, state.gripper)
+      
 
   def updateBounds(self, world):
     raise Exception('feature.updateBounds not yet implemented!')
