@@ -29,11 +29,11 @@ class KerasDDPGAgent(AbstractAgent):
         # TODO: find a way to customize network
         actor = Sequential()
         actor.add(Flatten(input_shape=(1,) + observation.shape))
-        actor.add(Dense(16))
+        actor.add(Dense(128))
         actor.add(Activation('relu'))
-        actor.add(Dense(16))
+        actor.add(Dense(128))
         actor.add(Activation('relu'))
-        actor.add(Dense(16))
+        actor.add(Dense(128))
         actor.add(Activation('relu'))
         actor.add(Dense(nb_actions))
         actor.add(Activation('tanh'))
@@ -46,11 +46,11 @@ class KerasDDPGAgent(AbstractAgent):
         observation_input = Input(shape=(1,) + observation.shape, name='observation_input')
         flattened_observation = Flatten()(observation_input)
         x = merge([action_input, flattened_observation], mode='concat')
-        x = Dense(32)(x)
+        x = Dense(128)(x)
         x = Activation('relu')(x)
-        x = Dense(32)(x)
+        x = Dense(128)(x)
         x = Activation('relu')(x)
-        x = Dense(32)(x)
+        x = Dense(128)(x)
         x = Activation('relu')(x)
         x = Dense(1)(x)
         x = Activation('linear')(x)
@@ -68,7 +68,7 @@ class KerasDDPGAgent(AbstractAgent):
 
 
     def fit(self):
-        self.agent.fit(self.env, nb_steps=50000, visualize=False, verbose=1, nb_max_episode_steps=200)
+        self.agent.fit(self.env, nb_steps=self.iter, visualize=False, verbose=1, nb_max_episode_steps=200)
         
         # After training is done, we save the final weights.
         self.agent.save_weights('ddpg_{}_weights.h5f'.format(self.name), overwrite=True)
