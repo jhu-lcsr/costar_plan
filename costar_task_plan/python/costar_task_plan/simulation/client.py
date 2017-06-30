@@ -69,6 +69,7 @@ class CostarBulletSimulation(object):
             plot_task=False,
             directory='./',
             save=False,
+            load=False,
             capture=False,
             show_images=False,
             randomize_color=False,
@@ -84,6 +85,7 @@ class CostarBulletSimulation(object):
 
         # saving
         self.save = save
+        self.load = load
         self.capture = capture or show_images
         self.show_images = show_images
         self.directory = directory
