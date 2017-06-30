@@ -13,7 +13,7 @@ class KerasDDPGAgent(AbstractAgent):
 
     name = "keras_ddpg"
 
-    def __init__(self, env, iter=10000, *args, **kwargs):
+    def __init__(self, env, iter=50000, *args, **kwargs):
         super(KerasDDPGAgent, self).__init__(*args, **kwargs)
         self.iter = iter
         self.env = env
