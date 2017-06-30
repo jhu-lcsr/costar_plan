@@ -22,6 +22,7 @@ class KerasDDPGAgent(AbstractAgent):
         #TODO: is there a way to output a tuple (6,1)
         nb_actions = sum(sum(1 for i in row if i) for row in self.env.action_space.sample())
         
+        
         #TODO: terminology? feature or observation?
         observation = env.reset()
        
