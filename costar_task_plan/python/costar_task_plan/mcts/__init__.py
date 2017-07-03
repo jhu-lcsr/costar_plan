@@ -38,7 +38,7 @@ __all__ = [
     "RandomSearch", "RandomSearchNoExecution",
     # ===========================================================================
     # Generic tree search result execution (closed-loop)
-    "ExecutionPlan", "ExecuteOptions",
+    "PlanExecutionManager", "OptionsExecutionManager",
 ]
 
 # Basics

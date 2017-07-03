@@ -63,7 +63,7 @@ class AbstractExecutionManager(object):
             return True
         return world.done
 
-class ExecutionPlan(AbstractExecutionManager):
+class PlanExecutionManager(AbstractExecutionManager):
     '''
     This is a plan for executing a predefined sequence of options. It requires:
     - a plan -- a sequence of nodes
@@ -72,7 +72,7 @@ class ExecutionPlan(AbstractExecutionManager):
     '''
 
     def __init__(self, plan, execute_fn=AbstractExecute(), verbose=True, actor_id=0):
-        super(ExecuteOptions, self).__init__(execute_fn, verbose, actor_id)
+        super(ExecutionPlan, self).__init__(execute_fn, verbose, actor_id)
         self.nodes = []
 
         print "Creating execution plan from tree search results:"
@@ -142,7 +142,7 @@ class ExecutionPlan(AbstractExecutionManager):
         return cmd
 
 
-class ExecuteOptions(AbstractExecutionManager):
+class OptionsExecutionManager(AbstractExecutionManager):
 
     '''
     This class is the cousin of the above: it works by executing a set of

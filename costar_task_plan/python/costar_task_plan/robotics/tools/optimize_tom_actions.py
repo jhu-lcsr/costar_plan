@@ -10,7 +10,6 @@ from costar_task_plan.abstract import AbstractReward, AbstractFeatures
 from costar_task_plan.mcts import ContinuousSamplerTaskPolicies, Node
 from costar_task_plan.mcts import MonteCarloTreeSearch
 from costar_task_plan.mcts import ContinuousTaskSample
-from costar_task_plan.mcts import ExecutionPlan, DefaultExecute
 from costar_task_plan.robotics.core import *
 from costar_task_plan.robotics.tom import TomWorld, OpenLoopTomExecute, ParseTomArgs
 from costar_task_plan.tools import showTask, OptimizePolicy
