@@ -96,9 +96,10 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         task.add("grasp", "align", grasp_args)
         task.add("close_gripper", "grasp", close_gripper_args)
         task.add("lift", "close_gripper", lift_args)
-        task.add("place", "lift", place_args)
-        task.add("open_gripper", "place", open_gripper_args)
-        task.add("done", "open_gripper", lift_args)
+        #task.add("place", "lift", place_args)
+        #task.add("open_gripper", "place", open_gripper_args)
+        #task.add("done", "open_gripper", lift_args)
+        task.add("open_gripper", "lift", open_gripper_args)
 
         return task
 

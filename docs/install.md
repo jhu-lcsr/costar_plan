@@ -17,10 +17,11 @@ If none of these options work on your platform for whatever reason, you can alwa
 
 ## Docker Install
 
-Simply run:
+Still in development. Simply run:
 ```
 sudo docker run -ti alee156/costar 
 ```
+to get started.
 
 ## Manual Install
 

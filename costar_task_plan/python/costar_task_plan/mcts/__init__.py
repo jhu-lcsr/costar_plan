@@ -35,6 +35,7 @@ __all__ = [
   # ===========================================================================
   # Tree search functions
   "MonteCarloTreeSearch", "DepthFirstSearch",
+  "RandomSearch","RandomSearchNoExecution",
   # ===========================================================================
   # Generic tree search result execution (closed-loop)
   "ExecutionPlan",

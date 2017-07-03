@@ -77,8 +77,9 @@ class RandomSearch(AbstractSearch):
     '''
     Randomly explore the task tree.
     '''
-    def __init__(self, policies):
+    def __init__(self, policies, instantiate=True):
         self.policies = policies
+        self.instantiate = instantiate
     
     def __call__(self, root, *args, **kwargs):
         start_time = timeit.default_timer()
@@ -90,11 +91,22 @@ class RandomSearch(AbstractSearch):
             if action is not None:
               node.children.append(Node(action=action))
               child = node.children[-1]
-              node.instantiate(child)
+              if self.instantiate:
+                node.instantiate(child)
               if self.policies._initialize:
                 self.policies._initialize(child)
               node = child
 
         elapsed = timeit.default_timer() - start_time
         return elapsed, path
+
+class RandomSearchNoExecution(RandomSearch):
+    '''
+    Randomly explore the task tree without advancing the world state -- just
+    generate a list of actions to perform.
+    '''
+    def __init__(self, policies):
+        super(RandomSearchNoExecution, self).__init__(policies,
+                instantiate=False)
+        self.policies = policies
 

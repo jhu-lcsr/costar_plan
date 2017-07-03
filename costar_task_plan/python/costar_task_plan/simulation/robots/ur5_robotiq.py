@@ -32,6 +32,13 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
     right_inner_knuckle = 14
     right_fingertip = 15
 
+    dof = 6
+    arm_joint_indices = xrange(dof)
+    gripper_indices = [left_knuckle, left_finger, left_inner_knuckle,
+            left_fingertip, right_knuckle, right_finger, right_inner_knuckle,
+            right_fingertip]
+
+
     def __init__(self, *args, **kwargs):
         super(Ur5RobotiqInterface, self).__init__(*args, **kwargs)
 
@@ -105,15 +112,11 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         Gripper commands need to be mirrored to simulate behavior of the actual
         UR5.
         '''
-        pb.setJointMotorControl2(self.handle, self.left_knuckle, mode,  -cmd)
-        pb.setJointMotorControl2(self.handle, self.left_inner_knuckle, mode,  -cmd)
-        pb.setJointMotorControl2(self.handle, self.left_finger, mode,  cmd)
-        pb.setJointMotorControl2(self.handle, self.left_fingertip, mode,  cmd)
 
-        pb.setJointMotorControl2(self.handle, self.right_knuckle, mode,  -cmd)
-        pb.setJointMotorControl2(self.handle, self.right_inner_knuckle, mode,  -cmd)
-        pb.setJointMotorControl2(self.handle, self.right_finger, mode,  cmd)
-        pb.setJointMotorControl2(self.handle, self.right_fingertip, mode,  cmd)
+        # This is actually only a 1-DOF gripper
+        cmd_array = [-cmd, cmd, -cmd, cmd, -cmd, cmd, -cmd, cmd]
+        pb.setJointMotorControlArray(self.handle, self.gripper_indices, mode,
+                cmd_array)
 
     def getActionSpace(self):
         return spaces.Tuple((spaces.Box(-np.pi,np.pi,6),spaces.Box(-0.6,0.6,1)))
