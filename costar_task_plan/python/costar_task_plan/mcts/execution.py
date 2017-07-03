@@ -191,15 +191,17 @@ class ExecuteOptions(AbstractExecutionManager):
             # for the time being.
             if self.policy is None:
                 self.policy, self.condition = self.options[self.idx].samplePolicy(world)
-            if self.condition is not None and self.condition(world, state,
-                    actor, actor.last_state):
+
+            if self.condition(world, state, actor, actor.last_state):
                 cmd = self.policy.evaluate(world, state, actor)
             else:
                 # Move to the next option.
-                if not self.options[idx].checkPostcondition(world, state):
+                if not self.options[self.idx].checkPostcondition(world, state):
+                    raise RuntimeError('asdf')
                     return None
                 self.idx += 1
-                if not self.options[idx].checkPrecondition(world, state):
-                    return None
+                self.condition = None
+                self.policy = None
+                print self.idx
         
         return cmd
