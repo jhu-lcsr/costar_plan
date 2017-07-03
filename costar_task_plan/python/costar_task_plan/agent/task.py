@@ -53,9 +53,8 @@ class TaskAgent(AbstractAgent):
             while not done:
 
                 if plan is None:
-                    root = Node(world=self.env.world, root=True)
-                    path = search(root)
-                    plan = ExecutionPlan(path)
+                    options = task.sampleSequence()
+                    plan = ExecutionOptions(options)
                     
                 if plan is not None:
                     print "control", control
