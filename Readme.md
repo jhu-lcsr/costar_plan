@@ -15,7 +15,6 @@ Contents:
   - [Design Overview](docs/design.md)
   - [Development Notes](docs/development.md)
   - [Machine Learning Notes](docs/learning.md)
-  - [Notes on installing Gazebo](docs/gazebo.md) -- may be out of date. PyBullet3 is now our preferred simulation environment.
 
 ## Getting started
 
