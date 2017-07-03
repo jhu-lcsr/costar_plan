@@ -111,7 +111,7 @@ class TaskModelInitialize(AbstractInitialize):
         children = self.task.getChildren(node.tag)
         for child in children:
             option = self.task.getOption(child)
-            policy, condition = option.makePolicy()
+            policy, condition = option.makePolicy(node.world)
             node.children.append(Node(action=MctsAction(
                                       tag=child,
                                       policy=policy,
