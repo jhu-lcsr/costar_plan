@@ -99,8 +99,6 @@ class AbsolutePositionCondition(AbstractCondition):
         self.rot = rot
         
         # If we are within this distance, the action failed.
-        self.dist = np.linalg.norm(self.pos)
-
         pg = kdl.Vector(*self.pos)
         Rg = kdl.Rotation.Quaternion(*self.rot)
         self.T = kdl.Frame(Rg, pg)
@@ -113,3 +111,25 @@ class AbsolutePositionCondition(AbstractCondition):
         dist = (T_robot.p - self.T.p).Norm()
 
         return dist > self.pos_tol
+
+class ObjectAtPositionCondition(AbstractCondition):
+    '''
+    Check to see if a particular 
+    '''
+    def __init__(self, objname, pos, pos_tol, ):
+        self.objname = objname
+        self.pos_tol = pos_tol
+        self.pos = pos
+        
+        # If we are within this distance, the action failed.
+        self.p = kdl.Vector(*self.pos)
+
+    def _check(self, world, *args, **kwargs):
+        '''
+        Returns true until we are within tolerance of position
+        '''
+        T = world.getObject(self.objname).state.T
+        dist = (T.p - self.p).Norm()
+
+        return dist > self.pos_tol
+

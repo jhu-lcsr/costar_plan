@@ -117,7 +117,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                     obj_id,
                     (pos[0], pos[1], z),
                     (0,0,0,1))
-            self.addObject("block", obj_id)
+            self.addObject("block", "%s_block"%block, obj_id)
             z += 0.05
             ids.append(obj_id)
         return ids
@@ -145,7 +145,24 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         self.world.addCondition(JointLimitViolationCondition(), -100,
             "joints must stay in limits")
         self.world.addCondition(TimeCondition(30.), -100, "time limit reached")
-        self.world.reward = EuclideanReward("block001")
+        self.world.reward = EuclideanReward("red_block")
+
+        if self.stage == 0:
+            threshold = 0.02
+            self.world.addCondition(
+                    ObjectAtPositionCondition("red_block",
+                        self.final_stack_pos, threshold),
+                    100,
+                    "block in right position")
+            self.world.addCondition(
+                    ObjectAtPositionCondition("blue_block",
+                        self.final_stack_pos, threshold), -100, "wrong block")
+            self.world.addCondition(
+                    ObjectAtPositionCondition("green_block",
+                        self.final_stack_pos, threshold), -100, "wrong block")
+            self.world.addCondition(
+                    ObjectAtPositionCondition("yellow_block",
+                        self.final_stack_pos, threshold), -100, "wrong block")
 
     def reset(self):
         '''
@@ -158,6 +175,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         #        (len(self.blocks),))
         placement = np.array(range(len(self.stack_pos)))
         np.random.shuffle(placement)
+        self.world.ticks = 0
 
         # loop over all stacks
         # pull out ids now associated with a stack
