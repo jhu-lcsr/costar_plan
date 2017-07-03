@@ -33,7 +33,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             ]
 
     over_final_stack_pos = np.array([-0.5, 0., 0.5])
-    final_stack_pos = np.array([-0.5, 0., 0.])
+    final_stack_pos = np.array([-0.5, 0., 0.05])
     grasp_q = (-0.27,0.65,0.65,0.27)
 
     def __init__(self, stage, *args, **kwargs):
@@ -97,10 +97,9 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         task.add("grasp", "align", grasp_args)
         task.add("close_gripper", "grasp", close_gripper_args)
         task.add("lift", "close_gripper", lift_args)
-        #task.add("place", "lift", place_args)
-        #task.add("open_gripper", "place", open_gripper_args)
-        #task.add("done", "open_gripper", lift_args)
-        task.add("open_gripper", "lift", open_gripper_args)
+        task.add("place", "lift", place_args)
+        task.add("open_gripper", "place", open_gripper_args)
+        task.add("done", "open_gripper", lift_args)
 
         return task
 
