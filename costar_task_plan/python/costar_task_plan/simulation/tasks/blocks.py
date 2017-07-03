@@ -174,5 +174,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                     (0,0,0,1))
                 z += 0.05
 
+        self._setupRobot(self.robot.handle)
+
     def getName(self):
         return "blocks"

@@ -202,6 +202,5 @@ class OptionsExecutionManager(AbstractExecutionManager):
                 self.idx += 1
                 self.condition = None
                 self.policy = None
-                print self.idx
         
         return cmd
