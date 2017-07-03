@@ -72,7 +72,7 @@ class PlanExecutionManager(AbstractExecutionManager):
     '''
 
     def __init__(self, plan, execute_fn=AbstractExecute(), verbose=True, actor_id=0):
-        super(ExecutionPlan, self).__init__(execute_fn, verbose, actor_id)
+        super(PlanExecutionManager, self).__init__(execute_fn, verbose, actor_id)
         self.nodes = []
 
         print "Creating execution plan from tree search results:"
@@ -152,7 +152,7 @@ class OptionsExecutionManager(AbstractExecutionManager):
 
     def __init__(self, options, execute_fn=AbstractExecute(), verbose=True,
             actor_id=0):
-        super(ExecuteOptions, self).__init__(execute_fn, verbose, actor_id)
+        super(OptionsExecutionManager, self).__init__(execute_fn, verbose, actor_id)
         self.options = options
         self.condition = None
         self.policy = None
@@ -161,7 +161,7 @@ class OptionsExecutionManager(AbstractExecutionManager):
         '''
         set counters to zero
         '''
-        super(ExecuteOptions,self).reset(self.actor_id)
+        super(OptionsExecutionManager,self).reset(self.actor_id)
         self.condition = None
         self.policy = None
 

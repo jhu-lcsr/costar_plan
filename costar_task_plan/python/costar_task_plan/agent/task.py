@@ -1,6 +1,6 @@
 from abstract import AbstractAgent
 from costar_task_plan.mcts import ContinuousSamplerTaskPolicies
-from costar_task_plan.mcts import Node, ExecuteOptions
+from costar_task_plan.mcts import Node, OptionsExecutionManager
 
 
 class TaskAgent(AbstractAgent):
@@ -53,7 +53,7 @@ class TaskAgent(AbstractAgent):
 
                 if plan is None:
                     names, options = task.sampleSequence()
-                    plan = ExecuteOptions(options)
+                    plan = OptionsExecutionManager(options)
                     
                 if plan is not None:
                     control = plan.apply(self.env.world)
