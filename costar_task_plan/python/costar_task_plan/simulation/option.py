@@ -148,9 +148,9 @@ class CloseGripperOption(AbstractOption):
     associated with the actor's state in order to function.
     '''
     def makePolicy(self, world):
-        return CloseGripperPolicy(), TimeCondition(world.time() + 1.0)
+        return CloseGripperPolicy(), TimeCondition(world.time() + 3.0)
     def samplePolicy(self, world):
-        return CloseGripperPolicy(), TimeCondition(world.time() + 1.0)
+        return CloseGripperPolicy(), TimeCondition(world.time() + 3.0)
     def checkPrecondition(self, world, state):
         return True
     def checkPostcondition(self, world, state):
