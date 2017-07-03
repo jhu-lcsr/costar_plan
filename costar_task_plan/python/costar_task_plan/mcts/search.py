@@ -87,7 +87,7 @@ class RandomSearch(AbstractSearch):
         path = []
         while True:
             path.append(node)
-            action = self.policies.sample(node)
+            action, condition = self.policies.sample(node)
             if action is not None:
               node.children.append(Node(action=action))
               child = node.children[-1]

@@ -44,9 +44,6 @@ class TaskAgent(AbstractAgent):
         if not task.compiled:
             raise RuntimeError('environment must have associated compiled task model!')
 
-        policies = ContinuousSamplerTaskPolicies(task)
-        search = RandomSearchNoExecution(policies)
-
         for _ in xrange(self.iter):
             self.env.reset()
 
@@ -56,7 +53,6 @@ class TaskAgent(AbstractAgent):
             while not done:
 
                 if plan is None:
-                    print "---- PLANNED ----"
                     root = Node(world=self.env.world, root=True)
                     path = search(root)
                     plan = ExecutionPlan(path)
@@ -75,4 +71,4 @@ class TaskAgent(AbstractAgent):
                     done = True
 
         return None
-        
+

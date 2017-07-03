@@ -8,6 +8,7 @@ from sets import Set
 from world import AbstractWorld
 
 import copy
+import numpy as np
 
 class Task(object):
   '''
@@ -130,6 +131,25 @@ class Task(object):
     for name, node in self.nodes.items():
       summary += "%s --> %s\n"%(name,str(self.children[name]))
     return summary
+
+  def sampleSequence(self):
+      '''
+      Sample a random sequence of options starting from the root of the task
+      tree. This can be used in conjunction with many different things to get
+      different executions.
+      '''
+      sequence = []
+      tag = "ROOT()"
+      while True:
+          children = self.getChildren(tag)
+          print tag, children
+          if children is None or len(children) == 0:
+              break
+          else:
+              idx = np.random.randint(len(children))
+              tag = children[idx]
+              sequence.append(self.getOption(tag))
+      return sequence
 
 ''' =======================================================================
                         HELPERS AND INTERNAL CLASSES

@@ -106,3 +106,12 @@ class ExecutionPlan(object):
     #   (b) tick the world and possibly display test metrics.
     self.execute(cmd)
     return done
+
+class ExecuteOptions(object):
+    '''
+    This class is the cousin of the above: it works by executing a set of
+    non-instantiated options. Whenever a new option is reached it will sample a
+    policy as appropriate and create the necessary termination conditions.
+    '''
+    pass
+
