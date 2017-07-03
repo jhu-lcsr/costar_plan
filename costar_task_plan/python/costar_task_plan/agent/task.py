@@ -57,7 +57,6 @@ class TaskAgent(AbstractAgent):
                     
                 if plan is not None:
                     control = plan.apply(self.env.world)
-                    print "control", control
                     if control is not None:
                         features, reward, done, info = self.env.step(control)
                         self._addToDataset(names[plan.idx], self.env.world, control,
