@@ -42,7 +42,7 @@ class AbstractTaskDefinition(object):
             imgs.append(camera.capture())
         return imgs
 
-    def addObject(self, typename, obj_id):
+    def addObject(self, typename, objname, obj_id):
         '''
         Create an object and add it to the world. This will automatically track
         and update useful information based on the object's current position
@@ -55,7 +55,6 @@ class AbstractTaskDefinition(object):
             num = len(self._objs_by_type[typename])
             self._objs_by_type[typename].append(obj_id)
 
-        objname = "%s%03d"%(typename,num)
         self._type_and_name_by_obj[obj_id] = (typename, objname)
 
     def getName(self):

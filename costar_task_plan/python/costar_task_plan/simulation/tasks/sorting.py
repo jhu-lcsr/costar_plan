@@ -125,6 +125,7 @@ class SortingTaskDefinition(DefaultTaskDefinition):
             obj_id = pb.loadURDF(filename)
             random_position = np.random.rand(3)*self.spawn_pos_delta + self.spawn_pos_min
             pb.resetBasePositionAndOrientation(obj_id, random_position, (0,0,0,1))
+            objname = "%s%03d"%(typename,i)
             self.addObject(typename, obj_id)
 
     def _setupRobot(self, handle):

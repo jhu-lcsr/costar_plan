@@ -6,9 +6,20 @@ from features import GetFeatures, GetAvailableFeatures
 import argparse
 import sys
 
+_desc = """
+Start the CTP bullet simulation tool. This will allow you to generate data, run
+reinforcement learning algorithms, and test models and algorithms.
+"""
+_epilog = """
+Some example tasks are "blocks," which generates a set of colored blocks. The
+robot should pick a specific block up and put it in the center of the
+workspace. In "tower," we again generate a set of colored blocks. This time the
+robot should pick them all up and stack them.
+"""
 
 def ParseBulletArgs():
-    parser = argparse.ArgumentParser(add_help=True)
+    parser = argparse.ArgumentParser(add_help=True,
+            description=_desc, epilog=_epilog)
     parser.add_argument("--gui",
                         action="store_true",
                         help="Display Bullet visualization.")

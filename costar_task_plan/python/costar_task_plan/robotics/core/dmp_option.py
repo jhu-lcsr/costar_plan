@@ -49,7 +49,10 @@ class DmpOption(AbstractOption):
             skill=self,
             goal=self.goal,
             dmp=self.skill_instance,
-            kinematics=self.kinematics)
+            kinematics=self.kinematics), DmpCondition(
+            parent=self,
+            goal=self.goal,
+            kinematics=self.kinematics,)
 
     def samplePolicy(self, *args, **kwargs):
         '''
@@ -66,12 +69,7 @@ class DmpOption(AbstractOption):
             skill=self,
             goal=self.goal,
             dmp=skill_instance,
-            kinematics=self.kinematics)
-
-    def getGatingCondition(self, *args, **kwargs):
-        # Get the gating condition for a specific option.
-        # - execution should continue until such time as this condition is true.
-        return DmpCondition(
+            kinematics=self.kinematics), DmpCondition(
             parent=self,
             goal=self.goal,
             kinematics=self.kinematics,)

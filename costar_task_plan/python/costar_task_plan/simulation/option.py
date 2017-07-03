@@ -19,7 +19,7 @@ class GoalDirectedMotionOption(AbstractOption):
     running on the robot will be enough to take us to the goal position.
     '''
 
-    def __init__(self, world, goal, pose, pose_tolerance=(1e-2,1e-2), *args, **kwargs):
+    def __init__(self, world, goal, pose, pose_tolerance=(1e-3,1e-2), *args, **kwargs):
         self.goal = goal
         self.goal_id = world.getObjectId(goal)
         if pose is not None:
@@ -65,8 +65,7 @@ class GoalDirectedMotionOption(AbstractOption):
         if not isinstance(state, AbstractState):
             raise RuntimeError(
                 'option.checkPrecondition() requires an initial state!')
-        raise NotImplementedError(
-            'option.checkPrecondition() not yet implemented!')
+        return True
 
     def checkPostcondition(self, world, state):
         # Did we successfully complete this option?
@@ -76,8 +75,7 @@ class GoalDirectedMotionOption(AbstractOption):
         if not isinstance(state, AbstractState):
             raise RuntimeError(
                 'option.checkPostcondition() requires an initial state!')
-        raise NotImplementedError(
-            'option.checkPostcondition() not yet implemented!')
+        return True
 
 
 class GeneralMotionOption(AbstractOption):
@@ -105,6 +103,25 @@ class GeneralMotionOption(AbstractOption):
                             self.position_tolerance,
                             self.rotation_tolerance,
                             )
+    def checkPrecondition(self, world, state):
+        # Is it ok to begin this option?
+        if not isinstance(world, AbstractWorld):
+            raise RuntimeError(
+                'option.checkPrecondition() requires a valid world!')
+        if not isinstance(state, AbstractState):
+            raise RuntimeError(
+                'option.checkPrecondition() requires an initial state!')
+        return True
+
+    def checkPostcondition(self, world, state):
+        # Did we successfully complete this option?
+        if not isinstance(world, AbstractWorld):
+            raise RuntimeError(
+                'option.checkPostcondition() requires a valid world!')
+        if not isinstance(state, AbstractState):
+            raise RuntimeError(
+                'option.checkPostcondition() requires an initial state!')
+        return True
 
 class OpenGripperOption(AbstractOption):
     '''
@@ -119,6 +136,10 @@ class OpenGripperOption(AbstractOption):
         return OpenGripperPolicy(), TimeCondition(world.time() + 1.0)
     def samplePolicy(self, world):
         return OpenGripperPolicy(), TimeCondition(world.time() + 1.0)
+    def checkPrecondition(self, world, state):
+        return True
+    def checkPostcondition(self, world, state):
+        return True
 
 class CloseGripperOption(AbstractOption):
     '''
@@ -127,9 +148,13 @@ class CloseGripperOption(AbstractOption):
     associated with the actor's state in order to function.
     '''
     def makePolicy(self, world):
-        return CloseGripperPolicy(), TimeCondition(world.time() + 1.0)
+        return CloseGripperPolicy(), TimeCondition(world.time() + 3.0)
     def samplePolicy(self, world):
-        return CloseGripperPolicy(), TimeCondition(world.time() + 1.0)
+        return CloseGripperPolicy(), TimeCondition(world.time() + 3.0)
+    def checkPrecondition(self, world, state):
+        return True
+    def checkPostcondition(self, world, state):
+        return True
 
 class CartesianMotionPolicy(AbstractPolicy):
     def __init__(self, pos, rot, goal=None):
@@ -179,9 +204,17 @@ class CartesianMotionPolicy(AbstractPolicy):
         return SimulationRobotAction(arm_cmd=cmd)
 
 class OpenGripperPolicy(AbstractPolicy):
+    '''
+    This simple policy just looks at robot internals to send the appropriate
+    "open gripper" command.
+    '''
     def evaluate(self, world, state, actor):
-        pass
+        return SimulationRobotAction(gripper_cmd=state.robot.gripperOpenCommand())
 
 class CloseGripperPolicy(AbstractPolicy):
+    '''
+    This simple policy just looks at robot internals to send the appropriate
+    "close gripper" command.
+    '''
     def evaluate(self, world, state, actor):
-        pass
+        return SimulationRobotAction(gripper_cmd=state.robot.gripperCloseCommand())

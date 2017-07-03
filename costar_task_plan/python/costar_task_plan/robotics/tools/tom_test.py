@@ -9,7 +9,7 @@ from tom_oranges import MakeTomTaskModel, OrangesTaskArgs
 from costar_task_plan.abstract import AbstractReward, AbstractFeatures
 from costar_task_plan.mcts import DefaultTaskMctsPolicies, Node
 from costar_task_plan.mcts import MonteCarloTreeSearch
-from costar_task_plan.mcts import ExecutionPlan, DefaultExecute
+from costar_task_plan.mcts import PlanExecutionManager, DefaultExecute
 from costar_task_plan.robotics.core import *
 from costar_task_plan.robotics.tom import TomWorld, OpenLoopTomExecute, ParseTomArgs
 from costar_task_plan.tools import showTask
@@ -85,7 +85,7 @@ def load_tom_data_and_run():
     # joints for the arm we want to move. The idea is that we can treat the two
     # arms and the base all as separate "actors."
 
-    plan = ExecutionPlan(path, OpenLoopTomExecute(world, 0))
+    plan = PlanExecutionManager(path, OpenLoopTomExecute(world, 0))
     reset = rospy.ServiceProxy('tom_sim/reset',EmptySrv)
     rate = rospy.Rate(10)
     try:
@@ -112,7 +112,7 @@ def load_tom_data_and_run():
             reset()
             world.updateObservation(objects)
             path = do_search(world, task, objects)
-            plan = ExecutionPlan(path, OpenLoopTomExecute(world, 0))
+            plan = PlanExecutionManager(path, OpenLoopTomExecute(world, 0))
 
           rate.sleep()
 

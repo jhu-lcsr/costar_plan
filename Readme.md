@@ -15,20 +15,32 @@ Contents:
   - [Design Overview](docs/design.md)
   - [Development Notes](docs/development.md)
   - [Machine Learning Notes](docs/learning.md)
-  - [Notes on installing Gazebo](docs/gazebo.md) -- may be out of date. PyBullet3 is now our preferred simulation environment.
 
 ## Getting started
 
-Try setting up Bullet3. Then in python:
+Follow the [installation guide](docs/install.md) and then try running the simulation on your own. The easiest way to do this is through IPython.
 
 ```
 import costar_task_plan as ctp
 import pybullet as pb
 
-pb.connect(pb.GUI)
-robot = ctp.simulation.robots.Ur5RobotiqRobotInterface()
-task = ctp.simulation.tasks.SortingTaskDefinition(robot)
-task.load()
+# Create the simulation. Try switching out ur5 for a different robot or blocks
+# for a different task.
+ctp.simulation.CostarBulletSimulation(robot="ur5, task="blocks",
+visualize=True)
+
+# Start the real-time simulation.
+pb.setRealtimeSimulation(True)
+
+# Move the arm around
+sim.robot.arm([0,1,0,1,0,1])
+
+# Control the gripper arbitrarily
+sim.robot.gripper(0.5)
+
+# Send the gripper to its closed position.
+gripper_pos = sim.robot.gripperCloseCommand()
+sim.robot.gripper(gripper_pos)
 ```
 
 And then interact as you would normally with the PyBullet interface.

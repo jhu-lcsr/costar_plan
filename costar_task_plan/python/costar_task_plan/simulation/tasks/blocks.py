@@ -33,16 +33,17 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             ]
 
     over_final_stack_pos = np.array([-0.5, 0., 0.5])
-    final_stack_pos = np.array([-0.5, 0., 0.])
+    final_stack_pos = np.array([-0.5, 0., 0.05])
     grasp_q = (-0.27,0.65,0.65,0.27)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, stage, *args, **kwargs):
         '''
         Read in arguments defining how many blocks to create, where to create
         them, and the size of the blocks. Size is given as mean and covariance,
         blocks are placed at random.
         '''
         super(BlocksTaskDefinition, self).__init__(*args, **kwargs)
+        self.stage = stage
         self.block_ids = []
         
 
@@ -51,7 +52,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                 self.world,
                 goal, 
                 pose=((0.05,0,0.05),self.grasp_q),
-                pose_tolerance=(0.025,0.025))
+                pose_tolerance=(0.01,0.025))
         align_args = {
                 "constructor": AlignOption,
                 "args": ["block"],
@@ -61,7 +62,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                 self.world,
                 goal, 
                 pose=((0.0,0,0.0),self.grasp_q),
-                pose_tolerance=(0.025,0.025))
+                pose_tolerance=(0.01,0.025))
         grasp_args = {
                 "constructor": GraspOption,
                 "args": ["block"],
@@ -69,14 +70,14 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                 }
         LiftOption = lambda: GeneralMotionOption(
                 pose=(self.over_final_stack_pos, self.grasp_q),
-                pose_tolerance=(0.025,0.025))
+                pose_tolerance=(0.01,0.025))
         lift_args = {
                 "constructor": LiftOption,
                 "args": []
                 }
         PlaceOption = lambda: GeneralMotionOption(
                 pose=(self.final_stack_pos, self.grasp_q),
-                pose_tolerance=(0.025,0.025))
+                pose_tolerance=(0.01,0.025))
         place_args = {
                 "constructor": PlaceOption,
                 "args": []
@@ -116,7 +117,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                     obj_id,
                     (pos[0], pos[1], z),
                     (0,0,0,1))
-            self.addObject("block", obj_id)
+            self.addObject("block", "%s_block"%block, obj_id)
             z += 0.05
             ids.append(obj_id)
         return ids
@@ -141,8 +142,27 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             ids = self._addTower(pos, blocks, urdf_dir)
             self.block_ids += ids
             
-        self.world.addCondition(JointLimitViolationCondition(), -100, "joints_in_limits")
-        self.world.reward = EuclideanReward("block001")
+        self.world.addCondition(JointLimitViolationCondition(), -100,
+            "joints must stay in limits")
+        self.world.addCondition(TimeCondition(30.), -100, "time limit reached")
+        self.world.reward = EuclideanReward("red_block")
+
+        if self.stage == 0:
+            threshold = 0.02
+            self.world.addCondition(
+                    ObjectAtPositionCondition("red_block",
+                        self.final_stack_pos, threshold),
+                    100,
+                    "block in right position")
+            self.world.addCondition(
+                    ObjectAtPositionCondition("blue_block",
+                        self.final_stack_pos, threshold), -100, "wrong block")
+            self.world.addCondition(
+                    ObjectAtPositionCondition("green_block",
+                        self.final_stack_pos, threshold), -100, "wrong block")
+            self.world.addCondition(
+                    ObjectAtPositionCondition("yellow_block",
+                        self.final_stack_pos, threshold), -100, "wrong block")
 
     def reset(self):
         '''
@@ -155,6 +175,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         #        (len(self.blocks),))
         placement = np.array(range(len(self.stack_pos)))
         np.random.shuffle(placement)
+        self.world.ticks = 0
 
         # loop over all stacks
         # pull out ids now associated with a stack
@@ -172,6 +193,8 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                     (pos[0], pos[1], z),
                     (0,0,0,1))
                 z += 0.05
+
+        self._setupRobot(self.robot.handle)
 
     def getName(self):
         return "blocks"

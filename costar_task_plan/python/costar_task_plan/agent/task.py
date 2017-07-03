@@ -1,7 +1,6 @@
 from abstract import AbstractAgent
 from costar_task_plan.mcts import ContinuousSamplerTaskPolicies
-from costar_task_plan.mcts import RandomSearch
-from costar_task_plan.mcts import Node
+from costar_task_plan.mcts import Node, OptionsExecutionManager
 
 
 class TaskAgent(AbstractAgent):
@@ -44,28 +43,29 @@ class TaskAgent(AbstractAgent):
         if not task.compiled:
             raise RuntimeError('environment must have associated compiled task model!')
 
-        policies = ContinuousSamplerTaskPolicies(task)
-        search = RandomSearch(policies)
-
         for _ in xrange(self.iter):
+            self.env.reset()
 
             plan = None
+            done = False
 
-            while True:
+            while not done:
 
                 if plan is None:
-                    root = Node(world=self.env.world, root=True)
-                    path = search(root)
-                    plan = ExecutionPlan(path)
+                    names, options = task.sampleSequence()
+                    plan = OptionsExecutionManager(options)
                     
                 if plan is not None:
                     control = plan.apply(self.env.world)
                     if control is not None:
                         features, reward, done, info = self.env.step(control)
-                        self._addToDataset(action.tag, self.env.world, control, features, reward, done)
+                        self._addToDataset(names[plan.idx], self.env.world, control,
+                                features, reward, done)
                     else:
-                        self.env.reset()
                         plan = None
+                        done = True
+                else:
+                    done = True
 
         return None
-        
+
