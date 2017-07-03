@@ -179,9 +179,17 @@ class CartesianMotionPolicy(AbstractPolicy):
         return SimulationRobotAction(arm_cmd=cmd)
 
 class OpenGripperPolicy(AbstractPolicy):
+    '''
+    This simple policy just looks at robot internals to send the appropriate
+    "open gripper" command.
+    '''
     def evaluate(self, world, state, actor):
-        pass
+        return SimulationRobotAction(gripper_cmd=state.robot.gripperOpenCommand())
 
 class CloseGripperPolicy(AbstractPolicy):
+    '''
+    This simple policy just looks at robot internals to send the appropriate
+    "close gripper" command.
+    '''
     def evaluate(self, world, state, actor):
-        pass
+        return SimulationRobotAction(gripper_cmd=state.robot.gripperCloseCommand())

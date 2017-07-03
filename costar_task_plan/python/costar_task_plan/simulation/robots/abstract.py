@@ -79,6 +79,18 @@ class AbstractRobotInterface(object):
     def fwd(self, q):
         return pm.fromMatrix(self.kinematics.forward(q))
 
+    def gripperCloseCommand(cls):
+        '''
+        Return the closed position for this gripper.
+        '''
+        raise NotImplementedError('This should close the robot gripper.')
+
+    def gripperOpenCommand(cls):
+        '''
+        Return the open command for this gripper
+        '''
+        raise NotImplementedError('This should open the robot gripper.')
+
     def place(self, pos, joints):
         '''
         Update the robot's position.

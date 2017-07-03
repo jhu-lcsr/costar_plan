@@ -79,6 +79,7 @@ class SimulationWorld(AbstractWorld):
         # Update the states of all actors.
         for actor in self.actors:
             actor.state = actor.getState()
+            actor.state.t = self.ticks * self.dt
 
     
     def zeroAction(self, actor):
@@ -103,13 +104,15 @@ class SimulationObjectState(AbstractState):
     '''
     def __init__(self, handle,
             base_pos=(0,0,0),
-            base_rot=(0,0,0,1)):
+            base_rot=(0,0,0,1),
+            t=0.):
         self.predicates = []
         self.base_pos = base_pos
         self.base_rot = base_rot
         p = kdl.Vector(*base_pos)
         R = kdl.Rotation.Quaternion(*base_rot)
         self.T = kdl.Frame(R,p)
+        self.t = t
 
 class SimulationObjectActor(AbstractActor):
     '''
@@ -131,7 +134,8 @@ class SimulationRobotState(AbstractState):
             base_pos=(0,0,0),
             base_rot=(0,0,0,1),
             arm=[],
-            gripper=0.):
+            gripper=0.,
+            t=0.):
 
         self.predicates = []
         self.arm = arm
@@ -139,6 +143,7 @@ class SimulationRobotState(AbstractState):
         self.base_pos = base_pos
         self.base_rot = base_rot
         self.robot = robot
+        self.t = t
 
 class SimulationRobotAction(AbstractAction):
     '''

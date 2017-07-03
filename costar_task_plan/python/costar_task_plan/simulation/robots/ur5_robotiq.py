@@ -77,6 +77,19 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         self.arm(joints,)
         self.gripper(0)
 
+
+    def gripperCloseCommand(cls):
+        '''
+        Return the closed position for this gripper.
+        '''
+        return -0.8
+
+    def gripperOpenCommand(cls):
+        '''
+        Return the open command for this gripper
+        '''
+        return 0.0
+
     def arm(self, cmd, mode=pb.POSITION_CONTROL):
         '''
         Set joint commands for the robot arm.
