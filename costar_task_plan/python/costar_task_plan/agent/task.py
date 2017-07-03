@@ -1,7 +1,6 @@
 from abstract import AbstractAgent
 from costar_task_plan.mcts import ContinuousSamplerTaskPolicies
-from costar_task_plan.mcts import RandomSearchNoExecution
-from costar_task_plan.mcts import Node
+from costar_task_plan.mcts import Node, ExecuteOptions
 
 
 class TaskAgent(AbstractAgent):
@@ -54,11 +53,11 @@ class TaskAgent(AbstractAgent):
 
                 if plan is None:
                     options = task.sampleSequence()
-                    plan = ExecutionOptions(options)
+                    plan = ExecuteOptions(options)
                     
                 if plan is not None:
-                    print "control", control
                     control = plan.apply(self.env.world)
+                    print "control", control
                     if control is not None:
                         features, reward, done, info = self.env.step(control)
                         self._addToDataset(action.tag, self.env.world, control,

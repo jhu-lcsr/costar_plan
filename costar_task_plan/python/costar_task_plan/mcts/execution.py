@@ -63,7 +63,7 @@ class AbstractExecutionManager(object):
             return True
         return world.done
 
-class ExecutionPlan(object):
+class ExecutionPlan(AbstractExecutionManager):
     '''
     This is a plan for executing a predefined sequence of options. It requires:
     - a plan -- a sequence of nodes
@@ -142,7 +142,7 @@ class ExecutionPlan(object):
         return cmd
 
 
-class ExecuteOptions(object):
+class ExecuteOptions(AbstractExecutionManager):
 
     '''
     This class is the cousin of the above: it works by executing a set of
@@ -154,6 +154,16 @@ class ExecuteOptions(object):
             actor_id=0):
         super(ExecuteOptions, self).__init__(execute_fn, verbose, actor_id)
         self.options = options
+        self.condition = None
+        self.policy = None
+
+    def reset(self, actor_id=0):
+        '''
+        set counters to zero
+        '''
+        super(ExecuteOptions,self).reset(self.actor_id)
+        self.condition = None
+        self.policy = None
 
     def apply(self, world):
         '''
@@ -165,10 +175,31 @@ class ExecuteOptions(object):
         actor = world.actors[self.actor_id]
         state = actor.state
         cmd = None
-        done = world.done
 
         # Check to see if we can even be executing at this point. If not, then
         # we should just quit. This also applies if we somehow blundered into
         # a terminal state.
-        if done:
+        if world.done:
             return None
+
+        cmd = None
+        # If we are currently following some policy...
+        # Then we want to check its associated condition and increment the
+        # counter if possible.
+        while cmd is None and self.idx < len(self.options):
+            # If we do not have a policy right now, we want to sample one to follow
+            # for the time being.
+            if self.policy is None:
+                self.policy, self.condition = self.options[self.idx].samplePolicy(world)
+            if self.condition is not None and self.condition(world, state,
+                    actor, actor.last_state):
+                cmd = self.policy.evaluate(world, state, actor)
+            else:
+                # Move to the next option.
+                if not self.options[idx].checkPostcondition(world, state):
+                    return None
+                self.idx += 1
+                if not self.options[idx].checkPrecondition(world, state):
+                    return None
+        
+        return cmd
