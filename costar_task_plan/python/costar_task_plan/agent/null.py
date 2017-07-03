@@ -7,19 +7,20 @@ class NullAgent(AbstractAgent):
 
     name = "random"
 
-    def __init__(self, iter=10000, *args, **kwargs):
+    def __init__(self, env, iter=10000, *args, **kwargs):
         super(NullAgent, self).__init__(*args, **kwargs)
         self.iter = iter
+        self.env = env
 
-    def fit(self, env):
+    def fit(self):
         for i in xrange(10000):
-            if isinstance(env.action_space, spaces.Tuple):
+            if isinstance(self.env.action_space, spaces.Tuple):
                 cmd = ()
-                for space in env.action_space.spaces:
+                for space in self.env.action_space.spaces:
                     cmd += (np.zeros(space.shape),)
             else:
                 cmd = np.zeros(space.shape)
-            env.step(cmd)
+            self.env.step(cmd)
 
         return None
         

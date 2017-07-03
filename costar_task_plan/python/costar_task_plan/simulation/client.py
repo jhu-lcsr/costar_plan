@@ -69,6 +69,7 @@ class CostarBulletSimulation(object):
             plot_task=False,
             directory='./',
             save=False,
+            load=False,
             capture=False,
             show_images=False,
             randomize_color=False,
@@ -84,10 +85,13 @@ class CostarBulletSimulation(object):
 
         # saving
         self.save = save
+        self.load = load
         self.capture = capture or show_images
         self.show_images = show_images
         self.directory = directory
         self.randomize_color = randomize_color
+        #self.iterations = 0
+        #self.max_iterations = 100
 
         if ros:
             # boot up ROS and open a connection to the simulation server
@@ -151,6 +155,17 @@ class CostarBulletSimulation(object):
 
         # place the robot in the world and set up the task
         self.task.setup()
+        
+    def convertToArmandGripperCmd(self, action):
+        
+        #TODO: fix the hard coded indices
+        arm = action[0:6]
+        gripper = action[5:6]
+      
+        
+        return (arm,gripper)
+
+        
 
     def getReward(self):
         return self.task.getReward()
@@ -160,27 +175,6 @@ class CostarBulletSimulation(object):
         Reset the robot and task
         '''
         self.task.reset()
-        
-    def convertToArmandGripperCmd(self, action):
-        
-        #TODO: fix the hard coded indices
-        arm = action[0:6]
-        gripper = action[5:6]
-        
-        print ">>>>arm " + str(len (arm))
-        print ">>>>arm " + str(type(arm))
-        print ">>>>arm " + str(arm)
-                
-        
-        print ">>>>gripper " + str(len (gripper))
-        print ">>>>gripper " + str(type(gripper))
-        print ">>>>gripper " + str(gripper)
-        
-        
-        return (arm,gripper)
-
-        
-    
 
     def tick(self, action):
         '''
@@ -192,7 +186,17 @@ class CostarBulletSimulation(object):
         #        cmd += term.tolist()
         #else:
         #    cmd = action.tolist()
+        
+        #if self.iterations > self.max_iterations:
+        #    self.iterations = 0
+        #    self.reset()
+            
+        #else:
+        #    self.iterations = self.iterations + 1
+            
+            
         if not isinstance(action, SimulationRobotAction):
+
             if type(action) is not tuple:
                 action = self.convertToArmandGripperCmd(action)
 

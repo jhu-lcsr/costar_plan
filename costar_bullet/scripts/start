@@ -16,8 +16,7 @@ if __name__ == '__main__':
     args = ParseBulletArgs()
     env = BulletSimulationEnv(**args)
     if 'agent' in args and args['agent'] is not None:
-        agent = MakeAgent(env, args['agent'], **args)  
-        print agent
+        agent = MakeAgent(env, args['agent'], **args)   
         agent.fit()
         print "========================"
         print "...done."
