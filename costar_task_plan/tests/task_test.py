@@ -64,7 +64,7 @@ def make_template_test3():
   task = Task()
   task.add("pick", None, pick_args())
   task.add("move", ["pick"], move_args())
-  task.add("drop", ["pick","move"], drop_args())
+  task.add("drop", ["move"], drop_args())
   return task
 
 test1_res = \
@@ -141,9 +141,11 @@ class TestTask(unittest.TestCase):
     self.assertEqual(args[1]['obj'], 'orange')
     self.assertEqual(args[1]['goal'], 'basket')
 
+    names, seq = task.sampleSequence()
     print task.nodeSummary()
-    seq = task.sampleSequence()
+    print "Sequence = ", names
     self.assertEqual(len(seq), 3)
+    self.assertEqual(len(seq), len(names))
     self.assertTrue(isinstance(seq[0], PickOption))
     self.assertTrue(isinstance(seq[1], MoveOption))
     self.assertTrue(isinstance(seq[2], DropOption))

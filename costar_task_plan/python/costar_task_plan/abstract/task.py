@@ -138,18 +138,19 @@ class Task(object):
       tree. This can be used in conjunction with many different things to get
       different executions.
       '''
+      names = []
       sequence = []
       tag = "ROOT()"
       while True:
           children = self.getChildren(tag)
-          print tag, children
           if children is None or len(children) == 0:
               break
           else:
               idx = np.random.randint(len(children))
               tag = children[idx]
+              names.append(tag)
               sequence.append(self.getOption(tag))
-      return sequence
+      return names, sequence
 
 ''' =======================================================================
                         HELPERS AND INTERNAL CLASSES

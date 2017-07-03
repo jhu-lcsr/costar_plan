@@ -52,7 +52,7 @@ class TaskAgent(AbstractAgent):
             while not done:
 
                 if plan is None:
-                    options = task.sampleSequence()
+                    names, options = task.sampleSequence()
                     plan = ExecuteOptions(options)
                     
                 if plan is not None:
@@ -60,7 +60,7 @@ class TaskAgent(AbstractAgent):
                     print "control", control
                     if control is not None:
                         features, reward, done, info = self.env.step(control)
-                        self._addToDataset(action.tag, self.env.world, control,
+                        self._addToDataset(names[plan.idx], self.env.world, control,
                                 features, reward, done)
                     else:
                         plan = None
