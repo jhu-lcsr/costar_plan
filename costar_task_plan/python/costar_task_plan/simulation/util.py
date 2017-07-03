@@ -19,7 +19,8 @@ def GetTaskDefinition(task, robot, features, *args, **kwargs):
     '''
     try:
         return {
-            'blocks': BlocksTaskDefinition(robot, features=features, *args, **kwargs),
+            'blocks': BlocksTaskDefinition(0, robot, features=features, *args, **kwargs),
+            'tower': BlocksTaskDefinition(None, robot, features=features, *args, **kwargs),
             'clutter': ClutterTaskDefinition(robot, features=features, *args, **kwargs),
             'sorting': SortingTaskDefinition(robot, features=features, *args, **kwargs),
             'oranges': OrangesTaskDefinition(robot, features=features, *args, **kwargs),

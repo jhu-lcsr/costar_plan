@@ -36,13 +36,14 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
     final_stack_pos = np.array([-0.5, 0., 0.])
     grasp_q = (-0.27,0.65,0.65,0.27)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, stage, *args, **kwargs):
         '''
         Read in arguments defining how many blocks to create, where to create
         them, and the size of the blocks. Size is given as mean and covariance,
         blocks are placed at random.
         '''
         super(BlocksTaskDefinition, self).__init__(*args, **kwargs)
+        self.stage = stage
         self.block_ids = []
         
 
@@ -142,7 +143,9 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             ids = self._addTower(pos, blocks, urdf_dir)
             self.block_ids += ids
             
-        self.world.addCondition(JointLimitViolationCondition(), -100, "joints_in_limits")
+        self.world.addCondition(JointLimitViolationCondition(), -100,
+            "joints must stay in limits")
+        self.world.addCondition(TimeCondition(30.), -100, "time limit reached")
         self.world.reward = EuclideanReward("block001")
 
     def reset(self):
