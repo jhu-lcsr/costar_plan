@@ -223,15 +223,15 @@ class CartesianMotionPolicy(AbstractPolicy):
         # mat = pm.toMatrix(T)
         # print mat
         # print actor.robot.kinematics.forward(state.arm)
-        q_goal = actor.robot.ik(T, state.arm)
-        # print "q =",cmd, "goal =", T.p, T.M.GetRPY()
+        cmd = actor.robot.ik(T, state.arm)
 
-        if q_goal is not None:
-            # Compute velocity to go there
-            t = (T.p - state.T.p).Norm() / self.vel
-            cmd = [(q - q0) / t for q, q0 in zip(q_goal, state.arm)]
-        else:
-            cmd = None
+        #if q_goal is not None:
+        #    # Compute velocity to go there
+        #    t = (T.p - state.T.p).Norm() / self.vel
+        #    cmd = [(q - q0) / t for q, q0 in zip(q_goal, state.arm)]
+        #else:
+        #    cmd = None
+        #print "q =",cmd, "goal =", T.p, T.M.GetRPY()
 
         return SimulationRobotAction(arm_cmd=cmd)
 

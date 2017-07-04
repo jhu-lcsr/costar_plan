@@ -97,7 +97,7 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         '''
         return 0.0
 
-    def arm(self, cmd, mode=pb.VELOCITY_CONTROL):
+    def arm(self, cmd, mode=pb.POSITION_CONTROL):
         '''
         Set joint commands for the robot arm.
         '''
