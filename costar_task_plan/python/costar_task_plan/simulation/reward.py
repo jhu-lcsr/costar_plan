@@ -4,7 +4,9 @@ from tf_conversions import posemath as pm
 
 import numpy as np
 
+
 class EuclideanReward(AbstractReward):
+
     '''
     Distance based purely on euclidean distance to object
     '''

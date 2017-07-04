@@ -4,9 +4,10 @@ from costar_task_plan.abstract import *
 import pybullet as pb
 import PyKDL as kdl
 
+
 class SimulationWorld(AbstractWorld):
 
-    def __init__(self, dt = 0.0001, num_steps=1, save_hook=False, task_name="", cameras=[], *args, **kwargs):
+    def __init__(self, dt=0.0001, num_steps=1, save_hook=False, task_name="", cameras=[], *args, **kwargs):
         super(SimulationWorld, self).__init__(NullReward(), *args, **kwargs)
         self.num_steps = num_steps
         self.save_hook = save_hook
@@ -23,7 +24,7 @@ class SimulationWorld(AbstractWorld):
         Wraps add actor function for objects. Make sure they have the right
         policy and are added so we can easily look them up later on.
         '''
-        
+
         obj_id = self.addActor(SimulationObjectActor(
             name=obj_name,
             handle=handle,
@@ -40,7 +41,7 @@ class SimulationWorld(AbstractWorld):
         return obj_id
 
     def getObjectId(self, obj_name):
-      return self.id_by_object[obj_name]
+        return self.id_by_object[obj_name]
 
     def getObjects(self):
         '''
@@ -81,40 +82,47 @@ class SimulationWorld(AbstractWorld):
             actor.state = actor.getState()
             actor.state.t = self.ticks * self.dt
 
-    
     def zeroAction(self, actor):
         return SimulationRobotAction()
 
+
 class SimulationDynamics(AbstractDynamics):
+
     '''
     Send robot's command over to the actor in the current simulation.
     This assumes the world is in the correct configuration, as represented
     by "state."
     '''
+
     def __call__(self, state, action, dt):
-        if action.arm_cmd is not None :
+        if action.arm_cmd is not None:
             state.robot.arm(action.arm_cmd)
         if action.gripper_cmd is not None:
             state.robot.gripper(action.gripper_cmd)
 
+
 class SimulationObjectState(AbstractState):
+
     '''
     Represents state and position of an arbitrary rigid object, and any
     associated predicates.
     '''
+
     def __init__(self, handle,
-            base_pos=(0,0,0),
-            base_rot=(0,0,0,1),
-            t=0.):
+                 base_pos=(0, 0, 0),
+                 base_rot=(0, 0, 0, 1),
+                 t=0.):
         self.predicates = []
         self.base_pos = base_pos
         self.base_rot = base_rot
         p = kdl.Vector(*base_pos)
         R = kdl.Rotation.Quaternion(*base_rot)
-        self.T = kdl.Frame(R,p)
+        self.T = kdl.Frame(R, p)
         self.t = t
 
+
 class SimulationObjectActor(AbstractActor):
+
     '''
     Not currently any different from the default actor.
     '''
@@ -125,17 +133,20 @@ class SimulationObjectActor(AbstractActor):
         self.handle = handle
         self.getState = lambda: GetObjectState(self.handle)
 
+
 class SimulationRobotState(AbstractState):
+
     '''
-    Includes full state necessary for this robot, including gripper, base, and 
+    Includes full state necessary for this robot, including gripper, base, and
     arm position.
     '''
+
     def __init__(self, robot,
-            base_pos=(0,0,0),
-            base_rot=(0,0,0,1),
-            arm=[],
-            gripper=0.,
-            t=0.):
+                 base_pos=(0, 0, 0),
+                 base_rot=(0, 0, 0, 1),
+                 arm=[],
+                 gripper=0.,
+                 t=0.):
 
         self.predicates = []
         self.arm = arm
@@ -145,26 +156,35 @@ class SimulationRobotState(AbstractState):
         self.robot = robot
         self.t = t
 
+
 class SimulationRobotAction(AbstractAction):
+
     '''
     Includes the command that gets sent to robot.act()
     '''
+
     def __init__(self, arm_cmd=None, gripper_cmd=None):
         self.arm_cmd = arm_cmd
         self.gripper_cmd = gripper_cmd
 
+
 class SimulationRobotActor(AbstractActor):
+
     def __init__(self, robot, *args, **kwargs):
         super(SimulationRobotActor, self).__init__(*args, **kwargs)
         self.robot = robot
         self.getState = self.robot.getState
 
+
 class NullPolicy(AbstractPolicy):
-  def evaluate(self, world, state, actor=None):
-    return SimulationRobotAction()
+
+    def evaluate(self, world, state, actor=None):
+        return SimulationRobotAction()
 
 # =============================================================================
 # Helper Fucntions
+
+
 def GetObjectState(handle):
     '''
     Look up the handle and get its base position and eventually other

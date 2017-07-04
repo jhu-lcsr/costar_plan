@@ -4,11 +4,14 @@ import numpy as np
 import pybullet as pb
 import PyKDL as kdl
 
+
 class CollisionCondition(AbstractCondition):
+
     '''
     Basic condition. This fires if a given actor has collided with any entity
     that it is not allowed to collide with.
     '''
+
     def __init__(self, allowed):
         super(CollisionCondition, self).__init__()
         self.allowed = allowed
@@ -17,11 +20,14 @@ class CollisionCondition(AbstractCondition):
         raise NotImplementedError('come on, this does not work yet')
         pass
 
+
 class JointLimitViolationCondition(AbstractCondition):
+
     '''
     True if all arm positions are within joint limits as defined by the
     robot's kinematics.
     '''
+
     def __init__(self):
         pass
 
@@ -31,11 +37,14 @@ class JointLimitViolationCondition(AbstractCondition):
         '''
         return actor.robot.kinematics.joints_in_limits(state.arm).all()
 
+
 class SafeJointLimitViolationCondition(AbstractCondition):
+
     '''
     True if all arm positions are within joint limits as defined by the
     robot's kinematics.
     '''
+
     def __init__(self):
         pass
 
@@ -45,11 +54,14 @@ class SafeJointLimitViolationCondition(AbstractCondition):
         '''
         return actor.robot.kinematics.joints_in_safe_limits(state.arm).all()
 
+
 class GoalPositionCondition(AbstractCondition):
+
     '''
     True if the robot has not yet arrived at its goal position. The goal
     position is here defined as being within a certain distance of a point.
     '''
+
     def __init__(self, goal, pos, rot, pos_tol, rot_tol):
         self.pos_tol = pos_tol
         self.rot_tol = rot_tol
@@ -57,7 +69,7 @@ class GoalPositionCondition(AbstractCondition):
         self.pos = pos
         self.rot = rot
         self.goal = goal
-        
+
         # If we are within this distance, the action failed.
         self.dist = np.linalg.norm(self.pos)
 
@@ -79,25 +91,27 @@ class GoalPositionCondition(AbstractCondition):
         T_robot = state.robot.fwd(state.arm)
         dist = (T_robot.p - T.p).Norm()
 
-        #print (self.T.p.Norm())
-        #print (obj.state.T.p - T.p).Norm()
-        #print T_robot.p, T.p, dist
-        
+        # print (self.T.p.Norm())
+        # print (obj.state.T.p - T.p).Norm()
+        # print T_robot.p, T.p, dist
+
         return dist > self.pos_tol
 
 
 class AbsolutePositionCondition(AbstractCondition):
+
     '''
     True until the robot has gotten within some distance of a particular point
     in the world's coordinate frame.
     '''
+
     def __init__(self, pos, rot, pos_tol, rot_tol):
         self.pos_tol = pos_tol
         self.rot_tol = rot_tol
 
         self.pos = pos
         self.rot = rot
-        
+
         # If we are within this distance, the action failed.
         pg = kdl.Vector(*self.pos)
         Rg = kdl.Rotation.Quaternion(*self.rot)
@@ -112,15 +126,18 @@ class AbsolutePositionCondition(AbstractCondition):
 
         return dist > self.pos_tol
 
+
 class ObjectAtPositionCondition(AbstractCondition):
+
     '''
-    Check to see if a particular 
+    Check to see if a particular
     '''
+
     def __init__(self, objname, pos, pos_tol, ):
         self.objname = objname
         self.pos_tol = pos_tol
         self.pos = pos
-        
+
         # If we are within this distance, the action failed.
         self.p = kdl.Vector(*self.pos)
 
@@ -132,4 +149,3 @@ class ObjectAtPositionCondition(AbstractCondition):
         dist = (T.p - self.p).Norm()
 
         return dist > self.pos_tol
-

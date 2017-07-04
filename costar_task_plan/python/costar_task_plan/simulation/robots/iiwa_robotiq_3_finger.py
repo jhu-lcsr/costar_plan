@@ -1,12 +1,14 @@
 
 from abstract import AbstractRobotInterface
 
-import gym; from gym import spaces
+import gym
+from gym import spaces
 import numpy as np
 import os
 import pybullet as pb
 import rospkg
 import subprocess
+
 
 class IiwaRobotiq3FingerInterface(AbstractRobotInterface):
 
@@ -58,7 +60,8 @@ class IiwaRobotiq3FingerInterface(AbstractRobotInterface):
 
     def place(self, pos, rot, joints):
         pb.resetBasePositionAndOrientation(self.handle, pos, rot)
-        pb.createConstraint(self.handle,-1,-1,-1,pb.JOINT_FIXED,pos,[0,0,0],rot)
+        pb.createConstraint(
+            self.handle, -1, -1, -1, pb.JOINT_FIXED, pos, [0, 0, 0], rot)
         for i, q in enumerate(joints):
             pb.resetJointState(self.handle, i, q)
 
@@ -90,15 +93,16 @@ class IiwaRobotiq3FingerInterface(AbstractRobotInterface):
         UR5.
         '''
         pb.setJointMotorControl2(self.handle, self.left_knuckle, mode,  -cmd)
-        pb.setJointMotorControl2(self.handle, self.left_inner_knuckle, mode,  -cmd)
+        pb.setJointMotorControl2(
+            self.handle, self.left_inner_knuckle, mode,  -cmd)
         pb.setJointMotorControl2(self.handle, self.left_finger, mode,  cmd)
         pb.setJointMotorControl2(self.handle, self.left_fingertip, mode,  cmd)
 
         pb.setJointMotorControl2(self.handle, self.right_knuckle, mode,  -cmd)
-        pb.setJointMotorControl2(self.handle, self.right_inner_knuckle, mode,  -cmd)
+        pb.setJointMotorControl2(
+            self.handle, self.right_inner_knuckle, mode,  -cmd)
         pb.setJointMotorControl2(self.handle, self.right_finger, mode,  cmd)
         pb.setJointMotorControl2(self.handle, self.right_fingertip, mode,  cmd)
-
 
     def act(self, action):
         '''
@@ -109,7 +113,7 @@ class IiwaRobotiq3FingerInterface(AbstractRobotInterface):
         self.gripper(action[6])
 
     def getActionSpace(self):
-        return spaces.Tuple((spaces.Box(-np.pi,np.pi,6),spaces.Box(-0.6,0.6,1)))
+        return spaces.Tuple((spaces.Box(-np.pi, np.pi, 6), spaces.Box(-0.6, 0.6, 1)))
 
     def _getArmPosition(self):
         q = [0.] * 6

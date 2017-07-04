@@ -12,7 +12,7 @@ class MugTaskDefinition(AbstractTaskDefinition):
     model_file_name = "model.sdf"
     model = "mug"
 
-    spawn_pos_min = np.array([-0.4 ,-0.25, 0.05])
+    spawn_pos_min = np.array([-0.4, -0.25, 0.05])
     spawn_pos_max = np.array([-0.65, 0.25, 0.055])
     spawn_pos_delta = spawn_pos_max - spawn_pos_min
 
@@ -33,12 +33,14 @@ class MugTaskDefinition(AbstractTaskDefinition):
         sdf_dir = os.path.join(path, self.sdf_dir)
         obj_to_add = os.path.join(sdf_dir, self.model, self.model_file_name)
 
-        identity_orientation = pb.getQuaternionFromEuler([0,0,0])
+        identity_orientation = pb.getQuaternionFromEuler([0, 0, 0])
         try:
             obj_id_list = pb.loadSDF(obj_to_add)
             for obj_id in obj_id_list:
-                random_position = np.random.rand(3)*self.spawn_pos_delta + self.spawn_pos_min
-                pb.resetBasePositionAndOrientation(obj_id, random_position, identity_orientation)
+                random_position = np.random.rand(
+                    3) * self.spawn_pos_delta + self.spawn_pos_min
+                pb.resetBasePositionAndOrientation(
+                    obj_id, random_position, identity_orientation)
         except Exception, e:
             print e
 
@@ -47,7 +49,7 @@ class MugTaskDefinition(AbstractTaskDefinition):
         Configure the robot so that it is ready to begin the task. Robot should
         be oriented so the gripper is near the cluttered area with the mug.
         '''
-        self.robot.place([0,0,0],[0,0,0,1],self.joint_positions)
+        self.robot.place([0, 0, 0], [0, 0, 0, 1], self.joint_positions)
         self.robot.arm(self.joint_positions, pb.POSITION_CONTROL)
         self.robot.gripper(0, pb.POSITION_CONTROL)
 

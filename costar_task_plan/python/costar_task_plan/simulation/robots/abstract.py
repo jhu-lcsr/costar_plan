@@ -72,7 +72,7 @@ class AbstractRobotInterface(object):
 
     def ik(self, pose, q0):
         return self.kinematics.inverse(pm.toMatrix(pose), q0)
-    
+
     def forward(self, position):
         return self.kinematics.forward(position)
 
@@ -95,7 +95,8 @@ class AbstractRobotInterface(object):
         '''
         Update the robot's position.
         '''
-        raise NotImplementedError('This should put the robot in a specific pose.')
+        raise NotImplementedError(
+            'This should put the robot in a specific pose.')
 
     def arm(self, cmd, mode):
         '''
@@ -134,10 +135,10 @@ class AbstractRobotInterface(object):
         '''
         (pos, rot) = pb.getBasePositionAndOrientation(self.handle)
         return SimulationRobotState(robot=self,
-                base_pos=pos,
-                base_rot=rot,
-                arm=self._getArmPosition(),
-                gripper=self._getGripper())
+                                    base_pos=pos,
+                                    base_rot=rot,
+                                    arm=self._getArmPosition(),
+                                    gripper=self._getGripper())
 
     def inverse(self, pose):
         '''
@@ -145,8 +146,8 @@ class AbstractRobotInterface(object):
         to recover a command vector that will move the robot arm to the right
         pose.
         '''
-        raise NotImplementedError('The inverse() command takes a position' + \
-                                  'and gets inverse kinematics associated' + \
+        raise NotImplementedError('The inverse() command takes a position' +
+                                  'and gets inverse kinematics associated' +
                                   'with it.')
 
     def getActionSpace(self):

@@ -4,10 +4,12 @@ from robots import *
 
 
 def GetAvailableTasks():
-    return ["blocks", "clutter", "sorting",]
+    return ["blocks", "clutter", "sorting", ]
+
 
 def GetAvailableRobots():
     return ["jaco", "ur5_2_finger", "ur5", "ur5_robotiq"]
+
 
 def GetAvailableAlgorithms():
     return [None, "ddpg", "cdqn"]

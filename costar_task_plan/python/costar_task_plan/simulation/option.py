@@ -9,7 +9,9 @@ from costar_task_plan.abstract import AbstractPolicy
 import pybullet as pb
 import PyKDL as kdl
 
+
 class GoalDirectedMotionOption(AbstractOption):
+
     '''
     This represents a goal that will move us somewhere relative to a particular
     object, the "goal."
@@ -19,7 +21,7 @@ class GoalDirectedMotionOption(AbstractOption):
     running on the robot will be enough to take us to the goal position.
     '''
 
-    def __init__(self, world, goal, pose, pose_tolerance=(1e-3,1e-2), *args, **kwargs):
+    def __init__(self, world, goal, pose, pose_tolerance=(1e-3, 1e-2), *args, **kwargs):
         self.goal = goal
         self.goal_id = world.getObjectId(goal)
         if pose is not None:
@@ -34,28 +36,30 @@ class GoalDirectedMotionOption(AbstractOption):
         # - execution should continue until such time as this condition
         # is true.
         return CartesianMotionPolicy(self.position,
+                                     self.rotation,
+                                     goal=self.goal), \
+            GoalPositionCondition(
+                self.goal,  # what object we care about
+                self.position,  # where we want to grab it
                 self.rotation,
-                goal=self.goal), \
-                GoalPositionCondition(
-                        self.goal, # what object we care about
-                        self.position, # where we want to grab it
-                        self.rotation, # rotation with which we want to grab it
-                        self.position_tolerance,
-                        self.rotation_tolerance)
+                            # rotation with which we want to grab it
+                self.position_tolerance,
+                self.rotation_tolerance)
 
     def samplePolicy(self, world):
         # Get the gating condition for a specific option.
         # - execution should continue until such time as this condition
-        # is true. 
+        # is true.
         return CartesianMotionPolicy(self.position,
+                                     self.rotation,
+                                     goal=self.goal), \
+            GoalPositionCondition(
+                self.goal,  # what object we care about
+                self.position,  # where we want to grab it
                 self.rotation,
-                goal=self.goal), \
-                GoalPositionCondition(
-                        self.goal, # what object we care about
-                        self.position, # where we want to grab it
-                        self.rotation, # rotation with which we want to grab it
-                        self.position_tolerance,
-                        self.rotation_tolerance)
+                            # rotation with which we want to grab it
+                self.position_tolerance,
+                self.rotation_tolerance)
 
     def checkPrecondition(self, world, state):
         # Is it ok to begin this option?
@@ -79,10 +83,12 @@ class GoalDirectedMotionOption(AbstractOption):
 
 
 class GeneralMotionOption(AbstractOption):
+
     '''
-    This motion is not parameterized by anything in particular. This lets us 
-    sample policies that will take us twoards this goal. 
+    This motion is not parameterized by anything in particular. This lets us
+    sample policies that will take us twoards this goal.
     '''
+
     def __init__(self, pose, pose_tolerance, *args, **kwargs):
         if pose is not None:
             self.position, self.rotation = pose
@@ -95,14 +101,16 @@ class GeneralMotionOption(AbstractOption):
 
     def samplePolicy(self, world):
         return CartesianMotionPolicy(self.position,
+                                     self.rotation,
+                                     goal=None), \
+            AbsolutePositionCondition(
+                self.position,  # where we want to grab it
                 self.rotation,
-                goal=None), \
-                AbsolutePositionCondition(
-                            self.position, # where we want to grab it
-                            self.rotation, # rotation with which we want to grab it
-                            self.position_tolerance,
-                            self.rotation_tolerance,
-                            )
+                                # rotation with which we want to grab it
+                self.position_tolerance,
+                self.rotation_tolerance,
+            )
+
     def checkPrecondition(self, world, state):
         # Is it ok to begin this option?
         if not isinstance(world, AbstractWorld):
@@ -123,7 +131,9 @@ class GeneralMotionOption(AbstractOption):
                 'option.checkPostcondition() requires an initial state!')
         return True
 
+
 class OpenGripperOption(AbstractOption):
+
     '''
     Look up the robot for the specific actor, and perform the appropriate "open
     gripper" action, as specified.
@@ -132,31 +142,43 @@ class OpenGripperOption(AbstractOption):
     robot can have its own ways of closing a gripper and its own commands that
     are appropriate for this.
     '''
+
     def makePolicy(self, world):
         return OpenGripperPolicy(), TimeCondition(world.time() + 1.0)
+
     def samplePolicy(self, world):
         return OpenGripperPolicy(), TimeCondition(world.time() + 1.0)
+
     def checkPrecondition(self, world, state):
         return True
+
     def checkPostcondition(self, world, state):
         return True
 
+
 class CloseGripperOption(AbstractOption):
+
     '''
     As above, this option creates the approprite policies for closing a gripper,
     and does nothing else. These policies count on certain information
     associated with the actor's state in order to function.
     '''
+
     def makePolicy(self, world):
         return CloseGripperPolicy(), TimeCondition(world.time() + 3.0)
+
     def samplePolicy(self, world):
         return CloseGripperPolicy(), TimeCondition(world.time() + 3.0)
+
     def checkPrecondition(self, world, state):
         return True
+
     def checkPostcondition(self, world, state):
         return True
 
+
 class CartesianMotionPolicy(AbstractPolicy):
+
     def __init__(self, pos, rot, goal=None):
         self.pos = pos
         self.rot = rot
@@ -186,35 +208,42 @@ class CartesianMotionPolicy(AbstractPolicy):
             T = self.T
 
         if actor.robot.grasp_idx is None:
-            raise RuntimeError('Did you properly set up the robot URDF to specify grasp frame?')
+            raise RuntimeError(
+                'Did you properly set up the robot URDF to specify grasp frame?')
 
         # Issue computing inverse kinematics
-        #compos, comorn, ifpos, iforn, lwpos, lworn = pb.getLinkState(actor.robot.handle, actor.robot.grasp_idx)
-        #print lwpos, lworn
-        #q = pb.calculateInverseKinematics(actor.robot.handle,
+        # compos, comorn, ifpos, iforn, lwpos, lworn = pb.getLinkState(actor.robot.handle, actor.robot.grasp_idx)
+        # print lwpos, lworn
+        # q = pb.calculateInverseKinematics(actor.robot.handle,
         #                                  actor.robot.grasp_idx,
         #                                  targetPosition=position,
         #                                  targetOrientation=rotation)
-        #from tf_conversions import posemath as pm
-        #mat = pm.toMatrix(T)
-        #print mat
-        #print actor.robot.kinematics.forward(state.arm)
+        # from tf_conversions import posemath as pm
+        # mat = pm.toMatrix(T)
+        # print mat
+        # print actor.robot.kinematics.forward(state.arm)
         cmd = actor.robot.ik(T, state.arm)
-        #print "q =",cmd, "goal =", T.p, T.M.GetRPY()
+        # print "q =",cmd, "goal =", T.p, T.M.GetRPY()
         return SimulationRobotAction(arm_cmd=cmd)
 
+
 class OpenGripperPolicy(AbstractPolicy):
+
     '''
     This simple policy just looks at robot internals to send the appropriate
     "open gripper" command.
     '''
+
     def evaluate(self, world, state, actor):
         return SimulationRobotAction(gripper_cmd=state.robot.gripperOpenCommand())
 
+
 class CloseGripperPolicy(AbstractPolicy):
+
     '''
     This simple policy just looks at robot internals to send the appropriate
     "close gripper" command.
     '''
+
     def evaluate(self, world, state, actor):
         return SimulationRobotAction(gripper_cmd=state.robot.gripperCloseCommand())

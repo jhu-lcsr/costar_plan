@@ -17,9 +17,10 @@ workspace. In "tower," we again generate a set of colored blocks. This time the
 robot should pick them all up and stack them.
 """
 
+
 def ParseBulletArgs():
     parser = argparse.ArgumentParser(add_help=True,
-            description=_desc, epilog=_epilog)
+                                     description=_desc, epilog=_epilog)
     parser.add_argument("--gui",
                         action="store_true",
                         help="Display Bullet visualization.")
@@ -47,10 +48,10 @@ def ParseBulletArgs():
     parser.add_argument('-g', '--gamma',
                         help="MDP discount factor gamma. Must be set so that 0 < gamma <= 1. Low gamma decreases significance of future rewards.",
                         default=1.)
-    parser.add_argument('-o','--option',
+    parser.add_argument('-o', '--option',
                         help="Specific sub-option to train. Exact list depends on the chosen task.",
                         default=None)
-    parser.add_argument('-p','--plot_task','--pt',
+    parser.add_argument('-p', '--plot_task', '--pt',
                         help="Display a plot of the chosen task and exit.",
                         action="store_true")
     parser.add_argument('-s', '--save',
