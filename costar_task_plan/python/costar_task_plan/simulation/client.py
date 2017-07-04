@@ -69,9 +69,7 @@ class CostarBulletSimulation(object):
                  ros_name="simulation",
                  option=None,
                  plot_task=False,
-                 directory='./',
-                 save=False,
-                 load=False,
+                 directory='.',
                  capture=False,
                  show_images=False,
                  randomize_color=False,
@@ -87,9 +85,7 @@ class CostarBulletSimulation(object):
         self.ros = ros
 
         # saving
-        self.save = save
-        self.load = load
-        self.capture = capture or show_images
+        self.capture = capture
         self.show_images = show_images
         self.directory = directory
         self.randomize_color = randomize_color
@@ -196,27 +192,7 @@ class CostarBulletSimulation(object):
         # Get state, action, features, reward from update
         (ok, S0, A0, S1, F1, reward) = self.task.world.tick(action)
 
-        if self.save:
-            temp_data = []
-            if os.path.isfile('data.npz'):
-                in_data = np.load('data.npz')
-                s0 = in_data['s0'].append(s0)
-                A0 = in_data['A0'].append(A0)
-                S1 = in_data['S1'].append(S1)
-                F1 = in_data['F1'].append(F1)
-                reward = in_data['reward']
-
-            np.savez('data', s0=s0, A0=A0, S1=S1, F1=F1, reward=reward)
-
-        if self.load:
-            in_data = np.load('data.npz')
-            s0 = in_data['s0']
-            A0 = in_data['A0']
-            S1 = in_data['S1']
-            F1 = in_data['F1']
-            reward = in_data['reward']
-
-        if self.capture:
+        if self.capture or self.show_images:
             imgs = self.task.capture()
             for name, rgb, depth, mask in imgs:
                 if self.show_images:
@@ -227,7 +203,8 @@ class CostarBulletSimulation(object):
                     plt.subplot(1, 3, 3)
                     plt.imshow(mask, interpolation="none")
                     plt.pause(0.01)
-                if self.save:
+
+                if self.capture:
                     path1 = os.path.join(self.directory,
                                          "%s%04d_rgb.png" % (name, self.task.world.ticks))
                     path2 = os.path.join(self.directory,
@@ -235,27 +212,20 @@ class CostarBulletSimulation(object):
                     path3 = os.path.join(self.directory,
                                          "%s%04d_label.png" % (name, self.task.world.ticks))
 
-                    # img = png.fromarray(rgb, "L")
-                    # temp_im_rgb = Image.fromarray(rgb, mode='L')
-                    # temp_im_rgb.save(path)
-                    # temp_im_rgb = cv2.imwrite(path1, rgb)
                     plt.imsave(path1, rgb)
                     plt.imsave(path2, depth)
                     plt.imsave(path3, mask)
-
-                    # temp1 = plt.imsave(path, rgb)
-                    # img.save(path)
-
-            # TODO: handle other stuff
 
         # Return world information
         return F1, reward, not ok, {}
 
     def close(self):
         '''
-        Close connection to bullet sim.
+        Close connection to bullet sim and save collected data.
         '''
         pb.disconnect()
+
+
 
     def __delete__(self):
         '''

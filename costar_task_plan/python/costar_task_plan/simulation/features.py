@@ -83,7 +83,7 @@ class RgbImageFeatures(AbstractFeatures):
         return world.cameras[0].capture().rgb
 
 
-class ImagePlusFeatures(AbstractFeatures)
+class ImagePlusFeatures(AbstractFeatures):
 
     '''
     Include arm, state, gripper. This set of features is probably the fullest

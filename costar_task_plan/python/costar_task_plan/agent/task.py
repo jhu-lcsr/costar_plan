@@ -57,17 +57,7 @@ class TaskAgent(AbstractAgent):
         self.iter = iter
         self.env = env
 
-    def _addToDataset(self, action_name, world, control, features, reward, done):
-        '''
-        Takes as input features, reward, action, and other information. Saves
-        all of this to create a dataset.
-        '''
-
-        # Save both the generic, non-parameterized action name and the action
-        # name.
-        generic_action_name = action_name.split('(')[0]
-
-    def fit(self):
+    def _fit(self):
         '''
         This is a "fake" agent -- it does not fit any model in particular, it
         just generates some data. You almost certainly just want to call fit()
@@ -94,8 +84,12 @@ class TaskAgent(AbstractAgent):
                     control = plan.apply(self.env.world)
                     if control is not None:
                         features, reward, done, info = self.env.step(control)
-                        self._addToDataset(names[plan.idx], self.env.world, control,
-                                features, reward, done)
+                        self._addToDataset(self.env.world,
+                                control,
+                                features,
+                                reward,
+                                done,
+                                names[plan.idx])
                     else:
                         plan = None
                         done = True

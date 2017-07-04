@@ -6,6 +6,7 @@ from pykdl_utils.kdl_kinematics import KDLKinematics
 from tf_conversions import posemath as pm
 from urdf_parser_py.urdf import URDF
 
+import gym; from gym import spaces
 import pybullet as pb
 
 
@@ -30,6 +31,8 @@ class AbstractRobotInterface(object):
         self.handle = None
         self.grasp_idx = None
         self.kinematics = None
+        self.arm_space, self.gripper_space = self._getActionSpaces()
+        self.action_space = self.getActionSpace()
 
     def load(self):
         '''
@@ -150,11 +153,28 @@ class AbstractRobotInterface(object):
                                   'and gets inverse kinematics associated' +
                                   'with it.')
 
+    def toParams(self, action):
+        '''
+        Use action space to convert a CTP.SIMULATION action into a numpy array.
+
+        Params:
+        -------
+        action: an action containing gripper_cmd and arm_cmd.
+        '''
+        pass
+
     def getActionSpace(self):
         '''
         Defines the action space used by the robot.
         '''
-        raise NotImplementedError('no getActionSpace() implemented')
+        return spaces.Tuple((self.arm_space, self.gripper_space))
+
+    def _getActionSpaces(self):
+        '''
+        Gives spaces for arm gripper etc
+        '''
+        raise NotImplementedError('should set up the appropriate spaces' + \
+                ' for the robot.')
 
     def act(self, action):
         '''

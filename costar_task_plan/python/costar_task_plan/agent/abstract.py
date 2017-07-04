@@ -33,22 +33,118 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 '''
 
+import numpy as np
+import os
+import signal
+
 class AbstractAgent(object):
     '''
     Default agent. Wraps a large number of different methods for learning a
     neural net model for robot actions.
+
+    TO IMPLEMENT AN AGENT:
+    - you mostly are just implementing _fit(). It must be able to handle the
+      _break flag which will be caught by the higher level.
     '''
 
     name = None
     
-    def __init__(self, *args, **kwargs):
-        pass
+    def __init__(self,
+            verbose=False,
+            save=False,
+            load=False,
+            directory='.',
+            filename='data.npz',
+            *args, **kwargs):
+        '''
+        Sets up the general Agent.
+
+        Params:
+        ---------
+        verbose: print out a ton of warnings and other information.
+        save: save data collected to the disk somewhere.
+        load: load data from the disk.
+        '''
+
+        self._break = False
+        self.verbose = verbose
+        self.save = save
+        self.load = load
+        self.data = {}
+
+        self.datafile = os.path.join(directory,filename)
+        if self.save or self.load:
+            if os.path.isfile(self.datafile):
+                self.data.update(np.load(self.datafile))
+            elif self.load:
+                raise RuntimeError('Could not load data from %s!' % \
+                        self.datafile)
+
+    def _catch_sigint(self, *args, **kwargs):
+      if self.verbose:
+        print "Caught sigint!"
+      self._break = True
 
     def fit(self):
-        raise NotImplementedError('fit() should run algorithm on the environment')
+        '''
+        Basic "fit" function used by custom Agents. Override this if you do not
+        want the saving, loading, signal-catching behavior we construct here.
+        
+        Params:
+        ------
+        [none]
+        '''
+        self._break = False
+        _catch_sigint = lambda *args, **kwargs: self._catch_sigint(*args, **kwargs)
+        signal.signal(signal.SIGINT, _catch_sigint)
+        self._fit()
+
+        if self.save:
+            np.savez(self.datafile, **self.data)
+
+    def _fit(self):
+        raise NotImplementedError('_fit() should run algorithm on the environment')
 
     def data(self):
         '''
         Returns dataset.
         '''
         raise NotImplementedError('not yet working')
+
+    def _addToDataset(self, world, control, features, reward, done,
+            action_label=""):
+        '''
+        Takes as input features, reward, action, and other information. Saves
+        all of this to create a dataset.
+
+        Params:
+        ----------
+        world: the current world state
+        control: the command send to the learning actor in the world.
+        features: observations, information we saw before taking this action.
+        reward: instantaneous reward.
+        done: are we finished here?
+        action_label: string data provided by the agent.
+        '''
+
+        # Save both the generic, non-parameterized action name and the action
+        # name.
+        generic_action_name = action_label.split('(')[0]
+        if self.save:
+            # Features can be either a tuple or a numpy array. If they're a
+            # tuple, we handle them one way...
+            if isinstance(features, tuple):
+                assert len(desc) ==  len(features)
+                data = zip(self.env.world.features.getDescription(), features)
+            else:
+                desc = self.env.world.features.getDescription()
+                assert not isinstance(desc, tuple)
+                data = [(desc, features)]
+            data += [("reward", reward),
+                     ("done", done),
+                     ("action", control.toArray())]
+
+            for key, value in data:
+                if not key in self.data:
+                    self.data[key] = np.array(())
+                np.concatenate((self.data[key],[value]))

@@ -160,13 +160,13 @@ class SimulationRobotState(AbstractState):
 class SimulationRobotAction(AbstractAction):
 
     '''
-    Includes the command that gets sent to robot.act()
+    Includes the command that gets sent to robot.act(). This pretty much just
+    holds the tuple for arm_cmd, gripper_cmd, etc.
     '''
 
     def __init__(self, arm_cmd=None, gripper_cmd=None):
         self.arm_cmd = arm_cmd
         self.gripper_cmd = gripper_cmd
-
 
 class SimulationRobotActor(AbstractActor):
 

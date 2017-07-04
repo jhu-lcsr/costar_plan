@@ -1,8 +1,7 @@
 
 from abstract import AbstractRobotInterface
 
-import gym
-from gym import spaces
+import gym; from gym import spaces
 import numpy as np
 import os
 import pybullet as pb
@@ -102,11 +101,9 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         '''
         Set joint commands for the robot arm.
         '''
-        if len(cmd) > 6:
+        if len(cmd) > self.dof:
             raise RuntimeError('too many joint positions')
 
-        # for i, q in enumerate(cmd):
-        #    pb.setJointMotorControl2(self.handle, i, mode, q)
         pb.setJointMotorControlArray(self.handle, self.arm_joint_indices, mode,
                                      cmd, forces=[1000.] * self.dof)
 
@@ -121,8 +118,8 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         pb.setJointMotorControlArray(self.handle, self.gripper_indices, mode,
                                      cmd_array)
 
-    def getActionSpace(self):
-        return spaces.Tuple((spaces.Box(-np.pi, np.pi, 6), spaces.Box(-0.6, 0.6, 1)))
+    def _getActionSpaces(self):
+        return spaces.Box(-np.pi, np.pi, self.dof), spaces.Box(-0.8, 0.0, 1)
 
     def _getArmPosition(self):
         q = [0.] * 6

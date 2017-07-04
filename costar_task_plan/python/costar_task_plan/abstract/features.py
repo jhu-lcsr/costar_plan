@@ -1,5 +1,11 @@
 
 class AbstractFeatures(object):
+  '''
+  This includes metadata describing a particular feature function. It's a
+  callable itself, and is designed to make it easy to compute features for a
+  particular (world, state) tuple.
+  '''
+
   def __call__(self,world,state):
     return self.compute(world,state)
 
