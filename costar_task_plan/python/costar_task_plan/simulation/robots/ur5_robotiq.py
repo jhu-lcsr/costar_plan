@@ -118,8 +118,9 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         pb.setJointMotorControlArray(self.handle, self.gripper_indices, mode,
                                      cmd_array)
 
-    def _getActionSpaces(self):
-        return spaces.Box(-np.pi, np.pi, self.dof), spaces.Box(-0.8, 0.0, 1)
+    def getActionSpace(self):
+        return spaces.Tuple((spaces.Box(-np.pi, np.pi, self.dof),
+                spaces.Box(-0.8, 0.0, 1)))
 
     def _getArmPosition(self):
         q = [0.] * 6

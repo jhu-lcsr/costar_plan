@@ -99,6 +99,7 @@ class AbstractAgent(object):
         signal.signal(signal.SIGINT, _catch_sigint)
         self._fit()
 
+        print "saving"
         if self.save:
             np.savez(self.datafile, **self.data)
 

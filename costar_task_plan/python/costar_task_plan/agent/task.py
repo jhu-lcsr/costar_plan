@@ -74,7 +74,7 @@ class TaskAgent(AbstractAgent):
             plan = None
             done = False
 
-            while not done:
+            while not done and not self._break:
 
                 if plan is None:
                     names, options = task.sampleSequence()
@@ -96,5 +96,6 @@ class TaskAgent(AbstractAgent):
                 else:
                     done = True
 
-        return None
+            if self._break:
+                return
 

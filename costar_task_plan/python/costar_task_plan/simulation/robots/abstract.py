@@ -31,7 +31,6 @@ class AbstractRobotInterface(object):
         self.handle = None
         self.grasp_idx = None
         self.kinematics = None
-        self.arm_space, self.gripper_space = self._getActionSpaces()
         self.action_space = self.getActionSpace()
 
     def load(self):
@@ -165,20 +164,8 @@ class AbstractRobotInterface(object):
 
     def getActionSpace(self):
         '''
-        Defines the action space used by the robot.
-        '''
-        return spaces.Tuple((self.arm_space, self.gripper_space))
-
-    def _getActionSpaces(self):
-        '''
         Gives spaces for arm gripper etc
         '''
         raise NotImplementedError('should set up the appropriate spaces' + \
-                ' for the robot.')
+                ' for the robot as a tuple.')
 
-    def act(self, action):
-        '''
-        Parse a robot action. Should call the base(), gripper(), or arm()
-        functions to set the appropriate commands.
-        '''
-        raise NotImplementedError('act')
