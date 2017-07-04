@@ -179,7 +179,7 @@ class CloseGripperOption(AbstractOption):
 
 class CartesianMotionPolicy(AbstractPolicy):
 
-    def __init__(self, pos, rot, goal=None, vel=0.):
+    def __init__(self, pos, rot, goal=None, vel=1.):
         self.pos = pos
         self.rot = rot
         self.goal = goal
@@ -226,7 +226,12 @@ class CartesianMotionPolicy(AbstractPolicy):
         q_goal = actor.robot.ik(T, state.arm)
         # print "q =",cmd, "goal =", T.p, T.M.GetRPY()
 
-        # Compute velocity to go there
+        if q_goal is not None:
+            # Compute velocity to go there
+            t = (T.p - state.T.p).Norm() / self.vel
+            cmd = [(q - q0) / t for q, q0 in zip(q_goal, state.arm)]
+        else:
+            cmd = None
 
         return SimulationRobotAction(arm_cmd=cmd)
 

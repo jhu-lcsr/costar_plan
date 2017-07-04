@@ -85,8 +85,7 @@ class GoalPositionCondition(AbstractCondition):
         # that for computing positions and stuff like that.
         obj = world.getObject(self.goal)
         T = obj.state.T * self.T
-        T_robot = state.T
-        dist = (T_robot.p - T.p).Norm()
+        dist = (state.T.p - T.p).Norm()
 
         # print (self.T.p.Norm())
         # print (obj.state.T.p - T.p).Norm()
