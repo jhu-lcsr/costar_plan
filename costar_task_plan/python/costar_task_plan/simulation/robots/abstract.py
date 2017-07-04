@@ -136,6 +136,8 @@ class AbstractRobotInterface(object):
         what the robot will look like.
         '''
         (pos, rot) = pb.getBasePositionAndOrientation(self.handle)
+        # TODO(cpaxton): improve forward kinematics efficiency by just using
+        # PyBullet to get the position of the grasp frame.
         q = self._getArmPosition()
         return SimulationRobotState(robot=self,
                                     base_pos=pos,

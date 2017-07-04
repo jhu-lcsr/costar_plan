@@ -67,5 +67,6 @@ class RandomGoalAgent(AbstractAgent):
             cmd = env.action_space.sample()
             env.step(cmd)
 
-        return None
+            if self._break:
+                return
         

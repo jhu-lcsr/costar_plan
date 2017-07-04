@@ -31,5 +31,6 @@ class RandomAgent(AbstractAgent):
 
             self.env.step(cmd)
 
-        return None
+            if self._break:
+                return
         
