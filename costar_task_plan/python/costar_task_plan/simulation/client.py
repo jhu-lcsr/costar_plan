@@ -178,21 +178,13 @@ class CostarBulletSimulation(object):
 
     def tick(self, action):
         '''
-        Parse action via the robot
+        Parse action via the robot interface and update the world.
+
+        Params:
+        --------
+        action: a CTP AbstractAction containing commands for the robot's arm,
+        gripper, and base, if applicable.
         '''
-        # cmd = []
-        # if type(action) is tuple:
-        #    for term in action:
-        #        cmd += term.tolist()
-        # else:
-        #    cmd = action.tolist()
-
-        # if self.iterations > self.max_iterations:
-        #    self.iterations = 0
-        #    self.reset()
-
-        # else:
-        #    self.iterations = self.iterations + 1
 
         if not isinstance(action, SimulationRobotAction):
 

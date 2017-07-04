@@ -92,3 +92,6 @@ class ImagePlusFeatures(AbstractFeatures)
 
     def compute(self, world, state):
         return world.cameras[0].capture().rgb, state.arm, state.gripper
+
+    def getDescription(self):
+        return "features", "arm", "gripper"
