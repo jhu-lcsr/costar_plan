@@ -70,9 +70,6 @@ class GoalPositionCondition(AbstractCondition):
         self.rot = rot
         self.goal = goal
 
-        # If we are within this distance, the action failed.
-        self.dist = np.linalg.norm(self.pos)
-
         pg = kdl.Vector(*self.pos)
         Rg = kdl.Rotation.Quaternion(*self.rot)
         self.T = kdl.Frame(Rg, pg)
@@ -88,7 +85,7 @@ class GoalPositionCondition(AbstractCondition):
         # that for computing positions and stuff like that.
         obj = world.getObject(self.goal)
         T = obj.state.T * self.T
-        T_robot = state.robot.fwd(state.arm)
+        T_robot = state.T
         dist = (T_robot.p - T.p).Norm()
 
         # print (self.T.p.Norm())

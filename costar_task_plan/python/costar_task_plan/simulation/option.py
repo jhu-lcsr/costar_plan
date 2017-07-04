@@ -179,10 +179,11 @@ class CloseGripperOption(AbstractOption):
 
 class CartesianMotionPolicy(AbstractPolicy):
 
-    def __init__(self, pos, rot, goal=None):
+    def __init__(self, pos, rot, goal=None, vel=0.):
         self.pos = pos
         self.rot = rot
         self.goal = goal
+        self.vel = vel
 
         pg = kdl.Vector(*self.pos)
         Rg = kdl.Rotation.Quaternion(*self.rot)
@@ -222,8 +223,11 @@ class CartesianMotionPolicy(AbstractPolicy):
         # mat = pm.toMatrix(T)
         # print mat
         # print actor.robot.kinematics.forward(state.arm)
-        cmd = actor.robot.ik(T, state.arm)
+        q_goal = actor.robot.ik(T, state.arm)
         # print "q =",cmd, "goal =", T.p, T.M.GetRPY()
+
+        # Compute velocity to go there
+
         return SimulationRobotAction(arm_cmd=cmd)
 
 

@@ -136,11 +136,13 @@ class AbstractRobotInterface(object):
         what the robot will look like.
         '''
         (pos, rot) = pb.getBasePositionAndOrientation(self.handle)
+        q = self._getArmPosition()
         return SimulationRobotState(robot=self,
                                     base_pos=pos,
                                     base_rot=rot,
-                                    arm=self._getArmPosition(),
-                                    gripper=self._getGripper())
+                                    arm=q,
+                                    gripper=self._getGripper(),
+                                    T=self.fwd(q))
 
     def inverse(self, pose):
         '''
