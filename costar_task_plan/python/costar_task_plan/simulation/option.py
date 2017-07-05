@@ -216,16 +216,15 @@ class CartesianMotionPolicy(AbstractPolicy):
         # =====================================================================
         # Compute transformation from current to goal frame
         T_r_goal = state.T.Inverse() * T
-        #print state.T * T_r_goal == T
-        #print T.p - state.T.p, T_r_goal.p
 
         # Interpolate in position alone
 
         # Interpolate in rotation alone
-        axis = T_r_goal.M.GetRot()
-        angle = T_r_goal.M.GetRotAngle()
+        angle, axis = T_r_goal.M.GetRotAngle()
 
         angle = min(self.angular_vel, angle)
+        R = kdl.Rotation.Rot(axis, angle)
+        T_step = state.T * kdl.Frame(R, T_r_goal.p)
 
         # =====================================================================
         # Issue computing inverse kinematics
@@ -242,7 +241,7 @@ class CartesianMotionPolicy(AbstractPolicy):
 
         # =====================================================================
         # Compute motion goak and send
-        q_goal = actor.robot.ik(T, state.arm)
+        q_goal = actor.robot.ik(T_step, state.arm)
         return SimulationRobotAction(arm_cmd=q_goal)
 
 
