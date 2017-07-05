@@ -142,11 +142,17 @@ class AbstractAgent(object):
                 assert not isinstance(desc, tuple)
                 data = [(desc, features)]
             actor = world.actors[0]
+            params = actor.state.toParams(control)
+            if isinstance(params, tuple):
+                for desc, param in zip(control.getDescription(), params):
+                    data.append((desc, param))
+            else:
+                data.append(control.getDescription(), params)
             data += [("reward", reward),
-                     ("done", done),
-                     ("action", actor.state.toParams(control))]
+                     ("done", done),]
 
             for key, value in data:
                 if not key in self.data:
-                    self.data[key] = np.array(())
-                np.concatenate((self.data[key],[value]))
+                    self.data[key] = np.array([value])
+                else:
+                    np.concatenate((self.data[key],[value]))

@@ -174,6 +174,9 @@ class SimulationRobotAction(AbstractAction):
         self.arm_cmd = arm_cmd
         self.gripper_cmd = gripper_cmd
 
+    def getDescription(cls):
+        return "arm", "gripper"
+
 class SimulationRobotActor(AbstractActor):
 
     def __init__(self, robot, *args, **kwargs):
