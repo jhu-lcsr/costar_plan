@@ -179,11 +179,12 @@ class CloseGripperOption(AbstractOption):
 
 class CartesianMotionPolicy(AbstractPolicy):
 
-    def __init__(self, pos, rot, goal=None, vel=1.):
+    def __init__(self, pos, rot, goal=None, cartesian_vel=1., angular_vel=0.5):
         self.pos = pos
         self.rot = rot
         self.goal = goal
-        self.vel = vel
+        self.cartesian_vel = cartesian_vel
+        self.angular_vel = angular_vel
 
         pg = kdl.Vector(*self.pos)
         Rg = kdl.Rotation.Quaternion(*self.rot)
@@ -212,6 +213,21 @@ class CartesianMotionPolicy(AbstractPolicy):
             raise RuntimeError(
                 'Did you properly set up the robot URDF to specify grasp frame?')
 
+        # =====================================================================
+        # Compute transformation from current to goal frame
+        T_r_goal = state.T.Inverse() * T
+        #print state.T * T_r_goal == T
+        #print T.p - state.T.p, T_r_goal.p
+
+        # Interpolate in position alone
+
+        # Interpolate in rotation alone
+        axis = T_r_goal.M.GetRot()
+        angle = T_r_goal.M.GetRotAngle()
+
+        angle = min(self.angular_vel, angle)
+
+        # =====================================================================
         # Issue computing inverse kinematics
         # compos, comorn, ifpos, iforn, lwpos, lworn = pb.getLinkState(actor.robot.handle, actor.robot.grasp_idx)
         # print lwpos, lworn
@@ -223,21 +239,11 @@ class CartesianMotionPolicy(AbstractPolicy):
         # mat = pm.toMatrix(T)
         # print mat
         # print actor.robot.kinematics.forward(state.arm)
+
+        # =====================================================================
+        # Compute motion goak and send
         q_goal = actor.robot.ik(T, state.arm)
-
-        if q_goal is not None:
-            # Compute velocity to go there
-            t = (T.p - state.T.p).Norm() / self.vel
-            cmd = [(q - q0) / t for q, q0 in zip(q_goal, state.arm)]
-        else:
-            cmd = None
-        # print "t =",state.t, "q =",cmd, "goal =", T.p, T.M.GetRPY()
-        #if q_goal is not None:
-        #    cmd = [q - q0 for q, q0 in zip(q_goal, state.arm)]
-        #else:
-        #    cmd = NOne
-
-        return SimulationRobotAction(arm_cmd=cmd)
+        return SimulationRobotAction(arm_cmd=q_goal)
 
 
 class OpenGripperPolicy(AbstractPolicy):
