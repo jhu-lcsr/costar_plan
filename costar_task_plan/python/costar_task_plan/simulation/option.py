@@ -218,13 +218,16 @@ class CartesianMotionPolicy(AbstractPolicy):
         T_r_goal = state.T.Inverse() * T
 
         # Interpolate in position alone
+        dist = T_r_goal.p.Norm()
+        step = min(self.cartesian_vel*world.dt, dist)
+        p = T_r_goal.p / dist * step
 
         # Interpolate in rotation alone
         angle, axis = T_r_goal.M.GetRotAngle()
 
-        angle = min(self.angular_vel, angle)
+        angle = min(self.angular_vel*world.dt, angle)
         R = kdl.Rotation.Rot(axis, angle)
-        T_step = state.T * kdl.Frame(R, T_r_goal.p)
+        T_step = state.T * kdl.Frame(R, p)
 
         # =====================================================================
         # Issue computing inverse kinematics
