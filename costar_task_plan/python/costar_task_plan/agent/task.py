@@ -71,30 +71,21 @@ class TaskAgent(AbstractAgent):
         for _ in xrange(self.iter):
             self.env.reset()
 
-            plan = None
-            done = False
+            names, options = task.sampleSequence()
+            plan = OptionsExecutionManager(options)
 
-            while not done and not self._break:
-
-                if plan is None:
-                    names, options = task.sampleSequence()
-                    plan = OptionsExecutionManager(options)
-                    
-                if plan is not None:
-                    control = plan.apply(self.env.world)
-                    if control is not None:
-                        features, reward, done, info = self.env.step(control)
-                        self._addToDataset(self.env.world,
-                                control,
-                                features,
-                                reward,
-                                done,
-                                names[plan.idx])
-                    else:
-                        plan = None
-                        done = True
+            while not self._break:
+                control = plan.apply(self.env.world)
+                if control is not None:
+                    features, reward, done, info = self.env.step(control)
+                    self._addToDataset(self.env.world,
+                            control,
+                            features,
+                            reward,
+                            done,
+                            names[plan.idx])
                 else:
-                    done = True
+                    break
 
             if self._break:
                 return
