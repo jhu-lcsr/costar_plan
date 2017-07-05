@@ -95,11 +95,8 @@ class SimulationDynamics(AbstractDynamics):
     '''
 
     def __call__(self, state, action, dt):
-        if action.arm_cmd is not None:
-            state.robot.arm(action.arm_cmd)
-        if action.gripper_cmd is not None:
-            state.robot.gripper(action.gripper_cmd)
-
+        if state.robot is not None:
+            state.robot.command(action)
 
 class SimulationObjectState(AbstractState):
 
@@ -119,6 +116,7 @@ class SimulationObjectState(AbstractState):
         R = kdl.Rotation.Quaternion(*base_rot)
         self.T = kdl.Frame(R, p)
         self.t = t
+        self.robot = None
 
 
 class SimulationObjectActor(AbstractActor):

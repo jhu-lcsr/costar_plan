@@ -146,6 +146,20 @@ class AbstractRobotInterface(object):
                                     gripper=self._getGripper(),
                                     T=self.fwd(q))
 
+    def command(self, action):
+        '''
+        Process an incoming action and apply it to the simulated robot. Does
+        not currently support robots with mobile bases, but it could.
+        '''
+        if action.arm_cmd is not None:
+            self.arm(action.arm_cmd)
+        else:
+            self.arm(self._getArmPosition())
+        if action.gripper_cmd is not None:
+            self.gripper(action.gripper_cmd)
+        else:
+            self.gripper(self._getGripper())
+
     def inverse(self, pose):
         '''
         The inverse() command is used by various agents and problem domains

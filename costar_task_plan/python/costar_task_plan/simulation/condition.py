@@ -126,7 +126,7 @@ class AbsolutePositionCondition(AbstractCondition):
 class ObjectAtPositionCondition(AbstractCondition):
 
     '''
-    Check to see if a particular
+    Check to see if a particular object is at some position
     '''
 
     def __init__(self, objname, pos, pos_tol, ):
@@ -145,3 +145,17 @@ class ObjectAtPositionCondition(AbstractCondition):
         dist = (T.p - self.p).Norm()
 
         return dist > self.pos_tol
+
+
+class GraspingObjectcondition(AbstractCondition):
+    '''
+    Check to see if the robot is grasping a particular object -- aka if the
+    robot or any part of its gripper are in contact with an object.
+    '''
+    def __init__(self, objname):
+        self.objname = objname
+
+    def _check(self, world, *args, **kwargs):
+        obj = world.getObject(self.objname)
+
+        return False

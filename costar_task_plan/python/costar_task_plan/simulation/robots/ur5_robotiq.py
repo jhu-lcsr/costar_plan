@@ -129,4 +129,4 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         return q
 
     def _getGripper(self):
-        return pb.getJointState(self.handle, self.left_finger)
+        return pb.getJointState(self.handle, self.left_finger)[0]
