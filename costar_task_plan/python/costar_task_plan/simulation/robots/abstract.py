@@ -73,6 +73,16 @@ class AbstractRobotInterface(object):
         self.kinematics = KDLKinematics(urdf, base_link, self.grasp_link)
 
     def ik(self, pose, q0):
+        '''
+        The ik() command is used by various agents and problem domains
+        to recover a command vector that will move the robot arm to the right
+        pose.
+
+        Params:
+        --------
+        pose: kdl frame to move to
+        q0: current joint position
+        '''
         return self.kinematics.inverse(pm.toMatrix(pose), q0)
 
     def forward(self, position):
@@ -160,25 +170,26 @@ class AbstractRobotInterface(object):
         else:
             self.gripper(self._getGripper())
 
-    def inverse(self, pose):
-        '''
-        The inverse() command is used by various agents and problem domains
-        to recover a command vector that will move the robot arm to the right
-        pose.
-        '''
-        raise NotImplementedError('The inverse() command takes a position' +
-                                  'and gets inverse kinematics associated' +
-                                  'with it.')
-
     def toParams(self, action):
         '''
-        Use action space to convert a CTP.SIMULATION action into a numpy array.
+        Convert action into a reasonable format so that we can save it. Note
+        that this assumes that the action is specified as a position to move
+        to; if it is not, then you'll need to override this.
 
         Params:
         -------
-        action: an action containing gripper_cmd and arm_cmd.
+        action: a CTP action containing commands for arm, gripper, base
         '''
-        pass
+        if action.arm_cmd is not None:
+            arm = action.arm_cmd
+        else:
+            arm = self._getArmPosition()
+        if action.gripper_cmd is not None:
+            gripper = action.gripper_cmd
+        else:
+            gripper = self._getGripper()
+        
+        return arm, gripper
 
     def getActionSpace(self):
         '''

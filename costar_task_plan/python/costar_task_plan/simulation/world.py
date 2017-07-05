@@ -156,6 +156,12 @@ class SimulationRobotState(AbstractState):
         self.T = T
         self.t = t
 
+    def toParams(self, action):
+        '''
+        Wrapper for robot toParams()
+        '''
+        return self.robot.toParams(action)
+
 
 class SimulationRobotAction(AbstractAction):
 
@@ -174,7 +180,6 @@ class SimulationRobotActor(AbstractActor):
         super(SimulationRobotActor, self).__init__(*args, **kwargs)
         self.robot = robot
         self.getState = self.robot.getState
-
 
 class NullPolicy(AbstractPolicy):
 

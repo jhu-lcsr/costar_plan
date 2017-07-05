@@ -141,9 +141,10 @@ class AbstractAgent(object):
                 desc = self.env.world.features.getDescription()
                 assert not isinstance(desc, tuple)
                 data = [(desc, features)]
+            actor = world.actors[0]
             data += [("reward", reward),
                      ("done", done),
-                     ("action", control.toArray())]
+                     ("action", actor.state.toParams(control))]
 
             for key, value in data:
                 if not key in self.data:

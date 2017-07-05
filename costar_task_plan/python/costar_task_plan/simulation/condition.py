@@ -147,7 +147,7 @@ class ObjectAtPositionCondition(AbstractCondition):
         return dist > self.pos_tol
 
 
-class GraspingObjectcondition(AbstractCondition):
+class GraspingObjectCondition(AbstractCondition):
     '''
     Check to see if the robot is grasping a particular object -- aka if the
     robot or any part of its gripper are in contact with an object.
@@ -157,5 +157,7 @@ class GraspingObjectcondition(AbstractCondition):
 
     def _check(self, world, *args, **kwargs):
         obj = world.getObject(self.objname)
+
+        raise NotImplementedError('not yet implemented')
 
         return False
