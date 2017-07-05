@@ -145,7 +145,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
 
         self.world.addCondition(JointLimitViolationCondition(), -100,
                                 "joints must stay in limits")
-        self.world.addCondition(TimeCondition(3.), -100, "time limit reached")
+        self.world.addCondition(TimeCondition(30.), -100, "time limit reached")
         self.world.reward = EuclideanReward("red_block")
 
         if self.stage == 0:
@@ -167,7 +167,8 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
 
     def reset(self):
         '''
-        Reset blocks to new random towers
+        Reset blocks to new random towers. Also resets the world and the
+        configuration for all of the new objects, including the robot.
         '''
 
         # placement = np.random.randint(
@@ -176,6 +177,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         #        (len(self.blocks),))
         placement = np.array(range(len(self.stack_pos)))
         np.random.shuffle(placement)
+        self.world.done = False
         self.world.ticks = 0
 
         # loop over all stacks

@@ -30,6 +30,12 @@ class DefaultTaskDefinition(AbstractTaskDefinition):
         self.robot.gripper(0, pb.POSITION_CONTROL)
 
     def reset(self):
+        '''
+        Basic reset needs to reconfigure the world state -- set things back to
+        the way they should be.
+        '''
+        self.world.done = False
+        self.world.ticks = 0.
         for obj in self.objs:
             pb.removeBody(obj)
         self._setup()

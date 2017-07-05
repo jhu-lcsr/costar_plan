@@ -231,7 +231,7 @@ class CartesianMotionPolicy(AbstractPolicy):
             cmd = [(q - q0) / t for q, q0 in zip(q_goal, state.arm)]
         else:
             cmd = None
-        print "t =",state.t, "q =",cmd, "goal =", T.p, T.M.GetRPY()
+        # print "t =",state.t, "q =",cmd, "goal =", T.p, T.M.GetRPY()
         #if q_goal is not None:
         #    cmd = [q - q0 for q, q0 in zip(q_goal, state.arm)]
         #else:

@@ -209,6 +209,8 @@ class AbstractWorld(object):
     Destroy all current actors.
     '''
     self.actors = []
+    self.done = False
+    self.ticks = 0
     self._reset()
 
   def setSprites(self, sprites):

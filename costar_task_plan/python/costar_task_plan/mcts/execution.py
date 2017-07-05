@@ -197,10 +197,8 @@ class OptionsExecutionManager(AbstractExecutionManager):
             else:
                 # Move to the next option.
                 if not self.options[self.idx].checkPostcondition(world, state):
-                    raise RuntimeError('asdf')
                     return None
                 self.idx += 1
                 self.condition = None
                 self.policy = None
-        
         return cmd
