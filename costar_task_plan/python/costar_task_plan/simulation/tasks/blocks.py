@@ -148,6 +148,9 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         self.world.addCondition(TimeCondition(30.), -100, "time limit reached")
         self.world.reward = EuclideanReward("red_block")
 
+        # =====================================================================
+        # Set up the "first stage" of the tower -- so that we only need to
+        # correctly place a single block.
         if self.stage == 0:
             threshold = 0.02
             self.world.addCondition(
@@ -157,13 +160,22 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                 "block in right position")
             self.world.addCondition(
                 ObjectAtPositionCondition("blue_block",
-                                          self.final_stack_pos, threshold), -100, "wrong block")
+                                          self.final_stack_pos,
+                                          threshold),
+                -100,
+                "wrong block")
             self.world.addCondition(
                 ObjectAtPositionCondition("green_block",
-                                          self.final_stack_pos, threshold), -100, "wrong block")
+                                          self.final_stack_pos,
+                                          threshold),
+                -100,
+                "wrong block")
             self.world.addCondition(
                 ObjectAtPositionCondition("yellow_block",
-                                          self.final_stack_pos, threshold), -100, "wrong block")
+                                          self.final_stack_pos,
+                                          threshold),
+                -100,
+                "wrong block")
 
     def reset(self):
         '''
