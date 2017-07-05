@@ -155,4 +155,5 @@ class AbstractAgent(object):
                 if not key in self.data:
                     self.data[key] = np.array([value])
                 else:
-                    np.concatenate((self.data[key],[value]))
+                    self.data[key] = np.concatenate((self.data[key],[value]))
+

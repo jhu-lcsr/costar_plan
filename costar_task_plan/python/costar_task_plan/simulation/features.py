@@ -4,7 +4,7 @@ import numpy as np
 
 
 def GetAvailableFeatures():
-    return ['null', 'depth']
+    return ['empty', 'null', 'depth', 'rgb', 'joint_state', 'multi']
 
 
 def GetFeatures(features):
