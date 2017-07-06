@@ -73,7 +73,7 @@ class AbstractAgent(object):
         self.data = {}
 
         self.datafile = os.path.join(directory,filename)
-        if self.save or self.load:
+        if self.load:
             if os.path.isfile(self.datafile):
                 self.data.update(np.load(self.datafile))
             elif self.load:
@@ -153,7 +153,9 @@ class AbstractAgent(object):
 
             for key, value in data:
                 if not key in self.data:
-                    self.data[key] = np.array([value])
+                    self.data[key] = [value]
                 else:
-                    self.data[key] = np.concatenate((self.data[key],[value]))
+                    if isinstance(value, np.ndarray):
+                        assert value.shape == self.data[key][0].shape
+                    self.data[key].append(value)
 
