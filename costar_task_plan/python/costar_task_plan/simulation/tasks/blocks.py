@@ -152,7 +152,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         # Set up the "first stage" of the tower -- so that we only need to
         # correctly place a single block.
         if self.stage == 0:
-            threshold = 0.02
+            threshold = 0.035
             self.world.addCondition(
                 ObjectAtPositionCondition("red_block",
                                           self.final_stack_pos, threshold),

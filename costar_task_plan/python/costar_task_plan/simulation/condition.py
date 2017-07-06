@@ -86,7 +86,7 @@ class GoalPositionCondition(AbstractCondition):
         obj = world.getObject(self.goal)
         T = obj.state.T * self.T
         dist = (state.T.p - T.p).Norm()
-        #print dist, self.pos_tol
+        print dist, self.pos_tol
 
         # print (self.T.p.Norm())
         # print (obj.state.T.p - T.p).Norm()
@@ -123,6 +123,12 @@ class AbsolutePositionCondition(AbstractCondition):
 
         return dist > self.pos_tol
 
+class IsBelowCondition(AbstractCondition):
+    def __init__(self, z):
+        self.z = z
+
+    def _check(self, world, state, actor, prev_state=None):
+        return state.T.p[2] < z
 
 class ObjectAtPositionCondition(AbstractCondition):
 
@@ -145,6 +151,7 @@ class ObjectAtPositionCondition(AbstractCondition):
         T = world.getObject(self.objname).state.T
         dist = (T.p - self.p).Norm()
 
+        print self.objname, dist, self.pos_tol
         return dist > self.pos_tol
 
 
