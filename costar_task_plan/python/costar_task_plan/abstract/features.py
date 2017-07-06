@@ -18,7 +18,8 @@ class AbstractFeatures(object):
   def getBounds(self):
     raise Exception('feature.getBounds not yet implemented!')
 
-  def getDescription(self):
+  @property
+  def description(self):
       '''
       This should return a tuple describing each of the features we care about
       here. It's just for labeling purposes and to make things easier on the

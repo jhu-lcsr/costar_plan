@@ -101,7 +101,7 @@ class AbstractAgent(object):
 
         if self.save:
             print "---- saving ----"
-            np.savez(self.datafile, **self.data)
+            np.savez_compressed(self.datafile, **self.data)
 
     def _fit(self, num_iter):
         raise NotImplementedError('_fit() should run algorithm on the environment')
@@ -112,7 +112,7 @@ class AbstractAgent(object):
         '''
         raise NotImplementedError('not yet working')
 
-    def _addToDataset(self, world, control, features, reward, done,
+    def _addToDataset(self, world, control, features, reward, done, example,
             action_label=""):
         '''
         Takes as input features, reward, action, and other information. Saves
@@ -134,10 +134,10 @@ class AbstractAgent(object):
         if self.save:
             # Features can be either a tuple or a numpy array. If they're a
             # tuple, we handle them one way...
-            desc = self.env.world.features.getDescription()
+            desc = self.env.world.features.description
             if isinstance(features, tuple):
                 assert len(desc) ==  len(features)
-                data = zip(self.env.world.features.getDescription(), features)
+                data = zip(self.env.world.features.description, features)
             else:
                 assert not isinstance(desc, tuple)
                 data = [(desc, features)]
@@ -149,7 +149,8 @@ class AbstractAgent(object):
             else:
                 data.append(control.getDescription(), params)
             data += [("reward", reward),
-                     ("done", done),]
+                     ("done", done),
+                     ("example", example),]
 
             for key, value in data:
                 if not key in self.data:
@@ -159,3 +160,10 @@ class AbstractAgent(object):
                         assert value.shape == self.data[key][0].shape
                     self.data[key].append(value)
 
+class NoAgent(AbstractAgent):
+    '''
+    This does basically nothing. Use it to move on with your life and take the
+    data set to train something else.
+    '''
+    def _fit(self, num_iter):
+        pass

@@ -42,7 +42,7 @@ def ParseBulletArgs():
                         help="Algorithm to use when training.",
                         default="null",
                         choices=GetAgents())
-    parser.add_argument('-l', '--lr', '--learning_rate',
+    parser.add_argument('-L', '--lr', '--learning_rate',
                         help="Learning rate to be used in algorithm.",
                         default=1e-3)
     parser.add_argument('-g', '--gamma',
@@ -56,6 +56,11 @@ def ParseBulletArgs():
                         action="store_true")
     parser.add_argument('-s', '--save',
                         help="Save training data",
+                        action="store_true")
+    parser.add_argument('-l', '--load',
+                        help="Load training data from file." + \
+                        " Use in conjunction with save to append to" + \
+                        " a training data file.",
                         action="store_true")
     parser.add_argument('-c', '--capture',
                         help="Capture images as a part of the training data",

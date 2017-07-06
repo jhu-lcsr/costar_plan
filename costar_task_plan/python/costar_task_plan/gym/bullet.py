@@ -22,7 +22,8 @@ class BulletSimulationEnv(gym.Env, utils.EzPickle):
         self.world = self.client.task.world
         self.task = self.client.task.task
         
-        self.spec = None
+        # This causes issues on some systems
+        #self.spec = None
 
     def _step(self, action):
         '''
