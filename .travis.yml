@@ -100,3 +100,4 @@ script:
   #TODO: fix tests; something wrong with TF
   - $CI_SOURCE_PATH/costar_task_plan/tests/task_test.py
   - $CI_SOURCE_PATH/costar_task_plan/tests/cem_test.py
+  - $CI_SOURCE_PATH/costar_bullet/scripts/start --task blocks --robot ur5 --agent task --features null

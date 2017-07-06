@@ -5,8 +5,8 @@ from sorting import SortingTaskDefinition
 from oranges import OrangesTaskDefinition
 
 # TODO(cpaxton): re-enable these
-#from mug import MugTaskDefinition
-#from rings import RingsTaskDefinition
+# from mug import MugTaskDefinition
+# from rings import RingsTaskDefinition
 
 __all__ = ["AbstractTaskDefinition",
            "BlocksTaskDefinition",

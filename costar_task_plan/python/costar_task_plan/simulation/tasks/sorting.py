@@ -11,6 +11,7 @@ import rospkg
 
 
 class SortingTaskDefinition(DefaultTaskDefinition):
+
     '''
     Define the simple sorting task.
     '''
@@ -22,7 +23,7 @@ class SortingTaskDefinition(DefaultTaskDefinition):
     tray_dir = "tray"
     tray_urdf = "traybox.urdf"
 
-    spawn_pos_min = np.array([-0.4 ,-0.25, 0.10])
+    spawn_pos_min = np.array([-0.4, -0.25, 0.10])
     spawn_pos_max = np.array([-0.65, 0.25, 0.155])
     spawn_pos_delta = spawn_pos_max - spawn_pos_min
 
@@ -40,37 +41,37 @@ class SortingTaskDefinition(DefaultTaskDefinition):
 
     def _makeTask(self):
         GraspOption = lambda goal: GoalDirectedMotionOption(
-                self.world,
-                goal,
-                pose=((0.05,0,0),(0,0,0,1)))
+            self.world,
+            goal,
+            pose=((0.05, 0, 0), (0, 0, 0, 1)))
         grasp_args = {
-                "constructor": GraspOption,
-                "args": ["red"],
-                "remap": {"red": "goal"},
-                }
+            "constructor": GraspOption,
+            "args": ["red"],
+            "remap": {"red": "goal"},
+        }
         LiftOption = lambda: GeneralMotionOption(None)
         lift_args = {
-                "constructor": LiftOption,
-                "args": []
-                }
+            "constructor": LiftOption,
+            "args": []
+        }
         WaitOption = lambda: RelativeMotionOption(None)
         wait_args = {
-                "constructor": GeneralMotionOption,
-                "args": []
-                }
+            "constructor": GeneralMotionOption,
+            "args": []
+        }
         PlaceOption = lambda: GeneralMotionOption(None)
         place_args = {
-                "constructor": PlaceOption,
-                "args": []
-                }
+            "constructor": PlaceOption,
+            "args": []
+        }
         close_gripper_args = {
-                "constructor": PlaceOption,
-                "args": []
-                }
+            "constructor": PlaceOption,
+            "args": []
+        }
         open_gripper_args = {
-                "constructor": PlaceOption,
-                "args": []
-                }
+            "constructor": PlaceOption,
+            "args": []
+        }
 
         # Create a task model
         task = Task()
@@ -82,13 +83,11 @@ class SortingTaskDefinition(DefaultTaskDefinition):
 
         return task
 
-
     def _setup(self):
         '''
         Create the mug at a random position on the ground, handle facing
         roughly towards the robot. Robot's job is to grab and lift.
         '''
-
 
         rospack = rospkg.RosPack()
         path = rospack.get_path('costar_objects')
@@ -99,21 +98,22 @@ class SortingTaskDefinition(DefaultTaskDefinition):
 
         for position in self.tray_poses:
             obj_id = pb.loadURDF(tray_filename)
-            pb.resetBasePositionAndOrientation(obj_id, position, (0,0,0,1))
+            pb.resetBasePositionAndOrientation(obj_id, position, (0, 0, 0, 1))
 
         self._add_balls(self.num_red, red_filename, "red")
         self._add_balls(self.num_blue, blue_filename, "blue")
 
     def reset(self):
         for obj_id, position in zip(self.trays, self.tray_poses):
-            pb.resetBasePositionAndOrientation(obj_id, position, (0,0,0,1))
+            pb.resetBasePositionAndOrientation(obj_id, position, (0, 0, 0, 1))
         for obj_id in zip(self.balls):
             obj_id = pb.loadURDF(filename)
-            random_position = np.random.rand(3)*self.spawn_pos_delta + self.spawn_pos_min
-        self.robot.place([0,0,0],[0,0,0,1],self.joint_positions)
+            random_position = np.random.rand(
+                3) * self.spawn_pos_delta + self.spawn_pos_min
+        self.robot.place([0, 0, 0], [0, 0, 0, 1], self.joint_positions)
         self.robot2 = self.cloneRobot()
-        self.robot2.place([-1,0,0],[0,0,1,0],
-                self.joint_positions)
+        self.robot2.place([-1, 0, 0], [0, 0, 1, 0],
+                          self.joint_positions)
         self.robot.arm(self.joint_positions, pb.POSITION_CONTROL)
         self.robot.gripper(0, pb.POSITION_CONTROL)
 
@@ -123,9 +123,11 @@ class SortingTaskDefinition(DefaultTaskDefinition):
         '''
         for i in xrange(num):
             obj_id = pb.loadURDF(filename)
-            random_position = np.random.rand(3)*self.spawn_pos_delta + self.spawn_pos_min
-            pb.resetBasePositionAndOrientation(obj_id, random_position, (0,0,0,1))
-            objname = "%s%03d"%(typename,i)
+            random_position = np.random.rand(
+                3) * self.spawn_pos_delta + self.spawn_pos_min
+            pb.resetBasePositionAndOrientation(
+                obj_id, random_position, (0, 0, 0, 1))
+            objname = "%s%03d" % (typename, i)
             self.addObject(typename, obj_id)
 
     def _setupRobot(self, handle):
@@ -133,11 +135,11 @@ class SortingTaskDefinition(DefaultTaskDefinition):
         Configure the robot so that it is ready to begin the task. Robot should
         be oriented so the gripper is near the cluttered area with the mug.
         '''
-        self.robot.place([0,0,0],[0,0,0,1],self.joint_positions)
+        self.robot.place([0, 0, 0], [0, 0, 0, 1], self.joint_positions)
         self.robot2 = self.cloneRobot()
         self.robot2.load()
-        self.robot2.place([-1,0,0],[0,0,1,0],
-                self.joint_positions)
+        self.robot2.place([-1, 0, 0], [0, 0, 1, 0],
+                          self.joint_positions)
         self.robot.arm(self.joint_positions, pb.POSITION_CONTROL)
         self.robot.gripper(0, pb.POSITION_CONTROL)
 

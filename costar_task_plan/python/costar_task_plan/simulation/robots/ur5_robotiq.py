@@ -8,6 +8,7 @@ import pybullet as pb
 import rospkg
 import subprocess
 
+
 class Ur5RobotiqInterface(AbstractRobotInterface):
 
     '''
@@ -35,9 +36,8 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
     dof = 6
     arm_joint_indices = xrange(dof)
     gripper_indices = [left_knuckle, left_finger, left_inner_knuckle,
-            left_fingertip, right_knuckle, right_finger, right_inner_knuckle,
-            right_fingertip]
-
+                       left_fingertip, right_knuckle, right_finger, right_inner_knuckle,
+                       right_fingertip]
 
     def __init__(self, *args, **kwargs):
         super(Ur5RobotiqInterface, self).__init__(*args, **kwargs)
@@ -67,7 +67,8 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
 
     def place(self, pos, rot, joints):
         pb.resetBasePositionAndOrientation(self.handle, pos, rot)
-        pb.createConstraint(self.handle,-1,-1,-1,pb.JOINT_FIXED,pos,[0,0,0],rot)
+        pb.createConstraint(
+            self.handle, -1, -1, -1, pb.JOINT_FIXED, pos, [0, 0, 0], rot)
         for i, q in enumerate(joints):
             pb.resetJointState(self.handle, i, q)
 
@@ -83,7 +84,6 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
 
         self.arm(joints,)
         self.gripper(0)
-
 
     def gripperCloseCommand(cls):
         '''
@@ -101,13 +101,11 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         '''
         Set joint commands for the robot arm.
         '''
-        if len(cmd) > 6:
+        if len(cmd) > self.dof:
             raise RuntimeError('too many joint positions')
-        
-        #for i, q in enumerate(cmd):
-        #    pb.setJointMotorControl2(self.handle, i, mode, q)
+
         pb.setJointMotorControlArray(self.handle, self.arm_joint_indices, mode,
-                cmd, forces=[1000.]*self.dof)
+                                     cmd, forces=[1000.] * self.dof)
 
     def gripper(self, cmd, mode=pb.POSITION_CONTROL):
         '''
@@ -118,10 +116,11 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         # This is actually only a 1-DOF gripper
         cmd_array = [-cmd, cmd, -cmd, cmd, -cmd, cmd, -cmd, cmd]
         pb.setJointMotorControlArray(self.handle, self.gripper_indices, mode,
-                cmd_array)
+                                     cmd_array)
 
     def getActionSpace(self):
-        return spaces.Tuple((spaces.Box(-np.pi,np.pi,6),spaces.Box(-0.6,0.6,1)))
+        return spaces.Tuple((spaces.Box(-np.pi, np.pi, self.dof),
+                spaces.Box(-0.8, 0.0, 1)))
 
     def _getArmPosition(self):
         q = [0.] * 6
@@ -130,4 +129,7 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         return q
 
     def _getGripper(self):
-        return pb.getJointState(self.handle, self.left_finger)
+        #v = [v[0] for v in pb.getJointStates(self.handle,
+        #    self.gripper_indices)]
+        return np.round(pb.getJointState(self.handle,
+            self.left_fingertip)[0],2)

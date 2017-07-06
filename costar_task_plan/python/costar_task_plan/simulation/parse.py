@@ -17,9 +17,10 @@ workspace. In "tower," we again generate a set of colored blocks. This time the
 robot should pick them all up and stack them.
 """
 
+
 def ParseBulletArgs():
     parser = argparse.ArgumentParser(add_help=True,
-            description=_desc, epilog=_epilog)
+                                     description=_desc, epilog=_epilog)
     parser.add_argument("--gui",
                         action="store_true",
                         help="Display Bullet visualization.")
@@ -41,20 +42,25 @@ def ParseBulletArgs():
                         help="Algorithm to use when training.",
                         default="null",
                         choices=GetAgents())
-    parser.add_argument('-l', '--lr', '--learning_rate',
+    parser.add_argument('-L', '--lr', '--learning_rate',
                         help="Learning rate to be used in algorithm.",
                         default=1e-3)
     parser.add_argument('-g', '--gamma',
                         help="MDP discount factor gamma. Must be set so that 0 < gamma <= 1. Low gamma decreases significance of future rewards.",
                         default=1.)
-    parser.add_argument('-o','--option',
+    parser.add_argument('-o', '--option',
                         help="Specific sub-option to train. Exact list depends on the chosen task.",
                         default=None)
-    parser.add_argument('-p','--plot_task','--pt',
+    parser.add_argument('-p', '--plot_task', '--pt',
                         help="Display a plot of the chosen task and exit.",
                         action="store_true")
     parser.add_argument('-s', '--save',
                         help="Save training data",
+                        action="store_true")
+    parser.add_argument('-l', '--load',
+                        help="Load training data from file." + \
+                        " Use in conjunction with save to append to" + \
+                        " a training data file.",
                         action="store_true")
     parser.add_argument('-c', '--capture',
                         help="Capture images as a part of the training data",
@@ -70,6 +76,14 @@ def ParseBulletArgs():
                         action="store_true")
     parser.add_argument('--features',
                         help="Specify feature function",
-                        default="null")
+                        default="null",
+                        choices=GetAvailableFeatures())
+    parser.add_argument('--profile',
+                        help='Run cProfile on agent',
+                        action="store_true")
+    parser.add_argument('-i', '--iter',
+                        help='Number of iterations to run',
+                        default=100,
+                        type=int)
 
     return vars(parser.parse_args())

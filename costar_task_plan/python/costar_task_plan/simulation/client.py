@@ -53,7 +53,9 @@ import subprocess
 import sys
 import time
 
+
 class CostarBulletSimulation(object):
+
     '''
     Wrapper for talking to a single robot and performing a task. This brings
     things up if necessary. All this functionality could be moved into the Bullet
@@ -61,37 +63,34 @@ class CostarBulletSimulation(object):
     '''
 
     def __init__(self, robot, task,
-            gui=False,
-            ros=False,
-            features="",
-            ros_name="simulation",
-            option=None,
-            plot_task=False,
-            directory='./',
-            save=False,
-            load=False,
-            capture=False,
-            show_images=False,
-            randomize_color=False,
-            *args, **kwargs):
+                 gui=False,
+                 ros=False,
+                 features="",
+                 ros_name="simulation",
+                 option=None,
+                 plot_task=False,
+                 directory='.',
+                 capture=False,
+                 show_images=False,
+                 randomize_color=False,
+                 *args, **kwargs):
         self.gui = gui and not plot_task
         self.robot = GetRobotInterface(robot)
         features = GetFeatures(features)
-        self.task = GetTaskDefinition(task, self.robot, features, *args, **kwargs)
+        self.task = GetTaskDefinition(
+            task, self.robot, features, *args, **kwargs)
 
         # managed list of processes and other metadata
         self.procs = []
         self.ros = ros
 
         # saving
-        self.save = save
-        self.load = load
-        self.capture = capture or show_images
+        self.capture = capture
         self.show_images = show_images
         self.directory = directory
         self.randomize_color = randomize_color
-        #self.iterations = 0
-        #self.max_iterations = 100
+        # self.iterations = 0
+        # self.max_iterations = 100
 
         if ros:
             # boot up ROS and open a connection to the simulation server
@@ -104,7 +103,7 @@ class CostarBulletSimulation(object):
                 color = np.random.random((4,))
                 color[3] = 1.
                 pb.changeVisualShape(self.robot.handle, i, rgbaColor=color,
-                        physicsClientId=self.client)
+                                     physicsClientId=self.client)
 
         if plot_task:
             showTask(self.task.task)
@@ -155,17 +154,14 @@ class CostarBulletSimulation(object):
 
         # place the robot in the world and set up the task
         self.task.setup()
-        
+
     def convertToArmandGripperCmd(self, action):
-        
-        #TODO: fix the hard coded indices
+
+        # TODO: fix the hard coded indices
         arm = action[0:6]
         gripper = action[5:6]
-      
-        
-        return (arm,gripper)
 
-        
+        return (arm, gripper)
 
     def getReward(self):
         return self.task.getReward()
@@ -178,23 +174,14 @@ class CostarBulletSimulation(object):
 
     def tick(self, action):
         '''
-        Parse action via the robot
+        Parse action via the robot interface and update the world.
+
+        Params:
+        --------
+        action: a CTP AbstractAction containing commands for the robot's arm,
+        gripper, and base, if applicable.
         '''
-        #cmd = []
-        #if type(action) is tuple:
-        #    for term in action:
-        #        cmd += term.tolist()
-        #else:
-        #    cmd = action.tolist()
-        
-        #if self.iterations > self.max_iterations:
-        #    self.iterations = 0
-        #    self.reset()
-            
-        #else:
-        #    self.iterations = self.iterations + 1
-            
-            
+
         if not isinstance(action, SimulationRobotAction):
 
             if type(action) is not tuple:
@@ -204,69 +191,41 @@ class CostarBulletSimulation(object):
 
         # Get state, action, features, reward from update
         (ok, S0, A0, S1, F1, reward) = self.task.world.tick(action)
-        
-        if self.save:
-            temp_data = []
-            if os.path.isfile('data.npz'):
-                in_data = np.load('data.npz')
-                s0 = in_data['s0'].append(s0)
-                A0 = in_data['A0'].append(A0)
-                S1 = in_data['S1'].append(S1)
-                F1 = in_data['F1'].append(F1)
-                reward = in_data['reward']  
-                
-            np.savez('data', s0=s0, A0=A0, S1=S1, F1=F1, reward=reward)
 
-        if self.load:
-            in_data = np.load('data.npz')
-            s0 = in_data['s0']
-            A0 = in_data['A0']
-            S1 = in_data['S1']
-            F1 = in_data['F1']
-            reward = in_data['reward']
-            
-        if self.capture:
+        if self.capture or self.show_images:
             imgs = self.task.capture()
             for name, rgb, depth, mask in imgs:
                 if self.show_images:
-                    plt.subplot(1,3,1)
+                    plt.subplot(1, 3, 1)
                     plt.imshow(rgb, interpolation="none")
-                    plt.subplot(1,3,2)
+                    plt.subplot(1, 3, 2)
                     plt.imshow(depth, interpolation="none")
-                    plt.subplot(1,3,3)
+                    plt.subplot(1, 3, 3)
                     plt.imshow(mask, interpolation="none")
                     plt.pause(0.01)
-                if self.save:
+
+                if self.capture:
                     path1 = os.path.join(self.directory,
-                            "%s%04d_rgb.png"%(name, self.task.world.ticks))
+                                         "%s%04d_rgb.png" % (name, self.task.world.ticks))
                     path2 = os.path.join(self.directory,
-                            "%s%04d_depth.png"%(name, self.task.world.ticks))
+                                         "%s%04d_depth.png" % (name, self.task.world.ticks))
                     path3 = os.path.join(self.directory,
-                            "%s%04d_label.png"%(name, self.task.world.ticks))
-
-
-                    #img = png.fromarray(rgb, "L")
-                    #temp_im_rgb = Image.fromarray(rgb, mode='L')
-                    #temp_im_rgb.save(path)
-                    #temp_im_rgb = cv2.imwrite(path1, rgb)
+                                         "%s%04d_label.png" % (name, self.task.world.ticks))
 
                     plt.imsave(path1, rgb)
                     plt.imsave(path2, depth)
                     plt.imsave(path3, mask)
-
-                    #temp1 = plt.imsave(path, rgb)		    
-                    #img.save(path)
-
-            # TODO: handle other stuff
 
         # Return world information
         return F1, reward, not ok, {}
 
     def close(self):
         '''
-        Close connection to bullet sim.
+        Close connection to bullet sim and save collected data.
         '''
         pb.disconnect()
+
+
 
     def __delete__(self):
         '''
