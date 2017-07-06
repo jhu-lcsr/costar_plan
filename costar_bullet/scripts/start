@@ -7,6 +7,13 @@ from costar_task_plan.agent import GetAgents, MakeAgent
 
 import time
 
+
+def main(args):
+    env = BulletSimulationEnv(**args)
+    if 'agent' in args and args['agent'] is not None:
+        agent = MakeAgent(env, args['agent'], **args)   
+        agent.fit(num_iter=args['iter'])
+
 if __name__ == '__main__':
     '''
     This simple tool should parse arguments and pass them to a simulation client.
@@ -14,8 +21,8 @@ if __name__ == '__main__':
     '''
 
     args = ParseBulletArgs()
-    env = BulletSimulationEnv(**args)
-    if 'agent' in args and args['agent'] is not None:
-        agent = MakeAgent(env, args['agent'], **args)   
-        agent.fit()
-
+    if args['profile']:
+        import cProfile
+        cProfile.run('main(args)')
+    else:
+        main(args)

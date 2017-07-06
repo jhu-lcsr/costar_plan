@@ -72,7 +72,8 @@ class AbstractTaskDefinition(object):
 
         self.task = self._makeTask()
         self.world = SimulationWorld(
-            save_hook=self.save_world,
+            dt=0.01,
+            num_steps=1,
             task_name=self.getName(),
             cameras=self._cameras)
         self.world.features = self.features

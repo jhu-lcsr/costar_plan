@@ -73,5 +73,12 @@ def ParseBulletArgs():
                         help="Specify feature function",
                         default="null",
                         choices=GetAvailableFeatures())
+    parser.add_argument('--profile',
+                        help='Run cProfile on agent',
+                        action="store_true")
+    parser.add_argument('-i', '--iter',
+                        help='Number of iterations to run',
+                        default=100,
+                        type=int)
 
     return vars(parser.parse_args())

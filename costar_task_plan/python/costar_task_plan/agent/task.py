@@ -52,12 +52,11 @@ class TaskAgent(AbstractAgent):
 
     name = "random"
 
-    def __init__(self, env, iter=10000, *args, **kwargs):
+    def __init__(self, env, *args, **kwargs):
         super(TaskAgent, self).__init__(*args, **kwargs)
-        self.iter = iter
         self.env = env
 
-    def _fit(self):
+    def _fit(self, num_iter):
         '''
         This is a "fake" agent -- it does not fit any model in particular, it
         just generates some data. You almost certainly just want to call fit()
@@ -68,7 +67,7 @@ class TaskAgent(AbstractAgent):
         if not task.compiled:
             raise RuntimeError('environment must have associated compiled task model!')
 
-        for _ in xrange(self.iter):
+        for _ in xrange(num_iter):
             self.env.reset()
 
             names, options = task.sampleSequence()

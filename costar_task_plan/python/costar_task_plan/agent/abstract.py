@@ -85,7 +85,7 @@ class AbstractAgent(object):
         print "Caught sigint!"
       self._break = True
 
-    def fit(self):
+    def fit(self, num_iter=1000):
         '''
         Basic "fit" function used by custom Agents. Override this if you do not
         want the saving, loading, signal-catching behavior we construct here.
@@ -97,13 +97,13 @@ class AbstractAgent(object):
         self._break = False
         _catch_sigint = lambda *args, **kwargs: self._catch_sigint(*args, **kwargs)
         signal.signal(signal.SIGINT, _catch_sigint)
-        self._fit()
+        self._fit(num_iter)
 
         if self.save:
             print "---- saving ----"
             np.savez(self.datafile, **self.data)
 
-    def _fit(self):
+    def _fit(self, num_iter):
         raise NotImplementedError('_fit() should run algorithm on the environment')
 
     def data(self):

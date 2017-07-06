@@ -13,9 +13,8 @@ class KerasDDPGAgent(AbstractAgent):
 
     name = "keras_ddpg"
 
-    def __init__(self, env, iter=50000, *args, **kwargs):
+    def __init__(self, env, *args, **kwargs):
         super(KerasDDPGAgent, self).__init__(*args, **kwargs)
-        self.iter = iter
         self.env = env
         
         #assert len(env.action_space.shape) == 1
@@ -68,8 +67,8 @@ class KerasDDPGAgent(AbstractAgent):
         
 
 
-    def fit(self):
-        self.agent.fit(self.env, nb_steps=self.iter, visualize=False, verbose=1, nb_max_episode_steps=200)
+    def fit(self, num_iter=50000):
+        self.agent.fit(self.env, nb_steps=num_iter, visualize=False, verbose=1, nb_max_episode_steps=200)
         
         # After training is done, we save the final weights.
         self.agent.save_weights('ddpg_{}_weights.h5f'.format(self.name), overwrite=True)

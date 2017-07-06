@@ -86,6 +86,7 @@ class GoalPositionCondition(AbstractCondition):
         obj = world.getObject(self.goal)
         T = obj.state.T * self.T
         dist = (state.T.p - T.p).Norm()
+        #print dist, self.pos_tol
 
         # print (self.T.p.Norm())
         # print (obj.state.T.p - T.p).Norm()
