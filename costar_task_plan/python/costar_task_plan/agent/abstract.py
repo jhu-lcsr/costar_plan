@@ -99,8 +99,8 @@ class AbstractAgent(object):
         signal.signal(signal.SIGINT, _catch_sigint)
         self._fit()
 
-        print "saving"
         if self.save:
+            print "---- saving ----"
             np.savez(self.datafile, **self.data)
 
     def _fit(self):
@@ -134,11 +134,11 @@ class AbstractAgent(object):
         if self.save:
             # Features can be either a tuple or a numpy array. If they're a
             # tuple, we handle them one way...
+            desc = self.env.world.features.getDescription()
             if isinstance(features, tuple):
                 assert len(desc) ==  len(features)
                 data = zip(self.env.world.features.getDescription(), features)
             else:
-                desc = self.env.world.features.getDescription()
                 assert not isinstance(desc, tuple)
                 data = [(desc, features)]
             actor = world.actors[0]
