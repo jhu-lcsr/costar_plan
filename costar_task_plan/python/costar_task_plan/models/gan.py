@@ -1,9 +1,11 @@
 
 class GAN(object):
-    def __init__(self, generator, discriminator, batch_size):
+    def __init__(self, inputs, generator, discriminator, batch_size):
         self.generator = generator
         self.discriminator = discriminator
         self.batch_size = batch_size
+
+        self.adversarial_model = discriminator(generator)
 
     def summary(self):
         print generator.summary()
@@ -28,9 +30,14 @@ class SimpleImageGan(GAN):
     '''
     This is designed specifically for MNIST, but could be used in principle
     with plenty of other data sets.
+
+    - generator: takes as input generator_seed, outputs image of size
+      image_shape.
+    - discriminator: model of size 
     '''
 
-    def __init__(self, img_rows=28, img_cols=28, channel=1):
+    def __init__(self, img_rows=28, img_cols=28, channels=1):
+        img_shape = (img_rows, img_cols, channels)
         pass
 
 class SimpleLSTMGAN(GAN):
