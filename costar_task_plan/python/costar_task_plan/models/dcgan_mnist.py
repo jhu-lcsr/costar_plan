@@ -85,6 +85,7 @@ class DCGAN(object):
         dropout = 0.4
         depth = 64+64+64+64
         dim = 7
+        input = Input((10,)) 
         # In: 100
         # Out: dim x dim x depth
         self.G.add(Dense(dim*dim*depth, input_dim=100))
@@ -215,7 +216,7 @@ class MNIST_DCGAN(object):
 if __name__ == '__main__':
     mnist_dcgan = MNIST_DCGAN()
     timer = ElapsedTimer()
-    mnist_dcgan.train(train_steps=100, batch_size=50, save_interval=500)
+    mnist_dcgan.train(train_steps=1000, batch_size=50, save_interval=500)
     timer.elapsed_time()
     mnist_dcgan.plot_images(fake=True)
     mnist_dcgan.plot_images(fake=False, save2file=True)

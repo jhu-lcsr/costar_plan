@@ -1,4 +1,11 @@
 
+import keras.backend as K
+
+from keras.layers import Dense, Conv2D, Activation
+from keras.layers import BatchNormalization
+from keras.layers.merge import Concatenate
+from keras.models import Model
+
 class GAN(object):
     def __init__(self, inputs, generator, discriminator, batch_size):
         self.generator = generator
@@ -11,7 +18,7 @@ class GAN(object):
         print generator.summary()
         print discriminator.summary()
 
-    def fit(self, x, y, iter=1000, save_interval=0):
+    def fit(self, x, y, num_iter=1000, save_interval=0):
         #idx = np.random.randint(0,
         #    self.x_train.shape[0], size=self.batch_size)
         #x = self.x_train[idx]
@@ -36,19 +43,46 @@ class SimpleImageGan(GAN):
     - discriminator: model of size 
     '''
 
-    def __init__(self, img_rows=28, img_cols=28, channels=1):
+    def __init__(self, img_rows=28, img_cols=28, channels=1, labels=10,
+            noise_dim=100, batch_size=100,):
         img_shape = (img_rows, img_cols, channels)
-        pass
+        labels_shape = (labels,)
 
-class SimpleLSTMGAN(GAN):
-    '''
-    This is the one we want to use for trajectory generation.
-    '''
-    pass
+        self.generator_dense_size = 1024
+        self.generator_filters_c1 = 64
 
+        self.discriminator_dense_size = 1024
+        self.discriminator_filters_c1 = 64
 
-class ImageLSTMGAN(GAN):
-    '''
-    Generate sequences of images and symbols.
-    '''
-    pass
+        generator = self._generator(img_shape, labels_shape, noise_dim)
+        generator.compile(optimizer="adam")
+        print generator.summary()
+
+    def _generator(self, img_shape, labels_shape, noise_dim):
+        height4 = img_shape[0]/4
+        width4 = img_shape[0]/4
+
+        noise = K.random_uniform_variable(
+                shape=(batch_size,noise_dim),low=0,high=1)
+        labels = Input(shape=labels_shape)
+        labels = Reshape(
+                shape=(labels_shape[0],
+                       1, 1,
+                       labels_shape[1]))(labels)
+
+        x = Concatenate(axis=1)(noise, labels)
+        
+        # Add first dense layer
+        x = Dense(self.generator_dense_size)(x)
+        x = BatchNormalization(momentum=0.9,epsilon=1e-5)(x)
+        x = Activation('relu')(x)
+        x = Concatenate(axis=1)(x, labels)
+
+        # Add second dense layer
+        x = Dense(self.generator_dense_size)(x)
+        x = BatchNormalization(momentum=0.9,epsilon=1e-5)(x)
+        x = Activation('relu')(x)
+
+        
+        
+        return Model(labels, x)
