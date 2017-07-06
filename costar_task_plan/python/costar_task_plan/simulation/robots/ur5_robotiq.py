@@ -129,4 +129,7 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         return q
 
     def _getGripper(self):
-        return pb.getJointState(self.handle, self.left_fingertip)[0]
+        #v = [v[0] for v in pb.getJointStates(self.handle,
+        #    self.gripper_indices)]
+        return np.round(pb.getJointState(self.handle,
+            self.left_fingertip)[0],2)
