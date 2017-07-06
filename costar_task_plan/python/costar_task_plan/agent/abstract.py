@@ -113,7 +113,7 @@ class AbstractAgent(object):
         raise NotImplementedError('not yet working')
 
     def _addToDataset(self, world, control, features, reward, done, example,
-            action_label=""):
+            action_label):
         '''
         Takes as input features, reward, action, and other information. Saves
         all of this to create a dataset.
@@ -150,7 +150,8 @@ class AbstractAgent(object):
                 data.append(control.getDescription(), params)
             data += [("reward", reward),
                      ("done", done),
-                     ("example", example),]
+                     ("example", example),
+                     ("label", action_label)]
 
             for key, value in data:
                 if not key in self.data:
