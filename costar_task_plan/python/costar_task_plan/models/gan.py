@@ -1,8 +1,9 @@
 
 import keras.backend as K
 
-from keras.layers import Dense, Conv2D, Activation
+from keras.layers import Input, Reshape
 from keras.layers import BatchNormalization
+from keras.layers import Dense, Conv2D, Activation
 from keras.layers.merge import Concatenate
 from keras.models import Model
 
@@ -36,7 +37,8 @@ class SimpleGAN(GAN):
 class SimpleImageGan(GAN):
     '''
     This is designed specifically for MNIST, but could be used in principle
-    with plenty of other data sets.
+    with plenty of other data sets. Or at least something pretty similar could
+    be.
 
     - generator: takes as input generator_seed, outputs image of size
       image_shape.
@@ -46,7 +48,6 @@ class SimpleImageGan(GAN):
     def __init__(self, img_rows=28, img_cols=28, channels=1, labels=10,
             noise_dim=100, batch_size=100,):
         img_shape = (img_rows, img_cols, channels)
-        labels_shape = (labels,)
 
         self.generator_dense_size = 1024
         self.generator_filters_c1 = 64
@@ -54,29 +55,26 @@ class SimpleImageGan(GAN):
         self.discriminator_dense_size = 1024
         self.discriminator_filters_c1 = 64
 
-        generator = self._generator(img_shape, labels_shape, noise_dim)
-        generator.compile(optimizer="adam")
+        self.batch_size = batch_size
+
+        generator = self._generator(img_shape, labels, noise_dim)
+        generator.compile(optimizer="adam",loss="binary_crossentropy")
         print generator.summary()
 
-    def _generator(self, img_shape, labels_shape, noise_dim):
+    def _generator(self, img_shape, num_labels, noise_dim):
         height4 = img_shape[0]/4
         width4 = img_shape[0]/4
 
-        noise = K.random_uniform_variable(
-                shape=(batch_size,noise_dim),low=0,high=1)
-        labels = Input(shape=labels_shape)
-        labels = Reshape(
-                shape=(labels_shape[0],
-                       1, 1,
-                       labels_shape[1]))(labels)
+        labels = Input(shape=(num_labels,))
+        noise = Input(shape=(noise_dim,))
 
-        x = Concatenate(axis=1)(noise, labels)
+        x = Concatenate(axis=1)([noise, labels])
         
         # Add first dense layer
         x = Dense(self.generator_dense_size)(x)
         x = BatchNormalization(momentum=0.9,epsilon=1e-5)(x)
         x = Activation('relu')(x)
-        x = Concatenate(axis=1)(x, labels)
+        x = Concatenate(axis=1)([x, labels])
 
         # Add second dense layer
         x = Dense(self.generator_dense_size)(x)
@@ -85,4 +83,4 @@ class SimpleImageGan(GAN):
 
         
         
-        return Model(labels, x)
+        return Model([noise, labels], x)
