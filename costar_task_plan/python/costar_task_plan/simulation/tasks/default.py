@@ -22,8 +22,8 @@ class DefaultTaskDefinition(AbstractTaskDefinition):
         super(DefaultTaskDefinition, self).__init__(*args, **kwargs)
         self.objs = []
         self.addCamera(
-            Camera("right", [-0.6, 0., 0.30], distance=1.2, roll=0.0,
-                pitch=-45, yaw=-60))
+            Camera("right", [-0.5, 0., 0.30], distance=1.0, roll=0.0,
+                pitch=-45, yaw=-45))
 
     def _setupRobot(self, handle):
         self.robot.place([0, 0, 0], [0, 0, 0, 1], self.joint_positions)

@@ -29,7 +29,7 @@ class Camera(object):
                  image_height=768 / 4,
                  fov=45,
                  near_plane=0.1,
-                 far_plane=1000):
+                 far_plane=10):
         '''
         Create camera matrix for a particular position in the simulation. Task
         definitions should produce these and
