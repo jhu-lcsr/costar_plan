@@ -36,7 +36,7 @@ class Camera(object):
         '''
         self.name = name
         self.matrix = pb.computeViewMatrixFromYawPitchRoll(
-            target, distance, yaw, pitch, roll, up_idx)
+            target, distance, yaw=yaw, pitch=pitch, roll=roll, upAxisIndex=up_idx)
         self.image_height = image_height
         self.image_width = image_width
         self.aspect_ratio = self.image_width / self.image_height
@@ -51,5 +51,7 @@ class Camera(object):
 
     def capture(self):
         _, _, rgb, depth, mask = pb.getCameraImage(
-            self.image_width, self.image_height, viewMatrix=self.matrix, projectionMatrix=self.projection_matrix)
+            self.image_width, self.image_height,
+            viewMatrix=self.matrix,
+            projectionMatrix=self.projection_matrix)
         return ImageData(self.name, rgb, depth, mask)
