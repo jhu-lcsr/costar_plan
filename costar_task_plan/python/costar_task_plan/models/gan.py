@@ -1,6 +1,6 @@
 
 import keras.backend as K
-import keras.losses
+import keras.losses as losses
 import numpy as np
 
 from matplotlib import pyplot as plt
@@ -8,9 +8,10 @@ from matplotlib import pyplot as plt
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
 from keras.layers import UpSampling2D, Conv2DTranspose
-from keras.layers import BatchNormalization
-from keras.layers import Dense, Conv2D, Activation
+from keras.layers import BatchNormalization, Dropout
+from keras.layers import Dense, Conv2D, Activation, Flatten
 from keras.layers.merge import Concatenate
+from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 from keras.optimizers import Adam
 
@@ -29,46 +30,61 @@ class GAN(object):
     '''
     def __init__(self, ins, outs, opts, loss, noise_dim):
 
-        self.models = []
-
         # =====================================================================
-        # Compile models
+        # Compile all the basic models
+        self.models = []
         for inputs, output, opt in zip(ins, outs, opts):
             model = Model(inputs, output)
             model.compile(optimizer=opt, loss=loss, metrics=["accuracy"])
             self.models.append(model)
-
+        #self.models = outs
+        #for model, opt in zip(self.models, opts):
+        #    model.compile(optimizer=opt, loss=loss)
+        #ins[0] = self.models[0].inputs[0]
+        
         self.generator = self.models[0]
         self.discriminator = self.models[1]
 
         # =====================================================================
         # Set up adversarial model
-        """
-        print self.discriminator([outs[0], ins[0][1]])
-        print "=============================="
-        print "=============================="
-        self.discriminator.trainable = True
-        print self.discriminator.trainable_weights
-        self.discriminator.trainable = False
-        print "=============================="
-        print "=============================="
-        print self.generator.trainable_weights
-        """
 
+        # Create an adversarial version of the model
         self.discriminator.trainable = False
         self.adversarial = Model(
                 ins[0],
-                self.discriminator([self.generator.outputs[0], self.discriminator.inputs[1]])
+                self.discriminator([self.generator.outputs[0]])#, self.discriminator.inputs[1]])
                 )
         self.adversarial.compile(loss=loss, optimizer=opts[0])
-        print self.adversarial.trainable_weights, \
-            len(self.adversarial.trainable_weights)
-        print self.generator.trainable_weights, \
-            len(self.adversarial.trainable_weights)
+
+        adv_loss = losses.get(loss)(self.adversarial.targets[0], self.adversarial.outputs[0])
+    
+        # Collected trainable weights and sort them deterministically.
+        trainable_weights = self.adversarial.trainable_weights
+
+        # Sort weights by name.
+        if K.backend() == 'theano':
+            trainable_weights.sort(key=lambda x: x.name if x.name else x.auto_name)
+        else:
+            trainable_weights.sort(key=lambda x: x.name)
+ 
+        updates = \
+            self.adversarial.optimizer.get_updates(
+                    trainable_weights,
+                    self.adversarial.constraints,
+                    adv_loss)
+        print updates
+        self.optimize_f = K.function(
+                inputs=self.adversarial.inputs,
+                outputs=self.adversarial.outputs,
+                updates=updates)
+        #print self.adversarial.losses, self.adversarial.loss_weights, \
+        #    self.adversarial.loss
+        #print self.adversarial.trainable_weights, \
+        #    len(self.adversarial.trainable_weights)
+        #print self.generator.trainable_weights, \
+        #    len(self.adversarial.trainable_weights)
 
         self.noise_dim = noise_dim
-
-        self.printSummary()
 
     def predict(self, label):
         noise = np.random.random((self.noise_dim,))
@@ -90,25 +106,32 @@ class GAN(object):
 
             # Sample fake data
             data_fake = self.generator.predict([noise, yi])
+            #data_fake = self.generator.predict([noise])
 
             # Train discriminator
             self.discriminator.trainable = True
             xi_fake = np.concatenate((xi, data_fake))
-            is_real = np.ones([2*batch_size, 1])
-            is_real[batch_size:, :] = 0
+            is_real = np.ones((2*batch_size, 1))
+            is_real[batch_size:] = 0
             yi_double = np.concatenate((yi, yi))
             d_loss = self.discriminator.train_on_batch([xi_fake, yi_double], is_real)
-            self.discriminator.trainable = False
 
-            self.generator.trainable = True
-            #gi_loss = self.generator.train_on_batch([noise, yi], xi)
+            gi_loss = self.generator.train_on_batch([noise, yi], xi)
             g_loss = self.adversarial.train_on_batch(
                     [noise, yi],
-                    np.ones((batch_size,)),
+                    #[noise],
+                    np.ones((batch_size, 1)),
                             )
-            self.generator.trainable = False
-            print "Iter %d: D loss / GAN loss = "%(i), d_loss, gi_loss
-            #print "Iter %d: D loss / GAN loss = "%(i), d_loss, g_loss
+
+            print "Iter %d: D loss / GAN loss = "%(i), d_loss, g_loss
+            z = self.adversarial.predict([noise, yi])
+            #z = self.adversarial.predict([noise])
+            xx = np.ones((batch_size, 1))
+            yy = np.max(xx, 0) - xx * z + np.log(1 + np.exp(-abs(xx)))
+            #print xx.shape, z.shape, yy.shape, (xx * z).shape
+            print yy.shape, np.mean(yy), "w/ avg prediction =",
+            print  np.mean(z.T)
+            #print binary_crossentropy(x, np.ones((batch_size,)))
 
             if (i + 1) % 50 == 0:
                 for j in xrange(6):
@@ -152,7 +175,8 @@ class SimpleImageGan(GAN):
 
         super(SimpleImageGan, self).__init__(
                 [g_in, d_in],
-                [g_out, d_out],
+                #[g_out, d_out],
+                [self.model_generator(), self.model_discriminator()],
                 [g_opt, d_opt],
                 "binary_crossentropy",
                 noise_dim)
@@ -170,14 +194,14 @@ class SimpleImageGan(GAN):
         
         # Add first dense layer
         x = Dense(self.generator_dense_size)(x)
-        x = BatchNormalization(momentum=0.9, epsilon=1e-5)(x)
+        x = BatchNormalization(axis=-1, scale=False, center=False, momentum=0.9, epsilon=1e-5)(x)
         x = Activation('relu')(x)
         x = Concatenate(axis=1)([x, labels])
 
         # Add second dense layer
         cnn_inputs = self.generator_filters_c1
         x = Dense(cnn_inputs * height4 * width4)(x)
-        x = BatchNormalization(momentum=0.9, epsilon=1e-5)(x)
+        x = BatchNormalization(axis=-1, scale=False, center=False, momentum=0.9, epsilon=1e-5)(x)
         x = Activation('relu')(x)
 
         # Add labels and adjust size -- append to every space
@@ -191,7 +215,7 @@ class SimpleImageGan(GAN):
                    kernel_size=[5, 5], 
                    strides=(2, 2),
                    padding="same")(x)
-        x = BatchNormalization(momentum=0.9, epsilon=1e-5)(x)
+        x = BatchNormalization(axis=-1, scale=False, center=False, momentum=0.9, epsilon=1e-5)(x)
         x = Activation('relu')(x)
 
         # Add labels in again -- to each column
@@ -204,13 +228,10 @@ class SimpleImageGan(GAN):
                    kernel_size=[5, 5], 
                    strides=(2, 2),
                    padding="same")(x)
-        x = BatchNormalization(momentum=0.9, epsilon=1e-5)(x)
+        x = BatchNormalization(axis=-1, scale=False, center=False, momentum=0.9, epsilon=1e-5)(x)
         x = Activation('sigmoid')(x)
 
         generator_optimizer = Adam(lr=2e-4, beta_1=0.5)
-        #x = Model([noise, labels], x)
-        #x.compile(optimizer=generator_optimizer, loss="binary_crossentropy", \
-        #    metrics=['accuracy'])
 
         return [noise, labels], x, generator_optimizer
 
@@ -266,3 +287,74 @@ class SimpleImageGan(GAN):
         #x = Model([samples, labels], x)
 
         return [samples, labels], x, discriminator_optimizer
+
+
+    def model_generator(self):
+        nch = 256
+        g_input = Input(shape=[100])
+        H = Dense(nch * 14 * 14)(g_input)
+        H = BatchNormalization()(H)
+        H = Activation('relu')(H)
+        H = dim_ordering_reshape(nch, 14)(H)
+        H = UpSampling2D(size=(2, 2))(H)
+        H = Conv2D(int(nch / 2), 3, 3, border_mode='same')(H)
+        H = BatchNormalization(axis=1)(H)
+        H = Activation('relu')(H)
+        H = Conv2D(int(nch / 4), 3, 3, border_mode='same')(H)
+        H = BatchNormalization(axis=1)(H)
+        H = Activation('relu')(H)
+        H = Conv2D(1, 1, 1, border_mode='same')(H)
+        g_V = Activation('sigmoid')(H)
+        return Model(g_input, g_V)
+
+
+    def model_discriminator(self,input_shape=(1, 28, 28), dropout_rate=0.5):
+        d_input = dim_ordering_input(input_shape, name="input_x")
+        nch = 512
+        # nch = 128
+        H = Conv2D(int(nch / 2), 5, 5, subsample=(2, 2), border_mode='same', activation='relu')(d_input)
+        H = LeakyReLU(0.2)(H)
+        H = Dropout(dropout_rate)(H)
+        H = Conv2D(nch, 5, 5, subsample=(2, 2), border_mode='same', activation='relu')(H)
+        H = LeakyReLU(0.2)(H)
+        H = Dropout(dropout_rate)(H)
+        H = Flatten()(H)
+        H = Dense(int(nch / 2))(H)
+        H = LeakyReLU(0.2)(H)
+        H = Dropout(dropout_rate)(H)
+        d_V = Dense(1, activation='sigmoid')(H)
+        return Model(d_input, d_V)
+
+def dim_ordering_fix(x):
+    if K.image_dim_ordering() == 'th':
+        return x
+    else:
+        return np.transpose(x, (0, 2, 3, 1))
+
+
+def dim_ordering_unfix(x):
+    if K.image_dim_ordering() == 'th':
+        return x
+    else:
+        return np.transpose(x, (0, 3, 1, 2))
+
+
+def dim_ordering_shape(input_shape):
+    if K.image_dim_ordering() == 'th':
+        return input_shape
+    else:
+        return (input_shape[1], input_shape[2], input_shape[0])
+
+
+def dim_ordering_input(input_shape, name):
+    if K.image_dim_ordering() == 'th':
+        return Input(input_shape, name=name)
+    else:
+        return Input((input_shape[1], input_shape[2], input_shape[0]), name=name)
+
+
+def dim_ordering_reshape(k, w, **kwargs):
+    if K.image_dim_ordering() == 'th':
+        return Reshape((k, w, w), **kwargs)
+    else:
+        return Reshape((w, w, k), **kwargs)
