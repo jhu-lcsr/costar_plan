@@ -30,6 +30,10 @@ class GAN(object):
 
         self.printSummary()
 
+    def predict(self, label):
+        noise = np.random.random((self.noise_dim,))
+        return self.generator.predict([noise, label, label])
+
     def printSummary(self):
         #print self.generator.summary()
         #print self.discriminator.summary()
@@ -44,14 +48,23 @@ class GAN(object):
             yi = y[idx]
             noise = np.random.random((batch_size, self.noise_dim))
 
+            # Sample fake data
+            data_fake = self.generator.predict([noise, yi])
+
+            # Train discriminator
             self.discriminator.trainable = True
+            xi_fake = np.concatenate((xi, data_fake))
+            is_real = np.ones([2*batch_size, 1])
+            is_real[batch_size:, :] = 0
+            yi_double = np.concatenate((yi, yi))
+            d_loss = self.discriminator.train_on_batch([xi_fake, yi_double], is_real)
             self.discriminator.trainable = False
 
             #loss = self.generator.train_on_batch([noise, yi], xi)
-            loss = self.adversarial.train_on_batch(
+            g_loss = self.adversarial.train_on_batch(
                     [noise, yi, yi],
                     np.zeros((batch_size,)))
-            print "Iter %d: loss = "%(i), loss
+            print "Iter %d: D loss / GAN loss = "%(i), d_loss, g_loss
 
     def _adversarial(self):
         pass
