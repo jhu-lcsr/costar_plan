@@ -101,11 +101,11 @@ class GAN(object):
             self.discriminator.trainable = False
 
             self.generator.trainable = True
-            gi_loss = self.generator.train_on_batch([noise, yi], xi)
-            #g_loss = self.adversarial.train_on_batch(
-            #        [noise, yi],
-            #        np.ones((batch_size,)),
-            #        )
+            #gi_loss = self.generator.train_on_batch([noise, yi], xi)
+            g_loss = self.adversarial.train_on_batch(
+                    [noise, yi],
+                    np.ones((batch_size,)),
+                            )
             self.generator.trainable = False
             print "Iter %d: D loss / GAN loss = "%(i), d_loss, gi_loss
             #print "Iter %d: D loss / GAN loss = "%(i), d_loss, g_loss
