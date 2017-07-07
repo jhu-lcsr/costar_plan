@@ -1,7 +1,7 @@
 
 import keras.backend as K
 
-from keras.layers import Input, Reshape
+from keras.layers import Input, RepeatVector, Reshape
 from keras.layers import BatchNormalization
 from keras.layers import Dense, Conv2D, Activation
 from keras.layers.merge import Concatenate
@@ -77,10 +77,15 @@ class SimpleImageGan(GAN):
         x = Concatenate(axis=1)([x, labels])
 
         # Add second dense layer
-        x = Dense(self.generator_dense_size)(x)
+        cnn_inputs = self.generator_filters_c1 * 2
+        x = Dense(cnn_inputs * height4 * width4)(x)
         x = BatchNormalization(momentum=0.9,epsilon=1e-5)(x)
         x = Activation('relu')(x)
 
-        
+        # add labels and adjust size -- append to every space
+        labels2 = RepeatVector(height4*width4)(labels)
+        labels2 = Reshape((height4,width4,num_labels))(labels2)
+        x = Reshape((height4, width4, cnn_inputs))(x)
+        x = Concatenate(axis=3)([x,labels2])
         
         return Model([noise, labels], x)
