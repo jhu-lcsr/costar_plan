@@ -23,8 +23,7 @@ class GAN(object):
         # Set up adversarial model
         self.discriminator.trainable = False
         adversarial_graph = self.discriminator([self.generator.outputs[0], discriminator_inputs[1]])
-        self.adversarial = Model(generator_inputs +
-                [discriminator_inputs[1]], adversarial_graph)
+        self.adversarial = Model(generator_inputs, adversarial_graph)
         self.adversarial.compile(optimizer=generator_optimizer,
                                  loss="binary_crossentropy")
 
@@ -41,7 +40,7 @@ class GAN(object):
         #print self.discriminator.summary()
         print self.adversarial.summary()
 
-    def fit(self, x, y, num_iter=1001, batch_size=50, save_interval=0):
+    def fit(self, x, y, num_iter=3001, batch_size=50, save_interval=0):
         for i in xrange(num_iter):
 
             # Sample one batch, including random noise
@@ -62,13 +61,13 @@ class GAN(object):
             d_loss = self.discriminator.train_on_batch([xi_fake, yi_double], is_real)
             self.discriminator.trainable = False
 
-            g_loss = self.generator.train_on_batch([noise, yi], xi)
-            #g_loss = self.adversarial.train_on_batch(
-            #        [noise, yi, yi],
-            #        np.zeros((batch_size,)))
-            print "Iter %d: D loss / GAN loss = "%(i), d_loss, g_loss
+            gi_loss = self.generator.train_on_batch([noise, yi], xi)
+            g_loss = self.adversarial.train_on_batch(
+                    [noise, yi],
+                    np.zeros((batch_size,)))
+            print "Iter %d: D loss / GAN loss = "%(i), d_loss, gi_loss, g_loss
 
-            if i % 100 == 0:
+            if i % 3000 == 0:
                 for j in xrange(6):
                     plt.subplot(2, 3, j+1)
                     plt.imshow(np.squeeze(data_fake[j]), cmap='gray')
@@ -112,7 +111,9 @@ class SimpleImageGan(GAN):
         self.discriminator_filters_c1 = 64
 
         generator_vars = self._generator(self.img_shape, labels, noise_dim)
-        discriminator_vars = self._discriminator(self.img_shape, labels)
+        labels_input = generator_vars[0][-1]
+        discriminator_vars = self._discriminator(self.img_shape, labels,
+                labels_input)
 
         super(SimpleImageGan, self).__init__(
                 generator_vars,
@@ -176,7 +177,7 @@ class SimpleImageGan(GAN):
 
         return [noise, labels], x, generator_optimizer
 
-    def _discriminator(self, img_shape, num_labels):
+    def _discriminator(self, img_shape, num_labels, labels):
         # just for my sanity
         height4 = img_shape[0]/4
         width4 = img_shape[1]/4
@@ -190,7 +191,6 @@ class SimpleImageGan(GAN):
         samples = Input(shape=img_shape)
 
         # labels created, copied, and reshaped
-        labels = Input(shape=(num_labels,))
         labels2 = RepeatVector(height*width)(labels)
         labels2 = Reshape((height,width,num_labels))(labels2)
 
