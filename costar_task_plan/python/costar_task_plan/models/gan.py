@@ -2,6 +2,8 @@
 import keras.backend as K
 import numpy as np
 
+from matplotlib import pyplot as plt
+
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
 from keras.layers import UpSampling2D, Conv2DTranspose
@@ -39,7 +41,7 @@ class GAN(object):
         #print self.discriminator.summary()
         print self.adversarial.summary()
 
-    def fit(self, x, y, num_iter=1000, batch_size=50, save_interval=0):
+    def fit(self, x, y, num_iter=1001, batch_size=50, save_interval=0):
         for i in xrange(num_iter):
 
             # Sample one batch, including random noise
@@ -60,11 +62,19 @@ class GAN(object):
             d_loss = self.discriminator.train_on_batch([xi_fake, yi_double], is_real)
             self.discriminator.trainable = False
 
-            #loss = self.generator.train_on_batch([noise, yi], xi)
-            g_loss = self.adversarial.train_on_batch(
-                    [noise, yi, yi],
-                    np.zeros((batch_size,)))
+            g_loss = self.generator.train_on_batch([noise, yi], xi)
+            #g_loss = self.adversarial.train_on_batch(
+            #        [noise, yi, yi],
+            #        np.zeros((batch_size,)))
             print "Iter %d: D loss / GAN loss = "%(i), d_loss, g_loss
+
+            if i % 100 == 0:
+                for j in xrange(6):
+                    plt.subplot(2, 3, j+1)
+                    plt.imshow(np.squeeze(data_fake[j]), cmap='gray')
+                plt.axis('off')
+                plt.tight_layout()
+                plt.show()
 
     def _adversarial(self):
         pass
