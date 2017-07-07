@@ -14,18 +14,44 @@ from keras.models import Model, Sequential
 from keras.optimizers import Adam
 
 class GAN(object):
-    def __init__(self, generator_vars, discriminator_vars, noise_dim):
+    '''
+    This class is designed to wrap some basic functionality for GANs of
+    different sorts.
 
-        generator_inputs, self.generator, generator_optimizer = generator_vars
-        discriminator_inputs, self.discriminator, discriminator_optimizer = discriminator_vars
+    Parameters:
+    -----------
+    ins: lists of input variables for each model. List of lists of tensors.
+    outs: output variable for each model. List of tensors.
+    ops: optimizers associated with each output.
+    loss: loss function associated with each output.
+    noise dim: how much noise we generate as a vector to seed various samples.
+    '''
+    def __init__(self, ins, outs, opts, loss, noise_dim):
+
+        self.models = []
+
+        # =====================================================================
+        # Compile models
+        for inputs, output, opt in zip(ins, outs, opts):
+            model = Model(inputs, output)
+            model.compile(optimizer=opt, loss=loss, metrics=["accuracy"])
+            self.models.append(model)
+
+        self.generator = self.models[0]
+        self.discriminator = self.models[1]
 
         # =====================================================================
         # Set up adversarial model
+        """
+        print "=============================="
+        print "=============================="
+        self.discriminator.trainable = True
+        print self.discriminator.trainable_weights
         self.discriminator.trainable = False
-        adversarial_graph = self.discriminator([self.generator.outputs[0], discriminator_inputs[1]])
-        self.adversarial = Model(generator_inputs, adversarial_graph)
-        self.adversarial.compile(optimizer=generator_optimizer,
-                                 loss="binary_crossentropy")
+        print "=============================="
+        print "=============================="
+        print self.generator.trainable_weights
+        """
 
         self.noise_dim = noise_dim
 
@@ -36,9 +62,9 @@ class GAN(object):
         return self.generator.predict([noise, label, label])
 
     def printSummary(self):
-        #print self.generator.summary()
-        #print self.discriminator.summary()
-        print self.adversarial.summary()
+        print self.generator.summary()
+        print self.discriminator.summary()
+        #print self.adversarial.summary()
 
     def fit(self, x, y, num_iter=3001, batch_size=50, save_interval=0):
         for i in xrange(num_iter):
@@ -61,12 +87,13 @@ class GAN(object):
             d_loss = self.discriminator.train_on_batch([xi_fake, yi_double], is_real)
             self.discriminator.trainable = False
 
-            #gi_loss = self.generator.train_on_batch([noise, yi], xi)
-            g_loss = self.adversarial.train_on_batch(
-                    [noise, yi],
-                    np.zeros((batch_size,)))
-            #print "Iter %d: D loss / GAN loss = "%(i), d_loss, gi_loss, g_loss
-            print "Iter %d: D loss / GAN loss = "%(i), d_loss, g_loss
+            self.generator.trainable = True
+            gi_loss = self.generator.train_on_batch([noise, yi], xi)
+            #g_loss = self.adversarial.train_on_batch(
+            #        [noise, yi],
+            self.generator.trainable = False
+            print "Iter %d: D loss / GAN loss = "%(i), d_loss, gi_loss
+            #print "Iter %d: D loss / GAN loss = "%(i), d_loss, g_loss
 
             if i % 50 == 0:
                 for j in xrange(6):
@@ -111,14 +138,16 @@ class SimpleImageGan(GAN):
         self.discriminator_dense_size = 1024
         self.discriminator_filters_c1 = 64
 
-        generator_vars = self._generator(self.img_shape, labels, noise_dim)
-        labels_input = generator_vars[0][-1]
-        discriminator_vars = self._discriminator(self.img_shape, labels,
+        g_in, g_out, g_opt = self._generator(self.img_shape, labels, noise_dim)
+        labels_input = g_in[-1]
+        d_in, d_out, d_opt = self._discriminator(self.img_shape, labels,
                 labels_input)
 
         super(SimpleImageGan, self).__init__(
-                generator_vars,
-                discriminator_vars,
+                [g_in, d_in],
+                [g_out, d_out],
+                [g_opt, d_opt],
+                "binary_crossentropy",
                 noise_dim)
 
     def _generator(self, img_shape, num_labels, noise_dim):
@@ -172,9 +201,9 @@ class SimpleImageGan(GAN):
         x = Activation('sigmoid')(x)
 
         generator_optimizer = Adam(lr=2e-4, beta_1=0.5)
-        x = Model([noise, labels], x)
-        x.compile(optimizer=generator_optimizer, loss="binary_crossentropy", \
-            metrics=['accuracy'])
+        #x = Model([noise, labels], x)
+        #x.compile(optimizer=generator_optimizer, loss="binary_crossentropy", \
+        #    metrics=['accuracy'])
 
         return [noise, labels], x, generator_optimizer
 
@@ -227,9 +256,6 @@ class SimpleImageGan(GAN):
         x = Activation('sigmoid')(x)
 
         discriminator_optimizer = Adam(lr=1e-4, beta_1=0.5)
-        x = Model([samples, labels], x)
-        x.compile(optimizer=discriminator_optimizer,
-                  loss="binary_crossentropy", \
-                  metrics=['accuracy'])
+        #x = Model([samples, labels], x)
 
         return [samples, labels], x, discriminator_optimizer
