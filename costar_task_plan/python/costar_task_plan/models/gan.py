@@ -61,13 +61,14 @@ class GAN(object):
             d_loss = self.discriminator.train_on_batch([xi_fake, yi_double], is_real)
             self.discriminator.trainable = False
 
-            gi_loss = self.generator.train_on_batch([noise, yi], xi)
+            #gi_loss = self.generator.train_on_batch([noise, yi], xi)
             g_loss = self.adversarial.train_on_batch(
                     [noise, yi],
                     np.zeros((batch_size,)))
-            print "Iter %d: D loss / GAN loss = "%(i), d_loss, gi_loss, g_loss
+            #print "Iter %d: D loss / GAN loss = "%(i), d_loss, gi_loss, g_loss
+            print "Iter %d: D loss / GAN loss = "%(i), d_loss, g_loss
 
-            if i % 3000 == 0:
+            if i % 50 == 0:
                 for j in xrange(6):
                     plt.subplot(2, 3, j+1)
                     plt.imshow(np.squeeze(data_fake[j]), cmap='gray')
