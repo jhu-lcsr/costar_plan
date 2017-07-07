@@ -2,6 +2,7 @@
 import keras.backend as K
 
 from keras.layers import Input, RepeatVector, Reshape
+from keras.layers import UpSampling2D, Conv2DTranspose
 from keras.layers import BatchNormalization
 from keras.layers import Dense, Conv2D, Activation
 from keras.layers.merge import Concatenate
@@ -47,23 +48,25 @@ class SimpleImageGan(GAN):
 
     def __init__(self, img_rows=28, img_cols=28, channels=1, labels=10,
             noise_dim=100, batch_size=100,):
-        img_shape = (img_rows, img_cols, channels)
+        self.img_shape = (img_rows, img_cols, channels)
 
         self.generator_dense_size = 1024
-        self.generator_filters_c1 = 64
+        self.generator_filters_c1 = 128
 
         self.discriminator_dense_size = 1024
         self.discriminator_filters_c1 = 64
 
         self.batch_size = batch_size
 
-        generator = self._generator(img_shape, labels, noise_dim)
+        generator = self._generator(self.img_shape, labels, noise_dim)
         generator.compile(optimizer="adam",loss="binary_crossentropy")
         print generator.summary()
 
     def _generator(self, img_shape, num_labels, noise_dim):
         height4 = img_shape[0]/4
         width4 = img_shape[0]/4
+        height2 = img_shape[0]/2
+        width2 = img_shape[0]/2
 
         labels = Input(shape=(num_labels,))
         noise = Input(shape=(noise_dim,))
@@ -72,20 +75,41 @@ class SimpleImageGan(GAN):
         
         # Add first dense layer
         x = Dense(self.generator_dense_size)(x)
-        x = BatchNormalization(momentum=0.9,epsilon=1e-5)(x)
+        x = BatchNormalization(momentum=0.9, epsilon=1e-5)(x)
         x = Activation('relu')(x)
         x = Concatenate(axis=1)([x, labels])
 
         # Add second dense layer
-        cnn_inputs = self.generator_filters_c1 * 2
+        cnn_inputs = self.generator_filters_c1
         x = Dense(cnn_inputs * height4 * width4)(x)
-        x = BatchNormalization(momentum=0.9,epsilon=1e-5)(x)
+        x = BatchNormalization(momentum=0.9, epsilon=1e-5)(x)
         x = Activation('relu')(x)
 
-        # add labels and adjust size -- append to every space
+        # Add labels and adjust size -- append to every space
         labels2 = RepeatVector(height4*width4)(labels)
         labels2 = Reshape((height4,width4,num_labels))(labels2)
         x = Reshape((height4, width4, cnn_inputs))(x)
         x = Concatenate(axis=3)([x,labels2])
+
+        # Apply the first convolution
+        x = Conv2DTranspose(cnn_inputs,
+                   kernel_size=[5, 5], 
+                   strides=(2, 2),
+                   padding="same")(x)
+        x = BatchNormalization(momentum=0.9, epsilon=1e-5)(x)
+        x = Activation('relu')(x)
+
+        # Add labels in again -- to each column
+        labels2 = RepeatVector(height2*width2)(labels)
+        labels2 = Reshape((height2,width2,num_labels))(labels2)
+        x = Concatenate(axis=3)([x,labels2])
+
+        # Apply the second convolution
+        x = Conv2DTranspose(self.img_shape[2],
+                   kernel_size=[5, 5], 
+                   strides=(2, 2),
+                   padding="same")(x)
+        x = BatchNormalization(momentum=0.9, epsilon=1e-5)(x)
+        x = Activation('relu')(x)
         
         return Model([noise, labels], x)
