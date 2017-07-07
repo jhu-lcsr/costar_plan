@@ -8,21 +8,32 @@ from keras.layers import UpSampling2D, Conv2DTranspose
 from keras.layers import BatchNormalization
 from keras.layers import Dense, Conv2D, Activation
 from keras.layers.merge import Concatenate
-from keras.models import Model
+from keras.models import Model, Sequential
+from keras.optimizers import Adam
 
 class GAN(object):
-    def __init__(self, generator, discriminator, noise_dim):
-        self.generator = generator
-        self.discriminator = discriminator
+    def __init__(self, generator_vars, discriminator_vars, noise_dim):
+
+        generator_inputs, self.generator, generator_optimizer = generator_vars
+        discriminator_inputs, self.discriminator, discriminator_optimizer = discriminator_vars
+
+        # =====================================================================
+        # Set up adversarial model
+        self.discriminator.trainable = False
+        adversarial_graph = self.discriminator([self.generator.outputs[0], discriminator_inputs[1]])
+        self.adversarial = Model(generator_inputs +
+                [discriminator_inputs[1]], adversarial_graph)
+        self.adversarial.compile(optimizer=generator_optimizer,
+                                 loss="binary_crossentropy")
+
         self.noise_dim = noise_dim
 
         self.printSummary()
 
-        #self.adversarial_model = discriminator(generator)
-
     def printSummary(self):
-        print self.generator.summary()
-        print self.discriminator.summary()
+        #print self.generator.summary()
+        #print self.discriminator.summary()
+        print self.adversarial.summary()
 
     def fit(self, x, y, num_iter=1000, batch_size=50, save_interval=0):
         for i in xrange(num_iter):
@@ -33,8 +44,20 @@ class GAN(object):
             yi = y[idx]
             noise = np.random.random((batch_size, self.noise_dim))
 
+            self.discriminator.trainable = True
+            self.discriminator.trainable = False
+
             #loss = self.generator.train_on_batch([noise, yi], xi)
-            #print "Iter %d: loss = %f"%(i,loss)
+            loss = self.adversarial.train_on_batch(
+                    [noise, yi, yi],
+                    np.zeros((batch_size,)))
+            print "Iter %d: loss = "%(i), loss
+
+    def _adversarial(self):
+        pass
+
+    def _discriminator(self):
+        pass
 
 class SimpleGAN(GAN):
     '''
@@ -65,12 +88,13 @@ class SimpleImageGan(GAN):
         self.discriminator_dense_size = 1024
         self.discriminator_filters_c1 = 64
 
-        generator = self._generator(self.img_shape, labels, noise_dim)
-        discriminator = self._discriminator(self.img_shape, labels)
-        generator.compile(optimizer="adam",loss="binary_crossentropy")
-        discriminator.compile(optimizer="adam",loss="binary_crossentropy")
+        generator_vars = self._generator(self.img_shape, labels, noise_dim)
+        discriminator_vars = self._discriminator(self.img_shape, labels)
 
-        super(SimpleImageGan, self).__init__(generator, discriminator, noise_dim)
+        super(SimpleImageGan, self).__init__(
+                generator_vars,
+                discriminator_vars,
+                noise_dim)
 
     def _generator(self, img_shape, num_labels, noise_dim):
         height4 = img_shape[0]/4
@@ -120,9 +144,14 @@ class SimpleImageGan(GAN):
                    strides=(2, 2),
                    padding="same")(x)
         x = BatchNormalization(momentum=0.9, epsilon=1e-5)(x)
-        x = Activation('relu')(x)
-        
-        return Model([noise, labels], x)
+        x = Activation('sigmoid')(x)
+
+        generator_optimizer = Adam(lr=2e-4, beta_1=0.5)
+        x = Model([noise, labels], x)
+        x.compile(optimizer=generator_optimizer, loss="binary_crossentropy", \
+            metrics=['accuracy'])
+
+        return [noise, labels], x, generator_optimizer
 
     def _discriminator(self, img_shape, num_labels):
         # just for my sanity
@@ -173,4 +202,10 @@ class SimpleImageGan(GAN):
         x = Dense(1)(x)
         x = Activation('sigmoid')(x)
 
-        return Model([samples, labels], x)
+        discriminator_optimizer = Adam(lr=1e-4, beta_1=0.5)
+        x = Model([samples, labels], x)
+        x.compile(optimizer=discriminator_optimizer,
+                  loss="binary_crossentropy", \
+                  metrics=['accuracy'])
+
+        return [samples, labels], x, discriminator_optimizer
