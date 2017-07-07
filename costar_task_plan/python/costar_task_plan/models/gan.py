@@ -1,5 +1,6 @@
 
 import keras.backend as K
+import keras.losses
 import numpy as np
 
 from matplotlib import pyplot as plt
@@ -43,6 +44,7 @@ class GAN(object):
         # =====================================================================
         # Set up adversarial model
         """
+        print self.discriminator([outs[0], ins[0][1]])
         print "=============================="
         print "=============================="
         self.discriminator.trainable = True
@@ -53,6 +55,17 @@ class GAN(object):
         print self.generator.trainable_weights
         """
 
+        self.discriminator.trainable = False
+        self.adversarial = Model(
+                ins[0],
+                self.discriminator([self.generator.outputs[0], self.discriminator.inputs[1]])
+                )
+        self.adversarial.compile(loss=loss, optimizer=opts[0])
+        print self.adversarial.trainable_weights, \
+            len(self.adversarial.trainable_weights)
+        print self.generator.trainable_weights, \
+            len(self.adversarial.trainable_weights)
+
         self.noise_dim = noise_dim
 
         self.printSummary()
@@ -62,9 +75,9 @@ class GAN(object):
         return self.generator.predict([noise, label, label])
 
     def printSummary(self):
-        print self.generator.summary()
-        print self.discriminator.summary()
-        #print self.adversarial.summary()
+        #print self.generator.summary()
+        #print self.discriminator.summary()
+        print self.adversarial.summary()
 
     def fit(self, x, y, num_iter=3001, batch_size=50, save_interval=0):
         for i in xrange(num_iter):
@@ -91,11 +104,13 @@ class GAN(object):
             gi_loss = self.generator.train_on_batch([noise, yi], xi)
             #g_loss = self.adversarial.train_on_batch(
             #        [noise, yi],
+            #        np.ones((batch_size,)),
+            #        )
             self.generator.trainable = False
             print "Iter %d: D loss / GAN loss = "%(i), d_loss, gi_loss
             #print "Iter %d: D loss / GAN loss = "%(i), d_loss, g_loss
 
-            if i % 50 == 0:
+            if (i + 1) % 50 == 0:
                 for j in xrange(6):
                     plt.subplot(2, 3, j+1)
                     plt.imshow(np.squeeze(data_fake[j]), cmap='gray')
@@ -107,14 +122,6 @@ class GAN(object):
         pass
 
     def _discriminator(self):
-        pass
-
-class SimpleGAN(GAN):
-    '''
-    Feed forward network -- good for simple data sets.
-    '''
-    
-    def __init__(self, input_shape, output_shape):
         pass
 
 class SimpleImageGan(GAN):
