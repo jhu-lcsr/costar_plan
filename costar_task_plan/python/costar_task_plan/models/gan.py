@@ -57,7 +57,7 @@ class GAN(object):
                 self.discriminator([self.generator.outputs[0]])#, self.discriminator.inputs[1]])
                 )
         self.adversarial.compile(loss=loss, optimizer=opts[0])
-        self.adversarial.summary()
+        self.summary()
 
         """
         adv_loss = losses.get(loss)(self.adversarial.targets[0], self.adversarial.outputs[0])
@@ -94,10 +94,10 @@ class GAN(object):
         noise = np.random.random((self.noise_dim,))
         return self.generator.predict([noise, label, label])
 
-    def printSummary(self):
+    def summary(self):
         #print self.generator.summary()
-        #print self.discriminator.summary()
-        print self.adversarial.summary()
+        self.adversarial.summary()
+        self.discriminator.summary()
 
     def fit(self, x, y, num_iter=3001, batch_size=50, save_interval=0):
         for i in xrange(num_iter):
@@ -129,7 +129,7 @@ class GAN(object):
                     np.zeros((batch_size, 1)),
                             )
 
-            #print "Iter %d: D loss / GAN loss = "%(i), d_loss, g_loss
+            print "Iter %d: D loss / GAN loss = "%(i), d_loss, g_loss
             ##z = self.adversarial.predict([noise, yi])
             #z = self.adversarial.predict([noise])
             #xx = np.ones((batch_size, 1))
@@ -139,7 +139,7 @@ class GAN(object):
             #print  np.mean(z.T)
             #print binary_crossentropy(x, np.ones((batch_size,)))
 
-            if (i + 1) % 50 == 0:
+            if (i + 1) % 3000 == 0:
                 for j in xrange(6):
                     plt.subplot(2, 3, j+1)
                     plt.imshow(np.squeeze(data_fake[j]), cmap='gray')
@@ -180,6 +180,8 @@ class SimpleImageGan(GAN):
         labels_input = g_in[-1]
         d_in, d_out, d_opt = self._discriminator(self.img_shape, labels,
                 labels_input)
+        #g_in, g_out, g_opt = self.model_generator()
+        #d_in, d_out, d_opt = self.model_discriminator()
 
         super(SimpleImageGan, self).__init__(
                 [g_in, d_in],
@@ -202,7 +204,8 @@ class SimpleImageGan(GAN):
         # Add first dense layer
         #x = Dense(self.generator_dense_size)(x)
         cnn_inputs = self.generator_filters_c1
-        x = Dense(cnn_inputs * height4 * width4)(noise)
+        #x = Dense(cnn_inputs * height4 * width4)(noise)
+        x = Dense(cnn_inputs * height2 * width2)(noise)
         x = BatchNormalization()(x)
         x = Activation('relu')(x)
 
@@ -210,7 +213,8 @@ class SimpleImageGan(GAN):
         labels2 = RepeatVector(height4*width4)(labels)
         labels2 = Reshape((height4,width4,num_labels))(labels2)
         assert not K.image_dim_ordering() == 'th'
-        x = Reshape((height4, width4, cnn_inputs))(x)
+        #x = Reshape((height4, width4, cnn_inputs))(x)
+        x = Reshape((height2, width2, cnn_inputs))(x)
         #x = Concatenate(axis=3)([x,labels2])
 
         # Apply the first convolution
@@ -230,7 +234,7 @@ class SimpleImageGan(GAN):
         #x = Concatenate(axis=3)([x,labels2])
 
         # Second convolution
-        x = UpSampling2D(size=(2, 2))(x)
+        #x = UpSampling2D(size=(2, 2))(x)
         x = Conv2D(int(cnn_inputs / 4), 3, 3, border_mode='same')(x)
         x = BatchNormalization(axis=1)(x)
         x = Activation('relu')(x)
@@ -269,7 +273,7 @@ class SimpleImageGan(GAN):
 
         # Add initial discriminator layer
         #x = Concatenate(axis=3)([samples, labels2])
-        x = Conv2D(self.discriminator_filters_c1 / 2, # + num_labels
+        x = Conv2D(int(self.discriminator_filters_c1 / 2), # + num_labels
                    kernel_size=[5, 5], 
                    strides=(2, 2),
                    #padding="same")(x)
@@ -286,14 +290,13 @@ class SimpleImageGan(GAN):
                    strides=(2, 2),
                    padding="same")(x)
         #x = BatchNormalization(momentum=0.9)(x)
-        x = Dropout(self.dropout_rate)(x)
         x = LeakyReLU(alpha=0.2)(x)
+        x = Dropout(self.dropout_rate)(x)
 
         # Add dense layer
         x = Flatten()(x)
         #x = Concatenate(axis=1)([x, labels])
-        x = Dense(self.discriminator_dense_size)(x)
-        x = BatchNormalization(momentum=0.9, epsilon=1e-5)(x)
+        x = Dense(int(0.5 * self.discriminator_filters_c1))(x)
         x = LeakyReLU(alpha=0.2)(x)
         x = Dropout(self.dropout_rate)(x)
 
