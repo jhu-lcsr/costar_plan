@@ -15,6 +15,8 @@ from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 from keras.optimizers import Adam
 
+__LABELS = False
+
 class GAN(object):
     '''
     This class is designed to wrap some basic functionality for GANs of
@@ -34,7 +36,7 @@ class GAN(object):
         # Compile all the basic models
         self.models = []
         for inputs, output, opt in zip(ins, outs, opts):
-            model = Model(inputs, output)
+            model = Model(inputs[0], output)
             model.compile(optimizer=opt, loss=loss, metrics=["accuracy"])
             self.models.append(model)
         #self.models = outs
@@ -51,11 +53,13 @@ class GAN(object):
         # Create an adversarial version of the model
         self.discriminator.trainable = False
         self.adversarial = Model(
-                ins[0],
+                ins[0][0],
                 self.discriminator([self.generator.outputs[0]])#, self.discriminator.inputs[1]])
                 )
         self.adversarial.compile(loss=loss, optimizer=opts[0])
+        self.adversarial.summary()
 
+        """
         adv_loss = losses.get(loss)(self.adversarial.targets[0], self.adversarial.outputs[0])
     
         # Collected trainable weights and sort them deterministically.
@@ -72,11 +76,11 @@ class GAN(object):
                     trainable_weights,
                     self.adversarial.constraints,
                     adv_loss)
-        print updates
         self.optimize_f = K.function(
                 inputs=self.adversarial.inputs,
                 outputs=self.adversarial.outputs,
                 updates=updates)
+        """
         #print self.adversarial.losses, self.adversarial.loss_weights, \
         #    self.adversarial.loss
         #print self.adversarial.trainable_weights, \
@@ -105,32 +109,34 @@ class GAN(object):
             noise = np.random.random((batch_size, self.noise_dim))
 
             # Sample fake data
-            data_fake = self.generator.predict([noise, yi])
-            #data_fake = self.generator.predict([noise])
+            #data_fake = self.generator.predict([noise, yi])
+            data_fake = self.generator.predict([noise])
 
             # Train discriminator
             self.discriminator.trainable = True
             xi_fake = np.concatenate((xi, data_fake))
-            is_real = np.ones((2*batch_size, 1))
-            is_real[batch_size:] = 0
+            is_fake = np.zeros((2*batch_size, 1))
+            is_fake[batch_size:] = 1
             yi_double = np.concatenate((yi, yi))
-            d_loss = self.discriminator.train_on_batch([xi_fake, yi_double], is_real)
+            #d_loss = self.discriminator.train_on_batch([xi_fake, yi_double], is_fake)
+            d_loss = self.discriminator.train_on_batch([xi_fake], is_fake)
 
-            gi_loss = self.generator.train_on_batch([noise, yi], xi)
+            #gi_loss = self.generator.train_on_batch([noise, yi], xi)
+            #gi_loss = self.generator.train_on_batch([noise], xi)
             g_loss = self.adversarial.train_on_batch(
-                    [noise, yi],
-                    #[noise],
-                    np.ones((batch_size, 1)),
+                    #[noise, yi],
+                    [noise],
+                    np.zeros((batch_size, 1)),
                             )
 
-            print "Iter %d: D loss / GAN loss = "%(i), d_loss, g_loss
-            z = self.adversarial.predict([noise, yi])
+            #print "Iter %d: D loss / GAN loss = "%(i), d_loss, g_loss
+            ##z = self.adversarial.predict([noise, yi])
             #z = self.adversarial.predict([noise])
-            xx = np.ones((batch_size, 1))
-            yy = np.max(xx, 0) - xx * z + np.log(1 + np.exp(-abs(xx)))
+            #xx = np.ones((batch_size, 1))
+            #yy = np.max(xx, 0) - xx * z + np.log(1 + np.exp(-abs(xx)))
             #print xx.shape, z.shape, yy.shape, (xx * z).shape
-            print yy.shape, np.mean(yy), "w/ avg prediction =",
-            print  np.mean(z.T)
+            #print yy.shape, np.mean(yy), "w/ avg prediction =",
+            #print  np.mean(z.T)
             #print binary_crossentropy(x, np.ones((batch_size,)))
 
             if (i + 1) % 50 == 0:
@@ -163,10 +169,12 @@ class SimpleImageGan(GAN):
         self.img_shape = (img_rows, img_cols, channels)
 
         self.generator_dense_size = 1024
-        self.generator_filters_c1 = 128
+        self.generator_filters_c1 = 256
 
         self.discriminator_dense_size = 1024
-        self.discriminator_filters_c1 = 64
+        self.discriminator_filters_c1 = 512
+
+        self.dropout_rate = 0.5
 
         g_in, g_out, g_opt = self._generator(self.img_shape, labels, noise_dim)
         labels_input = g_in[-1]
@@ -175,8 +183,7 @@ class SimpleImageGan(GAN):
 
         super(SimpleImageGan, self).__init__(
                 [g_in, d_in],
-                #[g_out, d_out],
-                [self.model_generator(), self.model_discriminator()],
+                [g_out, d_out],
                 [g_opt, d_opt],
                 "binary_crossentropy",
                 noise_dim)
@@ -190,45 +197,53 @@ class SimpleImageGan(GAN):
         labels = Input(shape=(num_labels,))
         noise = Input(shape=(noise_dim,))
 
-        x = Concatenate(axis=1)([noise, labels])
+        #x = Concatenate(axis=1)([noise, labels])
         
         # Add first dense layer
-        x = Dense(self.generator_dense_size)(x)
-        x = BatchNormalization(axis=-1, scale=False, center=False, momentum=0.9, epsilon=1e-5)(x)
-        x = Activation('relu')(x)
-        x = Concatenate(axis=1)([x, labels])
-
-        # Add second dense layer
+        #x = Dense(self.generator_dense_size)(x)
         cnn_inputs = self.generator_filters_c1
-        x = Dense(cnn_inputs * height4 * width4)(x)
-        x = BatchNormalization(axis=-1, scale=False, center=False, momentum=0.9, epsilon=1e-5)(x)
+        x = Dense(cnn_inputs * height4 * width4)(noise)
+        x = BatchNormalization()(x)
         x = Activation('relu')(x)
 
         # Add labels and adjust size -- append to every space
         labels2 = RepeatVector(height4*width4)(labels)
         labels2 = Reshape((height4,width4,num_labels))(labels2)
+        assert not K.image_dim_ordering() == 'th'
         x = Reshape((height4, width4, cnn_inputs))(x)
-        x = Concatenate(axis=3)([x,labels2])
+        #x = Concatenate(axis=3)([x,labels2])
 
         # Apply the first convolution
-        x = Conv2DTranspose(cnn_inputs,
-                   kernel_size=[5, 5], 
-                   strides=(2, 2),
-                   padding="same")(x)
-        x = BatchNormalization(axis=-1, scale=False, center=False, momentum=0.9, epsilon=1e-5)(x)
+        #x = Conv2DTranspose(cnn_inputs,
+        #           kernel_size=[5, 5], 
+        #           strides=(2, 2),
+        #           padding="same")(x)
+        #x = BatchNormalization(axis=-1, scale=False, center=False, momentum=0.9, epsilon=1e-5)(x)
+        x = UpSampling2D(size=(2, 2))(x)
+        x = Conv2D(int(cnn_inputs / 2), 3, 3, border_mode='same')(x)
+        x = BatchNormalization(axis=1)(x)
         x = Activation('relu')(x)
 
         # Add labels in again -- to each column
         labels2 = RepeatVector(height2*width2)(labels)
         labels2 = Reshape((height2,width2,num_labels))(labels2)
-        x = Concatenate(axis=3)([x,labels2])
+        #x = Concatenate(axis=3)([x,labels2])
+
+        # Second convolution
+        x = UpSampling2D(size=(2, 2))(x)
+        x = Conv2D(int(cnn_inputs / 4), 3, 3, border_mode='same')(x)
+        x = BatchNormalization(axis=1)(x)
+        x = Activation('relu')(x)
+        
+        # Final convolution
+        x = Conv2D(1, 1, 1, border_mode='same')(x)
 
         # Apply the second convolution
-        x = Conv2DTranspose(self.img_shape[2],
-                   kernel_size=[5, 5], 
-                   strides=(2, 2),
-                   padding="same")(x)
-        x = BatchNormalization(axis=-1, scale=False, center=False, momentum=0.9, epsilon=1e-5)(x)
+        #x = Conv2DTranspose(self.img_shape[2],
+        #           kernel_size=[5, 5], 
+        #           strides=(2, 2),
+        #           padding="same")(x)
+        #x = BatchNormalization(axis=-1, scale=False, center=False, momentum=0.9, epsilon=1e-5)(x)
         x = Activation('sigmoid')(x)
 
         generator_optimizer = Adam(lr=2e-4, beta_1=0.5)
@@ -253,35 +268,38 @@ class SimpleImageGan(GAN):
         labels2 = Reshape((height,width,num_labels))(labels2)
 
         # Add initial discriminator layer
-        x = Concatenate(axis=3)([samples, labels2])
-        x = Conv2D(channels + num_labels,
+        #x = Concatenate(axis=3)([samples, labels2])
+        x = Conv2D(self.discriminator_filters_c1 / 2, # + num_labels
                    kernel_size=[5, 5], 
                    strides=(2, 2),
-                   padding="same")(x)
+                   #padding="same")(x)
+                   padding="same")(samples)
         x = LeakyReLU(alpha=0.2)(x)
+        x = Dropout(self.dropout_rate)(x)
 
         # Add conv layer with more filters
         labels2 = RepeatVector(height2*width2)(labels)
         labels2 = Reshape((height2,width2,num_labels))(labels2)
-        x = Concatenate(axis=3)([x, labels2])
-        x = Conv2D(self.discriminator_filters_c1 + num_labels,
+        #x = Concatenate(axis=3)([x, labels2])
+        x = Conv2D(self.discriminator_filters_c1, # + num_labels
                    kernel_size=[5, 5], 
                    strides=(2, 2),
                    padding="same")(x)
-        x = BatchNormalization(momentum=0.9, epsilon=1e-5)(x)
+        #x = BatchNormalization(momentum=0.9)(x)
+        x = Dropout(self.dropout_rate)(x)
         x = LeakyReLU(alpha=0.2)(x)
 
         # Add dense layer
-        x = Reshape((-1,))(x)
-        x = Concatenate(axis=1)([x, labels])
+        x = Flatten()(x)
+        #x = Concatenate(axis=1)([x, labels])
         x = Dense(self.discriminator_dense_size)(x)
         x = BatchNormalization(momentum=0.9, epsilon=1e-5)(x)
         x = LeakyReLU(alpha=0.2)(x)
+        x = Dropout(self.dropout_rate)(x)
 
         # Single output -- sigmoid activation function
-        x = Concatenate(axis=1)([x, labels])
-        x = Dense(1)(x)
-        x = Activation('sigmoid')(x)
+        #x = Concatenate(axis=1)([x, labels])
+        x = Dense(1, activation='sigmoid')(x)
 
         discriminator_optimizer = Adam(lr=1e-4, beta_1=0.5)
         #x = Model([samples, labels], x)
@@ -300,12 +318,15 @@ class SimpleImageGan(GAN):
         H = Conv2D(int(nch / 2), 3, 3, border_mode='same')(H)
         H = BatchNormalization(axis=1)(H)
         H = Activation('relu')(H)
+
         H = Conv2D(int(nch / 4), 3, 3, border_mode='same')(H)
         H = BatchNormalization(axis=1)(H)
         H = Activation('relu')(H)
         H = Conv2D(1, 1, 1, border_mode='same')(H)
+
         g_V = Activation('sigmoid')(H)
-        return Model(g_input, g_V)
+        #return Model(g_input, g_V)
+        return [g_input], g_V, "adam"
 
 
     def model_discriminator(self,input_shape=(1, 28, 28), dropout_rate=0.5):
@@ -323,7 +344,7 @@ class SimpleImageGan(GAN):
         H = LeakyReLU(0.2)(H)
         H = Dropout(dropout_rate)(H)
         d_V = Dense(1, activation='sigmoid')(H)
-        return Model(d_input, d_V)
+        return [d_input], d_V, "adam"
 
 def dim_ordering_fix(x):
     if K.image_dim_ordering() == 'th':
