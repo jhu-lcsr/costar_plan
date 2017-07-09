@@ -4,30 +4,28 @@ from robots import *
 
 
 def GetAvailableTasks():
-    return ["blocks", "clutter", "mug", "sorting", "explore", "oranges"]
+    return ["blocks", "clutter", "sorting", ]
 
 
 def GetAvailableRobots():
-    return ["ur5_2_finger", "iiwa_3_finger"]
+    return ["jaco", "ur5_2_finger", "ur5", "ur5_robotiq"]
 
 
 def GetAvailableAlgorithms():
     return [None, "ddpg", "cdqn"]
 
 
-def GetTaskDefinition(task, robot, *args, **kwargs):
+def GetTaskDefinition(task, robot, features, *args, **kwargs):
     '''
     Returns a particular task definition in the simulation.
     '''
     try:
         return {
-            'blocks': BlocksTaskDefinition(robot, *args, **kwargs),
-            'clutter': ClutterTaskDefinition(robot, *args, **kwargs),
-            'mug': MugTaskDefinition(robot, *args, **kwargs),
-            'sorting': SortingTaskDefinition(robot, *args, **kwargs),
-            'explore': ExploreTaskDefinition(robot, *args, **kwargs),
-            'rings': RingsTaskDefinition(robot, *args, **kwargs),
-            'oranges': OrangesTaskDefinition(robot, *args, **kwargs),
+            'blocks': BlocksTaskDefinition(0, robot, features=features, *args, **kwargs),
+            'tower': BlocksTaskDefinition(None, robot, features=features, *args, **kwargs),
+            'clutter': ClutterTaskDefinition(robot, features=features, *args, **kwargs),
+            'sorting': SortingTaskDefinition(robot, features=features, *args, **kwargs),
+            'oranges': OrangesTaskDefinition(robot, features=features, *args, **kwargs),
         }[task]
     except KeyError, e:
         raise NotImplementedError('Task %s not implemented!' % task)
@@ -41,7 +39,11 @@ def GetRobotInterface(robot, *args, **kwargs):
     try:
         return {
             'ur5_2_finger': Ur5RobotiqInterface(*args, **kwargs),
-            'iiwa_3_finger': IiwaRobotiq3FingerInterface(*args, **kwargs),
+            'ur5_robotiq': Ur5RobotiqInterface(*args, **kwargs),
+            'ur5': Ur5RobotiqInterface(*args, **kwargs),
+            'jaco': JacoRobotiqInterface(*args, **kwargs),
+            #'iiwa_3_finger': IiwaRobotiq3FingerInterface(*args, **kwargs),
+            #'iiwa': IiwaRobotiq3FingerInterface(*args, **kwargs),
         }[robot]
     except KeyError, e:
         raise NotImplementedError('Robot %s not implemented!' % robot)

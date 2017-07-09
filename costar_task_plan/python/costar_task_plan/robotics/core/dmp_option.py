@@ -1,5 +1,6 @@
 
 from costar_task_plan.abstract import AbstractOption, AbstractCondition
+from costar_task_plan.robotics.representation import CartesianSkillInstance
 from dmp_policy import JointDmpPolicy, CartesianDmpPolicy
 
 import numpy as np
@@ -11,13 +12,12 @@ class DmpOption(AbstractOption):
 
     def __init__(self,
             policy_type, # what kind of DMP are we creating
+            config, # robot config file
             kinematics, # kinematics of the robot 
             goal, # type of object to arrive at 
             skill_name, # name of this skill
             feature_model, # feature model
-            skill_instance=None,
-            traj_dist=None,
-            attached_frame=None):
+            traj_dist=None,):
         if isinstance(policy_type, str):
             # parse into appropriate constructor
             if policy_type == 'joint':
@@ -31,16 +31,15 @@ class DmpOption(AbstractOption):
                     'invalid option for DMP policy type: %s' % policy_type)
         if not isinstance(policy_type, type):
             raise RuntimeError('invalid data type for DMP policy')
-        if attached_frame is not None:
-            raise NotImplementedError('attached frame is not yet supported')
 
+        self.config = config
         self.goal = goal
         self.policy_type = policy_type
         self.kinematics = kinematics
-        self.skill_instance = skill_instance
         self.feature_model = feature_model
         self.skill_name = skill_name
-        self.attached_frame = attached_frame
+        self.traj_dist = traj_dist
+        self.skill_instance = CartesianSkillInstance(self.config, self.traj_dist.mu)
 
     def makePolicy(self, *args, **kwargs):
         '''
@@ -50,30 +49,33 @@ class DmpOption(AbstractOption):
             skill=self,
             goal=self.goal,
             dmp=self.skill_instance,
-            kinematics=self.kinematics)
+            kinematics=self.kinematics), DmpCondition(
+            parent=self,
+            goal=self.goal,
+            kinematics=self.kinematics,)
 
     def samplePolicy(self, *args, **kwargs):
         '''
         Randomly create a policy
         '''
-        params = np.random.multivariate_normal(self.traj_dist.mu, self.traj_dist.sigma)
-        skill_instance = CartesianSkillInstance(params=params)
+        if self.traj_dist is None:
+            raise RuntimeError('Attempted to sample from a mis-specified'
+                    ' action!')
+        params = np.random.multivariate_normal(
+                self.traj_dist.mu,
+                self.traj_dist.sigma)
+        skill_instance = CartesianSkillInstance(config=self.config, params=params)
         return self.policy_type(
             skill=self,
             goal=self.goal,
             dmp=skill_instance,
-            kinematics=self.kinematics)
-
-    # Get the gating condition for a specific option.
-    # - execution should continue until such time as this condition is true.
-    def getGatingCondition(self, *args, **kwargs):
-        return DmpCondition(
+            kinematics=self.kinematics), DmpCondition(
             parent=self,
             goal=self.goal,
             kinematics=self.kinematics,)
 
-    # Is it ok to begin this option?
     def checkPrecondition(self, world, state):
+        # Is it ok to begin this option?
         if not isinstance(world, AbstractWorld):
             raise RuntimeError(
                 'option.checkPrecondition() requires a valid world!')
@@ -83,8 +85,8 @@ class DmpOption(AbstractOption):
         raise NotImplementedError(
             'option.checkPrecondition() not yet implemented!')
 
-    # Did we successfully complete this option?
     def checkPostcondition(self, world, state):
+        # Did we successfully complete this option?
         if not isinstance(world, AbstractWorld):
             raise RuntimeError(
                 'option.checkPostcondition() requires a valid world!')

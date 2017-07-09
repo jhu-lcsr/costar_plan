@@ -1,9 +1,11 @@
 from costar_task_plan.abstract import NullReward
 from costar_task_plan.simulation.world import *
+from costar_task_plan.simulation.camera import *
 
 import pybullet as pb
 import rospkg
 import os
+
 
 class AbstractTaskDefinition(object):
 
@@ -14,7 +16,7 @@ class AbstractTaskDefinition(object):
     basic BulletWorld.
     '''
 
-    def __init__(self, robot, seed=None, option=None, save=False, *args, **kwargs):
+    def __init__(self, robot, features, seed=None, option=None, save=False, *args, **kwargs):
         '''
         We do not create a world here, but we may need to cache things or read
         them off of the ROS parameter server as necessary.
@@ -23,13 +25,25 @@ class AbstractTaskDefinition(object):
         self.option = option
         self.robot = robot
         self.world = None
+        self.features = features
         self.save_world = save
 
         # local storage for object info
         self._objs_by_type = {}
         self._type_and_name_by_obj = {}
+        self._cameras = []
 
-    def addObject(self, typename, obj_id):
+    def addCamera(self, camera):
+        assert isinstance(camera, Camera)
+        self._cameras.append(camera)
+
+    def capture(self):
+        imgs = []
+        for camera in self._cameras:
+            imgs.append(camera.capture())
+        return imgs
+
+    def addObject(self, typename, objname, obj_id):
         '''
         Create an object and add it to the world. This will automatically track
         and update useful information based on the object's current position
@@ -42,7 +56,6 @@ class AbstractTaskDefinition(object):
             num = len(self._objs_by_type[typename])
             self._objs_by_type[typename].append(obj_id)
 
-        objname = "%s%03d"%(typename,num)
         self._type_and_name_by_obj[obj_id] = (typename, objname)
 
     def getName(self):
@@ -54,16 +67,19 @@ class AbstractTaskDefinition(object):
         '''
         rospack = rospkg.RosPack()
         path = rospack.get_path('costar_simulation')
-        static_plane_path = os.path.join(path,'meshes','world','plane.urdf')
+        static_plane_path = os.path.join(path, 'meshes', 'world', 'plane.urdf')
         pb.loadURDF(static_plane_path)
 
         self.task = self._makeTask()
         self.world = SimulationWorld(
-                save_hook=self.save_world,
-                task_name=self.getName())
+            dt=0.01,
+            num_steps=1,
+            task_name=self.getName(),
+            cameras=self._cameras)
+        self.world.features = self.features
         self._setup()
         handle = self.robot.load()
-        pb.setGravity(0,0,-9.807)
+        pb.setGravity(0, 0, -9.807)
         self._setupRobot(handle)
 
         state = self.robot.getState()

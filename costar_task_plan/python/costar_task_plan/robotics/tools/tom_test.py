@@ -9,7 +9,7 @@ from tom_oranges import MakeTomTaskModel, OrangesTaskArgs
 from costar_task_plan.abstract import AbstractReward, AbstractFeatures
 from costar_task_plan.mcts import DefaultTaskMctsPolicies, Node
 from costar_task_plan.mcts import MonteCarloTreeSearch
-from costar_task_plan.mcts import ExecutionPlan, DefaultExecute
+from costar_task_plan.mcts import PlanExecutionManager, DefaultExecute
 from costar_task_plan.robotics.core import *
 from costar_task_plan.robotics.tom import TomWorld, OpenLoopTomExecute, ParseTomArgs
 from costar_task_plan.tools import showTask
@@ -17,12 +17,25 @@ from std_srvs.srv import Empty as EmptySrv
 
 import argparse
 import rospy
+import sys
+
+test_args = None
 
 def load_tom_world(regenerate_models):
+    print "========================================="
+    print "Loading world..."
     world = TomWorld('./',load_dataset=regenerate_models)
     if regenerate_models:
         world.saveModels('tom')
+    print "done."
     return world
+
+pWorld = None
+pTask = None
+pObjects = None
+
+def profile_do_search():
+    do_search(pWorld, pTask, pObjects)
 
 def load_tom_data_and_run():
     '''
@@ -37,14 +50,13 @@ def load_tom_data_and_run():
     import signal
     signal.signal(signal.SIGINT, exit)
 
-    test_args = ParseTomArgs()
-
     try:
       rospy.init_node('tom_test_node')
       world = load_tom_world(test_args.regenerate_models)
     except RuntimeError, e:
       print "Failed to create world. Are you in the right directory?"
       raise e
+
 
     # Set up the task model
     task = MakeTomTaskModel(world.lfd)
@@ -60,14 +72,20 @@ def load_tom_data_and_run():
                      "trash":"trash1",
                      "squeeze_area":"squeeze_area1"}
 
+    if test_args.profile:
+        import cProfile
+        global pWorld, pTask, pObjects
+        pWorld = world
+        pTask = task
+        pObjects = objects
+        cProfile.run("profile_do_search()")
     path = do_search(world, task, objects)
-    print "Done planning."
 
     # Tom execution works by sending a joint state message with just the robot
     # joints for the arm we want to move. The idea is that we can treat the two
     # arms and the base all as separate "actors."
-    plan = ExecutionPlan(path, OpenLoopTomExecute(world, 0))
 
+    plan = PlanExecutionManager(path, OpenLoopTomExecute(world, 0))
     reset = rospy.ServiceProxy('tom_sim/reset',EmptySrv)
     rate = rospy.Rate(10)
     try:
@@ -94,7 +112,7 @@ def load_tom_data_and_run():
             reset()
             world.updateObservation(objects)
             path = do_search(world, task, objects)
-            plan = ExecutionPlan(path, OpenLoopTomExecute(world, 0))
+            plan = PlanExecutionManager(path, OpenLoopTomExecute(world, 0))
 
           rate.sleep()
 
@@ -102,9 +120,12 @@ def load_tom_data_and_run():
         pass
 
 def do_search(world, task, objects):
+    '''
+    Run through a single experiment, generating a trajectory that will satisfy
+    all of our conditions and producing a list of policies to execute.
+    '''
 
     policies = DefaultTaskMctsPolicies(task)
-    #world.reward = LfdReward(world.lfd)
     search = MonteCarloTreeSearch(policies)
 
     objects = ['box1', 'orange1', 'orange2', 'orange3', 'trash1', 'squeeze_area1']
@@ -127,6 +148,11 @@ def do_search(world, task, objects):
     return path
 
 if __name__ == "__main__":
+    test_args = ParseTomArgs()
+    #if test_args.profile:
+    #    import cProfile
+    #    cProfile.run("load_tom_data_and_run()")
+    #else:
     load_tom_data_and_run()
 
 

@@ -56,3 +56,23 @@ Adversaries are new -- these govern how we choose different worlds. Their goal i
   - RoadWorldOptionEnv: Train a policy for a particular option.
   - RoadWorldDiscreteSamplerEnv: Use trained options to learn policy for MCTS tree expansion.
 
+## Redesign
+
+World state:
+  - list of states
+  - ref to world
+
+Updates as:
+```
+ws1 = world.ticK(ws0, action)
+```
+
+Tick loop:
+```
+for actor, T, state, action in zip (self.actors, self.dynamics, ws.states. ws.actions):
+  new_state = T(state, action)
+```
+
+We can mostly get rid of actors (except as a convenience class to store some data).
+
+Most other information should get removed.

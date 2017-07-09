@@ -1,21 +1,26 @@
 
+# By Chris Paxton
+# (c) 2017 The Johns Hopkins University
+# See License for more details
+
 from option import AbstractOption, NullOption
 from sets import Set
 from world import AbstractWorld
 
 import copy
+import numpy as np
 
-'''
-Model of a task as a state machine. We can specify this in any number of
-different ways: in CoSTAR, we use a Behavior Tree; PDDL or LTL can give us a 
-slightly different task plan.
-'''
 class Task(object):
+  '''
+  Model of a task as a state machine. We can specify this in any number of
+  different ways: in CoSTAR, we use a Behavior Tree; PDDL or LTL can give us a
+  slightly different task plan.
+  '''
 
-  '''
-  Create the task.
-  '''
   def __init__(self):
+    '''
+    Create the task.
+    '''
     self.option_templates = {None: NullOptionTemplate()}
     self.template_connections = []
 
@@ -23,11 +28,11 @@ class Task(object):
     self.nodes = {}
     self.children = {}
 
-  '''
-  Note: we assume that each name uniquely identifies an action, and each action
-  has a unique name.
-  '''
   def add(self, name, parents, option_args):
+    '''
+    Note: we assume that each name uniquely identifies an action, and each
+    action has a unique name.
+    '''
 
     ignore_args = False
     if name in self.option_templates and option_args is not None:
@@ -102,8 +107,22 @@ class Task(object):
             if child in inodes:
                 self.children[iname].add(inodes[child])
 
+    # WARNING: this is kind of terrible and might be sort of inefficient.
+    # Convert to a list
+    for node, children in self.children.items():
+        children = [child for child in children]
+        self.children[node] = children
+
     self.compiled = True
     return arg_sets
+
+  def makeTree(self, world, max_depth=10):
+    '''
+    Make the root of a tree search. This creates the whole tree structure that
+    we are going to explore, including all connections.
+    '''
+    depth = 0
+    pass
 
   def nodeSummary(self):
     if not self.compiled:
@@ -112,6 +131,26 @@ class Task(object):
     for name, node in self.nodes.items():
       summary += "%s --> %s\n"%(name,str(self.children[name]))
     return summary
+
+  def sampleSequence(self):
+      '''
+      Sample a random sequence of options starting from the root of the task
+      tree. This can be used in conjunction with many different things to get
+      different executions.
+      '''
+      names = []
+      sequence = []
+      tag = "ROOT()"
+      while True:
+          children = self.getChildren(tag)
+          if children is None or len(children) == 0:
+              break
+          else:
+              idx = np.random.randint(len(children))
+              tag = children[idx]
+              names.append(tag)
+              sequence.append(self.getOption(tag))
+      return names, sequence
 
 ''' =======================================================================
                         HELPERS AND INTERNAL CLASSES

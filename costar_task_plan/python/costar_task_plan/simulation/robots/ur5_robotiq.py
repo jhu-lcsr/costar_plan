@@ -8,6 +8,7 @@ import pybullet as pb
 import rospkg
 import subprocess
 
+
 class Ur5RobotiqInterface(AbstractRobotInterface):
 
     '''
@@ -32,6 +33,12 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
     right_inner_knuckle = 14
     right_fingertip = 15
 
+    dof = 6
+    arm_joint_indices = xrange(dof)
+    gripper_indices = [left_knuckle, left_finger, left_inner_knuckle,
+                       left_fingertip, right_knuckle, right_finger, right_inner_knuckle,
+                       right_fingertip]
+
     def __init__(self, *args, **kwargs):
         super(Ur5RobotiqInterface, self).__init__(*args, **kwargs)
 
@@ -53,12 +60,15 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         subprocess.call(['rosrun', 'xacro', 'xacro.py', filename], stdout=urdf)
 
         self.handle = pb.loadURDF(urdf_filename)
+        self.grasp_idx = self.findGraspFrame()
+        self.loadKinematicsFromURDF(urdf_filename, "base_link")
 
         return self.handle
 
     def place(self, pos, rot, joints):
         pb.resetBasePositionAndOrientation(self.handle, pos, rot)
-        pb.createConstraint(self.handle,-1,-1,-1,pb.JOINT_FIXED,pos,[0,0,0],rot)
+        pb.createConstraint(
+            self.handle, -1, -1, -1, pb.JOINT_FIXED, pos, [0, 0, 0], rot)
         for i, q in enumerate(joints):
             pb.resetJointState(self.handle, i, q)
 
@@ -75,46 +85,51 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         self.arm(joints,)
         self.gripper(0)
 
+    def gripperCloseCommand(cls):
+        '''
+        Return the closed position for this gripper.
+        '''
+        return -0.8
+
+    def gripperOpenCommand(cls):
+        '''
+        Return the open command for this gripper
+        '''
+        return 0.0
+
     def arm(self, cmd, mode=pb.POSITION_CONTROL):
         '''
         Set joint commands for the robot arm.
         '''
-        if len(cmd) > 6:
+        if len(cmd) > self.dof:
             raise RuntimeError('too many joint positions')
-        for i, q in enumerate(cmd):
-            pb.setJointMotorControl2(self.handle, i, mode, q)
+
+        pb.setJointMotorControlArray(self.handle, self.arm_joint_indices, mode,
+                                     cmd, forces=[1000.] * self.dof)
 
     def gripper(self, cmd, mode=pb.POSITION_CONTROL):
         '''
         Gripper commands need to be mirrored to simulate behavior of the actual
         UR5.
         '''
-        pb.setJointMotorControl2(self.handle, self.left_knuckle, mode,  -cmd)
-        pb.setJointMotorControl2(self.handle, self.left_inner_knuckle, mode,  -cmd)
-        pb.setJointMotorControl2(self.handle, self.left_finger, mode,  cmd)
-        pb.setJointMotorControl2(self.handle, self.left_fingertip, mode,  cmd)
 
-        pb.setJointMotorControl2(self.handle, self.right_knuckle, mode,  -cmd)
-        pb.setJointMotorControl2(self.handle, self.right_inner_knuckle, mode,  -cmd)
-        pb.setJointMotorControl2(self.handle, self.right_finger, mode,  cmd)
-        pb.setJointMotorControl2(self.handle, self.right_fingertip, mode,  cmd)
-
-
-    def act(self, action):
-        '''
-        Parse a list of continuous commands and send it off to the robot.
-        '''
-        assert(len(action) == 7)
-        self.arm(action[:6])
-        self.gripper(action[6])
+        # This is actually only a 1-DOF gripper
+        cmd_array = [-cmd, cmd, -cmd, cmd, -cmd, cmd, -cmd, cmd]
+        pb.setJointMotorControlArray(self.handle, self.gripper_indices, mode,
+                                     cmd_array)
 
     def getActionSpace(self):
-        return spaces.Tuple((spaces.Box(-np.pi,np.pi,6),spaces.Box(-0.6,0.6,1)))
+        return spaces.Tuple((spaces.Box(-np.pi, np.pi, self.dof),
+                spaces.Box(-0.8, 0.0, 1)))
 
     def _getArmPosition(self):
         q = [0.] * 6
         for i in xrange(6):
-            q = pb.getJointState(self.handle, i)
+            q[i] = pb.getJointState(self.handle, i)[0]
+        return q
 
     def _getGripper(self):
-        return pb.getJointState(self.handle, self.left_finger)
+        #v = [v[0] for v in pb.getJointStates(self.handle,
+        #    self.gripper_indices)]
+        return np.round(pb.getJointState(self.handle,
+            self.left_fingertip)[0],2)

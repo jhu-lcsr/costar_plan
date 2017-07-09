@@ -2,8 +2,11 @@
 '''
 Choose action with the best possible score
 '''
+
+
 def UpperConfidenceTreeSelect(AbstractSelect):
-  pass
+    pass
+
 
 def PriorProbabilitySelect(AbstractSelect):
-  pass
+    pass

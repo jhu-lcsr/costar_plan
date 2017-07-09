@@ -12,6 +12,13 @@ class AbstractState(object):
   def toArray(self):
     raise Exception('conversion to array not implemented!')
 
+  def toParams(self, action):
+    '''
+    Extract the set of parameters from an action according to the current state
+    of the world/actor.
+    '''
+    raise Exception('conversion of action to array not implemented!') 
+
   def updatePredicates(self, world, actor):
     self.predicates = [check(world, self, actor, actor.last_state)
         for (name, check)

@@ -12,15 +12,24 @@ import numpy as np
 class BulletSimulationEnv(gym.Env, utils.EzPickle):
 
     def __init__(self, *args, **kwargs):
+        '''
+        Read in args to set up client information
+        '''
+
         self.client = CostarBulletSimulation(*args, **kwargs)
         self.action_space = self.client.robot.getActionSpace()
+
+        self.world = self.client.task.world
+        self.task = self.client.task.task
+        
+        # This causes issues on some systems
+        #self.spec = None
 
     def _step(self, action):
         '''
         Tick world with this action
         '''
-        self.client.tick(action)
-        return self.client.observe()
+        return self.client.tick(action)
 
     def _reset(self):
         '''
@@ -28,3 +37,11 @@ class BulletSimulationEnv(gym.Env, utils.EzPickle):
         Return current features
         '''
         self.client.reset()
+        self.world = self.client.task.world
+        return self.world.computeFeatures()
+
+    def taskModel(self):
+        '''
+        Returns a usable task model.
+        '''
+        return self.task

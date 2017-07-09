@@ -1,10 +1,12 @@
 
+from dmp.msg import DMPData
 from dmp_utils import RequestDMP, PlanDMP
 from geometry_msgs.msg import PoseArray
 from sensor_msgs.msg import JointState
 from tf_conversions import posemath as pm
 
 import numpy as np
+import PyKDL as kdl
 import yaml
 
 try:
@@ -33,6 +35,7 @@ class CartesianSkillInstance(yaml.YAMLObject):
     self.objs = [obj for obj in objs if obj not in ['time', 'gripper']]
     if params is not None:
         self._fromParams(params)
+
 
   def fit(self, ee_frames, worlds):
     '''
@@ -98,23 +101,35 @@ class CartesianSkillInstance(yaml.YAMLObject):
     self.tau = resp.tau
 
   def params(self):
-    params = [self.tau,] + list(self.goal_pose.p)
+    params = [self.tau,] + list(self.goal_pose.p) + list(self.goal_pose.M.GetQuaternion())
     for dmp in self.dmp_list:
         params += dmp.weights
     return params
     
   def _fromParams(self, params):
     '''
-    Parse in the cartesian skill from a set of parameters and a config
+    Parse in the cartesian skill from a set of parameters and a config. Saves
+    rotations as a quaternion instead of as RPY.
     '''
     k_gain = self.config['dmp_k']
     d_gain = self.config['dmp_d']
     num_basis = self.config['dmp_basis']
     num_dmps = 6
 
-    self.tau = params[0]
-    x, y, z, roll, pitch, yaw = params[1:7]
-    idx = 7
-    for i in xrange(num_dmps):
-        weights = params[idx:(idx+num_basis)]
+    self.dmp_list = []
 
+    self.tau = params[0]
+    x, y, z, qx, qy, qz, qw = params[1:8]
+    self.goal_pose = kdl.Frame(kdl.Rotation.Quaternion(qx, qy, qz, qw))
+    self.goal_pose.p[0] = x
+    self.goal_pose.p[1] = y
+    self.goal_pose.p[2] = z
+
+    idx = 8
+    for i in xrange(num_dmps):
+        weights = params[idx:(idx+num_basis+1)]
+        self.dmp_list.append(DMPData(
+            k_gain=k_gain,
+            d_gain=d_gain,
+            weights=weights))
+        idx += num_basis + 1

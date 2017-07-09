@@ -96,6 +96,7 @@ class CostarWorld(AbstractWorld):
         self.js_listeners = {}
         self.tf_pub = tf.TransformBroadcaster()
 
+
         # Create and add all the robots we want in this world.
         for i, robot in enumerate(robot_config):
             if robot['q0'] is not None:

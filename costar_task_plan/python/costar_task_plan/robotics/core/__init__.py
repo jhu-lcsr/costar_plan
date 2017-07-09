@@ -15,9 +15,6 @@ __all__ = [
     # Update the gripper
     "AbstractGripperStatusListener",
     # =====================================================================
-    # Observation of the world
-    "AbstractObserve",
-    # =====================================================================
     # Conditions
     "ValidStateCondition",
 ]
@@ -43,5 +40,3 @@ from demo_features import *
 # Generic ROS interface
 from gripper_status_listener import *
 
-# Other stuff
-from observe import AbstractObserve

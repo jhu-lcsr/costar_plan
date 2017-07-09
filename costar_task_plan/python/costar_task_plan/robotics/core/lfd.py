@@ -1,3 +1,6 @@
+# By Chris Paxton
+# (c) 2017 The Johns Hopkins University
+# See License for more details
 
 from dmp_policy import CartesianDmpPolicy
 from dmp_option import DmpOption
@@ -77,6 +80,8 @@ class LfD(object):
         print "Training:"
         for name, trajs in self.world.trajectories.items():
 
+            print "training skill", name
+
             self.pubs[name] = rospy.Publisher(
                 join('costar', 'lfd', name), PoseArray, queue_size=1000)
 
@@ -134,10 +139,16 @@ class LfD(object):
             goal_type = instances[0].objs[0]
 
             option = DmpOption(
-                CartesianDmpPolicy, self.kdl_kin, args[goal_type], name, model, instances)
-            policy = option.makePolicy(world)
+                policy_type=CartesianDmpPolicy,
+                config=self.config,
+                kinematics=self.kdl_kin,
+                goal=args[goal_type],
+                skill_name=name,
+                feature_model=model,
+                traj_dist=self.getParamDistribution(name))
+
+            policy, condition = option.makePolicy(world)
             dynamics = SimulatedDynamics()
-            condition = option.getGatingCondition()
 
             state = world.actors[0].state
 
@@ -227,6 +238,7 @@ class LfD(object):
         skill_filename = os.path.join(project_name, "skills.yml")
         skills = yaml_load(skill_filename)
         for name, count in skills.items():
+            print "Loading skill %s/%s - %d examples"%(project_name, name, count)
 
             # For debugging only
             if name not in self.pubs:
@@ -255,7 +267,8 @@ class LfD(object):
         # get mean and get std dev
         params = np.array(params)
         mu = np.mean(params,axis=0)
-        sigma = np.cov(params)
+        sigma = np.cov(params.T)
+        assert mu.shape[0] == sigma.shape[0]
         return Distribution(mu, sigma)
 
 def yaml_save(obj, filename):

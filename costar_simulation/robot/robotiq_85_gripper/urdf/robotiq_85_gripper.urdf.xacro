@@ -5,6 +5,9 @@
   <xacro:include filename="$(find costar_simulation)/robot/robotiq_85_gripper/urdf/robotiq_85_gripper.transmission.xacro" />
   <property name="pi" value="3.14159"/>
 
+  <material name="blackish">
+    <color rgba="0.2 0.2 0.2 1"/>
+  </material>
 
   <xacro:macro name="robotiq_85_gripper" params="prefix parent *origin">
 
@@ -16,6 +19,7 @@
 
     <link name="${prefix}robotiq_85_base_link">
       <visual>
+        <material name="blackish"/>
         <origin rpy="${0.5 * pi} 0 0" xyz="0.0 0.0 0.0"/>
         <geometry>
           <mesh filename="package://costar_simulation/robot/robotiq_85_gripper/meshes/visual/robotiq_85_base_link.dae.obj"/>
@@ -54,6 +58,7 @@
 
     <link name="${prefix}robotiq_85_left_knuckle_link">
       <visual>
+        <material name="blackish"/>
         <origin rpy="${0.5 * pi} 0 0" xyz="0.0 0.0 0.0"/>
         <geometry>
           <mesh filename="package://costar_simulation/robot/robotiq_85_gripper/meshes/visual/robotiq_85_knuckle_link.dae.obj"/>
@@ -75,6 +80,7 @@
 
     <link name="${prefix}robotiq_85_right_knuckle_link">
       <visual>
+        <material name="blackish"/>
         <origin rpy="${0.5 * pi} 0 0" xyz="0.0 0.0 0.0"/>
         <geometry>
           <mesh filename="package://costar_simulation/robot/robotiq_85_gripper/meshes/visual/robotiq_85_knuckle_link.dae.obj"/>
@@ -108,6 +114,7 @@
 
     <link name="${prefix}robotiq_85_left_finger_link">
       <visual>
+        <material name="blackish"/>
         <origin rpy="${0.5 * pi} 0 0" xyz="0.0 0.0 0.0"/>
         <geometry>
           <mesh filename="package://costar_simulation/robot/robotiq_85_gripper/meshes/visual/robotiq_85_finger_link.dae.obj"/>
@@ -129,6 +136,7 @@
 
     <link name="${prefix}robotiq_85_right_finger_link">
       <visual>
+        <material name="blackish"/>
         <origin rpy="${0.5 * pi} 0 0" xyz="0.0 0.0 0.0"/>
         <geometry>
           <mesh filename="package://costar_simulation/robot/robotiq_85_gripper/meshes/visual/robotiq_85_finger_link.dae.obj"/>
@@ -168,6 +176,7 @@
 
     <link name="${prefix}robotiq_85_left_inner_knuckle_link">
       <visual>
+        <material name="blackish"/>
         <origin rpy="${0.5 * pi} 0 0" xyz="0.0 0.0 0.0"/>
         <geometry>
           <mesh filename="package://costar_simulation/robot/robotiq_85_gripper/meshes/visual/robotiq_85_inner_knuckle_link.dae.obj"/>
@@ -188,6 +197,7 @@
     </link>
     <link name="${prefix}robotiq_85_right_inner_knuckle_link">
       <visual>
+        <material name="blackish"/>
         <origin rpy="${0.5 * pi} 0 0" xyz="0.0 0.0 0.0"/>
         <geometry>
           <mesh filename="package://costar_simulation/robot/robotiq_85_gripper/meshes/visual/robotiq_85_inner_knuckle_link.dae.obj"/>
@@ -228,11 +238,16 @@
 
     <link name="${prefix}robotiq_85_left_finger_tip_link">
       <visual>
+        <material name="blackish"/>
         <origin rpy="${0.5 * pi} 0 0" xyz="0.0 0.0 0.0"/>
         <geometry>
           <mesh filename="package://costar_simulation/robot/robotiq_85_gripper/meshes/visual/robotiq_85_finger_tip_link.dae.obj"/>
         </geometry>
       </visual>
+      <contact>
+        <lateral_friction value="1.0"/>
+        <inertia_scaling value="3.0"/>
+      </contact>
       <collision>
         <geometry>
           <mesh filename="package://costar_simulation/robot/robotiq_85_gripper/meshes/collision/robotiq_85_finger_tip_link.stl"/>
@@ -249,11 +264,16 @@
 
     <link name="${prefix}robotiq_85_right_finger_tip_link">
       <visual>
+        <material name="blackish"/>
         <origin rpy="${0.5 * pi} 0 0" xyz="0.0 0.0 0.0"/>
         <geometry>
           <mesh filename="package://costar_simulation/robot/robotiq_85_gripper/meshes/visual/robotiq_85_finger_tip_link.dae.obj"/>
         </geometry>
       </visual>
+      <contact>
+        <lateral_friction value="1.0"/>
+        <inertia_scaling value="3.0"/>
+      </contact>
       <collision>
         <geometry>
           <mesh filename="package://costar_simulation/robot/robotiq_85_gripper/meshes/collision/robotiq_85_finger_tip_link.stl"/>
