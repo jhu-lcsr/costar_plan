@@ -9,6 +9,7 @@ import numpy as np
 import os
 import pybullet as pb
 import rospkg
+import PyKDL as kdl
 
 
 class BlocksTaskDefinition(DefaultTaskDefinition):
@@ -21,7 +22,8 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
     # define object filenames
     block_urdf = "%s.urdf"
     model = "block"
-    blocks = ["red", "blue", "yellow", "green"]
+    #blocks = ["red", "blue", "yellow", "green"]
+    blocks = ["red"]
 
     # Objects are placed into a random stack.
     stack_pos = [
@@ -118,6 +120,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                     (pos[0], pos[1], z),
                     (0,0,0,1))
             self.addObject("block", "%s_block"%block, obj_id)
+            print "%s_block"%block
             z += 0.05
             ids.append(obj_id)
         return ids
@@ -133,7 +136,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
 
         #placement = np.random.randint(0,len(self.stack_pos),(len(self.blocks),))
         placement = np.array(range(len(self.stack_pos)))
-        np.random.shuffle(placement)
+        #np.random.shuffle(placement)
         for i, pos in enumerate(self.stack_pos):
             blocks = []
             for idx, block in zip(placement, self.blocks):
@@ -142,27 +145,33 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             ids = self._addTower(pos, blocks, urdf_dir)
             self.block_ids += ids
             
-        self.world.addCondition(JointLimitViolationCondition(), -100,
-            "joints must stay in limits")
-        self.world.addCondition(TimeCondition(30.), -100, "time limit reached")
+        #self.world.addCondition(JointLimitViolationCondition(), -100,
+        #    "joints must stay in limits")
+        #self.world.addCondition(TimeCondition(30.), -100, "time limit reached")
         self.world.reward = EuclideanReward("red_block")
+        #threshold = 0.02
+        #self.world.addCondition(GoalPositionCondition("red_block", [0, 0, 0], [0, 0, 0, 1], threshold, threshold), 100, "reached block")
 
-        if self.stage == 0:
-            threshold = 0.02
-            self.world.addCondition(
-                    ObjectAtPositionCondition("red_block",
-                        self.final_stack_pos, threshold),
-                    100,
-                    "block in right position")
-            self.world.addCondition(
-                    ObjectAtPositionCondition("blue_block",
-                        self.final_stack_pos, threshold), -100, "wrong block")
-            self.world.addCondition(
-                    ObjectAtPositionCondition("green_block",
-                        self.final_stack_pos, threshold), -100, "wrong block")
-            self.world.addCondition(
-                    ObjectAtPositionCondition("yellow_block",
-                        self.final_stack_pos, threshold), -100, "wrong block")
+        threshold = 0.02
+        self.world.addCondition(ObjectMovedCondition("red_block", np.array([-0.5, 0.15, 0.02499]), threshold),1,"block has moved")
+
+
+#        if self.stage == 0:
+#            threshold = 0.02
+#            self.world.addCondition(
+#                    ObjectAtPositionCondition("red_block",
+#                        self.final_stack_pos, threshold),
+#                    100,
+#                    "block in right position")
+#            self.world.addCondition(
+#                    ObjectAtPositionCondition("blue_block",
+#                        self.final_stack_pos, threshold), -100, "wrong block")
+#            self.world.addCondition(
+#                    ObjectAtPositionCondition("green_block",
+#                        self.final_stack_pos, threshold), -100, "wrong block")
+#            self.world.addCondition(
+#                    ObjectAtPositionCondition("yellow_block",
+#                        self.final_stack_pos, threshold), -100, "wrong block")
 
     def reset(self):
         '''
@@ -174,7 +183,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         #        len(self.stack_pos),
         #        (len(self.blocks),))
         placement = np.array(range(len(self.stack_pos)))
-        np.random.shuffle(placement)
+        #np.random.shuffle(placement)
         self.world.ticks = 0
 
         # loop over all stacks
@@ -184,6 +193,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             for idx, block in zip(placement, self.block_ids):
                     if idx == i:
                         blocks.append(block)
+                        
 
             # add blocks to tower
             z = 0.025
@@ -193,6 +203,9 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                     (pos[0], pos[1], z),
                     (0,0,0,1))
                 z += 0.05
+                
+        super(BlocksTaskDefinition, self)._setupRobot(self.robot.handle)
+
 
         self._setupRobot(self.robot.handle)
 

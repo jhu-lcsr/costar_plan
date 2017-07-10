@@ -82,7 +82,10 @@ class GoalPositionCondition(AbstractCondition):
         #print (self.T.p.Norm())
         #print (obj.state.T.p - T.p).Norm()
         #print T_robot.p, T.p, dist
-        
+        #print dist
+        #print self.pos_tol
+        #if dist < self.pos_tol:
+         #   print ">>>>>>>>>>>FALSE"
         return dist > self.pos_tol
 
 
@@ -132,4 +135,27 @@ class ObjectAtPositionCondition(AbstractCondition):
         dist = (T.p - self.p).Norm()
 
         return dist > self.pos_tol
+        
+class ObjectMovedCondition(AbstractCondition):
+    '''
+    Check to see if a particular 
+    '''
+    def __init__(self, objname, pos, pos_tol):
+        self.objname = objname
+        self.pos = pos
+        self.p = kdl.Vector(*self.pos)
+        self.pos_tol = pos_tol
+
+    def _check(self, world, *args, **kwargs):
+        '''
+        Returns true until we are within tolerance of position
+        '''
+        T = world.getObject(self.objname).state.T
+        #print T.p
+        dist = (T.p - self.p).Norm()
+
+        #print dist < self.pos_tol
+        
+        return dist < self.pos_tol
+        
 

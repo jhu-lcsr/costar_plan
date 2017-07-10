@@ -225,6 +225,8 @@ class CostarBulletSimulation(object):
             F1 = in_data['F1']
             reward = in_data['reward']
             
+
+            
         if self.capture:
             imgs = self.task.capture()
             for name, rgb, depth, mask in imgs:
@@ -260,6 +262,7 @@ class CostarBulletSimulation(object):
             # TODO: handle other stuff
 
         # Return world information
+       
         return F1, reward, not ok, {}
 
     def close(self):
