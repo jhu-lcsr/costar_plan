@@ -44,6 +44,22 @@ sim.robot.gripper(gripper_pos)
 
 And then interact as you would normally with the PyBullet interface.
 
+## Learning
+
+The preferred way of interacting with the sim is through the `costar_bullet` tool:
+```
+rosrun costar_bullet start -h
+```
+
+Collect a dataset with the command:
+```
+```
+
+And then learn a model with:
+```
+rosrun costar_bullet start --robot ur5  --features multi --load --model ff_regression
+```
+
 ## Problem Domains
 
 The two primary domains are:
