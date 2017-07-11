@@ -26,7 +26,7 @@ import pybullet as pb
 
 # Create the simulation. Try switching out ur5 for a different robot or blocks
 # for a different task.
-ctp.simulation.CostarBulletSimulation(robot="ur5", task="blocks", visualize=True)
+sim = ctp.simulation.CostarBulletSimulation(robot="ur5", task="blocks", gui=True)
 
 # Start the real-time simulation.
 pb.setRealTimeSimulation(True)
