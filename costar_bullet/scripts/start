@@ -3,7 +3,7 @@
 from costar_task_plan.simulation import ParseBulletArgs
 from costar_task_plan.gym import BulletSimulationEnv
 from costar_task_plan.agent import GetAgents, MakeAgent
-from costar_task_plan.model import MakeModel
+from costar_task_plan.models import MakeModel
 
 import time
 
@@ -15,6 +15,7 @@ def main(args):
         agent.fit(num_iter=args['iter'])
     if 'model' in args and args['model'] is not None:
         model = MakeModel(**args)
+        model.train(agent)
 
 if __name__ == '__main__':
     '''

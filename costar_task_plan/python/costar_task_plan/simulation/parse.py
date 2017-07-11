@@ -1,6 +1,6 @@
 
 from costar_task_plan.agent import GetAgents
-from costar_task_plan.model import GetModels
+from costar_task_plan.models import GetModels
 
 from util import GetAvailableTasks, GetAvailableRobots, GetAvailableAlgorithms
 from features import GetFeatures, GetAvailableFeatures
@@ -90,6 +90,6 @@ def ParseBulletArgs():
     parser.add_argument('-m', '--model',
                         help="Name of NN model to learn.",
                         default=None,
-                        choices=GetModels)
+                        choices=GetModels())
 
     return vars(parser.parse_args())

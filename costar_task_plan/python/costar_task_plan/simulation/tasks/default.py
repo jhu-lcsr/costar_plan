@@ -23,6 +23,8 @@ class DefaultTaskDefinition(AbstractTaskDefinition):
         self.objs = []
         self.addCamera(
             Camera("right", [-0.5, 0., 0.30], distance=1.0, roll=0.0,
+                image_width=1024 / 4,
+                image_height=768 / 4,
                 pitch=-45, yaw=-45))
 
     def _setupRobot(self, handle):

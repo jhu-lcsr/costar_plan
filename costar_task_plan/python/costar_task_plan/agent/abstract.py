@@ -104,19 +104,15 @@ class AbstractAgent(object):
             np.savez_compressed(self.datafile, **self.data)
 
     def _fit(self, num_iter):
-        raise NotImplementedError('_fit() should run algorithm on the environment')
-
-    def data(self):
-        '''
-        Returns dataset.
-        '''
-        raise NotImplementedError('not yet working')
+        raise NotImplementedError('_fit() should run algorithm on' + \
+                                  ' the environment')
 
     def _addToDataset(self, world, control, features, reward, done, example,
             action_label):
         '''
         Takes as input features, reward, action, and other information. Saves
-        all of this to create a dataset.
+        all of this to create a dataset. Any custom agents should call this
+        function to update the dataset.
 
         Params:
         ----------

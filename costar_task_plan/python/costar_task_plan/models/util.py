@@ -1,4 +1,6 @@
 
+from multi_gan_model import RobotMultiGAN
+
 def MakeModel(features, model, *args, **kwargs):
     '''
     This function will create the appropriate neural net based on images and so
@@ -16,7 +18,7 @@ def MakeModel(features, model, *args, **kwargs):
             pass
         elif model == 'gan' and features == 'multi':
             # This model will handle features 
-            pass
+            return RobotMultiGAN()
     elif model == 'dense':
         # just create some dense layers.
         pass

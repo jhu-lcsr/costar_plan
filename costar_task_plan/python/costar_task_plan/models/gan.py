@@ -15,9 +15,11 @@ from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 from keras.optimizers import Adam
 
+from abstract import AbstractAgentBasedModel
+
 __LABELS = False
 
-class GAN(object):
+class GAN(AbstractAgentBasedModel):
     '''
     This class is designed to wrap some basic functionality for GANs of
     different sorts.
@@ -148,11 +150,17 @@ class GAN(object):
                 plt.tight_layout()
                 plt.show(block=False)
 
-    def _adversarial(self):
+    def train(self, agent, *args, **kwargs):
         pass
 
+    def _adversarial(self):
+        NotImplementedError('return adversarial model')
+
     def _discriminator(self):
-        pass
+        NotImplementedError('return discriminator model')
+
+    def _generator(self):
+        NotImplementedError('return generator model')
 
 class SimpleImageGan(GAN):
     '''
