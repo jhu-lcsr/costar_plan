@@ -29,6 +29,8 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
         joint state.
         '''
 
+        super(RobotMultiFFRegression, self).__init__(*args, **kwargs)
+
         self.taskdef = taskdef
         
         img_rows = 768 / 8
@@ -50,4 +52,11 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
         '''
         Training data -- just direct regression.
         '''
-        pass
+
+        print arm.shape
+        print gripper.shape
+        print features.shape
+
+        img_size = features.shape[1:]
+        arm_size = arm.shape[1]
+        gripper_size = gripper.shape[1]

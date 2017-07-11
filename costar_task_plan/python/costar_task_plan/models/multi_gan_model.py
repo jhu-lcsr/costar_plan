@@ -34,6 +34,8 @@ class RobotMultiGAN(GAN):
         generator and discriminator neural nets that we will be optimizing.
         """
 
+        super(RobotMultiGAN, self).__init__(*args, **kwargs)
+
         self.taskdef = taskdef
         
         img_rows = 768 / 8
