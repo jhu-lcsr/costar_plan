@@ -51,14 +51,17 @@ The preferred way of interacting with the sim is through the `costar_bullet` too
 rosrun costar_bullet start -h
 ```
 
-Collect a dataset with the command:
+For example, you can collect a dataset with the command:
 ```
+rosrun costar_bullet start --robot ur5 --task blocks --agent task --features multi --save -i 10
 ```
 
 And then learn a model with:
 ```
 rosrun costar_bullet start --robot ur5  --features multi --load --model ff_regression
 ```
+
+Different agents allow you to directly make the robot act in different ways.
 
 ## Problem Domains
 
