@@ -45,8 +45,8 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
 
         self.dropout_rate = 0.5
 
-    def train(self, features, arm, gripper, arm_cmd, gripper_cmd, actions,
-            *args, **kwargs):
+    def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
+            example, *args, **kwargs):
         '''
         Training data -- just direct regression.
         '''

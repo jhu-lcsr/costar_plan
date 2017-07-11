@@ -73,8 +73,13 @@ class CostarBulletSimulation(object):
                  capture=False,
                  show_images=False,
                  randomize_color=False,
+                 agent=None,
                  *args, **kwargs):
-        self.gui = gui and not plot_task
+        # Do not start the gui if we aren't going to do anything with it.
+        self.gui = gui \
+                and not plot_task \
+                and agent is not None \
+                and agent is not "null"
         self.robot = GetRobotInterface(robot)
         features = GetFeatures(features)
         self.task = GetTaskDefinition(

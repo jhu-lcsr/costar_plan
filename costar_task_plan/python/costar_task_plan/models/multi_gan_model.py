@@ -64,8 +64,8 @@ class RobotMultiGAN(GAN):
                 noise_dim)
         """
 
-    def train(self, features, arm, gripper, arm_cmd, gripper_cmd, actions,
-            *args, **kwargs):
+    def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
+            example, *args, **kwargs):
         '''
         Set up the imitation GAN to learn a model of what actions we expect
         from each state. Our goal is to sample the distribution of actions that
@@ -80,12 +80,12 @@ class RobotMultiGAN(GAN):
         labels = data['action']
         """
 
-        print actions
+        print label
 
         # Set up the learning problem as:
         # Goal: f(img, arm, gripper) --> arm_cmd, gripper_cmd
 
-        inputs = [imgs, arm, gripper]
+        inputs = [features, arm, gripper]
         targets = [arm_cmd, gripper_cmd]
 
         
