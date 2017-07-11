@@ -14,8 +14,8 @@ def main(args):
         agent = MakeAgent(env, args['agent'], **args)   
         agent.fit(num_iter=args['iter'])
     if 'model' in args and args['model'] is not None:
-        model = MakeModel(**args)
-        model.train(agent)
+        model = MakeModel(taskdef=env.task, **args)
+        model.train(**agent.data)
 
 if __name__ == '__main__':
     '''

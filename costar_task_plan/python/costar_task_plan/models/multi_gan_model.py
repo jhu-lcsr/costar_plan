@@ -28,13 +28,19 @@ class RobotMultiGAN(GAN):
     camera input and others.
     '''
 
-    def train(self, agent, *args, **kwargs):
-        # get data set from the agent
-        x = agent.data
+    def __init__(self, taskdef, *args, **kwargs):
+        """
+        Read in taskdef for this model (or set of models). Use it to create the
+        generator and discriminator neural nets that we will be optimizing.
+        """
 
+        self.taskdef = taskdef
+        
+        img_rows = 768 / 8
+        img_cols = 1024 / 8
+        self.nchannels = 3
 
-    def __init__(self, *args, **kwargs):
-        self.img_shape = (img_rows, img_cols, channels)
+        self.img_shape = (img_rows, img_cols, self.nchannels)
 
         self.generator_dense_size = 1024
         self.generator_filters_c1 = 256
@@ -44,6 +50,7 @@ class RobotMultiGAN(GAN):
 
         self.dropout_rate = 0.5
 
+        """
         g_in, g_out, g_opt = self._generator(self.img_shape, labels, noise_dim)
         labels_input = g_in[-1]
         d_in, d_out, d_opt = self._discriminator(self.img_shape, labels,
@@ -55,6 +62,7 @@ class RobotMultiGAN(GAN):
                 [g_opt, d_opt],
                 "binary_crossentropy",
                 noise_dim)
+        """
 
     def train(self, features, arm, gripper, arm_cmd, gripper_cmd, actions,
             *args, **kwargs):

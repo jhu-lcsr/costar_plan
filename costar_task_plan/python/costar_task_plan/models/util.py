@@ -1,10 +1,17 @@
 
 from multi_gan_model import RobotMultiGAN
 
-def MakeModel(features, model, *args, **kwargs):
+def MakeModel(features, model, taskdef, *args, **kwargs):
     '''
     This function will create the appropriate neural net based on images and so
     on.
+
+    Parameters:
+    -----------
+    features: string describing the set of features (inputs) we are using.
+    model: string describing the particular method that should be applied.
+    taskdef: a (simulation) task definition used to extract specific
+             parameters.
     '''
     # set up some image parameters
     if features in ['rgb', 'multi']:
@@ -16,9 +23,15 @@ def MakeModel(features, model, *args, **kwargs):
     if model == 'gan':
         if features in ['rgb','depth']:
             pass
-        elif model == 'gan' and features == 'multi':
+        elif features == 'multi':
             # This model will handle features 
-            return RobotMultiGAN()
+            model_instance = RobotMultiGAN(taskdef)
+    elif model == 'ff_regression':
+        if features in ['rgb','depth']:
+            # make a nice little convnet
+            pass
+        elif features == 'multi':
+            model_instance = RobotMultiFFRegression(taskdef)
     elif model == 'dense':
         # just create some dense layers.
         pass
@@ -31,4 +44,4 @@ def MakeModel(features, model, *args, **kwargs):
     return model_instance
 
 def GetModels():
-    return [None, "gan", "dense"]
+    return [None, "gan", "ff_regression", "lstm_regression"]
