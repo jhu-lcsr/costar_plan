@@ -25,8 +25,8 @@ class Camera(object):
                  distance,
                  roll, pitch, yaw,
                  up_idx=2,
-                 image_width=1024 / 4,
-                 image_height=768 / 4,
+                 image_width=1024 / 8,
+                 image_height=768 / 8,
                  fov=45,
                  near_plane=0.1,
                  far_plane=10):

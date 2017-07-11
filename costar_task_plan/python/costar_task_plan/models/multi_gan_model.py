@@ -31,3 +31,53 @@ class RobotMultiGAN(GAN):
     def train(self, agent, *args, **kwargs):
         # get data set from the agent
         x = agent.data
+
+
+    def __init__(self, *args, **kwargs):
+        self.img_shape = (img_rows, img_cols, channels)
+
+        self.generator_dense_size = 1024
+        self.generator_filters_c1 = 256
+
+        self.discriminator_dense_size = 1024
+        self.discriminator_filters_c1 = 512
+
+        self.dropout_rate = 0.5
+
+        g_in, g_out, g_opt = self._generator(self.img_shape, labels, noise_dim)
+        labels_input = g_in[-1]
+        d_in, d_out, d_opt = self._discriminator(self.img_shape, labels,
+                labels_input)
+
+        super(RobotMultiGAN, self).__init__(
+                [g_in, d_in],
+                [g_out, d_out],
+                [g_opt, d_opt],
+                "binary_crossentropy",
+                noise_dim)
+
+    def train(self, features, arm, gripper, arm_cmd, gripper_cmd, actions,
+            *args, **kwargs):
+        '''
+        Set up the imitation GAN to learn a model of what actions we expect
+        from each state. Our goal is to sample the distribution of actions that
+        is most likely to give us a trajectory to the goal.
+        '''
+        """
+        imgs = data['features']
+        arm = data['arm']
+        gripper = data['gripper']
+        arm_cmd = data['arm_cmd']
+        gripper_cmd = data['gripper_cmd']
+        labels = data['action']
+        """
+
+        print actions
+
+        # Set up the learning problem as:
+        # Goal: f(img, arm, gripper) --> arm_cmd, gripper_cmd
+
+        inputs = [imgs, arm, gripper]
+        targets = [arm_cmd, gripper_cmd]
+
+        

@@ -122,10 +122,7 @@ class GAN(AbstractAgentBasedModel):
             is_fake[batch_size:] = 1
             yi_double = np.concatenate((yi, yi))
             d_loss = self.discriminator.train_on_batch([xi_fake, yi_double], is_fake)
-            #d_loss = self.discriminator.train_on_batch([xi_fake], is_fake)
 
-            #gi_loss = self.generator.train_on_batch([noise, yi], xi)
-            #gi_loss = self.generator.train_on_batch([noise], xi)
             g_loss = self.adversarial.train_on_batch(
                     [noise, yi],
                     #[noise],
@@ -133,14 +130,6 @@ class GAN(AbstractAgentBasedModel):
                             )
 
             print "Iter %d: D loss / GAN loss = "%(i), d_loss, g_loss
-            ##z = self.adversarial.predict([noise, yi])
-            #z = self.adversarial.predict([noise])
-            #xx = np.ones((batch_size, 1))
-            #yy = np.max(xx, 0) - xx * z + np.log(1 + np.exp(-abs(xx)))
-            #print xx.shape, z.shape, yy.shape, (xx * z).shape
-            #print yy.shape, np.mean(yy), "w/ avg prediction =",
-            #print  np.mean(z.T)
-            #print binary_crossentropy(x, np.ones((batch_size,)))
 
             if (i + 1) % 25 == 0:
                 for j in xrange(6):
@@ -150,8 +139,8 @@ class GAN(AbstractAgentBasedModel):
                 plt.tight_layout()
                 plt.show(block=False)
 
-    def train(self, agent, *args, **kwargs):
-        pass
+    def train(self, data, *args, **kwargs):
+        raise NotImplementedError('No train function set up.')
 
     def _adversarial(self):
         NotImplementedError('return adversarial model')
