@@ -55,7 +55,9 @@ def ParseBulletArgs():
                         help="MDP discount factor gamma. Must be set so that 0 < gamma <= 1. Low gamma decreases significance of future rewards.",
                         default=1.)
     parser.add_argument('-o', '--option',
-                        help="Specific sub-option to train. Exact list depends on the chosen task.",
+                        help="Specific sub-option to train. Exact list " + \
+                             "depends on the chosen task. [NOT CURRENTLY " + \
+                             "IMPLEMENTED]",
                         default=None)
     parser.add_argument('-p', '--plot_task', '--pt',
                         help="Display a plot of the chosen task and exit.",
@@ -111,6 +113,6 @@ def ParseBulletArgs():
                         default="model")
     parser.add_argument("--optimizer","--opt",
                         help="optimizer to use with learning",
-                        default="sgd")
+                        default="adam")
 
     return vars(parser.parse_args())
