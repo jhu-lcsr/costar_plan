@@ -26,6 +26,9 @@ def ParseBulletArgs():
     parser.add_argument("--gui",
                         action="store_true",
                         help="Display Bullet visualization.")
+    parser.add_argument("--opengl2",
+                        action="store_true",
+                        help="Activate docker opengl2 mode")
     parser.add_argument("--robot",
                         help="Robot model to load. This will determine the action space.",
                         choices=GetAvailableRobots(),
