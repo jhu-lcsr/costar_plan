@@ -95,9 +95,12 @@ class AbstractAgent(object):
         [none]
         '''
         self._break = False
-        _catch_sigint = lambda *args, **kwargs: self._catch_sigint(*args, **kwargs)
-        signal.signal(signal.SIGINT, _catch_sigint)
-        self._fit(num_iter)
+        #_catch_sigint = lambda *args, **kwargs: self._catch_sigint(*args, **kwargs)
+        #signal.signal(signal.SIGINT, _catch_sigint)
+        try:
+            self._fit(num_iter)
+        except KeyboardInterrupt, e:
+            pass
 
         if self.save:
             print "---- saving ----"
