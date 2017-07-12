@@ -1,5 +1,8 @@
 from tensorflow import TensorShape
 
+import keras.backend as K
+import numpy as np
+
 '''
 Sampler Neural Net
 This neural net replaces the Z(mu, sigma) distribution from which we draw
@@ -13,11 +16,13 @@ class SamplerNetwork(object):
     for layer_size in feature_layers:
       pass
 
-
-import keras.backend as K
-import numpy as np
-
 class SamplerLoss(object):
+
+    '''
+    This is the KL-divergence sampling method as proposed by Rupprecht et al.,
+    for multiple sets of data where we have many data points for each sample.
+    '''
+
     def __init__(self, sum_axis=-1, min_axis=1, eps=1e-8):
         '''
         Min axis should give us the nearest neighbor of the second parameter,
@@ -75,47 +80,4 @@ class SamplerLoss(object):
         loss = -1. * K.sum(K.log(d_pp) / K.sqrt(d_tp), axis=1, keepdims=True)
 
         return loss
-
-if __name__=='__main__':
-    A = np.array([[0,1,0],[1,0.7,0.5]]).T
-    B = np.array([[0.001, 1.002, 0.01],[0.001, 0.002, 2.01]]).T
-
-    print "==========="
-
-    correct = np.zeros((3,3))
-    
-    print "A 1\t\t2\t\t3"
-    for i in xrange(3):
-        for j in xrange(3):
-            print "%f\t"%np.sum((B[i] - A[j])**2),
-        print ""
-
-    print "==========="
-
-    loss = SamplerLoss()
-    x = K.variable(value=A)
-    y = K.variable(value=B)
-
-    # Distances from A to B
-    res = K.eval(loss._dists(x,y))
-    print res
-
-    # Distances from B to itself
-    res = K.eval(loss._dists(y,y))
-    print res
-
-    print "==========="
-    print "Loss"
-    print "==========="
-
-    # Loss
-    res2 = K.eval(loss(x,y))
-    print res2
-
-    #z = K.dot(x,y)
-    #res =  K.eval(z)
-    #print res
-    
-
-
 
