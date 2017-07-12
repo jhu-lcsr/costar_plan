@@ -50,7 +50,6 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
         self.robot_col_dense_size = 128
         self.robot_col_dim = 64
         self.combined_dense_size = 64
-        self.optimizer = "adam"
 
     def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             example, *args, **kwargs):
