@@ -50,6 +50,14 @@ def GetCameraColumn(img_shape, dim, dropout_rate, num_filters, dense_size):
     x = LeakyReLU(alpha=0.2)(x)
     x = Dropout(dropout_rate)(x)
 
+    x = Conv2D(num_filters, # + num_labels
+               kernel_size=[5, 5], 
+               strides=(2, 2),
+               padding="same")(x)
+    #x = BatchNormalization(momentum=0.9)(x)
+    x = LeakyReLU(alpha=0.2)(x)
+    x = Dropout(dropout_rate)(x)
+
     # Add dense layer
     x = Flatten()(x)
     #x = Concatenate(axis=1)([x, labels])

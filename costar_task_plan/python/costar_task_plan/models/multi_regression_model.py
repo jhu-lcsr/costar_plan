@@ -35,6 +35,7 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
         super(RobotMultiFFRegression, self).__init__(*args, **kwargs)
 
         self.taskdef = taskdef
+        self.model = None
         
         img_rows = 768 / 8
         img_cols = 1024 / 8
@@ -81,11 +82,13 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
         print robot_ins, robot_out
         x = Concatenate()([img_out, robot_out])
         x = Dense(self.combined_dense_size)(x)
+        #x = Dense(self.combined_dense_size)(img_out)
         x = LeakyReLU(alpha=0.2)(x)
         arm_out = Dense(arm_size)(x)
         gripper_out = Dense(gripper_size)(x)
 
         model = Model(img_ins + robot_ins, [arm_out, gripper_out])
+        #model = Model(img_ins, [arm_out])
         optimizer = optimizers.get(self.optimizer)
         try:
             optimizer.lr = self.lr
@@ -94,10 +97,17 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
         model.compile(loss="mse", optimizer=optimizer)
         model.summary()
 
-        model.fit(
+        self.model = model
+        self.model.fit(
                 x=[features, arm, gripper],
                 y=[arm_cmd, gripper_cmd],
                 epochs=self.epochs,
                 batch_size=self.batch_size,
                 )
 
+    def save(self):
+        if self.model is not None:
+            self.model.save_weights(self.name + ".h5f")
+
+    def load(self):
+        pass
