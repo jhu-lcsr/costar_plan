@@ -1,4 +1,5 @@
 
+import numpy as np
 
 def SplitIntoChunks(datasets, labels,
         chunk_length=100,
@@ -10,7 +11,8 @@ def SplitIntoChunks(datasets, labels,
     look at certain sections.
     '''
 
-    pass
-
+    new_data = []
+    for data in datasets:
+        print data.shape
 
 

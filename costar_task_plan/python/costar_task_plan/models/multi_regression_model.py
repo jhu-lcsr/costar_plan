@@ -37,12 +37,6 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
         self.taskdef = taskdef
         self.model = None
         
-        img_rows = 768 / 8
-        img_cols = 1024 / 8
-        self.nchannels = 3
-
-        self.img_shape = (img_rows, img_cols, self.nchannels)
-
         self.dropout_rate = 0.5
         
         self.img_dense_size = 512
@@ -78,8 +72,6 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
                 self.dropout_rate,
                 self.robot_col_dense_size,)
 
-        print img_ins, img_out
-        print robot_ins, robot_out
         x = Concatenate()([img_out, robot_out])
         x = Dense(self.combined_dense_size)(x)
         #x = Dense(self.combined_dense_size)(img_out)
