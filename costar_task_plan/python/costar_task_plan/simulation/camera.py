@@ -54,4 +54,4 @@ class Camera(object):
             self.image_width, self.image_height,
             viewMatrix=self.matrix,
             projectionMatrix=self.projection_matrix)
-        return ImageData(self.name, rgb, depth, mask)
+        return ImageData(self.name, rgb / 255., depth, mask)
