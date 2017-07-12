@@ -60,13 +60,15 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
         Training data -- just direct regression.
         '''
 
+        print "---------"
         print arm.shape
         print gripper.shape
         print features.shape
+        print "---------"
 
         [features, arm, gripper, arm_cmd, gripper_cmd] = \
                 SplitIntoChunks([features, arm, gripper, arm_cmd, gripper_cmd],
-                example, self.trajectory_length)
+                example, self.trajectory_length, step_size=2)
 
         img_shape = features.shape[1:]
         arm_size = arm.shape[1]

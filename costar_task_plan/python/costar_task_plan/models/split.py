@@ -11,8 +11,28 @@ def SplitIntoChunks(datasets, labels,
     look at certain sections.
     '''
 
+    data_size = datasets[0].shape[0]
+
     new_data = []
     for data in datasets:
+        i = 0
+        dataset = []
+        while i + chunk_length < data_size:
+            block_labels = labels[i:i+chunk_length]
+            if not np.all(block_labels == block_labels[0]):
+                break
+            dataset.append(data[i:i+chunk_length]) 
+            i += step_size
+        if forward_and_back:
+            i = data_size
+            while i - step_size >= 0:
+                block_labels = labels[i-chunk_length:i]
+                if not np.all(block_labels == block_labels[0]):
+                    break
+                dataset.append(data[i-chunk_length:i]) 
+                i -= chunk_length
+        new_data.append(np.array(dataset))
+    for data in new_data:
         print data.shape
-
+    return new_data
 
