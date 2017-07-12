@@ -63,6 +63,7 @@ class SamplerLoss(object):
         # So right now this all comes out to just zeros...
         d_pp = self._dists(pred, pred)
         d_pp = K.min(d_pp,axis=self.min_axis,keepdims=True)
+        d_pp = d_pp + (1e10 * K.eye(d_pp.shape[0]))
 
         # Add a dimension and some ones.
         nsamples = target.shape[0]
