@@ -1,5 +1,7 @@
 
 from costar_task_plan.agent import GetAgents
+from costar_task_plan.models import GetModels
+
 from util import GetAvailableTasks, GetAvailableRobots, GetAvailableAlgorithms
 from features import GetFeatures, GetAvailableFeatures
 
@@ -47,6 +49,7 @@ def ParseBulletArgs():
                         choices=GetAgents())
     parser.add_argument('-L', '--lr', '--learning_rate',
                         help="Learning rate to be used in algorithm.",
+                        type=float,
                         default=1e-3)
     parser.add_argument('-g', '--gamma',
                         help="MDP discount factor gamma. Must be set so that 0 < gamma <= 1. Low gamma decreases significance of future rewards.",
@@ -88,5 +91,26 @@ def ParseBulletArgs():
                         help='Number of iterations to run',
                         default=100,
                         type=int)
+    parser.add_argument('-m', '--model',
+                        help="Name of NN model to learn.",
+                        default=None,
+                        choices=GetModels())
+    parser.add_argument('-b','--batch_size',
+                        help='Batch size to use in the model',
+                        default=32,
+                        type=int)
+    parser.add_argument('-e','--epochs',
+                        help="Number of epochs",
+                        type=int,
+                        default=1000,)
+    parser.add_argument('--data_file_name',
+                        help="File name for data archive.",
+                        default='data.npz')
+    parser.add_argument('--model_descriptor',
+                        help="model description for use with save/load file",
+                        default="model")
+    parser.add_argument("--optimizer","--opt",
+                        help="optimizer to use with learning",
+                        default="sgd")
 
     return vars(parser.parse_args())

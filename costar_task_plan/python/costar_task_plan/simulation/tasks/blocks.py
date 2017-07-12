@@ -26,10 +26,10 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
     # Objects are placed into a random stack.
     stack_pos = [
         # np.array([-0.5, 0., 0.]),
-        np.array([-0.5, 0.15, 0.]),
-        np.array([-0.5, 0.3, 0.]),
-        np.array([-0.5, -0.15, 0.]),
-        np.array([-0.5, -0.3, 0.]),
+        np.array([-0.5, 0.1, 0.]),
+        np.array([-0.5, 0.2, 0.]),
+        np.array([-0.5, -0.1, 0.]),
+        np.array([-0.5, -0.2, 0.]),
     ]
 
     over_final_stack_pos = np.array([-0.5, 0., 0.5])

@@ -95,28 +95,27 @@ class AbstractAgent(object):
         [none]
         '''
         self._break = False
-        _catch_sigint = lambda *args, **kwargs: self._catch_sigint(*args, **kwargs)
-        signal.signal(signal.SIGINT, _catch_sigint)
-        self._fit(num_iter)
+        #_catch_sigint = lambda *args, **kwargs: self._catch_sigint(*args, **kwargs)
+        #signal.signal(signal.SIGINT, _catch_sigint)
+        try:
+            self._fit(num_iter)
+        except KeyboardInterrupt, e:
+            pass
 
         if self.save:
             print "---- saving ----"
             np.savez_compressed(self.datafile, **self.data)
 
     def _fit(self, num_iter):
-        raise NotImplementedError('_fit() should run algorithm on the environment')
-
-    def data(self):
-        '''
-        Returns dataset.
-        '''
-        raise NotImplementedError('not yet working')
+        raise NotImplementedError('_fit() should run algorithm on' + \
+                                  ' the environment')
 
     def _addToDataset(self, world, control, features, reward, done, example,
             action_label):
         '''
         Takes as input features, reward, action, and other information. Saves
-        all of this to create a dataset.
+        all of this to create a dataset. Any custom agents should call this
+        function to update the dataset.
 
         Params:
         ----------
