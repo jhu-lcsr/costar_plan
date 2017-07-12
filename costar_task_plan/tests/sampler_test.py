@@ -2,6 +2,7 @@
 
 import unittest
 
+import keras.backend as K
 import numpy as np
 
 from costar_task_plan.models import SamplerLoss
@@ -18,19 +19,19 @@ class SamplerLossTest(unittest.TestCase):
         print "A 1\t\t2\t\t3"
         for i in xrange(3):
             for j in xrange(3):
-                print "%f\t"%np.sum((B[i] - A[j])**2),
-            print ""
+                correct[i,j] = np.sum((B[i] - A[j])**2)
+        print correct
 
         print "==========="
 
-        loss = FullSamplerLoss()
+        loss = SamplerLoss()
         x = K.variable(value=A)
         y = K.variable(value=B)
 
         # Distances from A to B
         res = K.eval(loss._dists(x,y))
         print res
-        self.assertAlmostEqual(correct, res)
+        self.assertTrue(np.all(np.abs(correct - res) < 1e-5))
 
         # Distances from B to itself
         res = K.eval(loss._dists(y,y))
@@ -48,6 +49,5 @@ class SamplerLossTest(unittest.TestCase):
         #res =  K.eval(z)
         #print res
     
-
-
-
+if __name__ == '__main__':
+  unittest.main()
