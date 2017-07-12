@@ -15,8 +15,6 @@ def main(args):
         agent.fit(num_iter=args['iter'])
     if 'model' in args and args['model'] is not None:
         model = MakeModel(taskdef=env.task, **args)
-        print agent.data.keys()
-        print len(agent.data)
         model.train(**agent.data)
 
 if __name__ == '__main__':
@@ -26,6 +24,7 @@ if __name__ == '__main__':
     '''
 
     args = ParseBulletArgs()
+    print args
     if args['profile']:
         import cProfile
         cProfile.run('main(args)')

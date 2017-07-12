@@ -9,7 +9,7 @@ from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 from keras.optimizers import Adam
 
-def GetCameraColumn(img_shape, dim, dropout_rate, dense_size):
+def GetCameraColumn(img_shape, dim, dropout_rate, num_filters, dense_size):
     '''
     Convolutions for an image, terminating in a dense layer of size dim.
     '''
@@ -22,32 +22,40 @@ def GetCameraColumn(img_shape, dim, dropout_rate, dense_size):
 
     samples = Input(shape=img_shape)
     #x = Concatenate(axis=3)([samples, labels2])
-    x = Conv2D(int(self.discriminator_filters_c1 / 2), # + num_labels
+    x = Conv2D(num_filters, # + num_labels
                kernel_size=[5, 5], 
                strides=(2, 2),
                #padding="same")(x)
                padding="same")(samples)
     x = LeakyReLU(alpha=0.2)(x)
-    x = Dropout(self.dropout_rate)(x)
+    x = Dropout(dropout_rate)(x)
 
     # Add conv layer with more filters
     #labels2 = RepeatVector(height2*width2)(labels)
     #labels2 = Reshape((height2,width2,num_labels))(labels2)
     #x = Concatenate(axis=3)([x, labels2])
-    x = Conv2D(self.discriminator_filters_c1, # + num_labels
+    x = Conv2D(num_filters, # + num_labels
                kernel_size=[5, 5], 
                strides=(2, 2),
                padding="same")(x)
     #x = BatchNormalization(momentum=0.9)(x)
     x = LeakyReLU(alpha=0.2)(x)
-    x = Dropout(self.dropout_rate)(x)
+    x = Dropout(dropout_rate)(x)
+
+    x = Conv2D(num_filters, # + num_labels
+               kernel_size=[5, 5], 
+               strides=(2, 2),
+               padding="same")(x)
+    #x = BatchNormalization(momentum=0.9)(x)
+    x = LeakyReLU(alpha=0.2)(x)
+    x = Dropout(dropout_rate)(x)
 
     # Add dense layer
     x = Flatten()(x)
     #x = Concatenate(axis=1)([x, labels])
-    x = Dense(int(0.5 * self.discriminator_filters_c1))(x)
+    x = Dense(int(0.5 * dense_size))(x)
     x = LeakyReLU(alpha=0.2)(x)
-    x = Dropout(self.dropout_rate)(x)
+    x = Dropout(dropout_rate)(x)
 
     # Single output -- sigmoid activation function
     #x = Concatenate(axis=1)([x, labels])

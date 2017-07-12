@@ -1,5 +1,6 @@
 
 from multi_gan_model import RobotMultiGAN
+from multi_regression_model import RobotMultiFFRegression
 
 def MakeModel(features, model, taskdef, *args, **kwargs):
     '''
@@ -25,13 +26,13 @@ def MakeModel(features, model, taskdef, *args, **kwargs):
             pass
         elif features == 'multi':
             # This model will handle features 
-            model_instance = RobotMultiGAN(taskdef)
+            model_instance = RobotMultiGAN(taskdef, **kwargs)
     elif model == 'ff_regression':
         if features in ['rgb','depth']:
             # make a nice little convnet
             pass
         elif features == 'multi':
-            model_instance = RobotMultiFFRegression(taskdef)
+            model_instance = RobotMultiFFRegression(taskdef, **kwargs)
     elif model == 'dense':
         # just create some dense layers.
         pass

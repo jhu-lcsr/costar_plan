@@ -1,6 +1,7 @@
 
 import keras.backend as K
 import keras.losses as losses
+import keras.optimizers as optimizers
 import numpy as np
 
 from matplotlib import pyplot as plt
@@ -16,6 +17,8 @@ from keras.models import Model, Sequential
 from keras.optimizers import Adam
 
 from abstract import AbstractAgentBasedModel
+
+from robot_multi_models import *
 
 class RobotMultiFFRegression(AbstractAgentBasedModel):
 
@@ -39,13 +42,15 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
 
         self.img_shape = (img_rows, img_cols, self.nchannels)
 
-        self.generator_dense_size = 1024
-        self.generator_filters_c1 = 256
-
-        self.discriminator_dense_size = 1024
-        self.discriminator_filters_c1 = 512
-
         self.dropout_rate = 0.5
+        
+        self.img_dense_size = 512
+        self.img_col_dim = 256
+        self.img_num_filters = 32
+        self.robot_col_dense_size = 128
+        self.robot_col_dim = 64
+        self.combined_dense_size = 64
+        self.optimizer = "adam"
 
     def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             example, *args, **kwargs):
@@ -53,10 +58,40 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
         Training data -- just direct regression.
         '''
 
-        print arm.shape
-        print gripper.shape
-        print features.shape
-
-        img_size = features.shape[1:]
+        img_shape = features.shape[1:]
         arm_size = arm.shape[1]
-        gripper_size = gripper.shape[1]
+        if len(gripper.shape) > 1:
+            gripper_size = gripper.shape[1]
+        else:
+            gripper_size = 1
+
+        img_ins, img_out = GetCameraColumn(
+                img_shape,
+                self.img_col_dim,
+                self.dropout_rate,
+                self.img_num_filters,
+                self.img_dense_size,)
+        robot_ins, robot_out = GetArmGripperColumns(
+                arm_size, 
+                gripper_size,
+                self.robot_col_dim,
+                self.dropout_rate,
+                self.robot_col_dense_size,)
+
+        print img_ins, img_out
+        print robot_ins, robot_out
+        x = Concatenate()([img_out, robot_out])
+        x = Dense(self.combined_dense_size)(x)
+        x = LeakyReLU(alpha=0.2)(x)
+        arm = Dense(arm_size)(x)
+        gripper = Dense(gripper_size)(x)
+
+        model = Model(img_ins + robot_ins, [arm, gripper])
+        optimizer = optimizers.get(self.optimizer)
+        try:
+            optimizer.lr = self.lr
+        except Exception, e:
+            print e
+        model.compile(loss="mse", optimizer=optimizer)
+        model.summary()
+
