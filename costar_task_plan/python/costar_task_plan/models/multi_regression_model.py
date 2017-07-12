@@ -83,10 +83,10 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
         x = Concatenate()([img_out, robot_out])
         x = Dense(self.combined_dense_size)(x)
         x = LeakyReLU(alpha=0.2)(x)
-        arm = Dense(arm_size)(x)
-        gripper = Dense(gripper_size)(x)
+        arm_out = Dense(arm_size)(x)
+        gripper_out = Dense(gripper_size)(x)
 
-        model = Model(img_ins + robot_ins, [arm, gripper])
+        model = Model(img_ins + robot_ins, [arm_out, gripper_out])
         optimizer = optimizers.get(self.optimizer)
         try:
             optimizer.lr = self.lr
@@ -94,4 +94,11 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
             print e
         model.compile(loss="mse", optimizer=optimizer)
         model.summary()
+
+        model.fit(
+                x=[features, arm, gripper],
+                y=[arm_cmd, gripper_cmd],
+                epochs=self.epochs,
+                batch_size=self.batch_size,
+                )
 

@@ -46,6 +46,7 @@ def ParseBulletArgs():
                         choices=GetAgents())
     parser.add_argument('-L', '--lr', '--learning_rate',
                         help="Learning rate to be used in algorithm.",
+                        type=float,
                         default=1e-3)
     parser.add_argument('-g', '--gamma',
                         help="MDP discount factor gamma. Must be set so that 0 < gamma <= 1. Low gamma decreases significance of future rewards.",
@@ -91,5 +92,13 @@ def ParseBulletArgs():
                         help="Name of NN model to learn.",
                         default=None,
                         choices=GetModels())
+    parser.add_argument('-b','--batch_size',
+                        help='Batch size to use in the model',
+                        default=32,
+                        type=int)
+    parser.add_argument('-e','--epochs',
+                        help="Number of epochs",
+                        type=int,
+                        default=1000,)
 
     return vars(parser.parse_args())
