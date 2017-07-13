@@ -163,8 +163,8 @@ class AbstractRobotInterface(object):
         '''
         if action.arm_cmd is not None:
             self.arm(action.arm_cmd)
-        else:
-            self.arm(self._getArmPosition())
+        #else:
+        #    self.arm(self._getArmPosition())
         if action.gripper_cmd is not None:
             self.gripper(action.gripper_cmd)
         else:
