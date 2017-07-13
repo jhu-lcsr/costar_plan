@@ -7,11 +7,15 @@ import PyKDL as kdl
 
 class SimulationWorld(AbstractWorld):
 
-    def __init__(self, dt=0.0001, num_steps=1, task_name="", cameras=[], *args, **kwargs):
+    def __init__(self, dt=0.1, simulation_step=0.0001, task_name="", cameras=[], *args, **kwargs):
         super(SimulationWorld, self).__init__(NullReward(), *args, **kwargs)
-        self.num_steps = num_steps
         self.task_name = task_name
         self.cameras = cameras
+
+        self.dt = dt
+        self.simulation_step = simulation_step
+        self.num_steps = int(dt / simulation_step)
+
 
         # stores object handles and names
         self.class_by_object = {}
