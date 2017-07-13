@@ -9,12 +9,13 @@ from mpl_toolkits.mplot3d import Axes3D
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
 from keras.layers import UpSampling2D, Conv2DTranspose
-from keras.layers import BatchNormalization, Dropout
+from keras.layers import BatchNormalization, Dropout, Lambda
 from keras.layers import Dense, Conv2D, Activation, Flatten
 from keras.layers.merge import Concatenate
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 from keras.optimizers import Adam
+from tensorflow import TensorShape
 
 from abstract import AbstractAgentBasedModel
 from robot_multi_models import *
@@ -52,7 +53,7 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
         self.robot_col_dim = 64
         self.combined_dense_size = 64
 
-        self.num_samples = 16
+        self.num_samples = 1
         self.trajectory_length = 24
 
     def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
@@ -138,8 +139,18 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
         x = UpSampling2D(size=(1,2))(x)
         x = Conv2D(arm_size, 3, 3, border_mode='same')(x)
 
+        # s0 is the initial state. it needs to be repeated num_samples *
+        # traj_length times.
+        s0 = Reshape((1,1,6))(robot_ins[0])
+        s0 = K.tile(s0,
+                TensorShape([1,self.num_samples,self.trajectory_length,1]))
+
+        # Integrate along the trajectories
+        x = Lambda(lambda x: K.cumsum(x, axis=2) + s0)(x)
+
+
         arm_loss = TrajectorySamplerLoss(self.num_samples,
-                    self.trajectory_length, arm_size, robot_ins[0])
+                    self.trajectory_length, arm_size)
 
         self.model = Model(img_ins + robot_ins + [noise_in], x)
         self.model.summary()
