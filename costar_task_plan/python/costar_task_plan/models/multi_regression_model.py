@@ -37,12 +37,6 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
         self.taskdef = taskdef
         self.model = None
         
-        img_rows = 768 / 8
-        img_cols = 1024 / 8
-        self.nchannels = 3
-
-        self.img_shape = (img_rows, img_cols, self.nchannels)
-
         self.dropout_rate = 0.5
         
         self.img_dense_size = 512
@@ -52,12 +46,8 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
         self.robot_col_dim = 64
         self.combined_dense_size = 64
 
-    def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
+    def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             example, *args, **kwargs):
-        '''
-        Training data -- just direct regression.
-        '''
-
         img_shape = features.shape[1:]
         arm_size = arm.shape[1]
         if len(gripper.shape) > 1:
@@ -78,8 +68,6 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
                 self.dropout_rate,
                 self.robot_col_dense_size,)
 
-        print img_ins, img_out
-        print robot_ins, robot_out
         x = Concatenate()([img_out, robot_out])
         x = Dense(self.combined_dense_size)(x)
         #x = Dense(self.combined_dense_size)(img_out)
@@ -89,15 +77,21 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
 
         model = Model(img_ins + robot_ins, [arm_out, gripper_out])
         #model = Model(img_ins, [arm_out])
-        optimizer = optimizers.get(self.optimizer)
-        try:
-            optimizer.lr = self.lr
-        except Exception, e:
-            print e
+        optimizer = self.getOptimizer()
         model.compile(loss="mse", optimizer=optimizer)
-        model.summary()
+        return model
 
-        self.model = model
+    def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
+            example, *args, **kwargs):
+        '''
+        Training data -- just direct regression based on MSE from the other
+        trajectory.
+        '''
+
+        self.model = self._makeModel(features, arm, gripper, arm_cmd,
+                gripper_cmd, label,
+                example, *args, **kwargs)
+        self.model.summary()
         self.model.fit(
                 x=[features, arm, gripper],
                 y=[arm_cmd, gripper_cmd],
