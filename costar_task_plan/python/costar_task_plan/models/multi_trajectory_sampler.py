@@ -139,7 +139,7 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
         x = Conv2D(arm_size, 3, 3, border_mode='same')(x)
 
         arm_loss = TrajectorySamplerLoss(self.num_samples,
-                    self.trajectory_length, arm_size)
+                    self.trajectory_length, arm_size, robot_ins[0])
 
         self.model = Model(img_ins + robot_ins + [noise_in], x)
         self.model.summary()

@@ -40,11 +40,12 @@ def AddSamplerLayer(x, num_samples, traj_length, feature_size, activation=None):
 
 class TrajectorySamplerLoss(object):
 
-    def __init__(self, num_samples, traj_length, feature_size):
+    def __init__(self, num_samples, traj_length, feature_size, s0):
         self.num_samples = num_samples
         self.traj_length = traj_length
         self.feature_size = feature_size
         self.__name__ = "trajectory_sampler_loss"
+        self.s0 = s0
 
     def __call__(self, target, pred):
         '''
@@ -63,6 +64,18 @@ class TrajectorySamplerLoss(object):
         # Tile each example point by the total number of samples
         # target = K.tile(target, TensorShape([1,self.num_samples,1,1]))
 
+        # s0 is the initial state. it needs to be repeated num_samples *
+        # traj_length times.
+
+        print self.s0
+        s0 = Reshape((1,1,6))(self.s0)
+        print s0, s0.shape
+        s0 = K.tile(s0,
+                TensorShape([1,self.num_samples,self.traj_length,1]))
+        print s0, s0.shape
+
+        # Integrate along the trajectories
+        pred = K.cumsum(pred, axis=2) + s0
         # Compute L2 norm...
         x = K.square(target - pred)
         # sum along each output dimension for each point
