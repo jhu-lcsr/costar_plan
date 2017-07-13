@@ -91,8 +91,9 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
 
         img_shape = features.shape[2:]
         arm_size = arm.shape[-1]
-        if len(gripper.shape) > 1:
-            gripper_size = gripper.shape[-1]
+        print gripper_in.shape
+        if len(gripper_in.shape) > 1:
+            gripper_size = gripper_in.shape[-1]
         else:
             gripper_size = 1
 
@@ -119,7 +120,10 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
                 self.robot_col_dim,
                 self.dropout_rate,
                 self.robot_col_dense_size,)
+
+        # Noise for sampling
         noise_in = Input((self.noise_dim,))
+
         x = Concatenate()([img_out, robot_out, noise_in])
         x = AddSamplerLayer(x, self.num_samples, self.trajectory_length,
                 arm_size)
@@ -133,11 +137,14 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
                 loss=arm_loss)
 
         for i in xrange(self.iter):
-            idx = np.random.randint(0, y.shape[0], size=self.batch_size)
+            idx = np.random.randint(0, img_in.shape[0], size=self.batch_size)
             xi = img_in[idx]
             xa = arm_in[idx]
             xg = gripper_in[idx]
-            noise = np.random.random((batch_size, self.noise_dim))
+            ya = arm[idx]
+            noise = np.random.random((self.batch_size, self.noise_dim))
+            loss = self.model.train_on_batch([xi, xa, xg, noise], ya)
+            print "Iter %d: loss = %f"%(i,loss)
 
     def save(self):
         if self.model is not None:

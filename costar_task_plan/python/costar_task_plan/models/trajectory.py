@@ -44,6 +44,7 @@ class TrajectorySamplerLoss(object):
         self.num_samples = num_samples
         self.traj_length = traj_length
         self.feature_size = feature_size
+        self.__name__ = "trajectory_sampler_loss"
 
     def __call__(self, target, pred):
         '''
@@ -56,4 +57,14 @@ class TrajectorySamplerLoss(object):
         targets). The actual loss function is just the L2 norm between each
         point.
         '''
-        pass
+
+        # tile each example point by the total number of samples
+        target = K.tile(target, TensorShape([1,self.num_samples,1,1]))
+        x = K.square(target - pred)
+        # sum along each output dimension for each point
+        x = K.sum(x,axis=-1,keepdims=False)
+        # square root and sum along each trajectory
+        x = K.sum(K.sqrt(x),axis=2,keepdims=False)
+        # mean across each sample
+        x = K.mean(x,axis=1,keepdims=False)
+        return x
