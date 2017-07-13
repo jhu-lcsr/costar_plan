@@ -135,6 +135,12 @@ class AbstractRobotInterface(object):
         return False
 
     def _getArmPosition(self):
+        '''
+        Returns:
+        --------
+        q: joint positions
+        dq: joint velocities
+        '''
         raise NotImplementedError('get joints')
 
     def _getGripper(self):
@@ -148,11 +154,12 @@ class AbstractRobotInterface(object):
         (pos, rot) = pb.getBasePositionAndOrientation(self.handle)
         # TODO(cpaxton): improve forward kinematics efficiency by just using
         # PyBullet to get the position of the grasp frame.
-        q = self._getArmPosition()
+        q, dq = self._getArmPosition()
         return SimulationRobotState(robot=self,
                                     base_pos=pos,
                                     base_rot=rot,
                                     arm=q,
+                                    arm_v=dq,
                                     gripper=self._getGripper(),
                                     T=self.fwd(q))
 
@@ -163,8 +170,8 @@ class AbstractRobotInterface(object):
         '''
         if action.arm_cmd is not None:
             self.arm(action.arm_cmd)
-        else:
-            self.arm(self._getArmPosition())
+        #else:
+        #    self.arm(self._getArmPosition())
         if action.gripper_cmd is not None:
             self.gripper(action.gripper_cmd)
         else:

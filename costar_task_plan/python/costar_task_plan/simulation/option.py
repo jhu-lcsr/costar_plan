@@ -21,7 +21,9 @@ class GoalDirectedMotionOption(AbstractOption):
     running on the robot will be enough to take us to the goal position.
     '''
 
-    def __init__(self, world, goal, pose, pose_tolerance=(1e-3, 1e-2), *args, **kwargs):
+    def __init__(self, world, goal, pose, pose_tolerance=(1e-3, 1e-2),
+            joint_velocity_tolerance=0.025, *args, **kwargs):
+
         self.goal = goal
         self.goal_id = world.getObjectId(goal)
         if pose is not None:
@@ -89,7 +91,8 @@ class GeneralMotionOption(AbstractOption):
     sample policies that will take us twoards this goal.
     '''
 
-    def __init__(self, pose, pose_tolerance, *args, **kwargs):
+    def __init__(self, pose, pose_tolerance, joint_velocity_tolerance=0.025,
+            *args, **kwargs):
         if pose is not None:
             self.position, self.rotation = pose
             self.position_tolerance, self.rotation_tolerance = pose_tolerance
@@ -165,10 +168,10 @@ class CloseGripperOption(AbstractOption):
     '''
 
     def makePolicy(self, world):
-        return CloseGripperPolicy(), TimeCondition(world.time() + 3.0)
+        return CloseGripperPolicy(), TimeCondition(world.time() + 1.0)
 
     def samplePolicy(self, world):
-        return CloseGripperPolicy(), TimeCondition(world.time() + 3.0)
+        return CloseGripperPolicy(), TimeCondition(world.time() + 1.0)
 
     def checkPrecondition(self, world, state):
         return True

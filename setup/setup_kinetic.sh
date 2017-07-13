@@ -35,10 +35,10 @@ cd $CATKIN_WS
 catkin init
 cd $CATKIN_WS/src
 
-echo "======================================================"
-echo "MOVEIT"
-wget https://raw.githubusercontent.com/ros-planning/moveit/kinetic-devel/moveit.rosinstall
-wstool init . moveit.rosinstall
+#echo "======================================================"
+#echo "MOVEIT"
+#wget https://raw.githubusercontent.com/ros-planning/moveit/kinetic-devel/moveit.rosinstall
+#wstool init . moveit.rosinstall
 
 echo "======================================================"
 echo "COSTAR"
