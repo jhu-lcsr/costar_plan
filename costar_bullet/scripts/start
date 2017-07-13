@@ -20,6 +20,8 @@ def main(args):
         except KeyboardInterrupt, e:
             pass
         model.save()
+        if args['debug_model']:
+            model.plot(env)
 
 if __name__ == '__main__':
     '''

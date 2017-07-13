@@ -1,6 +1,7 @@
 
 from multi_gan_model import RobotMultiGAN
 from multi_regression_model import RobotMultiFFRegression
+from multi_trajectory_sampler import RobotMultiTrajectorySampler
 
 def MakeModel(features, model, taskdef, *args, **kwargs):
     '''
@@ -33,9 +34,11 @@ def MakeModel(features, model, taskdef, *args, **kwargs):
             pass
         elif features == 'multi':
             model_instance = RobotMultiFFRegression(taskdef, **kwargs)
-    elif model == 'dense':
-        # just create some dense layers.
-        pass
+    elif model == "sample":
+        if features in ['rgb','depth']:
+            pass
+        elif features == 'multi':
+            model_instance = RobotMultiTrajectorySampler(taskdef, **kwargs)
     
     # If we did not create a model then die.
     if model_instance is None:
@@ -45,4 +48,4 @@ def MakeModel(features, model, taskdef, *args, **kwargs):
     return model_instance
 
 def GetModels():
-    return [None, "gan", "ff_regression", "lstm_regression"]
+    return [None, "gan", "ff_regression", "lstm_regression", "sample"]
