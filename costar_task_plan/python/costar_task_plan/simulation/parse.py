@@ -117,5 +117,8 @@ def ParseBulletArgs():
     parser.add_argument("-z", "--zdim", "--noise_dim",
                         help="size of action parameterization",
                         default=16)
+    parser.add_argument("-D", "--debug_model", "--dm",
+                        help="Run a short script to debug the current model.",
+                        action="store_true")
 
     return vars(parser.parse_args())

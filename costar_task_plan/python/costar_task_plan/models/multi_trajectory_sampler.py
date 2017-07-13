@@ -4,6 +4,7 @@ import keras.optimizers as optimizers
 import numpy as np
 
 from matplotlib import pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
@@ -157,3 +158,31 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
         if self.model is not None:
             self.model.save_weights(self.name + ".h5f")
 
+    def load(self):
+        self.model.load_weights(self.name + ".h5f")
+
+    def plot(self, env):
+        actor = env.world.actors[0]
+        robot = actor.robot
+        q = np.array([actor.state.arm])
+        g = np.array([actor.state.gripper])
+        I = np.array([env.world.cameras[0].capture().rgb])
+        z = noise = np.random.random((1, self.noise_dim))
+        print "Debug shapes:"
+        print q.shape, g.shape, I.shape, z.shape
+        trajs = self.model.predict([I, q, g, z])[0]
+        print "output trajectories:"
+        print trajs.shape
+        print trajs
+        trajs3d = []
+        for traj in trajs:
+            fwd_traj = []
+            for pt in traj:
+                fwd_traj.append(list(robot.fwd(pt).p))
+            trajs3d.append(np.array(fwd_traj))
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        for traj in trajs3d:
+            plt.plot(traj[:,0], traj[:,1], traj[:,2])
+        plt.show()
