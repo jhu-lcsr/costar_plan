@@ -114,5 +114,8 @@ def ParseBulletArgs():
     parser.add_argument("--optimizer","--opt",
                         help="optimizer to use with learning",
                         default="adam")
+    parser.add_argument("-z", "--zdim", "--noise_dim",
+                        help="size of action parameterization",
+                        default=16)
 
     return vars(parser.parse_args())

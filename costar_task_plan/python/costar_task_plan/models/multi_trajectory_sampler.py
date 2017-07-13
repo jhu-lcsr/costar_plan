@@ -85,6 +85,8 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
 
         # Get images for input and output from the network.
         img_in = FirstInChunk(features)
+        arm_in = FirstInChunk(arm)
+        gripper_in = FirstInChunk(gripper)
         img_out = LastInChunk(features)
 
         img_shape = features.shape[2:]
@@ -99,8 +101,10 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
         print "# arm features =", arm_size
         print "# gripper features =", gripper_size
         print "img data size =", features.shape
-        print "in size =", img_in.shape
-        print "out size =", img_out.shape
+        print "img in size =", img_in.shape
+        print "arm in size =", arm_in.shape
+        print "gripper in size =", gripper_in.shape
+        print "img out size =", img_out.shape
         print "-------------------------------"
 
         img_ins, img_out = GetCameraColumn(
@@ -115,17 +119,25 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
                 self.robot_col_dim,
                 self.dropout_rate,
                 self.robot_col_dense_size,)
-        x = Concatenate()([img_out, robot_out])
+        noise_in = Input((self.noise_dim,))
+        x = Concatenate()([img_out, robot_out, noise_in])
         x = AddSamplerLayer(x, self.num_samples, self.trajectory_length,
                 arm_size)
 
         arm_loss = TrajectorySamplerLoss(self.num_samples,
                     self.trajectory_length, arm_size)
 
-        self.model = Model(img_ins + robot_ins, x)
+        self.model = Model(img_ins + robot_ins + [noise_in], x)
         self.model.summary()
         self.model.compile(optimizer=self.getOptimizer(), 
                 loss=arm_loss)
+
+        for i in xrange(self.iter):
+            idx = np.random.randint(0, y.shape[0], size=self.batch_size)
+            xi = img_in[idx]
+            xa = arm_in[idx]
+            xg = gripper_in[idx]
+            noise = np.random.random((batch_size, self.noise_dim))
 
     def save(self):
         if self.model is not None:
