@@ -22,13 +22,15 @@ class DefaultTaskDefinition(AbstractTaskDefinition):
         super(DefaultTaskDefinition, self).__init__(*args, **kwargs)
         self.objs = []
         self.addCamera(
-            Camera("right", [-0.5, 0., 0.30], distance=1.0, roll=0.0,
+            Camera("right", [-0.5, 0., 0.30], distance=0.9, roll=0.0,
+                image_width=128, #1024 / 4,
+                image_height=128, #768 / 4,
                 pitch=-45, yaw=-45))
 
     def _setupRobot(self, handle):
         self.robot.place([0, 0, 0], [0, 0, 0, 1], self.joint_positions)
         self.robot.arm(self.joint_positions, pb.POSITION_CONTROL)
-        self.robot.gripper(0, pb.POSITION_CONTROL)
+        self.robot.gripper(self.robot.gripperOpenCommand(), pb.POSITION_CONTROL)
 
     def reset(self):
         '''

@@ -8,6 +8,9 @@ __all__ = [
     'AbstractAdversary',
     'RandomAdversary', # choose random params
     'HostileAdversary',
+    # ===========================================================================
+    # Utilities
+    "MakeModel", "GetModels",
     ]
 
 # general learning utilites
@@ -22,3 +25,5 @@ import adversary
 
 # neural net models
 import gan
+
+from util import GetModels, MakeModel

@@ -83,19 +83,19 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         pb.resetJointState(self.handle, self.right_fingertip, 0)
 
         self.arm(joints,)
-        self.gripper(0)
+        self.gripper(self.gripperOpenCommand())
 
     def gripperCloseCommand(cls):
         '''
         Return the closed position for this gripper.
         '''
-        return -0.8
+        return [-0.8]
 
     def gripperOpenCommand(cls):
         '''
         Return the open command for this gripper
         '''
-        return 0.0
+        return [0.0]
 
     def arm(self, cmd, mode=pb.POSITION_CONTROL):
         '''
@@ -112,6 +112,8 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         Gripper commands need to be mirrored to simulate behavior of the actual
         UR5.
         '''
+
+        cmd = cmd[0]
 
         # This is actually only a 1-DOF gripper
         cmd_array = [-cmd, cmd, -cmd, cmd, -cmd, cmd, -cmd, cmd]
@@ -131,5 +133,5 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
     def _getGripper(self):
         #v = [v[0] for v in pb.getJointStates(self.handle,
         #    self.gripper_indices)]
-        return np.round(pb.getJointState(self.handle,
-            self.left_fingertip)[0],2)
+        return [np.round(pb.getJointState(self.handle,
+            self.left_fingertip)[0],2)]

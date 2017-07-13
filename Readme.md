@@ -26,11 +26,10 @@ import pybullet as pb
 
 # Create the simulation. Try switching out ur5 for a different robot or blocks
 # for a different task.
-ctp.simulation.CostarBulletSimulation(robot="ur5, task="blocks",
-visualize=True)
+sim = ctp.simulation.CostarBulletSimulation(robot="ur5", task="blocks", gui=True)
 
 # Start the real-time simulation.
-pb.setRealtimeSimulation(True)
+pb.setRealTimeSimulation(True)
 
 # Move the arm around
 sim.robot.arm([0,1,0,1,0,1])
@@ -44,6 +43,25 @@ sim.robot.gripper(gripper_pos)
 ```
 
 And then interact as you would normally with the PyBullet interface.
+
+## Learning
+
+The preferred way of interacting with the sim is through the `costar_bullet` tool:
+```
+rosrun costar_bullet start -h
+```
+
+For example, you can collect a dataset with the command:
+```
+rosrun costar_bullet start --robot ur5 --task blocks --agent task --features multi --save -i 10
+```
+
+And then learn a model with:
+```
+rosrun costar_bullet start --robot ur5  --features multi --load --model ff_regression
+```
+
+Different agents allow you to directly make the robot act in different ways.
 
 ## Problem Domains
 

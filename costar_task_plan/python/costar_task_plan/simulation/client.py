@@ -64,6 +64,7 @@ class CostarBulletSimulation(object):
 
     def __init__(self, robot, task,
                  gui=False,
+                 opengl2=False,
                  ros=False,
                  features="",
                  ros_name="simulation",
@@ -73,8 +74,16 @@ class CostarBulletSimulation(object):
                  capture=False,
                  show_images=False,
                  randomize_color=False,
+                 agent=None,
                  *args, **kwargs):
-        self.gui = gui and not plot_task
+        # Do not start the gui if we aren't going to do anything with it.
+        self.gui = gui \
+                and not plot_task \
+                and agent is not None \
+                and agent is not "null"
+        self.opengl2 = opengl2 and not plot_task \
+                and agent is not None \
+                and agent is not "null"
         self.robot = GetRobotInterface(robot)
         features = GetFeatures(features)
         self.task = GetTaskDefinition(
@@ -145,11 +154,15 @@ class CostarBulletSimulation(object):
         Decide how we will create our interface to the underlying simulation.
         We can create a GUI connection or something else.
         '''
-        if self.gui:
+        options = ""
+        if self.opengl2:
+            connect_type = pb.GUI
+            options = "--opengl2"
+        elif self.gui:
             connect_type = pb.GUI
         else:
             connect_type = pb.DIRECT
-        self.client = pb.connect(connect_type)
+        self.client = pb.connect(connect_type, options=options)
         pb.setGravity(*GRAVITY)
 
         # place the robot in the world and set up the task
