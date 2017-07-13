@@ -95,13 +95,13 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
             gripper_size = 1
 
         print "-------------------------------"
+        print "KEY VARIABLES:"
         print "# arm features =", arm_size
         print "# gripper features =", gripper_size
         print "img data size =", features.shape
         print "in size =", img_in.shape
         print "out size =", img_out.shape
         print "-------------------------------"
-
 
         img_ins, img_out = GetCameraColumn(
                 img_shape,
@@ -126,3 +126,8 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
         self.model.summary()
         self.model.compile(optimizer=self.getOptimizer(), 
                 loss=arm_loss)
+
+    def save(self):
+        if self.model is not None:
+            self.model.save_weights(self.name + ".h5f")
+

@@ -46,12 +46,8 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
         self.robot_col_dim = 64
         self.combined_dense_size = 64
 
-    def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
+    def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             example, *args, **kwargs):
-        '''
-        Training data -- just direct regression based on MSE.
-        '''
-
         img_shape = features.shape[1:]
         arm_size = arm.shape[1]
         if len(gripper.shape) > 1:
@@ -83,9 +79,19 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
         #model = Model(img_ins, [arm_out])
         optimizer = self.getOptimizer()
         model.compile(loss="mse", optimizer=optimizer)
-        model.summary()
+        return model
 
-        self.model = model
+    def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
+            example, *args, **kwargs):
+        '''
+        Training data -- just direct regression based on MSE from the other
+        trajectory.
+        '''
+
+        self.model = self._makeModel(features, arm, gripper, arm_cmd,
+                gripper_cmd, label,
+                example, *args, **kwargs)
+        self.model.summary()
         self.model.fit(
                 x=[features, arm, gripper],
                 y=[arm_cmd, gripper_cmd],
