@@ -141,7 +141,14 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
             xi = img_in[idx]
             xa = arm_in[idx]
             xg = gripper_in[idx]
-            ya = arm[idx]
+
+            # create targets
+            y_shape = (self.batch_size,1)+arm.shape[1:]
+            ya = np.reshape(arm[idx],y_shape)
+            
+            # duplicate
+            ya = ya[:,np.zeros((self.num_samples,),dtype=int)]
+
             noise = np.random.random((self.batch_size, self.noise_dim))
             loss = self.model.train_on_batch([xi, xa, xg, noise], ya)
             print "Iter %d: loss = %f"%(i,loss)

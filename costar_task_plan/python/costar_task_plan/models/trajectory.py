@@ -58,8 +58,12 @@ class TrajectorySamplerLoss(object):
         point.
         '''
 
-        # tile each example point by the total number of samples
-        target = K.tile(target, TensorShape([1,self.num_samples,1,1]))
+        # NOTE: cannot tile here, because target and pred have to be the same
+        # size. THAKS A LOT, KERAS.
+        # Tile each example point by the total number of samples
+        # target = K.tile(target, TensorShape([1,self.num_samples,1,1]))
+
+        # Compute L2 norm...
         x = K.square(target - pred)
         # sum along each output dimension for each point
         x = K.sum(x,axis=-1,keepdims=False)
