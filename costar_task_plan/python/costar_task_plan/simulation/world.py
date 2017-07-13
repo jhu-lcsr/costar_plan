@@ -146,13 +146,15 @@ class SimulationRobotState(AbstractState):
                  base_pos=(0, 0, 0),
                  base_rot=(0, 0, 0, 1),
                  arm=[],
+                 arm_v=[],
                  gripper=0.,
                  T=None,
                  t=0.,):
 
         self.predicates = []
         self.arm = arm
-        self.gripper = 0.
+        self.arm_v = arm_v
+        self.gripper = gripper
         self.base_pos = base_pos
         self.base_rot = base_rot
         self.robot = robot
