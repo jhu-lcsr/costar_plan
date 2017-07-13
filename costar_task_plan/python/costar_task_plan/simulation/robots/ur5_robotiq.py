@@ -134,4 +134,4 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         #v = [v[0] for v in pb.getJointStates(self.handle,
         #    self.gripper_indices)]
         return [np.round(pb.getJointState(self.handle,
-            self.left_fingertip)[0],2)]
+            self.left_fingertip)[0],1)]
