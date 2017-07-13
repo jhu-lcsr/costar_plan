@@ -49,7 +49,7 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
     def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             example, *args, **kwargs):
         '''
-        Training data -- just direct regression.
+        Training data -- just direct regression based on MSE.
         '''
 
         img_shape = features.shape[1:]
@@ -81,11 +81,7 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
 
         model = Model(img_ins + robot_ins, [arm_out, gripper_out])
         #model = Model(img_ins, [arm_out])
-        optimizer = optimizers.get(self.optimizer)
-        try:
-            optimizer.lr = self.lr
-        except Exception, e:
-            print e
+        optimizer = self.getOptimizer()
         model.compile(loss="mse", optimizer=optimizer)
         model.summary()
 

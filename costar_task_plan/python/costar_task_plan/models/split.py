@@ -36,3 +36,14 @@ def SplitIntoChunks(datasets, labels,
         print data.shape
     return new_data
 
+def FirstInChunk(data):
+    '''
+    Take the first thing in each chunk and return a dataset of just these.
+    '''
+    return data[:,0]
+
+def LastInChunk(data):
+    '''
+    Take the last thing in each chunk and just return these.
+    '''
+    return data[:,-1]

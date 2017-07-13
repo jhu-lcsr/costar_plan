@@ -5,7 +5,7 @@ import keras.backend as K
 import numpy as np
 
 from tensorflow import TensorShape
-from keras.layers import Dense
+from keras.layers import Dense, Reshape
 
 class TrajectorySamplerNetwork(AbstractAgentBasedModel):
     '''
@@ -35,7 +35,7 @@ def AddSamplerLayer(x, num_samples, traj_length, feature_size, activation=None):
     x = Dense(num_samples * traj_length * feature_size)(x)
     if activation is not None:
         x = activation(x)
-    x = Reshape(num_samples, traj_length, feature_size)(x)
+    x = Reshape((num_samples, traj_length, feature_size))(x)
     return x
 
 class TrajectorySamplerLoss(object):

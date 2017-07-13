@@ -1,4 +1,5 @@
 
+import keras.optimizers as optimizers
 
 class AbstractAgentBasedModel(object):
     '''
@@ -40,3 +41,14 @@ class AbstractAgentBasedModel(object):
         that you are interested in, at least for now.
         '''
         raise NotImplementedError('load() not supported yet.')
+
+    def getOptimizer(self):
+        '''
+        Set up a keras optimizer based on whatever settings you provided.
+        '''
+        optimizer = optimizers.get(self.optimizer)
+        try:
+            optimizer.lr = self.lr
+        except Exception, e:
+            print e
+        return optimizer

@@ -57,25 +57,51 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
     def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             example, *args, **kwargs):
         '''
-        Training data -- just direct regression.
-        '''
+        Training data -- first, break into chunks of size "trajectory_length".
+        In this case we actually don't care about the action labels, which we
+        will still need to extract from the task model.
+        
+        Instead we are just going to try to fit a distribution over
+        trajectories. Right now trajectory execution is not particularly noisy,
+        so this should not be super hard.
 
-        print "---------"
-        print arm.shape
-        print gripper.shape
-        print features.shape
-        print "---------"
+        Parameters:
+        -----------
+        features: image features available at the beginning and end of the
+        trajectory.
+        arm: joint positions for the robot arm.
+        gripper: gripper state.
+        arm_cmd: goal positions sent out by the expert controller.
+        gripper_cmd: gripper command sent out by the expert controller.
+        label: string action description.
+        example: iteration number; sampled environment.
+
+        We ignore inputs including the reward (for now!)
+        '''
 
         [features, arm, gripper, arm_cmd, gripper_cmd] = \
                 SplitIntoChunks([features, arm, gripper, arm_cmd, gripper_cmd],
                 example, self.trajectory_length, step_size=2)
 
-        img_shape = features.shape[1:]
-        arm_size = arm.shape[1]
+        # Get images for input and output from the network.
+        img_in = FirstInChunk(features)
+        img_out = LastInChunk(features)
+
+        img_shape = features.shape[2:]
+        arm_size = arm.shape[-1]
         if len(gripper.shape) > 1:
-            gripper_size = gripper.shape[1]
+            gripper_size = gripper.shape[-1]
         else:
             gripper_size = 1
+
+        print "-------------------------------"
+        print "# arm features =", arm_size
+        print "# gripper features =", gripper_size
+        print "img data size =", features.shape
+        print "in size =", img_in.shape
+        print "out size =", img_out.shape
+        print "-------------------------------"
+
 
         img_ins, img_out = GetCameraColumn(
                 img_shape,
@@ -90,4 +116,13 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
                 self.dropout_rate,
                 self.robot_col_dense_size,)
         x = Concatenate()([img_out, robot_out])
-        x = AddSamplerLayer(x, self.num_sample, self.trajectory_length)
+        x = AddSamplerLayer(x, self.num_samples, self.trajectory_length,
+                arm_size)
+
+        arm_loss = TrajectorySamplerLoss(self.num_samples,
+                    self.trajectory_length, arm_size)
+
+        self.model = Model(img_ins + robot_ins, x)
+        self.model.summary()
+        self.model.compile(optimizer=self.getOptimizer(), 
+                loss=arm_loss)
