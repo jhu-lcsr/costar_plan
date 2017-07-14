@@ -181,27 +181,29 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
         self.model.load_weights(self.name + ".h5f")
 
     def plot(self, env):
-        actor = env.world.actors[0]
-        robot = actor.robot
-        q = np.array([actor.state.arm])
-        g = np.array([actor.state.gripper])
-        I = np.array([env.world.cameras[0].capture().rgb])
-        z = noise = np.random.random((1, self.noise_dim))
-        print "Debug shapes:"
-        print q.shape, g.shape, I.shape, z.shape
-        trajs = self.model.predict([I, q, g, z])[0]
-        print "output trajectories:"
-        print trajs.shape
-        print trajs
-        trajs3d = []
-        for traj in trajs:
-            fwd_traj = []
-            for pt in traj:
-                fwd_traj.append(list(robot.fwd(pt).p))
-            trajs3d.append(np.array(fwd_traj))
-
         fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        for traj in trajs3d:
-            plt.plot(traj[:,0], traj[:,1], traj[:,2])
+        for i in xrange(9):
+            env.reset()
+            actor = env.world.actors[0]
+            robot = actor.robot
+            q = np.array([actor.state.arm])
+            g = np.array([actor.state.gripper])
+            I = np.array([env.world.cameras[0].capture().rgb])
+            z = noise = np.random.random((1, self.noise_dim))
+            print "Debug shapes:"
+            print q.shape, g.shape, I.shape, z.shape
+            trajs = self.model.predict([I, q, g, z])[0]
+            print "output trajectories:"
+            print trajs.shape
+            print trajs
+            trajs3d = []
+            for traj in trajs:
+                fwd_traj = []
+                for pt in traj:
+                    fwd_traj.append(list(robot.fwd(pt).p))
+                trajs3d.append(np.array(fwd_traj))
+
+            ax = fig.add_subplot(3,3,i+1, projection='3d')
+            for traj in trajs3d:
+                plt.plot(traj[:,0], traj[:,1], traj[:,2])
         plt.show()
