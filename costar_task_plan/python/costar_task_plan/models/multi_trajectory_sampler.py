@@ -53,7 +53,7 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
         self.robot_col_dim = 64
         self.combined_dense_size = 64
 
-        self.num_samples = 1
+        self.num_samples = 16
         self.trajectory_length = 24
 
     def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
@@ -93,7 +93,6 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
 
         img_shape = features.shape[2:]
         arm_size = arm.shape[-1]
-        print gripper_in.shape
         if len(gripper_in.shape) > 1:
             gripper_size = gripper_in.shape[-1]
         else:
