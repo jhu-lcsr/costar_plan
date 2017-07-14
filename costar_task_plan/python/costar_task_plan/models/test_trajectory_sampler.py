@@ -161,17 +161,27 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
     def load(self):
         self.model.load_weights(self.name + ".h5f")
 
-    def plot(self, env):
-        actor = env.world.actors[0]
+    def plot(self, features, state, *args, **kwargs):
         fig = plt.figure()
+
+        for i in xrange(9):
+            noise = np.random.random((1, self.noise_dim))
+            trajs = self.model.predict([
+                np.array([features[i*100]]),
+                np.array([state[i*100]]),
+                noise])
+            plt.subplot(3,3,i+1)
+            for j in xrange(self.num_samples):
+                plt.plot(trajs[0,j,:,1],trajs[0,j,:,0])
+
         plt.show()
 
 if __name__ == '__main__':
     data = np.load('test_data.npz')
     sampler = TestTrajectorySampler(
             batch_size=64,
-            iter=1000,
+            iter=10000,
             optimizer="adam",)
     sampler.train(**data)
-    sampler.plot()
+    sampler.plot(**data)
 
