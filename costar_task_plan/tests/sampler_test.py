@@ -27,6 +27,17 @@ class SamplerLossTest(unittest.TestCase):
         loss = SamplerLoss()
         x = K.variable(value=A)
         y = K.variable(value=B)
+        x2 = K.variable(value=np.array([A]))
+
+        from keras.layers import Lambda
+        import tensorflow as tf
+        print "---"
+        print x2
+        print x2.shape
+        print B
+        print K.eval(Lambda(lambda x: tf.gather_nd(tf.transpose(x),[[i] for i in range(2)]))(x2))
+        print K.eval(Lambda(lambda x: tf.gather_nd(x,[[0,1]]))(x2))
+        print "---"
 
         # Distances from A to B
         res = K.eval(loss._dists(x,y))
