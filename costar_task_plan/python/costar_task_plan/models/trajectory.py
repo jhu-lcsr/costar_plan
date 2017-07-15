@@ -70,5 +70,6 @@ class TrajectorySamplerLoss(object):
         # square root and sum along each trajectory
         x = K.sum(K.sqrt(x),axis=2,keepdims=False)
         # mean across each sample
-        x = K.mean(x,axis=1,keepdims=False)
+        #x = K.min(x,axis=1,keepdims=False)
+        x = K.mean(x,axis=1,keepdims=False) + K.min(x,axis=1,keepdims=False)
         return x

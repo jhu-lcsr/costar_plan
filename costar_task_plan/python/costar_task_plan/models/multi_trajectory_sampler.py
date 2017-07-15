@@ -9,12 +9,13 @@ from mpl_toolkits.mplot3d import Axes3D
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
 from keras.layers import UpSampling2D, Conv2DTranspose
-from keras.layers import BatchNormalization, Dropout
+from keras.layers import BatchNormalization, Dropout, Lambda
 from keras.layers import Dense, Conv2D, Activation, Flatten
 from keras.layers.merge import Concatenate
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 from keras.optimizers import Adam
+from tensorflow import TensorShape
 
 from abstract import AbstractAgentBasedModel
 from robot_multi_models import *
@@ -52,8 +53,8 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
         self.robot_col_dim = 64
         self.combined_dense_size = 64
 
-        self.num_samples = 20
-        self.trajectory_length = 25
+        self.num_samples = 16
+        self.trajectory_length = 24
 
     def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             example, *args, **kwargs):
@@ -92,7 +93,6 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
 
         img_shape = features.shape[2:]
         arm_size = arm.shape[-1]
-        print gripper_in.shape
         if len(gripper_in.shape) > 1:
             gripper_size = gripper_in.shape[-1]
         else:
@@ -124,10 +124,29 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
 
         # Noise for sampling
         noise_in = Input((self.noise_dim,))
-
+    
+        self.decoder_filters = 64
         x = Concatenate()([img_out, robot_out, noise_in])
-        x = AddSamplerLayer(x, self.num_samples, self.trajectory_length,
-                arm_size)
+        x = AddSamplerLayer(x,
+                int(self.num_samples),
+                int(self.trajectory_length/4),
+                self.decoder_filters)
+        x = UpSampling2D(size=(1,2))(x)
+        x = Conv2D(self.decoder_filters, 3, 3, border_mode='same')(x)
+        x = BatchNormalization(axis=-1)(x)
+        x = Activation('relu')(x)
+        x = UpSampling2D(size=(1,2))(x)
+        x = Conv2D(arm_size, 3, 3, border_mode='same')(x)
+
+        # s0 is the initial state. it needs to be repeated num_samples *
+        # traj_length times.
+        s0 = Reshape((1,1,6))(robot_ins[0])
+        s0 = K.tile(s0,
+                TensorShape([1,self.num_samples,self.trajectory_length,1]))
+
+        # Integrate along the trajectories
+        x = Lambda(lambda x: K.cumsum(x, axis=2) + s0)(x)
+
 
         arm_loss = TrajectorySamplerLoss(self.num_samples,
                     self.trajectory_length, arm_size)
@@ -162,27 +181,29 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
         self.model.load_weights(self.name + ".h5f")
 
     def plot(self, env):
-        actor = env.world.actors[0]
-        robot = actor.robot
-        q = np.array([actor.state.arm])
-        g = np.array([actor.state.gripper])
-        I = np.array([env.world.cameras[0].capture().rgb])
-        z = noise = np.random.random((1, self.noise_dim))
-        print "Debug shapes:"
-        print q.shape, g.shape, I.shape, z.shape
-        trajs = self.model.predict([I, q, g, z])[0]
-        print "output trajectories:"
-        print trajs.shape
-        print trajs
-        trajs3d = []
-        for traj in trajs:
-            fwd_traj = []
-            for pt in traj:
-                fwd_traj.append(list(robot.fwd(pt).p))
-            trajs3d.append(np.array(fwd_traj))
-
         fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        for traj in trajs3d:
-            plt.plot(traj[:,0], traj[:,1], traj[:,2])
+        for i in xrange(9):
+            env.reset()
+            actor = env.world.actors[0]
+            robot = actor.robot
+            q = np.array([actor.state.arm])
+            g = np.array([actor.state.gripper])
+            I = np.array([env.world.cameras[0].capture().rgb])
+            z = noise = np.random.random((1, self.noise_dim))
+            print "Debug shapes:"
+            print q.shape, g.shape, I.shape, z.shape
+            trajs = self.model.predict([I, q, g, z])[0]
+            print "output trajectories:"
+            print trajs.shape
+            print trajs
+            trajs3d = []
+            for traj in trajs:
+                fwd_traj = []
+                for pt in traj:
+                    fwd_traj.append(list(robot.fwd(pt).p))
+                trajs3d.append(np.array(fwd_traj))
+
+            ax = fig.add_subplot(3,3,i+1, projection='3d')
+            for traj in trajs3d:
+                plt.plot(traj[:,0], traj[:,1], traj[:,2])
         plt.show()
