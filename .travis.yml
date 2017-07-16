@@ -45,9 +45,7 @@
 # Use ubuntu trusty (14.04) with sudo privileges.
 dist: trusty
 sudo: required
-language: python
-python:
-- "2.7"
+language: generic
 cache:
   - apt
 
