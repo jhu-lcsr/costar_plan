@@ -52,9 +52,10 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
         self.robot_col_dense_size = 128
         self.robot_col_dim = 64
         self.combined_dense_size = 64
+        self.decoder_filters = 16
 
         self.num_samples = 16
-        self.trajectory_length = 24
+        self.trajectory_length = 10
 
     def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             example, *args, **kwargs):
@@ -125,7 +126,6 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
         # Noise for sampling
         noise_in = Input((self.noise_dim,))
     
-        self.decoder_filters = 64
         x = Concatenate()([img_out, robot_out, noise_in])
         x = AddSamplerLayer(x,
                 int(self.num_samples),
