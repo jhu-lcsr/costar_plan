@@ -56,15 +56,17 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
             gripper_size = 1
 
         ins, x = GetEncoder(img_shape,
+                arm_size,
+                gripper_size,
                 self.img_col_dim,
                 self.dropout_rate,
                 self.img_num_filters,
-                self.img_dense_size,
-                arm_size,
-                gripper_size,
-                self.robot_col_dim,
-                self.robot_col_dense_size,
-                self.combined_dense_size)
+                self.img_dense_size,)
+        #arm_size,
+        #gripper_size,
+        #self.robot_col_dim,
+        #self.robot_col_dense_size,
+        #self.combined_dense_size)
 
         arm_out = Dense(arm_size)(x)
         gripper_out = Dense(gripper_size)(x)

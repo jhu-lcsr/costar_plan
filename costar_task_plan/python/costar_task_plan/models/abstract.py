@@ -9,6 +9,7 @@ class AbstractAgentBasedModel(object):
     '''
 
     def __init__(self, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
+            clip_norm=100,
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
             task=None, robot=None, *args,
             **kwargs):
@@ -22,6 +23,7 @@ class AbstractAgentBasedModel(object):
         self.task = task
         self.features = features
         self.name = self.model_descriptor
+        self.clip_norm = clip_norm
         if self.task is not None:
             self.name += "_%s"%self.task
         if self.features is not None:
@@ -50,6 +52,8 @@ class AbstractAgentBasedModel(object):
         optimizer = optimizers.get(self.optimizer)
         try:
             optimizer.lr = self.lr
+            optimizer.clipnorm = self.clip_norm
         except Exception, e:
             print e
+            raise RuntimeError('asdf')
         return optimizer
