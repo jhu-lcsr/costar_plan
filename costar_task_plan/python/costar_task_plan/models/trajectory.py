@@ -40,11 +40,11 @@ def AddSamplerLayer(x, num_samples, traj_length, feature_size, activation=None):
 
 class TrajectorySamplerLoss(object):
 
-    def __init__(self, num_samples, traj_length, feature_size, acc=None):
+    def __init__(self, num_samples, traj_length, feature_size, acc_cost=None):
         self.num_samples = num_samples
         self.traj_length = traj_length
         self.feature_size = feature_size
-        self.acc = acc
+        self.acc_cost = acc_cost
         self.__name__ = "trajectory_sampler_loss"
 
     def __call__(self, target, pred):
