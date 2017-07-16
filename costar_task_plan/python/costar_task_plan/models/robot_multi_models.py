@@ -71,6 +71,32 @@ def GetCameraColumn(img_shape, dim, dropout_rate, num_filters, dense_size):
     x = LeakyReLU(alpha=0.2)(x)
     return [samples], x
 
+def GetEncoder(img_shape, img_col_dim, dropout_rate, img_num_filters,
+        img_dense_size, arm_size, gripper_size, robot_col_dim,
+        robot_col_dense_size,
+        combined_dense_size):
+
+        img_ins, img_out = GetCameraColumn(
+                img_shape,
+                img_col_dim,
+                dropout_rate,
+                img_num_filters,
+                img_dense_size,)
+        robot_ins, robot_out = GetArmGripperColumns(
+                arm_size, 
+                gripper_size,
+                robot_col_dim,
+                dropout_rate,
+                robot_col_dense_size,)
+
+        x = Concatenate()([img_out, robot_out])
+        print x
+        x = Dense(combined_dense_size)(x)
+        x = LeakyReLU(alpha=0.2)(x)
+        print x
+
+        return img_ins + robot_ins, x
+
 def GetInvCameraColumn(noise, img_shape, dropout_rate, dense_size):
     '''
     Take noise vector, upsample into an image of size img.

@@ -115,7 +115,7 @@ class Task(object):
 
     # WARNING: this is kind of terrible and might be sort of inefficient.
     # Convert to a list
-    for i, node, children in enumerate(self.children.items()):
+    for i, (node, children) in enumerate(self.children.items()):
         children = [child for child in children]
         self.children[node] = children
         self.indices[node] = i

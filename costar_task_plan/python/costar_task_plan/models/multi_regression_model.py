@@ -55,27 +55,21 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
         else:
             gripper_size = 1
 
-        img_ins, img_out = GetCameraColumn(
-                img_shape,
+        ins, x = GetEncoder(img_shape,
                 self.img_col_dim,
                 self.dropout_rate,
                 self.img_num_filters,
-                self.img_dense_size,)
-        robot_ins, robot_out = GetArmGripperColumns(
-                arm_size, 
+                self.img_dense_size,
+                arm_size,
                 gripper_size,
                 self.robot_col_dim,
-                self.dropout_rate,
-                self.robot_col_dense_size,)
+                self.robot_col_dense_size,
+                self.combined_dense_size)
 
-        x = Concatenate()([img_out, robot_out])
-        x = Dense(self.combined_dense_size)(x)
-        #x = Dense(self.combined_dense_size)(img_out)
-        x = LeakyReLU(alpha=0.2)(x)
         arm_out = Dense(arm_size)(x)
         gripper_out = Dense(gripper_size)(x)
 
-        model = Model(img_ins + robot_ins, [arm_out, gripper_out])
+        model = Model(ins, [arm_out, gripper_out])
         #model = Model(img_ins, [arm_out])
         optimizer = self.getOptimizer()
         model.compile(loss="mse", optimizer=optimizer)
