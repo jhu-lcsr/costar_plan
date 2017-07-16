@@ -174,7 +174,7 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
             plt.subplot(3,3,i+1)
             for j in xrange(self.num_samples):
                 plt.plot(trajs[0,j,:,1],trajs[0,j,:,0])
-            for i in xrange(trajs.shape[2]):
+            for j in xrange(trajs.shape[2]):
                 plt.plot(state[(i*100)+j][1],state[(i*100)+j][0],'*')
 
         plt.show()
