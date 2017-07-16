@@ -40,10 +40,11 @@ def AddSamplerLayer(x, num_samples, traj_length, feature_size, activation=None):
 
 class TrajectorySamplerLoss(object):
 
-    def __init__(self, num_samples, traj_length, feature_size):
+    def __init__(self, num_samples, traj_length, feature_size, acc=None):
         self.num_samples = num_samples
         self.traj_length = traj_length
         self.feature_size = feature_size
+        self.acc = acc
         self.__name__ = "trajectory_sampler_loss"
 
     def __call__(self, target, pred):
@@ -72,4 +73,15 @@ class TrajectorySamplerLoss(object):
         # mean across each sample
         #x = K.min(x,axis=1,keepdims=False)
         x = K.mean(x,axis=1,keepdims=False) + K.min(x,axis=1,keepdims=False)
-        return x
+
+        if self.acc_cost is not None:
+            # Take the L2 norm of the acceleration output and add it to the
+            # loss.
+            # NOTE: we may end up computing this elsewhere to avoid extra
+            # penalties and stuff like that.
+            #cost = K.sum(K.square(acc))
+            return x + cost
+        else:
+            return x
+
+
