@@ -9,6 +9,7 @@ export CATKIN_WS="$HOME/costar_ws"
 export COSTAR_PLAN_DIR="$HOME/costar_ws/src/costar_plan"
 
 sudo apt-get update -qq
+sudo rm -rf /var/lib/apt/lists/*
 
 echo "======================================================"
 echo "PYTHON"
@@ -48,7 +49,7 @@ sudo rosdep init
 rosdep update
 
 echo "source /opt/ros/indigo/setup.bash" >> ~/.bashrc
-source ~/.bashrc
+source $HOME/.bashrc
 sudo apt-get -y install python-rosinstall
 
 
@@ -57,7 +58,7 @@ echo "CATKIN"
 echo "Create catkin workspace..."
 mkdir -p $CATKIN_WS/src
 cd $CATKIN_WS
-source /opt/ros/indigo/setup.bash
+#source /opt/ros/indigo/setup.bash
 catkin init
 cd $CATKIN_WS/src
 
