@@ -35,42 +35,29 @@ fi
 echo "======================================================"
 echo "installing ROS"
 
+sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
 sudo apt-key adv --keyserver ha.pool.sks-keyservers.net --recv-keys 421C365BD9FF1F717815A3895523BAEEB01FA116
 
-# setup sources.list
-echo "deb http://packages.ros.org/ros/ubuntu trusty main" > /etc/apt/sources.list.d/ros-latest.list
+# updates
+sudo apt-get update -qq
 
-# install bootstrap tools
-sudo apt-get update && apt-get install --no-install-recommends -y \
-    python-rosdep \
-    python-rosinstall \
-    python-vcstools \
-    && rm -rf /var/lib/apt/lists/*
+# install indigo
+sudo apt-get -y install ros-indigo-desktop-full
 
-# bootstrap rosdep
-rosdep init \
-    && rosdep update
-
-# install ros packages
-sudo apt-get update && apt-get install -y \
-    ros-indigo-desktop-full \
-    && rm -rf /var/lib/apt/lists/*
-
-echo "======================================================"
-echo "ROS"
-sudo apt-get install -y python-catkin-pkg python-rosdep python-wstool \
-  python-catkin-tools ros-$ROS_DISTRO-catkin ros-$ROS_DISTRO-ros-base
-echo "--> source ROS setup in /opt/ros/$ROS_DISTRO/setup.bash"
-sudo source /opt/ros/$ROS_DISTRO/setup.bash
 sudo rosdep init
 rosdep update
+
+echo "source /opt/ros/indigo/setup.bash" >> ~/.bashrc
+source ~/.bashrc
+sudo apt-get -y install python-rosinstall
+
 
 echo "======================================================"
 echo "CATKIN"
 echo "Create catkin workspace..."
 mkdir -p $CATKIN_WS/src
 cd $CATKIN_WS
-source /opt/ros/$ROS_DISTRO/setup.bash
+source /opt/ros/indigo/setup.bash
 catkin init
 cd $CATKIN_WS/src
 
