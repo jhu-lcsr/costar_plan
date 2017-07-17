@@ -32,7 +32,7 @@ class GAN(AbstractAgentBasedModel):
     loss: loss function associated with each output.
     noise dim: how much noise we generate as a vector to seed various samples.
     '''
-    def __init__(self, ins, outs, opts, loss, noise_dim):
+    def __init__(self, ins, outs, opts, loss, noise_dim, *args, **kwargs):
 
         # =====================================================================
         # Compile all the basic models

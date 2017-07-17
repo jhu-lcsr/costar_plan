@@ -185,6 +185,38 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate, num_filters
     x = LeakyReLU(alpha=0.2)(x)
     return [samples, arm_in, gripper_in], x
 
+def GetDecoder(dim, img_shape, arm_size, gripper_size,
+        dropout_rate, filters):
+
+    '''
+    Initial decoder: just based on getting images out of the world state
+    created via the encoder.
+    '''
+
+    height4 = img_shape[0]/4
+    width4 = img_shape[1]/4
+    height2 = img_shape[0]/2
+    width2 = img_shape[1]/2
+    nchannels = img_shape[2]
+
+    z = Input((dim,))
+
+    x = Dense(filters/2 * height4 * width4)(z)
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+    x = Reshape((width4,height4,filters/2))(x)
+
+    for i in xrange(2):
+        x = UpSampling2D(size=(2, 2))(x)
+        x = Conv2D(filters, 3, 3, border_mode='same')(x)
+        x = BatchNormalization(axis=1)(x)
+        x = Activation('relu')(x)
+
+
+    x = Conv2D(nchannels, (1, 1), border_mode='same')(x)
+
+    return z, x
+
 def GetInvCameraColumn(noise, img_shape, dropout_rate, dense_size):
     '''
     Take noise vector, upsample into an image of size img.

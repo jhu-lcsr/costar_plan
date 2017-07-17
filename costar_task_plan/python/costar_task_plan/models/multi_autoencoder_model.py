@@ -16,13 +16,12 @@ from keras.models import Model, Sequential
 from keras.optimizers import Adam
 
 from abstract import AbstractAgentBasedModel
-from gan import GAN
 
 from robot_multi_models import *
 
-class RobotMultiGAN(AbstractAgentBasedModel):
+class RobotMultiAutoencoder(AbstractAgentBasedModel):
     '''
-    This is a version of the GAN agent based model. It doesn't really inherit
+    This is a version of the Autoencoder agent based model. It doesn't really inherit
     too much from that though.
 
     This model is designed to work with the "--features multi" option of the
@@ -32,47 +31,28 @@ class RobotMultiGAN(AbstractAgentBasedModel):
 
     def __init__(self, taskdef, *args, **kwargs):
         """
-        Read in taskdef for this model (or set of models). Use it to create the
-        generator and discriminator neural nets that we will be optimizing.
+        Read in task def for this model (or set of models).
+        Set up the presets for this particular type 
         """
 
         self.taskdef = taskdef
         
-        img_rows = 768 / 8
-        img_cols = 1024 / 8
-        self.nchannels = 3
+        self.generator_dim = 128
 
-        self.img_shape = (img_rows, img_cols, self.nchannels)
-
-        self.generator_dense_size = 1024
-        self.generator_filters_c1 = 256
-
-        self.discriminator_dense_size = 1024
-        self.discriminator_filters_c1 = 512
+        self.img_dense_size = 512
+        self.img_col_dim = 256
+        self.img_num_filters = 32
 
         self.dropout_rate = 0.5
 
 
-        super(RobotMultiGAN, self).__init__(*args, **kwargs)
+        super(RobotMultiAutoencoder, self).__init__(*args, **kwargs)
 
-        """
-        g_in, g_out, g_opt = self._generator(self.img_shape, labels, noise_dim)
-        labels_input = g_in[-1]
-        d_in, d_out, d_opt = self._discriminator(self.img_shape, labels,
-                labels_input)
-
-        super(RobotMultiGAN, self).__init__(
-                [g_in, d_in],
-                [g_out, d_out],
-                [g_opt, d_opt],
-                "binary_crossentropy",
-                noise_dim)
-        """
 
     def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             example, *args, **kwargs):
         '''
-        Set up the imitation GAN to learn a model of what actions we expect
+        Set up the imitation autoencoder to learn a model of what actions we expect
         from each state. Our goal is to sample the distribution of actions that
         is most likely to give us a trajectory to the goal.
         '''
@@ -100,24 +80,25 @@ class RobotMultiGAN(AbstractAgentBasedModel):
         ins, enc = GetEncoder(img_shape,
                 arm_size,
                 gripper_size,
-                self.img_col_dim,
+                self.generator_dim,
                 self.dropout_rate,
                 self.img_num_filters,
                 self.img_dense_size,)
-        _, dec = GetDecoder(self.img_dense_size,
+        rep, dec = GetDecoder(self.generator_dim,
                             img_shape,
                             arm_size,
                             gripper_size,
-                            self.dropout_rate,
-                            self.generator_filters_c1,
-                            self.robot_dense_size)
-        self.model = Model(ins, dec(enc))
+                            dropout_rate=self.dropout_rate,
+                            filters=self.img_num_filters,)
+        decoder = Model([rep], dec)
+        self.model = Model(ins, decoder(enc))
         optimizer = self.getOptimizer()
-        self.model.compile(loss="mse", optimizer=optimizer)
+        self.model.compile(loss="mae", optimizer=optimizer)
         self.model.summary()
         self.model.fit(
                 x=[features, arm, gripper],
-                y=[arm_cmd, gripper_cmd],
+                #y=[arm_cmd, gripper_cmd],
+                y=[features],
                 epochs=self.epochs,
                 batch_size=self.batch_size,
                 )       
