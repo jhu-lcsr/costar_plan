@@ -163,8 +163,8 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
             xg = gripper_in[idx]
 
             # create targets
-            y_shape = (self.batch_size,1)+arm.shape[1:]
-            ya = np.reshape(arm[idx],y_shape)
+            y_shape = (self.batch_size,1)+arm_cmd.shape[1:]
+            ya = np.reshape(arm_cmd[idx],y_shape)
             
             # duplicate
             ya = ya[:,np.zeros((self.num_samples,),dtype=int)]

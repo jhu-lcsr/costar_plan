@@ -120,7 +120,7 @@ def ParseBulletArgs():
     parser.add_argument("-D", "--debug_model", "--dm",
                         help="Run a short script to debug the current model.",
                         action="store_true")
-    parser.add_argment("--clip_norm",
+    parser.add_argument("--clipnorm",
                         help="Clip norm of gradients to this value to " + \
                               "prevent exploding gradients.",
                         default=100)
