@@ -5,6 +5,8 @@ language: cpp
 services:
   - docker
 
+group: deprecated-2017Q3
+
 env:
   global:
     - toolset_branch: master
