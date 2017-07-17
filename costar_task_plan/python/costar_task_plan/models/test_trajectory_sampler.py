@@ -48,8 +48,8 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
         self.dropout_rate = 0.5
         self.dense_size = 256
         self.num_samples = 16
-        self.trajectory_length = 48
-        self.decoder_filters = 64
+        self.trajectory_length = 16
+        self.decoder_filters = 32
 
     def train(self, features, state, action, trace, example, reward,
               *args, **kwargs):
@@ -100,20 +100,21 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
         noise_in = Input((self.noise_dim,))
         features_in = Input((features_size,))
         state_in = Input((state_size,))
-        #x = Concatenate()([features_in, state_in, noise_in])
-        x = Concatenate()([features_in, noise_in])
+        x = Concatenate()([features_in, state_in])#, noise_in])
+        #x = Concatenate()([features_in, noise_in])
+        #x = features_in
 
         for i in xrange(3):
             x = Dense(self.dense_size)(x)
             x = LeakyReLU(alpha=0.2)(x)
             x = Dropout(self.dropout_rate)(x)
 
-        assert self.trajectory_length % 8 == 0
+        assert self.trajectory_length % 4 == 0
         x = AddSamplerLayer(x,
                 int(self.num_samples),
-                int(self.trajectory_length/8),
+                int(self.trajectory_length/4),
                 self.decoder_filters)
-        for i in xrange(2):
+        for i in xrange(1):
             x = UpSampling2D(size=(1,2))(x)
             x = Conv2D(self.decoder_filters, 3, 3, border_mode='same')(x)
             x = BatchNormalization(axis=-1)(x)
@@ -173,6 +174,8 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
             plt.subplot(3,3,i+1)
             for j in xrange(self.num_samples):
                 plt.plot(trajs[0,j,:,1],trajs[0,j,:,0])
+            for j in xrange(trajs.shape[2]):
+                plt.plot(state[(i*100)+j][1],state[(i*100)+j][0],'*')
 
         plt.show()
 
@@ -180,7 +183,7 @@ if __name__ == '__main__':
     data = np.load('test_data.npz')
     sampler = TestTrajectorySampler(
             batch_size=64,
-            iter=10000,
+            iter=1000,
             optimizer="adam",)
     sampler.train(**data)
     sampler.plot(**data)

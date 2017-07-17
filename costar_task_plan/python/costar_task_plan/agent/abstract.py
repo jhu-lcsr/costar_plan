@@ -158,6 +158,10 @@ class AbstractAgent(object):
                 else:
                     if isinstance(value, np.ndarray):
                         assert value.shape == self.data[key][0].shape
+                    if not type(self.data[key][0]) == type(value):
+                        print key, type(self.data[key][0]), type(value)
+                        raise RuntimeError('Types do not match when' + \
+                                           'constructing data set.')
                     self.data[key].append(value)
 
 class NoAgent(AbstractAgent):

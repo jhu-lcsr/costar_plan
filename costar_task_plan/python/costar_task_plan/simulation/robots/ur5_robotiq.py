@@ -124,7 +124,7 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         dq = [0.] * 6
         for i in xrange(6):
             q[i], dq[i] = pb.getJointState(self.handle, i)[:2]
-        return q, dq
+        return np.array(q), np.array(dq)
 
     def _getGripper(self):
         #v = [v[0] for v in pb.getJointStates(self.handle,
