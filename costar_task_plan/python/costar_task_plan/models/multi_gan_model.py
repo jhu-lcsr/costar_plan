@@ -38,9 +38,9 @@ class RobotMultiGAN(AbstractAgentBasedModel):
 
         self.taskdef = taskdef
         
-        self.generator_dim = 128
-        self.img_dense_size = 1024
-        self.img_num_filters = 128
+        self.generator_dim = 64
+        self.img_dense_size = 512
+        self.img_num_filters = 64
 
         self.dropout_rate = 0.5
 
@@ -146,7 +146,9 @@ class RobotMultiGAN(AbstractAgentBasedModel):
         if self.show_iter > 0:
             plt.figure()
 
-        self.discriminator.summary()
+        self.discriminator.trainable = False
+        self.generator.trainable = True
+        self.adversarial.summary()
 
         # pretrain
         print "Pretraining discriminator..."
@@ -174,7 +176,6 @@ class RobotMultiGAN(AbstractAgentBasedModel):
 
         self.discriminator.trainable = False
 
-
         for i in xrange(self.iter):
 
             # Sample one batch, including random noise
@@ -200,10 +201,12 @@ class RobotMultiGAN(AbstractAgentBasedModel):
                 yg_double], is_fake)
             self.discriminator.trainable = False
 
+            self.generator.trainable = True
             g_loss = self.adversarial.train_on_batch(
                     [noise, ya, yg],
                     np.zeros((self.batch_size, 1)),
                             )
+            self.generator.trainable = False
 
             print "Iter %d: D loss / GAN loss = "%(i+1), d_loss, g_loss
 
