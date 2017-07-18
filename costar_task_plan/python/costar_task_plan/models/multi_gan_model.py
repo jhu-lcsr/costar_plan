@@ -146,6 +146,7 @@ class RobotMultiGAN(AbstractAgentBasedModel):
         if self.show_iter > 0:
             plt.figure()
 
+        self.discriminator.summary()
         for i in xrange(self.iter):
 
             # Sample one batch, including random noise
@@ -187,3 +188,21 @@ class RobotMultiGAN(AbstractAgentBasedModel):
                 plt.show(block=False)
                 plt.pause(0.001)
 
+    def save(self):
+        '''
+        Save to a filename determined by the "self.name" field. In this case we
+        save multiple files for the different models we learned.
+        '''
+        if self.adversarial is not None:
+            self.adversarial.save_weights(self.name + "_adversarial.h5f")
+            self.discriminator.save_weights(self.name + "_discriminator.h5f")
+            self.generator.save_weights(self.name + "_generator.h5f")
+        else:
+            raise RuntimeError('save() failed: model not found.')
+
+    def load(self):
+        '''
+        Load will use the current model descriptor and name to load the file
+        that you are interested in, at least for now.
+        '''
+        raise NotImplementedError('load() not supported yet.')
