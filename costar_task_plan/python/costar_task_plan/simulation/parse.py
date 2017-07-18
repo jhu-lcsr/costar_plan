@@ -132,5 +132,11 @@ def ParseBulletArgs():
                              " every N iterations.",
                         default=0,
                         type=int)
+    parser.add_argument("--pretrain_iter", "--pi",
+                        help="Number of iterations of pretraining to run" + \
+                              ", in particular for training GAN" + \
+                              " discriminators.",
+                        default=1,
+                        type=int)
 
     return vars(parser.parse_args())

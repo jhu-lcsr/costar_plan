@@ -155,6 +155,8 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         # =====================================================================
         # Set up the "first stage" of the tower -- so that we only need to
         # correctly place a single block.
+        # NOTE: switching to give positive rewards for all to make it easier to
+        # distinguish good training data from bad.
         if self.stage == 0:
             threshold = 0.035
             self.world.addCondition(
@@ -166,19 +168,19 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                 ObjectAtPositionCondition("blue_block",
                                           self.final_stack_pos,
                                           threshold),
-                -100,
+                50,
                 "wrong block")
             self.world.addCondition(
                 ObjectAtPositionCondition("green_block",
                                           self.final_stack_pos,
                                           threshold),
-                -100,
+                50,
                 "wrong block")
             self.world.addCondition(
                 ObjectAtPositionCondition("yellow_block",
                                           self.final_stack_pos,
                                           threshold),
-                -100,
+                50,
                 "wrong block")
 
     def reset(self):

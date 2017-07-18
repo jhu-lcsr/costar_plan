@@ -38,9 +38,9 @@ class RobotMultiGAN(AbstractAgentBasedModel):
 
         self.taskdef = taskdef
         
-        self.generator_dim = 128
-        self.img_dense_size = 1024
-        self.img_num_filters = 128
+        self.generator_dim = 64
+        self.img_dense_size = 512
+        self.img_num_filters = 64
 
         self.dropout_rate = 0.5
 
@@ -143,6 +143,39 @@ class RobotMultiGAN(AbstractAgentBasedModel):
 
         self.make([dec_ins, enc_ins], [dec, enc], loss="binary_crossentropy")
 
+        if self.show_iter > 0:
+            plt.figure()
+
+        self.discriminator.trainable = False
+        self.generator.trainable = True
+        self.adversarial.summary()
+
+        # pretrain
+        print "Pretraining discriminator..."
+        self.discriminator.trainable = True
+        for i in xrange(self.pretrain_iter):
+            # Sample one batch, including random noise
+            idx = np.random.randint(0, features.shape[0], size=self.batch_size)
+            xi = features[idx]
+            ya = arm[idx]
+            yg = gripper[idx]
+            noise = np.random.random((self.batch_size, self.generator_dim))
+
+            # generate fake data
+            data_fake = self.generator.predict([noise])
+
+            # clean up and set up for discriminator batch training
+            xi_fake = np.concatenate((xi, data_fake))
+            is_fake = np.zeros((2*self.batch_size, 1))
+            is_fake[self.batch_size:] = 1
+            ya_double = np.concatenate((ya, ya))
+            yg_double = np.concatenate((yg, yg))
+            d_loss = self.discriminator.train_on_batch([xi_fake, ya_double,
+                yg_double], is_fake)
+            print "PT Iter %d: pretraining discriminator loss = "%(i+1), d_loss
+
+        self.discriminator.trainable = False
+
         for i in xrange(self.iter):
 
             # Sample one batch, including random noise
@@ -166,15 +199,18 @@ class RobotMultiGAN(AbstractAgentBasedModel):
 
             d_loss = self.discriminator.train_on_batch([xi_fake, ya_double,
                 yg_double], is_fake)
+            self.discriminator.trainable = False
 
+            self.generator.trainable = True
             g_loss = self.adversarial.train_on_batch(
                     [noise, ya, yg],
                     np.zeros((self.batch_size, 1)),
                             )
+            self.generator.trainable = False
 
-            print "Iter %d: D loss / GAN loss = "%(i), d_loss, g_loss
+            print "Iter %d: D loss / GAN loss = "%(i+1), d_loss, g_loss
 
-            if (i + 1) % self.show_iter == 0:
+            if self.show_iter > 0 and (i + 1) % self.show_iter == 0:
                 for j in xrange(6):
                     plt.subplot(2, 3, j+1)
                     plt.imshow(np.squeeze(data_fake[j]))
@@ -184,3 +220,21 @@ class RobotMultiGAN(AbstractAgentBasedModel):
                 plt.show(block=False)
                 plt.pause(0.001)
 
+    def save(self):
+        '''
+        Save to a filename determined by the "self.name" field. In this case we
+        save multiple files for the different models we learned.
+        '''
+        if self.adversarial is not None:
+            self.adversarial.save_weights(self.name + "_adversarial.h5f")
+            self.discriminator.save_weights(self.name + "_discriminator.h5f")
+            self.generator.save_weights(self.name + "_generator.h5f")
+        else:
+            raise RuntimeError('save() failed: model not found.')
+
+    def load(self):
+        '''
+        Load will use the current model descriptor and name to load the file
+        that you are interested in, at least for now.
+        '''
+        raise NotImplementedError('load() not supported yet.')
