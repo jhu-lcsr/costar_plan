@@ -95,7 +95,7 @@ class GoalPositionCondition(AbstractCondition):
         # print dist, still_moving, state.arm_v
 
         ###########Albert temporary code###########
-        points = pb.getContactPoints(actor.robot.handle, obj)
+        points = pb.getContactPoints(actor.robot.handle, obj.handle)
         if (points != []):
             return True and (dist > self.pos_tol or still_moving)
         ###########################################
