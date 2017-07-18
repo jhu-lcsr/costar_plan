@@ -143,6 +143,9 @@ class RobotMultiGAN(AbstractAgentBasedModel):
 
         self.make([dec_ins, enc_ins], [dec, enc], loss="binary_crossentropy")
 
+        if self.show_iter > 0:
+            plt.figure()
+
         for i in xrange(self.iter):
 
             # Sample one batch, including random noise
@@ -174,7 +177,7 @@ class RobotMultiGAN(AbstractAgentBasedModel):
 
             print "Iter %d: D loss / GAN loss = "%(i), d_loss, g_loss
 
-            if (i + 1) % self.show_iter == 0:
+            if self.show_iter > 0 and (i + 1) % self.show_iter == 0:
                 for j in xrange(6):
                     plt.subplot(2, 3, j+1)
                     plt.imshow(np.squeeze(data_fake[j]))
