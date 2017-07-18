@@ -125,7 +125,8 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
             yf = features[idx]
 
             loss = self.model.train_on_batch(
-                    [xf, xa, xg],
+                    #[xf, xa, xg],
+                    [xf],
                     [yf],)
 
             print "Iter %d: loss = %f"%(i,loss)
