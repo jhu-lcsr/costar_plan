@@ -114,6 +114,8 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         '''
 
         cmd = cmd[0]
+        if cmd > 0.:
+            raise RuntimeError('Illegal gripper command')
 
         # This is actually only a 1-DOF gripper
         cmd_array = [-cmd, -cmd, cmd, -cmd, -cmd, cmd]
@@ -132,11 +134,6 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         return np.array(q), np.array(dq)
 
     def _getGripper(self):
-        v = [v[0] for v in pb.getJointStates(self.handle,
-            self.gripper_indices)]
-
         vs = [v[0] for v in pb.getJointStates(self.handle,
             self.stable_gripper_indices)]
-        print v, vs
-        return [np.round(pb.getJointState(self.handle,
-            self.left_knuckle)[0],1)]
+        return [np.round(-np.mean(vs),1)]
