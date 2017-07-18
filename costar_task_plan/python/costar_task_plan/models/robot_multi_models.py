@@ -113,7 +113,7 @@ def GetSeparateEncoder(img_shape, img_col_dim, dropout_rate, img_num_filters,
         return img_ins + robot_ins, x
 
 def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
-        num_filters, dense_size, discriminator=False):
+        num_filters, discriminator=False):
     '''
     Convolutions for an image, terminating in a dense layer of size dim.
     '''
@@ -145,7 +145,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     #robot = Lambda(lambda x: K.tile(x, tile_shape))(robot)
     #x = Concatenate(axis=3)([x,robot])
 
-    for i in xrange(2):
+    for i in xrange(1):
         x = Conv2D(num_filters, # + num_labels
                    kernel_size=[5, 5], 
                    strides=(2, 2),
@@ -182,13 +182,13 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
 
     z = Input((dim,))
 
-    x = Dense(filters/4 * height4 * width4)(z)
+    x = Dense(filters/2 * height2 * width2)(z)
     x = BatchNormalization(momentum=0.9)(x)
     x = Activation('relu')(x)
-    x = Reshape((width4,height4,filters/4))(x)
+    x = Reshape((width2,height2,filters/2))(x)
     x = Dropout(dropout_rate)(x)
 
-    for i in xrange(2):
+    for i in xrange(1):
         x = Conv2DTranspose(filters,
                    kernel_size=[5, 5], 
                    strides=(2, 2),
