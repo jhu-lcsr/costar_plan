@@ -192,13 +192,13 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
         x = Conv2DTranspose(filters,
                    kernel_size=[5, 5], 
                    strides=(2, 2),
-                   border_mode='same')(x)
+                   padding='same')(x)
         x = BatchNormalization(momentum=0.9)(x)
         x = Activation('relu')(x)
         x = Dropout(dropout_rate)(x)
 
-
-    x = Conv2D(nchannels, (1, 1), border_mode='same')(x)
+    x = Conv2D(nchannels, (1, 1), padding='same')(x)
+    x = Activation('sigmoid')(x)
 
     return z, x
 
