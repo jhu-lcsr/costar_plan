@@ -80,7 +80,7 @@ git clone https://github.com/cpaxton/robotiq_85_gripper.git
 
 
 # Need to find less complicated way to integrate the repo besides annoying ssh authentication
-# git clone https://a5a923019bfb3202ebdf3e3eb63b7866c913218d@github.com/cpaxton/costar_plan.git
+git clone https://a5a923019bfb3202ebdf3e3eb63b7866c913218d@github.com/cpaxton/costar_plan.git
 
 
 rosdep install -y --from-paths ./ --ignore-src --rosdistro $ROS_DISTRO
