@@ -38,15 +38,9 @@ class RobotMultiGAN(AbstractAgentBasedModel):
 
         self.taskdef = taskdef
         
-        img_rows = 768 / 8
-        img_cols = 1024 / 8
-        self.nchannels = 3
-
-        self.img_shape = (img_rows, img_cols, self.nchannels)
-
-        self.generator_dim = 1024
+        self.generator_dim = 128
         self.img_dense_size = 1024
-        self.img_num_filters =64
+        self.img_num_filters = 128
 
         self.dropout_rate = 0.5
 
@@ -78,7 +72,8 @@ class RobotMultiGAN(AbstractAgentBasedModel):
 
         # =====================================================================
         # Compile all the basic models
-        for inputs, output, opt in zip(ins, outs, opts):
+        opt = self.getOptimizer()
+        for inputs, output in zip(ins, outs):
             model = Model(inputs, output)
             model.compile(optimizer=opt, loss=loss, metrics=["accuracy"])
             self.models.append(model)
@@ -96,12 +91,10 @@ class RobotMultiGAN(AbstractAgentBasedModel):
         # Create an adversarial version of the model
         self.discriminator.trainable = False
         self.adversarial = Model(
-                ins[0],
-                self.discriminator([self.generator.outputs[0],
-                    self.discriminator.inputs[1:]])
+                self.generator.inputs + self.discriminator.inputs[1:],
+                self.discriminator([self.generator.outputs[0]] + self.discriminator.inputs[1:])
                 )
-        self.adversarial.compile(loss=loss, optimizer=getOptimizer())
-        self.summary()
+        self.adversarial.compile(loss=loss, optimizer=self.getOptimizer())
 
     def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             example, *args, **kwargs):
@@ -119,10 +112,12 @@ class RobotMultiGAN(AbstractAgentBasedModel):
         labels = data['action']
         """
 
-        print label
-
         # Set up the learning problem as:
-        # Goal: f(img, arm, gripper) --> arm_cmd, gripper_cmd
+        # Goal: f(img, arm, gripper, arm_cmd, gripper_cmd)
+        #        --> (img, arm, gripper)
+        # At least eventually.
+
+        #print label
 
         img_shape = features.shape[1:]
         arm_size = arm.shape[1]
@@ -134,57 +129,58 @@ class RobotMultiGAN(AbstractAgentBasedModel):
         enc_ins, enc = GetEncoder(img_shape,
                 arm_size,
                 gripper_size,
-                self.img_col_dim,
+                self.generator_dim,
                 self.dropout_rate,
                 self.img_num_filters,
                 self.img_dense_size,
                 discriminator=True)
-        dec_ins, dec = GetDecoder(self.img_dense_size,
+        dec_ins, dec = GetDecoder(self.generator_dim,
                             img_shape,
                             arm_size,
                             gripper_size,
-                            self.dropout_rate,
-                            self.generator_filters_c1,
-                            self.robot_dense_size)
+                            dropout_rate=self.dropout_rate,
+                            filters=self.img_num_filters,)
 
-        self.make([enc_ins, dec_ins], [enc, dec])
+        self.make([dec_ins, enc_ins], [dec, enc], loss="binary_crossentropy")
 
-        for i in xrange(num_iter):
+        for i in xrange(self.iter):
 
             # Sample one batch, including random noise
-            idx = np.random.randint(0, y.shape[0], size=batch_size)
-            xi = x[idx]
-            yf = features[idx]
+            idx = np.random.randint(0, features.shape[0], size=self.batch_size)
+            xi = features[idx]
             ya = arm[idx]
-            noise = np.random.random((batch_size, self.noise_dim))
+            yg = gripper[idx]
+            noise = np.random.random((self.batch_size, self.generator_dim))
 
             # Sample fake data
-            data_fake = self.generator.predict([noise, yi])
+            data_fake = self.generator.predict([noise])
             #data_fake = self.generator.predict([noise])
 
             # Train discriminator
             self.discriminator.trainable = True
             xi_fake = np.concatenate((xi, data_fake))
-            is_fake = np.zeros((2*batch_size, 1))
-            is_fake[batch_size:] = 1
+            is_fake = np.zeros((2*self.batch_size, 1))
+            is_fake[self.batch_size:] = 1
             ya_double = np.concatenate((ya, ya))
             yg_double = np.concatenate((yg, yg))
+
             d_loss = self.discriminator.train_on_batch([xi_fake, ya_double,
                 yg_double], is_fake)
 
             g_loss = self.adversarial.train_on_batch(
-                    [noise, yi],
-                    #[noise],
-                    np.zeros((batch_size, 1)),
+                    [noise, ya, yg],
+                    np.zeros((self.batch_size, 1)),
                             )
 
             print "Iter %d: D loss / GAN loss = "%(i), d_loss, g_loss
 
-            if (i + 1) % 25 == 0:
+            if (i + 1) % self.show_iter == 0:
                 for j in xrange(6):
                     plt.subplot(2, 3, j+1)
-                    plt.imshow(np.squeeze(data_fake[j]), cmap='gray')
-                plt.axis('off')
-                plt.tight_layout()
+                    plt.imshow(np.squeeze(data_fake[j]))
+                    plt.axis('off')
+                    plt.tight_layout()
+                plt.ion()
                 plt.show(block=False)
-    def fi
+                plt.pause(0.001)
+
