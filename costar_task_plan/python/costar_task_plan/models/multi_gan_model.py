@@ -91,7 +91,8 @@ class RobotMultiGAN(AbstractAgentBasedModel):
                 self.generator.inputs + self.discriminator.inputs[1:],
                 self.discriminator([self.generator.outputs[0]] + self.discriminator.inputs[1:])
                 )
-        self.adversarial.compile(loss=loss, optimizer=self.getOptimizer())
+        self.adversarial.compile(loss=loss, optimizer=self.getOptimizer(),
+                metrics=["accuracy"])
 
     def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             example, *args, **kwargs):
@@ -168,7 +169,8 @@ class RobotMultiGAN(AbstractAgentBasedModel):
             ya_double = np.concatenate((ya, ya))
             yg_double = np.concatenate((yg, yg))
             d_loss = self.discriminator.train_on_batch(
-                    [xi_fake, ya_double, yg_double],
+                    #[xi_fake, ya_double, yg_double],
+                    [xi_fake],
                     is_fake)
             print "PT Iter %d: pretraining discriminator loss = "%(i+1), d_loss
 
