@@ -42,6 +42,8 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
                        left_fingertip, right_knuckle, right_inner_knuckle,
                        right_fingertip]
 
+    stable_gripper_indices = [left_knuckle, right_knuckle,]
+
     def __init__(self, *args, **kwargs):
         super(Ur5RobotiqInterface, self).__init__(*args, **kwargs)
 
@@ -132,6 +134,9 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
     def _getGripper(self):
         v = [v[0] for v in pb.getJointStates(self.handle,
             self.gripper_indices)]
-        print v
+
+        vs = [v[0] for v in pb.getJointStates(self.handle,
+            self.stable_gripper_indices)]
+        print v, vs
         return [np.round(pb.getJointState(self.handle,
             self.left_knuckle)[0],1)]
