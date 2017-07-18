@@ -2,6 +2,7 @@
 from multi_gan_model import RobotMultiGAN
 from multi_regression_model import RobotMultiFFRegression
 from multi_trajectory_sampler import RobotMultiTrajectorySampler
+from multi_autoencoder_model import RobotMultiAutoencoder
 
 def MakeModel(features, model, taskdef, *args, **kwargs):
     '''
@@ -22,6 +23,7 @@ def MakeModel(features, model, taskdef, *args, **kwargs):
         nchannels = 1
 
     model_instance = None
+    model = model.lower()
     if model == 'gan':
         if features in ['rgb','depth']:
             pass
@@ -39,6 +41,11 @@ def MakeModel(features, model, taskdef, *args, **kwargs):
             pass
         elif features == 'multi':
             model_instance = RobotMultiTrajectorySampler(taskdef, **kwargs)
+    elif model == "autoencoder":
+        if features in ['rgb','depth']:
+            pass
+        elif features == 'multi':
+            model_instance = RobotMultiAutoencoder(taskdef, **kwargs)
     
     # If we did not create a model then die.
     if model_instance is None:
@@ -48,4 +55,5 @@ def MakeModel(features, model, taskdef, *args, **kwargs):
     return model_instance
 
 def GetModels():
-    return [None, "gan", "ff_regression", "lstm_regression", "sample"]
+    return [None, "gan", "ff_regression", "lstm_regression", "sample",
+            "autoencoder"]

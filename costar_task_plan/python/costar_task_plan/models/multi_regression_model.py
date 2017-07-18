@@ -95,9 +95,3 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
                 batch_size=self.batch_size,
                 )
 
-    def save(self):
-        if self.model is not None:
-            self.model.save_weights(self.name + ".h5f")
-
-    def load(self):
-        pass

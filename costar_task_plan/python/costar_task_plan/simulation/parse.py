@@ -124,5 +124,13 @@ def ParseBulletArgs():
                         help="Clip norm of gradients to this value to " + \
                               "prevent exploding gradients.",
                         default=100)
+    parser.add_argument("--load_model", "--lm",
+                        help="Load model from file.",
+                        action="store_true")
+    parser.add_argument("--show_iter", "--si",
+                        help="Show output images from model training" + \
+                             " every N iterations.",
+                        default=0,
+                        type=int)
 
     return vars(parser.parse_args())
