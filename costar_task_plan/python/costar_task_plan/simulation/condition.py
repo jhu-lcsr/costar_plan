@@ -94,8 +94,13 @@ class GoalPositionCondition(AbstractCondition):
         # print T_robot.p, T.p, dist
         # print dist, still_moving, state.arm_v
 
-        return dist > self.pos_tol or still_moving
-
+        ###########Albert temporary code###########
+        points = getContactPoints(self.handle, obj)
+        if (points != []):
+            return True && (dist > self.pos_tol or still_moving)
+        ###########################################
+        return False or still_moving
+        #return dist > self.pos_tol or still_moving
 
 class AbsolutePositionCondition(AbstractCondition):
 
