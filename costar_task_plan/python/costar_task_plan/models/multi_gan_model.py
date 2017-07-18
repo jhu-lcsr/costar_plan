@@ -130,7 +130,6 @@ class RobotMultiGAN(AbstractAgentBasedModel):
                 self.generator_dim,
                 self.dropout_rate,
                 self.img_num_filters,
-                self.img_dense_size,
                 discriminator=True)
         dec_ins, dec = GetDecoder(self.generator_dim,
                             img_shape,

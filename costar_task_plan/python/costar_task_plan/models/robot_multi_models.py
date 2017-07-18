@@ -113,7 +113,7 @@ def GetSeparateEncoder(img_shape, img_col_dim, dropout_rate, img_num_filters,
         return img_ins + robot_ins, x
 
 def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
-        num_filters, discriminator=False):
+        filters, discriminator=False):
     '''
     Convolutions for an image, terminating in a dense layer of size dim.
     '''
@@ -128,15 +128,6 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     arm_in = Input((arm_size,))
     gripper_in = Input((gripper_size,))
 
-    #x = Concatenate(axis=3)([samples, labels2])
-    x = Conv2D(num_filters, # + num_labels
-               kernel_size=[5, 5], 
-               strides=(2, 2),
-               #padding="same")(x)
-               padding="same")(samples)
-    x = LeakyReLU(alpha=0.2)(x)
-    x = Dropout(dropout_rate)(x)
-
     # ===============================================
     # ADD TILING
     tile_shape = (1, width4, height4, 1)
@@ -144,17 +135,26 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     #robot = Reshape([1,1,arm_size+gripper_size])(robot)
     #robot = Lambda(lambda x: K.tile(x, tile_shape))(robot)
     #x = Concatenate(axis=3)([x,robot])
+    x = samples
 
     for i in xrange(1):
-        x = Conv2D(num_filters, # + num_labels
+        x = Conv2DTranspose(filters,
                    kernel_size=[5, 5], 
                    strides=(2, 2),
+                   padding='same')(x)
+        x = BatchNormalization(momentum=0.9)(x)
+        x = Activation('relu')(x)
+        x = Dropout(dropout_rate)(x)
+
+    for i in xrange(1):
+        x = Conv2D(filters/2, # + num_labels
+                   kernel_size=[5, 5], 
+                   strides=(1, 1),
                    padding="same")(x)
         x = BatchNormalization(momentum=0.9)(x)
         x = LeakyReLU(alpha=0.2)(x)
-        x = Dropout(dropout_rate)(x)
+        x = Dropout(dropout_rate)(x)    # Add dense layer
 
-    # Add dense layer
     x = Flatten()(x)
     x = Dense(dim)(x)
     x = LeakyReLU(alpha=0.2)(x)
@@ -195,6 +195,15 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
                    padding='same')(x)
         x = BatchNormalization(momentum=0.9)(x)
         x = Activation('relu')(x)
+        x = Dropout(dropout_rate)(x)
+
+    for i in xrange(1):
+        x = Conv2D(filters/2, # + num_labels
+                   kernel_size=[5, 5], 
+                   strides=(1, 1),
+                   padding="same")(x)
+        x = BatchNormalization(momentum=0.9)(x)
+        x = LeakyReLU(alpha=0.2)(x)
         x = Dropout(dropout_rate)(x)
 
     x = Conv2D(nchannels, (1, 1), padding='same')(x)
