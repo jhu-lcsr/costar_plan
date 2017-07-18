@@ -136,7 +136,7 @@ def ParseBulletArgs():
                         help="Number of iterations of pretraining to run" + \
                               ", in particular for training GAN" + \
                               " discriminators.",
-                        default=1,
+                        default=0,
                         type=int)
 
     return vars(parser.parse_args())

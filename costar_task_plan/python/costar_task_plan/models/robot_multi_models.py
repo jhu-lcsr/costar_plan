@@ -129,7 +129,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     gripper_in = Input((gripper_size,))
 
     #x = Concatenate(axis=3)([samples, labels2])
-    x = Conv2D(num_filters, # + num_labels
+    x = Conv2D(num_filters/4, # + num_labels
                kernel_size=[5, 5], 
                strides=(2, 2),
                #padding="same")(x)
@@ -152,10 +152,10 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     # ===============================================
     # ADD TILING
     tile_shape = (1, width4, height4, 1)
-    robot = Concatenate()([arm_in, gripper_in])
-    robot = Reshape([1,1,arm_size+gripper_size])(robot)
-    robot = Lambda(lambda x: K.tile(x, tile_shape))(robot)
-    x = Concatenate(axis=3)([x,robot])
+    #robot = Concatenate()([arm_in, gripper_in])
+    #robot = Reshape([1,1,arm_size+gripper_size])(robot)
+    #robot = Lambda(lambda x: K.tile(x, tile_shape))(robot)
+    #x = Concatenate(axis=3)([x,robot])
 
     x = Conv2D(num_filters, # + num_labels
                kernel_size=[5, 5], 
@@ -188,7 +188,8 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     if discriminator:
         x = Dense(1,activation="sigmoid")(x)
 
-    return [samples, arm_in, gripper_in], x
+    #return [samples, arm_in, gripper_in], x
+    return [samples], x
 
 def GetDecoder(dim, img_shape, arm_size, gripper_size,
         dropout_rate, filters):
@@ -206,16 +207,18 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
 
     z = Input((dim,))
 
-    x = Dense(filters/2 * height4 * width4)(z)
+    x = Dense(filters/4 * height4 * width4)(z)
     x = BatchNormalization()(x)
     x = Activation('relu')(x)
-    x = Reshape((width4,height4,filters/2))(x)
+    x = Reshape((width4,height4,filters/4))(x)
+    x = Dropout(dropout_rate)(x)
 
     for i in xrange(2):
         x = UpSampling2D(size=(2, 2))(x)
         x = Conv2D(filters, 3, 3, border_mode='same')(x)
         x = BatchNormalization(axis=1)(x)
         x = Activation('relu')(x)
+        x = Dropout(dropout_rate)(x)
 
 
     x = Conv2D(nchannels, (1, 1), border_mode='same')(x)

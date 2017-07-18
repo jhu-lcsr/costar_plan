@@ -228,7 +228,10 @@ for i in range(9):
     plt.imshow(img, cmap='gray')
     plt.axis('off')
 
-os.mkdir('figures')
+try:
+    os.mkdir('figures')
+except Exception, e:
+    pass
 plt.savefig(os.path.join('figures', 'random_MNIST_examples.png'))
 
 

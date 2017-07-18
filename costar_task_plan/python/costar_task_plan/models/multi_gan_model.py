@@ -77,10 +77,6 @@ class RobotMultiGAN(AbstractAgentBasedModel):
             model = Model(inputs, output)
             model.compile(optimizer=opt, loss=loss, metrics=["accuracy"])
             self.models.append(model)
-        #self.models = outs
-        #for model, opt in zip(self.models, opts):
-        #    model.compile(optimizer=opt, loss=loss)
-        #ins[0] = self.models[0].inputs[0]
         
         self.generator = self.models[0]
         self.discriminator = self.models[1]
@@ -90,6 +86,7 @@ class RobotMultiGAN(AbstractAgentBasedModel):
 
         # Create an adversarial version of the model
         self.discriminator.trainable = False
+        self.generator.trainable = True
         self.adversarial = Model(
                 self.generator.inputs + self.discriminator.inputs[1:],
                 self.discriminator([self.generator.outputs[0]] + self.discriminator.inputs[1:])
@@ -153,9 +150,9 @@ class RobotMultiGAN(AbstractAgentBasedModel):
         # pretrain
         print "Pretraining discriminator..."
         self.discriminator.trainable = True
+        idx = np.random.randint(0, features.shape[0], size=self.batch_size)
         for i in xrange(self.pretrain_iter):
             # Sample one batch, including random noise
-            idx = np.random.randint(0, features.shape[0], size=self.batch_size)
             xi = features[idx]
             ya = arm[idx]
             yg = gripper[idx]
@@ -170,8 +167,9 @@ class RobotMultiGAN(AbstractAgentBasedModel):
             is_fake[self.batch_size:] = 1
             ya_double = np.concatenate((ya, ya))
             yg_double = np.concatenate((yg, yg))
-            d_loss = self.discriminator.train_on_batch([xi_fake, ya_double,
-                yg_double], is_fake)
+            d_loss = self.discriminator.train_on_batch(
+                    [xi_fake, ya_double, yg_double],
+                    is_fake)
             print "PT Iter %d: pretraining discriminator loss = "%(i+1), d_loss
 
         self.discriminator.trainable = False
@@ -197,17 +195,23 @@ class RobotMultiGAN(AbstractAgentBasedModel):
             ya_double = np.concatenate((ya, ya))
             yg_double = np.concatenate((yg, yg))
 
-            d_loss = self.discriminator.train_on_batch([xi_fake, ya_double,
-                yg_double], is_fake)
+            #d_loss = self.discriminator.train_on_batch([xi_fake, ya_double,
+            #    yg_double], is_fake)
+            d_loss = self.discriminator.train_on_batch([xi_fake], is_fake)
             self.discriminator.trainable = False
 
             self.generator.trainable = True
+            # resample noise
+            idx = np.random.randint(0, features.shape[0], size=self.batch_size)
+            noise = np.random.random((self.batch_size, self.generator_dim))
+            fake = np.zeros((self.batch_size, 1))
             g_loss = self.adversarial.train_on_batch(
-                    [noise, ya, yg],
-                    np.zeros((self.batch_size, 1)),
-                            )
+                    #[noise, ya, yg],
+                    [noise],
+                    fake,)
             self.generator.trainable = False
 
+            #print "actual loss", np.mean(np.sum(np.square(p - fake))), p
             print "Iter %d: D loss / GAN loss = "%(i+1), d_loss, g_loss
 
             if self.show_iter > 0 and (i + 1) % self.show_iter == 0:
