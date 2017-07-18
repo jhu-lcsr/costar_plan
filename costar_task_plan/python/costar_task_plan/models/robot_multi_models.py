@@ -129,7 +129,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     gripper_in = Input((gripper_size,))
 
     #x = Concatenate(axis=3)([samples, labels2])
-    x = Conv2D(num_filters/4, # + num_labels
+    x = Conv2D(num_filters, # + num_labels
                kernel_size=[5, 5], 
                strides=(2, 2),
                #padding="same")(x)

@@ -40,7 +40,7 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
         
         self.generator_dim = 1024
         self.img_dense_size = 1024
-        self.img_num_filters =64
+        self.img_num_filters = 128
 
         self.dropout_rate = 0.5
 
