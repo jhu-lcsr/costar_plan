@@ -133,7 +133,7 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
                 data = self.model.predict([features[:6], arm[:6], gripper[:6]])
                 for j in xrange(6):
                     plt.subplot(2, 3, j+1,)
-                    plt.imshow(np.squeeze(data[j]), cmap='gray')
+                    plt.imshow(np.squeeze(data[j]))
                     plt.axis('off')
                     plt.tight_layout()
                 plt.ion()

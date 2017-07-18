@@ -119,10 +119,12 @@ class RobotMultiGAN(AbstractAgentBasedModel):
         labels = data['action']
         """
 
-        print label
-
         # Set up the learning problem as:
-        # Goal: f(img, arm, gripper) --> arm_cmd, gripper_cmd
+        # Goal: f(img, arm, gripper, arm_cmd, gripper_cmd)
+        #        --> (img, arm, gripper)
+        # At least eventually.
+
+        #print label
 
         img_shape = features.shape[1:]
         arm_size = arm.shape[1]
@@ -134,7 +136,7 @@ class RobotMultiGAN(AbstractAgentBasedModel):
         enc_ins, enc = GetEncoder(img_shape,
                 arm_size,
                 gripper_size,
-                self.img_col_dim,
+                self.gemerator_dim,
                 self.dropout_rate,
                 self.img_num_filters,
                 self.img_dense_size,
@@ -143,9 +145,8 @@ class RobotMultiGAN(AbstractAgentBasedModel):
                             img_shape,
                             arm_size,
                             gripper_size,
-                            self.dropout_rate,
-                            self.generator_filters_c1,
-                            self.robot_dense_size)
+                            dropout_rate=self.dropout_rate,
+                            filters=self.generator_filters_c1,)
 
         self.make([enc_ins, dec_ins], [enc, dec])
 
@@ -180,11 +181,13 @@ class RobotMultiGAN(AbstractAgentBasedModel):
 
             print "Iter %d: D loss / GAN loss = "%(i), d_loss, g_loss
 
-            if (i + 1) % 25 == 0:
+            if (i + 1) % self.show_iter == 0:
                 for j in xrange(6):
                     plt.subplot(2, 3, j+1)
-                    plt.imshow(np.squeeze(data_fake[j]), cmap='gray')
-                plt.axis('off')
-                plt.tight_layout()
+                    plt.imshow(np.squeeze(data_fake[j]))
+                    plt.axis('off')
+                    plt.tight_layout()
+                plt.ion()
                 plt.show(block=False)
-    def fi
+                plt.pause(0.001)
+
