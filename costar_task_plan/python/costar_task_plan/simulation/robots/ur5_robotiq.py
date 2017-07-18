@@ -35,8 +35,11 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
 
     dof = 6
     arm_joint_indices = xrange(dof)
-    gripper_indices = [left_knuckle, left_finger, left_inner_knuckle,
-                       left_fingertip, right_knuckle, right_finger, right_inner_knuckle,
+    #gripper_indices = [left_knuckle, left_finger, left_inner_knuckle,
+    #                   left_fingertip, right_knuckle, right_finger, right_inner_knuckle,
+    #                   right_fingertip]
+    gripper_indices = [left_knuckle, left_inner_knuckle,
+                       left_fingertip, right_knuckle, right_inner_knuckle,
                        right_fingertip]
 
     def __init__(self, *args, **kwargs):
@@ -111,7 +114,7 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         cmd = cmd[0]
 
         # This is actually only a 1-DOF gripper
-        cmd_array = [-cmd, cmd, -cmd, cmd, -cmd, cmd, -cmd, cmd]
+        cmd_array = [-cmd, -cmd, cmd, -cmd, -cmd, cmd]
         pb.setJointMotorControlArray(self.handle, self.gripper_indices, mode,
                                      cmd_array,forces=[25.]*len(cmd_array))
 
@@ -127,7 +130,8 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         return np.array(q), np.array(dq)
 
     def _getGripper(self):
-        #v = [v[0] for v in pb.getJointStates(self.handle,
-        #    self.gripper_indices)]
+        v = [v[0] for v in pb.getJointStates(self.handle,
+            self.gripper_indices)]
+        print v
         return [np.round(pb.getJointState(self.handle,
-            self.left_fingertip)[0],1)]
+            self.left_knuckle)[0],1)]
