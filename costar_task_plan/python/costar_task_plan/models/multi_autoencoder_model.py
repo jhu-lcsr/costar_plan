@@ -64,8 +64,6 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
         labels = data['action']
         """
 
-        print label
-
         # Set up the learning problem as:
         # Goal: f(img, arm, gripper) --> arm_cmd, gripper_cmd
 
@@ -94,7 +92,12 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
         self.model = Model(ins, decoder(enc))
         optimizer = self.getOptimizer()
         self.model.compile(loss="mae", optimizer=optimizer)
+
+        # ========================================
+        # For debugging
         self.model.summary()
+        print decoder.summary()
+
         tensorboard_cb = TensorBoard(
                 log_dir='./logs_%s'%(self.model_descriptor),
                 histogram_freq=25, batch_size=self.batch_size,
