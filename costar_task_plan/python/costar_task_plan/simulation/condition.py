@@ -97,7 +97,7 @@ class GoalPositionCondition(AbstractCondition):
         ###########Albert temporary code###########
         points = getContactPoints(self.handle, obj)
         if (points != []):
-            return True && (dist > self.pos_tol or still_moving)
+            return True and (dist > self.pos_tol or still_moving)
         ###########################################
         return False or still_moving
         #return dist > self.pos_tol or still_moving
