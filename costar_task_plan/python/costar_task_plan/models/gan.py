@@ -20,6 +20,11 @@ from abstract import AbstractAgentBasedModel
 __LABELS = False
 
 class GAN(AbstractAgentBasedModel):
+
+    def __init__(self, *args, **kwargs):
+        self.models = []
+        self.make(*args, **kwargs)
+
     '''
     This class is designed to wrap some basic functionality for GANs of
     different sorts.
@@ -32,11 +37,10 @@ class GAN(AbstractAgentBasedModel):
     loss: loss function associated with each output.
     noise dim: how much noise we generate as a vector to seed various samples.
     '''
-    def __init__(self, ins, outs, opts, loss, noise_dim, *args, **kwargs):
+    def make(self, ins, outs, opts, loss, noise_dim, *args, **kwargs):
 
         # =====================================================================
         # Compile all the basic models
-        self.models = []
         for inputs, output, opt in zip(ins, outs, opts):
             model = Model(inputs, output)
             model.compile(optimizer=opt, loss=loss, metrics=["accuracy"])
@@ -56,7 +60,8 @@ class GAN(AbstractAgentBasedModel):
         self.discriminator.trainable = False
         self.adversarial = Model(
                 ins[0],
-                self.discriminator([self.generator.outputs[0], self.discriminator.inputs[1]])
+                self.discriminator([self.generator.outputs[0],
+                    self.discriminator.inputs[1:]])
                 #self.discriminator([self.generator.outputs[0]])
                 )
         self.adversarial.compile(loss=loss, optimizer=opts[0])
@@ -308,46 +313,6 @@ class SimpleImageGan(GAN):
         #x = Model([samples, labels], x)
 
         return [samples, labels], x, discriminator_optimizer
-
-
-    def model_generator(self):
-        nch = 256
-        g_input = Input(shape=[100])
-        H = Dense(nch * 14 * 14)(g_input)
-        H = BatchNormalization()(H)
-        H = Activation('relu')(H)
-        H = dim_ordering_reshape(nch, 14)(H)
-        H = UpSampling2D(size=(2, 2))(H)
-        H = Conv2D(int(nch / 2), 3, 3, border_mode='same')(H)
-        H = BatchNormalization(axis=1)(H)
-        H = Activation('relu')(H)
-
-        H = Conv2D(int(nch / 4), 3, 3, border_mode='same')(H)
-        H = BatchNormalization(axis=1)(H)
-        H = Activation('relu')(H)
-        H = Conv2D(1, 1, 1, border_mode='same')(H)
-
-        g_V = Activation('sigmoid')(H)
-        #return Model(g_input, g_V)
-        return [g_input], g_V, "adam"
-
-
-    def model_discriminator(self,input_shape=(1, 28, 28), dropout_rate=0.5):
-        d_input = dim_ordering_input(input_shape, name="input_x")
-        nch = 512
-        # nch = 128
-        H = Conv2D(int(nch / 2), 5, 5, subsample=(2, 2), border_mode='same', activation='relu')(d_input)
-        H = LeakyReLU(0.2)(H)
-        H = Dropout(dropout_rate)(H)
-        H = Conv2D(nch, 5, 5, subsample=(2, 2), border_mode='same', activation='relu')(H)
-        H = LeakyReLU(0.2)(H)
-        H = Dropout(dropout_rate)(H)
-        H = Flatten()(H)
-        H = Dense(int(nch / 2))(H)
-        H = LeakyReLU(0.2)(H)
-        H = Dropout(dropout_rate)(H)
-        d_V = Dense(1, activation='sigmoid')(H)
-        return [d_input], d_V, "adam"
 
 def dim_ordering_fix(x):
     if K.image_dim_ordering() == 'th':

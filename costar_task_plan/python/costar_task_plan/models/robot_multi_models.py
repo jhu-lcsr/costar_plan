@@ -112,7 +112,8 @@ def GetSeparateEncoder(img_shape, img_col_dim, dropout_rate, img_num_filters,
 
         return img_ins + robot_ins, x
 
-def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate, num_filters, dense_size):
+def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
+        num_filters, dense_size, discriminator=False):
     '''
     Convolutions for an image, terminating in a dense layer of size dim.
     '''
@@ -183,6 +184,10 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate, num_filters
     #x = Concatenate(axis=1)([x, labels])
     x = Dense(dim)(x)
     x = LeakyReLU(alpha=0.2)(x)
+
+    if discriminator:
+        x = Dense(1,activation="sigmoid")(x)
+
     return [samples, arm_in, gripper_in], x
 
 def GetDecoder(dim, img_shape, arm_size, gripper_size,

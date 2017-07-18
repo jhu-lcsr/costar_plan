@@ -5,6 +5,7 @@ import numpy as np
 
 from matplotlib import pyplot as plt
 
+from keras.callbacks import TensorBoard
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
 from keras.layers import UpSampling2D, Conv2DTranspose
@@ -37,11 +38,9 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
 
         self.taskdef = taskdef
         
-        self.generator_dim = 128
-
-        self.img_dense_size = 512
-        self.img_col_dim = 256
-        self.img_num_filters = 32
+        self.generator_dim = 1024
+        self.img_dense_size = 1024
+        self.img_num_filters =64
 
         self.dropout_rate = 0.5
 
@@ -70,6 +69,7 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
         # Set up the learning problem as:
         # Goal: f(img, arm, gripper) --> arm_cmd, gripper_cmd
 
+        #features = features[:,:,:,:3]
         img_shape = features.shape[1:]
         arm_size = arm.shape[1]
         if len(gripper.shape) > 1:
@@ -95,11 +95,50 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
         optimizer = self.getOptimizer()
         self.model.compile(loss="mae", optimizer=optimizer)
         self.model.summary()
-        self.model.fit(
-                x=[features, arm, gripper],
-                #y=[arm_cmd, gripper_cmd],
-                y=[features],
-                epochs=self.epochs,
-                batch_size=self.batch_size,
-                )       
+        tensorboard_cb = TensorBoard(
+                log_dir='./logs_%s'%(self.model_descriptor),
+                histogram_freq=25, batch_size=self.batch_size,
+                write_graph=True,
+                write_grads=False,
+                write_images=True,
+                embeddings_freq=0,
+                embeddings_layer_names=None,
+                embeddings_metadata=None)
+        #self.model.fit(
+        #        x=[features, arm, gripper],
+        #        #y=[arm_cmd, gripper_cmd],
+        #        y=[features],
+        #        epochs=self.epochs,
+        #        batch_size=self.batch_size,
+        #        callbacks=[tensorboard_cb],
+        #        )
+        if self.show_iter > 0:
+            fig = plt.figure()
+
+        for i in xrange(self.iter):
+
+            # Sample one batch, including random noise
+            idx = np.random.randint(0, features.shape[0], size=self.batch_size)
+            xa = arm[idx]
+            xg = gripper[idx]
+            xf = features[idx]
+            yf = features[idx]
+
+            loss = self.model.train_on_batch(
+                    [xf, xa, xg],
+                    [yf],)
+
+            print "Iter %d: loss = %f"%(i,loss)
+            if self.show_iter > 0 and (i+1) % self.show_iter == 0:
+                data = self.model.predict([features[:6], arm[:6], gripper[:6]])
+                for j in xrange(6):
+                    plt.subplot(2, 3, j+1,)
+                    plt.imshow(np.squeeze(data[j]), cmap='gray')
+                    plt.axis('off')
+                    plt.tight_layout()
+                plt.ion()
+                plt.show(block=False)
+                plt.pause(0.001)
+
+
 

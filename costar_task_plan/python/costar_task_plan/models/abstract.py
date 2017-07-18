@@ -9,12 +9,13 @@ class AbstractAgentBasedModel(object):
     '''
 
     def __init__(self, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
-            clipnorm=100,
+            clipnorm=100, show_iter=0,
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
             task=None, robot=None, *args,
             **kwargs):
         self.lr = lr
         self.iter = iter
+        self.show_iter = show_iter
         self.noise_dim = zdim
         self.epochs = epochs
         self.batch_size = batch_size
@@ -28,6 +29,10 @@ class AbstractAgentBasedModel(object):
             self.name += "_%s"%self.task
         if self.features is not None:
             self.name += "_%s"%self.features
+        
+        # default: store the whole model here.
+        # NOTE: this may not actually be where you want to save it.
+        self.model = None
 
     def train(self, agent, *args, **kwargs):
         raise NotImplementedError('train() takes an agent.')
@@ -36,7 +41,10 @@ class AbstractAgentBasedModel(object):
         '''
         Save to a filename determined by the "self.name" field.
         '''
-        raise NotImplementedError('save() not supported yet.')
+        if self.model is not None:
+            self.model.save_weights(self.name + ".h5f")
+        else:
+            raise RuntimeError('save() failed: model not found.')
 
     def load(self):
         '''
@@ -44,6 +52,12 @@ class AbstractAgentBasedModel(object):
         that you are interested in, at least for now.
         '''
         raise NotImplementedError('load() not supported yet.')
+
+    def _makeModel(self):
+        '''
+        Create the model based on some data set shape information.
+        '''
+        pass
 
     def getOptimizer(self):
         '''
