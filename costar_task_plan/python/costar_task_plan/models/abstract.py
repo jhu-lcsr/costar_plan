@@ -9,13 +9,14 @@ class AbstractAgentBasedModel(object):
     '''
 
     def __init__(self, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
-            clipnorm=100, show_iter=0,
+            clipnorm=100, show_iter=0, pretrain_iter=5,
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
             task=None, robot=None, *args,
             **kwargs):
         self.lr = lr
         self.iter = iter
         self.show_iter = show_iter
+        self.pretrain_iter = pretrain_iter
         self.noise_dim = zdim
         self.epochs = epochs
         self.batch_size = batch_size
@@ -23,6 +24,7 @@ class AbstractAgentBasedModel(object):
         self.model_descriptor = model_descriptor
         self.task = task
         self.features = features
+        self.robot = robot
         self.name = self.model_descriptor
         self.clipnorm = clipnorm
         if self.task is not None:
@@ -33,6 +35,25 @@ class AbstractAgentBasedModel(object):
         # default: store the whole model here.
         # NOTE: this may not actually be where you want to save it.
         self.model = None
+
+        print "================================================="
+        print "Name =", self.name
+        print "Features = ", self.features
+        print "Robot = ", self.robot
+        print "Task = ", self.task
+        print "Model description = ", self.model_descriptor
+        print "---------------------------"
+        print "Iterations = ", self.iter
+        print "Batch size =", self.batch_size
+        print "[OPTIONAL] Epochs = ", self.epochs
+        print "Show images every %d iter"%self.show_iter
+        print "[OPTIONAL] Pretrain for %d iter"%self.pretrain_iter
+        print "Noise dim = ", self.noise_dim
+        print "---------------------------"
+        print "Optimizer =", self.optimizer
+        print "Learning Rate = ", self.lr
+        print "Clip Norm = ", self.clipnorm
+        print "================================================="
 
     def train(self, agent, *args, **kwargs):
         raise NotImplementedError('train() takes an agent.')

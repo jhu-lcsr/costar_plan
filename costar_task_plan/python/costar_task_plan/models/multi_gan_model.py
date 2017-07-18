@@ -147,6 +147,34 @@ class RobotMultiGAN(AbstractAgentBasedModel):
             plt.figure()
 
         self.discriminator.summary()
+
+        # pretrain
+        print "Pretraining discriminator..."
+        self.discriminator.trainable = True
+        for i in xrange(self.pretrain_iter):
+            # Sample one batch, including random noise
+            idx = np.random.randint(0, features.shape[0], size=self.batch_size)
+            xi = features[idx]
+            ya = arm[idx]
+            yg = gripper[idx]
+            noise = np.random.random((self.batch_size, self.generator_dim))
+
+            # generate fake data
+            data_fake = self.generator.predict([noise])
+
+            # clean up and set up for discriminator batch training
+            xi_fake = np.concatenate((xi, data_fake))
+            is_fake = np.zeros((2*self.batch_size, 1))
+            is_fake[self.batch_size:] = 1
+            ya_double = np.concatenate((ya, ya))
+            yg_double = np.concatenate((yg, yg))
+            d_loss = self.discriminator.train_on_batch([xi_fake, ya_double,
+                yg_double], is_fake)
+            print "PT Iter %d: pretraining discriminator loss = "%(i+1), d_loss
+
+        self.discriminator.trainable = False
+
+
         for i in xrange(self.iter):
 
             # Sample one batch, including random noise
@@ -170,6 +198,7 @@ class RobotMultiGAN(AbstractAgentBasedModel):
 
             d_loss = self.discriminator.train_on_batch([xi_fake, ya_double,
                 yg_double], is_fake)
+            self.discriminator.trainable = False
 
             g_loss = self.adversarial.train_on_batch(
                     [noise, ya, yg],

@@ -127,6 +127,7 @@ class GAN(AbstractAgentBasedModel):
             is_fake[batch_size:] = 1
             yi_double = np.concatenate((yi, yi))
             d_loss = self.discriminator.train_on_batch([xi_fake, yi_double], is_fake)
+            self.discriminator.trainable = False
 
             g_loss = self.adversarial.train_on_batch(
                     [noise, yi],
