@@ -176,7 +176,7 @@ class RobotMultiGAN(AbstractAgentBasedModel):
                     np.zeros((self.batch_size, 1)),
                             )
 
-            print "Iter %d: D loss / GAN loss = "%(i), d_loss, g_loss
+            print "Iter %d: D loss / GAN loss = "%(i+1), d_loss, g_loss
 
             if self.show_iter > 0 and (i + 1) % self.show_iter == 0:
                 for j in xrange(6):
