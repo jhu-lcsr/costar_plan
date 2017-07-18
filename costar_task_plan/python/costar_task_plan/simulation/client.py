@@ -210,11 +210,11 @@ class CostarBulletSimulation(object):
             for name, rgb, depth, mask in imgs:
                 if self.show_images:
                     plt.subplot(1, 3, 1)
-                    plt.imshow(rgb, interpolation="none")
+                    plt.imshow(rgb, interpolation="none", aspect="auto)
                     plt.subplot(1, 3, 2)
-                    plt.imshow(depth, interpolation="none")
+                    plt.imshow(depth, interpolation="none", aspect="auto)
                     plt.subplot(1, 3, 3)
-                    plt.imshow(mask, interpolation="none")
+                    plt.imshow(mask, interpolation="none", aspect="auto)
                     plt.pause(0.01)
 
                 if self.capture:
