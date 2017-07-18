@@ -131,7 +131,8 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
 
             print "Iter %d: loss = %f"%(i,loss)
             if self.show_iter > 0 and (i+1) % self.show_iter == 0:
-                data = self.model.predict([features[:6], arm[:6], gripper[:6]])
+                #data = self.model.predict([features[:6], arm[:6], gripper[:6]])
+                data = self.model.predict([features[:6]])
                 for j in xrange(6):
                     plt.subplot(2, 3, j+1,)
                     plt.imshow(np.squeeze(data[j]))

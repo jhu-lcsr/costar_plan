@@ -137,18 +137,6 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     x = LeakyReLU(alpha=0.2)(x)
     x = Dropout(dropout_rate)(x)
 
-    # Add conv layer with more filters
-    #labels2 = RepeatVector(height2*width2)(labels)
-    #labels2 = Reshape((height2,width2,num_labels))(labels2)
-    #x = Concatenate(axis=3)([x, labels2])
-    x = Conv2D(num_filters, # + num_labels
-               kernel_size=[5, 5], 
-               strides=(2, 2),
-               padding="same")(x)
-    #x = BatchNormalization(momentum=0.9)(x)
-    x = LeakyReLU(alpha=0.2)(x)
-    x = Dropout(dropout_rate)(x)
-
     # ===============================================
     # ADD TILING
     tile_shape = (1, width4, height4, 1)
@@ -157,21 +145,14 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     #robot = Lambda(lambda x: K.tile(x, tile_shape))(robot)
     #x = Concatenate(axis=3)([x,robot])
 
-    x = Conv2D(num_filters, # + num_labels
-               kernel_size=[5, 5], 
-               strides=(2, 2),
-               padding="same")(x)
-    #x = BatchNormalization(momentum=0.9)(x)
-    x = LeakyReLU(alpha=0.2)(x)
-    x = Dropout(dropout_rate)(x)
-
-    x = Conv2D(num_filters, # + num_labels
-               kernel_size=[5, 5], 
-               strides=(2, 2),
-               padding="same")(x)
-    #x = BatchNormalization(momentum=0.9)(x)
-    x = LeakyReLU(alpha=0.2)(x)
-    x = Dropout(dropout_rate)(x)
+    for i in xrange(2):
+        x = Conv2D(num_filters, # + num_labels
+                   kernel_size=[5, 5], 
+                   strides=(2, 2),
+                   padding="same")(x)
+        x = BatchNormalization(momentum=0.9)(x)
+        x = LeakyReLU(alpha=0.2)(x)
+        x = Dropout(dropout_rate)(x)
 
     # Add dense layer
     x = Flatten()(x)
