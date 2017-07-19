@@ -11,7 +11,7 @@ class AlbertAgent(AbstractAgent):
     name = "albert"
 
     def __init__(self, env, *args, **kwargs):
-        super(RandomAgent, self).__init__(*args, **kwargs)
+        super(AlbertAgent, self).__init__(*args, **kwargs)
         self.env = env
 
     def fit(self, num_iter):
