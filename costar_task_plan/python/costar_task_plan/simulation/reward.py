@@ -41,6 +41,10 @@ class EuclideanReward(AbstractReward):
         else:
             reward = -1
             
+        if dist < .05:
+            print "reached target"
+            reward = 100
+            
         #print "reward " + str(reward) 
         
         #raw_input("Press Enter to continue...")

@@ -3,33 +3,21 @@ import matplotlib.pyplot as plt
 
 class OUProcess(object):
 
-    # mu is the desired mean of the noise
-    # theta controls how aggressively the noise tries to revert to the mean
-    # sigma defines the possible delta of the noise at each time step.  In conjuction with theta it defines the range of the noise.
-    def __init__(self, mu, theta, sigma):
+   """docstring for OUNoise"""
+   def __init__(self,action_dimension,mu=0, theta=0.15, sigma=0.3):
+       self.action_dimension = action_dimension
+       self.mu = mu
+       self.theta = theta
+       self.sigma = sigma
+       self.state = np.ones(self.action_dimension) * self.mu
+       self.reset()
 
-        self.mu = mu
-        self.theta = theta
-        self.sigma = sigma
-        self.x = 0.0
-        self.reset()
+   def reset(self):
+       self.state = np.ones(self.action_dimension) * self.mu
 
-    def reset(self):
-        self.x = self.mu
-        return self.x
+   def noise(self):
+       x = self.state
+       dx = self.theta * (self.mu - x) + self.sigma * np.random.randn(len(x))
+       self.state = x + dx
+       return self.state
 
-    def step(self):
-        self.x = self.x + self.theta * (self.mu - self.x) + self.sigma * np.random.randn(1)
-        return self.x
-
-
-
-if __name__ == "__main__":
-    ou = OUProcess(0.0, 0.6, 0.05)
-    history = []
-    for i in range(150):
-        history.append(ou.step())
-
-    plt.figure(7)
-    plt.plot(history)
-    plt.show()

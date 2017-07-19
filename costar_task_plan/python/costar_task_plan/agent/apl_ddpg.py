@@ -59,19 +59,19 @@ EPSILON_RANGE = [1.0, 0.2]      # Epsilon initial and final values
 EPSILON_STEPS = 1200000         # Frames over which to anneal epsilon
 OU_MEAN = 0.0                   # OU exploration noise mean - see OUProcess.py
 OU_THETA = 0.15                  # OU exploration noise theta - see OUProcess.py
-OU_STD_DEV = 0.3               # OU exploration noise sigma - see OUProcess.py
+#OU_STD_DEV = 1.57               # OU exploration noise sigma - see OUProcess.py
 
 #architecture & env params
 ACTION_ACTIVATION = 'tanh'       # Controls range of actions. True = 'tanh' = [-1,1], False = 'sigmoid' = [0,1]
 USE_ACCEL_CONTROL = False           # Control agents' acceleration instead of velocity
 INCLUDE_VELOCITY_IN_STATE = False   # Include agent vx, vy in state (in addition to x, y)
 PENALIZE_FOR_DISTRIBUTION = True   # Penalize agents for grouping over a single target
-NUM_AGENTS = 2                      # Number of agents (all controlled by one network)
-NUM_TARGETS = 2                     # Number of stationary targets
+NUM_AGENTS = 1                      # Number of agents (all controlled by one network)
+NUM_TARGETS = 1                     # Number of stationary targets
 CONVOLUTIONAL = False               # Operate on images of the environment instead of float vectors
 DRAW_STATE = True                 # This file should re-draw an image based on the state space
 ENV_OUTPUTS_IMAGE = False           # Control if ENV outputs state-vector or state image.
-NUM_NOISE_PROCS = 7
+NUM_NOISE_PROCS = 1
 #===========================================================
 # Other Constants
 #===========================================================
@@ -90,7 +90,9 @@ class APLDDPGAgent(AbstractAgent):
         self.action_dim = sum(sum(1 for i in row if i) for row in self.env.action_space.sample())
         self.observation = env.reset()
         self.state_dim = self.observation.shape
-        self.nn_action_dim = 3 # limit ddpg network output to 3 DOF
+        print ">>>>>>>>>>>>>>>>>>>>>state dim " + str(self.state_dim)
+        self.nn_action_dim = 7 # limit ddpg network output to 3 DOF
+        self.noise = OUProcess(self.nn_action_dim, mu=OU_MEAN, theta=OU_THETA, sigma=EPSILON_RANGE[0])
         
         
         
@@ -121,9 +123,9 @@ class APLDDPGAgent(AbstractAgent):
     
         #====================================================
         #Initialize noise processes
-        self.noise_procs = []
-        for i in range(NUM_NOISE_PROCS):
-            self.noise_procs.append(OUProcess(OU_MEAN, OU_THETA, OU_STD_DEV))
+        #self.noise_procs = []
+        #for i in range(NUM_NOISE_PROCS):
+        #    self.noise_procs.append(OUProcess(OU_MEAN, OU_THETA, OU_STD_DEV))
         
         #====================================================
         
@@ -138,8 +140,10 @@ class APLDDPGAgent(AbstractAgent):
         for ep in range(STARTING_EPISODE, EPISODES):
         
             #reset noise processes
-            for ou in self.noise_procs:
-                ou.reset()
+            #for ou in self.noise_procs:
+            #    ou.reset()
+        
+            self.noise.reset()
         
             #start time counter
             if(ep == PRE_LEARNING_EPISODES):
@@ -148,7 +152,6 @@ class APLDDPGAgent(AbstractAgent):
             print("Episode: " + str(ep) + "  Frames: " + str(ep*EPISODE_LENGTH) + "  Uptime: " + str((time.time()-start_time)/3600.0) + " hrs    ===========")
         
             state = self.env.reset()
-            agentwise_states = state
             
            
         
@@ -268,31 +271,52 @@ class APLDDPGAgent(AbstractAgent):
     
         actions = np.squeeze(actions)
         
-        #fill in zeros for all non-learned outputs
-        control_actions = np.pad(actions, (0, self.action_dim-len(actions)), 'constant')
         #print control_actions
     
         #print("+++++++++++")
         #print(actions)
-        i=0
+       
         if can_be_random:
+            self.noise.sigma = epsilon
+            noise = self.noise.noise()
+            #print noise
+            
+    
+            i = 0
+            for idx, a in enumerate(actions):    
+                actions[i] = actions[i] + noise[i]
+                actions[i] = self.clip(actions[i], -3.14, 3.14) #need to assign to actions[i], not just a.
+                i += 1
+                
+            
+
+            
+            
     
             #get noise
-            noise = []
+            #noise = []
             #iterate over all noise procs for non-coop, or a single agent's procs for co-op
             #for n in range(permutation_num*ACTIONS_PER_AGENT, permutation_num*ACTIONS_PER_AGENT + self.action_dim):
             #    ou = self.noise_procs[n]
             #    noise.append(ou.step())
     
-            for idx, a in enumerate(actions):
-                ou = self.noise_procs[idx]
-                noise = ou.step()                
-                a = a + epsilon*noise
-                #print epsilon * noise
-                actions[i] = self.clip(a, -3.14, 3.14) #need to assign to actions[i], not just a.
-                i += 1
-        
+#            for idx, a in enumerate(actions):
+#                ou = self.noise_procs[0]
+#                noise = ou.step()                
+#                a = a + epsilon*noise
+#                #print epsilon * noise
+#                actions[i] = self.clip(a, -3.14, 3.14) #need to assign to actions[i], not just a.
+#                i += 1
+#        
         #print(actions)
+    
+    #fill in zeros for all non-learned outputs
+        control_actions = np.pad(actions, (0, self.action_dim-len(actions)), 'constant')
+        #print actions
+        #print control_actions
+
+
+        
         return actions, control_actions
     
     #Constructs an image from state vector
