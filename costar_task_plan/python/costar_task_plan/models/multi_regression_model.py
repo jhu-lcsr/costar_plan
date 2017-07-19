@@ -78,7 +78,7 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
         #model = Model(img_ins, [arm_out])
         optimizer = self.getOptimizer()
         model.compile(loss="mse", optimizer=optimizer)
-        return model
+        self.model = model
 
     def train(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
         '''
@@ -86,7 +86,7 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
         trajectory.
         '''
 
-        self.model = self._makeModel(features, arm, gripper, arm_cmd,
+        self._makeModel(features, arm, gripper, arm_cmd,
                 gripper_cmd, *args, **kwargs)
         self.model.summary()
         self.model.fit(
@@ -96,3 +96,12 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
                 batch_size=self.batch_size,
                 )
 
+    def predict(self, features):
+        if isinstance(features, list):
+            assert len(features) == len(self.model.inputs)
+        if self.model is None:
+            raise RuntimeError('model is missing')
+        features = [f.reshape((1,)+f.shape) for f in features]
+        res = self.model.predict(features)
+        print res
+        return res

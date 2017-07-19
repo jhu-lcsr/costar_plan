@@ -144,4 +144,4 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
     def _getGripper(self):
         vs = [v[0] for v in pb.getJointStates(self.handle,
             self.stable_gripper_indices)]
-        return [np.round(-np.mean(vs),1)]
+        return np.array([np.round(-np.mean(vs),1)])

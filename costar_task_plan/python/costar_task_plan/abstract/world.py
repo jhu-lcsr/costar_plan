@@ -40,11 +40,12 @@ class AbstractWorld(object):
     Convert current observations to a vector of data.
     '''
     desc = self.features.description
-    if isinstance(features, tuple):
+    if isinstance(features, tuple) or isinstance(features, list):
         assert len(desc) ==  len(features)
         data = zip(self.features.description, features)
     else:
         assert not isinstance(desc, tuple)
+        assert not isinstance(desc, list)
         data = [(desc, features)]
     actor = self.actors[0]
     params = actor.state.toParams(control)

@@ -85,7 +85,7 @@ class SimulationWorld(AbstractWorld):
             actor.state = actor.getState()
             actor.state.t = self.ticks * self.dt
 
-    def zeroAction(self, actor):
+    def zeroAction(self, actor=0):
         return SimulationRobotAction()
 
 

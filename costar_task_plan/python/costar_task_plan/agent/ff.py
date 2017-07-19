@@ -21,7 +21,7 @@ class FeedForwardAgent(AbstractAgent):
         super(FeedForwardAgent, self).__init__(*args, **kwargs)
         self.env = env
         self.model = MakeModel(taskdef=env.task, *args, **kwargs)
-        self.model.load()
+        self.model.load(self.env.world)
 
     def fit(self, num_iter):
 

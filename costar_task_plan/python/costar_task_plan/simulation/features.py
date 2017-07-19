@@ -92,8 +92,8 @@ class ImagePlusFeatures(AbstractFeatures):
 
     def compute(self, world, state):
         img = world.cameras[0].capture().rgb
-        return img[:,:,:3], state.arm, state.gripper
+        return [img[:,:,:3], state.arm, state.gripper]
 
     @property
     def description(self):
-        return "features", "arm", "gripper"
+        return ["features", "arm", "gripper"]

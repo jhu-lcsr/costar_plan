@@ -1,4 +1,6 @@
 
+import numpy as np
+
 import keras.optimizers as optimizers
 
 class AbstractAgentBasedModel(object):
@@ -36,24 +38,24 @@ class AbstractAgentBasedModel(object):
         # NOTE: this may not actually be where you want to save it.
         self.model = None
 
-        print "================================================="
+        print "==========================================================="
         print "Name =", self.name
         print "Features = ", self.features
         print "Robot = ", self.robot
         print "Task = ", self.task
         print "Model description = ", self.model_descriptor
-        print "---------------------------"
+        print "-----------------------------------------------------------"
         print "Iterations = ", self.iter
+        print "Epochs = ", self.epochs
         print "Batch size =", self.batch_size
-        print "[OPTIONAL] Epochs = ", self.epochs
-        print "Show images every %d iter"%self.show_iter
-        print "[OPTIONAL] Pretrain for %d iter"%self.pretrain_iter
         print "Noise dim = ", self.noise_dim
-        print "---------------------------"
+        print "Show images every %d iter"%self.show_iter
+        print "Pretrain for %d iter"%self.pretrain_iter
+        print "-----------------------------------------------------------"
         print "Optimizer =", self.optimizer
         print "Learning Rate = ", self.lr
         print "Clip Norm = ", self.clipnorm
-        print "================================================="
+        print "==========================================================="
 
     def train(self, agent, *args, **kwargs):
         raise NotImplementedError('train() takes an agent.')
@@ -80,10 +82,9 @@ class AbstractAgentBasedModel(object):
         done = False
         data = world.vectorize(control, features, reward, done, example,
                 action_label)
-        print data
         kwargs = {}
         for k, v in data:
-            kwargs[k] = [v]
+            kwargs[k] = np.array([v])
         self._makeModel(**kwargs)
 
     def _makeModel(self, *args, **kwargs):
@@ -104,3 +105,10 @@ class AbstractAgentBasedModel(object):
             print e
             raise RuntimeError('asdf')
         return optimizer
+
+    def predict(self, features):
+        '''
+        Implement this to predict... something... from a world state
+        observation.
+        '''
+        raise NotImplementedError('predict() not supported yet.')
