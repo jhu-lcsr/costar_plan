@@ -5,6 +5,7 @@ from task import *
 
 from keras_ddpg import *
 from keras_naf import *
+from albert import *
 
 def GetAgents():
     return ["none", "null", "albert", "random", "task", "keras_ddpg", "keras_naf"]
