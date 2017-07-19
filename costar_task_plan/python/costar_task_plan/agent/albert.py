@@ -54,7 +54,8 @@ class AlbertAgent(AbstractAgent):
                             features,
                             reward,
                             done,
-                            i)
+                            i,
+                            names = "demo")
                             #i,
                             #names[plan.idx])
                     if done:
