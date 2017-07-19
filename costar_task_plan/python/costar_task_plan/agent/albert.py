@@ -17,13 +17,13 @@ class AlbertAgent(AbstractAgent):
 
     def fit(self, num_iter):
         a = pb.getKeyboardEvents()
-        token = 0
-
+        
         for i in xrange(num_iter):
             print "---- Iteration %d ----"%(i+1)
             self.env.reset()
 
             while not self._break:
+                token = 0
                 state = self.env.world.actors[0].state
                 control = SimulationRobotAction(arm_cmd=None, gripper_cmd=None)
 
