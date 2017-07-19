@@ -16,13 +16,13 @@ class AlbertAgent(AbstractAgent):
         self.env = env
 
     def fit(self, num_iter):
-        a = pb.getKeyboardEvents()
+        #a = pb.getKeyboardEvents()
         
         for i in xrange(num_iter):
             print "---- Iteration %d ----"%(i+1)
             self.env.reset()
             print "reset reached"
-            
+            a = pb.getKeyboardEvents()
 
             while not self._break:
                 token = 0
