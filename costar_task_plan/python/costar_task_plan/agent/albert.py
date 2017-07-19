@@ -17,6 +17,7 @@ class AlbertAgent(AbstractAgent):
 
     def fit(self, num_iter):
         a = pb.getKeyboardEvents()
+        token = 0
 
         for i in xrange(num_iter):
             print "---- Iteration %d ----"%(i+1)
