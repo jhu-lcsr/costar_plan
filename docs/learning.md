@@ -18,6 +18,11 @@ rosrun costar_bullet start --robot ur5 --agent null --features multi --load \
   --model autoencoder --data_file small.npz --si 5 -i 1000  --batch_size 64
 ```
 
+![Autoencoder Example](autoencoder_example.png)
+
+Above is an example of what this might look like after about 300 iterations. That's not very long, but we can still clearly see the robot's shape, and the net is starting to learn about block color.
+
+
 ## Learning a Generative Adversarial Network
 
 GANs are a popular approach these days, and luckily it's pretty easy to train one with CTP:
