@@ -21,19 +21,15 @@ class AlbertAgent(AbstractAgent):
         for i in xrange(num_iter):
             print "---- Iteration %d ----"%(i+1)
             self.env.reset()
-            print "reset reached"
             a = pb.getKeyboardEvents()
 
             while not self._break:
                 token = 0
-                print "while loop reached"
                 state = self.env.world.actors[0].state
                 control = SimulationRobotAction(arm_cmd=None, gripper_cmd=None)
-                print "control activated"
 
                 a = pb.getKeyboardEvents()
-                print "keyboard started"
-                print a
+                if a != {}: print a
                 # y opens the gripper
                 if 121 in a:  
                     print "y detected"
