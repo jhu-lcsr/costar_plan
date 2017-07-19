@@ -86,6 +86,7 @@ class CostarBulletSimulation(object):
                 and agent is not "null"
         self.robot = GetRobotInterface(robot)
         features = GetFeatures(features)
+        print ">>>>>>>>>>>>>>>>>", task
         self.task = GetTaskDefinition(
             task, self.robot, features, *args, **kwargs)
 
@@ -204,7 +205,6 @@ class CostarBulletSimulation(object):
 
         # Get state, action, features, reward from update
         (ok, S0, A0, S1, F1, reward) = self.task.world.tick(action)
-
         if self.capture or self.show_images:
             imgs = self.task.capture()
             for name, rgb, depth, mask in imgs:
@@ -230,6 +230,7 @@ class CostarBulletSimulation(object):
                     plt.imsave(path3, mask)
 
         # Return world information
+       
         return F1, reward, not ok, {}
 
     def close(self):

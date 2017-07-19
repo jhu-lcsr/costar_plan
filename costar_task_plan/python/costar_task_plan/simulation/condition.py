@@ -86,6 +86,7 @@ class GoalPositionCondition(AbstractCondition):
         # that for computing positions and stuff like that.
         obj = world.getObject(self.goal)
         T = obj.state.T * self.T
+
         dist = (state.T.p - T.p).Norm()
         still_moving = np.any(np.abs(state.arm_v) > self.v_tol)
 
@@ -161,6 +162,29 @@ class ObjectAtPositionCondition(AbstractCondition):
         dist = (T.p - self.p).Norm()
 
         return dist > self.pos_tol
+        
+class ObjectMovedCondition(AbstractCondition):
+    '''
+    Check to see if a particular 
+    '''
+    def __init__(self, objname, pos, pos_tol):
+        self.objname = objname
+        self.pos = pos
+        self.p = kdl.Vector(*self.pos)
+        self.pos_tol = pos_tol
+
+    def _check(self, world, *args, **kwargs):
+        '''
+        Returns true until we are within tolerance of position
+        '''
+        T = world.getObject(self.objname).state.T
+        #print T.p
+        dist = (T.p - self.p).Norm()
+
+        #print dist < self.pos_tol
+        
+        return dist < self.pos_tol
+        
 
 
 class GraspingObjectCondition(AbstractCondition):

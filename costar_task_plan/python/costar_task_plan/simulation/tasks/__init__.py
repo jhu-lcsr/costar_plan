@@ -1,5 +1,6 @@
 from abstract import AbstractTaskDefinition
 from blocks import BlocksTaskDefinition
+from drl_blocks import DRLBlocksTaskDefinition
 from clutter import ClutterTaskDefinition
 from sorting import SortingTaskDefinition
 from oranges import OrangesTaskDefinition
@@ -10,6 +11,7 @@ from oranges import OrangesTaskDefinition
 
 __all__ = ["AbstractTaskDefinition",
            "BlocksTaskDefinition",
+           "DRLBlocksTaskDefinition",
            "ClutterTaskDefinition",
            "SortingTaskDefinition",
            "OrangesTaskDefinition",

@@ -1,11 +1,13 @@
 
 from null import *
-from random import *
+from random_agent import *
 from task import *
 from ff import *
 
 from keras_ddpg import *
 from keras_naf import *
+from apl_ddpg import *
+
 from albert import *
 
 def GetAgents():
@@ -16,6 +18,7 @@ def GetAgents():
             "keras_ddpg", # keras DDPG
             "keras_naf", # not implemented
             "ff", # FF regression agent
+            "apl_ddpg", # custom DDPG implementation
             ]
 
 def MakeAgent(env, name, *args, **kwargs):
@@ -24,10 +27,11 @@ def MakeAgent(env, name, *args, **kwargs):
                 'no': lambda: NoAgent(env, *args, **kwargs),
                 'none': lambda: NoAgent(env, *args, **kwargs),
                 'null': lambda: NullAgent(env, *args, **kwargs),
-		'albert': lambda: AlbertAgent(env, *args, **kwargs),
+        		    'albert': lambda: AlbertAgent(env, *args, **kwargs),
                 'random': lambda: RandomAgent(env, *args, **kwargs),
                 'task': lambda: TaskAgent(env, *args, **kwargs),
-		'keras_ddpg': lambda: KerasDDPGAgent(env, *args, **kwargs),
+                'apl_ddpg': lambda: APLDDPGAgent(env, *args, **kwargs),
+            		'keras_ddpg': lambda: KerasDDPGAgent(env, *args, **kwargs),
                 'ff': lambda: FeedForwardAgent(env, *args, **kwargs),
                 }[name.lower()]()
     except KeyError, e:
