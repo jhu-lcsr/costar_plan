@@ -10,7 +10,9 @@ from util import *
 
 __all__ = [
         # ============================
-        "RandomAgent", "NullAgent",
+        "AlbertAgent",
+        "RandomAgent",
+        "NullAgent",
         "TaskAgent",
         "RandomGoalAgent",
         "KerasDDPGAgent",
