@@ -29,23 +29,23 @@ def MakeModel(features, model, taskdef, *args, **kwargs):
             pass
         elif features == 'multi':
             # This model will handle features 
-            model_instance = RobotMultiGAN(taskdef, **kwargs)
+            model_instance = RobotMultiGAN(taskdef, model=model, **kwargs)
     elif model == 'ff_regression':
         if features in ['rgb','depth']:
             # make a nice little convnet
             pass
         elif features == 'multi':
-            model_instance = RobotMultiFFRegression(taskdef, **kwargs)
+            model_instance = RobotMultiFFRegression(taskdef, model=model, **kwargs)
     elif model == "sample":
         if features in ['rgb','depth']:
             pass
         elif features == 'multi':
-            model_instance = RobotMultiTrajectorySampler(taskdef, **kwargs)
+            model_instance = RobotMultiTrajectorySampler(taskdef, model=model, **kwargs)
     elif model == "autoencoder":
         if features in ['rgb','depth']:
             pass
         elif features == 'multi':
-            model_instance = RobotMultiAutoencoder(taskdef, **kwargs)
+            model_instance = RobotMultiAutoencoder(taskdef, model=model, **kwargs)
     
     # If we did not create a model then die.
     if model_instance is None:

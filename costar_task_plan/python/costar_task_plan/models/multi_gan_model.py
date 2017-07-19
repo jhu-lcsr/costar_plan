@@ -38,8 +38,8 @@ class RobotMultiGAN(AbstractAgentBasedModel):
 
         self.taskdef = taskdef
         
-        self.generator_dim = 64
-        self.img_dense_size = 512
+        self.generator_dim = 128
+        self.img_dense_size = 1024
         self.img_num_filters = 64
 
         self.dropout_rate = 0.5
@@ -226,7 +226,7 @@ class RobotMultiGAN(AbstractAgentBasedModel):
                     plt.tight_layout()
                 plt.ion()
                 plt.show(block=False)
-                plt.pause(0.001)
+                plt.pause(0.01)
 
     def save(self):
         '''

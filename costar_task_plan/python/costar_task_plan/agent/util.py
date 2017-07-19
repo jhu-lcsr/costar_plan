@@ -2,13 +2,21 @@
 from null import *
 from random import *
 from task import *
+from ff import *
 
 from keras_ddpg import *
 from keras_naf import *
 from albert import *
 
 def GetAgents():
-    return ["none", "null", "albert", "random", "task", "keras_ddpg", "keras_naf"]
+    return ["none", "null",
+            "albert", # keyboard
+            "random", # random actions
+            "task", # supervised task model
+            "keras_ddpg", # keras DDPG
+            "keras_naf", # not implemented
+            "ff", # FF regression agent
+            ]
 
 def MakeAgent(env, name, *args, **kwargs):
     try:
@@ -20,6 +28,7 @@ def MakeAgent(env, name, *args, **kwargs):
                 'random': lambda: RandomAgent(env, *args, **kwargs),
                 'task': lambda: TaskAgent(env, *args, **kwargs),
 		'keras_ddpg': lambda: KerasDDPGAgent(env, *args, **kwargs),
+                'ff': lambda: FeedForwardAgent(env, *args, **kwargs),
                 }[name.lower()]()
     except KeyError, e:
         raise NotImplementedError('Agent "%s" not implemented'%name)

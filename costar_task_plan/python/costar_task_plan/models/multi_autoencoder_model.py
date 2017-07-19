@@ -47,26 +47,8 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
         super(RobotMultiAutoencoder, self).__init__(*args, **kwargs)
 
 
-    def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
-            example, *args, **kwargs):
-        '''
-        Set up the imitation autoencoder to learn a model of what actions we expect
-        from each state. Our goal is to sample the distribution of actions that
-        is most likely to give us a trajectory to the goal.
-        '''
-        """
-        imgs = data['features']
-        arm = data['arm']
-        gripper = data['gripper']
-        arm_cmd = data['arm_cmd']
-        gripper_cmd = data['gripper_cmd']
-        labels = data['action']
-        """
-
-        # Set up the learning problem as:
-        # Goal: f(img, arm, gripper) --> arm_cmd, gripper_cmd
-
-        #features = features[:,:,:,:3]
+    def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, *args,
+            **kwargs):
         img_shape = features.shape[1:]
         arm_size = arm.shape[1]
         if len(gripper.shape) > 1:
@@ -94,17 +76,38 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
         # ========================================
         # For debugging
         self.model.summary()
-        print decoder.summary()
 
-        tensorboard_cb = TensorBoard(
-                log_dir='./logs_%s'%(self.model_descriptor),
-                histogram_freq=25, batch_size=self.batch_size,
-                write_graph=True,
-                write_grads=False,
-                write_images=True,
-                embeddings_freq=0,
-                embeddings_layer_names=None,
-                embeddings_metadata=None)
+    def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
+            example, *args, **kwargs):
+        '''
+        Set up the imitation autoencoder to learn a model of what actions we expect
+        from each state. Our goal is to sample the distribution of actions that
+        is most likely to give us a trajectory to the goal.
+        '''
+        """
+        imgs = data['features']
+        arm = data['arm']
+        gripper = data['gripper']
+        arm_cmd = data['arm_cmd']
+        gripper_cmd = data['gripper_cmd']
+        labels = data['action']
+        """
+
+        # Set up the learning problem as:
+        # Goal: f(img, arm, gripper) --> arm_cmd, gripper_cmd
+
+        #features = features[:,:,:,:3]
+        self._makeModel(features, arm, gripper, arm_cmd, gripper_cmd)
+
+        #tensorboard_cb = TensorBoard(
+        #        log_dir='./logs_%s'%(self.model_descriptor),
+        #        histogram_freq=25, batch_size=self.batch_size,
+        #        write_graph=True,
+        #        write_grads=False,
+        #        write_images=True,
+        #        embeddings_freq=0,
+        #        embeddings_layer_names=None,
+        #        embeddings_metadata=None)
         #self.model.fit(
         #        x=[features, arm, gripper],
         #        #y=[arm_cmd, gripper_cmd],
@@ -113,6 +116,7 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
         #        batch_size=self.batch_size,
         #        callbacks=[tensorboard_cb],
         #        )
+
         if self.show_iter > 0:
             fig = plt.figure()
 
@@ -141,7 +145,5 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
                     plt.tight_layout()
                 plt.ion()
                 plt.show(block=False)
-                plt.pause(0.001)
-
-
+                plt.pause(0.01)
 
