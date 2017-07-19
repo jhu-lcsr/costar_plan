@@ -144,7 +144,7 @@ class AlbertAgent(AbstractAgent):
                     gripper_cmd = None
                     #state.arm = joints
                     invarm = state.robot.ik(T_arm, state.arm)
-                    control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd):
+                    control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
                     
                 if 104 in a:
                     print("---------Help requested--------------")
