@@ -15,6 +15,7 @@ def MakeAgent(env, name, *args, **kwargs):
                 'no': lambda: NoAgent(env, *args, **kwargs),
                 'none': lambda: NoAgent(env, *args, **kwargs),
                 'null': lambda: NullAgent(env, *args, **kwargs),
+		'albert': lambda: AlbertAgent(env, *args, **kwargs),
                 'random': lambda: RandomAgent(env, *args, **kwargs),
                 'task': lambda: TaskAgent(env, *args, **kwargs),
 		'keras_ddpg': lambda: KerasDDPGAgent(env, *args, **kwargs),
