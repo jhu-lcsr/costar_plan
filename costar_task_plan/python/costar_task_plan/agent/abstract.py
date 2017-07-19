@@ -130,27 +130,12 @@ class AbstractAgent(object):
         # Save both the generic, non-parameterized action name and the action
         # name.
         generic_action_name = action_label.split('(')[0]
+        world = self.env.world
         if self.save:
             # Features can be either a tuple or a numpy array. If they're a
             # tuple, we handle them one way...
-            desc = self.env.world.features.description
-            if isinstance(features, tuple):
-                assert len(desc) ==  len(features)
-                data = zip(self.env.world.features.description, features)
-            else:
-                assert not isinstance(desc, tuple)
-                data = [(desc, features)]
-            actor = world.actors[0]
-            params = actor.state.toParams(control)
-            if isinstance(params, tuple):
-                for desc, param in zip(control.getDescription(), params):
-                    data.append((desc, param))
-            else:
-                data.append(control.getDescription(), params)
-            data += [("reward", reward),
-                     ("done", done),
-                     ("example", example),
-                     ("label", action_label)]
+            data = world.vectorize(control, features, reward, done, example,
+                    action_label)
 
             for key, value in data:
                 if not key in self.data:

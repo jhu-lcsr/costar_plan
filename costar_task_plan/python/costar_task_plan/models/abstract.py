@@ -11,7 +11,7 @@ class AbstractAgentBasedModel(object):
     def __init__(self, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
             clipnorm=100, show_iter=0, pretrain_iter=5,
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
-            task=None, robot=None, *args,
+            task=None, robot=None, model="", *args,
             **kwargs):
         self.lr = lr
         self.iter = iter
@@ -25,7 +25,7 @@ class AbstractAgentBasedModel(object):
         self.task = task
         self.features = features
         self.robot = robot
-        self.name = self.model_descriptor
+        self.name = "%s_%s"%(model, self.model_descriptor)
         self.clipnorm = clipnorm
         if self.task is not None:
             self.name += "_%s"%self.task
@@ -67,12 +67,24 @@ class AbstractAgentBasedModel(object):
         else:
             raise RuntimeError('save() failed: model not found.')
 
-    def load(self, *args, **kwargs):
+    def load(self, world, *args, **kwargs):
         '''
         Load will use the current model descriptor and name to load the file
         that you are interested in, at least for now.
         '''
-        raise NotImplementedError('load() not supported yet.')
+        control = world.zeroAction()
+        reward = world.initial_reward
+        features = world.computeFeatures()
+        action_label = ''
+        example = 0
+        done = False
+        data = world.vectorize(control, features, reward, done, example,
+                action_label)
+        print data
+        kwargs = {}
+        for k, v in data:
+            kwargs[k] = [v]
+        self._makeModel(**kwargs)
 
     def _makeModel(self, *args, **kwargs):
         '''
