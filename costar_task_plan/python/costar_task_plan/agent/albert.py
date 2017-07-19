@@ -45,18 +45,124 @@ class AlbertAgent(AbstractAgent):
                     gripper_cmd = state.robot.gripperCloseCommand()
                     control = SimulationRobotAction(arm_cmd=None, gripper_cmd=gripper_cmd)
                     
+       #############################Forwards##########################
+    
                 if 119 in a:  
                     print "w detected"
                     token = 119
                     origin = state.T
-                    move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0,0,0))
+                    move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0.1,0,0))
                     T_arm = origin * move
                     #Transformed arm
                     gripper_cmd = None
                     #state.arm = joints
                     invarm = state.robot.ik(T_arm, state.arm)
                     control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
-
+                
+                if 97 in a:  
+                    print "a detected"
+                    token = 97
+                    origin = state.T
+                    move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0,0.1,0))
+                    T_arm = origin * move
+                    #Transformed arm
+                    gripper_cmd = None
+                    #state.arm = joints
+                    invarm = state.robot.ik(T_arm, state.arm)
+                    control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
+                
+                if 114 in a:  
+                    print "r detected"
+                    token = 114
+                    origin = state.T
+                    move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0,0,0.1))
+                    T_arm = origin * move
+                    #Transformed arm
+                    gripper_cmd = None
+                    #state.arm = joints
+                    invarm = state.robot.ik(T_arm, state.arm)
+                    control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
+                
+                if 113 in a:  
+                    print "q detected"
+                    token = 113
+                    origin = state.T
+                    move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0.1,0.1,0.1))
+                    T_arm = origin * move
+                    #Transformed arm
+                    gripper_cmd = None
+                    #state.arm = joints
+                    invarm = state.robot.ik(T_arm, state.arm)
+                    control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
+      
+    ############################Backwards#########################
+    
+                if 115 in a:  
+                    print "s detected"
+                    token = 115
+                    origin = state.T
+                    move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(-0.1,0,0))
+                    T_arm = origin * move
+                    #Transformed arm
+                    gripper_cmd = None
+                    #state.arm = joints
+                    invarm = state.robot.ik(T_arm, state.arm)
+                    control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
+                
+                
+                if 100 in a:  
+                    print "d detected"
+                    token = 100
+                    origin = state.T
+                    move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0,-0.1,0))
+                    T_arm = origin * move
+                    #Transformed arm
+                    gripper_cmd = None
+                    #state.arm = joints
+                    invarm = state.robot.ik(T_arm, state.arm)
+                    control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
+                
+                if 102 in a:  
+                    print "f detected"
+                    token = 102
+                    origin = state.T
+                    move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0,0,-0.1))
+                    T_arm = origin * move
+                    #Transformed arm
+                    gripper_cmd = None
+                    #state.arm = joints
+                    invarm = state.robot.ik(T_arm, state.arm)
+                    control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
+                
+                if 101 in a:  
+                    print "e detected"
+                    token = 101
+                    origin = state.T
+                    move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(-0.1,-0.1,-0.1))
+                    T_arm = origin * move
+                    #Transformed arm
+                    gripper_cmd = None
+                    #state.arm = joints
+                    invarm = state.robot.ik(T_arm, state.arm)
+                    control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd):
+                    
+                if 104 in a:
+                    print("---------Help requested--------------")
+                    print(" ------------------------------------");
+                    print("| Jaco Keyboard Teleop Help          |");
+                    print("|------------------------------------|*");
+                    print("| Current Mode: Arm Control          |*");
+                    print("|------------------------------------|*");
+                    print("| w/s : forward/backward translation |*");
+                    print("| a/d : left/right translation       |*");
+                    print("| r/f : up/down translation          |*");
+                    print("| q/e : roll                         |*");
+                    print("| up/down : pitch                    |*");
+                    print("| left/right : yaw                   |*");
+                    print("| 2 : switch to Finger Control       |*");
+                    print(" ------------------------------------**");
+                    print("  *************************************");
+                
                 if control is not None:
                     features, reward, done, info = self.env.step(control)
                     '''
