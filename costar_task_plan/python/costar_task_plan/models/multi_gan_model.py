@@ -153,9 +153,9 @@ class RobotMultiGAN(AbstractAgentBasedModel):
         # pretrain
         print "Pretraining discriminator..."
         self.discriminator.trainable = True
-        idx = np.random.randint(0, features.shape[0], size=self.batch_size)
         for i in xrange(self.pretrain_iter):
             # Sample one batch, including random noise
+            idx = np.random.randint(0, features.shape[0], size=self.batch_size)
             xi = features[idx]
             ya = arm[idx]
             yg = gripper[idx]
