@@ -23,7 +23,8 @@ class AlbertAgent(AbstractAgent):
 
             while not self._break:
                 state = self.env.world.actors[0].state
-                control = None
+                control = SimulationRobotAction(arm_cmd=None, gripper_cmd=None)
+
                 a = pb.getKeyboardEvents()
                 
                 # y opens the gripper
