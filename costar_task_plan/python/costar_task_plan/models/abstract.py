@@ -100,7 +100,7 @@ class AbstractAgentBasedModel(object):
         need to overload this for specific models.
         '''
         if self.model is not None:
-            self.model.save_weights(self.name + ".h5f")
+            self.model.load_weights(self.name + ".h5f")
         else:
             raise RuntimeError('_loadWeights() failed: model not found.')
 
