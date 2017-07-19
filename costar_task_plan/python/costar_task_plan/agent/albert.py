@@ -1,7 +1,7 @@
 from abstract import AbstractAgent
 import pybullet as pb
 
-class RandomAgent(AbstractAgent):
+class AlbertAgent(AbstractAgent):
     '''
     Really simple test agent that just generates a random set of positions to
     move to.
