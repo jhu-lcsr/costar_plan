@@ -103,5 +103,4 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
             raise RuntimeError('model is missing')
         features = [f.reshape((1,)+f.shape) for f in features]
         res = self.model.predict(features)
-        print res
         return res

@@ -86,12 +86,23 @@ class AbstractAgentBasedModel(object):
         for k, v in data:
             kwargs[k] = np.array([v])
         self._makeModel(**kwargs)
+        self._loadWeights()
 
     def _makeModel(self, *args, **kwargs):
         '''
         Create the model based on some data set shape information.
         '''
         raise NotImplementedError('_makeModel() not supported yet.')
+
+    def _loadWeights(self, *args, **kwargs):
+        '''
+        Load model weights. This is the default load weights function; you may
+        need to overload this for specific models.
+        '''
+        if self.model is not None:
+            self.model.save_weights(self.name + ".h5f")
+        else:
+            raise RuntimeError('_loadWeights() failed: model not found.')
 
     def getOptimizer(self):
         '''
