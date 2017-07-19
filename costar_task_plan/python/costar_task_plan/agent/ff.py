@@ -18,9 +18,9 @@ class FeedForwardAgent(AbstractAgent):
     name = "random"
 
     def __init__(self, env, *args, **kwargs):
-        super(RandomAgent, self).__init__(*args, **kwargs)
+        super(FeedForwardAgent, self).__init__(*args, **kwargs)
         self.env = env
-        self.model = MakeModel(taskdef=env.task, **args)
+        self.model = MakeModel(taskdef=env.task, *args, **kwargs)
         self.model.load()
 
     def fit(self, num_iter):
