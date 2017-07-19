@@ -7,7 +7,7 @@ from keras_ddpg import *
 from keras_naf import *
 
 def GetAgents():
-    return ["none", "null", "random", "task", "keras_ddpg", "keras_naf"]
+    return ["none", "null", "albert", "random", "task", "keras_ddpg", "keras_naf"]
 
 def MakeAgent(env, name, *args, **kwargs):
     try:
