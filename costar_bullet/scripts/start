@@ -25,7 +25,7 @@ def main(args):
     if 'model' in args and args['model'] is not None:
         model = MakeModel(taskdef=env.task, **args)
         if 'load_model' in args and args['load_model']:
-            pass
+            model.load()
         else:
             try:
                 model.train(**agent.data)
@@ -45,7 +45,6 @@ if __name__ == '__main__':
     '''
 
     args = ParseBulletArgs()
-    print args
     if args['profile']:
         import cProfile
         cProfile.run('main(args)')
