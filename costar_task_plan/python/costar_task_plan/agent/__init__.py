@@ -5,6 +5,7 @@ from keras_naf import *
 from null import *
 from random import *
 from task import *
+from albert import *
 
 from util import *
 
