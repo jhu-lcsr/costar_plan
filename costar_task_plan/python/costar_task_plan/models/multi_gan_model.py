@@ -91,7 +91,9 @@ class RobotMultiGAN(AbstractAgentBasedModel):
                 self.generator.inputs + self.discriminator.inputs[1:],
                 self.discriminator([self.generator.outputs[0]] + self.discriminator.inputs[1:])
                 )
-        self.adversarial.compile(loss=loss, optimizer=self.getOptimizer(),
+        optimizer = self.getOptimizer()
+        optimizer.lr *= 2
+        self.adversarial.compile(loss=loss, optimizer=optimizer,
                 metrics=["accuracy"])
 
     def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
@@ -146,6 +148,7 @@ class RobotMultiGAN(AbstractAgentBasedModel):
         self.discriminator.trainable = False
         self.generator.trainable = True
         self.adversarial.summary()
+        self.discriminator.summary()
 
         # pretrain
         print "Pretraining discriminator..."

@@ -15,13 +15,17 @@ def main(args):
         agent.fit(num_iter=args['iter'])
     if 'model' in args and args['model'] is not None:
         model = MakeModel(taskdef=env.task, **args)
-        try:
-            model.train(**agent.data)
-        except KeyboardInterrupt, e:
+        if args['']:
+            try:
+                model.train(**agent.data)
+            except KeyboardInterrupt, e:
+                pass
+            model.save()
+            if args['debug_model']:
+                model.plot(env)
+        else:
             pass
-        model.save()
-        if args['debug_model']:
-            model.plot(env)
+            
 
 if __name__ == '__main__':
     '''

@@ -127,6 +127,14 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
                 spaces.Box(-0.8, 0.0, 1)))
 
     def _getArmPosition(self):
+        '''
+        Get arm information.
+
+        Returns:
+        ---------
+        q: vector of joint positions
+        dq: vector of joint velocities
+        '''
         q = [0.] * 6
         dq = [0.] * 6
         for i in xrange(6):

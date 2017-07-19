@@ -137,23 +137,14 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     #x = Concatenate(axis=3)([x,robot])
     x = samples
 
-    for i in xrange(1):
-        x = Conv2DTranspose(filters,
+    for i in xrange(2):
+        x = Conv2D(filters,
                    kernel_size=[5, 5], 
                    strides=(2, 2),
                    padding='same')(x)
-        x = BatchNormalization(momentum=0.9)(x)
+        #x = BatchNormalization(momentum=0.9)(x)
         x = Activation('relu')(x)
         x = Dropout(dropout_rate)(x)
-
-    for i in xrange(1):
-        x = Conv2D(filters/2, # + num_labels
-                   kernel_size=[5, 5], 
-                   strides=(1, 1),
-                   padding="same")(x)
-        x = BatchNormalization(momentum=0.9)(x)
-        x = LeakyReLU(alpha=0.2)(x)
-        x = Dropout(dropout_rate)(x)    # Add dense layer
 
     x = Flatten()(x)
     x = Dense(dim)(x)

@@ -98,17 +98,7 @@ class JacoRobotiqInterface(AbstractRobotInterface):
         Gripper commands need to be mirrored to simulate behavior of the actual
         UR5.
         '''
-        pb.setJointMotorControl2(self.handle, self.left_knuckle, mode,  -cmd)
-        pb.setJointMotorControl2(
-            self.handle, self.left_inner_knuckle, mode,  -cmd)
-        pb.setJointMotorControl2(self.handle, self.left_finger, mode,  cmd)
-        pb.setJointMotorControl2(self.handle, self.left_fingertip, mode,  cmd)
-
-        pb.setJointMotorControl2(self.handle, self.right_knuckle, mode,  -cmd)
-        pb.setJointMotorControl2(
-            self.handle, self.right_inner_knuckle, mode,  -cmd)
-        pb.setJointMotorControl2(self.handle, self.right_finger, mode,  cmd)
-        pb.setJointMotorControl2(self.handle, self.right_fingertip, mode,  cmd)
+        pass
 
     def act(self, action):
         '''
@@ -122,10 +112,31 @@ class JacoRobotiqInterface(AbstractRobotInterface):
         return spaces.Tuple((spaces.Box(-np.pi, np.pi, 6), spaces.Box(-0.6, 0.6, 1)))
 
     def _getArmPosition(self):
+        '''
+        Get arm information.
+
+        Returns:
+        ---------
+        q: vector of joint positions
+        dq: vector of joint velocities
+        '''
         q = [0.] * 6
+        dq = [0.] * 6
         for i in xrange(6):
-            q[i] = pb.getJointState(self.handle, i)[0]
-        return q
+            q[i], dq[i] = pb.getJointState(self.handle, i)[:2]
+        return np.array(q), np.array(dq)
 
     def _getGripper(self):
         return pb.getJointState(self.handle, self.left_finger)
+
+    def gripperCloseCommand(cls):
+        '''
+        Return the closed position for this gripper.
+        '''
+        return [-0.8]
+
+    def gripperOpenCommand(cls):
+        '''
+        Return the open command for this gripper
+        '''
+        return [0.0]

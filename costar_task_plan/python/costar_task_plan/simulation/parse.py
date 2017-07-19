@@ -138,5 +138,8 @@ def ParseBulletArgs():
                               " discriminators.",
                         default=0,
                         type=int)
+    parser.add_argument("--load_model", "--lm",
+                        help="Load a neural net model to test",
+                        action="store_true")
 
     return vars(parser.parse_args())
