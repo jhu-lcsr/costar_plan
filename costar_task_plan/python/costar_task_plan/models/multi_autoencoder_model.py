@@ -39,8 +39,7 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
         self.taskdef = taskdef
         
         self.generator_dim = 1024
-        self.img_dense_size = 1024
-        self.img_num_filters =64
+        self.img_num_filters = 64
 
         self.dropout_rate = 0.5
 
@@ -64,8 +63,6 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
         labels = data['action']
         """
 
-        print label
-
         # Set up the learning problem as:
         # Goal: f(img, arm, gripper) --> arm_cmd, gripper_cmd
 
@@ -82,8 +79,7 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
                 gripper_size,
                 self.generator_dim,
                 self.dropout_rate,
-                self.img_num_filters,
-                self.img_dense_size,)
+                self.img_num_filters)
         rep, dec = GetDecoder(self.generator_dim,
                             img_shape,
                             arm_size,
@@ -94,7 +90,12 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
         self.model = Model(ins, decoder(enc))
         optimizer = self.getOptimizer()
         self.model.compile(loss="mae", optimizer=optimizer)
+
+        # ========================================
+        # For debugging
         self.model.summary()
+        print decoder.summary()
+
         tensorboard_cb = TensorBoard(
                 log_dir='./logs_%s'%(self.model_descriptor),
                 histogram_freq=25, batch_size=self.batch_size,
@@ -125,12 +126,14 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
             yf = features[idx]
 
             loss = self.model.train_on_batch(
-                    [xf, xa, xg],
+                    #[xf, xa, xg],
+                    [xf],
                     [yf],)
 
             print "Iter %d: loss = %f"%(i,loss)
             if self.show_iter > 0 and (i+1) % self.show_iter == 0:
-                data = self.model.predict([features[:6], arm[:6], gripper[:6]])
+                #data = self.model.predict([features[:6], arm[:6], gripper[:6]])
+                data = self.model.predict([features[:6]])
                 for j in xrange(6):
                     plt.subplot(2, 3, j+1,)
                     plt.imshow(np.squeeze(data[j]))

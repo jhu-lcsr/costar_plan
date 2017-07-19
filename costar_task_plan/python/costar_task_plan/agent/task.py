@@ -68,6 +68,7 @@ class TaskAgent(AbstractAgent):
             raise RuntimeError('environment must have associated compiled task model!')
 
         for i in xrange(num_iter):
+            print "---- Iteration %d ----"%(i+1)
             self.env.reset()
 
             names, options = task.sampleSequence()
@@ -84,6 +85,8 @@ class TaskAgent(AbstractAgent):
                             done,
                             i,
                             names[plan.idx])
+                    if done:
+                        break
                 else:
                     break
 

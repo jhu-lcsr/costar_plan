@@ -35,9 +35,14 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
 
     dof = 6
     arm_joint_indices = xrange(dof)
-    gripper_indices = [left_knuckle, left_finger, left_inner_knuckle,
-                       left_fingertip, right_knuckle, right_finger, right_inner_knuckle,
+    #gripper_indices = [left_knuckle, left_finger, left_inner_knuckle,
+    #                   left_fingertip, right_knuckle, right_finger, right_inner_knuckle,
+    #                   right_fingertip]
+    gripper_indices = [left_knuckle, left_inner_knuckle,
+                       left_fingertip, right_knuckle, right_inner_knuckle,
                        right_fingertip]
+
+    stable_gripper_indices = [left_knuckle, right_knuckle,]
 
     def __init__(self, *args, **kwargs):
         super(Ur5RobotiqInterface, self).__init__(*args, **kwargs)
@@ -109,9 +114,11 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         '''
 
         cmd = cmd[0]
+        if cmd > 0.:
+            raise RuntimeError('Illegal gripper command')
 
         # This is actually only a 1-DOF gripper
-        cmd_array = [-cmd, cmd, -cmd, cmd, -cmd, cmd, -cmd, cmd]
+        cmd_array = [-cmd, -cmd, cmd, -cmd, -cmd, cmd]
         pb.setJointMotorControlArray(self.handle, self.gripper_indices, mode,
                                      cmd_array,forces=[25.]*len(cmd_array))
 
@@ -120,6 +127,14 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
                 spaces.Box(-0.8, 0.0, 1)))
 
     def _getArmPosition(self):
+        '''
+        Get arm information.
+
+        Returns:
+        ---------
+        q: vector of joint positions
+        dq: vector of joint velocities
+        '''
         q = [0.] * 6
         dq = [0.] * 6
         for i in xrange(6):
@@ -127,7 +142,6 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         return np.array(q), np.array(dq)
 
     def _getGripper(self):
-        #v = [v[0] for v in pb.getJointStates(self.handle,
-        #    self.gripper_indices)]
-        return [np.round(pb.getJointState(self.handle,
-            self.left_fingertip)[0],1)]
+        vs = [v[0] for v in pb.getJointStates(self.handle,
+            self.stable_gripper_indices)]
+        return [np.round(-np.mean(vs),1)]
