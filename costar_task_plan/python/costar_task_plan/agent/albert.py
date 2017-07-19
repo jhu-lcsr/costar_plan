@@ -33,7 +33,7 @@ class AlbertAgent(AbstractAgent):
 
                 a = pb.getKeyboardEvents()
                 print "keyboard started"
-                
+                print a
                 # y opens the gripper
                 if 121 in a:  
                     print "y detected"
