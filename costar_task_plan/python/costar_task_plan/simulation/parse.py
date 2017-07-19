@@ -125,7 +125,7 @@ def ParseBulletArgs():
                               "prevent exploding gradients.",
                         default=100)
     parser.add_argument("--load_model", "--lm",
-                        help="Load model from file.",
+                        help="Load model from file for tests.",
                         action="store_true")
     parser.add_argument("--show_iter", "--si",
                         help="Show output images from model training" + \
@@ -138,8 +138,5 @@ def ParseBulletArgs():
                               " discriminators.",
                         default=0,
                         type=int)
-    parser.add_argument("--load_model", "--lm",
-                        help="Load a neural net model to test",
-                        action="store_true")
 
     return vars(parser.parse_args())
