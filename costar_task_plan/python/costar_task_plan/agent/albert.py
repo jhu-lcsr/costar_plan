@@ -21,16 +21,22 @@ class AlbertAgent(AbstractAgent):
         for i in xrange(num_iter):
             print "---- Iteration %d ----"%(i+1)
             self.env.reset()
+            print "reset reached"
+            
 
             while not self._break:
                 token = 0
+                "while loop reached"
                 state = self.env.world.actors[0].state
                 control = SimulationRobotAction(arm_cmd=None, gripper_cmd=None)
+                "control activated"
 
                 a = pb.getKeyboardEvents()
+                "keyboard started"
                 
                 # y opens the gripper
                 if 121 in a:  
+                    "y detected"
                     # arm = 
                     token = 121
                     gripper_cmd = state.robot.gripperOpenCommand()
@@ -38,11 +44,13 @@ class AlbertAgent(AbstractAgent):
                     
                 elif 122 in a:  
                     # arm = 
+                    "x detected"
                     token = 122
                     gripper_cmd = state.robot.gripperCloseCommand()
                     control = SimulationRobotAction(arm_cmd=None, gripper_cmd=gripper_cmd)
                     
                 if 119 in a:  
+                    "a detected"
                     token = 119
                     origin = state.T
                     move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0,0,0))
@@ -67,7 +75,7 @@ class AlbertAgent(AbstractAgent):
                 else:
                     break
                 '''
-
+            print "end statement reached"
             #self.env.step(cmd)
 
             if self._break:
