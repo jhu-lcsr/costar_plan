@@ -50,13 +50,15 @@ class AlbertAgent(AbstractAgent):
                     control = SimulationRobotAction(arm_cmd=None, gripper_cmd=gripper_cmd)
                     
                 if 119 in a:  
-                    "a detected"
+                    "w detected"
                     token = 119
                     origin = state.T
                     move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0,0,0))
-                    arm = origin * move
+                    T_arm = origin * move
+                    #Transformed arm
                     gripper_cmd = None
-                    invarm = state.robot.ik(T_step, state.arm)
+                    #state.arm = joints
+                    invarm = state.robot.ik(T_arm, state.arm)
                     control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
                 '''
                 if control is not None:
