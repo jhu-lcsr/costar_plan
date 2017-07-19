@@ -40,7 +40,7 @@ class AlbertAgent(AbstractAgent):
                     
                 elif 122 in a:  
                     # arm = 
-                    print "x detected"
+                    print "z detected"
                     token = 122
                     gripper_cmd = state.robot.gripperCloseCommand()
                     control = SimulationRobotAction(arm_cmd=None, gripper_cmd=gripper_cmd)
@@ -56,9 +56,10 @@ class AlbertAgent(AbstractAgent):
                     #state.arm = joints
                     invarm = state.robot.ik(T_arm, state.arm)
                     control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
-                '''
+
                 if control is not None:
                     features, reward, done, info = self.env.step(control)
+                    '''
                     self._addToDataset(self.env.world,
                             control,
                             features,
@@ -68,11 +69,12 @@ class AlbertAgent(AbstractAgent):
                             token)
                             #i,
                             #names[plan.idx])
+                    '''
                     if done:
                         break
                 else:
                     break
-                '''
+            
             print "end statement reached"
             #self.env.step(cmd)
 
