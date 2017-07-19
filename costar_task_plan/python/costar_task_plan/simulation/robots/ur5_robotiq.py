@@ -114,7 +114,6 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         '''
 
         cmd = cmd[0]
-        print cmd
         #if cmd > 0.:
         #    raise RuntimeError('Illegal gripper command')
 

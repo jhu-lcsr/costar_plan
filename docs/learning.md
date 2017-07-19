@@ -48,7 +48,7 @@ rosrun costar_bullet start --robot ur5 --agent null --features multi --load \
 To try it out, run:
 ```
 rosrun costar_bullet start --robot ur5 --task blocks --agent ff \
-  --features multi -i 1000 --model ff_regression
+  --features multi -i 1000 --model ff_regression --gui 
 ```
 
 We need to separately define the specific architector (`ff_regression`) and the agent to execute (`ff`).
