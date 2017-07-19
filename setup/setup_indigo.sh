@@ -17,7 +17,7 @@ echo "Installing basics from apt-get..."
 sudo apt-get -y install python-pygame python-dev
 echo "Installing libraries and drivers..."
 sudo apt-get -y install -y build-essential autoconf libtool pkg-config python-opengl python-imaging python-pyrex python-pyside.qtopengl idle-python2.7 qt4-dev-tools qt4-designer libqtgui4 libqtcore4 libqt4-xml libqt4-test libqt4-script libqt4-network libqt4-dbus python-qt4 python-qt4-gl libgle3 python-dev libssl-dev
-sudo apt-get -y install -y libx11-dev libpq-dev python-dev libxml2-dev libxslt1-dev libldap2-dev libsasl2-dev libffi-dev
+sudo apt-get -y install -y libx11-dev libpq-dev python-dev libxml2-dev libxslt1-dev libldap2-dev libsasl2-dev libffi-dev mongodb
 echo "Installing smaller libraries from pip..."
 sudo -H pip install --no-binary numpy
 sudo -H pip install h5py keras keras-rl sympy matplotlib pygame gmr networkx \
@@ -50,6 +50,13 @@ source /opt/ros/$ROS_DISTRO/setup.bash
 catkin init
 cd $CATKIN_WS/src
 
+#echo "======================================================"
+#echo "MOVEIT"
+#wget https://raw.githubusercontent.com/ros-planning/moveit/indigo-devel/moveit.rosinstall
+#wstool init . moveit.rosinstall
+
+echo "======================================================"
+echo "COSTAR"
 git clone https://github.com/cpaxton/hrl-kdl.git  --branch indigo-devel
 git clone https://github.com/cburbridge/python_pcd.git
 git clone https://github.com/jhu-lcsr/costar_objects.git

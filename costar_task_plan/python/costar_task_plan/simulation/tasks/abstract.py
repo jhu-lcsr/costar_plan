@@ -6,6 +6,7 @@ import pybullet as pb
 import rospkg
 import os
 
+
 class AbstractTaskDefinition(object):
 
     '''
@@ -66,18 +67,19 @@ class AbstractTaskDefinition(object):
         '''
         rospack = rospkg.RosPack()
         path = rospack.get_path('costar_simulation')
-        static_plane_path = os.path.join(path,'meshes','world','plane.urdf')
+        static_plane_path = os.path.join(path, 'meshes', 'world', 'plane.urdf')
         pb.loadURDF(static_plane_path)
 
         self.task = self._makeTask()
         self.world = SimulationWorld(
-                save_hook=self.save_world,
-                task_name=self.getName(),
-                cameras=self._cameras)
+            dt=0.1,
+            simulation_step=0.01,
+            task_name=self.getName(),
+            cameras=self._cameras)
         self.world.features = self.features
         self._setup()
         handle = self.robot.load()
-        pb.setGravity(0,0,-9.807)
+        pb.setGravity(0, 0, -9.807)
         self._setupRobot(handle)
 
         state = self.robot.getState()

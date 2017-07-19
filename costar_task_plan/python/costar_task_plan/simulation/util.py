@@ -4,10 +4,12 @@ from robots import *
 
 
 def GetAvailableTasks():
-    return ["blocks", "clutter", "sorting",]
+    return ["blocks", "drl_blocks", "clutter", "sorting", ]
+
 
 def GetAvailableRobots():
     return ["jaco", "ur5_2_finger", "ur5", "ur5_robotiq"]
+
 
 def GetAvailableAlgorithms():
     return [None, "ddpg", "cdqn"]
@@ -19,12 +21,13 @@ def GetTaskDefinition(task, robot, features, *args, **kwargs):
     '''
     try:
         return {
-            'blocks': BlocksTaskDefinition(0, robot, features=features, *args, **kwargs),
-            'tower': BlocksTaskDefinition(None, robot, features=features, *args, **kwargs),
-            'clutter': ClutterTaskDefinition(robot, features=features, *args, **kwargs),
-            'sorting': SortingTaskDefinition(robot, features=features, *args, **kwargs),
-            'oranges': OrangesTaskDefinition(robot, features=features, *args, **kwargs),
-        }[task]
+            'blocks': lambda: BlocksTaskDefinition(0, robot, features=features, *args, **kwargs),
+            'drl_blocks': lambda: DRLBlocksTaskDefinition(0, robot, features=features, *args, **kwargs),
+            'tower': lambda: BlocksTaskDefinition(None, robot, features=features, *args, **kwargs),
+            'clutter': lambda: ClutterTaskDefinition(robot, features=features, *args, **kwargs),
+            'sorting': lambda: SortingTaskDefinition(robot, features=features, *args, **kwargs),
+            'oranges': lambda: OrangesTaskDefinition(robot, features=features, *args, **kwargs),
+        }[task.lower()]()
     except KeyError, e:
         raise NotImplementedError('Task %s not implemented!' % task)
 
@@ -36,12 +39,12 @@ def GetRobotInterface(robot, *args, **kwargs):
     '''
     try:
         return {
-            'ur5_2_finger': Ur5RobotiqInterface(*args, **kwargs),
-            'ur5_robotiq': Ur5RobotiqInterface(*args, **kwargs),
-            'ur5': Ur5RobotiqInterface(*args, **kwargs),
-            'jaco': JacoRobotiqInterface(*args, **kwargs),
+            'ur5_2_finger': lambda: Ur5RobotiqInterface(*args, **kwargs),
+            'ur5_robotiq': lambda: Ur5RobotiqInterface(*args, **kwargs),
+            'ur5': lambda: Ur5RobotiqInterface(*args, **kwargs),
+            'jaco': lambda: JacoRobotiqInterface(*args, **kwargs),
             #'iiwa_3_finger': IiwaRobotiq3FingerInterface(*args, **kwargs),
             #'iiwa': IiwaRobotiq3FingerInterface(*args, **kwargs),
-        }[robot]
+        }[robot.lower()]()
     except KeyError, e:
         raise NotImplementedError('Robot %s not implemented!' % robot)

@@ -28,6 +28,12 @@ class Task(object):
     self.nodes = {}
     self.children = {}
 
+    # Store integer index associated with each node
+    self.indices = {}
+
+    # Store name by integer index in case we ever want to recover that
+    self.names = {}
+
   def add(self, name, parents, option_args):
     '''
     Note: we assume that each name uniquely identifies an action, and each
@@ -109,9 +115,11 @@ class Task(object):
 
     # WARNING: this is kind of terrible and might be sort of inefficient.
     # Convert to a list
-    for node, children in self.children.items():
+    for i, (node, children) in enumerate(self.children.items()):
         children = [child for child in children]
         self.children[node] = children
+        self.indices[node] = i
+        self.names[i] = node
 
     self.compiled = True
     return arg_sets
@@ -123,6 +131,16 @@ class Task(object):
     '''
     depth = 0
     pass
+
+  def index(self, name):
+      '''
+      Look up the index associated with a particular node ("action") so we can
+      easily map to a discrete action space.
+      '''
+      return self.indices[name]
+
+  def name(self, index):
+      return self.names[index]
 
   def nodeSummary(self):
     if not self.compiled:

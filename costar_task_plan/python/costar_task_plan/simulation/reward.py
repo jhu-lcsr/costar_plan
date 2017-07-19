@@ -7,9 +7,8 @@ import numpy as np
 import sys
 
 
-
-
 class EuclideanReward(AbstractReward):
+
     '''
     Distance based purely on euclidean distance to object
     '''

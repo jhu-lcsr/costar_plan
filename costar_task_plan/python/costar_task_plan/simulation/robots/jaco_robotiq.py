@@ -1,13 +1,15 @@
-### Model credit goes to Jennifer Bueller and co
+# Model credit goes to Jennifer Bueller and co
 
 from abstract import AbstractRobotInterface
 
-import gym; from gym import spaces
+import gym
+from gym import spaces
 import numpy as np
 import os
 import pybullet as pb
 import rospkg
 import subprocess
+
 
 class JacoRobotiqInterface(AbstractRobotInterface):
 
@@ -48,20 +50,24 @@ class JacoRobotiqInterface(AbstractRobotInterface):
         filename = os.path.join(path, self.xacro_filename)
         urdf_filename = os.path.join(path, 'robot', self.urdf_filename)
         urdf = open(urdf_filename, "r")
-	#urdf = open("/home/albert/costar_ws/src/costar_plan/costar_simulation/robot/jaco_robot.urdf", "r")
+        # urdf =
+        # open("/home/albert/costar_ws/src/costar_plan/costar_simulation/robot/jaco_robot.urdf",
+        # "r")
 
         # Recompile the URDF to make sure it's up to date
-        #subprocess.call(['rosrun', 'xacro', 'xacro.py', filename], stdout=urdf)
+        # subprocess.call(['rosrun', 'xacro', 'xacro.py', filename],
+        # stdout=urdf)
 
         self.handle = pb.loadURDF(urdf_filename)
         self.grasp_idx = self.findGraspFrame()
-        self.loadKinematicsFromURDF(urdf_filename, "base_link")
+        self.loadKinematicsFromURDF(urdf_filename, "robot_root")
 
         return self.handle
 
     def place(self, pos, rot, joints):
         pb.resetBasePositionAndOrientation(self.handle, pos, rot)
-        pb.createConstraint(self.handle,-1,-1,-1,pb.JOINT_FIXED,pos,[0,0,0],rot)
+        pb.createConstraint(
+            self.handle, -1, -1, -1, pb.JOINT_FIXED, pos, [0, 0, 0], rot)
         for i, q in enumerate(joints):
             pb.resetJointState(self.handle, i, q)
 
@@ -92,16 +98,7 @@ class JacoRobotiqInterface(AbstractRobotInterface):
         Gripper commands need to be mirrored to simulate behavior of the actual
         UR5.
         '''
-        pb.setJointMotorControl2(self.handle, self.left_knuckle, mode,  -cmd)
-        pb.setJointMotorControl2(self.handle, self.left_inner_knuckle, mode,  -cmd)
-        pb.setJointMotorControl2(self.handle, self.left_finger, mode,  cmd)
-        pb.setJointMotorControl2(self.handle, self.left_fingertip, mode,  cmd)
-
-        pb.setJointMotorControl2(self.handle, self.right_knuckle, mode,  -cmd)
-        pb.setJointMotorControl2(self.handle, self.right_inner_knuckle, mode,  -cmd)
-        pb.setJointMotorControl2(self.handle, self.right_finger, mode,  cmd)
-        pb.setJointMotorControl2(self.handle, self.right_fingertip, mode,  cmd)
-
+        pass
 
     def act(self, action):
         '''
@@ -112,12 +109,34 @@ class JacoRobotiqInterface(AbstractRobotInterface):
         self.gripper(action[6])
 
     def getActionSpace(self):
-        return spaces.Tuple((spaces.Box(-np.pi,np.pi,6),spaces.Box(-0.6,0.6,1)))
+        return spaces.Tuple((spaces.Box(-np.pi, np.pi, 6), spaces.Box(-0.6, 0.6, 1)))
 
     def _getArmPosition(self):
+        '''
+        Get arm information.
+
+        Returns:
+        ---------
+        q: vector of joint positions
+        dq: vector of joint velocities
+        '''
         q = [0.] * 6
+        dq = [0.] * 6
         for i in xrange(6):
-            q = pb.getJointState(self.handle, i)
+            q[i], dq[i] = pb.getJointState(self.handle, i)[:2]
+        return np.array(q), np.array(dq)
 
     def _getGripper(self):
         return pb.getJointState(self.handle, self.left_finger)
+
+    def gripperCloseCommand(cls):
+        '''
+        Return the closed position for this gripper.
+        '''
+        return [-0.8]
+
+    def gripperOpenCommand(cls):
+        '''
+        Return the open command for this gripper
+        '''
+        return [0.0]

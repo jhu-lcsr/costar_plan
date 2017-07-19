@@ -26,7 +26,7 @@ class RingsTaskDefinition(AbstractTaskDefinition):
         pass
 
     def _setupRobot(self, handle):
-        self.robot.place([0,0,0],[0,0,0,1],self.joint_positions)
+        self.robot.place([0, 0, 0], [0, 0, 0, 1], self.joint_positions)
         self.robot.arm(self.joint_positions, pb.POSITION_CONTROL)
         self.robot.gripper(0, pb.POSITION_CONTROL)
 

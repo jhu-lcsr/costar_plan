@@ -6,6 +6,7 @@ from pykdl_utils.kdl_kinematics import KDLKinematics
 from tf_conversions import posemath as pm
 from urdf_parser_py.urdf import URDF
 
+import gym; from gym import spaces
 import pybullet as pb
 
 
@@ -30,6 +31,7 @@ class AbstractRobotInterface(object):
         self.handle = None
         self.grasp_idx = None
         self.kinematics = None
+        self.action_space = self.getActionSpace()
 
     def load(self):
         '''
@@ -71,8 +73,18 @@ class AbstractRobotInterface(object):
         self.kinematics = KDLKinematics(urdf, base_link, self.grasp_link)
 
     def ik(self, pose, q0):
+        '''
+        The ik() command is used by various agents and problem domains
+        to recover a command vector that will move the robot arm to the right
+        pose.
+
+        Params:
+        --------
+        pose: kdl frame to move to
+        q0: current joint position
+        '''
         return self.kinematics.inverse(pm.toMatrix(pose), q0)
-    
+
     def forward(self, position):
         return self.kinematics.forward(position)
 
@@ -95,7 +107,8 @@ class AbstractRobotInterface(object):
         '''
         Update the robot's position.
         '''
-        raise NotImplementedError('This should put the robot in a specific pose.')
+        raise NotImplementedError(
+            'This should put the robot in a specific pose.')
 
     def arm(self, cmd, mode):
         '''
@@ -122,6 +135,12 @@ class AbstractRobotInterface(object):
         return False
 
     def _getArmPosition(self):
+        '''
+        Returns:
+        --------
+        q: joint positions
+        dq: joint velocities
+        '''
         raise NotImplementedError('get joints')
 
     def _getGripper(self):
@@ -133,31 +152,56 @@ class AbstractRobotInterface(object):
         what the robot will look like.
         '''
         (pos, rot) = pb.getBasePositionAndOrientation(self.handle)
+        # TODO(cpaxton): improve forward kinematics efficiency by just using
+        # PyBullet to get the position of the grasp frame.
+        q, dq = self._getArmPosition()
         return SimulationRobotState(robot=self,
-                base_pos=pos,
-                base_rot=rot,
-                arm=self._getArmPosition(),
-                gripper=self._getGripper())
+                                    base_pos=pos,
+                                    base_rot=rot,
+                                    arm=q,
+                                    arm_v=dq,
+                                    gripper=self._getGripper(),
+                                    T=self.fwd(q))
 
-    def inverse(self, pose):
+    def command(self, action):
         '''
-        The inverse() command is used by various agents and problem domains
-        to recover a command vector that will move the robot arm to the right
-        pose.
+        Process an incoming action and apply it to the simulated robot. Does
+        not currently support robots with mobile bases, but it could.
         '''
-        raise NotImplementedError('The inverse() command takes a position' + \
-                                  'and gets inverse kinematics associated' + \
-                                  'with it.')
+        if action.arm_cmd is not None:
+            self.arm(action.arm_cmd)
+        #else:
+        #    self.arm(self._getArmPosition())
+        if action.gripper_cmd is not None:
+            self.gripper(action.gripper_cmd)
+        else:
+            self.gripper(self._getGripper())
+
+    def toParams(self, action):
+        '''
+        Convert action into a reasonable format so that we can save it. Note
+        that this assumes that the action is specified as a position to move
+        to; if it is not, then you'll need to override this.
+
+        Params:
+        -------
+        action: a CTP action containing commands for arm, gripper, base
+        '''
+        if action.arm_cmd is not None:
+            arm = action.arm_cmd
+        else:
+            arm, _ = self._getArmPosition()
+        if action.gripper_cmd is not None:
+            gripper = action.gripper_cmd
+        else:
+            gripper = self._getGripper()
+        
+        return arm, gripper
 
     def getActionSpace(self):
         '''
-        Defines the action space used by the robot.
+        Gives spaces for arm gripper etc
         '''
-        raise NotImplementedError('no getActionSpace() implemented')
+        raise NotImplementedError('should set up the appropriate spaces' + \
+                ' for the robot as a tuple.')
 
-    def act(self, action):
-        '''
-        Parse a robot action. Should call the base(), gripper(), or arm()
-        functions to set the appropriate commands.
-        '''
-        raise NotImplementedError('act')

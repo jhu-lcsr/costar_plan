@@ -1,5 +1,7 @@
 
 from costar_task_plan.agent import GetAgents
+from costar_task_plan.models import GetModels
+
 from util import GetAvailableTasks, GetAvailableRobots, GetAvailableAlgorithms
 from features import GetFeatures, GetAvailableFeatures
 
@@ -17,12 +19,16 @@ workspace. In "tower," we again generate a set of colored blocks. This time the
 robot should pick them all up and stack them.
 """
 
+
 def ParseBulletArgs():
     parser = argparse.ArgumentParser(add_help=True,
-            description=_desc, epilog=_epilog)
+                                     description=_desc, epilog=_epilog)
     parser.add_argument("--gui",
                         action="store_true",
                         help="Display Bullet visualization.")
+    parser.add_argument("--opengl2",
+                        action="store_true",
+                        help="Activate docker opengl2 mode")
     parser.add_argument("--robot",
                         help="Robot model to load. This will determine the action space.",
                         choices=GetAvailableRobots(),
@@ -41,20 +47,28 @@ def ParseBulletArgs():
                         help="Algorithm to use when training.",
                         default="null",
                         choices=GetAgents())
-    parser.add_argument('-l', '--lr', '--learning_rate',
+    parser.add_argument('-L', '--lr', '--learning_rate',
                         help="Learning rate to be used in algorithm.",
+                        type=float,
                         default=1e-3)
     parser.add_argument('-g', '--gamma',
                         help="MDP discount factor gamma. Must be set so that 0 < gamma <= 1. Low gamma decreases significance of future rewards.",
                         default=1.)
-    parser.add_argument('-o','--option',
-                        help="Specific sub-option to train. Exact list depends on the chosen task.",
+    parser.add_argument('-o', '--option',
+                        help="Specific sub-option to train. Exact list " + \
+                             "depends on the chosen task. [NOT CURRENTLY " + \
+                             "IMPLEMENTED]",
                         default=None)
-    parser.add_argument('-p','--plot_task','--pt',
+    parser.add_argument('-p', '--plot_task', '--pt',
                         help="Display a plot of the chosen task and exit.",
                         action="store_true")
     parser.add_argument('-s', '--save',
                         help="Save training data",
+                        action="store_true")
+    parser.add_argument('-l', '--load',
+                        help="Load training data from file." + \
+                        " Use in conjunction with save to append to" + \
+                        " a training data file.",
                         action="store_true")
     parser.add_argument('-c', '--capture',
                         help="Capture images as a part of the training data",
@@ -70,6 +84,59 @@ def ParseBulletArgs():
                         action="store_true")
     parser.add_argument('--features',
                         help="Specify feature function",
-                        default="null")
+                        default="null",
+                        choices=GetAvailableFeatures())
+    parser.add_argument('--profile',
+                        help='Run cProfile on agent',
+                        action="store_true")
+    parser.add_argument('-i', '--iter',
+                        help='Number of iterations to run',
+                        default=100,
+                        type=int)
+    parser.add_argument('-m', '--model',
+                        help="Name of NN model to learn.",
+                        default=None,
+                        choices=GetModels())
+    parser.add_argument('-b','--batch_size',
+                        help='Batch size to use in the model',
+                        default=32,
+                        type=int)
+    parser.add_argument('-e','--epochs',
+                        help="Number of epochs",
+                        type=int,
+                        default=1000,)
+    parser.add_argument('--data_file_name',
+                        help="File name for data archive.",
+                        default='data.npz')
+    parser.add_argument('--model_descriptor',
+                        help="model description for use with save/load file",
+                        default="model")
+    parser.add_argument("--optimizer","--opt",
+                        help="optimizer to use with learning",
+                        default="adam")
+    parser.add_argument("-z", "--zdim", "--noise_dim",
+                        help="size of action parameterization",
+                        default=16)
+    parser.add_argument("-D", "--debug_model", "--dm",
+                        help="Run a short script to debug the current model.",
+                        action="store_true")
+    parser.add_argument("--clipnorm",
+                        help="Clip norm of gradients to this value to " + \
+                              "prevent exploding gradients.",
+                        default=100)
+    parser.add_argument("--load_model", "--lm",
+                        help="Load model from file for tests.",
+                        action="store_true")
+    parser.add_argument("--show_iter", "--si",
+                        help="Show output images from model training" + \
+                             " every N iterations.",
+                        default=0,
+                        type=int)
+    parser.add_argument("--pretrain_iter", "--pi",
+                        help="Number of iterations of pretraining to run" + \
+                              ", in particular for training GAN" + \
+                              " discriminators.",
+                        default=0,
+                        type=int)
 
     return vars(parser.parse_args())

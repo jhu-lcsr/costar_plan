@@ -91,12 +91,12 @@ class APLDDPGAgent(AbstractAgent):
         self.observation = env.reset()
         self.state_dim = self.observation.shape
         print ">>>>>>>>>>>>>>>>>>>>>state dim " + str(self.state_dim)
-        self.nn_action_dim = 7 # limit ddpg network output to 3 DOF
+        self.nn_action_dim = 2 # limit ddpg network output to 3 DOF
         self.noise = OUProcess(self.nn_action_dim, mu=OU_MEAN, theta=OU_THETA, sigma=EPSILON_RANGE[0])
         
         
         
-    def fit(self):
+    def fit(self, *args, **kwargs):
 
         MEM_SZ = MEM_SIZE_FCL
         

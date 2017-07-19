@@ -1,6 +1,34 @@
 
 # Machine Learning 
 
+## Creating a Dataset
+
+We need some data to work with. Let's start by making a small data set using both joint data and RGB images.
+
+```
+rosrun costar_bullet start --robot ur5 --task blocks --agent task \
+  --features multi --save -i 10 --data_file small.npz
+```
+
+## Learning a Convolutional Autoencoder
+
+This is a simple approach; we're going to directly fit an input to an output image.
+```
+rosrun costar_bullet start --robot ur5 --agent null --features multi --load \
+  --model autoencoder --data_file small.npz --si 5 -i 1000  --batch_size 64
+```
+
+## Learning a Generative Adversarial Network
+
+GANs are a popular approach these days, and luckily it's pretty easy to train one with CTP:
+```
+rosrun costar_bullet start --robot ur5 --agent null --features multi --load \
+  --model gan --data_file small.npz --si 5 -i 1000  --batch_size 64 \
+  --optimizer nadam --lr 0.001
+```
+
+This will load our small data set and run for 1000 iterationsm using the ADAM optimizer with Nesterov momentum. Go ahead and play with the settings.
+
 ## Libraries Referenced
 
 **[For developers]** Libraries referenced, but not needed as prerequisites:
