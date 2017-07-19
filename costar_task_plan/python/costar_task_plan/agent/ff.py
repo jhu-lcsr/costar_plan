@@ -1,6 +1,7 @@
 from abstract import AbstractAgent
 
 from costar_task_plan.models import MakeModel
+from costar_task_plan.simulation.world import SimulationRobotAction
 
 class FeedForwardAgent(AbstractAgent):
     '''
@@ -30,8 +31,9 @@ class FeedForwardAgent(AbstractAgent):
             features = self.env.reset()
 
             while not self._break:
-                cmd = self.model.predict(features)
-                self.env.step(cmd)
+                arm_cmd, gripper_cmd = self.model.predict(features)
+                control = SimulationRobotAction(arm_cmd=arm_cmd[0],
+                        gripper_cmd=gripper_cmd[0])
                 features, reward, done, info = self.env.step(control)
                 self._addToDataset(self.env.world,
                         control,
@@ -39,7 +41,7 @@ class FeedForwardAgent(AbstractAgent):
                         reward,
                         done,
                         i,
-                        names[plan.idx])
+                        self.model.name)
                 if done:
                     break
 
