@@ -31,15 +31,18 @@ class AlbertAgent(AbstractAgent):
                 # y opens the gripper
                 if 121 in a:  
                     # arm = 
+                    token = 121
                     gripper_cmd = state.robot.gripperOpenCommand()
                     control = SimulationRobotAction(arm_cmd=None, gripper_cmd=gripper_cmd)
                     
                 elif 122 in a:  
                     # arm = 
+                    token = 122
                     gripper_cmd = state.robot.gripperCloseCommand()
                     control = SimulationRobotAction(arm_cmd=None, gripper_cmd=gripper_cmd)
                     
                 if 119 in a:  
+                    token = 119
                     origin = state.T
                     move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0,0,0))
                     arm = origin * move
@@ -55,7 +58,7 @@ class AlbertAgent(AbstractAgent):
                             reward,
                             done,
                             i,
-                            names = "demo")
+                            token)
                             #i,
                             #names[plan.idx])
                     if done:
