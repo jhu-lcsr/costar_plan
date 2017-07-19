@@ -6,9 +6,17 @@ from ff import *
 
 from keras_ddpg import *
 from keras_naf import *
+from albert import *
 
 def GetAgents():
-    return ["none", "null", "random", "task", "keras_ddpg", "keras_naf", "ff"]
+    return ["none", "null",
+            "albert", # keyboard
+            "random", # random actions
+            "task", # supervised task model
+            "keras_ddpg", # keras DDPG
+            "keras_naf", # not implemented
+            "ff", # FF regression agent
+            ]
 
 def MakeAgent(env, name, *args, **kwargs):
     try:
@@ -16,6 +24,7 @@ def MakeAgent(env, name, *args, **kwargs):
                 'no': lambda: NoAgent(env, *args, **kwargs),
                 'none': lambda: NoAgent(env, *args, **kwargs),
                 'null': lambda: NullAgent(env, *args, **kwargs),
+		'albert': lambda: AlbertAgent(env, *args, **kwargs),
                 'random': lambda: RandomAgent(env, *args, **kwargs),
                 'task': lambda: TaskAgent(env, *args, **kwargs),
 		'keras_ddpg': lambda: KerasDDPGAgent(env, *args, **kwargs),
