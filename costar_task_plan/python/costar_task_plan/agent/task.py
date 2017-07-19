@@ -85,6 +85,8 @@ class TaskAgent(AbstractAgent):
                             done,
                             i,
                             names[plan.idx])
+                    if done:
+                        break
                 else:
                     break
 
