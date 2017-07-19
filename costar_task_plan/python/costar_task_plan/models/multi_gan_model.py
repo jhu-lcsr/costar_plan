@@ -226,7 +226,7 @@ class RobotMultiGAN(AbstractAgentBasedModel):
                     plt.tight_layout()
                 plt.ion()
                 plt.show(block=False)
-                plt.pause(0.001)
+                plt.pause(0.01)
 
     def save(self):
         '''

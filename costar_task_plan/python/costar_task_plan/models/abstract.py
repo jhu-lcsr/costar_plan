@@ -67,18 +67,18 @@ class AbstractAgentBasedModel(object):
         else:
             raise RuntimeError('save() failed: model not found.')
 
-    def load(self):
+    def load(self, *args, **kwargs):
         '''
         Load will use the current model descriptor and name to load the file
         that you are interested in, at least for now.
         '''
         raise NotImplementedError('load() not supported yet.')
 
-    def _makeModel(self):
+    def _makeModel(self, *args, **kwargs):
         '''
         Create the model based on some data set shape information.
         '''
-        pass
+        raise NotImplementedError('_makeModel() not supported yet.')
 
     def getOptimizer(self):
         '''
