@@ -2,6 +2,7 @@
 from null import *
 from random_agent import *
 from task import *
+from ff import *
 
 from keras_ddpg import *
 from keras_naf import *
@@ -10,7 +11,15 @@ from apl_ddpg import *
 from albert import *
 
 def GetAgents():
-    return ["none", "null", "albert", "random", "task", "keras_ddpg", "keras_naf", "apl_ddpg"]
+    return ["none", "null",
+            "albert", # keyboard
+            "random", # random actions
+            "task", # supervised task model
+            "keras_ddpg", # keras DDPG
+            "keras_naf", # not implemented
+            "ff", # FF regression agent
+            "apl_ddpg", # custom DDPG implementation
+            ]
 
 def MakeAgent(env, name, *args, **kwargs):
     try:
@@ -18,12 +27,12 @@ def MakeAgent(env, name, *args, **kwargs):
                 'no': lambda: NoAgent(env, *args, **kwargs),
                 'none': lambda: NoAgent(env, *args, **kwargs),
                 'null': lambda: NullAgent(env, *args, **kwargs),
-        		'albert': lambda: AlbertAgent(env, *args, **kwargs),
+        		    'albert': lambda: AlbertAgent(env, *args, **kwargs),
                 'random': lambda: RandomAgent(env, *args, **kwargs),
                 'task': lambda: TaskAgent(env, *args, **kwargs),
-        		'keras_ddpg': lambda: KerasDDPGAgent(env, *args, **kwargs),
                 'apl_ddpg': lambda: APLDDPGAgent(env, *args, **kwargs),
-
+            		'keras_ddpg': lambda: KerasDDPGAgent(env, *args, **kwargs),
+                'ff': lambda: FeedForwardAgent(env, *args, **kwargs),
                 }[name.lower()]()
     except KeyError, e:
         raise NotImplementedError('Agent "%s" not implemented'%name)

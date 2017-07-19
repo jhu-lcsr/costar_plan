@@ -46,8 +46,7 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
         self.robot_col_dim = 64
         self.combined_dense_size = 64
 
-    def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
-            example, *args, **kwargs):
+    def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
         img_shape = features.shape[1:]
         arm_size = arm.shape[1]
         if len(gripper.shape) > 1:
@@ -55,13 +54,17 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
         else:
             gripper_size = 1
 
-        ins, x = GetEncoder(img_shape,
-                arm_size,
-                gripper_size,
-                self.img_col_dim,
-                self.dropout_rate,
-                self.img_num_filters,
-                self.img_dense_size,)
+        ins, x = GetSeparateEncoder(
+                img_shape=img_shape,
+                img_col_dim=self.img_col_dim,
+                img_dense_size=self.img_dense_size,
+                arm_size=arm_size,
+                gripper_size=gripper_size,
+                dropout_rate=self.dropout_rate,
+                img_num_filters=self.img_num_filters,
+                robot_col_dim=self.robot_col_dim,
+                combined_dense_size=self.combined_dense_size,
+                robot_col_dense_size=self.robot_col_dense_size,)
         #arm_size,
         #gripper_size,
         #self.robot_col_dim,
@@ -75,18 +78,16 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
         #model = Model(img_ins, [arm_out])
         optimizer = self.getOptimizer()
         model.compile(loss="mse", optimizer=optimizer)
-        return model
+        self.model = model
 
-    def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
-            example, *args, **kwargs):
+    def train(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
         '''
         Training data -- just direct regression based on MSE from the other
         trajectory.
         '''
 
-        self.model = self._makeModel(features, arm, gripper, arm_cmd,
-                gripper_cmd, label,
-                example, *args, **kwargs)
+        self._makeModel(features, arm, gripper, arm_cmd,
+                gripper_cmd, *args, **kwargs)
         self.model.summary()
         self.model.fit(
                 x=[features, arm, gripper],
@@ -95,3 +96,11 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
                 batch_size=self.batch_size,
                 )
 
+    def predict(self, features):
+        if isinstance(features, list):
+            assert len(features) == len(self.model.inputs)
+        if self.model is None:
+            raise RuntimeError('model is missing')
+        features = [f.reshape((1,)+f.shape) for f in features]
+        res = self.model.predict(features)
+        return res

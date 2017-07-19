@@ -35,6 +35,31 @@ class AbstractWorld(object):
     self.max_ticks = 100
     self.scale_reward_to_max_ticks = False
 
+  def vectorize(self, control, features, reward, done, example, action_label):
+    '''
+    Convert current observations to a vector of data.
+    '''
+    desc = self.features.description
+    if isinstance(features, tuple) or isinstance(features, list):
+        assert len(desc) ==  len(features)
+        data = zip(self.features.description, features)
+    else:
+        assert not isinstance(desc, tuple)
+        assert not isinstance(desc, list)
+        data = [(desc, features)]
+    actor = self.actors[0]
+    params = actor.state.toParams(control)
+    if isinstance(params, tuple):
+        for desc, param in zip(control.getDescription(), params):
+            data.append((desc, param))
+    else:
+        data.append(control.getDescription(), params)
+    data += [("reward", reward),
+             ("done", done),
+             ("example", example),
+             ("label", action_label)]
+    return data
+
   def time(self):
       return self.dt * self.ticks
 

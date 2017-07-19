@@ -1,4 +1,6 @@
 
+import numpy as np
+
 import keras.optimizers as optimizers
 
 class AbstractAgentBasedModel(object):
@@ -11,7 +13,7 @@ class AbstractAgentBasedModel(object):
     def __init__(self, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
             clipnorm=100, show_iter=0, pretrain_iter=5,
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
-            task=None, robot=None, *args,
+            task=None, robot=None, model="", *args,
             **kwargs):
         self.lr = lr
         self.iter = iter
@@ -25,7 +27,7 @@ class AbstractAgentBasedModel(object):
         self.task = task
         self.features = features
         self.robot = robot
-        self.name = self.model_descriptor
+        self.name = "%s_%s"%(model, self.model_descriptor)
         self.clipnorm = clipnorm
         if self.task is not None:
             self.name += "_%s"%self.task
@@ -36,24 +38,24 @@ class AbstractAgentBasedModel(object):
         # NOTE: this may not actually be where you want to save it.
         self.model = None
 
-        print "================================================="
+        print "==========================================================="
         print "Name =", self.name
         print "Features = ", self.features
         print "Robot = ", self.robot
         print "Task = ", self.task
         print "Model description = ", self.model_descriptor
-        print "---------------------------"
+        print "-----------------------------------------------------------"
         print "Iterations = ", self.iter
+        print "Epochs = ", self.epochs
         print "Batch size =", self.batch_size
-        print "[OPTIONAL] Epochs = ", self.epochs
-        print "Show images every %d iter"%self.show_iter
-        print "[OPTIONAL] Pretrain for %d iter"%self.pretrain_iter
         print "Noise dim = ", self.noise_dim
-        print "---------------------------"
+        print "Show images every %d iter"%self.show_iter
+        print "Pretrain for %d iter"%self.pretrain_iter
+        print "-----------------------------------------------------------"
         print "Optimizer =", self.optimizer
         print "Learning Rate = ", self.lr
         print "Clip Norm = ", self.clipnorm
-        print "================================================="
+        print "==========================================================="
 
     def train(self, agent, *args, **kwargs):
         raise NotImplementedError('train() takes an agent.')
@@ -67,18 +69,40 @@ class AbstractAgentBasedModel(object):
         else:
             raise RuntimeError('save() failed: model not found.')
 
-    def load(self):
+    def load(self, world, *args, **kwargs):
         '''
         Load will use the current model descriptor and name to load the file
         that you are interested in, at least for now.
         '''
-        raise NotImplementedError('load() not supported yet.')
+        control = world.zeroAction()
+        reward = world.initial_reward
+        features = world.computeFeatures()
+        action_label = ''
+        example = 0
+        done = False
+        data = world.vectorize(control, features, reward, done, example,
+                action_label)
+        kwargs = {}
+        for k, v in data:
+            kwargs[k] = np.array([v])
+        self._makeModel(**kwargs)
+        self._loadWeights()
 
-    def _makeModel(self):
+    def _makeModel(self, *args, **kwargs):
         '''
         Create the model based on some data set shape information.
         '''
-        pass
+        raise NotImplementedError('_makeModel() not supported yet.')
+
+    def _loadWeights(self, *args, **kwargs):
+        '''
+        Load model weights. This is the default load weights function; you may
+        need to overload this for specific models.
+        '''
+        if self.model is not None:
+            self.model.load_weights(self.name + ".h5f")
+        else:
+            raise RuntimeError('_loadWeights() failed: model not found.')
 
     def getOptimizer(self):
         '''
@@ -92,3 +116,10 @@ class AbstractAgentBasedModel(object):
             print e
             raise RuntimeError('asdf')
         return optimizer
+
+    def predict(self, features):
+        '''
+        Implement this to predict... something... from a world state
+        observation.
+        '''
+        raise NotImplementedError('predict() not supported yet.')
