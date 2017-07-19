@@ -50,7 +50,7 @@ class AlbertAgent(AbstractAgent):
                     gripper_cmd = None
                     invarm = state.robot.ik(T_step, state.arm)
                     control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
-
+                '''
                 if control is not None:
                     features, reward, done, info = self.env.step(control)
                     self._addToDataset(self.env.world,
@@ -66,6 +66,7 @@ class AlbertAgent(AbstractAgent):
                         break
                 else:
                     break
+                '''
 
             #self.env.step(cmd)
 
