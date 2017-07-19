@@ -54,8 +54,9 @@ class AlbertAgent(AbstractAgent):
                             features,
                             reward,
                             done,
-                            i,
-                            names[plan.idx])
+                            i
+                            #i,
+                            #names[plan.idx])
                     if done:
                         break
                 else:
