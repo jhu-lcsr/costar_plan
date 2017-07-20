@@ -126,7 +126,7 @@ def MakeStacked(ins, x, num_to_stack):
             new_x_ins.append(Input(inx.shape[1:]))
         new_ins += new_x_ins
         new_xs.append(x(new_x_ins))
-    x = K.stack(new_xs,axis=2)
+    x = Lambda(lambda x: K.stack(x,axis=2))(new_xs)
     return new_ins, x
 
 def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
@@ -222,6 +222,23 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
     x = Activation('sigmoid')(x)
 
     return z, x
+
+def GetTCNStack(x, filters, num_levels=2, dense_size=128, dropout_rate=0.5):
+    '''
+    Add some convolutions to a simple image
+    '''
+
+    for i in xrange(num_levels):
+        x = Conv2D(filters,
+                kernel_size=[5,5],
+                strides=(2,2),
+                padding="same")(x)
+        x = LeakyReLU(alpha=0.2)(x)
+        x = Dropout(dropout_rate)(x)
+    x = Flatten()(x)
+    x = Dense(dense_size)(x)
+
+    return x
 
 def GetInvCameraColumn(noise, img_shape, dropout_rate, dense_size):
     '''

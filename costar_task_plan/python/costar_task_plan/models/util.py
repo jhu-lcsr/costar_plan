@@ -1,6 +1,7 @@
 
 from multi_gan_model import RobotMultiGAN
 from multi_regression_model import RobotMultiFFRegression
+from multi_tcn_regression_model import RobotMultiTCNRegression
 from multi_trajectory_sampler import RobotMultiTrajectorySampler
 from multi_autoencoder_model import RobotMultiAutoencoder
 from multi_hierarchical import RobotMultiHierarchical
@@ -25,32 +26,29 @@ def MakeModel(features, model, taskdef, *args, **kwargs):
 
     model_instance = None
     model = model.lower()
-    if model == 'gan':
-        if features in ['rgb','depth']:
-            pass
-        elif features == 'multi':
-            # This model will handle features 
-            model_instance = RobotMultiGAN(taskdef, model=model, **kwargs)
-    elif model == 'ff_regression':
-        if features in ['rgb','depth']:
-            # make a nice little convnet
-            pass
-        elif features == 'multi':
-            model_instance = RobotMultiFFRegression(taskdef, model=model, **kwargs)
-    elif model == "sample":
-        if features in ['rgb','depth']:
-            pass
-        elif features == 'multi':
-            model_instance = RobotMultiTrajectorySampler(taskdef, model=model, **kwargs)
-    elif model == "autoencoder":
-        if features in ['rgb','depth']:
-            pass
-        elif features == 'multi':
-            model_instance = RobotMultiAutoencoder(taskdef, model=model, **kwargs)
-    elif model == "hierarchical":
-        if features in ['rgb','depth']:
-            pass
-        elif features == 'multi':
+
+    if features == 'multi':
+        if model == 'gan':
+            model_instance = RobotMultiGAN(taskdef,
+                    model=model,
+                    **kwargs)
+        elif model == 'ff_regression':
+            model_instance = RobotMultiFFRegression(taskdef,
+                    model=model,
+                    **kwargs)
+        elif model == 'tcn_regression':
+            model_instance = RobotMultiTCNRegression(taskdef,
+                    model=model,
+                    **kwargs)
+        elif model == "sample":
+            model_instance = RobotMultiTrajectorySampler(taskdef,
+                    model=model,
+                    **kwargs)
+        elif model == "autoencoder":
+            model_instance = RobotMultiAutoencoder(taskdef,
+                    model=model,
+                    **kwargs)
+        elif model == "hierarchical":
             model_instance = RobotMultiHierarchical(taskdef,
                     model=model,
                     **kwargs)
