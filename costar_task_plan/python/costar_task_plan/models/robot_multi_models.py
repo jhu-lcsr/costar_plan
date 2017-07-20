@@ -139,28 +139,34 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
 
     if time_distributed <= 0:
         ApplyTD = lambda x: x
-        samples = Input(shape=img_shape)
         arm_in = Input((arm_size,))
         gripper_in = Input((gripper_size,))
+        height4 = img_shape[0]/4
+        width4 = img_shape[1]/4
+        height2 = img_shape[0]/2
+        width2 = img_shape[1]/2
+        width = img_shape[1]
+        channels = img_shape[2]
     else:
         ApplyTD = lambda x: TimeDistributed(x)
-        samples = Input(shape=(time_distributed,) + img_shape)
         arm_in = Input((time_distributed, arm_size,))
         gripper_in = Input((time_distributed, gripper_size,))
+        height4 = img_shape[1]/4
+        width4 = img_shape[2]/4
+        height2 = img_shape[1]/2
+        width2 = img_shape[2]/2
+        width = img_shape[2]
+        channels = img_shape[3]
+    samples = Input(shape=img_shape)
 
     '''
     Convolutions for an image, terminating in a dense layer of size dim.
     '''
-    height4 = img_shape[0]/4
-    width4 = img_shape[1]/4
-    height2 = img_shape[0]/2
-    width2 = img_shape[1]/2
-    width = img_shape[1]
-    channels = img_shape[2]
 
     x = samples
 
     for i in xrange(pre_tiling_layers):
+        print filters, x
         x = ApplyTD(Conv2D(filters,
                    kernel_size=[5, 5], 
                    strides=(1, 1),
@@ -184,8 +190,8 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     if tile:
         robot = Concatenate(axis=-1)([arm_in, gripper_in])
         if time_distributed > 0:
-            tile_shape = (time_distributed, 1, width2, height2, 1)
-            robot = Reshape([time_distributed, 1,1,arm_size+gripper_size])(robot)
+            tile_shape = (1, 1, width2, height2, 1)
+            robot = Reshape([time_distributed, 1, 1, arm_size+gripper_size])(robot)
         else:
             tile_shape = (1, width2, height2, 1)
             robot = Reshape([1,1,arm_size+gripper_size])(robot)

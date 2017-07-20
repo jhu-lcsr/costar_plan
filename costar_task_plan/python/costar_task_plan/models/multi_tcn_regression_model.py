@@ -61,9 +61,9 @@ class RobotMultiTCNRegression(AbstractAgentBasedModel):
             *args, **kwargs):
         print kwargs
         img_shape = features.shape[1:]
-        arm_size = arm.shape[1]
+        arm_size = arm.shape[-1]
         if len(gripper.shape) > 1:
-            gripper_size = gripper.shape[1]
+            gripper_size = gripper.shape[-1]
         else:
             gripper_size = 1
 
