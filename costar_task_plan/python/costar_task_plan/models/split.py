@@ -4,7 +4,8 @@ import numpy as np
 def SplitIntoChunks(datasets, labels,
         chunk_length=100,
         step_size=10,
-        padding=True):
+        front_padding=False,
+        rear_padding=False):
     '''
     Split data into segments of the given length. This will return a much
     larger data set, but with the dimensionality changed so that we can easily
@@ -22,22 +23,30 @@ def SplitIntoChunks(datasets, labels,
 
     max_label = max(labels)
     min_label = min(labels)
-
-    if padding:
-        req_i = 0
-    else:
-        req_i = chunk_length
+    padding = front_padding or rear_padding
 
     new_data = {}
     for label in xrange(min_label, max_label+1):
         for idx, data in enumerate(datasets):
             subset = data[labels==label]
             dataset = []
-            i = 1
+
+            # Set up data size
             data_size = subset.shape[0]
             if data_size == 0:
                 continue
-            while i < data_size:
+    
+            # padding: add entries to the front or back
+            if front_padding:
+                i = 1
+            else:
+                i = chunk_length
+            if rear_padding:
+                max_i = data_size + chunk_length - 1
+            else:
+                max_i = data_size
+
+            while i < max_i:
                 start_block = max(0,i-chunk_length)
                 end_block = min(i,data_size)
                 i += step_size
@@ -84,15 +93,15 @@ def AddPadding(data,chunk_length,start_block,end_block,data_size):
     #print data.shape
     if start_block == 0:
         entry = data[0]
-        #if len(data.shape) < 3:
-        #    print data
         for _ in xrange(chunk_length - data.shape[0]):
             data = np.insert(data,0,axis=0,values=entry)
-        #if len(data.shape) < 3:
-        #    print data
     elif end_block == data_size:
         entry = np.expand_dims(data[-1],axis=0)
+        #if len(data.shape) < 3:
+        #    print data
         for _ in xrange(chunk_length - data.shape[0]):
             data = np.append(data,axis=0,values=entry)
+        #if len(data.shape) < 3:
+        #    print data
     
     return data

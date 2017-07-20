@@ -48,14 +48,14 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
         
         self.img_dense_size = 512
         self.img_col_dim = 256
-        self.img_num_filters = 32
-        self.robot_col_dense_size = 128
+        self.img_num_filters = 64
+        self.robot_col_dense_size = 512
         self.robot_col_dim = 64
         self.combined_dense_size = 64
-        self.decoder_filters = 16
+        self.decoder_filters = 32
 
         self.num_samples = 16
-        self.trajectory_length = 12
+        self.trajectory_length = 10
 
     def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             example, *args, **kwargs):
@@ -84,7 +84,9 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
 
         [features, arm, gripper, arm_cmd, gripper_cmd] = \
                 SplitIntoChunks([features, arm, gripper, arm_cmd, gripper_cmd],
-                example, self.trajectory_length, step_size=2)
+                example, self.trajectory_length, step_size=2,
+                front_padding=False,
+                rear_padding=True)
 
         # Get images for input and output from the network.
         img_in = FirstInChunk(features)
@@ -129,14 +131,22 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
         x = Concatenate()([img_out, robot_out, noise_in])
         x = AddSamplerLayer(x,
                 int(self.num_samples),
-                int(self.trajectory_length/4),
+                int(self.trajectory_length/2),
                 self.decoder_filters)
+        #x = UpSampling2D(size=(1,2))(x)
+        #x = Conv2D(self.decoder_filters, (1, 4), padding='same')(x)
+        #x = BatchNormalization(axis=-1)(x)
+        #x = Activation('relu')(x)
+        for _ in xrange(1):
+            x = Conv2D(self.decoder_filters, kernel_size=(1, 2), strides=(1,1), padding='same')(x)
+            x = BatchNormalization(axis=-1)(x)
+            x = Activation('relu')(x)
         x = UpSampling2D(size=(1,2))(x)
-        x = Conv2D(self.decoder_filters, 3, 3, border_mode='same')(x)
-        x = BatchNormalization(axis=-1)(x)
-        x = Activation('relu')(x)
-        x = UpSampling2D(size=(1,2))(x)
-        x = Conv2D(arm_size, (3, 3), border_mode='same')(x)
+        for _ in xrange(2):
+            x = Conv2D(self.decoder_filters, kernel_size=(1, 2), strides=(1,1), padding='same')(x)
+            x = BatchNormalization(axis=-1)(x)
+            x = Activation('relu')(x)
+        x = Conv2D(arm_size, kernel_size=(1,1), strides=(1,1), padding='same')(x)
 
         # s0 is the initial state. it needs to be repeated num_samples *
         # traj_length times.
@@ -147,7 +157,6 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
                     self.num_samples,
                     self.trajectory_length,
                     1]))
-        print s0, x
 
         # Integrate along the trajectories
         x = Lambda(lambda x: K.cumsum(x, axis=2) + s0)(x)
@@ -195,14 +204,13 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
             robot = actor.robot
             q = np.array([actor.state.arm])
             g = np.array([actor.state.gripper])
-            I = np.array([env.world.cameras[0].capture().rgb])
+            I = np.array([env.world.cameras[0].capture().rgb[:,:,:3]])
             z = noise = np.random.random((1, self.noise_dim))
-            print "Debug shapes:"
+            print "Debug shapes:", 
             print q.shape, g.shape, I.shape, z.shape
             trajs = self.model.predict([I, q, g, z])[0]
-            print "output trajectories:"
+            print "output trajectories:", 
             print trajs.shape
-            print trajs
             trajs3d = []
             for traj in trajs:
                 fwd_traj = []

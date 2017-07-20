@@ -163,6 +163,16 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     for i in xrange(pre_tiling_layers):
         x = ApplyTD(Conv2D(filters,
                    kernel_size=[5, 5], 
+                   strides=(1, 1),
+                   padding='same'))(x)
+        #x = BatchNormalization(momentum=0.9)(x)
+        x = ApplyTD(Activation('relu'))(x)
+        x = ApplyTD(Dropout(dropout_rate))(x)
+
+    for i in xrange(int(tile)):
+        # if tiling, make the image a little smaller
+        x = ApplyTD(Conv2D(filters,
+                   kernel_size=[5, 5], 
                    strides=(2, 2),
                    padding='same'))(x)
         #x = BatchNormalization(momentum=0.9)(x)
