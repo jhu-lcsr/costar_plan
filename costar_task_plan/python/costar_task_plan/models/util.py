@@ -3,6 +3,7 @@ from multi_gan_model import RobotMultiGAN
 from multi_regression_model import RobotMultiFFRegression
 from multi_trajectory_sampler import RobotMultiTrajectorySampler
 from multi_autoencoder_model import RobotMultiAutoencoder
+from multi_hierarchical import RobotMultiHierarchical
 
 def MakeModel(features, model, taskdef, *args, **kwargs):
     '''
@@ -46,6 +47,13 @@ def MakeModel(features, model, taskdef, *args, **kwargs):
             pass
         elif features == 'multi':
             model_instance = RobotMultiAutoencoder(taskdef, model=model, **kwargs)
+    elif model == "hierarchical":
+        if features in ['rgb','depth']:
+            pass
+        elif features == 'multi':
+            model_instance = RobotMultiHierarchical(taskdef,
+                    model=model,
+                    **kwargs)
     
     # If we did not create a model then die.
     if model_instance is None:
@@ -55,5 +63,12 @@ def MakeModel(features, model, taskdef, *args, **kwargs):
     return model_instance
 
 def GetModels():
-    return [None, "gan", "ff_regression", "lstm_regression", "sample",
-            "autoencoder"]
+    return [None,
+            "gan", # simple GAN model for generating images
+            "ff_regression", # regression model; just a dense net
+            "tcn_regression", # ff regression model with a TCN
+            "lstm_regression", # lstm regression model
+            "sample", # sampler NN to generate trajectories
+            "autoencoder", # autoencoder image test
+            "hierarchical", # hierarchical policy for planning
+            ]

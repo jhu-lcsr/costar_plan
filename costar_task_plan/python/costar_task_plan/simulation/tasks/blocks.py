@@ -149,7 +149,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
 
         self.world.addCondition(JointLimitViolationCondition(), -100,
                                 "joints must stay in limits")
-        self.world.addCondition(TimeCondition(5.), -100, "time limit reached")
+        self.world.addCondition(TimeCondition(10.), -100, "time limit reached")
         self.world.reward = EuclideanReward("red_block")
 
         # =====================================================================
