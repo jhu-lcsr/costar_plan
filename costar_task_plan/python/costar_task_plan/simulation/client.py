@@ -86,7 +86,6 @@ class CostarBulletSimulation(object):
                 and agent is not "null"
         self.robot = GetRobotInterface(robot)
         features = GetFeatures(features)
-        print ">>>>>>>>>>>>>>>>>", task
         self.task = GetTaskDefinition(
             task, self.robot, features, *args, **kwargs)
 
