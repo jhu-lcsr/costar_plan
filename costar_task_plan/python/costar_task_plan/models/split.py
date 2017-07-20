@@ -3,71 +3,68 @@ import numpy as np
 
 def SplitIntoChunks(datasets, labels,
         chunk_length=100,
-        forward_and_back=True,
         step_size=10,
-        padding=False):
+        padding=True):
     '''
     Split data into segments of the given length. This will return a much
     larger data set, but with the dimensionality changed so that we can easily
     look at certain sections.
+
+    Parameters:
+    -----------
+    dataset: data to split
+    labels: labels to split over
+    step_size: how far to step between blocks (i.e. how much overlap is
+               allowed)
+    chunk_length: how long blocks are
+    padding: should we duplicate beginning/ending frames to pad trials
     '''
 
-    data_size = datasets[0].shape[0]
+    max_label = max(labels)
+    min_label = min(labels)
 
-    new_data = []
-    for data in datasets:
-        i = 0
-        dataset = []
-        while i + chunk_length < data_size:
-            block_labels = labels[i:i+chunk_length]
-            block = data[i:i+chunk_length]
-            if not np.all(block_labels == block_labels[0]):
-                break
-            elif padding:
-                block = AddPadding(block,block_labels)
-            dataset.append(block)
-            i += step_size
-        if forward_and_back:
-            i = data_size
-            while i - step_size >= 0:
-                block_labels = labels[i-chunk_length:i]
-                block = data[i-chunk_length:i]
-                if not np.all(block_labels == block_labels[0]):
-                    break
-                elif padding:
-                    AddPadding(block,block_labels)
-                dataset.append(block) 
-                i -= chunk_length
-        new_data.append(np.array(dataset))
-    return new_data
+    if padding:
+        req_i = 0
+    else:
+        req_i = chunk_length
 
-def SplitIntoTemporalChunks(datasets, labels,
-        chunk_length=100,
-        step_size=10,
-        padding=False):
-    '''
-    Split data into segments of the given length. This will return a much
-    larger data set, but with the dimensionality changed so that we can easily
-    look at certain sections.
-    '''
-
-    data_size = datasets[0].shape[0]
-
-    new_data = []
-    for data in datasets:
-        i = 0
-        dataset = []
-        while i + chunk_length < data_size:
-            block_labels = labels[i:i+chunk_length]
-            block = data[i:i+chunk_length]
-            if not np.all(block_labels == block_labels[0]):
-                break
-            elif padding:
-                block = AddPadding(block,block_labels)
-            dataset.append(block)
-            i += step_size
-        new_data.append(np.array(dataset))
-    return new_data
+    new_data = {}
+    for label in xrange(min_label, max_label+1):
+        for idx, data in enumerate(datasets):
+            subset = data[labels==label]
+            dataset = []
+            i = 1
+            data_size = subset.shape[0]
+            while i < data_size:
+                start_block = max(0,i-chunk_length)
+                end_block = min(i,data_size)
+                i += step_size
+                block = data[start_block:end_block]
+                if padding:
+                    block = AddPadding(block,
+                            chunk_length,
+                            start_block,
+                            end_block,
+                            data_size)
+                elif end_block - start_block is not chunk_length:
+                    continue
+                assert block.shape[0] == chunk_length
+                dataset.append(block)
+            if not idx in new_data:
+                new_data[idx] = np.array(dataset)
+            else:
+                new_data[idx] = np.append(
+                        new_data[idx],
+                        values=np.array(dataset),
+                        axis = 0)
+    #print len(new_data)
+    #print type(new_data)
+    #for d in new_data.values():
+    #    print d.shape
+    for d in new_data.values():
+        if not d.shape[0] == new_data.values()[0].shape[0]:
+            raise RuntimeError('error combining datasets')
+    return new_data.values()
 
 def FirstInChunk(data):
     '''
@@ -81,9 +78,19 @@ def LastInChunk(data):
     '''
     return data[:,-1]
 
-def AddPadding(data,labels):
-    label = labels[0]
-    seq = labels == label
-    last_of_label = np.argmax(np.cumsum(seq))
-    data[last_of_label+1:] = data[last_of_label]
+def AddPadding(data,chunk_length,start_block,end_block,data_size):
+    #print data.shape
+    if start_block == 0:
+        entry = data[0]
+        #if len(data.shape) < 3:
+        #    print data
+        for _ in xrange(chunk_length - data.shape[0]):
+            data = np.insert(data,0,axis=0,values=entry)
+        #if len(data.shape) < 3:
+        #    print data
+    elif end_block == data_size:
+        entry = np.expand_dims(data[-1],axis=0)
+        for _ in xrange(chunk_length - data.shape[0]):
+            data = np.append(data,axis=0,values=entry)
+    
     return data

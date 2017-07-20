@@ -50,6 +50,7 @@ class AbstractAgentBasedModel(object):
         print "Features = ", self.features
         print "Robot = ", self.robot
         print "Task = ", self.task
+        print "Model type = ", model
         print "Model description = ", self.model_descriptor
         print "-----------------------------------------------------------"
         print "Iterations = ", self.iter
