@@ -54,7 +54,7 @@ class AbstractAgent(object):
             save=False,
             load=False,
             directory='.',
-            filename='data.npz',
+            data_file='data.npz',
             *args, **kwargs):
         '''
         Sets up the general Agent.
@@ -72,7 +72,8 @@ class AbstractAgent(object):
         self.load = load
         self.data = {}
 
-        self.datafile = os.path.join(directory,filename)
+        self.datafile_name = data_file
+        self.datafile = os.path.join(directory, data_file)
         if self.load:
             if os.path.isfile(self.datafile):
                 self.data.update(np.load(self.datafile))
@@ -103,7 +104,7 @@ class AbstractAgent(object):
             pass
 
         if self.save:
-            print "---- saving ----"
+            print "---- saving to %s ----"%self.datafile_name
             np.savez_compressed(self.datafile, **self.data)
 
     def _fit(self, num_iter):
@@ -146,7 +147,7 @@ class AbstractAgent(object):
                     if not type(self.data[key][0]) == type(value):
                         print key, type(self.data[key][0]), type(value)
                         raise RuntimeError('Types do not match when' + \
-                                           'constructing data set.')
+                                           ' constructing data set.')
                     self.data[key].append(value)
 
 class NoAgent(AbstractAgent):

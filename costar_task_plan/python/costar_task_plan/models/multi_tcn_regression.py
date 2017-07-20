@@ -20,7 +20,7 @@ from abstract import AbstractAgentBasedModel
 
 from robot_multi_models import *
 
-class RobotMultiFFRegression(AbstractAgentBasedModel):
+class RobotMultiTCNFFRegression(AbstractAgentBasedModel):
 
     def __init__(self, taskdef, *args, **kwargs):
         '''
@@ -54,7 +54,8 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
         else:
             gripper_size = 1
 
-        """
+        num_models = 5
+
         ins, x = GetSeparateEncoder(
                 img_shape=img_shape,
                 img_col_dim=self.img_col_dim,
@@ -66,18 +67,19 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
                 robot_col_dim=self.robot_col_dim,
                 combined_dense_size=self.combined_dense_size,
                 robot_col_dense_size=self.robot_col_dense_size,)
-        """
-        ins, x = GetEncoder(
-                img_shape,
-                arm_size,
-                gripper_size,
-                self.img_col_dim,
-                self.dropout_rate,
-                self.img_num_filters,
-                discriminator=False,
-                tile=True,
-                pre_tiling_layers=1,
-                post_tiling_layers=2)
+           
+        x.compile(loss="mse", optimizer=self.getOptimizer())
+        x.summary()
+        xlist = []
+        for i in xrange(num_models):
+                img = Input(img_shape)
+                xlist.append(x[img, (arm_size,), (gripper_size,)])
+                
+        #arm_size,
+        #gripper_size,
+        #self.robot_col_dim,
+        #self.robot_col_dense_size,
+        #self.combined_dense_size)
 
         arm_out = Dense(arm_size)(x)
         gripper_out = Dense(gripper_size)(x)

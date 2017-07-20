@@ -72,7 +72,7 @@ class TrajectorySamplerLoss(object):
         x = K.sum(K.sqrt(x),axis=2,keepdims=False)
         # mean across each sample
         #x = K.min(x,axis=1,keepdims=False)
-        x = K.mean(x,axis=1,keepdims=False) + K.min(x,axis=1,keepdims=False)
+        x = K.mean(x,axis=1,keepdims=False) #+ K.min(x,axis=1,keepdims=False)
 
         if self.acc_cost is not None:
             # Take the L2 norm of the acceleration output and add it to the
