@@ -1,6 +1,7 @@
 
 from multi_gan_model import RobotMultiGAN
 from multi_regression_model import RobotMultiFFRegression
+from multi_tcn_regression_model import RobotMultiTCNFFRegression
 from multi_trajectory_sampler import RobotMultiTrajectorySampler
 from multi_autoencoder_model import RobotMultiAutoencoder
 from multi_hierarchical import RobotMultiHierarchical
