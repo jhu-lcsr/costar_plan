@@ -39,8 +39,6 @@ def SplitIntoChunks(datasets, labels,
                 dataset.append(block) 
                 i -= chunk_length
         new_data.append(np.array(dataset))
-    for data in new_data:
-        print data.shape
     return new_data
 
 def FirstInChunk(data):
