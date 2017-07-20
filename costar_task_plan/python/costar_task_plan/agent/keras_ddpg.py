@@ -24,6 +24,8 @@ class KerasDDPGAgent(AbstractAgent):
         
         #TODO: terminology? feature or observation?
         observation = env.reset()
+        
+        print ">>>>>>>>>>>>>>>>>>>", observation.shape
        
 
         # TODO: find a way to customize network

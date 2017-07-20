@@ -51,6 +51,9 @@ class ActorNetwork(object):
     def create_actor_network(self, state_size,action_dim):
 
         if self.convolutional:
+            print "<<<<<<<<<<<<<<insdide actor", state_size[0], state_size[1]
+            #S = Flatten(input_shape=(1,) + (state_size)
+
             S = Input(shape=(state_size[0], state_size[1], 1))
             #x = BatchNormalization(axis=1)(S)   
             #100x100 -> 31x31
