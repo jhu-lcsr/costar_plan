@@ -251,8 +251,8 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
         x = Activation('relu')(x)
         x = Dropout(dropout_rate)(x)
 
-    for i in xrange(1):
-        x = Conv2D(filters/2, # + num_labels
+    for i in xrange(2):
+        x = Conv2D(filters, # + num_labels
                    kernel_size=[5, 5], 
                    strides=(1, 1),
                    padding="same")(x)
