@@ -1,0 +1,102 @@
+
+import keras.backend as K
+import keras.losses as losses
+import keras.optimizers as optimizers
+import numpy as np
+
+from matplotlib import pyplot as plt
+
+from keras.layers.advanced_activations import LeakyReLU
+from keras.layers import Input, RepeatVector, Reshape
+from keras.layers import UpSampling2D, Conv2DTranspose
+from keras.layers import BatchNormalization, Dropout
+from keras.layers import Dense, Conv2D, Activation, Flatten
+from keras.layers.merge import Concatenate
+from keras.losses import binary_crossentropy
+from keras.models import Model, Sequential
+from keras.optimizers import Adam
+
+from abstract import AbstractAgentBasedModel
+
+from robot_multi_models import *
+
+class RobotMultiHierarchical(AbstractAgentBasedModel):
+
+    '''
+    This is the "divide and conquer"-style classifier for training a multilevel
+    model. We use our supervised action labels to learn a superviser that will
+    classify which action we should be performing from any particular frame,
+    and then separately we learn a model of what we should be doing at each
+    frame.
+
+    This class is set up as a SUPERVISED learning problem -- for more
+    interactive training we will need to add data from an appropriate agent.
+    '''
+
+    def __init__(self, taskdef, *args, **kwargs):
+        '''
+        Similarly to everything else -- we need a taskdef here.
+
+        As in the other models, we call super() to parse arguments from the
+        command line and set things like our optimizer and learning rate.
+        '''
+        super(RobotMultiHierarchical, self).__init__(*args, **kwargs)
+        self.taskdef = taskdef
+
+        self.num_frames = 10
+
+        self.dropout_rate = 0.5
+        self.img_dense_size = 512
+        self.img_col_dim = 256
+        self.img_num_filters = 32
+        self.robot_col_dense_size = 128
+        self.robot_col_dim = 64
+        self.combined_dense_size = 64
+
+    def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
+            example, *args, **kwargs):
+        '''
+        We need to use the task definition to create our high-level model, and
+        we need to use our data to initialize the low level models that will be
+        predicting our individual actions.
+        '''
+        img_shape = features.shape[1:]
+        arm_size = arm.shape[1]
+        if len(gripper.shape) > 1:
+            gripper_size = gripper.shape[1]
+        else:
+            gripper_size = 1
+        ins, x = GetSeparateEncoder(
+                img_shape=img_shape,
+                img_col_dim=self.img_col_dim,
+                img_dense_size=self.img_dense_size,
+                arm_size=arm_size,
+                gripper_size=gripper_size,
+                dropout_rate=self.dropout_rate,
+                img_num_filters=self.img_num_filters,
+                robot_col_dim=self.robot_col_dim,
+                combined_dense_size=self.combined_dense_size,
+                robot_col_dense_size=self.robot_col_dense_size,)
+        ins, x = MakeStacked(ins, x, self.num_frames)
+
+    def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
+            example, reward, *args, **kwargs):
+        '''
+        Pre-process training data.
+
+        Then, create the model. Train based on labeled data. Remove
+        unsuccessful examples.
+        '''
+        print label
+        print label.shape
+
+        self.model = self._makeModel(features, arm, gripper, arm_cmd,
+                gripper_cmd, label,
+                example, *args, **kwargs)
+        self.model.summary()
+
+    def save(self):
+        '''
+        Store the model to disk here.
+        '''
+        pass
