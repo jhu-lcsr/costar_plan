@@ -35,6 +35,8 @@ def SplitIntoChunks(datasets, labels,
             dataset = []
             i = 1
             data_size = subset.shape[0]
+            if data_size == 0:
+                continue
             while i < data_size:
                 start_block = max(0,i-chunk_length)
                 end_block = min(i,data_size)

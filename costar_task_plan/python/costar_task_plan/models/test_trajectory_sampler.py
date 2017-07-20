@@ -74,6 +74,11 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
         We ignore inputs including the reward (for now!)
         '''
 
+        print " ------- DATA -------- "
+        print features.shape
+        print action.shape
+        print state.shape
+
         [features, state, action, example, trace, reward] = \
                 SplitIntoChunks([features, state, action, example, trace,
                     reward],
