@@ -21,8 +21,8 @@ def GetTaskDefinition(task, robot, features, *args, **kwargs):
     '''
     try:
         return {
-            'blocks': lambda: BlocksTaskDefinition(0, robot, features=features, *args, **kwargs),
-            'drl_blocks': lambda: DRLBlocksTaskDefinition(0, robot, features=features, *args, **kwargs),
+            'blocks': lambda: BlocksTaskDefinition(0, robot=robot, features=features, *args, **kwargs),
+            'drl_blocks': lambda: DRLBlocksTaskDefinition(0, robot=robot, features=features, *args, **kwargs),
             'tower': lambda: BlocksTaskDefinition(None, robot, features=features, *args, **kwargs),
             'clutter': lambda: ClutterTaskDefinition(robot, features=features, *args, **kwargs),
             'sorting': lambda: SortingTaskDefinition(robot, features=features, *args, **kwargs),
