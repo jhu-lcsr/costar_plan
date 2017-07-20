@@ -105,7 +105,7 @@ def ParseBulletArgs():
                         help="Number of epochs",
                         type=int,
                         default=1000,)
-    parser.add_argument('--data_file_name',
+    parser.add_argument('--data_file', '--file',
                         help="File name for data archive.",
                         default='data.npz')
     parser.add_argument('--model_descriptor',

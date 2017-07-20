@@ -132,6 +132,8 @@ class RobotMultiGAN(AbstractAgentBasedModel):
                 self.generator_dim,
                 self.dropout_rate,
                 self.img_num_filters,
+                pre_tiling_layers=0,
+                post_tiling_layers=2,
                 discriminator=True)
         dec_ins, dec = GetDecoder(self.generator_dim,
                             img_shape,
