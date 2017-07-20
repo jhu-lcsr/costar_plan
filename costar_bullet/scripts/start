@@ -11,32 +11,7 @@ instructions see the readme.
 '''
 
 from costar_task_plan.simulation import ParseBulletArgs
-from costar_task_plan.gym import BulletSimulationEnv
-from costar_task_plan.agent import GetAgents, MakeAgent
-from costar_task_plan.models import MakeModel
-
-import time
-
-def main(args):
-    env = BulletSimulationEnv(**args)
-    if 'agent' in args and args['agent'] is not None:
-        agent = MakeAgent(env, args['agent'], **args)   
-        agent.fit(num_iter=args['iter'])
-    if 'model' in args and args['model'] is not None:
-        model = MakeModel(taskdef=env.task, **args)
-        if 'load_model' in args and args['load_model']:
-            model.load(env.world)
-        else:
-            try:
-                model.train(**agent.data)
-            except KeyboardInterrupt, e:
-                pass
-            model.save()
-        if args['debug_model']:
-            model.plot(env)
-    else:
-        pass
-            
+from main import main
 
 if __name__ == '__main__':
     '''
