@@ -112,6 +112,23 @@ def GetSeparateEncoder(img_shape, img_col_dim, dropout_rate, img_num_filters,
 
         return img_ins + robot_ins, x
 
+def MakeStacked(ins, x, num_to_stack):
+    '''
+    Stacked latent representations -- for temporal convolutions in particular
+    '''
+    new_ins = []
+    new_xs = []
+    x = Model(ins, x)
+    for i in xrange(num_to_stack):
+        new_x_ins = []
+        for inx in ins:
+            print inx
+            new_x_ins.append(Input(inx.shape[1:]))
+        new_ins += new_x_ins
+        new_xs.append(x(new_x_ins))
+    x = K.stack(new_xs,axis=2)
+    return new_ins, x
+
 def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         filters, discriminator=False, tile=False):
     '''
