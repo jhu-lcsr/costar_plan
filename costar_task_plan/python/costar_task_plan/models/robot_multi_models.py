@@ -134,7 +134,13 @@ def MakeStacked(ins, x, num_to_stack):
 def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         filters, discriminator=False, tile=False,
         pre_tiling_layers=0,
-        post_tiling_layers=2):
+        post_tiling_layers=2,
+        time_distributed=False,):
+
+    if not time_distributed:
+        ApplyTD = lambda x: x
+    else:
+        ApplyTD = lambda x: TimeDistributed(x)
 
     '''
     Convolutions for an image, terminating in a dense layer of size dim.
@@ -153,38 +159,38 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     x = samples
 
     for i in xrange(pre_tiling_layers):
-        x = Conv2D(filters,
+        x = ApplyTD(Conv2D(filters,
                    kernel_size=[5, 5], 
                    strides=(2, 2),
-                   padding='same')(x)
+                   padding='same'))(x)
         #x = BatchNormalization(momentum=0.9)(x)
-        x = Activation('relu')(x)
-        x = Dropout(dropout_rate)(x)
+        x = ApplyTD(Activation('relu'))(x)
+        x = ApplyTD(Dropout(dropout_rate))(x)
 
     # ===============================================
     # ADD TILING
     if tile:
         tile_shape = (1, width2, height2, 1)
-        robot = Concatenate()([arm_in, gripper_in])
-        robot = Reshape([1,1,arm_size+gripper_size])(robot)
-        robot = Lambda(lambda x: K.tile(x, tile_shape))(robot)
-        x = Concatenate(axis=3)([x,robot])
+        robot = ApplyTD(Concatenate())([arm_in, gripper_in])
+        robot = ApplyTD(Reshape([1,1,arm_size+gripper_size]))(robot)
+        robot = ApplyTD(Lambda(lambda x: K.tile(x, tile_shape)))(robot)
+        x = ApplyTD(Concatenate(axis=3))([x,robot])
         ins = [samples, arm_in, gripper_in]
     else:
         ins = [samples]
 
     for i in xrange(post_tiling_layers):
-        x = Conv2D(filters,
+        x = ApplyTD(Conv2D(filters,
                    kernel_size=[5, 5], 
                    strides=(2, 2),
-                   padding='same')(x)
+                   padding='same'))(x)
         #x = BatchNormalization(momentum=0.9)(x)
         x = Activation('relu')(x)
         x = Dropout(dropout_rate)(x)
 
-    x = Flatten()(x)
-    x = Dense(dim)(x)
-    x = LeakyReLU(alpha=0.2)(x)
+    x = ApplyTD(Flatten())(x)
+    x = ApplyTD(Dense(dim))(x)
+    x = ApplyTD(LeakyReLU(alpha=0.2))(x)
 
     # Single output -- sigmoid activation function
     if discriminator:
