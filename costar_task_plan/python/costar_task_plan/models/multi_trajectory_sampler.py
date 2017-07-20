@@ -55,7 +55,7 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
         self.decoder_filters = 16
 
         self.num_samples = 16
-        self.trajectory_length = 10
+        self.trajectory_length = 12
 
     def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             example, *args, **kwargs):
@@ -136,20 +136,27 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
         x = BatchNormalization(axis=-1)(x)
         x = Activation('relu')(x)
         x = UpSampling2D(size=(1,2))(x)
-        x = Conv2D(arm_size, 3, 3, border_mode='same')(x)
+        x = Conv2D(arm_size, (3, 3), border_mode='same')(x)
 
         # s0 is the initial state. it needs to be repeated num_samples *
         # traj_length times.
         s0 = Reshape((1,1,6))(robot_ins[0])
         s0 = K.tile(s0,
-                TensorShape([1,self.num_samples,self.trajectory_length,1]))
+                TensorShape([
+                    1,
+                    self.num_samples,
+                    self.trajectory_length,
+                    1]))
+        print s0, x
 
         # Integrate along the trajectories
         x = Lambda(lambda x: K.cumsum(x, axis=2) + s0)(x)
 
 
-        arm_loss = TrajectorySamplerLoss(self.num_samples,
-                    self.trajectory_length, arm_size)
+        arm_loss = TrajectorySamplerLoss(
+                    self.num_samples,
+                    self.trajectory_length,
+                    arm_size)
 
         self.model = Model(img_ins + robot_ins + [noise_in], x)
         self.model.summary()
