@@ -9,6 +9,8 @@ This tool is designed to allow you to bring up task planning and reinforcement
 learning experiments using the CTP library and Bullet3 physics. For
 instructions see the readme.
 '''
+import pybullet as pb
+pb.connect(pb.GUI)
 
 from costar_task_plan.simulation import ParseBulletArgs
 from main import main
@@ -20,6 +22,7 @@ if __name__ == '__main__':
     '''
 
     args = ParseBulletArgs()
+    args['gui'] = False
     if args['profile']:
         import cProfile
         cProfile.run('main(args)')
