@@ -176,7 +176,7 @@ class APLDDPGAgent(AbstractAgent):
                    
                         action, control_action = self.selectAction(state, epsilon=epsilon)
                         new_state, reward, done, info = self.env.step(control_action)
-                        done = (step>=EPISODE_LENGTH)
+                        done = done or (step>=EPISODE_LENGTH)
                         self.memory.addMemory(state, action, reward, new_state, done)
                         state = new_state
     
@@ -185,6 +185,8 @@ class APLDDPGAgent(AbstractAgent):
                             batch, idxs = self.memory.getMiniBatch(BATCH_SIZE)
                             self.learnFromBatch(batch)
         
+                        if done:
+                            break
                         # CLEANUP ==========================
                         steps += 1
         

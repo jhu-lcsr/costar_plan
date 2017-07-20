@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 class OUProcess(object):
 
    """docstring for OUNoise"""
-   def __init__(self,action_dimension,mu=0, theta=0.15, sigma=0.3):
+   def __init__(self,action_dimension,mu=0, theta=0.15, sigma=0.1):
        self.action_dimension = action_dimension
        self.mu = mu
        self.theta = theta

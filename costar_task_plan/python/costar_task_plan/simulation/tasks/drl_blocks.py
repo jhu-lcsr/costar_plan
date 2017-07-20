@@ -147,7 +147,7 @@ class DRLBlocksTaskDefinition(DefaultTaskDefinition):
             
         #self.world.addCondition(JointLimitViolationCondition(), -100,
         #    "joints must stay in limits")
-        #self.world.addCondition(TimeCondition(30.), -100, "time limit reached")
+        self.world.addCondition(TimeCondition(3.), 0, "time limit reached")
         self.world.reward = EuclideanReward("red_block")
         #threshold = 0.02
         #self.world.addCondition(GoalPositionCondition("red_block", [0, 0, 0], [0, 0, 0, 1], threshold, threshold), 100, "reached block")
