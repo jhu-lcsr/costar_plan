@@ -135,12 +135,18 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         filters, discriminator=False, tile=False,
         pre_tiling_layers=0,
         post_tiling_layers=2,
-        time_distributed=False,):
+        time_distributed=0,):
 
-    if not time_distributed:
+    if time_distributed <= 0:
         ApplyTD = lambda x: x
+        samples = Input(shape=img_shape)
+        arm_in = Input((arm_size,))
+        gripper_in = Input((gripper_size,))
     else:
         ApplyTD = lambda x: TimeDistributed(x)
+        samples = Input(shape=(time_distributed,) + img_shape)
+        arm_in = Input((time_distributed, arm_size,))
+        gripper_in = Input((time_distributed, gripper_size,))
 
     '''
     Convolutions for an image, terminating in a dense layer of size dim.
@@ -151,10 +157,6 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     width2 = img_shape[1]/2
     width = img_shape[1]
     channels = img_shape[2]
-
-    samples = Input(shape=img_shape)
-    arm_in = Input((arm_size,))
-    gripper_in = Input((gripper_size,))
 
     x = samples
 
@@ -170,11 +172,15 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     # ===============================================
     # ADD TILING
     if tile:
-        tile_shape = (1, width2, height2, 1)
-        robot = ApplyTD(Concatenate())([arm_in, gripper_in])
-        robot = ApplyTD(Reshape([1,1,arm_size+gripper_size]))(robot)
-        robot = ApplyTD(Lambda(lambda x: K.tile(x, tile_shape)))(robot)
-        x = ApplyTD(Concatenate(axis=3))([x,robot])
+        robot = Concatenate(axis=-1)([arm_in, gripper_in])
+        if time_distributed > 0:
+            tile_shape = (time_distributed, 1, width2, height2, 1)
+            robot = Reshape([time_distributed, 1,1,arm_size+gripper_size])(robot)
+        else:
+            tile_shape = (1, width2, height2, 1)
+            robot = Reshape([1,1,arm_size+gripper_size])(robot)
+        robot = Lambda(lambda x: K.tile(x, tile_shape))(robot)
+        x = Concatenate(axis=-1)([x,robot])
         ins = [samples, arm_in, gripper_in]
     else:
         ins = [samples]
