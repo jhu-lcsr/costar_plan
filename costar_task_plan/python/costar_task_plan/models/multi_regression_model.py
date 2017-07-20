@@ -54,6 +54,7 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
         else:
             gripper_size = 1
 
+        """
         ins, x = GetSeparateEncoder(
                 img_shape=img_shape,
                 img_col_dim=self.img_col_dim,
@@ -65,11 +66,18 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
                 robot_col_dim=self.robot_col_dim,
                 combined_dense_size=self.combined_dense_size,
                 robot_col_dense_size=self.robot_col_dense_size,)
-        #arm_size,
-        #gripper_size,
-        #self.robot_col_dim,
-        #self.robot_col_dense_size,
-        #self.combined_dense_size)
+        """
+        ins, x = GetEncoder(
+                img_shape,
+                arm_size,
+                gripper_size,
+                self.img_col_dim,
+                self.dropout_rate,
+                self.img_num_filters,
+                discriminator=False,
+                tile=True,
+                pre_tiling_layers=1,
+                post_tiling_layers=2)
 
         arm_out = Dense(arm_size)(x)
         gripper_out = Dense(gripper_size)(x)
