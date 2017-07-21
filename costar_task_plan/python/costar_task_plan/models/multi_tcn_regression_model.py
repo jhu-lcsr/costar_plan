@@ -20,7 +20,7 @@ from abstract import AbstractAgentBasedModel
 
 from robot_multi_models import *
 
-class RobotMultiFFRegression(AbstractAgentBasedModel):
+class RobotMultiTCNRegression(AbstractAgentBasedModel):
 
     def __init__(self, taskdef, *args, **kwargs):
         '''
@@ -32,7 +32,7 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
         joint state.
         '''
 
-        super(RobotMultiFFRegression, self).__init__(*args, **kwargs)
+        super(RobotMultiTCNRegression, self).__init__(*args, **kwargs)
 
         self.taskdef = taskdef
         self.model = None
@@ -45,6 +45,15 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
         self.robot_col_dense_size = 128
         self.robot_col_dim = 64
         self.combined_dense_size = 64
+
+        self.num_frames = 10
+        self.tcn_filters = 32
+        self.num_tcn_levels = 2
+        self.tcn_dense_size = 128
+
+        self.buffer_img = []
+        self.buffer_arm = []
+        self.buffer_gripper = []
 
     def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
         img_shape = features.shape[1:]
@@ -66,6 +75,7 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
                 robot_col_dim=self.robot_col_dim,
                 combined_dense_size=self.combined_dense_size,
                 robot_col_dense_size=self.robot_col_dense_size,)
+        ins, x = MakeStacked(ins, x, self.num_frames)
         """
         ins, x = GetEncoder(
                 img_shape,
@@ -77,7 +87,16 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
                 discriminator=False,
                 tile=True,
                 pre_tiling_layers=1,
-                post_tiling_layers=2)
+                post_tiling_layers=2,
+                time_distributed=10)
+
+
+        x = Lambda(lambda x: K.expand_dims(x))(x)
+        x = GetTCNStack(x,
+                self.tcn_filters,
+                self.num_tcn_levels,
+                self.tcn_dense_size,
+                self.dropout_rate)
 
         arm_out = Dense(arm_size)(x)
         gripper_out = Dense(gripper_size)(x)

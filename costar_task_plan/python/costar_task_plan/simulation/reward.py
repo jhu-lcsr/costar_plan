@@ -29,20 +29,22 @@ class EuclideanReward(AbstractReward):
         robot_actor = world.actors[0]
         T_ee = pm.fromMatrix(robot_actor.robot.fwd(robot_actor.state.arm))
         T_obj = world.getObject(self.goal).state.T
-        dist = (T_obj.p - T_ee.p).Norm(), 0
+        dist = (T_obj.p - T_ee.p).Norm()
         
         #print "prev distance " + str(self.prev_distance) + " new distance " + str(dist)
         
+        #print dist
+        reward = 1/dist
+        #print reward
 
-
-        if (dist < self.prev_distance):
-            reward = +1
-        else:
-            reward = -1
+        #if (dist < self.prev_distance):
+        #    reward = +1
+        #else:
+        #    reward = -1
             
-        if dist < .05:
-            print "reached target"
-            reward = 100
+        #if dist < .05:
+        #    print "reached target"
+        #    reward = 100
             
         #print "reward " + str(reward) 
         

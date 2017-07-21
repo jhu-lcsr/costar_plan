@@ -52,7 +52,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             goal,
             pose=((0.05, 0, 0.05), self.grasp_q),
             pose_tolerance=(0.025, 0.025),
-            joint_velocity_tolerance=0.025,)
+            joint_velocity_tolerance=0.05,)
         align_args = {
             "constructor": AlignOption,
             "args": ["block"],
@@ -63,7 +63,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             goal,
             pose=((0.0, 0, 0.0), self.grasp_q),
             pose_tolerance=(0.025, 0.025),
-            joint_velocity_tolerance=0.025,)
+            joint_velocity_tolerance=0.05,)
         grasp_args = {
             "constructor": GraspOption,
             "args": ["block"],
@@ -72,7 +72,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         LiftOption = lambda: GeneralMotionOption(
             pose=(self.over_final_stack_pos, self.grasp_q),
             pose_tolerance=(0.025, 0.025),
-            joint_velocity_tolerance=0.025,)
+            joint_velocity_tolerance=0.05,)
         lift_args = {
             "constructor": LiftOption,
             "args": []
@@ -80,7 +80,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         PlaceOption = lambda: GeneralMotionOption(
             pose=(self.final_stack_pos, self.grasp_q),
             pose_tolerance=(0.025, 0.025),
-            joint_velocity_tolerance=0.025,)
+            joint_velocity_tolerance=0.05,)
         place_args = {
             "constructor": PlaceOption,
             "args": []

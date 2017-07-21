@@ -15,6 +15,13 @@ class AbstractAgentBasedModel(object):
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
             task=None, robot=None, model="", *args,
             **kwargs):
+
+        if lr == 0 or lr < 1e-30:
+            raise RuntimeError('You probably did not mean to set ' + \
+                               'learning rate to %f'%lr)
+        elif lr > 1.:
+            raise RuntimeError('Extremely high learning rate: %f' % lr)
+
         self.lr = lr
         self.iter = iter
         self.show_iter = show_iter
@@ -43,6 +50,7 @@ class AbstractAgentBasedModel(object):
         print "Features = ", self.features
         print "Robot = ", self.robot
         print "Task = ", self.task
+        print "Model type = ", model
         print "Model description = ", self.model_descriptor
         print "-----------------------------------------------------------"
         print "Iterations = ", self.iter

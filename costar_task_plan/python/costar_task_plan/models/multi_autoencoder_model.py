@@ -61,7 +61,10 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
                 gripper_size,
                 self.generator_dim,
                 self.dropout_rate,
-                self.img_num_filters)
+                self.img_num_filters,
+                pre_tiling_layers=2,
+                post_tiling_layers=2,
+                )
         rep, dec = GetDecoder(self.generator_dim,
                             img_shape,
                             arm_size,
@@ -73,9 +76,13 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
         optimizer = self.getOptimizer()
         self.model.compile(loss="mae", optimizer=optimizer)
 
+        self.model.trainable = True
+        decoder.trainable = True
+
         # ========================================
         # For debugging
         self.model.summary()
+        decoder.summary()
 
     def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             example, *args, **kwargs):

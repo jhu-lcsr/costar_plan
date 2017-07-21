@@ -68,7 +68,7 @@ INCLUDE_VELOCITY_IN_STATE = False   # Include agent vx, vy in state (in addition
 PENALIZE_FOR_DISTRIBUTION = True   # Penalize agents for grouping over a single target
 NUM_AGENTS = 1                      # Number of agents (all controlled by one network)
 NUM_TARGETS = 1                     # Number of stationary targets
-CONVOLUTIONAL = False               # Operate on images of the environment instead of float vectors
+CONVOLUTIONAL = True               # Operate on images of the environment instead of float vectors
 DRAW_STATE = True                 # This file should re-draw an image based on the state space
 ENV_OUTPUTS_IMAGE = False           # Control if ENV outputs state-vector or state image.
 NUM_NOISE_PROCS = 1
@@ -91,7 +91,7 @@ class APLDDPGAgent(AbstractAgent):
         self.observation = env.reset()
         self.state_dim = self.observation.shape
         print ">>>>>>>>>>>>>>>>>>>>>state dim " + str(self.state_dim)
-        self.nn_action_dim = 2 # limit ddpg network output to 3 DOF
+        self.nn_action_dim = 6 # limit ddpg network output to 3 DOF
         self.noise = OUProcess(self.nn_action_dim, mu=OU_MEAN, theta=OU_THETA, sigma=EPSILON_RANGE[0])
         
         
@@ -152,6 +152,7 @@ class APLDDPGAgent(AbstractAgent):
             print("Episode: " + str(ep) + "  Frames: " + str(ep*EPISODE_LENGTH) + "  Uptime: " + str((time.time()-start_time)/3600.0) + " hrs    ===========")
         
             state = self.env.reset()
+
             
            
         
@@ -161,6 +162,21 @@ class APLDDPGAgent(AbstractAgent):
         
             if play_only or ALREADY_TRAINED:
                 for step in range(TEST_EPISODE_LENGTH):
+        
+                    #print ">>>>>>>>>>>>>", state.shape       
+                    #img = np.array([np.subtract(img, 128)], dtype=np.float32) #zero center
+                    #img = np.multiply(img, 1.0/128.0) #scale [-1,1]
+                    #img = np.transpose(state, (1,2,0))
+                    
+                    #img = np.array(state)
+                    #img = np.transpose(img, (1,2,0))
+
+                    #print ">>>>>>>>>>>>>", state.shape 
+
+                    state = np.reshape(state, state.shape + (1,))
+      
+
+
         
                     action, control_action = self.selectAction(state, can_be_random=False, use_target=True)
                     
@@ -173,6 +189,9 @@ class APLDDPGAgent(AbstractAgent):
                         # ACT ==============================
                         epsilon = (float(steps)/float(EPSILON_STEPS))*(EPSILON_RANGE[1]-EPSILON_RANGE[0]) + EPSILON_RANGE[0]
                         
+                        
+                        state = np.reshape(state, state.shape + (1,))
+
                    
                         action, control_action = self.selectAction(state, epsilon=epsilon)
                         new_state, reward, done, info = self.env.step(control_action)
@@ -237,6 +256,9 @@ class APLDDPGAgent(AbstractAgent):
         actions = np.asarray([sample['action'] for sample in miniBatch])
         new_states = np.asarray([sample['newState'] for sample in miniBatch])
         Y_batch = np.asarray([sample['reward'] for sample in miniBatch])
+        
+        new_states = np.reshape(new_states, new_states.shape + (1,))
+
     
         target_q_values = self.critic.target_model.predict([new_states, self.actor.target_model.predict(new_states)])  
     
