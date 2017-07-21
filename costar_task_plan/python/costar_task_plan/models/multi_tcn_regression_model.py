@@ -94,7 +94,6 @@ class RobotMultiTCNRegression(AbstractAgentBasedModel):
                 post_tiling_layers=2,
                 time_distributed=10)
 
-
         x = Lambda(lambda x: K.expand_dims(x))(x)
         x = GetTCNStack(x,
                 self.tcn_filters,
@@ -124,12 +123,15 @@ class RobotMultiTCNRegression(AbstractAgentBasedModel):
                 front_padding=False,
                 rear_padding=True)
 
+        arm_cmd_target = LastInChunk(arm_cmd)
+        gripper_cmd_target = LastInChunk(gripper_cmd)
+
         self._makeModel(features, arm, gripper, arm_cmd,
                 gripper_cmd, *args, **kwargs)
         self.model.summary()
         self.model.fit(
                 x=[features, arm, gripper],
-                y=[arm_cmd, gripper_cmd],
+                y=[arm_cmd_target, gripper_cmd_target],
                 epochs=self.epochs,
                 batch_size=self.batch_size,
                 )
