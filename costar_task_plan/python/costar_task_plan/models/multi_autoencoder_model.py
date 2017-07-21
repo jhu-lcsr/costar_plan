@@ -38,7 +38,7 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
 
         self.taskdef = taskdef
         
-        self.generator_dim = 1024
+        self.generator_dim = 2048
         self.img_num_filters = 64
 
         self.dropout_rate = 0.5

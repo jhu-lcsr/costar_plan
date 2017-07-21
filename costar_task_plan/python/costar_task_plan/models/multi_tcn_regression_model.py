@@ -20,6 +20,8 @@ from abstract import AbstractAgentBasedModel
 
 from robot_multi_models import *
 
+from split import *
+
 class RobotMultiTCNRegression(AbstractAgentBasedModel):
 
     def __init__(self, taskdef, *args, **kwargs):
@@ -55,11 +57,13 @@ class RobotMultiTCNRegression(AbstractAgentBasedModel):
         self.buffer_arm = []
         self.buffer_gripper = []
 
-    def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
+    def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd,
+            *args, **kwargs):
+        print kwargs
         img_shape = features.shape[1:]
-        arm_size = arm.shape[1]
+        arm_size = arm.shape[-1]
         if len(gripper.shape) > 1:
-            gripper_size = gripper.shape[1]
+            gripper_size = gripper.shape[-1]
         else:
             gripper_size = 1
 
@@ -107,11 +111,18 @@ class RobotMultiTCNRegression(AbstractAgentBasedModel):
         model.compile(loss="mse", optimizer=optimizer)
         self.model = model
 
-    def train(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
+    def train(self, features, arm, gripper, arm_cmd, gripper_cmd, example, 
+            *args, **kwargs):
         '''
         Training data -- just direct regression based on MSE from the other
         trajectory.
         '''
+
+        [features, arm, gripper, arm_cmd, gripper_cmd] = \
+                SplitIntoChunks([features, arm, gripper, arm_cmd, gripper_cmd],
+                example, self.num_frames, step_size=2,
+                front_padding=False,
+                rear_padding=True)
 
         self._makeModel(features, arm, gripper, arm_cmd,
                 gripper_cmd, *args, **kwargs)
