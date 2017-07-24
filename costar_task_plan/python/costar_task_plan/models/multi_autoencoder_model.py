@@ -62,8 +62,8 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
                 self.generator_dim,
                 self.dropout_rate,
                 self.img_num_filters,
-                pre_tiling_layers=2,
-                post_tiling_layers=2,
+                pre_tiling_layers=1,
+                post_tiling_layers=3,
                 )
         rep, dec = GetDecoder(self.generator_dim,
                             img_shape,
