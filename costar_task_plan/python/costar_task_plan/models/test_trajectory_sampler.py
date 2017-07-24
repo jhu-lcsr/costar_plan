@@ -51,7 +51,7 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
         self.trajectory_length = 16
         self.decoder_filters = 32
 
-    def train(self, features, state, action, trace, example, reward,
+    def train(self, features, state, action, label, example, reward,
               *args, **kwargs):
         '''
         Training data -- first, break into chunks of size "trajectory_length".
@@ -79,10 +79,18 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
         print action.shape
         print state.shape
 
+        """
         [features, state, action, example, trace, reward] = \
                 SplitIntoChunks([features, state, action, example, trace,
                     reward],
                 example, self.trajectory_length, step_size=10, padding=True,)
+        """
+        [features, state, action, example, label, reward] = \
+                SplitIntoChunks([features, state, action, example, label,
+                    reward],
+                example, self.trajectory_length, step_size=10,
+                front_padding=False,
+                rear_padding=True,)
 
         state = state[:,:,:5]
         print "state vars =", state.shape
@@ -120,11 +128,11 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
                 self.decoder_filters)
         for i in xrange(1):
             x = UpSampling2D(size=(1,2))(x)
-            x = Conv2D(self.decoder_filters, 3, 3, border_mode='same')(x)
+            x = Conv2D(self.decoder_filters, kernel_size=(1,2), strides=(1,1), border_mode='same')(x)
             x = BatchNormalization(axis=-1)(x)
             x = Activation('relu')(x)
         x = UpSampling2D(size=(1,2))(x)
-        x = Conv2D(state_size, 3, 3, border_mode='same')(x)
+        x = Conv2D(state_size, kernel_size=(1,2), strides=(1,1), border_mode='same')(x)
 
         # s0 is the initial state. it needs to be repeated num_samples *
         # traj_length times.
@@ -159,6 +167,10 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
             loss = self.model.train_on_batch([xf, xs, noise], ya)
             print "Iter %d: loss = %f"%(i,loss)
 
+
+            if (i+1) % self.show_iter == 0:
+                plot(features, state)
+
     def save(self):
         if self.model is not None:
             self.model.save_weights(self.name + ".h5f")
@@ -184,11 +196,12 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
         plt.show()
 
 if __name__ == '__main__':
-    data = np.load('test_data.npz')
+    data = np.load('roadworld.npz')
     sampler = TestTrajectorySampler(
             batch_size=64,
-            iter=1000,
+            iter=10000,
             optimizer="adam",)
+    sampler.show_iter = 1
     sampler.train(**data)
     sampler.plot(**data)
 
