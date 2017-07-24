@@ -85,6 +85,8 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
                     reward],
                 example, self.trajectory_length, step_size=10, padding=True,)
         """
+        orig_features = features
+        orig_state = state
         [features, state, action, example, label, reward] = \
                 SplitIntoChunks([features, state, action, example, label,
                     reward],
@@ -151,6 +153,9 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
         self.model.compile(optimizer=self.getOptimizer(), 
                 loss=state_loss)
 
+        if self.show_iter > 0:
+            fig = plt.figure()
+
         for i in xrange(self.iter):
             idx = np.random.randint(0, fdata_in.shape[0], size=self.batch_size)
             xf = fdata_in[idx]
@@ -168,8 +173,8 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
             print "Iter %d: loss = %f"%(i,loss)
 
 
-            if (i+1) % self.show_iter == 0:
-                plot(features, state)
+            if self.show_iter > 0 and (i+1) % self.show_iter == 0:
+                self.plot(orig_features, orig_state)
 
     def save(self):
         if self.model is not None:
@@ -179,7 +184,6 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
         self.model.load_weights(self.name + ".h5f")
 
     def plot(self, features, state, *args, **kwargs):
-        fig = plt.figure()
 
         for i in xrange(9):
             noise = np.random.random((1, self.noise_dim))
@@ -193,15 +197,20 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
             for j in xrange(trajs.shape[2]):
                 plt.plot(state[(i*100)+j][1],state[(i*100)+j][0],'*')
 
-        plt.show()
+        plt.ion()
+        plt.show(block=False)
+        plt.pause(0.01)
 
 if __name__ == '__main__':
     data = np.load('roadworld.npz')
     sampler = TestTrajectorySampler(
             batch_size=64,
-            iter=10000,
+            iter=2500,
             optimizer="adam",)
-    sampler.show_iter = 1
-    sampler.train(**data)
+    sampler.show_iter = 100
+    try:
+        sampler.train(**data)
+    except Exception, e:
+        print e
     sampler.plot(**data)
 
