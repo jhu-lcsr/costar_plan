@@ -165,6 +165,30 @@ def SplitTraining(datadatasets,
             raise RuntimeError('error combining datasets')
     return new_data.values()
 
+def SplitIntoActions(
+        datasets,
+        example_labels,
+        action_labels):
+
+    min_example = np.min(example_labels)
+    max_example = np.max(example_labels)
+    min_action = np.min(action_labels)
+    max_action = np.max(action_labels)
+
+    # loop over all datasets to perform splitting -- assume that action_labels
+    # has the same size as every entry in data
+    for actions in action_labels:
+        # take out each example
+        for example in xrange(min_example,max_example+1):
+            subset = actions[example_labels==example]
+
+            # iterate over the length of the example to pull out start, end
+            # indices for each action
+            for i in xrange(len(subset)):
+                print i
+                if i == 0 or not subset[i-1] == i or i == len(subset):
+                    print i, subset[i], len(subset)
+
 
 
 def FirstInChunk(data):

@@ -174,6 +174,7 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
 
 
             if self.show_iter > 0 and (i+1) % self.show_iter == 0:
+                plt.clf()
                 self.plot(orig_features, orig_state)
 
     def save(self):
@@ -205,7 +206,7 @@ if __name__ == '__main__':
     data = np.load('roadworld.npz')
     sampler = TestTrajectorySampler(
             batch_size=64,
-            iter=2500,
+            iter=5000,
             optimizer="adam",)
     sampler.show_iter = 100
     try:
@@ -214,3 +215,5 @@ if __name__ == '__main__':
         print e
     sampler.plot(**data)
 
+    while(True):
+        plt.sleep(0.1)
