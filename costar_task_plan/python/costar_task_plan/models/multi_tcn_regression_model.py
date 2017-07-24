@@ -64,8 +64,18 @@ class RobotMultiTCNRegression(AbstractAgentBasedModel):
 
     def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd,
             *args, **kwargs):
-        print kwargs
-        img_shape = features.shape[1:]
+        '''
+        We will either receive:
+            (n_samples, window_size,) + feature_shape
+        Or:
+            (n_samples = 1, ) + feature_shape
+
+        Depending on if we are in train or test mode.
+        '''
+        if len(features.shape) > 4:
+            img_shape = features.shape[1:]
+        else:
+            img_shape = features.shape
         arm_size = arm.shape[-1]
         if len(gripper.shape) > 1:
             gripper_size = gripper.shape[-1]
