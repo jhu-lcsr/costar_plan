@@ -72,10 +72,9 @@ class RobotMultiTCNRegression(AbstractAgentBasedModel):
 
         Depending on if we are in train or test mode.
         '''
-        if len(features.shape) > 4:
-            img_shape = features.shape[1:]
-        else:
-            img_shape = features.shape
+        img_shape = features.shape[1:]
+        if len(img_shape) == 3:
+            img_shape = (self.num_frames,) + img_shape
         arm_size = arm.shape[-1]
         if len(gripper.shape) > 1:
             gripper_size = gripper.shape[-1]
