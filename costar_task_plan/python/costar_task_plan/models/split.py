@@ -180,6 +180,9 @@ def SplitIntoActions(
     for actions in action_labels:
         # take out each example
         for example in xrange(min_example,max_example+1):
+            res = example_labels == example
+            print res
+            print res.shape
             subset = actions[example_labels==example]
 
             # iterate over the length of the example to pull out start, end
