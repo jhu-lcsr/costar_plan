@@ -20,7 +20,9 @@ from abstract import AbstractAgentBasedModel
 
 from robot_multi_models import *
 
-class RobotMultiTCNFFRegression(AbstractAgentBasedModel):
+from split import *
+
+class RobotMultiTCNRegression(AbstractAgentBasedModel):
 
     def __init__(self, taskdef, *args, **kwargs):
         '''
@@ -32,7 +34,7 @@ class RobotMultiTCNFFRegression(AbstractAgentBasedModel):
         joint state.
         '''
 
-        super(RobotMultiFFRegression, self).__init__(*args, **kwargs)
+        super(RobotMultiTCNRegression, self).__init__(*args, **kwargs)
 
         self.taskdef = taskdef
         self.model = None
@@ -46,16 +48,26 @@ class RobotMultiTCNFFRegression(AbstractAgentBasedModel):
         self.robot_col_dim = 64
         self.combined_dense_size = 64
 
-    def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
+        self.num_frames = 10
+        self.tcn_filters = 32
+        self.num_tcn_levels = 2
+        self.tcn_dense_size = 128
+
+        self.buffer_img = []
+        self.buffer_arm = []
+        self.buffer_gripper = []
+
+    def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd,
+            *args, **kwargs):
+        print kwargs
         img_shape = features.shape[1:]
-        arm_size = arm.shape[1]
+        arm_size = arm.shape[-1]
         if len(gripper.shape) > 1:
-            gripper_size = gripper.shape[1]
+            gripper_size = gripper.shape[-1]
         else:
             gripper_size = 1
 
-        num_models = 5
-
+        """
         ins, x = GetSeparateEncoder(
                 img_shape=img_shape,
                 img_col_dim=self.img_col_dim,
@@ -67,19 +79,35 @@ class RobotMultiTCNFFRegression(AbstractAgentBasedModel):
                 robot_col_dim=self.robot_col_dim,
                 combined_dense_size=self.combined_dense_size,
                 robot_col_dense_size=self.robot_col_dense_size,)
-           
-        x.compile(loss="mse", optimizer=self.getOptimizer())
-        x.summary()
-        xlist = []
-        for i in xrange(num_models):
-                img = Input(img_shape)
-                xlist.append(x[img, (arm_size,), (gripper_size,)])
-                
-        #arm_size,
-        #gripper_size,
-        #self.robot_col_dim,
-        #self.robot_col_dense_size,
-        #self.combined_dense_size)
+        ins, x = MakeStacked(ins, x, self.num_frames)
+        """
+        ins, x = GetEncoder(
+                img_shape,
+                arm_size,
+                gripper_size,
+                self.img_col_dim,
+                self.dropout_rate,
+                self.img_num_filters,
+                discriminator=False,
+                tile=True,
+                pre_tiling_layers=1,
+                post_tiling_layers=2,
+                time_distributed=10)
+
+    def output_of_lambda(input_shape):
+        return (input_shape[0], 1, input_shape[2])
+
+    def mean(x):
+        return K.mean(x, axis=1, keepdims=True)
+  
+        x = (Lambda(mean, output_shape=output_of_lambda))
+    
+        #x = Lambda(lambda x: K.expand_dims(x))(x)
+        x = GetTCNStack(x,
+                self.tcn_filters,
+                self.num_tcn_levels,
+                self.tcn_dense_size,
+                self.dropout_rate)
 
         arm_out = Dense(arm_size)(x)
         gripper_out = Dense(gripper_size)(x)
@@ -90,11 +118,18 @@ class RobotMultiTCNFFRegression(AbstractAgentBasedModel):
         model.compile(loss="mse", optimizer=optimizer)
         self.model = model
 
-    def train(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
+    def train(self, features, arm, gripper, arm_cmd, gripper_cmd, example, 
+            *args, **kwargs):
         '''
         Training data -- just direct regression based on MSE from the other
         trajectory.
         '''
+
+        [features, arm, gripper, arm_cmd, gripper_cmd] = \
+                SplitIntoChunks([features, arm, gripper, arm_cmd, gripper_cmd],
+                example, self.num_frames, step_size=2,
+                front_padding=False,
+                rear_padding=True)
 
         self._makeModel(features, arm, gripper, arm_cmd,
                 gripper_cmd, *args, **kwargs)
