@@ -109,11 +109,14 @@ class Node(AbstractState):
             child.parent = self
             child.prev_reward = self.prev_reward + self.reward
             child.traj.append((self.world.actors[0].state, action))
-            child.ticks = 1
             child.action.update(child)
         else:
             raise RuntimeError(
                 'Cannot instantiate a node that already has been instantiated!')
+
+    @property
+    def ticks(self):
+        return self.world.ticks
 
     '''
     tick() to advance the state of the world associated with a particular

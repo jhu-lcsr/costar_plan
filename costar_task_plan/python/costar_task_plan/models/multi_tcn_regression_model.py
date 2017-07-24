@@ -23,6 +23,11 @@ from robot_multi_models import *
 from split import *
 
 class RobotMultiTCNRegression(AbstractAgentBasedModel):
+    '''
+    Create regression model that looks at multiple time slices to compute the
+    best next action from the training data set.
+    '''
+
 
     def __init__(self, taskdef, *args, **kwargs):
         '''

@@ -2,7 +2,6 @@
 from multi_gan_model import RobotMultiGAN
 from multi_regression_model import RobotMultiFFRegression
 
-from multi_tcn_regression import RobotMultiTCNFFRegression
 from multi_tcn_regression_model import RobotMultiTCNRegression
 
 from multi_trajectory_sampler import RobotMultiTrajectorySampler

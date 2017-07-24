@@ -77,6 +77,95 @@ def SplitIntoChunks(datasets, labels,
             raise RuntimeError('error combining datasets')
     return new_data.values()
 
+def SplitTraining(datadatasets,
+        examples,
+        action_labels,
+        chunk_length=10,
+        step_size=1,
+        front_padding=False,
+        rear_padding=False):
+    '''
+    Split data into segments of the given length. This will return a much
+    larger data set, but with the dimensionality changed so that we can easily
+    look at certain sections.
+
+    Parameters:
+    -----------
+    dataset: data to split
+    examples: example / trail
+    action_labels: integer for each unique action
+    step_size: how far to step between blocks (i.e. how much overlap is
+               allowed)
+    chunk_length: how long blocks are
+    padding: should we duplicate beginning/ending frames to pad trials
+    '''
+
+    max_example = max(examples)
+    min_example = min(examples)
+    padding = front_padding or rear_padding
+
+    action_data = {}
+
+    new_data = {}
+    for example in xrange(min_example, max_example+1):
+
+        data_by_action = {}
+
+        for idx, data in enumerate(datasets):
+
+            subset = data[examples==example]
+
+            # create the data set
+            dataset = []
+
+            # Set up data size
+            data_size = action_data.shape[0]
+            if data_size == 0:
+                continue
+    
+            # padding: add entries to the front or back
+            if front_padding:
+                i = 1
+            else:
+                i = chunk_length
+            if rear_padding:
+                max_i = data_size + chunk_length - 1
+            else:
+                max_i = data_size
+
+            while i < max_i:
+                start_block = max(0,i-chunk_length)
+                end_block = min(i,data_size)
+                i += step_size
+                block = data[start_block:end_block]
+                if padding:
+                    block = AddPadding(block,
+                            chunk_length,
+                            start_block,
+                            end_block,
+                            data_size)
+                elif end_block - start_block is not chunk_length:
+                    continue
+                assert block.shape[0] == chunk_length
+                dataset.append(block)
+            if not idx in new_data:
+                new_data[idx] = np.array(dataset)
+            else:
+                new_data[idx] = np.append(
+                        new_data[idx],
+                        values=np.array(dataset),
+                        axis = 0)
+
+    #print len(new_data)
+    #print type(new_data)
+    #for d in new_data.values():
+    #    print d.shape
+    for d in new_data.values():
+        if not d.shape[0] == new_data.values()[0].shape[0]:
+            raise RuntimeError('error combining datasets')
+    return new_data.values()
+
+
 
 def FirstInChunk(data):
     '''
