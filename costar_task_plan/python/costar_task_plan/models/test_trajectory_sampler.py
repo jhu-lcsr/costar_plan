@@ -47,7 +47,7 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
         
         self.dropout_rate = 0.5
         self.dense_size = 256
-        self.num_samples = 16
+        self.num_samples = 1
         self.trajectory_length = 16
         self.decoder_filters = 32
 
@@ -85,6 +85,7 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
                     reward],
                 example, self.trajectory_length, step_size=10, padding=True,)
         """
+        state = state[:,:2]
         orig_features = features
         orig_state = state
         [features, state, action, example, label, reward] = \
@@ -94,7 +95,7 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
                 front_padding=False,
                 rear_padding=True,)
 
-        state = state[:,:,:5]
+        #state = state[:,:,:5]
         print "state vars =", state.shape
 
         # Get images for input and output from the network.
@@ -114,8 +115,8 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
         noise_in = Input((self.noise_dim,))
         features_in = Input((features_size,))
         state_in = Input((state_size,))
-        x = Concatenate()([features_in, state_in])#, noise_in])
-        #x = Concatenate()([features_in, noise_in])
+        #x = Concatenate()([features_in, state_in])#, noise_in])
+        x = Concatenate()([features_in, noise_in])
         #x = features_in
 
         for i in xrange(3):
@@ -130,11 +131,11 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
                 self.decoder_filters)
         for i in xrange(1):
             x = UpSampling2D(size=(1,2))(x)
-            x = Conv2D(self.decoder_filters, kernel_size=(1,2), strides=(1,1), border_mode='same')(x)
+            x = Conv2D(self.decoder_filters, kernel_size=(1,1), strides=(1,1), border_mode='same')(x)
             x = BatchNormalization(axis=-1)(x)
             x = Activation('relu')(x)
         x = UpSampling2D(size=(1,2))(x)
-        x = Conv2D(state_size, kernel_size=(1,2), strides=(1,1), border_mode='same')(x)
+        x = Conv2D(state_size, kernel_size=(1,1), strides=(1,1), border_mode='same')(x)
 
         # s0 is the initial state. it needs to be repeated num_samples *
         # traj_length times.
@@ -216,4 +217,4 @@ if __name__ == '__main__':
     sampler.plot(**data)
 
     while(True):
-        plt.sleep(0.1)
+        plt.pause(0.1)

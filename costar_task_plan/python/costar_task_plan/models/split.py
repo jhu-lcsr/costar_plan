@@ -175,23 +175,32 @@ def SplitIntoActions(
     min_action = np.min(action_labels)
     max_action = np.max(action_labels)
 
-    # loop over all datasets to perform splitting -- assume that action_labels
-    # has the same size as every entry in data
-    for actions in action_labels:
-        # take out each example
-        for example in xrange(min_example,max_example+1):
-            res = example_labels == example
-            print res
-            print res.shape
-            subset = actions[example_labels==example]
+    changepoints_by_example = {}
+    indices_by_example = {}
 
-            # iterate over the length of the example to pull out start, end
-            # indices for each action
-            for i in xrange(len(subset)):
-                print i
-                if i == 0 or not subset[i-1] == i or i == len(subset):
-                    print i, subset[i], len(subset)
+    # take out each example
+    for example in xrange(min_example,max_example+1):
 
+        # Just some simple setup
+        changepoints_by_example[example] = []
+        indices_by_example[example] = []
+
+        start = 0
+
+        # pull out just the action labels for this example
+        subset = action_labels[example_labels==example]
+
+        # iterate over the length of the example to pull out start, end
+        # indices for each action
+        for i in xrange(len(subset)):
+
+            # come up with the set of decision points
+            if i == 0 or not subset[i-1] == subset[i] or i == len(subset):
+
+                if i == len(subset) or subset[i-1] == subset[i]:
+                    # add the subset because we found an end
+                    changepoints_by_example[example].append(start,i)
+                    start = i
 
 
 def FirstInChunk(data):
