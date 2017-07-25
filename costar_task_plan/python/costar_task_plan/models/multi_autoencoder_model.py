@@ -104,7 +104,8 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
         # Goal: f(img, arm, gripper) --> arm_cmd, gripper_cmd
 
         #features = features[:,:,:,:3]
-        self._makeModel(features, arm, gripper, arm_cmd, gripper_cmd)
+        if self.model is None:
+            self._makeModel(features, arm, gripper, arm_cmd, gripper_cmd)
 
         #tensorboard_cb = TensorBoard(
         #        log_dir='./logs_%s'%(self.model_descriptor),

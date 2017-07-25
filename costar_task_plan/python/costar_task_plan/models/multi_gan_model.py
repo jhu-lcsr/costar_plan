@@ -96,6 +96,41 @@ class RobotMultiGAN(AbstractAgentBasedModel):
         self.adversarial.compile(loss=loss, optimizer=optimizer,
                 metrics=["accuracy"])
 
+    def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
+            example, *args, **kwargs):
+
+        img_shape = features.shape[1:]
+        arm_size = arm.shape[1]
+        if len(gripper.shape) > 1:
+            gripper_size = gripper.shape[1]
+        else:
+            gripper_size = 1
+
+
+        enc_ins, enc = GetEncoder(img_shape,
+                arm_size,
+                gripper_size,
+                self.generator_dim,
+                self.dropout_rate,
+                self.img_num_filters,
+                pre_tiling_layers=0,
+                post_tiling_layers=2,
+                discriminator=True)
+        dec_ins, dec = GetDecoder(self.generator_dim,
+                            img_shape,
+                            arm_size,
+                            gripper_size,
+                            dropout_rate=self.dropout_rate,
+                            filters=self.img_num_filters,)
+
+        self.make([dec_ins, enc_ins], [dec, enc], loss="binary_crossentropy")
+
+        self.discriminator.trainable = False
+        self.generator.trainable = True
+        self.adversarial.summary()
+        self.discriminator.summary()
+
+
     def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             example, *args, **kwargs):
         '''
@@ -126,31 +161,12 @@ class RobotMultiGAN(AbstractAgentBasedModel):
         else:
             gripper_size = 1
 
-        enc_ins, enc = GetEncoder(img_shape,
-                arm_size,
-                gripper_size,
-                self.generator_dim,
-                self.dropout_rate,
-                self.img_num_filters,
-                pre_tiling_layers=0,
-                post_tiling_layers=2,
-                discriminator=True)
-        dec_ins, dec = GetDecoder(self.generator_dim,
-                            img_shape,
-                            arm_size,
-                            gripper_size,
-                            dropout_rate=self.dropout_rate,
-                            filters=self.img_num_filters,)
-
-        self.make([dec_ins, enc_ins], [dec, enc], loss="binary_crossentropy")
+        if self.adversarial is None:
+            self._makeModel(features, arm, gripper, arm_cmd, gripper_cmd,
+                    label, example, *args, **kwargs)
 
         if self.show_iter > 0:
             plt.figure()
-
-        self.discriminator.trainable = False
-        self.generator.trainable = True
-        self.adversarial.summary()
-        self.discriminator.summary()
 
         # pretrain
         print "Pretraining discriminator..."
@@ -242,9 +258,14 @@ class RobotMultiGAN(AbstractAgentBasedModel):
         else:
             raise RuntimeError('save() failed: model not found.')
 
-    def load(self):
+    def _loadWeights(self, *args, **kwargs):
         '''
-        Load will use the current model descriptor and name to load the file
-        that you are interested in, at least for now.
+        Load model weights. This is the default load weights function; you may
+        need to overload this for specific models.
         '''
-        raise NotImplementedError('load() not supported yet.')
+        if self.adversarial is not None:
+            self.discriminator.load_weights(self.name + "_discriminator.h5f")
+            self.generator.load_weights(self.name + "_generator.h5f")
+            self.adversarial.load_weights(self.name + "_adversarial.h5f")
+        else:
+            raise RuntimeError('_loadWeights() failed: model not found.')
