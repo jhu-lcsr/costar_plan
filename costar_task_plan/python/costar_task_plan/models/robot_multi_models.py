@@ -117,7 +117,6 @@ def MakeStacked(ins, x, num_to_stack):
     '''
     Stacked latent representations -- for temporal convolutions in particular
     '''
-    print TimeDistributed(x)
     new_ins = []
     new_xs = []
     x = Model(ins, x)

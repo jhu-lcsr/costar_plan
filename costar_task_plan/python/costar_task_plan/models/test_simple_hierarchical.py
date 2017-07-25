@@ -20,10 +20,10 @@ from keras.optimizers import Adam
 from tensorflow import TensorShape
 
 from abstract import AbstractAgentBasedModel
-from robot_multi_models import *
+from dense import *
 from split import *
 
-class TestSimpleHierarchal(AbstractAgentBasedModel):
+class TestSimpleHierarchical(AbstractAgentBasedModel):
     '''
     Learn a model using just some known features and an LSTM. Nothing too
     complicated.
@@ -39,28 +39,54 @@ class TestSimpleHierarchal(AbstractAgentBasedModel):
         joint state.
         '''
 
-        super(TestTrajectorySampler, self).__init__(*args, **kwargs)
+        super(TestSimpleHierarchical, self).__init__(*args, **kwargs)
 
         self.model = None
         
         self.dropout_rate = 0.5
-        self.dense_size = 256
+        self.dense_size = 128
+        self.lstm_size = 64
         self.num_frames = 100
         self.decoder_filters = 32
         self.dense_layers = 1
+        self.lstm_layers = 1
+
+        # this is the supervisor that tells us which action to execute
+        self.supervisor = None
+        # these are the low-level options
+        self.options = []
+        # these are the conditions that tell us whether an action is finished
+        # or not
+        self.conditions = []
 
     def _makeModel(self, features, state, action, label, example, reward,
               *args, **kwargs):
 
-        if len(features.shape) is not 2:
+        if len(features.shape) is not 3:
             raise RuntimeError('unsupported feature size')
-        if features.shape[0] is not self.num_frames:
+        if features.shape[1] is not self.num_frames:
             raise RuntimeError('did not properly create net architecture')
+        num_labels = int(np.max(label)+1)
         num_features = features.shape[-1]
+        action_size = action.shape[-1]
         #num_frames = features.shape[0]
         ins, x = GetEncoder(self.num_frames, num_features, self.dense_size,
-                self.lstm_size, self.dense_layers)
+                self.lstm_size, self.dense_layers, self.lstm_layers)
 
+        for i in xrange(num_labels):
+            # for later
+            pass
+
+        print "num labels =", num_labels
+        label_out = LSTM(num_labels,return_sequences=True)(x)
+        action_out = LSTM(action_size,return_sequences=True)(x)
+
+
+        self.model = Model(ins,
+                           [label_out, action_out])
+        self.model.summary()
+        self.model.compile(loss=['binary_crossentropy', 'mse'],
+                           optimizer=self.getOptimizer())
 
     def train(self, features, state, action, label, example, reward,
               *args, **kwargs):
@@ -99,19 +125,34 @@ class TestSimpleHierarchal(AbstractAgentBasedModel):
                 example, self.num_frames, step_size=10,
                 front_padding=True,
                 rear_padding=False,)
+        print " ------- DATA BATCHED -------- "
+        print features.shape
+        print state.shape
+        print action.shape
+        print label.shape
+        print example.shape
+        print reward.shape
+        num_actions = int(np.max(label)+1)
         self._makeModel(features, state, action, label, example, reward)
+        label = self.toOneHot2D(label, num_actions)
+        self.model.fit(features, [label, action],
+                nb_epochs=self.epochs)
+
+    def plot(self,*args,**kwargs):
+        pass
 
 if __name__ == '__main__':
     data = np.load('roadworld.npz')
-    sampler = TestTrajectorySampler(
+    sampler = TestSimpleHierarchical(
             batch_size=64,
             iter=5000,
             optimizer="adam",)
     sampler.show_iter = 100
-    try:
-        sampler.train(**data)
-    except Exception, e:
-        print e
+    sampler.train(**data)
+    #try:
+    #    sampler.train(**data)
+    #except Exception, e:
+    #    print e
     sampler.plot(**data)
 
     while(True):

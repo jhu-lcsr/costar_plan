@@ -14,6 +14,7 @@ from keras.layers import Dense, Conv2D, Activation, Flatten
 from keras.layers.recurrent import LSTM
 from keras.layers.convolutional_recurrent import *
 from keras.layers.merge import Concatenate
+from keras.layers.wrappers import TimeDistributed
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 from keras.optimizers import Adam
@@ -24,19 +25,22 @@ features that we don't need to worry about so much.
 '''
 
 def GetEncoder(num_frames, num_features, dense_size, lstm_size, dense_layers=1,
-        lstm_layers=1)
+        lstm_layers=1):
     '''
     Get LSTM encoder.
     '''
     xin = Input((num_frames, num_features))
     x = xin
     for _ in xrange(dense_layers):
-        x = Dense(dense_size)(x)
+        x = TimeDistributed(Dense(dense_size))(x)
+        x = TimeDistributed(Activation('relu'))(x)
     for i in xrange(lstm_layers):
-        if i == lstm_layers - 1:
-            sequence_out = False
-        else:
-            sequence_out = True
-        x = LSTM(lstm_size, return_sequence=sequence_out)(x)
+        #if i == lstm_layers - 1:
+        #    sequence_out = False
+        #else:
+        #    sequence_out = True
+        sequence_out = True
+        x = LSTM(lstm_size, return_sequences=sequence_out)(x)
+        x = Activation('relu')(x)
     return [xin], x
 
