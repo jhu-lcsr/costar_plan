@@ -44,3 +44,5 @@ def GetEncoder(num_frames, num_features, dense_size, lstm_size, dense_layers=1,
         x = Activation('relu')(x)
     return [xin], x
 
+
+def GetDenseEncoder(xin, dense_size, dense_layers=1):

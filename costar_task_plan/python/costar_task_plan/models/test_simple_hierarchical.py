@@ -44,8 +44,8 @@ class TestSimpleHierarchical(AbstractAgentBasedModel):
         self.model = None
         
         self.dropout_rate = 0.5
-        self.dense_size = 128
-        self.lstm_size = 64
+        self.dense_size = 256
+        self.lstm_size = 256
         self.num_frames = 100
         self.decoder_filters = 32
         self.dense_layers = 1
@@ -119,12 +119,14 @@ class TestSimpleHierarchical(AbstractAgentBasedModel):
         #state = state[:,:2]
         orig_features = features
         orig_state = state
-        [features, state, action, example, label, reward] = \
-                SplitIntoChunks([features, state, action, example, label,
+        [features, action, label, reward], stagger = \
+                SplitIntoChunks([features, action, label,
                     reward],
                 example, self.num_frames, step_size=10,
                 front_padding=True,
-                rear_padding=False,)
+                rear_padding=False,
+                stagger=True,)
+        [next_features, next_action, next_label, next_reward] = stagger
         print " ------- DATA BATCHED -------- "
         print features.shape
         print state.shape
@@ -135,8 +137,7 @@ class TestSimpleHierarchical(AbstractAgentBasedModel):
         num_actions = int(np.max(label)+1)
         self._makeModel(features, state, action, label, example, reward)
         label = self.toOneHot2D(label, num_actions)
-        self.model.fit(features, [label, action],
-                nb_epochs=self.epochs)
+        self.model.fit(features, [label, action], epochs=self.epochs)
 
     def plot(self,*args,**kwargs):
         pass
@@ -146,7 +147,7 @@ if __name__ == '__main__':
     sampler = TestSimpleHierarchical(
             batch_size=64,
             iter=5000,
-            optimizer="adam",)
+            optimizer="nadam",)
     sampler.show_iter = 100
     sampler.train(**data)
     #try:

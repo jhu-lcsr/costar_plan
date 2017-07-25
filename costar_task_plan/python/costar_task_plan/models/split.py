@@ -5,7 +5,8 @@ def SplitIntoChunks(datasets, labels,
         chunk_length=100,
         step_size=10,
         front_padding=False,
-        rear_padding=False):
+        rear_padding=False,
+        stagger=False):
     '''
     Split data into segments of the given length. This will return a much
     larger data set, but with the dimensionality changed so that we can easily
@@ -26,6 +27,8 @@ def SplitIntoChunks(datasets, labels,
     padding = front_padding or rear_padding
 
     new_data = {}
+    stagger_data = {}
+
     for label in xrange(min_label, max_label+1):
         for idx, data in enumerate(datasets):
             subset = data[labels==label]
@@ -77,7 +80,7 @@ def SplitIntoChunks(datasets, labels,
             raise RuntimeError('error combining datasets')
     return new_data.values()
 
-def SplitTraining(datadatasets,
+def SplitTraining(datasets,
         examples,
         action_labels,
         chunk_length=10,
@@ -106,7 +109,12 @@ def SplitTraining(datadatasets,
 
     action_data = {}
 
-    new_data = {}
+    # two levels of decision making:
+    # - what actions are most likely from a particular world
+    # - what you're doing once you've committed to an action
+    action_data = {}
+    decision_data = {}
+
     for example in xrange(min_example, max_example+1):
 
         data_by_action = {}
@@ -132,8 +140,12 @@ def SplitTraining(datadatasets,
                 max_i = data_size + chunk_length - 1
             else:
                 max_i = data_size
+            if stagger:
+                s_off = 1
+            else:
+                s_iff = 0
 
-            while i < max_i:
+            while i < max_i - s_off:
                 start_block = max(0,i-chunk_length)
                 end_block = min(i,data_size)
                 i += step_size
@@ -146,6 +158,18 @@ def SplitTraining(datadatasets,
                             data_size)
                 elif end_block - start_block is not chunk_length:
                     continue
+                if stagger:
+                    # Get the next state info for learning dynamics models.
+                    sblock = data[start_block+1:end_block+1]
+                    if padding:
+                        sblock = AddPadding(sblock,
+                                chunk_length,
+                                start_block+1,
+                                end_block+1,
+                                data_size)
+                    assert sblock.shape[0] == chunk_length
+                    sdataset.append(sblock)
+
                 assert block.shape[0] == chunk_length
                 dataset.append(block)
             if not idx in new_data:
@@ -163,7 +187,11 @@ def SplitTraining(datadatasets,
     for d in new_data.values():
         if not d.shape[0] == new_data.values()[0].shape[0]:
             raise RuntimeError('error combining datasets')
-    return new_data.values()
+    if stagger:
+        stagger_values = stagger.values()
+    else:
+        stagger_values = None
+    return new_data.values(), stagger_values
 
 def SplitIntoActions(
         datasets,
