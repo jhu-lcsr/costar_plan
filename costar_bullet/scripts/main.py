@@ -32,6 +32,11 @@ def main(args):
             model.save()
         if args['debug_model']:
             model.plot(env)
+            try:
+                while True:
+                    time.sleep(0.1)
+            except Exception, e:
+                pass
     else:
         pass
 

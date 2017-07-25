@@ -3,7 +3,7 @@ from multi_gan_model import RobotMultiGAN
 from multi_regression_model import RobotMultiFFRegression
 
 from multi_tcn_regression_model import RobotMultiTCNRegression
-
+from multi_lstm_regression import RobotMultiLSTMRegression
 from multi_trajectory_sampler import RobotMultiTrajectorySampler
 from multi_autoencoder_model import RobotMultiAutoencoder
 from multi_hierarchical import RobotMultiHierarchical
@@ -40,6 +40,10 @@ def MakeModel(features, model, taskdef, *args, **kwargs):
                     **kwargs)
         elif model == 'tcn_regression':
             model_instance = RobotMultiTCNRegression(taskdef,
+                    model=model,
+                    **kwargs)
+        elif model == 'lstm_regression':
+            model_instance = RobotMultiLSTMRegression(taskdef,
                     model=model,
                     **kwargs)
         elif model == "sample":

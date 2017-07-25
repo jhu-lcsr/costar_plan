@@ -165,24 +165,20 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
 
     x = samples
 
+    x = ApplyTD(Conv2D(filters,
+                kernel_size=[5, 5], 
+                strides=(1, 1),
+                padding='same'))(x)
+    x = ApplyTD(Activation('relu'))(x)
+    x = ApplyTD(Dropout(dropout_rate))(x)
+
     for i in xrange(pre_tiling_layers):
-        print filters, x
+
         x = ApplyTD(Conv2D(filters,
                    kernel_size=[5, 5], 
                    strides=(1, 1),
                    padding='same'))(x)
-        #x = BatchNormalization(momentum=0.9)(x)
-        x = ApplyTD(Activation('relu'))(x)
-        x = ApplyTD(Dropout(dropout_rate))(x)
-
-    for i in xrange(int(tile)):
-        # if tiling, make the image a little smaller
-        x = ApplyTD(Conv2D(filters,
-                   kernel_size=[5, 5], 
-                   strides=(2, 2),
-                   padding='same'))(x)
-        #x = BatchNormalization(momentum=0.9)(x)
-        x = ApplyTD(Activation('relu'))(x)
+        x = ApplyTD(LeakyReLU(alpha=0.2))(x)
         x = ApplyTD(Dropout(dropout_rate))(x)
 
     # ===============================================
@@ -190,7 +186,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     if tile:
         robot = Concatenate(axis=-1)([arm_in, gripper_in])
         if time_distributed > 0:
-            tile_shape = (1, 1, width2, height2, 1)
+            tile_shape = (1, 1, width4, height4, 1)
             robot = Reshape([time_distributed, 1, 1, arm_size+gripper_size])(robot)
         else:
             tile_shape = (1, width2, height2, 1)
@@ -206,7 +202,6 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
                    kernel_size=[5, 5], 
                    strides=(2, 2),
                    padding='same'))(x)
-        #x = BatchNormalization(momentum=0.9)(x)
         x = Activation('relu')(x)
         x = Dropout(dropout_rate)(x)
 
@@ -228,6 +223,8 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
     created via the encoder.
     '''
 
+    height8 = img_shape[0]/8
+    width8 = img_shape[1]/8
     height4 = img_shape[0]/4
     width4 = img_shape[1]/4
     height2 = img_shape[0]/2
@@ -236,13 +233,13 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
 
     z = Input((dim,))
 
-    x = Dense(filters * height4 * width4)(z)
+    x = Dense(filters/2 * height8 * width8)(z)
     x = BatchNormalization(momentum=0.9)(x)
     x = Activation('relu')(x)
-    x = Reshape((width4,height4,filters))(x)
+    x = Reshape((width8,height8,filters/2))(x)
     x = Dropout(dropout_rate)(x)
 
-    for i in xrange(2):
+    for i in xrange(3):
         x = Conv2DTranspose(filters,
                    kernel_size=[5, 5], 
                    strides=(2, 2),
@@ -251,7 +248,7 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
         x = Activation('relu')(x)
         x = Dropout(dropout_rate)(x)
 
-    for i in xrange(2):
+    for i in xrange(1):
         x = Conv2D(filters, # + num_labels
                    kernel_size=[5, 5], 
                    strides=(1, 1),
@@ -294,3 +291,108 @@ def GetInvArmGripperColumn(noise, arm, gripper, dropout_rate, dense_size):
     '''
     pass
 
+def GetEncoder2(img_shape, arm_size, gripper_size, dim, dropout_rate,
+        filters, discriminator=False, tile=False,
+        pre_tiling_layers=0,
+        post_tiling_layers=2):
+
+    '''
+    Convolutions for an image, terminating in a dense layer of size dim.
+    '''
+    height4 = img_shape[0]/4
+    width4 = img_shape[1]/4
+    height2 = img_shape[0]/2
+    width2 = img_shape[1]/2
+    width = img_shape[1]
+    channels = img_shape[2]
+
+    samples = Input(shape=img_shape)
+    arm_in = Input((arm_size,))
+    gripper_in = Input((gripper_size,))
+
+    x = samples
+
+    for i in xrange(pre_tiling_layers):
+        x = Conv2D(filters,
+                   kernel_size=[5, 5], 
+                   strides=(2, 2),
+                   padding='same')(x)
+        #x = BatchNormalization(momentum=0.9)(x)
+        x = Activation('relu')(x)
+        x = Dropout(dropout_rate)(x)
+
+    # ===============================================
+    # ADD TILING
+    if tile:
+        tile_shape = (1, width2, height2, 1)
+        robot = Concatenate()([arm_in, gripper_in])
+        robot = Reshape([1,1,arm_size+gripper_size])(robot)
+        robot = Lambda(lambda x: K.tile(x, tile_shape))(robot)
+        x = Concatenate(axis=3)([x,robot])
+        ins = [samples, arm_in, gripper_in]
+    else:
+        ins = [samples]
+
+    for i in xrange(post_tiling_layers):
+        x = Conv2D(filters,
+                   kernel_size=[5, 5], 
+                   strides=(2, 2),
+                   padding='same')(x)
+        #x = BatchNormalization(momentum=0.9)(x)
+        x = Activation('relu')(x)
+        x = Dropout(dropout_rate)(x)
+
+    x = Flatten()(x)
+    x = Dense(dim)(x)
+    x = LeakyReLU(alpha=0.2)(x)
+
+    # Single output -- sigmoid activation function
+    if discriminator:
+        x = Dense(1,activation="sigmoid")(x)
+
+    return ins, x
+
+def GetDecoder2(dim, img_shape, arm_size, gripper_size,
+        dropout_rate, filters):
+
+    '''
+    Initial decoder: just based on getting images out of the world state
+    created via the encoder.
+    '''
+
+    height4 = img_shape[0]/4
+    width4 = img_shape[1]/4
+    height2 = img_shape[0]/2
+    width2 = img_shape[1]/2
+    nchannels = img_shape[2]
+
+    z = Input((dim,))
+
+    x = Dense(filters/2 * height2 * width2)(z)
+    x = BatchNormalization(momentum=0.9)(x)
+    x = Activation('relu')(x)
+    x = Reshape((width2,height2,filters/2))(x)
+    x = Dropout(dropout_rate)(x)
+
+    for i in xrange(1):
+        x = Conv2DTranspose(filters,
+                   kernel_size=[5, 5], 
+                   strides=(2, 2),
+                   padding='same')(x)
+        x = BatchNormalization(momentum=0.9)(x)
+        x = Activation('relu')(x)
+        x = Dropout(dropout_rate)(x)
+
+    for i in xrange(1):
+        x = Conv2D(filters/2, # + num_labels
+                   kernel_size=[5, 5], 
+                   strides=(1, 1),
+                   padding="same")(x)
+        x = BatchNormalization(momentum=0.9)(x)
+        x = LeakyReLU(alpha=0.2)(x)
+        x = Dropout(dropout_rate)(x)
+
+    x = Conv2D(nchannels, (1, 1), padding='same')(x)
+    x = Activation('sigmoid')(x)
+
+    return z, x

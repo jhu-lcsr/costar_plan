@@ -23,31 +23,49 @@ exactly when actions should start, when they should stop, and training data
 represents all of this.
 '''
 
-from robot_multi_models import *
-   
-def MakeSupervisor(labels,*args,**kwargs):
+def MakeSupervisor(x,
+        num_actions,
+        supervisor_levels=1,
+        supervisor_size=128,
+        *args,**kwargs):
     '''
     This policy chooses between a number of discrete options representing
     branches in the tree that we could be executing at any given time.
 
     Parameters:
     -----------
-    labels: set of integer labels indicating which OPTION each control was
-    assigned to.
+    x: input
+    num_actions: number of discrete high level actions to choose from
+    supervisor_levels: hidden layers
+    supervisor_size: size of hidden layers
     
     Returns:
     --------
-    ins: inputs
     x: encoded set of features
     '''
-    x = GetEncoder(*args, **kwargs)
-    
-    pass
+    for i in xrange(supervisor_levels):
+        x = Dense(supervisor_size)(x)
+        x = Activation("relu")(x)
 
-def MakeCondition(x, *args, **kwargs):
+    # linear activation for the last layer. This gives us the probability of
+    # each of our high-level actions being chosen at a given point in time.
+    x = Dense(num_actions)(x)
+    
+    return x
+
+def MakeCondition(x, x0, num_actions, *args, **kwargs):
     '''
     This policy takes the encoded set of features and predicts whether or not
     that action will continue.
+
+    Parameters:
+    -----------
+    x: input data
+    x0: first frame of the action
+
+    Returns:
+    --------
+    x: probability that this action is still OK to continue
     '''
     pass
 

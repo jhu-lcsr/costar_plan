@@ -42,7 +42,7 @@ class RobotMultiGAN(AbstractAgentBasedModel):
         self.img_dense_size = 1024
         self.img_num_filters = 64
 
-        self.dropout_rate = 0.5
+        self.dropout_rate = 0.25
 
         #self.generator_dense_size = 1024
         #self.generator_filters_c1 = 256
@@ -133,7 +133,7 @@ class RobotMultiGAN(AbstractAgentBasedModel):
                 self.dropout_rate,
                 self.img_num_filters,
                 pre_tiling_layers=0,
-                post_tiling_layers=2,
+                post_tiling_layers=3,
                 discriminator=True)
         dec_ins, dec = GetDecoder(self.generator_dim,
                             img_shape,

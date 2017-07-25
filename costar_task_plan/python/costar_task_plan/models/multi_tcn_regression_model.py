@@ -152,6 +152,9 @@ class RobotMultiTCNRegression(AbstractAgentBasedModel):
                 batch_size=self.batch_size,
                 )
 
+    def plot(self):
+        pass
+
     def predict(self, features):
         if self.model is None:
             raise RuntimeError('model is missing')
