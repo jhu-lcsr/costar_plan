@@ -45,11 +45,11 @@ class TestSimpleHierarchical(AbstractAgentBasedModel):
         
         self.dropout_rate = 0.5
         self.dense_size = 256
-        self.lstm_size = 256
-        self.num_frames = 100
+        self.lstm_size = 512
+        self.num_frames = 10
         self.decoder_filters = 32
-        self.dense_layers = 1
-        self.lstm_layers = 1
+        self.dense_layers = 0
+        self.lstm_layers = 3
 
         # this is the supervisor that tells us which action to execute
         self.supervisor = None
@@ -59,7 +59,7 @@ class TestSimpleHierarchical(AbstractAgentBasedModel):
         # or not
         self.conditions = []
 
-    def _makeModel(self, features, state, action, label, example, reward,
+    def _makeModel(self, features, action, label, example, reward,
               *args, **kwargs):
 
         if len(features.shape) is not 3:
@@ -70,25 +70,29 @@ class TestSimpleHierarchical(AbstractAgentBasedModel):
         num_features = features.shape[-1]
         action_size = action.shape[-1]
         #num_frames = features.shape[0]
-        ins, x = GetEncoder(self.num_frames, num_features, self.dense_size,
+        xin = Input((self.num_frames, num_features))
+        uin = Input((self.num_frames, action_size))
+        ins = [xin, uin]
+        x = GetEncoder(xin, uin, self.dense_size,
                 self.lstm_size, self.dense_layers, self.lstm_layers)
 
-        for i in xrange(num_labels):
-            # for later
-            pass
-
-        print "num labels =", num_labels
-        label_out = LSTM(num_labels,return_sequences=True)(x)
-        action_out = LSTM(action_size,return_sequences=True)(x)
-
+        label_out = LSTM(num_labels,return_sequences=True,activation="sigmoid")(x)
+        features_out = LSTM(num_features,return_sequences=True)(x)
+        ok_out = LSTM(1,return_sequences=True,activation='sigmoid')(x)
+        #reward_out = LSTM(1,return_sequences=True)(x)
+        #action_out = LSTM(action_size,return_sequences=True)(x)
 
         self.model = Model(ins,
-                           [label_out, action_out])
+                           [label_out, features_out, ok_out])
+                           #[label_out, features_out, reward_out])
         self.model.summary()
-        self.model.compile(loss=['binary_crossentropy', 'mse'],
+        #self.model.compile(loss=['binary_crossentropy', 'mse', 'mse'],
+        self.model.compile(loss=['binary_crossentropy',
+                                 'mse',
+                                 'binary_crossentropy'],
                            optimizer=self.getOptimizer())
 
-    def train(self, features, state, action, label, example, reward,
+    def train(self, features, action, label, example, reward, ok,
               *args, **kwargs):
         '''
         Training data -- first, break into chunks of size "trajectory_length".
@@ -112,13 +116,38 @@ class TestSimpleHierarchical(AbstractAgentBasedModel):
         '''
 
         print " ------- DATA -------- "
-        print features.shape
-        print action.shape
-        print state.shape
+        print "raw features", features.shape
+        [features, action, label, reward, ok], stagger = \
+                SplitIntoChunks([features, action, label,
+                    reward, ok],
+                example, self.num_frames, step_size=10,
+                front_padding=True,
+                rear_padding=False,
+                stagger=True,)
+        [next_features, next_action, next_label, next_reward, next_ok] = stagger
+        ok = np.expand_dims(ok, -1)
+        next_ok = np.expand_dims(next_ok, -1)
+        print "-------------"
+        print "stagger comp:"
+        print reward[1]
+        print next_reward[1]
+        print " ------- DATA BATCHED -------- "
+        print "features", features.shape
+        print "actions", action.shape
+        print "rewards", reward.shape
+        if len(reward.shape) == 2:
+            reward = np.expand_dims(reward, -1)
+        num_actions = int(np.max(label)+1)
+        self._makeModel(features, action, label, example, reward, ok)
+        label = self.toOneHot2D(label, num_actions)
+        #self.model.fit([features, action], [label, next_features, reward], epochs=self.epochs)
+        self.model.fit([features, action], [label, next_features, next_ok], epochs=self.epochs)
 
-        #state = state[:,:2]
+    def plot(self,features,action,reward,label,example,*args,**kwargs):
+        plt.figure()
+
+        # process the data
         orig_features = features
-        orig_state = state
         [features, action, label, reward], stagger = \
                 SplitIntoChunks([features, action, label,
                     reward],
@@ -127,20 +156,22 @@ class TestSimpleHierarchical(AbstractAgentBasedModel):
                 rear_padding=False,
                 stagger=True,)
         [next_features, next_action, next_label, next_reward] = stagger
-        print " ------- DATA BATCHED -------- "
-        print features.shape
-        print state.shape
-        print action.shape
-        print label.shape
-        print example.shape
-        print reward.shape
-        num_actions = int(np.max(label)+1)
-        self._makeModel(features, state, action, label, example, reward)
-        label = self.toOneHot2D(label, num_actions)
-        self.model.fit(features, [label, action], epochs=self.epochs)
 
-    def plot(self,*args,**kwargs):
-        pass
+        for i in xrange(9):
+            plt.subplot(3,3,i+1)
+            idx = i * 100
+            x = next_features[i,:,0]
+            y = next_features[i,:,1]
+            plt.plot(x,y)
+            label, traj, ok = self.model.predict_on_batch([
+                np.array([features[i]]),
+                np.array([action[i]])])
+            x = traj[0][:,0]
+            y = traj[0][:,1]
+            plt.plot(x,y)
+        plt.show()
+
+
 
 if __name__ == '__main__':
     data = np.load('roadworld.npz')
@@ -149,12 +180,14 @@ if __name__ == '__main__':
             iter=5000,
             optimizer="nadam",)
     sampler.show_iter = 100
-    sampler.train(**data)
-    #try:
-    #    sampler.train(**data)
-    #except Exception, e:
-    #    print e
+    sampler.name = "test_dynamics"
+    try:
+        sampler.train(**data)
+    except KeyboardInterrupt, e:
+        print e
     sampler.plot(**data)
+    sampler.save()
 
+    print "done, waiting on you..."
     while(True):
         plt.pause(0.1)

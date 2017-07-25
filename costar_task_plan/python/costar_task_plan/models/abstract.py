@@ -1,4 +1,8 @@
-
+'''
+Chris Paxton
+(c) 2017 Johns Hopkins University
+See license for details
+'''
 import numpy as np
 
 import keras.optimizers as optimizers
