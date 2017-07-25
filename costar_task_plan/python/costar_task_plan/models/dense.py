@@ -21,4 +21,10 @@ This file defines models that rely just on hand-coded features -- obvious
 features that we don't need to worry about so much.
 '''
 
+def GetEncoder(num_frames, num_features, dense_size, lstm_size):
+    '''
+    Get LSTM encoder.
+    '''
+    pass
+
 

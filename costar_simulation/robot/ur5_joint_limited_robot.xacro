@@ -20,7 +20,11 @@
   </xacro:robotiq_85_gripper>
 
   <!-- Create a grasp link to specify the end of the robot arm -->
-  <link name="grasp_link"/>
+  <link name="grasp_link">
+    <xacro:cylinder_inertial radius="0.01" length="0.01" mass="0.0">
+      <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
+    </xacro:cylinder_inertial>
+  </link>
   <joint name="ee_to_grasp_link" type="fixed">
     <parent link="ee_link" />
     <child link="grasp_link" />

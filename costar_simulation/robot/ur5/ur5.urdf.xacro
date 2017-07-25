@@ -317,13 +317,21 @@
         </geometry>
         <origin rpy="0 0 0" xyz="-0.01 0 0"/>
       </collision>
+      <xacro:cylinder_inertial radius="0.01" length="0.01" mass="0.0">
+        <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
+      </xacro:cylinder_inertial>
     </link>
 
     <xacro:ur5_arm_transmission prefix="${prefix}" />
     <xacro:ur5_arm_gazebo prefix="${prefix}" />
 
     <!-- ROS base_link to UR 'Base' Coordinates transform -->
-    <link name="${prefix}base"/>
+    <link name="${prefix}base">
+      <!-- add a tiny, zero-mass link -->
+      <xacro:cylinder_inertial radius="0.01" length="0.01" mass="0.0">
+        <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
+      </xacro:cylinder_inertial>
+    </link>
     <joint name="${prefix}base_link-base_fixed_joint" type="fixed">
       <!-- NOTE: this rotation is only needed as long as base_link itself is
                  not corrected wrt the real robot (ie: rotated over 180
@@ -335,7 +343,11 @@
     </joint>
 
     <!-- Frame coincident with all-zeros TCP on UR controller -->
-    <link name="${prefix}tool0"/>
+    <link name="${prefix}tool0">
+      <xacro:cylinder_inertial radius="0.01" length="0.01" mass="0.0">
+        <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
+      </xacro:cylinder_inertial>
+    </link>
     <joint name="${prefix}wrist_3_link-tool0_fixed_joint" type="fixed">
       <origin xyz="0 ${wrist_3_length} 0" rpy="${pi/-2.0} 0 0"/>
       <parent link="${prefix}wrist_3_link"/>
