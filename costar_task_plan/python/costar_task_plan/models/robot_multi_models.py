@@ -233,13 +233,13 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
 
     z = Input((dim,))
 
-    x = Dense(filters/2 * height8 * width8)(z)
+    x = Dense(filters/2 * height4 * width4)(z)
     x = BatchNormalization(momentum=0.9)(x)
     x = Activation('relu')(x)
-    x = Reshape((width8,height8,filters/2))(x)
+    x = Reshape((width4,height4,filters/2))(x)
     x = Dropout(dropout_rate)(x)
 
-    for i in xrange(3):
+    for i in xrange(2):
         x = Conv2DTranspose(filters,
                    kernel_size=[5, 5], 
                    strides=(2, 2),
