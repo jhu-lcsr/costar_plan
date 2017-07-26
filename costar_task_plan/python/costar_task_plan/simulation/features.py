@@ -97,3 +97,28 @@ class ImagePlusFeatures(AbstractFeatures):
     @property
     def description(self):
         return ["features", "arm", "gripper"]
+
+class WorldPlusFeatures(AbstractFeatures):
+
+    '''
+    Include arm, state, gripper. This set of features is probably the fullest
+    representation of the robot's state.
+
+    This also represents all objects in the world as a single vector. This
+    means that we need to have a constant size world, where we always have the
+    same objects in the same order.
+    '''
+
+    def compute(self, world, state):
+        w = []
+        for name, oid in world.id_by_object.items():
+            obj = world.actors[oid]
+            w += list(obj.T.p)
+            w += list(obj.T.M.GetQuaternion())
+        print w
+        return [w, state.arm, state.gripper]
+
+    @property
+    def description(self):
+        return ["features", "arm", "gripper"]
+

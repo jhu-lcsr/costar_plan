@@ -24,14 +24,18 @@ def main(args):
         model = MakeModel(taskdef=env.task, **args)
         if 'load_model' in args and args['load_model']:
             model.load(env.world)
-        else:
-            try:
-                model.train(**agent.data)
-            except KeyboardInterrupt, e:
-                pass
-            model.save()
+        try:
+            model.train(**agent.data)
+        except KeyboardInterrupt, e:
+            pass
+        model.save()
         if args['debug_model']:
             model.plot(env)
+            try:
+                while True:
+                    time.sleep(0.1)
+            except Exception, e:
+                pass
     else:
         pass
 

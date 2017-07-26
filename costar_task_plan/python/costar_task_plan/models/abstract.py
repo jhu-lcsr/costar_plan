@@ -131,3 +131,14 @@ class AbstractAgentBasedModel(object):
         observation.
         '''
         raise NotImplementedError('predict() not supported yet.')
+
+    def toOneHot2D(self, f, dim):
+        assert len(f.shape) == 2
+        shape = f.shape + (dim,)
+        oh = np.zeros(shape)
+        #oh[np.arange(f.shape[0]), np.arange(f.shape[1]), f]
+        for i in xrange(f.shape[0]):
+            for j in xrange(f.shape[1]):
+                oh[i,j,f[i,j]] = 1.
+        return oh
+

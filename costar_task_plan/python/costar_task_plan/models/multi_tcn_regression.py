@@ -142,6 +142,9 @@ class RobotMultiTCNRegression(AbstractAgentBasedModel):
                 )
 
     def predict(self, features):
+        '''
+        Store or create the set of input features we need for the TCN
+        '''
         if isinstance(features, list):
             assert len(features) == len(self.model.inputs)
         if self.model is None:

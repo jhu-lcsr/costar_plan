@@ -11,6 +11,7 @@ from keras.layers import UpSampling2D, Conv2DTranspose
 from keras.layers import BatchNormalization, Dropout
 from keras.layers import Dense, Conv2D, Activation, Flatten
 from keras.layers.merge import Concatenate
+from keras.layers.recurrent import LSTM
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 from keras.optimizers import Adam
@@ -20,7 +21,7 @@ from abstract import AbstractAgentBasedModel
 from robot_multi_models import *
 from split import *
 
-class RobotMultiTCNRegression(AbstractAgentBasedModel):
+class RobotMultiLSTMRegression(AbstractAgentBasedModel):
     '''
     Create regression model that looks at multiple time slices to compute the
     best next action from the training data set.
@@ -37,7 +38,7 @@ class RobotMultiTCNRegression(AbstractAgentBasedModel):
         joint state.
         '''
 
-        super(RobotMultiTCNRegression, self).__init__(*args, **kwargs)
+        super(RobotMultiLSTMRegression, self).__init__(*args, **kwargs)
 
         self.taskdef = taskdef
         self.model = None
@@ -52,7 +53,7 @@ class RobotMultiTCNRegression(AbstractAgentBasedModel):
         self.combined_dense_size = 64
 
         self.num_frames = 10
-        self.tcn_filters = 32
+        self.tcn_filters = 128
         self.num_tcn_levels = 2
         self.tcn_dense_size = 128
 
@@ -83,20 +84,6 @@ class RobotMultiTCNRegression(AbstractAgentBasedModel):
         else:
             gripper_size = 1
 
-        """
-        ins, x = GetSeparateEncoder(
-                img_shape=img_shape,
-                img_col_dim=self.img_col_dim,
-                img_dense_size=self.img_dense_size,
-                arm_size=arm_size,
-                gripper_size=gripper_size,
-                dropout_rate=self.dropout_rate,
-                img_num_filters=self.img_num_filters,
-                robot_col_dim=self.robot_col_dim,
-                combined_dense_size=self.combined_dense_size,
-                robot_col_dense_size=self.robot_col_dense_size,)
-        ins, x = MakeStacked(ins, x, self.num_frames)
-        """
         ins, x = GetEncoder(
                 img_shape,
                 arm_size,
@@ -110,12 +97,12 @@ class RobotMultiTCNRegression(AbstractAgentBasedModel):
                 post_tiling_layers=2,
                 time_distributed=10)
 
-        x = Lambda(lambda x: K.expand_dims(x))(x)
-        x = GetTCNStack(x,
-                self.tcn_filters,
-                self.num_tcn_levels,
-                self.tcn_dense_size,
-                self.dropout_rate)
+        for i in xrange(self.num_tcn_levels):
+            if i < self.num_tcn_levels - 1:
+                return_seq = True
+            else:
+                return_seq = False
+            x = LSTM(self.tcn_filters, return_sequences=return_seq)(x)
 
         arm_out = Dense(arm_size)(x)
         gripper_out = Dense(gripper_size)(x)

@@ -19,6 +19,7 @@ from keras.optimizers import Adam
 from abstract import AbstractAgentBasedModel
 
 from robot_multi_models import *
+from split import *
 
 class RobotMultiHierarchical(AbstractAgentBasedModel):
 
@@ -66,18 +67,26 @@ class RobotMultiHierarchical(AbstractAgentBasedModel):
             gripper_size = gripper.shape[1]
         else:
             gripper_size = 1
-        ins, x = GetSeparateEncoder(
-                img_shape=img_shape,
-                img_col_dim=self.img_col_dim,
-                img_dense_size=self.img_dense_size,
-                arm_size=arm_size,
-                gripper_size=gripper_size,
-                dropout_rate=self.dropout_rate,
-                img_num_filters=self.img_num_filters,
-                robot_col_dim=self.robot_col_dim,
-                combined_dense_size=self.combined_dense_size,
-                robot_col_dense_size=self.robot_col_dense_size,)
-        ins, x = MakeStacked(ins, x, self.num_frames)
+        ins, x = GetEncoder(
+                img_shape,
+                arm_size,
+                gripper_size,
+                self.img_col_dim,
+                self.dropout_rate,
+                self.img_num_filters,
+                discriminator=False,
+                tile=True,
+                pre_tiling_layers=1,
+                post_tiling_layers=2)
+
+        arm_out = Dense(arm_size)(x)
+        gripper_out = Dense(gripper_size)(x)
+
+        model = Model(ins, [arm_out, gripper_out])
+        #model = Model(img_ins, [arm_out])
+        optimizer = self.getOptimizer()
+        model.compile(loss="mse", optimizer=optimizer)
+        self.model = model
 
     def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             example, reward, *args, **kwargs):
@@ -89,8 +98,16 @@ class RobotMultiHierarchical(AbstractAgentBasedModel):
         '''
         print label
         print label.shape
+        action_labels = np.array([self.taskdef.index(l) for l in label])
+        print action_labels
+        print action_labels.shape
 
-        self.model = self._makeModel(features, arm, gripper, arm_cmd,
+        switch, actions = SplitIntoActions(
+                [features, arm, gripper, arm_cmd, gripper_cmd],
+                action_labels=action_labels,
+                example_labels=example)
+
+        self._makeModel(features, arm, gripper, arm_cmd,
                 gripper_cmd, label,
                 example, *args, **kwargs)
         self.model.summary()

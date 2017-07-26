@@ -38,7 +38,7 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
 
         self.taskdef = taskdef
         
-        self.generator_dim = 2048
+        self.generator_dim = 1024
         self.img_num_filters = 64
 
         self.dropout_rate = 0.5
@@ -62,8 +62,8 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
                 self.generator_dim,
                 self.dropout_rate,
                 self.img_num_filters,
-                pre_tiling_layers=2,
-                post_tiling_layers=2,
+                pre_tiling_layers=1,
+                post_tiling_layers=3,
                 )
         rep, dec = GetDecoder(self.generator_dim,
                             img_shape,
@@ -104,7 +104,8 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
         # Goal: f(img, arm, gripper) --> arm_cmd, gripper_cmd
 
         #features = features[:,:,:,:3]
-        self._makeModel(features, arm, gripper, arm_cmd, gripper_cmd)
+        if self.model is None:
+            self._makeModel(features, arm, gripper, arm_cmd, gripper_cmd)
 
         #tensorboard_cb = TensorBoard(
         #        log_dir='./logs_%s'%(self.model_descriptor),

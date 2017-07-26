@@ -47,11 +47,11 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
         
         self.dropout_rate = 0.5
         self.dense_size = 256
-        self.num_samples = 16
+        self.num_samples = 1
         self.trajectory_length = 16
         self.decoder_filters = 32
 
-    def train(self, features, state, action, trace, example, reward,
+    def train(self, features, state, action, label, example, reward,
               *args, **kwargs):
         '''
         Training data -- first, break into chunks of size "trajectory_length".
@@ -79,12 +79,23 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
         print action.shape
         print state.shape
 
+        """
         [features, state, action, example, trace, reward] = \
                 SplitIntoChunks([features, state, action, example, trace,
                     reward],
                 example, self.trajectory_length, step_size=10, padding=True,)
+        """
+        state = state[:,:2]
+        orig_features = features
+        orig_state = state
+        [features, state, action, example, label, reward] = \
+                SplitIntoChunks([features, state, action, example, label,
+                    reward],
+                example, self.trajectory_length, step_size=10,
+                front_padding=False,
+                rear_padding=True,)
 
-        state = state[:,:,:5]
+        #state = state[:,:,:5]
         print "state vars =", state.shape
 
         # Get images for input and output from the network.
@@ -104,8 +115,8 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
         noise_in = Input((self.noise_dim,))
         features_in = Input((features_size,))
         state_in = Input((state_size,))
-        x = Concatenate()([features_in, state_in])#, noise_in])
-        #x = Concatenate()([features_in, noise_in])
+        #x = Concatenate()([features_in, state_in])#, noise_in])
+        x = Concatenate()([features_in, noise_in])
         #x = features_in
 
         for i in xrange(3):
@@ -120,11 +131,11 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
                 self.decoder_filters)
         for i in xrange(1):
             x = UpSampling2D(size=(1,2))(x)
-            x = Conv2D(self.decoder_filters, 3, 3, border_mode='same')(x)
+            x = Conv2D(self.decoder_filters, kernel_size=(1,1), strides=(1,1), border_mode='same')(x)
             x = BatchNormalization(axis=-1)(x)
             x = Activation('relu')(x)
         x = UpSampling2D(size=(1,2))(x)
-        x = Conv2D(state_size, 3, 3, border_mode='same')(x)
+        x = Conv2D(state_size, kernel_size=(1,1), strides=(1,1), border_mode='same')(x)
 
         # s0 is the initial state. it needs to be repeated num_samples *
         # traj_length times.
@@ -143,6 +154,9 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
         self.model.compile(optimizer=self.getOptimizer(), 
                 loss=state_loss)
 
+        if self.show_iter > 0:
+            fig = plt.figure()
+
         for i in xrange(self.iter):
             idx = np.random.randint(0, fdata_in.shape[0], size=self.batch_size)
             xf = fdata_in[idx]
@@ -159,6 +173,11 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
             loss = self.model.train_on_batch([xf, xs, noise], ya)
             print "Iter %d: loss = %f"%(i,loss)
 
+
+            if self.show_iter > 0 and (i+1) % self.show_iter == 0:
+                plt.clf()
+                self.plot(orig_features, orig_state)
+
     def save(self):
         if self.model is not None:
             self.model.save_weights(self.name + ".h5f")
@@ -167,7 +186,6 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
         self.model.load_weights(self.name + ".h5f")
 
     def plot(self, features, state, *args, **kwargs):
-        fig = plt.figure()
 
         for i in xrange(9):
             noise = np.random.random((1, self.noise_dim))
@@ -181,14 +199,22 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
             for j in xrange(trajs.shape[2]):
                 plt.plot(state[(i*100)+j][1],state[(i*100)+j][0],'*')
 
-        plt.show()
+        plt.ion()
+        plt.show(block=False)
+        plt.pause(0.01)
 
 if __name__ == '__main__':
-    data = np.load('test_data.npz')
+    data = np.load('roadworld.npz')
     sampler = TestTrajectorySampler(
             batch_size=64,
-            iter=1000,
+            iter=5000,
             optimizer="adam",)
-    sampler.train(**data)
+    sampler.show_iter = 100
+    try:
+        sampler.train(**data)
+    except Exception, e:
+        print e
     sampler.plot(**data)
 
+    while(True):
+        plt.pause(0.1)
