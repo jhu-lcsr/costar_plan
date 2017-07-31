@@ -125,8 +125,8 @@ class RobotMultiUnsupervised(AbstractAgentBasedModel):
         #        callbacks=[tensorboard_cb],
         #        )
         
-        if self.show_iter > 0:
-            fig = plt.figure()
+#       if self.show_iter > 0:
+#            fig = plt.figure()
 
         for i in xrange(self.iter):
 
