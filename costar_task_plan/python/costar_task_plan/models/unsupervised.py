@@ -20,7 +20,7 @@ from abstract import AbstractAgentBasedModel
 
 from robot_multi_models import *
 
-class RobotMultiAutoencoder(AbstractAgentBasedModel):
+class RobotUnsupervised(AbstractAgentBasedModel):
     '''
     This is a version of the Autoencoder agent based model. It doesn't really inherit
     too much from that though.
