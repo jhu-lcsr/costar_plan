@@ -68,8 +68,7 @@ Above is an example of what this might look like after about 300 iterations. Tha
 ### Dev section
 
 ```
-rosrun costar_bullet start --robot ur5 --agent null --features multi --load \
-  --model unsupervised --data_file big.npz --si 5 -i 100  --batch_size 64
+rosrun costar_bullet start --robot ur5 --agent null --features multi --load --model unsupervised --data_file big.npz --si 5 -i 100  --batch_size 64
 ```
 
 ### Learning a Generative Adversarial Network
