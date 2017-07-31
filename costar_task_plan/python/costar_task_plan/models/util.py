@@ -8,7 +8,7 @@ from multi_trajectory_sampler import RobotMultiTrajectorySampler
 from multi_autoencoder_model import RobotMultiAutoencoder
 from multi_hierarchical import RobotMultiHierarchical
 
-from multi_unsupervised import RobotMultiUnsupervised
+from multi_unsupervised_model import RobotMultiUnsupervised
 
 
 def MakeModel(features, model, taskdef, *args, **kwargs):
