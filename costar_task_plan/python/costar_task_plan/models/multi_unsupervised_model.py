@@ -20,7 +20,7 @@ from abstract import AbstractAgentBasedModel
 
 from robot_multi_models import *
 
-class RobotUnsupervised(AbstractAgentBasedModel):
+class MultiRobotUnsupervised(AbstractAgentBasedModel):
     '''
     This is a version of the Autoencoder agent based model. It doesn't really inherit
     too much from that though.
@@ -44,7 +44,7 @@ class RobotUnsupervised(AbstractAgentBasedModel):
         self.dropout_rate = 0.5
 
 
-        super(RobotMultiAutoencoder, self).__init__(*args, **kwargs)
+        super(RobotMultiUnsupervised, self).__init__(*args, **kwargs)
 
 
     def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, *args,
