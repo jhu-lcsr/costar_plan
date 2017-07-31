@@ -124,7 +124,7 @@ class RobotMultiUnsupervised(AbstractAgentBasedModel):
         #        batch_size=self.batch_size,
         #        callbacks=[tensorboard_cb],
         #        )
-
+'''
         if self.show_iter > 0:
             fig = plt.figure()
 
@@ -154,3 +154,4 @@ class RobotMultiUnsupervised(AbstractAgentBasedModel):
                 plt.ion()
                 plt.show(block=False)
                 plt.pause(0.01)
+'''
