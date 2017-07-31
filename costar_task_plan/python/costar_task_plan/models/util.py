@@ -8,6 +8,9 @@ from multi_trajectory_sampler import RobotMultiTrajectorySampler
 from multi_autoencoder_model import RobotMultiAutoencoder
 from multi_hierarchical import RobotMultiHierarchical
 
+from multi_unsupervised import RobotMultiUnsupervised
+
+
 def MakeModel(features, model, taskdef, *args, **kwargs):
     '''
     This function will create the appropriate neural net based on images and so
@@ -58,6 +61,10 @@ def MakeModel(features, model, taskdef, *args, **kwargs):
             model_instance = RobotMultiHierarchical(taskdef,
                     model=model,
                     **kwargs)
+        elif model == "unsupervised":
+            model_instance = RobotMultiUnsupervised(taskdef,
+                    model=model,
+                    **kwargs)
     
     # If we did not create a model then die.
     if model_instance is None:
@@ -75,4 +82,5 @@ def GetModels():
             "sample", # sampler NN to generate trajectories
             "autoencoder", # autoencoder image test
             "hierarchical", # hierarchical policy for planning
+            "unsupervised", # paper implementation for unsupervised method
             ]
