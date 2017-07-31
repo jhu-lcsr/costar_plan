@@ -65,6 +65,12 @@ rosrun costar_bullet start --robot ur5 --agent null --features multi --load \
 
 Above is an example of what this might look like after about 300 iterations. That's not very long, but we can still clearly see the robot's shape, and the net is starting to learn about block color.
 
+### Dev section
+
+```
+rosrun costar_bullet start --robot ur5 --agent null --features multi --load \
+  --model unsupervised --data_file big.npz --si 5 -i 100  --batch_size 64
+```
 
 ### Learning a Generative Adversarial Network
 
