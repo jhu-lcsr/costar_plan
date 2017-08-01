@@ -65,8 +65,8 @@ def MakeModel(features, model, taskdef, *args, **kwargs):
             model_instance = RobotMultiUnsupervised(taskdef,
                     model=model,
                     **kwargs)
-        elif model == "unsupervised":
-            model_instance = RobotMultiUnsupervised(taskdef,
+        elif model == "unsupervised1":
+            model_instance = RobotMultiUnsupervised1(taskdef,
                     model=model,
                     **kwargs)
     
