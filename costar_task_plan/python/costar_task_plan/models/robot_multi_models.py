@@ -232,7 +232,7 @@ def GetAlbertEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         width = img_shape[1]
         channels = img_shape[2]
     else:
-        ApplyTD = lambda x: LSTM(x)
+        ApplyTD = lambda x: ConvLSTM2D(x)
         arm_in = Input((time_distributed, arm_size,))
         gripper_in = Input((time_distributed, gripper_size,))
         height4 = img_shape[1]/4
@@ -324,7 +324,7 @@ def GetAlbert1Encoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         x = TimeDistributed(Conv2D(filters,
                    kernel_size=[5, 5], 
                    strides=(2, 2),
-                   padding='same'))(x)
+                   padding='same')(x))
         #x = BatchNormalization(momentum=0.9)(x)
         x = Activation('relu')(x)
         x = Dropout(dropout_rate)(x)
@@ -345,7 +345,7 @@ def GetAlbert1Encoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         x = TimeDistributed(Conv2D(filters,
                    kernel_size=[5, 5], 
                    strides=(2, 2),
-                   padding='same'))(x)
+                   padding='same')(x))
         #x = BatchNormalization(momentum=0.9)(x)
         x = Activation('relu')(x)
         x = Dropout(dropout_rate)(x)
@@ -579,7 +579,7 @@ def GetDecoderAlbert(dim, img_shape, arm_size, gripper_size,
         x = TimeDistributed(Conv2D(filters/2, # + num_labels
                    kernel_size=[5, 5], 
                    strides=(1, 1),
-                   padding="same"))(x)
+                   padding="same")(x))
         #x = BatchNormalization(momentum=0.9)(x)
         x = LeakyReLU(alpha=0.2)(x)
         x = Dropout(dropout_rate)(x)
