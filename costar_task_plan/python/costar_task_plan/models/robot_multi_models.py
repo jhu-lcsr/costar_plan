@@ -321,10 +321,10 @@ def GetAlbert1Encoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     x = samples
 
     for i in xrange(pre_tiling_layers):
-        x = ConvLSTM2D(filters,
+        x = TimeDistributed(Conv2D(filters,
                    kernel_size=[5, 5], 
                    strides=(2, 2),
-                   padding='same')(x)
+                   padding='same'))(x)
         #x = BatchNormalization(momentum=0.9)(x)
         x = Activation('relu')(x)
         x = Dropout(dropout_rate)(x)
@@ -342,10 +342,10 @@ def GetAlbert1Encoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         ins = [samples]
 
     for i in xrange(post_tiling_layers):
-        x = ConvLSTM2D(filters,
+        x = TimeDistributed(Conv2D(filters,
                    kernel_size=[5, 5], 
                    strides=(2, 2),
-                   padding='same')(x)
+                   padding='same'))(x)
         #x = BatchNormalization(momentum=0.9)(x)
         x = Activation('relu')(x)
         x = Dropout(dropout_rate)(x)
@@ -576,15 +576,15 @@ def GetDecoderAlbert(dim, img_shape, arm_size, gripper_size,
         x = Dropout(dropout_rate)(x)
 
     for i in xrange(1):
-        x = ConvLSTM2D(filters/2, # + num_labels
+        x = TimeDistributed(Conv2D(filters/2, # + num_labels
                    kernel_size=[5, 5], 
                    strides=(1, 1),
-                   padding="same")(x)
+                   padding="same"))(x)
         #x = BatchNormalization(momentum=0.9)(x)
         x = LeakyReLU(alpha=0.2)(x)
         x = Dropout(dropout_rate)(x)
 
-    x = ConvLSTM2D(nchannels, (1, 1), padding='same')(x)
+    x = TimeDistributed(Conv2D(nchannels, (1, 1), padding='same'))(x)
     x = Activation('sigmoid')(x)
 
     return z, x
