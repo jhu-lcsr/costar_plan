@@ -9,7 +9,7 @@ from multi_autoencoder_model import RobotMultiAutoencoder
 from multi_hierarchical import RobotMultiHierarchical
 
 from multi_unsupervised_model import RobotMultiUnsupervised
-
+from multi_unsupervised1_model import RobotMultiUnsupervised
 
 def MakeModel(features, model, taskdef, *args, **kwargs):
     '''
@@ -65,6 +65,10 @@ def MakeModel(features, model, taskdef, *args, **kwargs):
             model_instance = RobotMultiUnsupervised(taskdef,
                     model=model,
                     **kwargs)
+        elif model == "unsupervised":
+            model_instance = RobotMultiUnsupervised(taskdef,
+                    model=model,
+                    **kwargs)
     
     # If we did not create a model then die.
     if model_instance is None:
@@ -83,4 +87,5 @@ def GetModels():
             "autoencoder", # autoencoder image test
             "hierarchical", # hierarchical policy for planning
             "unsupervised", # paper implementation for unsupervised method
+            "unsupervised1", # alternative implementation
             ]
