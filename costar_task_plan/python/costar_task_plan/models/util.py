@@ -9,7 +9,7 @@ from multi_autoencoder_model import RobotMultiAutoencoder
 from multi_hierarchical import RobotMultiHierarchical
 
 from multi_unsupervised_model import RobotMultiUnsupervised
-from multi_unsupervised1_model import RobotMultiUnsupervised
+from multi_unsupervised1_model import RobotMultiUnsupervised1
 
 def MakeModel(features, model, taskdef, *args, **kwargs):
     '''
