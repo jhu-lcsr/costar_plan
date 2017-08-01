@@ -10,7 +10,7 @@ from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
 from keras.layers import UpSampling2D, Conv2DTranspose
 from keras.layers import BatchNormalization, Dropout
-from keras.layers import Dense, Conv2D, Activation, Flatten
+from keras.layers import Dense, Conv2D, Activation, Flatten, ConvLSTM2D
 from keras.layers.merge import Concatenate
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
