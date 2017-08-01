@@ -65,7 +65,7 @@ class RobotMultiUnsupervised1(AbstractAgentBasedModel):
                 pre_tiling_layers=1,
                 post_tiling_layers=3,
                 )
-        rep, dec = GetDecoder(self.generator_dim,
+        rep, dec = GetDecoderAlbert(self.generator_dim,
                             img_shape,
                             arm_size,
                             gripper_size,
