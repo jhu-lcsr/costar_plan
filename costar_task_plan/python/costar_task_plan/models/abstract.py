@@ -109,7 +109,7 @@ class AbstractAgentBasedModel(object):
         '''
         if self.model is not None:
             print "using " + self.name + ".h5f"
-            print model.summary()
+            print self.model.summary()
             #print args
             #weight_location = args.load_model.name
             #self.model.load_weights(weight_location)
