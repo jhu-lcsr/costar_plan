@@ -109,10 +109,10 @@ class AbstractAgentBasedModel(object):
         '''
         if self.model is not None:
             print "using " + self.name + ".h5f"
-            print args
-            weight_location = args.load_model.name
-            self.model.load_weights(weight_location)
-            #self.model.load_weights(self.name + ".h5f")
+            #print args
+            #weight_location = args.load_model.name
+            #self.model.load_weights(weight_location)
+            self.model.load_weights(self.name + ".h5f")
         else:
             raise RuntimeError('_loadWeights() failed: model not found.')
 
