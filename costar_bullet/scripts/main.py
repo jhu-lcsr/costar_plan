@@ -23,9 +23,9 @@ def main(args):
     if 'model' in args and args['model'] is not None:
         model = MakeModel(taskdef=env.task, **args)
         if 'load_model' in args and args['load_model']:
-            model.load(env.world)
-            print env
-            print model.summary()
+            model.load(env.world, args['load_model'])
+            #print env
+            #print model.summary()
         try:
             model.train(**agent.data)
         except KeyboardInterrupt, e:
