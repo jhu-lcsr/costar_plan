@@ -47,11 +47,14 @@ class AlbertAgent(AbstractAgent):
                     
        #############################Forwards##########################
     
-                if 119 in a:  
-                    print "w detected"
-                    token = 119
+                #if 119 in a:  
+                    #print "w detected"
+                    #token = 119
+                if 49 in a:
+                    print "1 detected"
+                    token = 49
                     origin = state.T
-                    move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0.1,0,0))
+                    move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0.05,0,0))
                     T_arm = origin * move
                     #Transformed arm
                     gripper_cmd = None
@@ -59,11 +62,14 @@ class AlbertAgent(AbstractAgent):
                     invarm = state.robot.ik(T_arm, state.arm)
                     control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
                 
-                if 97 in a:  
-                    print "a detected"
-                    token = 97
+                #if 97 in a:  
+                    #print "a detected"
+                    #token = 97
+                if 51 in a:
+                    print "3 detected"
+                    token = 51
                     origin = state.T
-                    move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0,0.1,0))
+                    move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0,0.05,0))
                     T_arm = origin * move
                     #Transformed arm
                     gripper_cmd = None
@@ -71,11 +77,14 @@ class AlbertAgent(AbstractAgent):
                     invarm = state.robot.ik(T_arm, state.arm)
                     control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
                 
-                if 114 in a:  
-                    print "r detected"
-                    token = 114
+                #if 114 in a:  
+                    #print "r detected"
+                    #token = 114
+                if 53 in a:
+                    print "5 detected"
+                    token = 53
                     origin = state.T
-                    move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0,0,0.1))
+                    move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0,0,0.05))
                     T_arm = origin * move
                     #Transformed arm
                     gripper_cmd = None
@@ -83,11 +92,14 @@ class AlbertAgent(AbstractAgent):
                     invarm = state.robot.ik(T_arm, state.arm)
                     control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
                 
-                if 113 in a:  
-                    print "q detected"
-                    token = 113
+                #if 113 in a:  
+                    #print "q detected"
+                    #token = 113
+                if 55 in a:
+                    print "7 detected"
+                    token = 55
                     origin = state.T
-                    move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0.1,0.1,0.1))
+                    move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0.05,0.05,0.05))
                     T_arm = origin * move
                     #Transformed arm
                     gripper_cmd = None
@@ -97,11 +109,11 @@ class AlbertAgent(AbstractAgent):
       
     ############################Backwards#########################
     
-                if 115 in a:  
-                    print "s detected"
-                    token = 115
+                #if 115 in a:  
+                    #print "s detected"
+                    #token = 115
                     origin = state.T
-                    move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(-0.1,0,0))
+                    move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(-0.05,0,0))
                     T_arm = origin * move
                     #Transformed arm
                     gripper_cmd = None
@@ -110,11 +122,11 @@ class AlbertAgent(AbstractAgent):
                     control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
                 
                 
-                if 100 in a:  
-                    print "d detected"
-                    token = 100
+                #if 100 in a:  
+                    #print "d detected"
+                    #token = 100
                     origin = state.T
-                    move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0,-0.1,0))
+                    move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0,-0.0.5,0))
                     T_arm = origin * move
                     #Transformed arm
                     gripper_cmd = None
@@ -122,11 +134,11 @@ class AlbertAgent(AbstractAgent):
                     invarm = state.robot.ik(T_arm, state.arm)
                     control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
                 
-                if 102 in a:  
-                    print "f detected"
-                    token = 102
+                #if 102 in a:  
+                    #print "f detected"
+                    #token = 102
                     origin = state.T
-                    move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0,0,-0.1))
+                    move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0,0,-0.05))
                     T_arm = origin * move
                     #Transformed arm
                     gripper_cmd = None
@@ -134,11 +146,11 @@ class AlbertAgent(AbstractAgent):
                     invarm = state.robot.ik(T_arm, state.arm)
                     control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
                 
-                if 101 in a:  
-                    print "e detected"
-                    token = 101
+                #if 101 in a:  
+                    #print "e detected"
+                    #token = 101
                     origin = state.T
-                    move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(-0.1,-0.1,-0.1))
+                    move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(-0.05,-0.05,-0.05))
                     T_arm = origin * move
                     #Transformed arm
                     gripper_cmd = None
@@ -149,14 +161,14 @@ class AlbertAgent(AbstractAgent):
                 if 104 in a:
                     print("---------Help requested--------------")
                     print(" ------------------------------------");
-                    print("| Jaco Keyboard Teleop Help          |");
+                    print("| Costar Keyboard Teleop Help          |");
                     print("|------------------------------------|*");
                     print("| Current Mode: Arm Control          |*");
                     print("|------------------------------------|*");
-                    print("| w/s : forward/backward translation |*");
-                    print("| a/d : left/right translation       |*");
-                    print("| r/f : up/down translation          |*");
-                    print("| q/e : roll                         |*");
+                    print("| 1/2 : forward/backward translation |*");
+                    print("| 3/4 : left/right translation       |*");
+                    print("| 5/6 : up/down translation          |*");
+                    print("| 7/8 : roll                         |*");
                     print("| up/down : pitch                    |*");
                     print("| left/right : yaw                   |*");
                     print("| 2 : switch to Finger Control       |*");
