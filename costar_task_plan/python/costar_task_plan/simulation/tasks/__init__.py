@@ -4,6 +4,7 @@ from drl_blocks import DRLBlocksTaskDefinition
 from clutter import ClutterTaskDefinition
 from sorting import SortingTaskDefinition
 from oranges import OrangesTaskDefinition
+from obstacles import ObstaclesTaskDefinition
 
 # TODO(cpaxton): re-enable these
 # from mug import MugTaskDefinition
@@ -15,6 +16,7 @@ __all__ = ["AbstractTaskDefinition",
            "ClutterTaskDefinition",
            "SortingTaskDefinition",
            "OrangesTaskDefinition",
+           "ObstaclesTaskDefinition",
            #"RingsTaskDefinition",
            #"MugTaskDefinition",
            ]
