@@ -215,7 +215,7 @@ class Albert2Agent(AbstractAgent):
                             #names[plan.idx])
                     '''
                     if done and len(keylist) > sizeCounter:
-                        sizeCounter++
+                        sizeCounter+=1
                         break
 
                 else:
