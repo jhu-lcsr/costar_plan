@@ -27,6 +27,7 @@ class Albert2Agent(AbstractAgent):
                 token = 0
                 state = self.env.world.actors[0].state
                 control = SimulationRobotAction(arm_cmd=None, gripper_cmd=None)
+                print control
 
                 a = pb.getKeyboardEvents()
                 if a != {}: print a
@@ -61,7 +62,8 @@ class Albert2Agent(AbstractAgent):
                     #state.arm = joints
                     invarm = state.robot.ik(T_arm, state.arm)
                     control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
-                
+                    print control
+                    
                 #if 97 in a:  
                     #print "a detected"
                     #token = 97
@@ -199,10 +201,10 @@ class Albert2Agent(AbstractAgent):
                             token)
                             #i,
                             #names[plan.idx])
-                    
+                    '''
                     if done:
                         break
-                    '''
+
                 else:
                     break
             
