@@ -16,6 +16,9 @@ class Albert3Agent(AbstractAgent):
         self.env = env
 
     def fit(self, num_iter):
+        arm_cmd = None
+        gripper_cmd = None
+        
         keylist = []
         sizeCounter = 0
         #a = pb.getKeyboardEvents()
