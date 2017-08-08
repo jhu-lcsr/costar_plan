@@ -5,6 +5,7 @@ from clutter import ClutterTaskDefinition
 from sorting import SortingTaskDefinition
 from oranges import OrangesTaskDefinition
 from obstacles import ObstaclesTaskDefinition
+from trays import TraysTaskDefinition
 
 # TODO(cpaxton): re-enable these
 # from mug import MugTaskDefinition
@@ -17,6 +18,7 @@ __all__ = ["AbstractTaskDefinition",
            "SortingTaskDefinition",
            "OrangesTaskDefinition",
            "ObstaclesTaskDefinition",
+           "TraysTaskDefinition",
            #"RingsTaskDefinition",
            #"MugTaskDefinition",
            ]
