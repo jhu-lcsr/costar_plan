@@ -19,15 +19,15 @@ class ObstaclesTaskDefinition(DefaultTaskDefinition):
     '''
 
     # define object filenames
-    tray_dir = "tray"
-    tray_urdf = "traybox.urdf"
-    spawn_pos_min = np.array([-0.4, -0.25, 0.10])
-    spawn_pos_max = np.array([-0.65, 0.25, 0.155])
+    list_of_models_to_manipulate = [
+        'c_clamp', 'drill_blue_small', 'driller_point_metal',
+        'driller_small', 'keyboard', 'mallet_ball_pein',
+        'mallet_black_white', 'mallet_drilling', 'mallet_fiber',
+        'mug', 'old_hammer', 'pepsi_can', 'sander']
+    models = set(list_of_models_to_manipulate)
+    spawn_pos_min = np.array([-0.4, -0.25, 0.1])
+    spawn_pos_max = np.array([-0.65, 0.25, 0.3])
     spawn_pos_delta = spawn_pos_max - spawn_pos_min
-
-    tray_poses = [np.array([-0.5, 0., 0.0]),
-                  np.array([0., +0.6, 0.0]),
-                  np.array([-1.0, -0.6, 0.0])]
     
     block_urdf = "%s.urdf"
     model = "block"
@@ -143,16 +143,32 @@ class ObstaclesTaskDefinition(DefaultTaskDefinition):
 
         rospack = rospkg.RosPack()
         path = rospack.get_path('costar_objects')
-        urdf_dir = os.path.join(path, self.urdf_dir)
-        
-        
-        tray_filename = os.path.join(urdf_dir, self.tray_dir, self.tray_urdf)
+        sdf_dir = os.path.join(path, self.sdf_dir)
+        objs = [obj for obj in os.listdir(
+            sdf_dir) if os.path.isdir(os.path.join(sdf_dir, obj))]
 
-        for position in self.tray_poses:
-            obj_id = pb.loadURDF(tray_filename)
-            pb.resetBasePositionAndOrientation(obj_id, position, (0, 0, 0, 1))
-        # placement =
-        # np.random.randint(0,len(self.stack_pos),(len(self.blocks),))
+        randn = np.random.randint(1, len(objs))
+
+        objs_name_to_add = np.random.choice(objs, randn)
+        objs_to_add = [os.path.join(sdf_dir, obj, self.model_file_name)
+                       for obj in objs_name_to_add]
+
+        identity_orientation = pb.getQuaternionFromEuler([0, 0, 0])
+        # load sdfs for all objects and initialize positions
+        for obj_index, obj in enumerate(objs_to_add):
+            if objs_name_to_add[obj_index] in self.models:
+                try:
+                    print 'Loading object: ', obj
+                    obj_id_list = pb.loadSDF(obj)
+                    for obj_id in obj_id_list:
+                        self.objs.append(obj_id)
+                        random_position = np.random.rand(
+                            3) * self.spawn_pos_delta + self.spawn_pos_min
+                        pb.resetBasePositionAndOrientation(
+                            obj_id, random_position, identity_orientation)
+                except Exception, e:
+                    print e
+
         
         placement = np.array(range(len(self.stack_pos)))
         np.random.shuffle(placement)
