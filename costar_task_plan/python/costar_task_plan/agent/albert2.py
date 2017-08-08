@@ -199,9 +199,10 @@ class Albert2Agent(AbstractAgent):
                             token)
                             #i,
                             #names[plan.idx])
-                    '''
+                    
                     if done:
                         break
+                    '''
                 else:
                     break
             
