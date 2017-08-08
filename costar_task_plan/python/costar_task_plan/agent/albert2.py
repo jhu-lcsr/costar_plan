@@ -111,7 +111,7 @@ class Albert2Agent(AbstractAgent):
                     keylist.append("7")
                     token = 55
                     origin = state.T
-                    move = kdl.Frame(kdl.RotX(5), kdl.Vector.Identity())
+                    move = kdl.Frame(kdl.Rotation.RotX(5), kdl.Vector.Identity())
                     T_arm = origin * move
                     #Transformed arm
                     gripper_cmd = None
@@ -125,7 +125,7 @@ class Albert2Agent(AbstractAgent):
                     keylist.append("9")
                     token = 57
                     origin = state.T
-                    move = kdl.Frame(kdl.RotY(5), kdl.Vector.Identity())
+                    move = kdl.Frame(kdl.Rotation.RotY(5), kdl.Vector.Identity())
                     T_arm = origin * move
                     #Transformed arm
                     gripper_cmd = None
@@ -141,7 +141,7 @@ class Albert2Agent(AbstractAgent):
                     keylist.append("-")
                     token = 53
                     origin = state.T
-                    move = kdl.Frame(kdl.RotZ(5), kdl.Vector.Identity)
+                    move = kdl.Frame(kdl.Rotation.RotZ(5), kdl.Vector.Identity)
                     T_arm = origin * move
                     #Transformed arm
                     gripper_cmd = None
@@ -211,7 +211,7 @@ class Albert2Agent(AbstractAgent):
                     keylist.append("8")
                     token = 56
                     origin = state.T
-                    move = kdl.Frame(kdl.RotX(-5), kdl.Vector.Identity)
+                    move = kdl.Frame(kdl.Rotation.RotX(-5), kdl.Vector.Identity)
                     T_arm = origin * move
                     #Transformed arm
                     gripper_cmd = None
@@ -225,7 +225,7 @@ class Albert2Agent(AbstractAgent):
                     keylist.append("0")
                     token = 48
                     origin = state.T
-                    move = kdl.Frame(kdl.RotY(-5), kdl.Vector.Identity)
+                    move = kdl.Frame(kdl.Rotation.RotY(-5), kdl.Vector.Identity)
                     T_arm = origin * move
                     #Transformed arm
                     gripper_cmd = None
@@ -238,7 +238,7 @@ class Albert2Agent(AbstractAgent):
                     keylist.append("=")
                     token = 61
                     origin = state.T
-                    move = kdl.Frame(kdl.RotZ(-5), kdl.Vector.Identity)
+                    move = kdl.Frame(kdl.Rotation.RotZ(-5), kdl.Vector.Identity)
                     T_arm = origin * move
                     #Transformed arm
                     gripper_cmd = None
