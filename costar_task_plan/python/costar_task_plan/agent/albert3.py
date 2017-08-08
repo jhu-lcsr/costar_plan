@@ -25,10 +25,10 @@ class Albert3Agent(AbstractAgent):
         
         for i in xrange(num_iter):
             print "---- Iteration %d ----"%(i+1)
-            self.env.reset()
+            #self.env.reset()
             a = pb.getKeyboardEvents()
 
-            while True:
+            while not self._break:
                 token = 0
                 state = self.env.world.actors[0].state
 
