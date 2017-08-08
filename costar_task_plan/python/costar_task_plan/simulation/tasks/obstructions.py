@@ -143,6 +143,7 @@ class ObstructionsTaskDefinition(DefaultTaskDefinition):
 
         rospack = rospkg.RosPack()
         path = rospack.get_path('costar_objects')
+        urdf_dir = os.path.join(path, self.urdf_dir)
         sdf_dir = os.path.join(path, self.sdf_dir)
         objs = [obj for obj in os.listdir(
             sdf_dir) if os.path.isdir(os.path.join(sdf_dir, obj))]
