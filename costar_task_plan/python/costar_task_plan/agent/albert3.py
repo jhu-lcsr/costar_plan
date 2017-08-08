@@ -28,8 +28,8 @@ class Albert3Agent(AbstractAgent):
             #self.env.reset()
             a = pb.getKeyboardEvents()
 
-            #while not self._break:
-            while True:
+            while not self._break:
+            #while True:
                 token = 0
                 state = self.env.world.actors[0].state
 
