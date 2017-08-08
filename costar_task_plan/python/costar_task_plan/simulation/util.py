@@ -22,12 +22,12 @@ def GetTaskDefinition(task, robot, features, *args, **kwargs):
     try:
         return {
             'blocks': lambda: BlocksTaskDefinition(0, robot=robot, features=features, *args, **kwargs),
+            'obstacles': lambda: ObstaclesTaskDefinition(0, robot=robot, features=features, *args, **kwargs),
             'drl_blocks': lambda: DRLBlocksTaskDefinition(0, robot=robot, features=features, *args, **kwargs),
             'tower': lambda: BlocksTaskDefinition(None, robot, features=features, *args, **kwargs),
             'clutter': lambda: ClutterTaskDefinition(robot, features=features, *args, **kwargs),
             'sorting': lambda: SortingTaskDefinition(robot, features=features, *args, **kwargs),
             'oranges': lambda: OrangesTaskDefinition(robot, features=features, *args, **kwargs),
-            'obstacles': lambda: ObstaclesTaskDefinition(robot, features=features, *args, **kwargs),
         }[task.lower()]()
     except KeyError, e:
         raise NotImplementedError('Task %s not implemented!' % task)
