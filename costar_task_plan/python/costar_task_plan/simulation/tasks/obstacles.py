@@ -19,6 +19,16 @@ class ObstaclesTaskDefinition(DefaultTaskDefinition):
     '''
 
     # define object filenames
+    tray_dir = "tray"
+    tray_urdf = "traybox.urdf"
+    spawn_pos_min = np.array([-0.4, -0.25, 0.10])
+    spawn_pos_max = np.array([-0.65, 0.25, 0.155])
+    spawn_pos_delta = spawn_pos_max - spawn_pos_min
+
+    tray_poses = [np.array([-0.5, 0., 0.0]),
+                  np.array([0., +0.6, 0.0]),
+                  np.array([-1.0, -0.6, 0.0])]
+    
     block_urdf = "%s.urdf"
     model = "block"
     blocks = ["red", "blue", "yellow", "green"]
@@ -42,7 +52,7 @@ class ObstaclesTaskDefinition(DefaultTaskDefinition):
         them, and the size of the blocks. Size is given as mean and covariance,
         blocks are placed at random.
         '''
-        super(BlocksTaskDefinition, self).__init__(*args, **kwargs)
+        super(ObstaclesTaskDefinition, self).__init__(*args, **kwargs)
         self.stage = stage
         self.block_ids = []
 
@@ -134,9 +144,16 @@ class ObstaclesTaskDefinition(DefaultTaskDefinition):
         rospack = rospkg.RosPack()
         path = rospack.get_path('costar_objects')
         urdf_dir = os.path.join(path, self.urdf_dir)
+        
+        
+        tray_filename = os.path.join(urdf_dir, self.tray_dir, self.tray_urdf)
 
+        for position in self.tray_poses:
+            obj_id = pb.loadURDF(tray_filename)
+            pb.resetBasePositionAndOrientation(obj_id, position, (0, 0, 0, 1))
         # placement =
         # np.random.randint(0,len(self.stack_pos),(len(self.blocks),))
+        
         placement = np.array(range(len(self.stack_pos)))
         np.random.shuffle(placement)
         for i, pos in enumerate(self.stack_pos):
