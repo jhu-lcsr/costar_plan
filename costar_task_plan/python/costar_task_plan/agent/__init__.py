@@ -6,11 +6,13 @@ from null import *
 from random import *
 from task import *
 from albert import *
+from albert2 import *
 
 from util import *
 
 __all__ = [
         # ============================
+        "Albert2Agent",
         "AlbertAgent",
         "RandomAgent",
         "NullAgent",
