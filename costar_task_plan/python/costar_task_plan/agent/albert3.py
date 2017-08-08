@@ -13,7 +13,7 @@ class Albert3Agent(AbstractAgent):
 
     def __init__(self, env, *args, **kwargs):
         super(Albert3Agent, self).__init__(*args, **kwargs)
-        #self.env = env
+        self.env = env
 
     def fit(self, num_iter):
         arm_cmd = None
@@ -25,7 +25,7 @@ class Albert3Agent(AbstractAgent):
         
         for i in xrange(num_iter):
             print "---- Iteration %d ----"%(i+1)
-            self.env.reset()
+            #self.env.reset()
             a = pb.getKeyboardEvents()
 
             while not self._break:
