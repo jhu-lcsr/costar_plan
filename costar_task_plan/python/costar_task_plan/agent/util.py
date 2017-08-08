@@ -9,10 +9,11 @@ from keras_naf import *
 from apl_ddpg import *
 
 from albert import *
+from albert2 import *
 
 def GetAgents():
     return ["none", "null",
-            "albert", "albert2" # keyboard
+            "albert", "albert2", # keyboard
             "random", # random actions
             "task", # supervised task model
             "keras_ddpg", # keras DDPG
