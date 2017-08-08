@@ -4,7 +4,7 @@ from robots import *
 
 
 def GetAvailableTasks():
-    return ["blocks", "drl_blocks", "clutter", "sorting", "tower", "oranges"]
+    return ["blocks", "drl_blocks", "clutter", "sorting", "tower", "oranges", "obstacles"]
 
 
 def GetAvailableRobots():
@@ -27,6 +27,7 @@ def GetTaskDefinition(task, robot, features, *args, **kwargs):
             'clutter': lambda: ClutterTaskDefinition(robot, features=features, *args, **kwargs),
             'sorting': lambda: SortingTaskDefinition(robot, features=features, *args, **kwargs),
             'oranges': lambda: OrangesTaskDefinition(robot, features=features, *args, **kwargs),
+            'obstacles': lambda: ObstaclesTaskDefinition(robot, features=features, *args, **kwargs),
         }[task.lower()]()
     except KeyError, e:
         raise NotImplementedError('Task %s not implemented!' % task)
