@@ -13,7 +13,7 @@ class Albert3Agent(AbstractAgent):
 
     def __init__(self, env, *args, **kwargs):
         super(Albert3Agent, self).__init__(*args, **kwargs)
-        self.env = env
+        #self.env = env
 
     def fit(self, num_iter):
         arm_cmd = None
