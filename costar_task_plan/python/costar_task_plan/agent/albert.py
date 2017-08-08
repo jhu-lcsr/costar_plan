@@ -132,7 +132,7 @@ class AlbertAgent(AbstractAgent):
                     print "4 detected"
                     token = 52
                     origin = state.T
-                    move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0,-0.0.5,0))
+                    move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0,-0.05,0))
                     T_arm = origin * move
                     #Transformed arm
                     gripper_cmd = None
