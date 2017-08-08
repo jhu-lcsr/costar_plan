@@ -16,6 +16,8 @@ class AlbertAgent(AbstractAgent):
         self.env = env
 
     def fit(self, num_iter):
+        f = open('keypresses.txt', 'w')
+        keys = [121, 122, 49, 51, 53, 55, 57, 45, 50, 52, 54, 56, 48, 61]
         keylist = []
         sizeCounter = 0
         #a = pb.getKeyboardEvents()
@@ -288,3 +290,4 @@ class AlbertAgent(AbstractAgent):
 
             if self._break:
                 return
+        f.write(keylist)
