@@ -112,6 +112,9 @@ class AlbertAgent(AbstractAgent):
                 #if 115 in a:  
                     #print "s detected"
                     #token = 115
+                if 50 in a:
+                    print "2 detected"
+                    token = 50
                     origin = state.T
                     move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(-0.05,0,0))
                     T_arm = origin * move
@@ -125,6 +128,9 @@ class AlbertAgent(AbstractAgent):
                 #if 100 in a:  
                     #print "d detected"
                     #token = 100
+                if 52 in a:
+                    print 4 detected
+                    token = 52
                     origin = state.T
                     move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0,-0.0.5,0))
                     T_arm = origin * move
@@ -137,6 +143,9 @@ class AlbertAgent(AbstractAgent):
                 #if 102 in a:  
                     #print "f detected"
                     #token = 102
+                if 54 in a:
+                    print 6 detected
+                    token = 54
                     origin = state.T
                     move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0,0,-0.05))
                     T_arm = origin * move
@@ -149,6 +158,9 @@ class AlbertAgent(AbstractAgent):
                 #if 101 in a:  
                     #print "e detected"
                     #token = 101
+                if 56 in a:
+                    print 8 detected
+                    token = 56
                     origin = state.T
                     move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(-0.05,-0.05,-0.05))
                     T_arm = origin * move
