@@ -14,7 +14,7 @@ from util import *
 __all__ = [
         # ============================
         "Albert2Agent",
-        "Albert3Agent"
+        "Albert3Agent",
         "AlbertAgent",
         "RandomAgent",
         "NullAgent",
