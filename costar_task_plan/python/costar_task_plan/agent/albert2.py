@@ -214,7 +214,7 @@ class Albert2Agent(AbstractAgent):
                             #i,
                             #names[plan.idx])
                     '''
-                    if done && len(keylist) > sizeCounter:
+                    if done and len(keylist) > sizeCounter:
                         sizeCounter++
                         break
 
