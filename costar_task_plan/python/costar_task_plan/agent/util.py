@@ -24,8 +24,8 @@ def GetAgents():
 def MakeAgent(env, name, *args, **kwargs):
     try:
         return {
-                'no': lambda: NoAgent(env, *args, **kwargs),
-                'none': lambda: NoAgent(env, *args, **kwargs),
+                'no': lambda: NullAgent(env, *args, **kwargs),
+                'none': lambda: NullAgent(env, *args, **kwargs),
                 'null': lambda: NullAgent(env, *args, **kwargs),
         		    'albert': lambda: AlbertAgent(env, *args, **kwargs),
                 'random': lambda: RandomAgent(env, *args, **kwargs),

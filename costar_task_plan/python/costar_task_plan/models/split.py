@@ -131,6 +131,17 @@ def SplitIntoActions(
     Split based on when the high-level made decisions. We start out with an
     explicit representation of our immediate goals and our initial state, so we
     can anticipate when we will be done.
+
+    Parameters:
+    -----------
+    datasets: observed features, actions, etc. that should be split according
+              to example and action labels.
+    example_labels: of same length as all entries in datasets; this is the
+                    trial number that each sequence belongs to.
+    action_labels: high-level action label that this belongs to
+
+    Returns:
+    --------
     '''
 
     min_example = np.min(example_labels)
@@ -138,15 +149,15 @@ def SplitIntoActions(
     min_action = np.min(action_labels)
     max_action = np.max(action_labels)
 
+    # stores a list of all the END RESULTS of actions, in order, by the example
+    # in which they took place.
     changepoints_by_example = {}
-    indices_by_example = {}
 
     # take out each example
     for example in xrange(min_example,max_example+1):
 
         # Just some simple setup
         changepoints_by_example[example] = []
-        indices_by_example[example] = []
 
         start = 0
 
@@ -157,13 +168,27 @@ def SplitIntoActions(
         # indices for each action
         for i in xrange(len(subset)):
 
-            # come up with the set of decision points
-            if i == 0 or not subset[i-1] == subset[i] or i == len(subset):
+            print example, i, subset[i]
+            last_i = len(subset) - 1
 
-                if i == len(subset) or subset[i-1] == subset[i]:
+            # come up with the set of decision points
+            if i == 0 or not subset[i-1] == subset[i] or i == last_i:
+
+                print "action changes:", subset[i]
+
+                if i == last_i or not subset[i-1] == subset[i]:
                     # add the subset because we found an end
-                    changepoints_by_example[example].append(start,i)
+                    changepoints_by_example[example].append((start,i))
                     start = i
+    
+    frame_data, result_data = [], []
+    for example, actions in changepoints_by_example.items():
+        for start_idx, end_idx in actions:
+            for i in xrange(start_idx, end_idx):
+                # create the data to train the sequence predictor.
+                pass
+
+    return frame_data, result_data
 
 
 def FirstInChunk(data):
