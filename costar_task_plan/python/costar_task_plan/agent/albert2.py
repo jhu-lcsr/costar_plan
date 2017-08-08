@@ -16,6 +16,8 @@ class Albert2Agent(AbstractAgent):
         self.env = env
 
     def fit(self, num_iter):
+        keylist = []
+        sizeCounter = 0
         #a = pb.getKeyboardEvents()
         
         for i in xrange(num_iter):
@@ -34,14 +36,16 @@ class Albert2Agent(AbstractAgent):
                 # y opens the gripper
                 if 121 in a:  
                     print "y detected"
+                    keylist.append("y")
                     # arm = 
                     token = 121
                     gripper_cmd = state.robot.gripperOpenCommand()
                     control = SimulationRobotAction(arm_cmd=None, gripper_cmd=gripper_cmd)
                     
                 elif 122 in a:  
-                    # arm = 
+                    # arm =
                     print "z detected"
+                    keylist.append("z")
                     token = 122
                     gripper_cmd = state.robot.gripperCloseCommand()
                     control = SimulationRobotAction(arm_cmd=None, gripper_cmd=gripper_cmd)
@@ -53,6 +57,7 @@ class Albert2Agent(AbstractAgent):
                     #token = 119
                 if 49 in a:
                     print "1 detected"
+                    keylist.append("1")
                     token = 49
                     origin = state.T
                     move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0.005,0,0))
@@ -69,6 +74,7 @@ class Albert2Agent(AbstractAgent):
                     #token = 97
                 if 51 in a:
                     print "3 detected"
+                    keylist.append("3")
                     token = 51
                     origin = state.T
                     move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0,0.005,0))
@@ -84,6 +90,7 @@ class Albert2Agent(AbstractAgent):
                     #token = 114
                 if 53 in a:
                     print "5 detected"
+                    keylist.append("5")
                     token = 53
                     origin = state.T
                     move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0,0,0.005))
@@ -99,6 +106,7 @@ class Albert2Agent(AbstractAgent):
                     #token = 113
                 if 55 in a:
                     print "7 detected"
+                    keylist.append("7")
                     token = 55
                     origin = state.T
                     move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0.005,0.005,0.005))
@@ -116,6 +124,7 @@ class Albert2Agent(AbstractAgent):
                     #token = 115
                 if 50 in a:
                     print "2 detected"
+                    keylist.append("2")
                     token = 50
                     origin = state.T
                     move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(-0.005,0,0))
@@ -132,6 +141,7 @@ class Albert2Agent(AbstractAgent):
                     #token = 100
                 if 52 in a:
                     print "4 detected"
+                    keylist.append("4")
                     token = 52
                     origin = state.T
                     move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0,-0.005,0))
@@ -147,6 +157,7 @@ class Albert2Agent(AbstractAgent):
                     #token = 102
                 if 54 in a:
                     print "6 detected"
+                    keylist.append("6")
                     token = 54
                     origin = state.T
                     move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0,0,-0.005))
@@ -162,6 +173,7 @@ class Albert2Agent(AbstractAgent):
                     #token = 101
                 if 56 in a:
                     print "8 detected"
+                    keylist.append("8")
                     token = 56
                     origin = state.T
                     move = kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(-0.005,-0.005,-0.005))
@@ -202,7 +214,8 @@ class Albert2Agent(AbstractAgent):
                             #i,
                             #names[plan.idx])
                     '''
-                    if done:
+                    if done && len(keylist) > sizeCounter:
+                        sizeCounter++
                         break
 
                 else:
