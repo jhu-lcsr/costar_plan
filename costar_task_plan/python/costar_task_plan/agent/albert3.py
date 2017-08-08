@@ -25,7 +25,7 @@ class Albert3Agent(AbstractAgent):
         
         for i in xrange(num_iter):
             print "---- Iteration %d ----"%(i+1)
-            #self.env.reset()
+            self.env.reset()
             a = pb.getKeyboardEvents()
 
             while not self._break:
@@ -298,6 +298,7 @@ class Albert3Agent(AbstractAgent):
                     '''
                     if done: #and len(keylist) > sizeCounter:
                         #sizeCounter+=1
+                        print "I'm done"
                         break
 
                 else:
