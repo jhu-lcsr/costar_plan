@@ -12,7 +12,7 @@ from albert import *
 
 def GetAgents():
     return ["none", "null",
-            "albert", # keyboard
+            "albert", "albert2" # keyboard
             "random", # random actions
             "task", # supervised task model
             "keras_ddpg", # keras DDPG
@@ -28,6 +28,7 @@ def MakeAgent(env, name, *args, **kwargs):
                 'none': lambda: NoAgent(env, *args, **kwargs),
                 'null': lambda: NullAgent(env, *args, **kwargs),
         		    'albert': lambda: AlbertAgent(env, *args, **kwargs),
+                'albert2': lambda: Albert2Agent(env, *args, **kwargs),
                 'random': lambda: RandomAgent(env, *args, **kwargs),
                 'task': lambda: TaskAgent(env, *args, **kwargs),
                 'apl_ddpg': lambda: APLDDPGAgent(env, *args, **kwargs),
