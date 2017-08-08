@@ -235,4 +235,4 @@ class ObstaclesTaskDefinition(DefaultTaskDefinition):
         self._setupRobot(self.robot.handle)
 
     def getName(self):
-        return "blocks"
+        return "obstacles"
