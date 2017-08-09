@@ -81,7 +81,7 @@ class RobotMultiTCNRegression(AbstractAgentBasedModel):
                 robot_col_dense_size=self.robot_col_dense_size,)
         ins, x = MakeStacked(ins, x, self.num_frames)
         """
-        ins, x = GetEncoder(
+        ins, x = GetEncoder3D(
                 img_shape,
                 arm_size,
                 gripper_size,

@@ -184,6 +184,7 @@ class CostarBulletSimulation(object):
         Reset the robot and task
         '''
         self.task.reset()
+        self.task.world.reset()
 
     def tick(self, action):
         '''

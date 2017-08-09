@@ -195,8 +195,6 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         #        (len(self.blocks),))
         placement = np.array(range(len(self.stack_pos)))
         np.random.shuffle(placement)
-        self.world.done = False
-        self.world.ticks = 0
 
         # loop over all stacks
         # pull out ids now associated with a stack
