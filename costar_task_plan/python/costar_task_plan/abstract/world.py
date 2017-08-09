@@ -3,6 +3,8 @@ import copy
 from state import AbstractState
 from action import AbstractAction
 
+from Queue import Queue
+
 class AbstractWorld(object):
   '''
   Nonspecific implementation that encapsulates a particular RL/planning problem.
@@ -17,7 +19,7 @@ class AbstractWorld(object):
   # ID of the current trace; should be completely unique
   next_trace_id = 0
 
-  def __init__(self, reward, verbose=False):
+  def __init__(self, reward, history_length=10, verbose=False):
     self.reward = reward
     self.verbose = verbose
     self.actors = []
@@ -34,6 +36,8 @@ class AbstractWorld(object):
     self.ticks = 0
     self.max_ticks = 100
     self.scale_reward_to_max_ticks = False
+
+    self.history = Queue(maxsize=history_length)
 
   def vectorize(self, control, features, reward, done, example, action_label):
     '''
@@ -124,6 +128,9 @@ class AbstractWorld(object):
     new_world.actors = [copy.copy(actor) for actor in self.actors]
     new_world.updateTraceID()
 
+    # Make sure new world has a separate history with the same few entries
+    new_world.history = copy.copy(self.history)
+
     # If the action is not valid, take a zero action and update the world
     # appropriately.
     if action is None:
@@ -193,6 +200,11 @@ class AbstractWorld(object):
     self.initial_features = F1
     self.initial_reward = r + rt
     self.done = not res
+
+    # update the history queue
+    if self.history.full():
+        self.history.get()
+    self.history.put(F1)
 
     return (res, S0, A0, S1, F1, r + rt)
 

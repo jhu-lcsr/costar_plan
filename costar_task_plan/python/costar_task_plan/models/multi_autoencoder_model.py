@@ -72,9 +72,11 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
                             arm_size,
                             gripper_size,
                             dropout_rate=self.dropout_rate,
+                            kernel_size=[3,3],
                             filters=self.img_num_filters,
                             dropout=False,
-                            leaky=False,)
+                            leaky=True,
+                            batchnorm=True,)
         decoder = Model([rep], dec)
         self.model = Model(ins, decoder(enc))
         optimizer = self.getOptimizer()

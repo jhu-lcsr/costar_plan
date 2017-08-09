@@ -148,3 +148,23 @@ class AbstractAgentBasedModel(object):
                 oh[i,j,f[i,j]] = 1.
         return oh
 
+
+class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
+
+    '''
+    This version of the model will save a set of associated policies, all
+    trained via direct supervision. These are:
+
+    - transition model (x, u) --> (x'): returns next expected state
+    - supervisor policy (x, o) --> (o'): returns next high-level action to take
+    - control policies (x, o) --> (u): return the next action to take
+
+    The supervisor takes in the previous labeled action, not the one currently
+    being executed; it takes in 0 if no action has been performed yet.
+    '''
+
+    def __init__(self, *args, **kwargs):
+        super(HierarchicalAgentBasedModel, self).__init__(*args, **kwargs)
+
+
+    

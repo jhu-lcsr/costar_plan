@@ -134,6 +134,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         filters, discriminator=False, tile=False, dropout=True, leaky=True,
         pre_tiling_layers=0,
         post_tiling_layers=2,
+        kernel_size=[3,3],
         time_distributed=0,):
 
     if time_distributed <= 0:
@@ -223,7 +224,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     return ins, x
 
 def GetDecoder(dim, img_shape, arm_size, gripper_size,
-        dropout_rate, filters, dropout=True, leaky=True,):
+        dropout_rate, filters, kernel_size=[3,3], dropout=True, leaky=True, batchnorm=True):
 
     '''
     Initial decoder: just based on getting images out of the world state
@@ -246,7 +247,8 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
         relu = lambda: Activation('relu')
 
     x = Dense(filters/2 * height4 * width4)(z)
-    x = BatchNormalization(momentum=0.9)(x)
+    if batchnorm:
+        x = BatchNormalization(momentum=0.9)(x)
     x = relu()(x)
     x = Reshape((width4,height4,filters/2))(x)
     x = Dropout(dropout_rate)(x)
@@ -256,7 +258,8 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
                    kernel_size=[5, 5], 
                    strides=(2, 2),
                    padding='same')(x)
-        x = BatchNormalization(momentum=0.9)(x)
+        if batchnorm:
+            x = BatchNormalization(momentum=0.9)(x)
         x = relu()(x)
         if dropout:
             x = Dropout(dropout_rate)(x)
@@ -266,7 +269,8 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
                    kernel_size=[5, 5], 
                    strides=(1, 1),
                    padding="same")(x)
-        x = BatchNormalization(momentum=0.9)(x)
+        if batchnorm:
+            x = BatchNormalization(momentum=0.9)(x)
         x = relu()(x)
         if dropout:
             x = Dropout(dropout_rate)(x)
