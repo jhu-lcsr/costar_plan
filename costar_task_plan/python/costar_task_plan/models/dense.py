@@ -44,6 +44,10 @@ def GetEncoder(xin, uin, dense_size, lstm_size, dense_layers=1,
         x = Activation('relu')(x)
     return x
 
-
 def GetDenseEncoder(xin, x0in, dense_size, dense_layers=1):
-    pass
+    x = xin
+    for _ in xrange(dense_layers):
+        #x = Concatenate(axis=-1)([x, uin])
+        x = Dense(dense_size)(x)
+        x = Activation('relu')(x)
+    return x

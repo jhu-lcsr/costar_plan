@@ -131,7 +131,7 @@ def MakeStacked(ins, x, num_to_stack):
     return new_ins, x
 
 def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
-        filters, discriminator=False, tile=False,
+        filters, discriminator=False, tile=False, dropout=True, leaky=True,
         pre_tiling_layers=0,
         post_tiling_layers=2,
         time_distributed=0,):
@@ -162,14 +162,20 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     Convolutions for an image, terminating in a dense layer of size dim.
     '''
 
+    if leaky:
+        relu = lambda: LeakyReLU(alpha=0.2)
+    else:
+        relu = lambda: Activation('relu')
+
     x = samples
 
     x = ApplyTD(Conv2D(filters,
                 kernel_size=[5, 5], 
                 strides=(1, 1),
                 padding='same'))(x)
-    x = ApplyTD(Activation('relu'))(x)
-    x = ApplyTD(Dropout(dropout_rate))(x)
+    x = ApplyTD(relu())(x)
+    if dropout:
+        x = ApplyTD(Dropout(dropout_rate))(x)
 
     for i in xrange(pre_tiling_layers):
 
@@ -177,8 +183,9 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
                    kernel_size=[5, 5], 
                    strides=(1, 1),
                    padding='same'))(x)
-        x = ApplyTD(LeakyReLU(alpha=0.2))(x)
-        x = ApplyTD(Dropout(dropout_rate))(x)
+        x = ApplyTD(relu())(x)
+        if dropout:
+            x = ApplyTD(Dropout(dropout_rate))(x)
 
     # ===============================================
     # ADD TILING
@@ -201,12 +208,13 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
                    kernel_size=[5, 5], 
                    strides=(2, 2),
                    padding='same'))(x)
-        x = Activation('relu')(x)
-        x = Dropout(dropout_rate)(x)
+        x = relu()(x)
+        if dropout:
+            x = Dropout(dropout_rate)(x)
 
     x = ApplyTD(Flatten())(x)
     x = ApplyTD(Dense(dim))(x)
-    x = ApplyTD(LeakyReLU(alpha=0.2))(x)
+    x = ApplyTD(relu())(x)
 
     # Single output -- sigmoid activation function
     if discriminator:
@@ -215,7 +223,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     return ins, x
 
 def GetDecoder(dim, img_shape, arm_size, gripper_size,
-        dropout_rate, filters):
+        dropout_rate, filters, dropout=True, leaky=True,):
 
     '''
     Initial decoder: just based on getting images out of the world state
@@ -232,9 +240,14 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
 
     z = Input((dim,))
 
+    if leaky:
+        relu = lambda: LeakyReLU(alpha=0.2)
+    else:
+        relu = lambda: Activation('relu')
+
     x = Dense(filters/2 * height4 * width4)(z)
     x = BatchNormalization(momentum=0.9)(x)
-    x = Activation('relu')(x)
+    x = relu()(x)
     x = Reshape((width4,height4,filters/2))(x)
     x = Dropout(dropout_rate)(x)
 
@@ -244,8 +257,9 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
                    strides=(2, 2),
                    padding='same')(x)
         x = BatchNormalization(momentum=0.9)(x)
-        x = Activation('relu')(x)
-        x = Dropout(dropout_rate)(x)
+        x = relu()(x)
+        if dropout:
+            x = Dropout(dropout_rate)(x)
 
     for i in xrange(1):
         x = Conv2D(filters, # + num_labels
@@ -253,8 +267,9 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
                    strides=(1, 1),
                    padding="same")(x)
         x = BatchNormalization(momentum=0.9)(x)
-        x = LeakyReLU(alpha=0.2)(x)
-        x = Dropout(dropout_rate)(x)
+        x = relu()(x)
+        if dropout:
+            x = Dropout(dropout_rate)(x)
 
     x = Conv2D(nchannels, (1, 1), padding='same')(x)
     x = Activation('sigmoid')(x)

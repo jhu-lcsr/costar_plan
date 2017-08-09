@@ -67,6 +67,7 @@ class RobotMultiHierarchical(AbstractAgentBasedModel):
             gripper_size = gripper.shape[1]
         else:
             gripper_size = 1
+
         ins, x = GetEncoder(
                 img_shape,
                 arm_size,

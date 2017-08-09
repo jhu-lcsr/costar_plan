@@ -137,6 +137,8 @@ class AbstractAgentBasedModel(object):
         raise NotImplementedError('predict() not supported yet.')
 
     def toOneHot2D(self, f, dim):
+        if len(f.shape) == 1:
+            f = np.expand_dims(f, -1)
         assert len(f.shape) == 2
         shape = f.shape + (dim,)
         oh = np.zeros(shape)

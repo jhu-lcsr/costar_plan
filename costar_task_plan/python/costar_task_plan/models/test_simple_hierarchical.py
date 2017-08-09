@@ -47,6 +47,7 @@ class TestSimpleHierarchical(AbstractAgentBasedModel):
         self.dense_size = 256
         self.lstm_size = 512
         self.num_frames = 10
+        self.partition_step_size = 5
         self.decoder_filters = 32
         self.dense_layers = 0
         self.lstm_layers = 3
@@ -76,9 +77,10 @@ class TestSimpleHierarchical(AbstractAgentBasedModel):
         x = GetEncoder(xin, uin, self.dense_size,
                 self.lstm_size, self.dense_layers, self.lstm_layers)
 
-        label_out = LSTM(num_labels,return_sequences=True,activation="sigmoid")(x)
-        features_out = LSTM(num_features,return_sequences=True)(x)
-        ok_out = LSTM(1,return_sequences=True,activation='sigmoid')(x)
+        ret_seq = True
+        label_out = LSTM(num_labels,return_sequences=ret_seq,activation="sigmoid")(x)
+        features_out = LSTM(num_features,return_sequences=ret_seq)(x)
+        ok_out = LSTM(1,return_sequences=ret_seq,activation='sigmoid')(x)
         #reward_out = LSTM(1,return_sequences=True)(x)
         #action_out = LSTM(action_size,return_sequences=True)(x)
 
@@ -120,7 +122,7 @@ class TestSimpleHierarchical(AbstractAgentBasedModel):
         [features, action, label, reward, ok], stagger = \
                 SplitIntoChunks([features, action, label,
                     reward, ok],
-                example, self.num_frames, step_size=10,
+                example, self.num_frames, step_size=self.partition_step_size,
                 front_padding=True,
                 rear_padding=False,
                 stagger=True,)
@@ -140,7 +142,17 @@ class TestSimpleHierarchical(AbstractAgentBasedModel):
         num_actions = int(np.max(label)+1)
         self._makeModel(features, action, label, example, reward, ok)
         label = self.toOneHot2D(label, num_actions)
-        #self.model.fit([features, action], [label, next_features, reward], epochs=self.epochs)
+        
+        """
+        Uncomment this to make 1d
+        print "------ TO: ----------"
+        label = np.squeeze(label[:,-1])
+        next_features = np.squeeze(next_features[:,-1])
+        next_ok = np.squeeze(next_ok[:,-1])
+        print label.shape
+        print next_features.shape
+        print next_ok.shape
+        """
         self.model.fit([features, action], [label, next_features, next_ok], epochs=self.epochs)
 
     def plot(self,features,action,reward,label,example,*args,**kwargs):
@@ -151,7 +163,7 @@ class TestSimpleHierarchical(AbstractAgentBasedModel):
         [features, action, label, reward], stagger = \
                 SplitIntoChunks([features, action, label,
                     reward],
-                example, self.num_frames, step_size=10,
+                example, self.num_frames, step_size=self.partition_step_size,
                 front_padding=True,
                 rear_padding=False,
                 stagger=True,)
@@ -168,6 +180,8 @@ class TestSimpleHierarchical(AbstractAgentBasedModel):
                 np.array([action[i]])])
             x = traj[0][:,0]
             y = traj[0][:,1]
+            #x = traj[0][0]
+            #y = traj[0][1]
             plt.plot(x,y)
         plt.show()
 
