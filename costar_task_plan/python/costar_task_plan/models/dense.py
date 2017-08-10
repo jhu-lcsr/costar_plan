@@ -54,6 +54,10 @@ def GetDenseEncoder(xin, x0in, dense_size, dense_layers=1):
 
 
 def GetConv2Encoder(xin, filters, dense_size, layers, kernel=[4,4], stride=[1,3]):
+    '''
+    Not really a dense model, I know -- but this is the TCN equivalent for our
+    small layers with fixed features.
+    '''
     x = xin
     for _ in xrange(layers):
         x = Conv2D(filters, kernel_size=kernel, strides=stride, padding='same')(x)

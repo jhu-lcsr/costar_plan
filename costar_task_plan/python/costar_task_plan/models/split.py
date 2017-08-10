@@ -45,7 +45,7 @@ def SplitIntoChunks(datasets, labels,
     
             # padding: add entries to the front or back
             if front_padding:
-                i = 1
+                i = 0
             else:
                 i = chunk_length
             if rear_padding:
@@ -59,9 +59,9 @@ def SplitIntoChunks(datasets, labels,
                 soff = 0
 
             while i < max_i + soff:
-                start_block = max(0,i-chunk_length)
+                start_block = max(0,i-chunk_length+1)
                 end_block = min(i,data_size)
-                block = data[start_block:end_block]
+                block = data[start_block:end_block+1]
                 if padding:
                     block = AddPadding(block,
                             chunk_length,
@@ -71,7 +71,10 @@ def SplitIntoChunks(datasets, labels,
                 elif end_block - start_block is not chunk_length:
                     i += step_size
                     continue
-                assert block.shape[0] == chunk_length
+                if not block.shape[0] == chunk_length:
+                    print "block shape/chunk length:", block.shape, chunk_length
+                    raise RuntimeError('dev error: block not of the ' + \
+                                       'correct length.')
                 dataset.append(block)
 
                 if stagger:
@@ -80,7 +83,7 @@ def SplitIntoChunks(datasets, labels,
                     end_block = min(i+1,data_size)
                     #print "S> start/end:", start_block, end_block
                     # Get the next state info for learning dynamics models.
-                    sblock = data[start_block:end_block]
+                    sblock = data[start_block:end_block+1]
                     if padding:
                         sblock = AddPadding(sblock,
                                 chunk_length,
@@ -204,7 +207,7 @@ def LastInChunk(data):
     return data[:,-1]
 
 def AddPadding(data,chunk_length,start_block,end_block,data_size):
-    #print data.shape
+    print "asdf", start_block, data.shape, end_block, data_size
     if start_block == 0:
         entry = data[0]
         for _ in xrange(chunk_length - data.shape[0]):
