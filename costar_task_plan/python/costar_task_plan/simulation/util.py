@@ -4,7 +4,7 @@ from robots import *
 
 
 def GetAvailableTasks():
-    return ["blocks", "drl_blocks", "clutter", "sorting", "tower", "oranges", "obstacles", "trays", "obstructions", "sorting"]
+    return ["blocks", "drl_blocks", "clutter", "sorting", "tower", "oranges", "obstacles", "trays", "obstructions", "sorting", "sorting2"]
 
 
 def GetAvailableRobots():
@@ -29,6 +29,7 @@ def GetTaskDefinition(task, robot, features, *args, **kwargs):
             'tower': lambda: BlocksTaskDefinition(None, robot, features=features, *args, **kwargs),
             'clutter': lambda: ClutterTaskDefinition(robot, features=features, *args, **kwargs),
             'sorting': lambda: SortingTaskDefinition(robot, features=features, *args, **kwargs),
+            'sorting2': lambda: Sorting2TaskDefinition(0, robot=robot, features=features, *args, **kwargs),
             'oranges': lambda: OrangesTaskDefinition(robot, features=features, *args, **kwargs),
         }[task.lower()]()
     except KeyError, e:
