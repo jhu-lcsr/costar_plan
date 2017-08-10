@@ -33,6 +33,9 @@ def SplitIntoChunks(datasets, labels,
         for idx, data in enumerate(datasets):
             subset = data[labels==label]
 
+            #print "SUBSET":,
+            #print np.argmax(subset,axis=-1), subset.shape
+
             dataset = []
             # staggered dataset for dynamics learning
             sdataset = []
@@ -56,14 +59,16 @@ def SplitIntoChunks(datasets, labels,
             while i < max_i:
                 start_block = max(0,i-chunk_length+1)
                 end_block = min(i,data_size)
-                block = data[start_block:end_block+1]
+                block = subset[start_block:end_block+1]
+                #print i, start_block, end_block+1, "/", data_size,
+                #print subset.shape, np.argmax(block[-1])
                 if padding:
                     block = AddPadding(block,
                             chunk_length,
                             start_block,
                             end_block,
                             data_size)
-                elif end_block - start_block is not chunk_length:
+                elif (end_block + 1) - start_block is not chunk_length:
                     i += step_size
                     continue
                 if not block.shape[0] == chunk_length:
