@@ -158,9 +158,11 @@ class TestHierarchical(HierarchicalAgentBasedModel):
         if self.time:
             print "Doing data preprocessing to create chunks:"
             [features, action, label, reward, ok], stagger = \
-                   SplitIntoChunks([features, action, label,
-                                    reward, ok],
+                   SplitIntoChunks(
+                    datasets=[features, action, label, ok],
                     labels=example,
+                    reward=reward,
+                    reward_threshold=0.,
                     chunk_length=self.num_frames,
                     step_size=self.partition_step_size,
                     front_padding=True,
@@ -193,19 +195,17 @@ class TestHierarchical(HierarchicalAgentBasedModel):
         pass
 
 if __name__ == '__main__':
+
     data = np.load('roadworld-2018-08-09.npz')
     sampler = TestHierarchical(
             batch_size=64,
             iter=5000,
             epochs=1,
-            optimizer="adam",)
+            optimizer="adam",
+            task="roadworld",)
+
     sampler.show_iter = 100
     sampler.train(**data)
-    #try:
-    #    sampler.train(**data)
-    #except Exception, e:
-    #    print e
     sampler.plot(**data)
+    sampler.save()
 
-    while(True):
-        plt.pause(0.1)

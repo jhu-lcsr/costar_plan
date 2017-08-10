@@ -99,20 +99,12 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
         Set up the imitation autoencoder to learn a model of what actions we expect
         from each state. Our goal is to sample the distribution of actions that
         is most likely to give us a trajectory to the goal.
+
+
+        Evenetually we will set up the learning problem as:
+        Goal: f(img, arm, gripper) --> arm_cmd, gripper_cmd
         '''
-        """
-        imgs = data['features']
-        arm = data['arm']
-        gripper = data['gripper']
-        arm_cmd = data['arm_cmd']
-        gripper_cmd = data['gripper_cmd']
-        labels = data['action']
-        """
 
-        # Set up the learning problem as:
-        # Goal: f(img, arm, gripper) --> arm_cmd, gripper_cmd
-
-        #features = features[:,:,:,:3]
         if self.model is None:
             self._makeModel(features, arm, gripper, arm_cmd, gripper_cmd)
 
@@ -162,5 +154,5 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
                     plt.tight_layout()
                 plt.ion()
                 plt.show(block=False)
-                plt.pause(0.01)
+                plt.pause(0.1)
 

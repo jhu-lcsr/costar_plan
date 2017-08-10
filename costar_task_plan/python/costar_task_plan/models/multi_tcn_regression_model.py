@@ -44,14 +44,10 @@ class RobotMultiTCNRegression(AbstractAgentBasedModel):
         
         self.dropout_rate = 0.5
         
-        self.img_dense_size = 512
-        self.img_col_dim = 256
-        self.img_num_filters = 32
-        self.robot_col_dense_size = 128
-        self.robot_col_dim = 64
+        self.num_filters = 32
         self.combined_dense_size = 64
 
-        self.num_frames = 10
+        self.num_frames = 4
         self.tcn_filters = 32
         self.num_tcn_levels = 2
         self.tcn_dense_size = 128
@@ -83,40 +79,20 @@ class RobotMultiTCNRegression(AbstractAgentBasedModel):
         else:
             gripper_size = 1
 
-        """
-        ins, x = GetSeparateEncoder(
-                img_shape=img_shape,
-                img_col_dim=self.img_col_dim,
-                img_dense_size=self.img_dense_size,
-                arm_size=arm_size,
-                gripper_size=gripper_size,
-                dropout_rate=self.dropout_rate,
-                img_num_filters=self.img_num_filters,
-                robot_col_dim=self.robot_col_dim,
-                combined_dense_size=self.combined_dense_size,
-                robot_col_dense_size=self.robot_col_dense_size,)
-        ins, x = MakeStacked(ins, x, self.num_frames)
-        """
-        ins, x = GetEncoder(
-                img_shape,
-                arm_size,
-                gripper_size,
-                self.img_col_dim,
+        ins, x = GetEncoder3D(img_shape, arm_size, gripper_size,
                 self.dropout_rate,
-                self.img_num_filters,
-                discriminator=False,
-                tile=True,
+                filters=self.num_filters,
                 pre_tiling_layers=1,
-                post_tiling_layers=2,
-                time_distributed=10)
-
-        x = Lambda(lambda x: K.expand_dims(x))(x)
-        x = GetTCNStack(x,
-                self.tcn_filters,
-                self.num_tcn_levels,
-                self.tcn_dense_size,
-                self.dropout_rate)
-
+                post_tiling_layers=3,
+                kernel_size=[3,3,3],
+                time_distributed=self.num_frames,
+                dropout=True,
+                leaky=True,
+                tile=True,
+                )
+        x = Flatten()(x)
+        x = Dense(self.combined_dense_size)(x)
+        
         arm_out = Dense(arm_size)(x)
         gripper_out = Dense(gripper_size)(x)
 
@@ -133,7 +109,7 @@ class RobotMultiTCNRegression(AbstractAgentBasedModel):
         trajectory.
         '''
 
-        [features, arm, gripper, arm_cmd, gripper_cmd] = \
+        [features, arm, gripper, arm_cmd, gripper_cmd], stagger = \
                 SplitIntoChunks([features, arm, gripper, arm_cmd, gripper_cmd],
                 example, self.num_frames, step_size=2,
                 front_padding=False,
