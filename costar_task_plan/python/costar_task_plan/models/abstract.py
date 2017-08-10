@@ -203,5 +203,15 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
     def _fitPolicies(self, features, label, action):
         # Divide up based on label
         idx = np.argmax(np.squeeze(label[:,-1,:]),axis=-1)
-        print idx, np.max(idx), idx,shape, label.shape
-        pass
+
+        for i, model in enumerate(self.policies):
+            # select data for this model
+            x = features[idx==i]
+            a = action[idx==i]
+            print x.shape,
+            print a.shape
+            if a.shape[0] == 0:
+                #raise RuntimeError('no examples for %d'%i)
+                print 'WARNING: no examples for %d'%i
+                continue
+            model.fit([x], [a], epochs=self.epochs)

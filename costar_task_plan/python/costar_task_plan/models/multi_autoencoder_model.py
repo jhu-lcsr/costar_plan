@@ -39,7 +39,7 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
         self.taskdef = taskdef
         
         self.generator_dim = 1024
-        self.img_num_filters = 64
+        self.img_num_filters = 128
         self.dropout_rate = 0.5
 
         super(RobotMultiAutoencoder, self).__init__(*args, **kwargs)
@@ -64,7 +64,7 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
                 dropout=False,
                 pre_tiling_layers=0,
                 post_tiling_layers=3,
-                kernel_size=[5,5],
+                kernel_size=[3,3],
                 dense=False,
                 )
         rep, dec = GetDecoder(self.generator_dim,
