@@ -150,10 +150,3 @@ class AbstractAgent(object):
                                            ' constructing data set.')
                     self.data[key].append(value)
 
-class NoAgent(AbstractAgent):
-    '''
-    This does basically nothing. Use it to move on with your life and take the
-    data set to train something else.
-    '''
-    def _fit(self, num_iter):
-        pass

@@ -39,10 +39,8 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
         self.taskdef = taskdef
         
         self.generator_dim = 1024
-        self.img_num_filters = 64
-
+        self.img_num_filters = 128
         self.dropout_rate = 0.5
-
 
         super(RobotMultiAutoencoder, self).__init__(*args, **kwargs)
 
@@ -62,15 +60,26 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
                 self.generator_dim,
                 self.dropout_rate,
                 self.img_num_filters,
-                pre_tiling_layers=1,
+                leaky=False,
+                dropout=False,
+                pre_tiling_layers=0,
                 post_tiling_layers=3,
+                kernel_size=[3,3],
+                dense=False,
                 )
         rep, dec = GetDecoder(self.generator_dim,
                             img_shape,
                             arm_size,
                             gripper_size,
                             dropout_rate=self.dropout_rate,
-                            filters=self.img_num_filters,)
+                            kernel_size=[5,5],
+                            filters=self.img_num_filters,
+                            stride2_layers=3,
+                            stride1_layers=0,
+                            dropout=False,
+                            leaky=True,
+                            dense=False,
+                            batchnorm=True,)
         decoder = Model([rep], dec)
         self.model = Model(ins, decoder(enc))
         optimizer = self.getOptimizer()

@@ -39,8 +39,6 @@ class DefaultTaskDefinition(AbstractTaskDefinition):
         Basic reset needs to reconfigure the world state -- set things back to
         the way they should be.
         '''
-        self.world.done = False
-        self.world.ticks = 0.
         for obj in self.objs:
             pb.removeBody(obj)
         self._setup()

@@ -88,6 +88,10 @@ class SimulationWorld(AbstractWorld):
     def zeroAction(self, actor=0):
         return SimulationRobotAction()
 
+    def _reset(self):
+        # no special reset logic happens here -- that's all outside this class
+        pass
+
 
 class SimulationDynamics(AbstractDynamics):
 
@@ -175,9 +179,13 @@ class SimulationRobotAction(AbstractAction):
     holds the tuple for arm_cmd, gripper_cmd, etc.
     '''
 
-    def __init__(self, arm_cmd=None, gripper_cmd=None):
+    def __init__(self, arm_cmd=None, gripper_cmd=None, code=None):
         self.arm_cmd = arm_cmd
         self.gripper_cmd = gripper_cmd
+
+        # This is used to track which high-level action is being executed at
+        # any given time.
+        self.code = code
 
     def getDescription(cls):
         return "arm_cmd", "gripper_cmd"

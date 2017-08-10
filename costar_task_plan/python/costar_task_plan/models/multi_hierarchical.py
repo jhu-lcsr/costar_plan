@@ -67,6 +67,7 @@ class RobotMultiHierarchical(AbstractAgentBasedModel):
             gripper_size = gripper.shape[1]
         else:
             gripper_size = 1
+
         ins, x = GetEncoder(
                 img_shape,
                 arm_size,
@@ -102,7 +103,7 @@ class RobotMultiHierarchical(AbstractAgentBasedModel):
         print action_labels
         print action_labels.shape
 
-        switch, actions = SplitIntoActions(
+        frame_data, result_data = SplitIntoActions(
                 [features, arm, gripper, arm_cmd, gripper_cmd],
                 action_labels=action_labels,
                 example_labels=example)

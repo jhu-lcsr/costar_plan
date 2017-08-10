@@ -24,14 +24,14 @@ This file defines models that rely just on hand-coded features -- obvious
 features that we don't need to worry about so much.
 '''
 
-def GetEncoder(num_frames, num_features, dense_size, lstm_size, dense_layers=1,
+def GetEncoder(xin, uin, dense_size, lstm_size, dense_layers=1,
         lstm_layers=1):
     '''
     Get LSTM encoder.
     '''
-    xin = Input((num_frames, num_features))
     x = xin
     for _ in xrange(dense_layers):
+        x = Concatenate(axis=-1)([x, uin])
         x = TimeDistributed(Dense(dense_size))(x)
         x = TimeDistributed(Activation('relu'))(x)
     for i in xrange(lstm_layers):
@@ -42,5 +42,28 @@ def GetEncoder(num_frames, num_features, dense_size, lstm_size, dense_layers=1,
         sequence_out = True
         x = LSTM(lstm_size, return_sequences=sequence_out)(x)
         x = Activation('relu')(x)
-    return [xin], x
+    return x
 
+def GetDenseEncoder(xin, x0in, dense_size, dense_layers=1):
+    x = xin
+    for _ in xrange(dense_layers):
+        #x = Concatenate(axis=-1)([x, uin])
+        x = Dense(dense_size)(x)
+        x = Activation('relu')(x)
+    return x
+
+
+def GetConv2Encoder(xin, filters, dense_size, layers, kernel=[4,4], stride=[1,3]):
+    '''
+    Not really a dense model, I know -- but this is the TCN equivalent for our
+    small layers with fixed features.
+    '''
+    x = xin
+    for _ in xrange(layers):
+        x = Conv2D(filters, kernel_size=kernel, strides=stride, padding='same')(x)
+        x = Activation('relu')(x)
+    x = Flatten()(x)
+    x = Dense(dense_size)(x)
+    x = Activation('relu')(x)
+
+    return x

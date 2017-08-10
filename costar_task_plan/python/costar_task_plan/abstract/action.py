@@ -5,6 +5,9 @@ class AbstractAction(object):
   Abstract version of the action.
   '''
 
+  def __init__(self):
+      self.code = None
+
   def toArray(self):
     '''
     toArray(): convert this action to a numpy array

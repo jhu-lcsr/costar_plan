@@ -1,4 +1,8 @@
-
+'''
+Chris Paxton
+(c) 2017 Johns Hopkins University
+See license for details
+'''
 import numpy as np
 
 import keras.optimizers as optimizers
@@ -138,6 +142,8 @@ class AbstractAgentBasedModel(object):
         raise NotImplementedError('predict() not supported yet.')
 
     def toOneHot2D(self, f, dim):
+        if len(f.shape) == 1:
+            f = np.expand_dims(f, -1)
         assert len(f.shape) == 2
         shape = f.shape + (dim,)
         oh = np.zeros(shape)
@@ -147,3 +153,68 @@ class AbstractAgentBasedModel(object):
                 oh[i,j,f[i,j]] = 1.
         return oh
 
+
+class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
+
+    '''
+    This version of the model will save a set of associated policies, all
+    trained via direct supervision. These are:
+
+    - transition model (x, u) --> (x'): returns next expected state
+    - supervisor policy (x, o) --> (o'): returns next high-level action to take
+    - control policies (x, o) --> (u): return the next action to take
+
+    The supervisor takes in the previous labeled action, not the one currently
+    being executed; it takes in 0 if no action has been performed yet.
+    '''
+
+    def __init__(self, *args, **kwargs):
+        super(HierarchicalAgentBasedModel, self).__init__(*args, **kwargs)
+    
+    def _makeSupervisor(self, feature, label, num_labels):
+        '''
+        This needs to create a supervisor. This one maps from input to the
+        space of possible action labels.
+        '''
+        raise NotImplementedError('does not create supervisor yet')
+
+    def _makePolicy(self, features, action, hidden=None):
+        '''
+        Create the control policy mapping from features (or hidden) to actions.
+        '''
+        raise NotImplementedError('does not create policy yet')
+
+    def _makeHierarchicalModel(self, features, action, label, example, reward,
+              *args, **kwargs):
+        '''
+        This is the helper that actually sets everything up.
+        '''
+        num_labels = label.shape[-1]
+        assert num_labels > 1
+        hidden, self.supervisor = self._makeSupervisor(features, label,
+                num_labels)
+        self.supervisor.summary()
+
+        # We assume label is one-hot.
+        self.policies = []
+        for i in xrange(num_labels):
+            self.policies.append(self._makePolicy(features, action, hidden))
+        self.policies[0].summary()
+        
+    def _fitSupervisor(self, features, prev_label, label):
+        #self.supervisor.fit([features, prev_label], [label])
+        self.supervisor.fit([features], [label], epochs=self.epochs)
+
+    def _fitPolicies(self, features, label, action):
+        # Divide up based on label
+        idx = np.argmax(np.squeeze(label[:,-1,:]),axis=-1)
+
+        for i, model in enumerate(self.policies):
+            # select data for this model
+            x = features[idx==i]
+            a = action[idx==i]
+            if a.shape[0] == 0:
+                #raise RuntimeError('no examples for %d'%i)
+                print 'WARNING: no examples for %d'%i
+                continue
+            model.fit([x], [a], epochs=self.epochs)
