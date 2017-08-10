@@ -53,12 +53,7 @@ def SplitIntoChunks(datasets, labels,
             else:
                 max_i = data_size
 
-            if stagger:
-                soff = -1
-            else:
-                soff = 0
-
-            while i < max_i + soff:
+            while i < max_i:
                 start_block = max(0,i-chunk_length+1)
                 end_block = min(i,data_size)
                 block = data[start_block:end_block+1]
@@ -79,7 +74,7 @@ def SplitIntoChunks(datasets, labels,
 
                 if stagger:
                     #print "D> start/end:", start_block, end_block
-                    start_block = max(0,i-chunk_length+1)
+                    start_block = max(0,i-chunk_length+2)
                     end_block = min(i+1,data_size)
                     #print "S> start/end:", start_block, end_block
                     # Get the next state info for learning dynamics models.
@@ -207,7 +202,6 @@ def LastInChunk(data):
     return data[:,-1]
 
 def AddPadding(data,chunk_length,start_block,end_block,data_size):
-    print "asdf", start_block, data.shape, end_block, data_size
     if start_block == 0:
         entry = data[0]
         for _ in xrange(chunk_length - data.shape[0]):
