@@ -53,6 +53,7 @@ class TestHierarchical(HierarchicalAgentBasedModel):
         self.dense_layers = 1 # for dense
         self.action_layers = 2
         self.partition_step_size = 1
+        self.num_actions = 13
 
         self.time = True
 
@@ -142,7 +143,7 @@ class TestHierarchical(HierarchicalAgentBasedModel):
 
         # Report some information on the data
         print "DATA LABELS: (max label = %d)"%(num_actions-1)
-        for i in xrange(num_actions):
+        for i in xrange(self.num_actions):
             count = np.sum(label == i)
             percent = float(count) / len(label)
             print "action %d: %.02f%% (%d/%d)"%(i,percent*100,count,len(label))
@@ -151,7 +152,7 @@ class TestHierarchical(HierarchicalAgentBasedModel):
         orig_label = label
         orig_features = features
         orig_state = state
-        label = np.squeeze(self.toOneHot2D(label, num_actions))
+        label = np.squeeze(self.toOneHot2D(label, self.num_actions))
         assert np.all(np.argmax(label,axis=-1) == orig_label)
 
         if self.time:
@@ -170,8 +171,8 @@ class TestHierarchical(HierarchicalAgentBasedModel):
             features = np.expand_dims(features, -1)
             print "...done."
             labels_test = np.argmax(label,axis=-1).flatten()
-            print "DATA LABELS: (max label = %d)"%(num_actions-1)
-            for i in xrange(num_actions):
+            print "CHECK LABELS:"
+            for i in xrange(self.num_actions):
                 count = np.sum(labels_test == i)
                 percent = float(count) / len(labels_test)
                 print "action %d: %.02f%%(%d/%d)"%(i,percent*100,count,len(labels_test))
@@ -185,7 +186,7 @@ class TestHierarchical(HierarchicalAgentBasedModel):
         action_target = np.squeeze(action[:,-1,:])
 
         self._makeModel(features, state, action, label, example, reward)
-        #self._fitSupervisor(features, label, label_target)
+        self._fitSupervisor(features, label, label_target)
         self._fitPolicies(features, label, action_target)
 
     def plot(self,*args,**kwargs):

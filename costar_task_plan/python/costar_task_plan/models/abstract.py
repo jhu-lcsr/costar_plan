@@ -170,6 +170,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
 
     def __init__(self, *args, **kwargs):
         super(HierarchicalAgentBasedModel, self).__init__(*args, **kwargs)
+        self.num_actions = 0
     
     def _makeSupervisor(self, feature, label, num_labels):
         '''
@@ -203,9 +204,16 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         
     def _fitSupervisor(self, features, prev_label, label):
         #self.supervisor.fit([features, prev_label], [label])
+        '''
+        Fit a high-level policy that tells us which low-level action we could
+        be taking at any particular time.
+        '''
         self.supervisor.fit([features], [label], epochs=self.epochs)
 
     def _fitPolicies(self, features, label, action):
+        '''
+        Fit different policies for each model.
+        '''
         # Divide up based on label
         idx = np.argmax(np.squeeze(label[:,-1,:]),axis=-1)
 
@@ -218,3 +226,29 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
                 print 'WARNING: no examples for %d'%i
                 continue
             model.fit([x], [a], epochs=self.epochs)
+
+    def save(self):
+        '''
+        Save to a filename determined by the "self.name" field.
+        '''
+        if self.supervisor is not None:
+            self.supervisor.save_weights(self.name + "_supervisor.h5f")
+            for i, policy in enumerate(self.policies):
+                policy.save_weights(self.name + "_policy%02d.h5f"%i)
+        else:
+            raise RuntimeError('save() failed: model not found.')
+
+    def _loadWeights(self, *args, **kwargs):
+        '''
+        Load model weights. This is the default load weights function; you may
+        need to overload this for specific models.
+        '''
+        if self.model is not None:
+            print "using " + self.name + ".h5f"
+            print self.model.summary()
+            #print args
+            #weight_location = args.load_model.name
+            #self.model.load_weights(weight_location)
+            self.model.load_weights(self.name + ".h5f")
+        else:
+            raise RuntimeError('_loadWeights() failed: model not found.')
