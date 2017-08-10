@@ -4,7 +4,7 @@ from robots import *
 
 
 def GetAvailableTasks():
-    return ["blocks", "drl_blocks", "clutter", "sorting", "tower", "oranges", "obstacles", "trays", "obstructions"]
+    return ["blocks", "drl_blocks", "clutter", "sorting", "tower", "oranges", "obstacles", "trays", "obstructions", "sorting"]
 
 
 def GetAvailableRobots():
