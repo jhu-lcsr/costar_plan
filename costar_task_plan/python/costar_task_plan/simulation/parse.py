@@ -126,6 +126,7 @@ def ParseBulletArgs():
                         default=100)
     parser.add_argument("--load_model", "--lm",
                         help="Load model from file for tests.",
+                        #type=argparse.FileType('r'))#,
                         action="store_true")
     parser.add_argument("--show_iter", "--si",
                         help="Show output images from model training" + \

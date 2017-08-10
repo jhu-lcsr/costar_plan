@@ -3,21 +3,22 @@ import pybullet as pb
 import PyKDL as kdl
 from costar_task_plan.simulation.world import *
 
-class AlbertAgent(AbstractAgent):
+class Albert3Agent(AbstractAgent):
     '''
     Really simple test agent that just generates a random set of positions to
     move to.
     '''
 
-    name = "albert"
+    name = "albert3"
 
     def __init__(self, env, *args, **kwargs):
-        super(AlbertAgent, self).__init__(*args, **kwargs)
+        super(Albert3Agent, self).__init__(*args, **kwargs)
         self.env = env
 
     def fit(self, num_iter):
-        f = open('keypresses.txt', 'w')
-        keys = [121, 122, 49, 51, 53, 55, 57, 45, 50, 52, 54, 56, 48, 61]
+        arm_cmd = None
+        gripper_cmd = None
+        
         keylist = []
         sizeCounter = 0
         #a = pb.getKeyboardEvents()
@@ -28,9 +29,9 @@ class AlbertAgent(AbstractAgent):
             a = pb.getKeyboardEvents()
 
             while not self._break:
+            #while True:
                 token = 0
                 state = self.env.world.actors[0].state
-                control = SimulationRobotAction(arm_cmd=None, gripper_cmd=None)
 
                 a = pb.getKeyboardEvents()
                 if a != {}: print a
@@ -41,7 +42,8 @@ class AlbertAgent(AbstractAgent):
                     # arm = 
                     token = 121
                     gripper_cmd = state.robot.gripperOpenCommand()
-                    control = SimulationRobotAction(arm_cmd=None, gripper_cmd=gripper_cmd)
+                    #control = SimulationRobotAction(arm_cmd=None, gripper_cmd=gripper_cmd)
+                    arm_cmd = None
                     
                 elif 122 in a:  
                     # arm =
@@ -49,14 +51,14 @@ class AlbertAgent(AbstractAgent):
                     keylist.append("z")
                     token = 122
                     gripper_cmd = state.robot.gripperCloseCommand()
-                    control = SimulationRobotAction(arm_cmd=None, gripper_cmd=gripper_cmd)
+                    arm_cmd = None 
                     
        #############################Forwards##########################
     
                 #if 119 in a:  
                     #print "w detected"
                     #token = 119
-                if 49 in a:
+                elif 49 in a:
                     print "1 detected"
                     keylist.append("1")
                     token = 49
@@ -67,13 +69,14 @@ class AlbertAgent(AbstractAgent):
                     gripper_cmd = None
                     #state.arm = joints
                     invarm = state.robot.ik(T_arm, state.arm)
-                    control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
-                    print control
+                    #control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
+                    arm_cmd = invarm
+      
                     
                 #if 97 in a:  
                     #print "a detected"
                     #token = 97
-                if 51 in a:
+                elif 51 in a:
                     print "3 detected"
                     keylist.append("3")
                     token = 51
@@ -84,12 +87,13 @@ class AlbertAgent(AbstractAgent):
                     gripper_cmd = None
                     #state.arm = joints
                     invarm = state.robot.ik(T_arm, state.arm)
-                    control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
+                    #control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
+                    arm_cmd = invarm
                 
                 #if 114 in a:  
                     #print "r detected"
                     #token = 114
-                if 53 in a:
+                elif 53 in a:
                     print "5 detected"
                     keylist.append("5")
                     token = 53
@@ -100,7 +104,8 @@ class AlbertAgent(AbstractAgent):
                     gripper_cmd = None
                     #state.arm = joints
                     invarm = state.robot.ik(T_arm, state.arm)
-                    control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
+                    #control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
+                    arm_cmd = invarm
             
             
     #############################Rotation#################################
@@ -108,7 +113,7 @@ class AlbertAgent(AbstractAgent):
                 #if 113 in a:  
                     #print "q detected"
                     #token = 113
-                if 55 in a:
+                elif 55 in a:
                     print "7 detected"
                     keylist.append("7")
                     token = 55
@@ -119,10 +124,11 @@ class AlbertAgent(AbstractAgent):
                     gripper_cmd = None
                     #state.arm = joints
                     invarm = state.robot.ik(T_arm, state.arm)
-                    control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
+                    #control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
+                    arm_cmd = invarm
                     
     
-                if 57 in a:
+                elif 57 in a:
                     print "9 detected"
                     keylist.append("9")
                     token = 57
@@ -133,12 +139,13 @@ class AlbertAgent(AbstractAgent):
                     gripper_cmd = None
                     #state.arm = joints
                     invarm = state.robot.ik(T_arm, state.arm)
-                    control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
+                    #control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
+                    arm_cmd = invarm
                 
                 #if 114 in a:  
                     #print "r detected"
                     #token = 114
-                if 45 in a:
+                elif 45 in a:
                     print "= detected"
                     keylist.append("-")
                     token = 53
@@ -149,14 +156,15 @@ class AlbertAgent(AbstractAgent):
                     gripper_cmd = None
                     #state.arm = joints
                     invarm = state.robot.ik(T_arm, state.arm)
-                    control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
+                    #control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
+                    arm_cmd = invarm
       
     ############################Backwards#########################
     
                 #if 115 in a:  
                     #print "s detected"
                     #token = 115
-                if 50 in a:
+                elif 50 in a:
                     print "2 detected"
                     keylist.append("2")
                     token = 50
@@ -167,13 +175,14 @@ class AlbertAgent(AbstractAgent):
                     gripper_cmd = None
                     #state.arm = joints
                     invarm = state.robot.ik(T_arm, state.arm)
-                    control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
+                    #control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
+                    arm_cmd = invarm
                 
                 
                 #if 100 in a:  
                     #print "d detected"
                     #token = 100
-                if 52 in a:
+                elif 52 in a:
                     print "4 detected"
                     keylist.append("4")
                     token = 52
@@ -184,12 +193,13 @@ class AlbertAgent(AbstractAgent):
                     gripper_cmd = None
                     #state.arm = joints
                     invarm = state.robot.ik(T_arm, state.arm)
-                    control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
+                    #control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
+                    arm_cmd = invarm
                 
                 #if 102 in a:  
                     #print "f detected"
                     #token = 102
-                if 54 in a:
+                elif 54 in a:
                     print "6 detected"
                     keylist.append("6")
                     token = 54
@@ -200,7 +210,8 @@ class AlbertAgent(AbstractAgent):
                     gripper_cmd = None
                     #state.arm = joints
                     invarm = state.robot.ik(T_arm, state.arm)
-                    control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
+                    #control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
+                    arm_cmd = invarm
   
 
 #########################################INV_Rotations##########################################
@@ -208,7 +219,7 @@ class AlbertAgent(AbstractAgent):
                 #if 101 in a:  
                     #print "e detected"
                     #token = 101
-                if 56 in a:
+                elif 56 in a:
                     print "8 detected"
                     keylist.append("8")
                     token = 56
@@ -219,10 +230,11 @@ class AlbertAgent(AbstractAgent):
                     gripper_cmd = None
                     #state.arm = joints
                     invarm = state.robot.ik(T_arm, state.arm)
-                    control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
+                    #control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
+                    arm_cmd = invarm
                     
                     
-                if 48 in a:
+                elif 48 in a:
                     print "0 detected"
                     keylist.append("0")
                     token = 48
@@ -233,9 +245,10 @@ class AlbertAgent(AbstractAgent):
                     gripper_cmd = None
                     #state.arm = joints
                     invarm = state.robot.ik(T_arm, state.arm)
-                    control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
+                    arm_cmd = invarm
+                    #control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
                     
-                if 61 in a:
+                elif 61 in a:
                     print "= detected"
                     keylist.append("=")
                     token = 61
@@ -246,7 +259,8 @@ class AlbertAgent(AbstractAgent):
                     gripper_cmd = None
                     #state.arm = joints
                     invarm = state.robot.ik(T_arm, state.arm)
-                    control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
+                    #control = SimulationRobotAction(arm_cmd=invarm, gripper_cmd=gripper_cmd)
+                    arm_cmd = invarm
                     
                 if 104 in a:
                     print("---------Help requested--------------")
@@ -265,6 +279,10 @@ class AlbertAgent(AbstractAgent):
                     print(" ------------------------------------**");
                     print("  *************************************");
                 
+                                
+                control = SimulationRobotAction(arm_cmd, gripper_cmd)
+
+                
                 if control is not None:
                     features, reward, done, info = self.env.step(control)
                     '''
@@ -280,6 +298,7 @@ class AlbertAgent(AbstractAgent):
                     '''
                     if done: #and len(keylist) > sizeCounter:
                         #sizeCounter+=1
+                        print "I'm done"
                         break
 
                 else:
@@ -290,4 +309,3 @@ class AlbertAgent(AbstractAgent):
 
             if self._break:
                 return
-        f.write(keylist)

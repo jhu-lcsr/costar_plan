@@ -9,10 +9,12 @@ from keras_naf import *
 from apl_ddpg import *
 
 from albert import *
+from albert2 import *
+from albert3 import *
 
 def GetAgents():
     return ["none", "null",
-            "albert", # keyboard
+            "albert", "albert2", "albert3", # keyboard
             "random", # random actions
             "task", # supervised task model
             "keras_ddpg", # keras DDPG
@@ -27,7 +29,9 @@ def MakeAgent(env, name, *args, **kwargs):
                 'no': lambda: NullAgent(env, *args, **kwargs),
                 'none': lambda: NullAgent(env, *args, **kwargs),
                 'null': lambda: NullAgent(env, *args, **kwargs),
-        		    'albert': lambda: AlbertAgent(env, *args, **kwargs),
+        		'albert': lambda: AlbertAgent(env, *args, **kwargs),
+                'albert2': lambda: Albert2Agent(env, *args, **kwargs),
+                'albert3': lambda: Albert3Agent(env, *args, **kwargs),
                 'random': lambda: RandomAgent(env, *args, **kwargs),
                 'task': lambda: TaskAgent(env, *args, **kwargs),
                 'apl_ddpg': lambda: APLDDPGAgent(env, *args, **kwargs),

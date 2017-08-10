@@ -3,21 +3,19 @@ import pybullet as pb
 import PyKDL as kdl
 from costar_task_plan.simulation.world import *
 
-class AlbertAgent(AbstractAgent):
+class Albert2Agent(AbstractAgent):
     '''
     Really simple test agent that just generates a random set of positions to
     move to.
     '''
 
-    name = "albert"
+    name = "albert2"
 
     def __init__(self, env, *args, **kwargs):
-        super(AlbertAgent, self).__init__(*args, **kwargs)
+        super(Albert2Agent, self).__init__(*args, **kwargs)
         self.env = env
 
     def fit(self, num_iter):
-        f = open('keypresses.txt', 'w')
-        keys = [121, 122, 49, 51, 53, 55, 57, 45, 50, 52, 54, 56, 48, 61]
         keylist = []
         sizeCounter = 0
         #a = pb.getKeyboardEvents()
@@ -290,4 +288,3 @@ class AlbertAgent(AbstractAgent):
 
             if self._break:
                 return
-        f.write(keylist)
