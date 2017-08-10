@@ -40,6 +40,15 @@ class ObstaclesTaskDefinition(DefaultTaskDefinition):
         np.array([-0.5, 0.2, 0.]),
         np.array([-0.5, -0.1, 0.]),
         np.array([-0.5, -0.2, 0.]),
+        ###########################
+        np.array([-0.1, 0.1, 0.]),
+        np.array([-0.1, 0.2, 0.]),
+        np.array([-0.1, -0.1, 0.]),
+        np.array([-0.1, -0.2, 0.]),
+        np.array([-0, 0.1, 0.]),
+        np.array([-0, 0.2, 0.]),
+        np.array([-0, -0.1, 0.]),
+        np.array([-0, -0.2, 0.]),
     ]
 
     over_final_stack_pos = np.array([-0.5, 0., 0.5])
