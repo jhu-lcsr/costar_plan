@@ -11,7 +11,7 @@ import pybullet as pb
 import rospkg
 
 
-class ObstaclesTaskDefinition(DefaultTaskDefinition):
+class Sorting2TaskDefinition(DefaultTaskDefinition):
 
     '''
     Define a simple task. The robot needs to pick up and stack blocks of
@@ -61,7 +61,7 @@ class ObstaclesTaskDefinition(DefaultTaskDefinition):
         them, and the size of the blocks. Size is given as mean and covariance,
         blocks are placed at random.
         '''
-        super(ObstaclesTaskDefinition, self).__init__(*args, **kwargs)
+        super(Sorting2TaskDefinition, self).__init__(*args, **kwargs)
         self.stage = stage
         self.block_ids = []
 
@@ -244,4 +244,4 @@ class ObstaclesTaskDefinition(DefaultTaskDefinition):
         self._setupRobot(self.robot.handle)
 
     def getName(self):
-        return "obstacles"
+        return "sorting2"
