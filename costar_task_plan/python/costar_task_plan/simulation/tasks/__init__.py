@@ -7,6 +7,7 @@ from oranges import OrangesTaskDefinition
 from obstacles import ObstaclesTaskDefinition
 from trays import TraysTaskDefinition
 from obstructions import ObstructionsTaskDefinition
+from sorting2 import Sorting2TaskDefinition
 
 # TODO(cpaxton): re-enable these
 # from mug import MugTaskDefinition
@@ -17,6 +18,7 @@ __all__ = ["AbstractTaskDefinition",
            "DRLBlocksTaskDefinition",
            "ClutterTaskDefinition",
            "SortingTaskDefinition",
+           "Sorting2TaskDefinition",
            "OrangesTaskDefinition",
            "ObstaclesTaskDefinition",
            "TraysTaskDefinition",
