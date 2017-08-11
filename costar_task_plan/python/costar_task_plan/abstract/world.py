@@ -1,9 +1,10 @@
 import copy
-
-from state import AbstractState
-from action import AbstractAction
+import numpy as np
 
 from collections import deque
+
+from action import AbstractAction
+from state import AbstractState
 
 class AbstractWorld(object):
   '''
@@ -51,7 +52,7 @@ class AbstractWorld(object):
         num_features = len(self.history[0][0])
         features = []
         for i in xrange(num_features):
-            features.append(np.zeros((self.history_length,)+self.history[0][i].shape))
+            features.append(np.zeros((self.history_length,)+self.history[0][0][i].shape))
     else:
         num_features = 0
         features = np.zeros((self.history_length,)+self.history[0][0].shape)
@@ -66,7 +67,7 @@ class AbstractWorld(object):
 
         if num_features > 0:
             # loop over all the features
-            for j in xrange(len(history[i][0])):
+            for j in xrange(num_features):
                 features[j][idx_x] = self.history[idx_history][0][j]
         else:
             features[idx_x] = self.history[idx_history][0]
