@@ -200,11 +200,17 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
                 num_labels)
         self.supervisor.summary()
 
-        # We assume label is one-hot.
+        
+        # Learn a baseline for comparisons and whatnot
+        self.baseline = self._makePolicy(features, action, hidden)
+        self.baseline.summary()
+
+        # We assume label is one-hot. This is the same as the "baseline"
+        # policy, but we learn a separate one for each high-level action
+        # available to the actor.
         self.policies = []
         for i in xrange(num_labels):
             self.policies.append(self._makePolicy(features, action, hidden))
-        self.policies[0].summary()
         
     def _fitSupervisor(self, features, prev_label, label):
         #self.supervisor.fit([features, prev_label], [label])
@@ -230,6 +236,9 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
                 print 'WARNING: no examples for %d'%i
                 continue
             model.fit([x], [a], epochs=self.epochs)
+
+    def _fitBaseline(self, features, action):
+        self.baseline.fit([features], [action], epochs=self.epochs)
 
     def save(self):
         '''

@@ -101,6 +101,7 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         '''
         Set joint commands for the robot arm.
         '''
+        print cmd
         if len(cmd) > self.dof:
             raise RuntimeError('too many joint positions')
 

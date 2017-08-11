@@ -56,6 +56,9 @@ class TestHierarchical(HierarchicalAgentBasedModel):
         self.partition_step_size = 1
         self.num_actions = 13
 
+        self.fit_policies = True
+        self.fit_baseline = False
+
         self.time = True
 
     def _makeSupervisor(self, features, label, num_labels):
@@ -193,7 +196,10 @@ class TestHierarchical(HierarchicalAgentBasedModel):
 
         self._makeModel(features, state, action, label, example, reward)
         self._fitSupervisor(features, label, label_target)
-        self._fitPolicies(features, label, action_target)
+        if self.fit_policies:
+            self._fitPolicies(features, label, action_target)
+        if self.fit_baseline:
+            self._fitBaseline(features, action_target)
 
     def plot(self,*args,**kwargs):
         # TODO
@@ -208,6 +214,9 @@ if __name__ == '__main__':
             epochs=10,
             optimizer="adam",
             task="roadworld",)
+
+    sampler.fit_policies = True
+    sampler.fit_baseline = True
 
     sampler.show_iter = 100
     sampler.train(**data)
