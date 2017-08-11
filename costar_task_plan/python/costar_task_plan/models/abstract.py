@@ -257,11 +257,12 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         else:
             raise RuntimeError('_loadWeights() failed: model not found.')
 
-    def predict(self, features):
+    def predict(self, world):
         '''
         This is the basic, "dumb" option. Compute the next option/policy to
         execute by evaluating the supervisor, then just call that model.
         '''
+        features = world.getHistoryMatrix()
         if isinstance(features, list):
             assert len(features) == len(self.model.inputs)
         else:

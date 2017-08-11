@@ -65,9 +65,6 @@ class TestHierarchical(HierarchicalAgentBasedModel):
         '''
         if self.time:
             fin = Input(features.shape[1:])
-            #x = GetConv2Encoder(fin, self.filters, self.dense_size,
-            #        self.num_layers,
-            #        kernel=[5,features.shape[-2]])
             x = GetLSTMEncoder(fin, None, self.dense_size, self.lstm_size, self.dense_layers,
                     self.lstm_layers)
         else:
@@ -88,9 +85,6 @@ class TestHierarchical(HierarchicalAgentBasedModel):
         num_actions = action.shape[-1]
         if self.time:
             fin = Input(features.shape[1:])
-            #x = GetConv2Encoder(fin, self.filters, self.dense_size,
-            #        self.num_layers,
-            #        kernel=[5,features.shape[-2]])
             x = GetLSTMEncoder(fin, None, self.dense_size, self.lstm_size,
                     self.dense_layers,
                     self.lstm_layers)

@@ -16,12 +16,12 @@ from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 from keras.optimizers import Adam
 
-from abstract import AbstractAgentBasedModel
+from abstract import HierarchicalAgentBasedModel
 
 from robot_multi_models import *
 from split import *
 
-class RobotMultiHierarchical(AbstractAgentBasedModel):
+class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
     '''
     This is the "divide and conquer"-style classifier for training a multilevel
@@ -53,6 +53,7 @@ class RobotMultiHierarchical(AbstractAgentBasedModel):
         self.robot_col_dense_size = 128
         self.robot_col_dim = 64
         self.combined_dense_size = 64
+        self.partition_step_size = 2
 
     def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             example, *args, **kwargs):
@@ -68,14 +69,12 @@ class RobotMultiHierarchical(AbstractAgentBasedModel):
         else:
             gripper_size = 1
 
-        ins, x = GetEncoder(
+        ins, x = GetEncoderConvLSTM(
                 img_shape,
                 arm_size,
                 gripper_size,
-                self.img_col_dim,
-                self.dropout_rate,
-                self.img_num_filters,
-                discriminator=False,
+                dropout_rate=self.dropout_rate,
+                filters=self.img_num_filters,
                 tile=True,
                 pre_tiling_layers=1,
                 post_tiling_layers=2)
@@ -98,18 +97,21 @@ class RobotMultiHierarchical(AbstractAgentBasedModel):
         unsuccessful examples.
         '''
         print label
-        print label.shape
         action_labels = np.array([self.taskdef.index(l) for l in label])
-        print action_labels
-        print action_labels.shape
 
-        frame_data, result_data = SplitIntoActions(
-                [features, arm, gripper, arm_cmd, gripper_cmd],
-                action_labels=action_labels,
-                example_labels=example)
+        [features, arm, gripper, arm_cmd, gripper_cmd, actions], _ = \
+            SplitIntoChunks(
+                datasets=[features, arm, gripper, arm_cmd, gripper_cmd,
+                    action_labels],
+                reward=None, reward_threshold=0.,
+                labels=example,
+                chunk_length=self.num_frames,
+                step_size=self.partition_step_size,
+                front_padding=True,
+                rear_padding=False,)
 
         self._makeModel(features, arm, gripper, arm_cmd,
-                gripper_cmd, label,
+                gripper_cmd, actions,
                 example, *args, **kwargs)
         self.model.summary()
 
