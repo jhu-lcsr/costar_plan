@@ -105,7 +105,6 @@ class SimulationDynamics(AbstractDynamics):
 
     def __call__(self, state, action, dt):
         if state.robot is not None:
-            print "action = ", action.arm_cmd
             state.robot.command(action)
 
 class SimulationObjectState(AbstractState):
