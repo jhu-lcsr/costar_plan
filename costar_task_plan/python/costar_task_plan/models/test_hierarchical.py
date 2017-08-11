@@ -52,6 +52,7 @@ class TestHierarchical(HierarchicalAgentBasedModel):
         self.num_layers = 3 # for conv
         self.dense_layers = 1 # for dense
         self.action_layers = 2
+        self.lstm_layers = 1
         self.partition_step_size = 1
         self.num_actions = 13
 
@@ -64,9 +65,11 @@ class TestHierarchical(HierarchicalAgentBasedModel):
         '''
         if self.time:
             fin = Input(features.shape[1:])
-            x = GetConv2Encoder(fin, self.filters, self.dense_size,
-                    self.num_layers,
-                    kernel=[5,features.shape[-2]])
+            #x = GetConv2Encoder(fin, self.filters, self.dense_size,
+            #        self.num_layers,
+            #        kernel=[5,features.shape[-2]])
+            x = GetLSTMEncoder(fin, None, self.dense_size, self.lstm_size, self.dense_layers,
+                    self.lstm_layers)
         else:
             fin = Input((features.shape[-1],))
             x = GetDenseEncoder(fin, None, self.dense_size,
@@ -85,9 +88,12 @@ class TestHierarchical(HierarchicalAgentBasedModel):
         num_actions = action.shape[-1]
         if self.time:
             fin = Input(features.shape[1:])
-            x = GetConv2Encoder(fin, self.filters, self.dense_size,
-                    self.num_layers,
-                    kernel=[5,features.shape[-2]])
+            #x = GetConv2Encoder(fin, self.filters, self.dense_size,
+            #        self.num_layers,
+            #        kernel=[5,features.shape[-2]])
+            x = GetLSTMEncoder(fin, None, self.dense_size, self.lstm_size,
+                    self.dense_layers,
+                    self.lstm_layers)
         else:
             fin = Input((features.shape[-1],))
             x = GetDenseEncoder(fin, None, self.dense_size,
@@ -174,7 +180,7 @@ class TestHierarchical(HierarchicalAgentBasedModel):
                     stagger=True,
                     )
             #[next_features, next_action, next_label, next_reward, next_ok] = stagger
-            features = np.expand_dims(features, -1)
+            #features = np.expand_dims(features, -1)
             print "...done."
             labels_test = np.argmax(label,axis=-1).flatten()
             print "CHECK LABELS:"
@@ -205,7 +211,7 @@ if __name__ == '__main__':
     sampler = TestHierarchical(
             batch_size=64,
             iter=5000,
-            epochs=100,
+            epochs=10,
             optimizer="adam",
             task="roadworld",)
 

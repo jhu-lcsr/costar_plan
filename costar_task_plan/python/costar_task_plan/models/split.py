@@ -41,7 +41,7 @@ def SplitIntoChunks(datasets, labels,
         # prune any rewards that are not acceptable here. we assume that we
         # care the most about the terminal reward -- if the terminal reward is
         # not greater than zero, we will throw out the example
-        if reward[labels==label][-1] < reward_threshold:
+        if reward is not None and reward[labels==label][-1] < reward_threshold:
             # Since this was too low, just skip it
             continue
 

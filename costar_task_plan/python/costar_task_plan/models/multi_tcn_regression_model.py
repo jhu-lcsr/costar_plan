@@ -110,10 +110,14 @@ class RobotMultiTCNRegression(AbstractAgentBasedModel):
         '''
 
         [features, arm, gripper, arm_cmd, gripper_cmd], stagger = \
-                SplitIntoChunks([features, arm, gripper, arm_cmd, gripper_cmd],
-                example, self.num_frames, step_size=2,
-                front_padding=False,
-                rear_padding=True)
+                SplitIntoChunks(
+                        datasets=[features, arm, gripper, arm_cmd, gripper_cmd],
+                        labels=example,
+                        reward=None,
+                        chunk_length=self.num_frames,
+                        step_size=2,
+                        front_padding=False,
+                        rear_padding=True)
 
         arm_cmd_target = LastInChunk(arm_cmd)
         gripper_cmd_target = LastInChunk(gripper_cmd)

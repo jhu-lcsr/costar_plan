@@ -24,22 +24,23 @@ This file defines models that rely just on hand-coded features -- obvious
 features that we don't need to worry about so much.
 '''
 
-def GetEncoder(xin, uin, dense_size, lstm_size, dense_layers=1,
+def GetLSTMEncoder(xin, uin, dense_size, lstm_size, dense_layers=1,
         lstm_layers=1):
     '''
     Get LSTM encoder.
     '''
     x = xin
     for _ in xrange(dense_layers):
-        x = Concatenate(axis=-1)([x, uin])
+        if uin is not None:
+            x = Concatenate(axis=-1)([x, uin])
         x = TimeDistributed(Dense(dense_size))(x)
         x = TimeDistributed(Activation('relu'))(x)
     for i in xrange(lstm_layers):
-        #if i == lstm_layers - 1:
-        #    sequence_out = False
-        #else:
-        #    sequence_out = True
-        sequence_out = True
+        if i == lstm_layers - 1:
+            sequence_out = False
+        else:
+            sequence_out = True
+        #sequence_out = True
         x = LSTM(lstm_size, return_sequences=sequence_out)(x)
         x = Activation('relu')(x)
     return x
