@@ -31,7 +31,7 @@ class FeedForwardAgent(AbstractAgent):
             features = self.env.reset()
 
             while not self._break:
-                arm_cmd, gripper_cmd = self.model.predict(features)
+                arm_cmd, gripper_cmd = self.model.predict(self.env.world)
                 control = SimulationRobotAction(arm_cmd=arm_cmd[0],
                         gripper_cmd=gripper_cmd[0])
                 features, reward, done, info = self.env.step(control)

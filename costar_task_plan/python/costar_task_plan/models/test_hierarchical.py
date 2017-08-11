@@ -192,6 +192,7 @@ class TestHierarchical(HierarchicalAgentBasedModel):
         self._fitPolicies(features, label, action_target)
 
     def plot(self,*args,**kwargs):
+        # TODO
         pass
 
 if __name__ == '__main__':
@@ -200,7 +201,7 @@ if __name__ == '__main__':
     sampler = TestHierarchical(
             batch_size=64,
             iter=5000,
-            epochs=1,
+            epochs=100,
             optimizer="adam",
             task="roadworld",)
 

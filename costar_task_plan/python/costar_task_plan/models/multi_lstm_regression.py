@@ -142,9 +142,10 @@ class RobotMultiLSTMRegression(AbstractAgentBasedModel):
     def plot(self):
         pass
 
-    def predict(self, features):
+    def predict(self, world):
         if self.model is None:
             raise RuntimeError('model is missing')
+        features = world.initial_features # use cached features
         # Make sure we got the right input
         assert len(features) == len(self.model.inputs)
         img, q, gripper = features

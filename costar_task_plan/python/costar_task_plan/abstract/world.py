@@ -41,11 +41,37 @@ class AbstractWorld(object):
     self.history_length = history_length
     self.history = deque()
 
-  def historyToMatrix(self):
+  def getHistoryMatrix(self):
     '''
     Convert the world's history into a matrix of (maxsize,) + feature dim
     '''
-    pass
+
+    # first decide if we need to track multiple feature sets or not
+    if isinstance(self.history[0][0], list):
+        num_features = len(self.history[0][0])
+        features = []
+        for i in xrange(num_features):
+            features.append(np.zeros((self.history_length,)+self.history[0][i].shape))
+    else:
+        num_features = 0
+        features = np.zeros((self.history_length,)+self.history[0][0].shape)
+
+    # loop over history's whole length, copying in entries from the back. pad
+    # the front out with previous frames just to fill it up.
+    for i in xrange(self.history_length):
+        idx_x = self.history_length - 1 - i
+        idx_history = len(self.history) - i - 1
+        if idx_history < 0:
+            idx_history = 0
+
+        if num_features > 0:
+            # loop over all the features
+            for j in xrange(len(history[i][0])):
+                features[j][idx_x] = self.history[idx_history][0][j]
+        else:
+            features[idx_x] = self.history[idx_history][0]
+
+    return features
 
   def vectorize(self, control, features, reward, done, example, action_label):
     '''

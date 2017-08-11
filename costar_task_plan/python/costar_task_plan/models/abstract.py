@@ -134,10 +134,14 @@ class AbstractAgentBasedModel(object):
             raise RuntimeError('asdf')
         return optimizer
 
-    def predict(self, features):
+    def predict(self, world):
         '''
         Implement this to predict... something... from a world state
         observation.
+
+        Parameters:
+        -----------
+        world: a single world observation.
         '''
         raise NotImplementedError('predict() not supported yet.')
 
@@ -252,3 +256,25 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
             self.model.load_weights(self.name + ".h5f")
         else:
             raise RuntimeError('_loadWeights() failed: model not found.')
+
+    def predict(self, features):
+        '''
+        This is the basic, "dumb" option. Compute the next option/policy to
+        execute by evaluating the supervisor, then just call that model.
+        '''
+        if isinstance(features, list):
+            assert len(features) == len(self.model.inputs)
+        else:
+            features = [features]
+        if self.supervisor is None:
+            raise RuntimeError('high level model is missing')
+        features = [f.reshape((1,)+f.shape) for f in features]
+        res = self.supervisor.predict(features)
+        next_policy = np.argmax(res)
+
+        # Retrieve the next policy we want to execute
+        policy = self.policies[next_policy]
+
+        # Evaluate this policy to get the next action out
+        return policy.predict(features)
+

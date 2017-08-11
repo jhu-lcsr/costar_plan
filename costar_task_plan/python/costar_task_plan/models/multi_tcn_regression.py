@@ -141,10 +141,11 @@ class RobotMultiTCNRegression(AbstractAgentBasedModel):
                 batch_size=self.batch_size,
                 )
 
-    def predict(self, features):
+    def predict(self, world):
         '''
         Store or create the set of input features we need for the TCN
         '''
+        features = world.getHistoryMatrix() # use cached features
         if isinstance(features, list):
             assert len(features) == len(self.model.inputs)
         if self.model is None:

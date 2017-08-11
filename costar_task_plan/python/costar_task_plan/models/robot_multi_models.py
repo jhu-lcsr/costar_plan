@@ -162,8 +162,6 @@ def GetEncoder3D(img_shape, arm_size, gripper_size, dropout_rate,
 
     x = samples
 
-    print samples.shape
-
     for i in xrange(pre_tiling_layers):
 
         x = Conv3D(filters,
@@ -173,8 +171,6 @@ def GetEncoder3D(img_shape, arm_size, gripper_size, dropout_rate,
         x = relu()(x)
         if dropout:
             x = Dropout(dropout_rate)(x)
-
-        print x
 
     # ===============================================
     # ADD TILING
