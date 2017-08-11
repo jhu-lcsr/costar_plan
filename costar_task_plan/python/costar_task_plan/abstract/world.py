@@ -20,7 +20,7 @@ class AbstractWorld(object):
   # ID of the current trace; should be completely unique
   next_trace_id = 0
 
-  def __init__(self, reward, history_length=10, verbose=False):
+  def __init__(self, reward, history_length=10, decision_history_length=10, verbose=False):
     self.reward = reward
     self.verbose = verbose
     self.actors = []
@@ -41,6 +41,11 @@ class AbstractWorld(object):
     # history stores features;
     self.history_length = history_length
     self.history = deque()
+
+    # We only update this when we would FORK the world. it helps us make our
+    # higher level decisions.
+    self.decision_history_length = decision_history_length
+    self.decision_history = deque()
 
   def getHistoryMatrix(self):
     '''
