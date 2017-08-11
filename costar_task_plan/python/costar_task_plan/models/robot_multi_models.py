@@ -214,6 +214,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         width4 = img_shape[1]/4
         height2 = img_shape[0]/2
         width2 = img_shape[1]/2
+        height = img_shape[0]
         width = img_shape[1]
         channels = img_shape[2]
     else:
@@ -224,6 +225,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         width4 = img_shape[2]/4
         height2 = img_shape[1]/2
         width2 = img_shape[2]/2
+        height = img_shape[1]
         width = img_shape[2]
         channels = img_shape[3]
     samples = Input(shape=img_shape)
@@ -251,7 +253,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
 
         x = ApplyTD(Conv2D(filters,
                    kernel_size=kernel_size, 
-                   strides=(1, 1),
+                   strides=(2, 2),
                    padding='same'))(x)
         x = ApplyTD(relu())(x)
         if dropout:
@@ -260,9 +262,13 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     # ===============================================
     # ADD TILING
     if tile:
+
+        tile_width = int(width/(pre_tiling_layers+1))
+        tile_height = int(height/(pre_tiling_layers+1))
+
         robot = Concatenate(axis=-1)([arm_in, gripper_in])
         if time_distributed > 0:
-            tile_shape = (1, 1, width4, height4, 1)
+            tile_shape = (1, 1, tile_width, tile_height, 1)
             robot = Reshape([time_distributed, 1, 1, arm_size+gripper_size])(robot)
         else:
             tile_shape = (1, width2, height2, 1)
