@@ -4,6 +4,7 @@ from multi_regression_model import RobotMultiFFRegression
 
 from multi_tcn_regression_model import RobotMultiTCNRegression
 from multi_lstm_regression import RobotMultiLSTMRegression
+from multi_conv_lstm_regression import RobotMultiConvLSTMRegression
 from multi_trajectory_sampler import RobotMultiTrajectorySampler
 from multi_autoencoder_model import RobotMultiAutoencoder
 from multi_hierarchical import RobotMultiHierarchical
@@ -33,6 +34,17 @@ def MakeModel(features, model, taskdef, *args, **kwargs):
     model = model.lower()
 
     if features == 'multi':
+        '''
+        This set of features has three components that may be handled
+        differently:
+            - image input
+            - current arm pose
+            - current gripper state
+
+        All of these models are expected to use the three fields:
+            ["features", "arm", "gripper"]
+        As a part of their state input.
+        '''
         if model == 'gan':
             model_instance = RobotMultiGAN(taskdef,
                     model=model,
@@ -47,6 +59,10 @@ def MakeModel(features, model, taskdef, *args, **kwargs):
                     **kwargs)
         elif model == 'lstm_regression':
             model_instance = RobotMultiLSTMRegression(taskdef,
+                    model=model,
+                    **kwargs)
+        elif model == 'conv_lstm_regression':
+            model_instance = RobotMultiConvLSTMRegression(taskdef,
                     model=model,
                     **kwargs)
         elif model == "sample":
