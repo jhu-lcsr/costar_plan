@@ -55,17 +55,24 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         self.combined_dense_size = 64
         self.partition_step_size = 2
 
-    def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
-            example, *args, **kwargs):
+    def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, label, *args, **kwargs):
+        self._makeHierarchicalModel(
+                (features, arm, gripper),
+                (arm_cmd, gripper_cmd),
+                label)
+
+    def _makePolicy(self, features, action, hidden=None):
         '''
         We need to use the task definition to create our high-level model, and
         we need to use our data to initialize the low level models that will be
         predicting our individual actions.
         '''
-        img_shape = features.shape[1:]
-        arm_size = arm.shape[1]
+        images, arm, gripper = features
+        arm_cmd, gripper_cmd = action
+        img_shape = images.shape[1:]
+        arm_size = arm.shape[-1]
         if len(gripper.shape) > 1:
-            gripper_size = gripper.shape[1]
+            gripper_size = gripper.shape[-1]
         else:
             gripper_size = 1
 
@@ -79,14 +86,51 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 pre_tiling_layers=1,
                 post_tiling_layers=2)
 
+        x = Flatten()(x)
+        x = Dense(self.combined_dense_size)(x)
+        x = Dropout(self.dropout_rate)(x)
+        x = LeakyReLU(0.2)(x)
+
         arm_out = Dense(arm_size)(x)
         gripper_out = Dense(gripper_size)(x)
 
-        model = Model(ins, [arm_out, gripper_out])
+        policy = Model(ins, [arm_out, gripper_out])
         #model = Model(img_ins, [arm_out])
         optimizer = self.getOptimizer()
-        model.compile(loss="mse", optimizer=optimizer)
-        self.model = model
+        policy.compile(loss="mse", optimizer=optimizer)
+
+        return policy
+
+    def _makeSupervisor(self, features, label, num_labels):
+        (images, arm, gripper) = features
+        img_shape = images.shape[1:]
+        arm_size = arm.shape[-1]
+        if len(gripper.shape) > 1:
+            gripper_size = gripper.shape[-1]
+        else:
+            gripper_size = 1
+
+        ins, x = GetEncoderConvLSTM(
+                img_shape,
+                arm_size,
+                gripper_size,
+                dropout_rate=self.dropout_rate,
+                filters=self.img_num_filters,
+                tile=True,
+                pre_tiling_layers=1,
+                post_tiling_layers=2)
+
+        x = Flatten()(x)
+        x = Dense(self.combined_dense_size)(x)
+        x = Dropout(self.dropout_rate)(x)
+        x = LeakyReLU(0.2)(x)
+
+        label_out = Dense(num_labels, activation="sigmoid")(x)
+        supervisor = Model(ins, [label_out])
+        supervisor.compile(
+                loss=["binary_crossentropy"],
+                optimizer=self.getOptimizer())
+        return x, supervisor
 
     def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             example, reward, *args, **kwargs):
@@ -96,10 +140,11 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         Then, create the model. Train based on labeled data. Remove
         unsuccessful examples.
         '''
-        print label
         action_labels = np.array([self.taskdef.index(l) for l in label])
+        action_labels = np.squeeze(self.toOneHot2D(action_labels,
+            len(self.taskdef.indices)))
 
-        [features, arm, gripper, arm_cmd, gripper_cmd, actions], _ = \
+        [features, arm, gripper, arm_cmd, gripper_cmd, action_labels], _ = \
             SplitIntoChunks(
                 datasets=[features, arm, gripper, arm_cmd, gripper_cmd,
                     action_labels],
@@ -111,9 +156,19 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 rear_padding=False,)
 
         self._makeModel(features, arm, gripper, arm_cmd,
-                gripper_cmd, actions,
-                example, *args, **kwargs)
-        self.model.summary()
+                gripper_cmd, action_labels, *args, **kwargs)
+
+        label_target = np.squeeze(action_labels[:,-1,:])
+        arm_target = np.squeeze(arm_cmd[:,-1,:])
+        gripper_target = np.squeeze(arm_cmd[:,-1,:])
+
+        action_target = [arm_target, gripper_target]
+
+        self._fitSupervisor([features, arm, gripper], action_labels,
+                label_target)
+        self._fitPolicies([features, arm, gripper], action_labels, action_target)
+        self._fitBaseline([features, arm, gripper], action_target)
+
 
     def save(self):
         '''

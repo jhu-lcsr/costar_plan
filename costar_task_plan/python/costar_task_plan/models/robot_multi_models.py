@@ -168,7 +168,8 @@ def GetEncoderConvLSTM(img_shape, arm_size, gripper_size,
 
         x = ConvLSTM2D(filters,
                    kernel_size=kernel_size, 
-                   strides=(1, 2, 2),
+                   return_sequences=True,
+                   strides=(2, 2),
                    padding='same')(x)
         x = relu()(x)
         if dropout:
@@ -190,9 +191,14 @@ def GetEncoderConvLSTM(img_shape, arm_size, gripper_size,
         ins = [samples]
 
     for i in xrange(post_tiling_layers):
-        x = Conv3D(filters,
+        if i == post_tiling_layers - 1:
+            ret_seq = False
+        else:
+            ret_seq = True
+        x = ConvLSTM2D(filters,
                    kernel_size=kernel_size, 
-                   strides=(2, 2, 2),
+                   return_sequences=ret_seq,
+                   strides=(2, 2),
                    padding='same')(x)
         x = relu()(x)
         if dropout:

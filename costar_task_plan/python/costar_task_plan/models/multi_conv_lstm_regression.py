@@ -84,7 +84,7 @@ class RobotMultiConvLSTMRegression(AbstractAgentBasedModel):
         else:
             gripper_size = 1
 
-        ins, x = GetEncoder(
+        ins, x = GetEncoderConvLSTM(
                 img_shape,
                 arm_size,
                 gripper_size,
@@ -94,14 +94,10 @@ class RobotMultiConvLSTMRegression(AbstractAgentBasedModel):
                 pre_tiling_layers=1,
                 post_tiling_layers=2,
                 time_distributed=10)
-
-        for i in xrange(self.num_tcn_levels):
-            if i < self.num_tcn_levels - 1:
-                return_seq = True
-            else:
-                return_seq = False
-            x = LSTM(self.tcn_filters, return_sequences=return_seq)(x)
-
+        x = Flatten()(x)
+        x = Dense(self.combined_dense_size)(x)
+        x = Dropout(self.dropout_rate)(x)
+        x = LeakyReLU(0.2)(x)
         arm_out = Dense(arm_size)(x)
         gripper_out = Dense(gripper_size)(x)
 

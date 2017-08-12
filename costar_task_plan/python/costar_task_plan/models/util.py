@@ -99,6 +99,7 @@ def GetModels():
             "ff_regression", # regression model; just a dense net
             "tcn_regression", # ff regression model with a TCN
             "lstm_regression", # lstm regression model
+            "conv_lstm_regression", # lstm regression model
             "sample", # sampler NN to generate trajectories
             "autoencoder", # autoencoder image test
             "hierarchical", # hierarchical policy for planning
