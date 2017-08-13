@@ -89,8 +89,10 @@ class SimulationWorld(AbstractWorld):
         return SimulationRobotAction()
 
     def _reset(self):
-        # no special reset logic happens here -- that's all outside this class
-        pass
+        # Update the states of all actors.
+        for actor in self.actors:
+            actor.state = actor.getState()
+            actor.state.t = self.ticks * self.dt
 
 
 class SimulationDynamics(AbstractDynamics):

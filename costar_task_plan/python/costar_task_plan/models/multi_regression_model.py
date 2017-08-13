@@ -54,19 +54,6 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
         else:
             gripper_size = 1
 
-        """
-        ins, x = GetSeparateEncoder(
-                img_shape=img_shape,
-                img_col_dim=self.img_col_dim,
-                img_dense_size=self.img_dense_size,
-                arm_size=arm_size,
-                gripper_size=gripper_size,
-                dropout_rate=self.dropout_rate,
-                img_num_filters=self.img_num_filters,
-                robot_col_dim=self.robot_col_dim,
-                combined_dense_size=self.combined_dense_size,
-                robot_col_dense_size=self.robot_col_dense_size,)
-        """
         ins, x = GetEncoder(
                 img_shape,
                 arm_size,
@@ -104,11 +91,16 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
                 batch_size=self.batch_size,
                 )
 
-    def predict(self, features):
+    def predict(self, world):
+        features = world.initial_features # use cached features
         if isinstance(features, list):
             assert len(features) == len(self.model.inputs)
         if self.model is None:
             raise RuntimeError('model is missing')
         features = [f.reshape((1,)+f.shape) for f in features]
         res = self.model.predict(features)
+        if np.any(res[0][0] > 10.):
+            plt.imshow(features[0][0])
+            plt.show()
+
         return res

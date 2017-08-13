@@ -8,6 +8,10 @@
 *.swm
 *.swn
 
+# Neural nets and data
+*.npz
+*.h5f
+
 # Careful with these -- we want them to be generated at runtime from the
 # associated xacro file.
 *.urdf

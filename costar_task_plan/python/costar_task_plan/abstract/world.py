@@ -1,9 +1,10 @@
 import copy
-
-from state import AbstractState
-from action import AbstractAction
+import numpy as np
 
 from collections import deque
+
+from action import AbstractAction
+from state import AbstractState
 
 class AbstractWorld(object):
   '''
@@ -19,7 +20,7 @@ class AbstractWorld(object):
   # ID of the current trace; should be completely unique
   next_trace_id = 0
 
-  def __init__(self, reward, history_length=10, verbose=False):
+  def __init__(self, reward, history_length=10, decision_history_length=10, verbose=False):
     self.reward = reward
     self.verbose = verbose
     self.actors = []
@@ -41,11 +42,42 @@ class AbstractWorld(object):
     self.history_length = history_length
     self.history = deque()
 
-  def historyToMatrix(self):
+    # We only update this when we would FORK the world. it helps us make our
+    # higher level decisions.
+    self.decision_history_length = decision_history_length
+    self.decision_history = deque()
+
+  def getHistoryMatrix(self):
     '''
     Convert the world's history into a matrix of (maxsize,) + feature dim
     '''
-    pass
+
+    # first decide if we need to track multiple feature sets or not
+    if isinstance(self.history[0][0], list):
+        num_features = len(self.history[0][0])
+        features = []
+        for i in xrange(num_features):
+            features.append(np.zeros((self.history_length,)+self.history[0][0][i].shape))
+    else:
+        num_features = 0
+        features = np.zeros((self.history_length,)+self.history[0][0].shape)
+
+    # loop over history's whole length, copying in entries from the back. pad
+    # the front out with previous frames just to fill it up.
+    for i in xrange(self.history_length):
+        idx_x = self.history_length - 1 - i
+        idx_history = len(self.history) - i - 1
+        if idx_history < 0:
+            idx_history = 0
+
+        if num_features > 0:
+            # loop over all the features
+            for j in xrange(num_features):
+                features[j][idx_x] = self.history[idx_history][0][j]
+        else:
+            features[idx_x] = self.history[idx_history][0]
+
+    return features
 
   def vectorize(self, control, features, reward, done, example, action_label):
     '''

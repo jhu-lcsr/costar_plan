@@ -120,11 +120,14 @@ class RobotMultiLSTMRegression(AbstractAgentBasedModel):
         trajectory.
         '''
 
-        [features, arm, gripper, arm_cmd, gripper_cmd] = \
-                SplitIntoChunks([features, arm, gripper, arm_cmd, gripper_cmd],
-                example, self.num_frames, step_size=2,
-                front_padding=False,
-                rear_padding=True)
+        [features, arm, gripper, arm_cmd, gripper_cmd], _ = \
+                SplitIntoChunks(
+                        datasets=[features, arm, gripper, arm_cmd, gripper_cmd],
+                        labels=example,
+                        chunk_length=self.num_frames,
+                        step_size=2,
+                        front_padding=True,
+                        rear_padding=False)
 
         arm_cmd_target = LastInChunk(arm_cmd)
         gripper_cmd_target = LastInChunk(gripper_cmd)
@@ -142,27 +145,20 @@ class RobotMultiLSTMRegression(AbstractAgentBasedModel):
     def plot(self):
         pass
 
-    def predict(self, features):
+    def predict(self, world):
+        world.history_length = self.num_frames
         if self.model is None:
             raise RuntimeError('model is missing')
-        # Make sure we got the right input
-        assert len(features) == len(self.model.inputs)
-        img, q, gripper = features
 
-        if len(self.imgs) >= self.num_frames:
-            self.imgs.popleft()
-            self.q.popleft()
-            self.gripper.popleft()
-
-        # first time: duplicate input frames
-        if len(self.imgs) == 0:
-            for _ in xrange(self.num_frames):
-                self.imgs.append(img)
-                self.q.append(q)
-                self.gripper.append(gripper)
-
-        # convert into a (num_frames,) + shape input matrix
-
+        '''
+        Store or create the set of input features we need for the TCN
+        '''
+        features = world.getHistoryMatrix() # use cached features
+        if isinstance(features, list):
+            assert len(features) == len(self.model.inputs)
+        if self.model is None:
+            raise RuntimeError('model is missing')
         features = [f.reshape((1,)+f.shape) for f in features]
         res = self.model.predict(features)
         return res
+

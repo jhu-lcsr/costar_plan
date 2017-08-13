@@ -4,25 +4,29 @@ import keras.losses as losses
 import keras.optimizers as optimizers
 import numpy as np
 
-from matplotlib import pyplot as plt
-
+from collections import deque
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
 from keras.layers import UpSampling2D, Conv2DTranspose
 from keras.layers import BatchNormalization, Dropout
 from keras.layers import Dense, Conv2D, Activation, Flatten
 from keras.layers.merge import Concatenate
+from keras.layers.recurrent import LSTM
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 from keras.optimizers import Adam
+from matplotlib import pyplot as plt
 
 from abstract import AbstractAgentBasedModel
-
 from robot_multi_models import *
-
 from split import *
 
-class RobotMultiTCNRegression(AbstractAgentBasedModel):
+class RobotMultiConvLSTMRegression(AbstractAgentBasedModel):
+    '''
+    Create regression model that looks at multiple time slices to compute the
+    best next action from the training data set.
+    '''
+
 
     def __init__(self, taskdef, *args, **kwargs):
         '''
@@ -34,7 +38,7 @@ class RobotMultiTCNRegression(AbstractAgentBasedModel):
         joint state.
         '''
 
-        super(RobotMultiTCNRegression, self).__init__(*args, **kwargs)
+        super(RobotMultiConvLSTMRegression, self).__init__(*args, **kwargs)
 
         self.taskdef = taskdef
         self.model = None
@@ -49,7 +53,7 @@ class RobotMultiTCNRegression(AbstractAgentBasedModel):
         self.combined_dense_size = 64
 
         self.num_frames = 10
-        self.tcn_filters = 32
+        self.tcn_filters = 128
         self.num_tcn_levels = 2
         self.tcn_dense_size = 128
 
@@ -57,63 +61,47 @@ class RobotMultiTCNRegression(AbstractAgentBasedModel):
         self.buffer_arm = []
         self.buffer_gripper = []
 
+        self.imgs = deque()
+        self.q = deque()
+        self.gripper = deque()
+
     def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd,
             *args, **kwargs):
-        print kwargs
+        '''
+        We will either receive:
+            (n_samples, window_size,) + feature_shape
+        Or:
+            (n_samples = 1, ) + feature_shape
+
+        Depending on if we are in train or test mode.
+        '''
         img_shape = features.shape[1:]
+        if len(img_shape) == 3:
+            img_shape = (self.num_frames,) + img_shape
         arm_size = arm.shape[-1]
         if len(gripper.shape) > 1:
             gripper_size = gripper.shape[-1]
         else:
             gripper_size = 1
 
-        """
-        ins, x = GetSeparateEncoder(
-                img_shape=img_shape,
-                img_col_dim=self.img_col_dim,
-                img_dense_size=self.img_dense_size,
-                arm_size=arm_size,
-                gripper_size=gripper_size,
-                dropout_rate=self.dropout_rate,
-                img_num_filters=self.img_num_filters,
-                robot_col_dim=self.robot_col_dim,
-                combined_dense_size=self.combined_dense_size,
-                robot_col_dense_size=self.robot_col_dense_size,)
-        ins, x = MakeStacked(ins, x, self.num_frames)
-        """
-        ins, x = GetEncoder3D(
+        ins, x = GetEncoderConvLSTM(
                 img_shape,
                 arm_size,
                 gripper_size,
-                self.img_col_dim,
-                self.dropout_rate,
-                self.img_num_filters,
-                discriminator=False,
+                dropout_rate=self.dropout_rate,
+                filters=self.img_num_filters,
                 tile=True,
                 pre_tiling_layers=1,
                 post_tiling_layers=2,
                 time_distributed=10)
-
-    def output_of_lambda(input_shape):
-        return (input_shape[0], 1, input_shape[2])
-
-    def mean(x):
-        return K.mean(x, axis=1, keepdims=True)
-  
-        x = (Lambda(mean, output_shape=output_of_lambda))
-    
-        #x = Lambda(lambda x: K.expand_dims(x))(x)
-        x = GetTCNStack(x,
-                self.tcn_filters,
-                self.num_tcn_levels,
-                self.tcn_dense_size,
-                self.dropout_rate)
-
+        x = Flatten()(x)
+        x = Dense(self.combined_dense_size)(x)
+        x = Dropout(self.dropout_rate)(x)
+        x = LeakyReLU(0.2)(x)
         arm_out = Dense(arm_size)(x)
         gripper_out = Dense(gripper_size)(x)
 
         model = Model(ins, [arm_out, gripper_out])
-        #model = Model(img_ins, [arm_out])
         optimizer = self.getOptimizer()
         model.compile(loss="mse", optimizer=optimizer)
         self.model = model
@@ -125,26 +113,40 @@ class RobotMultiTCNRegression(AbstractAgentBasedModel):
         trajectory.
         '''
 
-        [features, arm, gripper, arm_cmd, gripper_cmd] = \
-                SplitIntoChunks([features, arm, gripper, arm_cmd, gripper_cmd],
-                example, self.num_frames, step_size=2,
-                front_padding=False,
-                rear_padding=True)
+        [features, arm, gripper, arm_cmd, gripper_cmd], _ = \
+                SplitIntoChunks(
+                        datasets=[features, arm, gripper, arm_cmd, gripper_cmd],
+                        labels=example,
+                        chunk_length=self.num_frames,
+                        step_size=2,
+                        front_padding=True,
+                        rear_padding=False)
+
+        arm_cmd_target = LastInChunk(arm_cmd)
+        gripper_cmd_target = LastInChunk(gripper_cmd)
 
         self._makeModel(features, arm, gripper, arm_cmd,
                 gripper_cmd, *args, **kwargs)
         self.model.summary()
         self.model.fit(
                 x=[features, arm, gripper],
-                y=[arm_cmd, gripper_cmd],
+                y=[arm_cmd_target, gripper_cmd_target],
                 epochs=self.epochs,
                 batch_size=self.batch_size,
                 )
 
-    def predict(self, features):
+    def plot(self):
+        pass
+
+    def predict(self, world):
+        world.history_length = self.num_frames
+        if self.model is None:
+            raise RuntimeError('model is missing')
+
         '''
         Store or create the set of input features we need for the TCN
         '''
+        features = world.getHistoryMatrix() # use cached features
         if isinstance(features, list):
             assert len(features) == len(self.model.inputs)
         if self.model is None:
@@ -152,3 +154,4 @@ class RobotMultiTCNRegression(AbstractAgentBasedModel):
         features = [f.reshape((1,)+f.shape) for f in features]
         res = self.model.predict(features)
         return res
+

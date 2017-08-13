@@ -2,6 +2,8 @@
 import numpy as np
 
 def SplitIntoChunks(datasets, labels,
+        reward=None,
+        reward_threshold=0,
         chunk_length=100,
         step_size=10,
         front_padding=False,
@@ -16,6 +18,8 @@ def SplitIntoChunks(datasets, labels,
     -----------
     dataset: data to split
     labels: labels to split over
+    reward: used to include only "good" examples from a planner
+    reward_threshold: remove any examples from this
     step_size: how far to step between blocks (i.e. how much overlap is
                allowed)
     chunk_length: how long blocks are
@@ -26,10 +30,21 @@ def SplitIntoChunks(datasets, labels,
     min_label = min(labels)
     padding = front_padding or rear_padding
 
+    if reward is not None:
+        datasets.append(reward)
+
     new_data = {}
     stagger_data = {}
 
     for label in xrange(min_label, max_label+1):
+
+        # prune any rewards that are not acceptable here. we assume that we
+        # care the most about the terminal reward -- if the terminal reward is
+        # not greater than zero, we will throw out the example
+        if reward is not None and reward[labels==label][-1] < reward_threshold:
+            # Since this was too low, just skip it
+            continue
+
         for idx, data in enumerate(datasets):
             subset = data[labels==label]
 

@@ -114,9 +114,6 @@ class AbstractAgentBasedModel(object):
         if self.model is not None:
             print "using " + self.name + ".h5f"
             print self.model.summary()
-            #print args
-            #weight_location = args.load_model.name
-            #self.model.load_weights(weight_location)
             self.model.load_weights(self.name + ".h5f")
         else:
             raise RuntimeError('_loadWeights() failed: model not found.')
@@ -134,10 +131,14 @@ class AbstractAgentBasedModel(object):
             raise RuntimeError('asdf')
         return optimizer
 
-    def predict(self, features):
+    def predict(self, world):
         '''
         Implement this to predict... something... from a world state
         observation.
+
+        Parameters:
+        -----------
+        world: a single world observation.
         '''
         raise NotImplementedError('predict() not supported yet.')
 
@@ -170,6 +171,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
 
     def __init__(self, *args, **kwargs):
         super(HierarchicalAgentBasedModel, self).__init__(*args, **kwargs)
+        self.num_actions = 0
     
     def _makeSupervisor(self, feature, label, num_labels):
         '''
@@ -184,8 +186,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         '''
         raise NotImplementedError('does not create policy yet')
 
-    def _makeHierarchicalModel(self, features, action, label, example, reward,
-              *args, **kwargs):
+    def _makeHierarchicalModel(self, features, action, label, *args, **kwargs):
         '''
         This is the helper that actually sets everything up.
         '''
@@ -195,17 +196,30 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
                 num_labels)
         self.supervisor.summary()
 
-        # We assume label is one-hot.
+        
+        # Learn a baseline for comparisons and whatnot
+        self.baseline = self._makePolicy(features, action, hidden)
+        self.baseline.summary()
+
+        # We assume label is one-hot. This is the same as the "baseline"
+        # policy, but we learn a separate one for each high-level action
+        # available to the actor.
         self.policies = []
         for i in xrange(num_labels):
             self.policies.append(self._makePolicy(features, action, hidden))
-        self.policies[0].summary()
         
     def _fitSupervisor(self, features, prev_label, label):
         #self.supervisor.fit([features, prev_label], [label])
-        self.supervisor.fit([features], [label], epochs=self.epochs)
+        '''
+        Fit a high-level policy that tells us which low-level action we could
+        be taking at any particular time.
+        '''
+        self.supervisor.fit(features, [label], epochs=self.epochs)
 
     def _fitPolicies(self, features, label, action):
+        '''
+        Fit different policies for each model.
+        '''
         # Divide up based on label
         idx = np.argmax(np.squeeze(label[:,-1,:]),axis=-1)
 
@@ -218,3 +232,59 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
                 print 'WARNING: no examples for %d'%i
                 continue
             model.fit([x], [a], epochs=self.epochs)
+
+    def _fitBaseline(self, features, action):
+        self.baseline.fit([features], [action], epochs=self.epochs)
+
+    def save(self):
+        '''
+        Save to a filename determined by the "self.name" field.
+        '''
+        if self.supervisor is not None:
+            self.supervisor.save_weights(self.name + "_supervisor.h5f")
+            self.baseline.save_weights(self.name + "_supervisor.h5f")
+            for i, policy in enumerate(self.policies):
+                policy.save_weights(self.name + "_policy%02d.h5f"%i)
+        else:
+            raise RuntimeError('save() failed: model not found.')
+
+    def _loadWeights(self, *args, **kwargs):
+        '''
+        Load model weights. This is the default load weights function; you may
+        need to overload this for specific models.
+        '''
+        if self.supervisor is not None:
+            print "using " + self.name + ".h5f"
+            print self.supervisor.summary()
+            #print args
+            #weight_location = args.load_model.name
+            #self.model.load_weights(weight_location)
+            self.supervisor.load_weights(self.name + "_supervisor.h5f")
+            self.baseline.load_weights(self.name + "_baseline.h5f")
+            for i, policy in enumerate(self.policies):
+                policy.load_weights(self.name + "_policy%02d.h5f"%i)
+        else:
+            raise RuntimeError('_loadWeights() failed: model not found.')
+
+    def predict(self, world):
+        '''
+        This is the basic, "dumb" option. Compute the next option/policy to
+        execute by evaluating the supervisor, then just call that model.
+        '''
+        features = world.getHistoryMatrix()
+        if isinstance(features, list):
+            assert len(features) == len(self.model.inputs)
+        else:
+            features = [features]
+        if self.supervisor is None:
+            raise RuntimeError('high level model is missing')
+        features = [f.reshape((1,)+f.shape) for f in features]
+        res = self.supervisor.predict(features)
+        next_policy = np.argmax(res)
+
+        # Retrieve the next policy we want to execute
+        policy = self.policies[next_policy]
+
+        # Evaluate this policy to get the next action out
+        return policy.predict(features)
+

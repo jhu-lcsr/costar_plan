@@ -24,8 +24,8 @@ def main(args):
         model = MakeModel(taskdef=env.task, **args)
         if 'load_model' in args and args['load_model']:
             model.load(env.world, args['load_model'])
-            #print env
-            #print model.summary()
+        if '--load' in args and args['load']:
+            print "loading data from file"
         try:
             model.train(**agent.data)
         except KeyboardInterrupt, e:

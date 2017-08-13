@@ -24,22 +24,23 @@ This file defines models that rely just on hand-coded features -- obvious
 features that we don't need to worry about so much.
 '''
 
-def GetEncoder(xin, uin, dense_size, lstm_size, dense_layers=1,
+def GetLSTMEncoder(xin, uin, dense_size, lstm_size, dense_layers=1,
         lstm_layers=1):
     '''
     Get LSTM encoder.
     '''
     x = xin
     for _ in xrange(dense_layers):
-        x = Concatenate(axis=-1)([x, uin])
+        if uin is not None:
+            x = Concatenate(axis=-1)([x, uin])
         x = TimeDistributed(Dense(dense_size))(x)
         x = TimeDistributed(Activation('relu'))(x)
     for i in xrange(lstm_layers):
-        #if i == lstm_layers - 1:
-        #    sequence_out = False
-        #else:
-        #    sequence_out = True
-        sequence_out = True
+        if i == lstm_layers - 1:
+            sequence_out = False
+        else:
+            sequence_out = True
+        #sequence_out = True
         x = LSTM(lstm_size, return_sequences=sequence_out)(x)
         x = Activation('relu')(x)
     return x
@@ -53,14 +54,14 @@ def GetDenseEncoder(xin, x0in, dense_size, dense_layers=1):
     return x
 
 
-def GetConv2Encoder(xin, filters, dense_size, layers, kernel=[4,4], stride=[1,3]):
+def GetConv2Encoder(xin, filters, dense_size, layers, kernel=[4,4], stride=[2,1]):
     '''
     Not really a dense model, I know -- but this is the TCN equivalent for our
     small layers with fixed features.
     '''
     x = xin
-    for _ in xrange(layers):
-        x = Conv2D(filters, kernel_size=kernel, strides=stride, padding='same')(x)
+    for i in xrange(layers):
+        x = Conv2D(int(filters/(i+1)), kernel_size=kernel, strides=stride, padding='same')(x)
         x = Activation('relu')(x)
     x = Flatten()(x)
     x = Dense(dense_size)(x)

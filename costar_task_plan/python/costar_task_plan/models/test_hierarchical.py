@@ -52,7 +52,12 @@ class TestHierarchical(HierarchicalAgentBasedModel):
         self.num_layers = 3 # for conv
         self.dense_layers = 1 # for dense
         self.action_layers = 2
+        self.lstm_layers = 1
         self.partition_step_size = 1
+        self.num_actions = 13
+
+        self.fit_policies = True
+        self.fit_baseline = False
 
         self.time = True
 
@@ -63,7 +68,8 @@ class TestHierarchical(HierarchicalAgentBasedModel):
         '''
         if self.time:
             fin = Input(features.shape[1:])
-            x = GetConv2Encoder(fin, self.filters, self.dense_size, self.num_layers)
+            x = GetLSTMEncoder(fin, None, self.dense_size, self.lstm_size, self.dense_layers,
+                    self.lstm_layers)
         else:
             fin = Input((features.shape[-1],))
             x = GetDenseEncoder(fin, None, self.dense_size,
@@ -82,7 +88,9 @@ class TestHierarchical(HierarchicalAgentBasedModel):
         num_actions = action.shape[-1]
         if self.time:
             fin = Input(features.shape[1:])
-            x = GetConv2Encoder(fin, self.filters, self.dense_size, self.num_layers)
+            x = GetLSTMEncoder(fin, None, self.dense_size, self.lstm_size,
+                    self.dense_layers,
+                    self.lstm_layers)
         else:
             fin = Input((features.shape[-1],))
             x = GetDenseEncoder(fin, None, self.dense_size,
@@ -142,7 +150,7 @@ class TestHierarchical(HierarchicalAgentBasedModel):
 
         # Report some information on the data
         print "DATA LABELS: (max label = %d)"%(num_actions-1)
-        for i in xrange(num_actions):
+        for i in xrange(self.num_actions):
             count = np.sum(label == i)
             percent = float(count) / len(label)
             print "action %d: %.02f%% (%d/%d)"%(i,percent*100,count,len(label))
@@ -151,15 +159,17 @@ class TestHierarchical(HierarchicalAgentBasedModel):
         orig_label = label
         orig_features = features
         orig_state = state
-        label = np.squeeze(self.toOneHot2D(label, num_actions))
+        label = np.squeeze(self.toOneHot2D(label, self.num_actions))
         assert np.all(np.argmax(label,axis=-1) == orig_label)
 
         if self.time:
             print "Doing data preprocessing to create chunks:"
             [features, action, label, reward, ok], stagger = \
-                   SplitIntoChunks([features, action, label,
-                                    reward, ok],
+                   SplitIntoChunks(
+                    datasets=[features, action, label, ok],
                     labels=example,
+                    reward=reward,
+                    reward_threshold=0.,
                     chunk_length=self.num_frames,
                     step_size=self.partition_step_size,
                     front_padding=True,
@@ -167,11 +177,11 @@ class TestHierarchical(HierarchicalAgentBasedModel):
                     stagger=True,
                     )
             #[next_features, next_action, next_label, next_reward, next_ok] = stagger
-            features = np.expand_dims(features, -1)
+            #features = np.expand_dims(features, -1)
             print "...done."
             labels_test = np.argmax(label,axis=-1).flatten()
-            print "DATA LABELS: (max label = %d)"%(num_actions-1)
-            for i in xrange(num_actions):
+            print "CHECK LABELS:"
+            for i in xrange(self.num_actions):
                 count = np.sum(labels_test == i)
                 percent = float(count) / len(labels_test)
                 print "action %d: %.02f%%(%d/%d)"%(i,percent*100,count,len(labels_test))
@@ -185,26 +195,31 @@ class TestHierarchical(HierarchicalAgentBasedModel):
         action_target = np.squeeze(action[:,-1,:])
 
         self._makeModel(features, state, action, label, example, reward)
-        #self._fitSupervisor(features, label, label_target)
-        self._fitPolicies(features, label, action_target)
+        self._fitSupervisor(features, label, label_target)
+        if self.fit_policies:
+            self._fitPolicies(features, label, action_target)
+        if self.fit_baseline:
+            self._fitBaseline(features, action_target)
 
     def plot(self,*args,**kwargs):
+        # TODO
         pass
 
 if __name__ == '__main__':
+
     data = np.load('roadworld-2018-08-09.npz')
     sampler = TestHierarchical(
             batch_size=64,
             iter=5000,
-            epochs=1,
-            optimizer="adam",)
+            epochs=10,
+            optimizer="adam",
+            task="roadworld",)
+
+    sampler.fit_policies = True
+    sampler.fit_baseline = True
+
     sampler.show_iter = 100
     sampler.train(**data)
-    #try:
-    #    sampler.train(**data)
-    #except Exception, e:
-    #    print e
     sampler.plot(**data)
+    sampler.save()
 
-    while(True):
-        plt.pause(0.1)
