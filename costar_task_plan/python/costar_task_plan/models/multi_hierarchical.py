@@ -182,9 +182,12 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         qa = np.squeeze(arm_cmd[:,1:-1])
         ga = np.squeeze(gripper_cmd[:,1:-1])
         oin = np.squeeze(action_labels[:,:self.num_frames])
-        print I.shape,
-        print q.shape,
-        print oin.shape
+        o_target = np.squeeze(action_labels[:,1:-1])
+        I_target = np.squeeze(features[:,2:])
+        print "sanity check:",
+        print "images:", I.shape, I_target.shape
+        print "joints:", q.shape,
+        print "options:", oin.shape, o_target.shape
 
         # show the before and after frames
         for i in xrange(10):
@@ -204,8 +207,8 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
         action_target = [arm_target, gripper_target]
 
-        self._fitSupervisor([features, arm, gripper], action_labels,
-                label_target)
+        self._fitSupervisor([I, q, g, oin], action_labels,
+                o_target)
         self.predictor.trainable = False
         self._fitPolicies([features, arm, gripper], action_labels, action_target)
         self._fitBaseline([features, arm, gripper], action_target)

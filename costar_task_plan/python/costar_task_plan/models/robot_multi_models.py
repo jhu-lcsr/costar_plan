@@ -353,7 +353,6 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
             robot = Concatenate(axis=-1)([arm_in, gripper_in, option_in])
             reshape_size = arm_size+gripper_size+option
             ins = [samples, arm_in, gripper_in, option_in]
-            print robot, option, arm_size, gripper_size
         else:
             robot = Concatenate(axis=-1)([arm_in, gripper_in])
             reshape_size = arm_size+gripper_size
@@ -364,9 +363,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
             robot = Reshape([time_distributed, 1, 1, reshape_size])(robot)
         else:
             tile_shape = (1, tile_width, tile_height, 1)
-            print reshape_size, robot
             robot = Reshape([1,1,reshape_size])(robot)
-            print robot
         robot = Lambda(lambda x: K.tile(x, tile_shape))(robot)
         x = Concatenate(axis=-1)([x,robot])       
     else:
