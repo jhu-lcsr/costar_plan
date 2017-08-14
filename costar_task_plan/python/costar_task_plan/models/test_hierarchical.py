@@ -61,6 +61,7 @@ class TestHierarchical(HierarchicalAgentBasedModel):
 
         self.time = True
 
+
     def _makeSupervisor(self, features, label, num_labels):
         '''
         This needs to create a supervisor. This one maps from input to the
@@ -208,14 +209,17 @@ class TestHierarchical(HierarchicalAgentBasedModel):
 if __name__ == '__main__':
 
     data = np.load('roadworld-2018-08-09.npz')
+    #data = np.load('roadworld-2017-08-14.npz')
     sampler = TestHierarchical(
             batch_size=64,
             iter=5000,
-            epochs=10,
+            epochs=100,
             optimizer="adam",
             task="roadworld",)
 
-    sampler.fit_policies = True
+    #sampler.fit_policies = True
+    #sampler.fit_baseline = True
+    sampler.fit_policies = False
     sampler.fit_baseline = True
 
     sampler.show_iter = 100

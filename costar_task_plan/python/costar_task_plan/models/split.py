@@ -8,7 +8,9 @@ def SplitIntoChunks(datasets, labels,
         step_size=10,
         front_padding=False,
         rear_padding=False,
-        stagger=False):
+        stagger=False,
+        start_off=0,
+        end_off=0):
     '''
     Split data into segments of the given length. This will return a much
     larger data set, but with the dimensionality changed so that we can easily
@@ -70,8 +72,9 @@ def SplitIntoChunks(datasets, labels,
                 max_i = data_size + chunk_length - 1
             else:
                 max_i = data_size
+            i += start_off
 
-            while i < max_i:
+            while i < max_i - end_off:
                 start_block = max(0,i-chunk_length+1)
                 end_block = min(i,data_size)
                 block = subset[start_block:end_block+1]

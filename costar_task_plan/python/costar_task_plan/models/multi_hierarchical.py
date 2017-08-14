@@ -44,7 +44,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         super(RobotMultiHierarchical, self).__init__(*args, **kwargs)
         self.taskdef = taskdef
 
-        self.num_frames = 10
+        self.num_frames = 4
 
         self.dropout_rate = 0.5
         self.img_dense_size = 512
@@ -84,7 +84,8 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 filters=self.img_num_filters,
                 tile=True,
                 pre_tiling_layers=1,
-                post_tiling_layers=2)
+                post_tiling_layers=2,
+                time_distributed=self.num_frames)
 
         x = Flatten()(x)
         x = Dense(self.combined_dense_size)(x)
@@ -118,7 +119,8 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 filters=self.img_num_filters,
                 tile=True,
                 pre_tiling_layers=1,
-                post_tiling_layers=2)
+                post_tiling_layers=2,
+                time_distributed=self.num_frames)
 
         x = Flatten()(x)
         x = Dense(self.combined_dense_size)(x)
@@ -153,7 +155,22 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 chunk_length=self.num_frames,
                 step_size=self.partition_step_size,
                 front_padding=True,
-                rear_padding=False,)
+                rear_padding=False,
+                start_off=1,
+                end_off=1)
+
+        # image inputs
+        I = features[:,1:-1]
+        q = arm[:,1:-1]
+        g = gripper[:,1:-1]
+        print I.shape
+        print q.shape
+
+        for i in xrange(self.num_frames):
+            for j in xrange(self.num_frames):
+                plt.subplot(i+1,j+1,self.num_frames**2)
+                plt.imshow(I[i,j])
+        plt.show()
 
         self._makeModel(features, arm, gripper, arm_cmd,
                 gripper_cmd, action_labels, *args, **kwargs)
