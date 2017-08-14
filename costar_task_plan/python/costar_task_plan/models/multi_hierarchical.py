@@ -44,7 +44,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         super(RobotMultiHierarchical, self).__init__(*args, **kwargs)
         self.taskdef = taskdef
 
-        self.num_frames = 4
+        self.num_frames = 1
 
         self.dropout_rate = 0.5
         self.img_dense_size = 512
@@ -76,26 +76,14 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         else:
             gripper_size = 1
 
-        ins, x = GetEncoderConvLSTM(
-                img_shape,
-                arm_size,
-                gripper_size,
-                dropout_rate=self.dropout_rate,
-                filters=self.img_num_filters,
-                tile=True,
-                pre_tiling_layers=1,
-                post_tiling_layers=2,
-                time_distributed=self.num_frames)
-
-        x = Flatten()(x)
-        x = Dense(self.combined_dense_size)(x)
+        x = Dense(self.combined_dense_size)(hidden)
         x = Dropout(self.dropout_rate)(x)
         x = LeakyReLU(0.2)(x)
 
         arm_out = Dense(arm_size)(x)
         gripper_out = Dense(gripper_size)(x)
 
-        policy = Model(ins, [arm_out, gripper_out])
+        policy = Model(self.predictor.inputs, [arm_out, gripper_out])
         #model = Model(img_ins, [arm_out])
         optimizer = self.getOptimizer()
         policy.compile(loss="mse", optimizer=optimizer)
@@ -111,28 +99,56 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         else:
             gripper_size = 1
 
-        ins, x = GetEncoderConvLSTM(
-                img_shape,
+        ins, enc = GetEncoder(img_shape,
                 arm_size,
                 gripper_size,
-                dropout_rate=self.dropout_rate,
-                filters=self.img_num_filters,
+                self.img_col_dim,
+                self.dropout_rate,
+                self.img_num_filters,
+                leaky=False,
+                dropout=False,
+                pre_tiling_layers=0,
+                post_tiling_layers=3,
+                kernel_size=[3,3],
+                dense=False,
                 tile=True,
-                pre_tiling_layers=1,
-                post_tiling_layers=2,
-                time_distributed=self.num_frames)
+                option=num_labels,
+                )
+        rep, dec = GetDecoder(self.img_col_dim,
+                            img_shape,
+                            arm_size,
+                            gripper_size,
+                            dropout_rate=self.dropout_rate,
+                            kernel_size=[5,5],
+                            filters=self.img_num_filters,
+                            stride2_layers=3,
+                            stride1_layers=0,
+                            dropout=False,
+                            leaky=True,
+                            dense=False,
+                            batchnorm=True,)
 
-        x = Flatten()(x)
-        x = Dense(self.combined_dense_size)(x)
+        # Predict the next option
+        x = Dense(self.combined_dense_size)(enc)
         x = Dropout(self.dropout_rate)(x)
         x = LeakyReLU(0.2)(x)
+
+        # Predict the next action
 
         label_out = Dense(num_labels, activation="sigmoid")(x)
         supervisor = Model(ins, [label_out])
         supervisor.compile(
                 loss=["binary_crossentropy"],
                 optimizer=self.getOptimizer())
-        return x, supervisor
+
+        decoder = Model([rep], dec)
+        features_out = [decoder(enc),]
+        predictor = Model(ins, features_out)
+        predictor.compile(
+                loss=["mse"],
+                optimizer=self.getOptimizer())
+
+        return x, supervisor, predictor
 
     def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             example, reward, *args, **kwargs):
@@ -152,28 +168,35 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                     action_labels],
                 reward=None, reward_threshold=0.,
                 labels=example,
-                chunk_length=self.num_frames,
+                chunk_length=self.num_frames+2,
                 step_size=self.partition_step_size,
                 front_padding=True,
                 rear_padding=False,
                 start_off=1,
                 end_off=1)
 
-        # image inputs
-        I = features[:,1:-1]
-        q = arm[:,1:-1]
-        g = gripper[:,1:-1]
-        print I.shape
-        print q.shape
+        # create inputs
+        I = np.squeeze(features[:,1:-1])
+        q = np.squeeze(arm[:,1:-1])
+        g = np.squeeze(gripper[:,1:-1])
+        qa = np.squeeze(arm_cmd[:,1:-1])
+        ga = np.squeeze(gripper_cmd[:,1:-1])
+        oin = np.squeeze(action_labels[:,:self.num_frames])
+        print I.shape,
+        print q.shape,
+        print oin.shape
 
-        for i in xrange(self.num_frames):
-            for j in xrange(self.num_frames):
-                plt.subplot(i+1,j+1,self.num_frames**2)
-                plt.imshow(I[i,j])
+        # show the before and after frames
+        for i in xrange(10):
+            for j in xrange(self.num_frames+2):
+                plt.subplot(10,
+                        self.num_frames+2,(self.num_frames+2)*(i) + j +1)
+                plt.imshow(features[5+i,j])
         plt.show()
 
-        self._makeModel(features, arm, gripper, arm_cmd,
-                gripper_cmd, action_labels, *args, **kwargs)
+        #self._makeModel(features, arm, gripper, arm_cmd,
+        #        gripper_cmd, action_labels, *args, **kwargs)
+        self._makeModel(I, q, g, qa, ga, oin, *args, **kwargs)
 
         label_target = np.squeeze(action_labels[:,-1,:])
         arm_target = np.squeeze(arm_cmd[:,-1,:])
@@ -183,6 +206,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
         self._fitSupervisor([features, arm, gripper], action_labels,
                 label_target)
+        self.predictor.trainable = False
         self._fitPolicies([features, arm, gripper], action_labels, action_target)
         self._fitBaseline([features, arm, gripper], action_target)
 

@@ -120,7 +120,7 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         # This is actually only a 1-DOF gripper
         cmd_array = [-cmd, -cmd, cmd, -cmd, -cmd, cmd]
         pb.setJointMotorControlArray(self.handle, self.gripper_indices, mode,
-                                     cmd_array,forces=[25.]*len(cmd_array))
+                                     cmd_array,forces=[15.]*len(cmd_array))
 
     def getActionSpace(self):
         return spaces.Tuple((spaces.Box(-np.pi, np.pi, self.dof),

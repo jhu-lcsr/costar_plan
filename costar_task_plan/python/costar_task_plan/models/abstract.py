@@ -173,6 +173,9 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
     def __init__(self, *args, **kwargs):
         super(HierarchicalAgentBasedModel, self).__init__(*args, **kwargs)
         self.num_actions = 0
+
+        self.predictor = None
+        self.supervisor = None
     
     def _makeSupervisor(self, feature, label, num_labels):
         '''
@@ -193,8 +196,10 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         '''
         num_labels = label.shape[-1]
         assert num_labels > 1
-        hidden, self.supervisor = self._makeSupervisor(features, label,
-                num_labels)
+        hidden, self.supervisor, self.predictor = \
+            self._makeSupervisor(features,
+                    label,
+                    num_labels)
         self.supervisor.summary()
 
         
@@ -208,7 +213,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         self.policies = []
         for i in xrange(num_labels):
             self.policies.append(self._makePolicy(features, action, hidden))
-        
+
     def _fitSupervisor(self, features, prev_label, label):
         #self.supervisor.fit([features, prev_label], [label])
         '''

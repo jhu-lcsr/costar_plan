@@ -208,8 +208,8 @@ class TestHierarchical(HierarchicalAgentBasedModel):
 
 if __name__ == '__main__':
 
-    data = np.load('roadworld-2018-08-09.npz')
-    #data = np.load('roadworld-2017-08-14.npz')
+    #data = np.load('roadworld-2018-08-09.npz')
+    data = np.load('roadworld-2017-08-14.npz')
     sampler = TestHierarchical(
             batch_size=64,
             iter=5000,
