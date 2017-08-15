@@ -62,7 +62,7 @@ class TestHierarchical(HierarchicalAgentBasedModel):
         self.time = True
 
 
-    def _makeSupervisor(self, features, label, num_labels):
+    def _makeSupervisor(self, features, num_labels):
         '''
         This needs to create a supervisor. This one maps from input to the
         space of possible action labels.
@@ -77,12 +77,13 @@ class TestHierarchical(HierarchicalAgentBasedModel):
                     self.dense_layers,)
 
         label_out = Dense(num_labels, activation="sigmoid")(x)
+        predictor = None
 
         supervisor = Model([fin], [label_out])
         supervisor.compile(
                 loss=["binary_crossentropy"],
                 optimizer=self.getOptimizer())
-        return x, supervisor
+        return x, supervisor, predictor
 
 
     def _makePolicy(self, features, action, hidden=None):
@@ -209,7 +210,7 @@ class TestHierarchical(HierarchicalAgentBasedModel):
 if __name__ == '__main__':
 
     #data = np.load('roadworld-2018-08-09.npz')
-    data = np.load('roadworld-2017-08-14.npz')
+    data = np.load('roadworld-2017-08-14-b.npz')
     sampler = TestHierarchical(
             batch_size=64,
             iter=5000,

@@ -47,12 +47,10 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         self.num_frames = 1
 
         self.dropout_rate = 0.5
-        self.img_dense_size = 512
-        self.img_col_dim = 256
-        self.img_num_filters = 32
-        self.robot_col_dense_size = 128
-        self.robot_col_dim = 64
-        self.combined_dense_size = 64
+        self.img_dense_size = 1024
+        self.img_col_dim = 512
+        self.img_num_filters = 128
+        self.combined_dense_size = 128
         self.partition_step_size = 2
 
     def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, label, *args, **kwargs):
@@ -90,7 +88,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
         return policy
 
-    def _makeSupervisor(self, features, label, num_labels):
+    def _makeSupervisor(self, features, num_labels):
         (images, arm, gripper) = features
         img_shape = images.shape[1:]
         arm_size = arm.shape[-1]
@@ -200,7 +198,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 plt.ion()
                 plt.tight_layout()
                 plt.show(block=False)
-                plt.pause(0.1)
+                plt.pause(0.01)
 
 
     def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
