@@ -214,7 +214,7 @@ if __name__ == '__main__':
     sampler = TestHierarchical(
             batch_size=64,
             iter=5000,
-            epochs=100,
+            epochs=1000,
             optimizer="adam",
             task="roadworld",)
 
