@@ -222,35 +222,71 @@ def NextAction(datasets, action_labels, examples):
     datasets: list of data that needs to be updated
     action_labels: list of labels for actions (e.g. "PICKUP(OBJ)")
     examples: ID number for the sequence the data belongs to
+
+    Returns:
+    --------
+    new_data: data of the same shape as datasets, but containing terminal
+              states of all the labeled high-level actions
     '''
 
     # Loop over all entries in action labels and examples
-    if not action_labels.shape == examples.shape:
-        raise RuntimeError('all matrices must be of the same shape')
-    if len(action_labels) == 1:
+    if len(action_labels.shape) == 1:
         action_labels = np.expand_dims(action_labels, -1)
+    if len(examples.shape) == 1:
         examples = np.expand_dims(examples, -1)
-    elif len(action_labels) is not 2:
+    if not action_labels.shape == examples.shape:
+        print action_labels.shape
+        print examples.shape
+        raise RuntimeError('all matrices must be of the same shape')
+    elif len(action_labels.shape) is not 2:
+        print action_labels.shape
         raise RuntimeError('all data should be of the shape ' + \
                            '(NUM_EXAMPLES, data)')
     for data in datasets:
         if not data.shape[0] == examples.shape[0]:
+            print data.shape, examples.shape
             raise RuntimeError('all data must be of the same length')
     
+    new_datasets = []
+    for data in datasets:
+        new_datasets.append(np.zeros_like(data))
+
     idx = 0 # idx of the data
-    while idx < examples.shape[0]:
-        switch = idx+1
-        # loop over every entry
-        while switch < examples.shape[0]:
+    switch = 1
+    while switch < examples.shape[0]:
+        end_of_trial = False
+        # loop over every entry; break if this is the last entry
+        while switch < examples.shape[0] - 1:
             if examples[switch-1] == examples[switch] and \
                action_labels[switch-1] == action_labels[switch]:
                    switch += 1
                    continue
+            elif not examples[switch-1] == examples[switch]:
+                # We do not want to predict the beginning of the next trial!
+                end_of_trial = True
+                switch -= 1
+                #print "eot at idx=",idx,"switch=",switch,examples[switch-1],examples[switch]
+                #print examples[switch-1], examples[switch],
+                #print action_labels[switch-1], action_labels[switch]
+                break
             else:
+                #print examples[switch-1], examples[switch],
+                #print action_labels[switch-1], action_labels[switch]
                 break
         while idx < switch:
+            #print idx, switch
+            for goal_data, data in zip(new_datasets, datasets):
+                goal_data[idx] = data[switch]
             idx += 1
+        if end_of_trial:
+            idx += 1
+        switch = idx+1
 
+    # Set goal for the last frame, for completeness
+    for goal_data, data in zip(new_datasets, datasets):
+        goal_data[-1] = data[-1]
+
+    return new_datasets
 
 def FirstInChunk(data):
     '''

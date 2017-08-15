@@ -59,6 +59,12 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 (arm_cmd, gripper_cmd),
                 label)
 
+    def _numLabels(self):
+        '''
+        Use the taskdef to get total number of labels
+        '''
+        return self.taskdef.numActions()
+
     def _makePolicy(self, features, action, hidden=None):
         '''
         We need to use the task definition to create our high-level model, and
@@ -88,7 +94,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
         return policy
 
-    def _makeSupervisor(self, features, num_labels):
+    def _makeSupervisor(self, features):
         (images, arm, gripper) = features
         img_shape = images.shape[1:]
         arm_size = arm.shape[-1]
@@ -110,7 +116,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 kernel_size=[3,3],
                 dense=False,
                 tile=True,
-                option=num_labels,
+                option=self._numLabels(),
                 )
         rep, dec = GetDecoder(self.img_col_dim,
                             img_shape,
@@ -140,7 +146,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         x = Dense(self.combined_dense_size)(enc)
         x = Dropout(self.dropout_rate)(x)
         x = LeakyReLU(0.2)(x)
-        label_out = Dense(num_labels, activation="sigmoid")(x)
+        label_out = Dense(self._numLabels(), activation="sigmoid")(x)
 
         supervisor = Model(ins, [label_out])
         supervisor.compile(
@@ -209,14 +215,22 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         Then, create the model. Train based on labeled data. Remove
         unsuccessful examples.
         '''
-        action_labels = np.array([self.taskdef.index(l) for l in label])
-        action_labels = np.squeeze(self.toOneHot2D(action_labels,
+        action_labels_num = np.array([self.taskdef.index(l) for l in label])
+        action_labels = np.squeeze(self.toOneHot2D(action_labels_num,
             len(self.taskdef.indices)))
 
-        [features, arm, gripper, arm_cmd, gripper_cmd, action_labels], _ = \
+
+        [goal_features, goal_arm, goal_gripper] = NextAction( \
+                [features, arm, gripper],
+                action_labels_num,
+                example)
+
+
+        [features, arm, gripper, arm_cmd, gripper_cmd, action_labels,
+                goal_features, goal_arm, goal_gripper], _ = \
             SplitIntoChunks(
                 datasets=[features, arm, gripper, arm_cmd, gripper_cmd,
-                    action_labels],
+                    action_labels, goal_features, goal_arm, goal_gripper,],
                 reward=None, reward_threshold=0.,
                 labels=example,
                 chunk_length=self.num_frames+2,
@@ -234,21 +248,29 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         ga = np.squeeze(gripper_cmd[:,1:-1])
         oin = np.squeeze(action_labels[:,:self.num_frames])
         o_target = np.squeeze(action_labels[:,1:-1])
-        I_target = np.squeeze(features[:,2:])
-        q_target = np.squeeze(arm[:,2:])
-        g_target = np.squeeze(gripper[:,2:])
+        #I_target = np.squeeze(features[:,2:])
+        #q_target = np.squeeze(arm[:,2:])
+        #g_target = np.squeeze(gripper[:,2:])
+        # I_target = np.
+        I_target = np.squeeze(goal_features[:,1:-1])
+        q_target = np.squeeze(goal_arm[:,1:-1])
+        g_target = np.squeeze(goal_gripper[:,1:-1])
         print "sanity check:",
         print "images:", I.shape, I_target.shape
         print "joints:", q.shape,
         print "options:", oin.shape, o_target.shape
 
         # show the before and after frames
-        #for i in xrange(10):
-        #    for j in xrange(self.num_frames+2):
-        #        plt.subplot(10,
-        #                self.num_frames+2,(self.num_frames+2)*(i) + j +1)
-        #        plt.imshow(features[5+i,j])
-        #plt.show()
+        for i in xrange(10):
+            for j in xrange(self.num_frames+2):
+                plt.subplot(10,
+                        self.num_frames+3,((self.num_frames+3)*i) + j + 1)
+                plt.imshow(features[i*5,j])
+                plt.axis('off')
+            plt.subplot(10,self.num_frames+3,((self.num_frames+3)*i)+self.num_frames+3)
+            plt.axis('off')
+            plt.imshow(goal_features[i*5,1])
+        plt.show()
 
         #self._makeModel(features, arm, gripper, arm_cmd,
         #        gripper_cmd, action_labels, *args, **kwargs)

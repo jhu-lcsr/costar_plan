@@ -89,7 +89,7 @@ class AbstractAgentBasedModel(object):
         control = world.zeroAction()
         reward = world.initial_reward
         features = world.computeFeatures()
-        action_label = ''
+        action_label = np.zeros((self._numLabels(),))
         example = 0
         done = False
         data = world.vectorize(control, features, reward, done, example,
@@ -99,6 +99,10 @@ class AbstractAgentBasedModel(object):
             kwargs[k] = np.array([v])
         self._makeModel(**kwargs)
         self._loadWeights()
+
+    def _numLabels(self):
+        raise NotImplementedError('_numLabels() should return number ' + \
+                                  'of actions')
 
     def _makeModel(self, *args, **kwargs):
         '''
@@ -177,7 +181,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         self.predictor = None
         self.supervisor = None
     
-    def _makeSupervisor(self, feature, num_labels):
+    def _makeSupervisor(self, feature):
         '''
         This needs to create a supervisor. This one maps from input to the
         space of possible action labels.
@@ -195,9 +199,9 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         This is the helper that actually sets everything up.
         '''
         num_labels = label.shape[-1]
-        assert num_labels > 1
+        assert num_labels == self._numLabels()
         hidden, self.supervisor, self.predictor = \
-            self._makeSupervisor(features, num_labels)
+            self._makeSupervisor(features)
 
         
         # Learn a baseline for comparisons and whatnot
