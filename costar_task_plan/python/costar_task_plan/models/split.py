@@ -211,6 +211,46 @@ def SplitIntoActions(
 
     return frame_data, result_data
 
+def NextAction(datasets, action_labels, examples):
+    '''
+    Create extra datasets marking transitions between actions. This is so we
+    can predict the effects of high-level actions, not just low level actions,
+    when doing our various operations.
+
+    Parameters:
+    -----------
+    datasets: list of data that needs to be updated
+    action_labels: list of labels for actions (e.g. "PICKUP(OBJ)")
+    examples: ID number for the sequence the data belongs to
+    '''
+
+    # Loop over all entries in action labels and examples
+    if not action_labels.shape == examples.shape:
+        raise RuntimeError('all matrices must be of the same shape')
+    if len(action_labels) == 1:
+        action_labels = np.expand_dims(action_labels, -1)
+        examples = np.expand_dims(examples, -1)
+    elif len(action_labels) is not 2:
+        raise RuntimeError('all data should be of the shape ' + \
+                           '(NUM_EXAMPLES, data)')
+    for data in datasets:
+        if not data.shape[0] == examples.shape[0]:
+            raise RuntimeError('all data must be of the same length')
+    
+    idx = 0 # idx of the data
+    while idx < examples.shape[0]:
+        switch = idx+1
+        # loop over every entry
+        while switch < examples.shape[0]:
+            if examples[switch-1] == examples[switch] and \
+               action_labels[switch-1] == action_labels[switch]:
+                   switch += 1
+                   continue
+            else:
+                break
+        while idx < switch:
+            idx += 1
+
 
 def FirstInChunk(data):
     '''
