@@ -128,16 +128,14 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                             dense=False,
                             batchnorm=True,)
 
-        # Predict the next joint states
-        x = Dense(self.combined_dense_size)(enc)
+        # Predict the next joint states and gripper position. We add these back
+        # in from the inputs once again, in order to make sure they don't get
+        # lost in all the convolution layers above...
+        x = Concatenate()([enc, ins[1], ins[2]])
+        x = Dense(self.combined_dense_size)(x)
         x = Dropout(self.dropout_rate)(x)
         x = LeakyReLU(0.2)(x)
         arm_out = Dense(arm_size)(x)
-
-        # Predict the next gripper states
-        x = Dense(self.combined_dense_size)(enc)
-        x = Dropout(self.dropout_rate)(x)
-        x = LeakyReLU(0.2)(x)
         gripper_out = Dense(gripper_size)(x)
 
         # Predict the next option
