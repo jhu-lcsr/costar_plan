@@ -150,6 +150,42 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
         return x, supervisor, predictor
 
+    def _fitPredictor(self, features, targets):
+        if self.show_iter > 0:
+            fig, axes = plt.subplots(3, 5,)
+
+        self.predictor.trainable = True
+
+        for i in xrange(self.iter):
+            idx = np.random.randint(0, features[0].shape[0], size=self.batch_size)
+            x = []
+            y = []
+            for f in features:
+                x.append(f[idx])
+            for f in targets:
+                y.append(f[idx])
+
+            loss = self.predictor.train_on_batch(x, y)
+
+            print "Iter %d: loss = %f"%(i,loss)
+            if self.show_iter > 0 and (i+1) % self.show_iter == 0:
+                data = self.predictor.predict(features[0:5])
+                for j in xrange(5):
+                    ax = axes[1][j]
+                    ax.imshow(np.squeeze(data[j]))
+                    ax.axis('off')
+                    ax = axes[0][j]
+                    ax.imshow(np.squeeze(features[0][j]))
+                    ax.axis('off')
+                    ax = axes[2][j]
+                    ax.imshow(np.squeeze(targets[0][j]))
+                    ax.axis('off')
+                plt.ion()
+                plt.tight_layout()
+                plt.show(block=False)
+                plt.pause(0.1)
+
+
     def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             example, reward, *args, **kwargs):
         '''
@@ -205,13 +241,13 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         arm_target = np.squeeze(arm_cmd[:,-1,:])
         gripper_target = np.squeeze(arm_cmd[:,-1,:])
 
-        action_target = [arm_target, gripper_target]
+        # Fit the main models
+        self._fitPredictor([I, q, g, oin], [I_target])
+        self._fitSupervisor([I, q, g, oin], o_target)
 
-        self._fitSupervisor([I, q, g, oin], action_labels,
-                o_target)
-        self.predictor.trainable = False
+        action_target = [qa, ga]
         self._fitPolicies([features, arm, gripper], action_labels, action_target)
-        self._fitBaseline([features, arm, gripper], action_target)
+        self._fitBaseline([I, q, g, oin], action_target)
 
 
     def save(self):

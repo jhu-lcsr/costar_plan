@@ -196,7 +196,7 @@ class TestHierarchical(HierarchicalAgentBasedModel):
         action_target = np.squeeze(action[:,-1,:])
 
         self._makeModel(features, state, action, label, example, reward)
-        self._fitSupervisor(features, label, label_target)
+        self._fitSupervisor(features, label_target)
         if self.fit_policies:
             self._fitPolicies(features, label, action_target)
         if self.fit_baseline:
@@ -219,7 +219,7 @@ if __name__ == '__main__':
 
     #sampler.fit_policies = True
     #sampler.fit_baseline = True
-    sampler.fit_policies = False
+    sampler.fit_policies = True
     sampler.fit_baseline = True
 
     sampler.show_iter = 100

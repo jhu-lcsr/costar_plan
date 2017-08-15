@@ -200,12 +200,10 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
             self._makeSupervisor(features,
                     label,
                     num_labels)
-        self.supervisor.summary()
 
         
         # Learn a baseline for comparisons and whatnot
         self.baseline = self._makePolicy(features, action, hidden)
-        self.baseline.summary()
 
         # We assume label is one-hot. This is the same as the "baseline"
         # policy, but we learn a separate one for each high-level action
@@ -214,12 +212,15 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         for i in xrange(num_labels):
             self.policies.append(self._makePolicy(features, action, hidden))
 
-    def _fitSupervisor(self, features, prev_label, label):
+    def _fitSupervisor(self, features, label):
         #self.supervisor.fit([features, prev_label], [label])
         '''
         Fit a high-level policy that tells us which low-level action we could
         be taking at any particular time.
         '''
+        if self.predictor is not None:
+            self.predictor.trainable = False
+        self.supervisor.summary()
         self.supervisor.fit(features, [label], epochs=self.epochs)
 
     def _fitPolicies(self, features, label, action):
@@ -228,6 +229,11 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         '''
         # Divide up based on label
         idx = np.argmax(np.squeeze(label[:,-1,:]),axis=-1)
+
+        if self.predictor:
+            self.predictor.trainable = False
+
+        self.baseline.summary()
 
         for i, model in enumerate(self.policies):
             # select data for this model
@@ -239,7 +245,15 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
                 continue
             model.fit([x], [a], epochs=self.epochs)
 
+    def _fitPredictor(self, features, targets):
+        '''
+        Can be different for every set of features so...
+        '''
+        self.predictor.fit(features, targets)
+
     def _fitBaseline(self, features, action):
+        if self.predictor:
+            self.predictor.trainable = False
         self.baseline.fit([features], [action], epochs=self.epochs)
 
     def save(self):
