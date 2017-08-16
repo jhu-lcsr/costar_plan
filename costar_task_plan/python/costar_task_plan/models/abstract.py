@@ -272,6 +272,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         Save to a filename determined by the "self.name" field.
         '''
         if self.supervisor is not None:
+            print "saving to " + self.name
             self.supervisor.save_weights(self.name + "_supervisor.h5f")
             self.baseline.save_weights(self.name + "_baseline.h5f")
             for i, policy in enumerate(self.policies):
@@ -285,7 +286,8 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         need to overload this for specific models.
         '''
         if self.supervisor is not None:
-            print "using " + self.name + ".h5f"
+            print "----------------------------"
+            print "using " + self.name + " to load"
             print self.supervisor.summary()
             #print args
             #weight_location = args.load_model.name
