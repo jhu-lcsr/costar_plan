@@ -134,4 +134,9 @@ You should be able to see the model learning something useful fairly early on, a
 
 # Testing
 
-TODO
+To run the basic model, no planning, use the same `ff` agent as you would for anything else:
+```
+rosrun costar_bullet start --robot ur5 --task blocks --agent ff --features multi \
+  -i 1 --model hierarchical --load_model  --gui
+```
+
