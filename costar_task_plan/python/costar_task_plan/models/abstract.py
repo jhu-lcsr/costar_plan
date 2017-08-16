@@ -239,13 +239,22 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
 
         for i, model in enumerate(self.policies):
             # select data for this model
-            x = features[idx==i]
-            a = action[idx==i]
-            if a.shape[0] == 0:
-                #raise RuntimeError('no examples for %d'%i)
-                print 'WARNING: no examples for %d'%i
-                continue
-            model.fit([x], [a], epochs=self.epochs)
+            if isinstance(features, list):
+                x = [f[idx==i] for f in features]
+            else:
+                x = features[idx==i]
+            if isinstance(action, list):
+                a = [ac[idx==i] for ac in action]
+                if len(a) == 0 or a[0].shape[0] == 0:
+                    print 'WARNING: no examples for %d'%i
+                    continue
+            else:
+                a = action[idx==i]
+                if a.shape[0] == 0:
+                    #raise RuntimeError('no examples for %d'%i)
+                    print 'WARNING: no examples for %d'%i
+                    continue
+            model.fit(x, a, epochs=self.epochs)
 
     def _fitPredictor(self, features, targets):
         '''
@@ -256,7 +265,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
     def _fitBaseline(self, features, action):
         if self.predictor:
             self.predictor.trainable = False
-        self.baseline.fit([features], [action], epochs=self.epochs)
+        self.baseline.fit(features, action, epochs=self.epochs)
 
     def save(self):
         '''

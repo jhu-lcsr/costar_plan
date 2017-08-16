@@ -87,8 +87,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         arm_out = Dense(arm_size)(x)
         gripper_out = Dense(gripper_size)(x)
 
-        policy = Model(self.predictor.inputs, [arm_out, gripper_out])
-        #model = Model(img_ins, [arm_out])
+        policy = Model(self.supervisor.inputs, [arm_out, gripper_out])
         optimizer = self.getOptimizer()
         policy.compile(loss="mse", optimizer=optimizer)
 
@@ -183,7 +182,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         x = LeakyReLU(0.2)(x)
         label_out = Dense(self._numLabels(), activation="sigmoid")(x)
 
-        supervisor = Model(ins, [label_out])
+        supervisor = Model(ins[:3], [label_out])
         supervisor.compile(
                 loss=["binary_crossentropy"],
                 optimizer=self.getOptimizer())
@@ -332,11 +331,11 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         self._fitPredictor(
                 [I, q, g, oin],
                 [I_target, q_target, g_target, Inext_target])
-        self._fitSupervisor([I, q, g, oin], o_target)
+        self._fitSupervisor([I, q, g], o_target)
 
         action_target = [qa, ga]
-        self._fitPolicies([features, arm, gripper], action_labels, action_target)
-        self._fitBaseline([I, q, g, oin], action_target)
+        self._fitPolicies([I, q, g], action_labels, action_target)
+        self._fitBaseline([I, q, g], action_target)
 
 
     def save(self):
