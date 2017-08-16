@@ -24,7 +24,7 @@ The code below defines this simplest version of the task, creating both the acti
 
 The key parts of the Option are the constructor and the `samplePolicy(world)` function, which takes a current world and returns a policy functor and a condition.
 
-The block of code below, taken from [CTP's Blocks task](costar_task_plan/python/costar_task_plan/simulation/tasks/blocks.py), defines the choice between different objects. Take a look at the [basic simulation options](costar_task_plan/python/costar_task_plan/simulation/tasks/blocks.py) for examples of options and the `samplePolicy()` function.
+The block of code below, taken from [CTP's Blocks task](../costar_task_plan/python/costar_task_plan/simulation/tasks/blocks.py), defines the choice between different objects. Take a look at the [basic simulation options](../costar_task_plan/python/costar_task_plan/simulation/option.py) for examples of options and the `samplePolicy()` function.
 
 ``` python
 AlignOption = lambda goal: GoalDirectedMotionOption(
