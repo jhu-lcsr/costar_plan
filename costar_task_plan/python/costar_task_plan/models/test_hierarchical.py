@@ -39,6 +39,7 @@ class TestHierarchical(HierarchicalAgentBasedModel):
         joint state.
         '''
 
+        self.name = "test"
         super(TestHierarchical, self).__init__(*args, **kwargs)
 
         self.model = None
@@ -61,7 +62,10 @@ class TestHierarchical(HierarchicalAgentBasedModel):
 
         self.time = True
 
-    def _makeSupervisor(self, features, label, num_labels):
+    def _numLabels(self):
+        return self.num_actions
+
+    def _makeSupervisor(self, features):
         '''
         This needs to create a supervisor. This one maps from input to the
         space of possible action labels.
@@ -75,13 +79,14 @@ class TestHierarchical(HierarchicalAgentBasedModel):
             x = GetDenseEncoder(fin, None, self.dense_size,
                     self.dense_layers,)
 
-        label_out = Dense(num_labels, activation="sigmoid")(x)
+        label_out = Dense(self._numLabels(), activation="sigmoid")(x)
+        predictor = None
 
         supervisor = Model([fin], [label_out])
         supervisor.compile(
                 loss=["binary_crossentropy"],
                 optimizer=self.getOptimizer())
-        return x, supervisor
+        return x, supervisor, predictor
 
 
     def _makePolicy(self, features, action, hidden=None):
@@ -195,11 +200,11 @@ class TestHierarchical(HierarchicalAgentBasedModel):
         action_target = np.squeeze(action[:,-1,:])
 
         self._makeModel(features, state, action, label, example, reward)
-        self._fitSupervisor(features, label, label_target)
-        if self.fit_policies:
-            self._fitPolicies(features, label, action_target)
+        self._fitSupervisor(features, label_target)
         if self.fit_baseline:
             self._fitBaseline(features, action_target)
+        if self.fit_policies:
+            self._fitPolicies(features, label, action_target)
 
     def plot(self,*args,**kwargs):
         # TODO
@@ -207,14 +212,17 @@ class TestHierarchical(HierarchicalAgentBasedModel):
 
 if __name__ == '__main__':
 
-    data = np.load('roadworld-2018-08-09.npz')
+    #data = np.load('roadworld-2018-08-09.npz')
+    data = np.load('roadworld-2017-08-14-b.npz')
     sampler = TestHierarchical(
             batch_size=64,
             iter=5000,
-            epochs=10,
+            epochs=100,
             optimizer="adam",
             task="roadworld",)
 
+    #sampler.fit_policies = True
+    #sampler.fit_baseline = True
     sampler.fit_policies = True
     sampler.fit_baseline = True
 

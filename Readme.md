@@ -1,4 +1,4 @@
-# CoSTAR Planner
+# CoSTAR Task Planner (CTP)
 
 [![Build Status](https://travis-ci.com/cpaxton/costar_plan.svg?token=13PmLzWGjzrfxQvEyWp1&branch=master)](https://travis-ci.com/cpaxton/costar_plan)
 
@@ -12,9 +12,13 @@ For some more information on the structure of the task planner package, check ou
 
 Contents:
   - [Installation Guide](docs/install.md)
-  - [Design Overview](docs/design.md)
-  - [Development Notes](docs/development.md)
-  - [Machine Learning Notes](docs/learning.md)
+  - [User Manual](docs/user_manual.md): for getting started with the `costar_bullet` tool
+  - [Design Overview](docs/design.md): for some high-level design choices related to the planning code
+  - [Machine Learning with CTP](docs/learning.md): use command line tool to train models
+  - [Task Learning with CTP](docs/task_learning.md): predictive models and other tools
+
+Mode specialized information:
+  - [Adding a robot to the ROS code](docs/add_a_robot): NOT using Bullet sim
 
 ## Getting started
 

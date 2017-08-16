@@ -89,7 +89,7 @@ class AbstractAgentBasedModel(object):
         control = world.zeroAction()
         reward = world.initial_reward
         features = world.computeFeatures()
-        action_label = ''
+        action_label = np.zeros((self._numLabels(),))
         example = 0
         done = False
         data = world.vectorize(control, features, reward, done, example,
@@ -99,6 +99,10 @@ class AbstractAgentBasedModel(object):
             kwargs[k] = np.array([v])
         self._makeModel(**kwargs)
         self._loadWeights()
+
+    def _numLabels(self):
+        raise NotImplementedError('_numLabels() should return number ' + \
+                                  'of actions')
 
     def _makeModel(self, *args, **kwargs):
         '''
@@ -151,7 +155,8 @@ class AbstractAgentBasedModel(object):
         #oh[np.arange(f.shape[0]), np.arange(f.shape[1]), f]
         for i in xrange(f.shape[0]):
             for j in xrange(f.shape[1]):
-                oh[i,j,f[i,j]] = 1.
+                idx = f[i,j]
+                oh[i,j,idx] = 1.
         return oh
 
 
@@ -172,8 +177,11 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
     def __init__(self, *args, **kwargs):
         super(HierarchicalAgentBasedModel, self).__init__(*args, **kwargs)
         self.num_actions = 0
+
+        self.predictor = None
+        self.supervisor = None
     
-    def _makeSupervisor(self, feature, label, num_labels):
+    def _makeSupervisor(self, feature):
         '''
         This needs to create a supervisor. This one maps from input to the
         space of possible action labels.
@@ -191,15 +199,13 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         This is the helper that actually sets everything up.
         '''
         num_labels = label.shape[-1]
-        assert num_labels > 1
-        hidden, self.supervisor = self._makeSupervisor(features, label,
-                num_labels)
-        self.supervisor.summary()
+        assert num_labels == self._numLabels()
+        hidden, self.supervisor, self.predictor = \
+            self._makeSupervisor(features)
 
         
         # Learn a baseline for comparisons and whatnot
         self.baseline = self._makePolicy(features, action, hidden)
-        self.baseline.summary()
 
         # We assume label is one-hot. This is the same as the "baseline"
         # policy, but we learn a separate one for each high-level action
@@ -207,13 +213,16 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         self.policies = []
         for i in xrange(num_labels):
             self.policies.append(self._makePolicy(features, action, hidden))
-        
-    def _fitSupervisor(self, features, prev_label, label):
+
+    def _fitSupervisor(self, features, label):
         #self.supervisor.fit([features, prev_label], [label])
         '''
         Fit a high-level policy that tells us which low-level action we could
         be taking at any particular time.
         '''
+        if self.predictor is not None:
+            self.predictor.trainable = False
+        self.supervisor.summary()
         self.supervisor.fit(features, [label], epochs=self.epochs)
 
     def _fitPolicies(self, features, label, action):
@@ -223,18 +232,40 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         # Divide up based on label
         idx = np.argmax(np.squeeze(label[:,-1,:]),axis=-1)
 
+        if self.predictor:
+            self.predictor.trainable = False
+
+        self.baseline.summary()
+
         for i, model in enumerate(self.policies):
             # select data for this model
-            x = features[idx==i]
-            a = action[idx==i]
-            if a.shape[0] == 0:
-                #raise RuntimeError('no examples for %d'%i)
-                print 'WARNING: no examples for %d'%i
-                continue
-            model.fit([x], [a], epochs=self.epochs)
+            if isinstance(features, list):
+                x = [f[idx==i] for f in features]
+            else:
+                x = features[idx==i]
+            if isinstance(action, list):
+                a = [ac[idx==i] for ac in action]
+                if len(a) == 0 or a[0].shape[0] == 0:
+                    print 'WARNING: no examples for %d'%i
+                    continue
+            else:
+                a = action[idx==i]
+                if a.shape[0] == 0:
+                    #raise RuntimeError('no examples for %d'%i)
+                    print 'WARNING: no examples for %d'%i
+                    continue
+            model.fit(x, a, epochs=self.epochs)
+
+    def _fitPredictor(self, features, targets):
+        '''
+        Can be different for every set of features so...
+        '''
+        self.predictor.fit(features, targets)
 
     def _fitBaseline(self, features, action):
-        self.baseline.fit([features], [action], epochs=self.epochs)
+        if self.predictor:
+            self.predictor.trainable = False
+        self.baseline.fit(features, action, epochs=self.epochs)
 
     def save(self):
         '''
@@ -242,7 +273,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         '''
         if self.supervisor is not None:
             self.supervisor.save_weights(self.name + "_supervisor.h5f")
-            self.baseline.save_weights(self.name + "_supervisor.h5f")
+            self.baseline.save_weights(self.name + "_baseline.h5f")
             for i, policy in enumerate(self.policies):
                 policy.save_weights(self.name + "_policy%02d.h5f"%i)
         else:

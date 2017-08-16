@@ -8,7 +8,9 @@ def SplitIntoChunks(datasets, labels,
         step_size=10,
         front_padding=False,
         rear_padding=False,
-        stagger=False):
+        stagger=False,
+        start_off=0,
+        end_off=0):
     '''
     Split data into segments of the given length. This will return a much
     larger data set, but with the dimensionality changed so that we can easily
@@ -70,8 +72,9 @@ def SplitIntoChunks(datasets, labels,
                 max_i = data_size + chunk_length - 1
             else:
                 max_i = data_size
+            i += start_off
 
-            while i < max_i:
+            while i < max_i - end_off:
                 start_block = max(0,i-chunk_length+1)
                 end_block = min(i,data_size)
                 block = subset[start_block:end_block+1]
@@ -208,6 +211,82 @@ def SplitIntoActions(
 
     return frame_data, result_data
 
+def NextAction(datasets, action_labels, examples):
+    '''
+    Create extra datasets marking transitions between actions. This is so we
+    can predict the effects of high-level actions, not just low level actions,
+    when doing our various operations.
+
+    Parameters:
+    -----------
+    datasets: list of data that needs to be updated
+    action_labels: list of labels for actions (e.g. "PICKUP(OBJ)")
+    examples: ID number for the sequence the data belongs to
+
+    Returns:
+    --------
+    new_data: data of the same shape as datasets, but containing terminal
+              states of all the labeled high-level actions
+    '''
+
+    # Loop over all entries in action labels and examples
+    if len(action_labels.shape) == 1:
+        action_labels = np.expand_dims(action_labels, -1)
+    if len(examples.shape) == 1:
+        examples = np.expand_dims(examples, -1)
+    if not action_labels.shape == examples.shape:
+        print action_labels.shape
+        print examples.shape
+        raise RuntimeError('all matrices must be of the same shape')
+    elif len(action_labels.shape) is not 2:
+        print action_labels.shape
+        raise RuntimeError('all data should be of the shape ' + \
+                           '(NUM_EXAMPLES, data)')
+    for data in datasets:
+        if not data.shape[0] == examples.shape[0]:
+            print data.shape, examples.shape
+            raise RuntimeError('all data must be of the same length')
+    
+    new_datasets = []
+    for data in datasets:
+        new_datasets.append(np.zeros_like(data))
+
+    idx = 0 # idx of the data
+    switch = 1
+    while switch < examples.shape[0]:
+        end_of_trial = False
+        # loop over every entry; break if this is the last entry
+        while switch < examples.shape[0] - 1:
+            if examples[switch-1] == examples[switch] and \
+               action_labels[switch-1] == action_labels[switch]:
+                   switch += 1
+                   continue
+            elif not examples[switch-1] == examples[switch]:
+                # We do not want to predict the beginning of the next trial!
+                end_of_trial = True
+                switch -= 1
+                #print "eot at idx=",idx,"switch=",switch,examples[switch-1],examples[switch]
+                #print examples[switch-1], examples[switch],
+                #print action_labels[switch-1], action_labels[switch]
+                break
+            else:
+                #print examples[switch-1], examples[switch],
+                #print action_labels[switch-1], action_labels[switch]
+                break
+        while idx < switch:
+            #print idx, switch
+            for goal_data, data in zip(new_datasets, datasets):
+                goal_data[idx] = data[switch]
+            idx += 1
+        if end_of_trial:
+            idx += 1
+        switch = idx+1
+
+    # Set goal for the last frame, for completeness
+    for goal_data, data in zip(new_datasets, datasets):
+        goal_data[-1] = data[-1]
+
+    return new_datasets
 
 def FirstInChunk(data):
     '''

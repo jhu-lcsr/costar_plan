@@ -278,7 +278,7 @@ def GetEncoder3D(img_shape, arm_size, gripper_size, dropout_rate,
 
 def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         filters, discriminator=False, tile=False, dropout=True, leaky=True,
-        dense=True,
+        dense=True, option=None, flatten=True,
         pre_tiling_layers=0,
         post_tiling_layers=2,
         kernel_size=[3,3],
@@ -288,6 +288,8 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         ApplyTD = lambda x: x
         arm_in = Input((arm_size,))
         gripper_in = Input((gripper_size,))
+        if option is not None:
+            option_in = Input((option,))
         height4 = img_shape[0]/4
         width4 = img_shape[1]/4
         height2 = img_shape[0]/2
@@ -299,6 +301,8 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         ApplyTD = lambda x: TimeDistributed(x)
         arm_in = Input((time_distributed, arm_size,))
         gripper_in = Input((time_distributed, gripper_size,))
+        if option is not None:
+            option_in = Input((time_distributed,option,))
         height4 = img_shape[1]/4
         width4 = img_shape[2]/4
         height2 = img_shape[1]/2
@@ -306,6 +310,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         height = img_shape[1]
         width = img_shape[2]
         channels = img_shape[3]
+
     samples = Input(shape=img_shape)
 
     '''
@@ -344,16 +349,23 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         tile_width = int(width/(pre_tiling_layers+1))
         tile_height = int(height/(pre_tiling_layers+1))
 
-        robot = Concatenate(axis=-1)([arm_in, gripper_in])
+        if option is not None:
+            robot = Concatenate(axis=-1)([arm_in, gripper_in, option_in])
+            reshape_size = arm_size+gripper_size+option
+            ins = [samples, arm_in, gripper_in, option_in]
+        else:
+            robot = Concatenate(axis=-1)([arm_in, gripper_in])
+            reshape_size = arm_size+gripper_size
+            ins = [samples, arm_in, gripper_in]
+
         if time_distributed > 0:
             tile_shape = (1, 1, tile_width, tile_height, 1)
-            robot = Reshape([time_distributed, 1, 1, arm_size+gripper_size])(robot)
+            robot = Reshape([time_distributed, 1, 1, reshape_size])(robot)
         else:
-            tile_shape = (1, width2, height2, 1)
-            robot = Reshape([1,1,arm_size+gripper_size])(robot)
+            tile_shape = (1, tile_width, tile_height, 1)
+            robot = Reshape([1,1,reshape_size])(robot)
         robot = Lambda(lambda x: K.tile(x, tile_shape))(robot)
-        x = Concatenate(axis=-1)([x,robot])
-        ins = [samples, arm_in, gripper_in]
+        x = Concatenate(axis=-1)([x,robot])       
     else:
         ins = [samples]
 
@@ -366,7 +378,8 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         if dropout:
             x = Dropout(dropout_rate)(x)
 
-    x = ApplyTD(Flatten())(x)
+    if flatten or dense or discriminator:
+        x = ApplyTD(Flatten())(x)
     if dense:
         x = ApplyTD(Dense(dim))(x)
         x = ApplyTD(relu())(x)
@@ -471,7 +484,7 @@ def GetInvArmGripperColumn(noise, arm, gripper, dropout_rate, dense_size):
     pass
 
 def GetEncoder2(img_shape, arm_size, gripper_size, dim, dropout_rate,
-        filters, discriminator=False, tile=False,
+        filters, discriminator=False, tile=False, option=None,
         pre_tiling_layers=0,
         post_tiling_layers=2):
 
@@ -488,6 +501,8 @@ def GetEncoder2(img_shape, arm_size, gripper_size, dim, dropout_rate,
     samples = Input(shape=img_shape)
     arm_in = Input((arm_size,))
     gripper_in = Input((gripper_size,))
+    if option is not None:
+        option_in = Input((option,))
 
     x = samples
 
@@ -504,8 +519,12 @@ def GetEncoder2(img_shape, arm_size, gripper_size, dim, dropout_rate,
     # ADD TILING
     if tile:
         tile_shape = (1, width2, height2, 1)
-        robot = Concatenate()([arm_in, gripper_in])
-        robot = Reshape([1,1,arm_size+gripper_size])(robot)
+        if option is not None:
+            robot = Concatenate()([arm_in, gripper_in, option_in])
+            robot = Reshape([1,1,arm_size+gripper_size+option])(robot)
+        else:
+            robot = Concatenate()([arm_in, gripper_in])
+            robot = Reshape([1,1,arm_size+gripper_size])(robot)
         robot = Lambda(lambda x: K.tile(x, tile_shape))(robot)
         x = Concatenate(axis=3)([x,robot])
         ins = [samples, arm_in, gripper_in]
