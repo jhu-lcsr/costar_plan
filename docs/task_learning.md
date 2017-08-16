@@ -7,7 +7,7 @@ The goal of our hierarchical task learning is to be able to use symbolic high-le
 
 The task is defined as a set of high- and low-level actions at various levels, given by a task plan such as that shown below. For now, we will consider the simple version of the "blocks" task.
 
-[]()
+![Training Data](../photos/blocks_data.png)
 
 Here, the robot can grab one of several blocks. Grabbing a block is divided between aligning, approaching, and closing the gripper.
 
@@ -93,9 +93,22 @@ rosrun costar_bullet start --robot ur5 --task blocks --agent task \
 
 We can now use the standard CoSTAR bullet tool to train a model:
 ```
+rosrun costar_bullet start --robot ur5 --task blocks --agent null --features multi \
+  -i 1000 --model hierarchical --data_file small.npz --load --si 5 --lr 0.001
 ```
 
-It takes several thousand iterations to get this right.
+Replace the options as necessary. Interesting things to change:
+  - `--lr` sets the learning rate
+  - `--optimizer` changes the optimizer (try `nadam`, `sgd`, etc.)
+  - `--si` or `--show_images` changes how often we display results
+  - `-i` is iterations for training the predictor...
+  - `-e` is epochs for fitting other models (used with the Keras `model.fit()` function)
+
+It takes several thousand iterations to get this right. An example at about 500 iterations:
+
+![Example intermediate results](../photos/predictor_intermediate_results.png)
+
+You should be able to see the model learning something useful fairly early on, at least with a small data set. It just won't be perfect.
 
 # Testing
 
