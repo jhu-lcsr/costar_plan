@@ -3,15 +3,28 @@
 
 The goal of our hierarchical task learning is to be able to use symbolic high-level planning grounded by learned neural net models of the world.
 
+Our training data is sequences of task execution created with the `costar_bullet` simulation tool, as per the figure below.
+
+![Training Data](../photos/blocks_data.png)
+
+The tool lets us generate large amounts of task performances, with randomized high level (and eventually low level) actions.
+
 ## Task Definition
 
 The task is defined as a set of high- and low-level actions at various levels, given by a task plan such as that shown below. For now, we will consider the simple version of the "blocks" task.
 
-![Training Data](../photos/blocks_data.png)
+Here, the robot can grab one of several blocks. Grabbing a block is divided between aligning, approaching, and closing the gripper. We wish to define a task architecture like this one:
 
-Here, the robot can grab one of several blocks. Grabbing a block is divided between aligning, approaching, and closing the gripper.
+![First stage of blocks task](../photos/blocks_task_1.png)
 
-The code below defines this simplest version of the task, creating both the action generators themselves (called "options"), and associated conditions.
+The code below defines this simplest version of the task, creating both the action generators themselves (called "options"), and associated conditions. There are three differnt things we need to create:
+  - options: these are the high-level actions; each one is a "generator" from which we can sample different policies and termination conditions.
+  - arguments: these contain an option constructor, arguments, and an optional field to remap from these arguments to a part of the option constructor.
+  - task: the task model itself.
+
+The key parts of the Option are the constructor and the `samplePolicy(world)` function, which takes a current world and returns a policy functor and a condition.
+
+The block of code below, taken from [CTP's Blocks task](costar_task_plan/python/costar_task_plan/simulation/tasks/blocks.py), defines the choice between different objects. Take a look at the [basic simulation options](costar_task_plan/python/costar_task_plan/simulation/tasks/blocks.py) for examples of options and the `samplePolicy()` function.
 
 ``` python
 AlignOption = lambda goal: GoalDirectedMotionOption(
@@ -60,7 +73,14 @@ open_gripper_args = {
     "constructor": OpenGripperOption,
     "args": []
 }
+```
 
+When we create a task model, we use the `add(name, parent, arg_dict)` function. Its three parameters are:
+  - `name`: name of the option
+  - `parent`: name of the predecessor, or `None` if predecessor is root
+  - `arg_dict`: dictionary containing constructor function, list of argument names, and optionally a `remap` dictionary from argument names to option constructor parameters.
+
+```
 # Create a task model
 task = Task()
 task.add("align", None, align_args)
@@ -71,6 +91,8 @@ task.add("place", "lift", place_args)
 task.add("open_gripper", "place", open_gripper_args)
 task.add("done", "open_gripper", lift_args)
 ```
+
+We automatically call the `task.compile()` function to create the task model.
 
 # Creating a Data Set
 
