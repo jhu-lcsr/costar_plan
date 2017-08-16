@@ -1,6 +1,6 @@
 # CoSTAR Task Planner (CTP)
 
-[![Build Status](https://travis-ci.com/cpaxton/costar_plan.svg?token=13PmLzWGjzrfxQvEyWp1&branch=master)](https://travis-ci.com/cpaxton/costar_plan)
+[![Build Status](https://travis-ci.com/cpaxton/costar_plan.svg?token=13PmLzWGjzrfxQvEyWp1&branch=master)](https://travis-ci.com/cpaxton/costar_plan) **TRAVIS IS CURRENTLY BROKEN**
 
 The CoSTAR Planner is part of the larger [CoSTAR project](https://github.com/cpaxton/costar_stack/). It integrates some learning from demonstration and task planning capabilities into the larger CoSTAR framework in different ways..
 
@@ -12,6 +12,7 @@ For some more information on the structure of the task planner package, check ou
 
 Contents:
   - [Installation Guide](docs/install.md)
+  - [Docker Instructions](docs/docker_instructions.md)
   - [User Manual](docs/user_manual.md): for getting started with the `costar_bullet` tool
   - [Design Overview](docs/design.md): for some high-level design choices related to the planning code
   - [Machine Learning with CTP](docs/learning.md): use command line tool to train models
