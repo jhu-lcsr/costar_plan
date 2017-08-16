@@ -264,7 +264,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         '''
         if self.supervisor is not None:
             self.supervisor.save_weights(self.name + "_supervisor.h5f")
-            self.baseline.save_weights(self.name + "_supervisor.h5f")
+            self.baseline.save_weights(self.name + "_baseline.h5f")
             for i, policy in enumerate(self.policies):
                 policy.save_weights(self.name + "_policy%02d.h5f"%i)
         else:

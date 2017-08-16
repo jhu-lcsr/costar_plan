@@ -4,6 +4,7 @@ from costar_task_plan.simulation.world import *
 from costar_task_plan.simulation.option import *
 from costar_task_plan.simulation.reward import *
 from costar_task_plan.simulation.condition import *
+from costar_task_plan.abstract.simple_conditions import *
 
 import numpy as np
 import os
@@ -159,29 +160,40 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         # distinguish good training data from bad.
         if self.stage == 0:
             threshold = 0.035
+            position_condition = AbsolutePositionCondition(
+                self.over_final_stack_pos,
+                self.grasp_q,
+                0.05,
+                0.025,
+            )
             self.world.addCondition(
-                ObjectAtPositionCondition("red_block",
-                                          self.final_stack_pos, threshold),
-                100,
-                "block in right position")
+                    OrCondition(
+                        ObjectAtPositionCondition("red_block",
+                            self.final_stack_pos, threshold),
+                        position_condition),
+                    100,
+                    "block in right position")
             self.world.addCondition(
-                ObjectAtPositionCondition("blue_block",
-                                          self.final_stack_pos,
-                                          threshold),
-                50,
-                "wrong block")
+                    OrCondition(
+                        ObjectAtPositionCondition("blue_block",
+                            self.final_stack_pos, threshold),
+                        position_condition),
+                    50,
+                    "wrong block")
             self.world.addCondition(
-                ObjectAtPositionCondition("green_block",
-                                          self.final_stack_pos,
-                                          threshold),
-                50,
-                "wrong block")
+                    OrCondition(
+                        ObjectAtPositionCondition("green_block",
+                            self.final_stack_pos, threshold),
+                        position_condition),
+                    50,
+                    "wrong block")
             self.world.addCondition(
-                ObjectAtPositionCondition("yellow_block",
-                                          self.final_stack_pos,
-                                          threshold),
-                50,
-                "wrong block")
+                    OrCondition(
+                        ObjectAtPositionCondition("yellow_block",
+                            self.final_stack_pos, threshold),
+                        position_condition),
+                    50,
+                    "wrong block")
 
     def reset(self):
         '''

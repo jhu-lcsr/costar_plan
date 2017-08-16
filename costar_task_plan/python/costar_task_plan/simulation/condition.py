@@ -62,7 +62,7 @@ class GoalPositionCondition(AbstractCondition):
     position is here defined as being within a certain distance of a point.
     '''
 
-    def __init__(self, goal, pos, rot, pos_tol, rot_tol, v_tol=0.025):
+    def __init__(self, goal, pos, rot, pos_tol, rot_tol, v_tol=0.05):
         self.pos_tol = pos_tol
         self.rot_tol = rot_tol
         self.v_tol = v_tol
@@ -110,7 +110,7 @@ class AbsolutePositionCondition(AbstractCondition):
     in the world's coordinate frame.
     '''
 
-    def __init__(self, pos, rot, pos_tol, rot_tol, v_tol=0.025):
+    def __init__(self, pos, rot, pos_tol, rot_tol, v_tol=0.05):
         self.pos_tol = pos_tol
         self.rot_tol = rot_tol
         self.v_tol = v_tol
@@ -130,6 +130,7 @@ class AbsolutePositionCondition(AbstractCondition):
         T_robot = state.robot.fwd(state.arm)
         dist = (T_robot.p - self.T.p).Norm()
         still_moving = np.any(np.abs(state.arm_v) > self.v_tol)
+        #print still_moving, dist > self.pos_tol
 
         return dist > self.pos_tol or still_moving
 

@@ -183,19 +183,20 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
             if self.show_iter > 0 and (i+1) % self.show_iter == 0:
                 data = self.predictor.predict(features[0:5])
                 for j in xrange(5):
+                    jj = j * 5
                     ax = axes[1][j]
-                    ax.imshow(np.squeeze(data[0][j]))
+                    ax.imshow(np.squeeze(data[0][jj]))
                     ax.axis('off')
                     ax = axes[0][j]
-                    ax.imshow(np.squeeze(features[0][j]))
+                    ax.imshow(np.squeeze(features[0][jj]))
                     ax.axis('off')
                     ax = axes[2][j]
-                    ax.imshow(np.squeeze(targets[0][j]))
+                    ax.imshow(np.squeeze(targets[0][jj]))
                     ax.axis('off')
                     
-                    q0 = features[1][j]
+                    q0 = features[1][jj]
                     q = data[1][j]
-                    q1 = targets[1][j]
+                    q1 = targets[1][jj]
                     ax = axes[3][j]
                     ax.bar(np.arange(6),q0,1./3.,color='b')
                     ax.bar(np.arange(6)+1./3.,q,1./3.,color='r')

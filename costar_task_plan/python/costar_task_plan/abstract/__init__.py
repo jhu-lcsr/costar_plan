@@ -72,7 +72,7 @@ __all__ = ['AbstractWorld', 'AbstractAction', 'AbstractState',
            'AbstractTrajectoryDynamics', 'NullOption', 'AbstractObserve',
            'AbstractOption',
            # Basic conditions that are useful for testing
-           'FalseCondition', 'TrueCondition',
+           'FalseCondition', 'TrueCondition', 'AndCondition', 'TimeCondition',
            # Simple reward function
            'NullReward', 'NullDynamics',
            ]
