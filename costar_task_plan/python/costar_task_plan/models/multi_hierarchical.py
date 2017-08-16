@@ -337,9 +337,3 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         self._fitPolicies([I, q, g], action_labels, action_target)
         self._fitBaseline([I, q, g], action_target)
 
-
-    def save(self):
-        '''
-        Store the model to disk here.
-        '''
-        pass

@@ -272,6 +272,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         Save to a filename determined by the "self.name" field.
         '''
         if self.supervisor is not None:
+            print "saving to " + self.name
             self.supervisor.save_weights(self.name + "_supervisor.h5f")
             self.baseline.save_weights(self.name + "_baseline.h5f")
             for i, policy in enumerate(self.policies):
@@ -285,7 +286,8 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         need to overload this for specific models.
         '''
         if self.supervisor is not None:
-            print "using " + self.name + ".h5f"
+            print "----------------------------"
+            print "using " + self.name + " to load"
             print self.supervisor.summary()
             #print args
             #weight_location = args.load_model.name
@@ -302,9 +304,9 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         This is the basic, "dumb" option. Compute the next option/policy to
         execute by evaluating the supervisor, then just call that model.
         '''
-        features = world.getHistoryMatrix()
+        features = world.initial_features #getHistoryMatrix()
         if isinstance(features, list):
-            assert len(features) == len(self.model.inputs)
+            assert len(features) == len(self.supervisor.inputs)
         else:
             features = [features]
         if self.supervisor is None:
@@ -312,6 +314,8 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         features = [f.reshape((1,)+f.shape) for f in features]
         res = self.supervisor.predict(features)
         next_policy = np.argmax(res)
+
+        print "next policy = ", next_policy
 
         # Retrieve the next policy we want to execute
         policy = self.policies[next_policy]
