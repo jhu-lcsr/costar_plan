@@ -59,7 +59,7 @@ env:
     - CI_SOURCE_PATH=$(pwd)
     - CATKIN_OPTIONS=$CI_SOURCE_PATH/catkin.options
     - ROS_PARALLEL_JOBS='-j8 -l6'
-#- ROSINSTALL_FILE=$CI_SOURCE_PATH/dependencies.rosinstall
+    - PYTHONPATH=$PYTHONPATH:/usr/lib/python2.7/dist-packages:/usr/local/lib/python2.7/dist-packages
 
 ################################################################################
 
