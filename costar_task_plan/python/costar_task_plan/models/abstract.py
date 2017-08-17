@@ -45,7 +45,7 @@ class AbstractAgentBasedModel(object):
             self.name += "_%s"%self.task
         if self.features is not None:
             self.name += "_%s"%self.features
-        
+
         # default: store the whole model here.
         # NOTE: this may not actually be where you want to save it.
         self.model = None
@@ -109,10 +109,6 @@ class AbstractAgentBasedModel(object):
             kwargs[k] = np.array([v])
         self._makeModel(**kwargs)
         self._loadWeights()
-
-    def _numLabels(self):
-        raise NotImplementedError('_numLabels() should return number ' + \
-                                  'of actions')
 
     def _makeModel(self, *args, **kwargs):
         '''
@@ -190,7 +186,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
 
         self.predictor = None
         self.supervisor = None
-    
+
     def _makeSupervisor(self, feature):
         '''
         This needs to create a supervisor. This one maps from input to the
@@ -214,7 +210,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
             self._makeSupervisor(features)
         hidden.trainable = False
 
-        
+
         # Learn a baseline for comparisons and whatnot
         self.baseline = self._makePolicy(features, action, hidden)
 
