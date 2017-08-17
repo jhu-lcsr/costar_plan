@@ -110,10 +110,6 @@ class AbstractAgentBasedModel(object):
         self._makeModel(**kwargs)
         self._loadWeights()
 
-    def _numLabels(self):
-        raise NotImplementedError('_numLabels() should return number ' + \
-                                  'of actions')
-
     def _makeModel(self, *args, **kwargs):
         '''
         Create the model based on some data set shape information.
@@ -356,8 +352,11 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
 
         res = self.predictor.predict(features2)
         import matplotlib.pyplot as plt
+        plt.subplot(2,1,1)
+        plt.imshow(features[0][0])
+        plt.subplot(2,1,2)
         plt.imshow(res[0][0])
-        plt.show(block=False)
+        plt.show(block)
 
         # Retrieve the next policy we want to execute
         policy = self.policies[next_policy]

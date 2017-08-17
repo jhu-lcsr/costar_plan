@@ -74,7 +74,15 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         else:
             gripper_size = 1
         
-        x = Dense(self.combined_dense_size)(hidden)
+
+        x = Conv2D(self.img_num_filters/4,
+                kernel_size=[3,3], 
+                strides=(2, 2),
+                padding='same')(hidden)
+        x = Dropout(self.dropout_rate)(x)
+        x = LeakyReLU(0.2)(x)
+        x = Flatten()(x)
+        x = Dense(self.combined_dense_size)(x)
         x = Dropout(self.dropout_rate)(x)
         x = LeakyReLU(0.2)(x)
 
@@ -167,8 +175,16 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         arm_out = Dense(arm_size,name="action_arm_goal")(x)
         gripper_out = Dense(gripper_size,name="action_gripper_goal")(x)
 
+        # =====================================================================
+        # SUPERVISOR
         # Predict the next option -- does not depend on option
-        x = Flatten()(enc)
+        x = Conv2D(self.img_num_filters/4,
+                kernel_size=[3,3], 
+                strides=(2, 2),
+                padding='same')(enc)
+        x = Dropout(self.dropout_rate)(x)
+        x = LeakyReLU(0.2)(x)
+        x = Flatten()(x)
         x = Dense(self.combined_dense_size)(x)
         x = Dropout(self.dropout_rate)(x)
         x = LeakyReLU(0.2)(x)
@@ -189,7 +205,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 next_frame_decoder(enc_with_option_flat)]
         predictor = Model(ins, features_out)
 
-        return Flatten()(enc), supervisor, predictor
+        return enc, supervisor, predictor
 
     def _fitPredictor(self, features, targets):
         if self.show_iter > 0:
