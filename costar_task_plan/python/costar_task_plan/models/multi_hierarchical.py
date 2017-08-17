@@ -76,7 +76,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         
 
         x = Conv2D(self.img_num_filters/4,
-                kernel_size=[3,3], 
+                kernel_size=[5,5], 
                 strides=(2, 2),
                 padding='same')(hidden)
         x = Dropout(self.dropout_rate)(x)
@@ -112,7 +112,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 dropout=False,
                 pre_tiling_layers=0,
                 post_tiling_layers=3,
-                kernel_size=[3,3],
+                kernel_size=[5,5],
                 dense=False,
                 tile=True,
                 option=None,#self._numLabels(),
@@ -128,7 +128,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         option = Lambda(lambda x: K.tile(x, tile_shape))(option)
         enc_with_option = Concatenate(axis=-1)([enc,option])
         enc_with_option = Conv2D(self.img_num_filters,
-                kernel_size=[3,3], 
+                kernel_size=[5,5], 
                 strides=(1, 1),
                 padding='same')(enc_with_option)
         ins.append(option_in)
@@ -164,7 +164,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         # in from the inputs once again, in order to make sure they don't get
         # lost in all the convolution layers above...
         x = Conv2D(self.img_num_filters/2,
-                kernel_size=[3,3], 
+                kernel_size=[5,5], 
                 strides=(2, 2),
                 padding='same')(enc_with_option)
         x = Flatten()(x)
@@ -179,7 +179,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         # SUPERVISOR
         # Predict the next option -- does not depend on option
         x = Conv2D(self.img_num_filters/4,
-                kernel_size=[3,3], 
+                kernel_size=[5,5], 
                 strides=(2, 2),
                 padding='same')(enc)
         x = Dropout(self.dropout_rate)(x)
@@ -285,18 +285,15 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
 
         [features, arm, gripper, arm_cmd, gripper_cmd, action_labels,
-                goal_features, goal_arm, goal_gripper], _ = \
+                goal_features, goal_arm, goal_gripper] = \
             SplitIntoChunks(
                 datasets=[features, arm, gripper, arm_cmd, gripper_cmd,
                     action_labels, goal_features, goal_arm, goal_gripper,],
                 reward=None, reward_threshold=0.,
                 labels=example,
                 chunk_length=self.num_frames+2,
-                step_size=self.partition_step_size,
                 front_padding=True,
-                rear_padding=False,
-                start_off=1,
-                end_off=1)
+                rear_padding=False,)
 
         # create inputs
         I = np.squeeze(features[:,1:-1])
