@@ -326,22 +326,16 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 [I_target, q_target, g_target, Inext_target])
 
         # ===============================================
-        fig, axes = plt.subplots(5, 5,)
-        self.plotInfo(
-                [I, q, g, oin],
-                [I_target, q_target, g_target, Inext_target],
-                axes,
-                )
-
+        # Might be useful if you start getting shitty results... one problem we
+        # observed was accidentally training the embedding weights when
+        # learning all your policies.
+        #fig, axes = plt.subplots(5, 5,)
+        #self.plotInfo(
+        #        [I, q, g, oin],
+        #        [I_target, q_target, g_target, Inext_target],
+        #        axes,
+        #        )
         self._fitSupervisor([I, q, g], o_target)
-
-        fig, axes = plt.subplots(5, 5,)
-        self.plotInfo(
-                [I, q, g, oin],
-                [I_target, q_target, g_target, Inext_target],
-                axes,
-                )
-        plt.show()
         # ===============================================
 
         action_target = [qa, ga]
