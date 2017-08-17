@@ -119,14 +119,14 @@ class TestSimpleHierarchical(AbstractAgentBasedModel):
 
         print " ------- DATA -------- "
         print "raw features", features.shape
-        [features, action, label, reward, ok], stagger = \
+        [features, action, label, reward, ok] = \
                 SplitIntoChunks([features, action, label,
                     reward, ok],
-                example, self.num_frames, step_size=self.partition_step_size,
+                example, self.num_frames,
                 front_padding=True,
-                rear_padding=False,
-                stagger=True,)
-        [next_features, next_action, next_label, next_reward, next_ok] = stagger
+                rear_padding=False,)
+
+        raise RuntimeError('this example needs to be updated -- staggered data')
         ok = np.expand_dims(ok, -1)
         next_ok = np.expand_dims(next_ok, -1)
         print "-------------"

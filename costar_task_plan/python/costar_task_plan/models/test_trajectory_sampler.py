@@ -79,19 +79,13 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
         print action.shape
         print state.shape
 
-        """
-        [features, state, action, example, trace, reward] = \
-                SplitIntoChunks([features, state, action, example, trace,
-                    reward],
-                example, self.trajectory_length, step_size=10, padding=True,)
-        """
         state = state[:,:2]
         orig_features = features
         orig_state = state
         [features, state, action, example, label, reward] = \
                 SplitIntoChunks([features, state, action, example, label,
                     reward],
-                example, self.trajectory_length, step_size=10,
+                example, self.trajectory_length,
                 front_padding=False,
                 rear_padding=True,)
 

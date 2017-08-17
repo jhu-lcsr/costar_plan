@@ -109,13 +109,12 @@ class RobotMultiTCNRegression(AbstractAgentBasedModel):
         trajectory.
         '''
 
-        [features, arm, gripper, arm_cmd, gripper_cmd], stagger = \
+        [features, arm, gripper, arm_cmd, gripper_cmd] = \
                 SplitIntoChunks(
                         datasets=[features, arm, gripper, arm_cmd, gripper_cmd],
                         labels=example,
                         reward=None,
                         chunk_length=self.num_frames,
-                        step_size=2,
                         front_padding=False,
                         rear_padding=True)
 
