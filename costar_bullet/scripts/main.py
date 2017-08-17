@@ -34,9 +34,7 @@ def main(args):
     if 'model' in args and args['model'] is not None:
         model = MakeModel(taskdef=env.task, **args)
         if 'load_model' in args and args['load_model']:
-            model.load(env.world, args['load_model'])
-        if '--load' in args and args['load']:
-            print "loading data from file"
+            model.load(env.world)
         try:
             model.train(**agent.data)
         except KeyboardInterrupt, e:

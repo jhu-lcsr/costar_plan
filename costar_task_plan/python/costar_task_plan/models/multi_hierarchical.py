@@ -59,12 +59,6 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 (arm_cmd, gripper_cmd),
                 label)
 
-    def _numLabels(self):
-        '''
-        Use the taskdef to get total number of labels
-        '''
-        return self.taskdef.numActions()
-
     def _makePolicy(self, features, action, hidden=None):
         '''
         We need to use the task definition to create our high-level model, and
@@ -88,8 +82,6 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         gripper_out = Dense(gripper_size)(x)
 
         policy = Model(self.supervisor.inputs, [arm_out, gripper_out])
-        optimizer = self.getOptimizer()
-        policy.compile(loss="mse", optimizer=optimizer)
 
         return policy
 
@@ -183,9 +175,6 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         label_out = Dense(self._numLabels(), activation="sigmoid")(x)
 
         supervisor = Model(ins[:3], [label_out])
-        supervisor.compile(
-                loss=["binary_crossentropy"],
-                optimizer=self.getOptimizer())
 
         enc_with_option_flat = Flatten()(enc_with_option)
         decoder = Model([rep], dec, name="action_image_goal_decoder")
@@ -199,9 +188,6 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 gripper_out,
                 next_frame_decoder(enc_with_option_flat)]
         predictor = Model(ins, features_out)
-        predictor.compile(
-                loss=["mse","mse","mse", "mse"],
-                optimizer=self.getOptimizer())
 
         return Flatten()(enc), supervisor, predictor
 
@@ -209,7 +195,10 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         if self.show_iter > 0:
             fig, axes = plt.subplots(5, 5,)
 
-        self.predictor.trainable = True
+        self._unfixWeights()
+        self.predictor.compile(
+                loss="mse",
+                optimizer=self.getOptimizer())
         self.predictor.summary()
 
         for i in xrange(self.iter):
@@ -225,34 +214,39 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
             print "Iter %d: loss ="%(i),losses
             if self.show_iter > 0 and (i+1) % self.show_iter == 0:
-                data = self.predictor.predict(features[0:5])
-                for j in xrange(5):
-                    jj = j * 5
-                    ax = axes[1][j]
-                    ax.imshow(np.squeeze(data[0][jj]))
-                    ax.axis('off')
-                    ax = axes[4][j]
-                    ax.imshow(np.squeeze(data[3][jj]))
-                    ax.axis('off')
-                    ax = axes[0][j]
-                    ax.imshow(np.squeeze(features[0][jj]))
-                    ax.axis('off')
-                    ax = axes[2][j]
-                    ax.imshow(np.squeeze(targets[0][jj]))
-                    ax.axis('off')
-                    
-                    q0 = features[1][jj]
-                    q = data[1][j]
-                    q1 = targets[1][jj]
-                    ax = axes[3][j]
-                    ax.bar(np.arange(6),q0,1./3.,color='b')
-                    ax.bar(np.arange(6)+1./3.,q,1./3.,color='r')
-                    ax.bar(np.arange(6)+2./3.,q1,1./3.,color='g')
+                self.plotInfo(features, targets, axes)
 
-                plt.ion()
-                plt.tight_layout()
-                plt.show(block=False)
-                plt.pause(0.01)
+        self._fixWeights()
+
+    def plotInfo(self, features, targets, axes):
+            data = self.predictor.predict(features[0:5])
+            for j in xrange(5):
+                jj = j * 5
+                ax = axes[1][j]
+                ax.imshow(np.squeeze(data[0][jj]))
+                ax.axis('off')
+                ax = axes[4][j]
+                ax.imshow(np.squeeze(data[3][jj]))
+                ax.axis('off')
+                ax = axes[0][j]
+                ax.imshow(np.squeeze(features[0][jj]))
+                ax.axis('off')
+                ax = axes[2][j]
+                ax.imshow(np.squeeze(targets[0][jj]))
+                ax.axis('off')
+                
+                q0 = features[1][jj]
+                q = data[1][j]
+                q1 = targets[1][jj]
+                ax = axes[3][j]
+                ax.bar(np.arange(6),q0,1./3.,color='b')
+                ax.bar(np.arange(6)+1./3.,q,1./3.,color='r')
+                ax.bar(np.arange(6)+2./3.,q1,1./3.,color='g')
+
+            plt.ion()
+            plt.tight_layout()
+            plt.show(block=False)
+            plt.pause(0.01)
 
 
     def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
@@ -323,15 +317,32 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 plt.imshow(goal_features[i*5,1])
             plt.show()
 
-        #self._makeModel(features, arm, gripper, arm_cmd,
-        #        gripper_cmd, action_labels, *args, **kwargs)
-        self._makeModel(I, q, g, qa, ga, oin, *args, **kwargs)
+        if self.supervisor is None:
+            self._makeModel(I, q, g, qa, ga, oin, *args, **kwargs)
 
         # Fit the main models
         self._fitPredictor(
                 [I, q, g, oin],
                 [I_target, q_target, g_target, Inext_target])
+
+        # ===============================================
+        fig, axes = plt.subplots(5, 5,)
+        self.plotInfo(
+                [I, q, g, oin],
+                [I_target, q_target, g_target, Inext_target],
+                axes,
+                )
+
         self._fitSupervisor([I, q, g], o_target)
+
+        fig, axes = plt.subplots(5, 5,)
+        self.plotInfo(
+                [I, q, g, oin],
+                [I_target, q_target, g_target, Inext_target],
+                axes,
+                )
+        plt.show()
+        # ===============================================
 
         action_target = [qa, ga]
         self._fitPolicies([I, q, g], action_labels, action_target)
