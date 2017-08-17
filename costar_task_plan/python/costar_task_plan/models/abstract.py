@@ -222,7 +222,6 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
             self.policies.append(self._makePolicy(features, action, hidden))
 
     def _fitSupervisor(self, features, label):
-        #self.supervisor.fit([features, prev_label], [label])
         '''
         Fit a high-level policy that tells us which low-level action we could
         be taking at any particular time.
@@ -280,13 +279,10 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         '''
         Can be different for every set of features so...
         '''
-        self._unfixWeights()
-        self.predictor.compile(
-                loss="mse",
-                optimizer=self.getOptimizer())
+        #self._unfixWeights()
         self.predictor.summary()
         self.predictor.fit(features, targets)
-        self._fixWeights()
+        #self._fixWeights()
 
     def _fitBaseline(self, features, action):
         self._fixWeights()
@@ -298,10 +294,10 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         '''
         Save to a filename determined by the "self.name" field.
         '''
-        if self.supervisor is not None:
+        if self.predictor is not None:
             print "saving to " + self.name
             self.predictor.save_weights(self.name + "_predictor.h5f")
-            self.supervisor.save_weights(self.name + "_supervisor.h5f")
+            #self.supervisor.save_weights(self.name + "_supervisor.h5f")
             self.baseline.save_weights(self.name + "_baseline.h5f")
             for i, policy in enumerate(self.policies):
                 policy.save_weights(self.name + "_policy%02d.h5f"%i)
@@ -313,14 +309,14 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         Load model weights. This is the default load weights function; you may
         need to overload this for specific models.
         '''
-        if self.supervisor is not None:
+        if self.predictor is not None:
             print "----------------------------"
             print "using " + self.name + " to load"
             print self.supervisor.summary()
             self.baseline.load_weights(self.name + "_baseline.h5f")
             for i, policy in enumerate(self.policies):
                 policy.load_weights(self.name + "_policy%02d.h5f"%i)
-            self.supervisor.load_weights(self.name + "_supervisor.h5f")
+            #self.supervisor.load_weights(self.name + "_supervisor.h5f")
             self.predictor.load_weights(self.name + "_predictor.h5f")
         else:
             raise RuntimeError('_loadWeights() failed: model not found.')

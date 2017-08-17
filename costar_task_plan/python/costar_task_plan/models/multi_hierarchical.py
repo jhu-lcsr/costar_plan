@@ -11,6 +11,7 @@ from keras.layers import Input, RepeatVector, Reshape
 from keras.layers import UpSampling2D, Conv2DTranspose
 from keras.layers import BatchNormalization, Dropout
 from keras.layers import Dense, Conv2D, Activation, Flatten
+from keras.layers.pooling import MaxPooling2D
 from keras.layers.merge import Concatenate
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
@@ -76,7 +77,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         
 
         x = Conv2D(self.img_num_filters/4,
-                kernel_size=[5,5], 
+                kernel_size=[3,3], 
                 strides=(2, 2),
                 padding='same')(hidden)
         x = Dropout(self.dropout_rate)(x)
@@ -112,7 +113,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 dropout=False,
                 pre_tiling_layers=0,
                 post_tiling_layers=3,
-                kernel_size=[5,5],
+                kernel_size=[3,3],
                 dense=False,
                 tile=True,
                 option=None,#self._numLabels(),
@@ -126,9 +127,9 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         option_in = Input((self._numLabels(),))
         option = Reshape([1,1,self._numLabels()])(option_in)
         option = Lambda(lambda x: K.tile(x, tile_shape))(option)
-        enc_with_option = Concatenate(axis=-1)([enc,option])
+        enc_with_option = Concatenate(axis=-1,name="add_option")([enc,option])
         enc_with_option = Conv2D(self.img_num_filters,
-                kernel_size=[5,5], 
+                kernel_size=[3,3], 
                 strides=(1, 1),
                 padding='same')(enc_with_option)
         ins.append(option_in)
@@ -138,7 +139,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                             arm_size,
                             gripper_size,
                             dropout_rate=self.dropout_rate,
-                            kernel_size=[5,5],
+                            kernel_size=[3,3],
                             filters=self.img_num_filters,
                             stride2_layers=3,
                             stride1_layers=0,
@@ -151,7 +152,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                             arm_size,
                             gripper_size,
                             dropout_rate=self.dropout_rate,
-                            kernel_size=[5,5],
+                            kernel_size=[3,3],
                             filters=self.img_num_filters,
                             stride2_layers=3,
                             stride1_layers=0,
@@ -163,25 +164,21 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         # Predict the next joint states and gripper position. We add these back
         # in from the inputs once again, in order to make sure they don't get
         # lost in all the convolution layers above...
-        x = Conv2D(self.img_num_filters/2,
-                kernel_size=[5,5], 
-                strides=(2, 2),
-                padding='same')(enc_with_option)
+        x = MaxPooling2D(pool_size=(2,2),name="shrink_embedding")(enc)
         x = Flatten()(x)
         x = Concatenate()([x, ins[1], ins[2]])
-        x = Dense(self.combined_dense_size)(x)
+        x = Dense(self.combined_dense_size,name="option_goal_dense")(x)
         x = Dropout(self.dropout_rate)(x)
         x = LeakyReLU(0.2)(x)
         arm_out = Dense(arm_size,name="action_arm_goal")(x)
         gripper_out = Dense(gripper_size,name="action_gripper_goal")(x)
+        label_out = Dense(self._numLabels(), activation="sigmoid")(x)
 
+        """
         # =====================================================================
         # SUPERVISOR
         # Predict the next option -- does not depend on option
-        x = Conv2D(self.img_num_filters/4,
-                kernel_size=[5,5], 
-                strides=(2, 2),
-                padding='same')(enc)
+        x = MaxPooling2D(pool_size=(2,2),name="shrink_embedding")(enc)
         x = Dropout(self.dropout_rate)(x)
         x = LeakyReLU(0.2)(x)
         x = Flatten()(x)
@@ -189,7 +186,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         x = Dropout(self.dropout_rate)(x)
         x = LeakyReLU(0.2)(x)
         label_out = Dense(self._numLabels(), activation="sigmoid")(x)
-
+        """
         supervisor = Model(ins[:3], [label_out])
 
         enc_with_option_flat = Flatten()(enc_with_option)
@@ -202,8 +199,12 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 decoder(enc_with_option_flat),
                 arm_out,
                 gripper_out,
+                label_out,
                 next_frame_decoder(enc_with_option_flat)]
         predictor = Model(ins, features_out)
+        predictor.compile(
+                loss=["mse","mse","mse","binary_crossentropy", "mse"],
+                optimizer=self.getOptimizer())
 
         return enc, supervisor, predictor
 
@@ -242,7 +243,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 ax.imshow(np.squeeze(data[0][jj]))
                 ax.axis('off')
                 ax = axes[4][j]
-                ax.imshow(np.squeeze(data[3][jj]))
+                ax.imshow(np.squeeze(data[4][jj]))
                 ax.axis('off')
                 ax = axes[0][j]
                 ax.imshow(np.squeeze(features[0][jj]))
@@ -336,7 +337,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         # Fit the main models
         self._fitPredictor(
                 [I, q, g, oin],
-                [I_target, q_target, g_target, Inext_target])
+                [I_target, q_target, g_target, o_target, Inext_target])
 
         # ===============================================
         # Might be useful if you start getting shitty results... one problem we
@@ -348,7 +349,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         #        [I_target, q_target, g_target, Inext_target],
         #        axes,
         #        )
-        self._fitSupervisor([I, q, g], o_target)
+        #self._fitSupervisor([I, q, g], o_target)
         # ===============================================
 
         action_target = [qa, ga]
