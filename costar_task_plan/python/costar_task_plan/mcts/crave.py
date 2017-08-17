@@ -58,5 +58,5 @@ def ContinuousRaveScore(AbstractScore):
   Update everything in the tree
   '''
 
-    def hook(self, root):
+    def _update_environment(self, root):
         pass

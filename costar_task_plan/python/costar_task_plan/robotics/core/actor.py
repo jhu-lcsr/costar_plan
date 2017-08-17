@@ -72,7 +72,7 @@ class CostarAction(AbstractAction):
 
 # This actor represents a robot in the world.
 # It's mostly defined by its config -- most of the actual logic that uses this
-# is defined in the world's hook() function that gets called after every
+# is defined in the world's _update_environment() function that gets called after every
 # update.
 
 
