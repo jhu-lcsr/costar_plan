@@ -17,7 +17,7 @@ class AbstractAgentBasedModel(object):
     def __init__(self, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
             clipnorm=100, show_iter=0, pretrain_iter=5,
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
-            task=None, robot=None, model="", *args,
+            task=None, robot=None, model="", taskdef=None, *args,
             **kwargs):
 
         if lr == 0 or lr < 1e-30:
@@ -40,11 +40,12 @@ class AbstractAgentBasedModel(object):
         self.robot = robot
         self.name = "%s_%s"%(model, self.model_descriptor)
         self.clipnorm = clipnorm
+        self.taskdef = taskdef
         if self.task is not None:
             self.name += "_%s"%self.task
         if self.features is not None:
             self.name += "_%s"%self.features
-        
+
         # default: store the whole model here.
         # NOTE: this may not actually be where you want to save it.
         self.model = None
@@ -68,6 +69,15 @@ class AbstractAgentBasedModel(object):
         print "Learning Rate = ", self.lr
         print "Clip Norm = ", self.clipnorm
         print "==========================================================="
+
+    def _numLabels(self):
+        '''
+        Use the taskdef to get total number of labels
+        '''
+        if self.taskdef is None:
+            raise RuntimeError('must provide a task definition including' + \
+                               'all actions and descriptions.')
+        return self.taskdef.numActions()
 
     def train(self, agent, *args, **kwargs):
         raise NotImplementedError('train() takes an agent.')
@@ -99,10 +109,6 @@ class AbstractAgentBasedModel(object):
             kwargs[k] = np.array([v])
         self._makeModel(**kwargs)
         self._loadWeights()
-
-    def _numLabels(self):
-        raise NotImplementedError('_numLabels() should return number ' + \
-                                  'of actions')
 
     def _makeModel(self, *args, **kwargs):
         '''
@@ -180,7 +186,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
 
         self.predictor = None
         self.supervisor = None
-    
+
     def _makeSupervisor(self, feature):
         '''
         This needs to create a supervisor. This one maps from input to the
@@ -202,8 +208,9 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         assert num_labels == self._numLabels()
         hidden, self.supervisor, self.predictor = \
             self._makeSupervisor(features)
+        hidden.trainable = False
 
-        
+
         # Learn a baseline for comparisons and whatnot
         self.baseline = self._makePolicy(features, action, hidden)
 
@@ -220,8 +227,10 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         Fit a high-level policy that tells us which low-level action we could
         be taking at any particular time.
         '''
-        if self.predictor is not None:
-            self.predictor.trainable = False
+        self._fixWeights()
+        self.supervisor.compile(
+                loss="binary_crossentropy",
+                optimizer=self.getOptimizer())
         self.supervisor.summary()
         self.supervisor.fit(features, [label], epochs=self.epochs)
 
@@ -232,12 +241,13 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         # Divide up based on label
         idx = np.argmax(np.squeeze(label[:,-1,:]),axis=-1)
 
-        if self.predictor:
-            self.predictor.trainable = False
-
-        self.baseline.summary()
+        self._fixWeights()
 
         for i, model in enumerate(self.policies):
+
+            optimizer = self.getOptimizer()
+            model.compile(loss="mse", optimizer=optimizer)
+
             # select data for this model
             if isinstance(features, list):
                 x = [f[idx==i] for f in features]
@@ -256,15 +266,32 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
                     continue
             model.fit(x, a, epochs=self.epochs)
 
+    def _fixWeights(self):
+        self.predictor.trainable = False
+        for layer in self.predictor.layers:
+            layer.trainable = False
+
+    def _unfixWeights(self):
+        self.predictor.trainable = True
+        for layer in self.predictor.layers:
+            layer.trainable = True
+
     def _fitPredictor(self, features, targets):
         '''
         Can be different for every set of features so...
         '''
+        self._unfixWeights()
+        self.predictor.compile(
+                loss="mse",
+                optimizer=self.getOptimizer())
+        self.predictor.summary()
         self.predictor.fit(features, targets)
+        self._fixWeights()
 
     def _fitBaseline(self, features, action):
-        if self.predictor:
-            self.predictor.trainable = False
+        self._fixWeights()
+        self.baseline.compile(loss="mse", optimizer=self.getOptimizer())
+        self.baseline.summary()
         self.baseline.fit(features, action, epochs=self.epochs)
 
     def save(self):
@@ -273,6 +300,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         '''
         if self.supervisor is not None:
             print "saving to " + self.name
+            self.predictor.save_weights(self.name + "_predictor.h5f")
             self.supervisor.save_weights(self.name + "_supervisor.h5f")
             self.baseline.save_weights(self.name + "_baseline.h5f")
             for i, policy in enumerate(self.policies):
@@ -289,13 +317,11 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
             print "----------------------------"
             print "using " + self.name + " to load"
             print self.supervisor.summary()
-            #print args
-            #weight_location = args.load_model.name
-            #self.model.load_weights(weight_location)
-            self.supervisor.load_weights(self.name + "_supervisor.h5f")
             self.baseline.load_weights(self.name + "_baseline.h5f")
             for i, policy in enumerate(self.policies):
                 policy.load_weights(self.name + "_policy%02d.h5f"%i)
+            self.supervisor.load_weights(self.name + "_supervisor.h5f")
+            self.predictor.load_weights(self.name + "_predictor.h5f")
         else:
             raise RuntimeError('_loadWeights() failed: model not found.')
 
@@ -315,7 +341,27 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         res = self.supervisor.predict(features)
         next_policy = np.argmax(res)
 
-        print "next policy = ", next_policy
+        print "next policy = ", next_policy,
+        if self.taskdef is not None:
+            print self.taskdef.name(next_policy)
+        else:
+            print ""
+        one_hot = np.zeros((1,self._numLabels()))
+        one_hot[0,next_policy] = 1.
+        features2 = features + [one_hot]
+
+        # ===============================================
+        # INTERMEDIATE CODE PLEASE REMOVE
+        res = self.predictor.predict(features2)
+        import matplotlib.pyplot as plt
+        plt.subplot(2,1,1)
+        plt.imshow(features[0][0])
+        plt.subplot(2,1,2)
+        plt.imshow(res[0][0])
+        plt.ion()
+        plt.show(block=False)
+        plt.pause(0.01)
+        # ===============================================
 
         # Retrieve the next policy we want to execute
         policy = self.policies[next_policy]
