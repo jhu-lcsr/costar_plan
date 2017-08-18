@@ -23,7 +23,15 @@ Mode specialized information:
 
 ## Getting started
 
-Follow the [installation guide](docs/install.md) and then try running the simulation on your own. The easiest way to do this is through IPython.
+First follow the [installation guide](docs/install.md) and then try running the simulation on your own. There are two ways of doing this: interactively, through `ipython`, or via the `costar_bullet` tool.
+
+You can see the available parameters for `costar_bullet` with the command:
+
+```
+rosrun costar_bullet start --help
+```
+
+The easiest way to get started with an environment you can interact with is through `ipython`. You can use the following sample code to bring up the robot with the simple "blocks" task.
 
 ```
 import costar_task_plan as ctp
