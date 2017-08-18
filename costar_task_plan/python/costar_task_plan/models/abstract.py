@@ -14,10 +14,10 @@ class AbstractAgentBasedModel(object):
     will also provide the model with a way to collect data or whatever.
     '''
 
-    def __init__(self, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
+    def __init__(self, taskdef=None, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
             clipnorm=100, show_iter=0, pretrain_iter=5,
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
-            task=None, robot=None, model="", taskdef=None, *args,
+            task=None, robot=None, model="", *args,
             **kwargs):
 
         if lr == 0 or lr < 1e-30:
@@ -180,8 +180,8 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
     being executed; it takes in 0 if no action has been performed yet.
     '''
 
-    def __init__(self, *args, **kwargs):
-        super(HierarchicalAgentBasedModel, self).__init__(*args, **kwargs)
+    def __init__(self, taskdef, *args, **kwargs):
+        super(HierarchicalAgentBasedModel, self).__init__(taskdef, *args, **kwargs)
         self.num_actions = 0
 
         self.predictor = None
@@ -189,6 +189,8 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
 
         self.predict_goal = None
         self.predict_next = None
+
+        self.prev_option = np.zeros((1,self._numLabels()))
 
     def _makeSupervisor(self, feature):
         '''
@@ -337,13 +339,13 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         '''
         features = world.initial_features #getHistoryMatrix()
         if isinstance(features, list):
-            assert len(features) == len(self.supervisor.inputs)
+            assert len(features) == len(self.supervisor.inputs) - 1
         else:
             features = [features]
         if self.supervisor is None:
             raise RuntimeError('high level model is missing')
         features = [f.reshape((1,)+f.shape) for f in features]
-        res = self.supervisor.predict(features)
+        res = self.supervisor.predict(features + [self.prev_option])
         next_policy = np.argmax(res)
 
         print "next policy = ", next_policy,

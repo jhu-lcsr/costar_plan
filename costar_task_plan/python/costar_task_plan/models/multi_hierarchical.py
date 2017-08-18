@@ -41,8 +41,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         As in the other models, we call super() to parse arguments from the
         command line and set things like our optimizer and learning rate.
         '''
-        super(RobotMultiHierarchical, self).__init__(*args, **kwargs)
-        self.taskdef = taskdef
+        super(RobotMultiHierarchical, self).__init__(taskdef, *args, **kwargs)
 
         self.num_frames = 1
 
@@ -89,7 +88,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         arm_out = Dense(arm_size)(x)
         gripper_out = Dense(gripper_size)(x)
 
-        policy = Model(self.supervisor.inputs, [arm_out, gripper_out])
+        policy = Model(self.supervisor.inputs[:3], [arm_out, gripper_out])
 
         return policy
 
