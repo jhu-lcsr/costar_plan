@@ -137,7 +137,7 @@ class GraspSegmentationFeatures(AbstractFeatures):
             # print("actor type:", str(type(world.actors[oid])))
             obj = world.actors[oid].getState()
             object_translation_rotation += [obj.T.p, obj.T.M.GetQuaternion()]
-            camera_ray_to += [[obj.T.p[0], obj.T.p[1], obj.T.p[2]]]
+            camera_ray_to += [x in obj.T.p]
 
         # print("lengths: ", len(camera_ray_from), len(camera_ray_to))
         object_surface_points = []
@@ -153,5 +153,5 @@ class GraspSegmentationFeatures(AbstractFeatures):
 
     @property
     def description(self):
-        return ["object_translation_rotation", "arm", "gripper", "camera"]
+        return ["object_translation_rotation", "arm", "gripper", "camera", "camera_to_object_surface_points"]
 
