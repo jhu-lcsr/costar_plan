@@ -123,7 +123,8 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         tile_width = img_shape[0]/(2**3)
         tile_height = img_shape[1]/(2**3)
         tile_shape = (1, tile_width, tile_height, 1)
-        option_in = Input((self._numLabels(),))
+        option_in = Input((self._numLabels(),),name="chosen_option_in")
+        prev_option_in = Input((self._numLabels(),),name="prev_option_in")
         option = Reshape([1,1,self._numLabels()])(option_in)
         option = Lambda(lambda x: K.tile(x, tile_shape))(option)
 
@@ -184,10 +185,14 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         # =====================================================================
         # SUPERVISOR
         # Predict the next option -- does not depend on option
+        prev_option = Reshape([1,1,self._numLabels()])(prev_option_in)
+        prev_option = Lambda(lambda x: K.tile(x, tile_shape))(prev_option)
+        x = Concatenate(axis=-1,name="add_prev_option_to_supervisor")(
+                [prev_option, enc])
         x = Conv2D(self.img_num_filters/4,
                 kernel_size=[5,5], 
                 strides=(2, 2),
-                padding='same')(enc)
+                padding='same')(x)
         x = Dropout(self.dropout_rate)(x)
         x = LeakyReLU(0.2)(x)
         x = Flatten()(x)
@@ -211,7 +216,10 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 next_frame_decoder(enc_with_option_flat)]
         predictor = Model(ins, features_out)
 
-        return enc, supervisor, predictor
+        predict_goal = Model(ins, features_out[:3],)
+        predict_next = Model(ins, features_out[3])
+
+        return enc, supervisor, predictor, predict_goal, predict_next
 
     def _fitPredictor(self, features, targets):
         if self.show_iter > 0:
@@ -307,7 +315,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         g = np.squeeze(gripper[:,1:-1])
         qa = np.squeeze(arm_cmd[:,1:-1])
         ga = np.squeeze(gripper_cmd[:,1:-1])
-        #oin = np.squeeze(action_labels[:,:self.num_frames])
+        o_prev = np.squeeze(action_labels[:,:self.num_frames])
         oin = np.squeeze(action_labels[:,1:-1])
         o_target = np.squeeze(action_labels[:,1:-1])
         Inext_target = np.squeeze(features[:,2:])
@@ -354,7 +362,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         #        [I_target, q_target, g_target, Inext_target],
         #        axes,
         #        )
-        self._fitSupervisor([I, q, g], o_target)
+        self._fitSupervisor([I, q, g, o_prev], o_target)
         # ===============================================
 
         action_target = [qa, ga]

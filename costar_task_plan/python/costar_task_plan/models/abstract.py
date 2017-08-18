@@ -187,6 +187,9 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         self.predictor = None
         self.supervisor = None
 
+        self.predict_goal = None
+        self.predict_next = None
+
     def _makeSupervisor(self, feature):
         '''
         This needs to create a supervisor. This one maps from input to the
@@ -206,10 +209,13 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         '''
         num_labels = label.shape[-1]
         assert num_labels == self._numLabels()
-        hidden, self.supervisor, self.predictor = \
-            self._makeSupervisor(features)
-        hidden.trainable = False
+        hidden, self.supervisor, self.predictor, \
+                self.predict_goal, self.predict_next = \
+                self._makeSupervisor(features)
 
+        # These are the outputs to other layers -- this is the hidden world
+        # state.
+        hidden.trainable = False
 
         # Learn a baseline for comparisons and whatnot
         self.baseline = self._makePolicy(features, action, hidden)
