@@ -151,6 +151,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                             dropout=False,
                             leaky=True,
                             dense=False,
+                            option=self._numLabels(),
                             batchnorm=True,)
         rep2, dec2 = GetDecoder(self.img_col_dim,
                             img_shape,
@@ -164,6 +165,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                             dropout=False,
                             leaky=True,
                             dense=False,
+                            option=self._numLabels(),
                             batchnorm=True,)
 
         # Predict the next joint states and gripper position. We add these back
@@ -203,16 +205,16 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         supervisor = Model(ins[:3] + [prev_option_in], [label_out])
 
         enc_with_option_flat = Flatten()(enc_with_option)
-        decoder = Model([rep], dec, name="action_image_goal_decoder")
+        decoder = Model(rep, dec, name="action_image_goal_decoder")
         next_frame_decoder = Model(
-                [rep2],
+                rep2,
                 dec2,
                 name="action_next_image_decoder")
         features_out = [
-                decoder(enc_with_option_flat),
+                decoder([enc_with_option_flat,option_in]),
                 arm_out,
                 gripper_out,
-                next_frame_decoder(enc_with_option_flat)]
+                next_frame_decoder([enc_with_option_flat, option_in])]
         predictor = Model(ins, features_out)
 
         predict_goal = Model(ins, features_out[:3],)
