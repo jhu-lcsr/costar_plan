@@ -13,10 +13,10 @@ For some more information on the structure of the task planner package, check ou
 Contents:
   - [Installation Guide](docs/install.md)
   - [Docker Instructions](docs/docker_instructions.md)
-  - [User Manual](docs/user_manual.md): for getting started with the `costar_bullet` tool
+  - [costar_bullet quick start](docs/costar_bullet.md): How to run tasks, generate datasets, train models, and extend costar_bullet with your own components.
   - [Design Overview](docs/design.md): for some high-level design choices related to the planning code
-  - [Machine Learning with CTP](docs/learning.md): use command line tool to train models
-  - [Task Learning with CTP](docs/task_learning.md): predictive models and other tools
+  - [Machine Learning Models](docs/learning.md): Available models and using the command line tool to train them
+  - [Creating and training a custom task](docs/task_learning.md): defining a task, training predictive models and other tools
 
 Mode specialized information:
   - [Adding a robot to the ROS code](docs/add_a_robot): NOT using Bullet sim
@@ -31,7 +31,8 @@ You can see the available parameters for `costar_bullet` with the command:
 rosrun costar_bullet start --help
 ```
 
-The easiest way to get started with an environment you can interact with is through `ipython`. You can use the following sample code to bring up the robot with the simple "blocks" task.
+The easiest way to get started using line by line interactive programming is with either `ipython`
+or the [xonsh shell](http://xon.sh). You can use the following sample code to bring up the robot with the simple "blocks" task.
 
 ```
 import costar_task_plan as ctp
@@ -106,66 +107,6 @@ You can run this with the `-h` or `--help` flag to get a list of potential argum
 rosrun costar_bullet start --robot ur5_2_finger --task blocks --gui
 ```
 To bring up the standard CoSTAR UR5 with Robotiq 85 gripper, a block-stacking task, and a basic Bullet GUI to see things.
-
-## Extending `costar_bullet` with new components
-
-[Task Learning with CTP](docs/task_learning.md) shows how to use predictive models and other tools, this section is about how to integrate your own.
-
-TODO(cpaxton) fill in the Exending costar bullet section
-
-### Overview
-
-#### Key source files
-
-`costar_plan/costar_task_plan/python/costar_task_plan/`:
-**abstract**
-
-**agent**
- - agent/ff.py
-    - Main training loop
-
-**backend**
-
-**datasets**
-
-**grid_world**
-
-**gym**
-
-**mcts**
-
-**models**
-this is where you create new learning models and algorithms that complete the specified tasks
-
-**needle_master**
-
-**robotics**
-
-**simulation**
-- /simulation/parse.py
-    - Add new command line arguments to `costar_bullet`
-- /simulation/option.py
-- /simulation/world.py
-    - Create world and access simulation world state
-- simulation/features.py
-    - Feature data like depth image, color image, arm joint angles, etc
-    - Extracts feature data from the world for use in algorithms
-    
-**tools**
-
-**trainers**
-
-
-### Feature Creation
-
-#### Adding a feature to existing models
-
-### Model Creation
-
-
-### Task Creation
-
-### Integrating a Task, Model, and Features
 
 ## Contact
 
