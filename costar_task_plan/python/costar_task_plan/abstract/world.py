@@ -85,6 +85,11 @@ class AbstractWorld(object):
     '''
     desc = self.features.description
     if isinstance(features, tuple) or isinstance(features, list):
+        if len(desc) != len(features):
+              raise ValueError("The list of feature descriptions differs from the "
+                               "actual length of the features received, "
+                               "check your code between feature creation and this error "
+                               "for differences.")
         assert len(desc) ==  len(features)
         data = zip(self.features.description, features)
     else:
