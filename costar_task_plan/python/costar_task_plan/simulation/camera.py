@@ -4,7 +4,7 @@ import pybullet as pb
 from collections import namedtuple
 
 ImageData = namedtuple(
-    'ImageData', ['name', 'rgb', 'depth', 'mask'], verbose=False)
+    'ImageData', ['name', 'rgb', 'depth', 'mask', 'camera_view_matrix', 'camera_projection_matrix'], verbose=False)
 
 
 class Camera(object):
@@ -54,4 +54,5 @@ class Camera(object):
             self.image_width, self.image_height,
             viewMatrix=self.matrix,
             projectionMatrix=self.projection_matrix)
-        return ImageData(self.name, rgb / 255., depth, mask)
+        # TODO(ahundt) remove division in rgb / 255.
+        return ImageData(self.name, rgb / 255., depth, mask, self.matrix, self.projection_matrix)
