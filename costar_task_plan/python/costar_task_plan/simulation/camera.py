@@ -1,4 +1,4 @@
-
+import numpy as np
 import pybullet as pb
 
 from collections import namedtuple
@@ -35,19 +35,19 @@ class Camera(object):
         definitions should produce these and
         '''
         self.name = name
-        self.matrix = pb.computeViewMatrixFromYawPitchRoll(
-            target, distance, yaw=yaw, pitch=pitch, roll=roll, upAxisIndex=up_idx)
+        self.matrix = np.array(pb.computeViewMatrixFromYawPitchRoll(
+            target, distance, yaw=yaw, pitch=pitch, roll=roll, upAxisIndex=up_idx))
         self.image_height = image_height
         self.image_width = image_width
         self.aspect_ratio = self.image_width / self.image_height
         self.fov = fov
         self.near_plane = near_plane
         self.far_plane = far_plane
-        self.projection_matrix = pb.computeProjectionMatrixFOV(
+        self.projection_matrix = np.array(pb.computeProjectionMatrixFOV(
             self.fov,
             self.aspect_ratio,
             self.near_plane,
-            self.far_plane)
+            self.far_plane))
 
     def capture(self):
         _, _, rgb, depth, mask = pb.getCameraImage(
@@ -55,4 +55,5 @@ class Camera(object):
             viewMatrix=self.matrix,
             projectionMatrix=self.projection_matrix)
         # TODO(ahundt) remove division in rgb / 255.
+        # TODO(ahundt)
         return ImageData(self.name, rgb / 255., depth, mask, self.matrix, self.projection_matrix)

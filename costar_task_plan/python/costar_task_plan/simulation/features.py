@@ -108,6 +108,10 @@ class GraspSegmentationFeatures(AbstractFeatures):
     object_surface_points is where a ray cast from the camera to the object struck the first
     surface. If the ray never hit any surface
 
+    Creating a test dataset:
+
+    `rosrun costar_bullet start --robot ur5 --task blocks --agent task  --features grasp_segmentation --save -i 10 --data_file small.npz`
+
     This also represents all objects in the world as a single vector. This
     means that we need to have a constant size world, where we always have the
     same objects in the same order.
@@ -116,21 +120,30 @@ class GraspSegmentationFeatures(AbstractFeatures):
     def compute(self, world, state):
         import pybullet as pb
         object_translation_rotation = []
+        # camera.py ImageData namedtuple
         image_data = world.cameras[0].capture()
         # 'camera_view_matrix' namedtuple index is 4
         # TODO(ahundt) ensure camera matrix translation component is from world origin to camera origin
         # camera ray is from the origin of the camera
-        camera_ray_from = [image_data[4][0:2, 3]] * len(world.id_by_object.items())
+        camera_transform_array = np.transpose(image_data[4]).reshape((4, 4))
+        camera_translation = camera_transform_array[0:3, 3].tolist()
+        # print("TEST IMAGEDATA named tuple img matrix: \n", )
+        # print("TEST IMAGEDATA named tuple img matrix translation: ", camera_translation)
+        camera_ray_from = [camera_translation] * len(world.id_by_object.items())
         # camera_ray_to is the center of each object
         camera_ray_to = []
-        for i, (name, oid) in enumerate(world.id_by_object.items()):
-            obj = world.actors[oid][0:2, 3]
+        for name, oid in world.id_by_object.items():
+            # print("oid type:", str(type(oid)))
+            # print("actor type:", str(type(world.actors[oid])))
+            obj = world.actors[oid].getState()
             object_translation_rotation += [obj.T.p, obj.T.M.GetQuaternion()]
-            camera_ray_to += obj.T.p
+            camera_ray_to += [[obj.T.p[0], obj.T.p[1], obj.T.p[2]]]
 
+        # print("lengths: ", len(camera_ray_from), len(camera_ray_to))
         object_surface_points = []
+        # TODO(ahundt) allow multiple simulations to run
         raylist = pb.rayTestBatch(camera_ray_from, camera_ray_to)
-        for i, (uid, linkidx, hitfrac, hitpos, hitnormal) in range(raylist):
+        for i, (uid, linkidx, hitfrac, hitpos, hitnormal) in enumerate(raylist):
             if uid is -1:
                 # if the object wasn't hit, use its origin
                 object_surface_points += [world.id_by_object.items()[i].T.p]
