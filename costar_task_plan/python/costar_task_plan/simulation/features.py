@@ -4,7 +4,7 @@ import numpy as np
 
 
 def GetAvailableFeatures():
-    return ['empty', 'null', 'depth', 'rgb', 'joint_state', 'multi']
+    return ['empty', 'null', 'depth', 'rgb', 'joint_state', 'multi', 'grasp_segmentation']
 
 
 def GetFeatures(features):
@@ -20,10 +20,11 @@ def GetFeatures(features):
             'joint_state': JointStateFeatures(),
             'rgb': RgbImageFeatures(),
             'multi': ImagePlusFeatures(),
+            'grasp_segmentation': GraspSegmentationFeatures(),
         }[features]
     except KeyError, e:
         raise NotImplementedError(
-            'Feature function %s not implemented!' % task)
+            'Feature function not implemented: %s', str(e))
 
 
 class EmptyFeatures(AbstractFeatures):
@@ -86,23 +87,28 @@ class RgbImageFeatures(AbstractFeatures):
 class ImagePlusFeatures(AbstractFeatures):
 
     '''
-    Include arm, state, gripper. This set of features is probably the fullest
-    representation of the robot's state.
+    Include arm, state, and gripper features.
     '''
 
     def compute(self, world, state):
         img = world.cameras[0].capture().rgb
-        return [img[:,:,:3], state.arm, state.gripper]
+        return [img[:, :, :3], state.arm, state.gripper]
 
     @property
     def description(self):
         return ["features", "arm", "gripper"]
 
-class WorldPlusFeatures(AbstractFeatures):
+
+class GraspSegmentationFeatures(AbstractFeatures):
 
     '''
-    Include arm, state, gripper. This set of features is probably the fullest
-    representation of the robot's state.
+    This set of features includes data helpful for training segmentation.
+    object_translation_rotation, state.arm, state.gripper, image_data, object_surface_points
+
+    object_surface_points is where a ray cast from the camera to the object struck the first
+    surface. If the ray never hit any surface
+
+    For instructions to use this feature see `segmentation.md`.
 
     This also represents all objects in the world as a single vector. This
     means that we need to have a constant size world, where we always have the
@@ -110,15 +116,40 @@ class WorldPlusFeatures(AbstractFeatures):
     '''
 
     def compute(self, world, state):
-        w = []
+        import pybullet as pb
+        object_translation_rotation = []
+        # camera.py ImageData namedtuple
+        image_data = world.cameras[0].capture()
+        # 'camera_view_matrix' namedtuple index is 4
+        # TODO(ahundt) ensure camera matrix translation component is from world origin to camera origin
+        # camera ray is from the origin of the camera
+        camera_transform_array = np.transpose(image_data[4]).reshape((4, 4))
+        camera_translation = camera_transform_array[0:3, 3].tolist()
+        # print("TEST IMAGEDATA named tuple img matrix: \n", )
+        # print("TEST IMAGEDATA named tuple img matrix translation: ", camera_translation)
+        camera_ray_from = [camera_translation] * len(world.id_by_object.items())
+        # camera_ray_to is the center of each object
+        camera_ray_to = []
         for name, oid in world.id_by_object.items():
-            obj = world.actors[oid]
-            w += list(obj.T.p)
-            w += list(obj.T.M.GetQuaternion())
-        print w
-        return [w, state.arm, state.gripper]
+            # print("oid type:", str(type(oid)))
+            # print("actor type:", str(type(world.actors[oid])))
+            obj = world.actors[oid].getState()
+            object_translation_rotation += [obj.T.p, obj.T.M.GetQuaternion()]
+            camera_ray_to += [x in obj.T.p]
+
+        # print("lengths: ", len(camera_ray_from), len(camera_ray_to))
+        object_surface_points = []
+        # TODO(ahundt) allow multiple simulations to run
+        raylist = pb.rayTestBatch(camera_ray_from, camera_ray_to)
+        for i, (uid, linkidx, hitfrac, hitpos, hitnormal) in enumerate(raylist):
+            if uid is -1:
+                # if the object wasn't hit, use its origin
+                object_surface_points += [world.id_by_object.items()[i].T.p]
+            else:
+                object_surface_points += hitpos
+        return [object_translation_rotation, state.arm, state.gripper, image_data, object_surface_points]
 
     @property
     def description(self):
-        return ["features", "arm", "gripper"]
+        return ["object_translation_rotation", "arm", "gripper", "camera", "camera_to_object_surface_points"]
 
