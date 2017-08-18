@@ -279,10 +279,13 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         '''
         Can be different for every set of features so...
         '''
-        #self._unfixWeights()
+        self._unfixWeights()
+        self.predictor.compile(
+                loss="mse",
+                optimizer=self.getOptimizer())
         self.predictor.summary()
         self.predictor.fit(features, targets)
-        #self._fixWeights()
+        self._fixWeights()
 
     def _fitBaseline(self, features, action):
         self._fixWeights()
@@ -297,7 +300,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         if self.predictor is not None:
             print "saving to " + self.name
             self.predictor.save_weights(self.name + "_predictor.h5f")
-            #self.supervisor.save_weights(self.name + "_supervisor.h5f")
+            self.supervisor.save_weights(self.name + "_supervisor.h5f")
             self.baseline.save_weights(self.name + "_baseline.h5f")
             for i, policy in enumerate(self.policies):
                 policy.save_weights(self.name + "_policy%02d.h5f"%i)
@@ -316,7 +319,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
             self.baseline.load_weights(self.name + "_baseline.h5f")
             for i, policy in enumerate(self.policies):
                 policy.load_weights(self.name + "_policy%02d.h5f"%i)
-            #self.supervisor.load_weights(self.name + "_supervisor.h5f")
+            self.supervisor.load_weights(self.name + "_supervisor.h5f")
             self.predictor.load_weights(self.name + "_predictor.h5f")
         else:
             raise RuntimeError('_loadWeights() failed: model not found.')
