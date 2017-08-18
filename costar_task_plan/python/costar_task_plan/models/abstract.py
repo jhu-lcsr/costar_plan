@@ -190,7 +190,12 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         self.predict_goal = None
         self.predict_next = None
 
-        self.prev_option = np.zeros((1,self._numLabels()))
+        self.prev_option = 0
+        
+    def _makeOption1h(self, option):
+        opt_1h = np.zeros((1,self._numLabels()))
+        opt_1h[0,option] = 1.
+        return opt_1h
 
     def _makeSupervisor(self, feature):
         '''
@@ -345,7 +350,8 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         if self.supervisor is None:
             raise RuntimeError('high level model is missing')
         features = [f.reshape((1,)+f.shape) for f in features]
-        res = self.supervisor.predict(features + [self.prev_option])
+        res = self.supervisor.predict(features +
+                [self._makeOption1h(self.prev_option)])
         next_policy = np.argmax(res)
 
         print "next policy = ", next_policy,
@@ -372,6 +378,10 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
 
         # Retrieve the next policy we want to execute
         policy = self.policies[next_policy]
+
+        # Update previous option -- which one did we end up choosing, and which
+        # policy did we execute?
+        self.prev_option = next_policy
 
         # Evaluate this policy to get the next action out
         return policy.predict(features)
