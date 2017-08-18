@@ -108,9 +108,7 @@ class GraspSegmentationFeatures(AbstractFeatures):
     object_surface_points is where a ray cast from the camera to the object struck the first
     surface. If the ray never hit any surface
 
-    Creating a test dataset:
-
-    `rosrun costar_bullet start --robot ur5 --task blocks --agent task  --features grasp_segmentation --save -i 10 --data_file small.npz`
+    For instructions to use this feature see `segmentation.md`.
 
     This also represents all objects in the world as a single vector. This
     means that we need to have a constant size world, where we always have the
