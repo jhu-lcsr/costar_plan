@@ -13,10 +13,10 @@ For some more information on the structure of the task planner package, check ou
 Contents:
   - [Installation Guide](docs/install.md)
   - [Docker Instructions](docs/docker_instructions.md)
-  - [User Manual](docs/user_manual.md): for getting started with the `costar_bullet` tool
+  - [costar_bullet quick start](docs/costar_bullet.md): How to run tasks, generate datasets, train models, and extend costar_bullet with your own components.
   - [Design Overview](docs/design.md): for some high-level design choices related to the planning code
-  - [Machine Learning with CTP](docs/learning.md): use command line tool to train models
-  - [Task Learning with CTP](docs/task_learning.md): predictive models and other tools
+  - [Machine Learning Models](docs/learning.md): Available models and using the command line tool to train them
+  - [Creating and training a custom task](docs/task_learning.md): defining a task, training predictive models and other tools
 
 Mode specialized information:
   - [Adding a robot to the ROS code](docs/add_a_robot): NOT using Bullet sim
@@ -31,7 +31,8 @@ You can see the available parameters for `costar_bullet` with the command:
 rosrun costar_bullet start --help
 ```
 
-The easiest way to get started with an environment you can interact with is through `ipython`. You can use the following sample code to bring up the robot with the simple "blocks" task.
+The easiest way to get started using line by line interactive programming is with either `ipython`
+or the [xonsh shell](http://xon.sh). You can use the following sample code to bring up the robot with the simple "blocks" task.
 
 ```
 import costar_task_plan as ctp
