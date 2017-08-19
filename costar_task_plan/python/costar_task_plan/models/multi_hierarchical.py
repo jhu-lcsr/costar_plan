@@ -279,14 +279,11 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
             plt.show(block=False)
             plt.pause(0.01)
 
-
-    def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
+    def preprocess(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             example, reward, *args, **kwargs):
         '''
-        Pre-process training data.
-
-        Then, create the model. Train based on labeled data. Remove
-        unsuccessful examples.
+        Adding a preprocess operation. Take whatever was in the data set and
+        convert it into the right format for training.
         '''
         action_labels_num = np.array([self.taskdef.index(l) for l in label])
         action_labels = np.squeeze(self.toOneHot2D(action_labels_num,
@@ -344,6 +341,37 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 plt.axis('off')
                 plt.imshow(goal_features[i*5,1])
             plt.show()
+        return [I, q, g,
+                qa,
+                ga,
+                o_prev,
+                oin,
+                o_target,
+                Inext_target,
+                I_target,
+                q_target,
+                g_target]
+
+
+    def train(self, *args, **kwargs):
+        '''
+        Pre-process training data.
+
+        Then, create the model. Train based on labeled data. Remove
+        unsuccessful examples.
+        '''
+
+        # ================================================
+        [I, q, g,
+                qa,
+                ga,
+                o_prev,
+                oin,
+                o_target,
+                Inext_target,
+                I_target,
+                q_target,
+                g_target] = self.preprocess(*args, **kwargs)
 
         if self.supervisor is None:
             self._makeModel(I, q, g, qa, ga, oin, *args, **kwargs)
