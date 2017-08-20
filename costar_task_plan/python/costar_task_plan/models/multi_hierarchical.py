@@ -63,6 +63,16 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         We need to use the task definition to create our high-level model, and
         we need to use our data to initialize the low level models that will be
         predicting our individual actions.
+
+        Parameters:
+        -----------
+        features: input list of features representing current state. Note that
+                  this is included for completeness in the hierarchical model,
+                  but is not currently used in this implementation (and ideally
+                  would not be).
+        action: input list of action outputs (arm and gripper commands for the
+                robot tasks).
+        hidden: "hidden" embedding of latent world state (input)
         '''
         images, arm, gripper = features
         arm_cmd, gripper_cmd = action
@@ -118,7 +128,10 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 flatten=False,
                 )
 
-        # Tile on the option -- this is where our transition model comes in
+        # Tile on the option -- this is where our transition model comes in.
+        # Options are represented as a one-hot vector added to all possible
+        # positions in the image, and essentially give us _numLabels()
+        # additional image channels.
         tile_width = img_shape[0]/(2**3)
         tile_height = img_shape[1]/(2**3)
         tile_shape = (1, tile_width, tile_height, 1)
@@ -131,8 +144,8 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         enc_with_option = Concatenate(
                 axis=-1,
                 name="add_option_info")([enc,option])
-        # TODO(cpaxton): add more options here
 
+        # TODO(cpaxton): add more options here
         enc_with_option = Conv2D(self.img_num_filters,
                 kernel_size=[3,3], 
                 strides=(1, 1),
@@ -350,7 +363,8 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 Inext_target,
                 I_target,
                 q_target,
-                g_target]
+                g_target,
+                action_labels,]
 
 
     def train(self, *args, **kwargs):
@@ -371,10 +385,11 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 Inext_target,
                 I_target,
                 q_target,
-                g_target] = self.preprocess(*args, **kwargs)
+                g_target,
+                action_labels] = self.preprocess(*args, **kwargs)
 
         if self.supervisor is None:
-            self._makeModel(I, q, g, qa, ga, oin, *args, **kwargs)
+            self._makeModel(I, q, g, qa, ga, oin)
 
         # Fit the main models
         self._fitPredictor(
