@@ -159,6 +159,10 @@ class Task(object):
     for arg_set in arg_sets:
       # List of instantiated options and subtasks, used for connecting children
       # to parents.
+      # "inodes" is the list of instantiated nodes to connect. It is scoped, so
+      # that for any particular set of options/substasks created, they will all
+      # share the same values. This lets us create interesting hierarchical
+      # structures.
       inodes = {}
 
       # create the nodes
@@ -170,7 +174,6 @@ class Task(object):
             inodes = self.mergeTask(option, name, inodes)
         else:
             self._addInstantiatedNode(name, iname, option, inodes)
-            print inodes
 
       # connect nodes and their children
       for name, template in self.option_templates.items():

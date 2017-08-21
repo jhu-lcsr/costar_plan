@@ -101,18 +101,18 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             pose_tolerance=(0.03, 0.025),
             joint_velocity_tolerance=0.05,)
         align_stack_args = {
-            "constructor": AlignOption,
+            "constructor": AlignStackOption,
             "args": ["block"],
             "remap": {"block": "goal"},
         }
         StackOption = lambda goal: GoalDirectedMotionOption(
             self.world,
             goal,
-            pose=((0.0, 0, 0.05), self.grasp_q),
+            pose=((0, 0, 0.05), self.grasp_q),
             pose_tolerance=(0.03, 0.025),
             joint_velocity_tolerance=0.05,)
         stack_args = {
-            "constructor": GraspOption,
+            "constructor": StackOption,
             "args": ["block"],
             "remap": {"block": "goal"},
         }
