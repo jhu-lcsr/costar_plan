@@ -66,7 +66,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         GraspOption = lambda goal: GoalDirectedMotionOption(
             self.world,
             goal,
-            pose=((0.0, 0, 0.0), self.grasp_q),
+            pose=((0.01, 0, 0.0), self.grasp_q),
             pose_tolerance=(0.03, 0.025),
             joint_velocity_tolerance=0.05,)
         grasp_args = {
@@ -95,7 +95,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             "args": []
         }
         close_gripper_args = {
-            "constructor": lambda: CloseGripperOption(position=np.array([-0.8])),
+            "constructor": lambda: CloseGripperOption(position=np.array([-0.5])),
             "args": []
         }
         open_gripper_args = {
@@ -107,7 +107,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             AlignStackOption = lambda goal: GoalDirectedMotionOption(
                 self.world,
                 goal,
-                pose=((0, 0, 0.10), self.grasp_q),
+                pose=((0.02, 0, 0.10), self.grasp_q),
                 pose_tolerance=(0.03, 0.025),
                 joint_velocity_tolerance=0.05,)
             align_stack_args = {
@@ -118,7 +118,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             StackOption = lambda goal: GoalDirectedMotionOption(
                 self.world,
                 goal,
-                pose=((0, 0, 0.08), self.grasp_q),
+                pose=((0.02, 0, 0.06), self.grasp_q),
                 pose_tolerance=(0.03, 0.025),
                 joint_velocity_tolerance=0.05,)
             stack_args = {

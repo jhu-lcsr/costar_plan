@@ -6,6 +6,7 @@ from costar_task_plan.abstract import AbstractOption
 from costar_task_plan.abstract import AbstractCondition, TimeCondition
 from costar_task_plan.abstract import AbstractPolicy
 
+import numpy as np
 import pybullet as pb
 import PyKDL as kdl
 
@@ -179,7 +180,7 @@ class CloseGripperOption(AbstractOption):
         return CloseGripperPolicy(pos=self.position), TimeCondition(world.time() + 1.0)
 
     def samplePolicy(self, world):
-        return CloseGripperPolicy(), TimeCondition(world.time() + 1.0)
+        return CloseGripperPolicy(pos=self.position), TimeCondition(world.time() + 1.0)
 
     def checkPrecondition(self, world, state):
         return True
@@ -190,7 +191,7 @@ class CloseGripperOption(AbstractOption):
 
 class CartesianMotionPolicy(AbstractPolicy):
 
-    def __init__(self, pos, rot, goal=None, cartesian_vel=1., angular_vel=0.5):
+    def __init__(self, pos, rot, goal=None, cartesian_vel=0.5, angular_vel=0.5):
         self.pos = pos
         self.rot = rot
         self.goal = goal
@@ -279,10 +280,12 @@ class CloseGripperPolicy(AbstractPolicy):
 
     def __init__(self,pos=None):
         self.pos = pos
+        self.step = -0.1
 
     def evaluate(self, world, state, actor):
         if self.pos is None:
             pos = state.robot.gripperCloseCommand()
         else:
             pos = self.pos
-        return SimulationRobotAction(gripper_cmd=pos)
+        pos_cmd = max(state.gripper + self.step, pos)
+        return SimulationRobotAction(gripper_cmd=pos_cmd)
