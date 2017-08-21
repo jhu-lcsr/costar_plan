@@ -390,10 +390,19 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
 
     return ins, x
 
+def AddOptionTiling(x, option_length, option_in, height, width):
+    tile_shape = (1, width, height, 1)
+    option = Reshape([1,1,option_length])(option_in)
+    option = Lambda(lambda x: K.tile(x, tile_shape))(option)
+    x = Concatenate(
+            axis=-1,
+            name="add_option_%dx%d"%(width,height),
+        )([x, option])
+    return x
 
 def GetDecoder(dim, img_shape, arm_size, gripper_size,
         dropout_rate, filters, kernel_size=[3,3], dropout=True, leaky=True,
-        batchnorm=True,dense=True,
+        batchnorm=True,dense=True, option=None,
         stride2_layers=2, stride1_layers=1):
 
     '''
@@ -415,19 +424,25 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
     else:
         relu = lambda: Activation('relu')
 
+    if option is not None:
+        oin = Input((option,),name="input_next_option")
+
     if dense:
-        z = Input((dim,))
+        z = Input((dim,),name="input_image")
         x = Dense(filters/2 * height4 * width4)(z)
         if batchnorm:
             x = BatchNormalization(momentum=0.9)(x)
         x = relu()(x)
         x = Reshape((width4,height4,filters/2))(x)
     else:
-        z = Input((width8*height8*filters,))
+        z = Input((width8*height8*filters,),name="input_image")
         x = Reshape((width8,height8,filters))(z)
     x = Dropout(dropout_rate)(x)
 
+    height = height4
+    width = width4
     for i in xrange(stride2_layers):
+
         x = Conv2DTranspose(filters,
                    kernel_size=kernel_size, 
                    strides=(2, 2),
@@ -437,6 +452,12 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
         x = relu()(x)
         if dropout:
             x = Dropout(dropout_rate)(x)
+
+        if option is not None:
+            x = AddOptionTiling(x, option, oin, height, width)
+
+        height *= 2
+        width *= 2
 
     for i in xrange(stride1_layers):
         x = Conv2D(filters, # + num_labels
@@ -448,11 +469,17 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
         x = relu()(x)
         if dropout:
             x = Dropout(dropout_rate)(x)
+        if option is not None:
+            x = AddOptionTiling(x, option, oin, height, width)
 
     x = Conv2D(nchannels, (1, 1), padding='same')(x)
     x = Activation('sigmoid')(x)
 
-    return z, x
+    ins = [z]
+    if option is not None:
+        ins.append(oin)
+
+    return ins, x
 
 def GetTCNStack(x, filters, num_levels=2, dense_size=128, dropout_rate=0.5):
     '''

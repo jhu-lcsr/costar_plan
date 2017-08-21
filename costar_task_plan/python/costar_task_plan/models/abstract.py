@@ -14,10 +14,10 @@ class AbstractAgentBasedModel(object):
     will also provide the model with a way to collect data or whatever.
     '''
 
-    def __init__(self, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
+    def __init__(self, taskdef=None, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
             clipnorm=100, show_iter=0, pretrain_iter=5,
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
-            task=None, robot=None, model="", taskdef=None, *args,
+            task=None, robot=None, model="", *args,
             **kwargs):
 
         if lr == 0 or lr < 1e-30:
@@ -180,12 +180,22 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
     being executed; it takes in 0 if no action has been performed yet.
     '''
 
-    def __init__(self, *args, **kwargs):
-        super(HierarchicalAgentBasedModel, self).__init__(*args, **kwargs)
+    def __init__(self, taskdef, *args, **kwargs):
+        super(HierarchicalAgentBasedModel, self).__init__(taskdef, *args, **kwargs)
         self.num_actions = 0
 
         self.predictor = None
         self.supervisor = None
+
+        self.predict_goal = None
+        self.predict_next = None
+
+        self.prev_option = 0
+        
+    def _makeOption1h(self, option):
+        opt_1h = np.zeros((1,self._numLabels()))
+        opt_1h[0,option] = 1.
+        return opt_1h
 
     def _makeSupervisor(self, feature):
         '''
@@ -206,10 +216,13 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         '''
         num_labels = label.shape[-1]
         assert num_labels == self._numLabels()
-        hidden, self.supervisor, self.predictor = \
-            self._makeSupervisor(features)
-        hidden.trainable = False
+        hidden, self.supervisor, self.predictor, \
+                self.predict_goal, self.predict_next = \
+                self._makeSupervisor(features)
 
+        # These are the outputs to other layers -- this is the hidden world
+        # state.
+        hidden.trainable = False
 
         # Learn a baseline for comparisons and whatnot
         self.baseline = self._makePolicy(features, action, hidden)
@@ -222,7 +235,6 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
             self.policies.append(self._makePolicy(features, action, hidden))
 
     def _fitSupervisor(self, features, label):
-        #self.supervisor.fit([features, prev_label], [label])
         '''
         Fit a high-level policy that tells us which low-level action we could
         be taking at any particular time.
@@ -298,7 +310,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         '''
         Save to a filename determined by the "self.name" field.
         '''
-        if self.supervisor is not None:
+        if self.predictor is not None:
             print "saving to " + self.name
             self.predictor.save_weights(self.name + "_predictor.h5f")
             self.supervisor.save_weights(self.name + "_supervisor.h5f")
@@ -313,7 +325,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         Load model weights. This is the default load weights function; you may
         need to overload this for specific models.
         '''
-        if self.supervisor is not None:
+        if self.predictor is not None:
             print "----------------------------"
             print "using " + self.name + " to load"
             print self.supervisor.summary()
@@ -332,13 +344,14 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         '''
         features = world.initial_features #getHistoryMatrix()
         if isinstance(features, list):
-            assert len(features) == len(self.supervisor.inputs)
+            assert len(features) == len(self.supervisor.inputs) - 1
         else:
             features = [features]
         if self.supervisor is None:
             raise RuntimeError('high level model is missing')
         features = [f.reshape((1,)+f.shape) for f in features]
-        res = self.supervisor.predict(features)
+        res = self.supervisor.predict(features +
+                [self._makeOption1h(self.prev_option)])
         next_policy = np.argmax(res)
 
         print "next policy = ", next_policy,
@@ -365,6 +378,10 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
 
         # Retrieve the next policy we want to execute
         policy = self.policies[next_policy]
+
+        # Update previous option -- which one did we end up choosing, and which
+        # policy did we execute?
+        self.prev_option = next_policy
 
         # Evaluate this policy to get the next action out
         return policy.predict(features)

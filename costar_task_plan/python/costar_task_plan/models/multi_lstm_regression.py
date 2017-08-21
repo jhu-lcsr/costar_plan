@@ -120,12 +120,11 @@ class RobotMultiLSTMRegression(AbstractAgentBasedModel):
         trajectory.
         '''
 
-        [features, arm, gripper, arm_cmd, gripper_cmd], _ = \
+        [features, arm, gripper, arm_cmd, gripper_cmd] = \
                 SplitIntoChunks(
                         datasets=[features, arm, gripper, arm_cmd, gripper_cmd],
                         labels=example,
                         chunk_length=self.num_frames,
-                        step_size=2,
                         front_padding=True,
                         rear_padding=False)
 

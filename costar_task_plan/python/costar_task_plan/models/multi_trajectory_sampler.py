@@ -84,7 +84,7 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
 
         [features, arm, gripper, arm_cmd, gripper_cmd] = \
                 SplitIntoChunks([features, arm, gripper, arm_cmd, gripper_cmd],
-                example, self.trajectory_length, step_size=2,
+                example, self.trajectory_length,
                 front_padding=False,
                 rear_padding=True)
 

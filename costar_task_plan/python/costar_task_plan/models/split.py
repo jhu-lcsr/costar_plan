@@ -5,12 +5,8 @@ def SplitIntoChunks(datasets, labels,
         reward=None,
         reward_threshold=0,
         chunk_length=100,
-        step_size=10,
         front_padding=False,
-        rear_padding=False,
-        stagger=False,
-        start_off=0,
-        end_off=0):
+        rear_padding=False,):
     '''
     Split data into segments of the given length. This will return a much
     larger data set, but with the dimensionality changed so that we can easily
@@ -35,8 +31,11 @@ def SplitIntoChunks(datasets, labels,
     if reward is not None:
         datasets.append(reward)
 
-    new_data = {}
-    stagger_data = {}
+    new_data = []
+    for data in datasets:
+        shape = (data.shape[0], chunk_length,) + data.shape[1:]
+        new_data.append(np.zeros(shape))
+    next_idx = np.zeros((len(datasets),),dtype=int)
 
     for label in xrange(min_label, max_label+1):
 
@@ -49,14 +48,6 @@ def SplitIntoChunks(datasets, labels,
 
         for idx, data in enumerate(datasets):
             subset = data[labels==label]
-
-            #print "SUBSET":,
-            #print np.argmax(subset,axis=-1), subset.shape
-
-            dataset = []
-            # staggered dataset for dynamics learning
-            sdataset = []
-
 
             # Set up data size
             data_size = subset.shape[0]
@@ -72,14 +63,11 @@ def SplitIntoChunks(datasets, labels,
                 max_i = data_size + chunk_length - 1
             else:
                 max_i = data_size
-            i += start_off
 
-            while i < max_i - end_off:
+            while i < max_i:
                 start_block = max(0,i-chunk_length+1)
                 end_block = min(i,data_size)
                 block = subset[start_block:end_block+1]
-                #print i, start_block, end_block+1, "/", data_size,
-                #print subset.shape, np.argmax(block[-1])
                 if padding:
                     block = AddPadding(block,
                             chunk_length,
@@ -93,56 +81,16 @@ def SplitIntoChunks(datasets, labels,
                     print "block shape/chunk length:", block.shape, chunk_length
                     raise RuntimeError('dev error: block not of the ' + \
                                        'correct length.')
-                dataset.append(block)
 
-                if stagger:
-                    #print "D> start/end:", start_block, end_block
-                    start_block = max(0,i-chunk_length+2)
-                    end_block = min(i+1,data_size)
-                    #print "S> start/end:", start_block, end_block
-                    # Get the next state info for learning dynamics models.
-                    sblock = data[start_block:end_block+1]
-                    if padding:
-                        sblock = AddPadding(sblock,
-                                chunk_length,
-                                start_block,
-                                end_block,
-                                data_size)
-                    elif end_block - start_block is not chunk_length:
-                        raise RuntimeError('could not create staggered block')
-                    assert sblock.shape[0] == chunk_length
-                    sdataset.append(sblock)
+                new_data[idx][next_idx[idx]] = block
+                next_idx[idx] += 1
+                i += 1
 
-
-                i += step_size
-
-            if not idx in new_data:
-                new_data[idx] = np.array(dataset)
-                if stagger:
-                    stagger_data[idx] = np.array(sdataset)
-            else:
-                new_data[idx] = np.append(
-                        new_data[idx],
-                        values=np.array(dataset),
-                        axis = 0)
-                if stagger:
-                    stagger_data[idx] = np.append(
-                            stagger_data[idx],
-                            values=np.array(sdataset),
-                            axis = 0)
-    #print len(new_data)
-    #print type(new_data)
-    #for d in new_data.values():
-    #    print d.shape
-    for d in new_data.values():
-        if not d.shape[0] == new_data.values()[0].shape[0]:
+    for d in new_data:
+        if not d.shape[0] == new_data[0].shape[0]:
             raise RuntimeError('error combining datasets')
 
-    if stagger:
-        stagger_values = stagger_data.values()
-    else:
-        stagger_values = None
-    return new_data.values(), stagger_values
+    return new_data
 
 def SplitIntoActions(
         datasets,
