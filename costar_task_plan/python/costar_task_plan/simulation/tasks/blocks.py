@@ -120,7 +120,8 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                 goal,
                 pose=((0.02, 0, 0.06), self.grasp_q),
                 pose_tolerance=(0.03, 0.025),
-                joint_velocity_tolerance=0.05,)
+                joint_velocity_tolerance=0.05,
+                closed_loop=True,)
             stack_args = {
                 "constructor": StackOption,
                 "args": ["block"],

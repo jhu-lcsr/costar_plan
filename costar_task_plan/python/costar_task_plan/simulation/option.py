@@ -23,10 +23,11 @@ class GoalDirectedMotionOption(AbstractOption):
     '''
 
     def __init__(self, world, goal, pose, pose_tolerance=(1e-3, 1e-2),
-            joint_velocity_tolerance=0.025, *args, **kwargs):
+            joint_velocity_tolerance=0.025, closed_loop=False, *args, **kwargs):
 
         self.goal = goal
         self.goal_id = world.getObjectId(goal)
+        self.closed_loop = closed_loop
         if pose is not None:
             self.position, self.rotation = pose
             self.position_tolerance, self.rotation_tolerance = pose_tolerance
@@ -53,16 +54,33 @@ class GoalDirectedMotionOption(AbstractOption):
         # Get the gating condition for a specific option.
         # - execution should continue until such time as this condition
         # is true.
-        return CartesianMotionPolicy(self.position,
-                                     self.rotation,
-                                     goal=self.goal), \
-            GoalPositionCondition(
-                self.goal,  # what object we care about
-                self.position,  # where we want to grab it
-                self.rotation,
-                            # rotation with which we want to grab it
-                self.position_tolerance,
-                self.rotation_tolerance)
+        if not self.closed_loop:
+            return CartesianMotionPolicy(self.position,
+                                         self.rotation,
+                                         goal=self.goal), \
+                GoalPositionCondition(
+                    self.goal,  # what object we care about
+                    self.position,  # where we want to grab it
+                    self.rotation,
+                                # rotation with which we want to grab it
+                    self.position_tolerance,
+                    self.rotation_tolerance)
+        else:
+            obj = world.getObject(self.goal)
+            pg = kdl.Vector(*self.position)
+            Rg = kdl.Rotation.Quaternion(*self.rotation)
+            Tg = kdl.Frame(Rg, pg)
+            T = obj.state.T * Tg
+            position = list(T.p)
+            rotation = list(T.M.GetQuaternion())
+            return CartesianMotionPolicy(position,
+                                         rotation,
+                                         goal=None), \
+                    AbsolutePositionCondition(
+                        position, # where we want to grab it
+                        rotation, # rotation with which we want to grab it
+                        self.position_tolerance,
+                        self.rotation_tolerance,)
 
     def checkPrecondition(self, world, state):
         # Is it ok to begin this option?
