@@ -10,6 +10,17 @@ from world import AbstractWorld
 import copy
 import numpy as np
 
+class TaskTemplate(object):
+    def __init__(self, name, parents):
+        self.name = name
+        if not isinstance(parents, list):
+            parents = [parents]
+        self.parents = parents
+        self.options = []
+
+    def add(self, *args):
+        self.options.append(args)
+
 class Task(object):
   '''
   Model of a task as a state machine. We can specify this in any number of
@@ -17,12 +28,14 @@ class Task(object):
   slightly different task plan.
   '''
 
-  def __init__(self):
+  def __init__(self, subtask_name = None):
     '''
     Create the task.
     '''
     self.option_templates = {None: NullOptionTemplate()}
     self.template_connections = []
+
+    self.subtask_name = subtask_name
 
     self.compiled = False
     self.nodes = {}
@@ -49,7 +62,9 @@ class Task(object):
       ignore_args = True
 
     if not ignore_args:
-      self.option_templates[name] = OptionTemplate(**option_args)
+      self.option_templates[name] = OptionTemplate(
+              subtask_name=self.subtask_name,
+              **option_args)
 
     if parents is None or len(parents) == 0:
       parents = [None]
@@ -101,6 +116,10 @@ class Task(object):
       # create the nodes
       for name, template in self.option_templates.items():
         iname, option = template.instantiate(name, arg_set)
+        if isinstance(option, Task):
+            # this was a subtask, and must be merged into the full version of
+            # the task model.
+            pass
         if iname in self.nodes:
           continue
         else:
@@ -187,8 +206,10 @@ class Task(object):
 Internal class that represents a single templated, non-instantiated Option.
 '''
 class OptionTemplate(object):
-  def __init__(self, args, constructor=None, remap=None, task=None, name_template="%s(%s)"):
+  def __init__(self, args, constructor=None, remap=None, task=None,
+          subtask_name=None, name_template="%s(%s)"):
     self.constructor = constructor
+    self.subtask_name = subtask_name
     self.task = task
     self.args = args
     self.remap = remap
@@ -207,12 +228,16 @@ class OptionTemplate(object):
     if name is None:
       name = "ROOT"
   
-    iname = self.name_template%(name,make_str(filled_args))
     if self.task is None:
+        iname = self.name_template%(name,make_str(filled_args))
         option = self.constructor(**filled_args)
     else:
-        option = self.task
+        option = Task(subtask_name=self.task.name)
+        for args in self.task.options:
+            option.add(*args)
         option.compile(arg_dict)
+        iname = self.name_template%(name,
+                make_str(filled_args))
 
     return iname, option
 
@@ -266,8 +291,11 @@ def get_arg_sets(arg_dict):
   # return the set of populated assignments
   return arg_sets
 
-def make_str(filled_args):
-  assignment_list = []
-  for arg, val in filled_args.items():
-    assignment_list.append("%s=%s"%(arg,val))
-  return str(assignment_list)[1:-1]
+def make_str(filled_args,subtask=None):
+    assignment_list = []
+    for arg, val in filled_args.items():
+        if subtask is not None:
+            assignment_list.append("%s_%s=%s")%(subtask,arg,val)
+        else:
+            assignment_list.append("%s=%s"%(arg,val))
+    return str(assignment_list)[1:-1]

@@ -5,6 +5,7 @@ from costar_task_plan.simulation.option import *
 from costar_task_plan.simulation.reward import *
 from costar_task_plan.simulation.condition import *
 from costar_task_plan.abstract.simple_conditions import *
+from costar_task_plan.abstract.task import *
 
 import numpy as np
 import os
@@ -128,7 +129,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
 
         # ==================================================================== 
         # Pickup from somewhere
-        pickup = Task()
+        pickup = TaskTemplate("pickup", None)
         pickup.add("align", None, align_args)
         pickup.add("grasp", "align", grasp_args)
         pickup.add("close_gripper", "grasp", close_gripper_args)
@@ -137,7 +138,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
 
         # ==================================================================== 
         # Place on a stack
-        place = Task()
+        place = TaskTemplate("place", ["lift"])
         place.add("align_with_stack", None, align_stack_args)
         place.add("add_to_stack", "align_with_stack", stack_args)
         place.add("open_gripper", "add_to_stack", open_gripper_args)
