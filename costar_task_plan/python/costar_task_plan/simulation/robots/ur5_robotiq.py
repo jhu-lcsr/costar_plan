@@ -105,7 +105,9 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
             raise RuntimeError('too many joint positions')
 
         pb.setJointMotorControlArray(self.handle, self.arm_joint_indices, mode,
-                                     cmd)#, forces=[100.] * self.dof)
+                                     cmd,
+                                     positionGains=[1.,0.5,0.2,0.1,0.1,0.1],
+                                     )#, forces=[100.] * self.dof)
 
     def gripper(self, cmd, mode=pb.POSITION_CONTROL):
         '''

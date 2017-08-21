@@ -56,7 +56,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             self.world,
             goal,
             pose=((0.05, 0, 0.05), self.grasp_q),
-            pose_tolerance=(0.03, 0.025),
+            pose_tolerance=(0.02, 0.025),
             joint_velocity_tolerance=0.05,)
         align_args = {
             "constructor": AlignOption,
@@ -67,7 +67,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             self.world,
             goal,
             pose=((0.01, 0, 0.0), self.grasp_q),
-            pose_tolerance=(0.03, 0.025),
+            pose_tolerance=(0.02, 0.025),
             joint_velocity_tolerance=0.05,)
         grasp_args = {
             "constructor": GraspOption,
@@ -88,7 +88,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         }
         PlaceOption = lambda: GeneralMotionOption(
             pose=(self.final_stack_pos, self.grasp_q),
-            pose_tolerance=(0.05, 0.025),
+            pose_tolerance=(0.025, 0.025),
             joint_velocity_tolerance=0.05,)
         place_args = {
             "constructor": PlaceOption,
@@ -108,7 +108,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                 self.world,
                 goal,
                 pose=((0.02, 0, 0.10), self.grasp_q),
-                pose_tolerance=(0.03, 0.025),
+                pose_tolerance=(0.01, 0.025),
                 joint_velocity_tolerance=0.05,)
             align_stack_args = {
                 "constructor": AlignStackOption,
@@ -119,7 +119,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                 self.world,
                 goal,
                 pose=((0.02, 0, 0.06), self.grasp_q),
-                pose_tolerance=(0.03, 0.025),
+                pose_tolerance=(0.01, 0.025),
                 joint_velocity_tolerance=0.05,
                 closed_loop=True,)
             stack_args = {
@@ -213,7 +213,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
 
         self.world.addCondition(JointLimitViolationCondition(), -100,
                                 "joints must stay in limits")
-        self.world.addCondition(TimeCondition(10.), -100, "time limit reached")
+        self.world.addCondition(TimeCondition(15.), -100, "time limit reached")
         self.world.reward = EuclideanReward("red_block")
 
         # =====================================================================

@@ -209,7 +209,7 @@ class CloseGripperOption(AbstractOption):
 
 class CartesianMotionPolicy(AbstractPolicy):
 
-    def __init__(self, pos, rot, goal=None, cartesian_vel=0.5, angular_vel=0.5):
+    def __init__(self, pos, rot, goal=None, cartesian_vel=0.5, angular_vel=0.75):
         self.pos = pos
         self.rot = rot
         self.goal = goal
@@ -275,6 +275,7 @@ class CartesianMotionPolicy(AbstractPolicy):
         # =====================================================================
         # Compute motion goak and send
         q_goal = actor.robot.ik(T_step, state.arm)
+        print q_goal, state.arm, state.arm_v
         return SimulationRobotAction(arm_cmd=q_goal)
 
 
