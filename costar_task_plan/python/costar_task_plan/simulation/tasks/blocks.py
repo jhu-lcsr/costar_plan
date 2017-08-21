@@ -195,7 +195,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         '''
 
         rospack = rospkg.RosPack()
-        path = rospack.get_path('costar_objects')
+        path = rospack.get_path('costar_simulation')
         urdf_dir = os.path.join(path, self.urdf_dir)
 
         # placement =
