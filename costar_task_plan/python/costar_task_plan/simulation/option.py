@@ -166,9 +166,17 @@ class CloseGripperOption(AbstractOption):
     and does nothing else. These policies count on certain information
     associated with the actor's state in order to function.
     '''
+    def __init__(self, position=None):
+        '''
+        Parameters:
+        ----------
+        position: Position to send when closing the gripper. Defaults to
+                  "none", which uses the position set per robot.
+        '''
+        self.position = position
 
     def makePolicy(self, world):
-        return CloseGripperPolicy(), TimeCondition(world.time() + 1.0)
+        return CloseGripperPolicy(pos=self.position), TimeCondition(world.time() + 1.0)
 
     def samplePolicy(self, world):
         return CloseGripperPolicy(), TimeCondition(world.time() + 1.0)
@@ -269,5 +277,12 @@ class CloseGripperPolicy(AbstractPolicy):
     "close gripper" command.
     '''
 
+    def __init__(self,pos=None):
+        self.pos = pos
+
     def evaluate(self, world, state, actor):
-        return SimulationRobotAction(gripper_cmd=state.robot.gripperCloseCommand())
+        if self.pos is None:
+            pos = state.robot.gripperCloseCommand()
+        else:
+            pos = self.pos
+        return SimulationRobotAction(gripper_cmd=pos)

@@ -202,7 +202,10 @@ class Task(object):
 
   def _addInstantiatedNode(self, name, iname, option, inodes):
         if iname in self.nodes: # and iname is ROOT_TAG:
-            return
+            if name not in inodes:
+                inodes[name] = []
+            if iname not in inodes[name]:
+                inodes[name].append(iname)
         else:
             if name in inodes:
                 inodes[name].append(iname)

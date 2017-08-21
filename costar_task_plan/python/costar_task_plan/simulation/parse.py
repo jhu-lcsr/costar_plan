@@ -32,11 +32,11 @@ def ParseBulletArgs():
     parser.add_argument("--robot",
                         help="Robot model to load. This will determine the action space.",
                         choices=GetAvailableRobots(),
-                        default=GetAvailableRobots()[0])
+                        default="ur5")
     parser.add_argument("--task",
                         help="Task to load. This will determine what objects appear in the world as well as the reward function.",
                         choices=GetAvailableTasks(),
-                        default=GetAvailableTasks()[0])
+                        default="stack1")
     parser.add_argument('--start_ros', '--ros', '-R',
                         help="Start as a ROS node.",
                         action="store_true")

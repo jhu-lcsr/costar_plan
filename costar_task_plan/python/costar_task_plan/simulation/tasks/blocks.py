@@ -86,40 +86,16 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             "constructor": LiftOption,
             "args": []
         }
-        #PlaceOption = lambda: GeneralMotionOption(
-        #    pose=(self.final_stack_pos, self.grasp_q),
-        #    pose_tolerance=(0.05, 0.025),
-        #    joint_velocity_tolerance=0.05,)
-        #place_args = {
-        #    "constructor": PlaceOption,
-        #    "args": []
-        #}
-        AlignStackOption = lambda goal: GoalDirectedMotionOption(
-            self.world,
-            goal,
-            pose=((0, 0, 0.10), self.grasp_q),
-            pose_tolerance=(0.03, 0.025),
+        PlaceOption = lambda: GeneralMotionOption(
+            pose=(self.final_stack_pos, self.grasp_q),
+            pose_tolerance=(0.05, 0.025),
             joint_velocity_tolerance=0.05,)
-        align_stack_args = {
-            "constructor": AlignStackOption,
-            "args": ["block"],
-            "remap": {"block": "goal"},
+        place_args = {
+            "constructor": PlaceOption,
+            "args": []
         }
-        StackOption = lambda goal: GoalDirectedMotionOption(
-            self.world,
-            goal,
-            pose=((0, 0, 0.08), self.grasp_q),
-            pose_tolerance=(0.03, 0.025),
-            joint_velocity_tolerance=0.05,)
-        stack_args = {
-            "constructor": StackOption,
-            "args": ["block"],
-            "remap": {"block": "goal"},
-        }
-
-
         close_gripper_args = {
-            "constructor": CloseGripperOption,
+            "constructor": lambda: CloseGripperOption(position=np.array([-0.8])),
             "args": []
         }
         open_gripper_args = {
@@ -127,36 +103,69 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             "args": []
         }
 
-        # ==================================================================== 
-        # Pickup from somewhere
-        pickup = TaskTemplate("pickup", None)
-        pickup.add("align", None, align_args)
-        pickup.add("grasp", "align", grasp_args)
-        pickup.add("close_gripper", "grasp", close_gripper_args)
-        pickup.add("lift", "close_gripper", lift_args)
-        #task.add("place", "lift", place_args)
+        if self.stage == 1:
+            AlignStackOption = lambda goal: GoalDirectedMotionOption(
+                self.world,
+                goal,
+                pose=((0, 0, 0.10), self.grasp_q),
+                pose_tolerance=(0.03, 0.025),
+                joint_velocity_tolerance=0.05,)
+            align_stack_args = {
+                "constructor": AlignStackOption,
+                "args": ["block"],
+                "remap": {"block": "goal"},
+            }
+            StackOption = lambda goal: GoalDirectedMotionOption(
+                self.world,
+                goal,
+                pose=((0, 0, 0.08), self.grasp_q),
+                pose_tolerance=(0.03, 0.025),
+                joint_velocity_tolerance=0.05,)
+            stack_args = {
+                "constructor": StackOption,
+                "args": ["block"],
+                "remap": {"block": "goal"},
+            }
 
-        # ==================================================================== 
-        # Place on a stack
-        place = TaskTemplate("place", "pickup")
-        place.add("align_with_stack", "lift", align_stack_args)
-        place.add("add_to_stack", "align_with_stack", stack_args)
-        place.add("open_gripper", "add_to_stack", open_gripper_args)
-        place.add("done", "open_gripper", lift_args)
+            # ==================================================================== 
+            # Pickup from somewhere
+            pickup = TaskTemplate("pickup", None)
+            pickup.add("align", None, align_args)
+            pickup.add("grasp", "align", grasp_args)
+            pickup.add("close_gripper", "grasp", close_gripper_args)
+            pickup.add("lift", "close_gripper", lift_args)
+            #task.add("place", "lift", place_args)
 
-        # ==================================================================== 
-        # Create a task model
-        pickup_args = {
-            "task": pickup,
-            "args": ["block"],
-        }
-        place_args = {
-            "task": place,
-            "args": ["block"],
-        }
-        task = Task()
-        task.add("pickup", None, pickup_args)
-        task.add("place", None, place_args)
+            # ==================================================================== 
+            # Place on a stack
+            place = TaskTemplate("place", "pickup")
+            place.add("align_with_stack", "lift", align_stack_args)
+            place.add("add_to_stack", "align_with_stack", stack_args)
+            place.add("open_gripper", "add_to_stack", open_gripper_args)
+            place.add("done", "open_gripper", lift_args)
+
+            # ==================================================================== 
+            # Create a task model
+            pickup_args = {
+                "task": pickup,
+                "args": ["block"],
+            }
+            place_args = {
+                "task": place,
+                "args": ["block"],
+            }
+            task = Task()
+            task.add("pickup", None, pickup_args)
+            task.add("place", None, place_args)
+        elif self.stage == 0:
+            task = Task()
+            task.add("align", None, align_args)
+            task.add("grasp", "align", grasp_args)
+            task.add("close_gripper", "grasp", close_gripper_args)
+            task.add("lift", "close_gripper", lift_args)
+            task.add("place", "lift", place_args)
+            task.add("open_gripper", "place", open_gripper_args)
+            task.add("done", "open_gripper", lift_args)
 
         return task
 
