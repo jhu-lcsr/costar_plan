@@ -5,7 +5,6 @@ from costar_task_plan.simulation.option import *
 from costar_task_plan.simulation.reward import *
 from costar_task_plan.simulation.condition import *
 from costar_task_plan.abstract.simple_conditions import *
-from costar_task_plan.abstract.task import *
 
 import numpy as np
 import os
@@ -49,9 +48,6 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         self.block_ids = []
 
     def _makeTask(self):
-
-        # ====================================================================
-        # First grasp -- pick up object from the side
         AlignOption = lambda goal: GoalDirectedMotionOption(
             self.world,
             goal,
@@ -74,10 +70,6 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             "args": ["block"],
             "remap": {"block": "goal"},
         }
-
-
-        # ====================================================================
-        # General actions -- lift the block back up again
         LiftOption = lambda: GeneralMotionOption(
             pose=(self.over_final_stack_pos, self.grasp_q),
             pose_tolerance=(0.05, 0.025),
@@ -86,38 +78,14 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             "constructor": LiftOption,
             "args": []
         }
-        #PlaceOption = lambda: GeneralMotionOption(
-        #    pose=(self.final_stack_pos, self.grasp_q),
-        #    pose_tolerance=(0.05, 0.025),
-        #    joint_velocity_tolerance=0.05,)
-        #place_args = {
-        #    "constructor": PlaceOption,
-        #    "args": []
-        #}
-        AlignStackOption = lambda goal: GoalDirectedMotionOption(
-            self.world,
-            goal,
-            pose=((0.05, 0, 0.10), self.grasp_q),
-            pose_tolerance=(0.03, 0.025),
+        PlaceOption = lambda: GeneralMotionOption(
+            pose=(self.final_stack_pos, self.grasp_q),
+            pose_tolerance=(0.05, 0.025),
             joint_velocity_tolerance=0.05,)
-        align_stack_args = {
-            "constructor": AlignOption,
-            "args": ["block"],
-            "remap": {"block": "goal"},
+        place_args = {
+            "constructor": PlaceOption,
+            "args": []
         }
-        StackOption = lambda goal: GoalDirectedMotionOption(
-            self.world,
-            goal,
-            pose=((0.0, 0, 0.05), self.grasp_q),
-            pose_tolerance=(0.03, 0.025),
-            joint_velocity_tolerance=0.05,)
-        stack_args = {
-            "constructor": GraspOption,
-            "args": ["block"],
-            "remap": {"block": "goal"},
-        }
-
-
         close_gripper_args = {
             "constructor": CloseGripperOption,
             "args": []
@@ -127,36 +95,15 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             "args": []
         }
 
-        # ==================================================================== 
-        # Pickup from somewhere
-        pickup = TaskTemplate("pickup", None)
-        pickup.add("align", None, align_args)
-        pickup.add("grasp", "align", grasp_args)
-        pickup.add("close_gripper", "grasp", close_gripper_args)
-        pickup.add("lift", "close_gripper", lift_args)
-        #task.add("place", "lift", place_args)
-
-        # ==================================================================== 
-        # Place on a stack
-        place = TaskTemplate("place", ["lift"])
-        place.add("align_with_stack", None, align_stack_args)
-        place.add("add_to_stack", "align_with_stack", stack_args)
-        place.add("open_gripper", "add_to_stack", open_gripper_args)
-        place.add("done", "open_gripper", lift_args)
-
-        # ==================================================================== 
         # Create a task model
-        pickup_args = {
-            "task": pickup,
-            "args": ["block"],
-        }
-        place_args = {
-            "task": place,
-            "args": ["block"],
-        }
         task = Task()
-        task.add("pickup", None, pickup_args)
-        task.add("place", None, place_args)
+        task.add("align", None, align_args)
+        task.add("grasp", "align", grasp_args)
+        task.add("close_gripper", "grasp", close_gripper_args)
+        task.add("lift", "close_gripper", lift_args)
+        task.add("place", "lift", place_args)
+        task.add("open_gripper", "place", open_gripper_args)
+        task.add("done", "open_gripper", lift_args)
 
         return task
 
