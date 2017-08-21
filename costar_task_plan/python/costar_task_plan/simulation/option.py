@@ -275,7 +275,7 @@ class CartesianMotionPolicy(AbstractPolicy):
         # =====================================================================
         # Compute motion goak and send
         q_goal = actor.robot.ik(T_step, state.arm)
-        print q_goal, state.arm, state.arm_v
+        # print q_goal, state.arm, state.arm_v
         return SimulationRobotAction(arm_cmd=q_goal)
 
 

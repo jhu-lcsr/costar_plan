@@ -106,7 +106,7 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
 
         pb.setJointMotorControlArray(self.handle, self.arm_joint_indices, mode,
                                      cmd,
-                                     positionGains=[1.,0.5,0.2,0.1,0.1,0.1],
+                                     positionGains=[0.25,0.25,0.2,0.1,0.1,0.1],
                                      )#, forces=[100.] * self.dof)
 
     def gripper(self, cmd, mode=pb.POSITION_CONTROL):
@@ -122,7 +122,8 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         # This is actually only a 1-DOF gripper
         cmd_array = [-cmd, -cmd, cmd, -cmd, -cmd, cmd]
         pb.setJointMotorControlArray(self.handle, self.gripper_indices, mode,
-                                     cmd_array,forces=[15.]*len(cmd_array))
+                                     cmd_array,forces=[15.]*len(cmd_array),
+                                     positionGains=[0.1]*len(cmd_array))
 
     def getActionSpace(self):
         return spaces.Tuple((spaces.Box(-np.pi, np.pi, self.dof),
