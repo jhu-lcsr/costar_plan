@@ -79,12 +79,16 @@ class Task(object):
               self.option_templates[parent].connect(child)
 
       for iname, option in task.nodes.items():
+          name = task.generic_names[iname]
           if iname in self.nodes:
+              if name not in inodes:
+                  inodes[name] = []
+              if iname not in inodes[name]:
+                  inodes[name].append(iname)
               for child in task.children[iname]:
                   self.children[iname].add(child)
           else:
-              name = task.generic_names[iname]
-              inodes[name] = iname
+              inodes[name] = [iname]
               self.nodes[iname] = option
               self.children[iname] = task.children[iname]
 
@@ -151,12 +155,11 @@ class Task(object):
         if parent in self.option_templates:
             self.option_templates[parent].connect(child)
 
-    # List of instantiated options and subtasks, used for connecting children
-    # to parents.
-    inodes = {}
-
-    # Possible assignments to arguments.
+    # Possible assignments to arguments. Add children here, not outside.
     for arg_set in arg_sets:
+      # List of instantiated options and subtasks, used for connecting children
+      # to parents.
+      inodes = {}
 
       # create the nodes
       for name, template in self.option_templates.items():
@@ -164,7 +167,6 @@ class Task(object):
         if isinstance(option, Task):
             # this was a subtask, and must be merged into the full version of
             # the task model.
-            raise NotImplementedError()
             inodes = self.mergeTask(option, name, inodes)
         else:
             self._addInstantiatedNode(name, iname, option, inodes)
@@ -177,11 +179,11 @@ class Task(object):
           # Its associated options have been merged into the graph as a whole
           continue
         for iname in inodes[name]:
-          self.generic_names[iname] = name
-          for child in template.children:
-            if child in inodes:
+            self.generic_names[iname] = name
+            for child in template.children:
+              if child in inodes:
                 for ichild in inodes[child]:
-                    self.children[iname].add(ichild)
+                  self.children[iname].add(ichild)
 
     if self.subtask_name == None:
         # WARNING: this is kind of terrible and might be sort of inefficient.
