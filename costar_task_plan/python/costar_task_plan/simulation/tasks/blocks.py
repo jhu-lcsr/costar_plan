@@ -138,7 +138,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         # ==================================================================== 
         # Place on a stack
         place = Task()
-        place.add("align_with_stack", "lift", align_stack_args)
+        place.add("align_with_stack", None, align_stack_args)
         place.add("add_to_stack", "align_with_stack", stack_args)
         place.add("open_gripper", "add_to_stack", open_gripper_args)
         place.add("done", "open_gripper", lift_args)

@@ -92,7 +92,7 @@ class Task(object):
 
     # First: connect templates (parent -> child)
     for parent, child in self.template_connections:
-      self.option_templates[parent].connect(child)
+        self.option_templates[parent].connect(child)
 
     inodes = {}
 
