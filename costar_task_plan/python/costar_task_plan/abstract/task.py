@@ -34,6 +34,8 @@ class Task(object):
     # Store name by integer index in case we ever want to recover that
     self.names = {}
 
+    self.conditions = []
+
   def add(self, name, parents, option_args):
     '''
     Note: we assume that each name uniquely identifies an action, and each
@@ -85,12 +87,12 @@ class Task(object):
     if isinstance(arg_dict, AbstractWorld):
         arg_dict = arg_dict.getObjects()
 
+    # Make list of args
+    arg_sets = get_arg_sets(arg_dict)
+
     # First: connect templates (parent -> child)
     for parent, child in self.template_connections:
       self.option_templates[parent].connect(child)
-
-    # Make list of args
-    arg_sets = get_arg_sets(arg_dict)
 
     inodes = {}
 
@@ -185,8 +187,9 @@ class Task(object):
 Internal class that represents a single templated, non-instantiated Option.
 '''
 class OptionTemplate(object):
-  def __init__(self, constructor, args, remap=None, name_template="%s(%s)"):
+  def __init__(self, args, constructor=None, remap=None, task=None, name_template="%s(%s)"):
     self.constructor = constructor
+    self.task = task
     self.args = args
     self.remap = remap
     self.name_template = name_template
@@ -205,7 +208,11 @@ class OptionTemplate(object):
       name = "ROOT"
   
     iname = self.name_template%(name,make_str(filled_args))
-    option = self.constructor(**filled_args)
+    if self.task is None:
+        option = self.constructor(**filled_args)
+    else:
+        option = self.task
+        option.compile(arg_dict)
 
     return iname, option
 
@@ -239,15 +246,23 @@ def get_arg_sets(arg_dict):
     prev_arg_sets = arg_sets
     arg_sets = []
 
-    # loop over possible argument assignments
-    for val in vals:
+    if isinstance(vals, list):
+        # loop over possible argument assignments
+        for val in vals:
 
-      # add a version where arg=val
-      for prev_arg_set in prev_arg_sets:
-        arg_set = copy.copy(prev_arg_set)
-        arg_set[arg] = val
-        arg_sets.append(arg_set)
+            # add a version where arg=val
+            for prev_arg_set in prev_arg_sets:
+                arg_set = copy.copy(prev_arg_set)
+                arg_set[arg] = val
+                arg_sets.append(arg_set)
+    else:
+        val = vals
+        for prev_arg_set in prev_arg_sets:
+            arg_set = copy.copy(prev_arg_set)
+            arg_set[arg] = val
+            arg_sets.append(arg_set)
 
+  print "ARG SETS FOR TASK:", arg_sets
   # return the set of populated assignments
   return arg_sets
 
