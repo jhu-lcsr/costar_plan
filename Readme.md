@@ -1,4 +1,4 @@
-# CoSTAR Planner
+# CoSTAR Task Planner (CTP)
 
 [![Build Status](https://travis-ci.com/cpaxton/costar_plan.svg?token=13PmLzWGjzrfxQvEyWp1&branch=master)](https://travis-ci.com/cpaxton/costar_plan)
 
@@ -12,13 +12,27 @@ For some more information on the structure of the task planner package, check ou
 
 Contents:
   - [Installation Guide](docs/install.md)
-  - [Design Overview](docs/design.md)
-  - [Development Notes](docs/development.md)
-  - [Machine Learning Notes](docs/learning.md)
+  - [Docker Instructions](docs/docker_instructions.md)
+  - [costar_bullet quick start](docs/costar_bullet.md): How to run tasks, generate datasets, train models, and extend costar_bullet with your own components.
+  - [Design Overview](docs/design.md): for some high-level design choices related to the planning code
+  - [Machine Learning Models](docs/learning.md): Available models and using the command line tool to train them
+  - [Creating and training a custom task](docs/task_learning.md): defining a task, training predictive models and other tools
+
+Mode specialized information:
+  - [Adding a robot to the ROS code](docs/add_a_robot): NOT using Bullet sim
 
 ## Getting started
 
-Follow the [installation guide](docs/install.md) and then try running the simulation on your own. The easiest way to do this is through IPython.
+First follow the [installation guide](docs/install.md) and then try running the simulation on your own. There are two ways of doing this: interactively, through `ipython`, or via the `costar_bullet` tool.
+
+You can see the available parameters for `costar_bullet` with the command:
+
+```
+rosrun costar_bullet start --help
+```
+
+The easiest way to get started using line by line interactive programming is with either `ipython`
+or the [xonsh shell](http://xon.sh). You can use the following sample code to bring up the robot with the simple "blocks" task.
 
 ```
 import costar_task_plan as ctp

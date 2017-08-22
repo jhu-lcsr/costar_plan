@@ -70,7 +70,7 @@ class SimulationWorld(AbstractWorld):
         idx = self.id_by_object[name]
         return self.actors[idx]
 
-    def hook(self):
+    def _update_environment(self):
         '''
         Step the simulation forward after all actors have given their comments
         to associated simulated robots. Then update all actors' states.

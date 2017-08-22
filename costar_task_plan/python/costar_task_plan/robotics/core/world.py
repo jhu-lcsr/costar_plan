@@ -119,7 +119,7 @@ class CostarWorld(AbstractWorld):
                             policy=NullPolicy()))
 
         # -------------------------------------------------------------------------
-        # For grippers. We check these on a hook() to get the current gripper
+        # For grippers. We check these on a _update_environment() to get the current gripper
         # state.
         self.gripper_status_listeners = {}
 
@@ -138,7 +138,7 @@ class CostarWorld(AbstractWorld):
     # This is the standard update performed at every tick. If we're actually
     # observing the world somehow, then this needs to update object
     # information.
-    def hook(self):
+    def _update_environment(self):
         if self.observe is not None:
             # This calls the observe function with this world as an argument in order
             # to update any of its internal information.
@@ -198,7 +198,7 @@ class CostarWorld(AbstractWorld):
 
     def visualize(self):
         '''
-        Hook is called after the world updates each actor according to its policy.
+        _update_environment is called after the world updates each actor according to its policy.
         It has a few responsibilities:
         1) publish all training trajectories for visualization
         2) publish the current command/state associated with each actor too the sim.
@@ -278,7 +278,7 @@ class CostarWorld(AbstractWorld):
         TODO(cpaxton): update this when we have a more unified way of thinking
         about objects.
         '''
-        
+
         #self.class_by_object[obj_id] = obj_class
         if obj_class not in self.object_by_class:
             self.object_by_class[obj_class] = [obj_name]

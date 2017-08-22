@@ -142,6 +142,13 @@ class Task(object):
   def name(self, index):
       return self.names[index]
 
+  def numActions(self):
+      '''
+      Indices directly indexes the array of actions so this shouldn't really
+      change much.
+      '''
+      return len(self.names.keys())
+
   def nodeSummary(self):
     if not self.compiled:
       raise RuntimeError('Cannot print nodes from Task before compile() has been called!')

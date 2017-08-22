@@ -85,6 +85,11 @@ class AbstractWorld(object):
     '''
     desc = self.features.description
     if isinstance(features, tuple) or isinstance(features, list):
+        if len(desc) != len(features):
+              raise ValueError("The list of feature descriptions differs from the "
+                               "actual length of the features received, "
+                               "check your code between feature creation and this error "
+                               "for differences.")
         assert len(desc) ==  len(features)
         data = zip(self.features.description, features)
     else:
@@ -130,7 +135,7 @@ class AbstractWorld(object):
     self.conditions.append((condition, weight, name))
 
   # override this if there's some cleanup logic that needs to happen after dynamics updates
-  def hook(self):
+  def _update_environment(self):
     raise NotImplementedError('This should be overridden by the child class '
         'implementing the world. It implements the world global update rules, '
         'and ensures the world is in a valid state after all actors collect '
@@ -188,9 +193,9 @@ class AbstractWorld(object):
 
   def tick(self, A0):
     '''
-    Main update loop for the World class. 
+    Main update loop for the World class.
     This resolves all the logic in the world by updating each actor according
-    to its last observation of the world state. It also calls the hook()
+    to its last observation of the world state. It also calls the _update_environment()
     function to complete application-specific world update logic.
     '''
     self.ticks += 1
@@ -209,14 +214,14 @@ class AbstractWorld(object):
     for actor, action in zip(self.actors, actions):
       s = actor.update(action, self.dt)
 
-    self.hook() # run update hook for this environment
+    self._update_environment() # run update _update_environment for this environment
 
     S1 = self.actors[0].state
 
     # set up vectors of predicates properly
     for actor in self.actors:
         actor.state.predicates = [0] * len(self.predicates)
-   
+
     # update all actors
     #self.predicates = [check(world, self, actor, actor.last_state)
     #for actor in self.actors:

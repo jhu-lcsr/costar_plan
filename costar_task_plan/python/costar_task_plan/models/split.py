@@ -5,10 +5,8 @@ def SplitIntoChunks(datasets, labels,
         reward=None,
         reward_threshold=0,
         chunk_length=100,
-        step_size=10,
         front_padding=False,
-        rear_padding=False,
-        stagger=False):
+        rear_padding=False,):
     '''
     Split data into segments of the given length. This will return a much
     larger data set, but with the dimensionality changed so that we can easily
@@ -33,8 +31,11 @@ def SplitIntoChunks(datasets, labels,
     if reward is not None:
         datasets.append(reward)
 
-    new_data = {}
-    stagger_data = {}
+    new_data = []
+    for data in datasets:
+        shape = (data.shape[0], chunk_length,) + data.shape[1:]
+        new_data.append(np.zeros(shape))
+    next_idx = np.zeros((len(datasets),),dtype=int)
 
     for label in xrange(min_label, max_label+1):
 
@@ -47,14 +48,6 @@ def SplitIntoChunks(datasets, labels,
 
         for idx, data in enumerate(datasets):
             subset = data[labels==label]
-
-            #print "SUBSET":,
-            #print np.argmax(subset,axis=-1), subset.shape
-
-            dataset = []
-            # staggered dataset for dynamics learning
-            sdataset = []
-
 
             # Set up data size
             data_size = subset.shape[0]
@@ -75,8 +68,6 @@ def SplitIntoChunks(datasets, labels,
                 start_block = max(0,i-chunk_length+1)
                 end_block = min(i,data_size)
                 block = subset[start_block:end_block+1]
-                #print i, start_block, end_block+1, "/", data_size,
-                #print subset.shape, np.argmax(block[-1])
                 if padding:
                     block = AddPadding(block,
                             chunk_length,
@@ -90,56 +81,16 @@ def SplitIntoChunks(datasets, labels,
                     print "block shape/chunk length:", block.shape, chunk_length
                     raise RuntimeError('dev error: block not of the ' + \
                                        'correct length.')
-                dataset.append(block)
 
-                if stagger:
-                    #print "D> start/end:", start_block, end_block
-                    start_block = max(0,i-chunk_length+2)
-                    end_block = min(i+1,data_size)
-                    #print "S> start/end:", start_block, end_block
-                    # Get the next state info for learning dynamics models.
-                    sblock = data[start_block:end_block+1]
-                    if padding:
-                        sblock = AddPadding(sblock,
-                                chunk_length,
-                                start_block,
-                                end_block,
-                                data_size)
-                    elif end_block - start_block is not chunk_length:
-                        raise RuntimeError('could not create staggered block')
-                    assert sblock.shape[0] == chunk_length
-                    sdataset.append(sblock)
+                new_data[idx][next_idx[idx]] = block
+                next_idx[idx] += 1
+                i += 1
 
-
-                i += step_size
-
-            if not idx in new_data:
-                new_data[idx] = np.array(dataset)
-                if stagger:
-                    stagger_data[idx] = np.array(sdataset)
-            else:
-                new_data[idx] = np.append(
-                        new_data[idx],
-                        values=np.array(dataset),
-                        axis = 0)
-                if stagger:
-                    stagger_data[idx] = np.append(
-                            stagger_data[idx],
-                            values=np.array(sdataset),
-                            axis = 0)
-    #print len(new_data)
-    #print type(new_data)
-    #for d in new_data.values():
-    #    print d.shape
-    for d in new_data.values():
-        if not d.shape[0] == new_data.values()[0].shape[0]:
+    for d in new_data:
+        if not d.shape[0] == new_data[0].shape[0]:
             raise RuntimeError('error combining datasets')
 
-    if stagger:
-        stagger_values = stagger_data.values()
-    else:
-        stagger_values = None
-    return new_data.values(), stagger_values
+    return new_data
 
 def SplitIntoActions(
         datasets,
@@ -208,6 +159,82 @@ def SplitIntoActions(
 
     return frame_data, result_data
 
+def NextAction(datasets, action_labels, examples):
+    '''
+    Create extra datasets marking transitions between actions. This is so we
+    can predict the effects of high-level actions, not just low level actions,
+    when doing our various operations.
+
+    Parameters:
+    -----------
+    datasets: list of data that needs to be updated
+    action_labels: list of labels for actions (e.g. "PICKUP(OBJ)")
+    examples: ID number for the sequence the data belongs to
+
+    Returns:
+    --------
+    new_data: data of the same shape as datasets, but containing terminal
+              states of all the labeled high-level actions
+    '''
+
+    # Loop over all entries in action labels and examples
+    if len(action_labels.shape) == 1:
+        action_labels = np.expand_dims(action_labels, -1)
+    if len(examples.shape) == 1:
+        examples = np.expand_dims(examples, -1)
+    if not action_labels.shape == examples.shape:
+        print action_labels.shape
+        print examples.shape
+        raise RuntimeError('all matrices must be of the same shape')
+    elif len(action_labels.shape) is not 2:
+        print action_labels.shape
+        raise RuntimeError('all data should be of the shape ' + \
+                           '(NUM_EXAMPLES, data)')
+    for data in datasets:
+        if not data.shape[0] == examples.shape[0]:
+            print data.shape, examples.shape
+            raise RuntimeError('all data must be of the same length')
+    
+    new_datasets = []
+    for data in datasets:
+        new_datasets.append(np.zeros_like(data))
+
+    idx = 0 # idx of the data
+    switch = 1
+    while switch < examples.shape[0]:
+        end_of_trial = False
+        # loop over every entry; break if this is the last entry
+        while switch < examples.shape[0] - 1:
+            if examples[switch-1] == examples[switch] and \
+               action_labels[switch-1] == action_labels[switch]:
+                   switch += 1
+                   continue
+            elif not examples[switch-1] == examples[switch]:
+                # We do not want to predict the beginning of the next trial!
+                end_of_trial = True
+                switch -= 1
+                #print "eot at idx=",idx,"switch=",switch,examples[switch-1],examples[switch]
+                #print examples[switch-1], examples[switch],
+                #print action_labels[switch-1], action_labels[switch]
+                break
+            else:
+                #print examples[switch-1], examples[switch],
+                #print action_labels[switch-1], action_labels[switch]
+                break
+        while idx < switch:
+            #print idx, switch
+            for goal_data, data in zip(new_datasets, datasets):
+                goal_data[idx] = data[switch]
+            idx += 1
+        if end_of_trial:
+            idx += 1
+        switch = idx+1
+
+    # Set goal for the last frame, for completeness
+    for goal_data, data in zip(new_datasets, datasets):
+        goal_data[-1] = data[-1]
+
+    return new_datasets
 
 def FirstInChunk(data):
     '''

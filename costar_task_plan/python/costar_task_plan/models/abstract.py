@@ -14,7 +14,7 @@ class AbstractAgentBasedModel(object):
     will also provide the model with a way to collect data or whatever.
     '''
 
-    def __init__(self, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
+    def __init__(self, taskdef=None, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
             clipnorm=100, show_iter=0, pretrain_iter=5,
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
             task=None, robot=None, model="", *args,
@@ -40,11 +40,12 @@ class AbstractAgentBasedModel(object):
         self.robot = robot
         self.name = "%s_%s"%(model, self.model_descriptor)
         self.clipnorm = clipnorm
+        self.taskdef = taskdef
         if self.task is not None:
             self.name += "_%s"%self.task
         if self.features is not None:
             self.name += "_%s"%self.features
-        
+
         # default: store the whole model here.
         # NOTE: this may not actually be where you want to save it.
         self.model = None
@@ -69,6 +70,15 @@ class AbstractAgentBasedModel(object):
         print "Clip Norm = ", self.clipnorm
         print "==========================================================="
 
+    def _numLabels(self):
+        '''
+        Use the taskdef to get total number of labels
+        '''
+        if self.taskdef is None:
+            raise RuntimeError('must provide a task definition including' + \
+                               'all actions and descriptions.')
+        return self.taskdef.numActions()
+
     def train(self, agent, *args, **kwargs):
         raise NotImplementedError('train() takes an agent.')
 
@@ -89,7 +99,7 @@ class AbstractAgentBasedModel(object):
         control = world.zeroAction()
         reward = world.initial_reward
         features = world.computeFeatures()
-        action_label = ''
+        action_label = np.zeros((self._numLabels(),))
         example = 0
         done = False
         data = world.vectorize(control, features, reward, done, example,
@@ -151,7 +161,8 @@ class AbstractAgentBasedModel(object):
         #oh[np.arange(f.shape[0]), np.arange(f.shape[1]), f]
         for i in xrange(f.shape[0]):
             for j in xrange(f.shape[1]):
-                oh[i,j,f[i,j]] = 1.
+                idx = f[i,j]
+                oh[i,j,idx] = 1.
         return oh
 
 
@@ -169,11 +180,24 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
     being executed; it takes in 0 if no action has been performed yet.
     '''
 
-    def __init__(self, *args, **kwargs):
-        super(HierarchicalAgentBasedModel, self).__init__(*args, **kwargs)
+    def __init__(self, taskdef, *args, **kwargs):
+        super(HierarchicalAgentBasedModel, self).__init__(taskdef, *args, **kwargs)
         self.num_actions = 0
-    
-    def _makeSupervisor(self, feature, label, num_labels):
+
+        self.predictor = None
+        self.supervisor = None
+
+        self.predict_goal = None
+        self.predict_next = None
+
+        self.prev_option = 0
+        
+    def _makeOption1h(self, option):
+        opt_1h = np.zeros((1,self._numLabels()))
+        opt_1h[0,option] = 1.
+        return opt_1h
+
+    def _makeSupervisor(self, feature):
         '''
         This needs to create a supervisor. This one maps from input to the
         space of possible action labels.
@@ -191,15 +215,17 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         This is the helper that actually sets everything up.
         '''
         num_labels = label.shape[-1]
-        assert num_labels > 1
-        hidden, self.supervisor = self._makeSupervisor(features, label,
-                num_labels)
-        self.supervisor.summary()
+        assert num_labels == self._numLabels()
+        hidden, self.supervisor, self.predictor, \
+                self.predict_goal, self.predict_next = \
+                self._makeSupervisor(features)
 
-        
+        # These are the outputs to other layers -- this is the hidden world
+        # state.
+        hidden.trainable = False
+
         # Learn a baseline for comparisons and whatnot
         self.baseline = self._makePolicy(features, action, hidden)
-        self.baseline.summary()
 
         # We assume label is one-hot. This is the same as the "baseline"
         # policy, but we learn a separate one for each high-level action
@@ -207,13 +233,17 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         self.policies = []
         for i in xrange(num_labels):
             self.policies.append(self._makePolicy(features, action, hidden))
-        
-    def _fitSupervisor(self, features, prev_label, label):
-        #self.supervisor.fit([features, prev_label], [label])
+
+    def _fitSupervisor(self, features, label):
         '''
         Fit a high-level policy that tells us which low-level action we could
         be taking at any particular time.
         '''
+        self._fixWeights()
+        self.supervisor.compile(
+                loss="binary_crossentropy",
+                optimizer=self.getOptimizer())
+        self.supervisor.summary()
         self.supervisor.fit(features, [label], epochs=self.epochs)
 
     def _fitPolicies(self, features, label, action):
@@ -223,26 +253,68 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         # Divide up based on label
         idx = np.argmax(np.squeeze(label[:,-1,:]),axis=-1)
 
+        self._fixWeights()
+
         for i, model in enumerate(self.policies):
+
+            optimizer = self.getOptimizer()
+            model.compile(loss="mse", optimizer=optimizer)
+
             # select data for this model
-            x = features[idx==i]
-            a = action[idx==i]
-            if a.shape[0] == 0:
-                #raise RuntimeError('no examples for %d'%i)
-                print 'WARNING: no examples for %d'%i
-                continue
-            model.fit([x], [a], epochs=self.epochs)
+            if isinstance(features, list):
+                x = [f[idx==i] for f in features]
+            else:
+                x = features[idx==i]
+            if isinstance(action, list):
+                a = [ac[idx==i] for ac in action]
+                if len(a) == 0 or a[0].shape[0] == 0:
+                    print 'WARNING: no examples for %d'%i
+                    continue
+            else:
+                a = action[idx==i]
+                if a.shape[0] == 0:
+                    #raise RuntimeError('no examples for %d'%i)
+                    print 'WARNING: no examples for %d'%i
+                    continue
+            model.fit(x, a, epochs=self.epochs)
+
+    def _fixWeights(self):
+        self.predictor.trainable = False
+        for layer in self.predictor.layers:
+            layer.trainable = False
+
+    def _unfixWeights(self):
+        self.predictor.trainable = True
+        for layer in self.predictor.layers:
+            layer.trainable = True
+
+    def _fitPredictor(self, features, targets):
+        '''
+        Can be different for every set of features so...
+        '''
+        self._unfixWeights()
+        self.predictor.compile(
+                loss="mse",
+                optimizer=self.getOptimizer())
+        self.predictor.summary()
+        self.predictor.fit(features, targets)
+        self._fixWeights()
 
     def _fitBaseline(self, features, action):
-        self.baseline.fit([features], [action], epochs=self.epochs)
+        self._fixWeights()
+        self.baseline.compile(loss="mse", optimizer=self.getOptimizer())
+        self.baseline.summary()
+        self.baseline.fit(features, action, epochs=self.epochs)
 
     def save(self):
         '''
         Save to a filename determined by the "self.name" field.
         '''
-        if self.supervisor is not None:
+        if self.predictor is not None:
+            print "saving to " + self.name
+            self.predictor.save_weights(self.name + "_predictor.h5f")
             self.supervisor.save_weights(self.name + "_supervisor.h5f")
-            self.baseline.save_weights(self.name + "_supervisor.h5f")
+            self.baseline.save_weights(self.name + "_baseline.h5f")
             for i, policy in enumerate(self.policies):
                 policy.save_weights(self.name + "_policy%02d.h5f"%i)
         else:
@@ -253,16 +325,15 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         Load model weights. This is the default load weights function; you may
         need to overload this for specific models.
         '''
-        if self.supervisor is not None:
-            print "using " + self.name + ".h5f"
+        if self.predictor is not None:
+            print "----------------------------"
+            print "using " + self.name + " to load"
             print self.supervisor.summary()
-            #print args
-            #weight_location = args.load_model.name
-            #self.model.load_weights(weight_location)
-            self.supervisor.load_weights(self.name + "_supervisor.h5f")
             self.baseline.load_weights(self.name + "_baseline.h5f")
             for i, policy in enumerate(self.policies):
                 policy.load_weights(self.name + "_policy%02d.h5f"%i)
+            self.supervisor.load_weights(self.name + "_supervisor.h5f")
+            self.predictor.load_weights(self.name + "_predictor.h5f")
         else:
             raise RuntimeError('_loadWeights() failed: model not found.')
 
@@ -271,19 +342,46 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         This is the basic, "dumb" option. Compute the next option/policy to
         execute by evaluating the supervisor, then just call that model.
         '''
-        features = world.getHistoryMatrix()
+        features = world.initial_features #getHistoryMatrix()
         if isinstance(features, list):
-            assert len(features) == len(self.model.inputs)
+            assert len(features) == len(self.supervisor.inputs) - 1
         else:
             features = [features]
         if self.supervisor is None:
             raise RuntimeError('high level model is missing')
         features = [f.reshape((1,)+f.shape) for f in features]
-        res = self.supervisor.predict(features)
+        res = self.supervisor.predict(features +
+                [self._makeOption1h(self.prev_option)])
         next_policy = np.argmax(res)
+
+        print "next policy = ", next_policy,
+        if self.taskdef is not None:
+            print self.taskdef.name(next_policy)
+        else:
+            print ""
+        one_hot = np.zeros((1,self._numLabels()))
+        one_hot[0,next_policy] = 1.
+        features2 = features + [one_hot]
+
+        # ===============================================
+        # INTERMEDIATE CODE PLEASE REMOVE
+        res = self.predictor.predict(features2)
+        import matplotlib.pyplot as plt
+        plt.subplot(2,1,1)
+        plt.imshow(features[0][0])
+        plt.subplot(2,1,2)
+        plt.imshow(res[0][0])
+        plt.ion()
+        plt.show(block=False)
+        plt.pause(0.01)
+        # ===============================================
 
         # Retrieve the next policy we want to execute
         policy = self.policies[next_policy]
+
+        # Update previous option -- which one did we end up choosing, and which
+        # policy did we execute?
+        self.prev_option = next_policy
 
         # Evaluate this policy to get the next action out
         return policy.predict(features)

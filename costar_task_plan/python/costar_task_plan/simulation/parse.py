@@ -117,7 +117,7 @@ def ParseBulletArgs():
     parser.add_argument("-z", "--zdim", "--noise_dim",
                         help="size of action parameterization",
                         default=16)
-    parser.add_argument("-D", "--debug_model", "--dm",
+    parser.add_argument("-D", "--debug_model", "--dm", "--debug",
                         help="Run a short script to debug the current model.",
                         action="store_true")
     parser.add_argument("--clipnorm",
@@ -139,5 +139,9 @@ def ParseBulletArgs():
                               " discriminators.",
                         default=0,
                         type=int)
+    parser.add_argument("--cpu",
+                        help="Run in CPU-only mode, even if GPUs are" + \
+                             " available.",
+                        action="store_true",)
 
     return vars(parser.parse_args())

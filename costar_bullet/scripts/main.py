@@ -16,6 +16,17 @@ from costar_task_plan.models import MakeModel
 import time
 
 def main(args):
+    if 'cpu' in args and args['cpu']:
+        import tensorflow as tf
+        import keras.backend as K
+
+        with tf.device('/cpu:0'):
+            config = tf.ConfigProto(
+                device_count={'GPU': 0}
+            )
+            sess = tf.Session(config=config)
+            K.set_session(sess)
+
     env = BulletSimulationEnv(**args)
     if 'agent' in args and args['agent'] is not None:
         agent = MakeAgent(env, args['agent'], **args)
@@ -23,9 +34,7 @@ def main(args):
     if 'model' in args and args['model'] is not None:
         model = MakeModel(taskdef=env.task, **args)
         if 'load_model' in args and args['load_model']:
-            model.load(env.world, args['load_model'])
-        if '--load' in args and args['load']:
-            print "loading data from file"
+            model.load(env.world)
         try:
             model.train(**agent.data)
         except KeyboardInterrupt, e:
