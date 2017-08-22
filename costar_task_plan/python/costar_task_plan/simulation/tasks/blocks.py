@@ -50,7 +50,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
 
     def _makeTask(self):
 
-        tol = (0.01, 0.01)
+        tol = (0.005, 0.005)
         general_tol = (0.05, 0.025)
 
         # ====================================================================
@@ -91,7 +91,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         }
         PlaceOption = lambda: GeneralMotionOption(
             pose=(self.final_stack_pos, self.grasp_q),
-            pose_tolerance=(0.025, 0.025),
+            pose_tolerance=tol,
             joint_velocity_tolerance=0.05,)
         place_args = {
             "constructor": PlaceOption,
@@ -99,6 +99,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         }
         close_gripper_args = {
             "constructor": lambda: CloseGripperOption(position=np.array([-0.6])),
+            #"constructor": lambda: CloseGripperOption(),
             "args": []
         }
         open_gripper_args = {
@@ -121,7 +122,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             StackOption = lambda goal: GoalDirectedMotionOption(
                 self.world,
                 goal,
-                pose=((0.02, 0, 0.06), self.grasp_q),
+                pose=((0.01, 0, 0.06), self.grasp_q),
                 pose_tolerance=tol,
                 joint_velocity_tolerance=0.05,
                 closed_loop=True,)
