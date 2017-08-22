@@ -143,5 +143,8 @@ def ParseBulletArgs():
                         help="Run in CPU-only mode, even if GPUs are" + \
                              " available.",
                         action="store_true",)
+    parser.add_argument("--verbose",
+                        help="Run world in verbose mode, printing out errors.",
+                        action="store_true")
 
     return vars(parser.parse_args())

@@ -214,6 +214,12 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         self.world.addCondition(JointLimitViolationCondition(), -100,
                                 "joints must stay in limits")
         self.world.addCondition(TimeCondition(15.), -100, "time limit reached")
+        self.world.addCondition(AndCondition(
+                                    ObjectIsBelowCondition("red_block", 0.55),
+                                    ObjectIsBelowCondition("green_block", 0.55),
+                                    ObjectIsBelowCondition("blue_block", 0.55),
+                                    ObjectIsBelowCondition("yellow_block", 0.55),
+                                ), -100, "block_too_high")
         self.world.reward = EuclideanReward("red_block")
 
         # =====================================================================

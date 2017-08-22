@@ -12,13 +12,26 @@ class CollisionCondition(AbstractCondition):
     that it is not allowed to collide with.
     '''
 
-    def __init__(self, allowed):
+    def __init__(self, not_allowed):
+        '''
+        Takes in a list of objects that it is illegal to collide with. If any
+        collisions are detected, then return False. Else return True.
+        '''
         super(CollisionCondition, self).__init__()
-        self.allowed = allowed
+        if not isinstance(list, not_allowed):
+            self.now_allowed = [now_allowed]
+        else:
+            self.now_allowed = now_allowed
 
     def _check(self, world, state, actor, prev_state=None):
-        raise NotImplementedError('come on, this does not work yet')
-        pass
+        # Get the pybullet handle for this actor
+        handle = actor.handle
+
+        # check collisions
+        for obj in self.not_allowed:
+            pass
+
+        return True
 
 
 class JointLimitViolationCondition(AbstractCondition):
@@ -134,12 +147,19 @@ class AbsolutePositionCondition(AbstractCondition):
 
         return dist > self.pos_tol or still_moving
 
-class IsBelowCondition(AbstractCondition):
-    def __init__(self, z):
+class ObjectIsBelowCondition(AbstractCondition):
+    '''
+    Make sure you don't move an object too high. This is particualrly to make
+    sure that, in the stacking case, we don't attempt to place an object on top
+    of itself during data generation...
+    '''
+    def __init__(self, obj, z):
+        self.obj = obj
         self.z = z
 
     def _check(self, world, state, actor, prev_state=None):
-        return state.T.p[2] < z
+        T = world.getObject(self.obj).state.T
+        return T.p[2] < self.z
 
 class ObjectAtPositionCondition(AbstractCondition):
 
