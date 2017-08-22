@@ -1,6 +1,6 @@
 
 from costar_task_plan.agent import GetAgents
-from costar_task_plan.models import GetModels
+from costar_models import GetModels
 
 from util import GetAvailableTasks, GetAvailableRobots, GetAvailableAlgorithms
 from features import GetFeatures, GetAvailableFeatures

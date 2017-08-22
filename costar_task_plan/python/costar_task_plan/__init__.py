@@ -33,7 +33,6 @@ except ImportError, e:
 # Learning, training, and utilities.
 try:
     import agent
-    import models
     import trainers
 except ImportError, e:
     print "[WARNING] keras/tensorflow required for some tools"
