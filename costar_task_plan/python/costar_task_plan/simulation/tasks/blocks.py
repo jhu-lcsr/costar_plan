@@ -50,13 +50,16 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
 
     def _makeTask(self):
 
+        tol = (0.01, 0.01)
+        general_tol = (0.05, 0.025)
+
         # ====================================================================
         # First grasp -- pick up object from the side
         AlignOption = lambda goal: GoalDirectedMotionOption(
             self.world,
             goal,
             pose=((0.05, 0, 0.05), self.grasp_q),
-            pose_tolerance=(0.02, 0.025),
+            pose_tolerance=tol,
             joint_velocity_tolerance=0.05,)
         align_args = {
             "constructor": AlignOption,
@@ -67,7 +70,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             self.world,
             goal,
             pose=((0.0, 0, 0.0), self.grasp_q),
-            pose_tolerance=(0.02, 0.025),
+            pose_tolerance=tol,
             joint_velocity_tolerance=0.05,)
         grasp_args = {
             "constructor": GraspOption,
@@ -80,7 +83,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         # General actions -- lift the block back up again
         LiftOption = lambda: GeneralMotionOption(
             pose=(self.over_final_stack_pos, self.grasp_q),
-            pose_tolerance=(0.05, 0.025),
+            pose_tolerance=general_tol,
             joint_velocity_tolerance=0.05,)
         lift_args = {
             "constructor": LiftOption,
@@ -108,7 +111,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                 self.world,
                 goal,
                 pose=((0.02, 0, 0.10), self.grasp_q),
-                pose_tolerance=(0.01, 0.025),
+                pose_tolerance=tol,
                 joint_velocity_tolerance=0.05,)
             align_stack_args = {
                 "constructor": AlignStackOption,
@@ -119,7 +122,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                 self.world,
                 goal,
                 pose=((0.02, 0, 0.06), self.grasp_q),
-                pose_tolerance=(0.01, 0.025),
+                pose_tolerance=tol,
                 joint_velocity_tolerance=0.05,
                 closed_loop=True,)
             stack_args = {
@@ -193,8 +196,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         return ids
 
     def _samplePos(self, x, y, z):
-        diff = np.random.random((3,)) * 0.1
-        diff[2] = 0.
+        diff = np.random.random((3,)) * [0.2, 0.1, 0.]
         return np.array([x,y,z]) + diff
 
     def _sampleRotation(self):
@@ -304,10 +306,11 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             # add blocks to tower
             z = 0.025
             for block_id in blocks:
+                block_pos = self._samplePos(pos[0], pos[1], z)
                 r = self._sampleRotation()
                 pb.resetBasePositionAndOrientation(
                     block_id,
-                    (pos[0], pos[1], z),
+                    block_pos,
                     r)
                 z += 0.05
 
