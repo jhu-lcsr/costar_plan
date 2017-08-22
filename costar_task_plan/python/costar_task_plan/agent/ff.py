@@ -20,7 +20,6 @@ class FeedForwardAgent(AbstractAgent):
 
     def __init__(self, env, *args, **kwargs):
         super(FeedForwardAgent, self).__init__(env=env, *args, **kwargs)
-        print args, kwargs
         self.model = MakeModel(taskdef=self.env.task, **kwargs)
         self.model.load(self.env.world)
 
