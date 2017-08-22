@@ -50,6 +50,7 @@ class AbstractAgent(object):
     name = None
     
     def __init__(self,
+            env=None,
             verbose=False,
             save=False,
             load=False,
@@ -61,11 +62,13 @@ class AbstractAgent(object):
 
         Params:
         ---------
+        env: environment gym to run
         verbose: print out a ton of warnings and other information.
         save: save data collected to the disk somewhere.
         load: load data from the disk.
         '''
 
+        self.env = env
         self._break = False
         self.verbose = verbose
         self.save = save

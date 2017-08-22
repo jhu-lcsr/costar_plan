@@ -362,7 +362,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         print "joints:", q.shape,
         print "options:", oin.shape, o_target.shape
 
-        if False:
+        if True:
             # show the before and after frames
             for i in xrange(10):
                 for j in xrange(self.num_frames+2):

@@ -181,14 +181,24 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             urdf_filename = os.path.join(
                 urdf_dir, self.model, self.block_urdf % block)
             obj_id = pb.loadURDF(urdf_filename)
+            r = self._sampleRotation()
             pb.resetBasePositionAndOrientation(
                 obj_id,
                 (pos[0], pos[1], z),
-                (0, 0, 0, 1))
+                r)
             self.addObject("block", "%s_block" % block, obj_id)
             z += 0.05
             ids.append(obj_id)
         return ids
+
+    def _sampleRotation(self):
+        '''
+        Sample a random, small rotation.
+        '''
+        rpy = np.random.random((3,)) * 0.3
+        rpy[1] = 0. # clear out the pitch
+        r = kdl.Rotation.RPY(*list(rpy)).GetQuaternion()
+        return r
 
     def _setup(self):
         '''
@@ -288,10 +298,11 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             # add blocks to tower
             z = 0.025
             for block_id in blocks:
+                r = self._sampleRotation()
                 pb.resetBasePositionAndOrientation(
                     block_id,
                     (pos[0], pos[1], z),
-                    (0, 0, 0, 1))
+                    r)
                 z += 0.05
 
         self._setupRobot(self.robot.handle)
