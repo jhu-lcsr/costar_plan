@@ -17,11 +17,12 @@ def GetAvailableTasks():
             "trays",
             "obstructions",
             "sorting",
-            "sorting2"]
+            "sorting2",
+            "explore"]
 
 
 def GetAvailableRobots():
-    return ["jaco", "ur5_2_finger", "ur5", "ur5_robotiq"]
+    return ["jaco", "ur5_2_finger", "ur5", "ur5_robotiq", "turtlebot"]
 
 
 def GetAvailableAlgorithms():
@@ -45,6 +46,7 @@ def GetTaskDefinition(task, robot, features, *args, **kwargs):
             'sorting': lambda: SortingTaskDefinition(robot, features=features, *args, **kwargs),
             'sorting2': lambda: Sorting2TaskDefinition(0, robot=robot, features=features, *args, **kwargs),
             'oranges': lambda: OrangesTaskDefinition(robot, features=features, *args, **kwargs),
+            'explore': lambda: ExploreTaskDefinition(robot, features=features, *args, **kwargs),
         }[task.lower()]()
     except KeyError, e:
         raise NotImplementedError('Task %s not implemented!' % task)
@@ -61,6 +63,7 @@ def GetRobotInterface(robot, *args, **kwargs):
             'ur5_robotiq': lambda: Ur5RobotiqInterface(*args, **kwargs),
             'ur5': lambda: Ur5RobotiqInterface(*args, **kwargs),
             'jaco': lambda: JacoRobotiqInterface(*args, **kwargs),
+            'turtlebot': lambda: TurtlebotInterface(*args, **kwargs),
             #'iiwa_3_finger': IiwaRobotiq3FingerInterface(*args, **kwargs),
             #'iiwa': IiwaRobotiq3FingerInterface(*args, **kwargs),
         }[robot.lower()]()

@@ -8,8 +8,6 @@ class NullAgent(AbstractAgent):
     name = "null"
 
     def __init__(self, *args, **kwargs):
-        print args
-        print kwargs
         super(NullAgent, self).__init__(*args, **kwargs)
 
     def _fit(self, num_iter):
