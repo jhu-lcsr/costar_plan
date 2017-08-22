@@ -4,7 +4,21 @@ from robots import *
 
 
 def GetAvailableTasks():
-    return ["blocks", "drl_blocks", "clutter", "sorting", "tower", "oranges", "obstacles", "trays", "obstructions", "sorting", "sorting2", "explore"]
+    return [
+            "blocks", # move 1 block from A to B
+            "stack1", # stack 2 blocks
+            "drl_blocks", # Kapil's DRL environment
+            "clutter", # spawn a bunch of random objects
+            "sorting",
+            "tower",
+            "oranges", # NOT YET IMPLEMENTED
+            "obstacles", # Albert: spawn a bunch of random objects on top of
+                         # blocks
+            "trays",
+            "obstructions",
+            "sorting",
+            "sorting2",
+            "explore"]
 
 
 def GetAvailableRobots():
@@ -22,6 +36,7 @@ def GetTaskDefinition(task, robot, features, *args, **kwargs):
     try:
         return {
             'blocks': lambda: BlocksTaskDefinition(0, robot=robot, features=features, *args, **kwargs),
+            'stack1': lambda: BlocksTaskDefinition(1, robot=robot, features=features, *args, **kwargs),
             'trays': lambda: BlocksTaskDefinition(0, robot=robot, features=features, *args, **kwargs),
             'obstacles': lambda: ObstaclesTaskDefinition(0, robot=robot, features=features, *args, **kwargs),
             'obstructions': lambda: ObstructionsTaskDefinition(0, robot=robot, features=features, *args, **kwargs),

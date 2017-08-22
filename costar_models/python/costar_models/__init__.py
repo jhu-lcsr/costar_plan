@@ -4,11 +4,6 @@ __all__ = [
     # Machine Learning,
     'GMM', "GmmDynamics",
     # ===========================================================================
-    # Adversaries generate worlds
-    'AbstractAdversary',
-    'RandomAdversary', # choose random params
-    'HostileAdversary',
-    # ===========================================================================
     # Utilities
     "MakeModel", "GetModels",
     ]
@@ -17,11 +12,6 @@ __all__ = [
 from sampler import *
 from fast import *
 from gmm import *
-from gmm_dynamics import *
-
-# adversary stuff
-from adversary import *
-import adversary
 
 # neural net models
 import gan

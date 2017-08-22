@@ -10,6 +10,20 @@ from world import AbstractWorld
 import copy
 import numpy as np
 
+ROOT_NAME = "ROOT"
+ROOT_TAG = "ROOT()"
+
+class TaskTemplate(object):
+    def __init__(self, name, parents):
+        self.name = name
+        if not isinstance(parents, list):
+            parents = [parents]
+        self.parents = parents
+        self.options = []
+
+    def add(self, *args):
+        self.options.append(args)
+
 class Task(object):
   '''
   Model of a task as a state machine. We can specify this in any number of
@@ -17,12 +31,16 @@ class Task(object):
   slightly different task plan.
   '''
 
-  def __init__(self):
+  def __init__(self, subtask_name=None, subtask_parents=None):
     '''
     Create the task.
     '''
     self.option_templates = {None: NullOptionTemplate()}
     self.template_connections = []
+
+    # for subtasks
+    self.subtask_name = subtask_name
+    self.subtask_parents = subtask_parents
 
     self.compiled = False
     self.nodes = {}
@@ -33,6 +51,48 @@ class Task(object):
 
     # Store name by integer index in case we ever want to recover that
     self.names = {}
+    self.generic_names = {}
+
+    self.conditions = []
+
+  def mergeTask(self, task, name, inodes):
+      '''
+      Add subtasks and options to the current compiled task graph.
+
+      Parameters:
+      ----------
+      task: the subtask to merge
+      inodes: dictionary of nodes to combine
+
+      Returns:
+      --------
+      inodes: updated node dictionary
+      '''
+
+      # add templates in
+      for name, template in task.option_templates.items():
+          self.option_templates[name] = template
+
+      # add connections in
+      for parent, child in task.template_connections:
+          if parent in self.option_templates:
+              self.option_templates[parent].connect(child)
+
+      for iname, option in task.nodes.items():
+          name = task.generic_names[iname]
+          if iname in self.nodes:
+              if name not in inodes:
+                  inodes[name] = []
+              if iname not in inodes[name]:
+                  inodes[name].append(iname)
+              for child in task.children[iname]:
+                  self.children[iname].add(child)
+          else:
+              inodes[name] = [iname]
+              self.nodes[iname] = option
+              self.children[iname] = task.children[iname]
+
+      return inodes
 
   def add(self, name, parents, option_args):
     '''
@@ -47,7 +107,9 @@ class Task(object):
       ignore_args = True
 
     if not ignore_args:
-      self.option_templates[name] = OptionTemplate(**option_args)
+      self.option_templates[name] = OptionTemplate(
+              subtask_name=self.subtask_name,
+              **option_args)
 
     if parents is None or len(parents) == 0:
       parents = [None]
@@ -85,44 +147,72 @@ class Task(object):
     if isinstance(arg_dict, AbstractWorld):
         arg_dict = arg_dict.getObjects()
 
-    # First: connect templates (parent -> child)
-    for parent, child in self.template_connections:
-      self.option_templates[parent].connect(child)
-
     # Make list of args
     arg_sets = get_arg_sets(arg_dict)
 
-    inodes = {}
+    # First: connect templates (parent -> child)
+    for parent, child in self.template_connections:
+        if parent in self.option_templates:
+            self.option_templates[parent].connect(child)
 
+    # Possible assignments to arguments. Add children here, not outside.
     for arg_set in arg_sets:
+      # List of instantiated options and subtasks, used for connecting children
+      # to parents.
+      # "inodes" is the list of instantiated nodes to connect. It is scoped, so
+      # that for any particular set of options/substasks created, they will all
+      # share the same values. This lets us create interesting hierarchical
+      # structures.
+      inodes = {}
 
       # create the nodes
       for name, template in self.option_templates.items():
         iname, option = template.instantiate(name, arg_set)
-        if iname in self.nodes:
-          continue
+        if isinstance(option, Task):
+            # this was a subtask, and must be merged into the full version of
+            # the task model.
+            inodes = self.mergeTask(option, name, inodes)
         else:
-          inodes[name] = iname
-          self.nodes[iname] = option
-          self.children[iname] = Set()
+            self._addInstantiatedNode(name, iname, option, inodes)
 
       # connect nodes and their children
       for name, template in self.option_templates.items():
-        iname = inodes[name]
-        for child in template.children:
-            if child in inodes:
-                self.children[iname].add(inodes[child])
+        if template.task is not None:
+          # This subtask has been removed -- we no longer need it
+          # Its associated options have been merged into the graph as a whole
+          continue
+        for iname in inodes[name]:
+            self.generic_names[iname] = name
+            for child in template.children:
+              if child in inodes:
+                for ichild in inodes[child]:
+                  self.children[iname].add(ichild)
 
-    # WARNING: this is kind of terrible and might be sort of inefficient.
-    # Convert to a list
-    for i, (node, children) in enumerate(self.children.items()):
-        children = [child for child in children]
-        self.children[node] = children
-        self.indices[node] = i
-        self.names[i] = node
+    if self.subtask_name == None:
+        # WARNING: this is kind of terrible and might be sort of inefficient.
+        # Convert to a list
+        for i, (node, children) in enumerate(self.children.items()):
+            children = [child for child in children]
+            self.children[node] = children
+            self.indices[node] = i
+            self.names[i] = node
 
     self.compiled = True
     return arg_sets
+
+  def _addInstantiatedNode(self, name, iname, option, inodes):
+        if iname in self.nodes: # and iname is ROOT_TAG:
+            if name not in inodes:
+                inodes[name] = []
+            if iname not in inodes[name]:
+                inodes[name].append(iname)
+        else:
+            if name in inodes:
+                inodes[name].append(iname)
+            else:
+                inodes[name] = [iname]
+            self.nodes[iname] = option
+            self.children[iname] = Set()
 
   def makeTree(self, world, max_depth=10):
     '''
@@ -165,7 +255,7 @@ class Task(object):
       '''
       names = []
       sequence = []
-      tag = "ROOT()"
+      tag = ROOT_TAG
       while True:
           children = self.getChildren(tag)
           if children is None or len(children) == 0:
@@ -181,12 +271,15 @@ class Task(object):
                         HELPERS AND INTERNAL CLASSES
     ======================================================================= '''
 
-'''
-Internal class that represents a single templated, non-instantiated Option.
-'''
 class OptionTemplate(object):
-  def __init__(self, constructor, args, remap=None, name_template="%s(%s)"):
+  '''
+  Internal class that represents a single templated, non-instantiated Option.
+  '''
+  def __init__(self, args, constructor=None, remap=None, task=None,
+          subtask_name=None, name_template="%s(%s)"):
     self.constructor = constructor
+    self.subtask_name = subtask_name
+    self.task = task
     self.args = args
     self.remap = remap
     self.name_template = name_template
@@ -202,29 +295,42 @@ class OptionTemplate(object):
       filled_args[filled_arg_name] = arg_dict[arg]
 
     if name is None:
-      name = "ROOT"
+      name = ROOT_NAME
   
-    iname = self.name_template%(name,make_str(filled_args))
-    option = self.constructor(**filled_args)
+    if self.task is None:
+        iname = self.name_template%(name,make_str(filled_args))
+        option = self.constructor(**filled_args)
+    else:
+        option = Task(subtask_name=self.task.name)
+        for args in self.task.options:
+            option.add(*args)
+        option.compile(arg_dict)
+        iname = self.name_template%(name,
+                make_str(filled_args))
 
     return iname, option
 
   def connect(self, child):
-    self.children.append(child)
+    '''
+    Add a connection from this node to the child, but only if we have not
+    already done so (limit 1 connection per parent-child pair).
+    '''
+    if child not in self.children:
+        self.children.append(child)
 
-'''
-For the root node
-'''
 class NullOptionTemplate(OptionTemplate):
+  '''
+  For the root node
+  '''
   def __init__(self):
     super(NullOptionTemplate, self).__init__(
         constructor=NullOption,
         args={})
 
-'''
-Internal class that represents branches in our task search.
-'''
 class TaskNode(object):
+  '''
+  Internal class that represents branches in our task search.
+  '''
   def __init__(self, option, children=[]):
     self.option = option
     self.children = children
@@ -239,20 +345,30 @@ def get_arg_sets(arg_dict):
     prev_arg_sets = arg_sets
     arg_sets = []
 
-    # loop over possible argument assignments
-    for val in vals:
+    if isinstance(vals, list):
+        # loop over possible argument assignments
+        for val in vals:
 
-      # add a version where arg=val
-      for prev_arg_set in prev_arg_sets:
-        arg_set = copy.copy(prev_arg_set)
-        arg_set[arg] = val
-        arg_sets.append(arg_set)
+            # add a version where arg=val
+            for prev_arg_set in prev_arg_sets:
+                arg_set = copy.copy(prev_arg_set)
+                arg_set[arg] = val
+                arg_sets.append(arg_set)
+    else:
+        val = vals
+        for prev_arg_set in prev_arg_sets:
+            arg_set = copy.copy(prev_arg_set)
+            arg_set[arg] = val
+            arg_sets.append(arg_set)
 
   # return the set of populated assignments
   return arg_sets
 
-def make_str(filled_args):
-  assignment_list = []
-  for arg, val in filled_args.items():
-    assignment_list.append("%s=%s"%(arg,val))
-  return str(assignment_list)[1:-1]
+def make_str(filled_args,subtask=None):
+    assignment_list = []
+    for arg, val in filled_args.items():
+        if subtask is not None:
+            assignment_list.append("%s_%s=%s")%(subtask,arg,val)
+        else:
+            assignment_list.append("%s=%s"%(arg,val))
+    return str(assignment_list)[1:-1]

@@ -113,6 +113,10 @@
     </joint>
 
     <link name="${prefix}robotiq_85_left_finger_link">
+      <contact>
+        <lateral_friction value="1.0"/>
+        <spinning_friction value="1.5"/>
+      </contact>
       <visual>
         <material name="blackish"/>
         <origin rpy="${0.5 * pi} 0 0" xyz="0.0 0.0 0.0"/>
@@ -135,6 +139,11 @@
     </link> 
 
     <link name="${prefix}robotiq_85_right_finger_link">
+      <contact>
+        <lateral_friction value="1.0"/>
+        <spinning_friction value="1.5"/>
+        <inertia_scaling value="0.3"/>
+      </contact>
       <visual>
         <material name="blackish"/>
         <origin rpy="${0.5 * pi} 0 0" xyz="0.0 0.0 0.0"/>
@@ -175,6 +184,11 @@
     </joint>
 
     <link name="${prefix}robotiq_85_left_inner_knuckle_link">
+      <contact>
+        <lateral_friction value="1.0"/>
+        <spinning_friction value="1.5"/>
+        <inertia_scaling value="0.3"/>
+      </contact>
       <visual>
         <material name="blackish"/>
         <origin rpy="${0.5 * pi} 0 0" xyz="0.0 0.0 0.0"/>
@@ -196,6 +210,11 @@
       </inertial>
     </link>
     <link name="${prefix}robotiq_85_right_inner_knuckle_link">
+      <contact>
+        <lateral_friction value="1.0"/>
+        <spinning_friction value="1.5"/>
+        <inertia_scaling value="0.3"/>
+      </contact>
       <visual>
         <material name="blackish"/>
         <origin rpy="${0.5 * pi} 0 0" xyz="0.0 0.0 0.0"/>
@@ -246,7 +265,8 @@
       </visual>
       <contact>
         <lateral_friction value="1.0"/>
-        <inertia_scaling value="3.0"/>
+        <spinning_friction value="1.5"/>
+        <inertia_scaling value="0.3"/>
       </contact>
       <collision>
         <geometry>
@@ -272,7 +292,8 @@
       </visual>
       <contact>
         <lateral_friction value="1.0"/>
-        <inertia_scaling value="3.0"/>
+        <spinning_friction value="1.5"/>
+        <inertia_scaling value="0.3"/>
       </contact>
       <collision>
         <geometry>

@@ -52,9 +52,8 @@ class TaskAgent(AbstractAgent):
 
     name = "random"
 
-    def __init__(self, env, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super(TaskAgent, self).__init__(*args, **kwargs)
-        self.env = env
 
     def _fit(self, num_iter):
         '''

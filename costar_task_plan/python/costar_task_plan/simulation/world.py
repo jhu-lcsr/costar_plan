@@ -156,6 +156,8 @@ class SimulationRobotState(AbstractState):
                  arm=[],
                  arm_v=[],
                  gripper=0.,
+                 base_angular_v=0.,
+                 base_linear_v=0.,
                  T=None,
                  t=0.,):
 
@@ -165,8 +167,8 @@ class SimulationRobotState(AbstractState):
         self.gripper = gripper
         self.base_pos = base_pos
         self.base_rot = base_rot
-        self.base_linear_v = 0
-        self.base_angular_v = 0
+        self.base_linear_v = base_linear_v
+        self.base_angular_v = base_angular_v
         self.robot = robot
         self.T = T
         self.t = t

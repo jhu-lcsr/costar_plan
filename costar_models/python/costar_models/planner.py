@@ -17,34 +17,20 @@ from keras.models import Model, Sequential
 from keras.optimizers import Adam
 
 from abstract import HierarchicalAgentBasedModel
+from multi_hierarchical import RobotMultiHierarchical
 
-from robot_multi_models import *
-from split import *
-
-class RobotMultiHierarchical(HierarchicalAgentBasedModel):
-
+class RobotMultiPlanner(RobotMultiHierarchical):
     '''
-    This is the "divide and conquer"-style classifier for training a multilevel
-    model. We use our supervised action labels to learn a superviser that will
-    classify which action we should be performing from any particular frame,
-    and then separately we learn a model of what we should be doing at each
-    frame.
-
-    This class is set up as a SUPERVISED learning problem -- for more
-    interactive training we will need to add data from an appropriate agent.
+    This one makes slightly different assumptions, and attempts to generate a
+    set of images. Policies take us to an image goal rather than to arbitrary
+    scenes.
     '''
-
-    def __init__(self, taskdef, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         '''
-        Similarly to everything else -- we need a taskdef here.
-
-        As in the other models, we call super() to parse arguments from the
-        command line and set things like our optimizer and learning rate.
+        Task def 
         '''
-        super(RobotMultiHierarchical, self).__init__(taskdef, *args, **kwargs)
-
+        super(RobotMultiPlanner, self).__init__(*args, **kwargs)
         self.num_frames = 1
-
         self.dropout_rate = 0.5
         self.img_dense_size = 1024
         self.img_col_dim = 512
@@ -235,181 +221,10 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
         return enc, supervisor, predictor, predict_goal, predict_next
 
-    def _fitPredictor(self, features, targets):
-        if self.show_iter > 0:
-            fig, axes = plt.subplots(5, 5,)
 
-        self._unfixWeights()
-        self.predictor.compile(
-                loss="mse",
-                optimizer=self.getOptimizer())
-        self.predictor.summary()
 
-        for i in xrange(self.iter):
-            idx = np.random.randint(0, features[0].shape[0], size=self.batch_size)
-            x = []
-            y = []
-            for f in features:
-                x.append(f[idx])
-            for f in targets:
-                y.append(f[idx])
-
-            losses = self.predictor.train_on_batch(x, y)
-
-            print "Iter %d: loss ="%(i),losses
-            if self.show_iter > 0 and (i+1) % self.show_iter == 0:
-                self.plotInfo(features, targets, axes)
-
-        self._fixWeights()
-
-    def plotInfo(self, features, targets, axes):
-            data = self.predictor.predict(features[0:5])
-            for j in xrange(5):
-                jj = j * 5
-                ax = axes[1][j]
-                ax.imshow(np.squeeze(data[0][jj]))
-                ax.axis('off')
-                ax = axes[4][j]
-                ax.imshow(np.squeeze(data[3][jj]))
-                ax.axis('off')
-                ax = axes[0][j]
-                ax.imshow(np.squeeze(features[0][jj]))
-                ax.axis('off')
-                ax = axes[2][j]
-                ax.imshow(np.squeeze(targets[0][jj]))
-                ax.axis('off')
-                
-                q0 = features[1][jj]
-                q = data[1][j]
-                q1 = targets[1][jj]
-                ax = axes[3][j]
-                ax.bar(np.arange(6),q0,1./3.,color='b')
-                ax.bar(np.arange(6)+1./3.,q,1./3.,color='r')
-                ax.bar(np.arange(6)+2./3.,q1,1./3.,color='g')
-
-            plt.ion()
-            plt.tight_layout()
-            plt.show(block=False)
-            plt.pause(0.01)
-
-    def preprocess(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
-            example, reward, *args, **kwargs):
+    def train():
         '''
-        Adding a preprocess operation. Take whatever was in the data set and
-        convert it into the right format for training.
+        Create all the models if they don't already exist
         '''
-        action_labels_num = np.array([self.taskdef.index(l) for l in label])
-        action_labels = np.squeeze(self.toOneHot2D(action_labels_num,
-            len(self.taskdef.indices)))
-
-
-        [goal_features, goal_arm, goal_gripper] = NextAction( \
-                [features, arm, gripper],
-                action_labels_num,
-                example)
-
-
-        [features, arm, gripper, arm_cmd, gripper_cmd, action_labels,
-                goal_features, goal_arm, goal_gripper] = \
-            SplitIntoChunks(
-                datasets=[features, arm, gripper, arm_cmd, gripper_cmd,
-                    action_labels, goal_features, goal_arm, goal_gripper,],
-                reward=None, reward_threshold=0.,
-                labels=example,
-                chunk_length=self.num_frames+2,
-                front_padding=True,
-                rear_padding=False,)
-
-        # create inputs
-        I = np.squeeze(features[:,1:-1])
-        q = np.squeeze(arm[:,1:-1])
-        g = np.squeeze(gripper[:,1:-1])
-        qa = np.squeeze(arm_cmd[:,1:-1])
-        ga = np.squeeze(gripper_cmd[:,1:-1])
-        o_prev = np.squeeze(action_labels[:,:self.num_frames])
-        oin = np.squeeze(action_labels[:,1:-1])
-        o_target = np.squeeze(action_labels[:,1:-1])
-        Inext_target = np.squeeze(features[:,2:])
-        #q_target = np.squeeze(arm[:,2:])
-        #g_target = np.squeeze(gripper[:,2:])
-        # I_target = np.
-        I_target = np.squeeze(goal_features[:,1:-1])
-        q_target = np.squeeze(goal_arm[:,1:-1])
-        g_target = np.squeeze(goal_gripper[:,1:-1])
-
-        print "sanity check:",
-        print "images:", I.shape, I_target.shape
-        print "joints:", q.shape,
-        print "options:", oin.shape, o_target.shape
-
-        if False:
-            # show the before and after frames
-            for i in xrange(10):
-                for j in xrange(self.num_frames+2):
-                    plt.subplot(10,
-                            self.num_frames+3,((self.num_frames+3)*i) + j + 1)
-                    plt.imshow(features[i*5,j])
-                    plt.axis('off')
-                plt.subplot(10,self.num_frames+3,((self.num_frames+3)*i)+self.num_frames+3)
-                plt.axis('off')
-                plt.imshow(goal_features[i*5,1])
-            plt.show()
-        return [I, q, g,
-                qa,
-                ga,
-                o_prev,
-                oin,
-                o_target,
-                Inext_target,
-                I_target,
-                q_target,
-                g_target,
-                action_labels,]
-
-
-    def train(self, *args, **kwargs):
-        '''
-        Pre-process training data.
-
-        Then, create the model. Train based on labeled data. Remove
-        unsuccessful examples.
-        '''
-
-        # ================================================
-        [I, q, g,
-                qa,
-                ga,
-                o_prev,
-                oin,
-                o_target,
-                Inext_target,
-                I_target,
-                q_target,
-                g_target,
-                action_labels] = self.preprocess(*args, **kwargs)
-
-        if self.supervisor is None:
-            self._makeModel(I, q, g, qa, ga, oin)
-
-        # Fit the main models
-        self._fitPredictor(
-                [I, q, g, oin],
-                [I_target, q_target, g_target, Inext_target])
-
-        # ===============================================
-        # Might be useful if you start getting shitty results... one problem we
-        # observed was accidentally training the embedding weights when
-        # learning all your policies.
-        #fig, axes = plt.subplots(5, 5,)
-        #self.plotInfo(
-        #        [I, q, g, oin],
-        #        [I_target, q_target, g_target, Inext_target],
-        #        axes,
-        #        )
-        self._fitSupervisor([I, q, g, o_prev], o_target)
-        # ===============================================
-
-        action_target = [qa, ga]
-        self._fitPolicies([I, q, g], action_labels, action_target)
-        self._fitBaseline([I, q, g], action_target)
-
+        pass
