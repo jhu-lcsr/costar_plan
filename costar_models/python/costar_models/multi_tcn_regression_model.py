@@ -44,13 +44,13 @@ class RobotMultiTCNRegression(AbstractAgentBasedModel):
         
         self.dropout_rate = 0.5
         
-        self.num_filters = 32
-        self.combined_dense_size = 64
+        self.num_filters = 128
+        self.combined_dense_size = 128
 
-        self.num_frames = 4
-        self.tcn_filters = 32
+        self.num_frames = 10
+        self.tcn_filters = 128
         self.num_tcn_levels = 2
-        self.tcn_dense_size = 128
+        self.tcn_dense_size = 1024
 
         self.buffer_img = []
         self.buffer_arm = []
@@ -169,5 +169,6 @@ class RobotMultiTCNRegression(AbstractAgentBasedModel):
             raise RuntimeError('model is missing')
         features = [f.reshape((1,)+f.shape) for f in features]
         res = self.model.predict(features)
+        print res
         return res
 
