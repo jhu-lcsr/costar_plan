@@ -12,7 +12,7 @@ from multi_hierarchical import RobotMultiHierarchical
 from multi_unsupervised_model import RobotMultiUnsupervised
 from multi_unsupervised1_model import RobotMultiUnsupervised1
 
-def MakeModel(features, model, taskdef, *args, **kwargs):
+def MakeModel(features, model, taskdef, **kwargs):
     '''
     This function will create the appropriate neural net based on images and so
     on.
