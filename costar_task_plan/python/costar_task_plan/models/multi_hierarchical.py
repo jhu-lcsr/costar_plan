@@ -299,20 +299,23 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         convert it into the right format for training.
         '''
 
-        allowed = []
-        for l, i in zip(label,example):
-            if "red_block" in l:
-                allowed.append(i)
+        # For debugging
+        limit_examples = False
+        if limit_examples:
+            allowed = []
+            for l, i in zip(label,example):
+                if "red_block" in l:
+                    allowed.append(i)
 
-        example_in_allowed = [e in allowed for e in example]
+            example_in_allowed = [e in allowed for e in example]
 
-        features = features[example_in_allowed]
-        arm = arm[example_in_allowed]
-        gripper = gripper[example_in_allowed]
-        arm_cmd = arm_cmd[example_in_allowed]
-        gripper_cmd = gripper_cmd[example_in_allowed]
-        label = label[example_in_allowed]
-        example = example[example_in_allowed]
+            features = features[example_in_allowed]
+            arm = arm[example_in_allowed]
+            gripper = gripper[example_in_allowed]
+            arm_cmd = arm_cmd[example_in_allowed]
+            gripper_cmd = gripper_cmd[example_in_allowed]
+            label = label[example_in_allowed]
+            example = example[example_in_allowed]
 
 
         action_labels_num = np.array([self.taskdef.index(l) for l in label])
