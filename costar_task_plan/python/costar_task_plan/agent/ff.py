@@ -1,6 +1,6 @@
 from abstract import AbstractAgent
 
-from costar_task_plan.models import MakeModel
+from costar_models import MakeModel
 from costar_task_plan.simulation.world import SimulationRobotAction
 
 class FeedForwardAgent(AbstractAgent):

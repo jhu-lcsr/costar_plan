@@ -50,7 +50,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
 
     def _makeTask(self):
 
-        tol = (0.005, 0.005)
+        tol = (0.02, 0.005)
         general_tol = (0.05, 0.025)
 
         # ====================================================================
@@ -197,7 +197,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         return ids
 
     def _samplePos(self, x, y, z):
-        diff = np.random.random((3,)) * [0.2, 0.1, 0.]
+        diff = np.random.random((3,)) * [0.01, 0.01, 0.]
         return np.array([x,y,z]) + diff
 
     def _sampleRotation(self):

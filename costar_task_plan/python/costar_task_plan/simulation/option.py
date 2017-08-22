@@ -211,7 +211,7 @@ class CloseGripperOption(AbstractOption):
 
 class CartesianMotionPolicy(AbstractPolicy):
 
-    def __init__(self, pos, rot, goal=None, cartesian_vel=0.5, angular_vel=1.):
+    def __init__(self, pos, rot, goal=None, cartesian_vel=0.5, angular_vel=0.5):
         self.pos = pos
         self.rot = rot
         self.goal = goal
