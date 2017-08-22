@@ -162,6 +162,14 @@ class GraspDataset(object):
         dataset = self._update_dataset_param(dataset)
         csv_files = self.get_feature_csv_file_paths(dataset)
         features_complete_list, _, _, _ = self.get_grasp_tfrecord_info(csv_files[-1])
+        # Workaround for csv files which may not actually list the key features below,
+        # although they have been added to the dataset itself.
+        if not any('grasp_success' in s for s in features_complete_list):
+            features_complete_list = np.append(features_complete_list, 'grasp_success')
+        if not any('gripper/status' in s for s in features_complete_list):
+            features_complete_list = np.append(features_complete_list, 'gripper/status')
+
+        # print('get_features::feature_complete_list:', features_complete_list)
         return features_complete_list
 
     def get_tfrecord_path_glob_pattern(self, dataset=None):
@@ -196,6 +204,13 @@ class GraspDataset(object):
         feature_count = int(features[0])
         attempt_count = int(features[1])
         features = features[2:]
+        # Workaround for csv files which may not actually list the key features below,
+        # although they have been added to the dataset itself.
+        if not any('grasp_success' in s for s in features):
+            features = np.append(features, 'grasp_success')
+        if not any('gripper/status' in s for s in features):
+            features = np.append(features, 'gripper/status')
+        # print('get_grasp_tfrecord_info::feature_complete_list:', features)
         # note that the tfrecords are often named '*{}.tfrecord*-of-*'
         tfrecord_paths = gfile.Glob(self.get_tfrecord_path_glob_pattern())
         return features, tfrecord_paths, feature_count, attempt_count
@@ -274,8 +289,13 @@ class GraspDataset(object):
                 'name'
                     A string indicating the name of the robot
                 'status'
-                    Unknown, but only feature is 'gripper/status', so probably
-                    an indicator of how open/closed the gripper is.
+                    'gripper/status' is a 0 to 1 value which indicates how open or closed the
+                    gripper was at the end of a grasp attempt.
+                'grasp_success'
+                    1 if the gripper is determined to have successfully grasped an object on this attempt,
+                    0 otherwise. This incorporates a combination of 'gripper/status', the open closed angle
+                    of the gripper as the dominant indicator, with image differencing between the final
+                    two object drop image features as a secondary indicator of grasp success.
 
             record_type:
                 'all' will match any feature type.
@@ -290,6 +310,7 @@ class GraspDataset(object):
                 `tf.parse_single_example()` which can only do fixed length features
 
         # Returns
+            TODO(ahundt) may just be returning a list of feature name strings, no tuples at all.
             tuple of size two containing:
             list of fixed length features organized by time step in a single grasp and
             list of sequence features organized by time step in a single grasp
@@ -360,6 +381,7 @@ class GraspDataset(object):
             matching_features.extend(_match_feature(features, r'^drop/', feature_type))
             # Images recorded after withdraw, raise, and the drop.
             matching_features.extend(_match_feature(features, r'^post_drop/', feature_type))
+            matching_features.extend(_match_feature(features, r'^grasp_success', feature_type))
         return matching_features
 
     @staticmethod
@@ -385,12 +407,17 @@ class GraspDataset(object):
         num_grasp_steps_name = 'num_grasp_steps'
         camera_to_base_name = 'camera/transforms/camera_T_base/matrix44'
         camera_intrinsics_name = 'camera/intrinsics/matrix33'
+        grasp_success_name = 'grasp_success'
+        # TODO(ahundt) make sure gripper/status is in the right place and not handled twice
+        gripper_status = 'gripper/status'
 
         # setup one time features like the camera and number of grasp steps
         features_dict = {
             num_grasp_steps_name: tf.FixedLenFeature([1], tf.string),
             camera_to_base_name: tf.FixedLenFeature([4, 4], tf.float32),
-            camera_intrinsics_name: tf.FixedLenFeature([3, 3], tf.float32)
+            camera_intrinsics_name: tf.FixedLenFeature([3, 3], tf.float32),
+            grasp_success_name: tf.FixedLenFeature([1], tf.float32),
+            gripper_status: tf.FixedLenFeature([1], tf.float32),
         }
 
         # load all the images
@@ -442,7 +469,7 @@ class GraspDataset(object):
 
         # Returns
 
-            A list of tuples [(fixedLengthFeatureDict, sequenceFeatureDict, features_complete_list)].
+            A list of tuples ([(fixedLengthFeatureDict, sequenceFeatureDict)], features_complete_list).
             fixedLengthFeatureDict maps from the feature strings of most features to their TF ops.
             sequenceFeatureDict maps from feature strings to time ordered sequences of poses transforming
             from the robot base to end effector.
@@ -551,7 +578,7 @@ class GraspDataset(object):
             """
             # decode all the image ops
             [(features_op_dict, _)], features_complete_list = self.get_simple_tfrecordreader_dataset_ops()
-            print features_complete_list
+            print(features_complete_list)
             ordered_image_feature_names = GraspDataset.get_time_ordered_features(features_complete_list, '/image/decoded')
 
             image_seq = []
