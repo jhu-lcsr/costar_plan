@@ -121,6 +121,8 @@ class SimulationObjectState(AbstractState):
         self.predicates = []
         self.base_pos = base_pos
         self.base_rot = base_rot
+        self.base_linear_v = 0
+        self.base_angular_v = 0
         p = kdl.Vector(*base_pos)
         R = kdl.Rotation.Quaternion(*base_rot)
         self.T = kdl.Frame(R, p)
@@ -163,6 +165,8 @@ class SimulationRobotState(AbstractState):
         self.gripper = gripper
         self.base_pos = base_pos
         self.base_rot = base_rot
+        self.base_linear_v = 0
+        self.base_angular_v = 0
         self.robot = robot
         self.T = T
         self.t = t
@@ -181,16 +185,17 @@ class SimulationRobotAction(AbstractAction):
     holds the tuple for arm_cmd, gripper_cmd, etc.
     '''
 
-    def __init__(self, arm_cmd=None, gripper_cmd=None, code=None):
+    def __init__(self, arm_cmd=None, gripper_cmd=None, mobile_base_cmd=None,code=None):
         self.arm_cmd = arm_cmd
         self.gripper_cmd = gripper_cmd
+        self.mobile_base_cmd = mobile_base_cmd
 
         # This is used to track which high-level action is being executed at
         # any given time.
         self.code = code
 
     def getDescription(cls):
-        return "arm_cmd", "gripper_cmd"
+        return "arm_cmd", "gripper_cmd", "mobile_cmd"
 
 class SimulationRobotActor(AbstractActor):
 

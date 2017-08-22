@@ -95,7 +95,7 @@ class AbstractTaskDefinition(object):
             # Create an object and add it to the World
             state = GetObjectState(handle)
             self.world.addObject(obj_name, obj_type, handle, state)
-
+        
         self.task.compile(self.world)
 
     def reset(self):
