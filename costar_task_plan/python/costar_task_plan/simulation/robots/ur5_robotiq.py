@@ -106,7 +106,7 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
 
         pb.setJointMotorControlArray(self.handle, self.arm_joint_indices, mode,
                                      cmd,
-                                     positionGains=[0.25,0.25,0.2,0.1,0.1,0.1],
+                                     positionGains=[0.3,0.3,0.25,0.15,0.1,0.1],
                                      )#, forces=[100.] * self.dof)
 
     def gripper(self, cmd, mode=pb.POSITION_CONTROL):

@@ -182,21 +182,27 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                 urdf_dir, self.model, self.block_urdf % block)
             obj_id = pb.loadURDF(urdf_filename)
             r = self._sampleRotation()
+            block_pos = self._samplePos(pos[0], pos[1], z)
             pb.resetBasePositionAndOrientation(
                 obj_id,
-                (pos[0], pos[1], z),
+                block_pos,
                 r)
             self.addObject("block", "%s_block" % block, obj_id)
             z += 0.05
             ids.append(obj_id)
         return ids
 
+    def _samplePos(self, x, y, z):
+        diff = np.random.random((3,)) * 0.1
+        diff[2] = 0.
+        return np.array([x,y,z]) + diff
+
     def _sampleRotation(self):
         '''
         Sample a random, small rotation.
         '''
         rpy = np.random.random((3,)) * 0.3
-        rpy[1] = 0. # clear out the pitch
+        rpy[0] = 0. # clear out the pitch
         r = kdl.Rotation.RPY(*list(rpy)).GetQuaternion()
         return r
 
