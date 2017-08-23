@@ -105,7 +105,9 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
             raise RuntimeError('too many joint positions')
 
         pb.setJointMotorControlArray(self.handle, self.arm_joint_indices, mode,
-                                     cmd)#, forces=[100.] * self.dof)
+                                     cmd,
+                                     positionGains=[0.15,0.1,0.1,0.1,0.1,0.1],
+                                     )#, forces=[100.] * self.dof)
 
     def gripper(self, cmd, mode=pb.POSITION_CONTROL):
         '''
@@ -114,13 +116,19 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         '''
 
         cmd = cmd[0]
-        #if cmd > 0.:
-        #    raise RuntimeError('Illegal gripper command')
-
         # This is actually only a 1-DOF gripper
         cmd_array = [-cmd, -cmd, cmd, -cmd, -cmd, cmd]
+        forces = [25.] * 6
+        gains = [0.1] * 6
+        #if abs(cmd) < -0.01:
+        #    mode = pb.TORQUE_CONTROL
+        #    forces = [0.] * len(cmd_array)
+        #else:
+
         pb.setJointMotorControlArray(self.handle, self.gripper_indices, mode,
-                                     cmd_array,forces=[15.]*len(cmd_array))
+                                     cmd_array,
+                                     forces=forces,
+                                     positionGains=gains)
 
     def getActionSpace(self):
         return spaces.Tuple((spaces.Box(-np.pi, np.pi, self.dof),

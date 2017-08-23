@@ -14,19 +14,22 @@ class RandomAgent(AbstractAgent):
         self.env = env
 
     def fit(self, num_iter):
+        num_iter = 10000
         for _ in xrange(num_iter):
+            #print self.env
+            #print self.env.action_space
             cmd = self.env.action_space.sample()
-            print ">>>>CMD0 " + str(len (cmd))
-            print ">>>>CMD0 " + str(type(cmd))
+            #print ">>>>CMD0 " + str(len (cmd))
+            #print ">>>>CMD0 " + str(type(cmd))
 
 
-            print ">>>>CMD0 " + str(len (cmd[0]))
-            print ">>>>CMD0 " + str(type(cmd[0]))
-            print ">>>>CMD0 " + str(cmd[0])
+            #print ">>>>CMD0 " + str(len (cmd[0]))
+            #print ">>>>CMD0 " + str(type(cmd[0]))
+            #print ">>>>CMD0 " + str(cmd[0])
             
-            print ">>>>CMD1 " + str(len (cmd[1]))
-            print ">>>>CMD1 " + str(type(cmd[1]))
-            print ">>>>CMD1 " + str(cmd[1])
+            #print ">>>>CMD1 " + str(len (cmd[1]))
+            #print ">>>>CMD1 " + str(type(cmd[1]))
+            #print ">>>>CMD1 " + str(cmd[1])
 
             self.env.step(cmd)
 

@@ -50,6 +50,7 @@ class AbstractAgent(object):
     name = None
     
     def __init__(self,
+            env=None,
             verbose=False,
             save=False,
             load=False,
@@ -61,11 +62,13 @@ class AbstractAgent(object):
 
         Params:
         ---------
+        env: environment gym to run
         verbose: print out a ton of warnings and other information.
         save: save data collected to the disk somewhere.
         load: load data from the disk.
         '''
 
+        self.env = env
         self._break = False
         self.verbose = verbose
         self.save = save
@@ -95,6 +98,7 @@ class AbstractAgent(object):
         ------
         [none]
         '''
+        self.env.world.verbose = self.verbose
         self._break = False
         #_catch_sigint = lambda *args, **kwargs: self._catch_sigint(*args, **kwargs)
         #signal.signal(signal.SIGINT, _catch_sigint)
@@ -130,7 +134,6 @@ class AbstractAgent(object):
 
         # Save both the generic, non-parameterized action name and the action
         # name.
-        #generic_action_name = action_label.split('(')[0]
         world = self.env.world
         if self.save:
             # Features can be either a tuple or a numpy array. If they're a

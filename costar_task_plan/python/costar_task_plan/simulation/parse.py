@@ -1,6 +1,6 @@
 
 from costar_task_plan.agent import GetAgents
-from costar_task_plan.models import GetModels
+from costar_models import GetModels
 
 from util import GetAvailableTasks, GetAvailableRobots, GetAvailableAlgorithms
 from features import GetFeatures, GetAvailableFeatures
@@ -32,11 +32,11 @@ def ParseBulletArgs():
     parser.add_argument("--robot",
                         help="Robot model to load. This will determine the action space.",
                         choices=GetAvailableRobots(),
-                        default=GetAvailableRobots()[0])
+                        default="ur5")
     parser.add_argument("--task",
                         help="Task to load. This will determine what objects appear in the world as well as the reward function.",
                         choices=GetAvailableTasks(),
-                        default=GetAvailableTasks()[0])
+                        default="stack1")
     parser.add_argument('--start_ros', '--ros', '-R',
                         help="Start as a ROS node.",
                         action="store_true")
@@ -143,5 +143,8 @@ def ParseBulletArgs():
                         help="Run in CPU-only mode, even if GPUs are" + \
                              " available.",
                         action="store_true",)
+    parser.add_argument("--verbose",
+                        help="Run world in verbose mode, printing out errors.",
+                        action="store_true")
 
     return vars(parser.parse_args())

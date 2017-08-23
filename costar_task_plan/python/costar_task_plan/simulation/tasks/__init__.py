@@ -8,6 +8,7 @@ from obstacles import ObstaclesTaskDefinition
 from trays import TraysTaskDefinition
 from obstructions import ObstructionsTaskDefinition
 from sorting2 import Sorting2TaskDefinition
+from explore import ExploreTaskDefinition
 
 # TODO(cpaxton): re-enable these
 # from mug import MugTaskDefinition
@@ -23,6 +24,7 @@ __all__ = ["AbstractTaskDefinition",
            "ObstaclesTaskDefinition",
            "TraysTaskDefinition",
            "ObstructionsTaskDefinition",
+           "ExploreTaskDefinition",
            #"RingsTaskDefinition",
            #"MugTaskDefinition",
            ]

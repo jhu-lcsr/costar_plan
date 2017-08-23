@@ -1,6 +1,6 @@
 from abstract import AbstractAgent
 
-from costar_task_plan.models import MakeModel
+from costar_models import MakeModel
 from costar_task_plan.simulation.world import SimulationRobotAction
 
 class FeedForwardAgent(AbstractAgent):
@@ -19,9 +19,8 @@ class FeedForwardAgent(AbstractAgent):
     name = "random"
 
     def __init__(self, env, *args, **kwargs):
-        super(FeedForwardAgent, self).__init__(*args, **kwargs)
-        self.env = env
-        self.model = MakeModel(taskdef=env.task, *args, **kwargs)
+        super(FeedForwardAgent, self).__init__(env=env, *args, **kwargs)
+        self.model = MakeModel(taskdef=self.env.task, **kwargs)
         self.model.load(self.env.world)
 
     def fit(self, num_iter):
