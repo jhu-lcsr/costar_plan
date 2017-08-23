@@ -135,21 +135,23 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         tile_width = img_shape[0]/(2**3)
         tile_height = img_shape[1]/(2**3)
         tile_shape = (1, tile_width, tile_height, 1)
-        option_in = Input((self._numLabels(),),name="chosen_option_in")
-        prev_option_in = Input((self._numLabels(),),name="prev_option_in")
-        option = Reshape([1,1,self._numLabels()])(option_in)
-        option = Lambda(lambda x: K.tile(x, tile_shape))(option)
+
 
         # =====================================================================
+        # Add in the chosen option
+        option_in = Input((self._numLabels(),),name="chosen_option_in")
+        option = Reshape([1,1,self._numLabels()])(option_in)
+        option = Lambda(lambda x: K.tile(x, tile_shape))(option)
         enc_with_option = Concatenate(
                 axis=-1,
                 name="add_option_info")([enc,option])
-
-        # TODO(cpaxton): add more options here
         enc_with_option = Conv2D(self.img_num_filters,
                 kernel_size=[3,3], 
                 strides=(1, 1),
                 padding='same')(enc_with_option)
+
+        # Append chosen option input -- this is for the high level task
+        # dynamics.
         ins.append(option_in)
         
         rep, dec = GetDecoder(self.img_col_dim,
@@ -199,6 +201,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         # =====================================================================
         # SUPERVISOR
         # Predict the next option -- does not depend on option
+        prev_option_in = Input((self._numLabels(),),name="prev_option_in")
         prev_option = Reshape([1,1,self._numLabels()])(prev_option_in)
         prev_option = Lambda(lambda x: K.tile(x, tile_shape))(prev_option)
         x = Concatenate(axis=-1,name="add_prev_option_to_supervisor")(

@@ -190,7 +190,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         self.predict_goal = None
         self.predict_next = None
 
-        self.prev_option = 0
+        self.prev_option = 1
         
     def _makeOption1h(self, option):
         opt_1h = np.zeros((1,self._numLabels()))
@@ -327,10 +327,19 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         if self.predictor is not None:
             print "----------------------------"
             print "using " + self.name + " to load"
-            self.baseline.load_weights(self.name + "_baseline.h5f")
+            try:
+                self.baseline.load_weights(self.name + "_baseline.h5f")
+            except Exception, e:
+                print r
             for i, policy in enumerate(self.policies):
-                policy.load_weights(self.name + "_policy%02d.h5f"%i)
-            self.supervisor.load_weights(self.name + "_supervisor.h5f")
+                try:
+                    policy.load_weights(self.name + "_policy%02d.h5f"%i)
+                except Exception, e:
+                    print r
+            try:
+                self.supervisor.load_weights(self.name + "_supervisor.h5f")
+            except Exception, e:
+                print r
             self.predictor.load_weights(self.name + "_predictor.h5f")
         else:
             raise RuntimeError('_loadWeights() failed: model not found.')
