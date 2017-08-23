@@ -113,12 +113,30 @@ class RobotMultiLSTMRegression(AbstractAgentBasedModel):
         model.compile(loss="mse", optimizer=optimizer)
         self.model = model
 
-    def train(self, features, arm, gripper, arm_cmd, gripper_cmd, example, 
+    def train(self, features, arm, gripper, arm_cmd, gripper_cmd, example,
+            label,
             *args, **kwargs):
         '''
         Training data -- just direct regression based on MSE from the other
         trajectory.
         '''
+        # For debugging
+        limit_examples = True
+        if limit_examples:
+            allowed = []
+            for l, i in zip(label,example):
+                if "red_block" in l:
+                    allowed.append(i)
+
+            example_in_allowed = [e in allowed for e in example]
+
+            features = features[example_in_allowed]
+            arm = arm[example_in_allowed]
+            gripper = gripper[example_in_allowed]
+            arm_cmd = arm_cmd[example_in_allowed]
+            gripper_cmd = gripper_cmd[example_in_allowed]
+            label = label[example_in_allowed]
+            example = example[example_in_allowed]
 
         [features, arm, gripper, arm_cmd, gripper_cmd] = \
                 SplitIntoChunks(
@@ -131,9 +149,10 @@ class RobotMultiLSTMRegression(AbstractAgentBasedModel):
         arm_cmd_target = LastInChunk(arm_cmd)
         gripper_cmd_target = LastInChunk(gripper_cmd)
 
-        self._makeModel(features, arm, gripper, arm_cmd,
-                gripper_cmd, *args, **kwargs)
-        self.model.summary()
+        if self.model is None:
+            self._makeModel(features, arm, gripper, arm_cmd,
+                    gripper_cmd, *args, **kwargs)
+
         self.model.fit(
                 x=[features, arm, gripper],
                 y=[arm_cmd_target, gripper_cmd_target],

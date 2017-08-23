@@ -110,25 +110,6 @@ class RobotMultiTCNRegression(AbstractAgentBasedModel):
         trajectory.
         '''
 
-        # For debugging
-        limit_examples = True
-        if limit_examples:
-            allowed = []
-            for l, i in zip(label,example):
-                if "red_block" in l:
-                    allowed.append(i)
-
-            example_in_allowed = [e in allowed for e in example]
-
-            features = features[example_in_allowed]
-            arm = arm[example_in_allowed]
-            gripper = gripper[example_in_allowed]
-            arm_cmd = arm_cmd[example_in_allowed]
-            gripper_cmd = gripper_cmd[example_in_allowed]
-            label = label[example_in_allowed]
-            example = example[example_in_allowed]
-
-
         [features, arm, gripper, arm_cmd, gripper_cmd] = \
                 SplitIntoChunks(
                         datasets=[features, arm, gripper, arm_cmd, gripper_cmd],

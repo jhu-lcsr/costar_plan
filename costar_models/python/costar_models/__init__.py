@@ -13,6 +13,9 @@ from sampler import *
 from fast import *
 from gmm import *
 
+# models and utils
+from robot_multi_models import *
+
 # neural net models
 import gan
 
