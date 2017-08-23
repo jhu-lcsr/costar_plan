@@ -57,8 +57,8 @@ def TileArmAndGripper(x, arm_in, gripper_in, tile_width, tile_height,
         tile_shape = (1, 1, tile_width, tile_height, 1)
         robot = Reshape([time_distributed, 1, 1, reshape_size])(robot)
     else:
-        tile_shape = (1, 1, tile_width, tile_height, 1)
-        robot = Reshape([time_distributed, 1, 1, reshape_size])(robot)
+        tile_shape = (1, tile_width, tile_height, 1)
+        robot = Reshape([1, 1, reshape_size])(robot)
 
     # finally perform the actual tiling
     robot = Lambda(lambda x: K.tile(x, tile_shape))(robot)
