@@ -15,7 +15,7 @@ class AbstractAgentBasedModel(object):
     '''
 
     def __init__(self, taskdef=None, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
-            clipnorm=100, show_iter=0, pretrain_iter=5,
+            clipnorm=100., show_iter=0, pretrain_iter=5,
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
             task=None, robot=None, model="", *args,
             **kwargs):
@@ -39,7 +39,7 @@ class AbstractAgentBasedModel(object):
         self.features = features
         self.robot = robot
         self.name = "%s_%s"%(model, self.model_descriptor)
-        self.clipnorm = clipnorm
+        self.clipnorm = float(clipnorm)
         self.taskdef = taskdef
         if self.task is not None:
             self.name += "_%s"%self.task
