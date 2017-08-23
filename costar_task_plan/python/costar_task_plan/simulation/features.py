@@ -166,7 +166,7 @@ class GraspSegmentationFeatures(AbstractFeatures):
             # print("actor type:", str(type(world.actors[oid])))
             obj = world.actors[oid].getState()
             object_translation_rotation += [obj.T.p, obj.T.M.GetQuaternion()]
-            camera_ray_to += [x in obj.T.p]
+            camera_ray_to.append(list(obj.T.p))
 
         # print("lengths: ", len(camera_ray_from), len(camera_ray_to))
         object_surface_points = []
@@ -175,7 +175,9 @@ class GraspSegmentationFeatures(AbstractFeatures):
         for i, (uid, linkidx, hitfrac, hitpos, hitnormal) in enumerate(raylist):
             if uid is -1:
                 # if the object wasn't hit, use its origin
-                object_surface_points += [world.id_by_object.items()[i].T.p]
+                name, oid = world.id_by_object.items()[i]
+                obj = world.actors[oid].getState()
+                object_surface_points += [obj.T.p]
             else:
                 object_surface_points += hitpos
         return [object_translation_rotation, state.arm, state.gripper, image_data, object_surface_points]
