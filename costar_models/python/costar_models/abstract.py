@@ -87,6 +87,7 @@ class AbstractAgentBasedModel(object):
         Save to a filename determined by the "self.name" field.
         '''
         if self.model is not None:
+            print "saving to " + self.name
             self.model.save_weights(self.name + ".h5f")
         else:
             raise RuntimeError('save() failed: model not found.')
@@ -123,7 +124,6 @@ class AbstractAgentBasedModel(object):
         '''
         if self.model is not None:
             print "using " + self.name + ".h5f"
-            print self.model.summary()
             self.model.load_weights(self.name + ".h5f")
         else:
             raise RuntimeError('_loadWeights() failed: model not found.')
@@ -243,7 +243,6 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         self.supervisor.compile(
                 loss="binary_crossentropy",
                 optimizer=self.getOptimizer())
-        self.supervisor.summary()
         self.supervisor.fit(features, [label], epochs=self.epochs)
 
     def _fitPolicies(self, features, label, action):
@@ -328,7 +327,6 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         if self.predictor is not None:
             print "----------------------------"
             print "using " + self.name + " to load"
-            print self.supervisor.summary()
             self.baseline.load_weights(self.name + "_baseline.h5f")
             for i, policy in enumerate(self.policies):
                 policy.load_weights(self.name + "_policy%02d.h5f"%i)
