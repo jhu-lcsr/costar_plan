@@ -113,7 +113,7 @@ class RobotMultiLSTMRegression(AbstractAgentBasedModel):
         self.model = model
 
     def train(self, features, arm, gripper, arm_cmd, gripper_cmd, example,
-            label,
+            label, reward,
             *args, **kwargs):
         '''
         Training data -- just direct regression based on MSE from the other
@@ -131,6 +131,7 @@ class RobotMultiLSTMRegression(AbstractAgentBasedModel):
 
             features = features[example_in_allowed]
             arm = arm[example_in_allowed]
+            reward = reward[example_in_allowed]
             gripper = gripper[example_in_allowed]
             arm_cmd = arm_cmd[example_in_allowed]
             gripper_cmd = gripper_cmd[example_in_allowed]
@@ -140,6 +141,8 @@ class RobotMultiLSTMRegression(AbstractAgentBasedModel):
         [features, arm, gripper, arm_cmd, gripper_cmd] = \
                 SplitIntoChunks(
                         datasets=[features, arm, gripper, arm_cmd, gripper_cmd],
+                        reward=reward,
+                        reward_threshold=1.0,
                         labels=example,
                         chunk_length=self.num_frames,
                         front_padding=True,

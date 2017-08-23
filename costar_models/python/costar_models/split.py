@@ -39,12 +39,18 @@ def SplitIntoChunks(datasets, labels,
 
     for label in xrange(min_label, max_label+1):
 
+        if sum(labels==label) == 0:
+            continue
+
         # prune any rewards that are not acceptable here. we assume that we
         # care the most about the terminal reward -- if the terminal reward is
         # not greater than zero, we will throw out the example
         if reward is not None and reward[labels==label][-1] < reward_threshold:
             # Since this was too low, just skip it
+            print "<<< EXCLUDING FAILED EXAMPLE = ", label
             continue
+        else:
+            print ">>> INCLUDING EXAMPLE = ", label, "with reward =", reward[labels==label][-1]
 
         for idx, data in enumerate(datasets):
             subset = data[labels==label]
