@@ -138,7 +138,7 @@ class RobotMultiLSTMRegression(AbstractAgentBasedModel):
             label = label[example_in_allowed]
             example = example[example_in_allowed]
 
-        [features, arm, gripper, arm_cmd, gripper_cmd] = \
+        [features, arm, gripper, arm_cmd, gripper_cmd, reward] = \
                 SplitIntoChunks(
                         datasets=[features, arm, gripper, arm_cmd, gripper_cmd],
                         reward=reward,

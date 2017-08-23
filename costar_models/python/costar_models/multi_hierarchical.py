@@ -334,7 +334,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
             SplitIntoChunks(
                 datasets=[features, arm, gripper, arm_cmd, gripper_cmd,
                     action_labels, goal_features, goal_arm, goal_gripper,],
-                reward=None, reward_threshold=0.,
+                reward=reward, reward_threshold=1.,
                 labels=example,
                 chunk_length=self.num_frames+2,
                 front_padding=True,
