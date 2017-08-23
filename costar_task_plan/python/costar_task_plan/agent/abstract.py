@@ -74,6 +74,7 @@ class AbstractAgent(object):
         self.save = save
         self.load = load
         self.data = {}
+        self.last_example = None
 
         self.datafile_name = data_file
         self.datafile = os.path.join(directory, data_file)
@@ -98,6 +99,7 @@ class AbstractAgent(object):
         ------
         [none]
         '''
+        self.last_example = None
         self.env.world.verbose = self.verbose
         self._break = False
         #_catch_sigint = lambda *args, **kwargs: self._catch_sigint(*args, **kwargs)
@@ -140,16 +142,22 @@ class AbstractAgent(object):
             # tuple, we handle them one way...
             data = world.vectorize(control, features, reward, done, example,
                     action_label)
+            self._updateDatasetWithExample(data)
 
-            for key, value in data:
-                if not key in self.data:
-                    self.data[key] = [value]
-                else:
-                    if isinstance(value, np.ndarray):
-                        assert value.shape == self.data[key][0].shape
-                    if not type(self.data[key][0]) == type(value):
-                        print key, type(self.data[key][0]), type(value)
-                        raise RuntimeError('Types do not match when' + \
-                                           ' constructing data set.')
-                    self.data[key].append(value)
+    def _updateDatasetWithExample(self, data):
+        '''
+        Helper function. Currently writes data to a big dictionary, which gets
+        written out to a numpy archive.
+        '''
+        for key, value in data:
+            if not key in self.data:
+                self.data[key] = [value]
+            else:
+                if isinstance(value, np.ndarray):
+                    assert value.shape == self.data[key][0].shape
+                if not type(self.data[key][0]) == type(value):
+                    print key, type(self.data[key][0]), type(value)
+                    raise RuntimeError('Types do not match when' + \
+                                       ' constructing data set.')
+                self.data[key].append(value)
 
