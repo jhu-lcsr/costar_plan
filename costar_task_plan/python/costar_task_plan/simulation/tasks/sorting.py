@@ -90,7 +90,7 @@ class SortingTaskDefinition(DefaultTaskDefinition):
         '''
 
         rospack = rospkg.RosPack()
-        path = rospack.get_path('costar_objects')
+        path = rospack.get_path('costar_simulation')
         urdf_dir = os.path.join(path, self.urdf_dir)
         tray_filename = os.path.join(urdf_dir, self.tray_dir, self.tray_urdf)
         red_filename = os.path.join(urdf_dir, self.model, self.red_urdf)

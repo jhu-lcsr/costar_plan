@@ -1,5 +1,5 @@
 from costar_task_plan.abstract import AbstractReward
-from costar_task_plan.models import GMM
+from costar_models import GMM
 
 
 class DemoReward(AbstractReward):

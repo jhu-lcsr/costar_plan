@@ -4,7 +4,14 @@ import numpy as np
 
 
 def GetAvailableFeatures():
-    return ['empty', 'null', 'depth', 'rgb', 'joint_state', 'multi', 'grasp_segmentation']
+    return ['empty',
+            'null',
+            'depth', # depth channel only
+            'rgb', # RGB channels only
+            'joint_state', # robot joints only
+            'multi', # RGB+joints+gripper
+            'pose', #object poses + joints + gripper
+            'grasp_segmentation',]
 
 
 def GetFeatures(features):
@@ -20,6 +27,7 @@ def GetFeatures(features):
             'joint_state': JointStateFeatures(),
             'rgb': RgbImageFeatures(),
             'multi': ImagePlusFeatures(),
+            'pose': PoseFeatures(),
             'grasp_segmentation': GraspSegmentationFeatures(),
         }[features]
     except KeyError, e:
@@ -98,6 +106,29 @@ class ImagePlusFeatures(AbstractFeatures):
     def description(self):
         return ["features", "arm", "gripper"]
 
+class PoseFeatures(AbstractFeatures):
+    '''
+    Get object poses only. Only makes sense on tasks with a consistent object
+    list; otherwise things will not work!
+    '''
+
+    def compute(self, world, state):
+        '''
+        Note that since we are iterating over the keys -- these features will
+        all be in the same order, which ends up working very nicely for us.
+        '''
+
+        object_translation_rotation = []
+        for name, oid in world.id_by_object.items():
+            obj = world.actors[oid].getState()
+            object_translation_rotation += [obj.T.p, obj.T.M.GetQuaternion()]
+        return [np.array(object_translation_rotation),
+                state.arm,
+                state.gripper]
+
+    @property
+    def description(self):
+        return ["poses", "arm", "gripper"]
 
 class GraspSegmentationFeatures(AbstractFeatures):
 

@@ -11,7 +11,7 @@ instructions see the readme.
 from costar_task_plan.simulation import ParseBulletArgs
 from costar_task_plan.gym import BulletSimulationEnv
 from costar_task_plan.agent import GetAgents, MakeAgent
-from costar_task_plan.models import MakeModel
+from costar_models import MakeModel
 
 import time
 

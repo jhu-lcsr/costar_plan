@@ -6,6 +6,7 @@ from costar_task_plan.abstract import AbstractOption
 from costar_task_plan.abstract import AbstractCondition, TimeCondition
 from costar_task_plan.abstract import AbstractPolicy
 
+import numpy as np
 import pybullet as pb
 import PyKDL as kdl
 
@@ -22,10 +23,11 @@ class GoalDirectedMotionOption(AbstractOption):
     '''
 
     def __init__(self, world, goal, pose, pose_tolerance=(1e-3, 1e-2),
-            joint_velocity_tolerance=0.025, *args, **kwargs):
+            joint_velocity_tolerance=0.025, closed_loop=False, *args, **kwargs):
 
         self.goal = goal
         self.goal_id = world.getObjectId(goal)
+        self.closed_loop = closed_loop
         if pose is not None:
             self.position, self.rotation = pose
             self.position_tolerance, self.rotation_tolerance = pose_tolerance
@@ -52,16 +54,33 @@ class GoalDirectedMotionOption(AbstractOption):
         # Get the gating condition for a specific option.
         # - execution should continue until such time as this condition
         # is true.
-        return CartesianMotionPolicy(self.position,
-                                     self.rotation,
-                                     goal=self.goal), \
-            GoalPositionCondition(
-                self.goal,  # what object we care about
-                self.position,  # where we want to grab it
-                self.rotation,
-                            # rotation with which we want to grab it
-                self.position_tolerance,
-                self.rotation_tolerance)
+        if not self.closed_loop:
+            return CartesianMotionPolicy(self.position,
+                                         self.rotation,
+                                         goal=self.goal), \
+                GoalPositionCondition(
+                    self.goal,  # what object we care about
+                    self.position,  # where we want to grab it
+                    self.rotation,
+                                # rotation with which we want to grab it
+                    self.position_tolerance,
+                    self.rotation_tolerance)
+        else:
+            obj = world.getObject(self.goal)
+            pg = kdl.Vector(*self.position)
+            Rg = kdl.Rotation.Quaternion(*self.rotation)
+            Tg = kdl.Frame(Rg, pg)
+            T = obj.state.T * Tg
+            position = list(T.p)
+            rotation = list(T.M.GetQuaternion())
+            return CartesianMotionPolicy(position,
+                                         rotation,
+                                         goal=None), \
+                    AbsolutePositionCondition(
+                        position, # where we want to grab it
+                        rotation, # rotation with which we want to grab it
+                        self.position_tolerance,
+                        self.rotation_tolerance,)
 
     def checkPrecondition(self, world, state):
         # Is it ok to begin this option?
@@ -166,12 +185,22 @@ class CloseGripperOption(AbstractOption):
     and does nothing else. These policies count on certain information
     associated with the actor's state in order to function.
     '''
+    def __init__(self, position=None):
+        '''
+        Parameters:
+        ----------
+        position: Position to send when closing the gripper. Defaults to
+                  "none", which uses the position set per robot.
+        '''
+        self.position = position
 
     def makePolicy(self, world):
-        return CloseGripperPolicy(), TimeCondition(world.time() + 1.0)
+        return CloseGripperPolicy(pos=self.position), \
+               TimeCondition(world.time() + 1.0)
 
     def samplePolicy(self, world):
-        return CloseGripperPolicy(), TimeCondition(world.time() + 1.0)
+        return CloseGripperPolicy(pos=self.position), \
+               TimeCondition(world.time() + 1.0)
 
     def checkPrecondition(self, world, state):
         return True
@@ -182,7 +211,7 @@ class CloseGripperOption(AbstractOption):
 
 class CartesianMotionPolicy(AbstractPolicy):
 
-    def __init__(self, pos, rot, goal=None, cartesian_vel=1., angular_vel=0.5):
+    def __init__(self, pos, rot, goal=None, cartesian_vel=0.5, angular_vel=0.5):
         self.pos = pos
         self.rot = rot
         self.goal = goal
@@ -248,6 +277,7 @@ class CartesianMotionPolicy(AbstractPolicy):
         # =====================================================================
         # Compute motion goak and send
         q_goal = actor.robot.ik(T_step, state.arm)
+        # print q_goal, state.arm, state.arm_v
         return SimulationRobotAction(arm_cmd=q_goal)
 
 
@@ -269,5 +299,14 @@ class CloseGripperPolicy(AbstractPolicy):
     "close gripper" command.
     '''
 
+    def __init__(self,pos=None):
+        self.pos = pos
+        self.step = -0.1
+
     def evaluate(self, world, state, actor):
-        return SimulationRobotAction(gripper_cmd=state.robot.gripperCloseCommand())
+        if self.pos is None:
+            pos = state.robot.gripperCloseCommand()
+        else:
+            pos = self.pos
+        pos_cmd = max(state.gripper + self.step, pos)
+        return SimulationRobotAction(gripper_cmd=pos_cmd)

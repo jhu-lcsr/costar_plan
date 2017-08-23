@@ -11,17 +11,16 @@ import numpy as np
 
 class BulletSimulationEnv(gym.Env, utils.EzPickle):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, verbose=False, *args, **kwargs):
         '''
         Read in args to set up client information
         '''
 
         self.client = CostarBulletSimulation(*args, **kwargs)
         self.action_space = self.client.robot.getActionSpace()
-
+        self.verbose = verbose
         self.world = self.client.task.world
         self.task = self.client.task.task
-        
 
     def _step(self, action):
         '''
@@ -36,6 +35,7 @@ class BulletSimulationEnv(gym.Env, utils.EzPickle):
         '''
         self.client.reset()
         self.world = self.client.task.world
+        self.world.verbose = self.verbose
         return self.world.computeFeatures()
 
     def taskModel(self):

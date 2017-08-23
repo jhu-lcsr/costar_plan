@@ -50,6 +50,7 @@ class AbstractAgent(object):
     name = None
     
     def __init__(self,
+            env=None,
             verbose=False,
             save=False,
             load=False,
@@ -61,16 +62,19 @@ class AbstractAgent(object):
 
         Params:
         ---------
+        env: environment gym to run
         verbose: print out a ton of warnings and other information.
         save: save data collected to the disk somewhere.
         load: load data from the disk.
         '''
 
+        self.env = env
         self._break = False
         self.verbose = verbose
         self.save = save
         self.load = load
         self.data = {}
+        self.last_example = None
 
         self.datafile_name = data_file
         self.datafile = os.path.join(directory, data_file)
@@ -95,6 +99,8 @@ class AbstractAgent(object):
         ------
         [none]
         '''
+        self.last_example = None
+        self.env.world.verbose = self.verbose
         self._break = False
         #_catch_sigint = lambda *args, **kwargs: self._catch_sigint(*args, **kwargs)
         #signal.signal(signal.SIGINT, _catch_sigint)
@@ -130,23 +136,28 @@ class AbstractAgent(object):
 
         # Save both the generic, non-parameterized action name and the action
         # name.
-        #generic_action_name = action_label.split('(')[0]
         world = self.env.world
         if self.save:
             # Features can be either a tuple or a numpy array. If they're a
             # tuple, we handle them one way...
             data = world.vectorize(control, features, reward, done, example,
                     action_label)
+            self._updateDatasetWithExample(data)
 
-            for key, value in data:
-                if not key in self.data:
-                    self.data[key] = [value]
-                else:
-                    if isinstance(value, np.ndarray):
-                        assert value.shape == self.data[key][0].shape
-                    if not type(self.data[key][0]) == type(value):
-                        print key, type(self.data[key][0]), type(value)
-                        raise RuntimeError('Types do not match when' + \
-                                           ' constructing data set.')
-                    self.data[key].append(value)
+    def _updateDatasetWithExample(self, data):
+        '''
+        Helper function. Currently writes data to a big dictionary, which gets
+        written out to a numpy archive.
+        '''
+        for key, value in data:
+            if not key in self.data:
+                self.data[key] = [value]
+            else:
+                if isinstance(value, np.ndarray):
+                    assert value.shape == self.data[key][0].shape
+                if not type(self.data[key][0]) == type(value):
+                    print key, type(self.data[key][0]), type(value)
+                    raise RuntimeError('Types do not match when' + \
+                                       ' constructing data set.')
+                self.data[key].append(value)
 

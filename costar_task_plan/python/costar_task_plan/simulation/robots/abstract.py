@@ -158,6 +158,8 @@ class AbstractRobotInterface(object):
         return SimulationRobotState(robot=self,
                                     base_pos=pos,
                                     base_rot=rot,
+                                    base_linear_v = 0,
+                                    base_angular_v = 0,
                                     arm=q,
                                     arm_v=dq,
                                     gripper=self._getGripper(),
@@ -174,8 +176,12 @@ class AbstractRobotInterface(object):
         #    self.arm(self._getArmPosition())
         if action.gripper_cmd is not None:
             self.gripper(action.gripper_cmd)
-        else:
-            self.gripper(self._getGripper())
+
+        if action.mobile_base_cmd is not None:
+            self.base(action.mobile_base_cmd)
+
+        #else:
+        #    self.gripper(self._getGripper())
 
     def toParams(self, action):
         '''

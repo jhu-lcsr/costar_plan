@@ -171,6 +171,7 @@ class CostarBulletSimulation(object):
     def convertToArmandGripperCmd(self, action):
 
         # TODO: fix the hard coded indices
+    
         arm = action[0:6]
         gripper = action[5:6]
 
@@ -195,10 +196,10 @@ class CostarBulletSimulation(object):
         action: a CTP AbstractAction containing commands for the robot's arm,
         gripper, and base, if applicable.
         '''
-
         if not isinstance(action, SimulationRobotAction):
-
+            
             if type(action) is not tuple:
+
                 action = self.convertToArmandGripperCmd(action)
 
             action = SimulationRobotAction(*action)
