@@ -330,7 +330,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
 
         [features, arm, gripper, arm_cmd, gripper_cmd, action_labels,
-                goal_features, goal_arm, goal_gripper] = \
+                goal_features, goal_arm, goal_gripper, reward] = \
             SplitIntoChunks(
                 datasets=[features, arm, gripper, arm_cmd, gripper_cmd,
                     action_labels, goal_features, goal_arm, goal_gripper,],
