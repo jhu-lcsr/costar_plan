@@ -14,7 +14,6 @@ from fast import *
 from gmm import *
 
 # models and utils
-from robot import *
 from robot_multi_models import *
 
 # neural net models
