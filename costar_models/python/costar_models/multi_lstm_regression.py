@@ -45,17 +45,16 @@ class RobotMultiLSTMRegression(AbstractAgentBasedModel):
         
         self.dropout_rate = 0.5
         
-        self.img_dense_size = 512
-        self.img_col_dim = 256
+        self.img_dense_size = 128
+        self.img_col_dim = 128
         self.img_num_filters = 32
         self.robot_col_dense_size = 128
         self.robot_col_dim = 64
         self.combined_dense_size = 64
 
         self.num_frames = 10
-        self.tcn_filters = 128
-        self.num_tcn_levels = 2
-        self.tcn_dense_size = 128
+        self.num_lstm_levels = 3
+        self.lstm_dim = 64
 
         self.buffer_img = []
         self.buffer_arm = []
@@ -97,12 +96,12 @@ class RobotMultiLSTMRegression(AbstractAgentBasedModel):
                 post_tiling_layers=2,
                 time_distributed=10)
 
-        for i in xrange(self.num_tcn_levels):
-            if i < self.num_tcn_levels - 1:
+        for i in xrange(self.num_lstm_levels):
+            if i < self.num_lstm_levels - 1:
                 return_seq = True
             else:
                 return_seq = False
-            x = LSTM(self.tcn_filters, return_sequences=return_seq)(x)
+            x = LSTM(self.lstm_dim, return_sequences=return_seq)(x)
 
         arm_out = Dense(arm_size)(x)
         gripper_out = Dense(gripper_size)(x)
