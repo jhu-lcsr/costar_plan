@@ -29,6 +29,10 @@ class FeedForwardAgent(AbstractAgent):
             print "---- Iteration %d ----"%(i+1)
             features = self.env.reset()
 
+            # Make sure the model's state is clear before moving on to the next
+            # step.
+            self.model.reset()
+
             while not self._break:
                 arm_cmd, gripper_cmd = self.model.predict(self.env.world)
                 control = SimulationRobotAction(arm_cmd=arm_cmd[0],
