@@ -20,6 +20,7 @@ from abstract import HierarchicalAgentBasedModel
 
 from robot_multi_models import *
 from split import *
+from preprocess import *
 
 class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
@@ -323,10 +324,13 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
             label = label[example_in_allowed]
             example = example[example_in_allowed]
 
-
-        action_labels_num = np.array([self.taskdef.index(l) for l in label])
-        action_labels = np.squeeze(self.toOneHot2D(action_labels_num,
-            len(self.taskdef.indices)))
+        if isinstance(label[0],str):
+            action_labels_num = np.array([self.taskdef.index(l) for l in label])
+            action_labels = np.squeeze(self.toOneHot2D(action_labels_num,
+                len(self.taskdef.indices)))
+        else:
+            action_labels = np.squeeze(self.toOneHot2D(label,
+                len(self.taskdef.indices)))
 
 
         [goal_features, goal_arm, goal_gripper] = NextAction( \

@@ -329,12 +329,12 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
             try:
                 self.baseline.load_weights(self.name + "_baseline.h5f")
             except Exception, e:
-                print r
+                print e
             for i, policy in enumerate(self.policies):
                 try:
                     policy.load_weights(self.name + "_policy%02d.h5f"%i)
                 except Exception, e:
-                    print r
+                    print e
             try:
                 self.supervisor.load_weights(self.name + "_supervisor.h5f")
             except Exception, e:
