@@ -33,9 +33,101 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 '''
 
+import tensorflow as tf
 import numpy as np
 import os
 import signal
+
+
+def _tfrecord_dtype_feature(value):
+    """Create lambda functions matched to the appropriate
+       tf.train.Feature class for the dtype of ndarray or integer value.
+
+       The purpose of this function is for when you are writing the same tfrecord
+       features over and over the expensive type checks do not need to be performed
+       over and over because you can save these lambda functions that will generate
+       the exact type you need for that feature.
+       reference: https://gist.github.com/swyoon/8185b3dcf08ec728fb22b99016dd533f
+    """
+    if type(a).__module__ == np.__name__:
+        dtype_ = value.dtype
+        if dtype_ == np.float64 or dtype_ == np.float32:
+            return lambda array: tf.train.Feature(float_list=tf.train.FloatList(value=array))
+        elif dtype_ == np.int64:
+            return lambda array: tf.train.Feature(int64_list=tf.train.Int64List(value=array))
+        elif dtype_ == np.uint8:
+            return lambda array: tf.train.Feature(bytes_list=tf.train.BytesList(value=array))
+        else:
+            raise ValueError("Attempting to write unsupported data type {}, add support for the new feature type "
+                             "or update your code to write the data in a supported format.".format(ndarray.dtype))
+    elif isinstance(value, int):
+        return lambda array: tf.train.Feature(int64_list=tf.train.Int64List(value=array))
+    else:
+        raise ValueError("Attempting to write unsupported data type {}, add support for the new feature type "
+                         "or update your code to write the data in a supported format.".format(str(type(ndarray))))
+
+
+def _tfrecord_dtype_lambda_dict(dict):
+    """
+    Create a dictionary of lambda function dictionaries, so type checks
+    don't have to be re-done every time data is saved. Sorry this is a bit tricky,
+    but we have to write out both the array and its shape when writing ndarrrays,
+    so there must be two entries added for each single numpy ndarray.
+
+    Here is a reference for updating dicts that might help with what's going on:
+    https://stackoverflow.com/a/45043651/99379
+
+    # Returns
+
+        A dict containing the entries like following:
+        {
+            key: lambda_function(key, value)
+        }
+
+
+        Later if you have a dict with keys that are feature strings and values that are ndarrays,
+        you can call dict[key](value). This will initialize the tf.train.Feature object you need
+        to write out to a tfrecords file. See _tfrecord_write_example for a demonstration of usage.
+    """
+    features = {}
+    for key, value in dict:
+        if type(value).__module__ == np.__name__:
+            # reference for calling the lambdas then saving them internally
+            # https://stackoverflow.com/a/10452819/99379
+            key_lambda = _tfrecord_dtype_feature(ndarray)
+            key_shape_lambda = _tfrecord_dtype_feature(ndarray.shape)
+            features[key] = lambda fkey, array: {fkey: key_lambda(array),
+                                                 fkey + '_shape': key_shape_lambda(array)}
+        if isinstance(value, int):
+            # reference for calling the lambdas then saving them internally
+            # https://stackoverflow.com/a/10452819/99379
+            key_feature_lambda = _tfrecord_dtype_feature(i)
+            features[key] = lambda fkey, i: {fkey: key_feature_lambda(i)}
+
+    return features
+
+
+def _tfrecord_write_example(dict, dtype_lambda_dict):
+    """
+    See also: _tfrecord_dtype_lambda_dict
+    """
+    features = {}
+    for key, value in dict:
+        # get the function that generates the feature,
+        # call it, and update the feature dictionary
+        # with the newly created feature object
+        #
+        # This is a bit complicated because with ndarrays
+        # we want to create both an entry with 'feature_name'
+        # and 'feature_name_shape', so the data can be easily
+        # extracted later.
+        features.update(dtype_lambda_dict[key](key, value))
+
+    features = tf.train.Features(feature=d_feature)
+    example = tf.train.Example(features=features)
+    serialized = example.SerializeToString()
+    writer.write(serialized)
+
 
 class AbstractAgent(object):
     '''
@@ -48,7 +140,10 @@ class AbstractAgent(object):
     '''
 
     name = None
-    
+    NULL = ''
+    NUMPY_ZIP = 'npz'
+    TFRECORD = 'tfrecord'
+
     def __init__(self,
             env=None,
             verbose=False,
@@ -56,6 +151,7 @@ class AbstractAgent(object):
             load=False,
             directory='.',
             data_file='data.npz',
+            data_type=None
             *args, **kwargs):
         '''
         Sets up the general Agent.
@@ -66,20 +162,35 @@ class AbstractAgent(object):
         verbose: print out a ton of warnings and other information.
         save: save data collected to the disk somewhere.
         load: load data from the disk.
+        data_type: options are 'npz', 'tfrecord, None. The default None
+            tries to detect the data type based on the data file extension,
+            with .npz meaning the numpy zip format, and tfrecord meaning the
+            tensorflow tfrecord format.
         '''
-
+        if data_type is None:
+            if '.npz' in data_file:
+                self.data_type = TFRECORD
+            elif '.tfrecord' in data_file:
+                self.data_type = NUMPY_ZIP
         self.env = env
         self._break = False
         self.verbose = verbose
         self.save = save
         self.load = load
-        self.data = {}
         self.last_example = None
+        self.tfrecord_lambda_dict = None
+
+        if self.data_type == NUMPY_ZIP:
+            self.data = {}
+        else:
+            self.tf_writer = tf.python_io.TFRecordWriter(data_file)
+            pass
+            # SETUP TFR
 
         self.datafile_name = data_file
         self.datafile = os.path.join(directory, data_file)
         if self.load:
-            if os.path.isfile(self.datafile):
+            if os.path.isfile(self.datafile) adn self.data_type == NUMPY_ZIP:
                 self.data.update(np.load(self.datafile))
             elif self.load:
                 raise RuntimeError('Could not load data from %s!' % \
@@ -90,11 +201,13 @@ class AbstractAgent(object):
         print "Caught sigint!"
       self._break = True
 
+
+
     def fit(self, num_iter=1000):
         '''
         Basic "fit" function used by custom Agents. Override this if you do not
         want the saving, loading, signal-catching behavior we construct here.
-        
+
         Params:
         ------
         [none]
@@ -142,22 +255,31 @@ class AbstractAgent(object):
             # tuple, we handle them one way...
             data = world.vectorize(control, features, reward, done, example,
                     action_label)
-            self._updateDatasetWithExample(data)
+            self._updateDatasetWithSample(data)
 
-    def _updateDatasetWithExample(self, data):
+    def _updateDatasetWithSample(self, data):
         '''
         Helper function. Currently writes data to a big dictionary, which gets
         written out to a numpy archive.
         '''
-        for key, value in data:
-            if not key in self.data:
-                self.data[key] = [value]
-            else:
-                if isinstance(value, np.ndarray):
-                    assert value.shape == self.data[key][0].shape
-                if not type(self.data[key][0]) == type(value):
-                    print key, type(self.data[key][0]), type(value)
-                    raise RuntimeError('Types do not match when' + \
-                                       ' constructing data set.')
-                self.data[key].append(value)
+        if self.data_type == self.TFRECORD:
+            if self.tfrecord_lambda_dict is None:
+                self.tfrecord_lambda_dict = _tfrecord_dtype_lambda_dict(data)
+
+            self._tfrecord_write_example(data, self.tfrecord_lambda_dict)
+
+        elif self.data_type == self.NUMPY_ZIP:
+            for key, value in data:
+                    if not key in self.data:
+                        self.data[key] = [value]
+                    else:
+                        if isinstance(value, np.ndarray):
+                            assert value.shape == self.data[key][0].shape
+                        if not type(self.data[key][0]) == type(value):
+                            print key, type(self.data[key][0]), type(value)
+                            raise RuntimeError('Types do not match when' + \
+                                            ' constructing data set.')
+                        self.data[key].append(value)
+        else:
+            raise RuntimeError('file extension not recognized: %s'%self.data_type)
 
