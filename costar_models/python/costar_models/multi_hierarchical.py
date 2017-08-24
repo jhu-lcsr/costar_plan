@@ -206,12 +206,15 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         prev_option = Lambda(lambda x: K.tile(x, tile_shape))(prev_option)
         x = Concatenate(axis=-1,name="add_prev_option_to_supervisor")(
                 [prev_option, enc])
-        x = Conv2D(self.img_num_filters/4,
-                kernel_size=[5,5], 
-                strides=(2, 2),
-                padding='same')(x)
-        x = Dropout(self.dropout_rate)(x)
-        x = LeakyReLU(0.2)(x)
+        for _ in xrange(2):
+            # Repeat twice to scale down to a very small size -- this will help
+            # a little with the final image layers
+            x = Conv2D(self.img_num_filters/4,
+                    kernel_size=[5, 5], 
+                    strides=(2, 2),
+                    padding='same')(x)
+            x = Dropout(self.dropout_rate)(x)
+            x = LeakyReLU(0.2)(x)
         x = Flatten()(x)
         x = Dense(self.combined_dense_size)(x)
         x = Dropout(self.dropout_rate)(x)
