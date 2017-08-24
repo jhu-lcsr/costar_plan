@@ -190,7 +190,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         self.predict_goal = None
         self.predict_next = None
 
-        self.prev_option = 1
+        self.prev_option = 2
         
     def _makeOption1h(self, option):
         opt_1h = np.zeros((1,self._numLabels()))
@@ -243,6 +243,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         self.supervisor.compile(
                 loss="binary_crossentropy",
                 optimizer=self.getOptimizer())
+        self.supervisor.summary()
         self.supervisor.fit(features, [label], epochs=self.epochs)
 
     def _fitPolicies(self, features, label, action):
@@ -295,14 +296,12 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         self.predictor.compile(
                 loss="mse",
                 optimizer=self.getOptimizer())
-        self.predictor.summary()
         self.predictor.fit(features, targets)
         self._fixWeights()
 
     def _fitBaseline(self, features, action):
         self._fixWeights()
         self.baseline.compile(loss="mse", optimizer=self.getOptimizer())
-        self.baseline.summary()
         self.baseline.fit(features, action, epochs=self.epochs)
 
     def save(self):
@@ -339,10 +338,13 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
             try:
                 self.supervisor.load_weights(self.name + "_supervisor.h5f")
             except Exception, e:
-                print r
+                print e
             self.predictor.load_weights(self.name + "_predictor.h5f")
         else:
             raise RuntimeError('_loadWeights() failed: model not found.')
+
+    def reset(self):
+        self.prev_option = None
 
     def predict(self, world):
         '''
