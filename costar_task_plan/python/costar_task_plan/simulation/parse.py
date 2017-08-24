@@ -146,5 +146,9 @@ def ParseBulletArgs():
     parser.add_argument("--verbose",
                         help="Run world in verbose mode, printing out errors.",
                         action="store_true")
+    parser.add_argument('--window_length',
+                        help="Window length used for data collection.",
+                        type=int,
+                        default=10)
 
     return vars(parser.parse_args())
