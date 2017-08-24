@@ -107,6 +107,7 @@ class AbstractWorld(object):
              ("done", done),
              ("example", example),
              ("label", action_label)]
+
     return data
 
   def time(self):
