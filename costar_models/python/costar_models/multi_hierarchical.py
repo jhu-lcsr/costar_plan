@@ -396,7 +396,6 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 g_target,
                 action_labels,]
 
-
     def train(self, *args, **kwargs):
         '''
         Pre-process training data.
