@@ -3,6 +3,11 @@ import pybullet as pb
 
 from collections import namedtuple
 
+# Don't change ImageData lightly,
+# consider only adding to it because
+# some code such as in features.py
+# depends on the order of
+# this tuple's elements.
 ImageData = namedtuple(
     'ImageData', ['name', 'rgb', 'depth', 'mask', 'camera_view_matrix', 'camera_projection_matrix'], verbose=False)
 

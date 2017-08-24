@@ -49,22 +49,23 @@ def _tfrecord_dtype_feature(value):
        the exact type you need for that feature.
        reference: https://gist.github.com/swyoon/8185b3dcf08ec728fb22b99016dd533f
     """
-    if type(a).__module__ == np.__name__:
+    if type(value).__module__ == np.__name__:
         dtype_ = value.dtype
         if dtype_ == np.float64 or dtype_ == np.float32:
             return lambda array: tf.train.Feature(float_list=tf.train.FloatList(value=array))
-        elif dtype_ == np.int64:
+        elif dtype_ == np.int64 or dtype_ == np.int32:
             return lambda array: tf.train.Feature(int64_list=tf.train.Int64List(value=array))
         elif dtype_ == np.uint8:
             return lambda array: tf.train.Feature(bytes_list=tf.train.BytesList(value=array))
         else:
             raise ValueError("Attempting to write unsupported data type {}, add support for the new feature type "
-                             "or update your code to write the data in a supported format.".format(ndarray.dtype))
+                             "or update your code to write the data in a supported format such as numpy arrays.".format(value.dtype))
     elif isinstance(value, int):
         return lambda array: tf.train.Feature(int64_list=tf.train.Int64List(value=array))
     else:
+        print(value)
         raise ValueError("Attempting to write unsupported data type {}, add support for the new feature type "
-                         "or update your code to write the data in a supported format.".format(str(type(ndarray))))
+                         "or update your code to write the data in a supported format such as numpy arrays.".format(str(type(value))))
 
 
 def _tfrecord_dtype_lambda_dict(dict):
@@ -91,17 +92,19 @@ def _tfrecord_dtype_lambda_dict(dict):
     """
     features = {}
     for key, value in dict:
+        print('<<<<<<<<<<<<<<<<<<<key: ', key)
         if type(value).__module__ == np.__name__:
             # reference for calling the lambdas then saving them internally
             # https://stackoverflow.com/a/10452819/99379
-            key_lambda = _tfrecord_dtype_feature(ndarray)
-            key_shape_lambda = _tfrecord_dtype_feature(ndarray.shape)
+            key_lambda = _tfrecord_dtype_feature(value)
+            value_shape = np.array(value.shape, dtype=np.int64)
+            key_shape_lambda = _tfrecord_dtype_feature(value_shape)
             features[key] = lambda fkey, array: {fkey: key_lambda(array),
-                                                 fkey + '_shape': key_shape_lambda(array)}
+                                                 fkey + '_shape': key_shape_lambda(np.array(array.shape, dtype=np.int64))}
         if isinstance(value, int):
             # reference for calling the lambdas then saving them internally
             # https://stackoverflow.com/a/10452819/99379
-            key_feature_lambda = _tfrecord_dtype_feature(i)
+            key_feature_lambda = _tfrecord_dtype_feature(value)
             features[key] = lambda fkey, i: {fkey: key_feature_lambda(i)}
 
     return features
@@ -151,7 +154,7 @@ class AbstractAgent(object):
             load=False,
             directory='.',
             data_file='data.npz',
-            data_type=None
+            data_type=None,
             *args, **kwargs):
         '''
         Sets up the general Agent.
@@ -167,11 +170,17 @@ class AbstractAgent(object):
             with .npz meaning the numpy zip format, and tfrecord meaning the
             tensorflow tfrecord format.
         '''
+        print('pre data_type: ', data_type)
         if data_type is None:
             if '.npz' in data_file:
-                self.data_type = TFRECORD
+                data_type = self.NUMPY_ZIP
             elif '.tfrecord' in data_file:
-                self.data_type = NUMPY_ZIP
+                data_type = self.TFRECORD
+            else:
+                raise RuntimeError('Currently supported file extensions '
+                                   'are .tfrecord and .npz, you entered '
+                                   '{}'.format(data_file.split('.')[-1]))
+        print('data_file: ', data_file)
         self.env = env
         self._break = False
         self.verbose = verbose
@@ -179,18 +188,18 @@ class AbstractAgent(object):
         self.load = load
         self.last_example = None
         self.tfrecord_lambda_dict = None
+        self.data_type = data_type
 
-        if self.data_type == NUMPY_ZIP:
+        print('data_type: ', data_type)
+        if self.data_type == self.NUMPY_ZIP:
             self.data = {}
         else:
             self.tf_writer = tf.python_io.TFRecordWriter(data_file)
-            pass
-            # SETUP TFR
 
         self.datafile_name = data_file
         self.datafile = os.path.join(directory, data_file)
         if self.load:
-            if os.path.isfile(self.datafile) adn self.data_type == NUMPY_ZIP:
+            if os.path.isfile(self.datafile) and self.data_type == self.NUMPY_ZIP:
                 self.data.update(np.load(self.datafile))
             elif self.load:
                 raise RuntimeError('Could not load data from %s!' % \
@@ -223,8 +232,11 @@ class AbstractAgent(object):
             pass
 
         if self.save:
-            print "---- saving to %s ----"%self.datafile_name
-            np.savez_compressed(self.datafile, **self.data)
+            if self.data_type == self.NUMPY_ZIP:
+                print "---- saving to %s ----"%self.datafile_name
+                np.savez_compressed(self.datafile, **self.data)
+            if self.data_type == self.TFRECORD:
+                self.tf_writer.close()
 
     def _fit(self, num_iter):
         raise NotImplementedError('_fit() should run algorithm on' + \
@@ -266,7 +278,7 @@ class AbstractAgent(object):
             if self.tfrecord_lambda_dict is None:
                 self.tfrecord_lambda_dict = _tfrecord_dtype_lambda_dict(data)
 
-            self._tfrecord_write_example(data, self.tfrecord_lambda_dict)
+            _tfrecord_write_example(data, self.tfrecord_lambda_dict)
 
         elif self.data_type == self.NUMPY_ZIP:
             for key, value in data:
