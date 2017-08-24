@@ -121,7 +121,8 @@ class PoseFeatures(AbstractFeatures):
         object_translation_rotation = []
         for name, oid in world.id_by_object.items():
             obj = world.actors[oid].getState()
-            object_translation_rotation += [obj.T.p, obj.T.M.GetQuaternion()]
+            object_translation_rotation += [obj.T.p]
+            object_translation_rotation += list(obj.T.M.GetQuaternion())
         return [np.array(object_translation_rotation),
                 state.arm,
                 state.gripper]
