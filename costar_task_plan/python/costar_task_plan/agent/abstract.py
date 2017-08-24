@@ -55,6 +55,7 @@ class AbstractAgent(object):
             save=False,
             load=False,
             directory='.',
+            window_length=10,
             data_file='data.npz',
             *args, **kwargs):
         '''
@@ -74,6 +75,7 @@ class AbstractAgent(object):
         self.save = save
         self.load = load
         self.data = {}
+        self.current_example = {}
         self.last_example = None
 
         self.datafile_name = data_file
@@ -97,7 +99,8 @@ class AbstractAgent(object):
         
         Params:
         ------
-        [none]
+        num_iter: optional param, number of experiments to run. Will be sent to
+                  the specific agent being used.
         '''
         self.last_example = None
         self.env.world.verbose = self.verbose
@@ -142,22 +145,77 @@ class AbstractAgent(object):
             # tuple, we handle them one way...
             data = world.vectorize(control, features, reward, done, example,
                     action_label)
-            self._updateDatasetWithExample(data)
+            self._updateCurrentExample(data)
+            if done:
+                self._finishCurrentExample(world)
 
-    def _updateDatasetWithExample(self, data):
-        '''
-        Helper function. Currently writes data to a big dictionary, which gets
-        written out to a numpy archive.
-        '''
-        for key, value in data:
-            if not key in self.data:
-                self.data[key] = [value]
+    def _updateCurrentExample(self, data):
+        for key,value in data:
+            if not key in self.current_example:
+                self.current_example[key] = [value]
             else:
                 if isinstance(value, np.ndarray):
-                    assert value.shape == self.data[key][0].shape
-                if not type(self.data[key][0]) == type(value):
-                    print key, type(self.data[key][0]), type(value)
+                    assert value.shape == self.current_example[key][0].shape
+                if not type(self.current_example[key][0]) == type(value):
+                    print key, type(self.current_example[key][0]), type(value)
                     raise RuntimeError('Types do not match when' + \
                                        ' constructing data set.')
-                self.data[key].append(value)
+                self.current_example[key].append(value)
+
+    def _finishCurrentExample(self, world):
+        '''
+        Preprocess this particular example:
+        - split it up into different time windows of various sizes
+        - compute task result
+        - compute transition points
+        - compute option-level (mid-level) labels
+        '''
+
+        # Split into chunks and preprocess the data
+        # This requires setting up window_length, etc
+
+        next_list = world.features.description + ["reward", "label"]
+        prev_list = ["label"]
+        final_list = world.features.description
+        length = len(self.current_example['example'])
+
+        # ============================================
+        # Loop over all entries. For important items, take the previous frame
+        # and the next frame -- and possibly even the final frame.
+        for i in xrange(length):
+            i0 = max(i-1,0)
+            i1 = min(i+1,length-1)
+            ifinal = length-1
+
+            # ==========================================
+            # Finally, add the example to the dataset
+            for key, values in self.current_example.items():
+                if not key in self.data:
+                    self.data[key] = []
+                    if key in next_list:
+                        self.data["next_%s"%key] = []
+                    if key in prev_list:
+                        self.data["prev_%s"%key] = []
+                    if key in final_list:
+                        self.data["final_%s"%key] = []
+                else:
+                    # Check data consistency
+                    if len(self.data[key]) > 0:
+                        if isinstance(values[0], np.ndarray):
+                            assert values[0].shape == self.data[key][0].shape
+                        if not type(self.data[key][0]) == type(values[0]):
+                            print key, type(self.data[key][0]), type(values[0])
+                            raise RuntimeError('Types do not match when' + \
+                                               ' constructing data set.')
+
+                    # Append list of features to the whole dataset
+                    self.data[key].append(values[i])
+                    if key in prev_list:
+                        self.data["prev_%s"%key].append(values[i0])
+                    if key in next_list:
+                        self.data["next_%s"%key].append(values[i1])
+                    if key in final_list:
+                        self.data["final_%s"%key].append(values[ifinal])
+
+        self.current_example = {}
 
