@@ -44,12 +44,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_frames = 1
 
         self.dropout_rate = 0.5
-        self.img_dense_size = 1024
         self.img_col_dim = 512
-        self.img_num_filters = 128
+        self.img_num_filters = 64
         self.combined_dense_size = 128
-        self.partition_step_size = 2
-
         self.num_hypotheses = 4
 
         self.predictor = None
@@ -110,15 +107,20 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         else:
             gripper_size = 1
 
-        ins, enc = GetImageEncoder(img_shape,
+        ins, enc = GetEncoder(img_shape,
+                arm_size,
+                gripper_size,
                 self.img_col_dim,
                 self.dropout_rate,
                 self.img_num_filters,
                 leaky=False,
                 dropout=False,
-                layers=3,
+                pre_tiling_layers=0,
+                post_tiling_layers=3,
                 kernel_size=[5,5],
                 dense=False,
+                tile=True,
+                option=self._numLabels(),
                 flatten=False,
                 )
 
@@ -275,9 +277,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Fit the main models
         self._fitPredictor(
-                #[I, q, g, oin],
+                [I, q, g, o_prev],
                 #[I_target, q_target, g_target, Inext_target])
-                [I],
+                #[I],
                 [I_target])
 
         # ===============================================
