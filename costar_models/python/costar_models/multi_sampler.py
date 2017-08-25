@@ -50,7 +50,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.combined_dense_size = 128
         self.partition_step_size = 2
 
-        self.num_hypotheses = 1
+        self.num_hypotheses = 4
 
         self.predictor = None
         self.train_predictor = None
@@ -175,7 +175,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
     def _fitPredictor(self, features, targets):
         if self.show_iter > 0:
-            fig, axes = plt.subplots(5, 5,)
+            fig, axes = plt.subplots(6, 5,)
 
         image_shape = features[0].shape[1:]
         image_size = 1.
@@ -217,18 +217,19 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             ax = axes[1][j]
             ax.imshow(np.squeeze(data[j][0]))
             ax.axis('off')
-            '''
             ax = axes[2][j]
             ax.imshow(np.squeeze(data[j][1]))
             ax.axis('off')
             ax = axes[3][j]
             ax.imshow(np.squeeze(data[j][2]))
             ax.axis('off')
-            '''
+            ax = axes[4][j]
+            ax.imshow(np.squeeze(data[j][3]))
+            ax.axis('off')
             ax = axes[0][j]
             ax.imshow(np.squeeze(features[0][jj]))
             ax.axis('off')
-            ax = axes[4][j]
+            ax = axes[5][j]
             ax.imshow(np.squeeze(targets[0][jj]))
             ax.axis('off')
 

@@ -41,15 +41,14 @@ class MhpLoss(object):
 
         xsum = tf.zeros([1, 1])
         xmin = tf.ones([1, 1])*1e10
-        print target.shape, pred.shape
-        for i in range(0, self.num_hypotheses):
+        for i in xrange(self.num_hypotheses):
             #cc = losses.mean_squared_error(y_true,
             #        (y_true, tf.slice(y_pred, [0, num_classes*i], [1,
             #            num_classes])))
-            cc = losses.mean_squared_error(target, pred[:,i,:,:,:])
+            cc = losses.mean_squared_error(target[:,0], pred[:,i,:,:,:])
             xsum += cc
             xmin = tf.minimum(xmin, cc)
 
-        return 0.05 * xsum / self.num_hypotheses + 0.90 * xmin
+        return (0.05 * xsum / self.num_hypotheses) + (0.90 * xmin)
 
 
