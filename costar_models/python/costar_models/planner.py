@@ -178,6 +178,8 @@ def GetImageDecoder(dim, img_shape,
     created via the encoder.
     '''
 
+    height16 = img_shape[0]/16
+    width16 = img_shape[1]/16
     height8 = img_shape[0]/8
     width8 = img_shape[1]/8
     height4 = img_shape[0]/4
@@ -191,16 +193,8 @@ def GetImageDecoder(dim, img_shape,
     else:
         relu = lambda: Activation('relu')
 
-    if dense:
-        z = Input((dim,),name="input_image")
-        x = Dense(filters/2 * height4 * width4)(z)
-        if batchnorm:
-            x = BatchNormalization(momentum=0.9)(x)
-        x = relu()(x)
-        x = Reshape((width4,height4,filters/2))(x)
-    else:
-        z = Input((width8*height8*filters,),name="input_image")
-        x = Reshape((width8,height8,filters))(z)
+    z = Input((width8*height8*filters,),name="input_image")
+    x = Reshape((width8,height8,filters))(z)
     x = Dropout(dropout_rate)(x)
 
     height = height4
