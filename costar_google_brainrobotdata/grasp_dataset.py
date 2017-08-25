@@ -153,6 +153,7 @@ class GraspDataset(object):
         One example is: 'features_102.csv'
         """
         dataset = self._update_dataset_param(dataset)
+        # print("csv_search: ", os.path.join(os.path.expanduser(self.data_dir), '*{}*.csv'.format(dataset)))
         return gfile.Glob(os.path.join(os.path.expanduser(self.data_dir), '*{}*.csv'.format(dataset)))
 
     def get_features(self, dataset=None):
@@ -161,6 +162,7 @@ class GraspDataset(object):
         """
         dataset = self._update_dataset_param(dataset)
         csv_files = self.get_feature_csv_file_paths(dataset)
+        # print('csvfiles_length:', len(csv_files))
         features_complete_list, _, _, _ = self.get_grasp_tfrecord_info(csv_files[-1])
         # Workaround for csv files which may not actually list the key features below,
         # although they have been added to the dataset itself.
