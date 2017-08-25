@@ -1,5 +1,6 @@
 from keras import layers
 from keras import losses
+import keras.backend as K
 import tensorflow as tf
 
 def mhp_loss_layer(num_classes, num_hypotheses, y_true, y_pred):
@@ -42,14 +43,32 @@ class MhpLoss(object):
         xsum = tf.zeros([1, 1])
         xmin = tf.ones([1, 1])*1e10
         for i in xrange(self.num_hypotheses):
-            #cc = losses.mean_squared_error(y_true,
-            #        (y_true, tf.slice(y_pred, [0, num_classes*i], [1,
-            #            num_classes])))
-            cc = losses.mean_squared_error(target[:,0], pred[:,i,:,:,:])
+            target_image = target[:,0]
+            pred_image = pred[:,i]
+            cc = losses.mean_squared_error(target_image, pred_image)
+            #cc = losses.mean_absolute_error(target_image, pred_image)
             xsum += cc
             xmin = tf.minimum(xmin, cc)
 
         return (0.05 * xsum / self.num_hypotheses) + (0.90 * xmin)
-        #return xsum / self.num_hypotheses 
 
+class MhpLossWithShape(object):
+    '''
+    This version of the MHP loss assumes that it will receive multiple outputs.
+    '''
+    def __init__(self, num_hypotheses, outputs):
+        self.num_hypotheses = num_hypotheses
+        self.outputs = outputs # these are the sizes of the various outputs
+        self.__name__ = "mhp_loss"
 
+        xsum = tf.zeros([1, 1])
+        xmin = tf.ones([1, 1])*1e10
+        for i in xrange(self.num_hypotheses):
+            target_image = target[:,0]
+            pred_image = pred[:,i]
+            cc = losses.mean_squared_error(target_image, pred_image)
+            #cc = losses.mean_absolute_error(target_image, pred_image)
+            xsum += cc
+            xmin = tf.minimum(xmin, cc)
+
+        return (0.05 * xsum / self.num_hypotheses) + (0.90 * xmin)
