@@ -275,10 +275,10 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         for j in xrange(5):
             jj = j * 5
             ax = axes[1][j]
-            ax.imshow(np.squeeze(data[0][jj]))
+            ax.imshow(np.squeeze(data[0][j]))
             ax.axis('off')
             ax = axes[4][j]
-            ax.imshow(np.squeeze(data[3][jj]))
+            ax.imshow(np.squeeze(data[3][j]))
             ax.axis('off')
             ax = axes[0][j]
             ax.imshow(np.squeeze(features[0][jj]))
