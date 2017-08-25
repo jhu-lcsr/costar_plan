@@ -46,10 +46,15 @@ class Task(object):
     self.nodes = {}
     self.children = {}
 
-    # Store integer index associated with each node
+    # Dictionary from the action string names to the
+    # unique integer id (label) of each action
+    # node (like grasp_block)
     self.indices = {}
 
     # Store name by integer index in case we ever want to recover that
+
+    # Dictionary from the uniqe integer id (label) of each action
+    # to the associated string names
     self.names = {}
     self.generic_names = {}
 
@@ -296,7 +301,7 @@ class OptionTemplate(object):
 
     if name is None:
       name = ROOT_NAME
-  
+
     if self.task is None:
         iname = self.name_template%(name,make_str(filled_args))
         option = self.constructor(**filled_args)
@@ -336,7 +341,7 @@ class TaskNode(object):
     self.children = children
 
 def get_arg_sets(arg_dict):
-  
+
   # empty set of arguments
   arg_sets = [{}]
 
