@@ -1,5 +1,6 @@
 from costar_task_plan.abstract.features import AbstractFeatures
 
+from costar_task_plan.simulation.camera import ImageData
 import numpy as np
 
 
@@ -151,10 +152,13 @@ class GraspSegmentationFeatures(AbstractFeatures):
         object_translation_rotation = []
         # camera.py ImageData namedtuple
         image_data = world.cameras[0].capture()
+        image_data_arrays = [np.array(value) for value in image_data]
         # 'camera_view_matrix' namedtuple index is 4
         # TODO(ahundt) ensure camera matrix translation component is from world origin to camera origin
         # camera ray is from the origin of the camera
         camera_transform_array = np.transpose(image_data[4]).reshape((4, 4))
+        # use the more conveniently formatted transform for writing out
+        image_data_arrays[4] = camera_transform_array
         camera_translation = camera_transform_array[0:3, 3].tolist()
         # print("TEST IMAGEDATA named tuple img matrix: \n", )
         # print("TEST IMAGEDATA named tuple img matrix translation: ", camera_translation)
@@ -165,7 +169,10 @@ class GraspSegmentationFeatures(AbstractFeatures):
             # print("oid type:", str(type(oid)))
             # print("actor type:", str(type(world.actors[oid])))
             obj = world.actors[oid].getState()
-            object_translation_rotation += [obj.T.p, obj.T.M.GetQuaternion()]
+            p = obj.T.p
+            q = obj.T.M.GetQuaternion()
+            one_t_r = np.array([p[0], p[1], p[2], q[0], q[1], q[2], q[3]], dtype=np.float32)
+            object_translation_rotation.append(one_t_r)
             camera_ray_to.append(list(obj.T.p))
 
         # print("lengths: ", len(camera_ray_from), len(camera_ray_to))
@@ -180,9 +187,12 @@ class GraspSegmentationFeatures(AbstractFeatures):
                 object_surface_points += [obj.T.p]
             else:
                 object_surface_points += hitpos
-        return [object_translation_rotation, state.arm, state.gripper, image_data, object_surface_points]
+
+        return [np.array(object_translation_rotation),
+                np.array(state.arm),
+                np.array(state.gripper)] + image_data_arrays[1:] + [np.array(object_surface_points)]
 
     @property
     def description(self):
-        return ["object_translation_rotation", "arm", "gripper", "camera", "camera_to_object_surface_points"]
+        return ["object_translation_rotation", "arm", "gripper"] + list(ImageData._fields)[1:] + ["camera_to_object_surface_points"]
 

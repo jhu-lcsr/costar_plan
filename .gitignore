@@ -18,3 +18,5 @@
 
 # Files from Bullet
 0_VRDemoSettings.txt
+
+*.tfrecord*

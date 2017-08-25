@@ -36,7 +36,9 @@ class AbstractExecutionManager(object):
         self.execute = execute_fn
         self.verbose = verbose
         self.actor_id = actor_id
-
+        # Identifies whatever option is executing in the
+        # array of options, which can be found in task.py
+        self.idx = 0
         self.reset(actor_id)
 
     def reset(self, actor_id=0):
