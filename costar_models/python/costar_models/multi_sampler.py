@@ -122,24 +122,28 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 flatten=False,
                 )
 
-        rep, dec = GetImageDecoder(self.img_col_dim,
-                            img_shape,
-                            dropout_rate=self.dropout_rate,
-                            kernel_size=[5,5],
-                            filters=self.img_num_filters,
-                            stride2_layers=3,
-                            stride1_layers=0,
-                            dropout=False,
-                            leaky=True,
-                            dense=False,
-                            num_hypotheses=self.num_hypotheses,
-                            batchnorm=True,)
+        image_outs = []
+        for i in xrange(self.num_hypotheses):
+            rep, dec = GetImageDecoder(self.img_col_dim,
+                                img_shape,
+                                dropout_rate=self.dropout_rate,
+                                kernel_size=[5,5],
+                                filters=self.img_num_filters,
+                                stride2_layers=3,
+                                stride1_layers=0,
+                                dropout=False,
+                                leaky=True,
+                                dense=False,
+                                batchnorm=True,)
 
-        # =====================================================================
-        # Create decoder
-        # This maps from our latent world state back into observable images.
-        decoder = Model(rep, dec)
-        image_out = decoder(enc)
+            # Create decoder
+            # This maps from our latent world state back into observable images.
+            decoder = Model(rep, dec)
+            decoder = Lambda(
+                    lambda x: K.expand_dims(x, 1),
+                    name="hypothesis%d"%i)(decoder(enc))
+            image_outs.append(decoder)
+        image_out = Concatenate(axis=1)(image_outs)
 
         # =====================================================================
         # Decode arm/gripper state.
@@ -175,7 +179,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
     def _fitPredictor(self, features, targets):
         if self.show_iter > 0:
-            fig, axes = plt.subplots(6, 5,)
+            fig, axes = plt.subplots(6, 6,)
+            plt.tight_layout()
 
         image_shape = features[0].shape[1:]
         image_size = 1.
@@ -198,6 +203,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 x.append(f[idx])
             for f in targets:
                 y.append(np.expand_dims(f[idx],1))
+                #y.append(f[idx],1))
 
             losses = self.train_predictor.train_on_batch(x, y)
 
@@ -208,24 +214,25 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self._fixWeights()
 
     def plotPredictions(self, features, targets, axes):
-        subset = [f[range(0,25,5)] for f in features]
+        subset = [f[range(0,60,10)] for f in features]
         data = self.predictor.predict(subset)
         #print "RESULT[0] SHAPE >>>", data[0].shape
         #print "ALL RESULTS SHAPE >>>", data.shape
-        for j in xrange(5):
-            jj = j * 5
+        for j in xrange(6):
+            jj = j * 10
             ax = axes[1][j]
             ax.imshow(np.squeeze(data[j][0]))
             ax.axis('off')
-            ax = axes[2][j]
-            ax.imshow(np.squeeze(data[j][1]))
-            ax.axis('off')
-            ax = axes[3][j]
-            ax.imshow(np.squeeze(data[j][2]))
-            ax.axis('off')
-            ax = axes[4][j]
-            ax.imshow(np.squeeze(data[j][3]))
-            ax.axis('off')
+            if self.num_hypotheses > 1:
+                ax = axes[2][j]
+                ax.imshow(np.squeeze(data[j][1]))
+                ax.axis('off')
+                ax = axes[3][j]
+                ax.imshow(np.squeeze(data[j][2]))
+                ax.axis('off')
+                ax = axes[4][j]
+                ax.imshow(np.squeeze(data[j][3]))
+                ax.axis('off')
             ax = axes[0][j]
             ax.imshow(np.squeeze(features[0][jj]))
             ax.axis('off')
@@ -234,7 +241,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             ax.axis('off')
 
         plt.ion()
-        plt.tight_layout()
         plt.show(block=False)
         plt.pause(0.01)
 

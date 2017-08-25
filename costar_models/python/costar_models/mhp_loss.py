@@ -50,5 +50,6 @@ class MhpLoss(object):
             xmin = tf.minimum(xmin, cc)
 
         return (0.05 * xsum / self.num_hypotheses) + (0.90 * xmin)
+        #return xsum / self.num_hypotheses 
 
 
