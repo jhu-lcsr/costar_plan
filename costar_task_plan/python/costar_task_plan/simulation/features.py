@@ -172,7 +172,6 @@ class GraspSegmentationFeatures(AbstractFeatures):
             p = obj.T.p
             q = obj.T.M.GetQuaternion()
             one_t_r = np.array([p[0], p[1], p[2], q[0], q[1], q[2], q[3]], dtype=np.float32)
-            print('one_t_r: ', one_t_r)
             object_translation_rotation.append(one_t_r)
             camera_ray_to.append(list(obj.T.p))
 
