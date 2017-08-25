@@ -21,11 +21,13 @@ class GraspTrain(object):
         pixel_value_offset = tf.constant([103.939, 116.779, 123.68])
         return tf.subtract(tensor, pixel_value_offset)
 
-    def train(self, dataset=None, steps_per_epoch=1000, batch_size=1, epochs=10, load_weights="", save_weights='grasp_model_weights.h5', imagenet_preprocessing=True):
+    def train(self, dataset=FLAGS.grasp_dataset, steps_per_epoch=1000, batch_size=1, epochs=10, load_weights="", save_weights='grasp_model_weights.h5',
+              imagenet_preprocessing=True,
+              make_model_fn=grasp_model.grasp_model):
 
         """Visualize one dataset in V-REP
         """
-        data = grasp_dataset.GraspDataset(dataset)
+        data = grasp_dataset.GraspDataset(dataset=dataset)
         # list of dictionaries the length of batch_size
         feature_op_dicts, features_complete_list = data.get_simple_parallel_dataset_ops(batch_size=batch_size)
         # TODO(ahundt) https://www.tensorflow.org/performance/performance_models
@@ -99,7 +101,7 @@ class GraspTrain(object):
         simplified_grasp_command_op_batch = tf.concat(simplified_grasp_command_op_batch, 0)
         grasp_success_op_batch = tf.concat(grasp_success_op_batch, 0)
 
-        model = grasp_model.grasp_model(
+        model = make_model_fn(
             pregrasp_op_batch,
             grasp_step_op_batch,
             simplified_grasp_command_op_batch
@@ -111,7 +113,7 @@ class GraspTrain(object):
         model.compile(optimizer='adam',
                       loss='binary_crossentropy',
                       metrics=['accuracy'],
-                      input_tensors=[grasp_success_op_batch]
+                      target_tensors=[grasp_success_op_batch]
                       )
 
         model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch)
@@ -121,5 +123,13 @@ class GraspTrain(object):
 if __name__ == '__main__':
 
     with K.get_session() as sess:
+        model_slection = 'grasp_model_segmentation'
+        if model_slection == 'grasp_model':
+            model_fn = grasp_model.grasp_model
+        if model_slection == 'grasp_model_segmentation':
+            model_fn = grasp_model.grasp_model_segmentation
+        else:
+            raise ValueError('unknown model selected')
+
         gt = GraspTrain()
-        gt.train()
+        gt.train(make_model_fn=model_fn)
