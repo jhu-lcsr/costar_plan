@@ -32,10 +32,12 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 '''
-
+import tensorflow as tf
 import numpy as np
 import os
 import signal
+from costar_models.datasets.tfrecord import TFRecordConverter
+
 
 class AbstractAgent(object):
     '''
@@ -48,7 +50,10 @@ class AbstractAgent(object):
     '''
 
     name = None
-    
+    NULL = ''
+    NUMPY_ZIP = 'npz'
+    TFRECORD = 'tfrecord'
+
     def __init__(self,
             env=None,
             verbose=False,
@@ -57,6 +62,7 @@ class AbstractAgent(object):
             directory='.',
             window_length=10,
             data_file='data.npz',
+            data_type=None,
             *args, **kwargs):
         '''
         Sets up the general Agent.
@@ -67,36 +73,56 @@ class AbstractAgent(object):
         verbose: print out a ton of warnings and other information.
         save: save data collected to the disk somewhere.
         load: load data from the disk.
+        data_type: options are 'npz', 'tfrecord, None. The default None
+            tries to detect the data type based on the data file extension,
+            with .npz meaning the numpy zip format, and tfrecord meaning the
+            tensorflow tfrecord format.
         '''
-
+        if data_type is None:
+            if '.npz' in data_file:
+                data_type = self.NUMPY_ZIP
+            elif '.tfrecord' in data_file:
+                data_type = self.TFRECORD
+            else:
+                raise RuntimeError('Currently supported file extensions '
+                                   'are .tfrecord and .npz, you entered '
+                                   '{}'.format(data_file.split('.')[-1]))
         self.env = env
         self._break = False
         self.verbose = verbose
         self.save = save
         self.load = load
-        self.data = {}
         self.current_example = {}
         self.last_example = None
+        self.tfrecord_lambda_dict = None
+        self.data_type = data_type
+
+        if self.data_type == self.NUMPY_ZIP:
+            self.data = {}
+        else:
+            self.tf_writer = TFRecordConverter(data_file)
 
         self.datafile_name = data_file
         self.datafile = os.path.join(directory, data_file)
         if self.load:
-            if os.path.isfile(self.datafile):
+            if os.path.isfile(self.datafile) and self.data_type == self.NUMPY_ZIP:
                 self.data.update(np.load(self.datafile))
             elif self.load:
-                raise RuntimeError('Could not load data from %s!' % \
-                        self.datafile)
+                raise RuntimeError('Could not load data from %s!' %
+                                   self.datafile)
 
     def _catch_sigint(self, *args, **kwargs):
       if self.verbose:
         print "Caught sigint!"
       self._break = True
 
+
+
     def fit(self, num_iter=1000):
         '''
         Basic "fit" function used by custom Agents. Override this if you do not
         want the saving, loading, signal-catching behavior we construct here.
-        
+
         Params:
         ------
         num_iter: optional param, number of experiments to run. Will be sent to
@@ -113,15 +139,18 @@ class AbstractAgent(object):
             pass
 
         if self.save:
-            print "---- saving to %s ----"%self.datafile_name
-            np.savez_compressed(self.datafile, **self.data)
+            if self.data_type == self.NUMPY_ZIP:
+                print("---- saving to %s ----" % self.datafile_name)
+                np.savez_compressed(self.datafile, **self.data)
+            if self.data_type == self.TFRECORD:
+                self.tf_writer.close()
 
     def _fit(self, num_iter):
-        raise NotImplementedError('_fit() should run algorithm on' + \
+        raise NotImplementedError('_fit() should run algorithm on'
                                   ' the environment')
 
     def _addToDataset(self, world, control, features, reward, done, example,
-            action_label):
+                      action_label):
         '''
         Takes as input features, reward, action, and other information. Saves
         all of this to create a dataset. Any custom agents should call this
@@ -150,6 +179,15 @@ class AbstractAgent(object):
                 self._finishCurrentExample(world)
 
     def _updateCurrentExample(self, data):
+        '''
+        Add to the current trial, so we can compute things over the whole
+        experiment.
+
+        Parameters:
+        ----------
+        data: vectorized list of saveable information: control, features,
+              reward, done,  example, and (int) action label.
+        '''
         for key,value in data:
             if not key in self.current_example:
                 self.current_example[key] = [value]
@@ -178,6 +216,12 @@ class AbstractAgent(object):
         prev_list = ["label"]
         final_list = world.features.description
         length = len(self.current_example['example'])
+
+        if self.data_type == self.TFRECORD:
+            # Create an empty dict to hold all the data from this last trial.
+            # Yeah, this is a little bit of a hack...
+            # TODO(cpaxton): clean this up in the future, before release.
+            self.data = {}            
 
         # ============================================
         # Loop over all entries. For important items, take the previous frame
@@ -217,5 +261,19 @@ class AbstractAgent(object):
                     if key in final_list:
                         self.data["final_%s"%key].append(values[ifinal])
 
+        # ================================================
+        # Handle TF Records. We save here instead of at the end.
+        length = len(data.values()[0])
+        for i in xrange(length):
+            sample = []
+            for key, values in self.data:
+                sample.append(key, values[i])
+            if self.tf_writer.ready_to_write() is False:
+                self.tf_writer.prepare_to_write(data)
+            self.tf_writer.write_example(data)
+    
+        # ================================================
+        # Reset the current example.
         self.current_example = {}
+
 

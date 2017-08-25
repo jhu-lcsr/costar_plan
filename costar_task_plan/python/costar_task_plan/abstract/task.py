@@ -296,7 +296,7 @@ class OptionTemplate(object):
 
     if name is None:
       name = ROOT_NAME
-  
+
     if self.task is None:
         iname = self.name_template%(name,make_str(filled_args))
         option = self.constructor(**filled_args)
@@ -336,7 +336,7 @@ class TaskNode(object):
     self.children = children
 
 def get_arg_sets(arg_dict):
-  
+
   # empty set of arguments
   arg_sets = [{}]
 
