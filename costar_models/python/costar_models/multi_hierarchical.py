@@ -270,34 +270,35 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         self._fixWeights()
 
     def plotInfo(self, features, targets, axes):
-            data = self.predictor.predict(features[0:5])
-            for j in xrange(5):
-                jj = j * 5
-                ax = axes[1][j]
-                ax.imshow(np.squeeze(data[0][jj]))
-                ax.axis('off')
-                ax = axes[4][j]
-                ax.imshow(np.squeeze(data[3][jj]))
-                ax.axis('off')
-                ax = axes[0][j]
-                ax.imshow(np.squeeze(features[0][jj]))
-                ax.axis('off')
-                ax = axes[2][j]
-                ax.imshow(np.squeeze(targets[0][jj]))
-                ax.axis('off')
-                
-                q0 = features[1][jj]
-                q = data[1][j]
-                q1 = targets[1][jj]
-                ax = axes[3][j]
-                ax.bar(np.arange(6),q0,1./3.,color='b')
-                ax.bar(np.arange(6)+1./3.,q,1./3.,color='r')
-                ax.bar(np.arange(6)+2./3.,q1,1./3.,color='g')
+        subset = [f[range(0,25,5)] for f in features]
+        data = self.predictor.predict(subset)
+        for j in xrange(5):
+            jj = j * 5
+            ax = axes[1][j]
+            ax.imshow(np.squeeze(data[0][jj]))
+            ax.axis('off')
+            ax = axes[4][j]
+            ax.imshow(np.squeeze(data[3][jj]))
+            ax.axis('off')
+            ax = axes[0][j]
+            ax.imshow(np.squeeze(features[0][jj]))
+            ax.axis('off')
+            ax = axes[2][j]
+            ax.imshow(np.squeeze(targets[0][jj]))
+            ax.axis('off')
+            
+            q0 = features[1][jj]
+            q = data[1][j]
+            q1 = targets[1][jj]
+            ax = axes[3][j]
+            ax.bar(np.arange(6),q0,1./3.,color='b')
+            ax.bar(np.arange(6)+1./3.,q,1./3.,color='r')
+            ax.bar(np.arange(6)+2./3.,q1,1./3.,color='g')
 
-            plt.ion()
-            plt.tight_layout()
-            plt.show(block=False)
-            plt.pause(0.01)
+        plt.ion()
+        plt.tight_layout()
+        plt.show(block=False)
+        plt.pause(0.01)
 
     def preprocess(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             example, reward, *args, **kwargs):
@@ -372,7 +373,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         print "joints:", q.shape,
         print "options:", oin.shape, o_target.shape
 
-        if True:
+        if False:
             # show the before and after frames
             for i in xrange(10):
                 for j in xrange(self.num_frames+2):

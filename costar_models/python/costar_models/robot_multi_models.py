@@ -390,7 +390,7 @@ def AddOptionTiling(x, option_length, option_in, height, width):
 
 def GetDecoder(dim, img_shape, arm_size, gripper_size,
         dropout_rate, filters, kernel_size=[3,3], dropout=True, leaky=True,
-        batchnorm=True,dense=True, option=None,
+        batchnorm=True,dense=True, option=None, num_hypotheses=None,
         stride2_layers=2, stride1_layers=1):
 
     '''

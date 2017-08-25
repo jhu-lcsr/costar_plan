@@ -186,6 +186,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
 
         self.predictor = None
         self.supervisor = None
+        self.policies = []
 
         self.predict_goal = None
         self.predict_next = None
@@ -310,9 +311,11 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         '''
         if self.predictor is not None:
             print "saving to " + self.name
-            self.predictor.save_weights(self.name + "_predictor.h5f")
+            if self.supervisor is not None:
+                self.predictor.save_weights(self.name + "_predictor.h5f")
             self.supervisor.save_weights(self.name + "_supervisor.h5f")
-            self.baseline.save_weights(self.name + "_baseline.h5f")
+            if self.baseline is not None:
+                self.baseline.save_weights(self.name + "_baseline.h5f")
             for i, policy in enumerate(self.policies):
                 policy.save_weights(self.name + "_policy%02d.h5f"%i)
         else:
