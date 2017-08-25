@@ -6,6 +6,10 @@ import grasp_model
 
 from tensorflow.python.platform import flags
 
+
+tf.flags.DEFINE_string('grasp_model', 'grasp_model_single',
+                       """Choose the model definition to run, options are grasp_model and grasp_model_segmentation""")
+
 FLAGS = flags.FLAGS
 
 
@@ -100,6 +104,8 @@ class GraspTrain(object):
         grasp_step_op_batch = tf.concat(grasp_step_op_batch, 0)
         simplified_grasp_command_op_batch = tf.concat(simplified_grasp_command_op_batch, 0)
         grasp_success_op_batch = tf.concat(grasp_success_op_batch, 0)
+        # add one extra dimension so they match
+        grasp_success_op_batch = tf.expand_dims(grasp_success_op_batch, -1)
 
         model = make_model_fn(
             pregrasp_op_batch,
@@ -123,13 +129,12 @@ class GraspTrain(object):
 if __name__ == '__main__':
 
     with K.get_session() as sess:
-        model_slection = 'grasp_model_segmentation'
-        if model_slection == 'grasp_model':
+        if FLAGS.grasp_model is 'grasp_model_single':
             model_fn = grasp_model.grasp_model
-        if model_slection == 'grasp_model_segmentation':
+        elif FLAGS.grasp_model is 'grasp_model_segmentation':
             model_fn = grasp_model.grasp_model_segmentation
         else:
-            raise ValueError('unknown model selected')
+            raise ValueError('unknown model selected: {}'.format(FLAGS.grasp_model))
 
         gt = GraspTrain()
         gt.train(make_model_fn=model_fn)

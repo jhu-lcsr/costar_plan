@@ -13,6 +13,7 @@ from keras.layers import Lambda
 from keras.layers import Reshape
 from keras.applications.imagenet_utils import _obtain_input_shape
 from keras_contrib.applications.densenet import DenseNetFCN
+from keras_contrib.applications.densenet import DenseNet
 import tensorflow as tf
 
 
@@ -87,7 +88,32 @@ def grasp_model(clear_view_image_op=None,
                 current_time_image_op=None,
                 input_vector_op=None,
                 input_image_shape=[512, 640, 3],
-                input_vector_op_shape=[7]):
+                input_vector_op_shape=[5],
+                batch_size=11):
+
+    if input_vector_op is not None:
+        ims = tf.shape(clear_view_image_op)
+        ivs = tf.shape(input_vector_op)
+        input_vector_op = tf.reshape(input_vector_op, [1, 1, 1, ivs[0] * input_vector_op_shape[0]])
+        input_vector_op = tf.tile(input_vector_op, tf.stack([ims[0], ims[1], ims[2], ivs[0]]))
+
+    combined_input_data = tf.concat([clear_view_image_op, input_vector_op, current_time_image_op], -1)
+    combined_input_shape = input_image_shape
+    combined_input_shape[-1] = combined_input_shape[-1] * 2 + input_vector_op_shape[0]
+    model = DenseNet(input_shape=combined_input_shape,
+                     include_top=True,
+                     input_tensor=combined_input_data,
+                     activation='sigmoid',
+                     classes=1,
+                     weights=None)
+    return model
+
+
+def grasp_model_deleteme(clear_view_image_op=None,
+                         current_time_image_op=None,
+                         input_vector_op=None,
+                         input_image_shape=[512, 640, 3],
+                         input_vector_op_shape=[7]):
     if clear_view_image_op is not None:
         print('clear_view_image_op.shape: ', clear_view_image_op.shape)
     # TODO(ahundt) clear view only changes very occasionally compared to others, save output as variable.
@@ -150,5 +176,5 @@ def grasp_model_segmentation(clear_view_image_op=None,
     combined_input_data = tf.concat([clear_view_image_op, input_vector_op, current_time_image_op], -1)
     combined_input_shape = input_image_shape
     combined_input_shape[-1] = combined_input_shape[-1] * 2 + input_vector_op_shape[0]
-    model = DenseNetFCN(input_shape=combined_input_shape, include_top='global_average_pooling', input_tensor=combined_input_data, activation='softmax')
+    model = DenseNetFCN(input_shape=combined_input_shape, include_top='global_average_pooling', input_tensor=combined_input_data, activation='sigmoid')
     return model
