@@ -31,7 +31,7 @@ glewXInit or GL rendering, try updating your drivers if you are using an NVIDIA 
 
 [Task Learning with CTP](docs/task_learning.md) shows how to use predictive models and other tools, this section is about how to integrate your own.
 
-TODO(cpaxton) fill in the Exending costar bullet section
+TODO(cpaxton) fill in the Extending costar bullet section
 
 # Overview
 
