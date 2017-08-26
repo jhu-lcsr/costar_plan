@@ -105,7 +105,10 @@ def grasp_model(clear_view_image_op=None,
                      input_tensor=combined_input_data,
                      activation='sigmoid',
                      classes=1,
-                     weights=None)
+                     weights=None,
+                     growth_rate=12,
+                     reduction=0.5,
+                     nb_dense_block=4)
     return model
 
 

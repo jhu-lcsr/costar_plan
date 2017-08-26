@@ -9,6 +9,12 @@ from tensorflow.python.platform import flags
 
 tf.flags.DEFINE_string('grasp_model', 'grasp_model_single',
                        """Choose the model definition to run, options are grasp_model and grasp_model_segmentation""")
+tf.flags.DEFINE_integer('steps_per_epoch', 1000,
+                        """number of steps per epoch of training""")
+tf.flags.DEFINE_integer('epochs', 100,
+                        """Epochs of training""")
+tf.flags.DEFINE_integer('batch_size', 1,
+                        """size of a single batch during training""")
 
 FLAGS = flags.FLAGS
 
@@ -25,9 +31,11 @@ class GraspTrain(object):
         pixel_value_offset = tf.constant([103.939, 116.779, 123.68])
         return tf.subtract(tensor, pixel_value_offset)
 
-    def train(self, dataset=FLAGS.grasp_dataset, steps_per_epoch=1000, batch_size=1, epochs=10, load_weights="", save_weights='grasp_model_weights.h5',
+    def train(self, dataset=FLAGS.grasp_dataset, steps_per_epoch=FLAGS.steps_per_epoch, batch_size=FLAGS.batch_size, epochs=FLAGS.epochs, load_weights="",
+              save_weights='grasp_model_weights.h5',
               imagenet_preprocessing=True,
-              make_model_fn=grasp_model.grasp_model):
+              make_model_fn=grasp_model.grasp_model,
+              grasp_sequence_steps=None):
 
         """Visualize one dataset in V-REP
         """
@@ -86,14 +94,15 @@ class GraspTrain(object):
                 pregrasp_op = self._imagenet_preprocessing(pregrasp_op)
             grasp_success_op = tf.squeeze(fixed_feature_op_dict[grasp_success[0]])
             # each step in the grasp motion is also its own minibatch
-            for grasp_step, pose_op_param in zip(rgb_move_to_grasp_steps, pose_op_params):
-                pregrasp_op_batch.append(pregrasp_op)
-                grasp_step_op = tf.cast(tf.squeeze(fixed_feature_op_dict[grasp_step]), tf.float32)
-                if imagenet_preprocessing:
-                    grasp_step_op = self._imagenet_preprocessing(grasp_step_op)
-                grasp_step_op_batch.append(grasp_step_op)
-                simplified_grasp_command_op_batch.append(fixed_feature_op_dict[pose_op_param])
-                grasp_success_op_batch.append(grasp_success_op)
+            for i, (grasp_step, pose_op_param) in enumerate(zip(rgb_move_to_grasp_steps, pose_op_params)):
+                if grasp_sequence_steps is None or i < grasp_sequence_steps:
+                    pregrasp_op_batch.append(pregrasp_op)
+                    grasp_step_op = tf.cast(tf.squeeze(fixed_feature_op_dict[grasp_step]), tf.float32)
+                    if imagenet_preprocessing:
+                        grasp_step_op = self._imagenet_preprocessing(grasp_step_op)
+                    grasp_step_op_batch.append(grasp_step_op)
+                    simplified_grasp_command_op_batch.append(fixed_feature_op_dict[pose_op_param])
+                    grasp_success_op_batch.append(grasp_success_op)
 
         pregrasp_op_batch = tf.parallel_stack(pregrasp_op_batch)
         grasp_step_op_batch = tf.parallel_stack(grasp_step_op_batch)
@@ -137,4 +146,4 @@ if __name__ == '__main__':
             raise ValueError('unknown model selected: {}'.format(FLAGS.grasp_model))
 
         gt = GraspTrain()
-        gt.train(make_model_fn=model_fn)
+        gt.train(make_model_fn=model_fn, grasp_sequence_steps=1)
