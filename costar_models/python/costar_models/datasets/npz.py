@@ -1,5 +1,6 @@
 
 import numpy as np
+import os
 
 
 class NpzDataset(object):
@@ -65,13 +66,11 @@ class NpzDataset(object):
                     if key not in data:
                         data[key] = value
                     data[key] = np.concatenate([data[key],value],axis=0)
-        for key, value in data.items():
-            print key, value.shape
         return data
 
     def preprocess(self, train=0.6, val=0.2):
         '''
-        TODO(cpaxton):
+        TODO(cpaxton) 
         Create train/val/test splits
         '''
         assert train+val <= 1.0 and train+val > 0.
