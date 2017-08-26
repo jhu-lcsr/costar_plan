@@ -1,18 +1,8 @@
+from costar_models import GetAvailableFeatures
 from costar_task_plan.abstract.features import AbstractFeatures
-
 from costar_task_plan.simulation.camera import ImageData
+
 import numpy as np
-
-
-def GetAvailableFeatures():
-    return ['empty',
-            'null',
-            'depth', # depth channel only
-            'rgb', # RGB channels only
-            'joint_state', # robot joints only
-            'multi', # RGB+joints+gripper
-            'pose', #object poses + joints + gripper
-            'grasp_segmentation',]
 
 
 def GetFeatures(features):

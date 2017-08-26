@@ -11,7 +11,19 @@ simulation capabilities we are using.
 _epilog = """
 """
 
-
+def GetAvailableFeatures():
+    '''
+    List all the possible sets of features we might recognize when constructing
+    a model using the tool.
+    '''
+    return ['empty',
+            'null',
+            'depth', # depth channel only
+            'rgb', # RGB channels only
+            'joint_state', # robot joints only
+            'multi', # RGB+joints+gripper
+            'pose', #object poses + joints + gripper
+            'grasp_segmentation',]
 
 def GetModelParser():
     '''
@@ -86,6 +98,10 @@ def GetModelParser():
     parser.add_argument('--profile',
                         help='Run cProfile on agent',
                         action="store_true")
+    parser.add_argument('--features',
+                        help="Specify feature function",
+                        default="null",
+                        choices=GetAvailableFeatures())
     return parser
 
 def ParseModelArgs():

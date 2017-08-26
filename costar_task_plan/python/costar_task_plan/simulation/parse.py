@@ -79,10 +79,6 @@ def GetSimulationParser():
     parser.add_argument('--randomize_color',
                         help="Randomize colors for the loaded robot.",
                         action="store_true")
-    parser.add_argument('--features',
-                        help="Specify feature function",
-                        default="null",
-                        choices=GetAvailableFeatures())
     parser.add_argument("--verbose",
                         help="Run world in verbose mode, printing out errors.",
                         action="store_true")
