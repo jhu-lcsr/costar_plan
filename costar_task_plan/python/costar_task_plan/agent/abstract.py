@@ -36,8 +36,9 @@ import tensorflow as tf
 import numpy as np
 import os
 import signal
-from costar_models.datasets.tfrecord import TFRecordConverter
 
+from costar_models.datasets.tfrecord import TFRecordConverter
+from costar_models.datasets.npz import NpzDataset
 
 class AbstractAgent(object):
     '''
@@ -100,13 +101,16 @@ class AbstractAgent(object):
         self.seed = seed
 
         if self.data_type == self.NUMPY_ZIP:
-            self.data = {}
+            self.npz_writer = NpzDataset(data_file.split('.')[0])
         else:
             self.tf_writer = TFRecordConverter(data_file)
 
         self.datafile_name = data_file
         self.datafile = os.path.join(directory, data_file)
         if self.load:
+            # =====================================================================
+            # This is necessary for reading data in to the models.
+            self.data = {}
             if os.path.isfile(self.datafile) and self.data_type == self.NUMPY_ZIP:
                 self.data.update(np.load(self.datafile))
             elif self.load:
@@ -117,7 +121,6 @@ class AbstractAgent(object):
       if self.verbose:
         print "Caught sigint!"
       self._break = True
-
 
 
     def fit(self, num_iter=1000):
@@ -141,9 +144,6 @@ class AbstractAgent(object):
             pass
 
         if self.save:
-            if self.data_type == self.NUMPY_ZIP:
-                print("---- saving to %s ----" % self.datafile_name)
-                np.savez_compressed(self.datafile, **self.data)
             if self.data_type == self.TFRECORD:
                 self.tf_writer.close()
 
@@ -178,7 +178,7 @@ class AbstractAgent(object):
                     action_label)
             self._updateCurrentExample(data)
             if done:
-                self._finishCurrentExample(world)
+                self._finishCurrentExample(world, example, reward)
 
     def _updateCurrentExample(self, data):
         '''
@@ -202,7 +202,7 @@ class AbstractAgent(object):
                                        ' constructing data set.')
                 self.current_example[key].append(value)
 
-    def _finishCurrentExample(self, world):
+    def _finishCurrentExample(self, world, example, reward):
         '''
         Preprocess this particular example:
         - split it up into different time windows of various sizes
@@ -211,19 +211,34 @@ class AbstractAgent(object):
         - compute option-level (mid-level) labels
         '''
 
-        # Split into chunks and preprocess the data
-        # This requires setting up window_length, etc
-
+        # ============================================================
+        # Split into chunks and preprocess the data.
+        # This may require setting up window_length, etc.
         next_list = world.features.description + ["reward", "label"]
         prev_list = ["label"]
         final_list = world.features.description
+        goal_list = world.features.description
         length = len(self.current_example['example'])
 
-        if self.data_type == self.TFRECORD:
-            # Create an empty dict to hold all the data from this last trial.
-            # Yeah, this is a little bit of a hack...
-            # TODO(cpaxton): clean this up in the future, before release.
-            self.data = {}            
+        # Create an empty dict to hold all the data from this last trial.
+        data = {}
+
+        # Compute the points where the data changes from one label to the next
+        # and save these points as "goals".
+        switches = []
+        count = 1
+        label = self.current_example['label']
+        for i in xrange(length):
+            if i+1 == length:
+                switches += [i] * count
+                count = 1
+            elif not label[i+1] == label[i]:
+                switches += [i+1] * count
+                count = 1
+            else:
+                count += 1
+
+        assert(len(switches) == len(self.current_example['example']))
 
         # ============================================
         # Loop over all entries. For important items, take the previous frame
@@ -236,43 +251,50 @@ class AbstractAgent(object):
             # ==========================================
             # Finally, add the example to the dataset
             for key, values in self.current_example.items():
-                if not key in self.data:
-                    self.data[key] = []
+                if not key in data:
+                    data[key] = []
                     if key in next_list:
-                        self.data["next_%s"%key] = []
+                        data["next_%s"%key] = []
                     if key in prev_list:
-                        self.data["prev_%s"%key] = []
+                        data["prev_%s"%key] = []
                     if key in final_list:
-                        self.data["final_%s"%key] = []
+                        data["final_%s"%key] = []
+                    if key in goal_list:
+                        data["goal_%s"%key] = []
                 else:
                     # Check data consistency
-                    if len(self.data[key]) > 0:
+                    if len(data[key]) > 0:
                         if isinstance(values[0], np.ndarray):
-                            assert values[0].shape == self.data[key][0].shape
-                        if not type(self.data[key][0]) == type(values[0]):
-                            print key, type(self.data[key][0]), type(values[0])
+                            assert values[0].shape == data[key][0].shape
+                        if not type(data[key][0]) == type(values[0]):
+                            print key, type(data[key][0]), type(values[0])
                             raise RuntimeError('Types do not match when' + \
                                                ' constructing data set.')
 
                     # Append list of features to the whole dataset
-                    self.data[key].append(values[i])
+                    data[key].append(values[i])
                     if key in prev_list:
-                        self.data["prev_%s"%key].append(values[i0])
+                        data["prev_%s"%key].append(values[i0])
                     if key in next_list:
-                        self.data["next_%s"%key].append(values[i1])
+                        data["next_%s"%key].append(values[i1])
                     if key in final_list:
-                        self.data["final_%s"%key].append(values[ifinal])
+                        data["final_%s"%key].append(values[ifinal])
+                    if key in goal_list:
+                        data["goal_%s"%key].append(values[switches[i]])
 
         # ================================================
         # Handle TF Records. We save here instead of at the end.
-        length = len(data.values()[0])
-        for i in xrange(length):
-            sample = []
-            for key, values in self.data:
-                sample.append(key, values[i])
-            if self.tf_writer.ready_to_write() is False:
-                self.tf_writer.prepare_to_write(data)
-            self.tf_writer.write_example(data)
+        if self.data_type == self.TFRECORD:
+            length = len(data.values()[0])
+            for i in xrange(length):
+                sample = []
+                for key, values in data:
+                    sample.append(key, values[i])
+                if self.tf_writer.ready_to_write() is False:
+                    self.tf_writer.prepare_to_write(sample)
+                self.tf_writer.write_example(sample)
+        else:
+            self.npz_writer.write(data, example, reward)
     
         # ================================================
         # Reset the current example.
