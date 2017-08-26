@@ -2,10 +2,12 @@ __all__ = [
     # Tools
     'FastNetwork',
     # Machine Learning,
-    'GMM', "GmmDynamics",
+    'GMM',
     # ===========================================================================
     # Utilities
-    "MakeModel", "GetModels",
+    "MakeModel", "GetModels", "ParseModelArgs",
+    # ===========================================================================
+    # Dataset stuff
     ]
 
 # general learning utilites
@@ -19,6 +21,9 @@ from robot_multi_models import *
 # neural net models
 import gan
 
+# =============================================================================
+# Tools for training, etc
+from parse import *
 from util import GetModels, MakeModel
 
 import datasets

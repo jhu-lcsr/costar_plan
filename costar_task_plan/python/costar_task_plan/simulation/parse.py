@@ -83,9 +83,6 @@ def GetSimulationParser():
                         help="Specify feature function",
                         default="null",
                         choices=GetAvailableFeatures())
-    parser.add_argument('--profile',
-                        help='Run cProfile on agent',
-                        action="store_true")
     parser.add_argument("--verbose",
                         help="Run world in verbose mode, printing out errors.",
                         action="store_true")

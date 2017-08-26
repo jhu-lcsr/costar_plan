@@ -83,6 +83,9 @@ def GetModelParser():
     parser.add_argument('--seed',
                         help="Seed used for running experiments.",
                         type=int)
+    parser.add_argument('--profile',
+                        help='Run cProfile on agent',
+                        action="store_true")
     return parser
 
 def ParseModelArgs():
