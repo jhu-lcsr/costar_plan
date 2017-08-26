@@ -13,8 +13,8 @@ tf.flags.DEFINE_integer('steps_per_epoch', 1000,
                         """number of steps per epoch of training""")
 tf.flags.DEFINE_integer('epochs', 100,
                         """Epochs of training""")
-tf.flags.DEFINE_integer('batch_size', 1,
-                        """size of a single batch during training""")
+# tf.flags.DEFINE_integer('batch_size', 1,
+#                         """size of a single batch during training""")
 
 FLAGS = flags.FLAGS
 
@@ -31,7 +31,7 @@ class GraspTrain(object):
         pixel_value_offset = tf.constant([103.939, 116.779, 123.68])
         return tf.subtract(tensor, pixel_value_offset)
 
-    def train(self, dataset=FLAGS.grasp_dataset, steps_per_epoch=FLAGS.steps_per_epoch, batch_size=FLAGS.batch_size, epochs=FLAGS.epochs, load_weights="",
+    def train(self, dataset=FLAGS.grasp_dataset, steps_per_epoch=FLAGS.steps_per_epoch, batch_size=1, epochs=FLAGS.epochs, load_weights="",
               save_weights='grasp_model_weights.h5',
               imagenet_preprocessing=True,
               make_model_fn=grasp_model.grasp_model,
