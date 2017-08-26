@@ -120,12 +120,25 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 kernel_size=[5,5],
                 dense=False,
                 tile=True,
-                option=self._numLabels(),
+                option=None,#self._numLabels(),
                 flatten=False,
                 )
 
         image_outs = []
+        rep, dec = GetImageDecoder(self.img_col_dim,
+                            img_shape,
+                            dropout_rate=self.dropout_rate,
+                            kernel_size=[5,5],
+                            filters=self.img_num_filters,
+                            stride2_layers=3,
+                            stride1_layers=0,
+                            dropout=False,
+                            leaky=True,
+                            dense=False,
+                            batchnorm=True,)
+        decoder = Model(rep, dec)
         for i in xrange(self.num_hypotheses):
+            """
             rep, dec = GetImageDecoder(self.img_col_dim,
                                 img_shape,
                                 dropout_rate=self.dropout_rate,
@@ -137,14 +150,20 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                                 leaky=True,
                                 dense=False,
                                 batchnorm=True,)
+            """
+            x = Conv2D(self.img_num_filters,
+                    kernel_size=[5,5], 
+                    strides=(1, 1),
+                    padding='same')(enc)
+            x = LeakyReLU(0.2)(x)
 
             # Create decoder
             # This maps from our latent world state back into observable images.
-            decoder = Model(rep, dec)
-            decoder = Lambda(
+            #decoder = Model(rep, dec)
+            decode_x = Lambda(
                     lambda x: K.expand_dims(x, 1),
-                    name="hypothesis%d"%i)(decoder(enc))
-            image_outs.append(decoder)
+                    name="hypothesis%d"%i)(decoder(x))
+            image_outs.append(decode_x)
         image_out = Concatenate(axis=1)(image_outs)
 
         # =====================================================================
@@ -157,6 +176,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 strides=(2, 2),
                 padding='same')(enc)
         x = Flatten()(x)
+        x = LeakyReLU(0.2)(x)
         x = Dense(self.combined_dense_size)(x)
         x = Dropout(self.dropout_rate)(x)
         x = LeakyReLU(0.2)(x)
@@ -277,7 +297,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Fit the main models
         self._fitPredictor(
-                [I, q, g, o_prev],
+                [I, q, g,],# o_prev],
                 #[I_target, q_target, g_target, Inext_target])
                 #[I],
                 [I_target])

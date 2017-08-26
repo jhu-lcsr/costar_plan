@@ -146,30 +146,25 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         enc_with_option = Concatenate(
                 axis=-1,
                 name="add_option_info")([enc,option])
-        enc_with_option = Conv2D(self.img_num_filters,
-                kernel_size=[3,3], 
+
+        # ---------------------------------------------------------------------
+        goal_enc_with_option = Conv2D(self.img_num_filters,
+                kernel_size=[5,5], 
                 strides=(1, 1),
                 padding='same')(enc_with_option)
+        goal_enc_with_option = LeakyReLU(0.2,name='goal_encoding_with_option')(goal_enc_with_option)
+        # ---------------------------------------------------------------------
+        next_frame_enc_with_option = Conv2D(self.img_num_filters,
+                kernel_size=[5,5], 
+                strides=(1, 1),
+                padding='same')(enc_with_option)
+        next_frame_enc_with_option = LeakyReLU(0.2,name='next_frame_encoding_with_option')(next_frame_enc_with_option)
 
         # Append chosen option input -- this is for the high level task
         # dynamics.
         ins.append(option_in)
         
         rep, dec = GetDecoder(self.img_col_dim,
-                            img_shape,
-                            arm_size,
-                            gripper_size,
-                            dropout_rate=self.dropout_rate,
-                            kernel_size=[5,5],
-                            filters=self.img_num_filters,
-                            stride2_layers=3,
-                            stride1_layers=0,
-                            dropout=False,
-                            leaky=True,
-                            dense=False,
-                            option=self._numLabels(),
-                            batchnorm=True,)
-        rep2, dec2 = GetDecoder(self.img_col_dim,
                             img_shape,
                             arm_size,
                             gripper_size,
@@ -190,7 +185,8 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         x = Conv2D(self.img_num_filters/2,
                 kernel_size=[5,5], 
                 strides=(2, 2),
-                padding='same')(enc_with_option)
+                padding='same')(goal_enc_with_option)
+        x = LeakyReLU(0.2)(x)
         x = Flatten()(x)
         x = Concatenate(name="add_current_arm_info")([x, ins[1], ins[2]])
         x = Dense(self.combined_dense_size)(x)
@@ -223,18 +219,18 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         label_out = Dense(self._numLabels(), activation="sigmoid")(x)
 
         supervisor = Model(ins[:3] + [prev_option_in], [label_out])
+        decoder = Model(rep, dec, name="image_decoder")
 
-        enc_with_option_flat = Flatten()(enc_with_option)
-        decoder = Model(rep, dec, name="action_image_goal_decoder")
-        next_frame_decoder = Model(
-                rep2,
-                dec2,
-                name="action_next_image_decoder")
+        # =====================================================================
+        # PREDICTOR AND LATENT STATE MODEL
+        # Create the necessary models
+        goal_enc_with_option_flat = Flatten(name="goal_flat")(goal_enc_with_option)
+        next_frame_enc_with_option_flat = Flatten(name="next_frame_flat")(next_frame_enc_with_option)
         features_out = [
-                decoder([enc_with_option_flat,option_in]),
+                decoder([goal_enc_with_option_flat, option_in]),
                 arm_out,
                 gripper_out,
-                next_frame_decoder([enc_with_option_flat, option_in])]
+                decoder([next_frame_enc_with_option_flat, option_in])]
         predictor = Model(ins, features_out)
 
         predict_goal = Model(ins, features_out[:3],)
