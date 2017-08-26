@@ -63,6 +63,7 @@ class AbstractAgent(object):
             window_length=10,
             data_file='data.npz',
             data_type=None,
+            seed=None,
             *args, **kwargs):
         '''
         Sets up the general Agent.
@@ -96,6 +97,7 @@ class AbstractAgent(object):
         self.last_example = None
         self.tfrecord_lambda_dict = None
         self.data_type = data_type
+        self.seed = seed
 
         if self.data_type == self.NUMPY_ZIP:
             self.data = {}

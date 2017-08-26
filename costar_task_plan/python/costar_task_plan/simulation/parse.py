@@ -150,5 +150,8 @@ def ParseBulletArgs():
                         help="Window length used for data collection.",
                         type=int,
                         default=10)
+    parser.add_argument('--seed',
+                        help="Seed used for running experiments.",
+                        type=int)
 
     return vars(parser.parse_args())
