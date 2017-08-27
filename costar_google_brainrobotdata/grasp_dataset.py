@@ -1,4 +1,9 @@
-"""Code for building the input for the prediction model."""
+"""Code for building the input for the prediction model.
+
+Author: Andrew Hundt <ATHundt@gmail.com>
+
+License: Apache v2 https://www.apache.org/licenses/LICENSE-2.0
+"""
 
 import os
 import errno

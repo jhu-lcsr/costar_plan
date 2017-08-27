@@ -32,10 +32,12 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 '''
-
+import tensorflow as tf
 import numpy as np
 import os
 import signal
+from costar_models.datasets.tfrecord import TFRecordConverter
+
 
 class AbstractAgent(object):
     '''
@@ -48,7 +50,10 @@ class AbstractAgent(object):
     '''
 
     name = None
-    
+    NULL = ''
+    NUMPY_ZIP = 'npz'
+    TFRECORD = 'tfrecord'
+
     def __init__(self,
             env=None,
             verbose=False,
@@ -56,6 +61,7 @@ class AbstractAgent(object):
             load=False,
             directory='.',
             data_file='data.npz',
+            data_type=None,
             *args, **kwargs):
         '''
         Sets up the general Agent.
@@ -66,35 +72,55 @@ class AbstractAgent(object):
         verbose: print out a ton of warnings and other information.
         save: save data collected to the disk somewhere.
         load: load data from the disk.
+        data_type: options are 'npz', 'tfrecord, None. The default None
+            tries to detect the data type based on the data file extension,
+            with .npz meaning the numpy zip format, and tfrecord meaning the
+            tensorflow tfrecord format.
         '''
-
+        if data_type is None:
+            if '.npz' in data_file:
+                data_type = self.NUMPY_ZIP
+            elif '.tfrecord' in data_file:
+                data_type = self.TFRECORD
+            else:
+                raise RuntimeError('Currently supported file extensions '
+                                   'are .tfrecord and .npz, you entered '
+                                   '{}'.format(data_file.split('.')[-1]))
         self.env = env
         self._break = False
         self.verbose = verbose
         self.save = save
         self.load = load
-        self.data = {}
         self.last_example = None
+        self.tfrecord_lambda_dict = None
+        self.data_type = data_type
+
+        if self.data_type == self.NUMPY_ZIP:
+            self.data = {}
+        else:
+            self.tf_writer = TFRecordConverter(data_file)
 
         self.datafile_name = data_file
         self.datafile = os.path.join(directory, data_file)
         if self.load:
-            if os.path.isfile(self.datafile):
+            if os.path.isfile(self.datafile) and self.data_type == self.NUMPY_ZIP:
                 self.data.update(np.load(self.datafile))
             elif self.load:
-                raise RuntimeError('Could not load data from %s!' % \
-                        self.datafile)
+                raise RuntimeError('Could not load data from %s!' %
+                                   self.datafile)
 
     def _catch_sigint(self, *args, **kwargs):
       if self.verbose:
         print "Caught sigint!"
       self._break = True
 
+
+
     def fit(self, num_iter=1000):
         '''
         Basic "fit" function used by custom Agents. Override this if you do not
         want the saving, loading, signal-catching behavior we construct here.
-        
+
         Params:
         ------
         [none]
@@ -110,15 +136,18 @@ class AbstractAgent(object):
             pass
 
         if self.save:
-            print "---- saving to %s ----"%self.datafile_name
-            np.savez_compressed(self.datafile, **self.data)
+            if self.data_type == self.NUMPY_ZIP:
+                print("---- saving to %s ----" % self.datafile_name)
+                np.savez_compressed(self.datafile, **self.data)
+            if self.data_type == self.TFRECORD:
+                self.tf_writer.close()
 
     def _fit(self, num_iter):
-        raise NotImplementedError('_fit() should run algorithm on' + \
+        raise NotImplementedError('_fit() should run algorithm on'
                                   ' the environment')
 
     def _addToDataset(self, world, control, features, reward, done, example,
-            action_label):
+                      action_label):
         '''
         Takes as input features, reward, action, and other information. Saves
         all of this to create a dataset. Any custom agents should call this
@@ -140,24 +169,31 @@ class AbstractAgent(object):
         if self.save:
             # Features can be either a tuple or a numpy array. If they're a
             # tuple, we handle them one way...
-            data = world.vectorize(control, features, reward, done, example,
-                    action_label)
-            self._updateDatasetWithExample(data)
+            data = world.vectorize(control, features, reward, done, example, action_label)
+            self._updateDatasetWithSample(data)
 
-    def _updateDatasetWithExample(self, data):
+    def _updateDatasetWithSample(self, data):
         '''
         Helper function. Currently writes data to a big dictionary, which gets
         written out to a numpy archive.
         '''
-        for key, value in data:
-            if not key in self.data:
-                self.data[key] = [value]
-            else:
-                if isinstance(value, np.ndarray):
-                    assert value.shape == self.data[key][0].shape
-                if not type(self.data[key][0]) == type(value):
-                    print key, type(self.data[key][0]), type(value)
-                    raise RuntimeError('Types do not match when' + \
-                                       ' constructing data set.')
-                self.data[key].append(value)
+        if self.data_type == self.TFRECORD:
+            if self.tf_writer.ready_to_write() is False:
+                self.tf_writer.prepare_to_write(data)
+            self.tf_writer.write_example(data)
+
+        elif self.data_type == self.NUMPY_ZIP:
+            for key, value in data:
+                    if key not in self.data:
+                        self.data[key] = [value]
+                    else:
+                        if isinstance(value, np.ndarray):
+                            assert value.shape == self.data[key][0].shape
+                        if not type(self.data[key][0]) == type(value):
+                            print(key, type(self.data[key][0]), type(value))
+                            raise RuntimeError('Types do not match when' + \
+                                               ' constructing data set.')
+                        self.data[key].append(value)
+        else:
+            raise RuntimeError('file extension not recognized: %s'%self.data_type)
 

@@ -103,10 +103,11 @@ class AbstractWorld(object):
             data.append((desc, param))
     else:
         data.append(control.getDescription(), params)
-    data += [("reward", reward),
-             ("done", done),
-             ("example", example),
-             ("label", action_label)]
+    data += [("reward", np.array(reward)),
+             # convert done to integer 0 and 1 for writing to dataset
+             ("done", np.array(1) if done else np.array(0)),
+             ("example", np.array(example)),
+             ("label", np.array(action_label))]
     return data
 
   def time(self):
