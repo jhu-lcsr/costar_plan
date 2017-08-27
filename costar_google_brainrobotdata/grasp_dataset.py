@@ -512,10 +512,13 @@ class GraspDataset(object):
             fixedLengthFeatureDict maps from the feature strings of most features to their TF ops.
             sequenceFeatureDict maps from feature strings to time ordered sequences of poses transforming
             from the robot base to end effector.
-            features_complete_list is a list of all feature strings in the fixedLengthFeatureDict and sequenceFeatureDict.
+            features_complete_list: is a list of all feature strings in the fixedLengthFeatureDict and sequenceFeatureDict.
+            feature_count: total number of features
+            attempt_count: total number of grasp attempts
+
         """
         [feature_csv_file] = self.get_feature_csv_file_paths()
-        features_complete_list, tfrecord_paths, _, _ = self.get_grasp_tfrecord_info(feature_csv_file)
+        features_complete_list, tfrecord_paths, feature_count, attempt_count = self.get_grasp_tfrecord_info(feature_csv_file)
         if not tfrecord_paths:
             raise RuntimeError('No tfrecords found for {}.'.format(feature_csv_file))
         filename_queue = tf.train.string_input_producer(tfrecord_paths, shuffle=False)
@@ -534,7 +537,7 @@ class GraspDataset(object):
         # the new_feature_list should be the same for all the ops
         features_complete_list = np.append(features_complete_list, new_feature_list)
 
-        return dict_and_feature_tuple_list, features_complete_list
+        return dict_and_feature_tuple_list, features_complete_list, feature_count, attempt_count
 
     @staticmethod
     def _image_decode(feature_op_dict):
@@ -583,31 +586,46 @@ class GraspDataset(object):
             Raises:
             RuntimeError: if no files found.
             """
-            # decode all the image ops
-            [(features_op_dict, _)], features_complete_list = self.get_simple_tfrecordreader_dataset_ops()
+            # decode all the image ops and other features
+            [(features_op_dict, _)], features_complete_list, _, attempt_count = self.get_simple_tfrecordreader_dataset_ops()
             print(features_complete_list)
             ordered_image_feature_names = GraspDataset.get_time_ordered_features(features_complete_list, '/image/decoded')
+
+            grasp_success_feature_name = GraspDataset.get_time_ordered_features(
+                features_complete_list,
+                feature_type='grasp_success'
+            )
+            # should only be a list of length 1, just make into a single string
+            grasp_success_feature_name = grasp_success_feature_name[0]
 
             image_seq = []
             for image_name in ordered_image_feature_names:
                 image_seq.append(features_op_dict[image_name])
 
             image_seq = tf.concat(image_seq, 0)
+            # output won't be correct now if batch size is anything but 1
+            batch_size = 1
+            print('fo_dict: ', features_op_dict)
+            print('fodgs: ', features_op_dict[grasp_success_feature_name])
 
-            train_image_tensor = tf.train.batch(
-                [image_seq],
-                FLAGS.batch_size,
+            train_image_dict = tf.train.batch(
+                {'image_seq': image_seq,
+                 grasp_success_feature_name: features_op_dict[grasp_success_feature_name]},
+                batch_size,
                 num_threads=1,
                 capacity=1)
             tf.train.start_queue_runners(sess)
             sess.run(tf.global_variables_initializer())
-            train_videos = sess.run(train_image_tensor)
 
-            for i in range(FLAGS.batch_size):
-                video = train_videos[i]
-                gif_filename = os.path.basename(feature_csv_file)[:-4] + '_grasp_' + str(i) + '.gif'
-                gif_path = os.path.join(FLAGS.visualization_dir, gif_filename)
-                self.npy_to_gif(video, gif_path)
+            # note: if batch size doesn't divide evenly some items may not be output correctly
+            for attempt_num in range(attempt_count / batch_size):
+                numpy_data_dict = sess.run(train_image_dict)
+                for i in range(batch_size):
+                    video = numpy_data_dict['image_seq'][i]
+                    gif_filename = (os.path.basename(feature_csv_file)[:-4] + '_grasp_' + str(int(attempt_num)) +
+                                    '_success_' + str(int(numpy_data_dict[grasp_success_feature_name])) + '.gif')
+                    gif_path = os.path.join(FLAGS.visualization_dir, gif_filename)
+                    self.npy_to_gif(video, gif_path)
 
 
 if __name__ == '__main__':
