@@ -95,7 +95,7 @@ def grasp_model(clear_view_image_op=None,
         ims = tf.shape(clear_view_image_op)
         ivs = tf.shape(input_vector_op)
         input_vector_op = tf.reshape(input_vector_op, [ivs[0], 1, 1, ivs[1]])
-        input_vector_op = tf.tile(input_vector_op, tf.stack([ims[0], ims[1], ims[2], ivs[1]]))
+        input_vector_op = tf.tile(input_vector_op, tf.stack([1, ims[1], ims[2], ivs[1]]))
 
     combined_input_data = tf.concat([clear_view_image_op, input_vector_op, current_time_image_op], -1)
     combined_input_shape = input_image_shape
