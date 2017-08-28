@@ -248,8 +248,8 @@ class GraspTrain(object):
                       'starting fresh....'.format(load_weights))
 
         callbacks = []
-        callbacks.append(keras.callbacks.ModelCheckpoint(save_weights + '.{epoch:03d}-{val_loss:.2f}.h5',
-                                                         save_best_only=True, verbose=1))
+        callbacks.append(keras.callbacks.ModelCheckpoint(save_weights + '.epoch-{epoch:03d}-loss-{loss:.2f}-acc-{acc:.2f}.h5',
+                                                         save_best_only=True, verbose=1, monitor='acc'))
 
         # Nadam parameter choice reference:
         # https://github.com/tensorflow/tensorflow/pull/9175#issuecomment-295395355
