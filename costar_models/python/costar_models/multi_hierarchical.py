@@ -179,7 +179,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                             dropout=False,
                             leaky=True,
                             dense=False,
-                            option=self._numLabels(),
+                            option=64,
                             batchnorm=True,)
 
         # Predict the next joint states and gripper position. We add these back
