@@ -24,7 +24,7 @@ tf.flags.DEFINE_boolean('random_crop', False,
                         """NOT YET SUPPORTED. random_crop will apply the tf random crop function with
                            the parameters specified by random_crop_width and random_crop_height
                         """)
-tf.flags.DEFINE_boolean('image_augmentation', True,
+tf.flags.DEFINE_boolean('image_augmentation', False,
                         'image augmentation applies random brightness, saturation, hue, contrast')
 tf.flags.DEFINE_boolean('imagenet_mean_subtraction', True,
                         'subtract the imagenet mean pixel values from the rgb images')
@@ -39,6 +39,8 @@ class GraspTrain(object):
     @staticmethod
     def _image_augmentation(image, num_channels=None):
         """Performs data augmentation by randomly permuting the inputs.
+
+        TODO(ahundt) should normalization be applied first, or make sure values are 0-255 here, even in float mode?
 
         Source: https://github.com/tensorflow/models/blob/aed6922fe2da5325bda760650b5dc3933b10a3a2/domain_adaptation/pixel_domain_adaptation/pixelda_preprocess.py#L81
 
