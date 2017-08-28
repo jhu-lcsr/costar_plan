@@ -217,21 +217,20 @@ class GraspTrain(object):
         callbacks.append(keras.callbacks.ModelCheckpoint(save_weights + '.{epoch:03d}-{val_loss:.2f}.h5',
                                                          save_best_only=True, verbose=1))
 
-        # Nadam parameter choice:
+        # Nadam parameter choice reference:
         # https://github.com/tensorflow/tensorflow/pull/9175#issuecomment-295395355
         optimizer = keras.optimizers.Nadam(lr=0.004, beta_1=0.825, beta_2=0.99685)
 
         model.compile(optimizer=optimizer,
                       loss='binary_crossentropy',
                       metrics=['accuracy'],
-                      target_tensors=[grasp_success_op_batch],
-                      callbacks=callbacks)
+                      target_tensors=[grasp_success_op_batch])
 
         model.summary()
 
         # make sure we visit every image once
         steps_per_epoch = int(np.ceil(float(num_samples)/float(batch_size)))
-        model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch)
+        model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=callbacks)
         model.save_weights('grasp_model_weights.h5')
 
 
