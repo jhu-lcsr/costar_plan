@@ -14,8 +14,6 @@ tf.flags.DEFINE_string('save_weights', 'grasp_model_weights.h5',
                        """Save a file with the trained model weights.""")
 tf.flags.DEFINE_string('load_weights', 'grasp_model_weights.h5',
                        """Load and continue training the specified file containing model weights.""")
-tf.flags.DEFINE_integer('steps_per_epoch', 1000,
-                        """number of steps per epoch of training""")
 tf.flags.DEFINE_integer('epochs', 100,
                         """Epochs of training""")
 tf.flags.DEFINE_integer('random_crop_width', 472,
@@ -28,6 +26,8 @@ tf.flags.DEFINE_boolean('random_crop', False,
                         """)
 tf.flags.DEFINE_boolean('image_augmentation', True,
                         'image augmentation applies random brightness, saturation, hue, contrast')
+tf.flags.DEFINE_boolean('imagenet_mean_subtraction', True,
+                        'subtract the imagenet mean pixel values from the rgb images')
 # tf.flags.DEFINE_integer('batch_size', 1,
 #                         """size of a single batch during training""")
 
@@ -65,7 +65,7 @@ class GraspTrain(object):
             image = tf.image.rgb_to_grayscale(image)
         return image
 
-    def _imagenet_preprocessing(self, tensor):
+    def _imagenet_mean_subtraction(self, tensor):
         """Do imagenet preprocessing, but make sure the network you are using needs it!
 
            zero centers by mean pixel.
@@ -78,7 +78,7 @@ class GraspTrain(object):
 
     def _rgb_preprocessing(rgb_image_op,
                            image_augmentation=FLAGS.image_augmentation,
-                           imagenet_preprocessing=FLAGS.imagenet_preprocessing):
+                           imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction):
         """Preprocess an rgb image into a float image, applying image augmentation and imagenet mean subtraction if desired
         """
         # make sure the shape is correct
@@ -87,15 +87,15 @@ class GraspTrain(object):
         if image_augmentation:
             rgb_image_op = self._image_augmentation(rgb_image_op)
         rgb_image_op = tf.cast(rgb_image_op, tf.float32)
-        if imagenet_preprocessing:
-            rgb_image_op = self._imagenet_preprocessing(rgb_image_op)
+        if imagenet_mean_subtraction:
+            rgb_image_op = self._imagenet_mean_subtraction(rgb_image_op)
         return tf.cast(rgb_image_op, tf.float32)
 
-    def train(self, dataset=FLAGS.grasp_dataset, steps_per_epoch=FLAGS.steps_per_epoch, batch_size=1, epochs=FLAGS.epochs,
+    def train(self, dataset=FLAGS.grasp_dataset, batch_size=1, epochs=FLAGS.epochs,
               load_weights=FLAGS.save_weights,
               save_weights=FLAGS.load_weights,
               make_model_fn=grasp_model.grasp_model,
-              imagenet_preprocessing=True,
+              imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
               grasp_sequence_steps=None):
         """Train the grasping dataset
 
@@ -117,7 +117,7 @@ class GraspTrain(object):
         """
         data = grasp_dataset.GraspDataset(dataset=dataset)
         # list of dictionaries the length of batch_size
-        feature_op_dicts, features_complete_list = data.get_simple_parallel_dataset_ops(batch_size=batch_size)
+        feature_op_dicts, features_complete_list, num_samples = data.get_simple_parallel_dataset_ops(batch_size=batch_size)
         # TODO(ahundt) https://www.tensorflow.org/performance/performance_models
         # make sure records are always ready to go
         # staging_area = tf.contrib.staging.StagingArea()
@@ -165,7 +165,7 @@ class GraspTrain(object):
             # get the pregrasp image, and squeeze out the extra batch dimension from the tfrecord
             # TODO(ahundt) move squeeze steps into dataset api if possible
             pregrasp_image_rgb_op = fixed_feature_op_dict[rgb_clear_view[0]]
-            pregrasp_image_rgb_op = _rgb_preprocessing(grasp_step_rgb_feature_op)
+            pregrasp_image_rgb_op = _rgb_preprocessing(grasp_step_rgb_feature_op, imagenet_mean_subtraction=imagenet_mean_subtraction)
 
             grasp_success_op = tf.squeeze(fixed_feature_op_dict[grasp_success[0]])
             # each step in the grasp motion is also its own minibatch
@@ -220,6 +220,8 @@ class GraspTrain(object):
 
         model.summary()
 
+        # make sure we visit every image once
+        steps_per_epoch = int(np.ceil(float(num_samples)/float(batch_size)))
         model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch)
         model.save_weights('grasp_model_weights.h5')
 

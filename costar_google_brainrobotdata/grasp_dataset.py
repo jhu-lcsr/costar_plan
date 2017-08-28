@@ -492,11 +492,14 @@ class GraspDataset(object):
 
         # Returns
 
-            A list of tuples ([(fixedLengthFeatureDict, sequenceFeatureDict)], features_complete_list).
+            A list of tuples ([(fixedLengthFeatureDict, sequenceFeatureDict)], features_complete_list, num_samples).
             fixedLengthFeatureDict maps from the feature strings of most features to their TF ops.
             sequenceFeatureDict maps from feature strings to time ordered sequences of poses transforming
             from the robot base to end effector.
-            features_complete_list is a list of all feature strings in the fixedLengthFeatureDict and sequenceFeatureDict.
+            features_complete_list: a list of all feature strings in the fixedLengthFeatureDict and sequenceFeatureDict,
+                and a parameter for get_time_ordered_features().
+            num_samples: the number of samples in the dataset, used for configuring the size of one training epoch
+
         """
         tf_glob = self._get_tfrecord_path_glob_pattern(dataset=dataset)
         record_input = data_flow_ops.RecordInput(tf_glob)
@@ -515,7 +518,7 @@ class GraspDataset(object):
         # the new_feature_list should be the same for all the ops
         features_complete_list = np.append(features_complete_list, new_feature_list)
 
-        return dict_and_feature_tuple_list, features_complete_list
+        return dict_and_feature_tuple_list, features_complete_list, num_samples
 
     def get_simple_tfrecordreader_dataset_ops(self, batch_size=1):
         """Get a dataset reading op from tfrecordreader.
