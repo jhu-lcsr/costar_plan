@@ -81,7 +81,9 @@ class GraspDataset(object):
              `~/.keras/datasets/grasping` by default.
 
         dataset: Filter the subset of 1TB Grasp datasets to run.
-            None by default. 'all' will run all datasets in data_dir.
+            None by default, which loads the data specified by the tf flag
+            grasp_dataset command line parameter.
+            'all' will run all datasets in data_dir.
             '052' and '057' will download the small starter datasets.
             '102' will download the main dataset with 102 features,
             around 110 GB and 38k grasp attempts.
@@ -152,7 +154,7 @@ class GraspDataset(object):
             dataset = self.dataset
         return dataset
 
-    def get_feature_csv_file_paths(self, dataset=None):
+    def _get_feature_csv_file_paths(self, dataset=None):
         """List feature csv files with full paths in the data_dir.
         Feature csv files identify each dataset, the size, and its data channels.
         One example is: 'features_102.csv'
@@ -164,22 +166,32 @@ class GraspDataset(object):
     def get_features(self, dataset=None):
         """Get all features associated with the dataset specified when this class
         was constructed. Use when only one dataset will be processed.
+
+        dataset: Filter the subset of 1TB Grasp datasets to run.
+            None is the default, which utilizes the currently loaded dataset,
+            'all' will run all datasets in data_dir.
+            '052' and '057' will download the small starter datasets.
+            '102' will download the main dataset with 102 features,
+            around 110 GB and 38k grasp attempts.
+            See https://sites.google.com/site/brainrobotdata/home
+            for a full listing.
+
+        # Returns:
+
+            (features_complete_list, attempt_count)
+
+            features_complete_list: is a list of all feature strings in the
+                fixedLengthFeatureDict and sequenceFeatureDict.
+            attempt_count: total number of grasp attempts
         """
         dataset = self._update_dataset_param(dataset)
-        csv_files = self.get_feature_csv_file_paths(dataset)
+        csv_files = self._get_feature_csv_file_paths(dataset)
         # print('csvfiles_length:', len(csv_files))
-        features_complete_list, _, _, _ = self.get_grasp_tfrecord_info(csv_files[-1])
-        # Workaround for csv files which may not actually list the key features below,
-        # although they have been added to the dataset itself.
-        if not any('grasp_success' in s for s in features_complete_list):
-            features_complete_list = np.append(features_complete_list, 'grasp_success')
-        if not any('gripper/status' in s for s in features_complete_list):
-            features_complete_list = np.append(features_complete_list, 'gripper/status')
+        features_complete_list, _, feature_count, attempt_count = self._get_grasp_tfrecord_info(csv_files[-1])
 
-        # print('get_features::feature_complete_list:', features_complete_list)
-        return features_complete_list
+        return features_complete_list, attempt_count
 
-    def get_tfrecord_path_glob_pattern(self, dataset=None):
+    def _get_tfrecord_path_glob_pattern(self, dataset=None):
         """Get the Glob string pattern for matching the specified dataset tfrecords.
 
         This will often be used in conjunction with the RecordInput class if you need
@@ -195,7 +207,7 @@ class GraspDataset(object):
         dataset = self._update_dataset_param(dataset)
         return os.path.join(os.path.expanduser(self.data_dir), '*{}.tfrecord*'.format(dataset))
 
-    def get_grasp_tfrecord_info(self, feature_csv_file):
+    def _get_grasp_tfrecord_info(self, feature_csv_file):
         """
         # Arguments
 
@@ -215,11 +227,15 @@ class GraspDataset(object):
         # although they have been added to the dataset itself.
         if not any('grasp_success' in s for s in features):
             features = np.append(features, 'grasp_success')
+            feature_count += 1
         if not any('gripper/status' in s for s in features):
             features = np.append(features, 'gripper/status')
-        # print('get_grasp_tfrecord_info::feature_complete_list:', features)
+            feature_count += 1
+        # print('_get_grasp_tfrecord_info::feature_complete_list:', features)
         # note that the tfrecords are often named '*{}.tfrecord*-of-*'
-        tfrecord_paths = gfile.Glob(self.get_tfrecord_path_glob_pattern())
+        tfrecord_paths = gfile.Glob(self._get_tfrecord_path_glob_pattern())
+        # correct the chronological ordering of the features
+        features = GraspDataset.get_time_ordered_features(features, record_type='all')
         return features, tfrecord_paths, feature_count, attempt_count
 
     @staticmethod
@@ -482,12 +498,12 @@ class GraspDataset(object):
             from the robot base to end effector.
             features_complete_list is a list of all feature strings in the fixedLengthFeatureDict and sequenceFeatureDict.
         """
-        tf_glob = self.get_tfrecord_path_glob_pattern()
+        tf_glob = self._get_tfrecord_path_glob_pattern(dataset=dataset)
         record_input = data_flow_ops.RecordInput(tf_glob)
         records_op = record_input.get_yield_op()
         records_op = tf.split(records_op, batch_size, 0)
         records_op = [tf.reshape(record, []) for record in records_op]
-        features_complete_list = self.get_features()
+        features_complete_list, num_samples = self.get_features()
         feature_op_dicts = [self.parse_grasp_attempt_protobuf(serialized_protobuf, features_complete_list) for serialized_protobuf in records_op]
         # TODO(ahundt) https://www.tensorflow.org/performance/performance_models
         # make sure records are always ready to go
@@ -517,8 +533,8 @@ class GraspDataset(object):
             attempt_count: total number of grasp attempts
 
         """
-        [feature_csv_file] = self.get_feature_csv_file_paths()
-        features_complete_list, tfrecord_paths, feature_count, attempt_count = self.get_grasp_tfrecord_info(feature_csv_file)
+        [feature_csv_file] = self._get_feature_csv_file_paths()
+        features_complete_list, tfrecord_paths, feature_count, attempt_count = self._get_grasp_tfrecord_info(feature_csv_file)
         if not tfrecord_paths:
             raise RuntimeError('No tfrecords found for {}.'.format(feature_csv_file))
         filename_queue = tf.train.string_input_producer(tfrecord_paths, shuffle=False)
@@ -574,7 +590,7 @@ class GraspDataset(object):
         """ Create gifs of loaded dataset
         """
         mkdir_p(FLAGS.visualization_dir)
-        feature_csv_files = self.get_feature_csv_file_paths()
+        feature_csv_files = self._get_feature_csv_file_paths()
         for feature_csv_file in feature_csv_files:
             """Create input tfrecord tensors.
 
