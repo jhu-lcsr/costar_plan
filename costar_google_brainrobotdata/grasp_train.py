@@ -177,7 +177,7 @@ class GraspTrain(object):
             # TODO(ahundt) move squeeze steps into dataset api if possible
             pregrasp_image_rgb_op = fixed_feature_op_dict[rgb_clear_view[0]]
             pregrasp_image_rgb_op = self._rgb_preprocessing(pregrasp_image_rgb_op,
-                                                            imagenet_mean_subtraction=imagenet_mean_subtraction
+                                                            imagenet_mean_subtraction=imagenet_mean_subtraction,
                                                             random_crop=random_crop)
 
             grasp_success_op = tf.squeeze(fixed_feature_op_dict[grasp_success[0]])
