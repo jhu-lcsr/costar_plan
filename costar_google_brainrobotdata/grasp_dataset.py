@@ -485,7 +485,7 @@ class GraspDataset(object):
                                                 context_features=features_dict,
                                                 sequence_features=sequence_features_dict)
 
-    def get_simple_parallel_dataset_ops(self, dataset=None, batch_size=1):
+    def get_simple_parallel_dataset_ops(self, dataset=None, batch_size=1, buffer_size=100, parallelism=10):
         """Simple unordered & parallel TensorFlow ops that go through the whole dataset.
 
         # Returns
@@ -500,7 +500,7 @@ class GraspDataset(object):
 
         """
         tf_glob = self._get_tfrecord_path_glob_pattern(dataset=dataset)
-        record_input = data_flow_ops.RecordInput(tf_glob)
+        record_input = data_flow_ops.RecordInput(tf_glob, batch_size, buffer_size, parallelism)
         records_op = record_input.get_yield_op()
         records_op = tf.split(records_op, batch_size, 0)
         records_op = [tf.reshape(record, []) for record in records_op]
