@@ -85,12 +85,15 @@ class GraspTrain(object):
 
     def _rgb_preprocessing(self, rgb_image_op,
                            image_augmentation=FLAGS.image_augmentation,
-                           imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction):
+                           imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
+                           random_crop=FLAGS.random_crop):
         """Preprocess an rgb image into a float image, applying image augmentation and imagenet mean subtraction if desired
         """
         # make sure the shape is correct
         rgb_image_op = tf.squeeze(rgb_image_op)
         # apply image augmentation and imagenet preprocessing steps adapted from keras
+        if random_crop:
+            rgb_image_op = tf.random_crop(rgb_image_op, [[FLAGS.random_crop_height, FLAGS.random_crop_width, 3]])
         if image_augmentation:
             rgb_image_op = GraspTrain._image_augmentation(rgb_image_op, num_channels=3)
         rgb_image_op = tf.cast(rgb_image_op, tf.float32)
@@ -103,7 +106,8 @@ class GraspTrain(object):
               save_weights=FLAGS.load_weights,
               make_model_fn=grasp_model.grasp_model,
               imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
-              grasp_sequence_steps=None):
+              grasp_sequence_steps=None,
+              random_crop=FLAGS.random_crop):
         """Train the grasping dataset
 
         This function depends on https://github.com/fchollet/keras/pull/6928
@@ -172,11 +176,15 @@ class GraspTrain(object):
             # get the pregrasp image, and squeeze out the extra batch dimension from the tfrecord
             # TODO(ahundt) move squeeze steps into dataset api if possible
             pregrasp_image_rgb_op = fixed_feature_op_dict[rgb_clear_view[0]]
-            pregrasp_image_rgb_op = self._rgb_preprocessing(pregrasp_image_rgb_op, imagenet_mean_subtraction=imagenet_mean_subtraction)
+            pregrasp_image_rgb_op = self._rgb_preprocessing(pregrasp_image_rgb_op,
+                                                            imagenet_mean_subtraction=imagenet_mean_subtraction
+                                                            random_crop=random_crop)
 
             grasp_success_op = tf.squeeze(fixed_feature_op_dict[grasp_success[0]])
-            # each step in the grasp motion is also its own minibatch
-            for i, (grasp_step_rgb_feature_name, pose_op_param) in enumerate(zip(rgb_move_to_grasp_steps, pose_op_params)):
+            # each step in the grasp motion is also its own minibatch,
+            # iterate in reversed direction because if training data will be dropped
+            # it should be the first steps not the last steps.
+            for i, (grasp_step_rgb_feature_name, pose_op_param) in enumerate(zip(reversed(rgb_move_to_grasp_steps), reversed(pose_op_params))):
                 if grasp_sequence_steps is None or i < grasp_sequence_steps:
                     if int(grasp_step_rgb_feature_name.split('/')[1]) != int(pose_op_param.split('/')[1]):
                         raise ValueError('ERROR: the time step of the grasp step does not match the motion command params, '
