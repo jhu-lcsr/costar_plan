@@ -9,6 +9,11 @@ import pybullet as pb
 
 
 class DefaultTaskDefinition(AbstractTaskDefinition):
+    '''
+    Default setup shared between UR5 tasks. Creates a robot at a slightly
+    randomized joint configuration with a preset camera position that can see
+    both the workspace and most of the robot.
+    '''
 
     # These are for the UR5
     joint_positions = np.array([0.30, -1.33, -1.80, -0.27, 1.50, 1.60])
