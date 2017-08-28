@@ -101,12 +101,17 @@ def grasp_model(clear_view_image_op=None,
     combined_input_shape = input_image_shape
     # add up the total number of channels
     combined_input_shape[-1] = combined_input_shape[-1] * 2 + input_vector_op_shape[0]
+    growth_rate = 12
+    # initial number of filters should be
+    # the number of input channels times the growth rate
+    nb_filters = combined_input_shape[-1] * growth_rate
     model = DenseNet(input_shape=combined_input_shape,
                      include_top=True,
                      input_tensor=combined_input_data,
                      activation='sigmoid',
                      classes=1,
                      weights=None,
+                     nb_filter=nb_filters
                      growth_rate=12,
                      reduction=0.5,
                      nb_dense_block=4)
