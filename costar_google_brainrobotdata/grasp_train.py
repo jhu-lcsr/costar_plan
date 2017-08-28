@@ -214,9 +214,8 @@ class GraspTrain(object):
         model.compile(optimizer=optimizer,
                       loss='binary_crossentropy',
                       metrics=['accuracy'],
-                      target_tensors=[grasp_success_op_batch]
-                      callbacks=callbacks
-                      )
+                      target_tensors=[grasp_success_op_batch],
+                      callbacks=callbacks)
 
         model.summary()
 
