@@ -37,7 +37,7 @@ FLAGS = flags.FLAGS
 class GraspTrain(object):
 
     @staticmethod
-    def _image_augmentation(image):
+    def _image_augmentation(image, num_channels=None):
         """Performs data augmentation by randomly permuting the inputs.
 
         Source: https://github.com/tensorflow/models/blob/aed6922fe2da5325bda760650b5dc3933b10a3a2/domain_adaptation/pixel_domain_adaptation/pixelda_preprocess.py#L81
@@ -49,7 +49,8 @@ class GraspTrain(object):
             The mutated batch of images
         """
         # Apply photometric data augmentation (contrast etc.)
-        num_channels = image.shape_as_list()[-1]
+        if num_channels is None:
+            num_channels = image.shape()[-1]
         if num_channels == 4:
             # Only augment image part
             image, depth = image[:, :, 0:3], image[:, :, 3:4]
@@ -87,7 +88,7 @@ class GraspTrain(object):
         rgb_image_op = tf.squeeze(rgb_image_op)
         # apply image augmentation and imagenet preprocessing steps adapted from keras
         if image_augmentation:
-            rgb_image_op = GraspTrain._image_augmentation(rgb_image_op)
+            rgb_image_op = GraspTrain._image_augmentation(rgb_image_op, num_channels=3)
         rgb_image_op = tf.cast(rgb_image_op, tf.float32)
         if imagenet_mean_subtraction:
             rgb_image_op = GraspTrain._imagenet_mean_subtraction(rgb_image_op)
