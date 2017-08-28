@@ -273,4 +273,4 @@ if __name__ == '__main__':
             raise ValueError('unknown model selected: {}'.format(FLAGS.grasp_model))
 
         gt = GraspTrain()
-        gt.train(make_model_fn=model_fn, grasp_sequence_steps=4)
+        gt.train(make_model_fn=model_fn, grasp_sequence_steps=1)
