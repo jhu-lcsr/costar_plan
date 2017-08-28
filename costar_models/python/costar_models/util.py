@@ -9,8 +9,7 @@ from multi_trajectory_sampler import RobotMultiTrajectorySampler
 from multi_autoencoder_model import RobotMultiAutoencoder
 from multi_hierarchical import RobotMultiHierarchical
 
-from multi_unsupervised_model import RobotMultiUnsupervised
-from multi_unsupervised1_model import RobotMultiUnsupervised1
+# Model for sampling predictiosn
 from multi_sampler import RobotMultiPredictionSampler
 
 def MakeModel(features, model, taskdef, **kwargs):
