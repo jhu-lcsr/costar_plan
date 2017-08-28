@@ -285,13 +285,17 @@ class AbstractAgent(object):
         # ================================================
         # Handle TF Records. We save here instead of at the end.
         if self.data_type == self.TFRECORD:
+
+            # TF writer prepare a sample
+            if self.tf_writer.ready_to_write() is False:
+                self.tf_writer.prepare_to_write(sample)
+
+            # Write all entries in data set to the TF record.
             length = len(data.values()[0])
             for i in xrange(length):
                 sample = []
                 for key, values in data:
                     sample.append(key, values[i])
-                if self.tf_writer.ready_to_write() is False:
-                    self.tf_writer.prepare_to_write(sample)
                 self.tf_writer.write_example(sample)
         else:
             self.npz_writer.write(data, example, reward)

@@ -239,7 +239,6 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                                     ObjectIsBelowCondition("blue_block", 0.55),
                                     ObjectIsBelowCondition("yellow_block", 0.55),
                                 ), -100, "block_too_high")
-        #self.world.reward = EuclideanReward("red_block")
 
         # =====================================================================
         # Set up the "first stage" of the tower -- so that we only need to
