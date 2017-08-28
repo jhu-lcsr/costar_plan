@@ -208,10 +208,13 @@ class GraspTrain(object):
             if os.path.isfile(load_weights):
                 model.load_weights(load_weights)
             else:
-                print('Could not load weights {}, the file does not exist, starting fresh....'.format(load_weights))
+                print('Could not load weights {}, '
+                      'the file does not exist, '
+                      'starting fresh....'.format(load_weights))
 
         callbacks = []
-        callbacks.append(ModelCheckpoint(save_weights + '.{epoch:03d}-{val_loss:.2f}.h5', save_best_only=True, verbose=1))
+        callbacks.append(keras.callbacks.ModelCheckpoint(save_weights + '.{epoch:03d}-{val_loss:.2f}.h5',
+                                                         save_best_only=True, verbose=1))
 
         # Nadam parameter choice:
         # https://github.com/tensorflow/tensorflow/pull/9175#issuecomment-295395355
