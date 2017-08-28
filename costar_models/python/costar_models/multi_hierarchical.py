@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 import keras.backend as K
 import keras.losses as losses
@@ -140,8 +141,10 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
         # =====================================================================
         # Add in the chosen option
-        option_in = Input((self._numLabels(),),name="chosen_option_in")
-        option = Reshape([1,1,self._numLabels()])(option_in)
+        #option_in = Input((self._numLabels(),),name="chosen_option_in")
+        option_in = Input((1,),name="chosen_option_in")
+        option = OneHot(size=64)(option_in)
+        option = Reshape([1,1,64])(option)
         option = Lambda(lambda x: K.tile(x, tile_shape))(option)
         enc_with_option = Concatenate(
                 axis=-1,
@@ -198,8 +201,9 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         # =====================================================================
         # SUPERVISOR
         # Predict the next option -- does not depend on option
-        prev_option_in = Input((self._numLabels(),),name="prev_option_in")
-        prev_option = Reshape([1,1,self._numLabels()])(prev_option_in)
+        prev_option_in = Input((1,),name="prev_option_in")
+        prev_option = OneHot(size=64)(prev_option_in)
+        prev_option = Reshape([1,1,64])(prev_option)
         prev_option = Lambda(lambda x: K.tile(x, tile_shape))(prev_option)
         x = Concatenate(axis=-1,name="add_prev_option_to_supervisor")(
                 [prev_option, enc])
@@ -259,13 +263,14 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
             losses = self.predictor.train_on_batch(x, y)
 
-            print "Iter %d: loss ="%(i),losses
+            print("Iter %d: loss ="%(i),losses)
             if self.show_iter > 0 and (i+1) % self.show_iter == 0:
                 self.plotInfo(features, targets, axes)
 
         self._fixWeights()
 
     def plotInfo(self, features, targets, axes):
+        # debugging: plot every 5th image from the dataset
         subset = [f[range(0,25,5)] for f in features]
         data = self.predictor.predict(subset)
         for j in xrange(5):
@@ -296,123 +301,30 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         plt.show(block=False)
         plt.pause(0.01)
 
-    def preprocess(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
-            example, reward, *args, **kwargs):
-        '''
-        Adding a preprocess operation. Take whatever was in the data set and
-        convert it into the right format for training.
-        '''
-
-        # For debugging
-        limit_examples = False
-        if limit_examples:
-            allowed = []
-            for l, i in zip(label,example):
-                if "red_block" in l:
-                    allowed.append(i)
-
-            example_in_allowed = [e in allowed for e in example]
-
-            features = features[example_in_allowed]
-            arm = arm[example_in_allowed]
-            gripper = gripper[example_in_allowed]
-            arm_cmd = arm_cmd[example_in_allowed]
-            gripper_cmd = gripper_cmd[example_in_allowed]
-            label = label[example_in_allowed]
-            example = example[example_in_allowed]
-
-        if isinstance(label[0],str):
-            action_labels_num = np.array([self.taskdef.index(l) for l in label])
-            action_labels = np.squeeze(self.toOneHot2D(action_labels_num,
-                len(self.taskdef.indices)))
-        else:
-            action_labels = np.squeeze(self.toOneHot2D(label,
-                len(self.taskdef.indices)))
-
-
-        [goal_features, goal_arm, goal_gripper] = NextAction( \
-                [features, arm, gripper],
-                action_labels_num,
-                example)
-
-
-        [features, arm, gripper, arm_cmd, gripper_cmd, action_labels,
-                goal_features, goal_arm, goal_gripper, reward] = \
-            SplitIntoChunks(
-                datasets=[features, arm, gripper, arm_cmd, gripper_cmd,
-                    action_labels, goal_features, goal_arm, goal_gripper,],
-                reward=reward, reward_threshold=1.,
-                labels=example,
-                chunk_length=self.num_frames+2,
-                front_padding=True,
-                rear_padding=False,)
-
-        # create inputs
-        I = np.squeeze(features[:,1:-1])
-        q = np.squeeze(arm[:,1:-1])
-        g = np.squeeze(gripper[:,1:-1])
-        qa = np.squeeze(arm_cmd[:,1:-1])
-        ga = np.squeeze(gripper_cmd[:,1:-1])
-        o_prev = np.squeeze(action_labels[:,:self.num_frames])
-        oin = np.squeeze(action_labels[:,1:-1])
-        o_target = np.squeeze(action_labels[:,1:-1])
-        Inext_target = np.squeeze(features[:,2:])
-        #q_target = np.squeeze(arm[:,2:])
-        #g_target = np.squeeze(gripper[:,2:])
-        # I_target = np.
-        I_target = np.squeeze(goal_features[:,1:-1])
-        q_target = np.squeeze(goal_arm[:,1:-1])
-        g_target = np.squeeze(goal_gripper[:,1:-1])
-
-        print "sanity check:",
-        print "images:", I.shape, I_target.shape
-        print "joints:", q.shape,
-        print "options:", oin.shape, o_target.shape
-
-        if False:
-            # show the before and after frames
-            for i in xrange(10):
-                for j in xrange(self.num_frames+2):
-                    plt.subplot(10,
-                            self.num_frames+3,((self.num_frames+3)*i) + j + 1)
-                    plt.imshow(features[i*5,j])
-                    plt.axis('off')
-                plt.subplot(10,self.num_frames+3,((self.num_frames+3)*i)+self.num_frames+3)
-                plt.axis('off')
-                plt.imshow(goal_features[i*5,1])
-            plt.show()
-        return [I, q, g,
-                qa,
-                ga,
-                o_prev,
-                oin,
-                o_target,
-                Inext_target,
-                I_target,
-                q_target,
-                g_target,
-                action_labels,]
-
-    def train(self, *args, **kwargs):
+    def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
+            next_features, next_arm, next_gripper,
+            prev_label, goal_features, goal_arm, goal_gripper, *args, **kwargs):
         '''
         Pre-process training data.
-
+        
         Then, create the model. Train based on labeled data. Remove
         unsuccessful examples.
         '''
 
         # ================================================
-        [I, q, g,
-                qa,
-                ga,
-                o_prev,
-                oin,
-                o_target,
-                Inext_target,
-                I_target,
-                q_target,
-                g_target,
-                action_labels] = self.preprocess(*args, **kwargs)
+        # Set up variable names -- just to make things a bit cleaner
+        I = features
+        q = arm
+        g = gripper
+        qa = arm_cmd
+        ga = gripper_cmd
+        oin = prev_label
+        I_target = goal_features
+        Inext_target = next_features
+        o_target = label
+        q_target = goal_arm
+        g_target = goal_gripper
+        action_labels = label
 
         if self.supervisor is None:
             self._makeModel(I, q, g, qa, ga, oin)
@@ -438,4 +350,5 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         action_target = [qa, ga]
         self._fitPolicies([I, q, g], action_labels, action_target)
         self._fitBaseline([I, q, g], action_target)
+
 

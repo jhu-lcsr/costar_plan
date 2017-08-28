@@ -42,8 +42,12 @@ from costar_models.datasets.npz import NpzDataset
 
 class AbstractAgent(object):
     '''
-    Default agent. Wraps a large number of different methods for learning a
-    neural net model for robot actions.
+    The AGENT handles data I/O, creation, and testing. Basically it is the
+    interface from learning to the simulation.
+
+    This class defines the basic, shared agent functionality. It wraps a large
+    number of different methods for learning a neural net model for robot
+    actions.
 
     TO IMPLEMENT AN AGENT:
     - you mostly are just implementing _fit(). It must be able to handle the
@@ -64,6 +68,7 @@ class AbstractAgent(object):
             window_length=10,
             data_file='data.npz',
             data_type=None,
+            success_only=False,
             seed=None,
             *args, **kwargs):
         '''
@@ -79,6 +84,12 @@ class AbstractAgent(object):
             tries to detect the data type based on the data file extension,
             with .npz meaning the numpy zip format, and tfrecord meaning the
             tensorflow tfrecord format.
+        success_only: when loading data, only load successful examples.
+                      Primarily intended for behavioral cloning.
+        data_file: parsed to learn how to save data. Include either npz or
+                   tfrecord after the period.
+        directory: where to place saved data files
+        seed: specify random seed for testing/validation/data collection.
         '''
         if data_type is None:
             if '.npz' in data_file:
@@ -99,6 +110,7 @@ class AbstractAgent(object):
         self.tfrecord_lambda_dict = None
         self.data_type = data_type
         self.seed = seed
+        self.success_only = success_only
 
         if self.data_type == self.NUMPY_ZIP:
             self.npz_writer = NpzDataset(data_file.split('.')[0])
@@ -107,12 +119,13 @@ class AbstractAgent(object):
 
         self.datafile_name = data_file
         self.datafile = os.path.join(directory, data_file)
+
         if self.load:
             # =====================================================================
             # This is necessary for reading data in to the models.
             self.data = {}
-            if os.path.isfile(self.datafile) and self.data_type == self.NUMPY_ZIP:
-                self.data.update(np.load(self.datafile))
+            if self.data_type == self.NUMPY_ZIP:
+                self.data = self.npz_writer.load(success_only=self.success_only)
             elif self.load:
                 raise RuntimeError('Could not load data from %s!' %
                                    self.datafile)
@@ -152,7 +165,7 @@ class AbstractAgent(object):
                                   ' the environment')
 
     def _addToDataset(self, world, control, features, reward, done, example,
-                      action_label):
+                      action_label, max_label=-1):
         '''
         Takes as input features, reward, action, and other information. Saves
         all of this to create a dataset. Any custom agents should call this
@@ -178,7 +191,7 @@ class AbstractAgent(object):
                     action_label)
             self._updateCurrentExample(data)
             if done:
-                self._finishCurrentExample(world, example, reward)
+                self._finishCurrentExample(world, example, reward, max_label)
 
     def _updateCurrentExample(self, data):
         '''
@@ -202,7 +215,7 @@ class AbstractAgent(object):
                                        ' constructing data set.')
                 self.current_example[key].append(value)
 
-    def _finishCurrentExample(self, world, example, reward):
+    def _finishCurrentExample(self, world, example, reward, max_label):
         '''
         Preprocess this particular example:
         - split it up into different time windows of various sizes
@@ -215,13 +228,16 @@ class AbstractAgent(object):
         # Split into chunks and preprocess the data.
         # This may require setting up window_length, etc.
         next_list = world.features.description + ["reward", "label"]
-        prev_list = ["label"]
+        # -- NOTE: you can add other features here in the future, but for now
+        # we do not need these. Label gets some unique handling.
+        prev_list  = []
         final_list = world.features.description
         goal_list = world.features.description
         length = len(self.current_example['example'])
 
         # Create an empty dict to hold all the data from this last trial.
         data = {}
+        data["prev_label"] = []
 
         # Compute the points where the data changes from one label to the next
         # and save these points as "goals".
@@ -243,6 +259,7 @@ class AbstractAgent(object):
         # ============================================
         # Loop over all entries. For important items, take the previous frame
         # and the next frame -- and possibly even the final frame.
+        prev_label = max_label
         for i in xrange(length):
             i0 = max(i-1,0)
             i1 = min(i+1,length-1)
@@ -273,6 +290,9 @@ class AbstractAgent(object):
 
                     # Append list of features to the whole dataset
                     data[key].append(values[i])
+                    if key == "label":
+                        data["prev_%s"%key].append(prev_label)
+                        prev_label = values[i]
                     if key in prev_list:
                         data["prev_%s"%key].append(values[i0])
                     if key in next_list:

@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
@@ -275,7 +276,7 @@ def GetEncoder3D(img_shape, arm_size, gripper_size, dropout_rate,
 
 def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         filters, discriminator=False, tile=False, dropout=True, leaky=True,
-        dense=True, option=None, flatten=True,
+        dense=True, option=None, flatten=True, batchnorm=False,
         pre_tiling_layers=0,
         post_tiling_layers=2,
         kernel_size=[3,3],
@@ -286,9 +287,12 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         arm_in = Input((arm_size,))
         gripper_in = Input((gripper_size,))
         if option is not None:
-            option_in = Input((option,))
+            option_in = Input((1,))
+            #option_in = Input((option,))
+            option_x = OneHot(size=option)(option_in)
+            option_x = Reshape((option,))(option_x)
         else:
-            option_in = None
+            option_in, option_x = None, None
         height4 = img_shape[0]/4
         width4 = img_shape[1]/4
         height2 = img_shape[0]/2
@@ -301,9 +305,12 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         arm_in = Input((time_distributed, arm_size,))
         gripper_in = Input((time_distributed, gripper_size,))
         if option is not None:
-            option_in = Input((time_distributed,option,))
+            option_in = Input((time_distributed,1,))
+            #option_in = Input((time_distributed,option,))
+            option_x = TimeDistributed(OneHot(size=option),name="label_to_one_hot")(option_in)
+            option_x = Reshape((time_distributed,option,))(option_x)
         else:
-            option_in = None
+            option_in, option_x = None, None
         height4 = img_shape[1]/4
         width4 = img_shape[2]/4
         height2 = img_shape[1]/2
@@ -330,6 +337,8 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
                 strides=(1, 1),
                 padding='same'))(x)
     x = ApplyTD(relu())(x)
+    if batchnorm:
+        x = ApplyTD(BatchNormalization(momentum=0.9))(x)
     if dropout:
         x = ApplyTD(Dropout(dropout_rate))(x)
 
@@ -339,6 +348,8 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
                    kernel_size=kernel_size, 
                    strides=(2, 2),
                    padding='same'))(x)
+        if batchnorm:
+            x = ApplyTD(BatchNormalization(momentum=0.9))(x)
         x = ApplyTD(relu())(x)
         #x = MaxPooling2D(pool_size=(2,2))(x)
         if dropout:
@@ -354,7 +365,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         else:
             ins = [samples, arm_in, gripper_in]
         x = TileArmAndGripper(x, arm_in, gripper_in, tile_height, tile_width,
-                option, option_in, time_distributed)
+                option, option_x, time_distributed)
     else:
         ins = [samples]
 
@@ -363,6 +374,8 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
                    kernel_size=kernel_size, 
                    strides=(2, 2),
                    padding='same'))(x)
+        if batchnorm:
+            x = ApplyTD(BatchNormalization(momentum=0.9))(x)
         x = relu()(x)
         #x = MaxPooling2D(pool_size=(2,2))(x)
         if dropout:

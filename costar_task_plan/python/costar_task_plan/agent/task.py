@@ -91,7 +91,8 @@ class TaskAgent(AbstractAgent):
                             reward,
                             done,
                             i,
-                            task.indices[names[plan.idx]])
+                            task.index(names[plan.idx]),
+                            task.numIndices())
                     if done:
                         break
                 else:

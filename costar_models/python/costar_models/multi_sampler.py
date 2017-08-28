@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 import keras.backend as K
 import keras.losses as losses
@@ -9,6 +10,7 @@ from keras.layers import Input, RepeatVector, Reshape
 from keras.layers import UpSampling2D, Conv2DTranspose
 from keras.layers import BatchNormalization, Dropout
 from keras.layers import Dense, Conv2D, Activation, Flatten
+from keras.layers.embeddings import Embedding
 from keras.layers.merge import Concatenate
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
@@ -119,10 +121,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 post_tiling_layers=3,
                 kernel_size=[5,5],
                 dense=False,
+                batchnorm=True,
                 tile=True,
-                option=None,#self._numLabels(),
+                option=64,#self._numLabels(),
                 flatten=False,
                 )
+
 
         image_outs = []
         rep, dec = GetImageDecoder(self.img_col_dim,
@@ -136,21 +140,39 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                             leaky=True,
                             dense=False,
                             batchnorm=True,)
-        decoder = Model(rep, dec)
+
+        # =====================================================================
+        # Decode arm/gripper state.
+        # Predict the next joint states and gripper position. We add these back
+        # in from the inputs once again, in order to make sure they don't get
+        # lost in all the convolution layers above...
+        height4 = img_shape[0]/4
+        width4 = img_shape[1]/4
+        height8 = img_shape[0]/8
+        width8 = img_shape[1]/8
+        x = Reshape((width8,height8,self.img_num_filters))(rep)
+        x = Conv2D(self.img_num_filters/2,
+                kernel_size=[5,5], 
+                strides=(2, 2),
+                padding='same')(x)
+        x = Flatten()(x)
+        x = LeakyReLU(0.2)(x)
+        x = Dense(self.combined_dense_size)(x)
+        x = Dropout(self.dropout_rate)(x)
+        x = LeakyReLU(0.2)(x)
+        arm_flat = Dense(self.num_hypotheses * arm_size,name="next_arm_flat")(x)
+        arm_out = Reshape((self.num_hypotheses, arm_size), name="next_arm")(arm_flat)
+        gripper_flat = Dense(self.num_hypotheses * gripper_size,
+                name="next_gripper_flat")(x)
+        gripper_out = Reshape((self.num_hypotheses, gripper_size),
+                name="next_gripper")(gripper_flat)
+
+        #decoder = Model(rep, [dec, arm_out, gripper_out, label_out])
+        decoder = Model(rep, [dec])
+
+        # =====================================================================
+        # Create many different image decoders
         for i in xrange(self.num_hypotheses):
-            """
-            rep, dec = GetImageDecoder(self.img_col_dim,
-                                img_shape,
-                                dropout_rate=self.dropout_rate,
-                                kernel_size=[5,5],
-                                filters=self.img_num_filters,
-                                stride2_layers=3,
-                                stride1_layers=0,
-                                dropout=False,
-                                leaky=True,
-                                dense=False,
-                                batchnorm=True,)
-            """
             x = Conv2D(self.img_num_filters,
                     kernel_size=[5,5], 
                     strides=(1, 1),
@@ -165,27 +187,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     name="hypothesis%d"%i)(decoder(x))
             image_outs.append(decode_x)
         image_out = Concatenate(axis=1)(image_outs)
-
-        # =====================================================================
-        # Decode arm/gripper state.
-        # Predict the next joint states and gripper position. We add these back
-        # in from the inputs once again, in order to make sure they don't get
-        # lost in all the convolution layers above...
-        x = Conv2D(self.img_num_filters/2,
-                kernel_size=[5,5], 
-                strides=(2, 2),
-                padding='same')(enc)
-        x = Flatten()(x)
-        x = LeakyReLU(0.2)(x)
-        x = Dense(self.combined_dense_size)(x)
-        x = Dropout(self.dropout_rate)(x)
-        x = LeakyReLU(0.2)(x)
-        arm_flat = Dense(self.num_hypotheses * arm_size,name="next_arm_flat")(x)
-        arm_out = Reshape((self.num_hypotheses, arm_size), name="next_arm")(arm_flat)
-        gripper_flat = Dense(self.num_hypotheses * gripper_size,
-                name="next_gripper_flat")(x)
-        gripper_out = Reshape((self.num_hypotheses, gripper_size),
-                name="next_gripper")(gripper_flat)
 
         # =====================================================================
         # Create training output. This is the flattened image, or the flattened
@@ -229,7 +230,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
             losses = self.train_predictor.train_on_batch(x, y)
 
-            print "Iter %d: loss ="%(i),losses
+            print("Iter %d: loss ="%(i),losses)
             if self.show_iter > 0 and (i+1) % self.show_iter == 0:
                 self.plotPredictions(features, targets, axes)
 
@@ -238,8 +239,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
     def plotPredictions(self, features, targets, axes):
         subset = [f[range(0,60,10)] for f in features]
         data = self.predictor.predict(subset)
-        #print "RESULT[0] SHAPE >>>", data[0].shape
-        #print "ALL RESULTS SHAPE >>>", data.shape
         for j in xrange(6):
             jj = j * 10
             ax = axes[1][j]
@@ -271,7 +270,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             self._makePredictor(
                 (features, arm, gripper))
 
-    def train(self, *args, **kwargs):
+    def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
+            prev_label, goal_features, goal_arm, goal_gripper, *args, **kwargs):
         '''
         Pre-process training data.
 
@@ -279,25 +279,27 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         unsuccessful examples.
         '''
 
-        # ================================================
-        [I, q, g,
-                qa,
-                ga,
-                o_prev,
-                oin,
-                o_target,
-                Inext_target,
-                I_target,
-                q_target,
-                g_target,
-                action_labels] = self.preprocess(*args, **kwargs)
+        I = features
+        q = arm
+        g = gripper
+        qa = arm_cmd
+        ga = gripper_cmd
+        oin = prev_label
+        I_target = goal_features
+        o_target = label
+
+        print("sanity check:")
+        print("-------------")
+        print("images:", I.shape, I_target.shape)
+        print("joints:", q.shape)
+        print("options:", oin.shape, o_target.shape)
 
         if self.predictor is None:
             self._makeModel(I, q, g, qa, ga, oin)
 
         # Fit the main models
         self._fitPredictor(
-                [I, q, g,],# o_prev],
+                [I, q, g, oin],
                 #[I_target, q_target, g_target, Inext_target])
                 #[I],
                 [I_target])
@@ -317,4 +319,5 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         #action_target = [qa, ga]
         #self._fitPolicies([I, q, g], action_labels, action_target)
         #self._fitBaseline([I, q, g], action_target)
+
 

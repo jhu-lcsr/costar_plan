@@ -3,6 +3,12 @@
 from costar_models import *
 from costar_models.datasets.npz import NpzDataset
 
+'''
+Tool for running model training without the rest of the simulation/planning/ROS
+code. This should be more or less independent and only rely on a couple
+external features.
+'''
+
 def main(args):
     if 'cpu' in args and args['cpu']:
         import tensorflow as tf
