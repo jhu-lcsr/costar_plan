@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 import keras.backend as K
 import keras.losses as losses
 import keras.optimizers as optimizers
@@ -74,10 +76,10 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
         We ignore inputs including the reward (for now!)
         '''
 
-        print " ------- DATA -------- "
-        print features.shape
-        print action.shape
-        print state.shape
+        print(" ------- DATA -------- ")
+        print(features.shape)
+        print(action.shape)
+        print(state.shape)
 
         state = state[:,:2]
         orig_features = features
@@ -89,8 +91,7 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
                 front_padding=False,
                 rear_padding=True,)
 
-        #state = state[:,:,:5]
-        print "state vars =", state.shape
+        print("state vars =", state.shape)
 
         # Get images for input and output from the network.
         fdata_in = FirstInChunk(features)

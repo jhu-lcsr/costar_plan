@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 import keras.backend as K
 import keras.losses as losses
 import keras.optimizers as optimizers
@@ -147,18 +149,18 @@ class TestHierarchical(HierarchicalAgentBasedModel):
         We ignore inputs including the reward (for now!)
         '''
     
-        print " ------- DATA -------- "
-        print "features:", features.shape, 
-        print "actions:", action.shape
-        print "labels:", label.shape, "max:", max(label)
+        print(" ------- DATA -------- "
+        print("features:", features.shape)
+        print("actions:", action.shape)
+        print("labels:", label.shape, "max:", max(label))
         num_actions = int(np.max(label)+1)
 
         # Report some information on the data
-        print "DATA LABELS: (max label = %d)"%(num_actions-1)
+        print("DATA LABELS: (max label = %d)"%(num_actions-1))
         for i in xrange(self.num_actions):
             count = np.sum(label == i)
             percent = float(count) / len(label)
-            print "action %d: %.02f%% (%d/%d)"%(i,percent*100,count,len(label))
+            print("action %d: %.02f%%(%d/%d)"%(i,percent*100,count,len(label)))
 
         #state = state[:,:2]
         orig_label = label
@@ -168,7 +170,7 @@ class TestHierarchical(HierarchicalAgentBasedModel):
         assert np.all(np.argmax(label,axis=-1) == orig_label)
 
         if self.time:
-            print "Doing data preprocessing to create chunks:"
+            print("Doing data preprocessing to create chunks:")
             [features, action, label, reward, ok], stagger = \
                    SplitIntoChunks(
                     datasets=[features, action, label, ok],
@@ -183,18 +185,18 @@ class TestHierarchical(HierarchicalAgentBasedModel):
                     )
             #[next_features, next_action, next_label, next_reward, next_ok] = stagger
             #features = np.expand_dims(features, -1)
-            print "...done."
+            print("...done.")
             labels_test = np.argmax(label,axis=-1).flatten()
-            print "CHECK LABELS:"
+            print("CHECK LABELS:")
             for i in xrange(self.num_actions):
                 count = np.sum(labels_test == i)
                 percent = float(count) / len(labels_test)
-                print "action %d: %.02f%%(%d/%d)"%(i,percent*100,count,len(labels_test))
+                print("action %d: %.02f%%(%d/%d)"%(i,percent*100,count,len(labels_test)))
 
-        print " ------- DATA BATCHED -------- "
-        print "features now shape", features.shape
-        print "actions now shape", action.shape
-        print "labels now shape", label.shape
+        print(" ------- DATA BATCHED -------- "
+        print("features now shape", features.shape)
+        print("actions now shape", action.shape)
+        print("labels now shape", label.shape)
 
         label_target = np.squeeze(label[:,-1,:])
         action_target = np.squeeze(action[:,-1,:])
