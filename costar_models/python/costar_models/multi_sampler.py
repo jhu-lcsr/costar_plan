@@ -101,6 +101,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         return policy
 
     def _makePredictor(self, features):
+        '''
+        Create model to predict possible manipulation goals.
+        '''
         (images, arm, gripper) = features
         img_shape = images.shape[1:]
         arm_size = arm.shape[-1]
