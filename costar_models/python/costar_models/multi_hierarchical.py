@@ -203,7 +203,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         # Predict the next option -- does not depend on option
         prev_option_in = Input((1,),name="prev_option_in")
         prev_option = OneHot(size=64)(prev_option_in)
-        prev_option = Reshape([1,1,self._numLabels()])(prev_option)
+        prev_option = Reshape([1,1,64])(prev_option)
         prev_option = Lambda(lambda x: K.tile(x, tile_shape))(prev_option)
         x = Concatenate(axis=-1,name="add_prev_option_to_supervisor")(
                 [prev_option, enc])
