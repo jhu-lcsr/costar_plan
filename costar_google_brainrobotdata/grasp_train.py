@@ -39,6 +39,11 @@ tf.flags.DEFINE_boolean('image_augmentation', False,
                         'image augmentation applies random brightness, saturation, hue, contrast')
 tf.flags.DEFINE_boolean('imagenet_mean_subtraction', True,
                         'subtract the imagenet mean pixel values from the rgb images')
+tf.flags.DEFINE_integer('grasp_sequence_max_time_steps', 1,
+                        """The grasp motion time sequence consists of up to 11 time steps.
+                           This integer, or None for unlimited specifies the max number of these steps from the last to the first
+                           that will be used in training. This may be needed to reduce memory utilization.
+                           TODO(ahundt) use all time steps in all situations.""")
 # tf.flags.DEFINE_integer('batch_size', 1,
 #                         """size of a single batch during training""")
 
@@ -125,7 +130,7 @@ class GraspTrain(object):
               save_weights=FLAGS.load_weights,
               make_model_fn=grasp_model.grasp_model,
               imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
-              grasp_sequence_steps=None,
+              grasp_sequence_max_time_steps=None,
               random_crop=FLAGS.random_crop,
               resize=FLAGS.resize):
         """Train the grasping dataset
@@ -142,7 +147,7 @@ class GraspTrain(object):
                                   grasp_step_op_batch,
                                   simplified_grasp_command_op_batch)
 
-            grasp_sequence_steps: number of motion steps to train in the grasp sequence,
+            grasp_sequence_max_time_steps: number of motion steps to train in the grasp sequence,
                 this affects the memory consumption of the system when training, but if it fits into memory
                 you almost certainly want the value to be None, which includes every image.
         """
@@ -198,14 +203,15 @@ class GraspTrain(object):
             pregrasp_image_rgb_op = fixed_feature_op_dict[rgb_clear_view[0]]
             pregrasp_image_rgb_op = self._rgb_preprocessing(pregrasp_image_rgb_op,
                                                             imagenet_mean_subtraction=imagenet_mean_subtraction,
-                                                            random_crop=random_crop)
+                                                            random_crop=random_crop,
+                                                            resize=resize)
 
             grasp_success_op = tf.squeeze(fixed_feature_op_dict[grasp_success[0]])
             # each step in the grasp motion is also its own minibatch,
             # iterate in reversed direction because if training data will be dropped
             # it should be the first steps not the last steps.
             for i, (grasp_step_rgb_feature_name, pose_op_param) in enumerate(zip(reversed(rgb_move_to_grasp_steps), reversed(pose_op_params))):
-                if grasp_sequence_steps is None or i < grasp_sequence_steps:
+                if grasp_sequence_max_time_steps is None or i < grasp_sequence_max_time_steps:
                     if int(grasp_step_rgb_feature_name.split('/')[1]) != int(pose_op_param.split('/')[1]):
                         raise ValueError('ERROR: the time step of the grasp step does not match the motion command params, '
                                          'make sure the lists are indexed correctly!')
@@ -273,4 +279,4 @@ if __name__ == '__main__':
             raise ValueError('unknown model selected: {}'.format(FLAGS.grasp_model))
 
         gt = GraspTrain()
-        gt.train(make_model_fn=model_fn, grasp_sequence_steps=1)
+        gt.train(make_model_fn=model_fn)
