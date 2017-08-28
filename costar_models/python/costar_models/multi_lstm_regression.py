@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 import keras.backend as K
 import keras.losses as losses

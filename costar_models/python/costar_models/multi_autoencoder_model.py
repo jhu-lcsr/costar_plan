@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 import keras.backend as K
 import keras.losses as losses
@@ -143,7 +144,7 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
                     [xf],
                     [yf],)
 
-            print "Iter %d: loss = %f"%(i,loss)
+            print("Iter %d: loss = %f"%(i,loss))
             if self.show_iter > 0 and (i+1) % self.show_iter == 0:
                 #data = self.model.predict([features[:6], arm[:6], gripper[:6]])
                 data = self.model.predict([features[:6]])
