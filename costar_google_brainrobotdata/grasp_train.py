@@ -110,9 +110,9 @@ class GraspTrain(object):
                                               tf.constant([FLAGS.random_crop_height, FLAGS.random_crop_width, 3],
                                                           name='random_crop_height_width'))
             if resize:
-                rgb_image_op = tf.image.resize_bilinear(rgb_image_op,
-                                                        tf.constant([FLAGS.resize_height, FLAGS.resize_width],
-                                                                    name='resize_height_width'))
+                rgb_image_op = tf.image.resize_images(rgb_image_op,
+                                                      tf.constant([FLAGS.resize_height, FLAGS.resize_width],
+                                                                  name='resize_height_width'))
             if image_augmentation:
                 rgb_image_op = GraspTrain._image_augmentation(rgb_image_op, num_channels=3)
             rgb_image_op = tf.cast(rgb_image_op, tf.float32)
