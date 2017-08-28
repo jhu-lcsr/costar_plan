@@ -18,6 +18,16 @@ tf.flags.DEFINE_integer('steps_per_epoch', 1000,
                         """number of steps per epoch of training""")
 tf.flags.DEFINE_integer('epochs', 100,
                         """Epochs of training""")
+tf.flags.DEFINE_integer('random_crop_width', 472,
+                        """Width to randomly crop images, if enabled""")
+tf.flags.DEFINE_integer('random_crop_height', 472,
+                        """Height to randomly crop images, if enabled""")
+tf.flags.DEFINE_boolean('random_crop', False,
+                        """NOT YET SUPPORTED. random_crop will apply the tf random crop function with
+                           the parameters specified by random_crop_width and random_crop_height
+                        """)
+tf.flags.DEFINE_boolean('image_augmentation', True,
+                        'image augmentation applies random brightness, saturation, hue, contrast')
 # tf.flags.DEFINE_integer('batch_size', 1,
 #                         """size of a single batch during training""")
 
@@ -26,6 +36,35 @@ FLAGS = flags.FLAGS
 
 class GraspTrain(object):
 
+    def _image_augmentation(image):
+        """Performs data augmentation by randomly permuting the inputs.
+
+        Source: https://github.com/tensorflow/models/blob/aed6922fe2da5325bda760650b5dc3933b10a3a2/domain_adaptation/pixel_domain_adaptation/pixelda_preprocess.py#L81
+
+        Args:
+            image: A float `Tensor` of size [height, width, channels] with values
+            in range[0,1].
+        Returns:
+            The mutated batch of images
+        """
+        # Apply photometric data augmentation (contrast etc.)
+        num_channels = image.shape_as_list()[-1]
+        if num_channels == 4:
+            # Only augment image part
+            image, depth = image[:, :, 0:3], image[:, :, 3:4]
+        elif num_channels == 1:
+            image = tf.image.grayscale_to_rgb(image)
+        image = tf.image.random_brightness(image, max_delta=0.1)
+        image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
+        image = tf.image.random_hue(image, max_delta=0.032)
+        image = tf.image.random_contrast(image, lower=0.5, upper=1.5)
+        image = tf.clip_by_value(image, 0, 1.0)
+        if num_channels == 4:
+            image = tf.concat(2, [image, depth])
+        elif num_channels == 1:
+            image = tf.image.rgb_to_grayscale(image)
+        return image
+
     def _imagenet_preprocessing(self, tensor):
         """Do imagenet preprocessing, but make sure the network you are using needs it!
 
@@ -33,17 +72,48 @@ class GraspTrain(object):
         """
         # TODO(ahundt) do we need to divide by 255 to make it floats from 0 to 1? It seems no based on https://keras.io/applications/
         # TODO(ahundt) apply resolution to https://github.com/fchollet/keras/pull/7705 when linked PR is closed
+        # TODO(ahundt) also apply per image standardization?
         pixel_value_offset = tf.constant([103.939, 116.779, 123.68])
         return tf.subtract(tensor, pixel_value_offset)
 
-    def train(self, dataset=FLAGS.grasp_dataset, steps_per_epoch=FLAGS.steps_per_epoch, batch_size=1, epochs=FLAGS.epochs,
-              load_weights='grasp_model_weights.h5',
-              save_weights='grasp_model_weights.h5',
-              imagenet_preprocessing=True,
-              make_model_fn=grasp_model.grasp_model,
-              grasp_sequence_steps=None):
+    def _rgb_preprocessing(rgb_image_op,
+                           image_augmentation=FLAGS.image_augmentation,
+                           imagenet_preprocessing=FLAGS.imagenet_preprocessing):
+        """Preprocess an rgb image into a float image, applying image augmentation and imagenet mean subtraction if desired
+        """
+        # make sure the shape is correct
+        rgb_image_op = tf.squeeze(rgb_image_op)
+        # apply image augmentation and imagenet preprocessing steps adapted from keras
+        if image_augmentation:
+            rgb_image_op = self._image_augmentation(rgb_image_op)
+        rgb_image_op = tf.cast(rgb_image_op, tf.float32)
+        if imagenet_preprocessing:
+            rgb_image_op = self._imagenet_preprocessing(rgb_image_op)
+        return tf.cast(rgb_image_op, tf.float32)
 
-        """Visualize one dataset in V-REP
+    def train(self, dataset=FLAGS.grasp_dataset, steps_per_epoch=FLAGS.steps_per_epoch, batch_size=1, epochs=FLAGS.epochs,
+              load_weights=FLAGS.save_weights,
+              save_weights=FLAGS.load_weights,
+              make_model_fn=grasp_model.grasp_model,
+              imagenet_preprocessing=True,
+              grasp_sequence_steps=None):
+        """Train the grasping dataset
+
+        This function depends on https://github.com/fchollet/keras/pull/6928
+
+        # Arguments
+
+            make_model_fn:
+                A function of the form below which returns an initialized but not compiled model, which should expect
+                input tensors.
+
+                    make_model_fn(pregrasp_op_batch,
+                                  grasp_step_op_batch,
+                                  simplified_grasp_command_op_batch)
+
+            grasp_sequence_steps: number of motion steps to train in the grasp sequence,
+                this affects the memory consumption of the system when training, but if it fits into memory
+                you almost certainly want the value to be None, which includes every image.
         """
         data = grasp_dataset.GraspDataset(dataset=dataset)
         # list of dictionaries the length of batch_size
@@ -70,7 +140,6 @@ class GraspTrain(object):
             feature_type='params',
             step='move_to_grasp'
         )
-        # print('pose_op_params: ', pose_op_params)
 
         # print('features_complete_list: ', features_complete_list)
         grasp_success = data.get_time_ordered_features(
@@ -95,17 +164,18 @@ class GraspTrain(object):
             # print('fixed_feature_op_dict: ', fixed_feature_op_dict)
             # get the pregrasp image, and squeeze out the extra batch dimension from the tfrecord
             # TODO(ahundt) move squeeze steps into dataset api if possible
-            pregrasp_op = tf.cast(tf.squeeze(fixed_feature_op_dict[rgb_clear_view[0]]), tf.float32)
-            if imagenet_preprocessing:
-                pregrasp_op = self._imagenet_preprocessing(pregrasp_op)
+            pregrasp_image_rgb_op = fixed_feature_op_dict[rgb_clear_view[0]]
+            pregrasp_image_rgb_op = _rgb_preprocessing(grasp_step_rgb_feature_op)
+
             grasp_success_op = tf.squeeze(fixed_feature_op_dict[grasp_success[0]])
             # each step in the grasp motion is also its own minibatch
-            for i, (grasp_step, pose_op_param) in enumerate(zip(rgb_move_to_grasp_steps, pose_op_params)):
+            for i, (grasp_step_rgb_feature_name, pose_op_param) in enumerate(zip(rgb_move_to_grasp_steps, pose_op_params)):
                 if grasp_sequence_steps is None or i < grasp_sequence_steps:
-                    pregrasp_op_batch.append(pregrasp_op)
-                    grasp_step_op = tf.cast(tf.squeeze(fixed_feature_op_dict[grasp_step]), tf.float32)
-                    if imagenet_preprocessing:
-                        grasp_step_op = self._imagenet_preprocessing(grasp_step_op)
+                    if int(grasp_step_rgb_feature_name.split('/')[1]) != int(pose_op_param.split('/')[1]):
+                        raise ValueError('ERROR: the time step of the grasp step does not match the motion command params, '
+                                         'make sure the lists are indexed correctly!')
+                    pregrasp_op_batch.append(pregrasp_image_rgb_op)
+                    grasp_step_rgb_feature_op = _rgb_preprocessing(fixed_feature_op_dict[grasp_step_rgb_feature_name])
                     grasp_step_op_batch.append(grasp_step_op)
                     simplified_grasp_command_op_batch.append(fixed_feature_op_dict[pose_op_param])
                     grasp_success_op_batch.append(grasp_success_op)
