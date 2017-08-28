@@ -4,8 +4,7 @@
 # START A MARCC SESSION
 
 # load modules
-module load python/2.7.9
-module load piplib/1.3.1
-module load git
+#module load python/2.7.9
 
+module load gcc slurm sed git tmux byobu cmake autoconf/gcc automake/gcc boost cuda/8.0 cudnn/5.1 python/2.7.12 tensorflow/cuda-8.0/r1.0 parallel_studio_xe_2015 intel-mpi readline ruby piplib/1.3.1
 
