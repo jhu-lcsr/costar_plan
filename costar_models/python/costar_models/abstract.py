@@ -157,6 +157,10 @@ class AbstractAgentBasedModel(object):
         raise NotImplementedError('predict() not supported yet.')
 
     def toOneHot2D(self, f, dim):
+        '''
+        Convert all to one-hot vectors. If we have a "-1" label, example was
+        considered unlabeled and should just get a zero...
+        '''
         if len(f.shape) == 1:
             f = np.expand_dims(f, -1)
         assert len(f.shape) == 2
@@ -166,7 +170,8 @@ class AbstractAgentBasedModel(object):
         for i in xrange(f.shape[0]):
             for j in xrange(f.shape[1]):
                 idx = f[i,j]
-                oh[i,j,idx] = 1.
+                if idx >= 0:
+                    oh[i,j,idx] = 1.
         return oh
 
 

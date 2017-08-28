@@ -229,7 +229,16 @@ class Task(object):
       '''
       return self.indices[name]
 
+  def numIndices(self):
+      '''
+      Get length.
+      '''
+      return len(self.indices.keys())
+
   def name(self, index):
+      '''
+      Get name from embedding
+      '''
       return self.names[index]
 
   def numActions(self):

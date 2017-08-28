@@ -286,9 +286,13 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         arm_in = Input((arm_size,))
         gripper_in = Input((gripper_size,))
         if option is not None:
-            option_in = Input((option,))
+            option_in = Input((1,))
+            #option_in = Input((option,))
+            option_x = Lambda(lambda x: tf.one_hot(tf.cast(x, tf.int32),
+                option),name="label_to_one_hot")(option_in)
+            option_x = Reshape((option,))(option_x)
         else:
-            option_in = None
+            option_in, option_x = None, None
         height4 = img_shape[0]/4
         width4 = img_shape[1]/4
         height2 = img_shape[0]/2
@@ -301,9 +305,14 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         arm_in = Input((time_distributed, arm_size,))
         gripper_in = Input((time_distributed, gripper_size,))
         if option is not None:
-            option_in = Input((time_distributed,option,))
+            option_in = Input((time_distributed,1,))
+            #option_in = Input((time_distributed,option,))
+            option_x = TimeDistributed(Lambda(
+                lambda x: tf.one_hot(tf.cast(x, tf.int32),
+                option)),name="label_to_one_hot")(option_in)
+            option_x = Reshape((time_distributed,option,))(option_x)
         else:
-            option_in = None
+            option_in, option_x = None, None
         height4 = img_shape[1]/4
         width4 = img_shape[2]/4
         height2 = img_shape[1]/2
@@ -354,7 +363,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         else:
             ins = [samples, arm_in, gripper_in]
         x = TileArmAndGripper(x, arm_in, gripper_in, tile_height, tile_width,
-                option, option_in, time_distributed)
+                option, option_x, time_distributed)
     else:
         ins = [samples]
 
