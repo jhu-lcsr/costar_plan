@@ -221,6 +221,9 @@ class GraspTrain(object):
                     simplified_grasp_command_op_batch.append(fixed_feature_op_dict[pose_op_param])
                     grasp_success_op_batch.append(grasp_success_op)
 
+        # TODO(ahundt) for multiple device batches, will need to split on batch_size and example_batch size will need to be updated
+        example_batch_size = len(grasp_success_op_batch)
+
         pregrasp_op_batch = tf.parallel_stack(pregrasp_op_batch)
         grasp_step_op_batch = tf.parallel_stack(grasp_step_op_batch)
         simplified_grasp_command_op_batch = tf.parallel_stack(simplified_grasp_command_op_batch)
