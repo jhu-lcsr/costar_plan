@@ -234,8 +234,6 @@ class GraspDataset(object):
         # print('_get_grasp_tfrecord_info::feature_complete_list:', features)
         # note that the tfrecords are often named '*{}.tfrecord*-of-*'
         tfrecord_paths = gfile.Glob(self._get_tfrecord_path_glob_pattern())
-        # correct the chronological ordering of the features
-        features = GraspDataset.get_time_ordered_features(features, record_type='all')
         return features, tfrecord_paths, feature_count, attempt_count
 
     @staticmethod
