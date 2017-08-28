@@ -2,6 +2,17 @@
 import numpy as np
 
 def RemoveBad(datasets, reward, labels, reward_threshold=0):
+    '''
+    Remove negative examples from data set.
+
+    Parameters:
+    -----------
+    datasets: list of numpy matrices fed into model
+    reward: used to prune negative examples
+    labels: ID of example; if last entry is negative remove
+    reward_threshold: assume values with terminal reward less than this are bad
+                      and need to be removed.
+    '''
     max_label = max(labels)
     min_label = min(labels)
 

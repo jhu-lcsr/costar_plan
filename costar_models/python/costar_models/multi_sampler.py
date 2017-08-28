@@ -165,25 +165,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 name="next_gripper_flat")(x)
         gripper_out = Reshape((self.num_hypotheses, gripper_size),
                 name="next_gripper")(gripper_flat)
+
         #decoder = Model(rep, [dec, arm_out, gripper_out, label_out])
         decoder = Model(rep, [dec])
 
         # =====================================================================
         # Create many different image decoders
         for i in xrange(self.num_hypotheses):
-            """
-            rep, dec = GetImageDecoder(self.img_col_dim,
-                                img_shape,
-                                dropout_rate=self.dropout_rate,
-                                kernel_size=[5,5],
-                                filters=self.img_num_filters,
-                                stride2_layers=3,
-                                stride1_layers=0,
-                                dropout=False,
-                                leaky=True,
-                                dense=False,
-                                batchnorm=True,)
-            """
             x = Conv2D(self.img_num_filters,
                     kernel_size=[5,5], 
                     strides=(1, 1),
