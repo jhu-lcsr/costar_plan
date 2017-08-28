@@ -44,7 +44,11 @@ class AbstractAgentBasedModel(object):
         if self.task is not None:
             self.name += "_%s"%self.task
         if self.features is not None:
-            self.name += "_%s"%self.features
+            self.name += "_%s"%self.features   
+
+        # Define previous option for when executing -- this should default to
+        # None, set to 2 for testing only
+        self.prev_option = 2
 
         # default: store the whole model here.
         # NOTE: this may not actually be where you want to save it.
@@ -184,15 +188,20 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         super(HierarchicalAgentBasedModel, self).__init__(taskdef, *args, **kwargs)
         self.num_actions = 0
 
+        # =====================================================================
+        # Experimental hierarchical policy models:
+        # Predictor model learns the transition function T(x, u) --> (x')
         self.predictor = None
+        # Supervisor learns the high-level policy pi(x, o_-1) --> o
         self.supervisor = None
+        # Baseline is just a standard behavioral cloning policy pi(x) --> u
         self.baseline = None
+        # All low-level policies pi(x,o) --> u
         self.policies = []
 
+        # Helper models -- may be created or not (experimental code)
         self.predict_goal = None
         self.predict_next = None
-
-        self.prev_option = 2
         
     def _makeOption1h(self, option):
         opt_1h = np.zeros((1,self._numLabels()))
