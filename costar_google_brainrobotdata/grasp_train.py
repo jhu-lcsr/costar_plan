@@ -26,6 +26,15 @@ tf.flags.DEFINE_boolean('random_crop', False,
                         """NOT YET SUPPORTED. random_crop will apply the tf random crop function with
                            the parameters specified by random_crop_width and random_crop_height
                         """)
+tf.flags.DEFINE_integer('resize_width', 118,
+                        """Width to resize images, if enabled""")
+tf.flags.DEFINE_integer('resize_height', 118,
+                        """Height to resize images, if enabled""")
+tf.flags.DEFINE_boolean('resize', True,
+                        """resize will resize the input images to the desired dimensions specified but the
+                           resize_width and resize_height flags. It is suggested that an exact factor of 2 be used
+                           relative to the input image directions if random_crop is disabled or the crop dimensions otherwise.
+                        """)
 tf.flags.DEFINE_boolean('image_augmentation', False,
                         'image augmentation applies random brightness, saturation, hue, contrast')
 tf.flags.DEFINE_boolean('imagenet_mean_subtraction', True,
@@ -86,14 +95,19 @@ class GraspTrain(object):
     def _rgb_preprocessing(self, rgb_image_op,
                            image_augmentation=FLAGS.image_augmentation,
                            imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
-                           random_crop=FLAGS.random_crop):
-        """Preprocess an rgb image into a float image, applying image augmentation and imagenet mean subtraction if desired
+                           random_crop=FLAGS.random_crop,
+                           resize=FLAGS.resize):
+        """Preprocess an rgb image into a float image, applying image augmentation and imagenet mean subtraction if desired.
+
+           WARNING: if you call random_crop on an rgb image and a depth image separately the corners will not match up!
         """
         # make sure the shape is correct
         rgb_image_op = tf.squeeze(rgb_image_op)
         # apply image augmentation and imagenet preprocessing steps adapted from keras
         if random_crop:
             rgb_image_op = tf.random_crop(rgb_image_op, [[FLAGS.random_crop_height, FLAGS.random_crop_width, 3]])
+        if resize:
+            rgb_image_op = tf.image.resize_images(rgb_image_op, [[FLAGS.resize_height, FLAGS.resize_width, 3]])
         if image_augmentation:
             rgb_image_op = GraspTrain._image_augmentation(rgb_image_op, num_channels=3)
         rgb_image_op = tf.cast(rgb_image_op, tf.float32)
@@ -107,7 +121,8 @@ class GraspTrain(object):
               make_model_fn=grasp_model.grasp_model,
               imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
               grasp_sequence_steps=None,
-              random_crop=FLAGS.random_crop):
+              random_crop=FLAGS.random_crop,
+              resize=FLAGS.resize):
         """Train the grasping dataset
 
         This function depends on https://github.com/fchollet/keras/pull/6928
@@ -253,4 +268,4 @@ if __name__ == '__main__':
             raise ValueError('unknown model selected: {}'.format(FLAGS.grasp_model))
 
         gt = GraspTrain()
-        gt.train(make_model_fn=model_fn, grasp_sequence_steps=1)
+        gt.train(make_model_fn=model_fn, grasp_sequence_steps=4)
