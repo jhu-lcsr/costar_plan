@@ -76,7 +76,7 @@ class GraspTrain(object):
         pixel_value_offset = tf.constant([103.939, 116.779, 123.68])
         return tf.subtract(tensor, pixel_value_offset)
 
-    def _rgb_preprocessing(rgb_image_op,
+    def _rgb_preprocessing(self, rgb_image_op,
                            image_augmentation=FLAGS.image_augmentation,
                            imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction):
         """Preprocess an rgb image into a float image, applying image augmentation and imagenet mean subtraction if desired
@@ -165,7 +165,7 @@ class GraspTrain(object):
             # get the pregrasp image, and squeeze out the extra batch dimension from the tfrecord
             # TODO(ahundt) move squeeze steps into dataset api if possible
             pregrasp_image_rgb_op = fixed_feature_op_dict[rgb_clear_view[0]]
-            pregrasp_image_rgb_op = _rgb_preprocessing(grasp_step_rgb_feature_op, imagenet_mean_subtraction=imagenet_mean_subtraction)
+            pregrasp_image_rgb_op = self._rgb_preprocessing(pregrasp_image_rgb_op, imagenet_mean_subtraction=imagenet_mean_subtraction)
 
             grasp_success_op = tf.squeeze(fixed_feature_op_dict[grasp_success[0]])
             # each step in the grasp motion is also its own minibatch
