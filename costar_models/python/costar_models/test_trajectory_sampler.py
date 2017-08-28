@@ -100,11 +100,11 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
         features_size = features.shape[-1]
         state_size = state.shape[-1]
 
-        print "-------------------------------"
-        print "KEY VARIABLES:"
-        print "# features =", features_size
-        print "# state vars =", state_size
-        print "-------------------------------"
+        print("-------------------------------")
+        print("KEY VARIABLES:")
+        print("# features =", features_size)
+        print("# state vars =", state_size)
+        print("-------------------------------")
 
         # Noise for sampling
         noise_in = Input((self.noise_dim,))
@@ -166,7 +166,7 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
 
             noise = np.random.random((self.batch_size, self.noise_dim))
             loss = self.model.train_on_batch([xf, xs, noise], ya)
-            print "Iter %d: loss = %f"%(i,loss)
+            print("Iter %d: loss = %f"%(i,loss))
 
 
             if self.show_iter > 0 and (i+1) % self.show_iter == 0:

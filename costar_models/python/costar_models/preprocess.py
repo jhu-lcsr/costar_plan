@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 import numpy as np
 
@@ -28,18 +29,20 @@ def RemoveBad(datasets, reward, labels, reward_threshold=0):
         # not greater than zero, we will throw out the example
         if reward is not None and reward[labels==label][-1] < reward_threshold:
             # Since this was too low, just skip it
-            print "<< skipping example ", label, "with reward =", reward[labels==label][-1]
+            print("<< skipping example ", label, "with reward =",
+                    reward[labels==label][-1])
             good = False
-            print "entries:", np.sum(labels==label)
+            print("entries:", np.sum(labels==label))
             length -= np.sum(labels==label)
         else:
-            print ">> including example ", label, "with reward =", reward[labels==label][-1]
+            print(">> including example ", label, "with reward =",
+                    reward[labels==label][-1])
             good = True
             good_labels.append(label)
 
     for idx, data in enumerate(datasets):
         new_data.append(np.zeros((length,) + data.shape[1:]))
-        print idx, new_data[-1].shape
+        print(idx, new_data[-1].shape)
     for label in good_labels:
         llen =  np.sum(labels==label)
         for idx, data in enumerate(datasets):
