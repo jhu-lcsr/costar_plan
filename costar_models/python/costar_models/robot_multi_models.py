@@ -4,7 +4,7 @@ from keras.layers import Input, RepeatVector, Reshape
 from keras.layers import UpSampling2D, Conv2DTranspose
 from keras.layers import BatchNormalization, Dropout
 from keras.layers import Dense, Conv2D, Activation, Flatten, LSTM, ConvLSTM2D
-from keras.layers import Lambda, Conv3D
+from keras.layers import Lambda, Conv3D, MaxPooling2D
 from keras.layers.wrappers import TimeDistributed
 from keras.layers.merge import Concatenate
 from keras.losses import binary_crossentropy
@@ -340,6 +340,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
                    strides=(2, 2),
                    padding='same'))(x)
         x = ApplyTD(relu())(x)
+        #x = MaxPooling2D(pool_size=(2,2))(x)
         if dropout:
             x = ApplyTD(Dropout(dropout_rate))(x)
 
@@ -363,6 +364,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
                    strides=(2, 2),
                    padding='same'))(x)
         x = relu()(x)
+        #x = MaxPooling2D(pool_size=(2,2))(x)
         if dropout:
             x = Dropout(dropout_rate)(x)
 
@@ -390,7 +392,7 @@ def AddOptionTiling(x, option_length, option_in, height, width):
 
 def GetDecoder(dim, img_shape, arm_size, gripper_size,
         dropout_rate, filters, kernel_size=[3,3], dropout=True, leaky=True,
-        batchnorm=True,dense=True, option=None,
+        batchnorm=True,dense=True, option=None, num_hypotheses=None,
         stride2_layers=2, stride1_layers=1):
 
     '''
@@ -438,6 +440,7 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
         if batchnorm:
             x = BatchNormalization(momentum=0.9)(x)
         x = relu()(x)
+        #x = UpSampling2D(size=(2,2))(x)
         if dropout:
             x = Dropout(dropout_rate)(x)
 

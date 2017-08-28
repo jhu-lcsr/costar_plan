@@ -16,13 +16,13 @@ We need some data to work with. Let's start by making a small data set using bot
 
 ```
 rosrun costar_bullet start --robot ur5 --task blocks --agent task \
-  --features multi --save -i 10 --data_file small.npz
+  --features multi --save -i 10 --data_file small.npz --seed 1
 ```
 
 When we want to create a bigger data set, we can do so easily with:
 ```
 rosrun costar_bullet start --robot ur5 --task blocks --agent task \
-  --features multi --save -i 100 --data_file big.npz
+  --features multi --save -i 100 --data_file big.npz --seed 1
 ```
 
 This second one will include 100 trials of the robot picking and placing random blocks, as per the "blocks" task.
@@ -34,6 +34,7 @@ So, what do these arguments mean?
   - `--task blocks` says we are interested in performing the blocks task
   - `--agent task` says we want an "expert" task model to generate data rather than a human or RL algorithm
   - `-i 10` says we want to run for 10 iterations, i.e. on 10 different random environments
+  - `--seed 1` tells us to initialize the `numpy` random number generator at each iteration, in order to generate a consistent set of examples. Randomizer is initialized to `(seed+iteration_num)` before environment setup.
 
 ### Learning a Policy with Behavioral Cloning
 

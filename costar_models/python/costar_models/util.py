@@ -11,6 +11,7 @@ from multi_hierarchical import RobotMultiHierarchical
 
 from multi_unsupervised_model import RobotMultiUnsupervised
 from multi_unsupervised1_model import RobotMultiUnsupervised1
+from multi_sampler import RobotMultiPredictionSampler
 
 def MakeModel(features, model, taskdef, **kwargs):
     '''
@@ -47,6 +48,10 @@ def MakeModel(features, model, taskdef, **kwargs):
         '''
         if model == 'gan':
             model_instance = RobotMultiGAN(taskdef,
+                    model=model,
+                    **kwargs)
+        elif model == 'predictor':
+            model_instance = RobotMultiPredictionSampler(taskdef,
                     model=model,
                     **kwargs)
         elif model == 'ff_regression':
@@ -101,6 +106,7 @@ def GetModels():
             "lstm_regression", # lstm regression model
             "conv_lstm_regression", # lstm regression model
             "sample", # sampler NN to generate trajectories
+            "predictor", # sampler NN to generate image goals
             "autoencoder", # autoencoder image test
             "hierarchical", # hierarchical policy for planning
             "unsupervised", # paper implementation for unsupervised method

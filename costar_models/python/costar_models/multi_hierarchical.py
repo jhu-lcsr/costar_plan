@@ -20,6 +20,7 @@ from abstract import HierarchicalAgentBasedModel
 
 from robot_multi_models import *
 from split import *
+from preprocess import *
 
 class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
@@ -135,38 +136,35 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         tile_width = img_shape[0]/(2**3)
         tile_height = img_shape[1]/(2**3)
         tile_shape = (1, tile_width, tile_height, 1)
-        option_in = Input((self._numLabels(),),name="chosen_option_in")
-        prev_option_in = Input((self._numLabels(),),name="prev_option_in")
-        option = Reshape([1,1,self._numLabels()])(option_in)
-        option = Lambda(lambda x: K.tile(x, tile_shape))(option)
+
 
         # =====================================================================
+        # Add in the chosen option
+        option_in = Input((self._numLabels(),),name="chosen_option_in")
+        option = Reshape([1,1,self._numLabels()])(option_in)
+        option = Lambda(lambda x: K.tile(x, tile_shape))(option)
         enc_with_option = Concatenate(
                 axis=-1,
                 name="add_option_info")([enc,option])
 
-        # TODO(cpaxton): add more options here
-        enc_with_option = Conv2D(self.img_num_filters,
-                kernel_size=[3,3], 
+        # ---------------------------------------------------------------------
+        goal_enc_with_option = Conv2D(self.img_num_filters,
+                kernel_size=[5,5], 
                 strides=(1, 1),
                 padding='same')(enc_with_option)
+        goal_enc_with_option = LeakyReLU(0.2,name='goal_encoding_with_option')(goal_enc_with_option)
+        # ---------------------------------------------------------------------
+        next_frame_enc_with_option = Conv2D(self.img_num_filters,
+                kernel_size=[5,5], 
+                strides=(1, 1),
+                padding='same')(enc_with_option)
+        next_frame_enc_with_option = LeakyReLU(0.2,name='next_frame_encoding_with_option')(next_frame_enc_with_option)
+
+        # Append chosen option input -- this is for the high level task
+        # dynamics.
         ins.append(option_in)
         
         rep, dec = GetDecoder(self.img_col_dim,
-                            img_shape,
-                            arm_size,
-                            gripper_size,
-                            dropout_rate=self.dropout_rate,
-                            kernel_size=[5,5],
-                            filters=self.img_num_filters,
-                            stride2_layers=3,
-                            stride1_layers=0,
-                            dropout=False,
-                            leaky=True,
-                            dense=False,
-                            option=self._numLabels(),
-                            batchnorm=True,)
-        rep2, dec2 = GetDecoder(self.img_col_dim,
                             img_shape,
                             arm_size,
                             gripper_size,
@@ -187,7 +185,8 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         x = Conv2D(self.img_num_filters/2,
                 kernel_size=[5,5], 
                 strides=(2, 2),
-                padding='same')(enc_with_option)
+                padding='same')(goal_enc_with_option)
+        x = LeakyReLU(0.2)(x)
         x = Flatten()(x)
         x = Concatenate(name="add_current_arm_info")([x, ins[1], ins[2]])
         x = Dense(self.combined_dense_size)(x)
@@ -199,16 +198,20 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         # =====================================================================
         # SUPERVISOR
         # Predict the next option -- does not depend on option
+        prev_option_in = Input((self._numLabels(),),name="prev_option_in")
         prev_option = Reshape([1,1,self._numLabels()])(prev_option_in)
         prev_option = Lambda(lambda x: K.tile(x, tile_shape))(prev_option)
         x = Concatenate(axis=-1,name="add_prev_option_to_supervisor")(
                 [prev_option, enc])
-        x = Conv2D(self.img_num_filters/4,
-                kernel_size=[5,5], 
-                strides=(2, 2),
-                padding='same')(x)
-        x = Dropout(self.dropout_rate)(x)
-        x = LeakyReLU(0.2)(x)
+        for _ in xrange(2):
+            # Repeat twice to scale down to a very small size -- this will help
+            # a little with the final image layers
+            x = Conv2D(self.img_num_filters/4,
+                    kernel_size=[5, 5], 
+                    strides=(2, 2),
+                    padding='same')(x)
+            x = Dropout(self.dropout_rate)(x)
+            x = LeakyReLU(0.2)(x)
         x = Flatten()(x)
         x = Dense(self.combined_dense_size)(x)
         x = Dropout(self.dropout_rate)(x)
@@ -216,18 +219,18 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         label_out = Dense(self._numLabels(), activation="sigmoid")(x)
 
         supervisor = Model(ins[:3] + [prev_option_in], [label_out])
+        decoder = Model(rep, dec, name="image_decoder")
 
-        enc_with_option_flat = Flatten()(enc_with_option)
-        decoder = Model(rep, dec, name="action_image_goal_decoder")
-        next_frame_decoder = Model(
-                rep2,
-                dec2,
-                name="action_next_image_decoder")
+        # =====================================================================
+        # PREDICTOR AND LATENT STATE MODEL
+        # Create the necessary models
+        goal_enc_with_option_flat = Flatten(name="goal_flat")(goal_enc_with_option)
+        next_frame_enc_with_option_flat = Flatten(name="next_frame_flat")(next_frame_enc_with_option)
         features_out = [
-                decoder([enc_with_option_flat,option_in]),
+                decoder([goal_enc_with_option_flat, option_in]),
                 arm_out,
                 gripper_out,
-                next_frame_decoder([enc_with_option_flat, option_in])]
+                decoder([next_frame_enc_with_option_flat, option_in])]
         predictor = Model(ins, features_out)
 
         predict_goal = Model(ins, features_out[:3],)
@@ -263,34 +266,35 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         self._fixWeights()
 
     def plotInfo(self, features, targets, axes):
-            data = self.predictor.predict(features[0:5])
-            for j in xrange(5):
-                jj = j * 5
-                ax = axes[1][j]
-                ax.imshow(np.squeeze(data[0][jj]))
-                ax.axis('off')
-                ax = axes[4][j]
-                ax.imshow(np.squeeze(data[3][jj]))
-                ax.axis('off')
-                ax = axes[0][j]
-                ax.imshow(np.squeeze(features[0][jj]))
-                ax.axis('off')
-                ax = axes[2][j]
-                ax.imshow(np.squeeze(targets[0][jj]))
-                ax.axis('off')
-                
-                q0 = features[1][jj]
-                q = data[1][j]
-                q1 = targets[1][jj]
-                ax = axes[3][j]
-                ax.bar(np.arange(6),q0,1./3.,color='b')
-                ax.bar(np.arange(6)+1./3.,q,1./3.,color='r')
-                ax.bar(np.arange(6)+2./3.,q1,1./3.,color='g')
+        subset = [f[range(0,25,5)] for f in features]
+        data = self.predictor.predict(subset)
+        for j in xrange(5):
+            jj = j * 5
+            ax = axes[1][j]
+            ax.imshow(np.squeeze(data[0][j]))
+            ax.axis('off')
+            ax = axes[4][j]
+            ax.imshow(np.squeeze(data[3][j]))
+            ax.axis('off')
+            ax = axes[0][j]
+            ax.imshow(np.squeeze(features[0][jj]))
+            ax.axis('off')
+            ax = axes[2][j]
+            ax.imshow(np.squeeze(targets[0][jj]))
+            ax.axis('off')
+            
+            q0 = features[1][jj]
+            q = data[1][j]
+            q1 = targets[1][jj]
+            ax = axes[3][j]
+            ax.bar(np.arange(6),q0,1./3.,color='b')
+            ax.bar(np.arange(6)+1./3.,q,1./3.,color='r')
+            ax.bar(np.arange(6)+2./3.,q1,1./3.,color='g')
 
-            plt.ion()
-            plt.tight_layout()
-            plt.show(block=False)
-            plt.pause(0.01)
+        plt.ion()
+        plt.tight_layout()
+        plt.show(block=False)
+        plt.pause(0.01)
 
     def preprocess(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             example, reward, *args, **kwargs):
@@ -317,10 +321,13 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
             label = label[example_in_allowed]
             example = example[example_in_allowed]
 
-
-        action_labels_num = np.array([self.taskdef.index(l) for l in label])
-        action_labels = np.squeeze(self.toOneHot2D(action_labels_num,
-            len(self.taskdef.indices)))
+        if isinstance(label[0],str):
+            action_labels_num = np.array([self.taskdef.index(l) for l in label])
+            action_labels = np.squeeze(self.toOneHot2D(action_labels_num,
+                len(self.taskdef.indices)))
+        else:
+            action_labels = np.squeeze(self.toOneHot2D(label,
+                len(self.taskdef.indices)))
 
 
         [goal_features, goal_arm, goal_gripper] = NextAction( \
@@ -330,11 +337,11 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
 
         [features, arm, gripper, arm_cmd, gripper_cmd, action_labels,
-                goal_features, goal_arm, goal_gripper] = \
+                goal_features, goal_arm, goal_gripper, reward] = \
             SplitIntoChunks(
                 datasets=[features, arm, gripper, arm_cmd, gripper_cmd,
                     action_labels, goal_features, goal_arm, goal_gripper,],
-                reward=None, reward_threshold=0.,
+                reward=reward, reward_threshold=1.,
                 labels=example,
                 chunk_length=self.num_frames+2,
                 front_padding=True,
@@ -362,7 +369,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         print "joints:", q.shape,
         print "options:", oin.shape, o_target.shape
 
-        if True:
+        if False:
             # show the before and after frames
             for i in xrange(10):
                 for j in xrange(self.num_frames+2):
@@ -385,7 +392,6 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 q_target,
                 g_target,
                 action_labels,]
-
 
     def train(self, *args, **kwargs):
         '''

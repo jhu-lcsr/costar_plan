@@ -44,7 +44,11 @@ class AbstractAgentBasedModel(object):
         if self.task is not None:
             self.name += "_%s"%self.task
         if self.features is not None:
-            self.name += "_%s"%self.features
+            self.name += "_%s"%self.features   
+
+        # Define previous option for when executing -- this should default to
+        # None, set to 2 for testing only
+        self.prev_option = 2
 
         # default: store the whole model here.
         # NOTE: this may not actually be where you want to save it.
@@ -184,13 +188,20 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         super(HierarchicalAgentBasedModel, self).__init__(taskdef, *args, **kwargs)
         self.num_actions = 0
 
+        # =====================================================================
+        # Experimental hierarchical policy models:
+        # Predictor model learns the transition function T(x, u) --> (x')
         self.predictor = None
+        # Supervisor learns the high-level policy pi(x, o_-1) --> o
         self.supervisor = None
+        # Baseline is just a standard behavioral cloning policy pi(x) --> u
+        self.baseline = None
+        # All low-level policies pi(x,o) --> u
+        self.policies = []
 
+        # Helper models -- may be created or not (experimental code)
         self.predict_goal = None
         self.predict_next = None
-
-        self.prev_option = 0
         
     def _makeOption1h(self, option):
         opt_1h = np.zeros((1,self._numLabels()))
@@ -243,6 +254,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         self.supervisor.compile(
                 loss="binary_crossentropy",
                 optimizer=self.getOptimizer())
+        self.supervisor.summary()
         self.supervisor.fit(features, [label], epochs=self.epochs)
 
     def _fitPolicies(self, features, label, action):
@@ -295,14 +307,12 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         self.predictor.compile(
                 loss="mse",
                 optimizer=self.getOptimizer())
-        self.predictor.summary()
         self.predictor.fit(features, targets)
         self._fixWeights()
 
     def _fitBaseline(self, features, action):
         self._fixWeights()
         self.baseline.compile(loss="mse", optimizer=self.getOptimizer())
-        self.baseline.summary()
         self.baseline.fit(features, action, epochs=self.epochs)
 
     def save(self):
@@ -312,8 +322,10 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         if self.predictor is not None:
             print "saving to " + self.name
             self.predictor.save_weights(self.name + "_predictor.h5f")
-            self.supervisor.save_weights(self.name + "_supervisor.h5f")
-            self.baseline.save_weights(self.name + "_baseline.h5f")
+            if self.supervisor is not None:
+                self.supervisor.save_weights(self.name + "_supervisor.h5f")
+            if self.baseline is not None:
+                self.baseline.save_weights(self.name + "_baseline.h5f")
             for i, policy in enumerate(self.policies):
                 policy.save_weights(self.name + "_policy%02d.h5f"%i)
         else:
@@ -327,13 +339,25 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         if self.predictor is not None:
             print "----------------------------"
             print "using " + self.name + " to load"
-            self.baseline.load_weights(self.name + "_baseline.h5f")
+            try:
+                self.baseline.load_weights(self.name + "_baseline.h5f")
+            except Exception, e:
+                print e
             for i, policy in enumerate(self.policies):
-                policy.load_weights(self.name + "_policy%02d.h5f"%i)
-            self.supervisor.load_weights(self.name + "_supervisor.h5f")
+                try:
+                    policy.load_weights(self.name + "_policy%02d.h5f"%i)
+                except Exception, e:
+                    print e
+            try:
+                self.supervisor.load_weights(self.name + "_supervisor.h5f")
+            except Exception, e:
+                print e
             self.predictor.load_weights(self.name + "_predictor.h5f")
         else:
             raise RuntimeError('_loadWeights() failed: model not found.')
+
+    def reset(self):
+        self.prev_option = None
 
     def predict(self, world):
         '''

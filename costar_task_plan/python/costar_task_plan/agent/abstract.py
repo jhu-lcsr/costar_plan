@@ -36,8 +36,9 @@ import tensorflow as tf
 import numpy as np
 import os
 import signal
-from costar_models.datasets.tfrecord import TFRecordConverter
 
+from costar_models.datasets.tfrecord import TFRecordConverter
+from costar_models.datasets.npz import NpzDataset
 
 class AbstractAgent(object):
     '''
@@ -60,8 +61,10 @@ class AbstractAgent(object):
             save=False,
             load=False,
             directory='.',
+            window_length=10,
             data_file='data.npz',
             data_type=None,
+            seed=None,
             *args, **kwargs):
         '''
         Sets up the general Agent.
@@ -91,18 +94,23 @@ class AbstractAgent(object):
         self.verbose = verbose
         self.save = save
         self.load = load
+        self.current_example = {}
         self.last_example = None
         self.tfrecord_lambda_dict = None
         self.data_type = data_type
+        self.seed = seed
 
         if self.data_type == self.NUMPY_ZIP:
-            self.data = {}
+            self.npz_writer = NpzDataset(data_file.split('.')[0])
         else:
             self.tf_writer = TFRecordConverter(data_file)
 
         self.datafile_name = data_file
         self.datafile = os.path.join(directory, data_file)
         if self.load:
+            # =====================================================================
+            # This is necessary for reading data in to the models.
+            self.data = {}
             if os.path.isfile(self.datafile) and self.data_type == self.NUMPY_ZIP:
                 self.data.update(np.load(self.datafile))
             elif self.load:
@@ -115,7 +123,6 @@ class AbstractAgent(object):
       self._break = True
 
 
-
     def fit(self, num_iter=1000):
         '''
         Basic "fit" function used by custom Agents. Override this if you do not
@@ -123,7 +130,8 @@ class AbstractAgent(object):
 
         Params:
         ------
-        [none]
+        num_iter: optional param, number of experiments to run. Will be sent to
+                  the specific agent being used.
         '''
         self.last_example = None
         self.env.world.verbose = self.verbose
@@ -136,9 +144,6 @@ class AbstractAgent(object):
             pass
 
         if self.save:
-            if self.data_type == self.NUMPY_ZIP:
-                print("---- saving to %s ----" % self.datafile_name)
-                np.savez_compressed(self.datafile, **self.data)
             if self.data_type == self.TFRECORD:
                 self.tf_writer.close()
 
@@ -169,31 +174,134 @@ class AbstractAgent(object):
         if self.save:
             # Features can be either a tuple or a numpy array. If they're a
             # tuple, we handle them one way...
-            data = world.vectorize(control, features, reward, done, example, action_label)
-            self._updateDatasetWithSample(data)
+            data = world.vectorize(control, features, reward, done, example,
+                    action_label)
+            self._updateCurrentExample(data)
+            if done:
+                self._finishCurrentExample(world, example, reward)
 
-    def _updateDatasetWithSample(self, data):
+    def _updateCurrentExample(self, data):
         '''
-        Helper function. Currently writes data to a big dictionary, which gets
-        written out to a numpy archive.
-        '''
-        if self.data_type == self.TFRECORD:
-            if self.tf_writer.ready_to_write() is False:
-                self.tf_writer.prepare_to_write(data)
-            self.tf_writer.write_example(data)
+        Add to the current trial, so we can compute things over the whole
+        experiment.
 
-        elif self.data_type == self.NUMPY_ZIP:
-            for key, value in data:
-                    if key not in self.data:
-                        self.data[key] = [value]
-                    else:
-                        if isinstance(value, np.ndarray):
-                            assert value.shape == self.data[key][0].shape
-                        if not type(self.data[key][0]) == type(value):
-                            print(key, type(self.data[key][0]), type(value))
+        Parameters:
+        ----------
+        data: vectorized list of saveable information: control, features,
+              reward, done,  example, and (int) action label.
+        '''
+        for key,value in data:
+            if not key in self.current_example:
+                self.current_example[key] = [value]
+            else:
+                if isinstance(value, np.ndarray):
+                    assert value.shape == self.current_example[key][0].shape
+                if not type(self.current_example[key][0]) == type(value):
+                    print key, type(self.current_example[key][0]), type(value)
+                    raise RuntimeError('Types do not match when' + \
+                                       ' constructing data set.')
+                self.current_example[key].append(value)
+
+    def _finishCurrentExample(self, world, example, reward):
+        '''
+        Preprocess this particular example:
+        - split it up into different time windows of various sizes
+        - compute task result
+        - compute transition points
+        - compute option-level (mid-level) labels
+        '''
+
+        # ============================================================
+        # Split into chunks and preprocess the data.
+        # This may require setting up window_length, etc.
+        next_list = world.features.description + ["reward", "label"]
+        prev_list = ["label"]
+        final_list = world.features.description
+        goal_list = world.features.description
+        length = len(self.current_example['example'])
+
+        # Create an empty dict to hold all the data from this last trial.
+        data = {}
+
+        # Compute the points where the data changes from one label to the next
+        # and save these points as "goals".
+        switches = []
+        count = 1
+        label = self.current_example['label']
+        for i in xrange(length):
+            if i+1 == length:
+                switches += [i] * count
+                count = 1
+            elif not label[i+1] == label[i]:
+                switches += [i+1] * count
+                count = 1
+            else:
+                count += 1
+
+        assert(len(switches) == len(self.current_example['example']))
+
+        # ============================================
+        # Loop over all entries. For important items, take the previous frame
+        # and the next frame -- and possibly even the final frame.
+        for i in xrange(length):
+            i0 = max(i-1,0)
+            i1 = min(i+1,length-1)
+            ifinal = length-1
+
+            # ==========================================
+            # Finally, add the example to the dataset
+            for key, values in self.current_example.items():
+                if not key in data:
+                    data[key] = []
+                    if key in next_list:
+                        data["next_%s"%key] = []
+                    if key in prev_list:
+                        data["prev_%s"%key] = []
+                    if key in final_list:
+                        data["final_%s"%key] = []
+                    if key in goal_list:
+                        data["goal_%s"%key] = []
+                else:
+                    # Check data consistency
+                    if len(data[key]) > 0:
+                        if isinstance(values[0], np.ndarray):
+                            assert values[0].shape == data[key][0].shape
+                        if not type(data[key][0]) == type(values[0]):
+                            print key, type(data[key][0]), type(values[0])
                             raise RuntimeError('Types do not match when' + \
                                                ' constructing data set.')
-                        self.data[key].append(value)
+
+                    # Append list of features to the whole dataset
+                    data[key].append(values[i])
+                    if key in prev_list:
+                        data["prev_%s"%key].append(values[i0])
+                    if key in next_list:
+                        data["next_%s"%key].append(values[i1])
+                    if key in final_list:
+                        data["final_%s"%key].append(values[ifinal])
+                    if key in goal_list:
+                        data["goal_%s"%key].append(values[switches[i]])
+
+        # ================================================
+        # Handle TF Records. We save here instead of at the end.
+        if self.data_type == self.TFRECORD:
+
+            # TF writer prepare a sample
+            if self.tf_writer.ready_to_write() is False:
+                self.tf_writer.prepare_to_write(sample)
+
+            # Write all entries in data set to the TF record.
+            length = len(data.values()[0])
+            for i in xrange(length):
+                sample = []
+                for key, values in data:
+                    sample.append(key, values[i])
+                self.tf_writer.write_example(sample)
         else:
-            raise RuntimeError('file extension not recognized: %s'%self.data_type)
+            self.npz_writer.write(data, example, reward)
+    
+        # ================================================
+        # Reset the current example.
+        self.current_example = {}
+
 
