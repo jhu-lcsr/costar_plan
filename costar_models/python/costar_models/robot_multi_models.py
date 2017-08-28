@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape

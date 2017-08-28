@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 '''
 Chris Paxton
 (c) 2017 Johns Hopkins University
@@ -54,25 +56,25 @@ class AbstractAgentBasedModel(object):
         # NOTE: this may not actually be where you want to save it.
         self.model = None
 
-        print "==========================================================="
-        print "Name =", self.name
-        print "Features = ", self.features
-        print "Robot = ", self.robot
-        print "Task = ", self.task
-        print "Model type = ", model
-        print "Model description = ", self.model_descriptor
-        print "-----------------------------------------------------------"
-        print "Iterations = ", self.iter
-        print "Epochs = ", self.epochs
-        print "Batch size =", self.batch_size
-        print "Noise dim = ", self.noise_dim
-        print "Show images every %d iter"%self.show_iter
-        print "Pretrain for %d iter"%self.pretrain_iter
-        print "-----------------------------------------------------------"
-        print "Optimizer =", self.optimizer
-        print "Learning Rate = ", self.lr
-        print "Clip Norm = ", self.clipnorm
-        print "==========================================================="
+        print("===========================================================")
+        print("Name =", self.name)
+        print("Features = ", self.features)
+        print("Robot = ", self.robot)
+        print("Task = ", self.task)
+        print("Model type = ", model)
+        print("Model description = ", self.model_descriptor)
+        print("-----------------------------------------------------------")
+        print("Iterations = ", self.iter)
+        print("Epochs = ", self.epochs)
+        print("Batch size =", self.batch_size)
+        print("Noise dim = ", self.noise_dim)
+        print("Show images every %d iter"%self.show_iter)
+        print("Pretrain for %d iter"%self.pretrain_iter)
+        print("-----------------------------------------------------------")
+        print("Optimizer =", self.optimizer)
+        print("Learning Rate = ", self.lr)
+        print("Clip Norm = ", self.clipnorm)
+        print("===========================================================")
 
     def _numLabels(self):
         '''
@@ -91,7 +93,7 @@ class AbstractAgentBasedModel(object):
         Save to a filename determined by the "self.name" field.
         '''
         if self.model is not None:
-            print "saving to " + self.name
+            print("saving to " + self.name)
             self.model.save_weights(self.name + ".h5f")
         else:
             raise RuntimeError('save() failed: model not found.')
@@ -127,7 +129,7 @@ class AbstractAgentBasedModel(object):
         need to overload this for specific models.
         '''
         if self.model is not None:
-            print "using " + self.name + ".h5f"
+            print("using " + self.name + ".h5f")
             self.model.load_weights(self.name + ".h5f")
         else:
             raise RuntimeError('_loadWeights() failed: model not found.')
@@ -141,7 +143,7 @@ class AbstractAgentBasedModel(object):
             optimizer.lr = self.lr
             optimizer.clipnorm = self.clipnorm
         except Exception, e:
-            print e
+            print(e)
             raise RuntimeError('asdf')
         return optimizer
 
@@ -230,8 +232,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         '''
         This is the helper that actually sets everything up.
         '''
-        num_labels = label.shape[-1]
-        assert num_labels == self._numLabels()
+        num_labels = self._numLabels()
         hidden, self.supervisor, self.predictor, \
                 self.predict_goal, self.predict_next = \
                 self._makeSupervisor(features)
@@ -284,13 +285,12 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
             if isinstance(action, list):
                 a = [ac[idx==i] for ac in action]
                 if len(a) == 0 or a[0].shape[0] == 0:
-                    print 'WARNING: no examples for %d'%i
+                    print('WARNING: no examples for %d'%i)
                     continue
             else:
                 a = action[idx==i]
                 if a.shape[0] == 0:
-                    #raise RuntimeError('no examples for %d'%i)
-                    print 'WARNING: no examples for %d'%i
+                    print('WARNING: no examples for %d'%i)
                     continue
             model.fit(x, a, epochs=self.epochs)
 
@@ -325,7 +325,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         Save to a filename determined by the "self.name" field.
         '''
         if self.predictor is not None:
-            print "saving to " + self.name
+            print("saving to " + self.name)
             self.predictor.save_weights(self.name + "_predictor.h5f")
             if self.supervisor is not None:
                 self.supervisor.save_weights(self.name + "_supervisor.h5f")
@@ -342,21 +342,21 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         need to overload this for specific models.
         '''
         if self.predictor is not None:
-            print "----------------------------"
-            print "using " + self.name + " to load"
+            print("----------------------------")
+            print("using " + self.name + " to load")
             try:
                 self.baseline.load_weights(self.name + "_baseline.h5f")
             except Exception, e:
-                print e
+                print(e)
             for i, policy in enumerate(self.policies):
                 try:
                     policy.load_weights(self.name + "_policy%02d.h5f"%i)
                 except Exception, e:
-                    print e
+                    print(e)
             try:
                 self.supervisor.load_weights(self.name + "_supervisor.h5f")
             except Exception, e:
-                print e
+                print(e)
             self.predictor.load_weights(self.name + "_predictor.h5f")
         else:
             raise RuntimeError('_loadWeights() failed: model not found.')
@@ -381,11 +381,9 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
                 [self._makeOption1h(self.prev_option)])
         next_policy = np.argmax(res)
 
-        print "next policy = ", next_policy,
+        print("next policy = ", next_policy,)
         if self.taskdef is not None:
-            print self.taskdef.name(next_policy)
-        else:
-            print ""
+            print("taskdef =", self.taskdef.name(next_policy))
         one_hot = np.zeros((1,self._numLabels()))
         one_hot[0,next_policy] = 1.
         features2 = features + [one_hot]
