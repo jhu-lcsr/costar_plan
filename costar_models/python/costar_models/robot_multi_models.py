@@ -275,7 +275,7 @@ def GetEncoder3D(img_shape, arm_size, gripper_size, dropout_rate,
 
 def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         filters, discriminator=False, tile=False, dropout=True, leaky=True,
-        dense=True, option=None, flatten=True,
+        dense=True, option=None, flatten=True, batchnorm=False,
         pre_tiling_layers=0,
         post_tiling_layers=2,
         kernel_size=[3,3],
@@ -339,6 +339,8 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
                 strides=(1, 1),
                 padding='same'))(x)
     x = ApplyTD(relu())(x)
+    if batchnorm:
+        x = ApplyTD(BatchNormalization(momentum=0.9))(x)
     if dropout:
         x = ApplyTD(Dropout(dropout_rate))(x)
 
@@ -348,6 +350,8 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
                    kernel_size=kernel_size, 
                    strides=(2, 2),
                    padding='same'))(x)
+        if batchnorm:
+            x = ApplyTD(BatchNormalization(momentum=0.9))(x)
         x = ApplyTD(relu())(x)
         #x = MaxPooling2D(pool_size=(2,2))(x)
         if dropout:
@@ -372,6 +376,8 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
                    kernel_size=kernel_size, 
                    strides=(2, 2),
                    padding='same'))(x)
+        if batchnorm:
+            x = ApplyTD(BatchNormalization(momentum=0.9))(x)
         x = relu()(x)
         #x = MaxPooling2D(pool_size=(2,2))(x)
         if dropout:

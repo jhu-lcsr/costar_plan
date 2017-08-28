@@ -120,6 +120,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 post_tiling_layers=3,
                 kernel_size=[5,5],
                 dense=False,
+                batchnorm=True,
                 tile=True,
                 option=64,#self._numLabels(),
                 flatten=False,
