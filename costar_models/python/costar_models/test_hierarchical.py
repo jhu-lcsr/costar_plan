@@ -149,7 +149,7 @@ class TestHierarchical(HierarchicalAgentBasedModel):
         We ignore inputs including the reward (for now!)
         '''
     
-        print(" ------- DATA -------- "
+        print(" ------- DATA -------- ")
         print("features:", features.shape)
         print("actions:", action.shape)
         print("labels:", label.shape, "max:", max(label))

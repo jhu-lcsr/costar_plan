@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 import numpy as np
 import os
@@ -19,7 +20,7 @@ class NpzDataset(object):
         self.name = name 
         try:
             os.mkdir(name)
-        except Exception, e:
+        except OSError:
             pass
 
     def write(self, example, i, r):
@@ -56,7 +57,7 @@ class NpzDataset(object):
         for f in files:
             if not f[0] == '.':
                 i += 1
-                print "%d:"%i, f
+                print("%d:"%i, f)
                 if success_only:
                     name = f.split('.')
                     if name[0] == 'failure':
