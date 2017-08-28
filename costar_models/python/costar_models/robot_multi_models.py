@@ -288,8 +288,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         if option is not None:
             option_in = Input((1,))
             #option_in = Input((option,))
-            option_x = Lambda(lambda x: tf.one_hot(tf.cast(x, tf.int32),
-                option),name="label_to_one_hot")(option_in)
+            option_x = OneHot(size=option)(option_in)
             option_x = Reshape((option,))(option_x)
         else:
             option_in, option_x = None, None
@@ -307,9 +306,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         if option is not None:
             option_in = Input((time_distributed,1,))
             #option_in = Input((time_distributed,option,))
-            option_x = TimeDistributed(Lambda(
-                lambda x: tf.one_hot(tf.cast(x, tf.int32),
-                option)),name="label_to_one_hot")(option_in)
+            option_x = TimeDistributed(OneHot(size=option),name="label_to_one_hot")(option_in)
             option_x = Reshape((time_distributed,option,))(option_x)
         else:
             option_in, option_x = None, None

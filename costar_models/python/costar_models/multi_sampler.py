@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 import keras.backend as K
 import keras.losses as losses
@@ -229,7 +230,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
             losses = self.train_predictor.train_on_batch(x, y)
 
-            print "Iter %d: loss ="%(i),losses
+            print("Iter %d: loss ="%(i),losses)
             if self.show_iter > 0 and (i+1) % self.show_iter == 0:
                 self.plotPredictions(features, targets, axes)
 
@@ -238,8 +239,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
     def plotPredictions(self, features, targets, axes):
         subset = [f[range(0,60,10)] for f in features]
         data = self.predictor.predict(subset)
-        #print "RESULT[0] SHAPE >>>", data[0].shape
-        #print "ALL RESULTS SHAPE >>>", data.shape
         for j in xrange(6):
             jj = j * 10
             ax = axes[1][j]
@@ -289,10 +288,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         I_target = goal_features
         o_target = label
 
-        print "sanity check:",
-        print "images:", I.shape, I_target.shape
-        print "joints:", q.shape,
-        print "options:", oin.shape, o_target.shape
+        print("sanity check:")
+        print("-------------")
+        print("images:", I.shape, I_target.shape)
+        print("joints:", q.shape)
+        print("options:", oin.shape, o_target.shape)
 
         if self.predictor is None:
             self._makeModel(I, q, g, qa, ga, oin)

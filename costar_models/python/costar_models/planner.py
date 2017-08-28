@@ -236,4 +236,5 @@ def GetImageDecoder(dim, img_shape,
 
     return ins, x
 
-
+def OneHot(size=64):
+    return Lambda(lambda x: tf.one_hot(tf.cast(x, tf.int32),size),name="label_to_one_hot")
