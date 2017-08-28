@@ -36,6 +36,7 @@ FLAGS = flags.FLAGS
 
 class GraspTrain(object):
 
+    @staticmethod
     def _image_augmentation(image):
         """Performs data augmentation by randomly permuting the inputs.
 
@@ -65,7 +66,8 @@ class GraspTrain(object):
             image = tf.image.rgb_to_grayscale(image)
         return image
 
-    def _imagenet_mean_subtraction(self, tensor):
+    @staticmethod
+    def _imagenet_mean_subtraction(tensor):
         """Do imagenet preprocessing, but make sure the network you are using needs it!
 
            zero centers by mean pixel.
@@ -85,10 +87,10 @@ class GraspTrain(object):
         rgb_image_op = tf.squeeze(rgb_image_op)
         # apply image augmentation and imagenet preprocessing steps adapted from keras
         if image_augmentation:
-            rgb_image_op = self._image_augmentation(rgb_image_op)
+            rgb_image_op = GraspTrain._image_augmentation(rgb_image_op)
         rgb_image_op = tf.cast(rgb_image_op, tf.float32)
         if imagenet_mean_subtraction:
-            rgb_image_op = self._imagenet_mean_subtraction(rgb_image_op)
+            rgb_image_op = GraspTrain._imagenet_mean_subtraction(rgb_image_op)
         return tf.cast(rgb_image_op, tf.float32)
 
     def train(self, dataset=FLAGS.grasp_dataset, batch_size=1, epochs=FLAGS.epochs,
