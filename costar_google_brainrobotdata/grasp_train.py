@@ -1,4 +1,5 @@
 import tensorflow as tf
+import keras
 from keras import backend as K
 from keras.applications.imagenet_utils import preprocess_input
 import grasp_dataset
@@ -9,6 +10,10 @@ from tensorflow.python.platform import flags
 
 tf.flags.DEFINE_string('grasp_model', 'grasp_model_single',
                        """Choose the model definition to run, options are grasp_model and grasp_model_segmentation""")
+tf.flags.DEFINE_string('save_weights', 'grasp_model_weights.h5',
+                       """Save a file with the trained model weights.""")
+tf.flags.DEFINE_string('load_weights', 'grasp_model_weights.h5',
+                       """Load and continue training the specified file containing model weights.""")
 tf.flags.DEFINE_integer('steps_per_epoch', 1000,
                         """number of steps per epoch of training""")
 tf.flags.DEFINE_integer('epochs', 100,
@@ -31,7 +36,8 @@ class GraspTrain(object):
         pixel_value_offset = tf.constant([103.939, 116.779, 123.68])
         return tf.subtract(tensor, pixel_value_offset)
 
-    def train(self, dataset=FLAGS.grasp_dataset, steps_per_epoch=FLAGS.steps_per_epoch, batch_size=1, epochs=FLAGS.epochs, load_weights="",
+    def train(self, dataset=FLAGS.grasp_dataset, steps_per_epoch=FLAGS.steps_per_epoch, batch_size=1, epochs=FLAGS.epochs,
+              load_weights='grasp_model_weights.h5',
               save_weights='grasp_model_weights.h5',
               imagenet_preprocessing=True,
               make_model_fn=grasp_model.grasp_model,
@@ -123,13 +129,26 @@ class GraspTrain(object):
             )
 
         if(load_weights):
-            model.load_weights(load_weights)
+            if os.path.isfile(load_weights):
+                model.load_weights(load_weights)
+            else:
+                print('Could not load weights {}, the file does not exist, starting fresh....'.format(load_weights))
 
-        model.compile(optimizer='adam',
+        callbacks = []
+        callbacks.append(ModelCheckpoint(save_weights + '.{epoch:03d}-{val_loss:.2f}.h5', save_best_only=True, verbose=1))
+
+        # Nadam parameter choice:
+        # https://github.com/tensorflow/tensorflow/pull/9175#issuecomment-295395355
+        optimizer = keras.optimizers.Nadam(lr=0.004, beta_1=0.825, beta_2=0.99685)
+
+        model.compile(optimizer=optimizer,
                       loss='binary_crossentropy',
                       metrics=['accuracy'],
                       target_tensors=[grasp_success_op_batch]
+                      callbacks=callbacks
                       )
+
+        model.summary()
 
         model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch)
         model.save_weights('grasp_model_weights.h5')
