@@ -220,6 +220,7 @@ class GraspTrain(object):
                     pregrasp_op_batch.append(pregrasp_image_rgb_op)
                     grasp_step_rgb_feature_op = self._rgb_preprocessing(fixed_feature_op_dict[grasp_step_rgb_feature_name])
                     grasp_step_op_batch.append(grasp_step_rgb_feature_op)
+                    print("fixed_feature_op_dict[pose_op_param]: ", fixed_feature_op_dict[pose_op_param])
                     simplified_grasp_command_op_batch.append(fixed_feature_op_dict[pose_op_param])
                     grasp_success_op_batch.append(grasp_success_op)
 
