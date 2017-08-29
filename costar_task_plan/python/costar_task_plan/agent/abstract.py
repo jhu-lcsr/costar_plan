@@ -142,6 +142,11 @@ class AbstractAgent(object):
         '''
         Basic "fit" function used by custom Agents. Override this if you do not
         want the saving, loading, signal-catching behavior we construct here.
+        This function will run a number of experiments in different
+        environments, updating a data store as it goes.
+
+        Various agents provide support for reinforcement learning, supervised
+        learning from demonstration, and others.
 
         Params:
         ------
