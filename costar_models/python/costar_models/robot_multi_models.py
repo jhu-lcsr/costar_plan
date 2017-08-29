@@ -1,10 +1,11 @@
+from __future__ import print_function
 
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
 from keras.layers import UpSampling2D, Conv2DTranspose
 from keras.layers import BatchNormalization, Dropout
 from keras.layers import Dense, Conv2D, Activation, Flatten, LSTM, ConvLSTM2D
-from keras.layers import Lambda, Conv3D
+from keras.layers import Lambda, Conv3D, MaxPooling2D
 from keras.layers.wrappers import TimeDistributed
 from keras.layers.merge import Concatenate
 from keras.losses import binary_crossentropy
@@ -275,7 +276,7 @@ def GetEncoder3D(img_shape, arm_size, gripper_size, dropout_rate,
 
 def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         filters, discriminator=False, tile=False, dropout=True, leaky=True,
-        dense=True, option=None, flatten=True,
+        dense=True, option=None, flatten=True, batchnorm=False,
         pre_tiling_layers=0,
         post_tiling_layers=2,
         kernel_size=[3,3],
@@ -286,9 +287,11 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         arm_in = Input((arm_size,))
         gripper_in = Input((gripper_size,))
         if option is not None:
-            option_in = Input((option,))
+            option_in = Input((1,))
+            option_x = OneHot(size=option)(option_in)
+            option_x = Reshape((option,))(option_x)
         else:
-            option_in = None
+            option_in, option_x = None, None
         height4 = img_shape[0]/4
         width4 = img_shape[1]/4
         height2 = img_shape[0]/2
@@ -301,9 +304,11 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         arm_in = Input((time_distributed, arm_size,))
         gripper_in = Input((time_distributed, gripper_size,))
         if option is not None:
-            option_in = Input((time_distributed,option,))
+            option_in = Input((time_distributed,1,))
+            option_x = TimeDistributed(OneHot(size=option),name="label_to_one_hot")(option_in)
+            option_x = Reshape((time_distributed,option,))(option_x)
         else:
-            option_in = None
+            option_in, option_x = None, None
         height4 = img_shape[1]/4
         width4 = img_shape[2]/4
         height2 = img_shape[1]/2
@@ -330,6 +335,8 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
                 strides=(1, 1),
                 padding='same'))(x)
     x = ApplyTD(relu())(x)
+    if batchnorm:
+        x = ApplyTD(BatchNormalization(momentum=0.9))(x)
     if dropout:
         x = ApplyTD(Dropout(dropout_rate))(x)
 
@@ -339,7 +346,10 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
                    kernel_size=kernel_size, 
                    strides=(2, 2),
                    padding='same'))(x)
+        if batchnorm:
+            x = ApplyTD(BatchNormalization(momentum=0.9))(x)
         x = ApplyTD(relu())(x)
+        #x = MaxPooling2D(pool_size=(2,2))(x)
         if dropout:
             x = ApplyTD(Dropout(dropout_rate))(x)
 
@@ -353,7 +363,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         else:
             ins = [samples, arm_in, gripper_in]
         x = TileArmAndGripper(x, arm_in, gripper_in, tile_height, tile_width,
-                option, option_in, time_distributed)
+                option, option_x, time_distributed)
     else:
         ins = [samples]
 
@@ -362,7 +372,10 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
                    kernel_size=kernel_size, 
                    strides=(2, 2),
                    padding='same'))(x)
+        if batchnorm:
+            x = ApplyTD(BatchNormalization(momentum=0.9))(x)
         x = relu()(x)
+        #x = MaxPooling2D(pool_size=(2,2))(x)
         if dropout:
             x = Dropout(dropout_rate)(x)
 
@@ -390,7 +403,7 @@ def AddOptionTiling(x, option_length, option_in, height, width):
 
 def GetDecoder(dim, img_shape, arm_size, gripper_size,
         dropout_rate, filters, kernel_size=[3,3], dropout=True, leaky=True,
-        batchnorm=True,dense=True, option=None,
+        batchnorm=True,dense=True, option=None, num_hypotheses=None,
         stride2_layers=2, stride1_layers=1):
 
     '''
@@ -413,7 +426,7 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
         relu = lambda: Activation('relu')
 
     if option is not None:
-        oin = Input((option,),name="input_next_option")
+        oin = Input((1,),name="input_next_option")
 
     if dense:
         z = Input((dim,),name="input_image")
@@ -438,11 +451,13 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
         if batchnorm:
             x = BatchNormalization(momentum=0.9)(x)
         x = relu()(x)
+        #x = UpSampling2D(size=(2,2))(x)
         if dropout:
             x = Dropout(dropout_rate)(x)
 
         if option is not None:
-            x = AddOptionTiling(x, option, oin, height, width)
+            opt = OneHot(option)(oin)
+            x = AddOptionTiling(x, option, opt, height, width)
 
         height *= 2
         width *= 2
@@ -458,7 +473,8 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
         if dropout:
             x = Dropout(dropout_rate)(x)
         if option is not None:
-            x = AddOptionTiling(x, option, oin, height, width)
+            opt = OneHot(option)(oin)
+            x = AddOptionTiling(x, option, opt, height, width)
 
     x = Conv2D(nchannels, (1, 1), padding='same')(x)
     x = Activation('sigmoid')(x)
@@ -565,92 +581,3 @@ def GetEncoder2(img_shape, arm_size, gripper_size, dim, dropout_rate,
 
     return ins, x
 
-def GetDecoder2(dim, img_shape, arm_size, gripper_size,
-        dropout_rate, filters):
-
-    '''
-    Initial decoder: just based on getting images out of the world state
-    created via the encoder.
-    '''
-
-    height4 = img_shape[0]/4
-    width4 = img_shape[1]/4
-    height2 = img_shape[0]/2
-    width2 = img_shape[1]/2
-    nchannels = img_shape[2]
-
-    z = Input((dim,))
-
-    x = Dense(filters/2 * height2 * width2)(z)
-    x = BatchNormalization(momentum=0.9)(x)
-    x = Activation('relu')(x)
-    x = Reshape((width2,height2,filters/2))(x)
-    x = Dropout(dropout_rate)(x)
-
-    for i in xrange(1):
-        x = Conv2DTranspose(filters,
-                   kernel_size=[5, 5], 
-                   strides=(2, 2),
-                   padding='same')(x)
-        x = BatchNormalization(momentum=0.9)(x)
-        x = Activation('relu')(x)
-        x = Dropout(dropout_rate)(x)
-
-    for i in xrange(1):
-        x = Conv2D(filters/2, # + num_labels
-                   kernel_size=[5, 5], 
-                   strides=(1, 1),
-                   padding="same")(x)
-        x = BatchNormalization(momentum=0.9)(x)
-        x = LeakyReLU(alpha=0.2)(x)
-        x = Dropout(dropout_rate)(x)
-
-    x = Conv2D(nchannels, (1, 1), padding='same')(x)
-    x = Activation('sigmoid')(x)
-
-    return z, x
-
-def GetDecoderAlbert(dim, img_shape, arm_size, gripper_size,
-        dropout_rate, filters):
-
-    '''
-    Initial decoder: just based on getting images out of the world state
-    created via the encoder.
-    '''
-
-    height4 = img_shape[0]/4
-    width4 = img_shape[1]/4
-    height2 = img_shape[0]/2
-    width2 = img_shape[1]/2
-    nchannels = img_shape[2]
-
-    z = Input((dim,))
-
-    x = Dense(filters/2 * height2 * width2)(z)
-    #x = BatchNormalization(momentum=0.9)(x)
-    x = Activation('relu')(x)
-    x = Reshape((width2,height2,filters/2))(x)
-    x = Dropout(dropout_rate)(x)
-
-    for i in xrange(1):
-        x = Conv2DTranspose(filters,
-                   kernel_size=[5, 5], 
-                   strides=(2, 2),
-                   padding='same')(x)
-        #x = BatchNormalization(momentum=0.9)(x)
-        x = Activation('relu')(x)
-        x = Dropout(dropout_rate)(x)
-
-    for i in xrange(1):
-        x = TimeDistributed(Conv2D(filters/2, # + num_labels
-                   kernel_size=[5, 5], 
-                   strides=(1, 1),
-                   padding="same")(x))
-        #x = BatchNormalization(momentum=0.9)(x)
-        x = LeakyReLU(alpha=0.2)(x)
-        x = Dropout(dropout_rate)(x)
-
-    x = TimeDistributed(Conv2D(nchannels, (1, 1), padding='same'))(x)
-    x = Activation('sigmoid')(x)
-
-    return z, x

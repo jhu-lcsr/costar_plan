@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 import numpy as np
 
@@ -37,6 +38,6 @@ class GmmDynamics(AbstractDynamics):
   non-hero actor.
   '''
   def __call__(self,state,action,dt):
-    print state.world
-    print state.world.initial_features
+    print(state.world)
+    print(state.world.initial_features)
     new_f0 = np.append(state.world.initial_features, action.toArray())

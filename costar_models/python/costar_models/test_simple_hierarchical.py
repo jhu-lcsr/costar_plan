@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 import keras.backend as K
 import keras.losses as losses
 import keras.optimizers as optimizers
@@ -117,8 +119,8 @@ class TestSimpleHierarchical(AbstractAgentBasedModel):
         We ignore inputs including the reward (for now!)
         '''
 
-        print " ------- DATA -------- "
-        print "raw features", features.shape
+        print(" ------- DATA -------- ")
+        print("raw features", features.shape)
         [features, action, label, reward, ok] = \
                 SplitIntoChunks([features, action, label,
                     reward, ok],
@@ -129,14 +131,14 @@ class TestSimpleHierarchical(AbstractAgentBasedModel):
         raise RuntimeError('this example needs to be updated -- staggered data')
         ok = np.expand_dims(ok, -1)
         next_ok = np.expand_dims(next_ok, -1)
-        print "-------------"
-        print "stagger comp:"
-        print reward[1]
-        print next_reward[1]
-        print " ------- DATA BATCHED -------- "
-        print "features", features.shape
-        print "actions", action.shape
-        print "rewards", reward.shape
+        print("-------------")
+        print("stagger comp:")
+        print(reward[1])
+        print(next_reward[1])
+        print(" ------- DATA BATCHED -------- ")
+        print("features", features.shape)
+        print("actions", action.shape)
+        print("rewards", reward.shape)
         if len(reward.shape) == 2:
             reward = np.expand_dims(reward, -1)
         num_actions = int(np.max(label)+1)
@@ -145,13 +147,13 @@ class TestSimpleHierarchical(AbstractAgentBasedModel):
         
         """
         Uncomment this to make 1d
-        print "------ TO: ----------"
+        print("------ TO: ----------")
         label = np.squeeze(label[:,-1])
         next_features = np.squeeze(next_features[:,-1])
         next_ok = np.squeeze(next_ok[:,-1])
-        print label.shape
-        print next_features.shape
-        print next_ok.shape
+        print(label.shape)
+        print(next_features.shape)
+        print(next_ok.shape
         """
         self.model.fit([features, action], [label, next_features, next_ok], epochs=self.epochs)
 
@@ -198,10 +200,10 @@ if __name__ == '__main__':
     try:
         sampler.train(**data)
     except KeyboardInterrupt, e:
-        print e
+        print(e)
     sampler.plot(**data)
     sampler.save()
 
-    print "done, waiting on you..."
+    print("done, waiting on you...")
     while(True):
         plt.pause(0.1)

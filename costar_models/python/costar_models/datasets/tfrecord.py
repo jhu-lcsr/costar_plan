@@ -138,8 +138,8 @@ class TFRecordConverter(object):
 
         # Arguments
 
-           data_to_write: A dictionary from feature strings to feature values.
-               Values can be numpy arrays, floats, or integers.
+           data_to_write: A list of tuples of the form (feature name, data
+               type). Values can be numpy arrays, floats, or integers.
 
         See also: feature_dict_dtype_converter
         """

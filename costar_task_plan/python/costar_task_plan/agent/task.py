@@ -37,6 +37,7 @@ from abstract import AbstractAgent
 from costar_task_plan.mcts import ContinuousSamplerTaskPolicies
 from costar_task_plan.mcts import Node, OptionsExecutionManager
 
+import numpy as np
 
 class TaskAgent(AbstractAgent):
     '''
@@ -67,6 +68,13 @@ class TaskAgent(AbstractAgent):
             raise RuntimeError('environment must have associated compiled task model!')
 
         for i in xrange(num_iter):
+
+            # Initialize random number generator so we get consistent results
+            # when generating levels. This lets us more easily debug problems
+            # with task models and with learned policies.
+            if self.seed is not None:
+                np.random.seed(self.seed+i)
+
             print "---- Iteration %d ----"%(i+1)
             self.env.reset()
 
@@ -83,7 +91,8 @@ class TaskAgent(AbstractAgent):
                             reward,
                             done,
                             i,
-                            task.indices[names[plan.idx]])
+                            task.index(names[plan.idx]),
+                            task.numIndices())
                     if done:
                         break
                 else:

@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 import keras.backend as K
 import keras.losses as losses
@@ -45,17 +46,16 @@ class RobotMultiLSTMRegression(AbstractAgentBasedModel):
         
         self.dropout_rate = 0.5
         
-        self.img_dense_size = 512
-        self.img_col_dim = 256
+        self.img_dense_size = 128
+        self.img_col_dim = 128
         self.img_num_filters = 32
         self.robot_col_dense_size = 128
         self.robot_col_dim = 64
         self.combined_dense_size = 64
 
         self.num_frames = 10
-        self.tcn_filters = 128
-        self.num_tcn_levels = 2
-        self.tcn_dense_size = 128
+        self.num_lstm_levels = 3
+        self.lstm_dim = 64
 
         self.buffer_img = []
         self.buffer_arm = []
@@ -97,12 +97,12 @@ class RobotMultiLSTMRegression(AbstractAgentBasedModel):
                 post_tiling_layers=2,
                 time_distributed=10)
 
-        for i in xrange(self.num_tcn_levels):
-            if i < self.num_tcn_levels - 1:
+        for i in xrange(self.num_lstm_levels):
+            if i < self.num_lstm_levels - 1:
                 return_seq = True
             else:
                 return_seq = False
-            x = LSTM(self.tcn_filters, return_sequences=return_seq)(x)
+            x = LSTM(self.lstm_dim, return_sequences=return_seq)(x)
 
         arm_out = Dense(arm_size)(x)
         gripper_out = Dense(gripper_size)(x)
@@ -114,7 +114,7 @@ class RobotMultiLSTMRegression(AbstractAgentBasedModel):
         self.model = model
 
     def train(self, features, arm, gripper, arm_cmd, gripper_cmd, example,
-            label,
+            label, reward,
             *args, **kwargs):
         '''
         Training data -- just direct regression based on MSE from the other
@@ -132,15 +132,18 @@ class RobotMultiLSTMRegression(AbstractAgentBasedModel):
 
             features = features[example_in_allowed]
             arm = arm[example_in_allowed]
+            reward = reward[example_in_allowed]
             gripper = gripper[example_in_allowed]
             arm_cmd = arm_cmd[example_in_allowed]
             gripper_cmd = gripper_cmd[example_in_allowed]
             label = label[example_in_allowed]
             example = example[example_in_allowed]
 
-        [features, arm, gripper, arm_cmd, gripper_cmd] = \
+        [features, arm, gripper, arm_cmd, gripper_cmd, reward] = \
                 SplitIntoChunks(
                         datasets=[features, arm, gripper, arm_cmd, gripper_cmd],
+                        reward=reward,
+                        reward_threshold=1.0,
                         labels=example,
                         chunk_length=self.num_frames,
                         front_padding=True,

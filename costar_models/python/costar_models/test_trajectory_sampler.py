@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 import keras.backend as K
 import keras.losses as losses
 import keras.optimizers as optimizers
@@ -74,10 +76,10 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
         We ignore inputs including the reward (for now!)
         '''
 
-        print " ------- DATA -------- "
-        print features.shape
-        print action.shape
-        print state.shape
+        print(" ------- DATA -------- ")
+        print(features.shape)
+        print(action.shape)
+        print(state.shape)
 
         state = state[:,:2]
         orig_features = features
@@ -89,8 +91,7 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
                 front_padding=False,
                 rear_padding=True,)
 
-        #state = state[:,:,:5]
-        print "state vars =", state.shape
+        print("state vars =", state.shape)
 
         # Get images for input and output from the network.
         fdata_in = FirstInChunk(features)
@@ -99,11 +100,11 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
         features_size = features.shape[-1]
         state_size = state.shape[-1]
 
-        print "-------------------------------"
-        print "KEY VARIABLES:"
-        print "# features =", features_size
-        print "# state vars =", state_size
-        print "-------------------------------"
+        print("-------------------------------")
+        print("KEY VARIABLES:")
+        print("# features =", features_size)
+        print("# state vars =", state_size)
+        print("-------------------------------")
 
         # Noise for sampling
         noise_in = Input((self.noise_dim,))
@@ -165,7 +166,7 @@ class TestTrajectorySampler(AbstractAgentBasedModel):
 
             noise = np.random.random((self.batch_size, self.noise_dim))
             loss = self.model.train_on_batch([xf, xs, noise], ya)
-            print "Iter %d: loss = %f"%(i,loss)
+            print("Iter %d: loss = %f"%(i,loss))
 
 
             if self.show_iter > 0 and (i+1) % self.show_iter == 0:

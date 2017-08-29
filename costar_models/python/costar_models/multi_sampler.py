@@ -5,25 +5,25 @@ import keras.losses as losses
 import keras.optimizers as optimizers
 import numpy as np
 
-from matplotlib import pyplot as plt
-
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
 from keras.layers import UpSampling2D, Conv2DTranspose
 from keras.layers import BatchNormalization, Dropout
 from keras.layers import Dense, Conv2D, Activation, Flatten
+from keras.layers.embeddings import Embedding
 from keras.layers.merge import Concatenate
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 from keras.optimizers import Adam
+from matplotlib import pyplot as plt
 
-from abstract import HierarchicalAgentBasedModel
-
+from abstract import *
+from multi_hierarchical import *
 from robot_multi_models import *
 from split import *
-from preprocess import *
+from mhp_loss import *
 
-class RobotMultiHierarchical(HierarchicalAgentBasedModel):
+class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
     '''
     This is the "divide and conquer"-style classifier for training a multilevel
@@ -38,27 +38,23 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
     def __init__(self, taskdef, *args, **kwargs):
         '''
-        Similarly to everything else -- we need a taskdef here.
-
         As in the other models, we call super() to parse arguments from the
         command line and set things like our optimizer and learning rate.
         '''
-        super(RobotMultiHierarchical, self).__init__(taskdef, *args, **kwargs)
+        super(RobotMultiPredictionSampler, self).__init__(taskdef, *args, **kwargs)
 
         self.num_frames = 1
 
         self.dropout_rate = 0.5
-        self.img_dense_size = 1024
         self.img_col_dim = 512
-        self.img_num_filters = 128
+        self.img_num_filters = 64
         self.combined_dense_size = 128
-        self.partition_step_size = 2
+        self.num_hypotheses = 4
 
-    def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, label, *args, **kwargs):
-        self._makeHierarchicalModel(
-                (features, arm, gripper),
-                (arm_cmd, gripper_cmd),
-                label)
+        self.predictor = None
+        self.train_predictor = None
+        self.actor = None
+
 
     def _makePolicy(self, features, action, hidden=None):
         '''
@@ -104,7 +100,10 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
         return policy
 
-    def _makeSupervisor(self, features):
+    def _makePredictor(self, features):
+        '''
+        Create model to predict possible manipulation goals.
+        '''
         (images, arm, gripper) = features
         img_shape = images.shape[1:]
         arm_size = arm.shape[-1]
@@ -125,52 +124,16 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 post_tiling_layers=3,
                 kernel_size=[5,5],
                 dense=False,
+                batchnorm=True,
                 tile=True,
-                option=None,#self._numLabels(),
+                option=64,#self._numLabels(),
                 flatten=False,
                 )
 
-        # Tile on the option -- this is where our transition model comes in.
-        # Options are represented as a one-hot vector added to all possible
-        # positions in the image, and essentially give us _numLabels()
-        # additional image channels.
-        tile_width = img_shape[0]/(2**3)
-        tile_height = img_shape[1]/(2**3)
-        tile_shape = (1, tile_width, tile_height, 1)
 
-
-        # =====================================================================
-        # Add in the chosen option
-        #option_in = Input((self._numLabels(),),name="chosen_option_in")
-        option_in = Input((1,),name="chosen_option_in")
-        option = OneHot(size=64)(option_in)
-        option = Reshape([1,1,64])(option)
-        option = Lambda(lambda x: K.tile(x, tile_shape))(option)
-        enc_with_option = Concatenate(
-                axis=-1,
-                name="add_option_info")([enc,option])
-
-        # ---------------------------------------------------------------------
-        goal_enc_with_option = Conv2D(self.img_num_filters,
-                kernel_size=[5,5], 
-                strides=(1, 1),
-                padding='same')(enc_with_option)
-        goal_enc_with_option = LeakyReLU(0.2,name='goal_encoding_with_option')(goal_enc_with_option)
-        # ---------------------------------------------------------------------
-        next_frame_enc_with_option = Conv2D(self.img_num_filters,
-                kernel_size=[5,5], 
-                strides=(1, 1),
-                padding='same')(enc_with_option)
-        next_frame_enc_with_option = LeakyReLU(0.2,name='next_frame_encoding_with_option')(next_frame_enc_with_option)
-
-        # Append chosen option input -- this is for the high level task
-        # dynamics.
-        ins.append(option_in)
-        
-        rep, dec = GetDecoder(self.img_col_dim,
+        image_outs = []
+        rep, dec = GetImageDecoder(self.img_col_dim,
                             img_shape,
-                            arm_size,
-                            gripper_size,
                             dropout_rate=self.dropout_rate,
                             kernel_size=[5,5],
                             filters=self.img_num_filters,
@@ -179,78 +142,84 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                             dropout=False,
                             leaky=True,
                             dense=False,
-                            option=64,
                             batchnorm=True,)
 
+        # =====================================================================
+        # Decode arm/gripper state.
         # Predict the next joint states and gripper position. We add these back
         # in from the inputs once again, in order to make sure they don't get
         # lost in all the convolution layers above...
+        height4 = img_shape[0]/4
+        width4 = img_shape[1]/4
+        height8 = img_shape[0]/8
+        width8 = img_shape[1]/8
+        x = Reshape((width8,height8,self.img_num_filters))(rep)
         x = Conv2D(self.img_num_filters/2,
                 kernel_size=[5,5], 
                 strides=(2, 2),
-                padding='same')(goal_enc_with_option)
-        x = LeakyReLU(0.2)(x)
+                padding='same')(x)
         x = Flatten()(x)
-        x = Concatenate(name="add_current_arm_info")([x, ins[1], ins[2]])
+        x = LeakyReLU(0.2)(x)
         x = Dense(self.combined_dense_size)(x)
         x = Dropout(self.dropout_rate)(x)
         x = LeakyReLU(0.2)(x)
-        arm_out = Dense(arm_size,name="action_arm_goal")(x)
-        gripper_out = Dense(gripper_size,name="action_gripper_goal")(x)
+        arm_flat = Dense(self.num_hypotheses * arm_size,name="next_arm_flat")(x)
+        arm_out = Reshape((self.num_hypotheses, arm_size), name="next_arm")(arm_flat)
+        gripper_flat = Dense(self.num_hypotheses * gripper_size,
+                name="next_gripper_flat")(x)
+        gripper_out = Reshape((self.num_hypotheses, gripper_size),
+                name="next_gripper")(gripper_flat)
+
+        #decoder = Model(rep, [dec, arm_out, gripper_out, label_out])
+        decoder = Model(rep, [dec])
 
         # =====================================================================
-        # SUPERVISOR
-        # Predict the next option -- does not depend on option
-        prev_option_in = Input((1,),name="prev_option_in")
-        prev_option = OneHot(size=64)(prev_option_in)
-        prev_option = Reshape([1,1,64])(prev_option)
-        prev_option = Lambda(lambda x: K.tile(x, tile_shape))(prev_option)
-        x = Concatenate(axis=-1,name="add_prev_option_to_supervisor")(
-                [prev_option, enc])
-        for _ in xrange(2):
-            # Repeat twice to scale down to a very small size -- this will help
-            # a little with the final image layers
-            x = Conv2D(self.img_num_filters/4,
-                    kernel_size=[5, 5], 
-                    strides=(2, 2),
-                    padding='same')(x)
-            x = Dropout(self.dropout_rate)(x)
+        # Create many different image decoders
+        for i in xrange(self.num_hypotheses):
+            x = Conv2D(self.img_num_filters,
+                    kernel_size=[5,5], 
+                    strides=(1, 1),
+                    padding='same')(enc)
             x = LeakyReLU(0.2)(x)
-        x = Flatten()(x)
-        x = Dense(self.combined_dense_size)(x)
-        x = Dropout(self.dropout_rate)(x)
-        x = LeakyReLU(0.2)(x)
-        label_out = Dense(self._numLabels(), activation="sigmoid")(x)
 
-        supervisor = Model(ins[:3] + [prev_option_in], [label_out])
-        decoder = Model(rep, dec, name="image_decoder")
+            # Create decoder
+            # This maps from our latent world state back into observable images.
+            #decoder = Model(rep, dec)
+            decode_x = Lambda(
+                    lambda x: K.expand_dims(x, 1),
+                    name="hypothesis%d"%i)(decoder(x))
+            image_outs.append(decode_x)
+        image_out = Concatenate(axis=1)(image_outs)
 
         # =====================================================================
-        # PREDICTOR AND LATENT STATE MODEL
-        # Create the necessary models
-        goal_enc_with_option_flat = Flatten(name="goal_flat")(goal_enc_with_option)
-        next_frame_enc_with_option_flat = Flatten(name="next_frame_flat")(next_frame_enc_with_option)
-        features_out = [
-                decoder([goal_enc_with_option_flat, option_in]),
-                arm_out,
-                gripper_out,
-                decoder([next_frame_enc_with_option_flat, option_in])]
-        predictor = Model(ins, features_out)
+        # Create training output. This is the flattened image, or the flattened
+        # concatenation of (image + arm + gripper), which is a bit messier.
+        train_out = image_out #Flatten()(image_out)
 
-        predict_goal = Model(ins, features_out[:3],)
-        predict_next = Model(ins, features_out[3])
+        #predictor = Model(ins, [decoder(enc), arm_out, gripper_out])
+        predictor = Model(ins, [image_out])
+        predictor.summary()
+        train_predictor = Model(ins, train_out)
 
-        return enc, supervisor, predictor, predict_goal, predict_next
+        return predictor, train_predictor
 
     def _fitPredictor(self, features, targets):
         if self.show_iter > 0:
-            fig, axes = plt.subplots(5, 5,)
+            fig, axes = plt.subplots(6, 6,)
+            plt.tight_layout()
 
-        self._unfixWeights()
-        self.predictor.compile(
-                loss="mse",
+        image_shape = features[0].shape[1:]
+        image_size = 1.
+        for dim in image_shape:
+            image_size *= dim
+
+        self.train_predictor.summary()
+        self.train_predictor.compile(
+                loss=MhpLoss(
+                    num_hypotheses=self.num_hypotheses,
+                    num_outputs=image_size),
                 optimizer=self.getOptimizer())
-        self.predictor.summary()
+        self.predictor.compile(loss="mse", optimizer=self.getOptimizer())
 
         for i in xrange(self.iter):
             idx = np.random.randint(0, features[0].shape[0], size=self.batch_size)
@@ -259,60 +228,60 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
             for f in features:
                 x.append(f[idx])
             for f in targets:
-                y.append(f[idx])
+                y.append(np.expand_dims(f[idx],1))
+                #y.append(f[idx],1))
 
-            losses = self.predictor.train_on_batch(x, y)
+            losses = self.train_predictor.train_on_batch(x, y)
 
             print("Iter %d: loss ="%(i),losses)
             if self.show_iter > 0 and (i+1) % self.show_iter == 0:
-                self.plotInfo(features, targets, axes)
+                self.plotPredictions(features, targets, axes)
 
         self._fixWeights()
 
-    def plotInfo(self, features, targets, axes):
-        # debugging: plot every 5th image from the dataset
-        subset = [f[range(0,25,5)] for f in features]
+    def plotPredictions(self, features, targets, axes):
+        subset = [f[range(0,60,10)] for f in features]
         data = self.predictor.predict(subset)
-        for j in xrange(5):
-            jj = j * 5
+        for j in xrange(6):
+            jj = j * 10
             ax = axes[1][j]
-            ax.imshow(np.squeeze(data[0][j]))
+            ax.imshow(np.squeeze(data[j][0]))
             ax.axis('off')
-            ax = axes[4][j]
-            ax.imshow(np.squeeze(data[3][j]))
-            ax.axis('off')
+            if self.num_hypotheses > 1:
+                ax = axes[2][j]
+                ax.imshow(np.squeeze(data[j][1]))
+                ax.axis('off')
+                ax = axes[3][j]
+                ax.imshow(np.squeeze(data[j][2]))
+                ax.axis('off')
+                ax = axes[4][j]
+                ax.imshow(np.squeeze(data[j][3]))
+                ax.axis('off')
             ax = axes[0][j]
             ax.imshow(np.squeeze(features[0][jj]))
             ax.axis('off')
-            ax = axes[2][j]
+            ax = axes[5][j]
             ax.imshow(np.squeeze(targets[0][jj]))
             ax.axis('off')
-            
-            q0 = features[1][jj]
-            q = data[1][j]
-            q1 = targets[1][jj]
-            ax = axes[3][j]
-            ax.bar(np.arange(6),q0,1./3.,color='b')
-            ax.bar(np.arange(6)+1./3.,q,1./3.,color='r')
-            ax.bar(np.arange(6)+2./3.,q1,1./3.,color='g')
 
         plt.ion()
-        plt.tight_layout()
         plt.show(block=False)
         plt.pause(0.01)
 
+    def _makeModel(self, features, arm, gripper, *args, **kwargs):
+        self.predictor, self.train_predictor = \
+            self._makePredictor(
+                (features, arm, gripper))
+
     def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
-            next_features, next_arm, next_gripper,
             prev_label, goal_features, goal_arm, goal_gripper, *args, **kwargs):
         '''
         Pre-process training data.
-        
+
         Then, create the model. Train based on labeled data. Remove
         unsuccessful examples.
         '''
 
-        # ================================================
-        # Set up variable names -- just to make things a bit cleaner
         I = features
         q = arm
         g = gripper
@@ -320,19 +289,23 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         ga = gripper_cmd
         oin = prev_label
         I_target = goal_features
-        Inext_target = next_features
         o_target = label
-        q_target = goal_arm
-        g_target = goal_gripper
-        action_labels = label
 
-        if self.supervisor is None:
+        print("sanity check:")
+        print("-------------")
+        print("images:", I.shape, I_target.shape)
+        print("joints:", q.shape)
+        print("options:", oin.shape, o_target.shape)
+
+        if self.predictor is None:
             self._makeModel(I, q, g, qa, ga, oin)
 
         # Fit the main models
         self._fitPredictor(
                 [I, q, g, oin],
-                [I_target, q_target, g_target, Inext_target])
+                #[I_target, q_target, g_target, Inext_target])
+                #[I],
+                [I_target])
 
         # ===============================================
         # Might be useful if you start getting shitty results... one problem we
@@ -344,11 +317,10 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         #        [I_target, q_target, g_target, Inext_target],
         #        axes,
         #        )
-        self._fitSupervisor([I, q, g, o_prev], o_target)
+        # self._fitSupervisor([I, q, g, o_prev], o_target)
         # ===============================================
-
-        action_target = [qa, ga]
-        self._fitPolicies([I, q, g], action_labels, action_target)
-        self._fitBaseline([I, q, g], action_target)
+        #action_target = [qa, ga]
+        #self._fitPolicies([I, q, g], action_labels, action_target)
+        #self._fitBaseline([I, q, g], action_target)
 
 
