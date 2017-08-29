@@ -303,7 +303,12 @@ class GraspTrain(object):
 
         # make sure we visit every image once
         steps_per_epoch = int(np.ceil(float(num_samples)/float(batch_size)))
-        model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=callbacks)
+
+        try:
+            model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=callbacks)
+        except KeyboardInterrupt, e:
+            # save weights if the user asked to end training
+            pass
         model.save_weights(weights_name + '_final.h5')
 
 
