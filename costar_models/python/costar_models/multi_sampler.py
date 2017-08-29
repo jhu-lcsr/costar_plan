@@ -17,11 +17,11 @@ from keras.models import Model, Sequential
 from keras.optimizers import Adam
 from matplotlib import pyplot as plt
 
-from abstract import *
-from multi_hierarchical import *
-from robot_multi_models import *
-from split import *
-from mhp_loss import *
+from .abstract import *
+from .multi_hierarchical import *
+from .robot_multi_models import *
+from .split import *
+from .mhp_loss import *
 
 class RobotMultiPredictionSampler(RobotMultiHierarchical):
 

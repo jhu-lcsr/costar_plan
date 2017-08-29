@@ -18,9 +18,9 @@ from keras.models import Model, Sequential
 from keras.optimizers import Adam
 from matplotlib import pyplot as plt
 
-from abstract import AbstractAgentBasedModel
-from robot_multi_models import *
-from split import *
+from .abstract import AbstractAgentBasedModel
+from .robot_multi_models import *
+from .split import *
 
 class RobotMultiLSTMRegression(AbstractAgentBasedModel):
     '''

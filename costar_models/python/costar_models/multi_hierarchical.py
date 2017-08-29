@@ -17,11 +17,10 @@ from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 from keras.optimizers import Adam
 
-from abstract import HierarchicalAgentBasedModel
-
-from robot_multi_models import *
-from split import *
-from preprocess import *
+from .abstract import HierarchicalAgentBasedModel
+from .preprocess import *
+from .robot_multi_models import *
+from .split import *
 
 class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 

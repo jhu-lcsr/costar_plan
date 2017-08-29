@@ -19,10 +19,10 @@ from keras.models import Model, Sequential
 from keras.optimizers import Adam
 from tensorflow import TensorShape
 
-from abstract import AbstractAgentBasedModel
-from robot_multi_models import *
-from split import *
-from trajectory import AddSamplerLayer, TrajectorySamplerLoss
+from .abstract import AbstractAgentBasedModel
+from .robot_multi_models import *
+from .split import *
+from .trajectory import AddSamplerLayer, TrajectorySamplerLoss
 
 class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
     '''

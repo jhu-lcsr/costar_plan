@@ -1,4 +1,4 @@
-from abstract import AbstractAgentBasedModel
+from .abstract import AbstractAgentBasedModel
 
 
 import keras.backend as K

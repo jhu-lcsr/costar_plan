@@ -1,16 +1,15 @@
 
-from multi_gan_model import RobotMultiGAN
-from multi_regression_model import RobotMultiFFRegression
-
-from multi_tcn_regression_model import RobotMultiTCNRegression
-from multi_lstm_regression import RobotMultiLSTMRegression
-from multi_conv_lstm_regression import RobotMultiConvLSTMRegression
-from multi_trajectory_sampler import RobotMultiTrajectorySampler
-from multi_autoencoder_model import RobotMultiAutoencoder
-from multi_hierarchical import RobotMultiHierarchical
+from .multi_gan_model import RobotMultiGAN
+from .multi_regression_model import RobotMultiFFRegression
+from .multi_tcn_regression_model import RobotMultiTCNRegression
+from .multi_lstm_regression import RobotMultiLSTMRegression
+from .multi_conv_lstm_regression import RobotMultiConvLSTMRegression
+from .multi_trajectory_sampler import RobotMultiTrajectorySampler
+from .multi_autoencoder_model import RobotMultiAutoencoder
+from .multi_hierarchical import RobotMultiHierarchical
 
 # Model for sampling predictiosn
-from multi_sampler import RobotMultiPredictionSampler
+from .multi_sampler import RobotMultiPredictionSampler
 
 def MakeModel(features, model, taskdef, **kwargs):
     '''
