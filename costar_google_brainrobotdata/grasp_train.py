@@ -246,10 +246,9 @@ class GraspTrain(object):
         model = make_model_fn(
             pregrasp_op_batch,
             grasp_step_op_batch,
-            simplified_grasp_command_op_batch
-            input_image_shape=input_image_shape
-            batch_size=example_batch_size
-            )
+            simplified_grasp_command_op_batch,
+            input_image_shape=input_image_shape,
+            batch_size=example_batch_size)
 
         if(load_weights):
             if os.path.isfile(load_weights):
