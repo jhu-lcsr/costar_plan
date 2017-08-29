@@ -129,6 +129,23 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 option=64,#self._numLabels(),
                 flatten=False,
                 )
+        gins, genc = GetEncoder(img_shape,
+                arm_size,
+                gripper_size,
+                self.img_col_dim,
+                self.dropout_rate,
+                self.img_num_filters,
+                leaky=False,
+                dropout=False,
+                pre_tiling_layers=0,
+                post_tiling_layers=3,
+                kernel_size=[5,5],
+                dense=False,
+                batchnorm=True,
+                tile=True,
+                option=64,#self._numLabels(),
+                flatten=False,
+                )
 
 
         image_outs = []
@@ -192,6 +209,25 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         image_out = Concatenate(axis=1)(image_outs)
 
         # =====================================================================
+        # Training the actor policy
+        y = Concatenate(axis=-1,name="combine_goal_current")([enc, genc])
+        y = Conv2D(self.img_num_filters/4,
+                kernel_size=[5,5], 
+                strides=(2, 2),
+                padding='same')(y)
+        y = Dropout(self.dropout_rate)(y)
+        y = LeakyReLU(0.2)(y)
+        y = Flatten()(y)
+        y = Dense(self.combined_dense_size)(y)
+        y = Dropout(self.dropout_rate)(y)
+        y = LeakyReLU(0.2)(y)
+        arm_out = Lambda(lambda x: K.expand_dims(x, axis=1),name="arm_action")(
+                Dense(arm_size)(y))
+        gripper_out = Lambda(lambda x: K.expand_dims(x, axis=1),name="gripper_action")(
+                Dense(gripper_size)(y))
+        
+
+        # =====================================================================
         # Create training output. This is the flattened image, or the flattened
         # concatenation of (image + arm + gripper), which is a bit messier.
         train_out = image_out #Flatten()(image_out)
@@ -199,9 +235,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         #predictor = Model(ins, [decoder(enc), arm_out, gripper_out])
         predictor = Model(ins, [image_out])
         predictor.summary()
-        train_predictor = Model(ins, train_out)
+        actor = Model(ins + gins, [arm_out, gripper_out])
+        actor.summary()
+        train_predictor = Model(ins + gins, [train_out, arm_out, gripper_out])
 
-        return predictor, train_predictor
+        return predictor, train_predictor, actor
 
     def _fitPredictor(self, features, targets):
         if self.show_iter > 0:
@@ -215,9 +253,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         self.train_predictor.summary()
         self.train_predictor.compile(
-                loss=MhpLoss(
+                loss=[MhpLoss(
                     num_hypotheses=self.num_hypotheses,
-                    num_outputs=image_size),
+                    num_outputs=image_size),"mse","mse"],
                 optimizer=self.getOptimizer())
         self.predictor.compile(loss="mse", optimizer=self.getOptimizer())
 
@@ -229,13 +267,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 x.append(f[idx])
             for f in targets:
                 y.append(np.expand_dims(f[idx],1))
-                #y.append(f[idx],1))
 
             losses = self.train_predictor.train_on_batch(x, y)
 
             print("Iter %d: loss ="%(i),losses)
             if self.show_iter > 0 and (i+1) % self.show_iter == 0:
-                self.plotPredictions(features, targets, axes)
+                self.plotPredictions(features[:4], targets[:1], axes)
 
         self._fixWeights()
 
@@ -269,7 +306,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         plt.pause(0.01)
 
     def _makeModel(self, features, arm, gripper, *args, **kwargs):
-        self.predictor, self.train_predictor = \
+        self.predictor, self.train_predictor, self.actor = \
             self._makePredictor(
                 (features, arm, gripper))
 
@@ -289,6 +326,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         ga = gripper_cmd
         oin = prev_label
         I_target = goal_features
+        q_target = goal_arm
+        g_target = goal_gripper
         o_target = label
 
         print("sanity check:")
@@ -302,10 +341,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Fit the main models
         self._fitPredictor(
-                [I, q, g, oin],
+                #[I, q, g, oin],
+                [I, q, g, oin, I_target, q_target, g_target, label],
                 #[I_target, q_target, g_target, Inext_target])
                 #[I],
-                [I_target])
+                [I_target, qa, ga])
 
         # ===============================================
         # Might be useful if you start getting shitty results... one problem we
@@ -323,4 +363,33 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         #self._fitPolicies([I, q, g], action_labels, action_target)
         #self._fitBaseline([I, q, g], action_target)
 
+    
 
+    def save(self):
+        '''
+        Save to a filename determined by the "self.name" field.
+        '''
+        if self.predictor is not None:
+            print("----------------------------")
+            print("Saving to " + self.name + "_{predictor, actor}")
+            self.predictor.save_weights(self.name + "_predictor.h5f")
+            if self.actor is not None:
+                self.actor.save_weights(self.name + "_actor.h5f")
+        else:
+            raise RuntimeError('save() failed: model not found.')
+
+    def _loadWeights(self, *args, **kwargs):
+        '''
+        Load model weights. This is the default load weights function; you may
+        need to overload this for specific models.
+        '''
+        if self.predictor is not None:
+            print("----------------------------")
+            print("using " + self.name + " to load")
+            try:
+                self.actor.load_weights(self.name + "_actor.h5f")
+            except Exception as e:
+                print(e)
+            self.predictor.load_weights(self.name + "_predictor.h5f")
+        else:
+            raise RuntimeError('_loadWeights() failed: model not found.')
