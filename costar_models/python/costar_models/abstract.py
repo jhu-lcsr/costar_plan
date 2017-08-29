@@ -380,7 +380,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
                 [self._makeOption1h(self.prev_option)])
         next_policy = np.argmax(res)
 
-        print("next policy = ", next_policy,)
+        print("Next policy = ", next_policy,)
         if self.taskdef is not None:
             print("taskdef =", self.taskdef.name(next_policy))
         one_hot = np.zeros((1,self._numLabels()))
