@@ -90,6 +90,7 @@ def grasp_model(clear_view_image_op=None,
                 input_image_shape=[512, 640, 3],
                 input_vector_op_shape=[5],
                 batch_size=11):
+    print('input_vector_op pre tile: ', input_vector_op)
 
     if input_vector_op is not None:
         ims = tf.shape(clear_view_image_op)
