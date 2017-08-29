@@ -90,6 +90,8 @@ class AbstractAgent(object):
                    tfrecord after the period.
         directory: where to place saved data files
         seed: specify random seed for testing/validation/data collection.
+        window_length: (not currently implemented) length of history to save
+                       for each data point.
         '''
         if data_type is None:
             if '.npz' in data_file:
