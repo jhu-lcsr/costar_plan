@@ -132,7 +132,9 @@ class GraspTrain(object):
               imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
               grasp_sequence_max_time_steps=None,
               random_crop=FLAGS.random_crop,
-              resize=FLAGS.resize):
+              resize=FLAGS.resize,
+              resize_height=FLAGS.resize_height,
+              resize_width=FLAGS.resize_width):
         """Train the grasping dataset
 
         This function depends on https://github.com/fchollet/keras/pull/6928
@@ -236,10 +238,17 @@ class GraspTrain(object):
         # add one extra dimension so they match
         grasp_success_op_batch = tf.expand_dims(grasp_success_op_batch, -1)
 
+        if resize:
+            input_image_shape = [resize_height, resize_width, 3]
+        else:
+            input_image_shape = [512, 640, 3]
+
         model = make_model_fn(
             pregrasp_op_batch,
             grasp_step_op_batch,
             simplified_grasp_command_op_batch
+            input_image_shape=input_image_shape
+            batch_size=example_batch_size
             )
 
         if(load_weights):
