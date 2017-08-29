@@ -193,7 +193,7 @@ class TestHierarchical(HierarchicalAgentBasedModel):
                 percent = float(count) / len(labels_test)
                 print("action %d: %.02f%%(%d/%d)"%(i,percent*100,count,len(labels_test)))
 
-        print(" ------- DATA BATCHED -------- "
+        print(" ------- DATA BATCHED -------- ")
         print("features now shape", features.shape)
         print("actions now shape", action.shape)
         print("labels now shape", label.shape)

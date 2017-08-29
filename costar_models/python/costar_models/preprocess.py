@@ -2,9 +2,10 @@ from __future__ import print_function
 
 import numpy as np
 
-def RemoveBad(datasets, reward, labels, reward_threshold=0):
+def RemoveBadExamples(datasets, reward, labels, reward_threshold=0):
     '''
-    Remove negative examples from data set.
+    Remove negative examples from data set, i.e. examples where reward is below
+    the given threshold at the end of the trial.
 
     Parameters:
     -----------

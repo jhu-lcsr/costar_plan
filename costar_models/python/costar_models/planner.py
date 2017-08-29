@@ -133,10 +133,11 @@ def GetImageEncoder(img_shape, dim, dropout_rate,
 
     return [samples], x
 
-def SliceImages(image_shape, num_hypotheses, x):
+def SliceImageHypotheses(image_shape, num_hypotheses, x):
     '''
     Slice images. When we sample a set of images, we want to maintain the
-    spatial organization inherent in the inputs.
+    spatial organization inherent in the inputs. This is used to split one
+    output into many different hypotheses.
 
     Here, we assume x is an input tensor of shape:
         (w,h,c) = image_shape
