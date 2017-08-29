@@ -256,6 +256,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 loss=[MhpLoss(
                     num_hypotheses=self.num_hypotheses,
                     num_outputs=image_size),"mse","mse"],
+                loss_weights=[0.8,0.1,0.1],
                 optimizer=self.getOptimizer())
         self.predictor.compile(loss="mse", optimizer=self.getOptimizer())
 
