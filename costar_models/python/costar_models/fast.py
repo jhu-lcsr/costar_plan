@@ -23,7 +23,7 @@ class FastNetwork(object):
         z = np.zeros(d.shape)
         self.layers.append((W,d,z))
       elif isinstance(layer, keras.layers.core.Activation):
-        print "Skipping activation layer. This better be a ReLu or the final layer."
+        print("Skipping activation layer. This better be a ReLu or the final layer.")
 
   def predict(self, f):
     for (W,d,z) in self.layers[:-1]:

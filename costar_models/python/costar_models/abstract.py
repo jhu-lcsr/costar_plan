@@ -142,9 +142,8 @@ class AbstractAgentBasedModel(object):
         try:
             optimizer.lr = self.lr
             optimizer.clipnorm = self.clipnorm
-        except Exception, e:
-            print(e)
-            raise RuntimeError('asdf')
+        except Exception:
+            print('WARNING: could not set all optimizer flags')
         return optimizer
 
     def predict(self, world):
@@ -346,16 +345,16 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
             print("using " + self.name + " to load")
             try:
                 self.baseline.load_weights(self.name + "_baseline.h5f")
-            except Exception, e:
+            except Exception as e:
                 print(e)
             for i, policy in enumerate(self.policies):
                 try:
                     policy.load_weights(self.name + "_policy%02d.h5f"%i)
-                except Exception, e:
+                except Exception as e:
                     print(e)
             try:
                 self.supervisor.load_weights(self.name + "_supervisor.h5f")
-            except Exception, e:
+            except Exception as e:
                 print(e)
             self.predictor.load_weights(self.name + "_predictor.h5f")
         else:
