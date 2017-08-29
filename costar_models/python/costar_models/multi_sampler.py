@@ -126,7 +126,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 dense=False,
                 batchnorm=True,
                 tile=True,
-                option=64,#self._numLabels(),
+                #option=64,
                 flatten=False,
                 )
         gins, genc = GetEncoder(img_shape,
@@ -143,7 +143,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 dense=False,
                 batchnorm=True,
                 tile=True,
-                option=64,#self._numLabels(),
+                #option=64,
                 flatten=False,
                 )
 
@@ -273,15 +273,15 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
             print("Iter %d: loss ="%(i),losses)
             if self.show_iter > 0 and (i+1) % self.show_iter == 0:
-                self.plotPredictions(features[:4], targets[:1], axes)
+                self.plotPredictions(features[:3], targets[:1], axes)
 
         self._fixWeights()
 
     def plotPredictions(self, features, targets, axes):
-        subset = [f[range(0,60,10)] for f in features]
+        subset = [f[range(0,600,100)] for f in features]
         data = self.predictor.predict(subset)
         for j in xrange(6):
-            jj = j * 10
+            jj = j * 100
             ax = axes[1][j]
             ax.imshow(np.squeeze(data[j][0]))
             ax.axis('off')
@@ -340,12 +340,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.predictor is None:
             self._makeModel(I, q, g, qa, ga, oin)
 
+        # ===============================================
         # Fit the main models
         self._fitPredictor(
-                #[I, q, g, oin],
-                [I, q, g, oin, I_target, q_target, g_target, label],
-                #[I_target, q_target, g_target, Inext_target])
-                #[I],
+                #[I, q, g, oin, I_target, q_target, g_target, label],
+                [I, q, g, I_target, q_target, g_target],
                 [I_target, qa, ga])
 
         # ===============================================
