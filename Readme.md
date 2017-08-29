@@ -18,8 +18,9 @@ Contents:
   - [Machine Learning Models](docs/learning.md): Available models and using the command line tool to train them
   - [Creating and training a custom task](docs/task_learning.md): defining a task, training predictive models and other tools
 
-Mode specialized information:
+More specialized information:
   - [Adding a robot to the ROS code](docs/add_a_robot): NOT using Bullet sim
+  - [TOM robot](docs/tom.md): use the TOM robot from TUM
 
 ## Getting started
 
