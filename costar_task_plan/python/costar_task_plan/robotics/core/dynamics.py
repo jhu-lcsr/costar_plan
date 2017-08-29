@@ -88,4 +88,5 @@ class SimulatedDynamics(AbstractDynamics):
                            gripper_closed=gripper_closed,
                            finished_last_sequence=action.finish_sequence,
                            traj=traj,
-                           reference=action.reference)
+                           reference=action.reference,
+                           code=action.code)
