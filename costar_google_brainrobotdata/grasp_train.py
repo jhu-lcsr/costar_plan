@@ -39,7 +39,7 @@ tf.flags.DEFINE_boolean('image_augmentation', False,
                         'image augmentation applies random brightness, saturation, hue, contrast')
 tf.flags.DEFINE_boolean('imagenet_mean_subtraction', True,
                         'subtract the imagenet mean pixel values from the rgb images')
-tf.flags.DEFINE_integer('grasp_sequence_max_time_steps', 1,
+tf.flags.DEFINE_integer('grasp_sequence_max_time_steps', None,
                         """The grasp motion time sequence consists of up to 11 time steps.
                            This integer, or None for unlimited specifies the max number of these steps from the last to the first
                            that will be used in training. This may be needed to reduce memory utilization.
@@ -130,7 +130,7 @@ class GraspTrain(object):
               save_weights=FLAGS.load_weights,
               make_model_fn=grasp_model.grasp_model,
               imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
-              grasp_sequence_max_time_steps=None,
+              grasp_sequence_max_time_steps=FLAGS.grasp_sequence_max_time_steps,
               random_crop=FLAGS.random_crop,
               resize=FLAGS.resize,
               resize_height=FLAGS.resize_height,
