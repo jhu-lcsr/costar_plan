@@ -105,9 +105,9 @@ def grasp_model(clear_view_image_op=None,
     growth_rate = 12
     # initial number of filters should be
     # the number of input channels times the growth rate
-    nb_filters = combined_input_shape[-1] * growth_rate
+    # nb_filters = combined_input_shape[-1] * growth_rate
     print('combined_input_shape: ', combined_input_shape)
-    print('nb_filters: ', nb_filters)
+    # print('nb_filters: ', nb_filters)
     print('combined_input_data: ', combined_input_data)
     print('clear_view_image_op: ', clear_view_image_op)
     print('current_time_image_op: ', current_time_image_op)
@@ -118,7 +118,7 @@ def grasp_model(clear_view_image_op=None,
                      activation='sigmoid',
                      classes=1,
                      weights=None,
-                     nb_filter=nb_filters,
+                     #  nb_filter=nb_filters,
                      growth_rate=12,
                      reduction=0.5,
                      nb_dense_block=4)
