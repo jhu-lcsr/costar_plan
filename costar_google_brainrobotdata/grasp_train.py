@@ -268,15 +268,18 @@ class GraspTrain(object):
 
         callbacks = [lr_reducer, early_stopper, csv_logger, checkpoint]
 
-        # 2017-08-27
-        # Tried NADAM for a while with the settings below, only improved for first 2 epochs.
         # Will need to try more things later.
         # Nadam parameter choice reference:
         # https://github.com/tensorflow/tensorflow/pull/9175#issuecomment-295395355
-        # optimizer = keras.optimizers.Nadam(lr=0.004, beta_1=0.825, beta_2=0.99685)
+        # 2017-08-28 trying NADAM with higher learning rate
+        optimizer = keras.optimizers.Nadam(lr=0.03, beta_1=0.825, beta_2=0.99685)
 
         # 2017-08-28 trying SGD
-        optimizer = keras.optimizers.SGD(lr=1e-2)
+        # optimizer = keras.optimizers.SGD(lr=1e-2)
+
+        # 2017-08-27
+        # Tried NADAM for a while with the settings below, only improved for first 2 epochs.
+        # optimizer = keras.optimizers.Nadam(lr=0.004, beta_1=0.825, beta_2=0.99685)
 
         # create the model
         model = make_model_fn(
