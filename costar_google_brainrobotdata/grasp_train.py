@@ -4,6 +4,11 @@ import tensorflow as tf
 import keras
 from keras import backend as K
 from keras.applications.imagenet_utils import preprocess_input
+
+from keras.callbacks import ReduceLROnPlateau
+from keras.callbacks import CSVLogger
+from keras.callbacks import EarlyStopping
+from keras.callbacks import ModelCheckpoint
 import grasp_dataset
 import grasp_model
 
@@ -48,6 +53,11 @@ tf.flags.DEFINE_integer('grasp_sequence_max_time_steps', None,
 #                         """size of a single batch during training""")
 
 FLAGS = flags.FLAGS
+
+
+# http://stackoverflow.com/a/5215012/99379
+def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
+    return datetime.datetime.now().strftime(fmt).format(fname=fname)
 
 
 class GraspTrain(object):
@@ -125,7 +135,7 @@ class GraspTrain(object):
                 rgb_image_op = GraspTrain._imagenet_mean_subtraction(rgb_image_op)
             return tf.cast(rgb_image_op, tf.float32)
 
-    def train(self, dataset=FLAGS.grasp_dataset, batch_size=1, epochs=FLAGS.epochs,
+    def train(self, dataset=FLAGS.grasp_dataset, batch_size=FLAGS.batch_size, epochs=FLAGS.epochs,
               load_weights=FLAGS.save_weights,
               save_weights=FLAGS.load_weights,
               make_model_fn=grasp_model.grasp_model,
@@ -244,6 +254,30 @@ class GraspTrain(object):
         else:
             input_image_shape = [512, 640, 3]
 
+        ########################################################
+        # End tensor configuration, begin model configuration and training
+
+        weights_name = timeStamped(save_weights)
+
+        lr_reducer = ReduceLROnPlateau(monitor='loss', factor=np.sqrt(0.1), cooldown=0, patience=5, min_lr=0.5e-6)
+        early_stopper = EarlyStopping(monitor='acc', min_delta=0.001, patience=10)
+        csv_logger = CSVLogger(weights_name + '.csv')
+        checkpoint = keras.callbacks.ModelCheckpoint(save_weights + '.epoch-{epoch:03d}-loss-{loss:.2f}-acc-{acc:.2f}.h5',
+                                                     save_best_only=True, verbose=1, monitor='acc')
+
+        callbacks = [lr_reducer, early_stopper, csv_logger, checkpoint]
+
+        # 2017-08-27
+        # Tried NADAM for a while with the settings below, only improved for first 2 epochs.
+        # Will need to try more things later.
+        # Nadam parameter choice reference:
+        # https://github.com/tensorflow/tensorflow/pull/9175#issuecomment-295395355
+        # optimizer = keras.optimizers.Nadam(lr=0.004, beta_1=0.825, beta_2=0.99685)
+
+        # 2017-08-28 trying SGD
+        optimizer = keras.optimizers.SGD(lr=1e-2)
+
+        # create the model
         model = make_model_fn(
             pregrasp_op_batch,
             grasp_step_op_batch,
@@ -259,14 +293,6 @@ class GraspTrain(object):
                       'the file does not exist, '
                       'starting fresh....'.format(load_weights))
 
-        callbacks = []
-        callbacks.append(keras.callbacks.ModelCheckpoint(save_weights + '.epoch-{epoch:03d}-loss-{loss:.2f}-acc-{acc:.2f}.h5',
-                                                         save_best_only=True, verbose=1, monitor='acc'))
-
-        # Nadam parameter choice reference:
-        # https://github.com/tensorflow/tensorflow/pull/9175#issuecomment-295395355
-        optimizer = keras.optimizers.Nadam(lr=0.004, beta_1=0.825, beta_2=0.99685)
-
         model.compile(optimizer=optimizer,
                       loss='binary_crossentropy',
                       metrics=['accuracy'],
@@ -277,7 +303,7 @@ class GraspTrain(object):
         # make sure we visit every image once
         steps_per_epoch = int(np.ceil(float(num_samples)/float(batch_size)))
         model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=callbacks)
-        model.save_weights('grasp_model_weights.h5')
+        model.save_weights(weights_name + '_final.h5')
 
 
 if __name__ == '__main__':
