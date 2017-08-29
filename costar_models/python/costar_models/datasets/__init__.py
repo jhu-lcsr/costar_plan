@@ -1,2 +1,2 @@
-from tfrecord import TFRecordConverter
-from npz import NpzDataset
+from datasets.tfrecord import TFRecordConverter
+from datasets.npz import NpzDataset

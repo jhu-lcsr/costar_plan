@@ -11,19 +11,19 @@ __all__ = [
     ]
 
 # general learning utilites
-from sampler import *
-from fast import *
-from gmm import *
+from costar_models.sampler import *
+from costar_models.fast import *
+from costar_models.gmm import *
 
 # models and utils
-from robot_multi_models import *
+from costar_models.robot_multi_models import *
 
 # neural net models
-import gan
+import costar_models.gan
 
 # =============================================================================
 # Tools for training, etc
-from parse import *
-from util import GetModels, MakeModel
+from costar_models.parse import *
+from costar_models.util import GetModels, MakeModel
 
-import datasets
+import costar_models.datasets
