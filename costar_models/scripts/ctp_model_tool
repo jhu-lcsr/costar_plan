@@ -34,7 +34,7 @@ def main(args):
             model.load(env.world)
         try:
             model.train(**data)
-        except KeyboardInterrupt, e:
+        except KeyboardInterrupt:
             pass
         model.save()
         if args['debug_model']:
@@ -42,7 +42,7 @@ def main(args):
             try:
                 while True:
                     time.sleep(0.1)
-            except Exception, e:
+            except KeyboardInterrupt:
                 pass
     else:
         pass

@@ -1,5 +1,5 @@
 
-from util import GetModels
+from .util import GetModels
 
 import argparse
 import sys
