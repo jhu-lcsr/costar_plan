@@ -32,6 +32,8 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 '''
+from __future__ import print_function
+
 import tensorflow as tf
 import numpy as np
 import os
@@ -134,7 +136,7 @@ class AbstractAgent(object):
 
     def _catch_sigint(self, *args, **kwargs):
       if self.verbose:
-        print "Caught sigint!"
+        print("Caught sigint!")
       self._break = True
 
 
@@ -172,7 +174,7 @@ class AbstractAgent(object):
                                   ' the environment')
 
     def _addToDataset(self, world, control, features, reward, done, example,
-                      action_label, max_label=-1):
+                      action_label, max_label=-1, seed=None,):
         '''
         Takes as input features, reward, action, and other information. Saves
         all of this to create a dataset. Any custom agents should call this
@@ -198,7 +200,8 @@ class AbstractAgent(object):
                     action_label)
             self._updateCurrentExample(data)
             if done:
-                self._finishCurrentExample(world, example, reward, max_label)
+                self._finishCurrentExample(world, example, reward, max_label,
+                        seed)
 
     def _updateCurrentExample(self, data):
         '''
@@ -217,12 +220,13 @@ class AbstractAgent(object):
                 if isinstance(value, np.ndarray):
                     assert value.shape == self.current_example[key][0].shape
                 if not type(self.current_example[key][0]) == type(value):
-                    print key, type(self.current_example[key][0]), type(value)
+                    print(key, type(self.current_example[key][0]), type(value))
                     raise RuntimeError('Types do not match when' + \
                                        ' constructing data set.')
                 self.current_example[key].append(value)
 
-    def _finishCurrentExample(self, world, example, reward, max_label):
+    def _finishCurrentExample(self, world, example, reward, max_label,
+            seed=None):
         '''
         Preprocess this particular example:
         - split it up into different time windows of various sizes
@@ -230,6 +234,7 @@ class AbstractAgent(object):
         - compute transition points
         - compute option-level (mid-level) labels
         '''
+        print("Finishing example",example,seed)
 
         # ============================================================
         # Split into chunks and preprocess the data.
@@ -291,7 +296,7 @@ class AbstractAgent(object):
                         if isinstance(values[0], np.ndarray):
                             assert values[0].shape == data[key][0].shape
                         if not type(data[key][0]) == type(values[0]):
-                            print key, type(data[key][0]), type(values[0])
+                            print(key, type(data[key][0]), type(values[0]))
                             raise RuntimeError('Types do not match when' + \
                                                ' constructing data set.')
 
@@ -309,26 +314,28 @@ class AbstractAgent(object):
                     if key in goal_list:
                         data["goal_%s"%key].append(values[switches[i]])
 
-        # ================================================
-        # Handle TF Records. We save here instead of at the end.
-        if self.data_type == self.TFRECORD:
+        if not (self.success_only and reward <= 0.):
+            # ================================================
+            # Handle TF Records. We save here instead of at the end.
+            if self.data_type == self.TFRECORD:
 
-            # Write all entries in data set to the TF record.
-            length = len(data.values()[0])
-            for i in xrange(length):
-                sample = []
-                for key, values in data.items():
-                    sample.append((key, values[i]))
+                # Write all entries in data set to the TF record.
+                length = len(data.values()[0])
+                for i in xrange(length):
+                    sample = []
+                    for key, values in data.items():
+                        sample.append((key, values[i]))
 
-                # TF writer prepare a sample
-                if self.tf_writer.ready_to_write() is False:
-                    self.tf_writer.prepare_to_write(sample)
-                self.tf_writer.write_example(sample)
-        else:
-            self.npz_writer.write(data, example, reward)
+                    # TF writer prepare a sample
+                    if self.tf_writer.ready_to_write() is False:
+                        self.tf_writer.prepare_to_write(sample)
+                    self.tf_writer.write_example(sample)
+            else:
+                self.npz_writer.write(data, example, reward)
     
         # ================================================
         # Reset the current example.
+        del self.current_example
         self.current_example = {}
 
 
