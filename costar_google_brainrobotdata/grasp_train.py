@@ -259,23 +259,56 @@ class GraspTrain(object):
         # End tensor configuration, begin model configuration and training
 
         weights_name = timeStamped(save_weights)
+        learning_rate = 0.1
 
-        lr_reducer = ReduceLROnPlateau(monitor='loss', factor=np.sqrt(0.1), cooldown=0, patience=5, min_lr=0.5e-6)
+        # ###############learning rate scheduler####################
+        # source: https://github.com/aurora95/Keras-FCN/blob/master/train.py
+        def lr_scheduler(epoch, mode='power_decay'):
+            '''if lr_dict.has_key(epoch):
+                lr = lr_dict[epoch]
+                print 'lr: %f' % lr'''
+
+            if mode is 'power_decay':
+                # original lr scheduler
+                lr = learning_rate * ((1 - float(epoch)/epochs) ** lr_power)
+            if mode is 'exp_decay':
+                # exponential decay
+                lr = (float(learning_rate) ** float(lr_power)) ** float(epoch+1)
+            # adam default lr
+            if mode is 'adam':
+                lr = 0.001
+
+            if mode is 'progressive_drops':
+                # drops as progression proceeds, good for sgd
+                if epoch > 0.9 * epochs:
+                    lr = 0.0001
+                elif epoch > 0.75 * epochs:
+                    lr = 0.001
+                elif epoch > 0.5 * epochs:
+                    lr = 0.01
+                else:
+                    lr = 0.1
+
+            print('lr: %f' % lr)
+            return lr
+
+        scheduler = keras.callbacks.LearningRateScheduler(lr_scheduler)
         early_stopper = EarlyStopping(monitor='acc', min_delta=0.001, patience=10)
         csv_logger = CSVLogger(weights_name + '.csv')
         checkpoint = keras.callbacks.ModelCheckpoint(save_weights + '.epoch-{epoch:03d}-loss-{loss:.2f}-acc-{acc:.2f}.h5',
                                                      save_best_only=True, verbose=1, monitor='acc')
 
-        callbacks = [lr_reducer, early_stopper, csv_logger, checkpoint]
+        callbacks = [scheduler, early_stopper, csv_logger, checkpoint]
 
         # Will need to try more things later.
         # Nadam parameter choice reference:
         # https://github.com/tensorflow/tensorflow/pull/9175#issuecomment-295395355
-        # 2017-08-28 trying NADAM with higher learning rate
-        optimizer = keras.optimizers.Nadam(lr=0.03, beta_1=0.825, beta_2=0.99685)
+
+        # 2017-08-28 afternoon trying NADAM with higher learning rate
+        # optimizer = keras.optimizers.Nadam(lr=0.03, beta_1=0.825, beta_2=0.99685)
 
         # 2017-08-28 trying SGD
-        # optimizer = keras.optimizers.SGD(lr=1e-2)
+        optimizer = keras.optimizers.SGD(lr=learning_rate)
 
         # 2017-08-27
         # Tried NADAM for a while with the settings below, only improved for first 2 epochs.

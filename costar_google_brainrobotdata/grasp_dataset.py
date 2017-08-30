@@ -29,7 +29,7 @@ tf.flags.DEFINE_string('visualization_dir',
                        os.path.join(os.path.expanduser("~"),
                                     '.keras', 'datasets', 'grasping', 'images_extracted_grasp'),
                        """Path to output data visualizations such as image gifs and ply clouds.""")
-tf.flags.DEFINE_integer('batch_size', 2, 'batch size per compute device')
+tf.flags.DEFINE_integer('batch_size', 6, 'batch size per compute device')
 tf.flags.DEFINE_integer('sensor_image_width', 640, 'Camera Image Width')
 tf.flags.DEFINE_integer('sensor_image_height', 512, 'Camera Image Height')
 tf.flags.DEFINE_integer('sensor_color_channels', 3,
