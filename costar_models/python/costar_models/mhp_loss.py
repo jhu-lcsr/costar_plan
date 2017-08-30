@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from keras import layers
 from keras import losses
 import keras.backend as K
@@ -96,8 +98,8 @@ class MhpLossWithShape(object):
         if weights is None:
             self.weights = [1.] * len(self.outputs)
         else:
-            assert len(self.weights) == len(self.outputs)
-        self.weights = None
+            self.weights = weights
+        assert len(self.weights) == len(self.outputs)
         self.__name__ = "mhp_loss"
 
     def __call__(self, target, pred):
@@ -118,32 +120,39 @@ class MhpLossWithShape(object):
 
 
         for i in xrange(self.num_hypotheses):
-            target_state = target[:,0]
-            pred_state = pred[:,i]
 
-            target_outputs = _getOutputs(target_state, self.outputs)
-            pred_outputs = _getOutputs(pred_state, self.outputs)
+            target_outputs = _getOutputs(target, self.outputs, 0)
+            pred_outputs = _getOutputs(pred, self.outputs, i)
             
-            # hold loss for all outputs here
+            # Hold loss for all outputs here.
             cc = tf.zeros([1,1])
-            for wt, (target_out, pred_out) in enumerate(zip(target_outputs, pred_outputs)):
+            for wt, target_out, pred_out in zip(self.weights, target_outputs, pred_outputs):
+                # loss = feature weight * MSE for this feature
                 cc += wt * losses.mean_squared_error(target_out, pred_out)
 
-            xsum += cc
+            xsum += (cc / len(self.outputs))
             xmin = tf.minimum(xmin, cc)
 
         return (0.05 * xsum / self.num_hypotheses) + (0.90 * xmin)
 
-def _getOutputs(state, outputs):
+def _getOutputs(state, outputs, i):
     '''
     Split a single output vector into multiple targets. This is a work-around
     because you can't have a Keras loss function that operates over multiple
     outputs.
+
+    Parameters:
+    -----------
+    state: vector of data to split
+    ouputs: dimensionality of each output to retrieve in order
     '''
     idx = 0
     separated_outputs = []
     for output_dim in outputs:
-        out = state[:,idx:idx+dim]
+        # Print statement for debugging: shows ranges for each output, which
+        # should match the order of provided data.
+        #print("from ", idx, "to", idx+output_dim)
+        out = state[:,i,idx:idx+output_dim]
         separated_outputs.append(out)
-        idx += dim
+        idx += output_dim
     return separated_outputs

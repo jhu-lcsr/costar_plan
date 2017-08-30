@@ -317,8 +317,8 @@ class AbstractAgent(object):
             length = len(data.values()[0])
             for i in xrange(length):
                 sample = []
-                for key, values in data:
-                    sample.append(key, values[i])
+                for key, values in data.items():
+                    sample.append((key, values[i]))
 
                 # TF writer prepare a sample
                 if self.tf_writer.ready_to_write() is False:

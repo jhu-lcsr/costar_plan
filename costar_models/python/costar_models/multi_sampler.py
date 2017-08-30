@@ -149,6 +149,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
 
         image_outs = []
+        arm_outs = []
+        gripper_outs = []
+        train_outs = []
         rep, dec = GetImageDecoder(self.img_col_dim,
                             img_shape,
                             dropout_rate=self.dropout_rate,
@@ -180,14 +183,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = Dense(self.combined_dense_size)(x)
         x = Dropout(self.dropout_rate)(x)
         x = LeakyReLU(0.2)(x)
-        arm_flat = Dense(self.num_hypotheses * arm_size,name="next_arm_flat")(x)
-        arm_out = Reshape((self.num_hypotheses, arm_size), name="next_arm")(arm_flat)
-        gripper_flat = Dense(self.num_hypotheses * gripper_size,
+        arm_out_x = Dense(arm_size,name="next_arm")(x)
+        gripper_out_x = Dense(gripper_size,
                 name="next_gripper_flat")(x)
-        gripper_out = Reshape((self.num_hypotheses, gripper_size),
-                name="next_gripper")(gripper_flat)
 
-        decoder = Model(rep, [dec, arm_out, gripper_out])
+        decoder = Model(rep, [dec, arm_out_x, gripper_out_x])
         #decoder = Model(rep, [dec])
 
         # =====================================================================
@@ -202,11 +202,35 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             # Create decoder
             # This maps from our latent world state back into observable images.
             #decoder = Model(rep, dec)
-            decode_x = Lambda(
+            img_x, arm_x, gripper_x = decoder(x)
+            img_x = Lambda(
                     lambda x: K.expand_dims(x, 1),
-                    name="hypothesis%d"%i)(decoder(x))
-            image_outs.append(decode_x)
+                    name="img_hypothesis_%d"%i)(img_x)
+            arm_x = Lambda(
+                    lambda x: K.expand_dims(x, 1),
+                    name="arm_hypothesis_%d"%i)(arm_x)
+            gripper_x = Lambda(
+                    lambda x: K.expand_dims(x, 1),
+                    name="gripper_hypothesis_%d"%i)(gripper_x)
+
+            # Create the training outputs
+            train_x = Concatenate(axis=-1,name="combine_train_%d"%i)([
+                            Flatten(name="flatten_img_%d"%i)(img_x),
+                            Flatten(name="flatten_arm_%d"%i)(arm_x),
+                            Flatten(name="flatten_gripper_%d"%i)(gripper_x)])
+            train_x = Lambda(
+                    lambda x: K.expand_dims(x, 1),
+                    name="flattened_hypothesis_%d"%i)(train_x)
+
+            image_outs.append(img_x)
+            arm_outs.append(arm_x)
+            gripper_outs.append(gripper_x)
+            train_outs.append(train_x)
+
         image_out = Concatenate(axis=1)(image_outs)
+        arm_out = Concatenate(axis=1)(arm_outs)
+        gripper_out = Concatenate(axis=1)(gripper_outs)
+        train_out = Concatenate(axis=1)(train_outs)
 
         # =====================================================================
         # Training the actor policy
@@ -225,25 +249,23 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 Dense(arm_size)(y))
         gripper_cmd_out = Lambda(lambda x: K.expand_dims(x, axis=1),name="gripper_action")(
                 Dense(gripper_size)(y))
-        
+
 
         # =====================================================================
-        # Create training output. This is the flattened image, or the flattened
-        # concatenation of (image + arm + gripper), which is a bit messier.
-        train_out = image_out #Flatten()(image_out)
+        # Create models to train
 
         #predictor = Model(ins, [decoder(enc), arm_out, gripper_out])
         predictor = Model(ins, [image_out, arm_out, gripper_out])
-        predictor.summary()
+        #predictor.summary()
         actor = Model(ins + gins, [arm_out, gripper_out])
-        actor.summary()
+        #actor.summary()
         train_predictor = Model(ins + gins, [train_out,
                                              arm_cmd_out,
                                              gripper_cmd_out,])
 
         return predictor, train_predictor, actor
 
-    def _fitPredictor(self, features, targets):
+    def _fitPredictor(self, features, targets, real_targets=[]):
         if self.show_iter > 0:
             fig, axes = plt.subplots(6, 6,)
             plt.tight_layout()
@@ -253,15 +275,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         for dim in image_shape:
             image_size *= dim
 
-        self.train_predictor.summary()
-        self.train_predictor.compile(
-                loss=[MhpLoss(
-                    num_hypotheses=self.num_hypotheses,
-                    num_outputs=image_size),"mse","mse"],
-                loss_weights=[0.8,0.1,0.1],
-                optimizer=self.getOptimizer())
-        self.predictor.compile(loss="mse", optimizer=self.getOptimizer())
-
         for i in xrange(self.iter):
             idx = np.random.randint(0, features[0].shape[0], size=self.batch_size)
             x = []
@@ -270,18 +283,18 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 x.append(f[idx])
             for f in targets:
                 y.append(np.expand_dims(f[idx],1))
-
+    
             losses = self.train_predictor.train_on_batch(x, y)
 
             print("Iter %d: loss ="%(i),losses)
             if self.show_iter > 0 and (i+1) % self.show_iter == 0:
-                self.plotPredictions(features[:3], targets[:1], axes)
+                self.plotPredictions(features[:3], real_targets[:1], axes)
 
         self._fixWeights()
 
     def plotPredictions(self, features, targets, axes):
         subset = [f[range(0,600,100)] for f in features]
-        data = self.predictor.predict(subset)
+        data, arms, grippers = self.predictor.predict(subset)
         for j in xrange(6):
             jj = j * 100
             ax = axes[1][j]
@@ -342,12 +355,45 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.predictor is None:
             self._makeModel(I, q, g, qa, ga, oin)
 
+        # ==============================
+        image_shape = I.shape[1:]
+        image_size = 1
+        for dim in image_shape:
+            image_size *= dim
+        image_size = int(image_size)
+        arm_size = q.shape[-1]
+        gripper_size = g.shape[-1]
+
+        train_size = image_size + arm_size + gripper_size
+        assert gripper_size == 1
+        assert train_size == 12295
+
+        length = I.shape[0]
+        Itrain = np.reshape(I,(length, image_size))
+        train_target = np.concatenate([Itrain,q,g],axis=-1)
+
+        self.train_predictor.summary()
+        self.train_predictor.compile(
+                loss=[
+                    MhpLossWithShape(
+                        num_hypotheses=self.num_hypotheses,
+                        outputs=[image_size, arm_size, gripper_size],
+                        weights=[0.7,0.2,0.1],), 
+                    #MhpLoss(
+                    #    num_hypotheses=self.num_hypotheses,
+                    #    num_outputs=train_size),
+                    "mse","mse"],
+                loss_weights=[0.8,0.1,0.1],
+                optimizer=self.getOptimizer())
+        self.predictor.compile(loss="mse", optimizer=self.getOptimizer())
+
         # ===============================================
         # Fit the main models
         self._fitPredictor(
                 #[I, q, g, oin, I_target, q_target, g_target, label],
                 [I, q, g, I_target, q_target, g_target],
-                [I_target, qa, ga])
+                [train_target, qa, ga],
+                real_targets=[I_target, q_target, g_target])
 
         # ===============================================
         # Might be useful if you start getting shitty results... one problem we
