@@ -22,7 +22,7 @@ tf.flags.DEFINE_string('save_weights', 'grasp_model_weights.h5',
                        """Save a file with the trained model weights.""")
 tf.flags.DEFINE_string('load_weights', 'grasp_model_weights.h5',
                        """Load and continue training the specified file containing model weights.""")
-tf.flags.DEFINE_integer('epochs', 100,
+tf.flags.DEFINE_integer('epochs', 20,
                         """Epochs of training""")
 tf.flags.DEFINE_integer('random_crop_width', 472,
                         """Width to randomly crop images, if enabled""")
@@ -259,8 +259,8 @@ class GraspTrain(object):
         # End tensor configuration, begin model configuration and training
 
         weights_name = timeStamped(save_weights)
-        learning_rate = 0.1
-        learning_power_decay_rate = 0.9
+        learning_rate = 0.05
+        learning_power_decay_rate = 0.4
 
         # ###############learning rate scheduler####################
         # source: https://github.com/aurora95/Keras-FCN/blob/master/train.py
