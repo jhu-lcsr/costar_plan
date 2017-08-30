@@ -14,7 +14,7 @@ from keras.optimizers import Adam
 
 import keras.backend as K
 
-from planner import *
+from .planner import *
 
 def GetCameraColumn(img_shape, dim, dropout_rate, num_filters, dense_size):
     '''

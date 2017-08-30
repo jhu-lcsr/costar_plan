@@ -16,7 +16,7 @@ from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 from keras.optimizers import Adam
 
-from abstract import AbstractAgentBasedModel
+from .abstract import AbstractAgentBasedModel
 
 __LABELS = False
 

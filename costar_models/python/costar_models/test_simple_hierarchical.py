@@ -199,8 +199,8 @@ if __name__ == '__main__':
     sampler.name = "test_dynamics"
     try:
         sampler.train(**data)
-    except KeyboardInterrupt, e:
-        print(e)
+    except KeyboardInterrupt as e:
+        pass
     sampler.plot(**data)
     sampler.save()
 

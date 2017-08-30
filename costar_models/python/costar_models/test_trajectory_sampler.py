@@ -207,8 +207,8 @@ if __name__ == '__main__':
     sampler.show_iter = 100
     try:
         sampler.train(**data)
-    except Exception, e:
-        print e
+    except Exception as e:
+        print(e)
     sampler.plot(**data)
 
     while(True):
