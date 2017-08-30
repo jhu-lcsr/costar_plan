@@ -20,83 +20,22 @@ import tensorflow as tf
 from keras.engine import Layer
 
 
-# def SingleChannelToImage(channels, image_shape):
-#     if(K.image_data_format() == 'channels_first'):
-#         x = Lambda(lambda x: K.tile(x, tuple(1) + K.shape(image_shape[1:]))(channels)
-#     elif(K.image_data_format() == 'channels_last'):
-#         x = Lambda(lambda x: K.tile(x, image_shape[:-1] + tuple(1)))(channels)
-#     return x
-def repeat_vector_as_image(channels_image):
-    channels, image = channels_image
-    image_shape = K.shape(image)
-    shape_to_tile = image_shape[:-1] + [1]
-    single_pixel_image_shape = [1, 1] + K.shape(channels)
-    single_pixel_image = K.reshape(channels, single_pixel_image_shape)
-    return K.tile(single_pixel_image, shape_to_tile)
-
-def repeat_vector_as_image2(vector, image):
-    if K.image_data_format() == 'channels_first':
-        concat_axis = 1
-        im_channel, im_row, im_col = K.shape(image)
-        v_channel = K.shape(vector)
-    else:
-        concat_axis = -1
-        im_row, im_col, im_channel = K.shape(image)
-        v_channel = K.shape(vector)
-
-    x = Lambda(lambda x: K.tile(x, im_row * im_col))(vector)
-    x = Reshape((im_row, im_col, v_channel))(x)
-
-def repeat_vector_as_image3(vector, image_shape):
-    if K.image_data_format() == 'channels_first':
-        concat_axis = 1
-        im_channel, im_row, im_col = image_shape
-        v_channel = K.shape(vector)
-    else:
-        concat_axis = -1
-        im_row, im_col, im_channel = image_shape
-        v_channel = K.shape(vector)
-
-    x = RepeatVector(im_row * im_col)(vector)
-    x = Reshape((int(image_shape[0]), int(image_shape[1]), v_channel))(x)
-    x = K.reshape((image_shape[0], image_shape[1], v_channel))(x)
-
-def repeat_vector_as_image4(vector, logits):
-
-    # Determine proper input shape
-    image_shape = _obtain_input_shape(logits.shape[1:],  # current_time_resnet50.output.shape[1:],
-                                      default_size=32,
-                                      min_size=1,
-                                      require_flatten=False,
-                                      data_format=K.image_data_format())
-    if K.image_data_format() == 'channels_first':
-        concat_axis = 1
-        im_channel, im_row, im_col = image_shape
-        v_channel = K.shape(vector)
-    else:
-        concat_axis = -1
-        row_axis = 1
-        col_axis = 2
-        im_row, im_col, im_channel = image_shape
-        v_channel = K.shape(vector)
-
-    x = RepeatVector(im_row * im_col)(vector)
-    x = Lambda(lambda y: K.reshape(y, logits.shape[row_axis] + logits.shape[col_axis] + v_channel[concat_axis]))(x)
+def tile_vector_as_image_channels(vector_op, image_shape):
+    ivs = tf.shape(vector_op)
+    vector_op = tf.reshape(vector_op, [ivs[0], 1, 1, ivs[1]])
+    vector_op = tf.tile(vector_op, tf.stack([1, image_shape[1], image_shape[2], 1]))
+    return vector_op
 
 
-def grasp_model(clear_view_image_op=None,
-                current_time_image_op=None,
-                input_vector_op=None,
+def grasp_model(clear_view_image_op,
+                current_time_image_op,
+                input_vector_op,
                 input_image_shape=[512, 640, 3],
                 input_vector_op_shape=[5],
                 batch_size=11):
     print('input_vector_op pre tile: ', input_vector_op)
 
-    if input_vector_op is not None:
-        ims = tf.shape(clear_view_image_op)
-        ivs = tf.shape(input_vector_op)
-        input_vector_op = tf.reshape(input_vector_op, [ivs[0], 1, 1, ivs[1]])
-        input_vector_op = tf.tile(input_vector_op, tf.stack([1, ims[1], ims[2], 1]))
+    input_vector_op = tile_vector_as_image_channels(input_vector_op, tf.shape(clear_view_image_op))
 
     combined_input_data = tf.concat([clear_view_image_op, input_vector_op, current_time_image_op], -1)
     combined_input_shape = input_image_shape
