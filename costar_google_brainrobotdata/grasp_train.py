@@ -260,6 +260,7 @@ class GraspTrain(object):
 
         weights_name = timeStamped(save_weights)
         learning_rate = 0.1
+        learning_power_decay_rate = 0.9
 
         # ###############learning rate scheduler####################
         # source: https://github.com/aurora95/Keras-FCN/blob/master/train.py
@@ -270,10 +271,10 @@ class GraspTrain(object):
 
             if mode is 'power_decay':
                 # original lr scheduler
-                lr = learning_rate * ((1 - float(epoch)/epochs) ** lr_power)
+                lr = learning_rate * ((1 - float(epoch)/epochs) ** learning_power_decay_rate)
             if mode is 'exp_decay':
                 # exponential decay
-                lr = (float(learning_rate) ** float(lr_power)) ** float(epoch+1)
+                lr = (float(learning_rate) ** float(learning_power_decay_rate)) ** float(epoch+1)
             # adam default lr
             if mode is 'adam':
                 lr = 0.001
