@@ -152,7 +152,7 @@ rosrun costar_bullet start --robot ur5 --task blocks --agent null \
 ```
 
 Some notes:
-  - The learning rate here needs to be a bit lower, or you need to set the `--clipnorm` option, as the loss is fairly complex.
+  - The learning rate here needs to be a bit lower, or you need to set the `--clipnorm` option, as the loss is fairly complex. With a higher learning rate I observed spikes in the loss function.
   - `adam` and `nadam` converge very quickly on small datasets
 
 # Testing
