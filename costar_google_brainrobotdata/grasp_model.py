@@ -21,9 +21,9 @@ from keras.engine import Layer
 
 
 def tile_vector_as_image_channels(vector_op, image_shape):
-    ivs = tf.shape(vector_op)
-    vector_op = tf.reshape(vector_op, [ivs[0], 1, 1, ivs[1]])
-    vector_op = tf.tile(vector_op, tf.stack([1, image_shape[1], image_shape[2], 1]))
+    ivs = K.shape(vector_op)
+    vector_op = K.reshape(vector_op, [ivs[0], 1, 1, ivs[1]])
+    vector_op = K.tile(vector_op, K.stack([1, image_shape[1], image_shape[2], 1]))
     return vector_op
 
 
@@ -35,7 +35,7 @@ def grasp_model(clear_view_image_op,
                 batch_size=11):
     print('input_vector_op pre tile: ', input_vector_op)
 
-    input_vector_op = tile_vector_as_image_channels(input_vector_op, tf.shape(clear_view_image_op))
+    input_vector_op = tile_vector_as_image_channels(input_vector_op, K.shape(clear_view_image_op))
 
     combined_input_data = tf.concat([clear_view_image_op, input_vector_op, current_time_image_op], -1)
     combined_input_shape = input_image_shape
