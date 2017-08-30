@@ -113,6 +113,15 @@ rosrun costar_bullet start --robot ur5 --task blocks --agent task \
 
 # Learning
 
+## Models
+
+  - Hierarchical: predict an encoding
+  - Predictor: predict stuff
+
+## Hierarchical Model
+
+The hierarchical model learns an encoding for feature detection.
+
 We can now use the standard CoSTAR bullet tool to train a model:
 ```
 rosrun costar_bullet start --robot ur5 --task blocks --agent null --features multi \
@@ -131,6 +140,20 @@ It takes several thousand iterations to get this right. An example at about 500 
 ![Example intermediate results](../photos/predictor_intermediate_results.png)
 
 You should be able to see the model learning something useful fairly early on, at least with a small data set. It just won't be perfect.
+
+## Predictor Model
+
+The predictor model learns to generate a bunch of possible futures.
+
+```
+rosrun costar_bullet start --robot ur5 --task blocks --agent null \
+  --features multi -i 100000 -e 1000 --model predictor \
+  --data_file blocks10.npz --load --si 1000 --optimizer nadam --lr 0.001
+```
+
+Some notes:
+  - The learning rate here needs to be a bit lower, or you need to set the `--clipnorm` option, as the loss is fairly complex.
+  - `adam` and `nadam` converge very quickly on small datasets
 
 # Testing
 
