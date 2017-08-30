@@ -187,8 +187,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         gripper_out = Reshape((self.num_hypotheses, gripper_size),
                 name="next_gripper")(gripper_flat)
 
-        #decoder = Model(rep, [dec, arm_out, gripper_out, label_out])
-        decoder = Model(rep, [dec])
+        decoder = Model(rep, [dec, arm_out, gripper_out])
+        #decoder = Model(rep, [dec])
 
         # =====================================================================
         # Create many different image decoders
@@ -221,9 +221,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         y = Dense(self.combined_dense_size)(y)
         y = Dropout(self.dropout_rate)(y)
         y = LeakyReLU(0.2)(y)
-        arm_out = Lambda(lambda x: K.expand_dims(x, axis=1),name="arm_action")(
+        arm_cmd_out = Lambda(lambda x: K.expand_dims(x, axis=1),name="arm_action")(
                 Dense(arm_size)(y))
-        gripper_out = Lambda(lambda x: K.expand_dims(x, axis=1),name="gripper_action")(
+        gripper_cmd_out = Lambda(lambda x: K.expand_dims(x, axis=1),name="gripper_action")(
                 Dense(gripper_size)(y))
         
 
@@ -233,11 +233,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         train_out = image_out #Flatten()(image_out)
 
         #predictor = Model(ins, [decoder(enc), arm_out, gripper_out])
-        predictor = Model(ins, [image_out])
+        predictor = Model(ins, [image_out, arm_out, gripper_out])
         predictor.summary()
         actor = Model(ins + gins, [arm_out, gripper_out])
         actor.summary()
-        train_predictor = Model(ins + gins, [train_out, arm_out, gripper_out])
+        train_predictor = Model(ins + gins, [train_out,
+                                             arm_cmd_out,
+                                             gripper_cmd_out,])
 
         return predictor, train_predictor, actor
 
