@@ -24,7 +24,13 @@ def main(args):
     data_file_info = args['data_file'].split('.')
     data_type = data_file_info[-1]
     if data_type == "npz":
-        data = NpzDataset(data_file_info[0]).load()
+        root = ""
+        for i, tok in enumerate(data_file_info[:-1]):
+            if i < len(data_file_info)-1 and i > 0:
+                root += '.'
+            root += tok
+        print(root)
+        data = NpzDataset(root).load()
     else:
         raise NotImplementedError('data type not implemented: %s'%data_type)
 
