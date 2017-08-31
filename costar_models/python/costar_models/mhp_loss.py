@@ -55,7 +55,7 @@ class MhpLoss(object):
         #self.output_shape = output_shape
         self.__name__ = "mhp_loss"
 
-        self.avg_weight = 0.10
+        self.avg_weight = 0.05
         self.min_weight = 0.90
 
     def __call__(self, target, pred):

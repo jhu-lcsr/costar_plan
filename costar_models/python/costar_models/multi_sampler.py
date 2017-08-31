@@ -44,6 +44,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.img_num_filters = 64
         self.combined_dense_size = 128
         self.num_hypotheses = 4
+        self.num_transforms = 3
 
         self.predictor = None
         self.train_predictor = None
@@ -186,11 +187,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # =====================================================================
         # Create many different image decoders
         for i in xrange(self.num_hypotheses):
-            x = Conv2D(self.img_num_filters,
-                    kernel_size=[5,5], 
-                    strides=(1, 1),
-                    padding='same')(enc)
-            x = LeakyReLU(0.2)(x)
+            enc = x
+            for i in xrange(self.num_transforms):
+                x = Conv2D(self.img_num_filters,
+                        kernel_size=[5,5], 
+                        strides=(1, 1),
+                        padding='same')(x)
+                x = BatchNormalization(momentum=0.9)(x)
+                x = LeakyReLU(0.2)(x)
 
             # Create decoder
             # This maps from our latent world state back into observable images.
@@ -249,9 +253,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         #predictor = Model(ins, [decoder(enc), arm_out, gripper_out])
         predictor = Model(ins, [image_out, arm_out, gripper_out])
-        #predictor.summary()
         actor = Model(ins + gins, [arm_out, gripper_out])
-        #actor.summary()
         train_predictor = Model(ins + gins, [train_out,
                                              arm_cmd_out,
                                              gripper_cmd_out,])
