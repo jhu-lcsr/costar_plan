@@ -26,12 +26,6 @@ from .mhp_loss import *
 class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
     '''
-    This is the "divide and conquer"-style classifier for training a multilevel
-    model. We use our supervised action labels to learn a superviser that will
-    classify which action we should be performing from any particular frame,
-    and then separately we learn a model of what we should be doing at each
-    frame.
-
     This class is set up as a SUPERVISED learning problem -- for more
     interactive training we will need to add data from an appropriate agent.
     '''

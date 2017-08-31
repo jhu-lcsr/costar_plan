@@ -239,6 +239,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         # These are the outputs to other layers -- this is the hidden world
         # state.
         hidden.trainable = False
+        return
 
         # Learn a baseline for comparisons and whatnot
         self.baseline = self._makePolicy(features, action, hidden)

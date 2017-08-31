@@ -243,7 +243,7 @@ class AbstractAgent(object):
         # -- NOTE: you can add other features here in the future, but for now
         # we do not need these. Label gets some unique handling.
         prev_list  = []
-        final_list = world.features.description
+        first_list = world.features.description
         goal_list = world.features.description
         length = len(self.current_example['example'])
 
@@ -275,7 +275,7 @@ class AbstractAgent(object):
         for i in xrange(length):
             i0 = max(i-1,0)
             i1 = min(i+1,length-1)
-            ifinal = length-1
+            ifirst = 0
 
             # ==========================================
             # Finally, add the example to the dataset
@@ -286,8 +286,8 @@ class AbstractAgent(object):
                         data["next_%s"%key] = []
                     if key in prev_list:
                         data["prev_%s"%key] = []
-                    if key in final_list:
-                        data["final_%s"%key] = []
+                    if key in first_list:
+                        data["first_%s"%key] = []
                     if key in goal_list:
                         data["goal_%s"%key] = []
                 else:
@@ -309,8 +309,8 @@ class AbstractAgent(object):
                         data["prev_%s"%key].append(values[i0])
                     if key in next_list:
                         data["next_%s"%key].append(values[i1])
-                    if key in final_list:
-                        data["final_%s"%key].append(values[ifinal])
+                    if key in first_list:
+                        data["first_%s"%key].append(values[ifirst])
                     if key in goal_list:
                         data["goal_%s"%key].append(values[switches[i]])
 
@@ -331,7 +331,9 @@ class AbstractAgent(object):
                         self.tf_writer.prepare_to_write(sample)
                     self.tf_writer.write_example(sample)
             else:
-                self.npz_writer.write(data, example, reward)
+                if seed is None:
+                    seed = example
+                self.npz_writer.write(data, seed, reward)
     
         # ================================================
         # Reset the current example.
