@@ -4,7 +4,7 @@ set -x
 set -u
 
 #SBATCH --job-name=testjob
-#SBATCH --time=6:0:0
+#SBATCH --time=0-24:0:0
 #SBATCH --nodes=1
 #SBATCH --mail-type=end
 #SBATCH --mail-user=cpaxton3@jhu.edu
