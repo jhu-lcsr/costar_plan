@@ -259,7 +259,7 @@ class GraspTrain(object):
         # End tensor configuration, begin model configuration and training
 
         weights_name = timeStamped(save_weights)
-        learning_rate = 0.05
+        learning_rate = 0.025
         learning_power_decay_rate = 0.4
 
         # ###############learning rate scheduler####################
@@ -296,7 +296,7 @@ class GraspTrain(object):
         scheduler = keras.callbacks.LearningRateScheduler(lr_scheduler)
         early_stopper = EarlyStopping(monitor='acc', min_delta=0.001, patience=10)
         csv_logger = CSVLogger(weights_name + '.csv')
-        checkpoint = keras.callbacks.ModelCheckpoint(save_weights + '.epoch-{epoch:03d}-loss-{loss:.2f}-acc-{acc:.2f}.h5',
+        checkpoint = keras.callbacks.ModelCheckpoint(weights_name + '.epoch-{epoch:03d}-loss-{loss:.3f}-acc-{acc:.3f}.h5',
                                                      save_best_only=True, verbose=1, monitor='acc')
 
         callbacks = [scheduler, early_stopper, csv_logger, checkpoint]
