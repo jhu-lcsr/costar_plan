@@ -70,8 +70,8 @@ class AbstractAgent(object):
             window_length=10,
             data_file='data.npz',
             data_type=None,
-            success_only=False,
-            seed=None,
+            success_only=False, # save all examples
+            seed=0, # set a default seed
             *args, **kwargs):
         '''
         Sets up the general Agent.
@@ -314,6 +314,13 @@ class AbstractAgent(object):
                     if key in goal_list:
                         data["goal_%s"%key].append(values[switches[i]])
 
+        # ===================================================================
+        # Print out the seed associated with this example for reproduction, and
+        # use it as part of the filename. If the seed is not provided, we will
+        # set to the current example index.
+        if seed is None:
+            seed = example
+
         if not (self.success_only and reward <= 0.):
             # ================================================
             # Handle TF Records. We save here instead of at the end.
@@ -331,9 +338,9 @@ class AbstractAgent(object):
                         self.tf_writer.prepare_to_write(sample)
                     self.tf_writer.write_example(sample)
             else:
-                if seed is None:
-                    seed = example
                 self.npz_writer.write(data, seed, reward)
+        else:
+            print("-- skipping bad example %d", seed)
     
         # ================================================
         # Reset the current example.

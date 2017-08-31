@@ -182,7 +182,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 name="next_gripper_flat")(x)
 
         decoder = Model(rep, [dec, arm_out_x, gripper_out_x])
-        #decoder = Model(rep, [dec])
 
         # =====================================================================
         # Create many different image decoders
@@ -363,8 +362,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         assert train_size == 12295
 
         length = I.shape[0]
-        Itrain = np.reshape(I,(length, image_size))
-        train_target = np.concatenate([Itrain,q,g],axis=-1)
+        Itrain = np.reshape(I_target,(length, image_size))
+        train_target = np.concatenate([Itrain,q_target,g_target],axis=-1)
 
         self.train_predictor.summary()
         self.train_predictor.compile(

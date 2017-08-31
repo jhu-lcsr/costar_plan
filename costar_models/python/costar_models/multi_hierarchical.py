@@ -152,6 +152,20 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                             dense=False,
                             option=None,
                             batchnorm=True,)
+        rep2, dec2 = GetDecoder(self.img_col_dim,
+                            img_shape,
+                            arm_size,
+                            gripper_size,
+                            dropout_rate=self.dropout_rate,
+                            kernel_size=[5,5],
+                            filters=self.img_num_filters,
+                            stride2_layers=3,
+                            stride1_layers=0,
+                            dropout=False,
+                            leaky=True,
+                            dense=False,
+                            option=None,
+                            batchnorm=True,)
 
 
         # =====================================================================
@@ -178,6 +192,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         x = LeakyReLU(0.2)(x)
         label_out = Dense(64, activation="sigmoid",name="next_option")(x)
         decoder = Model(rep, dec, name="image_decoder")
+        decoder2 = Model(rep2, dec2, name="next_frame_image_decoder")
 
         # =====================================================================
         # Add in the chosen option
@@ -227,7 +242,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 decoder([goal_enc_with_option_flat]),
                 arm_out,
                 gripper_out,
-                decoder([next_frame_enc_with_option_flat])]
+                decoder2([next_frame_enc_with_option_flat])]
 
         supervisor = Model(ins + [prev_option_in], [label_out])
         predictor = Model(ins + [prev_option_in], features_out + [label_out])
