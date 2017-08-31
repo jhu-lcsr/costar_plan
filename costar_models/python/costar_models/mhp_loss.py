@@ -4,6 +4,9 @@ import keras.backend as K
 import tensorflow as tf
 
 def mhp_loss_layer(num_classes, num_hypotheses, y_true, y_pred):
+    '''
+    This is the original code from Christian, for reference.
+    '''
     xsum = tf.zeros([1, 1])
     xmin = tf.ones([1, 1])*1e10
     for i in range(0, num_hypotheses):
@@ -50,6 +53,9 @@ class MhpLoss(object):
         #self.output_shape = output_shape
         self.__name__ = "mhp_loss"
 
+        self.avg_weight = 0.20
+        self.min_weight = 0.80
+
     def __call__(self, target, pred):
         '''
         Pred must be of size:
@@ -76,7 +82,8 @@ class MhpLoss(object):
             xsum += cc
             xmin = tf.minimum(xmin, cc)
 
-        return (0.05 * xsum / self.num_hypotheses) + (0.90 * xmin)
+        return (self.avg_weight * xsum / self.num_hypotheses) \
+                + (self.min_weight * xmin)
 
 class MhpLossWithShape(object):
     '''
