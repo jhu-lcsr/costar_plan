@@ -288,7 +288,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         if self.show_iter == 0 or self.show_iter == None:
             self.train_predictor.fit(features,
-                    [np.expand_dims(f,1) for f in targets])
+                    [np.expand_dims(f,1) for f in targets],
+                    epochs=self.epochs)
         else:
             for i in xrange(self.iter):
                 idx = np.random.randint(0, features[0].shape[0], size=self.batch_size)
