@@ -186,8 +186,6 @@ class GraspDataset(object):
         """
         dataset = self._update_dataset_param(dataset)
         csv_files = self._get_feature_csv_file_paths(dataset)
-        if self.verbose > 1:
-            print('csvfiles_length:', len(csv_files))
         features_complete_list, _, feature_count, attempt_count = self._get_grasp_tfrecord_info(csv_files[-1])
 
         return features_complete_list, attempt_count
