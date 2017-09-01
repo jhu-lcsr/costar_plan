@@ -42,6 +42,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.dropout_rate = 0.5
         self.img_col_dim = 512
         self.img_num_filters = 64
+        self.tform_filters = 8
         self.combined_dense_size = 128
         self.num_hypotheses = 4
         self.num_transforms = 3
@@ -123,6 +124,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 tile=True,
                 option=64,
                 flatten=False,
+                output_filters=self.tform_filters,
                 )
         gins, genc = GetEncoder(img_shape,
                 arm_size,
@@ -140,6 +142,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 tile=True,
                 #option=64,
                 flatten=False,
+                output_filters=self.tform_filters,
                 )
 
 
@@ -155,6 +158,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                             filters=self.img_num_filters,
                             stride2_layers=3,
                             stride1_layers=0,
+                            tform_filters=self.tform_filters,
                             dropout=False,
                             leaky=True,
                             dense=False,
@@ -169,7 +173,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         width4 = img_shape[1]/4
         height8 = img_shape[0]/8
         width8 = img_shape[1]/8
-        x = Reshape((width8,height8,self.img_num_filters))(rep)
+        #x = Reshape((width8,height8,self.img_num_filters))(rep)
+        x = Reshape((width8,height8,self.tform_filters))(rep)
         x = Conv2D(self.img_num_filters/2,
                 kernel_size=[5,5], 
                 strides=(2, 2),
@@ -190,7 +195,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         for i in xrange(self.num_hypotheses):
             x = enc
             for j in xrange(self.num_transforms):
-                x = Conv2D(self.img_num_filters,
+                x = Conv2D(self.tform_filters,
                         kernel_size=[5,5], 
                         strides=(1, 1),
                         padding='same',

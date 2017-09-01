@@ -172,13 +172,16 @@ def SliceImageHypotheses(image_shape, num_hypotheses, x):
 
 def GetImageDecoder(dim, img_shape,
         dropout_rate, filters, kernel_size=[3,3], dropout=True, leaky=True,
-        batchnorm=True,dense=True, num_hypotheses=None,
+        batchnorm=True,dense=True, num_hypotheses=None, tform_filters=None,
         stride2_layers=2, stride1_layers=1):
 
     '''
     Initial decoder: just based on getting images out of the world state
     created via the encoder.
     '''
+
+    if tform_filters is None:
+        tform_filters = filters
 
     height16 = img_shape[0]/16
     width16 = img_shape[1]/16
@@ -195,8 +198,8 @@ def GetImageDecoder(dim, img_shape,
     else:
         relu = lambda: Activation('relu')
 
-    z = Input((width8*height8*filters,),name="input_image")
-    x = Reshape((width8,height8,filters))(z)
+    z = Input((width8*height8*tform_filters,),name="input_image")
+    x = Reshape((width8,height8,tform_filters))(z)
     x = Dropout(dropout_rate)(x)
 
     height = height4
