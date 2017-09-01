@@ -53,7 +53,7 @@ class Task(object):
 
     # Store name by integer index in case we ever want to recover that
 
-    # Dictionary from the uniqe integer id (label) of each action
+    # Dictionary from the unique integer id (label) of each action
     # to the associated string names
     self.names = {}
     self.generic_names = {}

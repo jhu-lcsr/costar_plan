@@ -64,57 +64,6 @@ def grasp_model(clear_view_image_op,
     return model
 
 
-def grasp_model_deleteme(clear_view_image_op=None,
-                         current_time_image_op=None,
-                         input_vector_op=None,
-                         input_image_shape=[512, 640, 3],
-                         input_vector_op_shape=[7]):
-    if clear_view_image_op is not None:
-        print('clear_view_image_op.shape: ', clear_view_image_op.shape)
-    # TODO(ahundt) clear view only changes very occasionally compared to others, save output as variable.
-    clear_view_resnet50 = ResNet50(include_top=False, input_tensor=clear_view_image_op, input_shape=input_image_shape)
-    current_time_resnet50 = ResNet50(include_top=False, input_tensor=current_time_image_op, input_shape=input_image_shape)
-    vect_input = Input(tensor=input_vector_op)
-    clear_view_logits = Input(tensor=clear_view_resnet50.output)
-    current_time_logits = Input(tensor=current_time_resnet50.output)
-
-    # vec_image = Lambda(repeat_vector_as_image)([input_vector_op, current_time_resnet50.output])
-    # vec_image = repeat_vector_as_image2(vect_input, current_time_resnet50.output)
-
-    print(current_time_resnet50.output.shape)
-    print(current_time_resnet50.output)
-    print('clear_view_logits.shape: ', clear_view_logits.shape)
-    print('clear_view_logits._keras_shape:', clear_view_logits._keras_shape)
-    vec_size = 7
-    vect_input = Reshape([11, 1, 1, vec_size])(vect_input)
-    tile_width = 2
-    tile_height = 2
-    tile_shape = [1, 1, tile_width, tile_height, 1]
-
-    vect_input_image = Lambda(lambda x: K.tile(x, tile_shape))(vect_input)
-    # vec_image = repeat_vector_as_image4(vect_input, clear_view_logits)
-
-    # TODO(ahundt) concatenate pose op at every pixel
-    # pose_tensor = Input(tensor=input_vector_op)
-    # Tile(pose_tensor, current_time_resnet50.output.shape)
-    # pose_filter = K.transpose(input_vector_op)
-    # tiled_pose_filter = K.tile(pose_filter, clear_view_resnet50.output.shape)
-    # tiled_pose_filter = K.reshape(tiled_pose_filter, (clear_view.shape[0], clear_view.shape[1], pose_filter.size))
-    concat_axis = 1 if K.image_data_format() == 'channels_first' else -1
-
-    fused_data = Concatenate(concat_axis)([clear_view_resnet50.output,
-                                           vect_input_image,
-                                           current_time_resnet50.output])
-
-    x = ResNet50(fused_data, weights=None)
-
-    x = Flatten()(x.output)
-    classes = 1  # single class: grasp_success
-    x = Dense(classes, activation='sigmoid', name='fc1')(x)
-    grasp_model = Model([clear_view_image_op, current_time_image_op, input_vector_op], x, name="grasp_model")
-    return grasp_model
-
-
 def grasp_model_segmentation(clear_view_image_op=None,
                              current_time_image_op=None,
                              input_vector_op=None,

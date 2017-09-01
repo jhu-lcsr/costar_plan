@@ -92,7 +92,7 @@ class GraspDataset(object):
 
         download: True to actually download the dataset, also see FLAGS.
     """
-    def __init__(self, data_dir=None, dataset=None, download=None):
+    def __init__(self, data_dir=None, dataset=None, download=None, verbose=0):
         if data_dir is None:
             data_dir = FLAGS.data_dir
         self.data_dir = data_dir
@@ -103,6 +103,7 @@ class GraspDataset(object):
             download = FLAGS.grasp_download
         if download:
             self.download(data_dir, dataset)
+        self.verbose = verbose
 
     def download(self, data_dir=None, dataset='all'):
         '''Google Grasping Dataset - about 1TB total size
@@ -160,7 +161,6 @@ class GraspDataset(object):
         One example is: 'features_102.csv'
         """
         dataset = self._update_dataset_param(dataset)
-        # print("csv_search: ", os.path.join(os.path.expanduser(self.data_dir), '*{}*.csv'.format(dataset)))
         return gfile.Glob(os.path.join(os.path.expanduser(self.data_dir), '*{}*.csv'.format(dataset)))
 
     def get_features(self, dataset=None):
@@ -186,7 +186,8 @@ class GraspDataset(object):
         """
         dataset = self._update_dataset_param(dataset)
         csv_files = self._get_feature_csv_file_paths(dataset)
-        # print('csvfiles_length:', len(csv_files))
+        if self.verbose > 1:
+            print('csvfiles_length:', len(csv_files))
         features_complete_list, _, feature_count, attempt_count = self._get_grasp_tfrecord_info(csv_files[-1])
 
         return features_complete_list, attempt_count
@@ -231,7 +232,6 @@ class GraspDataset(object):
         if not any('gripper/status' in s for s in features):
             features = np.append(features, 'gripper/status')
             feature_count += 1
-        # print('_get_grasp_tfrecord_info::feature_complete_list:', features)
         # note that the tfrecords are often named '*{}.tfrecord*-of-*'
         tfrecord_paths = gfile.Glob(self._get_tfrecord_path_glob_pattern())
         return features, tfrecord_paths, feature_count, attempt_count
@@ -507,7 +507,7 @@ class GraspDataset(object):
         features_complete_list, num_samples = self.get_features()
         feature_op_dicts = [self.parse_grasp_attempt_protobuf(serialized_protobuf, features_complete_list) for serialized_protobuf in records_op]
         # TODO(ahundt) https://www.tensorflow.org/performance/performance_models
-        # make sure records are always ready to go
+        # make sure records are always ready to go on cpu and gpu via prefetching in a staging area
         # staging_area = tf.contrib.staging.StagingArea()
         dict_and_feature_tuple_list = []
         for feature_op_dict, sequence_op_dict in feature_op_dicts:
@@ -605,7 +605,8 @@ class GraspDataset(object):
             """
             # decode all the image ops and other features
             [(features_op_dict, _)], features_complete_list, _, attempt_count = self.get_simple_tfrecordreader_dataset_ops()
-            print(features_complete_list)
+            if self.verbose > 0:
+                print(features_complete_list)
             ordered_image_feature_names = GraspDataset.get_time_ordered_features(features_complete_list, '/image/decoded')
 
             grasp_success_feature_name = GraspDataset.get_time_ordered_features(
@@ -622,8 +623,6 @@ class GraspDataset(object):
             image_seq = tf.concat(image_seq, 0)
             # output won't be correct now if batch size is anything but 1
             batch_size = 1
-            print('fo_dict: ', features_op_dict)
-            print('fodgs: ', features_op_dict[grasp_success_feature_name])
 
             train_image_dict = tf.train.batch(
                 {'image_seq': image_seq,
