@@ -123,7 +123,7 @@ def MakeStacked(ins, x, num_to_stack):
     new_ins = []
     new_xs = []
     x = Model(ins, x)
-    for i in xrange(num_to_stack):
+    for i in range(num_to_stack):
         new_x_ins = []
         for inx in ins:
             new_x_ins.append(Input(inx.shape[1:]))
@@ -167,7 +167,7 @@ def GetEncoderConvLSTM(img_shape, arm_size, gripper_size,
 
     x = samples
 
-    for i in xrange(pre_tiling_layers):
+    for i in range(pre_tiling_layers):
 
         x = ConvLSTM2D(filters,
                    kernel_size=kernel_size, 
@@ -190,7 +190,7 @@ def GetEncoderConvLSTM(img_shape, arm_size, gripper_size,
     else:
         ins = [samples]
 
-    for i in xrange(post_tiling_layers):
+    for i in range(post_tiling_layers):
         if i == post_tiling_layers - 1:
             ret_seq = False
         else:
@@ -240,7 +240,7 @@ def GetEncoder3D(img_shape, arm_size, gripper_size, dropout_rate,
 
     x = samples
 
-    for i in xrange(pre_tiling_layers):
+    for i in range(pre_tiling_layers):
 
         x = Conv3D(filters,
                    kernel_size=kernel_size, 
@@ -263,7 +263,7 @@ def GetEncoder3D(img_shape, arm_size, gripper_size, dropout_rate,
     else:
         ins = [samples]
 
-    for i in xrange(post_tiling_layers):
+    for i in range(post_tiling_layers):
         x = Conv3D(filters,
                    kernel_size=kernel_size, 
                    strides=(2, 2, 2),
@@ -340,7 +340,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     if dropout:
         x = ApplyTD(Dropout(dropout_rate))(x)
 
-    for i in xrange(pre_tiling_layers):
+    for i in range(pre_tiling_layers):
 
         x = ApplyTD(Conv2D(filters,
                    kernel_size=kernel_size, 
@@ -367,7 +367,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     else:
         ins = [samples]
 
-    for i in xrange(post_tiling_layers):
+    for i in range(post_tiling_layers):
         x = ApplyTD(Conv2D(filters,
                    kernel_size=kernel_size, 
                    strides=(2, 2),
@@ -442,7 +442,7 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
 
     height = height4
     width = width4
-    for i in xrange(stride2_layers):
+    for i in range(stride2_layers):
 
         x = Conv2DTranspose(filters,
                    kernel_size=kernel_size, 
@@ -462,7 +462,7 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
         height *= 2
         width *= 2
 
-    for i in xrange(stride1_layers):
+    for i in range(stride1_layers):
         x = Conv2D(filters, # + num_labels
                    kernel_size=kernel_size, 
                    strides=(1, 1),
@@ -490,7 +490,7 @@ def GetTCNStack(x, filters, num_levels=2, dense_size=128, dropout_rate=0.5):
     Add some convolutions to a simple image
     '''
 
-    for i in xrange(num_levels):
+    for i in range(num_levels):
         x = Conv2D(filters,
                 kernel_size=[5,5],
                 strides=(2,2),
@@ -537,7 +537,7 @@ def GetEncoder2(img_shape, arm_size, gripper_size, dim, dropout_rate,
 
     x = samples
 
-    for i in xrange(pre_tiling_layers):
+    for i in range(pre_tiling_layers):
         x = Conv2D(filters,
                    kernel_size=[5, 5], 
                    strides=(2, 2),
@@ -562,7 +562,7 @@ def GetEncoder2(img_shape, arm_size, gripper_size, dim, dropout_rate,
     else:
         ins = [samples]
 
-    for i in xrange(post_tiling_layers):
+    for i in range(post_tiling_layers):
         x = Conv2D(filters,
                    kernel_size=[5, 5], 
                    strides=(2, 2),

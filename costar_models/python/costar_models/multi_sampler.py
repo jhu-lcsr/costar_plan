@@ -149,12 +149,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Predict the next joint states and gripper position. We add these back
         # in from the inputs once again, in order to make sure they don't get
         # lost in all the convolution layers above...
-        height4 = img_shape[0]/4
-        width4 = img_shape[1]/4
-        height8 = img_shape[0]/8
-        width8 = img_shape[1]/8
+        height4 = int(img_shape[0]/4)
+        width4 = int(img_shape[1]/4)
+        height8 = int(img_shape[0]/8)
+        width8 = int(img_shape[1]/8)
         x = Reshape((width8,height8,self.img_num_filters))(rep)
-        x = Conv2D(self.img_num_filters/2,
+        x = Conv2D(int(self.img_num_filters/2),
                 kernel_size=[5,5], 
                 strides=(2, 2),
                 padding='same')(x)
@@ -175,7 +175,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # =====================================================================
         # Create many different image decoders
-        for i in xrange(self.num_hypotheses):
+        for i in range(self.num_hypotheses):
             x = Conv2D(self.img_num_filters,
                     kernel_size=[5,5], 
                     strides=(1, 1),
@@ -221,7 +221,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 optimizer=self.getOptimizer())
         self.predictor.compile(loss="mse", optimizer=self.getOptimizer())
 
-        for i in xrange(self.iter):
+        for i in range(self.iter):
             idx = np.random.randint(0, features[0].shape[0], size=self.batch_size)
             x = []
             y = []
@@ -242,7 +242,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
     def plotPredictions(self, features, targets, axes):
         subset = [f[range(0,60,10)] for f in features]
         data = self.predictor.predict(subset)
-        for j in xrange(6):
+        for j in range(6):
             jj = j * 10
             ax = axes[1][j]
             ax.imshow(np.squeeze(data[j][0]))
