@@ -55,7 +55,8 @@ class CostarAction(AbstractAction):
                  reference=None,
                  traj=None,
                  gripper_cmd=None,
-                 code=None):
+                 code=None,
+                 error=False,):
         if isinstance(dq, list):
             dq = np.array(dq)
         if isinstance(q, list):
@@ -70,6 +71,7 @@ class CostarAction(AbstractAction):
         self.reference = reference
         self.traj = traj
         self.gripper_cmd = gripper_cmd
+        self.error = error
 
     def toArray(self):
         return self.dq

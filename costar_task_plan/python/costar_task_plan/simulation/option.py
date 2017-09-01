@@ -277,8 +277,12 @@ class CartesianMotionPolicy(AbstractPolicy):
         # =====================================================================
         # Compute motion goak and send
         q_goal = actor.robot.ik(T_step, state.arm)
+        if q_goal is None:
+            error = True
+        else:
+            error = False
         # print q_goal, state.arm, state.arm_v
-        return SimulationRobotAction(arm_cmd=q_goal)
+        return SimulationRobotAction(arm_cmd=q_goal, error=error)
 
 
 class OpenGripperPolicy(AbstractPolicy):
