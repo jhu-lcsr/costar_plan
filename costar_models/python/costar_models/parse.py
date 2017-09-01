@@ -34,6 +34,9 @@ def GetModelParser():
                         help="Learning rate to be used in algorithm.",
                         type=float,
                         default=1e-3)
+    parser.add_argument('--model_directory',
+                        help="models directory",
+                        default = "~/.costar/models"),
     parser.add_argument('-i', '--iter',
                         help='Number of iterations to run',
                         default=100,

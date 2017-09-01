@@ -277,6 +277,10 @@ class AbstractAgent(object):
             i1 = min(i+1,length-1)
             ifirst = 0
 
+            if self.current_example["label"][i0] == self.current_example["label"][i1] \
+                    and np.random.randint(2) == 0:
+                        continue
+
             # ==========================================
             # Finally, add the example to the dataset
             for key, values in self.current_example.items():

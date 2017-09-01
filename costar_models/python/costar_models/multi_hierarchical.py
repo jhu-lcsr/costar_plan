@@ -242,7 +242,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 decoder([goal_enc_with_option_flat]),
                 arm_out,
                 gripper_out,
-                #decoder2([next_frame_enc_with_option_flat])]
+                decoder2([next_frame_enc_with_option_flat])]
 
         supervisor = Model(ins + [prev_option_in], [label_out])
         predictor = Model(ins + [prev_option_in], features_out + [label_out])

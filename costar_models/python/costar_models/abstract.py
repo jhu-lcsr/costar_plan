@@ -6,6 +6,7 @@ Chris Paxton
 See license for details
 '''
 import numpy as np
+import os
 
 import keras.optimizers as optimizers
 

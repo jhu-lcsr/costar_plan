@@ -43,7 +43,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.img_col_dim = 512
         self.img_num_filters = 64
         self.combined_dense_size = 128
-        self.num_hypotheses = 8
+        self.num_hypotheses = 4
         self.num_transforms = 3
 
         self.predictor = None
@@ -121,7 +121,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 dense=False,
                 batchnorm=True,
                 tile=True,
-                #option=64,
+                option=64,
                 flatten=False,
                 )
         gins, genc = GetEncoder(img_shape,
@@ -147,6 +147,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         arm_outs = []
         gripper_outs = []
         train_outs = []
+
         rep, dec = GetImageDecoder(self.img_col_dim,
                             img_shape,
                             dropout_rate=self.dropout_rate,
@@ -182,7 +183,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         gripper_out_x = Dense(gripper_size,
                 name="next_gripper_flat")(x)
 
-        decoder = Model(rep, [dec, arm_out_x, gripper_out_x])
+        decoder = Model(rep, [dec, arm_out_x, gripper_out_x], name="decoder")
 
         # =====================================================================
         # Create many different image decoders
@@ -194,11 +195,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         strides=(1, 1),
                         padding='same',
                         name="transform_%d_%d"%(i,j))(x)
-                #x = BatchNormalization(momentum=0.9,
-                #                      name="normalize_%d_%d"%(i,j))(x)
+                x = BatchNormalization(momentum=0.9,
+                                      name="normalize_%d_%d"%(i,j))(x)
                 x = LeakyReLU(0.2,name="lrelu_%d_%d"%(i,j))(x)
-
-            # Create decoder
+            
             # This maps from our latent world state back into observable images.
             #decoder = Model(rep, dec)
             img_x, arm_x, gripper_x = decoder(x)
@@ -256,16 +256,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         #predictor = Model(ins, [decoder(enc), arm_out, gripper_out])
         predictor = Model(ins, [image_out, arm_out, gripper_out])
         actor = Model(ins + gins, [arm_out, gripper_out])
-        #train_predictor = Model(ins + gins, [train_out,
-        #                                     arm_cmd_out,
-        #                                     gripper_cmd_out,])
-        train_predictor = Model(ins, [train_out,])
-                                             #arm_cmd_out,
-                                             #gripper_cmd_out,])
+        train_predictor = Model(ins + gins, [train_out,
+                                             arm_cmd_out,
+                                             gripper_cmd_out,])
 
         return predictor, train_predictor, actor
 
-    def _fitPredictor(self, features, targets, real_targets=[]):
+    def _fitPredictor(self, features, targets,):
         if self.show_iter > 0:
             fig, axes = plt.subplots(6, 6,)
             plt.tight_layout()
@@ -275,6 +272,15 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         for dim in image_shape:
             image_size *= dim
 
+        for i in xrange(features[0].shape[0]):
+            img1 = targets[0][i,:int(image_size)].reshape((64,64,3))
+            img2 = features[4][i]
+            if not np.all(img1 == img2):
+                print(i,"failed")
+                plt.subplot(1,2,1); plt.imshow(img1);
+                plt.subplot(1,2,2); plt.imshow(img2);
+                plt.show()
+
         for i in xrange(self.iter):
             idx = np.random.randint(0, features[0].shape[0], size=self.batch_size)
             x = []
@@ -283,20 +289,36 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 x.append(f[idx])
             for f in targets:
                 y.append(np.expand_dims(f[idx],1))
+            yimg = y[0][:,0,:int(image_size)]
+            yimg = yimg.reshape((self.batch_size,64,64,3))
+            for j in xrange(self.batch_size):
+                if not np.all(x[4][j] == yimg[j]):
+                    plt.subplot(1,3,1); plt.imshow(x[0][j]);
+                    plt.subplot(1,3,2); plt.imshow(x[4][j]);
+                    plt.subplot(1,3,3); plt.imshow(yimg[j]);
+                    plt.show()
     
             losses = self.train_predictor.train_on_batch(x, y)
 
             print("Iter %d: loss ="%(i),losses)
             if self.show_iter > 0 and (i+1) % self.show_iter == 0:
-                self.plotPredictions(features[:3], real_targets[:1], axes)
+                self.plotPredictions(features, targets, axes)
 
         self._fixWeights()
 
     def plotPredictions(self, features, targets, axes):
-        subset = [f[range(0,120,20)] for f in features]
+        STEP = 20
+        idxs = range(0,120,STEP)
+        STEP = 11
+        idxs = range(0,66,STEP)
+        subset = [f[idxs] for f in features[:4]]
+        allt = targets[0][idxs]
+        imglen = 64*64*3
+        img = allt[:,:imglen]
+        img = np.reshape(img, (6,64,64,3))
         data, arms, grippers = self.predictor.predict(subset)
         for j in xrange(6):
-            jj = j * 100
+            jj = j * STEP
             for k in xrange(min(4,self.num_hypotheses)):
                 ax = axes[1+k][j]
                 ax.set_axis_off()
@@ -308,7 +330,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             ax.axis('off')
             ax = axes[-1][j]
             ax.set_axis_off()
-            ax.imshow(np.squeeze(targets[0][jj]))
+            ax.imshow(np.squeeze(img[j]))
             ax.axis('off')
 
         plt.ion()
@@ -361,6 +383,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         train_size = image_size + arm_size + gripper_size
         assert gripper_size == 1
         assert train_size == 12295
+        assert I.shape[0] == I_target.shape[0]
 
         length = I.shape[0]
         Itrain = np.reshape(I_target,(length, image_size))
@@ -371,22 +394,22 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size],
-                        weights=[0.7,0.2,0.1],), ],
+                        weights=[0.7,0.2,0.1],), 
                     #MhpLoss(
                     #    num_hypotheses=self.num_hypotheses,
                     #    num_outputs=train_size),
-                    #"mse","mse"],
-                #loss_weights=[0.8,0.1,0.1],
+                    "mse","mse"],
+                loss_weights=[0.8,0.1,0.1],
                 optimizer=self.getOptimizer())
         self.predictor.compile(loss="mse", optimizer=self.getOptimizer())
 
         # ===============================================
         # Fit the main models
         self._fitPredictor(
+                [I, q, g, oin, I_target, q_target, g_target,],
                 #[I, q, g, oin, I_target, q_target, g_target, label],
-                [I, q, g, ],#I_target, q_target, g_target],
-                [train_target,],# qa, ga],
-                real_targets=[I_target, q_target, g_target])
+                #[I, q, g, I_target, q_target, g_target],
+                [train_target, qa, ga],)
 
         # ===============================================
         # Might be useful if you start getting shitty results... one problem we
