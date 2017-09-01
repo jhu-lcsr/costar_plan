@@ -17,4 +17,4 @@ echo
 echo "Running $@ on $SLURMD_NODENAME ..."
 echo
 
-$HOME/costar_plan/costar_models/scripts/ctp_model_tool --features multi -i 1000 -e 1000 --model predictor --data_file $HOME/work/ctp_10.npz --load --lr 0.001 
+$HOME/costar_plan/costar_models/scripts/ctp_model_tool --features multi -i 1000 -e 1000 --model predictor --data_file $HOME/work/ctp_10.npz --lr 0.001 

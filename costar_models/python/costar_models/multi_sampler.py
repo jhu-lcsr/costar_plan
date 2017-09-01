@@ -211,7 +211,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # =====================================================================
         # Training the actor policy
         y = Concatenate(axis=-1,name="combine_goal_current")([enc, genc])
-        y = Conv2D(self.img_num_filters/4,
+        y = Conv2D(int(self.img_num_filters/4),
                 kernel_size=[5,5], 
                 strides=(2, 2),
                 padding='same')(y)
