@@ -84,24 +84,21 @@ class TaskAgent(AbstractAgent):
 
             while not self._break:
                 control = plan.apply(self.env.world)
-                if control is not None:
-                    features, reward, done, info = self.env.step(control)
-                    if control.error:
-                        print("Error following selected policy action!")
-                        reward -= 100
-                        done = True
-                    self._addToDataset(self.env.world,
-                            control,
-                            features,
-                            reward,
-                            done,
-                            i,
-                            task.index(names[plan.idx]),
-                            task.numIndices(),
-                            seed=(self.seed+i))
-                    if done:
-                        break
-                else:
+                features, reward, done, info = self.env.step(control)
+                if control.error:
+                    print("Error following selected policy action!")
+                    reward -= 100
+                    done = True
+                self._addToDataset(self.env.world,
+                        control,
+                        features,
+                        reward,
+                        done,
+                        i,
+                        task.index(names[plan.idx]),
+                        task.numIndices(),
+                        seed=(self.seed+i))
+                if done:
                     break
 
             if self._break:
