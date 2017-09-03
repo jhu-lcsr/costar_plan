@@ -24,14 +24,21 @@ def main(args):
     data_file_info = args['data_file'].split('.')
     data_type = data_file_info[-1]
     if data_type == "npz":
-        data = NpzDataset(data_file_info[0]).load()
+        root = ""
+        for i, tok in enumerate(data_file_info[:-1]):
+            if i < len(data_file_info)-1 and i > 0:
+                root += '.'
+            root += tok
+        print(root)
+        data = NpzDataset(root).load()
     else:
         raise NotImplementedError('data type not implemented: %s'%data_type)
 
     if 'model' in args and args['model'] is not None:
         model = MakeModel(taskdef=None, **args)
+        print (args)
         if 'load_model' in args and args['load_model']:
-            model.load(env.world)
+            model.load(world=None,**data)
         try:
             model.train(**data)
         except KeyboardInterrupt:
