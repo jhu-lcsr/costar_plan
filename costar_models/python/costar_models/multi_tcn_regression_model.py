@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 import keras.backend as K
 import keras.losses as losses
@@ -16,9 +17,9 @@ from keras.models import Model, Sequential
 from keras.optimizers import Adam
 from matplotlib import pyplot as plt
 
-from abstract import AbstractAgentBasedModel
-from robot_multi_models import *
-from split import *
+from .abstract import AbstractAgentBasedModel
+from .robot_multi_models import *
+from .split import *
 
 class RobotMultiTCNRegression(AbstractAgentBasedModel):
     '''
@@ -150,6 +151,6 @@ class RobotMultiTCNRegression(AbstractAgentBasedModel):
             raise RuntimeError('model is missing')
         features = [f.reshape((1,)+f.shape) for f in features]
         res = self.model.predict(features)
-        print res
+        print(res)
         return res
 

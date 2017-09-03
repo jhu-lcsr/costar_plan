@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 import keras.backend as K
 import keras.losses as losses
@@ -16,9 +17,9 @@ from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 from keras.optimizers import Adam
 
-from abstract import AbstractAgentBasedModel
+from .abstract import AbstractAgentBasedModel
 
-from robot_multi_models import *
+from .robot_multi_models import *
 
 class RobotMultiAutoencoder(AbstractAgentBasedModel):
     '''
@@ -143,7 +144,7 @@ class RobotMultiAutoencoder(AbstractAgentBasedModel):
                     [xf],
                     [yf],)
 
-            print "Iter %d: loss = %f"%(i,loss)
+            print("Iter %d: loss = %f"%(i,loss))
             if self.show_iter > 0 and (i+1) % self.show_iter == 0:
                 #data = self.model.predict([features[:6], arm[:6], gripper[:6]])
                 data = self.model.predict([features[:6]])

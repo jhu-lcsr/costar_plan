@@ -1,4 +1,4 @@
-from abstract import AbstractAgentBasedModel
+from .abstract import AbstractAgentBasedModel
 
 
 import keras.backend as K
@@ -83,5 +83,7 @@ class TrajectorySamplerLoss(object):
             return x + cost
         else:
             return x
+
+
 
 

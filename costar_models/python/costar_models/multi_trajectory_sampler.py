@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import keras.backend as K
 import keras.losses as losses
 import keras.optimizers as optimizers
@@ -17,10 +19,10 @@ from keras.models import Model, Sequential
 from keras.optimizers import Adam
 from tensorflow import TensorShape
 
-from abstract import AbstractAgentBasedModel
-from robot_multi_models import *
-from split import *
-from trajectory import AddSamplerLayer, TrajectorySamplerLoss
+from .abstract import AbstractAgentBasedModel
+from .robot_multi_models import *
+from .split import *
+from .trajectory import AddSamplerLayer, TrajectorySamplerLoss
 
 class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
     '''
@@ -101,16 +103,16 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
         else:
             gripper_size = 1
 
-        print "-------------------------------"
-        print "KEY VARIABLES:"
-        print "# arm features =", arm_size
-        print "# gripper features =", gripper_size
-        print "img data size =", features.shape
-        print "img in size =", img_in.shape
-        print "arm in size =", arm_in.shape
-        print "gripper in size =", gripper_in.shape
-        print "img out size =", img_out.shape
-        print "-------------------------------"
+        print("-------------------------------")
+        print("KEY VARIABLES:")
+        print("# arm features =", arm_size)
+        print("# gripper features =", gripper_size)
+        print("img data size =", features.shape)
+        print("img in size =", img_in.shape)
+        print("arm in size =", arm_in.shape)
+        print("gripper in size =", gripper_in.shape)
+        print("img out size =", img_out.shape)
+        print("-------------------------------")
 
         img_ins, img_out = GetCameraColumn(
                 img_shape,
@@ -187,7 +189,7 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
 
             noise = np.random.random((self.batch_size, self.noise_dim))
             loss = self.model.train_on_batch([xi, xa, xg, noise], ya)
-            print "Iter %d: loss = %f"%(i,loss)
+            print("Iter %d: loss = %f"%(i,loss))
 
     def save(self):
         if self.model is not None:
@@ -206,11 +208,9 @@ class RobotMultiTrajectorySampler(AbstractAgentBasedModel):
             g = np.array([actor.state.gripper])
             I = np.array([env.world.cameras[0].capture().rgb[:,:,:3]])
             z = noise = np.random.random((1, self.noise_dim))
-            print "Debug shapes:", 
-            print q.shape, g.shape, I.shape, z.shape
+            print("Debug shapes:", q.shape, g.shape, I.shape, z.shape)
             trajs = self.model.predict([I, q, g, z])[0]
-            print "output trajectories:", 
-            print trajs.shape
+            print("output trajectories:", trajs.shape)
             trajs3d = []
             for traj in trajs:
                 fwd_traj = []

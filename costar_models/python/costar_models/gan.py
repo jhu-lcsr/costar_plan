@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 import keras.backend as K
 import keras.losses as losses
@@ -15,7 +16,7 @@ from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 from keras.optimizers import Adam
 
-from abstract import AbstractAgentBasedModel
+from .abstract import AbstractAgentBasedModel
 
 __LABELS = False
 
@@ -89,12 +90,6 @@ class GAN(AbstractAgentBasedModel):
                 outputs=self.adversarial.outputs,
                 updates=updates)
         """
-        #print self.adversarial.losses, self.adversarial.loss_weights, \
-        #    self.adversarial.loss
-        #print self.adversarial.trainable_weights, \
-        #    len(self.adversarial.trainable_weights)
-        #print self.generator.trainable_weights, \
-        #    len(self.adversarial.trainable_weights)
 
         self.noise_dim = noise_dim
 
@@ -103,7 +98,6 @@ class GAN(AbstractAgentBasedModel):
         return self.generator.predict([noise, label, label])
 
     def summary(self):
-        #print self.generator.summary()
         self.adversarial.summary()
         self.discriminator.summary()
 
@@ -135,7 +129,7 @@ class GAN(AbstractAgentBasedModel):
                     np.zeros((batch_size, 1)),
                             )
 
-            print "Iter %d: D loss / GAN loss = "%(i), d_loss, g_loss
+            print("Iter %d: D loss / GAN loss = "%(i), d_loss, g_loss)
 
             if (i + 1) % 25 == 0:
                 for j in xrange(6):

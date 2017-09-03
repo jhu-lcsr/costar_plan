@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 import numpy as np
 
@@ -39,12 +40,19 @@ def SplitIntoChunks(datasets, labels,
 
     for label in xrange(min_label, max_label+1):
 
+        if sum(labels==label) == 0:
+            continue
+
         # prune any rewards that are not acceptable here. we assume that we
         # care the most about the terminal reward -- if the terminal reward is
         # not greater than zero, we will throw out the example
         if reward is not None and reward[labels==label][-1] < reward_threshold:
             # Since this was too low, just skip it
+            print("<<< EXCLUDING FAILED EXAMPLE = ", label)
             continue
+        else:
+            print(">>> INCLUDING EXAMPLE = ", label, "with reward =",
+                    reward[labels==label][-1])
 
         for idx, data in enumerate(datasets):
             subset = data[labels==label]
@@ -78,7 +86,8 @@ def SplitIntoChunks(datasets, labels,
                     i += step_size
                     continue
                 if not block.shape[0] == chunk_length:
-                    print "block shape/chunk length:", block.shape, chunk_length
+                    print("block shape/chunk length:", block.shape,
+                            chunk_length)
                     raise RuntimeError('dev error: block not of the ' + \
                                        'correct length.')
 
@@ -137,13 +146,13 @@ def SplitIntoActions(
         # indices for each action
         for i in xrange(len(subset)):
 
-            print example, i, subset[i]
+            print(example, i, subset[i])
             last_i = len(subset) - 1
 
             # come up with the set of decision points
             if i == 0 or not subset[i-1] == subset[i] or i == last_i:
 
-                print "action changes:", subset[i]
+                print("action changes:", subset[i])
 
                 if i == last_i or not subset[i-1] == subset[i]:
                     # add the subset because we found an end
@@ -183,16 +192,16 @@ def NextAction(datasets, action_labels, examples):
     if len(examples.shape) == 1:
         examples = np.expand_dims(examples, -1)
     if not action_labels.shape == examples.shape:
-        print action_labels.shape
-        print examples.shape
+        print(action_labels.shape)
+        print(examples.shape)
         raise RuntimeError('all matrices must be of the same shape')
     elif len(action_labels.shape) is not 2:
-        print action_labels.shape
+        print(action_labels.shape)
         raise RuntimeError('all data should be of the shape ' + \
                            '(NUM_EXAMPLES, data)')
     for data in datasets:
         if not data.shape[0] == examples.shape[0]:
-            print data.shape, examples.shape
+            print(data.shape, examples.shape)
             raise RuntimeError('all data must be of the same length')
     
     new_datasets = []
@@ -213,16 +222,10 @@ def NextAction(datasets, action_labels, examples):
                 # We do not want to predict the beginning of the next trial!
                 end_of_trial = True
                 switch -= 1
-                #print "eot at idx=",idx,"switch=",switch,examples[switch-1],examples[switch]
-                #print examples[switch-1], examples[switch],
-                #print action_labels[switch-1], action_labels[switch]
                 break
             else:
-                #print examples[switch-1], examples[switch],
-                #print action_labels[switch-1], action_labels[switch]
                 break
         while idx < switch:
-            #print idx, switch
             for goal_data, data in zip(new_datasets, datasets):
                 goal_data[idx] = data[switch]
             idx += 1
@@ -255,11 +258,7 @@ def AddPadding(data,chunk_length,start_block,end_block,data_size):
             data = np.insert(data,0,axis=0,values=entry)
     elif end_block == data_size:
         entry = np.expand_dims(data[-1],axis=0)
-        #if len(data.shape) < 3:
-        #    print data
         for _ in xrange(chunk_length - data.shape[0]):
             data = np.append(data,axis=0,values=entry)
-        #if len(data.shape) < 3:
-        #    print data
     
     return data

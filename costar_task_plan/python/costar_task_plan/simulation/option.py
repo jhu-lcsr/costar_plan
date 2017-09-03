@@ -211,7 +211,7 @@ class CloseGripperOption(AbstractOption):
 
 class CartesianMotionPolicy(AbstractPolicy):
 
-    def __init__(self, pos, rot, goal=None, cartesian_vel=0.5, angular_vel=0.5):
+    def __init__(self, pos, rot, goal=None, cartesian_vel=0.5, angular_vel=0.75):
         self.pos = pos
         self.rot = rot
         self.goal = goal
@@ -263,12 +263,12 @@ class CartesianMotionPolicy(AbstractPolicy):
 
         # =====================================================================
         # Issue computing inverse kinematics
-        # compos, comorn, ifpos, iforn, lwpos, lworn = pb.getLinkState(actor.robot.handle, actor.robot.grasp_idx)
+        #compos, comorn, ifpos, iforn, lwpos, lworn = pb.getLinkState(actor.robot.handle, actor.robot.grasp_idx)
         # print lwpos, lworn
-        # q = pb.calculateInverseKinematics(actor.robot.handle,
+        #q = pb.calculateInverseKinematics(actor.robot.handle,
         #                                  actor.robot.grasp_idx,
-        #                                  targetPosition=position,
-        #                                  targetOrientation=rotation)
+        #                                  targetPosition=list(T_step.p),
+        #                                  targetOrientation=list(T_step.M.GetQuaternion()))
         # from tf_conversions import posemath as pm
         # mat = pm.toMatrix(T)
         # print mat

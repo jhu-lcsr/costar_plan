@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 import keras.backend as K
 import keras.losses as losses
@@ -15,10 +16,10 @@ from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 from keras.optimizers import Adam
 
-from abstract import AbstractAgentBasedModel
-from gan import GAN
+from .abstract import AbstractAgentBasedModel
+from .gan import GAN
 
-from robot_multi_models import *
+from .robot_multi_models import *
 
 class RobotMultiGAN(AbstractAgentBasedModel):
     '''
@@ -152,8 +153,6 @@ class RobotMultiGAN(AbstractAgentBasedModel):
         #        --> (img, arm, gripper)
         # At least eventually.
 
-        #print label
-
         img_shape = features.shape[1:]
         arm_size = arm.shape[1]
         if len(gripper.shape) > 1:
@@ -169,7 +168,7 @@ class RobotMultiGAN(AbstractAgentBasedModel):
             plt.figure()
 
         # pretrain
-        print "Pretraining discriminator..."
+        print("Pretraining discriminator...")
         self.discriminator.trainable = True
         for i in xrange(self.pretrain_iter):
             # Sample one batch, including random noise
@@ -192,7 +191,8 @@ class RobotMultiGAN(AbstractAgentBasedModel):
                     #[xi_fake, ya_double, yg_double],
                     [xi_fake],
                     is_fake)
-            print "PT Iter %d: pretraining discriminator loss = "%(i+1), d_loss
+            print("PT Iter %d: pretraining discriminator loss = "%(i+1),
+                    d_loss)
 
         self.discriminator.trainable = False
 
@@ -233,8 +233,7 @@ class RobotMultiGAN(AbstractAgentBasedModel):
                     fake,)
             self.generator.trainable = False
 
-            #print "actual loss", np.mean(np.sum(np.square(p - fake))), p
-            print "Iter %d: D loss / GAN loss = "%(i+1), d_loss, g_loss
+            print("Iter %d: D loss / GAN loss = "%(i+1), d_loss, g_loss)
 
             if self.show_iter > 0 and (i + 1) % self.show_iter == 0:
                 for j in xrange(6):
