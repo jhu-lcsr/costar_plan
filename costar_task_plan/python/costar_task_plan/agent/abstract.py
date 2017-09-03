@@ -115,7 +115,11 @@ class AbstractAgent(object):
         self.success_only = success_only
 
         if self.data_type == self.NUMPY_ZIP:
-            self.npz_writer = NpzDataset(data_file.split('.')[0])
+            root = ""
+            for tok in data_file.split('.')[:-1]:
+                root += tok
+            print root
+            self.npz_writer = NpzDataset(root)
         else:
             self.tf_writer = TFRecordConverter(data_file)
 

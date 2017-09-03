@@ -115,7 +115,7 @@ def GetImageEncoder(img_shape, dim, dropout_rate,
     if dropout:
         x = ApplyTD(Dropout(dropout_rate))(x)
 
-    for i in xrange(layers):
+    for i in range(layers):
 
         x = ApplyTD(Conv2D(filters,
                    kernel_size=kernel_size, 
@@ -163,7 +163,7 @@ def SliceImageHypotheses(image_shape, num_hypotheses, x):
     for dim in image_shape:
         size *= dim
     y = []
-    for i in xrange(num_hypotheses):
+    for i in range(num_hypotheses):
         xi = x[:,:,:,(3*i):(3*(i+1))]
         xi = K.expand_dims(xi,1)
         y.append(xi)
@@ -182,10 +182,10 @@ def GetImageDecoder(dim, img_shape,
 
     height16 = img_shape[0]/16
     width16 = img_shape[1]/16
-    height8 = img_shape[0]/8
-    width8 = img_shape[1]/8
-    height4 = img_shape[0]/4
-    width4 = img_shape[1]/4
+    height8 = int(img_shape[0]/8)
+    width8 = int(img_shape[1]/8)
+    height4 = int(img_shape[0]/4)
+    width4 = int(img_shape[1]/4)
     height2 = img_shape[0]/2
     width2 = img_shape[1]/2
     nchannels = img_shape[2]
@@ -201,7 +201,7 @@ def GetImageDecoder(dim, img_shape,
 
     height = height4
     width = width4
-    for i in xrange(stride2_layers):
+    for i in range(stride2_layers):
 
         x = Conv2DTranspose(filters,
                    kernel_size=kernel_size, 
@@ -216,7 +216,7 @@ def GetImageDecoder(dim, img_shape,
         height *= 2
         width *= 2
 
-    for i in xrange(stride1_layers):
+    for i in range(stride1_layers):
         x = Conv2D(filters, # + num_labels
                    kernel_size=kernel_size, 
                    strides=(1, 1),
