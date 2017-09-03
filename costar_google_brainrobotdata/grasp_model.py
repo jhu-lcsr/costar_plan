@@ -21,6 +21,11 @@ from keras.engine import Layer
 
 
 def tile_vector_as_image_channels(vector_op, image_shape):
+    """
+
+    Takes a vector of length n and an image shape BHWC,
+    and repeat the vector as channels at each pixel.
+    """
     ivs = K.shape(vector_op)
     vector_op = K.reshape(vector_op, [ivs[0], 1, 1, ivs[1]])
     vector_op = K.tile(vector_op, K.stack([1, image_shape[1], image_shape[2], 1]))
