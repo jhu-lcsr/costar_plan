@@ -29,7 +29,7 @@ tf.flags.DEFINE_string('visualization_dir',
                        os.path.join(os.path.expanduser("~"),
                                     '.keras', 'datasets', 'grasping', 'images_extracted_grasp'),
                        """Path to output data visualizations such as image gifs and ply clouds.""")
-tf.flags.DEFINE_integer('batch_size', 25, 'batch size per compute device')
+tf.flags.DEFINE_integer('batch_size', 6, 'batch size per compute device')
 tf.flags.DEFINE_integer('sensor_image_width', 640, 'Camera Image Width')
 tf.flags.DEFINE_integer('sensor_image_height', 512, 'Camera Image Height')
 tf.flags.DEFINE_integer('sensor_color_channels', 3,
@@ -81,7 +81,9 @@ class GraspDataset(object):
              `~/.keras/datasets/grasping` by default.
 
         dataset: Filter the subset of 1TB Grasp datasets to run.
-            None by default. 'all' will run all datasets in data_dir.
+            None by default, which loads the data specified by the tf flag
+            grasp_dataset command line parameter.
+            'all' will run all datasets in data_dir.
             '052' and '057' will download the small starter datasets.
             '102' will download the main dataset with 102 features,
             around 110 GB and 38k grasp attempts.
@@ -90,7 +92,7 @@ class GraspDataset(object):
 
         download: True to actually download the dataset, also see FLAGS.
     """
-    def __init__(self, data_dir=None, dataset=None, download=None):
+    def __init__(self, data_dir=None, dataset=None, download=None, verbose=0):
         if data_dir is None:
             data_dir = FLAGS.data_dir
         self.data_dir = data_dir
@@ -101,6 +103,7 @@ class GraspDataset(object):
             download = FLAGS.grasp_download
         if download:
             self.download(data_dir, dataset)
+        self.verbose = verbose
 
     def download(self, data_dir=None, dataset='all'):
         '''Google Grasping Dataset - about 1TB total size
@@ -152,7 +155,7 @@ class GraspDataset(object):
             dataset = self.dataset
         return dataset
 
-    def get_feature_csv_file_paths(self, dataset=None):
+    def _get_feature_csv_file_paths(self, dataset=None):
         """List feature csv files with full paths in the data_dir.
         Feature csv files identify each dataset, the size, and its data channels.
         One example is: 'features_102.csv'
@@ -163,13 +166,31 @@ class GraspDataset(object):
     def get_features(self, dataset=None):
         """Get all features associated with the dataset specified when this class
         was constructed. Use when only one dataset will be processed.
+
+        dataset: Filter the subset of 1TB Grasp datasets to run.
+            None is the default, which utilizes the currently loaded dataset,
+            'all' will run all datasets in data_dir.
+            '052' and '057' will download the small starter datasets.
+            '102' will download the main dataset with 102 features,
+            around 110 GB and 38k grasp attempts.
+            See https://sites.google.com/site/brainrobotdata/home
+            for a full listing.
+
+        # Returns:
+
+            (features_complete_list, attempt_count)
+
+            features_complete_list: is a list of all feature strings in the
+                fixedLengthFeatureDict and sequenceFeatureDict.
+            attempt_count: total number of grasp attempts
         """
         dataset = self._update_dataset_param(dataset)
-        csv_files = self.get_feature_csv_file_paths(dataset)
-        features_complete_list, _, _, _ = self.get_grasp_tfrecord_info(csv_files[-1])
-        return features_complete_list
+        csv_files = self._get_feature_csv_file_paths(dataset)
+        features_complete_list, _, feature_count, attempt_count = self._get_grasp_tfrecord_info(csv_files[-1])
 
-    def get_tfrecord_path_glob_pattern(self, dataset=None):
+        return features_complete_list, attempt_count
+
+    def _get_tfrecord_path_glob_pattern(self, dataset=None):
         """Get the Glob string pattern for matching the specified dataset tfrecords.
 
         This will often be used in conjunction with the RecordInput class if you need
@@ -185,7 +206,7 @@ class GraspDataset(object):
         dataset = self._update_dataset_param(dataset)
         return os.path.join(os.path.expanduser(self.data_dir), '*{}.tfrecord*'.format(dataset))
 
-    def get_grasp_tfrecord_info(self, feature_csv_file):
+    def _get_grasp_tfrecord_info(self, feature_csv_file):
         """
         # Arguments
 
@@ -201,8 +222,16 @@ class GraspDataset(object):
         feature_count = int(features[0])
         attempt_count = int(features[1])
         features = features[2:]
+        # Workaround for csv files which may not actually list the key features below,
+        # although they have been added to the dataset itself.
+        if not any('grasp_success' in s for s in features):
+            features = np.append(features, 'grasp_success')
+            feature_count += 1
+        if not any('gripper/status' in s for s in features):
+            features = np.append(features, 'gripper/status')
+            feature_count += 1
         # note that the tfrecords are often named '*{}.tfrecord*-of-*'
-        tfrecord_paths = gfile.Glob(self.get_tfrecord_path_glob_pattern())
+        tfrecord_paths = gfile.Glob(self._get_tfrecord_path_glob_pattern())
         return features, tfrecord_paths, feature_count, attempt_count
 
     @staticmethod
@@ -279,8 +308,13 @@ class GraspDataset(object):
                 'name'
                     A string indicating the name of the robot
                 'status'
-                    Unknown, but only feature is 'gripper/status', so probably
-                    an indicator of how open/closed the gripper is.
+                    'gripper/status' is a 0 to 1 value which indicates how open or closed the
+                    gripper was at the end of a grasp attempt.
+                'grasp_success'
+                    1 if the gripper is determined to have successfully grasped an object on this attempt,
+                    0 otherwise. This incorporates a combination of 'gripper/status', the open closed angle
+                    of the gripper as the dominant indicator, with image differencing between the final
+                    two object drop image features as a secondary indicator of grasp success.
 
             record_type:
                 'all' will match any feature type.
@@ -295,6 +329,7 @@ class GraspDataset(object):
                 `tf.parse_single_example()` which can only do fixed length features
 
         # Returns
+            TODO(ahundt) may just be returning a list of feature name strings, no tuples at all.
             tuple of size two containing:
             list of fixed length features organized by time step in a single grasp and
             list of sequence features organized by time step in a single grasp
@@ -365,6 +400,7 @@ class GraspDataset(object):
             matching_features.extend(_match_feature(features, r'^drop/', feature_type))
             # Images recorded after withdraw, raise, and the drop.
             matching_features.extend(_match_feature(features, r'^post_drop/', feature_type))
+            matching_features.extend(_match_feature(features, r'^grasp_success', feature_type))
         return matching_features
 
     @staticmethod
@@ -390,12 +426,17 @@ class GraspDataset(object):
         num_grasp_steps_name = 'num_grasp_steps'
         camera_to_base_name = 'camera/transforms/camera_T_base/matrix44'
         camera_intrinsics_name = 'camera/intrinsics/matrix33'
+        grasp_success_name = 'grasp_success'
+        # TODO(ahundt) make sure gripper/status is in the right place and not handled twice
+        gripper_status = 'gripper/status'
 
         # setup one time features like the camera and number of grasp steps
         features_dict = {
             num_grasp_steps_name: tf.FixedLenFeature([1], tf.string),
             camera_to_base_name: tf.FixedLenFeature([4, 4], tf.float32),
-            camera_intrinsics_name: tf.FixedLenFeature([3, 3], tf.float32)
+            camera_intrinsics_name: tf.FixedLenFeature([3, 3], tf.float32),
+            grasp_success_name: tf.FixedLenFeature([1], tf.float32),
+            gripper_status: tf.FixedLenFeature([1], tf.float32),
         }
 
         # load all the images
@@ -442,26 +483,29 @@ class GraspDataset(object):
                                                 context_features=features_dict,
                                                 sequence_features=sequence_features_dict)
 
-    def get_simple_parallel_dataset_ops(self, dataset=None, batch_size=1):
+    def get_simple_parallel_dataset_ops(self, dataset=None, batch_size=1, buffer_size=100, parallelism=10):
         """Simple unordered & parallel TensorFlow ops that go through the whole dataset.
 
         # Returns
 
-            A list of tuples [(fixedLengthFeatureDict, sequenceFeatureDict, features_complete_list)].
+            A list of tuples ([(fixedLengthFeatureDict, sequenceFeatureDict)], features_complete_list, num_samples).
             fixedLengthFeatureDict maps from the feature strings of most features to their TF ops.
             sequenceFeatureDict maps from feature strings to time ordered sequences of poses transforming
             from the robot base to end effector.
-            features_complete_list is a list of all feature strings in the fixedLengthFeatureDict and sequenceFeatureDict.
+            features_complete_list: a list of all feature strings in the fixedLengthFeatureDict and sequenceFeatureDict,
+                and a parameter for get_time_ordered_features().
+            num_samples: the number of samples in the dataset, used for configuring the size of one training epoch
+
         """
-        tf_glob = self.get_tfrecord_path_glob_pattern()
-        record_input = data_flow_ops.RecordInput(tf_glob)
+        tf_glob = self._get_tfrecord_path_glob_pattern(dataset=dataset)
+        record_input = data_flow_ops.RecordInput(tf_glob, batch_size, buffer_size, parallelism)
         records_op = record_input.get_yield_op()
         records_op = tf.split(records_op, batch_size, 0)
         records_op = [tf.reshape(record, []) for record in records_op]
-        features_complete_list = self.get_features()
+        features_complete_list, num_samples = self.get_features()
         feature_op_dicts = [self.parse_grasp_attempt_protobuf(serialized_protobuf, features_complete_list) for serialized_protobuf in records_op]
         # TODO(ahundt) https://www.tensorflow.org/performance/performance_models
-        # make sure records are always ready to go
+        # make sure records are always ready to go on cpu and gpu via prefetching in a staging area
         # staging_area = tf.contrib.staging.StagingArea()
         dict_and_feature_tuple_list = []
         for feature_op_dict, sequence_op_dict in feature_op_dicts:
@@ -470,7 +514,7 @@ class GraspDataset(object):
         # the new_feature_list should be the same for all the ops
         features_complete_list = np.append(features_complete_list, new_feature_list)
 
-        return dict_and_feature_tuple_list, features_complete_list
+        return dict_and_feature_tuple_list, features_complete_list, num_samples
 
     def get_simple_tfrecordreader_dataset_ops(self, batch_size=1):
         """Get a dataset reading op from tfrecordreader.
@@ -483,10 +527,13 @@ class GraspDataset(object):
             fixedLengthFeatureDict maps from the feature strings of most features to their TF ops.
             sequenceFeatureDict maps from feature strings to time ordered sequences of poses transforming
             from the robot base to end effector.
-            features_complete_list is a list of all feature strings in the fixedLengthFeatureDict and sequenceFeatureDict.
+            features_complete_list: is a list of all feature strings in the fixedLengthFeatureDict and sequenceFeatureDict.
+            feature_count: total number of features
+            attempt_count: total number of grasp attempts
+
         """
-        [feature_csv_file] = self.get_feature_csv_file_paths()
-        features_complete_list, tfrecord_paths, _, _ = self.get_grasp_tfrecord_info(feature_csv_file)
+        [feature_csv_file] = self._get_feature_csv_file_paths()
+        features_complete_list, tfrecord_paths, feature_count, attempt_count = self._get_grasp_tfrecord_info(feature_csv_file)
         if not tfrecord_paths:
             raise RuntimeError('No tfrecords found for {}.'.format(feature_csv_file))
         filename_queue = tf.train.string_input_producer(tfrecord_paths, shuffle=False)
@@ -505,7 +552,7 @@ class GraspDataset(object):
         # the new_feature_list should be the same for all the ops
         features_complete_list = np.append(features_complete_list, new_feature_list)
 
-        return dict_and_feature_tuple_list, features_complete_list
+        return dict_and_feature_tuple_list, features_complete_list, feature_count, attempt_count
 
     @staticmethod
     def _image_decode(feature_op_dict):
@@ -542,7 +589,7 @@ class GraspDataset(object):
         """ Create gifs of loaded dataset
         """
         mkdir_p(FLAGS.visualization_dir)
-        feature_csv_files = self.get_feature_csv_file_paths()
+        feature_csv_files = self._get_feature_csv_file_paths()
         for feature_csv_file in feature_csv_files:
             """Create input tfrecord tensors.
 
@@ -554,31 +601,45 @@ class GraspDataset(object):
             Raises:
             RuntimeError: if no files found.
             """
-            # decode all the image ops
-            [(features_op_dict, _)], features_complete_list = self.get_simple_tfrecordreader_dataset_ops()
-            print features_complete_list
+            # decode all the image ops and other features
+            [(features_op_dict, _)], features_complete_list, _, attempt_count = self.get_simple_tfrecordreader_dataset_ops()
+            if self.verbose > 0:
+                print(features_complete_list)
             ordered_image_feature_names = GraspDataset.get_time_ordered_features(features_complete_list, '/image/decoded')
+
+            grasp_success_feature_name = GraspDataset.get_time_ordered_features(
+                features_complete_list,
+                feature_type='grasp_success'
+            )
+            # should only be a list of length 1, just make into a single string
+            grasp_success_feature_name = grasp_success_feature_name[0]
 
             image_seq = []
             for image_name in ordered_image_feature_names:
                 image_seq.append(features_op_dict[image_name])
 
             image_seq = tf.concat(image_seq, 0)
+            # output won't be correct now if batch size is anything but 1
+            batch_size = 1
 
-            train_image_tensor = tf.train.batch(
-                [image_seq],
-                FLAGS.batch_size,
+            train_image_dict = tf.train.batch(
+                {'image_seq': image_seq,
+                 grasp_success_feature_name: features_op_dict[grasp_success_feature_name]},
+                batch_size,
                 num_threads=1,
                 capacity=1)
             tf.train.start_queue_runners(sess)
             sess.run(tf.global_variables_initializer())
-            train_videos = sess.run(train_image_tensor)
 
-            for i in range(FLAGS.batch_size):
-                video = train_videos[i]
-                gif_filename = os.path.basename(feature_csv_file)[:-4] + '_grasp_' + str(i) + '.gif'
-                gif_path = os.path.join(FLAGS.visualization_dir, gif_filename)
-                self.npy_to_gif(video, gif_path)
+            # note: if batch size doesn't divide evenly some items may not be output correctly
+            for attempt_num in range(attempt_count / batch_size):
+                numpy_data_dict = sess.run(train_image_dict)
+                for i in range(batch_size):
+                    video = numpy_data_dict['image_seq'][i]
+                    gif_filename = (os.path.basename(feature_csv_file)[:-4] + '_grasp_' + str(int(attempt_num)) +
+                                    '_success_' + str(int(numpy_data_dict[grasp_success_feature_name])) + '.gif')
+                    gif_path = os.path.join(FLAGS.visualization_dir, gif_filename)
+                    self.npy_to_gif(video, gif_path)
 
 
 if __name__ == '__main__':
