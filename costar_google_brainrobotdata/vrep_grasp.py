@@ -214,6 +214,7 @@ class VREPGraspSimulation(object):
             print rgb_name, rgb_image.shape, rgb_image
             # TODO(ahundt) move depth image creation into tensorflow ops
             # TODO(ahundt) check scale
+            # TODO(ahundt) move squeeze steps into dataset api if possible
             depth_image_float_format = ImageToFloatArray(np.squeeze(features_dict_np[depth_name]))
             if np.count_nonzero(depth_image_float_format) is 0:
                 print 'WARNING: DEPTH IMAGE IS ALL ZEROS'
