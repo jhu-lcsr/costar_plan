@@ -115,18 +115,21 @@ class AbstractAgentBasedModel(object):
         Load will use the current model descriptor and name to load the file
         that you are interested in, at least for now.
         '''
-        control = world.zeroAction()
-        reward = world.initial_reward
-        features = world.computeFeatures()
-        action_label = np.zeros((self._numLabels(),))
-        example = 0
-        done = False
-        data = world.vectorize(control, features, reward, done, example,
-                action_label)
-        kwargs = {}
-        for k, v in data:
-            kwargs[k] = np.array([v])
-        self._makeModel(**kwargs)
+        if world is not None:
+            control = world.zeroAction()
+            reward = world.initial_reward
+            features = world.computeFeatures()
+            action_label = np.zeros((self._numLabels(),))
+            example = 0
+            done = False
+            data = world.vectorize(control, features, reward, done, example,
+                 action_label)
+            kwargs = {}
+            for k, v in data:
+                kwargs[k] = np.array([v])
+            self._makeModel(**kwargs)
+        else:
+            self._makeModel(**kwargs)
         self._loadWeights()
 
     def _makeModel(self, *args, **kwargs):

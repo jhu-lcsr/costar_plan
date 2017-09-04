@@ -169,13 +169,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Predict the next joint states and gripper position. We add these back
         # in from the inputs once again, in order to make sure they don't get
         # lost in all the convolution layers above...
-        height4 = img_shape[0]/4
-        width4 = img_shape[1]/4
-        height8 = img_shape[0]/8
-        width8 = img_shape[1]/8
-        #x = Reshape((width8,height8,self.img_num_filters))(rep)
+        height4 = int(img_shape[0]/4)
+        width4 = int(img_shape[1]/4)
+        height8 = int(img_shape[0]/8)
+        width8 = int(img_shape[1]/8)
         x = Reshape((width8,height8,self.tform_filters))(rep)
-        x = Conv2D(self.img_num_filters/2,
+        x = Conv2D(int(self.img_num_filters/2),
                 kernel_size=[5,5], 
                 strides=(2, 2),
                 padding='same')(x)
@@ -192,9 +191,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # =====================================================================
         # Create many different image decoders
-        for i in xrange(self.num_hypotheses):
+
+        for i in range(self.num_hypotheses):
             x = enc
-            for j in xrange(self.num_transforms):
+            for j in range(self.num_transforms):
                 x = Conv2D(self.tform_filters,
                         kernel_size=[5,5], 
                         strides=(1, 1),
@@ -239,7 +239,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # =====================================================================
         # Training the actor policy
         y = Concatenate(axis=-1,name="combine_goal_current")([enc, genc])
-        y = Conv2D(self.img_num_filters/4,
+        y = Conv2D(int(self.img_num_filters/4),
                 kernel_size=[5,5], 
                 strides=(2, 2),
                 padding='same')(y)
@@ -277,7 +277,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         for dim in image_shape:
             image_size *= dim
 
-        for i in xrange(features[0].shape[0]):
+        for i in range(features[0].shape[0]):
             img1 = targets[0][i,:int(image_size)].reshape((64,64,3))
             img2 = features[4][i]
             if not np.all(img1 == img2):
@@ -291,7 +291,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     [np.expand_dims(f,1) for f in targets],
                     epochs=self.epochs)
         else:
-            for i in xrange(self.iter):
+            for i in range(self.iter):
                 idx = np.random.randint(0, features[0].shape[0], size=self.batch_size)
                 x = []
                 y = []
@@ -327,9 +327,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         img = allt[:,:imglen]
         img = np.reshape(img, (6,64,64,3))
         data, arms, grippers = self.predictor.predict(subset)
-        for j in xrange(6):
+        for j in range(6):
             jj = j * STEP
-            for k in xrange(min(4,self.num_hypotheses)):
+            for k in range(min(4,self.num_hypotheses)):
                 ax = axes[1+k][j]
                 ax.set_axis_off()
                 ax.imshow(np.squeeze(data[j][k]))

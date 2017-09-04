@@ -76,7 +76,7 @@ class MhpLoss(object):
         xmin = tf.ones([1, 1])*1e10
     
         # Loop and apply MSE for all images
-        for i in xrange(self.num_hypotheses):
+        for i in range(self.num_hypotheses):
             target_image = target[:,0]
             pred_image = pred[:,i]
             cc = losses.mean_squared_error(target_image, pred_image)
@@ -119,7 +119,7 @@ class MhpLossWithShape(object):
         xmin = tf.ones([1, 1])*1e10
 
 
-        for i in xrange(self.num_hypotheses):
+        for i in range(self.num_hypotheses):
 
             target_outputs = _getOutputs(target, self.outputs, 0)
             pred_outputs = _getOutputs(pred, self.outputs, i)
