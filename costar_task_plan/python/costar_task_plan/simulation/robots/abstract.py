@@ -193,11 +193,11 @@ class AbstractRobotInterface(object):
         -------
         action: a CTP action containing commands for arm, gripper, base
         '''
-        if action.arm_cmd is not None:
+        if action is not None and action.arm_cmd is not None:
             arm = action.arm_cmd
         else:
             arm, _ = self._getArmPosition()
-        if action.gripper_cmd is not None:
+        if action is not None and action.gripper_cmd is not None:
             gripper = action.gripper_cmd
         else:
             gripper = self._getGripper()

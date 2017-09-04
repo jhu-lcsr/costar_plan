@@ -98,6 +98,8 @@ class AbstractWorld(object):
         data = [(desc, features)]
     actor = self.actors[0]
     params = actor.state.toParams(control)
+    if control is None:
+        control = self.zeroAction()
     if isinstance(params, tuple):
         for desc, param in zip(control.getDescription(), params):
             data.append((desc, param))
