@@ -14,10 +14,20 @@ from keras.layers import Reshape
 from keras.applications.imagenet_utils import _obtain_input_shape
 from keras_contrib.applications.densenet import DenseNetFCN
 from keras_contrib.applications.densenet import DenseNet
-import tensorflow as tf
 
+import tensorflow as tf
+from tensorflow.python.platform import flags
 
 from keras.engine import Layer
+
+tf.flags.DEFINE_integer('densenet_growth_rate', 12,
+                        """DenseNet and DenseNetFCN parameter growth rate""")
+tf.flags.DEFINE_integer('densenet_dense_blocks', 4,
+                        """The number of dense blocks in the model.""")
+tf.flags.DEFINE_float('densenet_reduction', 0.5,
+                      """DenseNet and DenseNetFCN reduction aka compression parameter.""")
+
+FLAGS = flags.FLAGS
 
 
 def tile_vector_as_image_channels(vector_op, image_shape):
@@ -37,7 +47,10 @@ def grasp_model(clear_view_image_op,
                 input_vector_op,
                 input_image_shape=[512, 640, 3],
                 input_vector_op_shape=[5],
-                batch_size=11):
+                growth_rate=FLAGS.densenet_growth_rate,
+                reduction=FLAGS.densenet_reduction,
+                dense_blocks=FLAGS.densenet_dense_blocks,
+                include_top=True):
     print('input_vector_op pre tile: ', input_vector_op)
 
     input_vector_op = tile_vector_as_image_channels(input_vector_op, K.shape(clear_view_image_op))
@@ -46,7 +59,6 @@ def grasp_model(clear_view_image_op,
     combined_input_shape = input_image_shape
     # add up the total number of channels
     combined_input_shape[-1] = combined_input_shape[-1] * 2 + input_vector_op_shape[0]
-    growth_rate = 12
     # initial number of filters should be
     # the number of input channels times the growth rate
     # nb_filters = combined_input_shape[-1] * growth_rate
@@ -57,15 +69,15 @@ def grasp_model(clear_view_image_op,
     print('current_time_image_op: ', current_time_image_op)
     print('input_vector_op: ', input_vector_op)
     model = DenseNet(input_shape=combined_input_shape,
-                     include_top=True,
+                     include_top=include_top,
                      input_tensor=combined_input_data,
                      activation='sigmoid',
                      classes=1,
                      weights=None,
                      #  nb_filter=nb_filters,
-                     growth_rate=12,
-                     reduction=0.5,
-                     nb_dense_block=4)
+                     growth_rate=growth_rate,
+                     reduction=reduction,
+                     nb_dense_block=dense_blocks)
     return model
 
 
@@ -73,8 +85,7 @@ def grasp_model_segmentation(clear_view_image_op=None,
                              current_time_image_op=None,
                              input_vector_op=None,
                              input_image_shape=[512, 640, 3],
-                             input_vector_op_shape=[5],
-                             batch_size=11):
+                             input_vector_op_shape=[5]):
 
     if input_vector_op is not None:
         ims = tf.shape(clear_view_image_op)
