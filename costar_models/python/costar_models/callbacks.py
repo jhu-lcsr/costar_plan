@@ -66,7 +66,6 @@ class PredictorShowImage(keras.callbacks.Callback):
                 plt.subplot(1,2+self.num_hypotheses,i+2)
                 plt.imshow(np.squeeze(data[j][i]))
                 plt.title('Hypothesis %d'%(i+1))
-            plt.show()
             fig.savefig(name, bbox_inches="tight")
         if self.verbose:
             print("Arm/gripper target = ")
