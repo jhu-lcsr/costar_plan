@@ -120,7 +120,7 @@ class AbstractAgent(object):
             root = ""
             for tok in data_file.split('.')[:-1]:
                 root += tok
-            print root
+            print("dataset root =", root)
             self.npz_writer = NpzDataset(root)
         else:
             self.tf_writer = TFRecordConverter(data_file)

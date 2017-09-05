@@ -5,6 +5,7 @@ import keras.losses as losses
 import keras.optimizers as optimizers
 import numpy as np
 
+from keras.callbacks import ModelCheckpoint
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
 from keras.layers import UpSampling2D, Conv2DTranspose
@@ -18,6 +19,7 @@ from keras.optimizers import Adam
 from matplotlib import pyplot as plt
 
 from .abstract import *
+from .callbacks import *
 from .multi_hierarchical import *
 from .robot_multi_models import *
 from .split import *
@@ -287,8 +289,22 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 plt.show()
 
         if self.show_iter == 0 or self.show_iter == None:
+            modelCheckpointCb = ModelCheckpoint(
+                filepath=self.name+"_predictor_weights.h5f",
+                verbose=1,
+                save_best_only=True)
+            imageCb = PredictorShowImage(
+                self.predictor,
+                features=features[:4],
+                targets=targets,
+                num_hypotheses=self.num_hypotheses,
+                verbose=True,
+                min_idx=0,
+                max_idx=66,
+                step=11,)
             self.train_predictor.fit(features,
                     [np.expand_dims(f,1) for f in targets],
+                    callbacks=[modelCheckpointCb, imageCb],
                     epochs=self.epochs)
         else:
             for i in range(self.iter):
@@ -437,8 +453,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         #self._fitPolicies([I, q, g], action_labels, action_target)
         #self._fitBaseline([I, q, g], action_target)
 
-    
-
     def save(self):
         '''
         Save to a filename determined by the "self.name" field.
@@ -467,3 +481,24 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             self.predictor.load_weights(self.name + "_predictor.h5f")
         else:
             raise RuntimeError('_loadWeights() failed: model not found.')
+
+    def predict(self, world):
+        '''
+        Evaluation for a feature-predictor model. This has two steps:
+          - predict a set of features associated with the current world state
+          - predict the expected reward based on each of those features
+          - choose the best one to execute
+        '''
+        features = world.initial_features #getHistoryMatrix()
+        if isinstance(features, list):
+            assert len(features) == len(self.supervisor.inputs) - 1
+        else:
+            features = [features]
+        features = [f.reshape((1,)+f.shape) for f in features]
+        res = self.predictor.predict(features +
+                [self._makeOption1h(self.prev_option)])
+        print("# results = ", len(res))
+        idx = np.random.randint(self.num_hypotheses)
+
+        # Evaluate this policy to get the next action out
+        return policy.predict(features)

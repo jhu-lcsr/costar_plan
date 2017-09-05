@@ -46,10 +46,15 @@ class Task(object):
     self.nodes = {}
     self.children = {}
 
-    # Store integer index associated with each node
+    # Dictionary from the action string names to the
+    # unique integer id (label) of each action
+    # node (like grasp_block)
     self.indices = {}
 
     # Store name by integer index in case we ever want to recover that
+
+    # Dictionary from the unique integer id (label) of each action
+    # to the associated string names
     self.names = {}
     self.generic_names = {}
 
