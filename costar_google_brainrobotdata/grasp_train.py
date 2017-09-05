@@ -42,8 +42,12 @@ tf.flags.DEFINE_string('learning_rate_decay_algorithm', 'power_decay',
                        """Determines the algorithm by which learning rate decays,
                           options are power_decay, exp_decay, adam and progressive_drops""")
 tf.flags.DEFINE_integer('eval_batch_size', 1, 'batch size per compute device')
-# tf.flags.DEFINE_integer('batch_size', 1,
-#                         """size of a single batch during training""")
+tf.flags.DEFINE_integer('densenet_growth_rate', 12,
+                        """DenseNet and DenseNetFCN parameter growth rate""")
+tf.flags.DEFINE_integer('densenet_dense_blocks', 4,
+                        """The number of dense blocks in the model.""")
+tf.flags.DEFINE_float('densenet_reduction', 0.5,
+                      """DenseNet and DenseNetFCN reduction aka compression parameter.""")
 
 FLAGS = flags.FLAGS
 
@@ -287,9 +291,19 @@ class GraspTrain(object):
 def main():
     with K.get_session() as sess:
         if FLAGS.grasp_model is 'grasp_model_single':
-            model_fn = grasp_model.grasp_model
+            def model_fn(*a, **kw):
+                grasp_model.grasp_model(
+                    growth_rate=FLAGS.densenet_growth_rate,
+                    reduction=FLAGS.densenet_reduction,
+                    dense_blocks=FLAGS.densenet_dense_blocks,
+                    *a, **kw)
         elif FLAGS.grasp_model is 'grasp_model_segmentation':
-            model_fn = grasp_model.grasp_model_segmentation
+            def model_fn(*a, **kw):
+                grasp_model.grasp_model_segmentation(
+                    growth_rate=FLAGS.densenet_growth_rate,
+                    reduction=FLAGS.densenet_reduction,
+                    dense_blocks=FLAGS.densenet_dense_blocks,
+                    *a, **kw)
         else:
             raise ValueError('unknown model selected: {}'.format(FLAGS.grasp_model))
 

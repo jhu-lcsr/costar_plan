@@ -1,5 +1,4 @@
 import tensorflow as tf
-from tensorflow.python.platform import flags
 
 import keras
 from keras.applications.resnet50 import ResNet50
@@ -20,15 +19,6 @@ from keras_contrib.applications.densenet import DenseNet
 
 from keras.engine import Layer
 
-tf.flags.DEFINE_integer('densenet_growth_rate', 12,
-                        """DenseNet and DenseNetFCN parameter growth rate""")
-tf.flags.DEFINE_integer('densenet_dense_blocks', 4,
-                        """The number of dense blocks in the model.""")
-tf.flags.DEFINE_float('densenet_reduction', 0.5,
-                      """DenseNet and DenseNetFCN reduction aka compression parameter.""")
-
-FLAGS = flags.FLAGS
-
 
 def tile_vector_as_image_channels(vector_op, image_shape):
     """
@@ -47,9 +37,9 @@ def grasp_model(clear_view_image_op,
                 input_vector_op,
                 input_image_shape=None,
                 input_vector_op_shape=None,
-                growth_rate=FLAGS.densenet_growth_rate,
-                reduction=FLAGS.densenet_reduction,
-                dense_blocks=FLAGS.densenet_dense_blocks,
+                growth_rate=12,
+                reduction=0.5,
+                dense_blocks=4,
                 include_top=True):
     if input_vector_op_shape is None:
         input_vector_op_shape = [5]
@@ -89,7 +79,10 @@ def grasp_model_segmentation(clear_view_image_op=None,
                              current_time_image_op=None,
                              input_vector_op=None,
                              input_image_shape=None,
-                             input_vector_op_shape=None):
+                             input_vector_op_shape=None,
+                             growth_rate=12,
+                             reduction=0.5,
+                             dense_blocks=4):
     if input_vector_op_shape is None:
         input_vector_op_shape = [5]
     if input_image_shape is None:
@@ -104,5 +97,11 @@ def grasp_model_segmentation(clear_view_image_op=None,
     combined_input_data = tf.concat([clear_view_image_op, input_vector_op, current_time_image_op], -1)
     combined_input_shape = input_image_shape
     combined_input_shape[-1] = combined_input_shape[-1] * 2 + input_vector_op_shape[0]
-    model = DenseNetFCN(input_shape=combined_input_shape, include_top='global_average_pooling', input_tensor=combined_input_data, activation='sigmoid')
+    model = DenseNetFCN(input_shape=combined_input_shape,
+                        include_top='global_average_pooling',
+                        input_tensor=combined_input_data,
+                        activation='sigmoid',
+                        growth_rate=growth_rate,
+                        reduction=reduction,
+                        nb_dense_block=dense_blocks)
     return model
