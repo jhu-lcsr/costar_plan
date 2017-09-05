@@ -462,66 +462,67 @@ class GraspDataset(object):
             sequence_feature_op_dict: dictionary of sequence tensors for every features,
                 contains base to end effector transforms.
         """
-        # Dense features in Example proto.
-        num_grasp_steps_name = 'num_grasp_steps'
-        camera_to_base_name = 'camera/transforms/camera_T_base/matrix44'
-        camera_intrinsics_name = 'camera/intrinsics/matrix33'
-        grasp_success_name = 'grasp_success'
-        # TODO(ahundt) make sure gripper/status is in the right place and not handled twice
-        gripper_status = 'gripper/status'
+        with tf.name_scope('parse_grasp_attempt_protobuf') as scope:
+            # Dense features in Example proto.
+            num_grasp_steps_name = 'num_grasp_steps'
+            camera_to_base_name = 'camera/transforms/camera_T_base/matrix44'
+            camera_intrinsics_name = 'camera/intrinsics/matrix33'
+            grasp_success_name = 'grasp_success'
+            # TODO(ahundt) make sure gripper/status is in the right place and not handled twice
+            gripper_status = 'gripper/status'
 
-        # setup one time features like the camera and number of grasp steps
-        features_dict = {
-            num_grasp_steps_name: tf.FixedLenFeature([1], tf.string),
-            camera_to_base_name: tf.FixedLenFeature([4, 4], tf.float32),
-            camera_intrinsics_name: tf.FixedLenFeature([3, 3], tf.float32),
-            grasp_success_name: tf.FixedLenFeature([1], tf.float32),
-            gripper_status: tf.FixedLenFeature([1], tf.float32),
-        }
+            # setup one time features like the camera and number of grasp steps
+            features_dict = {
+                num_grasp_steps_name: tf.FixedLenFeature([1], tf.string),
+                camera_to_base_name: tf.FixedLenFeature([4, 4], tf.float32),
+                camera_intrinsics_name: tf.FixedLenFeature([3, 3], tf.float32),
+                grasp_success_name: tf.FixedLenFeature([1], tf.float32),
+                gripper_status: tf.FixedLenFeature([1], tf.float32),
+            }
 
-        # load all the images
-        ordered_image_feature_names = GraspDataset.get_time_ordered_features(
-            features_complete_list,
-            feature_type='/image/encoded')
-        features_dict.update({image_name: tf.FixedLenFeature([1], tf.string)
-                              for image_name in ordered_image_feature_names})
+            # load all the images
+            ordered_image_feature_names = GraspDataset.get_time_ordered_features(
+                features_complete_list,
+                feature_type='/image/encoded')
+            features_dict.update({image_name: tf.FixedLenFeature([1], tf.string)
+                                  for image_name in ordered_image_feature_names})
 
-        # load all the depth images
-        ordered_depth_feature_names = GraspDataset.get_time_ordered_features(
-            features_complete_list,
-            feature_type='depth_image')
-        features_dict.update({image_name: tf.FixedLenFeature([1], tf.string)
-                              for image_name in ordered_depth_feature_names})
+            # load all the depth images
+            ordered_depth_feature_names = GraspDataset.get_time_ordered_features(
+                features_complete_list,
+                feature_type='depth_image')
+            features_dict.update({image_name: tf.FixedLenFeature([1], tf.string)
+                                  for image_name in ordered_depth_feature_names})
 
-        # load all vec/quat base to end effector transforms that aren't sequences
-        base_to_endeffector_names = GraspDataset.get_time_ordered_features(
-            features_complete_list,
-            feature_type='transforms/base_T_endeffector/vec_quat_7'
-            )
-        features_dict.update({x_form: tf.FixedLenFeature([7], tf.float32)
-                              for x_form in base_to_endeffector_names})
+            # load all vec/quat base to end effector transforms that aren't sequences
+            base_to_endeffector_names = GraspDataset.get_time_ordered_features(
+                features_complete_list,
+                feature_type='transforms/base_T_endeffector/vec_quat_7'
+                )
+            features_dict.update({x_form: tf.FixedLenFeature([7], tf.float32)
+                                  for x_form in base_to_endeffector_names})
 
-        # load all vec/quat base to end effector transforms that are sequences
-        base_to_endeffector_sequence_names = GraspDataset.get_time_ordered_features(
-            features_complete_list,
-            feature_type='sequence/transforms/base_T_endeffector/vec_quat_7',
-            record_type='sequence'  # Don't exclude sequences
-            )
-        sequence_features_dict = {x_form: tf.FixedLenSequenceFeature([7], tf.float32, allow_missing=True)
-                                  for x_form in base_to_endeffector_sequence_names}
+            # load all vec/quat base to end effector transforms that are sequences
+            base_to_endeffector_sequence_names = GraspDataset.get_time_ordered_features(
+                features_complete_list,
+                feature_type='sequence/transforms/base_T_endeffector/vec_quat_7',
+                record_type='sequence'  # Don't exclude sequences
+                )
+            sequence_features_dict = {x_form: tf.FixedLenSequenceFeature([7], tf.float32, allow_missing=True)
+                                      for x_form in base_to_endeffector_sequence_names}
 
-        # load transforms that were modified for their network from the original paper
-        transform_adapted_for_network = GraspDataset.get_time_ordered_features(
-            features_complete_list,
-            feature_type='params'
-            )
-        features_dict.update({x_form: tf.FixedLenFeature([5], tf.float32)
-                              for x_form in transform_adapted_for_network})
+            # load transforms that were modified for their network from the original paper
+            transform_adapted_for_network = GraspDataset.get_time_ordered_features(
+                features_complete_list,
+                feature_type='params'
+                )
+            features_dict.update({x_form: tf.FixedLenFeature([5], tf.float32)
+                                  for x_form in transform_adapted_for_network})
 
-        # extract all the features from the file, return two dicts
-        return tf.parse_single_sequence_example(serialized_grasp_attempt_proto,
-                                                context_features=features_dict,
-                                                sequence_features=sequence_features_dict)
+            # extract all the features from the file, return two dicts
+            return tf.parse_single_sequence_example(serialized_grasp_attempt_proto,
+                                                    context_features=features_dict,
+                                                    sequence_features=sequence_features_dict)
 
     def get_simple_parallel_dataset_ops(self, dataset=None, batch_size=1, buffer_size=100, parallelism=10):
         """Simple unordered & parallel TensorFlow ops that go through the whole dataset.
