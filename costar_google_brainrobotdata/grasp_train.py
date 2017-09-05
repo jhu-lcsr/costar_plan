@@ -2,7 +2,6 @@ import os
 import datetime
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.platform import flags
 import keras
 from keras import backend as K
 from keras.applications.imagenet_utils import preprocess_input
@@ -11,44 +10,48 @@ from keras.callbacks import ReduceLROnPlateau
 from keras.callbacks import CSVLogger
 from keras.callbacks import EarlyStopping
 from keras.callbacks import ModelCheckpoint
+
+from tensorflow.python.platform import flags
+
 import grasp_dataset
 import grasp_model
 
-tf.flags.DEFINE_string('grasp_model', 'grasp_model_single',
-                       """Choose the model definition to run, options are grasp_model and grasp_model_segmentation""")
-tf.flags.DEFINE_string('save_weights', 'grasp_model_weights',
-                       """Save a file with the trained model weights.""")
-tf.flags.DEFINE_string('load_weights', 'grasp_model_weights',
-                       """Load and continue training the specified file containing model weights.""")
-tf.flags.DEFINE_integer('epochs', 20,
-                        """Epochs of training""")
-tf.flags.DEFINE_string('grasp_dataset_eval', '097',
-                       """Filter the subset of 1TB Grasp datasets to evaluate.
-                       None by default. 'all' will run all datasets in data_dir.
-                       '052' and '057' will download the small starter datasets.
-                       '102' will download the main dataset with 102 features,
-                       around 110 GB and 38k grasp attempts.
-                       See https://sites.google.com/site/brainrobotdata/home
-                       for a full listing.""")
-tf.flags.DEFINE_string('pipeline_stage', 'train_eval',
-                       """Choose to "train", "eval", or "train_eval" with the grasp_dataset
-                          data for training and grasp_dataset_eval for evaluation.""")
-tf.flags.DEFINE_float('learning_rate_scheduler_power_decay_rate', 0.9,
-                      """Determines how fast the learning rate drops at each epoch.
-                         lr = learning_rate * ((1 - float(epoch)/epochs) ** learning_power_decay_rate)""")
-tf.flags.DEFINE_float('grasp_learning_rate', 0.1,
-                      """Determines the initial learning rate""")
-tf.flags.DEFINE_string('learning_rate_decay_algorithm', 'power_decay',
-                       """Determines the algorithm by which learning rate decays,
-                          options are power_decay, exp_decay, adam and progressive_drops""")
-tf.flags.DEFINE_integer('eval_batch_size', 1, 'batch size per compute device')
-tf.flags.DEFINE_integer('densenet_growth_rate', 12,
-                        """DenseNet and DenseNetFCN parameter growth rate""")
-tf.flags.DEFINE_integer('densenet_dense_blocks', 4,
-                        """The number of dense blocks in the model.""")
-tf.flags.DEFINE_float('densenet_reduction', 0.5,
-                      """DenseNet and DenseNetFCN reduction aka compression parameter.""")
+flags.DEFINE_string('learning_rate_decay_algorithm', 'power_decay',
+                    """Determines the algorithm by which learning rate decays,
+                       options are power_decay, exp_decay, adam and progressive_drops""")
+flags.DEFINE_string('grasp_model', 'grasp_model_single',
+                    """Choose the model definition to run, options are grasp_model and grasp_model_segmentation""")
+flags.DEFINE_string('save_weights', 'grasp_model_weights',
+                    """Save a file with the trained model weights.""")
+flags.DEFINE_string('load_weights', 'grasp_model_weights',
+                    """Load and continue training the specified file containing model weights.""")
+flags.DEFINE_integer('epochs', 20,
+                     """Epochs of training""")
+flags.DEFINE_string('grasp_dataset_eval', '097',
+                    """Filter the subset of 1TB Grasp datasets to evaluate.
+                    None by default. 'all' will run all datasets in data_dir.
+                    '052' and '057' will download the small starter datasets.
+                    '102' will download the main dataset with 102 features,
+                    around 110 GB and 38k grasp attempts.
+                    See https://sites.google.com/site/brainrobotdata/home
+                    for a full listing.""")
+flags.DEFINE_string('pipeline_stage', 'train_eval',
+                    """Choose to "train", "eval", or "train_eval" with the grasp_dataset
+                       data for training and grasp_dataset_eval for evaluation.""")
+flags.DEFINE_float('learning_rate_scheduler_power_decay_rate', 0.9,
+                   """Determines how fast the learning rate drops at each epoch.
+                      lr = learning_rate * ((1 - float(epoch)/epochs) ** learning_power_decay_rate)""")
+flags.DEFINE_float('grasp_learning_rate', 0.1,
+                   """Determines the initial learning rate""")
+flags.DEFINE_integer('eval_batch_size', 1, 'batch size per compute device')
+flags.DEFINE_integer('densenet_growth_rate', 12,
+                     """DenseNet and DenseNetFCN parameter growth rate""")
+flags.DEFINE_integer('densenet_dense_blocks', 4,
+                     """The number of dense blocks in the model.""")
+flags.DEFINE_float('densenet_reduction', 0.5,
+                   """DenseNet and DenseNetFCN reduction aka compression parameter.""")
 
+flags.FLAGS._parse_flags()
 FLAGS = flags.FLAGS
 
 
@@ -59,42 +62,9 @@ def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
 
 class GraspTrain(object):
 
-    # ###############learning rate scheduler####################
-    # source: https://github.com/aurora95/Keras-FCN/blob/master/train.py
-    @staticmethod
-    def lr_scheduler(epoch, learning_rate=FLAGS.grasp_learning_rate,
-                     mode=FLAGS.learning_rate_decay_algorithm,
-                     epochs=FLAGS.epochs,
-                     learning_power_decay_rate=FLAGS.learning_rate_scheduler_power_decay_rate):
-        '''if lr_dict.has_key(epoch):
-            lr = lr_dict[epoch]
-            print 'lr: %f' % lr'''
-
-        if mode is 'power_decay':
-            # original lr scheduler
-            lr = learning_rate * ((1 - float(epoch)/epochs) ** learning_power_decay_rate)
-        if mode is 'exp_decay':
-            # exponential decay
-            lr = (float(learning_rate) ** float(learning_power_decay_rate)) ** float(epoch+1)
-        # adam default lr
-        if mode is 'adam':
-            lr = 0.001
-
-        if mode is 'progressive_drops':
-            # drops as progression proceeds, good for sgd
-            if epoch > 0.9 * epochs:
-                lr = 0.0001
-            elif epoch > 0.75 * epochs:
-                lr = 0.001
-            elif epoch > 0.5 * epochs:
-                lr = 0.01
-            else:
-                lr = 0.1
-
-        print('lr: %f' % lr)
-        return lr
-
-    def train(self, dataset=FLAGS.grasp_dataset, batch_size=FLAGS.batch_size, epochs=FLAGS.epochs,
+    def train(self, dataset=FLAGS.grasp_dataset,
+              batch_size=FLAGS.batch_size,
+              epochs=FLAGS.epochs,
               load_weights=FLAGS.load_weights,
               save_weights=FLAGS.save_weights,
               make_model_fn=grasp_model.grasp_model,
@@ -103,7 +73,10 @@ class GraspTrain(object):
               random_crop=FLAGS.random_crop,
               resize=FLAGS.resize,
               resize_height=FLAGS.resize_height,
-              resize_width=FLAGS.resize_width):
+              resize_width=FLAGS.resize_width,
+              learning_rate_decay_algorithm=FLAGS.learning_rate_decay_algorithm,
+              learning_rate=FLAGS.grasp_learning_rate,
+              learning_power_decay_rate=FLAGS.learning_rate_scheduler_power_decay_rate):
         """Train the grasping dataset
 
         This function depends on https://github.com/fchollet/keras/pull/6928
@@ -144,7 +117,40 @@ class GraspTrain(object):
 
         weights_name = timeStamped(save_weights)
 
-        scheduler = keras.callbacks.LearningRateScheduler(self.lr_scheduler)
+        # ###############learning rate scheduler####################
+        # source: https://github.com/aurora95/Keras-FCN/blob/master/train.py
+        def lr_scheduler(epoch, learning_rate=learning_rate,
+                         mode=learning_rate_decay_algorithm,
+                         epochs=epochs,
+                         learning_power_decay_rate=learning_power_decay_rate):
+            '''if lr_dict.has_key(epoch):
+                lr = lr_dict[epoch]
+                print 'lr: %f' % lr'''
+
+            if mode is 'power_decay':
+                # original lr scheduler
+                lr = learning_rate * ((1 - float(epoch)/epochs) ** learning_power_decay_rate)
+            if mode is 'exp_decay':
+                # exponential decay
+                lr = (float(learning_rate) ** float(learning_power_decay_rate)) ** float(epoch+1)
+            # adam default lr
+            if mode is 'adam':
+                lr = 0.001
+
+            if mode is 'progressive_drops':
+                # drops as progression proceeds, good for sgd
+                if epoch > 0.9 * epochs:
+                    lr = 0.0001
+                elif epoch > 0.75 * epochs:
+                    lr = 0.001
+                elif epoch > 0.5 * epochs:
+                    lr = 0.01
+                else:
+                    lr = 0.1
+
+            print('lr: %f' % lr)
+            return lr
+        scheduler = keras.callbacks.LearningRateScheduler(lr_scheduler)
         early_stopper = EarlyStopping(monitor='acc', min_delta=0.001, patience=10)
         csv_logger = CSVLogger(weights_name + '.csv')
         checkpoint = keras.callbacks.ModelCheckpoint(weights_name + '.epoch-{epoch:03d}-loss-{loss:.3f}-acc-{acc:.3f}.h5',
@@ -171,8 +177,7 @@ class GraspTrain(object):
             pregrasp_op_batch,
             grasp_step_op_batch,
             simplified_grasp_command_op_batch,
-            input_image_shape=input_image_shape,
-            batch_size=example_batch_size)
+            input_image_shape=input_image_shape)
 
         if(load_weights):
             if os.path.isfile(load_weights):

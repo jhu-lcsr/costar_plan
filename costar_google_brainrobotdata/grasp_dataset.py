@@ -25,55 +25,55 @@ except ImportError:
     print('moviepy not available, try `pip install moviepy`. '
           'Skipping dataset gif extraction components.')
 
-tf.flags.DEFINE_string('data_dir',
-                       os.path.join(os.path.expanduser("~"),
-                                    '.keras', 'datasets', 'grasping'),
-                       """Path to dataset in TFRecord format
-                       (aka Example protobufs) and feature csv files.""")
-tf.flags.DEFINE_string('visualization_dir',
-                       os.path.join(os.path.expanduser("~"),
-                                    '.keras', 'datasets', 'grasping', 'images_extracted_grasp'),
-                       """Path to output data visualizations such as image gifs and ply clouds.""")
-tf.flags.DEFINE_integer('batch_size', 6, 'batch size per compute device')
-tf.flags.DEFINE_integer('sensor_image_width', 640, 'Camera Image Width')
-tf.flags.DEFINE_integer('sensor_image_height', 512, 'Camera Image Height')
-tf.flags.DEFINE_integer('sensor_color_channels', 3,
-                        'Number of color channels (3, RGB)')
-tf.flags.DEFINE_boolean('grasp_download', False,
-                        """Download the grasp_dataset to data_dir if it is not already present.""")
-tf.flags.DEFINE_string('grasp_dataset', '102',
-                       """Filter the subset of 1TB Grasp datasets to run.
-                       None by default. 'all' will run all datasets in data_dir.
-                       '052' and '057' will download the small starter datasets.
-                       '102' will download the main dataset with 102 features,
-                       around 110 GB and 38k grasp attempts.
-                       See https://sites.google.com/site/brainrobotdata/home
-                       for a full listing.""")
-tf.flags.DEFINE_integer('random_crop_width', 472,
-                        """Width to randomly crop images, if enabled""")
-tf.flags.DEFINE_integer('random_crop_height', 472,
-                        """Height to randomly crop images, if enabled""")
-tf.flags.DEFINE_boolean('random_crop', False,
-                        """random_crop will apply the tf random crop function with
-                           the parameters specified by random_crop_width and random_crop_height
-                        """)
-tf.flags.DEFINE_integer('resize_width', 80,
-                        """Width to resize images before prediction, if enabled.""")
-tf.flags.DEFINE_integer('resize_height', 64,
-                        """Height to resize images before prediction, if enabled.""")
-tf.flags.DEFINE_boolean('resize', True,
-                        """resize will resize the input images to the desired dimensions specified but the
-                           resize_width and resize_height flags. It is suggested that an exact factor of 2 be used
-                           relative to the input image directions if random_crop is disabled or the crop dimensions otherwise.
-                        """)
-tf.flags.DEFINE_boolean('image_augmentation', False,
-                        'image augmentation applies random brightness, saturation, hue, contrast')
-tf.flags.DEFINE_boolean('imagenet_mean_subtraction', True,
-                        'subtract the imagenet mean pixel values from the rgb images')
-tf.flags.DEFINE_integer('grasp_sequence_max_time_steps', None,
-                        """The grasp motion time sequence consists of up to 11 time steps.
-                           This integer, or None for unlimited specifies the max number of these steps from the last to the first
-                           that will be used in training. This may be needed to reduce memory utilization.""")
+flags.DEFINE_string('data_dir',
+                    os.path.join(os.path.expanduser("~"),
+                                 '.keras', 'datasets', 'grasping'),
+                    """Path to dataset in TFRecord format
+                    (aka Example protobufs) and feature csv files.""")
+flags.DEFINE_string('visualization_dir',
+                    os.path.join(os.path.expanduser("~"),
+                                 '.keras', 'datasets', 'grasping', 'images_extracted_grasp'),
+                    """Path to output data visualizations such as image gifs and ply clouds.""")
+flags.DEFINE_integer('batch_size', 6, 'batch size per compute device')
+flags.DEFINE_integer('sensor_image_width', 640, 'Camera Image Width')
+flags.DEFINE_integer('sensor_image_height', 512, 'Camera Image Height')
+flags.DEFINE_integer('sensor_color_channels', 3,
+                     'Number of color channels (3, RGB)')
+flags.DEFINE_boolean('grasp_download', False,
+                     """Download the grasp_dataset to data_dir if it is not already present.""")
+flags.DEFINE_string('grasp_dataset', '102',
+                    """Filter the subset of 1TB Grasp datasets to run.
+                    None by default. 'all' will run all datasets in data_dir.
+                    '052' and '057' will download the small starter datasets.
+                    '102' will download the main dataset with 102 features,
+                    around 110 GB and 38k grasp attempts.
+                    See https://sites.google.com/site/brainrobotdata/home
+                    for a full listing.""")
+flags.DEFINE_integer('random_crop_width', 472,
+                     """Width to randomly crop images, if enabled""")
+flags.DEFINE_integer('random_crop_height', 472,
+                     """Height to randomly crop images, if enabled""")
+flags.DEFINE_boolean('random_crop', False,
+                     """random_crop will apply the tf random crop function with
+                        the parameters specified by random_crop_width and random_crop_height
+                     """)
+flags.DEFINE_integer('resize_width', 80,
+                     """Width to resize images before prediction, if enabled.""")
+flags.DEFINE_integer('resize_height', 64,
+                     """Height to resize images before prediction, if enabled.""")
+flags.DEFINE_boolean('resize', True,
+                     """resize will resize the input images to the desired dimensions specified but the
+                        resize_width and resize_height flags. It is suggested that an exact factor of 2 be used
+                        relative to the input image directions if random_crop is disabled or the crop dimensions otherwise.
+                     """)
+flags.DEFINE_boolean('image_augmentation', False,
+                     'image augmentation applies random brightness, saturation, hue, contrast')
+flags.DEFINE_boolean('imagenet_mean_subtraction', True,
+                     'subtract the imagenet mean pixel values from the rgb images')
+flags.DEFINE_integer('grasp_sequence_max_time_steps', None,
+                     """The grasp motion time sequence consists of up to 11 time steps.
+                        This integer, or None for unlimited specifies the max number of these steps from the last to the first
+                        that will be used in training. This may be needed to reduce memory utilization.""")
 
 FLAGS = flags.FLAGS
 
