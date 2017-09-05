@@ -284,8 +284,7 @@ class GraspTrain(object):
             pass
 
 
-if __name__ == '__main__':
-
+def main():
     with K.get_session() as sess:
         if FLAGS.grasp_model is 'grasp_model_single':
             model_fn = grasp_model.grasp_model
@@ -300,3 +299,8 @@ if __name__ == '__main__':
             gt.train(make_model_fn=model_fn)
         if 'eval' in FLAGS.pipeline_stage:
             gt.eval(make_model_fn=model_fn)
+
+
+if __name__ == '__main__':
+    flags.FLAGS._parse_flags()
+    main()
