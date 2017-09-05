@@ -50,6 +50,8 @@ flags.DEFINE_integer('densenet_dense_blocks', 4,
                      """The number of dense blocks in the model.""")
 flags.DEFINE_float('densenet_reduction', 0.5,
                    """DenseNet and DenseNetFCN reduction aka compression parameter.""")
+flags.DEFINE_string('eval_results_file', 'grasp_model_eval.txt',
+                    """Save a file with results of model evaluation.""")
 
 flags.FLAGS._parse_flags()
 FLAGS = flags.FLAGS
@@ -211,7 +213,8 @@ class GraspTrain(object):
              grasp_sequence_max_time_steps=FLAGS.grasp_sequence_max_time_steps,
              resize=FLAGS.resize,
              resize_height=FLAGS.resize_height,
-             resize_width=FLAGS.resize_width):
+             resize_width=FLAGS.resize_width,
+             eval_results_file=FLAGS.eval_results_file):
         """Train the grasping dataset
 
         This function depends on https://github.com/fchollet/keras/pull/6928
@@ -251,8 +254,6 @@ class GraspTrain(object):
         # End tensor configuration, begin model configuration and training
         csv_logger = CSVLogger(load_weights + '_eval.csv')
 
-        callbacks = [csv_logger]
-
         # create the model
         model = make_model_fn(
             pregrasp_op_batch,
@@ -284,12 +285,15 @@ class GraspTrain(object):
                              'but manageable. num_samples: {} batch_size: {}'.format(num_samples, batch_size))
 
         try:
-            model.evaluate(epochs=epochs, steps=steps, callbacks=callbacks)
+            loss, acc = model.evaluate(steps=steps)
+            results_str = "final loss: " + str(loss) + " accuracy: " + str(acc)
+            print(results_str)
+            with open(eval_results_file, 'w') as results_file:
+                results_file.write(results_str + '\n')
+
         except KeyboardInterrupt, e:
             print('Evaluation canceled at user request... '
                   'remember that any results are incomplete for this run.')
-            # save weights if the user asked to end training
-            pass
 
 
 def main():
