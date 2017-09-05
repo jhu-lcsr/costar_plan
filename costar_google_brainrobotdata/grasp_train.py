@@ -206,7 +206,8 @@ class GraspTrain(object):
             pass
         model.save_weights(weights_name + '_final.h5')
 
-    def eval(self, dataset=FLAGS.grasp_dataset_eval, batch_size=FLAGS.eval_batch_size, epochs=FLAGS.epochs,
+    def eval(self, dataset=FLAGS.grasp_dataset_eval,
+             batch_size=FLAGS.eval_batch_size,
              load_weights=FLAGS.load_weights,
              make_model_fn=grasp_model.grasp_model,
              imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
