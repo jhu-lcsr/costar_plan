@@ -258,8 +258,7 @@ class GraspTrain(object):
             pregrasp_op_batch,
             grasp_step_op_batch,
             simplified_grasp_command_op_batch,
-            input_image_shape=input_image_shape,
-            batch_size=example_batch_size)
+            input_image_shape=input_image_shape)
 
         if(load_weights):
             if os.path.isfile(load_weights):
@@ -295,14 +294,14 @@ class GraspTrain(object):
 def main():
     with K.get_session() as sess:
         if FLAGS.grasp_model is 'grasp_model_single':
-            def model_fn(*a, **kw):
+            def make_model_fn(*a, **kw):
                 grasp_model.grasp_model(
                     growth_rate=FLAGS.densenet_growth_rate,
                     reduction=FLAGS.densenet_reduction,
                     dense_blocks=FLAGS.densenet_dense_blocks,
                     *a, **kw)
         elif FLAGS.grasp_model is 'grasp_model_segmentation':
-            def model_fn(*a, **kw):
+            def make_model_fn(*a, **kw):
                 grasp_model.grasp_model_segmentation(
                     growth_rate=FLAGS.densenet_growth_rate,
                     reduction=FLAGS.densenet_reduction,
@@ -314,9 +313,9 @@ def main():
         gt = GraspTrain()
 
         if 'train' in FLAGS.pipeline_stage:
-            gt.train(make_model_fn=model_fn)
+            gt.train(make_model_fn=make_model_fn)
         if 'eval' in FLAGS.pipeline_stage:
-            gt.eval(make_model_fn=model_fn)
+            gt.eval(make_model_fn=make_model_fn)
 
 
 if __name__ == '__main__':
