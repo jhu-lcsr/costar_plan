@@ -1,17 +1,18 @@
-#!/usr/bin/env sh
+#!/bin/bash -l
 set -e
 set -x
 set -u
 
-#SBATCH --job-name=testjob
+#SBATCH --job-name=b500
 #SBATCH --time=0-24:0:0
 #SBATCH --nodes=1
 #SBATCH --mail-type=end
 #SBATCH --mail-user=cpaxton3@jhu.edu
-#SBATCH -p gpu
+#SBATCH --partition=unlimited
 #SBATCH --gres=gpu:1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=6
+#SBATCH --mem-per-cpu=8G
 
 echo
 echo "Running $@ on $SLURMD_NODENAME ..."

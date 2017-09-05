@@ -1,20 +1,23 @@
-#!/usr/bin/env sh
+#!/bin/bash -l
 set -e
 set -x
 set -u
 
-#SBATCH --job-name=testjob
+#SBATCH --job-name=predictor250blocksmove
+#SBATCH -p gpu
+#SBATCH -g 1
+#SBATCH -n 6
 #SBATCH --time=0-24:0:0
-#SBATCH --nodes=1
 #SBATCH --mail-type=end
 #SBATCH --mail-user=cpaxton3@jhu.edu
-#SBATCH -p gpu
-#SBATCH --gres=gpu:1
-#SBATCH --ntasks-per-node=1
+#SBATCH --partition=gpu
+#SBATCH --gres=gpu:2
+#SBATCH --ntasks-per-node=2
 #SBATCH --cpus-per-task=6
+#SBATCH --mem=8G
 
 echo
 echo "Running $@ on $SLURMD_NODENAME ..."
 echo
 
-$HOME/costar_plan/costar_models/scripts/ctp_model_tool --features multi -i 1000 -e 1000 --model predictor --data_file $HOME/work/ctp_blocks_250.npz --lr 0.001  --model_directory $HOME/.costar/models2/ --optimizer nadam
+$HOME/costar_plan/costar_models/scripts/ctp_model_tool --features multi -i 1000 -e 100 --model predictor --data_file $HOME/work/ctp_blocks_500b.npz --lr 0.001  --model_directory $HOME/.costar/models2/ --optimizer nadam --load_model
