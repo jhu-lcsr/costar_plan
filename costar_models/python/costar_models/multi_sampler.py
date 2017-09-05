@@ -190,12 +190,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 name="next_gripper_flat")(x)
 
         decoder = Model(rep, [dec, arm_out_x, gripper_out_x], name="decoder")
-        aimg_out, aarm_out, agripper_out = decoder(enc)
 
         # =====================================================================
         # Create many different image decoders
-        decoder.trainable = False
-        enc.trainable = False
+
         for i in range(self.num_hypotheses):
             x = enc
             for j in range(self.num_transforms):
@@ -253,12 +251,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         y = Dense(self.combined_dense_size)(y)
         y = Dropout(self.dropout_rate)(y)
         y = LeakyReLU(0.2)(y)
-        #arm_cmd_out = Lambda(lambda x: K.expand_dims(x, axis=1),name="arm_action")(
-        #        Dense(arm_size)(y))
-        #gripper_cmd_out = Lambda(lambda x: K.expand_dims(x, axis=1),name="gripper_action")(
-        #        Dense(gripper_size)(y))
-        arm_cmd_out = Dense(arm_size,name="arm_action")(y)
-        gripper_cmd_out = Dense(gripper_size,name="gripper_action")(y)
+        arm_cmd_out = Lambda(lambda x: K.expand_dims(x, axis=1),name="arm_action")(
+                Dense(arm_size)(y))
+        gripper_cmd_out = Lambda(lambda x: K.expand_dims(x, axis=1),name="gripper_action")(
+                Dense(gripper_size)(y))
 
 
         # =====================================================================
@@ -267,10 +263,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         #predictor = Model(ins, [decoder(enc), arm_out, gripper_out])
         predictor = Model(ins, [image_out, arm_out, gripper_out])
         actor = Model(ins + gins, [arm_out, gripper_out])
-        train_predictor = Model(ins + gins, [aimg_out,
-                                            aarm_out,
-                                            agripper_out,
-                                            train_out,
+        train_predictor = Model(ins + gins, [train_out,
                                              arm_cmd_out,
                                              gripper_cmd_out,])
 
@@ -286,9 +279,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         for dim in image_shape:
             image_size *= dim
 
-        TRAIN_TARGET = 3
         for i in range(features[0].shape[0]):
-            img1 = targets[TRAIN_TARGET][i,0,:int(image_size)].reshape((64,64,3))
+            img1 = targets[0][i,:int(image_size)].reshape((64,64,3))
             img2 = features[4][i]
             if not np.all(img1 == img2):
                 print(i,"failed")
@@ -305,15 +297,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             imageCb = PredictorShowImage(
                 self.predictor,
                 features=features[:4],
-                targets=targets[TRAIN_TARGET:],
+                targets=targets,
                 num_hypotheses=self.num_hypotheses,
                 verbose=True,
                 min_idx=0,
                 max_idx=66,
                 step=11,)
             self.train_predictor.fit(features,
-                    #[np.expand_dims(f,1) for f in targets],
-                    targets,
+                    [np.expand_dims(f,1) for f in targets],
                     callbacks=[modelCheckpointCb, imageCb],
                     epochs=self.epochs)
         else:
@@ -325,7 +316,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     x.append(f[idx])
                 for f in targets:
                     y.append(np.expand_dims(f[idx],1))
-                yimg = y[TRAIN_TARGET][:,0,:int(image_size)]
+                yimg = y[0][:,0,:int(image_size)]
                 yimg = yimg.reshape((self.batch_size,64,64,3))
                 for j in xrange(self.batch_size):
                     if not np.all(x[4][j] == yimg[j]):
@@ -427,7 +418,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         self.train_predictor.compile(
                 loss=[
-                    "mse","mse","mse",
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size],
@@ -436,7 +426,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     #    num_hypotheses=self.num_hypotheses,
                     #    num_outputs=train_size),
                     "mse","mse"],
-                loss_weights=[0.1,0.1,0.1,0.5,0.1,0.1],
+                loss_weights=[0.8,0.1,0.1],
                 optimizer=self.getOptimizer())
         self.predictor.compile(loss="mse", optimizer=self.getOptimizer())
 
@@ -446,7 +436,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 [I, q, g, oin, I_target, q_target, g_target,],
                 #[I, q, g, oin, I_target, q_target, g_target, label],
                 #[I, q, g, I_target, q_target, g_target],
-                [I, q, g, np.expand_dims(train_target,axis=1), qa, ga],)
+                [train_target, qa, ga],)
 
         # ===============================================
         # Might be useful if you start getting shitty results... one problem we
