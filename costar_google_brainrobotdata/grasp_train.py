@@ -51,6 +51,7 @@ flags.DEFINE_integer('densenet_dense_blocks', 4,
 flags.DEFINE_float('densenet_reduction', 0.5,
                    """DenseNet and DenseNetFCN reduction aka compression parameter.""")
 
+flags.FLAGS._parse_flags()
 FLAGS = flags.FLAGS
 
 
