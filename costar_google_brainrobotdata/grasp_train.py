@@ -295,14 +295,14 @@ def main():
     with K.get_session() as sess:
         if FLAGS.grasp_model is 'grasp_model_single':
             def make_model_fn(*a, **kw):
-                grasp_model.grasp_model(
+                return grasp_model.grasp_model(
                     growth_rate=FLAGS.densenet_growth_rate,
                     reduction=FLAGS.densenet_reduction,
                     dense_blocks=FLAGS.densenet_dense_blocks,
                     *a, **kw)
         elif FLAGS.grasp_model is 'grasp_model_segmentation':
             def make_model_fn(*a, **kw):
-                grasp_model.grasp_model_segmentation(
+                return grasp_model.grasp_model_segmentation(
                     growth_rate=FLAGS.densenet_growth_rate,
                     reduction=FLAGS.densenet_reduction,
                     dense_blocks=FLAGS.densenet_dense_blocks,
@@ -319,5 +319,5 @@ def main():
 
 
 if __name__ == '__main__':
-    flags.FLAGS._parse_flags()
+    FLAGS._parse_flags()
     main()
