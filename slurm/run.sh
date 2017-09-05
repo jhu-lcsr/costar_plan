@@ -14,8 +14,4 @@ set -u
 #SBATCH --cpus-per-task=6
 #SBATCH --mem-per-cpu=8G
 
-echo
-echo "Running $@ on $SLURMD_NODENAME ..."
-echo
-
-$HOME/costar_plan/costar_models/scripts/ctp_model_tool --features multi -e 100 --model predictor --data_file $HOME/work/ctp_blocks_500b.npz --lr 0.001  --model_directory $HOME/.costar/models3/ --optimizer nadam
+sbatch -n 6 -p unlimited -g 1 --time=24:0:0 $HOME/costar_plan/slurm/$1
