@@ -267,7 +267,8 @@ class GraspTrain(object):
                 raise ValueError('Could not load weights {}, '
                                  'the file does not exist.'.format(load_weights))
 
-        model.compile(loss='binary_crossentropy',
+        model.compile(optimizer='sgd',
+                      loss='binary_crossentropy',
                       metrics=['accuracy'],
                       target_tensors=[grasp_success_op_batch])
 
