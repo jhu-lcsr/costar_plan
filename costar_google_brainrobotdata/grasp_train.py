@@ -322,9 +322,11 @@ def main():
         gt = GraspTrain()
 
         if 'train' in FLAGS.pipeline_stage:
+            print('Training ' + FLAGS.grasp_model)
             load_weights = gt.train(make_model_fn=make_model_fn,
                                     load_weights=load_weights)
         if 'eval' in FLAGS.pipeline_stage:
+            print('Evaluating ' + FLAGS.grasp_model + ' on weights ' + load_weights)
             # evaluate using weights that were just computed, if available
             gt.eval(make_model_fn=make_model_fn,
                     load_weights=load_weights)
