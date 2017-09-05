@@ -155,7 +155,7 @@ class AbstractAgentBasedModel(object):
         '''
         optimizer = optimizers.get(self.optimizer)
         try:
-            optimizer.lr = self.lr
+            optimizer.lr = K.variable(self.lr, name='lr')
             optimizer.clipnorm = self.clipnorm
         except Exception:
             print('WARNING: could not set all optimizer flags')

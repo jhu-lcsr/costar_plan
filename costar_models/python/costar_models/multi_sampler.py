@@ -292,7 +292,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             modelCheckpointCb = ModelCheckpoint(
                 filepath=self.name+"_predictor_weights.h5f",
                 verbose=1,
-                save_best_only=True)
+                save_best_only=False # does not work without validation wts
+            )
             imageCb = PredictorShowImage(
                 self.predictor,
                 features=features[:4],
