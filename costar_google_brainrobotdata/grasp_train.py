@@ -204,7 +204,9 @@ class GraspTrain(object):
         except KeyboardInterrupt, e:
             # save weights if the user asked to end training
             pass
-        model.save_weights(weights_name + '_final.h5')
+        final_weights_name = weights_name + '_final.h5'
+        model.save_weights(final_weights_name)
+        return final_weights_name
 
     def eval(self, dataset=FLAGS.grasp_dataset_eval,
              batch_size=FLAGS.eval_batch_size,
@@ -299,6 +301,7 @@ class GraspTrain(object):
 
 def main():
     with K.get_session() as sess:
+        load_weights = FLAGS.load_weights
         if FLAGS.grasp_model is 'grasp_model_single':
             def make_model_fn(*a, **kw):
                 return grasp_model.grasp_model(
@@ -319,9 +322,12 @@ def main():
         gt = GraspTrain()
 
         if 'train' in FLAGS.pipeline_stage:
-            gt.train(make_model_fn=make_model_fn)
+            load_weights = gt.train(make_model_fn=make_model_fn,
+                                    load_weights=load_weights)
         if 'eval' in FLAGS.pipeline_stage:
-            gt.eval(make_model_fn=make_model_fn)
+            # evaluate using weights that were just computed, if available
+            gt.eval(make_model_fn=make_model_fn,
+                    load_weights=load_weights)
 
 
 if __name__ == '__main__':
