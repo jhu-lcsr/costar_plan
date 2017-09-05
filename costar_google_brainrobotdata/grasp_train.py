@@ -36,7 +36,7 @@ tf.flags.DEFINE_string('pipeline_stage', 'train_eval',
 tf.flags.DEFINE_float('learning_rate_scheduler_power_decay_rate', 0.9,
                       """Determines how fast the learning rate drops at each epoch.
                          lr = learning_rate * ((1 - float(epoch)/epochs) ** learning_power_decay_rate)""")
-tf.flags.DEFINE_float('learning_rate', 0.1,
+tf.flags.DEFINE_float('grasp_learning_rate', 0.1,
                       """Determines the initial learning rate""")
 tf.flags.DEFINE_string('learning_rate_decay_algorithm', 'power_decay',
                        """Determines the algorithm by which learning rate decays,
@@ -62,7 +62,7 @@ class GraspTrain(object):
     # ###############learning rate scheduler####################
     # source: https://github.com/aurora95/Keras-FCN/blob/master/train.py
     @staticmethod
-    def lr_scheduler(epoch, learning_rate=FLAGS.learning_rate,
+    def lr_scheduler(epoch, learning_rate=FLAGS.grasp_learning_rate,
                      mode=FLAGS.learning_rate_decay_algorithm,
                      epochs=FLAGS.epochs,
                      learning_power_decay_rate=FLAGS.learning_rate_scheduler_power_decay_rate):
@@ -103,8 +103,7 @@ class GraspTrain(object):
               random_crop=FLAGS.random_crop,
               resize=FLAGS.resize,
               resize_height=FLAGS.resize_height,
-              resize_width=FLAGS.resize_width,
-              learning_rate=FLAGS.learning_rate):
+              resize_width=FLAGS.resize_width):
         """Train the grasping dataset
 
         This function depends on https://github.com/fchollet/keras/pull/6928
