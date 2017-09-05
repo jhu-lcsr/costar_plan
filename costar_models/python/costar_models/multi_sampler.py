@@ -5,6 +5,7 @@ import keras.losses as losses
 import keras.optimizers as optimizers
 import numpy as np
 
+from keras.callbacks import ModelCheckpoint
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
 from keras.layers import UpSampling2D, Conv2DTranspose
@@ -18,6 +19,7 @@ from keras.optimizers import Adam
 from matplotlib import pyplot as plt
 
 from .abstract import *
+from .callbacks import *
 from .multi_hierarchical import *
 from .robot_multi_models import *
 from .split import *
@@ -399,6 +401,20 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         Itrain = np.reshape(I_target,(length, image_size))
         train_target = np.concatenate([Itrain,q_target,g_target],axis=-1)
 
+        modelCheckpointCb = ModelCheckpoint(
+            filepath=self.name+"_predictor_weights.h5f",
+            verbose=1,
+            save_best_only=True)
+        imageCb = PredictorShowImage(
+            self.predictor,
+            features=[I, q, g, oin],
+            targets=[I_target, q_target, g_target],
+            num_hypotheses=self.num_hypotheses,
+            verbose=True,
+            min_idx=0,
+            max_idx=66,
+            step=11,)
+
         self.train_predictor.compile(
                 loss=[
                     MhpLossWithShape(
@@ -410,6 +426,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     #    num_outputs=train_size),
                     "mse","mse"],
                 loss_weights=[0.8,0.1,0.1],
+                callbacks=[ModelCheckpointCb, imageCb],
                 optimizer=self.getOptimizer())
         self.predictor.compile(loss="mse", optimizer=self.getOptimizer())
 
