@@ -437,8 +437,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         #self._fitPolicies([I, q, g], action_labels, action_target)
         #self._fitBaseline([I, q, g], action_target)
 
-    
-
     def save(self):
         '''
         Save to a filename determined by the "self.name" field.
@@ -467,3 +465,24 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             self.predictor.load_weights(self.name + "_predictor.h5f")
         else:
             raise RuntimeError('_loadWeights() failed: model not found.')
+
+    def predict(self, world):
+        '''
+        Evaluation for a feature-predictor model. This has two steps:
+          - predict a set of features associated with the current world state
+          - predict the expected reward based on each of those features
+          - choose the best one to execute
+        '''
+        features = world.initial_features #getHistoryMatrix()
+        if isinstance(features, list):
+            assert len(features) == len(self.supervisor.inputs) - 1
+        else:
+            features = [features]
+        features = [f.reshape((1,)+f.shape) for f in features]
+        res = self.predictor.predict(features +
+                [self._makeOption1h(self.prev_option)])
+        print("# results = ", len(res))
+        idx = np.random.randint(self.num_hypotheses)
+
+        # Evaluate this policy to get the next action out
+        return policy.predict(features)
