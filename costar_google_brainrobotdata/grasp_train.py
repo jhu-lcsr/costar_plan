@@ -285,7 +285,7 @@ class GraspTrain(object):
                              'but manageable. num_samples: {} batch_size: {}'.format(num_samples, batch_size))
 
         try:
-            loss, acc = model.evaluate(None, None, steps=steps)
+            loss, acc = model.evaluate(None, None, steps=int(steps))
             results_str = "final loss: " + str(loss) + " accuracy: " + str(acc)
             print(results_str)
             with open(eval_results_file, 'w') as results_file:
