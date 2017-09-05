@@ -2,6 +2,7 @@ import os
 import datetime
 import numpy as np
 import tensorflow as tf
+from tensorflow.python.platform import flags
 import keras
 from keras import backend as K
 from keras.applications.imagenet_utils import preprocess_input
@@ -12,9 +13,6 @@ from keras.callbacks import EarlyStopping
 from keras.callbacks import ModelCheckpoint
 import grasp_dataset
 import grasp_model
-
-from tensorflow.python.platform import flags
-
 
 tf.flags.DEFINE_string('grasp_model', 'grasp_model_single',
                        """Choose the model definition to run, options are grasp_model and grasp_model_segmentation""")

@@ -1,3 +1,6 @@
+import tensorflow as tf
+from tensorflow.python.platform import flags
+
 import keras
 from keras.applications.resnet50 import ResNet50
 from keras import backend as K
@@ -14,9 +17,6 @@ from keras.layers import Reshape
 from keras.applications.imagenet_utils import _obtain_input_shape
 from keras_contrib.applications.densenet import DenseNetFCN
 from keras_contrib.applications.densenet import DenseNet
-
-import tensorflow as tf
-from tensorflow.python.platform import flags
 
 from keras.engine import Layer
 
