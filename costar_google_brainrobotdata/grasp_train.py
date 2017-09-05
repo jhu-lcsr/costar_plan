@@ -23,7 +23,7 @@ flags.DEFINE_string('grasp_model', 'grasp_model_single',
                     """Choose the model definition to run, options are grasp_model and grasp_model_segmentation""")
 flags.DEFINE_string('save_weights', 'grasp_model_weights',
                     """Save a file with the trained model weights.""")
-flags.DEFINE_string('load_weights', 'grasp_model_weights',
+flags.DEFINE_string('load_weights', 'grasp_model_weights.py',
                     """Load and continue training the specified file containing model weights.""")
 flags.DEFINE_integer('epochs', 20,
                      """Epochs of training""")
