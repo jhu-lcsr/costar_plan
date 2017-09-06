@@ -2,10 +2,11 @@
 
 import unittest
 
+import keras.losses as l
 import keras.backend as K
 import numpy as np
 
-from costar_task_plan.models import SamplerLoss
+from costar_models import SamplerLoss
 
 class SamplerLossTest(unittest.TestCase):
     def test1(self):
@@ -59,6 +60,24 @@ class SamplerLossTest(unittest.TestCase):
         #z = K.dot(x,y)
         #res =  K.eval(z)
         #print res
+    def test2(self):
+        A = np.array([[0,0,1,0,0]])
+        B = np.array([[2]])
+        C = np.array([[3]])
+        A = K.variable(value=A)
+        B = K.variable(value=B)
+        C = K.variable(value=C)
+        cc = l.get("categorical_crossentropy")
+        print K.eval(cc(A,B))
+        print K.eval(cc(A,C))
+        print K.eval(cc(A,A))
     
 if __name__ == '__main__':
-  unittest.main()
+    import tensorflow as tf
+    with tf.device('/cpu:0'):
+        config = tf.ConfigProto(
+            device_count={'GPU': 0}
+        )
+        sess = tf.Session(config=config)
+        K.set_session(sess)
+    unittest.main()

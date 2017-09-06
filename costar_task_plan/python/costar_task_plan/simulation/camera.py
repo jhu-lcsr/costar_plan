@@ -7,7 +7,11 @@ from collections import namedtuple
 # some code depends on the order of this tuple's elements, such as in
 # features.py
 ImageData = namedtuple(
-    'ImageData', ['name', 'rgb', 'depth', 'mask', 'camera_view_matrix', 'camera_projection_matrix'], verbose=False)
+    'ImageData',
+    ['name', 'rgb', 'depth', 'mask'],
+    verbose=False)
+
+    #,'camera_view_matrix', 'camera_projection_matrix'], verbose=False)
 
 
 class Camera(object):
@@ -59,4 +63,4 @@ class Camera(object):
             projectionMatrix=self.projection_matrix)
         # TODO(ahundt) remove division in rgb / 255.
         # TODO(ahundt)
-        return ImageData(self.name, rgb / 255., depth, mask, self.matrix, self.projection_matrix)
+        return ImageData(self.name, rgb / 255., depth, mask)

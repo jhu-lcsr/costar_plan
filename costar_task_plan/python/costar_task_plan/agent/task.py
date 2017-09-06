@@ -32,6 +32,7 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 '''
+from __future__ import print_function
 
 from abstract import AbstractAgent
 from costar_task_plan.mcts import ContinuousSamplerTaskPolicies
@@ -73,9 +74,9 @@ class TaskAgent(AbstractAgent):
             # when generating levels. This lets us more easily debug problems
             # with task models and with learned policies.
             if self.seed is not None:
-                np.random.seed(self.seed+i)
+                np.random.seed(int(self.seed+i))
 
-            print "---- Iteration %d ----"%(i+1)
+            print("---- Iteration %d ----"%(i+1))
             self.env.reset()
 
             names, options = task.sampleSequence()
@@ -83,19 +84,24 @@ class TaskAgent(AbstractAgent):
 
             while not self._break:
                 control = plan.apply(self.env.world)
-                if control is not None:
-                    features, reward, done, info = self.env.step(control)
-                    self._addToDataset(self.env.world,
-                            control,
-                            features,
-                            reward,
-                            done,
-                            i,
-                            task.index(names[plan.idx]),
-                            task.numIndices())
-                    if done:
-                        break
-                else:
+                features, reward, done, info = self.env.step(control)
+                if control is not None and control.error:
+                    print("Error following selected policy action!")
+                    reward -= 100
+                    done = True
+                idx = plan.idx
+                if idx >= len(names):
+                    idx = -1
+                self._addToDataset(self.env.world,
+                        control,
+                        features,
+                        reward,
+                        done,
+                        i,
+                        task.index(names[idx]),
+                        task.numIndices(),
+                        seed=(self.seed+i))
+                if done:
                     break
 
             if self._break:

@@ -142,8 +142,10 @@ class GraspSegmentationFeatures(AbstractFeatures):
         import pybullet as pb
         object_translation_rotation = []
         # camera.py ImageData namedtuple
-        image_data = world.cameras[0].capture()
-        image_data_arrays = [np.array(value) for value in image_data]
+        camera = world.cameras[0]
+        image_data = camera.capture()
+        image_data_arrays = [np.array(value) for value in image_data] + \
+            [camera.matrix, camera.projection_matrix]
         # 'camera_view_matrix' namedtuple index is 4
         # TODO(ahundt) ensure camera matrix translation component is from world origin to camera origin
         # camera ray is from the origin of the camera
@@ -185,5 +187,8 @@ class GraspSegmentationFeatures(AbstractFeatures):
 
     @property
     def description(self):
-        return ["object_translation_rotation", "arm", "gripper"] + list(ImageData._fields)[1:] + ["camera_to_object_surface_points"]
+        return ["object_translation_rotation", "arm", "gripper"] + \
+                list(ImageData._fields)[1:] + \
+                ['camera_view_matrix', 'camera_projection_matrix'] + \
+                ["camera_to_object_surface_points"]
 

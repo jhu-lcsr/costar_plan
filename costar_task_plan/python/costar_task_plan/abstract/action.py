@@ -7,6 +7,7 @@ class AbstractAction(object):
 
   def __init__(self):
       self.code = None
+      self.error = None
 
   def toArray(self):
     '''
