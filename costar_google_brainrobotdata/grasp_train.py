@@ -212,6 +212,7 @@ class GraspTrain(object):
     def eval(self, dataset=FLAGS.grasp_dataset_eval,
              batch_size=FLAGS.eval_batch_size,
              load_weights=FLAGS.load_weights,
+             save_weights=FLAGS.save_weights,
              make_model_fn=grasp_model.grasp_model,
              imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
              grasp_sequence_max_time_steps=FLAGS.grasp_sequence_max_time_steps,
@@ -290,14 +291,19 @@ class GraspTrain(object):
 
         try:
             loss, acc = model.evaluate(None, None, steps=int(steps))
-            results_str = "final loss: " + str(loss) + " accuracy: " + str(acc)
+            results_str = '\nevaluation results loss: ' + str(loss) + ' accuracy: ' + str(acc) + ' dataset: ' + dataset
             print(results_str)
+            weights_name_str = load_weights + '_evaluation_dataset_{}_loss_{:.3f}_acc_{:.3f}'.format(dataset, loss, acc)
+            weights_name_str = weights_name_str.replace('.h5', '') + '.h5'
             with open(eval_results_file, 'w') as results_file:
                 results_file.write(results_str + '\n')
+            if save_weights:
+                model.save_weights(weights_name_str)
+                print('\n saved weights with evaluation result to ' + weights_name_str)
 
         except KeyboardInterrupt, e:
-            print('Evaluation canceled at user request... '
-                  'remember that any results are incomplete for this run.')
+            print('Evaluation canceled at user request, '
+                  'any results are incomplete for this run.')
 
 
 def main():
