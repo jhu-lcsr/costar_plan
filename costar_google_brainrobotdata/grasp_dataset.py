@@ -17,6 +17,7 @@ from tensorflow.python.platform import flags
 from tensorflow.python.platform import gfile
 from tensorflow.python.ops import data_flow_ops
 from keras.utils import get_file
+from keras.utils import _hash_file
 from keras import backend as K
 
 try:
@@ -174,13 +175,33 @@ class GraspDataset(object):
                 data_dir = self.data_dir
         mkdir_p(data_dir)
         print('Downloading datasets to: ', data_dir)
-        listing_url = 'https://sites.google.com/site/brainrobotdata/home/grasping-dataset/grasp_listing.txt'
-        grasp_listing_path = get_file('grasp_listing.txt', listing_url, cache_subdir=data_dir)
-        grasp_files = np.genfromtxt(grasp_listing_path, dtype=str)
+
         url_prefix = 'https://storage.googleapis.com/brain-robotics-data/'
-        files = [get_file(fpath.split('/')[-1], url_prefix + fpath, cache_subdir=data_dir)
-                 for fpath in grasp_files
-                 if '_' + dataset in fpath]
+        # If a hashed version of the listing is available,
+        # download the dataset and verify hashes to prevent data corruption.
+        hashed_listing = os.path.join(data_dir, 'grasp_listing_hashed.txt')
+        if os.path.isfile(hashed_listing):
+            files_and_hashes = np.genfromtxt(hashed_listing, dtype='str', delimeter=',')
+            files = [get_file(fpath.split('/')[-1], url_prefix + fpath, cache_subdir=data_dir, file_hash=hash_str)
+                     for fpath, hash_str in files_and_hashes
+                     if '_' + dataset in fpath]
+        else:
+            # If a hashed version of the listing is not available,
+            # simply download the dataset normally.
+            listing_url = 'https://sites.google.com/site/brainrobotdata/home/grasping-dataset/grasp_listing.txt'
+            grasp_listing_path = get_file('grasp_listing.txt', listing_url, cache_subdir=data_dir)
+            grasp_files = np.genfromtxt(grasp_listing_path, dtype=str)
+            files = [get_file(fpath.split('/')[-1], url_prefix + fpath, cache_subdir=data_dir)
+                     for fpath in grasp_files
+                     if '_' + dataset in fpath]
+
+            # If all files are downloaded, generate a hashed listing.
+            if dataset is 'all':
+                hashes = [_hash_file(x) for x in files]
+                file_hash_np = np.column_stack([grasp_files, hashes])
+                with open(hashed_listing, 'wb') as hash_file:
+                    np.savetxt(hashed_listing, file_hash_np, delimiter=",")
+
         return files
 
     def _update_dataset_param(self, dataset):
