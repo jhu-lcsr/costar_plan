@@ -50,6 +50,8 @@ flags.DEFINE_integer('densenet_dense_blocks', 4,
                      """The number of dense blocks in the model.""")
 flags.DEFINE_float('densenet_reduction', 0.5,
                    """DenseNet and DenseNetFCN reduction aka compression parameter.""")
+flags.DEFINE_float('dropout_rate', 0.2,
+                   """Dropout rate for the model during training.""")
 flags.DEFINE_string('eval_results_file', 'grasp_model_eval.txt',
                     """Save a file with results of model evaluation.""")
 flags.DEFINE_string('device', '/gpu:0',
@@ -84,7 +86,8 @@ class GraspTrain(object):
               resize_width=FLAGS.resize_width,
               learning_rate_decay_algorithm=FLAGS.learning_rate_decay_algorithm,
               learning_rate=FLAGS.grasp_learning_rate,
-              learning_power_decay_rate=FLAGS.learning_rate_scheduler_power_decay_rate):
+              learning_power_decay_rate=FLAGS.learning_rate_scheduler_power_decay_rate,
+              dropout_rate=FLAGS.dropout_rate):
         """Train the grasping dataset
 
         This function depends on https://github.com/fchollet/keras/pull/6928
@@ -185,7 +188,8 @@ class GraspTrain(object):
             pregrasp_op_batch,
             grasp_step_op_batch,
             simplified_grasp_command_op_batch,
-            input_image_shape=input_image_shape)
+            input_image_shape=input_image_shape,
+            dropout_rate=dropout_rate)
 
         if(load_weights):
             if os.path.isfile(load_weights):
@@ -268,7 +272,8 @@ class GraspTrain(object):
             pregrasp_op_batch,
             grasp_step_op_batch,
             simplified_grasp_command_op_batch,
-            input_image_shape=input_image_shape)
+            input_image_shape=input_image_shape,
+            dropout_rate=0.0)
 
         if(load_weights):
             if os.path.isfile(load_weights):

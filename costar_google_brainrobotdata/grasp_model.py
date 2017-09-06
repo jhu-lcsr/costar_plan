@@ -40,7 +40,8 @@ def grasp_model(clear_view_image_op,
                 growth_rate=12,
                 reduction=0.5,
                 dense_blocks=4,
-                include_top=True):
+                include_top=True,
+                dropout_rate=0.0):
     if input_vector_op_shape is None:
         input_vector_op_shape = [5]
     if input_image_shape is None:
@@ -71,7 +72,8 @@ def grasp_model(clear_view_image_op,
                      #  nb_filter=nb_filters,
                      growth_rate=growth_rate,
                      reduction=reduction,
-                     nb_dense_block=dense_blocks)
+                     nb_dense_block=dense_blocks,
+                     dropout_rate=dropout_rate)
     return model
 
 
@@ -82,7 +84,8 @@ def grasp_model_segmentation(clear_view_image_op=None,
                              input_vector_op_shape=None,
                              growth_rate=12,
                              reduction=0.5,
-                             dense_blocks=4):
+                             dense_blocks=4,
+                             dropout_rate=0.0):
     if input_vector_op_shape is None:
         input_vector_op_shape = [5]
     if input_image_shape is None:
