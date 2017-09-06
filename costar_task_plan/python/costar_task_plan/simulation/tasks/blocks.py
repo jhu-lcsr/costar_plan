@@ -43,7 +43,8 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
     ]
 
     over_final_stack_pos = np.array([-0.5, 0., 0.5])
-    final_stack_pos = np.array([-0.5, 0., 0.05])
+    #final_stack_pos = np.array([-0.5, 0., 0.05])
+    final_stack_pos = np.array([-0.5 + 0.012, 0., 0.05])
     grasp_q = (-0.27, 0.65, 0.65, 0.27)
 
     def __init__(self, stage, *args, **kwargs):
