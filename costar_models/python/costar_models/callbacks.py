@@ -41,7 +41,7 @@ class PredictorShowImage(keras.callbacks.Callback):
         # take the model and print it out
         self.epoch += 1
         imglen = 64*64*3
-        img = self.targets[0][:,0,:imglen]
+        img = self.targets[0][:,:imglen]
         img = np.reshape(img, (self.num,64,64,3))
         data, arms, grippers = self.predictor.predict(self.features)
         if self.verbose:
