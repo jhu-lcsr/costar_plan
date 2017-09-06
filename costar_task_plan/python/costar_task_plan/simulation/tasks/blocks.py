@@ -62,8 +62,8 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
 
     def _makeTask(self):
 
-        vtol = 0.01
-        tol = (0.02, 0.005)
+        vtol = 0.005
+        tol = (0.01, 0.005)
         general_tol = (0.05, 0.025)
 
         # ====================================================================
