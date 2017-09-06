@@ -17,7 +17,7 @@ from tensorflow.python.platform import flags
 from tensorflow.python.platform import gfile
 from tensorflow.python.ops import data_flow_ops
 from keras.utils import get_file
-from keras.utils import _hash_file
+from keras.utils.data_utils import _hash_file
 from keras import backend as K
 
 try:
