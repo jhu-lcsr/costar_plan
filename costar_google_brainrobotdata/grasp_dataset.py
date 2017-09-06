@@ -196,7 +196,7 @@ class GraspDataset(object):
                      if '_' + dataset in fpath]
 
             # If all files are downloaded, generate a hashed listing.
-            if dataset is 'all':
+            if dataset is 'all' or dataset is '':
                 hashes = [_hash_file(x) for x in files]
                 file_hash_np = np.column_stack([grasp_files, hashes])
                 with open(hashed_listing, 'wb') as hash_file:
