@@ -32,6 +32,14 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         np.array([-0.5, 0.2, 0.]),
         np.array([-0.5, -0.1, 0.]),
         np.array([-0.5, -0.2, 0.]),
+        np.array([-0.4, 0.1, 0.]),
+        np.array([-0.4, 0.2, 0.]),
+        np.array([-0.4, -0.1, 0.]),
+        np.array([-0.4, -0.2, 0.]),
+        np.array([-0.3, 0.1, 0.]),
+        np.array([-0.3, 0.2, 0.]),
+        np.array([-0.3, -0.1, 0.]),
+        np.array([-0.3, -0.2, 0.]),
     ]
 
     over_final_stack_pos = np.array([-0.5, 0., 0.5])
@@ -289,7 +297,11 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         #        0,
         #        len(self.stack_pos),
         #        (len(self.blocks),))
-        placement = np.array(range(len(self.stack_pos)))
+        if self.stage == 0:
+            poslen = 4
+        else:
+            poslen = len(self.stack_pos)
+        placement = np.array(range(poslen))
         np.random.shuffle(placement)
 
         # loop over all stacks
