@@ -191,6 +191,10 @@ class CostarBulletSimulation(object):
         '''
         self.task.reset()
         self.task.world.reset()
+        # tick for a half second to make sure the world makes sense
+        action = self.task.world.zeroAction()
+        for _ in range(5):
+            self.task.world.tick(action)
 
     def tick(self, action):
         '''

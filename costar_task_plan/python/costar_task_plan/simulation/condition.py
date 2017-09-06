@@ -75,7 +75,7 @@ class GoalPositionCondition(AbstractCondition):
     position is here defined as being within a certain distance of a point.
     '''
 
-    def __init__(self, goal, pos, rot, pos_tol, rot_tol, v_tol=0.05):
+    def __init__(self, goal, pos, rot, pos_tol, rot_tol, v_tol=0.10):
         self.pos_tol = pos_tol
         self.rot_tol = rot_tol
         self.v_tol = v_tol
@@ -101,12 +101,15 @@ class GoalPositionCondition(AbstractCondition):
         T = obj.state.T * self.T
 
         dist = (state.T.p - T.p).Norm()
-        still_moving = np.any(np.abs(state.arm_v) > self.v_tol)
+        arm_v = (prev_state.arm - state.arm) / world.dt
+        #still_moving = np.any(np.abs(state.arm_v) > self.v_tol)
+        still_moving = np.any(np.abs(arm_v) > self.v_tol)
+
 
         # print (self.T.p.Norm())
         # print (obj.state.T.p - T.p).Norm()
         # print T_robot.p, T.p, dist
-        # print "cond", dist, still_moving, state.arm_v
+        # print "> cond", dist, still_moving, state.arm_v, arm_v
 
         ###########Albert temporary code###########
         points = pb.getContactPoints(actor.robot.handle, obj.handle)
@@ -123,7 +126,7 @@ class AbsolutePositionCondition(AbstractCondition):
     in the world's coordinate frame.
     '''
 
-    def __init__(self, pos, rot, pos_tol, rot_tol, v_tol=0.05):
+    def __init__(self, pos, rot, pos_tol, rot_tol, v_tol=0.10):
         self.pos_tol = pos_tol
         self.rot_tol = rot_tol
         self.v_tol = v_tol
@@ -142,9 +145,11 @@ class AbsolutePositionCondition(AbstractCondition):
         '''
         T_robot = state.robot.fwd(state.arm)
         dist = (T_robot.p - self.T.p).Norm()
-        still_moving = np.any(np.abs(state.arm_v) > self.v_tol)
-        #print "cond2=", still_moving, dist > self.pos_tol,
-        #print dist, ">", self.pos_tol
+        arm_v = (prev_state.arm - state.arm) / world.dt
+        still_moving = np.any(np.abs(arm_v) > self.v_tol)
+        # still_moving = np.any(np.abs(state.arm_v) > self.v_tol)
+        # print "cond2=", still_moving, dist > self.pos_tol,
+        # print dist, ">", self.pos_tol
 
         return dist > self.pos_tol or still_moving
 
