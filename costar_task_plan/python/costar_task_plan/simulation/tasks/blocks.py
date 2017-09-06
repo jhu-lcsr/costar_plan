@@ -43,6 +43,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
     ]
 
     over_final_stack_pos = np.array([-0.5, 0., 0.5])
+    over_final_stack_pos = np.array([-0.5 + 0.012, 0., 0.5])
     #final_stack_pos = np.array([-0.5, 0., 0.05])
     final_stack_pos = np.array([-0.5 + 0.012, 0., 0.05])
     grasp_q = (-0.27, 0.65, 0.65, 0.27)
@@ -120,7 +121,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             AlignStackOption = lambda goal: GoalDirectedMotionOption(
                 self.world,
                 goal,
-                pose=((0.02, 0, 0.10), self.grasp_q),
+                pose=((0.022, 0, 0.10), self.grasp_q),
                 pose_tolerance=tol,
                 joint_velocity_tolerance=0.05,)
             align_stack_args = {
@@ -131,7 +132,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             StackOption = lambda goal: GoalDirectedMotionOption(
                 self.world,
                 goal,
-                pose=((0.01, 0, 0.06), self.grasp_q),
+                pose=((0.012, 0, 0.06), self.grasp_q),
                 pose_tolerance=tol,
                 joint_velocity_tolerance=0.05,
                 closed_loop=True,)
