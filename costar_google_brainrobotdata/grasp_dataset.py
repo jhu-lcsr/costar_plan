@@ -211,7 +211,7 @@ class GraspDataset(object):
                     progress.update(i)
                 file_hash_np = np.column_stack([grasp_files, hashes])
                 with open(hashed_listing, 'wb') as hash_file:
-                    np.savetxt(hashed_listing, file_hash_np, delimiter=",")
+                    np.savetxt(hash_file, file_hash_np, delimiter=",")
                 print('Hashing complete, {} will be used to verify the '
                       'dataset during future calls to download().'.format(hashed_listing))
 
