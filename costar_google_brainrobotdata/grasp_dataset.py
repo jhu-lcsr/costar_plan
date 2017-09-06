@@ -18,6 +18,7 @@ from tensorflow.python.platform import gfile
 from tensorflow.python.ops import data_flow_ops
 from keras.utils import get_file
 from keras.utils.data_utils import _hash_file
+from keras.utils.generic_utils import Progbar
 from keras import backend as K
 
 try:
@@ -156,6 +157,11 @@ class GraspDataset(object):
         the features (data channels), and the number of grasps;
         and the tfrecord files which actually contain all the data.
 
+        If `grasp_listing_hashed.txt` is present, an additional
+        hashing step will will be completed to verify dataset integrity.
+        `grasp_listing_hashed.txt` will be generated automatically when
+        downloading with `dataset='all'`.
+
         # Arguments
 
             dataset: The name of the dataset to download, downloads all by default
@@ -197,10 +203,17 @@ class GraspDataset(object):
 
             # If all files are downloaded, generate a hashed listing.
             if dataset is 'all' or dataset is '':
-                hashes = [_hash_file(x) for x in files]
+                print('Hashing all dataset files to prevent corruption...')
+                progress = Progbar(len(files))
+                hashes = []
+                for i, f in enumerate(files):
+                    hashes.append(_hash_file(f))
+                    progress.update(i)
                 file_hash_np = np.column_stack([grasp_files, hashes])
                 with open(hashed_listing, 'wb') as hash_file:
                     np.savetxt(hashed_listing, file_hash_np, delimiter=",")
+                print('Hashing complete, {} will be used to verify the '
+                      'dataset during future calls to download().'.format(hashed_listing))
 
         return files
 
