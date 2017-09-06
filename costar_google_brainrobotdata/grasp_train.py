@@ -54,6 +54,10 @@ flags.DEFINE_string('eval_results_file', 'grasp_model_eval.txt',
                     """Save a file with results of model evaluation.""")
 flags.DEFINE_string('device', '/gpu:0',
                     """Save a file with results of model evaluation.""")
+flags.DEFINE_bool('tf_allow_memory_growth', True,
+                  """False if memory usage will be allocated all in advance
+                     or True if it should grow as needed. Allocating all in
+                     advance may reduce fragmentation.""")
 
 flags.FLAGS._parse_flags()
 FLAGS = flags.FLAGS
@@ -307,6 +311,10 @@ class GraspTrain(object):
 
 
 def main():
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    session = tf.Session(config=config)
+    K.set_session(session)
     with tf.device(FLAGS.device):
         with K.get_session() as sess:
             load_weights = FLAGS.load_weights
