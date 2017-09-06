@@ -18,7 +18,7 @@ class DefaultTaskDefinition(AbstractTaskDefinition):
     # These are for the UR5
     joint_positions = np.array([0.30, -1.33, -1.80, -0.27, 1.50, 1.60])
     #random_limit = 0.8
-    random_limit = 0.4
+    random_limit = 0.1
 
     # define folder for blocks
     urdf_dir = "urdf"

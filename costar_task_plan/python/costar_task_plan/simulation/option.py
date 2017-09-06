@@ -166,10 +166,10 @@ class OpenGripperOption(AbstractOption):
     '''
 
     def makePolicy(self, world):
-        return OpenGripperPolicy(), TimeCondition(world.time() + 1.0)
+        return OpenGripperPolicy(), TimeCondition(world.time() + 0.5)
 
     def samplePolicy(self, world):
-        return OpenGripperPolicy(), TimeCondition(world.time() + 1.0)
+        return OpenGripperPolicy(), TimeCondition(world.time() + 0.5)
 
     def checkPrecondition(self, world, state):
         return True
@@ -196,11 +196,11 @@ class CloseGripperOption(AbstractOption):
 
     def makePolicy(self, world):
         return CloseGripperPolicy(pos=self.position), \
-               TimeCondition(world.time() + 1.0)
+               TimeCondition(world.time() + 0.6)
 
     def samplePolicy(self, world):
         return CloseGripperPolicy(pos=self.position), \
-               TimeCondition(world.time() + 1.0)
+               TimeCondition(world.time() + 0.6)
 
     def checkPrecondition(self, world, state):
         return True
@@ -277,7 +277,7 @@ class CartesianMotionPolicy(AbstractPolicy):
         # =====================================================================
         # Compute motion goak and send
         q_goal = actor.robot.ik(T_step, state.arm)
-        print q_goal, state.arm
+        #print q_goal, state.arm
         if q_goal is None:
             error = True
         else:

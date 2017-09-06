@@ -33,6 +33,11 @@ class AbstractTaskDefinition(object):
         self._type_and_name_by_obj = {}
         self._cameras = []
 
+    def clear(self):
+        self.world = None
+        self._objs_by_type = {}
+        self._type_and_name_by_obj = {}
+
     def addCamera(self, camera):
         assert isinstance(camera, Camera)
         self._cameras.append(camera)
