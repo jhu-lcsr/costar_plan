@@ -52,6 +52,8 @@ flags.DEFINE_float('densenet_reduction', 0.5,
                    """DenseNet and DenseNetFCN reduction aka compression parameter.""")
 flags.DEFINE_string('eval_results_file', 'grasp_model_eval.txt',
                     """Save a file with results of model evaluation.""")
+flags.DEFINE_string('device', '/gpu:0',
+                    """Save a file with results of model evaluation.""")
 
 flags.FLAGS._parse_flags()
 FLAGS = flags.FLAGS
@@ -299,36 +301,37 @@ class GraspTrain(object):
 
 
 def main():
-    with K.get_session() as sess:
-        load_weights = FLAGS.load_weights
-        if FLAGS.grasp_model is 'grasp_model_single':
-            def make_model_fn(*a, **kw):
-                return grasp_model.grasp_model(
-                    growth_rate=FLAGS.densenet_growth_rate,
-                    reduction=FLAGS.densenet_reduction,
-                    dense_blocks=FLAGS.densenet_dense_blocks,
-                    *a, **kw)
-        elif FLAGS.grasp_model is 'grasp_model_segmentation':
-            def make_model_fn(*a, **kw):
-                return grasp_model.grasp_model_segmentation(
-                    growth_rate=FLAGS.densenet_growth_rate,
-                    reduction=FLAGS.densenet_reduction,
-                    dense_blocks=FLAGS.densenet_dense_blocks,
-                    *a, **kw)
-        else:
-            raise ValueError('unknown model selected: {}'.format(FLAGS.grasp_model))
+    with tf.device(FLAGS.device):
+        with K.get_session() as sess:
+            load_weights = FLAGS.load_weights
+            if FLAGS.grasp_model is 'grasp_model_single':
+                def make_model_fn(*a, **kw):
+                    return grasp_model.grasp_model(
+                        growth_rate=FLAGS.densenet_growth_rate,
+                        reduction=FLAGS.densenet_reduction,
+                        dense_blocks=FLAGS.densenet_dense_blocks,
+                        *a, **kw)
+            elif FLAGS.grasp_model is 'grasp_model_segmentation':
+                def make_model_fn(*a, **kw):
+                    return grasp_model.grasp_model_segmentation(
+                        growth_rate=FLAGS.densenet_growth_rate,
+                        reduction=FLAGS.densenet_reduction,
+                        dense_blocks=FLAGS.densenet_dense_blocks,
+                        *a, **kw)
+            else:
+                raise ValueError('unknown model selected: {}'.format(FLAGS.grasp_model))
 
-        gt = GraspTrain()
+            gt = GraspTrain()
 
-        if 'train' in FLAGS.pipeline_stage:
-            print('Training ' + FLAGS.grasp_model)
-            load_weights = gt.train(make_model_fn=make_model_fn,
-                                    load_weights=load_weights)
-        if 'eval' in FLAGS.pipeline_stage:
-            print('Evaluating ' + FLAGS.grasp_model + ' on weights ' + load_weights)
-            # evaluate using weights that were just computed, if available
-            gt.eval(make_model_fn=make_model_fn,
-                    load_weights=load_weights)
+            if 'train' in FLAGS.pipeline_stage:
+                print('Training ' + FLAGS.grasp_model)
+                load_weights = gt.train(make_model_fn=make_model_fn,
+                                        load_weights=load_weights)
+            if 'eval' in FLAGS.pipeline_stage:
+                print('Evaluating ' + FLAGS.grasp_model + ' on weights ' + load_weights)
+                # evaluate using weights that were just computed, if available
+                gt.eval(make_model_fn=make_model_fn,
+                        load_weights=load_weights)
 
 
 if __name__ == '__main__':
