@@ -169,11 +169,16 @@ class CostarBulletSimulation(object):
         self.task.setup()
 
     def convertToArmandGripperCmd(self, action):
-
-        # TODO: fix the hard coded indices
-    
-        arm = action[0:6]
-        gripper = action[5:6]
+        '''
+        Simple helper function to take an array or other data and convert into
+        a more useful format.
+        '''
+        if action is None:
+            arm, gripper = (None, None)
+        else:
+            # TODO(cpaxton: fix the hard coded indices
+            arm = action[0:6]
+            gripper = action[6:7]
 
         return (arm, gripper)
 
@@ -199,9 +204,7 @@ class CostarBulletSimulation(object):
         if not isinstance(action, SimulationRobotAction):
             
             if type(action) is not tuple:
-
                 action = self.convertToArmandGripperCmd(action)
-
             action = SimulationRobotAction(*action)
 
         # Get state, action, features, reward from update

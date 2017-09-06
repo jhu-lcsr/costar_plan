@@ -6,7 +6,9 @@ Chris Paxton
 See license for details
 '''
 import numpy as np
+import os
 
+import keras.backend as K
 import keras.optimizers as optimizers
 
 class AbstractAgentBasedModel(object):
@@ -19,7 +21,7 @@ class AbstractAgentBasedModel(object):
     def __init__(self, taskdef=None, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
             clipnorm=100., show_iter=0, pretrain_iter=5,
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
-            task=None, robot=None, model="", *args,
+            task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
 
         if lr == 0 or lr < 1e-30:
@@ -40,9 +42,11 @@ class AbstractAgentBasedModel(object):
         self.task = task
         self.features = features
         self.robot = robot
-        self.name = "%s_%s"%(model, self.model_descriptor)
+        self.name_prefix = "%s_%s"%(model, self.model_descriptor)
         self.clipnorm = float(clipnorm)
         self.taskdef = taskdef
+        self.model_directory = os.path.expanduser(model_directory)
+        self.name = os.path.join(self.model_directory, self.name_prefix)
         if self.task is not None:
             self.name += "_%s"%self.task
         if self.features is not None:
@@ -57,12 +61,14 @@ class AbstractAgentBasedModel(object):
         self.model = None
 
         print("===========================================================")
-        print("Name =", self.name)
+        print("Name =", self.name_prefix)
         print("Features = ", self.features)
         print("Robot = ", self.robot)
         print("Task = ", self.task)
         print("Model type = ", model)
         print("Model description = ", self.model_descriptor)
+        print("Model directory = ", self.model_directory)
+        print("Models saved with prefix = ", self.name)
         print("-----------------------------------------------------------")
         print("Iterations = ", self.iter)
         print("Epochs = ", self.epochs)
@@ -75,6 +81,13 @@ class AbstractAgentBasedModel(object):
         print("Learning Rate = ", self.lr)
         print("Clip Norm = ", self.clipnorm)
         print("===========================================================")
+
+        try:
+            if not os.path.exists(self.model_directory):
+                os.makedirs(self.model_directory)
+        except OSError as e:
+            print("Could not create dir", self.model_directory)
+            raise e
 
     def _numLabels(self):
         '''
@@ -143,7 +156,7 @@ class AbstractAgentBasedModel(object):
         '''
         optimizer = optimizers.get(self.optimizer)
         try:
-            optimizer.lr = self.lr
+            optimizer.lr = K.variable(self.lr, name='lr')
             optimizer.clipnorm = self.clipnorm
         except Exception:
             print('WARNING: could not set all optimizer flags')
@@ -242,6 +255,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         # These are the outputs to other layers -- this is the hidden world
         # state.
         hidden.trainable = False
+        return
 
         # Learn a baseline for comparisons and whatnot
         self.baseline = self._makePolicy(features, action, hidden)

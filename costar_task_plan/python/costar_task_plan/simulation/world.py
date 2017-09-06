@@ -159,6 +159,7 @@ class SimulationRobotState(AbstractState):
                  base_angular_v=0.,
                  base_linear_v=0.,
                  T=None,
+                 error=None,
                  t=0.,):
 
         self.predicates = []
@@ -172,6 +173,7 @@ class SimulationRobotState(AbstractState):
         self.robot = robot
         self.T = T
         self.t = t
+        self.error = error
 
     def toParams(self, action):
         '''
@@ -187,10 +189,14 @@ class SimulationRobotAction(AbstractAction):
     holds the tuple for arm_cmd, gripper_cmd, etc.
     '''
 
-    def __init__(self, arm_cmd=None, gripper_cmd=None, mobile_base_cmd=None,code=None):
+    def __init__(self, arm_cmd=None, gripper_cmd=None,
+            mobile_base_cmd=None,code=None,error=False,):
         self.arm_cmd = arm_cmd
         self.gripper_cmd = gripper_cmd
         self.mobile_base_cmd = mobile_base_cmd
+
+        # Used to determine if there was a problem
+        self.error = error
 
         # This is used to track which high-level action is being executed at
         # any given time.

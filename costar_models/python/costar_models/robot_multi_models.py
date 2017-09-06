@@ -279,8 +279,12 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         dense=True, option=None, flatten=True, batchnorm=False,
         pre_tiling_layers=0,
         post_tiling_layers=2,
-        kernel_size=[3,3],
+        kernel_size=[3,3], output_filters=None,
         time_distributed=0,):
+
+
+    if output_filters is None:
+        output_filters = filters
 
     if time_distributed <= 0:
         ApplyTD = lambda x: x
@@ -368,7 +372,11 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         ins = [samples]
 
     for i in range(post_tiling_layers):
-        x = ApplyTD(Conv2D(filters,
+        if i == post_tiling_layers - 1:
+            nfilters = output_filters
+        else:
+            nfilters = filters
+        x = ApplyTD(Conv2D(nfilters,
                    kernel_size=kernel_size, 
                    strides=(2, 2),
                    padding='same'))(x)
@@ -404,6 +412,7 @@ def AddOptionTiling(x, option_length, option_in, height, width):
 def GetDecoder(dim, img_shape, arm_size, gripper_size,
         dropout_rate, filters, kernel_size=[3,3], dropout=True, leaky=True,
         batchnorm=True,dense=True, option=None, num_hypotheses=None,
+        tform_filters=None,
         stride2_layers=2, stride1_layers=1):
 
     '''
@@ -419,6 +428,8 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
     width2 = img_shape[1]/2
     nchannels = img_shape[2]
 
+    if tform_filters is None:
+        tform_filters = filters
 
     if leaky:
         relu = lambda: LeakyReLU(alpha=0.2)
@@ -434,10 +445,10 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
         if batchnorm:
             x = BatchNormalization(momentum=0.9)(x)
         x = relu()(x)
-        x = Reshape((width4,height4,filters/2))(x)
+        x = Reshape((width4,height4,tform_filters/2))(x)
     else:
-        z = Input((width8*height8*filters,),name="input_image")
-        x = Reshape((width8,height8,filters))(z)
+        z = Input((width8*height8*tform_filters,),name="input_image")
+        x = Reshape((width8,height8,tform_filters))(z)
     x = Dropout(dropout_rate)(x)
 
     height = height4

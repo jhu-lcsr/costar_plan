@@ -69,7 +69,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         GraspOption = lambda goal: GoalDirectedMotionOption(
             self.world,
             goal,
-            pose=((0.0, 0, 0.0), self.grasp_q),
+            pose=((0.012, 0, 0.005), self.grasp_q),
             pose_tolerance=tol,
             joint_velocity_tolerance=0.05,)
         grasp_args = {
@@ -218,10 +218,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         path = rospack.get_path('costar_simulation')
         urdf_dir = os.path.join(path, self.urdf_dir)
 
-        # placement =
-        # np.random.randint(0,len(self.stack_pos),(len(self.blocks),))
         placement = np.array(range(len(self.stack_pos)))
-        np.random.shuffle(placement)
         for i, pos in enumerate(self.stack_pos):
             blocks = []
             for idx, block in zip(placement, self.blocks):
