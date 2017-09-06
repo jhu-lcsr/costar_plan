@@ -1,8 +1,4 @@
 #!/bin/bash -l
-set -e
-set -x
-set -u
-
 #SBATCH --job-name=b500
 #SBATCH --time=0-24:0:0
 #SBATCH --nodes=1
@@ -14,4 +10,9 @@ set -u
 #SBATCH --cpus-per-task=6
 #SBATCH --mem-per-cpu=8G
 
-sbatch -n 6 -p unlimited -g 1 --time=24:0:0 $HOME/costar_plan/slurm/$1
+set -e
+set -x
+set -u
+
+#sbatch -n 6 -p unlimited -g 1 --time=24:0:0 $HOME/costar_plan/slurm/$1
+sbatch $HOME/costar_plan/slurm/$1

@@ -1,8 +1,4 @@
 #!/bin/bash -l
-set -e
-set -x
-set -u
-
 #SBATCH --job-name=b500
 #SBATCH --time=0-24:0:0
 #SBATCH --nodes=1
@@ -13,6 +9,10 @@ set -u
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=6
 #SBATCH --mem-per-cpu=8G
+
+set -e
+set -x
+set -u
 
 echo
 echo "Running $@ on $SLURMD_NODENAME ..."

@@ -1,8 +1,4 @@
 #!/bin/bash -l
-set -e
-set -x
-set -u
-
 #SBATCH --job-name=predictor250blocksmove
 #SBATCH -p gpu
 #SBATCH -g 1
@@ -15,6 +11,11 @@ set -u
 #SBATCH --ntasks-per-node=2
 #SBATCH --cpus-per-task=6
 #SBATCH --mem=8G
+
+
+set -e
+set -x
+set -u
 
 echo
 echo "Running $@ on $SLURMD_NODENAME ..."
