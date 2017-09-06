@@ -187,7 +187,7 @@ class GraspDataset(object):
         # download the dataset and verify hashes to prevent data corruption.
         hashed_listing = os.path.join(data_dir, 'grasp_listing_hashed.txt')
         if os.path.isfile(hashed_listing):
-            files_and_hashes = np.genfromtxt(hashed_listing, dtype='str', delimeter=',')
+            files_and_hashes = np.genfromtxt(hashed_listing, dtype='str', delimiter=',')
             files = [get_file(fpath.split('/')[-1], url_prefix + fpath, cache_subdir=data_dir, file_hash=hash_str)
                      for fpath, hash_str in files_and_hashes
                      if '_' + dataset in fpath]
