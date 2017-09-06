@@ -1,14 +1,11 @@
 #!/bin/bash -l
 #SBATCH --job-name=predictor250blocksmove
-#SBATCH -p gpu
-#SBATCH -g 1
-#SBATCH -n 6
 #SBATCH --time=0-24:0:0
 #SBATCH --mail-type=end
 #SBATCH --mail-user=cpaxton3@jhu.edu
-#SBATCH --partition=gpu
-#SBATCH --gres=gpu:2
-#SBATCH --ntasks-per-node=2
+#SBATCH -p unlimited
+#SBATCH -g 1
+#SBATCH --nodes=1
 #SBATCH --cpus-per-task=6
 #SBATCH --mem=8G
 

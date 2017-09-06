@@ -2,13 +2,11 @@
 #SBATCH --job-name=b500
 #SBATCH --time=0-24:0:0
 #SBATCH --nodes=1
+#SBATCH -p unlimited
+#SBATCH -g 1
+#SBATCH --cpus-per-task=6
 #SBATCH --mail-type=end
 #SBATCH --mail-user=cpaxton3@jhu.edu
-#SBATCH --partition=unlimited
-#SBATCH --gres=gpu:1
-#SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=6
-#SBATCH --mem-per-cpu=8G
 
 set -e
 set -x
