@@ -45,7 +45,9 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
     over_final_stack_pos = np.array([-0.5, 0., 0.5])
     over_final_stack_pos = np.array([-0.5 + 0.012, 0., 0.5])
     #final_stack_pos = np.array([-0.5, 0., 0.05])
-    final_stack_pos = np.array([-0.5 + 0.012, 0., 0.05])
+    #final_stack_pos = np.array([-0.5 + 0.012, 0., 0.05])
+    final_stack_pos = np.array([-0.5 + 0.012, 0., 0.035])
+    final_stack_pos_goal = np.array([-0.5 + 0.012, 0., 0.025])
     grasp_q = (-0.27, 0.65, 0.65, 0.27)
 
     def __init__(self, stage, *args, **kwargs):
@@ -60,6 +62,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
 
     def _makeTask(self):
 
+        vtol = 0.01
         tol = (0.02, 0.005)
         general_tol = (0.05, 0.025)
 
@@ -70,7 +73,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             goal,
             pose=((0.05, 0, 0.05), self.grasp_q),
             pose_tolerance=tol,
-            joint_velocity_tolerance=0.05,)
+            joint_velocity_tolerance=vtol,)
         align_args = {
             "constructor": AlignOption,
             "args": ["block"],
@@ -81,7 +84,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             goal,
             pose=((0.012, 0, 0.005), self.grasp_q),
             pose_tolerance=tol,
-            joint_velocity_tolerance=0.05,)
+            joint_velocity_tolerance=vtol,)
         grasp_args = {
             "constructor": GraspOption,
             "args": ["block"],
@@ -102,7 +105,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         PlaceOption = lambda: GeneralMotionOption(
             pose=(self.final_stack_pos, self.grasp_q),
             pose_tolerance=tol,
-            joint_velocity_tolerance=0.05,)
+            joint_velocity_tolerance=vtol,)
         place_args = {
             "constructor": PlaceOption,
             "args": []
@@ -123,7 +126,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                 goal,
                 pose=((0.022, 0, 0.10), self.grasp_q),
                 pose_tolerance=tol,
-                joint_velocity_tolerance=0.05,)
+                joint_velocity_tolerance=vtol,)
             align_stack_args = {
                 "constructor": AlignStackOption,
                 "args": ["block"],
@@ -134,7 +137,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                 goal,
                 pose=((0.012, 0, 0.06), self.grasp_q),
                 pose_tolerance=tol,
-                joint_velocity_tolerance=0.05,
+                joint_velocity_tolerance=vtol,
                 closed_loop=True,)
             stack_args = {
                 "constructor": StackOption,
@@ -257,34 +260,34 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             position_condition = AbsolutePositionCondition(
                 self.over_final_stack_pos,
                 self.grasp_q,
-                0.05,
-                0.025,
+                pos_tol=0.05,
+                rot_tol=0.025,
             )
             self.world.addCondition(
                     OrCondition(
                         ObjectAtPositionCondition("red_block",
-                            self.final_stack_pos, threshold),
+                            self.final_stack_pos_goal, threshold),
                         position_condition),
                     100,
                     "block in right position")
             self.world.addCondition(
                     OrCondition(
                         ObjectAtPositionCondition("blue_block",
-                            self.final_stack_pos, threshold),
+                            self.final_stack_pos_goal, threshold),
                         position_condition),
                     50,
                     "wrong block")
             self.world.addCondition(
                     OrCondition(
                         ObjectAtPositionCondition("green_block",
-                            self.final_stack_pos, threshold),
+                            self.final_stack_pos_goal, threshold),
                         position_condition),
                     50,
                     "wrong block")
             self.world.addCondition(
                     OrCondition(
                         ObjectAtPositionCondition("yellow_block",
-                            self.final_stack_pos, threshold),
+                            self.final_stack_pos_goal, threshold),
                         position_condition),
                     50,
                     "wrong block")

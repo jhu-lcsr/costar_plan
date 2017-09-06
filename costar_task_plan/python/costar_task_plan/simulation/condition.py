@@ -109,7 +109,7 @@ class GoalPositionCondition(AbstractCondition):
         # print (self.T.p.Norm())
         # print (obj.state.T.p - T.p).Norm()
         # print T_robot.p, T.p, dist
-        # print "> cond", dist, still_moving, state.arm_v, arm_v
+        print "> cond", dist, still_moving, state.arm_v, arm_v
 
         ###########Albert temporary code###########
         points = pb.getContactPoints(actor.robot.handle, obj.handle)
