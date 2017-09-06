@@ -17,38 +17,73 @@ from tensorflow.python.platform import flags
 from tensorflow.python.platform import gfile
 from tensorflow.python.ops import data_flow_ops
 from keras.utils import get_file
+from keras import backend as K
 
-import moviepy.editor as mpy
+try:
+    import moviepy.editor as mpy
+except ImportError:
+    print('moviepy not available, try `pip install moviepy`. '
+          'Skipping dataset gif extraction components.')
 
-tf.flags.DEFINE_string('data_dir',
-                       os.path.join(os.path.expanduser("~"),
-                                    '.keras', 'datasets', 'grasping'),
-                       """Path to dataset in TFRecord format
-                       (aka Example protobufs) and feature csv files.""")
-tf.flags.DEFINE_string('visualization_dir',
-                       os.path.join(os.path.expanduser("~"),
-                                    '.keras', 'datasets', 'grasping', 'images_extracted_grasp'),
-                       """Path to output data visualizations such as image gifs and ply clouds.""")
-tf.flags.DEFINE_integer('batch_size', 6, 'batch size per compute device')
-tf.flags.DEFINE_integer('sensor_image_width', 640, 'Camera Image Width')
-tf.flags.DEFINE_integer('sensor_image_height', 512, 'Camera Image Height')
-tf.flags.DEFINE_integer('sensor_color_channels', 3,
-                        'Number of color channels (3, RGB)')
-tf.flags.DEFINE_boolean('grasp_download', False,
-                        """Download the grasp_dataset to data_dir if it is not already present.""")
-tf.flags.DEFINE_string('grasp_dataset', '102',
-                       """Filter the subset of 1TB Grasp datasets to run.
-                       None by default. 'all' will run all datasets in data_dir.
-                       '052' and '057' will download the small starter datasets.
-                       '102' will download the main dataset with 102 features,
-                       around 110 GB and 38k grasp attempts.
-                       See https://sites.google.com/site/brainrobotdata/home
-                       for a full listing.""")
+flags.DEFINE_string('data_dir',
+                    os.path.join(os.path.expanduser("~"),
+                                 '.keras', 'datasets', 'grasping'),
+                    """Path to dataset in TFRecord format
+                    (aka Example protobufs) and feature csv files.""")
+flags.DEFINE_string('visualization_dir',
+                    os.path.join(os.path.expanduser("~"),
+                                 '.keras', 'datasets', 'grasping', 'images_extracted_grasp'),
+                    """Path to output data visualizations such as image gifs and ply clouds.""")
+flags.DEFINE_integer('batch_size', 6, 'batch size per compute device')
+flags.DEFINE_integer('sensor_image_width', 640, 'Camera Image Width')
+flags.DEFINE_integer('sensor_image_height', 512, 'Camera Image Height')
+flags.DEFINE_integer('sensor_color_channels', 3,
+                     'Number of color channels (3, RGB)')
+flags.DEFINE_boolean('grasp_download', False,
+                     """Download the grasp_dataset to data_dir if it is not already present.""")
+flags.DEFINE_string('grasp_dataset', '102',
+                    """Filter the subset of 1TB Grasp datasets to run.
+                    None by default. 'all' will run all datasets in data_dir.
+                    '052' and '057' will download the small starter datasets.
+                    '102' will download the main dataset with 102 features,
+                    around 110 GB and 38k grasp attempts.
+                    See https://sites.google.com/site/brainrobotdata/home
+                    for a full listing.""")
+flags.DEFINE_integer('random_crop_width', 472,
+                     """Width to randomly crop images, if enabled""")
+flags.DEFINE_integer('random_crop_height', 472,
+                     """Height to randomly crop images, if enabled""")
+flags.DEFINE_boolean('random_crop', False,
+                     """random_crop will apply the tf random crop function with
+                        the parameters specified by random_crop_width and random_crop_height
+                     """)
+flags.DEFINE_integer('resize_width', 80,
+                     """Width to resize images before prediction, if enabled.""")
+flags.DEFINE_integer('resize_height', 64,
+                     """Height to resize images before prediction, if enabled.""")
+flags.DEFINE_boolean('resize', True,
+                     """resize will resize the input images to the desired dimensions specified but the
+                        resize_width and resize_height flags. It is suggested that an exact factor of 2 be used
+                        relative to the input image directions if random_crop is disabled or the crop dimensions otherwise.
+                     """)
+flags.DEFINE_boolean('image_augmentation', False,
+                     'image augmentation applies random brightness, saturation, hue, contrast')
+flags.DEFINE_boolean('imagenet_mean_subtraction', True,
+                     'subtract the imagenet mean pixel values from the rgb images')
+flags.DEFINE_integer('grasp_sequence_max_time_steps', None,
+                     """The grasp motion time sequence consists of up to 11 time steps.
+                        This integer, or None for unlimited specifies the max number of these steps from the last to the first
+                        that will be used in training. This may be needed to reduce memory utilization.""")
 
 FLAGS = flags.FLAGS
 
 
 def mkdir_p(path):
+    """Create the specified path on the filesystem like the `mkdir -p` command
+
+    Creates one or more filesystem directory levels as needed,
+    and does not return an error if the directory already exists.
+    """
     # http://stackoverflow.com/questions/600268/mkdir-p-functionality-in-python
     try:
         os.makedirs(path)
@@ -71,8 +106,13 @@ class GraspDataset(object):
         *.csv lists the number of features, the number of grasp attempts, and all feature names;
         *.tfrecord and *.tfrecord*-of-* is the actual data stored in the tfrecord.
 
+        If you are using this for the first time simply select the dataset number you would like, such as
+        102 in the constructor, and then call `single_pose_training_tensors()`. This will give
+        you tensorflow tensors for the original dataset configuration and parameterization. Then initialize
+        your model with the tensors and train or predict.
+
         TODO(ahundt) update to use new TF Dataset API https://github.com/tensorflow/tensorflow/tree/master/tensorflow/contrib/data
-        TODO(ahundt) This only supports one dataset at a time (aka 102 feature version or 057)
+        This interface only supports one dataset at a time (aka 102 feature version or 057).
 
         # Arguments
 
@@ -422,66 +462,67 @@ class GraspDataset(object):
             sequence_feature_op_dict: dictionary of sequence tensors for every features,
                 contains base to end effector transforms.
         """
-        # Dense features in Example proto.
-        num_grasp_steps_name = 'num_grasp_steps'
-        camera_to_base_name = 'camera/transforms/camera_T_base/matrix44'
-        camera_intrinsics_name = 'camera/intrinsics/matrix33'
-        grasp_success_name = 'grasp_success'
-        # TODO(ahundt) make sure gripper/status is in the right place and not handled twice
-        gripper_status = 'gripper/status'
+        with tf.name_scope('parse_grasp_attempt_protobuf') as scope:
+            # Dense features in Example proto.
+            num_grasp_steps_name = 'num_grasp_steps'
+            camera_to_base_name = 'camera/transforms/camera_T_base/matrix44'
+            camera_intrinsics_name = 'camera/intrinsics/matrix33'
+            grasp_success_name = 'grasp_success'
+            # TODO(ahundt) make sure gripper/status is in the right place and not handled twice
+            gripper_status = 'gripper/status'
 
-        # setup one time features like the camera and number of grasp steps
-        features_dict = {
-            num_grasp_steps_name: tf.FixedLenFeature([1], tf.string),
-            camera_to_base_name: tf.FixedLenFeature([4, 4], tf.float32),
-            camera_intrinsics_name: tf.FixedLenFeature([3, 3], tf.float32),
-            grasp_success_name: tf.FixedLenFeature([1], tf.float32),
-            gripper_status: tf.FixedLenFeature([1], tf.float32),
-        }
+            # setup one time features like the camera and number of grasp steps
+            features_dict = {
+                num_grasp_steps_name: tf.FixedLenFeature([1], tf.string),
+                camera_to_base_name: tf.FixedLenFeature([4, 4], tf.float32),
+                camera_intrinsics_name: tf.FixedLenFeature([3, 3], tf.float32),
+                grasp_success_name: tf.FixedLenFeature([1], tf.float32),
+                gripper_status: tf.FixedLenFeature([1], tf.float32),
+            }
 
-        # load all the images
-        ordered_image_feature_names = GraspDataset.get_time_ordered_features(
-            features_complete_list,
-            feature_type='/image/encoded')
-        features_dict.update({image_name: tf.FixedLenFeature([1], tf.string)
-                              for image_name in ordered_image_feature_names})
+            # load all the images
+            ordered_image_feature_names = GraspDataset.get_time_ordered_features(
+                features_complete_list,
+                feature_type='/image/encoded')
+            features_dict.update({image_name: tf.FixedLenFeature([1], tf.string)
+                                  for image_name in ordered_image_feature_names})
 
-        # load all the depth images
-        ordered_depth_feature_names = GraspDataset.get_time_ordered_features(
-            features_complete_list,
-            feature_type='depth_image')
-        features_dict.update({image_name: tf.FixedLenFeature([1], tf.string)
-                              for image_name in ordered_depth_feature_names})
+            # load all the depth images
+            ordered_depth_feature_names = GraspDataset.get_time_ordered_features(
+                features_complete_list,
+                feature_type='depth_image')
+            features_dict.update({image_name: tf.FixedLenFeature([1], tf.string)
+                                  for image_name in ordered_depth_feature_names})
 
-        # load all vec/quat base to end effector transforms that aren't sequences
-        base_to_endeffector_names = GraspDataset.get_time_ordered_features(
-            features_complete_list,
-            feature_type='transforms/base_T_endeffector/vec_quat_7'
-            )
-        features_dict.update({x_form: tf.FixedLenFeature([7], tf.float32)
-                              for x_form in base_to_endeffector_names})
+            # load all vec/quat base to end effector transforms that aren't sequences
+            base_to_endeffector_names = GraspDataset.get_time_ordered_features(
+                features_complete_list,
+                feature_type='transforms/base_T_endeffector/vec_quat_7'
+                )
+            features_dict.update({x_form: tf.FixedLenFeature([7], tf.float32)
+                                  for x_form in base_to_endeffector_names})
 
-        # load all vec/quat base to end effector transforms that are sequences
-        base_to_endeffector_sequence_names = GraspDataset.get_time_ordered_features(
-            features_complete_list,
-            feature_type='sequence/transforms/base_T_endeffector/vec_quat_7',
-            record_type='sequence'  # Don't exclude sequences
-            )
-        sequence_features_dict = {x_form: tf.FixedLenSequenceFeature([7], tf.float32, allow_missing=True)
-                                  for x_form in base_to_endeffector_sequence_names}
+            # load all vec/quat base to end effector transforms that are sequences
+            base_to_endeffector_sequence_names = GraspDataset.get_time_ordered_features(
+                features_complete_list,
+                feature_type='sequence/transforms/base_T_endeffector/vec_quat_7',
+                record_type='sequence'  # Don't exclude sequences
+                )
+            sequence_features_dict = {x_form: tf.FixedLenSequenceFeature([7], tf.float32, allow_missing=True)
+                                      for x_form in base_to_endeffector_sequence_names}
 
-        # load transforms that were modified for their network from the original paper
-        transform_adapted_for_network = GraspDataset.get_time_ordered_features(
-            features_complete_list,
-            feature_type='params'
-            )
-        features_dict.update({x_form: tf.FixedLenFeature([5], tf.float32)
-                              for x_form in transform_adapted_for_network})
+            # load transforms that were modified for their network from the original paper
+            transform_adapted_for_network = GraspDataset.get_time_ordered_features(
+                features_complete_list,
+                feature_type='params'
+                )
+            features_dict.update({x_form: tf.FixedLenFeature([5], tf.float32)
+                                  for x_form in transform_adapted_for_network})
 
-        # extract all the features from the file, return two dicts
-        return tf.parse_single_sequence_example(serialized_grasp_attempt_proto,
-                                                context_features=features_dict,
-                                                sequence_features=sequence_features_dict)
+            # extract all the features from the file, return two dicts
+            return tf.parse_single_sequence_example(serialized_grasp_attempt_proto,
+                                                    context_features=features_dict,
+                                                    sequence_features=sequence_features_dict)
 
     def get_simple_parallel_dataset_ops(self, dataset=None, batch_size=1, buffer_size=100, parallelism=10):
         """Simple unordered & parallel TensorFlow ops that go through the whole dataset.
@@ -555,7 +596,7 @@ class GraspDataset(object):
         return dict_and_feature_tuple_list, features_complete_list, feature_count, attempt_count
 
     @staticmethod
-    def _image_decode(feature_op_dict):
+    def _image_decode(feature_op_dict, sensor_image_dimensions=None):
         """Add features to dict that supply decoded png and jpeg images for any encoded images present.
         Feature path that is 'image/encoded' will also now have 'image/decoded'
 
@@ -563,6 +604,8 @@ class GraspDataset(object):
 
             updated feature_op_dict, new_feature_list
         """
+        if sensor_image_dimensions is None:
+            sensor_image_dimensions = [1, FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels]
         features = [feature for (feature, tf_op) in iteritems(feature_op_dict)]
         image_features = GraspDataset.get_time_ordered_features(features, '/image/encoded')
         image_features.extend(GraspDataset.get_time_ordered_features(features, 'depth_image/encoded'))
@@ -570,23 +613,195 @@ class GraspDataset(object):
         for image_feature in image_features:
             image_buffer = tf.reshape(feature_op_dict[image_feature], shape=[])
             if 'depth' in image_feature:
-                image = tf.image.decode_png(image_buffer, channels=FLAGS.sensor_color_channels)
+                image = tf.image.decode_png(image_buffer, channels=sensor_image_dimensions[3])
             else:
-                image = tf.image.decode_jpeg(image_buffer, channels=FLAGS.sensor_color_channels)
-            image.set_shape([FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels])
-            image = tf.reshape(image, [1, FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels])
+                image = tf.image.decode_jpeg(image_buffer, channels=sensor_image_dimensions[3])
+            image.set_shape(sensor_image_dimensions[1:])
+            image = tf.reshape(image, sensor_image_dimensions)
             decoded_image_feature = image_feature.replace('encoded', 'decoded')
             feature_op_dict[decoded_image_feature] = image
             new_feature_list.append(decoded_image_feature)
 
         return feature_op_dict, new_feature_list
 
-    def npy_to_gif(self, npy, filename):
-        clip = mpy.ImageSequenceClip(list(npy), fps=2)
+    @staticmethod
+    def _image_augmentation(image, num_channels=None):
+        """Performs data augmentation by randomly permuting the inputs.
+
+        TODO(ahundt) should normalization be applied first, or make sure values are 0-255 here, even in float mode?
+
+        Source: https://github.com/tensorflow/models/blob/aed6922fe2da5325bda760650b5dc3933b10a3a2/domain_adaptation/pixel_domain_adaptation/pixelda_preprocess.py#L81
+
+        Args:
+            image: A float `Tensor` of size [height, width, channels] with values
+            in range[0,1].
+        Returns:
+            The mutated batch of images
+        """
+        # Apply photometric data augmentation (contrast etc.)
+        if num_channels is None:
+            num_channels = image.shape()[-1]
+        if num_channels == 4:
+            # Only augment image part
+            image, depth = image[:, :, 0:3], image[:, :, 3:4]
+        elif num_channels == 1:
+            image = tf.image.grayscale_to_rgb(image)
+        image = tf.image.random_brightness(image, max_delta=0.1)
+        image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
+        image = tf.image.random_hue(image, max_delta=0.032)
+        image = tf.image.random_contrast(image, lower=0.5, upper=1.5)
+        image = tf.clip_by_value(image, 0, 1.0)
+        if num_channels == 4:
+            image = tf.concat(2, [image, depth])
+        elif num_channels == 1:
+            image = tf.image.rgb_to_grayscale(image)
+        return image
+
+    @staticmethod
+    def _imagenet_mean_subtraction(tensor):
+        """Do imagenet preprocessing, but make sure the network you are using needs it!
+
+           zero centers by the mean pixel value found in the imagenet dataset.
+        """
+        # TODO(ahundt) do we need to divide by 255 to make it floats from 0 to 1? It seems no based on https://keras.io/applications/
+        # TODO(ahundt) apply resolution to https://github.com/fchollet/keras/pull/7705 when linked PR is closed
+        # TODO(ahundt) also apply per image standardization?
+        pixel_value_offset = tf.constant([103.939, 116.779, 123.68])
+        return tf.subtract(tensor, pixel_value_offset)
+
+    def _rgb_preprocessing(self, rgb_image_op,
+                           image_augmentation=FLAGS.image_augmentation,
+                           imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
+                           random_crop=FLAGS.random_crop,
+                           resize=FLAGS.resize):
+        """Preprocess an rgb image into a float image, applying image augmentation and imagenet mean subtraction if desired.
+
+           WARNING: do not use if you are processing depth images in addition to rgb, the random crop dimeions won't match up!
+        """
+        with tf.name_scope('rgb_preprocessing') as scope:
+            # make sure the shape is correct
+            rgb_image_op = tf.squeeze(rgb_image_op)
+            # apply image augmentation and imagenet preprocessing steps adapted from keras
+            if random_crop:
+                rgb_image_op = tf.random_crop(rgb_image_op,
+                                              tf.constant([FLAGS.random_crop_height, FLAGS.random_crop_width, 3],
+                                                          name='random_crop_height_width'))
+            if resize:
+                rgb_image_op = tf.image.resize_images(rgb_image_op,
+                                                      tf.constant([FLAGS.resize_height, FLAGS.resize_width],
+                                                                  name='resize_height_width'))
+            if image_augmentation:
+                rgb_image_op = self._image_augmentation(rgb_image_op, num_channels=3)
+            rgb_image_op = tf.cast(rgb_image_op, tf.float32)
+            if imagenet_mean_subtraction:
+                rgb_image_op = self._imagenet_mean_subtraction(rgb_image_op)
+            return tf.cast(rgb_image_op, tf.float32)
+
+    def single_pose_training_tensors(self, batch_size=FLAGS.batch_size,
+                                     imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
+                                     random_crop=FLAGS.random_crop,
+                                     resize=FLAGS.resize,
+                                     grasp_sequence_max_time_steps=FLAGS.grasp_sequence_max_time_steps):
+        """Get tensors configured for training on grasps at a single pose.
+        """
+        feature_op_dicts, features_complete_list, num_samples = self.get_simple_parallel_dataset_ops(batch_size=batch_size)
+        # TODO(ahundt) https://www.tensorflow.org/performance/performance_models
+        # make sure records are always ready to go
+        # staging_area = tf.contrib.staging.StagingArea()
+
+        # TODO(ahundt) make "batches" also contain additional steps in the grasp attempt
+        rgb_clear_view = self.get_time_ordered_features(
+            features_complete_list,
+            feature_type='/image/decoded',
+            step='view_clear_scene'
+        )
+
+        rgb_move_to_grasp_steps = self.get_time_ordered_features(
+            features_complete_list,
+            feature_type='/image/decoded',
+            step='move_to_grasp'
+        )
+
+        pose_op_params = self.get_time_ordered_features(
+            features_complete_list,
+            feature_type='params',
+            step='move_to_grasp'
+        )
+
+        # print('features_complete_list: ', features_complete_list)
+        grasp_success = self.get_time_ordered_features(
+            features_complete_list,
+            feature_type='grasp_success'
+        )
+        # print('grasp_success: ', grasp_success)
+
+        # TODO(ahundt) Do we need to add some imagenet preprocessing here? YES when using imagenet pretrained weights
+        # TODO(ahundt) THE NUMBER OF GRASP STEPS MAY VARY... CAN WE DEAL WITH THIS? ARE WE?
+
+        # our training batch size will be batch_size * grasp_steps
+        # because we will train all grasp step images w.r.t. final
+        # grasp success result value
+        pregrasp_op_batch = []
+        grasp_step_op_batch = []
+        # simplified_network_grasp_command_op
+        simplified_grasp_command_op_batch = []
+        grasp_success_op_batch = []
+        # go through every element in the batch
+        for fixed_feature_op_dict, sequence_feature_op_dict in feature_op_dicts:
+            # print('fixed_feature_op_dict: ', fixed_feature_op_dict)
+            # get the pregrasp image, and squeeze out the extra batch dimension from the tfrecord
+            # TODO(ahundt) move squeeze steps into dataset api if possible
+            pregrasp_image_rgb_op = fixed_feature_op_dict[rgb_clear_view[0]]
+            pregrasp_image_rgb_op = self._rgb_preprocessing(pregrasp_image_rgb_op,
+                                                            imagenet_mean_subtraction=imagenet_mean_subtraction,
+                                                            random_crop=random_crop,
+                                                            resize=resize)
+
+            grasp_success_op = tf.squeeze(fixed_feature_op_dict[grasp_success[0]])
+            # each step in the grasp motion is also its own minibatch,
+            # iterate in reversed direction because if training data will be dropped
+            # it should be the first steps not the last steps.
+            for i, (grasp_step_rgb_feature_name, pose_op_param) in enumerate(zip(reversed(rgb_move_to_grasp_steps), reversed(pose_op_params))):
+                if grasp_sequence_max_time_steps is None or i < grasp_sequence_max_time_steps:
+                    if int(grasp_step_rgb_feature_name.split('/')[1]) != int(pose_op_param.split('/')[1]):
+                        raise ValueError('ERROR: the time step of the grasp step does not match the motion command params, '
+                                         'make sure the lists are indexed correctly!')
+                    pregrasp_op_batch.append(pregrasp_image_rgb_op)
+                    grasp_step_rgb_feature_op = self._rgb_preprocessing(fixed_feature_op_dict[grasp_step_rgb_feature_name])
+                    grasp_step_op_batch.append(grasp_step_rgb_feature_op)
+                    print("fixed_feature_op_dict[pose_op_param]: ", fixed_feature_op_dict[pose_op_param])
+                    simplified_grasp_command_op_batch.append(fixed_feature_op_dict[pose_op_param])
+                    grasp_success_op_batch.append(grasp_success_op)
+
+        # TODO(ahundt) for multiple device batches, will need to split on batch_size and example_batch size will need to be updated
+        example_batch_size = len(grasp_success_op_batch)
+
+        pregrasp_op_batch = tf.parallel_stack(pregrasp_op_batch)
+        grasp_step_op_batch = tf.parallel_stack(grasp_step_op_batch)
+        simplified_grasp_command_op_batch = tf.parallel_stack(simplified_grasp_command_op_batch)
+        grasp_success_op_batch = tf.parallel_stack(grasp_success_op_batch)
+
+        pregrasp_op_batch = tf.concat(pregrasp_op_batch, 0)
+        grasp_step_op_batch = tf.concat(grasp_step_op_batch, 0)
+        simplified_grasp_command_op_batch = tf.concat(simplified_grasp_command_op_batch, 0)
+        grasp_success_op_batch = tf.concat(grasp_success_op_batch, 0)
+        # add one extra dimension so they match
+        grasp_success_op_batch = tf.expand_dims(grasp_success_op_batch, -1)
+        return pregrasp_op_batch, grasp_step_op_batch, simplified_grasp_command_op_batch, example_batch_size, grasp_success_op_batch, num_samples
+
+    def npy_to_gif(self, npy, filename, fps=2):
+        """Convert a numpy array into a gif file at the location specified by filename.
+        """
+        clip = mpy.ImageSequenceClip(list(npy), fps)
         clip.write_gif(filename)
 
-    def create_gif(self, sess):
-        """ Create gifs of loaded dataset
+    def create_gif(self, sess=K.get_session(), visualization_dir=FLAGS.visualization_dir):
+        """Create gifs of the loaded dataset and write them to visualization_dir
+
+        # Arguments
+
+            sess: the TensorFlow Session to use
+            visualization_dir: where to save the gif files
         """
         mkdir_p(FLAGS.visualization_dir)
         feature_csv_files = self._get_feature_csv_file_paths()
@@ -638,7 +853,7 @@ class GraspDataset(object):
                     video = numpy_data_dict['image_seq'][i]
                     gif_filename = (os.path.basename(feature_csv_file)[:-4] + '_grasp_' + str(int(attempt_num)) +
                                     '_success_' + str(int(numpy_data_dict[grasp_success_feature_name])) + '.gif')
-                    gif_path = os.path.join(FLAGS.visualization_dir, gif_filename)
+                    gif_path = os.path.join(visualization_dir, gif_filename)
                     self.npy_to_gif(video, gif_path)
 
 
