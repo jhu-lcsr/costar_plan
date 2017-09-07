@@ -24,18 +24,32 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
     block_urdf = "%s.urdf"
     model = "block"
     blocks = ["red", "blue", "yellow", "green"]
+    obstacle_urdf = "obstacle.urdf"
 
     # Objects are placed into a random stack.
     stack_pos = [
         # np.array([-0.5, 0., 0.]),
-        np.array([-0.5, 0.1, 0.]),
-        np.array([-0.5, 0.2, 0.]),
-        np.array([-0.5, -0.1, 0.]),
-        np.array([-0.5, -0.2, 0.]),
+        np.array([-0.46, 0.1, 0.]),
+        np.array([-0.46, 0.2, 0.]),
+        np.array([-0.46, -0.1, 0.]),
+        np.array([-0.46, -0.2, 0.]),
+        np.array([-0.4, 0.1, 0.]),
+        np.array([-0.4, 0.2, 0.]),
+        np.array([-0.4, -0.1, 0.]),
+        np.array([-0.4, -0.2, 0.]),
+        np.array([-0.52, 0.1, 0.]),
+        np.array([-0.52, 0.2, 0.]),
+        np.array([-0.52, -0.1, 0.]),
+        np.array([-0.52, -0.2, 0.]),
     ]
 
+    offset = 0.0
     over_final_stack_pos = np.array([-0.5, 0., 0.5])
-    final_stack_pos = np.array([-0.5, 0., 0.05])
+    over_final_stack_pos = np.array([-0.5 + offset, 0., 0.5])
+    #final_stack_pos = np.array([-0.5, 0., 0.05])
+    #final_stack_pos = np.array([-0.5 + offset, 0., 0.05])
+    final_stack_pos = np.array([-0.5 + offset, 0., 0.035])
+    final_stack_pos_goal = np.array([-0.5 + offset, 0., 0.025])
     grasp_q = (-0.27, 0.65, 0.65, 0.27)
 
     def __init__(self, stage, *args, **kwargs):
@@ -47,10 +61,12 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         super(BlocksTaskDefinition, self).__init__(*args, **kwargs)
         self.stage = stage
         self.block_ids = []
+        self.obstacles = []
 
     def _makeTask(self):
 
-        tol = (0.02, 0.005)
+        vtol = 0.005
+        tol = (0.01, 0.005)
         general_tol = (0.05, 0.025)
 
         # ====================================================================
@@ -60,7 +76,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             goal,
             pose=((0.05, 0, 0.05), self.grasp_q),
             pose_tolerance=tol,
-            joint_velocity_tolerance=0.05,)
+            joint_velocity_tolerance=vtol,)
         align_args = {
             "constructor": AlignOption,
             "args": ["block"],
@@ -71,7 +87,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             goal,
             pose=((0.012, 0, 0.005), self.grasp_q),
             pose_tolerance=tol,
-            joint_velocity_tolerance=0.05,)
+            joint_velocity_tolerance=vtol,)
         grasp_args = {
             "constructor": GraspOption,
             "args": ["block"],
@@ -92,7 +108,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         PlaceOption = lambda: GeneralMotionOption(
             pose=(self.final_stack_pos, self.grasp_q),
             pose_tolerance=tol,
-            joint_velocity_tolerance=0.05,)
+            joint_velocity_tolerance=vtol,)
         place_args = {
             "constructor": PlaceOption,
             "args": []
@@ -106,14 +122,18 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             "constructor": OpenGripperOption,
             "args": []
         }
+        open_gripper_args_unique = {
+            "constructor": OpenGripperOption,
+            "args": ["block"]
+        }
 
         if self.stage == 1:
             AlignStackOption = lambda goal: GoalDirectedMotionOption(
                 self.world,
                 goal,
-                pose=((0.02, 0, 0.10), self.grasp_q),
+                pose=((0.01+self.offset, 0, 0.10), self.grasp_q),
                 pose_tolerance=tol,
-                joint_velocity_tolerance=0.05,)
+                joint_velocity_tolerance=vtol,)
             align_stack_args = {
                 "constructor": AlignStackOption,
                 "args": ["block"],
@@ -122,9 +142,9 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             StackOption = lambda goal: GoalDirectedMotionOption(
                 self.world,
                 goal,
-                pose=((0.01, 0, 0.06), self.grasp_q),
+                pose=((0.0+self.offset, 0, 0.06), self.grasp_q),
                 pose_tolerance=tol,
-                joint_velocity_tolerance=0.05,
+                joint_velocity_tolerance=vtol,
                 closed_loop=True,)
             stack_args = {
                 "constructor": StackOption,
@@ -146,8 +166,9 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             place = TaskTemplate("place", "pickup")
             place.add("align_with_stack", "lift", align_stack_args)
             place.add("add_to_stack", "align_with_stack", stack_args)
-            place.add("open_gripper", "add_to_stack", open_gripper_args)
-            place.add("done", "open_gripper", lift_args)
+            place.add("open_gripper", "add_to_stack", open_gripper_args_unique)
+            place.add("align_with_stack_again", "open_gripper", align_stack_args)
+            place.add("done", "align_with_stack_again", lift_args)
 
             # ==================================================================== 
             # Create a task model
@@ -173,6 +194,19 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             task.add("done", "open_gripper", lift_args)
 
         return task
+
+    def _addObstacle(self, pos, urdf_dir):
+        urdf_filename = os.path.join(
+            urdf_dir, self.model, self.obstacle_urdf)
+        obj_id = pb.loadURDF(urdf_filename)
+        r = self._sampleRotation()
+        pos = (pos[0], pos[1], 0.1)
+        pb.resetBasePositionAndOrientation(
+            obj_id,
+            pos,
+            r)
+        self.addObject("obstacle", "obstacle", obj_id)
+        return obj_id
 
     def _addTower(self, pos, blocks, urdf_dir):
         '''
@@ -205,7 +239,8 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         Sample a random, small rotation.
         '''
         rpy = np.random.random((3,)) * 0.3
-        rpy[0] = 0. # clear out the pitch
+        rpy[0] = 0. # clear out the roll
+        rpy[1] = 0. # clear out the pitch
         r = kdl.Rotation.RPY(*list(rpy)).GetQuaternion()
         return r
 
@@ -218,6 +253,9 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         path = rospack.get_path('costar_simulation')
         urdf_dir = os.path.join(path, self.urdf_dir)
 
+        self.block_ids = []
+        self.obstacles = []
+
         placement = np.array(range(len(self.stack_pos)))
         for i, pos in enumerate(self.stack_pos):
             blocks = []
@@ -226,6 +264,14 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                     blocks.append(block)
             ids = self._addTower(pos, blocks, urdf_dir)
             self.block_ids += ids
+
+            # HACK; TODO(cpaxton): remove this!
+            if i > len(self.blocks):
+                break
+        if self.stage == 1:
+            # add the obstacle
+            self.obstacles = [self._addObstacle(self.stack_pos[i+1], urdf_dir)]
+            
 
         self.world.addCondition(JointLimitViolationCondition(), -100,
                                 "joints must stay in limits")
@@ -247,34 +293,34 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             position_condition = AbsolutePositionCondition(
                 self.over_final_stack_pos,
                 self.grasp_q,
-                0.05,
-                0.025,
+                pos_tol=0.05,
+                rot_tol=0.025,
             )
             self.world.addCondition(
                     OrCondition(
                         ObjectAtPositionCondition("red_block",
-                            self.final_stack_pos, threshold),
+                            self.final_stack_pos_goal, threshold),
                         position_condition),
                     100,
                     "block in right position")
             self.world.addCondition(
                     OrCondition(
                         ObjectAtPositionCondition("blue_block",
-                            self.final_stack_pos, threshold),
+                            self.final_stack_pos_goal, threshold),
                         position_condition),
                     50,
                     "wrong block")
             self.world.addCondition(
                     OrCondition(
                         ObjectAtPositionCondition("green_block",
-                            self.final_stack_pos, threshold),
+                            self.final_stack_pos_goal, threshold),
                         position_condition),
                     50,
                     "wrong block")
             self.world.addCondition(
                     OrCondition(
                         ObjectAtPositionCondition("yellow_block",
-                            self.final_stack_pos, threshold),
+                            self.final_stack_pos_goal, threshold),
                         position_condition),
                     50,
                     "wrong block")
@@ -289,7 +335,11 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         #        0,
         #        len(self.stack_pos),
         #        (len(self.blocks),))
-        placement = np.array(range(len(self.stack_pos)))
+        if self.stage == 0:
+            poslen = 4
+        else:
+            poslen = len(self.stack_pos)
+        placement = np.array(range(poslen))
         np.random.shuffle(placement)
 
         # loop over all stacks
@@ -310,6 +360,21 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                     block_pos,
                     r)
                 z += 0.05
+        idx0 = len(self.block_ids)
+
+        # ================================================
+        # If there are obstacles, set them up as well.
+        for i, obs_id in enumerate(self.obstacles):
+            z = 0.1
+            idx = idx0 + i
+            place = placement[idx]
+            pos = self.stack_pos[place]
+            block_pos = self._samplePos(pos[0], pos[1], z)
+            r = self._sampleRotation()
+            pb.resetBasePositionAndOrientation(
+                obs_id,
+                block_pos,
+                r)
 
         self._setupRobot(self.robot.handle)
 
