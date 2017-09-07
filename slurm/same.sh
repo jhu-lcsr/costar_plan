@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --job-name=ctp_blocks_same
+#SBATCH --job-name=bigger_ctp_blocks_same
 #SBATCH --time=0-24:0:0
 #SBATCH --nodes=1
 #SBATCH -p unlimited
@@ -16,5 +16,5 @@ echo
 echo "Running $@ on $SLURMD_NODENAME ..."
 echo
 
-$HOME/costar_plan/costar_models/scripts/ctp_model_tool --features multi -e 100 --model predictor --data_file $HOME/work/same.npz --lr 0.001  --model_directory $HOME/.costar/models_same/ --optimizer nadam
+$HOME/costar_plan/costar_models/scripts/ctp_model_tool --features multi -e 100 --model predictor --data_file $HOME/work/same/same.npz --lr 0.001  --model_directory $HOME/.costar/models_same/ --optimizer nadam
 
