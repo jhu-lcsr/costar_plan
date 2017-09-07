@@ -210,7 +210,7 @@ class GraspDataset(object):
                     progress.update(i)
                 file_hash_np = np.column_stack([grasp_files, hashes])
                 with open(listing_hash, 'wb') as hash_file:
-                    np.savetxt(hash_file, file_hash_np, fmt='%s', delimiter=' ', header='url sha256')
+                    np.savetxt(hash_file, file_hash_np, fmt='%s', delimiter=' ', header='file_path sha256')
                 print('Hashing complete, {} contains each url plus hash, and will be used to verify the '
                       'dataset during future calls to download().'.format(listing_hash))
 
