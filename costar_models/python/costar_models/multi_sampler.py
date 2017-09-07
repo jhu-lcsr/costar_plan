@@ -326,7 +326,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     y.append(np.expand_dims(f[idx],1))
                 yimg = y[0][:,0,:int(image_size)]
                 yimg = yimg.reshape((self.batch_size,64,64,3))
-                for j in xrange(self.batch_size):
+                for j in range(self.batch_size):
                     if not np.all(x[4][j] == yimg[j]):
                         plt.subplot(1,3,1); plt.imshow(x[0][j]);
                         plt.subplot(1,3,2); plt.imshow(x[4][j]);

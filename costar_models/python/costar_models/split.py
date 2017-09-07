@@ -38,7 +38,7 @@ def SplitIntoChunks(datasets, labels,
         new_data.append(np.zeros(shape))
     next_idx = np.zeros((len(datasets),),dtype=int)
 
-    for label in xrange(min_label, max_label+1):
+    for label in range(min_label, max_label+1):
 
         if sum(labels==label) == 0:
             continue
@@ -132,7 +132,7 @@ def SplitIntoActions(
     changepoints_by_example = {}
 
     # take out each example
-    for example in xrange(min_example,max_example+1):
+    for example in range(min_example,max_example+1):
 
         # Just some simple setup
         changepoints_by_example[example] = []
@@ -144,7 +144,7 @@ def SplitIntoActions(
 
         # iterate over the length of the example to pull out start, end
         # indices for each action
-        for i in xrange(len(subset)):
+        for i in range(len(subset)):
 
             print(example, i, subset[i])
             last_i = len(subset) - 1
@@ -162,7 +162,7 @@ def SplitIntoActions(
     frame_data, result_data = [], []
     for example, actions in changepoints_by_example.items():
         for start_idx, end_idx in actions:
-            for i in xrange(start_idx, end_idx):
+            for i in range(start_idx, end_idx):
                 # create the data to train the sequence predictor.
                 pass
 
@@ -254,11 +254,11 @@ def LastInChunk(data):
 def AddPadding(data,chunk_length,start_block,end_block,data_size):
     if start_block == 0:
         entry = data[0]
-        for _ in xrange(chunk_length - data.shape[0]):
+        for _ in range(chunk_length - data.shape[0]):
             data = np.insert(data,0,axis=0,values=entry)
     elif end_block == data_size:
         entry = np.expand_dims(data[-1],axis=0)
-        for _ in xrange(chunk_length - data.shape[0]):
+        for _ in range(chunk_length - data.shape[0]):
             data = np.append(data,axis=0,values=entry)
     
     return data
