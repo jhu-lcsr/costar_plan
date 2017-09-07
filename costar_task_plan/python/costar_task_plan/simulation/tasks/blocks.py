@@ -42,6 +42,15 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         np.array([-0.52, -0.1, 0.]),
         np.array([-0.52, -0.2, 0.]),
     ]
+    obs_pos = [
+        np.array([-0.35, 0.1, 0.]),
+        np.array([-0.35, 0.2, 0.]),
+        np.array([-0.35, 0., 0.]),
+        np.array([-0.35, -0.1, 0.]),
+        np.array([-0.35, -0.2, 0.]),
+        np.array([-0.52, 0., 0.]),
+        np.array([-0.55, -0.2, 0.]),
+    ]
 
     offset = 0.0
     over_final_stack_pos = np.array([-0.5, 0., 0.5])
@@ -360,20 +369,19 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                     block_pos,
                     r)
                 z += 0.05
-        idx0 = len(self.block_ids)
 
         # ================================================
         # If there are obstacles, set them up as well.
+        obs_placement = np.array(range(len(self.obs_pos)))
+        np.random.shuffle(obs_placement)
         for i, obs_id in enumerate(self.obstacles):
             z = 0.1
-            idx = idx0 + i
-            place = placement[idx]
-            pos = self.stack_pos[place]
-            block_pos = self._samplePos(pos[0], pos[1], z)
+            pos = self.obs_pos[obs_placement[i]]
+            obs_pos = self._samplePos(pos[0], pos[1], z)
             r = self._sampleRotation()
             pb.resetBasePositionAndOrientation(
                 obs_id,
-                block_pos,
+                obs_pos,
                 r)
 
         self._setupRobot(self.robot.handle)

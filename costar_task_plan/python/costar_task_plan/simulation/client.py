@@ -74,6 +74,7 @@ class CostarBulletSimulation(object):
                  capture=False,
                  show_images=False,
                  randomize_color=False,
+                 fast_reset=False,
                  agent=None,
                  *args, **kwargs):
         # Do not start the gui if we aren't going to do anything with it.
@@ -88,6 +89,7 @@ class CostarBulletSimulation(object):
         features = GetFeatures(features)
         self.task = GetTaskDefinition(
             task, self.robot, features, *args, **kwargs)
+        self.fast_reset = fast_reset
 
         # managed list of processes and other metadata
         self.procs = []
@@ -189,9 +191,10 @@ class CostarBulletSimulation(object):
         '''
         Reset the robot and task
         '''
-        pb.resetSimulation()
-        self.task.clear()
-        self.task.setup()
+        if not self.fast_reset:
+            pb.resetSimulation()
+            self.task.clear()
+            self.task.setup()
         self.task.reset()
         self.task.world.reset()
         # tick for a half second to make sure the world makes sense
