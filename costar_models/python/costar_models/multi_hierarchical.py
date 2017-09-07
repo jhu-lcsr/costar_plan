@@ -177,7 +177,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         prev_option = Lambda(lambda x: K.tile(x, tile_shape))(prev_option)
         x = Concatenate(axis=-1,name="add_prev_option_to_supervisor")(
                 [prev_option, enc])
-        for _ in xrange(2):
+        for _ in range(2):
             # Repeat twice to scale down to a very small size -- this will help
             # a little with the final image layers
             x = Conv2D(self.img_num_filters/4,
@@ -261,7 +261,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 optimizer=self.getOptimizer())
         self.predictor.summary()
 
-        for i in xrange(self.iter):
+        for i in range(self.iter):
             idx = np.random.randint(0, features[0].shape[0], size=self.batch_size)
             x = []
             y = []
@@ -282,7 +282,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         # debugging: plot every 5th image from the dataset
         subset = [f[range(0,25,5)] for f in features]
         data = self.predictor.predict(subset)
-        for j in xrange(5):
+        for j in range(5):
             jj = j * 5
             ax = axes[1][j]
             ax.imshow(np.squeeze(data[0][j]))
