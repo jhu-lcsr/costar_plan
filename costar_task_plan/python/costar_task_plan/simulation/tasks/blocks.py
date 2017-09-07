@@ -131,7 +131,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             AlignStackOption = lambda goal: GoalDirectedMotionOption(
                 self.world,
                 goal,
-                pose=((0.022, 0, 0.10), self.grasp_q),
+                pose=((0.01+self.offset, 0, 0.10), self.grasp_q),
                 pose_tolerance=tol,
                 joint_velocity_tolerance=vtol,)
             align_stack_args = {
@@ -142,7 +142,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             StackOption = lambda goal: GoalDirectedMotionOption(
                 self.world,
                 goal,
-                pose=((0.012, 0, 0.06), self.grasp_q),
+                pose=((0.0+self.offset, 0, 0.06), self.grasp_q),
                 pose_tolerance=tol,
                 joint_velocity_tolerance=vtol,
                 closed_loop=True,)
