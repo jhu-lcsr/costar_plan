@@ -25,7 +25,7 @@ flags.DEFINE_string('save_weights', 'grasp_model_weights',
                     """Save a file with the trained model weights.""")
 flags.DEFINE_string('load_weights', 'grasp_model_weights.h5',
                     """Load and continue training the specified file containing model weights.""")
-flags.DEFINE_integer('epochs', 20,
+flags.DEFINE_integer('epochs', 100,
                      """Epochs of training""")
 flags.DEFINE_string('grasp_dataset_eval', '097',
                     """Filter the subset of 1TB Grasp datasets to evaluate.
@@ -44,7 +44,7 @@ flags.DEFINE_float('learning_rate_scheduler_power_decay_rate', 0.9,
 flags.DEFINE_float('grasp_learning_rate', 0.1,
                    """Determines the initial learning rate""")
 flags.DEFINE_integer('eval_batch_size', 1, 'batch size per compute device')
-flags.DEFINE_integer('densenet_growth_rate', 12,
+flags.DEFINE_integer('densenet_growth_rate', 24,
                      """DenseNet and DenseNetFCN parameter growth rate""")
 flags.DEFINE_integer('densenet_dense_blocks', 4,
                      """The number of dense blocks in the model.""")
