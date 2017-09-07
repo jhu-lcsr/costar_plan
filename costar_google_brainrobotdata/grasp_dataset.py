@@ -16,8 +16,9 @@ import re
 from tensorflow.python.platform import flags
 from tensorflow.python.platform import gfile
 from tensorflow.python.ops import data_flow_ops
-from keras.utils import get_file
-from keras import backend as K
+from tensorflow.contrib.keras.python.keras.utils import get_file
+from tensorflow.contrib.keras.python.keras.utils.data_utils import _hash_file
+from tensorflow.contrib.keras.python.keras.utils.generic_utils import Progbar
 
 try:
     import moviepy.editor as mpy
@@ -155,6 +156,11 @@ class GraspDataset(object):
         the features (data channels), and the number of grasps;
         and the tfrecord files which actually contain all the data.
 
+        If `grasp_listing_hashed.txt` is present, an additional
+        hashing step will will be completed to verify dataset integrity.
+        `grasp_listing_hashed.txt` will be generated automatically when
+        downloading with `dataset='all'`.
+
         # Arguments
 
             dataset: The name of the dataset to download, downloads all by default
@@ -174,13 +180,40 @@ class GraspDataset(object):
                 data_dir = self.data_dir
         mkdir_p(data_dir)
         print('Downloading datasets to: ', data_dir)
-        listing_url = 'https://sites.google.com/site/brainrobotdata/home/grasping-dataset/grasp_listing.txt'
-        grasp_listing_path = get_file('grasp_listing.txt', listing_url, cache_subdir=data_dir)
-        grasp_files = np.genfromtxt(grasp_listing_path, dtype=str)
+
         url_prefix = 'https://storage.googleapis.com/brain-robotics-data/'
-        files = [get_file(fpath.split('/')[-1], url_prefix + fpath, cache_subdir=data_dir)
-                 for fpath in grasp_files
-                 if '_' + dataset in fpath]
+        # If a hashed version of the listing is available,
+        # download the dataset and verify hashes to prevent data corruption.
+        listing_hash = os.path.join(data_dir, 'grasp_listing_hash.txt')
+        if os.path.isfile(listing_hash):
+            files_and_hashes = np.genfromtxt(listing_hash, dtype='str', delimiter=' ')
+            files = [get_file(fpath.split('/')[-1], url_prefix + fpath, cache_subdir=data_dir, file_hash=hash_str)
+                     for fpath, hash_str in files_and_hashes
+                     if '_' + dataset in fpath]
+        else:
+            # If a hashed version of the listing is not available,
+            # simply download the dataset normally.
+            listing_url = 'https://sites.google.com/site/brainrobotdata/home/grasping-dataset/grasp_listing.txt'
+            grasp_listing_path = get_file('grasp_listing.txt', listing_url, cache_subdir=data_dir)
+            grasp_files = np.genfromtxt(grasp_listing_path, dtype=str)
+            files = [get_file(fpath.split('/')[-1], url_prefix + fpath, cache_subdir=data_dir)
+                     for fpath in grasp_files
+                     if '_' + dataset in fpath]
+
+            # If all files are downloaded, generate a hashed listing.
+            if dataset is 'all' or dataset is '':
+                print('Hashing all dataset files to prevent corruption...')
+                progress = Progbar(len(files))
+                hashes = []
+                for i, f in enumerate(files):
+                    hashes.append(_hash_file(f))
+                    progress.update(i)
+                file_hash_np = np.column_stack([grasp_files, hashes])
+                with open(listing_hash, 'wb') as hash_file:
+                    np.savetxt(hash_file, file_hash_np, fmt='%s', delimiter=' ', header='file_path sha256')
+                print('Hashing complete, {} contains each url plus hash, and will be used to verify the '
+                      'dataset during future calls to download().'.format(listing_hash))
+
         return files
 
     def _update_dataset_param(self, dataset):
@@ -795,7 +828,7 @@ class GraspDataset(object):
         clip = mpy.ImageSequenceClip(list(npy), fps)
         clip.write_gif(filename)
 
-    def create_gif(self, sess=K.get_session(), visualization_dir=FLAGS.visualization_dir):
+    def create_gif(self, sess=tf.Session(), visualization_dir=FLAGS.visualization_dir):
         """Create gifs of the loaded dataset and write them to visualization_dir
 
         # Arguments
