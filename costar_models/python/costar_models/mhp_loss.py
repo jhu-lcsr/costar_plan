@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 from keras import layers
-from keras import losses
+import keras
 import keras.backend as K
 import tensorflow as tf
 
@@ -54,7 +54,7 @@ class MhpLoss(object):
         #    self.num_outputs *= dim
         #self.output_shape = output_shape
         self.__name__ = "mhp_loss"
-
+        
         self.avg_weight = 0.05
         self.min_weight = 0.90
 
@@ -92,7 +92,7 @@ class MhpLossWithShape(object):
     This version of the MHP loss assumes that it will receive multiple outputs.
 
     '''
-    def __init__(self, num_hypotheses, outputs, weights=None):
+    def __init__(self, num_hypotheses, outputs, weights=None, loss="mse"):
         self.num_hypotheses = num_hypotheses
         self.outputs = outputs # these are the sizes of the various outputs
         if weights is None:
@@ -100,6 +100,13 @@ class MhpLossWithShape(object):
         else:
             self.weights = weights
         assert len(self.weights) == len(self.outputs)
+        self.losses = []
+        if isinstance(loss, list):
+            for loss_name in loss:
+                self.losses.append(keras.losses.get(loss_name))
+        else:
+            self.losses = [loss] * len(self.outputs)
+        assert len(self.outputs) == len(self.losses)
         self.__name__ = "mhp_loss"
 
     def __call__(self, target, pred):
@@ -126,9 +133,10 @@ class MhpLossWithShape(object):
             
             # Hold loss for all outputs here.
             cc = tf.zeros([1,1])
-            for wt, target_out, pred_out in zip(self.weights, target_outputs, pred_outputs):
+            for wt, target_out, pred_out, loss in zip(self.weights, target_outputs,
+                    pred_outputs, self.losses):
                 # loss = feature weight * MSE for this feature
-                cc += wt * losses.mean_squared_error(target_out, pred_out)
+                cc += wt * loss(target_out, pred_out)
 
             xsum += (cc / len(self.outputs))
             xmin = tf.minimum(xmin, cc)
