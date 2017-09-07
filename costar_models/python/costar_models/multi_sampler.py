@@ -309,8 +309,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 num_hypotheses=self.num_hypotheses,
                 verbose=True,
                 min_idx=0,
-                max_idx=66,
-                step=11,)
+                max_idx=500,
+                step=50,)
             self.train_predictor.fit(features,
                     [np.expand_dims(f,1) for f in targets],
                     callbacks=[modelCheckpointCb, imageCb],
@@ -430,7 +430,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, 64],
-                        weights=[0.7,0.19,0.1,0.01],
+                        weights=[0.6,0.2,0.1,0.1],
                         loss=["mse","mse","mse","categorical_crossentropy"]), 
                     "mse","mse"],
                 loss_weights=[0.8,0.1,0.1],
