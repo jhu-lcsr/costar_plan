@@ -247,7 +247,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         '''
         Sample a random, small rotation.
         '''
-        rpy = np.random.random((3,)) * 0.3
+        rpy = (np.random.random((3,)) * 0.6) - 0.3
         rpy[0] = 0. # clear out the roll
         rpy[1] = 0. # clear out the pitch
         r = kdl.Rotation.RPY(*list(rpy)).GetQuaternion()
