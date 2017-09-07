@@ -185,9 +185,9 @@ class GraspDataset(object):
         url_prefix = 'https://storage.googleapis.com/brain-robotics-data/'
         # If a hashed version of the listing is available,
         # download the dataset and verify hashes to prevent data corruption.
-        hashed_listing = os.path.join(data_dir, 'grasp_listing_hashed.txt')
-        if os.path.isfile(hashed_listing):
-            files_and_hashes = np.genfromtxt(hashed_listing, dtype='str', delimiter=',')
+        listing_hash = os.path.join(data_dir, 'grasp_listing_hash.txt')
+        if os.path.isfile(listing_hash):
+            files_and_hashes = np.genfromtxt(listing_hash, dtype='str', delimiter=' ')
             files = [get_file(fpath.split('/')[-1], url_prefix + fpath, cache_subdir=data_dir, file_hash=hash_str)
                      for fpath, hash_str in files_and_hashes
                      if '_' + dataset in fpath]
@@ -210,10 +210,10 @@ class GraspDataset(object):
                     hashes.append(_hash_file(f))
                     progress.update(i)
                 file_hash_np = np.column_stack([grasp_files, hashes])
-                with open(hashed_listing, 'wb') as hash_file:
-                    np.savetxt(hash_file, file_hash_np, delimiter=",")
-                print('Hashing complete, {} will be used to verify the '
-                      'dataset during future calls to download().'.format(hashed_listing))
+                with open(listing_hash, 'wb') as hash_file:
+                    np.savetxt(hash_file, file_hash_np, fmt='%s', delimiter=' ', header='url sha256')
+                print('Hashing complete, {} contains each url plus hash, and will be used to verify the '
+                      'dataset during future calls to download().'.format(listing_hash))
 
         return files
 
