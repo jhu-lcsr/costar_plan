@@ -13,19 +13,30 @@ class KerasDDPGAgent(AbstractAgent):
 
     name = "keras_ddpg"
 
+<<<<<<< Updated upstream
     def __init__(self, env, *args, **kwargs):
         super(KerasDDPGAgent, self).__init__(*args, **kwargs)
+=======
+    def __init__(self, env, iter=10000, *args, **kwargs):
+        super(KerasDDPGAgent, self).__init__(*args, **kwargs)
+        self.iter = iter
+>>>>>>> Stashed changes
         self.env = env
         
         #assert len(env.action_space.shape) == 1
         #TODO: is there a way to output a tuple (6,1)
         nb_actions = sum(sum(1 for i in row if i) for row in self.env.action_space.sample())
         
+<<<<<<< Updated upstream
         
         #TODO: terminology? feature or observation?
         observation = env.reset()
         
         print ">>>>>>>>>>>>>>>>>>>", observation.shape
+=======
+        #TODO: terminology? feature or observation?
+        observation = env.reset()
+>>>>>>> Stashed changes
        
 
         # TODO: find a way to customize network
@@ -60,15 +71,23 @@ class KerasDDPGAgent(AbstractAgent):
         print(critic.summary())
         
        
+<<<<<<< Updated upstream
         memory = SequentialMemory(limit=500000, window_length=1)
         random_process = OrnsteinUhlenbeckProcess(size=nb_actions, theta=.15, mu=0., sigma=.3)
         self.agent = DDPGAgent(nb_actions=nb_actions, actor=actor, critic=critic, critic_action_input=action_input,
                           memory=memory, nb_steps_warmup_critic=1000, nb_steps_warmup_actor=1000,
+=======
+        memory = SequentialMemory(limit=100000, window_length=1)
+        random_process = OrnsteinUhlenbeckProcess(size=nb_actions, theta=.15, mu=0., sigma=.3)
+        self.agent = DDPGAgent(nb_actions=nb_actions, actor=actor, critic=critic, critic_action_input=action_input,
+                          memory=memory, nb_steps_warmup_critic=100, nb_steps_warmup_actor=100,
+>>>>>>> Stashed changes
                           random_process=random_process, gamma=.99, target_model_update=1e-3)
         self.agent.compile(Adam(lr=.001, clipnorm=1.), metrics=['mae'])
         
 
 
+<<<<<<< Updated upstream
     def fit(self, num_iter=50000):
         self.agent.fit(self.env, nb_steps=num_iter, visualize=False, verbose=1, nb_max_episode_steps=200)
         
@@ -78,3 +97,8 @@ class KerasDDPGAgent(AbstractAgent):
         # Finally, evaluate our algorithm for 5 episodes.
         self.agent.test(self.env, nb_episodes=5, visualize=False, nb_max_episode_steps=200)
         
+=======
+    def fit(self):
+        self.agent.fit(self.env, nb_steps=50000, visualize=False, verbose=1, nb_max_episode_steps=200)
+        
+>>>>>>> Stashed changes

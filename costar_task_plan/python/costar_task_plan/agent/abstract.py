@@ -168,9 +168,14 @@ class AbstractAgent(object):
         except KeyboardInterrupt, e:
             pass
 
+<<<<<<< Updated upstream
         if self.save:
             if self.data_type == self.TFRECORD:
                 self.tf_writer.close()
+=======
+    def fit(self):
+        raise NotImplementedError('fit() should run algorithm on the environment')
+>>>>>>> Stashed changes
 
     def _fit(self, num_iter):
         raise NotImplementedError('_fit() should run algorithm on'

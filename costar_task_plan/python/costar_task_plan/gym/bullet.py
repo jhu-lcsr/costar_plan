@@ -21,6 +21,8 @@ class BulletSimulationEnv(gym.Env, utils.EzPickle):
         self.verbose = verbose
         self.world = self.client.task.world
         self.task = self.client.task.task
+        
+        self.spec = None
 
     def _step(self, action):
         '''
@@ -35,7 +37,10 @@ class BulletSimulationEnv(gym.Env, utils.EzPickle):
         '''
         self.client.reset()
         self.world = self.client.task.world
+<<<<<<< Updated upstream
         self.world.verbose = self.verbose
+=======
+>>>>>>> Stashed changes
         return self.world.computeFeatures()
 
     def taskModel(self):

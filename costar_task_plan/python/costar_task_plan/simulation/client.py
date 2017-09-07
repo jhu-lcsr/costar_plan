@@ -98,8 +98,13 @@ class CostarBulletSimulation(object):
         self.show_images = show_images
         self.directory = directory
         self.randomize_color = randomize_color
+<<<<<<< Updated upstream
         # self.iterations = 0
         # self.max_iterations = 100
+=======
+        self.iterations = 0
+        self.max_iterations = 100
+>>>>>>> Stashed changes
 
         if ros:
             # boot up ROS and open a connection to the simulation server
@@ -167,6 +172,17 @@ class CostarBulletSimulation(object):
 
         # place the robot in the world and set up the task
         self.task.setup()
+        
+    def convertToArmandGripperCmd(self, action):
+        
+        #TODO: fix the hard coded indices
+        arm = action[0:6]
+        gripper = action[5:6]
+      
+        
+        return (arm,gripper)
+
+        
 
     def convertToArmandGripperCmd(self, action):
         '''
@@ -208,10 +224,33 @@ class CostarBulletSimulation(object):
         action: a CTP AbstractAction containing commands for the robot's arm,
         gripper, and base, if applicable.
         '''
+<<<<<<< Updated upstream
         if not isinstance(action, SimulationRobotAction):
             
             if type(action) is not tuple:
                 action = self.convertToArmandGripperCmd(action)
+=======
+        #cmd = []
+        #if type(action) is tuple:
+        #    for term in action:
+        #        cmd += term.tolist()
+        #else:
+        #    cmd = action.tolist()
+        
+        if self.iterations > self.max_iterations:
+            self.iterations = 0
+            self.reset()
+            
+        else:
+            self.iterations = self.iterations + 1
+            
+            
+        if not isinstance(action, SimulationRobotAction):
+
+            if type(action) is not tuple:
+                action = self.convertToArmandGripperCmd(action)
+
+>>>>>>> Stashed changes
             action = SimulationRobotAction(*action)
 
         # Get state, action, features, reward from update
@@ -241,7 +280,10 @@ class CostarBulletSimulation(object):
                     plt.imsave(path3, mask)
 
         # Return world information
+<<<<<<< Updated upstream
        
+=======
+>>>>>>> Stashed changes
         return F1, reward, not ok, {}
 
     def close(self):

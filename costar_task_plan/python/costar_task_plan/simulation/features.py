@@ -15,11 +15,15 @@ def GetFeatures(features):
             'null': EmptyFeatures(),
             'empty': EmptyFeatures(),
             'depth': DepthImageFeatures(),
+<<<<<<< Updated upstream
             'joint_state': JointStateFeatures(),
             'rgb': RgbImageFeatures(),
             'multi': ImagePlusFeatures(),
             'pose': PoseFeatures(),
             'grasp_segmentation': GraspSegmentationFeatures(),
+=======
+            'joint_state' : JointStateFeatures(),
+>>>>>>> Stashed changes
         }[features]
     except KeyError, e:
         raise NotImplementedError(
@@ -192,3 +196,21 @@ class GraspSegmentationFeatures(AbstractFeatures):
                 ['camera_view_matrix', 'camera_projection_matrix'] + \
                 ["camera_to_object_surface_points"]
 
+<<<<<<< Updated upstream
+=======
+  def getBounds(self):
+    raise Exception('feature.getBounds not yet implemented!')
+
+
+class JointStateFeatures(AbstractFeatures):
+
+  def compute(self, world, state):
+      return np.append(state.arm, state.gripper)
+      
+
+  def updateBounds(self, world):
+    raise Exception('feature.updateBounds not yet implemented!')
+
+  def getBounds(self):
+    raise Exception('feature.getBounds not yet implemented!')
+>>>>>>> Stashed changes
