@@ -16,6 +16,7 @@ from keras.layers import Reshape
 from keras.applications.imagenet_utils import _obtain_input_shape
 from keras_contrib.applications.densenet import DenseNetFCN
 from keras_contrib.applications.densenet import DenseNet
+from keras_contrib.applications.densenet import DenseNetImageNet121
 
 from keras.engine import Layer
 
@@ -30,6 +31,57 @@ def tile_vector_as_image_channels(vector_op, image_shape):
     vector_op = K.reshape(vector_op, [ivs[0], 1, 1, ivs[1]])
     vector_op = K.tile(vector_op, K.stack([1, image_shape[1], image_shape[2], 1]))
     return vector_op
+
+
+def grasp_model_pretrained(clear_view_image_op,
+                           current_time_image_op,
+                           input_vector_op,
+                           input_image_shape=None,
+                           input_vector_op_shape=None,
+                           growth_rate=12,
+                           reduction=0.5,
+                           dense_blocks=4,
+                           include_top=True,
+                           dropout_rate=0.0,
+                           train_densenet=False):
+    if input_vector_op_shape is None:
+        input_vector_op_shape = [5]
+    if input_image_shape is None:
+        input_image_shape = [512, 640, 3]
+
+    clear_view_model = DenseNetImageNet121(
+        input_shape=input_image_shape,
+        input_tensor=clear_view_image_op,
+        include_top=False)
+
+    current_time_model = DenseNetImageNet121(
+        input_shape=input_image_shape,
+        input_tensor=current_time_image_op,
+        include_top=False)
+
+    if not train_densenet:
+        for layer in clear_view_model.layers:
+            layer.trainable = False
+        for layer in current_time_model.layers:
+            layer.trainable = False
+
+    input_vector_op = tile_vector_as_image_channels(
+        input_vector_op,
+        K.shape(clear_view_model.outputs[0]))
+
+    combined_input_data = tf.concat([clear_view_image_op, input_vector_op, current_time_image_op], -1)
+    combined_input_data_shape = K.shape(combined_input_data).as_list()
+    model = DenseNetImageNet121(input_shape=combined_input_data_shape,
+                                include_top=include_top,
+                                input_tensor=combined_input_data,
+                                activation='sigmoid',
+                                classes=1,
+                                nb_filter=combined_input_data_shape[-1]*2,
+                                growth_rate=growth_rate,
+                                reduction=reduction,
+                                nb_dense_block=dense_blocks,
+                                dropout_rate=dropout_rate)
+    return model
 
 
 def grasp_model(clear_view_image_op,

@@ -322,7 +322,14 @@ def main():
     K.set_session(session)
     with K.get_session() as sess:
         load_weights = FLAGS.load_weights
-        if FLAGS.grasp_model is 'grasp_model_single':
+        if FLAGS.grasp_model is 'grasp_model_pretrained':
+            def make_model_fn(*a, **kw):
+                return grasp_model.grasp_model_pretrained(
+                    growth_rate=FLAGS.densenet_growth_rate,
+                    reduction=FLAGS.densenet_reduction,
+                    dense_blocks=FLAGS.densenet_dense_blocks,
+                    *a, **kw)
+        elif FLAGS.grasp_model is 'grasp_model_single':
             def make_model_fn(*a, **kw):
                 return grasp_model.grasp_model(
                     growth_rate=FLAGS.densenet_growth_rate,
