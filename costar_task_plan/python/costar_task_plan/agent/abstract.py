@@ -120,7 +120,6 @@ class AbstractAgent(object):
             root = ""
             for tok in data_file.split('.')[:-1]:
                 root += tok
-            print("dataset root =", root)
             self.npz_writer = NpzDataset(root)
         else:
             self.tf_writer = TFRecordConverter(data_file)
@@ -273,6 +272,11 @@ class AbstractAgent(object):
         assert(len(switches) == len(self.current_example['example']))
 
         # ============================================
+        # Set up total reward
+        total_reward = np.sum(self.current_example["reward"])
+        data["value"] = [total_reward] * len(self.current_example["example"])
+
+        # ============================================
         # Loop over all entries. For important items, take the previous frame
         # and the next frame -- and possibly even the final frame.
         prev_label = max_label
@@ -284,9 +288,8 @@ class AbstractAgent(object):
             # We will always include frames where the label changed. We may or
             # may not include frames where the 
             if self.current_example["label"][i0] == self.current_example["label"][i1] \
-                    and not np.random.randint(3) == 0:
+                    and not np.random.randint(2) == 0:
                         continue
-
             # ==========================================
             # Finally, add the example to the dataset
             for key, values in self.current_example.items():
@@ -350,7 +353,7 @@ class AbstractAgent(object):
             else:
                 self.npz_writer.write(data, seed, reward)
         else:
-            print("-- skipping bad example %d", seed)
+            print("-- skipping bad example %d"%seed)
     
         # ================================================
         # Reset the current example.
