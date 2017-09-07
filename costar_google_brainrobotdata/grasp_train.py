@@ -44,7 +44,7 @@ flags.DEFINE_float('learning_rate_scheduler_power_decay_rate', 0.9,
 flags.DEFINE_float('grasp_learning_rate', 0.1,
                    """Determines the initial learning rate""")
 flags.DEFINE_integer('eval_batch_size', 1, 'batch size per compute device')
-flags.DEFINE_integer('densenet_growth_rate', 36,
+flags.DEFINE_integer('densenet_growth_rate', 12,
                      """DenseNet and DenseNetFCN parameter growth rate""")
 flags.DEFINE_integer('densenet_depth', 40,
                      """DenseNet total number of layers, aka depth""")
@@ -342,7 +342,7 @@ def main():
                     growth_rate=FLAGS.densenet_growth_rate,
                     reduction=FLAGS.densenet_reduction,
                     dense_blocks=FLAGS.densenet_dense_blocks,
-                    depth=FLAGS.densenet_depth
+                    depth=FLAGS.densenet_depth,
                     *a, **kw)
         elif FLAGS.grasp_model == 'grasp_model_segmentation':
             def make_model_fn(*a, **kw):
