@@ -9,6 +9,7 @@ from urdf_parser_py.urdf import URDF
 import gym; from gym import spaces
 import pybullet as pb
 
+URDF.verbose = False
 
 class AbstractRobotInterface(object):
 

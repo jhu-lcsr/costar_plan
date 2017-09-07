@@ -189,8 +189,15 @@ class CostarBulletSimulation(object):
         '''
         Reset the robot and task
         '''
+        pb.resetSimulation()
+        self.task.clear()
+        self.task.setup()
         self.task.reset()
         self.task.world.reset()
+        # tick for a half second to make sure the world makes sense
+        action = self.task.world.zeroAction()
+        for _ in range(5):
+            self.task.world.tick(action)
 
     def tick(self, action):
         '''

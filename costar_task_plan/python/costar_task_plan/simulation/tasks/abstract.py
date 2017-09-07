@@ -33,6 +33,11 @@ class AbstractTaskDefinition(object):
         self._type_and_name_by_obj = {}
         self._cameras = []
 
+    def clear(self):
+        self.world = None
+        self._objs_by_type = {}
+        self._type_and_name_by_obj = {}
+
     def addCamera(self, camera):
         assert isinstance(camera, Camera)
         self._cameras.append(camera)
@@ -61,6 +66,19 @@ class AbstractTaskDefinition(object):
     def getName(self):
         raise NotImplementedError('should return name describing this task')
 
+    def makeWorld(self):
+        '''
+        Helper function to create the world
+        '''
+        world = SimulationWorld(
+            dt=0.1,
+            simulation_step=0.01,
+            task_name=self.getName(),
+            history_length=0,
+            cameras=self._cameras)
+        world.features = self.features
+        return world
+
     def setup(self):
         '''
         Create task by adding objects to the scene, including the robot.
@@ -70,13 +88,8 @@ class AbstractTaskDefinition(object):
         static_plane_path = os.path.join(path, 'meshes', 'world', 'plane.urdf')
         pb.loadURDF(static_plane_path)
 
+        self.world = self.makeWorld()
         self.task = self._makeTask()
-        self.world = SimulationWorld(
-            dt=0.1,
-            simulation_step=0.01,
-            task_name=self.getName(),
-            cameras=self._cameras)
-        self.world.features = self.features
         self._setup()
         handle = self.robot.load()
         pb.setGravity(0, 0, -9.807)
