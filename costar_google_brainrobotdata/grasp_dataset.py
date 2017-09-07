@@ -893,5 +893,7 @@ class GraspDataset(object):
 if __name__ == '__main__':
     with tf.Session() as sess:
         gd = GraspDataset()
+        if FLAGS.grasp_download:
+            gd.download(dataset=FLAGS.grasp_dataset)
         gd.create_gif(sess)
 
