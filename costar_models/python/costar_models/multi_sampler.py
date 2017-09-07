@@ -244,7 +244,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         arm_out = Concatenate(axis=1)(arm_outs)
         gripper_out = Concatenate(axis=1)(gripper_outs)
         label_out = Concatenate(axis=1)(label_outs)
-        train_out = Concatenate(axis=1)(train_outs)
+        train_out = Concatenate(axis=1,name="all_train_outs")(train_outs)
 
         # =====================================================================
         # Training the actor policy
@@ -351,7 +351,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         imglen = 64*64*3
         img = allt[:,:imglen]
         img = np.reshape(img, (6,64,64,3))
-        data, arms, grippers = self.predictor.predict(subset)
+        data, arms, grippers, labels = self.predictor.predict(subset)
         for j in range(6):
             jj = j * STEP
             for k in range(min(4,self.num_hypotheses)):
@@ -430,11 +430,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, 64],
-                        weights=[0.5,0.2,0.1,0.2],
+                        weights=[0.7,0.19,0.1,0.01],
                         loss=["mse","mse","mse","categorical_crossentropy"]), 
-                    #MhpLoss(
-                    #    num_hypotheses=self.num_hypotheses,
-                    #    num_outputs=train_size),
                     "mse","mse"],
                 loss_weights=[0.8,0.1,0.1],
                 optimizer=self.getOptimizer())
