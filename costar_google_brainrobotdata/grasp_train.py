@@ -46,10 +46,13 @@ flags.DEFINE_float('grasp_learning_rate', 0.1,
 flags.DEFINE_integer('eval_batch_size', 1, 'batch size per compute device')
 flags.DEFINE_integer('densenet_growth_rate', 12,
                      """DenseNet and DenseNetFCN parameter growth rate""")
-flags.DEFINE_integer('densenet_dense_blocks', 4,
+flags.DEFINE_integer('densenet_dense_blocks', 2,
                      """The number of dense blocks in the model.""")
 flags.DEFINE_float('densenet_reduction', 0.5,
                    """DenseNet and DenseNetFCN reduction aka compression parameter.""")
+flags.DEFINE_float('densenet_reduction_after_pretrained', 0.875,
+                   """DenseNet and DenseNetFCN reduction aka compression parameter,
+                      applied to the second DenseNet component after pretrained imagenet models.""")
 flags.DEFINE_float('dropout_rate', 0.2,
                    """Dropout rate for the model during training.""")
 flags.DEFINE_string('eval_results_file', 'grasp_model_eval.txt',
@@ -324,21 +327,21 @@ def main():
     K.set_session(session)
     with K.get_session() as sess:
         load_weights = FLAGS.load_weights
-        if FLAGS.grasp_model is 'grasp_model_pretrained':
+        if FLAGS.grasp_model == 'grasp_model_pretrained':
             def make_model_fn(*a, **kw):
                 return grasp_model.grasp_model_pretrained(
                     growth_rate=FLAGS.densenet_growth_rate,
-                    reduction=FLAGS.densenet_reduction,
+                    reduction=FLAGS.densenet_reduction_after_pretrained,
                     dense_blocks=FLAGS.densenet_dense_blocks,
                     *a, **kw)
-        elif FLAGS.grasp_model is 'grasp_model_single':
+        elif FLAGS.grasp_model == 'grasp_model_single':
             def make_model_fn(*a, **kw):
                 return grasp_model.grasp_model(
                     growth_rate=FLAGS.densenet_growth_rate,
                     reduction=FLAGS.densenet_reduction,
                     dense_blocks=FLAGS.densenet_dense_blocks,
                     *a, **kw)
-        elif FLAGS.grasp_model is 'grasp_model_segmentation':
+        elif FLAGS.grasp_model == 'grasp_model_segmentation':
             def make_model_fn(*a, **kw):
                 return grasp_model.grasp_model_segmentation(
                     growth_rate=FLAGS.densenet_growth_rate,
