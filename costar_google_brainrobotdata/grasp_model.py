@@ -167,7 +167,8 @@ def grasp_model(clear_view_image_op,
                      growth_rate=growth_rate,
                      reduction=reduction,
                      nb_dense_block=dense_blocks,
-                     dropout_rate=dropout_rate)
+                     dropout_rate=dropout_rate,
+                     bottleneck=True)
     return model
 
 
