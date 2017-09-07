@@ -165,6 +165,9 @@ class OpenGripperOption(AbstractOption):
     are appropriate for this.
     '''
 
+    def __init__(self, **kwargs):
+        pass
+
     def makePolicy(self, world):
         return OpenGripperPolicy(), TimeCondition(world.time() + 0.5)
 
@@ -185,7 +188,7 @@ class CloseGripperOption(AbstractOption):
     and does nothing else. These policies count on certain information
     associated with the actor's state in order to function.
     '''
-    def __init__(self, position=None):
+    def __init__(self, position=None, **kwargs):
         '''
         Parameters:
         ----------
@@ -196,11 +199,11 @@ class CloseGripperOption(AbstractOption):
 
     def makePolicy(self, world):
         return CloseGripperPolicy(pos=self.position), \
-               TimeCondition(world.time() + 0.6)
+               TimeCondition(world.time() + 0.8)
 
     def samplePolicy(self, world):
         return CloseGripperPolicy(pos=self.position), \
-               TimeCondition(world.time() + 0.6)
+               TimeCondition(world.time() + 0.8)
 
     def checkPrecondition(self, world, state):
         return True
@@ -211,7 +214,7 @@ class CloseGripperOption(AbstractOption):
 
 class CartesianMotionPolicy(AbstractPolicy):
 
-    def __init__(self, pos, rot, goal=None, cartesian_vel=0.5, angular_vel=0.75):
+    def __init__(self, pos, rot, goal=None, cartesian_vel=0.35, angular_vel=0.5):
         self.pos = pos
         self.rot = rot
         self.goal = goal
