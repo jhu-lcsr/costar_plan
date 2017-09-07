@@ -1,4 +1,8 @@
-    def _makePredictor(self, features):
+class MultiSampleSeparateDecoders: 
+   '''
+   Not a real class
+   '''
+   def _makePredictor(self, features):
         '''
         Create model to predict possible manipulation goals.
         '''
