@@ -54,6 +54,8 @@ def grasp_model_pretrained(clear_view_image_op,
                            include_top=True,
                            dropout_rate=0.0,
                            train_densenet=False):
+    """export CUDA_VISIBLE_DEVICES="1" && python grasp_train.py --random_crop=1 --batch_size=1 --grasp_model grasp_model_pretrained --resize_width=320 --resize_height=256
+    """
     if input_vector_op_shape is None:
         input_vector_op_shape = [K.shape(input_vector_op)[0], 5]
         input_vector_op = K.reshape(input_vector_op, input_vector_op_shape)
@@ -91,7 +93,7 @@ def grasp_model_pretrained(clear_view_image_op,
     print('combined_input_data.get_shape().as_list():', combined_input_data.get_shape().as_list())
     combined_input_shape = K.shape(clear_view_model.outputs[0]).get_shape().as_list()
     combined_input_shape[-1] = combined_input_shape[-1] * 2 + input_vector_op_shape[-1]
-    model_name = 'dense'
+    model_name = 'densenet'
     if model_name == 'dense':
         final_nb_layer = 4
         nb_filter = combined_input_shape[-1]

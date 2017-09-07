@@ -46,11 +46,11 @@ flags.DEFINE_float('grasp_learning_rate', 0.1,
 flags.DEFINE_integer('eval_batch_size', 1, 'batch size per compute device')
 flags.DEFINE_integer('densenet_growth_rate', 12,
                      """DenseNet and DenseNetFCN parameter growth rate""")
-flags.DEFINE_integer('densenet_dense_blocks', 2,
+flags.DEFINE_integer('densenet_dense_blocks', 4,
                      """The number of dense blocks in the model.""")
 flags.DEFINE_float('densenet_reduction', 0.5,
                    """DenseNet and DenseNetFCN reduction aka compression parameter.""")
-flags.DEFINE_float('densenet_reduction_after_pretrained', 0.875,
+flags.DEFINE_float('densenet_reduction_after_pretrained', 0.5,
                    """DenseNet and DenseNetFCN reduction aka compression parameter,
                       applied to the second DenseNet component after pretrained imagenet models.""")
 flags.DEFINE_float('dropout_rate', 0.2,
