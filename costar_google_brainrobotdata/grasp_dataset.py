@@ -16,10 +16,9 @@ import re
 from tensorflow.python.platform import flags
 from tensorflow.python.platform import gfile
 from tensorflow.python.ops import data_flow_ops
-from keras.utils import get_file
-from keras.utils.data_utils import _hash_file
-from keras.utils.generic_utils import Progbar
-from keras import backend as K
+from tensorflow.contrib.keras.python.keras.utils import get_file
+from tensorflow.contrib.keras.python.keras.utils.data_utils import _hash_file
+from tensorflow.contrib.keras.python.keras.utils.generic_utils import Progbar
 
 try:
     import moviepy.editor as mpy
@@ -829,7 +828,7 @@ class GraspDataset(object):
         clip = mpy.ImageSequenceClip(list(npy), fps)
         clip.write_gif(filename)
 
-    def create_gif(self, sess=K.get_session(), visualization_dir=FLAGS.visualization_dir):
+    def create_gif(self, sess=tf.Session(), visualization_dir=FLAGS.visualization_dir):
         """Create gifs of the loaded dataset and write them to visualization_dir
 
         # Arguments
