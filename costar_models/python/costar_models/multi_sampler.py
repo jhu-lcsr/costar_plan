@@ -117,7 +117,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 self.dropout_rate,
                 self.img_num_filters,
                 leaky=False,
-                dropout=False,
+                dropout=True,
                 pre_tiling_layers=0,
                 post_tiling_layers=3,
                 kernel_size=[5,5],
@@ -135,7 +135,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 self.dropout_rate,
                 self.img_num_filters,
                 leaky=False,
-                dropout=False,
+                dropout=True,
                 pre_tiling_layers=0,
                 post_tiling_layers=3,
                 kernel_size=[5,5],
@@ -309,8 +309,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 num_hypotheses=self.num_hypotheses,
                 verbose=True,
                 min_idx=0,
-                max_idx=500,
-                step=50,)
+                max_idx=30,
+                step=1,)
             self.train_predictor.fit(features,
                     [np.expand_dims(f,1) for f in targets],
                     callbacks=[modelCheckpointCb, imageCb],
