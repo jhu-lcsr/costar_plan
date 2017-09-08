@@ -50,9 +50,9 @@ flags.DEFINE_string('grasp_dataset', '102',
                     around 110 GB and 38k grasp attempts.
                     See https://sites.google.com/site/brainrobotdata/home
                     for a full listing.""")
-flags.DEFINE_integer('random_crop_width', 472,
+flags.DEFINE_integer('random_crop_width', 560,
                      """Width to randomly crop images, if enabled""")
-flags.DEFINE_integer('random_crop_height', 472,
+flags.DEFINE_integer('random_crop_height', 448,
                      """Height to randomly crop images, if enabled""")
 flags.DEFINE_boolean('random_crop', False,
                      """random_crop will apply the tf random crop function with
@@ -893,5 +893,7 @@ class GraspDataset(object):
 if __name__ == '__main__':
     with tf.Session() as sess:
         gd = GraspDataset()
+        if FLAGS.grasp_download:
+            gd.download(dataset=FLAGS.grasp_dataset)
         gd.create_gif(sess)
 
