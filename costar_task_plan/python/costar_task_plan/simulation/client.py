@@ -223,7 +223,7 @@ class CostarBulletSimulation(object):
             
             if type(action) is not tuple:
                 action = self.convertToArmandGripperCmd(action)
-           action = SimulationRobotAction(*action)
+            action = SimulationRobotAction(*action)
 
         # Get state, action, features, reward from update
         (ok, S0, A0, S1, F1, reward) = self.task.world.tick(action)
