@@ -26,7 +26,6 @@ def GetAgents():
 def MakeAgent(env, name, *args, **kwargs):
     try:
         return {
-<<<<<<< Updated upstream
                 'no': lambda: NullAgent(env, *args, **kwargs),
                 'none': lambda: NullAgent(env, *args, **kwargs),
                 'null': lambda: NullAgent(env, *args, **kwargs),
@@ -39,13 +38,6 @@ def MakeAgent(env, name, *args, **kwargs):
             		'keras_ddpg': lambda: KerasDDPGAgent(env, *args, **kwargs),
                 'ff': lambda: FeedForwardAgent(env, *args, **kwargs),
                 }[name.lower()]()
-=======
-                'null': NullAgent(*args, **kwargs),
-                'random': RandomAgent(*args, **kwargs),
-                'task': TaskAgent(*args, **kwargs),
-                'keras_ddpg': KerasDDPGAgent(env, *args, **kwargs),
-                }[name]
->>>>>>> Stashed changes
     except KeyError, e:
         raise NotImplementedError('Agent "%s" not implemented'%name)
 
