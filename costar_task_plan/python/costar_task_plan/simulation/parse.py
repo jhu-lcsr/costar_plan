@@ -86,6 +86,9 @@ def GetSimulationParser():
                         help="Only include successful trials when creating" + \
                              " training data sets.",
                         action="store_true")
+    parser.add_argument("--fast_reset",
+                        help="May result in simulation instability over time.",
+                        action="store_true")
     return parser
     
 
