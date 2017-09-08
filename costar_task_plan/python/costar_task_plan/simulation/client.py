@@ -167,6 +167,17 @@ class CostarBulletSimulation(object):
 
         # place the robot in the world and set up the task
         self.task.setup()
+        
+    def convertToArmandGripperCmd(self, action):
+        
+        #TODO: fix the hard coded indices
+        arm = action[0:6]
+        gripper = action[5:6]
+      
+        
+        return (arm,gripper)
+
+        
 
     def convertToArmandGripperCmd(self, action):
         '''
@@ -241,7 +252,6 @@ class CostarBulletSimulation(object):
                     plt.imsave(path3, mask)
 
         # Return world information
-       
         return F1, reward, not ok, {}
 
     def close(self):
