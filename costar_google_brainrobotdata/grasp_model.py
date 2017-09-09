@@ -73,13 +73,13 @@ def grasp_model_resnet(clear_view_image_op,
     print('clear_view_image_op: ', clear_view_image_op)
     print('current_time_image_op: ', current_time_image_op)
     print('input_vector_op: ', input_vector_op)
-    model = ResNet(input_shape, classes, 'bottleneck',
-                   repetitions=[3, 4, 6, 3]
-                   input_shape=combined_input_shape,
+    model = ResNet(input_shape=combined_input_shape,
+                   classes=1,
+                   block='bottleneck',
+                   repetitions=[3, 4, 6, 3],
                    include_top=include_top,
                    input_tensor=combined_input_data,
                    activation='sigmoid',
-                   classes=1,
                    dropout=dropout_rate)
     return model
 
