@@ -27,7 +27,6 @@ import keras_contrib
 from keras_contrib.applications.densenet import DenseNetFCN
 from keras_contrib.applications.densenet import DenseNet
 from keras_contrib.applications.densenet import DenseNetImageNet121
-from keras_contrib.applications.wide_residual_network import WideResidualNetwork
 from keras_contrib.applications.resnet import ResNet
 
 from keras.engine import Layer
