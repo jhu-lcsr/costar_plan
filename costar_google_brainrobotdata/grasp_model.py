@@ -75,10 +75,11 @@ def grasp_model_resnet(clear_view_image_op,
     model = ResNet(input_shape=combined_input_shape,
                    classes=1,
                    block='bottleneck',
-                   repetitions=[3, 4, 6, 3],
+                   repetitions=[3, 3, 3, 3],
                    include_top=include_top,
                    input_tensor=combined_input_data,
                    activation='sigmoid',
+                   initial_filters=96,
                    dropout=dropout_rate)
     return model
 
