@@ -119,12 +119,12 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
         cmd = cmd[0]
         # This is actually only a 1-DOF gripper
         if cmd < -0.1:
-            cmd_array = [-cmd + 0.1, -cmd + 0.1, cmd + 0.2,
-                    -cmd + 0.1, -cmd + 0.1, cmd + 0.2]
+            cmd_array = [-cmd + 0.1, -cmd + 0.1, cmd + 0.15,
+                    -cmd + 0.1, -cmd + 0.1, cmd + 0.15]
         else:
             cmd_array = [-cmd , -cmd, cmd, -cmd, -cmd, cmd]
-        forces = [25., 45., 25., 25., 25., 45.]
-        gains = [0.1] * 6
+        forces = [25., 25., 25., 25., 25., 25.]
+        gains = [0.1, 0.1, 0.15, 0.1, 0.1, 0.15]
         #if abs(cmd) < -0.01:
         #    mode = pb.TORQUE_CONTROL
         #    forces = [0.] * len(cmd_array)
