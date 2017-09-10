@@ -74,7 +74,7 @@ class TaskAgent(AbstractAgent):
             # when generating levels. This lets us more easily debug problems
             # with task models and with learned policies.
             if self.seed is not None:
-                np.random.seed(int((self.seed+i)/4))
+                np.random.seed(int((self.seed+i)/10))
 
             print("---- Iteration %d ----"%(i+1))
             self.env.reset()
