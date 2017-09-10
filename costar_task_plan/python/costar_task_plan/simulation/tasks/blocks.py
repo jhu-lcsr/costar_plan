@@ -94,7 +94,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         GraspOption = lambda goal: GoalDirectedMotionOption(
             self.world,
             goal,
-            pose=((0.012, 0, 0.005), self.grasp_q),
+            pose=((0.0 + self.offset, 0, -0.005), self.grasp_q),
             pose_tolerance=tol,
             joint_velocity_tolerance=vtol,)
         grasp_args = {

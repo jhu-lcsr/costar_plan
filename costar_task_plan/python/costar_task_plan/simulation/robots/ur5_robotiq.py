@@ -118,13 +118,21 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
 
         cmd = cmd[0]
         # This is actually only a 1-DOF gripper
-        cmd_array = [-cmd, -cmd, cmd, -cmd, -cmd, cmd]
-        forces = [25.] * 6
+        if cmd < -0.1:
+            cmd_array = [-cmd + 0.1, -cmd + 0.1, cmd + 0.2,
+                    -cmd + 0.1, -cmd + 0.1, cmd + 0.2]
+        else:
+            cmd_array = [-cmd , -cmd, cmd, -cmd, -cmd, cmd]
+        forces = [25., 45., 25., 25., 25., 45.]
         gains = [0.1] * 6
         #if abs(cmd) < -0.01:
         #    mode = pb.TORQUE_CONTROL
         #    forces = [0.] * len(cmd_array)
         #else:
+
+        #gripper_indices = [left_knuckle, left_inner_knuckle,
+        #               left_fingertip, right_knuckle, right_inner_knuckle,
+        #               right_fingertip]
 
         pb.setJointMotorControlArray(self.handle, self.gripper_indices, mode,
                                      cmd_array,

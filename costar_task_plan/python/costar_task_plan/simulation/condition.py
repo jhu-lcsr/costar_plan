@@ -68,6 +68,12 @@ class SafeJointLimitViolationCondition(AbstractCondition):
         return actor.robot.kinematics.joints_in_safe_limits(state.arm).all()
 
 
+def quaternion_distance(q1,q2):
+    sumq2 = 0
+    for i in range(4):
+        sumq2 += q1[i] * q2[i]
+    return 1 - sumq2
+
 class GoalPositionCondition(AbstractCondition):
 
     '''
@@ -104,6 +110,10 @@ class GoalPositionCondition(AbstractCondition):
         arm_v = (prev_state.arm - state.arm) / world.dt
         #still_moving = np.any(np.abs(state.arm_v) > self.v_tol)
         still_moving = np.any(np.abs(arm_v) > self.v_tol)
+        
+        dq = quaternion_distance(
+                state.T.M.GetQuaternion(),
+                T.M.GetQuaternion())
 
 
         # print (self.T.p.Norm())
@@ -116,8 +126,7 @@ class GoalPositionCondition(AbstractCondition):
         if (points != []):
             return True and (dist > self.pos_tol or still_moving)
         ###########################################
-        return False or still_moving
-        #return dist > self.pos_tol or still_moving
+        return dist > self.pos_tol or still_moving or dq > self.rot_tol
 
 class AbsolutePositionCondition(AbstractCondition):
 
