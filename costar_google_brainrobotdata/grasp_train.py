@@ -329,7 +329,11 @@ def main():
     K.set_session(session)
     with K.get_session() as sess:
         load_weights = FLAGS.load_weights
-        if FLAGS.grasp_model == 'grasp_model_pretrained':
+        if FLAGS.grasp_model == 'grasp_model_resnet':
+            def make_model_fn(*a, **kw):
+                return grasp_model.grasp_model_resnet(
+                    *a, **kw)
+        elif FLAGS.grasp_model == 'grasp_model_pretrained':
             def make_model_fn(*a, **kw):
                 return grasp_model.grasp_model_pretrained(
                     growth_rate=FLAGS.densenet_growth_rate,
