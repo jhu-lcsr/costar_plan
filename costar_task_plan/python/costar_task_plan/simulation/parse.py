@@ -86,8 +86,19 @@ def GetSimulationParser():
                         help="Only include successful trials when creating" + \
                              " training data sets.",
                         action="store_true")
+    parser.add_argument("--fast_reset",
+                        help="May result in simulation instability over time.",
+                        action="store_true")
     return parser
+    
 
 def ParseBulletArgs():
     parser = GetSimulationParser()
+    return vars(parser.parse_args())
+    
+def ParseGazeboArgs():
+    parser = GetSimulationParser()
+    parser.add_argument('--launch',
+                        help="ROS launch file to start Gazebo simulation",
+                        default="ur5.launch")
     return vars(parser.parse_args())

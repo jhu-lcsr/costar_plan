@@ -21,6 +21,7 @@ Contents:
 More specialized information:
   - [Adding a robot to the ROS code](docs/add_a_robot): NOT using Bullet sim
   - [TOM robot](docs/tom.md): use the TOM robot from TUM
+  - [Husky robot](husky/Readme.md): Start the APL Husky sim
   - [MARCC instructions](docs/marcc.md): some notes on learning models using the MARCC cluster (JHU students only)
 
 ## Getting started

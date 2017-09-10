@@ -288,6 +288,8 @@ class AbstractAgent(object):
             # We will always include frames where the label changed. We may or
             # may not include frames where the 
             if self.current_example["label"][i0] == self.current_example["label"][i1] \
+                    and not i0 == 0 \
+                    and not i1 == length - 1 \
                     and not np.random.randint(2) == 0:
                         continue
             # ==========================================
