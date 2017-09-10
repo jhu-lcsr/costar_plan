@@ -27,6 +27,7 @@ import keras_contrib
 from keras_contrib.applications.densenet import DenseNetFCN
 from keras_contrib.applications.densenet import DenseNet
 from keras_contrib.applications.densenet import DenseNetImageNet121
+from keras_contrib.applications.resnet import ResNet
 
 from keras.engine import Layer
 
@@ -41,6 +42,46 @@ def tile_vector_as_image_channels(vector_op, image_shape):
     vector_op = K.reshape(vector_op, [ivs[0], 1, 1, ivs[1]])
     vector_op = K.tile(vector_op, K.stack([1, image_shape[1], image_shape[2], 1]))
     return vector_op
+
+
+def grasp_model_resnet(clear_view_image_op,
+                       current_time_image_op,
+                       input_vector_op,
+                       input_image_shape=None,
+                       input_vector_op_shape=None,
+                       include_top=True,
+                       dropout_rate=0.0):
+    if input_vector_op_shape is None:
+        input_vector_op_shape = [5]
+    if input_image_shape is None:
+        input_image_shape = [512, 640, 3]
+    print('input_vector_op pre tile: ', input_vector_op)
+
+    input_vector_op = tile_vector_as_image_channels(input_vector_op, K.shape(clear_view_image_op))
+
+    combined_input_data = tf.concat([clear_view_image_op, input_vector_op, current_time_image_op], -1)
+    combined_input_shape = input_image_shape
+    # add up the total number of channels
+    combined_input_shape[-1] = combined_input_shape[-1] * 2 + input_vector_op_shape[0]
+    # initial number of filters should be
+    # the number of input channels times the growth rate
+    # nb_filters = combined_input_shape[-1] * growth_rate
+    print('combined_input_shape: ', combined_input_shape)
+    # print('nb_filters: ', nb_filters)
+    print('combined_input_data: ', combined_input_data)
+    print('clear_view_image_op: ', clear_view_image_op)
+    print('current_time_image_op: ', current_time_image_op)
+    print('input_vector_op: ', input_vector_op)
+    model = ResNet(input_shape=combined_input_shape,
+                   classes=1,
+                   block='bottleneck',
+                   repetitions=[3, 3, 3, 3],
+                   include_top=include_top,
+                   input_tensor=combined_input_data,
+                   activation='sigmoid',
+                   initial_filters=96,
+                   dropout=dropout_rate)
+    return model
 
 
 def grasp_model_pretrained(clear_view_image_op,
@@ -61,16 +102,16 @@ def grasp_model_pretrained(clear_view_image_op,
         input_vector_op = K.reshape(input_vector_op, input_vector_op_shape)
     if input_image_shape is None:
         input_image_shape = [512, 640, 3]
-    
+
     print('input_image_shape:', input_image_shape)
     print('shape(input_image_shape:', input_image_shape)
 
-    clear_view_model = DenseNetImageNet121(
+    clear_view_model = ResNet50(
         input_shape=input_image_shape,
         input_tensor=clear_view_image_op,
         include_top=False)
 
-    current_time_model = DenseNetImageNet121(
+    current_time_model = ResNet50(
         input_shape=input_image_shape,
         input_tensor=current_time_image_op,
         include_top=False)
@@ -100,14 +141,14 @@ def grasp_model_pretrained(clear_view_image_op,
         weight_decay = 1e-4
         # The last dense_block does not have a transition_block
         x, nb_filter = keras_contrib.applications.densenet.__dense_block(
-            combined_input_data, final_nb_layer, nb_filter, growth_rate, 
+            combined_input_data, final_nb_layer, nb_filter, growth_rate,
             bottleneck=True, dropout_rate=dropout_rate, weight_decay=weight_decay)
 
         x = BatchNormalization(axis=concat_axis, epsilon=1.1e-5)(x)
         x = Activation('relu')(x)
         x = GlobalAveragePooling2D()(x)
         x = Dense(1, activation='sigmoid')(x)
-    if model_name == 'densenet':
+    elif model_name == 'densenet':
         model = DenseNet(input_shape=combined_input_shape[1:],
                          include_top=include_top,
                          input_tensor=combined_input_data,
@@ -123,6 +164,8 @@ def grasp_model_pretrained(clear_view_image_op,
                          weight_decay=1e-4,
                          pooling=None,
                          bottleneck=True)
+    # elif model_name == 'wide_resnet':
+    #     WideResidualNetwork
     return model
 
 
