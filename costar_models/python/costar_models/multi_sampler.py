@@ -206,7 +206,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         name="transform_%d_%d"%(i,j))(x)
                 x = BatchNormalization(momentum=0.9,
                                       name="normalize_%d_%d"%(i,j))(x)
-                #x = LeakyReLU(0.2,name="lrelu_%d_%d"%(i,j))(x)
+                x = LeakyReLU(0.2,name="lrelu_%d_%d"%(i,j))(x)
             
             # This maps from our latent world state back into observable images.
             #decoder = Model(rep, dec)
