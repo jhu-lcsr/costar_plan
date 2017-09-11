@@ -4,7 +4,6 @@
 # See License for more details
 
 from option import AbstractOption, NullOption
-from sets import Set
 from world import AbstractWorld
 
 import copy
@@ -217,7 +216,7 @@ class Task(object):
             else:
                 inodes[name] = [iname]
             self.nodes[iname] = option
-            self.children[iname] = Set()
+            self.children[iname] = set()
 
   def makeTree(self, world, max_depth=10):
     '''

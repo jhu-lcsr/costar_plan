@@ -317,5 +317,4 @@ class CloseGripperPolicy(AbstractPolicy):
         else:
             pos = self.pos
         pos_cmd = max(state.gripper + self.step, pos)
-        #pos_cmd = pos
         return SimulationRobotAction(gripper_cmd=pos_cmd)

@@ -309,7 +309,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 num_hypotheses=self.num_hypotheses,
                 verbose=True,
                 min_idx=0,
-                max_idx=30,
+                max_idx=5,
                 step=1,)
             self.train_predictor.fit(features,
                     [np.expand_dims(f,1) for f in targets],

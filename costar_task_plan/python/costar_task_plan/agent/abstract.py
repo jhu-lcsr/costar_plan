@@ -268,6 +268,8 @@ class AbstractAgent(object):
                 count = 1
             else:
                 count += 1
+        if i > 0:
+            continue
 
         assert(len(switches) == len(self.current_example['example']))
 
@@ -292,6 +294,7 @@ class AbstractAgent(object):
                     and not i1 == length - 1 \
                     and not np.random.randint(2) == 0:
                         continue
+
             # ==========================================
             # Finally, add the example to the dataset
             for key, values in self.current_example.items():
@@ -305,29 +308,29 @@ class AbstractAgent(object):
                         data["first_%s"%key] = []
                     if key in goal_list:
                         data["goal_%s"%key] = []
-                else:
-                    # Check data consistency
-                    if len(data[key]) > 0:
-                        if isinstance(values[0], np.ndarray):
-                            assert values[0].shape == data[key][0].shape
-                        if not type(data[key][0]) == type(values[0]):
-                            print(key, type(data[key][0]), type(values[0]))
-                            raise RuntimeError('Types do not match when' + \
-                                               ' constructing data set.')
 
-                    # Append list of features to the whole dataset
-                    data[key].append(values[i])
-                    if key == "label":
-                        data["prev_%s"%key].append(prev_label)
-                        prev_label = values[i]
-                    if key in prev_list:
-                        data["prev_%s"%key].append(values[i0])
-                    if key in next_list:
-                        data["next_%s"%key].append(values[i1])
-                    if key in first_list:
-                        data["first_%s"%key].append(values[ifirst])
-                    if key in goal_list:
-                        data["goal_%s"%key].append(values[switches[i]])
+                # Check data consistency
+                if len(data[key]) > 0:
+                    if isinstance(values[0], np.ndarray):
+                        assert values[0].shape == data[key][0].shape
+                    if not type(data[key][0]) == type(values[0]):
+                        print(key, type(data[key][0]), type(values[0]))
+                        raise RuntimeError('Types do not match when' + \
+                                           ' constructing data set.')
+
+                # Append list of features to the whole dataset
+                data[key].append(values[i])
+                if key == "label":
+                    data["prev_%s"%key].append(prev_label)
+                    prev_label = values[i]
+                if key in prev_list:
+                    data["prev_%s"%key].append(values[i0])
+                if key in next_list:
+                    data["next_%s"%key].append(values[i1])
+                if key in first_list:
+                    data["first_%s"%key].append(values[ifirst])
+                if key in goal_list:
+                    data["goal_%s"%key].append(values[switches[i]])
 
         # ===================================================================
         # Print out the seed associated with this example for reproduction, and
