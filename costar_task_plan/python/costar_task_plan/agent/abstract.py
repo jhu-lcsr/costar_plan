@@ -268,8 +268,6 @@ class AbstractAgent(object):
                 count = 1
             else:
                 count += 1
-        if i > 0:
-            continue
 
         assert(len(switches) == len(self.current_example['example']))
 
