@@ -51,7 +51,8 @@ class TaskAgent(AbstractAgent):
     associated with each stage in the task plan to generate stochastic
     executions.
     '''
-
+    
+    NUM_REPEATS = 1
     name = "random"
 
     def __init__(self, *args, **kwargs):
@@ -74,7 +75,7 @@ class TaskAgent(AbstractAgent):
             # when generating levels. This lets us more easily debug problems
             # with task models and with learned policies.
             if self.seed is not None:
-                np.random.seed(int((self.seed+i)/10))
+                np.random.seed(int((self.seed+i)/self.NUM_REPEATS))
 
             print("---- Iteration %d ----"%(i+1))
             self.env.reset()

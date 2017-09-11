@@ -344,7 +344,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         #        0,
         #        len(self.stack_pos),
         #        (len(self.blocks),))
-        if self.stage == 0:
+        if False and self.stage == 0:
             poslen = 4
         else:
             poslen = len(self.stack_pos)
