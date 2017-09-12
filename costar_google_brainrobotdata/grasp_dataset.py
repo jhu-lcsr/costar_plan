@@ -71,10 +71,16 @@ flags.DEFINE_boolean('image_augmentation', False,
                      'image augmentation applies random brightness, saturation, hue, contrast')
 flags.DEFINE_boolean('imagenet_mean_subtraction', True,
                      'subtract the imagenet mean pixel values from the rgb images')
-flags.DEFINE_integer('grasp_sequence_max_time_steps', None,
+flags.DEFINE_integer('grasp_sequence_max_time_step', None,
                      """The grasp motion time sequence consists of up to 11 time steps.
                         This integer, or None for unlimited specifies the max number of these steps from the last to the first
-                        that will be used in training. This may be needed to reduce memory utilization.""")
+                        that will be used in training and evaluation. This may be needed to reduce memory utilization.""")
+flags.DEFINE_integer('grasp_sequence_min_time_step', None,
+                     """The grasp motion time sequence consists of up to 11 time steps.
+                        This integer, or None for unlimited specifies the min time step
+                        that will be used in training and evaluation. This may be needed
+                        to reduce memory utilization or check performance at different
+                        stages of a grasping motion.""")
 
 FLAGS = flags.FLAGS
 
@@ -734,7 +740,8 @@ class GraspDataset(object):
                                      imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
                                      random_crop=FLAGS.random_crop,
                                      resize=FLAGS.resize,
-                                     grasp_sequence_max_time_steps=FLAGS.grasp_sequence_max_time_steps):
+                                     grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
+                                     grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step):
         """Get tensors configured for training on grasps at a single pose.
         """
         feature_op_dicts, features_complete_list, num_samples = self.get_simple_parallel_dataset_ops(batch_size=batch_size)
@@ -795,7 +802,8 @@ class GraspDataset(object):
             # iterate in reversed direction because if training data will be dropped
             # it should be the first steps not the last steps.
             for i, (grasp_step_rgb_feature_name, pose_op_param) in enumerate(zip(reversed(rgb_move_to_grasp_steps), reversed(pose_op_params))):
-                if grasp_sequence_max_time_steps is None or i < grasp_sequence_max_time_steps:
+                if ((grasp_sequence_min_time_step is None or i >= grasp_sequence_min_time_step) and
+                    (grasp_sequence_max_time_step is None or i <= grasp_sequence_max_time_step)):
                     if int(grasp_step_rgb_feature_name.split('/')[1]) != int(pose_op_param.split('/')[1]):
                         raise ValueError('ERROR: the time step of the grasp step does not match the motion command params, '
                                          'make sure the lists are indexed correctly!')
