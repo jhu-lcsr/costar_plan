@@ -134,7 +134,7 @@ def grasp_model_pretrained(clear_view_image_op,
     print('combined_input_data.get_shape().as_list():', combined_input_data.get_shape().as_list())
     combined_input_shape = K.shape(clear_view_model.outputs[0]).get_shape().as_list()
     combined_input_shape[-1] = combined_input_shape[-1] * 2 + input_vector_op_shape[-1]
-    model_name = 'densenet'
+    model_name = 'resnet'
     if model_name == 'dense':
         final_nb_layer = 4
         nb_filter = combined_input_shape[-1]
@@ -164,8 +164,17 @@ def grasp_model_pretrained(clear_view_image_op,
                          weight_decay=1e-4,
                          pooling=None,
                          bottleneck=True)
-    # elif model_name == 'wide_resnet':
-    #     WideResidualNetwork
+    elif model_name == 'resnet':
+        model = ResNet(input_shape=combined_input_shape,
+                       classes=1,
+                       block='bottleneck',
+                       repetitions=[1, 1, 1, 1],
+                       include_top=include_top,
+                       input_tensor=combined_input_data,
+                       activation='sigmoid',
+                       initial_filters=96,
+                       dropout=dropout_rate)
+
     return model
 
 
