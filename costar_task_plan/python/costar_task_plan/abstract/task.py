@@ -64,6 +64,24 @@ class Task(object):
     self.option_checks = []
 
   def addCheck(self, check):
+      '''
+      Do certain combinations of arguments just not make sense? Then add a
+      check here. Checks are assumed to be functors, called with:
+
+        check(*arg_set)
+        
+      Where arg_set is a list of pairs (arg_type, arg_value). So, if you wanted
+      to check if block1 and block2 were the same, you would write a function
+      with the form:
+
+        def check_blocks(block1, block2, **kwargs):
+          ...
+
+      Parameters:
+      -----------
+      check: functor to add before adding any particular branch/node to the
+      task graph.
+      '''
       self.option_checks.append(check)
 
   def mergeTask(self, task, name, inodes):
