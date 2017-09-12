@@ -123,7 +123,9 @@ def grasp_model_pretrained(clear_view_image_op,
             layer.trainable = False
 
     clear_view_unpooled_layer = clear_view_model.layers[-2].get_output_at(0)
-    unpooled_shape = K.shape(clear_view_unpooled_layer)
+    unpooled_shape = clear_view_unpooled_layer.get_shape().as_list()
+    print('clear_view_unpooled_layer: ', clear_view_unpooled_layer)
+    print('unpooled_shape: ', unpooled_shape)
     current_time_unpooled = current_time_model.layers[-2].get_output_at(0)
     print('input_vector_op before tile: ', input_vector_op)
     input_vector_op = tile_vector_as_image_channels(
@@ -136,7 +138,7 @@ def grasp_model_pretrained(clear_view_image_op,
     combined_input_data = tf.concat([clear_view_unpooled_layer, input_vector_op, current_time_unpooled], -1)
 
     print('combined_input_data.get_shape().as_list():', combined_input_data.get_shape().as_list())
-    combined_input_shape = unpooled_shape  # .get_shape().as_list()
+    combined_input_shape = combined_input_data.get_shape().as_list()
     combined_input_shape[-1] = unpooled_shape[-1] * 2 + input_vector_op_shape[-1]
     model_name = 'resnet'
     if model_name == 'dense':
@@ -169,6 +171,8 @@ def grasp_model_pretrained(clear_view_image_op,
                          pooling=None,
                          bottleneck=True)
     elif model_name == 'resnet':
+        print('combined_input_shape: ', combined_input_shape)
+        print('combined_input_data: ', combined_input_data)
         model = ResNet(input_shape=combined_input_shape[1:],
                        classes=1,
                        block='bottleneck',
