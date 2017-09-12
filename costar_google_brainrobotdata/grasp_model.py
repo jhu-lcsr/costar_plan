@@ -165,7 +165,7 @@ def grasp_model_pretrained(clear_view_image_op,
                          pooling=None,
                          bottleneck=True)
     elif model_name == 'resnet':
-        model = ResNet(input_shape=combined_input_shape,
+        model = ResNet(input_shape=combined_input_shape[1:],
                        classes=1,
                        block='bottleneck',
                        repetitions=[1, 1, 1, 1],
