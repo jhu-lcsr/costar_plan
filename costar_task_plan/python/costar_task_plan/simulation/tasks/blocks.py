@@ -25,6 +25,11 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
     model = "block"
     blocks = ["red", "blue", "yellow", "green"]
     obstacle_urdf = "obstacle.urdf"
+    block_names = [
+            "red_block",
+            "blue_block",
+            "yellow_block",
+            "green_block",]
 
     # Objects are placed into a random stack.
     stack_pos = [
@@ -43,13 +48,13 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         np.array([-0.52, -0.2, 0.]),
     ]
     obs_pos = [
-        np.array([-0.35, 0.1, 0.]),
-        np.array([-0.35, 0.2, 0.]),
+        np.array([-0.35, 0.05, 0.]),
+        np.array([-0.35, 0.25, 0.]),
         np.array([-0.35, 0., 0.]),
-        np.array([-0.35, -0.1, 0.]),
-        np.array([-0.35, -0.2, 0.]),
+        np.array([-0.35, -0.05, 0.]),
+        np.array([-0.35, -0.25, 0.]),
         np.array([-0.52, 0., 0.]),
-        np.array([-0.55, -0.2, 0.]),
+        np.array([-0.55, -0.25, 0.]),
     ]
 
     offset = 0.0
@@ -88,19 +93,19 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             joint_velocity_tolerance=vtol,)
         align_args = {
             "constructor": AlignOption,
-            "args": ["block"],
-            "remap": {"block": "goal"},
+            "args": ["block1"],
+            "remap": {"block1": "goal"},
         }
         GraspOption = lambda goal: GoalDirectedMotionOption(
             self.world,
             goal,
-            pose=((0.012, 0, 0.005), self.grasp_q),
+            pose=((0.0 + self.offset, 0, -0.005), self.grasp_q),
             pose_tolerance=tol,
             joint_velocity_tolerance=vtol,)
         grasp_args = {
             "constructor": GraspOption,
-            "args": ["block"],
-            "remap": {"block": "goal"},
+            "args": ["block1"],
+            "remap": {"block1": "goal"},
         }
 
 
@@ -112,7 +117,8 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             joint_velocity_tolerance=0.05,)
         lift_args = {
             "constructor": LiftOption,
-            "args": []
+            "args": [],
+            "semantic_args": ["block1"]
         }
         PlaceOption = lambda: GeneralMotionOption(
             pose=(self.final_stack_pos, self.grasp_q),
@@ -120,20 +126,19 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             joint_velocity_tolerance=vtol,)
         place_args = {
             "constructor": PlaceOption,
-            "args": []
+            "semantic_args": ["block1"]
         }
         close_gripper_args = {
             "constructor": lambda: CloseGripperOption(position=np.array([-0.6])),
-            #"constructor": lambda: CloseGripperOption(),
-            "args": []
+            "semantic_args": ["block1"]
         }
         open_gripper_args = {
             "constructor": OpenGripperOption,
-            "args": []
+            "semantic_args": ["block1"]
         }
         open_gripper_args_unique = {
             "constructor": OpenGripperOption,
-            "args": ["block"]
+            "semantic_args": ["block2"]
         }
 
         if self.stage == 1:
@@ -145,8 +150,8 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                 joint_velocity_tolerance=vtol,)
             align_stack_args = {
                 "constructor": AlignStackOption,
-                "args": ["block"],
-                "remap": {"block": "goal"},
+                "args": ["block2"],
+                "remap": {"block2": "goal"},
             }
             StackOption = lambda goal: GoalDirectedMotionOption(
                 self.world,
@@ -157,8 +162,8 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                 closed_loop=True,)
             stack_args = {
                 "constructor": StackOption,
-                "args": ["block"],
-                "remap": {"block": "goal"},
+                "args": ["block2"],
+                "remap": {"block2": "goal"},
             }
 
             # ==================================================================== 
@@ -183,11 +188,11 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             # Create a task model
             pickup_args = {
                 "task": pickup,
-                "args": ["block"],
+                "args": ["block1"],
             }
             place_args = {
                 "task": place,
-                "args": ["block"],
+                "args": ["block2"],
             }
             task = Task()
             task.add("pickup", None, pickup_args)
@@ -202,7 +207,16 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             task.add("open_gripper", "place", open_gripper_args)
             task.add("done", "open_gripper", lift_args)
 
+        task.addCheck(checkBlocks1And2)
         return task
+
+    def getObjects(self):
+        '''
+        Two sets of blocks
+        '''
+        return {
+                "block1": self.block_names,
+                "block2": self.block_names}
 
     def _addObstacle(self, pos, urdf_dir):
         urdf_filename = os.path.join(
@@ -291,6 +305,13 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                                     ObjectIsBelowCondition("blue_block", 0.55),
                                     ObjectIsBelowCondition("yellow_block", 0.55),
                                 ), -100, "block_too_high")
+        if self.stage >= 1:
+            for i, obs in enumerate(self.obstacles):
+                collision_condition = CollisionCondition(obs)
+                self.world.addCondition(
+                        collision_condition,
+                        -100,
+                        "collided_with_obstacle_%d"%i)
 
         # =====================================================================
         # Set up the "first stage" of the tower -- so that we only need to
@@ -333,6 +354,27 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                         position_condition),
                     50,
                     "wrong block")
+        elif self.stage == 1:
+            threshold = 0.035
+            pos = (0.,0.,0.05,)
+            rot = (0.,0.,0.,1.,)
+            position_condition = AbsolutePositionCondition(
+                self.over_final_stack_pos,
+                self.grasp_q,
+                pos_tol=0.05,
+                rot_tol=0.025,
+            )
+            self.world.addCondition(
+                    OrCondition(
+                        AnyObjectAtRelativePositionCondition(
+                            self.block_names,
+                            self.block_names,
+                            pos=pos,
+                            rot=rot,
+                            pos_tol=threshold),
+                        position_condition),
+                    100,
+                    "stacked_two_blocks")
 
     def reset(self):
         '''
@@ -344,7 +386,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         #        0,
         #        len(self.stack_pos),
         #        (len(self.blocks),))
-        if self.stage == 0:
+        if False and self.stage == 0:
             poslen = 4
         else:
             poslen = len(self.stack_pos)
@@ -388,3 +430,16 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
 
     def getName(self):
         return "blocks"
+
+def checkBlocks1And2(block1,block2,**kwargs):
+    '''
+    Simple function that is passed as a callable "check" when creating the task
+    execution graph. This makes sure we don't build branches that just make no
+    sense -- like trying to put a blue block on top of itself.
+
+    Parameters:
+    -----------
+    block1: unique block name, e.g. "red_block"
+    block2: second unique block name, e.g. "blue_block"
+    '''
+    return not block1 == block2
