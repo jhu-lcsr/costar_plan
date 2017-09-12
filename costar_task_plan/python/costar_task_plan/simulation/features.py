@@ -104,7 +104,6 @@ class ImagePlusFeatures(AbstractFeatures):
         rpy = list(T.M.GetRPY())
         if world.ticks == 0:
             self.last_rpy = None
-            print "resetting"
         if self.last_rpy is not None:
             # Make sure that if something jumped by > pi, we fix it
             for i, (var, var0) in enumerate(zip(rpy, self.last_rpy)):

@@ -48,6 +48,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.combined_dense_size = 128
         self.num_hypotheses = 8
         self.num_transforms = 2
+        self.validation_split = 0.1
 
         self.predictor = None
         self.train_predictor = None
@@ -314,6 +315,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             self.train_predictor.fit(features,
                     [np.expand_dims(f,1) for f in targets],
                     callbacks=[modelCheckpointCb, imageCb],
+                    validation_split=self.validation_split,
                     epochs=self.epochs)
         else:
             for i in range(self.iter):
