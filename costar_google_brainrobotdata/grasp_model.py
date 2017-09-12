@@ -122,18 +122,21 @@ def grasp_model_pretrained(clear_view_image_op,
         for layer in current_time_model.layers:
             layer.trainable = False
 
+    unpooled_layer = clear_view_model.layers[-2]
+    unpooled_shape = K.shape(unpooled_layer)
     print('input_vector_op before tile: ', input_vector_op)
     input_vector_op = tile_vector_as_image_channels(
         input_vector_op,
-        K.shape(clear_view_model.outputs[0]))
+        unpooled_shape
+        )
     print('input_vector_op after tile: ', input_vector_op)
     print('clear_view_model.outputs: ', clear_view_model.outputs)
     print('current_time_model.outputs: ', current_time_model.outputs)
-    combined_input_data = tf.concat([clear_view_model.outputs[0], input_vector_op, current_time_model.outputs[0]], -1)
+    combined_input_data = tf.concat([unpooled_layer, input_vector_op, current_time_model.outputs[-2]], -1)
 
     print('combined_input_data.get_shape().as_list():', combined_input_data.get_shape().as_list())
     combined_input_shape = K.shape(clear_view_model.outputs[0]).get_shape().as_list()
-    combined_input_shape[-1] = combined_input_shape[-1] * 2 + input_vector_op_shape[-1]
+    combined_input_shape[-1] = unpooled_shape[-1] * 2 + input_vector_op_shape[-1]
     model_name = 'resnet'
     if model_name == 'dense':
         final_nb_layer = 4
