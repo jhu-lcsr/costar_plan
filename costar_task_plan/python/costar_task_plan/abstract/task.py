@@ -289,29 +289,36 @@ class OptionTemplate(object):
   Internal class that represents a single templated, non-instantiated Option.
   '''
   def __init__(self, args, constructor=None, remap=None, task=None,
-          subtask_name=None, name_template="%s(%s)"):
+          subtask_name=None, semantic_remap=None, name_template="%s(%s)"):
     self.constructor = constructor
     self.subtask_name = subtask_name
     self.task = task
     self.args = args
     self.remap = remap
+    self.semantic_remap = semantic_remap
     self.name_template = name_template
     self.children = []
 
   def instantiate(self, name, arg_dict):
     filled_args = {}
+    name_args = {}
     for arg in self.args:
       if self.remap is not None and arg in self.remap:
         filled_arg_name = self.remap[arg]
       else:
         filled_arg_name = arg
+      if self.semantic_remap is not None and arg in self.semantic_remap:
+        semantic_arg_name = self.semantic_remap[arg]
+      else:
+        semantic_arg_name = arg
       filled_args[filled_arg_name] = arg_dict[arg]
+      name_args[semantic_arg_name] = arg_dict[arg]
 
     if name is None:
       name = ROOT_NAME
 
     if self.task is None:
-        iname = self.name_template%(name,make_str(filled_args))
+        iname = self.name_template%(name,make_str(name_args))
         option = self.constructor(**filled_args)
     else:
         option = Task(subtask_name=self.task.name)

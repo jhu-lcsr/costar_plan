@@ -43,13 +43,13 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         np.array([-0.52, -0.2, 0.]),
     ]
     obs_pos = [
-        np.array([-0.35, 0.1, 0.]),
-        np.array([-0.35, 0.2, 0.]),
+        np.array([-0.35, 0.05, 0.]),
+        np.array([-0.35, 0.25, 0.]),
         np.array([-0.35, 0., 0.]),
-        np.array([-0.35, -0.1, 0.]),
-        np.array([-0.35, -0.2, 0.]),
+        np.array([-0.35, -0.05, 0.]),
+        np.array([-0.35, -0.25, 0.]),
         np.array([-0.52, 0., 0.]),
-        np.array([-0.55, -0.2, 0.]),
+        np.array([-0.55, -0.25, 0.]),
     ]
 
     offset = 0.0
@@ -340,6 +340,32 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                         position_condition),
                     50,
                     "wrong block")
+        elif self.stage == 1:
+            threshold = 0.035
+            pos = (0.,0.,0.05,)
+            rot = (0.,0.,0.,1.,)
+            all_blocks = [
+                    "red_block",
+                    "blue_block",
+                    "yellow_block",
+                    "green_block",]
+            position_condition = AbsolutePositionCondition(
+                self.over_final_stack_pos,
+                self.grasp_q,
+                pos_tol=0.05,
+                rot_tol=0.025,
+            )
+            self.world.addCondition(
+                    OrCondition(
+                        AnyObjectAtRelativePositionCondition(
+                            all_blocks,
+                            all_blocks,
+                            pos=pos,
+                            rot=rot,
+                            pos_tol=threshold),
+                        position_condition),
+                    100,
+                    "stacked_two_blocks")
 
     def reset(self):
         '''
