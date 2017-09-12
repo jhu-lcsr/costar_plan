@@ -59,6 +59,13 @@ class Task(object):
 
     self.conditions = []
 
+    # List of checks to make -- call these functions on possible arg dicts,
+    # they should return true/false.
+    self.option_checks = []
+
+  def addCheck(self, check):
+      self.option_checks.append(check)
+
   def mergeTask(self, task, name, inodes):
       '''
       Add subtasks and options to the current compiled task graph.
@@ -168,6 +175,16 @@ class Task(object):
       # share the same values. This lets us create interesting hierarchical
       # structures.
       inodes = {}
+
+      ok = True
+      for check in self.option_checks:
+          print "checking", arg_set
+          if not check(**arg_set):
+              ok = False
+              break
+      if not ok:
+        print "skipping", arg_set
+        continue
 
       # create the nodes
       for name, template in self.option_templates.items():
@@ -288,20 +305,33 @@ class OptionTemplate(object):
   '''
   Internal class that represents a single templated, non-instantiated Option.
   '''
-  def __init__(self, args, constructor=None, remap=None, task=None,
-          subtask_name=None, semantic_remap=None, name_template="%s(%s)"):
+  def __init__(self, args=[], constructor=None, remap=None, task=None,
+          subtask_name=None, semantic_remap=None, semantic_args=[],
+          name_template="%s(%s)"):
     self.constructor = constructor
     self.subtask_name = subtask_name
     self.task = task
     self.args = args
+    self.semantic_args = semantic_args
     self.remap = remap
     self.semantic_remap = semantic_remap
     self.name_template = name_template
     self.children = []
 
   def instantiate(self, name, arg_dict):
+    '''
+    Compute the actual lists of things that get turned into a task graph.
+
+    Parameters:
+    -----------
+    name: the basic name of the action being performed
+    arg_dict: set of options that can fill out the parameters of the action
+    '''
+
     filled_args = {}
     name_args = {}
+
+    # ==================================================================
     for arg in self.args:
       if self.remap is not None and arg in self.remap:
         filled_arg_name = self.remap[arg]
@@ -313,6 +343,14 @@ class OptionTemplate(object):
         semantic_arg_name = arg
       filled_args[filled_arg_name] = arg_dict[arg]
       name_args[semantic_arg_name] = arg_dict[arg]
+
+    # ==================================================================
+    for arg in self.semantic_args:
+      if self.semantic_remap is not None and arg in self.semantic_remap:
+        semantic_arg_name = self.semantic_remap[arg]
+      else:
+        semantic_arg_name = arg
+      name_args[arg] = arg_dict[arg]
 
     if name is None:
       name = ROOT_NAME
