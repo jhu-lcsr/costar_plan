@@ -123,7 +123,7 @@ def grasp_model_pretrained(clear_view_image_op,
             layer.trainable = False
 
     clear_view_unpooled_layer = clear_view_model.layers[-2].get_output_at(0)
-    unpooled_shape = K.shape(unpooled_layer)
+    unpooled_shape = K.shape(clear_view_unpooled_layer)
     current_time_unpooled = current_time_model.layers[-2].get_output_at(0)
     print('input_vector_op before tile: ', input_vector_op)
     input_vector_op = tile_vector_as_image_channels(
