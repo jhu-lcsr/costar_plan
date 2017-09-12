@@ -1,7 +1,8 @@
-
 # By Chris Paxton
 # (c) 2017 The Johns Hopkins University
 # See License for more details
+
+from __future__ import print_function
 
 from option import AbstractOption, NullOption
 from world import AbstractWorld
@@ -196,12 +197,11 @@ class Task(object):
 
       ok = True
       for check in self.option_checks:
-          print "checking", arg_set
           if not check(**arg_set):
               ok = False
               break
       if not ok:
-        print "skipping", arg_set
+        print("Skipping invalid args:", arg_set)
         continue
 
       # create the nodes
