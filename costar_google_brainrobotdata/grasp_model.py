@@ -122,19 +122,25 @@ def grasp_model_pretrained(clear_view_image_op,
         for layer in current_time_model.layers:
             layer.trainable = False
 
+    clear_view_unpooled_layer = clear_view_model.layers[-2].get_output_at(0)
+    unpooled_shape = clear_view_unpooled_layer.get_shape().as_list()
+    print('clear_view_unpooled_layer: ', clear_view_unpooled_layer)
+    print('unpooled_shape: ', unpooled_shape)
+    current_time_unpooled = current_time_model.layers[-2].get_output_at(0)
     print('input_vector_op before tile: ', input_vector_op)
     input_vector_op = tile_vector_as_image_channels(
         input_vector_op,
-        K.shape(clear_view_model.outputs[0]))
+        unpooled_shape
+        )
     print('input_vector_op after tile: ', input_vector_op)
     print('clear_view_model.outputs: ', clear_view_model.outputs)
     print('current_time_model.outputs: ', current_time_model.outputs)
-    combined_input_data = tf.concat([clear_view_model.outputs[0], input_vector_op, current_time_model.outputs[0]], -1)
+    combined_input_data = tf.concat([clear_view_unpooled_layer, input_vector_op, current_time_unpooled], -1)
 
     print('combined_input_data.get_shape().as_list():', combined_input_data.get_shape().as_list())
-    combined_input_shape = K.shape(clear_view_model.outputs[0]).get_shape().as_list()
-    combined_input_shape[-1] = combined_input_shape[-1] * 2 + input_vector_op_shape[-1]
-    model_name = 'densenet'
+    combined_input_shape = combined_input_data.get_shape().as_list()
+    combined_input_shape[-1] = unpooled_shape[-1] * 2 + input_vector_op_shape[-1]
+    model_name = 'resnet'
     if model_name == 'dense':
         final_nb_layer = 4
         nb_filter = combined_input_shape[-1]
@@ -164,8 +170,19 @@ def grasp_model_pretrained(clear_view_image_op,
                          weight_decay=1e-4,
                          pooling=None,
                          bottleneck=True)
-    # elif model_name == 'wide_resnet':
-    #     WideResidualNetwork
+    elif model_name == 'resnet':
+        print('combined_input_shape: ', combined_input_shape)
+        print('combined_input_data: ', combined_input_data)
+        model = ResNet(input_shape=combined_input_shape[1:],
+                       classes=1,
+                       block='bottleneck',
+                       repetitions=[1, 1, 1, 1],
+                       include_top=include_top,
+                       input_tensor=combined_input_data,
+                       activation='sigmoid',
+                       initial_filters=96,
+                       dropout=dropout_rate)
+
     return model
 
 
