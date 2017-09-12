@@ -136,7 +136,7 @@ def grasp_model_pretrained(clear_view_image_op,
     combined_input_data = tf.concat([clear_view_unpooled_layer, input_vector_op, current_time_unpooled], -1)
 
     print('combined_input_data.get_shape().as_list():', combined_input_data.get_shape().as_list())
-    combined_input_shape = K.shape(clear_view_model.outputs[0]).get_shape().as_list()
+    combined_input_shape = unpooled_shape  # .get_shape().as_list()
     combined_input_shape[-1] = unpooled_shape[-1] * 2 + input_vector_op_shape[-1]
     model_name = 'resnet'
     if model_name == 'dense':
