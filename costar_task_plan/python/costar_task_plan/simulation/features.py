@@ -91,7 +91,12 @@ class ImagePlusFeatures(AbstractFeatures):
     This will output the end of the arm (aka the grasp/manipulation frame), in
     roll-pitch-yaw form. Coordinates are normalized so there's never a "jump"
     due to the singularity in RPY space, which means they should work fine for
-    any sort of learning purpose as well.
+    any sort of learning purpose.
+
+    The purpose of this normalization is to make sure that relative RPY from
+    one frame to the next is minimized. This won't be guaranteed to work for
+    all values, but should be fine over short trajectories assuming inputs stay
+    in [-pi,pi] and there are not multiple revolutions.
     '''
 
     def __init__(self, *args, **kwargs):
@@ -99,6 +104,14 @@ class ImagePlusFeatures(AbstractFeatures):
         self.last_rpy = None
 
     def compute(self, world, state):
+        '''
+        Compute image and other features.
+
+        Parameters:
+        -----------
+        world: current world, including all actors, cameras, etc.
+        state: representation of the primary simulation actor.
+        '''
         img = world.cameras[0].capture().rgb
         T = state.T
         rpy = list(T.M.GetRPY())
@@ -124,7 +137,7 @@ class ImagePlusFeatures(AbstractFeatures):
                     raise RuntimeError('did not fix rotation')
         self.last_rpy = rpy
         arm = [T.p.x(), T.p.y(), T.p.z(),] + rpy
-        return [img[:, :, :3], state.arm, state.gripper]
+        return [img[:, :, :3], arm, state.gripper]
 
     @property
     def description(self):
@@ -140,6 +153,11 @@ class PoseFeatures(AbstractFeatures):
         '''
         Note that since we are iterating over the keys -- these features will
         all be in the same order, which ends up working very nicely for us.
+
+        Parameters:
+        -----------
+        world: current world, including all actors, cameras, etc.
+        state: representation of the primary simulation actor.
         '''
 
         object_translation_rotation = []

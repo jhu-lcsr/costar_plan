@@ -113,7 +113,15 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
     def gripper(self, cmd, mode=pb.POSITION_CONTROL):
         '''
         Gripper commands need to be mirrored to simulate behavior of the actual
-        UR5.
+        UR5. Converts one command input to 6 joint positions, used for the
+        robotiq gripper. This is a rough simulation of the way the robotiq
+        gripper works in practice, in the absence of a plugin like the one we
+        use in Gazebo.
+
+        Parameters:
+        -----------
+        cmd: 1x1 array of floating point position commands in [-0.8, 0]
+        mode: PyBullet control mode
         '''
 
         cmd = cmd[0]
