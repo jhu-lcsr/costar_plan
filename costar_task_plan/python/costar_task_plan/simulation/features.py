@@ -102,9 +102,20 @@ class ImagePlusFeatures(AbstractFeatures):
         img = world.cameras[0].capture().rgb
         T = state.T
         rpy = list(T.M.GetRPY())
+        if world.ticks == 0:
+            self.last_rpy = None
+            print "resetting"
         if self.last_rpy is not None:
             # Make sure that if something jumped by > pi, we fix it
             for i, (var, var0) in enumerate(zip(rpy, self.last_rpy)):
+
+                # Var should be in (-pi, pi) initially
+                if var < -np.pi:
+                    var += 2*np.pi
+                elif var > np.pi:
+                    var -= 2*np.pi
+
+                # Var should be as close as possible to
                 if var - var0 > np.pi:
                     rpy[i] = var - 2 * np.pi
                 elif var0 - var > np.pi:
