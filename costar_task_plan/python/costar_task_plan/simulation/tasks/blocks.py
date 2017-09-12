@@ -291,6 +291,13 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                                     ObjectIsBelowCondition("blue_block", 0.55),
                                     ObjectIsBelowCondition("yellow_block", 0.55),
                                 ), -100, "block_too_high")
+        if self.stage >= 1:
+            for i, obs in enumerate(self.obstacles):
+                collision_condition = CollisionCondition(obs)
+                self.world.addCondition(
+                        collision_condition,
+                        -100,
+                        "collided_with_obstacle_%d"%i)
 
         # =====================================================================
         # Set up the "first stage" of the tower -- so that we only need to

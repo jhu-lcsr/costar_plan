@@ -18,20 +18,22 @@ class CollisionCondition(AbstractCondition):
         collisions are detected, then return False. Else return True.
         '''
         super(CollisionCondition, self).__init__()
-        if not isinstance(list, not_allowed):
-            self.now_allowed = [now_allowed]
-        else:
-            self.now_allowed = now_allowed
+        if not isinstance(not_allowed, int) \
+                and not isinstance(not_allowed, long):
+
+            raise TypeError('collision condition requires int handle')
+
+        self.not_allowed = not_allowed
 
     def _check(self, world, state, actor, prev_state=None):
         # Get the pybullet handle for this actor
-        handle = actor.handle
+        handle = actor.robot.handle
 
-        # check collisions
-        for obj in self.not_allowed:
-            pass
+        # Check for contact points
+        pts = pb.getContactPoints(bodyA=handle, bodyB=self.not_allowed)
 
-        return True
+        # If return was empty then we can proceed
+        return len(pts) == 0
 
 
 class JointLimitViolationCondition(AbstractCondition):
@@ -198,6 +200,42 @@ class ObjectAtPositionCondition(AbstractCondition):
         dist = (T.p - self.p).Norm()
 
         return dist > self.pos_tol
+
+class AnyObjectAtRelativePositionCondition(AbstractCondition):
+    '''
+    This is set up to be the "goal" condition for the stacking task.
+    It takes in two lists of objects, and will check to see if, for each
+    object, there is another object (in the second set) that is at a particular
+    position relative to it.
+    '''
+
+    def __init__(self, objs, bases, pos, rot, pos_tol, ):
+        self.objs = objs
+        self.bases = bases
+        self.pos_tol = pos_tol
+        self.pos = pos
+        self.rot = rot
+
+        # Compute the relative transformation from the "base" where we hope to
+        # find the object (or, you know, where we're afraid to find it...)
+        pg = kdl.Vector(*self.pos)
+        Rg = kdl.Rotation.Quaternion(*self.rot)
+        self.T = kdl.Frame(Rg, pg)
+
+    def _check(self, world, *args, **kwargs):
+        '''
+        Loop over objs and bases, check to see which are in the right relative
+        positions.
+        '''
+        for obj in self.objs:
+            T_obj = world.getObject(obj).state.T
+            for base in self.bases:
+                T_base = world.getObject(base).state.T * self.T
+                dist = (T_obj.p - T_base.p).Norm()
+                if dist < self.pos_tol:
+                    return False
+        return True
+                
         
 class ObjectMovedCondition(AbstractCondition):
     '''
