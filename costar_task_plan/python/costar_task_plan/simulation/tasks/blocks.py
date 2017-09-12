@@ -432,4 +432,14 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         return "blocks"
 
 def checkBlocks1And2(block1,block2,**kwargs):
+    '''
+    Simple function that is passed as a callable "check" when creating the task
+    execution graph. This makes sure we don't build branches that just make no
+    sense -- like trying to put a blue block on top of itself.
+
+    Parameters:
+    -----------
+    block1: unique block name, e.g. "red_block"
+    block2: second unique block name, e.g. "blue_block"
+    '''
     return not block1 == block2
