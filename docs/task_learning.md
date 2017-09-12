@@ -99,24 +99,45 @@ We automatically call the `task.compile()` function to create the task model.
 You can create a small data set in the normal way:
 
 ```
-rosrun costar_bullet start --robot ur5 --task blocks --agent task \
-  --features multi --save -i 10 --data_file small.npz
+rosrun costar_bullet start --robot ur5 --task stack1 --agent task \
+  --features multi --save -i 10 --data_file small.npz --success_only
 ```
 
 It might be helpful to make a larger training data set than this one, which is possible by changing the number of iterations as seen below.
 
 ```
-rosrun costar_bullet start --robot ur5 --task blocks --agent task \
-  --features multi --save -i 100 --data_file bigger.npz
+rosrun costar_bullet start --robot ur5 --task stack1 --agent task \
+  --features multi --save -i 100 --data_file bigger.npz --success_only
 ```
 
+Some notes:
+  - For learning from demonstration, the `--success_only` flag will make your life easier by preventing it from saving failed demonstrations.
+  - `--task stack1` will generate a slightly more complex and more interesting task than `--task blocks`.
+  - You can use the `--fast_reset` flag to quickly visualize and debug tasks, but PyBullet seems unstable over long data collection runs with this flag on.
 
 # Learning
 
 ## Models
 
-  - Hierarchical: predict an encoding
-  - Predictor: predict stuff
+  - **Predictor**: predict next goal, including image, arm pose, gripper state, and label.
+  - **Hierarchical**: predict an encoding that can be used for the next or the goal features.
+
+The current preferred model is **Predictor.** You should use that one when possible.
+
+## Predictor Model
+
+The predictor model learns to generate a bunch of possible futures.
+
+```
+rosrun costar_bullet start --robot ur5 --task blocks --agent null \
+  --features multi -i 100000 -e 1000 --model predictor \
+  --data_file blocks10.npz --load --si 1000 --optimizer nadam --lr 0.001
+```
+
+Some notes:
+  - The learning rate here needs to be a bit lower, or you need to set the `--clipnorm` option, as the loss is fairly complex. With a higher learning rate I observed spikes in the loss function.
+  - `adam` and `nadam` converge very quickly on small datasets
+
 
 ## Hierarchical Model
 
@@ -140,20 +161,6 @@ It takes several thousand iterations to get this right. An example at about 500 
 ![Example intermediate results](../photos/predictor_intermediate_results.png)
 
 You should be able to see the model learning something useful fairly early on, at least with a small data set. It just won't be perfect.
-
-## Predictor Model
-
-The predictor model learns to generate a bunch of possible futures.
-
-```
-rosrun costar_bullet start --robot ur5 --task blocks --agent null \
-  --features multi -i 100000 -e 1000 --model predictor \
-  --data_file blocks10.npz --load --si 1000 --optimizer nadam --lr 0.001
-```
-
-Some notes:
-  - The learning rate here needs to be a bit lower, or you need to set the `--clipnorm` option, as the loss is fairly complex. With a higher learning rate I observed spikes in the loss function.
-  - `adam` and `nadam` converge very quickly on small datasets
 
 # Testing
 
