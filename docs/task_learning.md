@@ -115,6 +115,17 @@ Some notes:
   - `--task stack1` will generate a slightly more complex and more interesting task than `--task blocks`.
   - You can use the `--fast_reset` flag to quickly visualize and debug tasks, but PyBullet seems unstable over long data collection runs with this flag on.
 
+
+## Current Best Practice
+
+Create some data for predictor learning, 2017-09-12:
+
+```
+rosrun costar_bullet start --robot ur5 --task stack1 --agent task -i 5000 \
+  --features multi  --verbose --seed 0 --success_only  --cpu --save \
+  --data_file stack.npz
+```
+
 # Learning
 
 ## Models
