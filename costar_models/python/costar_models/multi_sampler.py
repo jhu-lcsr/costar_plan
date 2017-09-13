@@ -47,7 +47,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.tform_filters = 64
         self.combined_dense_size = 128
         self.num_hypotheses = 8
-        self.num_transforms = 3
+        self.num_transforms = 2
         self.validation_split = 0.1
         self.num_options = 48
 
@@ -433,7 +433,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
-                        weights=[0.6,0.2,0.1,0.1],
+                        weights=[0.3,0.3,0.1,0.3],
                         loss=["mse","mse","mse","categorical_crossentropy"]), 
                     "mse","mse"],
                 loss_weights=[0.8,0.1,0.1],
@@ -448,21 +448,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 #[I, q, g, I_target, q_target, g_target],
                 [train_target, qa, ga],)
 
-        # ===============================================
-        # Might be useful if you start getting shitty results... one problem we
-        # observed was accidentally training the embedding weights when
-        # learning all your policies.
-        #fig, axes = plt.subplots(5, 5,)
-        #self.plotInfo(
-        #        [I, q, g, oin],
-        #        [I_target, q_target, g_target, Inext_target],
-        #        axes,
-        #        )
-        # self._fitSupervisor([I, q, g, o_prev], o_target)
-        # ===============================================
-        #action_target = [qa, ga]
-        #self._fitPolicies([I, q, g], action_labels, action_target)
-        #self._fitBaseline([I, q, g], action_target)
 
     def save(self):
         '''
