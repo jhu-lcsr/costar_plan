@@ -21,7 +21,7 @@ class AbstractAgentBasedModel(object):
     def __init__(self, taskdef=None, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
             clipnorm=100., show_iter=0, pretrain_iter=5,
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
-            steps_per_epoch=1000,
+            steps_per_epoch=1000, validation_steps=100,
             task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
 
@@ -40,6 +40,7 @@ class AbstractAgentBasedModel(object):
         self.epochs = epochs
         self.batch_size = batch_size
         self.optimizer = optimizer
+        self.validation_steps = validation_steps
         self.model_descriptor = model_descriptor
         self.task = task
         self.features = features
@@ -110,7 +111,7 @@ class AbstractAgentBasedModel(object):
     def train(self, agent, *args, **kwargs):
         raise NotImplementedError('train() takes an agent.')
 
-    def trainFromGenerators(self, train_generator, test_generator, data={}):
+    def trainFromGenerators(self, train_generator, test_generator, data=None):
         raise NotImplementedError('trainFromGenerators() not implemented.')
 
     def _getData(self, *args, **kwargs):
@@ -122,14 +123,23 @@ class AbstractAgentBasedModel(object):
     def trainGenerator(self, dataset):
         while True:
             data = dataset.sampleTrain()
-            features, targets = self._getData(**data)
-            yield features, targets
+            yield self._yield(data)
 
     def testGenerator(self, dataset):
+        if self.validation_steps is None:
+            # update the validation steps if we did not already set it --
+            # something proportional to the amount of validation data we have
+            self.validation_steps = len(dataset.test) + 1
         while True:
             data = dataset.sampleTest()
+            yield self._yield(data)
+
+    def _yield(self, data):
             features, targets = self._getData(**data)
-            yield features, targets
+            n_samples = features[0].shape[0]
+            idx = np.random.randint(0,n_samples - self.batch_size)
+            return ([f[idx:idx+self.batch_size] for f in features],
+                    [t[idx:idx+self.batch_size] for t in targets])
 
     def save(self):
         '''

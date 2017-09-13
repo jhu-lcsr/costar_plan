@@ -262,7 +262,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         y = Dropout(self.dropout_rate)(y)
         y = LeakyReLU(0.2)(y)
         arm_cmd_out = Lambda(lambda x: K.expand_dims(x, axis=1),name="arm_action")(
-                Dense(arm_size)(y))
+                Dense(arm_size-1)(y))
         gripper_cmd_out = Lambda(lambda x: K.expand_dims(x, axis=1),name="gripper_action")(
                 Dense(gripper_size)(y))
 
@@ -460,14 +460,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         q_target = goal_arm
         g_target = goal_gripper
         o_target = label
-        print("sanity check:")
-        print("-------------")
-        print("images:", I.shape, I_target.shape)
-        print("joints:", q.shape)
-        print("options:", oin.shape, o_target.shape)
-
-        if self.predictor is None:
-            self._makeModel(I, q, g, qa, ga, oin)
 
         # ==============================
         image_shape = I.shape[1:]
@@ -480,7 +472,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         train_size = image_size + arm_size + gripper_size + self.num_options
         assert gripper_size == 1
-        assert train_size == 12295 + self.num_options
+        #assert train_size == 12295 + self.num_options
+        # NOTE: arm size is one bigger when we have quaternions
+        assert train_size == 12296 + self.num_options
         assert I.shape[0] == I_target.shape[0]
 
         o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
@@ -488,9 +482,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         Itrain = np.reshape(I_target,(length, image_size))
         train_target = np.concatenate([Itrain,q_target,g_target,o_target],axis=-1)
 
-        return [I, q, g, oin, I_target, q_target, g_target,], [train_target, qa, ga]
+        return [I, q, g, oin, I_target, q_target, g_target,], [
+                np.expand_dims(train_target, axis=1),
+                np.expand_dims(qa, axis=1),
+                np.expand_dims(ga, axis=1)]
 
-    def trainFromGenerators(self, train_generator, test_generator, data={}):
+    def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''
         Train tool from generator
 
@@ -500,13 +497,54 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         test_generator: produces test examples
         data: some extra data used for debugging (should be validation data)
         '''
+        if data is not None:
+            features, targets = self._getData(**data)
+        else:
+            raise RuntimeError('predictor model sets sizes based on'
+                               'sample data; must be provided')
+        # ===================================================================
+        # Use sample data to compile the model and set everything else up.
+        # Check to make sure data makes sense before running the model.
+
+        [I, q, g, oin, I_target, q_target, g_target,] = features
+        [I_target2, qa, ga,] = targets
+
+        if self.predictor is None:
+            self._makeModel(I, q, g, qa, ga, oin)
+
+        # Compute helpful variables
+        image_shape = I.shape[1:]
+        image_size = 1
+        for dim in image_shape:
+            image_size *= dim
+        image_size = int(image_size)
+        arm_size = q.shape[-1]
+        gripper_size = g.shape[-1]
+
+        train_size = image_size + arm_size + gripper_size + self.num_options
+        assert gripper_size == 1
+        # NOTE: arm size is one bigger when we have quaternions
+        #assert train_size == 12295 + self.num_options
+        assert train_size == 12296 + self.num_options
+        self.train_predictor.compile(
+                loss=[
+                    MhpLossWithShape(
+                        num_hypotheses=self.num_hypotheses,
+                        outputs=[image_size, arm_size, gripper_size, self.num_options],
+                        weights=[0.3,0.3,0.1,0.3],
+                        loss=["mse","mse","mse","categorical_crossentropy"]), 
+                    "mse","mse"],
+                loss_weights=[0.8,0.1,0.1],
+                optimizer=self.getOptimizer())
+        self.predictor.compile(loss="mse", optimizer=self.getOptimizer())
+
+        # ===================================================================
+        # Create the callbacks and actually run the training loop.
         modelCheckpointCb = ModelCheckpoint(
             filepath=self.name+"_predictor_weights.h5f",
             verbose=1,
             save_best_only=True # does not work without validation wts
         )
-        if data is not None:
-            features, targets = self._getData(**data)
         imageCb = PredictorShowImage(
             self.predictor,
             features=features[:4],
@@ -516,7 +554,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             min_idx=0,
             max_idx=5,
             step=1,)
-
         self.train_predictor.fit_generator(
                 train_generator,
                 self.steps_per_epoch,

@@ -54,8 +54,8 @@ class NpzGeneratorDataset(object):
         length = int(self.split*len(acceptable_files))
         print("---------------------------------------------")
         print("# Validation examples:",length)
-        test = [acceptable_files[i] for i in idx[:length]]
-        train = [acceptable_files[i] for i in idx[length:]]
+        self.test = [acceptable_files[i] for i in idx[:length]]
+        self.train = [acceptable_files[i] for i in idx[length:]]
         return sample
 
     def sampleTrainFilename(self):
@@ -68,12 +68,10 @@ class NpzGeneratorDataset(object):
 
     def sampleTrain(self):
         filename = self.sampleTrainFilename()
-        print("train opening", filename)
         sample = np.load(filename)
         return sample
 
     def sampleTest(self):
         filename = self.sampleTestFilename()
-        print("test opening", filename)
         sample = np.load(filename)
         return sample
