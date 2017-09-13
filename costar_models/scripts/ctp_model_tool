@@ -30,7 +30,8 @@ def main(args):
             if i < len(data_file_info)-1 and i > 0:
                 root += '.'
             root += tok
-        data = NpzGeneratorDataset(root).load()
+        dataset = NpzGeneratorDataset(root)
+        data = dataset.load()
     else:
         raise NotImplementedError('data type not implemented: %s'%data_type)
 
@@ -39,8 +40,12 @@ def main(args):
         print (args)
         if 'load_model' in args and args['load_model']:
             model.load(world=None,**data)
+        train_generator = model.trainGenerator(dataset)
+        test_generator = model.testGenerator(dataset)
         try:
-            model.train(**data)
+            # was:
+            #model.train(**data)
+            model.trainWithGenerators(train_generator, test_generator)
         except KeyboardInterrupt:
             pass
         model.save()

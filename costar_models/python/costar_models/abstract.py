@@ -21,6 +21,7 @@ class AbstractAgentBasedModel(object):
     def __init__(self, taskdef=None, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
             clipnorm=100., show_iter=0, pretrain_iter=5,
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
+            steps_per_epoch=1000,
             task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
 
@@ -33,6 +34,7 @@ class AbstractAgentBasedModel(object):
         self.lr = lr
         self.iter = iter
         self.show_iter = show_iter
+        self.steps_per_epoch = steps_per_epoch
         self.pretrain_iter = pretrain_iter
         self.noise_dim = zdim
         self.epochs = epochs
@@ -70,10 +72,11 @@ class AbstractAgentBasedModel(object):
         print("Model directory = ", self.model_directory)
         print("Models saved with prefix = ", self.name)
         print("-----------------------------------------------------------")
-        print("Iterations = ", self.iter)
-        print("Epochs = ", self.epochs)
+        print("Iterations =", self.iter)
+        print("Epochs =", self.epochs)
+        print("Steps per epoch =", self.steps_per_epoch)
         print("Batch size =", self.batch_size)
-        print("Noise dim = ", self.noise_dim)
+        print("Noise dim =", self.noise_dim)
         print("Show images every %d iter"%self.show_iter)
         print("Pretrain for %d iter"%self.pretrain_iter)
         print("-----------------------------------------------------------")
@@ -89,6 +92,12 @@ class AbstractAgentBasedModel(object):
             print("Could not create dir", self.model_directory)
             raise e
 
+    def trainGenerator(self, dataset):
+        raise NotImplementedError('trainGenerator(dataset) unsupported.')
+
+    def testGenerator(self, dataset):
+        raise NotImplementedError('testGenerator(dataset) unsupported.')
+
     def _numLabels(self):
         '''
         Use the taskdef to get total number of labels
@@ -100,6 +109,27 @@ class AbstractAgentBasedModel(object):
 
     def train(self, agent, *args, **kwargs):
         raise NotImplementedError('train() takes an agent.')
+
+    def trainFromGenerators(self, train_generator, test_generator):
+        raise NotImplementedError('trainFromGenerators() not implemented.')
+
+    def _getData(self, *args, **kwargs):
+        '''
+        This function should process all the data you need for a generator.
+        ''' 
+        raise NotImplementedError('_getData() requires a dataset.')
+        
+    def trainGenerator(self, dataset):
+        while True:
+            data = dataset.sampleTrain()
+            features, targets = self._getData(**data)
+            yield features, targets
+
+    def testGenerator(self, dataset):
+        while True:
+            data = dataset.sampleTest()
+            features, targets = self._getData(**data)
+            yield features, targets
 
     def save(self):
         '''

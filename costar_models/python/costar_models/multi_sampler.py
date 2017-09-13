@@ -448,6 +448,75 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 #[I, q, g, I_target, q_target, g_target],
                 [train_target, qa, ga],)
 
+    def _getData(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
+            prev_label, goal_features, goal_arm, goal_gripper, *args, **kwargs):
+        I = features
+        q = arm
+        g = gripper
+        qa = arm_cmd
+        ga = gripper_cmd
+        oin = prev_label
+        I_target = goal_features
+        q_target = goal_arm
+        g_target = goal_gripper
+        o_target = label
+        print("sanity check:")
+        print("-------------")
+        print("images:", I.shape, I_target.shape)
+        print("joints:", q.shape)
+        print("options:", oin.shape, o_target.shape)
+
+        if self.predictor is None:
+            self._makeModel(I, q, g, qa, ga, oin)
+
+        # ==============================
+        image_shape = I.shape[1:]
+        image_size = 1
+        for dim in image_shape:
+            image_size *= dim
+        image_size = int(image_size)
+        arm_size = q.shape[-1]
+        gripper_size = g.shape[-1]
+
+        train_size = image_size + arm_size + gripper_size + self.num_options
+        assert gripper_size == 1
+        assert train_size == 12295 + self.num_options
+        assert I.shape[0] == I_target.shape[0]
+
+        o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
+        length = I.shape[0]
+        Itrain = np.reshape(I_target,(length, image_size))
+        train_target = np.concatenate([Itrain,q_target,g_target,o_target],axis=-1)
+
+        return [I, q, g, oin, I_target, q_target, g_target,], [train_target, qa, ga]
+
+    def trainFromGenerators(self, train_generator, test_generator):
+        '''
+        Train tool from generator
+        '''
+        modelCheckpointCb = ModelCheckpoint(
+            filepath=self.name+"_predictor_weights.h5f",
+            verbose=1,
+            save_best_only=True # does not work without validation wts
+        )
+        imageCb = PredictorShowImage(
+            self.predictor,
+            features=features[:4],
+            targets=targets,
+            num_hypotheses=self.num_hypotheses,
+            verbose=True,
+            min_idx=0,
+            max_idx=5,
+            step=1,)
+
+        self.train_predictor.fit_generator(
+                train_generator,
+                self.steps_per_epoch,
+                epochs=self.epochs,
+                validation_steps=self.validation_steps,
+                self.validation_data=test_generator,
+                callbacks=[modelCheckpointCb, imageCb])
+
 
     def save(self):
         '''
@@ -498,3 +567,4 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Evaluate this policy to get the next action out
         return policy.predict(features)
+

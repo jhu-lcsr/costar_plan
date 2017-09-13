@@ -1,4 +1,6 @@
+from __future__ import print_function
 
+import numpy as np
 
 class NpzGeneratorDataset(object):
     '''
@@ -13,6 +15,7 @@ class NpzGeneratorDataset(object):
         self.split = split
         self.train = []
         self.test = []
+        self.max_per
 
     def write(self, *args, **kwargs):
         raise NotImplementedError('this dataset does not save things')
@@ -47,4 +50,28 @@ class NpzGeneratorDataset(object):
                 acceptable_files.append(f)
 
         idx = np.array(range(len(acceptable_files)))
-        
+        np.random.shuffle(idx)
+        length = int(self.split*len(acceptable_files))
+        print("validation examples",length)
+        test = acceptable_files[idx]
+        train = acceptable_files[idx]
+
+    def sampleTrainFilename(self):
+        return os.path.join(self.name,
+                self.train[np.random.randint(len(self.train)))
+
+    def sampleTestFilename(self):
+        return os.path.join(self.name,
+                self.test[np.random.randint(len(self.test)))
+
+    def sampleTrain(self):
+        filename = self.sampleTrainFilename()
+        print("train opening", filename)
+        sample = np.load(filename)
+        return sample
+
+    def sampleTest(self):
+        filename = self.sampleTestFilename()
+        print("test opening", filename)
+        sample = np.load(filename)
+        return sample
