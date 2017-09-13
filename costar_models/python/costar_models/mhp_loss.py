@@ -141,7 +141,7 @@ class MhpLossWithShape(object):
             xsum += (cc / len(self.outputs))
             xmin = tf.minimum(xmin, cc)
 
-        return (0.05 * xsum / self.num_hypotheses) + (0.90 * xmin)
+        return (0.01 * xsum / self.num_hypotheses) + (0.98 * xmin)
 
 def _getOutputs(state, outputs, i):
     '''

@@ -28,6 +28,7 @@ from ply import write_xyz_rgb_as_ply
 
 import moviepy.editor as mpy
 from grasp_dataset import GraspDataset
+from grasp_geometry import matrix_to_vector_quaternion_array
 from depth_image_encoding import ImageToFloatArray
 from depth_image_encoding import depth_image_to_point_cloud
 
@@ -46,23 +47,8 @@ tf.flags.DEFINE_integer('vrepTimeOutInMs', 5000, 'Timeout in milliseconds upon w
 tf.flags.DEFINE_integer('vrepCommThreadCycleInMs', 5, 'time between communication cycles')
 tf.flags.DEFINE_string('vrepDebugMode', 'save_ply', """Options are: '', 'fixed_depth', 'save_ply'.""")
 
+flags.FLAGS._parse_flags()
 FLAGS = flags.FLAGS
-
-
-def matrix_to_vector_quaternion_array(matrix, inverse=False):
-    """Convert a 4x4 Rt transformation matrix into an vector quaternion array
-    containing 3 vector entries (x, y, z) and 4 quaternion entries (x, y, z, w)
-    """
-    rot = e.Matrix3d(matrix[:3, :3])
-    quaternion = e.Quaterniond(rot)
-    translation = matrix[:3, 3].transpose()
-    if inverse:
-        quaternion = quaternion.inverse()
-        translation *= -1
-    q_floats_array = np.array(quaternion.coeffs()).astype(np.float32)
-    vec_quat_7 = np.append(translation, q_floats_array)
-    print vec_quat_7
-    return vec_quat_7
 
 
 class VREPGraspSimulation(object):
@@ -152,55 +138,69 @@ class VREPGraspSimulation(object):
             print 'create_point_cloud remote function call failed.'
             return -1
 
-    def visualize(self, tf_session, dataset=None, batch_size=1, parent_name='LBR_iiwa_14_R820'):
+    def visualize(self, tf_session, dataset=FLAGS.grasp_dataset, batch_size=1, parent_name='LBR_iiwa_14_R820'):
         """Visualize one dataset in V-REP
         """
-        grasp_dataset = GraspDataset(dataset)
-        feature_op_dicts, features_complete_list = grasp_dataset.get_simple_parallel_dataset_ops()
-        # TODO(ahundt) https://www.tensorflow.org/performance/performance_models
-        # make sure records are always ready to go
-        # staging_area = tf.contrib.staging.StagingArea()
+        grasp_dataset_object = GraspDataset(dataset=dataset)
+        batch_size = 1
+        feature_op_dicts, features_complete_list, num_samples = grasp_dataset_object.get_simple_parallel_dataset_ops(
+            batch_size=batch_size)
 
         tf_session.run(tf.global_variables_initializer())
-        output_features_dict = tf_session.run(feature_op_dicts)
 
         error_code, parent_handle = v.simxGetObjectHandle(self.client_id, parent_name, v.simx_opmode_blocking)
         if error_code is -1:
             parent_handle = -1
             print 'could not find object with the specified name, so putting objects in world frame:', parent_name
 
-        for features_dict_np, sequence_dict_np in output_features_dict:
-            # TODO(ahundt) actually put transforms into V-REP or pybullet
-            camera_to_base_transform, camera_intrinsics = self._visualize_one_grasp_attempt(
-                    grasp_dataset, features_complete_list, features_dict_np, parent_handle)
+        for attempt_num in range(num_samples / batch_size):
+            output_features_dict = tf_session.run(feature_op_dicts)
+            for features_dict_np, sequence_dict_np in output_features_dict:
+                # TODO(ahundt) actually put transforms into V-REP or pybullet
+                self._visualize_one_grasp_attempt(
+                        grasp_dataset_object, features_complete_list, features_dict_np, parent_handle,
+                        dataset_name=dataset,
+                        attempt_num=attempt_num)
 
-            # returnCode, dummyHandle = v.simxCreateDummy(self.client_id, 0.1, colors=None, operationMode=simx_opmode_blocking)
+                # returnCode, dummyHandle = v.simxCreateDummy(self.client_id, 0.1, colors=None, operationMode=simx_opmode_blocking)
 
-    def _visualize_one_grasp_attempt(self, grasp_dataset, features_complete_list, features_dict_np, parent_handle):
+    def _visualize_one_grasp_attempt(self, grasp_dataset_object, features_complete_list, features_dict_np, parent_handle,
+                                     dataset_name=FLAGS.grasp_dataset,
+                                     attempt_num=0,
+                                     grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
+                                     grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
+                                     visualization_dir=FLAGS.visualization_dir,
+                                     vrepDebugMode=FLAGS.vrepDebugMode):
         """Take an extracted grasp attempt tfrecord numpy dictionary and visualize it in vrep
         """
         # TODO(ahundt) actually put transforms into V-REP or pybullet
-        base_to_endeffector_transforms = grasp_dataset.get_time_ordered_features(
+        base_to_endeffector_transforms = grasp_dataset_object.get_time_ordered_features(
             features_complete_list,
             feature_type='transforms/base_T_endeffector/vec_quat_7')
         camera_to_base_transform_name = 'camera/transforms/camera_T_base/matrix44'
         camera_intrinsics_name = 'camera/intrinsics/matrix33'
 
-        depth_image_features = grasp_dataset.get_time_ordered_features(
+        depth_image_features = grasp_dataset_object.get_time_ordered_features(
             features_complete_list,
             feature_type='depth_image/decoded'
         )
 
-        rgb_image_features = grasp_dataset.get_time_ordered_features(
+        rgb_image_features = grasp_dataset_object.get_time_ordered_features(
             features_complete_list,
             feature_type='/image/decoded'
         )
+
+        grasp_success_feature_name = grasp_dataset_object.get_time_ordered_features(
+            features_complete_list,
+            feature_type='grasp_success'
+        )[0]
 
         camera_intrinsics_matrix = features_dict_np[camera_intrinsics_name]
         camera_to_base_4x4matrix = features_dict_np[camera_to_base_transform_name]
         base_to_camera_vec_quat_7 = matrix_to_vector_quaternion_array(camera_to_base_4x4matrix)
         # gripper_positions = [features_dict_np[transform_name] for transform_name in base_to_endeffector_transforms]
-        for i, transform_name, depth_name, rgb_name in zip(range(len(base_to_endeffector_transforms)), base_to_endeffector_transforms, depth_image_features, rgb_image_features):
+        for i, transform_name, depth_name, rgb_name in zip(range(len(base_to_endeffector_transforms)),
+                                                           base_to_endeffector_transforms, depth_image_features, rgb_image_features):
             # 2. Now create a dummy object at coordinate 0.1,0.2,0.3 with name 'MyDummyName':
             empty_buffer = bytearray()
             # 3 cartesian (x, y, z) and 4 quaternion (x, y, z, w) elements, same as vrep
@@ -219,22 +219,25 @@ class VREPGraspSimulation(object):
             if np.count_nonzero(depth_image_float_format) is 0:
                 print 'WARNING: DEPTH IMAGE IS ALL ZEROS'
             print depth_name, depth_image_float_format.shape, depth_image_float_format
-            if i is 1:
+            if ((grasp_sequence_min_time_step is None or i >= grasp_sequence_min_time_step) and
+                    (grasp_sequence_max_time_step is None or i <= grasp_sequence_max_time_step)):
                 # only output one depth image while debugging
                 # mp.pyplot.imshow(depth_image_float_format, block=True)
                 print 'plot done'
                 # TODO(ahundt) uncomment next line after debugging is done
                 point_cloud = depth_image_to_point_cloud(depth_image_float_format, camera_intrinsics_matrix)
-                if 'fixed_depth' in FLAGS.vrepDebugMode:
+                if 'fixed_depth' in vrepDebugMode:
                     point_cloud = depth_image_to_point_cloud(np.ones(depth_image_float_format.shape), camera_intrinsics_matrix)
                 print 'point_cloud.shape:', point_cloud.shape, 'rgb_image.shape:', rgb_image.shape
-                point_cloud_display_name = str(i).zfill(2) + '_rgbd_' + depth_name.replace('/depth_image/decoded', '').replace('/', '_')
+                point_cloud_display_name = ('point_cloud_' + str(dataset_name) + '_' + str(attempt_num) + '_' + str(i).zfill(2) +
+                    '_rgbd_' + depth_name.replace('/depth_image/decoded', '').replace('/', '_') +
+                    '_success_' + str(int(features_dict_np[grasp_success_feature_name])))
                 print 'point_cloud:', point_cloud.transpose()[:30, :3]
-                path = os.path.join(FLAGS.visualization_dir, point_cloud_display_name + '.ply')
+                path = os.path.join(visualization_dir, point_cloud_display_name + '.ply')
                 print 'point_cloud.size:', point_cloud.size
                 xyz = point_cloud.reshape([point_cloud.size/3, 3])
                 rgb = np.squeeze(rgb_image).reshape([point_cloud.size/3, 3])
-                if 'save_ply' in FLAGS.vrepDebugMode:
+                if 'save_ply' in vrepDebugMode:
                     write_xyz_rgb_as_ply(xyz, rgb, path)
                 xyz = xyz[:3000, :]
                 # xyz = np.array([[0,0,0], [0,0,1], [0,1,0], [1,0,0]])

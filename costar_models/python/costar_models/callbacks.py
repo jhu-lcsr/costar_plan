@@ -71,3 +71,4 @@ class PredictorShowImage(keras.callbacks.Callback):
             if self.verbose:
                 print("Arm/gripper target = ", self.targets[0][j,imglen:imglen+7])
                 print("Label target = ", np.argmax(self.targets[0][j,(imglen+7):]))
+            plt.close(fig)
