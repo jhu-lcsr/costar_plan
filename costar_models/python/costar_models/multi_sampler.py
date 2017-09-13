@@ -47,8 +47,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.tform_filters = 64
         self.combined_dense_size = 128
         self.num_hypotheses = 8
-        self.num_transforms = 2
+        self.num_transforms = 3
         self.validation_split = 0.1
+        self.num_options = 48
 
         self.predictor = None
         self.train_predictor = None
@@ -125,7 +126,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 dense=False,
                 batchnorm=True,
                 tile=True,
-                option=64,
+                option=self.num_options,
                 flatten=False,
                 output_filters=self.tform_filters,
                 )
@@ -190,7 +191,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         arm_out_x = Dense(arm_size,name="next_arm")(x)
         gripper_out_x = Dense(gripper_size,
                 name="next_gripper_flat")(x)
-        label_out_x = Dense(64,name="next_label",activation="softmax")(x)
+        label_out_x = Dense(self.num_options,name="next_label",activation="softmax")(x)
 
         decoder = Model(rep, [dec, arm_out_x, gripper_out_x, label_out_x], name="decoder")
 
@@ -275,7 +276,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         train_predictor = Model(ins + gins, [train_out,
                                              arm_cmd_out,
                                              gripper_cmd_out,])
-
+        train_predictor.summary()
         return predictor, train_predictor, actor
 
     def _fitPredictor(self, features, targets,):
@@ -417,12 +418,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         arm_size = q.shape[-1]
         gripper_size = g.shape[-1]
 
-        train_size = image_size + arm_size + gripper_size + 64
+        train_size = image_size + arm_size + gripper_size + self.num_options
         assert gripper_size == 1
-        assert train_size == 12295 + 64
+        assert train_size == 12295 + self.num_options
         assert I.shape[0] == I_target.shape[0]
 
-        o_target = np.squeeze(self.toOneHot2D(o_target, 64))
+        o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
         length = I.shape[0]
         Itrain = np.reshape(I_target,(length, image_size))
         train_target = np.concatenate([Itrain,q_target,g_target,o_target],axis=-1)
@@ -431,7 +432,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 loss=[
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
-                        outputs=[image_size, arm_size, gripper_size, 64],
+                        outputs=[image_size, arm_size, gripper_size, self.num_options],
                         weights=[0.6,0.2,0.1,0.1],
                         loss=["mse","mse","mse","categorical_crossentropy"]), 
                     "mse","mse"],
