@@ -21,7 +21,7 @@ class AbstractAgentBasedModel(object):
     def __init__(self, taskdef=None, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
             clipnorm=100., show_iter=0, pretrain_iter=5,
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
-            steps_per_epoch=1000, validation_steps=100,
+            steps_per_epoch=1000, validation_steps=100, choose_initial=5,
             task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
 
@@ -33,6 +33,7 @@ class AbstractAgentBasedModel(object):
 
         self.lr = lr
         self.iter = iter
+        self.choose_initial = choose_initial
         self.show_iter = show_iter
         self.steps_per_epoch = steps_per_epoch
         self.pretrain_iter = pretrain_iter
@@ -64,6 +65,8 @@ class AbstractAgentBasedModel(object):
         self.model = None
 
         print("===========================================================")
+        print("==========   TRAINING CONFIGURATION REPORT   ==============")
+        print("===========================================================")
         print("Name =", self.name_prefix)
         print("Features = ", self.features)
         print("Robot = ", self.robot)
@@ -80,6 +83,7 @@ class AbstractAgentBasedModel(object):
         print("Noise dim =", self.noise_dim)
         print("Show images every %d iter"%self.show_iter)
         print("Pretrain for %d iter"%self.pretrain_iter)
+        print("p(Generator sample first frame) = 1/%d"%(self.choose_initial))
         print("-----------------------------------------------------------")
         print("Optimizer =", self.optimizer)
         print("Learning Rate = ", self.lr)
@@ -137,7 +141,11 @@ class AbstractAgentBasedModel(object):
     def _yield(self, data):
             features, targets = self._getData(**data)
             n_samples = features[0].shape[0]
-            idx = np.random.randint(0,n_samples - self.batch_size)
+            r = np.random.randint(self.choose_initial)
+            if r > 0:
+                idx = np.random.randint(0,n_samples - self.batch_size)
+            else:
+                idx = 0
             return ([f[idx:idx+self.batch_size] for f in features],
                     [t[idx:idx+self.batch_size] for t in targets])
 
