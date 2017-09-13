@@ -490,15 +490,23 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         return [I, q, g, oin, I_target, q_target, g_target,], [train_target, qa, ga]
 
-    def trainFromGenerators(self, train_generator, test_generator):
+    def trainFromGenerators(self, train_generator, test_generator, data={}):
         '''
         Train tool from generator
+
+        Parameters:
+        -----------
+        train_generator: produces training examples
+        test_generator: produces test examples
+        data: some extra data used for debugging (should be validation data)
         '''
         modelCheckpointCb = ModelCheckpoint(
             filepath=self.name+"_predictor_weights.h5f",
             verbose=1,
             save_best_only=True # does not work without validation wts
         )
+        if data is not None:
+            features, targets = self._getData(**data)
         imageCb = PredictorShowImage(
             self.predictor,
             features=features[:4],
@@ -514,7 +522,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 self.steps_per_epoch,
                 epochs=self.epochs,
                 validation_steps=self.validation_steps,
-                self.validation_data=test_generator,
+                validation_data=test_generator,
                 callbacks=[modelCheckpointCb, imageCb])
 
 

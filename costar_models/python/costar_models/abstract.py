@@ -110,7 +110,7 @@ class AbstractAgentBasedModel(object):
     def train(self, agent, *args, **kwargs):
         raise NotImplementedError('train() takes an agent.')
 
-    def trainFromGenerators(self, train_generator, test_generator):
+    def trainFromGenerators(self, train_generator, test_generator, data={}):
         raise NotImplementedError('trainFromGenerators() not implemented.')
 
     def _getData(self, *args, **kwargs):

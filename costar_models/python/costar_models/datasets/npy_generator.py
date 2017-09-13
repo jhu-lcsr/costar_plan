@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import numpy as np
+import os
 
 class NpzGeneratorDataset(object):
     '''
@@ -15,7 +16,6 @@ class NpzGeneratorDataset(object):
         self.split = split
         self.train = []
         self.test = []
-        self.max_per
 
     def write(self, *args, **kwargs):
         raise NotImplementedError('this dataset does not save things')
@@ -33,7 +33,7 @@ class NpzGeneratorDataset(object):
         acceptable_files = []
         for f in files:
             if not f[0] == '.':
-                print("%d:"%i+1, f)
+                print("%d:"%(i+1), f)
                 if success_only:
                     name = f.split('.')
                     if name[0] == 'failure':
@@ -52,17 +52,19 @@ class NpzGeneratorDataset(object):
         idx = np.array(range(len(acceptable_files)))
         np.random.shuffle(idx)
         length = int(self.split*len(acceptable_files))
-        print("validation examples",length)
-        test = acceptable_files[idx]
-        train = acceptable_files[idx]
+        print("---------------------------------------------")
+        print("# Validation examples:",length)
+        test = [acceptable_files[i] for i in idx[:length]]
+        train = [acceptable_files[i] for i in idx[length:]]
+        return sample
 
     def sampleTrainFilename(self):
         return os.path.join(self.name,
-                self.train[np.random.randint(len(self.train)))
+                self.train[np.random.randint(len(self.train))])
 
     def sampleTestFilename(self):
         return os.path.join(self.name,
-                self.test[np.random.randint(len(self.test)))
+                self.test[np.random.randint(len(self.test))])
 
     def sampleTrain(self):
         filename = self.sampleTrainFilename()
