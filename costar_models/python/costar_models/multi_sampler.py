@@ -570,7 +570,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 validation_data=test_generator,
                 callbacks=[modelCheckpointCb, imageCb])
 
-
     def save(self):
         '''
         Save to a filename determined by the "self.name" field.

@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+import matplotlib as mpl
+mpl.use("Agg")
+
 from costar_models import *
 from costar_models.datasets.npz import NpzDataset
 from costar_models.datasets.npy_generator import NpzGeneratorDataset
