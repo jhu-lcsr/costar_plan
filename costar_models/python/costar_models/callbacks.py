@@ -31,7 +31,7 @@ class PredictorShowImage(keras.callbacks.Callback):
         self.idxs = range(min_idx, max_idx, step)
         self.num = len(self.idxs)
         self.features = [f[self.idxs] for f in features]
-        self.targets = [t[self.idxs] for t in targets]
+        self.targets = [np.squeeze(t[self.idxs]) for t in targets]
         self.epoch = 0
         self.num_hypotheses = num_hypotheses
         if not os.path.exists(self.directory):
