@@ -141,13 +141,12 @@ class AbstractAgentBasedModel(object):
     def _yield(self, data):
             features, targets = self._getData(**data)
             n_samples = features[0].shape[0]
+            idx = np.random.randint(n_samples,size=(self.batch_size,))
             r = np.random.randint(self.choose_initial)
             if r > 0:
-                idx = np.random.randint(0,n_samples - self.batch_size)
-            else:
-                idx = 0
-            return ([f[idx:idx+self.batch_size] for f in features],
-                    [t[idx:idx+self.batch_size] for t in targets])
+                idx[0] = 0
+            return ([f[idx] for f in features],
+                    [t[idx] for t in targets])
 
     def save(self):
         '''
