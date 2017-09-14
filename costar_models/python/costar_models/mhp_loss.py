@@ -99,6 +99,7 @@ class MhpLossWithShape(object):
             self.weights = [1.] * len(self.outputs)
         else:
             self.weights = weights
+        
         assert len(self.weights) == len(self.outputs)
         self.losses = []
         if isinstance(loss, list):
@@ -106,6 +107,7 @@ class MhpLossWithShape(object):
                 self.losses.append(keras.losses.get(loss_name))
         else:
             self.losses = [loss] * len(self.outputs)
+        print (len(self.outputs), len(self.losses))
         assert len(self.outputs) == len(self.losses)
         self.__name__ = "mhp_loss"
 

@@ -51,7 +51,6 @@ class NpzDataset(object):
         data: dict of features and other information.
         '''
         files = os.listdir(self.name)
-        print ("files is ", self.name)
         files.sort()
         data = {}
         i = 0

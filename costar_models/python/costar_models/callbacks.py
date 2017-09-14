@@ -43,7 +43,8 @@ class PredictorShowImage(keras.callbacks.Callback):
         imglen = 64*64*3
         img = self.targets[0][:,:imglen]
         img = np.reshape(img, (self.num,64,64,3))
-        data, arms, grippers, label = self.predictor.predict(self.features)
+        print (len(self.features))
+        data, poses, label = self.predictor.predict(self.features)
         if self.verbose:
             print("============================")
         for j in range(self.num):
@@ -61,14 +62,14 @@ class PredictorShowImage(keras.callbacks.Callback):
             plt.imshow(img[j])
             for i in range(self.num_hypotheses):
                 if self.verbose:
-                    print("Arms = ", arms[j][i])
-                    print("Gripper = ", grippers[j][i])
+                    print("Poses = ", poses[j][i])
+                    
                     print("Label = ", np.argmax(label[j][i]))
                 plt.subplot(1,2+self.num_hypotheses,i+2)
                 plt.imshow(np.squeeze(data[j][i]))
                 plt.title('Hypothesis %d'%(i+1))
             fig.savefig(name, bbox_inches="tight")
             if self.verbose:
-                print("Arm/gripper target = ", self.targets[0][j,imglen:imglen+7])
+                print("Pose target = ", self.targets[0][j,imglen:imglen+7])
                 print("Label target = ", np.argmax(self.targets[0][j,(imglen+7):]))
             plt.close(fig)
