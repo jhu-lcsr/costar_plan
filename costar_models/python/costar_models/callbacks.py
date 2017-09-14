@@ -77,6 +77,8 @@ class PredictorShowImage(keras.callbacks.Callback):
                 plt.title('Hypothesis %d'%(i+1))
             fig.savefig(name, bbox_inches="tight")
             if self.verbose:
-                print("Arm/gripper target = ", self.targets[0][j,imglen:imglen+7])
-                print("Label target = ", np.argmax(self.targets[0][j,(imglen+7):]))
+                print("Arm/gripper target = ",
+                        self.targets[0][j,imglen:imglen+8])
+                print("Label target = ",
+                        np.argmax(self.targets[0][j,(imglen+8):]))
             plt.close(fig)
