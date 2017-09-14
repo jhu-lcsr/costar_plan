@@ -41,7 +41,15 @@ class PredictorShowImage(keras.callbacks.Callback):
         # take the model and print it out
         self.epoch += 1
         imglen = 64*64*3
-        img = self.targets[0][:,:imglen]
+        if len(self.targets[0].shape) == 2:
+            img = self.targets[0][:,:imglen]
+        elif len(self.targets[0].shape) == 3:
+            assert self.targets[0].shape[1] == 1
+            img = self.targets[0][:,0,:imglen]
+        else:
+            raise RuntimeError('did not recognize big train target shape; '
+                               'are you sure you meant to use this callback'
+                               'and not a normal image callback?')
         img = np.reshape(img, (self.num,64,64,3))
         data, arms, grippers, label = self.predictor.predict(self.features)
 	plt.ioff()

@@ -242,11 +242,13 @@ class AbstractAgent(object):
         # ============================================================
         # Split into chunks and preprocess the data.
         # This may require setting up window_length, etc.
-        next_list = world.features.description + ["reward", "label"]
+        # NOTE: removing some unnecessary features that we really dont need to
+        # save. This ued to add world.features.description
+        next_list = ["reward", "label"]
         # -- NOTE: you can add other features here in the future, but for now
         # we do not need these. Label gets some unique handling.
         prev_list  = []
-        first_list = world.features.description
+        first_list = []
         goal_list = world.features.description
         length = len(self.current_example['example'])
 
