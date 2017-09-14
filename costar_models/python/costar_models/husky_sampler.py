@@ -48,6 +48,7 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
         self.combined_dense_size = 128
         self.num_hypotheses = 8
         self.num_transforms = 3
+        self.num_options = 4
 
         self.predictor = None
         self.train_predictor = None
@@ -437,7 +438,7 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
                 dense=False,
                 batchnorm=True,
                 tile=True,
-                option=64,
+                option=self.num_options,
                 flatten=False,
                 output_filters=self.tform_filters,
                 )
@@ -454,7 +455,7 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
                 dense=False,
                 batchnorm=True,
                 tile=True,
-                #option=64,
+                #option=self.num_options,
                 flatten=False,
                 output_filters=self.tform_filters,
                 )
@@ -505,7 +506,7 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
         x = LeakyReLU(0.2)(x)
         pose_out_x = Dense(pose_size,name="next_pose")(x)
        
-        label_out_x = Dense(64,name="next_label",activation="softmax")(x)
+        label_out_x = Dense(self.num_options,name="next_label",activation="softmax")(x)
 
         decoder = Model(rep, [dec, pose_out_x, label_out_x], name="decoder")
 
@@ -721,11 +722,12 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
         image_size = int(image_size)
         pose_size = q.shape[-1]
 
-        train_size = image_size + pose_size + 64
+        train_size = image_size + pose_size + self.num_options
         #assert train_size == 12295 + 64
+        assert train_size == 64*64*3 + 6 + self.num_options
         assert I.shape[0] == I_target.shape[0]
 
-        o_target = np.squeeze(self.toOneHot2D(o_target, 64))
+        o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
         length = I.shape[0]
         Itrain = np.reshape(I_target,(length, image_size))
         train_target = np.concatenate([Itrain,q_target,o_target],axis=-1)
@@ -734,8 +736,9 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
                 loss=[
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
-                        outputs=[image_size, pose_size, 64],
-                        weights=[0.6,0.3,0.1],
+                        outputs=[image_size, pose_size, self.num_options],
+                        #weights=[0.6,0.3,0.1],
+                        weights=[1.,0.,0.],
                         loss=["mse","mse","categorical_crossentropy"]), 
                     "mse"],
                 loss_weights=[0.8,0.1],

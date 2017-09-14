@@ -62,8 +62,8 @@ def main(args):
 #                imsave(filename, i)
 #                cnt += 1
 #            
-            model.train(data['image'],data['robot_pose'],data['robot_action'],data['label'],\
-            data['prev_label'],data['goal_image'],data['goal_robot_pose'])
+            model.train(data['image']/255.,data['robot_pose'],data['robot_action'],data['label'],\
+            data['prev_label'],data['goal_image']/255.,data['goal_robot_pose'])
         except KeyboardInterrupt:
             pass
         model.save()
