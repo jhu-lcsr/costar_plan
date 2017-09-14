@@ -262,7 +262,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         y = Dropout(self.dropout_rate)(y)
         y = LeakyReLU(0.2)(y)
         arm_cmd_out = Lambda(lambda x: K.expand_dims(x, axis=1),name="arm_action")(
-                Dense(arm_size)(y))
+                Dense(arm_size-1)(y))
         gripper_cmd_out = Lambda(lambda x: K.expand_dims(x, axis=1),name="gripper_action")(
                 Dense(gripper_size)(y))
 
@@ -300,7 +300,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         if self.show_iter == 0 or self.show_iter == None:
             modelCheckpointCb = ModelCheckpoint(
-                filepath=self.name+"_predictor_weights.h5f",
+                filepath=self.name+"_train_predictor_weights.h5f",
                 verbose=1,
                 save_best_only=False # does not work without validation wts
             )
@@ -433,7 +433,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
-                        weights=[0.3,0.3,0.1,0.3],
+                        weights=[0.5,0.3,0.1,0.1],
                         loss=["mse","mse","mse","categorical_crossentropy"]), 
                     "mse","mse"],
                 loss_weights=[0.8,0.1,0.1],
@@ -448,6 +448,119 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 #[I, q, g, I_target, q_target, g_target],
                 [train_target, qa, ga],)
 
+    def _getData(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
+            prev_label, goal_features, goal_arm, goal_gripper, *args, **kwargs):
+        I = features
+        q = arm
+        g = gripper
+        qa = arm_cmd
+        ga = gripper_cmd
+        oin = prev_label
+        I_target = goal_features
+        q_target = goal_arm
+        g_target = goal_gripper
+        o_target = label
+
+        # ==============================
+        image_shape = I.shape[1:]
+        image_size = 1
+        for dim in image_shape:
+            image_size *= dim
+        image_size = int(image_size)
+        arm_size = q.shape[-1]
+        gripper_size = g.shape[-1]
+
+        train_size = image_size + arm_size + gripper_size + self.num_options
+        assert gripper_size == 1
+        #assert train_size == 12295 + self.num_options
+        # NOTE: arm size is one bigger when we have quaternions
+        assert train_size == 12296 + self.num_options
+        assert I.shape[0] == I_target.shape[0]
+
+        o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
+        length = I.shape[0]
+        Itrain = np.reshape(I_target,(length, image_size))
+        train_target = np.concatenate([Itrain,q_target,g_target,o_target],axis=-1)
+
+        return [I, q, g, oin, I_target, q_target, g_target,], [
+                np.expand_dims(train_target, axis=1),
+                np.expand_dims(qa, axis=1),
+                np.expand_dims(ga, axis=1)]
+
+    def trainFromGenerators(self, train_generator, test_generator, data=None):
+        '''
+        Train tool from generator
+
+        Parameters:
+        -----------
+        train_generator: produces training examples
+        test_generator: produces test examples
+        data: some extra data used for debugging (should be validation data)
+        '''
+        if data is not None:
+            features, targets = self._getData(**data)
+        else:
+            raise RuntimeError('predictor model sets sizes based on'
+                               'sample data; must be provided')
+        # ===================================================================
+        # Use sample data to compile the model and set everything else up.
+        # Check to make sure data makes sense before running the model.
+
+        [I, q, g, oin, I_target, q_target, g_target,] = features
+        [I_target2, qa, ga,] = targets
+
+        if self.predictor is None:
+            self._makeModel(I, q, g, qa, ga, oin)
+
+        # Compute helpful variables
+        image_shape = I.shape[1:]
+        image_size = 1
+        for dim in image_shape:
+            image_size *= dim
+        image_size = int(image_size)
+        arm_size = q.shape[-1]
+        gripper_size = g.shape[-1]
+
+        train_size = image_size + arm_size + gripper_size + self.num_options
+        assert gripper_size == 1
+        # NOTE: arm size is one bigger when we have quaternions
+        #assert train_size == 12295 + self.num_options
+        assert train_size == 12296 + self.num_options
+        self.train_predictor.compile(
+                loss=[
+                    MhpLossWithShape(
+                        num_hypotheses=self.num_hypotheses,
+                        outputs=[image_size, arm_size, gripper_size, self.num_options],
+                        weights=[0.3,0.3,0.1,0.3],
+                        loss=["mse","mse","mse","categorical_crossentropy"]), 
+                    "mse","mse"],
+                loss_weights=[0.8,0.1,0.1],
+                optimizer=self.getOptimizer())
+        self.predictor.compile(loss="mse", optimizer=self.getOptimizer())
+
+        # ===================================================================
+        # Create the callbacks and actually run the training loop.
+        modelCheckpointCb = ModelCheckpoint(
+            filepath=self.name+"_predictor_weights.h5f",
+            verbose=1,
+            save_best_only=True # does not work without validation wts
+        )
+        imageCb = PredictorShowImage(
+            self.predictor,
+            features=features[:4],
+            targets=targets,
+            num_hypotheses=self.num_hypotheses,
+            verbose=True,
+            min_idx=0,
+            max_idx=5,
+            step=1,)
+        self.train_predictor.fit_generator(
+                train_generator,
+                self.steps_per_epoch,
+                epochs=self.epochs,
+                validation_steps=self.validation_steps,
+                validation_data=test_generator,
+                callbacks=[modelCheckpointCb, imageCb])
 
     def save(self):
         '''
@@ -456,8 +569,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.predictor is not None:
             print("----------------------------")
             print("Saving to " + self.name + "_{predictor, actor}")
-            self.predictor.save_weights(self.name + "_predictor.h5f")
+            self.train_predictor.save_weights(self.name + "_train_predictor.h5f")
             if self.actor is not None:
+                self.predictor.save_weights(self.name + "_predictor.h5f")
                 self.actor.save_weights(self.name + "_actor.h5f")
         else:
             raise RuntimeError('save() failed: model not found.')
@@ -472,9 +586,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             print("using " + self.name + " to load")
             try:
                 self.actor.load_weights(self.name + "_actor.h5f")
+                #self.predictor.load_weights(self.name + "_predictor.h5f")
             except Exception as e:
                 print(e)
-            self.predictor.load_weights(self.name + "_predictor.h5f")
+            self.train_predictor.load_weights(self.name + "_train_predictor.h5f")
         else:
             raise RuntimeError('_loadWeights() failed: model not found.')
 
@@ -498,3 +613,4 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Evaluate this policy to get the next action out
         return policy.predict(features)
+
