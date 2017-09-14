@@ -22,6 +22,7 @@ class AbstractAgentBasedModel(object):
             clipnorm=100., show_iter=0, pretrain_iter=5,
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
             steps_per_epoch=1000, validation_steps=100, choose_initial=5,
+            num_generator_files=3,
             task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
 
@@ -51,6 +52,7 @@ class AbstractAgentBasedModel(object):
         self.taskdef = taskdef
         self.model_directory = os.path.expanduser(model_directory)
         self.name = os.path.join(self.model_directory, self.name_prefix)
+        self.num_generator_files = num_generator_files
         if self.task is not None:
             self.name += "_%s"%self.task
         if self.features is not None:
@@ -126,7 +128,15 @@ class AbstractAgentBasedModel(object):
         
     def trainGenerator(self, dataset):
         while True:
-            data = dataset.sampleTrain()
+            data = {}
+            for _ in range(self.num_generator_files):
+                fdata = dataset.sampleTest()
+                for key, value in fdata.items():
+                    if key not in data:
+                        data[key] = value
+                    if value.shape[0] == 0:
+                        continue
+                    data[key] = np.concatenate([data[key],value],axis=0)
             yield self._yield(data)
 
     def testGenerator(self, dataset):
@@ -135,7 +145,15 @@ class AbstractAgentBasedModel(object):
             # something proportional to the amount of validation data we have
             self.validation_steps = len(dataset.test) + 1
         while True:
-            data = dataset.sampleTest()
+            data = {}
+            for _ in range(self.num_generator_files):
+                fdata = dataset.sampleTest()
+                for key, value in fdata.items():
+                    if key not in data:
+                        data[key] = value
+                    if value.shape[0] == 0:
+                        continue
+                    data[key] = np.concatenate([data[key],value],axis=0)
             yield self._yield(data)
 
     def _yield(self, data):

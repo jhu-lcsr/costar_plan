@@ -44,7 +44,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.dropout_rate = 0.5
         self.img_col_dim = 512
         self.img_num_filters = 64
-        self.tform_filters = 64
+        self.tform_filters = 32
         self.combined_dense_size = 128
         self.num_hypotheses = 8
         self.num_transforms = 2
@@ -273,9 +273,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         #predictor = Model(ins, [decoder(enc), arm_out, gripper_out])
         predictor = Model(ins, [image_out, arm_out, gripper_out, label_out])
         actor = Model(ins + gins, [arm_cmd_out, gripper_cmd_out])
-        train_predictor = Model(ins + gins, [train_out,
-                                             arm_cmd_out,
-                                             gripper_cmd_out,])
+        train_predictor = Model(ins, [train_out,])
         train_predictor.summary()
         return predictor, train_predictor, actor
 
@@ -376,6 +374,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         plt.pause(0.01)
 
     def _makeModel(self, features, arm, gripper, *args, **kwargs):
+        '''
+        Little helper function wraps makePredictor to consturct all the models.
+
+        Parameters:
+        -----------
+        features, arm, gripper: variables of the appropriate sizes
+        '''
         self.predictor, self.train_predictor, self.actor = \
             self._makePredictor(
                 (features, arm, gripper))
@@ -435,8 +440,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
                         weights=[0.5,0.3,0.1,0.1],
                         loss=["mse","mse","mse","categorical_crossentropy"]), 
-                    "mse","mse"],
-                loss_weights=[0.8,0.1,0.1],
+                    ],#"mse","mse"],
+                #loss_weights=[0.8,0.1,0.1],
                 optimizer=self.getOptimizer())
         self.predictor.compile(loss="mse", optimizer=self.getOptimizer())
 
@@ -444,11 +449,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Fit the main models
         self._fitPredictor(
                 [I, q, g, oin, I_target, q_target, g_target,],
-                #[I, q, g, oin, I_target, q_target, g_target, label],
-                #[I, q, g, I_target, q_target, g_target],
-                [train_target, qa, ga],)
+                [train_target,]), #qa, ga],)
 
-    def _getData(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
+    def _getAllData(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             prev_label, goal_features, goal_arm, goal_gripper, *args, **kwargs):
         I = features
         q = arm
@@ -487,6 +490,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 np.expand_dims(qa, axis=1),
                 np.expand_dims(ga, axis=1)]
 
+    def _getData(self, *args, **kwargs):
+        features, targets = self._getAllData(*args, **kwargs)
+        return features[:4], [targets[0]]
+
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''
         Train tool from generator
@@ -498,7 +505,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         data: some extra data used for debugging (should be validation data)
         '''
         if data is not None:
-            features, targets = self._getData(**data)
+            features, targets = self._getAllData(**data)
         else:
             raise RuntimeError('predictor model sets sizes based on'
                                'sample data; must be provided')
@@ -532,9 +539,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
                         weights=[0.3,0.3,0.1,0.3],
-                        loss=["mse","mse","mse","categorical_crossentropy"]), 
-                    "mse","mse"],
-                loss_weights=[0.8,0.1,0.1],
+                        loss=["mse","mse","mse","categorical_crossentropy"]),
+                    ],
+                    #"mse","mse"],
+                #loss_weights=[0.8,0.1,0.1],
                 optimizer=self.getOptimizer())
         self.predictor.compile(loss="mse", optimizer=self.getOptimizer())
 
