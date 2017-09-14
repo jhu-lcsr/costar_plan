@@ -300,7 +300,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         if self.show_iter == 0 or self.show_iter == None:
             modelCheckpointCb = ModelCheckpoint(
-                filepath=self.name+"_predictor_weights.h5f",
+                filepath=self.name+"_train_predictor_weights.h5f",
                 verbose=1,
                 save_best_only=False # does not work without validation wts
             )
@@ -570,8 +570,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.predictor is not None:
             print("----------------------------")
             print("Saving to " + self.name + "_{predictor, actor}")
-            self.predictor.save_weights(self.name + "_predictor.h5f")
+            self.train_predictor.save_weights(self.name + "_train_predictor.h5f")
             if self.actor is not None:
+                self.predictor.save_weights(self.name + "_predictor.h5f")
                 self.actor.save_weights(self.name + "_actor.h5f")
         else:
             raise RuntimeError('save() failed: model not found.')
@@ -586,9 +587,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             print("using " + self.name + " to load")
             try:
                 self.actor.load_weights(self.name + "_actor.h5f")
+                #self.predictor.load_weights(self.name + "_predictor.h5f")
             except Exception as e:
                 print(e)
-            self.predictor.load_weights(self.name + "_predictor.h5f")
+            self.train_predictor.load_weights(self.name + "_train_predictor.h5f")
         else:
             raise RuntimeError('_loadWeights() failed: model not found.')
 
