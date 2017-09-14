@@ -10,6 +10,7 @@ from tf import TransformListener
 from scipy.misc import imresize
 import cv2
 from cv_bridge import CvBridge, CvBridgeError
+import random
 
 
 
@@ -281,7 +282,12 @@ if __name__ == '__main__':
         rate = rospy.Rate(10) # 10hz
         
         
-        for objectName in poseDictionary:
+        #for objectName in poseDictionary:
+        while not rospy.is_shutdown():
+            # select random objectName
+            objectName = random.sample(list(poseDictionary), 1)[0]
+        
+            
             poseStampedMsg = PoseStamped()
             poseStampedMsg.header.frame_id = "map"
             poseStampedMsg.header.stamp = rospy.Time.now()
