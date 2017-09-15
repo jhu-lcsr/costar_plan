@@ -50,6 +50,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_transforms = 2
         self.validation_split = 0.1
         self.num_options = 48
+        self.extra_layers = 0
 
         self.predictor = None
         self.train_predictor = None
@@ -120,7 +121,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 self.img_num_filters,
                 leaky=False,
                 dropout=True,
-                pre_tiling_layers=0,
+                pre_tiling_layers=self.extra_layers,
                 post_tiling_layers=3,
                 kernel_size=[5,5],
                 dense=False,
@@ -138,7 +139,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 self.img_num_filters,
                 leaky=False,
                 dropout=True,
-                pre_tiling_layers=0,
+                pre_tiling_layers=self.extra_layers,
                 post_tiling_layers=3,
                 kernel_size=[5,5],
                 dense=False,
@@ -162,7 +163,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                             kernel_size=[5,5],
                             filters=self.img_num_filters,
                             stride2_layers=3,
-                            stride1_layers=0,
+                            stride1_layers=self.extra_layers,
                             tform_filters=self.tform_filters,
                             dropout=False,
                             leaky=True,
