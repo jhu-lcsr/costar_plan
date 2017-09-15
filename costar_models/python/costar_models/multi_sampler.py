@@ -44,7 +44,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.dropout_rate = 0.5
         self.img_col_dim = 512
         self.img_num_filters = 64
-        self.tform_filters = 32
+        self.tform_filters = 64
         self.combined_dense_size = 128
         self.num_hypotheses = 8
         self.num_transforms = 2
@@ -438,7 +438,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
-                        weights=[0.5,0.3,0.1,0.1],
+                        weights=[0.7,0.2,0.05,0.05],
                         loss=["mse","mse","mse","categorical_crossentropy"]), 
                     ],#"mse","mse"],
                 #loss_weights=[0.8,0.1,0.1],
