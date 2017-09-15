@@ -44,7 +44,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.dropout_rate = 0.5
         self.img_col_dim = 512
         self.img_num_filters = 64
-        self.tform_filters = 64
+        self.tform_filters = 32
         self.combined_dense_size = 128
         self.num_hypotheses = 8
         self.num_transforms = 2
@@ -150,6 +150,24 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 output_filters=self.tform_filters,
                 )
 
+        decoder = GetImageArmGripperDecoder(self.img_col_dim,
+                        img_shape,
+                        dropout_rate=self.dropout_rate,
+                        dense_size=self.combined_dense_size,
+                        kernel_size=[5,5],
+                        filters=self.img_num_filters,
+                        stride2_layers=3,
+                        stride1_layers=self.extra_layers,
+                        tform_filters=self.tform_filters,
+                        num_options=self.num_options,
+                        arm_size=arm_size,
+                        gripper_size=gripper_size,
+                        dropout=False,
+                        leaky=True,
+                        dense=False,
+                        resnet_blocks=True,
+                        batchnorm=True,)
+
 
         image_outs = []
         arm_outs = []
@@ -157,63 +175,29 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         train_outs = []
         label_outs = []
 
-        rep, dec = GetImageDecoder(self.img_col_dim,
-                            img_shape,
-                            dropout_rate=self.dropout_rate,
-                            kernel_size=[5,5],
-                            filters=self.img_num_filters,
-                            stride2_layers=3,
-                            stride1_layers=self.extra_layers,
-                            tform_filters=self.tform_filters,
-                            dropout=False,
-                            leaky=True,
-                            dense=False,
-                            batchnorm=True,)
-
-        # =====================================================================
-        # Decode arm/gripper state.
-        # Predict the next joint states and gripper position. We add these back
-        # in from the inputs once again, in order to make sure they don't get
-        # lost in all the convolution layers above...
-        height4 = int(img_shape[0]/4)
-        width4 = int(img_shape[1]/4)
-        height8 = int(img_shape[0]/8)
-        width8 = int(img_shape[1]/8)
-        x = Reshape((width8,height8,self.tform_filters))(rep)
-        x = Conv2D(int(self.img_num_filters/2),
-                kernel_size=[5,5], 
-                strides=(2, 2),
-                padding='same')(x)
-        x = Flatten()(x)
-        x = LeakyReLU(0.2)(x)
-        x = Dense(self.combined_dense_size)(x)
-        x = Dropout(self.dropout_rate)(x)
-        x = LeakyReLU(0.2)(x)
-        arm_out_x = Dense(arm_size,name="next_arm")(x)
-        gripper_out_x = Dense(gripper_size,
-                name="next_gripper_flat")(x)
-        label_out_x = Dense(self.num_options,name="next_label",activation="softmax")(x)
-
-        decoder = Model(rep, [dec, arm_out_x, gripper_out_x, label_out_x], name="decoder")
+        decoder.summary()
 
         # =====================================================================
         # Create many different image decoders
 
         for i in range(self.num_hypotheses):
-            x = enc
-            for j in range(self.num_transforms):
-                x = Conv2D(self.tform_filters,
-                        kernel_size=[5,5], 
-                        strides=(1, 1),
-                        padding='same',
-                        name="transform_%d_%d"%(i,j))(x)
-                x = BatchNormalization(momentum=0.9,
-                                      name="normalize_%d_%d"%(i,j))(x)
-                x = LeakyReLU(0.2,name="lrelu_%d_%d"%(i,j))(x)
+            transform = GetTranform(
+                    rep_size=(8,8),
+                    filters=self.tform_filters,
+                    kernel_size=[5,5],
+                    idx=i,
+                    batchnorm=True,
+                    leaky=True,
+                    num_blocks=self.num_transforms,
+                    relu=True,
+                    resnet_blocks=True,)
+            if i == 0:
+                transform.summary()
+            x = transform([enc])
             
             # This maps from our latent world state back into observable images.
             #decoder = Model(rep, dec)
-            img_x, arm_x, gripper_x, label_x = decoder(x)
+            img_x, arm_x, gripper_x, label_x = decoder([x])
 
             # Create the training outputs
             train_x = Concatenate(axis=-1,name="combine_train_%d"%i)([
@@ -275,7 +259,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         predictor = Model(ins, [image_out, arm_out, gripper_out, label_out])
         actor = Model(ins + gins, [arm_cmd_out, gripper_cmd_out])
         train_predictor = Model(ins, [train_out,])
-        train_predictor.summary()
         return predictor, train_predictor, actor
 
     def _fitPredictor(self, features, targets,):
