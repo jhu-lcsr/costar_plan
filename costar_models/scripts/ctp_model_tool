@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 import matplotlib as mpl
 mpl.use("Agg")
 
@@ -45,11 +47,15 @@ def main(args):
             model.load(world=None,**data)
         train_generator = model.trainGenerator(dataset)
         test_generator = model.testGenerator(dataset)
+        model.trainFromGenerators(train_generator, test_generator, data)
         try:
             # was:
             #model.train(**data)
             model.trainFromGenerators(train_generator, test_generator, data)
         except KeyboardInterrupt:
+            pass
+        except Exception as e:
+            print(e)
             pass
         model.save()
         if args['debug_model']:
