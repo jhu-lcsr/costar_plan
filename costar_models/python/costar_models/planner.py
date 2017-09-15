@@ -176,6 +176,7 @@ def GetImageDecoder(dim, img_shape,
         batchnorm=True,dense=True, num_hypotheses=None, tform_filters=None,
         original=None,
         resnet_blocks=False,
+        skips=None,
         stride2_layers=2, stride1_layers=1):
 
     '''
@@ -206,9 +207,15 @@ def GetImageDecoder(dim, img_shape,
     if not resnet_blocks and dropout:
         x = Dropout(dropout_rate)(x)
 
+    skip_inputs = []
     height = height4
     width = width4
     for i in range(stride2_layers):
+
+        if skips is not None:
+            skip_in = Input((width/2,height/2,filters))
+            x = Concatenate()([x, skip_in])
+            skip_inputs.append(skip_in)
 
         if not resnet_blocks:
             x = Conv2DTranspose(filters,
@@ -275,7 +282,7 @@ def GetImageDecoder(dim, img_shape,
         x = Conv2D(nchannels, (1, 1), padding='same')(x)
     x = Activation('sigmoid')(x)
 
-    ins = [z]
+    ins = [z] + skip_inputs
 
     return ins, x
 
@@ -283,7 +290,7 @@ def GetImageArmGripperDecoder(dim, img_shape,
         dropout_rate, filters, dense_size, kernel_size=[3,3], dropout=True, leaky=True,
         batchnorm=True,dense=True, num_hypotheses=None, tform_filters=None,
         original=None, num_options=64, arm_size=7, gripper_size=1,
-        resnet_blocks=False,
+        resnet_blocks=False, skips=None,
         stride2_layers=2, stride1_layers=1):
 
     rep, dec = GetImageDecoder(dim,
@@ -297,6 +304,7 @@ def GetImageArmGripperDecoder(dim, img_shape,
                         dropout=dropout,
                         leaky=leaky,
                         dense=dense,
+                        skips=skips,
                         original=original,
                         resnet_blocks=resnet_blocks,
                         batchnorm=batchnorm,)
@@ -313,17 +321,21 @@ def GetImageArmGripperDecoder(dim, img_shape,
     width4 = int(img_shape[1]/4)
     height8 = int(img_shape[0]/8)
     width8 = int(img_shape[1]/8)
-    x = Reshape((width8,height8,tform_filters))(rep)
+    x = Reshape((width8,height8,tform_filters))(rep[0])
     if not resnet_blocks:
-        x = Conv2D(dim,
-                kernel_size=kernel_size, 
-                strides=(2, 2),
-                padding='same')(x)
+        for i in range(2):
+            x = Conv2D(filters,
+                    kernel_size=kernel_size, 
+                    strides=(2, 2),
+                    padding='same',
+                    name="arm_gripper_label_dec%d"%i)(x)
+            x = BatchNormalization(momentum=0.9)(x)
+            x = Dropout(dropout_rate)(x)
+            x = Activation("relu")(x)
         x = Flatten()(x)
-        x = LeakyReLU(0.2)(x)
         x = Dense(dense_size)(x)
         x = Dropout(dropout_rate)(x)
-        x = LeakyReLU(0.2)(x)
+        x = Activation("relu")(x)
     else:
         for i in range(1):
             # =================================================================

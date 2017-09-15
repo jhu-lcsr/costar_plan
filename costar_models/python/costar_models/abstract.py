@@ -53,6 +53,7 @@ class AbstractAgentBasedModel(object):
         self.model_directory = os.path.expanduser(model_directory)
         self.name = os.path.join(self.model_directory, self.name_prefix)
         self.num_generator_files = num_generator_files
+        self.residual = False
         if self.task is not None:
             self.name += "_%s"%self.task
         if self.features is not None:
