@@ -47,16 +47,15 @@ def main(args):
             model.load(world=None,**data)
         train_generator = model.trainGenerator(dataset)
         test_generator = model.testGenerator(dataset)
-        model.trainFromGenerators(train_generator, test_generator, data)
         try:
             # was:
             #model.train(**data)
             model.trainFromGenerators(train_generator, test_generator, data)
         except KeyboardInterrupt:
             pass
-        except Exception as e:
-            print(e)
-            pass
+        #except Exception as e:
+        #    print(e)
+        #    pass
         model.save()
         if args['debug_model']:
             model.plot(env)

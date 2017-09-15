@@ -14,6 +14,7 @@ from keras.layers import UpSampling2D, Conv2DTranspose
 from keras.layers import BatchNormalization, Dropout
 from keras.layers import Dense, Conv2D, Activation, Flatten
 from keras.layers import Lambda
+from keras.layers.merge import Add
 from keras.layers.merge import Concatenate
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
@@ -173,6 +174,8 @@ def SliceImageHypotheses(image_shape, num_hypotheses, x):
 def GetImageDecoder(dim, img_shape,
         dropout_rate, filters, kernel_size=[3,3], dropout=True, leaky=True,
         batchnorm=True,dense=True, num_hypotheses=None, tform_filters=None,
+        original=None,
+        resnet_blocks=False,
         stride2_layers=2, stride1_layers=1):
 
     '''
@@ -200,21 +203,56 @@ def GetImageDecoder(dim, img_shape,
 
     z = Input((width8*height8*tform_filters,),name="input_image")
     x = Reshape((width8,height8,tform_filters))(z)
-    x = Dropout(dropout_rate)(x)
+    if not resnet_blocks and dropout:
+        x = Dropout(dropout_rate)(x)
 
     height = height4
     width = width4
     for i in range(stride2_layers):
 
-        x = Conv2DTranspose(filters,
-                   kernel_size=kernel_size, 
-                   strides=(2, 2),
-                   padding='same')(x)
-        if batchnorm:
-            x = BatchNormalization(momentum=0.9)(x)
-        x = relu()(x)
-        if dropout:
+        if not resnet_blocks:
+            x = Conv2DTranspose(filters,
+                       kernel_size=kernel_size, 
+                       strides=(2, 2),
+                       padding='same')(x)
+            if batchnorm:
+                x = BatchNormalization(momentum=0.9)(x)
+            x = relu()(x)
+            if dropout:
+                x = Dropout(dropout_rate)(x)
+        else:
+            # ====================================
+            # Start a Resnet convolutional block
+            # The goal in making this change is to increase the representative
+            # power and learning rate of the network -- since we were having
+            # some trouble with convergence before.
+            x0 = x
+            # ------------------------------------
+            x = BatchNormalization(momentum=0.9,)(x)
             x = Dropout(dropout_rate)(x)
+            x = Activation("relu")(x)
+            x = Conv2DTranspose(filters,
+                    kernel_size=kernel_size, 
+                    strides=(2, 2),
+                    padding='same',)(x)
+            # ------------------------------------
+            x = BatchNormalization(momentum=0.9,)(x)
+            x = Dropout(dropout_rate)(x)
+            x = Activation("relu")(x)
+            x = Conv2DTranspose(filters,
+                    kernel_size=kernel_size, 
+                    strides=(1, 1),
+                    padding='same',)(x)
+
+            # ------------------------------------
+            # add in the convolution to the beginning of this block
+            x0 = BatchNormalization(momentum=0.9,)(x0)
+            x0 = Conv2DTranspose(
+                    filters,
+                    kernel_size=kernel_size,
+                    strides=(2,2),
+                    padding="same",)(x0)
+            x = Add()([x, x0])
 
         height *= 2
         width *= 2
@@ -240,6 +278,168 @@ def GetImageDecoder(dim, img_shape,
     ins = [z]
 
     return ins, x
+
+def GetImageArmGripperDecoder(dim, img_shape,
+        dropout_rate, filters, dense_size, kernel_size=[3,3], dropout=True, leaky=True,
+        batchnorm=True,dense=True, num_hypotheses=None, tform_filters=None,
+        original=None, num_options=64, arm_size=7, gripper_size=1,
+        resnet_blocks=False,
+        stride2_layers=2, stride1_layers=1):
+
+    rep, dec = GetImageDecoder(dim,
+                        img_shape,
+                        dropout_rate=dropout_rate,
+                        kernel_size=kernel_size,
+                        filters=filters,
+                        stride2_layers=stride2_layers,
+                        stride1_layers=stride1_layers,
+                        tform_filters=tform_filters,
+                        dropout=dropout,
+                        leaky=leaky,
+                        dense=dense,
+                        original=original,
+                        resnet_blocks=resnet_blocks,
+                        batchnorm=batchnorm,)
+
+    if tform_filters is None:
+        tform_filters = filters
+
+    # =====================================================================
+    # Decode arm/gripper state.
+    # Predict the next joint states and gripper position. We add these back
+    # in from the inputs once again, in order to make sure they don't get
+    # lost in all the convolution layers above...
+    height4 = int(img_shape[0]/4)
+    width4 = int(img_shape[1]/4)
+    height8 = int(img_shape[0]/8)
+    width8 = int(img_shape[1]/8)
+    x = Reshape((width8,height8,tform_filters))(rep)
+    if not resnet_blocks:
+        x = Conv2D(dim,
+                kernel_size=kernel_size, 
+                strides=(2, 2),
+                padding='same')(x)
+        x = Flatten()(x)
+        x = LeakyReLU(0.2)(x)
+        x = Dense(dense_size)(x)
+        x = Dropout(dropout_rate)(x)
+        x = LeakyReLU(0.2)(x)
+    else:
+        for i in range(1):
+            # =================================================================
+            # Start ResNet with a convolutional block
+            # This will decrease the size and apply a convolutional filter
+            x0 = x
+            # ------------------------------------
+            x = BatchNormalization(momentum=0.9,)(x)
+            x = Dropout(dropout_rate)(x)
+            x = Activation("relu")(x)
+            x = Conv2D(filters,
+                    kernel_size=kernel_size, 
+                    strides=(2, 2),
+                    padding='same',)(x)
+            # ------------------------------------
+            x = BatchNormalization(momentum=0.9,)(x)
+            x = Dropout(dropout_rate)(x)
+            x = Activation("relu")(x)
+            x = Conv2D(filters,
+                    kernel_size=kernel_size, 
+                    strides=(1, 1),
+                    padding='same',)(x)
+
+            # ------------------------------------
+            if i >= 0:
+                # add in the convolution to the beginning of this block
+                x0 = BatchNormalization(momentum=0.9,name="norm_ag_%d"%i)(x0)
+                x0 = Conv2D(
+                        filters,
+                        kernel_size=kernel_size,
+                        strides=(2,2),
+                        padding="same",)(x0)
+            x = Add()([x, x0])
+
+            # =================================================================
+            # Add Resnet identity blocks after downsizing 
+            # Note: currently disabled
+            for _ in range(2):
+                x0 = x
+                # ------------------------------------
+                x = BatchNormalization(momentum=0.9,)(x)
+                x = Dropout(dropout_rate)(x)
+                x = Activation("relu")(x)
+                x = Conv2D(filters,
+                        kernel_size=kernel_size, 
+                        strides=(1, 1),
+                        padding='same',)(x)
+                # ------------------------------------
+                x = BatchNormalization(momentum=0.9,)(x)
+                x = Dropout(dropout_rate)(x)
+                x = Activation("relu")(x)
+                x = Conv2D(filters,
+                        kernel_size=kernel_size, 
+                        strides=(1, 1),
+                        padding='same',)(x)
+                # ------------------------------------
+                # Recombine
+                x = Add()([x, x0])
+
+        x = Flatten()(x)
+
+    arm_out_x = Dense(arm_size,name="next_arm")(x)
+    gripper_out_x = Dense(gripper_size,
+            name="next_gripper_flat")(x)
+    label_out_x = Dense(num_options,name="next_label",activation="softmax")(x)
+
+    decoder = Model(rep,
+                    [dec, arm_out_x, gripper_out_x, label_out_x],
+                    name="decoder")
+
+    return decoder
+
+
+def GetTranform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=True, 
+        leaky=True,
+        relu=True,
+        resnet_blocks=False,):
+    xin = Input((rep_size) + (filters,))
+    x = xin
+    for j in range(num_blocks):
+        if not resnet_blocks:
+            x = Conv2D(filters,
+                    kernel_size=[5,5], 
+                    strides=(1, 1),
+                    padding='same',
+                    name="transform_%d_%d"%(idx,j))(x)
+            if batchnorm:
+                x = BatchNormalization(momentum=0.9,
+                                      name="normalize_%d_%d"%(idx,j))(x)
+            if relu:
+                if leaky:
+                    x = LeakyReLU(0.2,name="lrelu_%d_%d"%(idx,j))(x)
+                else:
+                    x = Activation("relu",name="relu_%d_%d"%(idx,j))(x)
+        else:
+            x0 = x
+            x = BatchNormalization(momentum=0.9,
+                                    name="normalize_%d_%d"%(idx,j))(x)
+            x = Activation("relu",name="reluA_%d_%d"%(idx,j))(x)
+            x = Conv2D(filters,
+                    kernel_size=[5,5], 
+                    strides=(1, 1),
+                    padding='same',
+                    name="transformA_%d_%d"%(idx,j))(x)
+            x = BatchNormalization(momentum=0.9,
+                                    name="normalizeB_%d_%d"%(idx,j))(x)
+            x = Activation("relu",name="reluB_%d_%d"%(idx,j))(x)
+            x = Conv2D(filters,
+                    kernel_size=[5,5], 
+                    strides=(1, 1),
+                    padding='same',
+                    name="transformB_%d_%d"%(idx,j))(x)
+            # Resnet block addition
+            x = Add()([x, x0])
+
+    return Model(xin, x, name="transform%d"%idx)
 
 def OneHot(size=64):
     return Lambda(lambda x: tf.one_hot(tf.cast(x, tf.int32),size))#,name="label_to_one_hot")
