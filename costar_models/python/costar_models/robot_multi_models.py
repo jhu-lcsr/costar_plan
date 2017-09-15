@@ -356,6 +356,10 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         #x = MaxPooling2D(pool_size=(2,2))(x)
         if dropout:
             x = ApplyTD(Dropout(dropout_rate))(x)
+    
+    # ===============================================
+    # Skip connections
+    skips = [x]
 
     # ===============================================
     # ADD TILING
@@ -371,7 +375,8 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     else:
         ins = [samples]
 
-    skips = []
+    # =================================================
+    # Decrease the size of the image
     for i in range(post_tiling_layers):
         if i == post_tiling_layers - 1:
             nfilters = output_filters

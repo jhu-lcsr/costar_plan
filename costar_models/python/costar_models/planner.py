@@ -214,7 +214,7 @@ def GetImageDecoder(dim, img_shape,
 
         if skips is not None:
             skip_in = Input((width/2,height/2,filters))
-            x = Concatenate()([x, skip_in])
+            x = Concatenate(axis=-1)([x, skip_in])
             skip_inputs.append(skip_in)
 
         if not resnet_blocks:
@@ -263,6 +263,11 @@ def GetImageDecoder(dim, img_shape,
 
         height *= 2
         width *= 2
+
+    if skips is not None:
+        skip_in = Input((img_shape[0],img_shape[1],filters))
+        x = Concatenate(axis=-1)([x,skip_in])
+        skip_inputs.append(skip_in)
 
     for i in range(stride1_layers):
         x = Conv2D(filters, # + num_labels
@@ -323,7 +328,7 @@ def GetImageArmGripperDecoder(dim, img_shape,
     width8 = int(img_shape[1]/8)
     x = Reshape((width8,height8,tform_filters))(rep[0])
     if not resnet_blocks:
-        for i in range(2):
+        for i in range(1):
             x = Conv2D(filters,
                     kernel_size=kernel_size, 
                     strides=(2, 2),
@@ -333,9 +338,9 @@ def GetImageArmGripperDecoder(dim, img_shape,
             x = Dropout(dropout_rate)(x)
             x = Activation("relu")(x)
         x = Flatten()(x)
-        x = Dense(dense_size)(x)
-        x = Dropout(dropout_rate)(x)
-        x = Activation("relu")(x)
+        #x = Dense(dense_size)(x)
+        #x = Dropout(dropout_rate)(x)
+        #x = Activation("relu")(x)
     else:
         for i in range(1):
             # =================================================================
