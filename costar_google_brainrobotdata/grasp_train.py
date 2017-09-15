@@ -84,7 +84,8 @@ class GraspTrain(object):
               save_weights=FLAGS.save_weights,
               make_model_fn=grasp_model.grasp_model,
               imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
-              grasp_sequence_max_time_steps=FLAGS.grasp_sequence_max_time_steps,
+              grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
+              grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
               random_crop=FLAGS.random_crop,
               resize=FLAGS.resize,
               resize_height=FLAGS.resize_height,
@@ -108,7 +109,7 @@ class GraspTrain(object):
                                   grasp_step_op_batch,
                                   simplified_grasp_command_op_batch)
 
-            grasp_sequence_max_time_steps: number of motion steps to train in the grasp sequence,
+            grasp_sequence_max_time_step: number of motion steps to train in the grasp sequence,
                 this affects the memory consumption of the system when training, but if it fits into memory
                 you almost certainly want the value to be None, which includes every image.
         """
@@ -122,7 +123,8 @@ class GraspTrain(object):
                                                           imagenet_mean_subtraction=imagenet_mean_subtraction,
                                                           random_crop=random_crop,
                                                           resize=resize,
-                                                          grasp_sequence_max_time_steps=grasp_sequence_max_time_steps)
+                                                          grasp_sequence_min_time_step=grasp_sequence_min_time_step,
+                                                          grasp_sequence_max_time_step=grasp_sequence_max_time_step)
 
         if resize:
             input_image_shape = [resize_height, resize_width, 3]
@@ -229,7 +231,8 @@ class GraspTrain(object):
              save_weights=FLAGS.save_weights,
              make_model_fn=grasp_model.grasp_model,
              imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
-             grasp_sequence_max_time_steps=FLAGS.grasp_sequence_max_time_steps,
+             grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
+             grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
              resize=FLAGS.resize,
              resize_height=FLAGS.resize_height,
              resize_width=FLAGS.resize_width,
@@ -249,7 +252,7 @@ class GraspTrain(object):
                                   grasp_step_op_batch,
                                   simplified_grasp_command_op_batch)
 
-            grasp_sequence_max_time_steps: number of motion steps to train in the grasp sequence,
+            grasp_sequence_max_time_step: number of motion steps to train in the grasp sequence,
                 this affects the memory consumption of the system when training, but if it fits into memory
                 you almost certainly want the value to be None, which includes every image.
         """
@@ -263,7 +266,8 @@ class GraspTrain(object):
                                                           imagenet_mean_subtraction=imagenet_mean_subtraction,
                                                           random_crop=False,
                                                           resize=resize,
-                                                          grasp_sequence_max_time_steps=grasp_sequence_max_time_steps)
+                                                          grasp_sequence_min_time_step=grasp_sequence_min_time_step,
+                                                          grasp_sequence_max_time_step=grasp_sequence_max_time_step)
 
         if resize:
             input_image_shape = [resize_height, resize_width, 3]

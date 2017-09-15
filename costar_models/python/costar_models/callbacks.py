@@ -31,7 +31,7 @@ class PredictorShowImage(keras.callbacks.Callback):
         self.idxs = range(min_idx, max_idx, step)
         self.num = len(self.idxs)
         self.features = [f[self.idxs] for f in features]
-        self.targets = [t[self.idxs] for t in targets]
+        self.targets = [np.squeeze(t[self.idxs]) for t in targets]
         self.epoch = 0
         self.num_hypotheses = num_hypotheses
         if not os.path.exists(self.directory):
@@ -41,9 +41,18 @@ class PredictorShowImage(keras.callbacks.Callback):
         # take the model and print it out
         self.epoch += 1
         imglen = 64*64*3
-        img = self.targets[0][:,:imglen]
+        if len(self.targets[0].shape) == 2:
+            img = self.targets[0][:,:imglen]
+        elif len(self.targets[0].shape) == 3:
+            assert self.targets[0].shape[1] == 1
+            img = self.targets[0][:,0,:imglen]
+        else:
+            raise RuntimeError('did not recognize big train target shape; '
+                               'are you sure you meant to use this callback'
+                               'and not a normal image callback?')
         img = np.reshape(img, (self.num,64,64,3))
         data, arms, grippers, label = self.predictor.predict(self.features)
+	plt.ioff()
         if self.verbose:
             print("============================")
         for j in range(self.num):
@@ -69,5 +78,8 @@ class PredictorShowImage(keras.callbacks.Callback):
                 plt.title('Hypothesis %d'%(i+1))
             fig.savefig(name, bbox_inches="tight")
             if self.verbose:
-                print("Arm/gripper target = ", self.targets[0][j,imglen:imglen+7])
-                print("Label target = ", np.argmax(self.targets[0][j,(imglen+7):]))
+                print("Arm/gripper target = ",
+                        self.targets[0][j,imglen:imglen+8])
+                print("Label target = ",
+                        np.argmax(self.targets[0][j,(imglen+8):]))
+            plt.close(fig)

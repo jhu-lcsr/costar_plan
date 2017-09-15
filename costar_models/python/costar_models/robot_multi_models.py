@@ -348,7 +348,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
 
         x = ApplyTD(Conv2D(filters,
                    kernel_size=kernel_size, 
-                   strides=(2, 2),
+                   strides=(1, 1),
                    padding='same'))(x)
         if batchnorm:
             x = ApplyTD(BatchNormalization(momentum=0.9))(x)
@@ -360,8 +360,8 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     # ===============================================
     # ADD TILING
     if tile:
-        tile_width = int(width/(pre_tiling_layers+1))
-        tile_height = int(height/(pre_tiling_layers+1))
+        tile_width = width #int(width/(pre_tiling_layers+))
+        tile_height = height #int(height/(pre_tiling_layers+1))
         if option is not None:
             ins = [samples, arm_in, gripper_in, option_in]
         else:
@@ -378,12 +378,12 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
             nfilters = filters
         x = ApplyTD(Conv2D(nfilters,
                    kernel_size=kernel_size, 
-                   strides=(2, 2),
+                   strides=(1, 1),
                    padding='same'))(x)
         if batchnorm:
             x = ApplyTD(BatchNormalization(momentum=0.9))(x)
         x = relu()(x)
-        #x = MaxPooling2D(pool_size=(2,2))(x)
+        x = MaxPooling2D(pool_size=(2,2))(x)
         if dropout:
             x = Dropout(dropout_rate)(x)
 

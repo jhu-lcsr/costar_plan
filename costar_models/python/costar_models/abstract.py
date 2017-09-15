@@ -21,6 +21,7 @@ class AbstractAgentBasedModel(object):
     def __init__(self, taskdef=None, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
             clipnorm=100., show_iter=0, pretrain_iter=5,
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
+            steps_per_epoch=1000, validation_steps=100, choose_initial=5,
             task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
 
@@ -32,12 +33,15 @@ class AbstractAgentBasedModel(object):
 
         self.lr = lr
         self.iter = iter
+        self.choose_initial = choose_initial
         self.show_iter = show_iter
+        self.steps_per_epoch = steps_per_epoch
         self.pretrain_iter = pretrain_iter
         self.noise_dim = zdim
         self.epochs = epochs
         self.batch_size = batch_size
         self.optimizer = optimizer
+        self.validation_steps = validation_steps
         self.model_descriptor = model_descriptor
         self.task = task
         self.features = features
@@ -61,6 +65,8 @@ class AbstractAgentBasedModel(object):
         self.model = None
 
         print("===========================================================")
+        print("==========   TRAINING CONFIGURATION REPORT   ==============")
+        print("===========================================================")
         print("Name =", self.name_prefix)
         print("Features = ", self.features)
         print("Robot = ", self.robot)
@@ -70,12 +76,14 @@ class AbstractAgentBasedModel(object):
         print("Model directory = ", self.model_directory)
         print("Models saved with prefix = ", self.name)
         print("-----------------------------------------------------------")
-        print("Iterations = ", self.iter)
-        print("Epochs = ", self.epochs)
+        print("Iterations =", self.iter)
+        print("Epochs =", self.epochs)
+        print("Steps per epoch =", self.steps_per_epoch)
         print("Batch size =", self.batch_size)
-        print("Noise dim = ", self.noise_dim)
+        print("Noise dim =", self.noise_dim)
         print("Show images every %d iter"%self.show_iter)
         print("Pretrain for %d iter"%self.pretrain_iter)
+        print("p(Generator sample first frame) = 1/%d"%(self.choose_initial))
         print("-----------------------------------------------------------")
         print("Optimizer =", self.optimizer)
         print("Learning Rate = ", self.lr)
@@ -89,6 +97,12 @@ class AbstractAgentBasedModel(object):
             print("Could not create dir", self.model_directory)
             raise e
 
+    def trainGenerator(self, dataset):
+        raise NotImplementedError('trainGenerator(dataset) unsupported.')
+
+    def testGenerator(self, dataset):
+        raise NotImplementedError('testGenerator(dataset) unsupported.')
+
     def _numLabels(self):
         '''
         Use the taskdef to get total number of labels
@@ -100,6 +114,39 @@ class AbstractAgentBasedModel(object):
 
     def train(self, agent, *args, **kwargs):
         raise NotImplementedError('train() takes an agent.')
+
+    def trainFromGenerators(self, train_generator, test_generator, data=None):
+        raise NotImplementedError('trainFromGenerators() not implemented.')
+
+    def _getData(self, *args, **kwargs):
+        '''
+        This function should process all the data you need for a generator.
+        ''' 
+        raise NotImplementedError('_getData() requires a dataset.')
+        
+    def trainGenerator(self, dataset):
+        while True:
+            data = dataset.sampleTrain()
+            yield self._yield(data)
+
+    def testGenerator(self, dataset):
+        if self.validation_steps is None:
+            # update the validation steps if we did not already set it --
+            # something proportional to the amount of validation data we have
+            self.validation_steps = len(dataset.test) + 1
+        while True:
+            data = dataset.sampleTest()
+            yield self._yield(data)
+
+    def _yield(self, data):
+            features, targets = self._getData(**data)
+            n_samples = features[0].shape[0]
+            idx = np.random.randint(n_samples,size=(self.batch_size,))
+            r = np.random.randint(self.choose_initial)
+            if r > 0:
+                idx[0] = 0
+            return ([f[idx] for f in features],
+                    [t[idx] for t in targets])
 
     def save(self):
         '''

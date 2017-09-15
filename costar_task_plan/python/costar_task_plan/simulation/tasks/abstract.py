@@ -109,7 +109,13 @@ class AbstractTaskDefinition(object):
             state = GetObjectState(handle)
             self.world.addObject(obj_name, obj_type, handle, state)
 
-        self.task.compile(self.world.getObjects())
+        self.task.compile(self.getObjects())
+
+    def getObjects(self):
+        '''
+        By default, use the world's configured list of objects.
+        '''
+        return self.world.getObjects()
 
     def reset(self):
         '''

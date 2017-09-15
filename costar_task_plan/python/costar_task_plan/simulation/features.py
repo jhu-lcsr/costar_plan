@@ -87,11 +87,61 @@ class ImagePlusFeatures(AbstractFeatures):
 
     '''
     Include arm, state, and gripper features.
+
+    This will output the end of the arm (aka the grasp/manipulation frame), in
+    roll-pitch-yaw form. Coordinates are normalized so there's never a "jump"
+    due to the singularity in RPY space, which means they should work fine for
+    any sort of learning purpose.
+
+    The purpose of this normalization is to make sure that relative RPY from
+    one frame to the next is minimized. This won't be guaranteed to work for
+    all values, but should be fine over short trajectories assuming inputs stay
+    in [-pi,pi] and there are not multiple revolutions.
     '''
 
+    def __init__(self, *args, **kwargs):
+        super(ImagePlusFeatures, self).__init__(*args, **kwargs)
+        self.last_rpy = None
+        self.use_rpy = False
+
     def compute(self, world, state):
+        '''
+        Compute image and other features.
+
+        Parameters:
+        -----------
+        world: current world, including all actors, cameras, etc.
+        state: representation of the primary simulation actor.
+        '''
         img = world.cameras[0].capture().rgb
-        return [img[:, :, :3], state.arm, state.gripper]
+        T = state.T
+        rpy = list(T.M.GetRPY())
+        if self.use_rpy:
+            if world.ticks == 0:
+                self.last_rpy = None
+            if self.last_rpy is not None:
+                # Make sure that if something jumped by > pi, we fix it
+                for i, (var, var0) in enumerate(zip(rpy, self.last_rpy)):
+
+                    # Var should be in (-pi, pi) initially
+                    if var < -np.pi:
+                        var += 2*np.pi
+                    elif var > np.pi:
+                        var -= 2*np.pi
+
+                    # Var should be as close as possible to
+                    if var - var0 > np.pi:
+                        rpy[i] = var - 2 * np.pi
+                    elif var0 - var > np.pi:
+                        rpy[i] = var + (2 * np.pi)
+                    if abs(rpy[i] - var0) > np.pi:
+                        print var, var0, var-var0, var0-var, abs(var-var0)
+                        raise RuntimeError('did not fix rotation')
+            self.last_rpy = rpy
+            arm = [T.p.x(), T.p.y(), T.p.z(),] + rpy
+        else:
+            arm = [T.p.x(), T.p.y(), T.p.z(),] + list(T.M.GetQuaternion())
+        return [img[:, :, :3], arm, state.gripper]
 
     @property
     def description(self):
@@ -107,6 +157,11 @@ class PoseFeatures(AbstractFeatures):
         '''
         Note that since we are iterating over the keys -- these features will
         all be in the same order, which ends up working very nicely for us.
+
+        Parameters:
+        -----------
+        world: current world, including all actors, cameras, etc.
+        state: representation of the primary simulation actor.
         '''
 
         object_translation_rotation = []
