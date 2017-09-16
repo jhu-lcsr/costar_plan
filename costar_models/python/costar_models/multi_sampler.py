@@ -463,7 +463,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         assert gripper_size == 1
         #assert train_size == 12295 + self.num_options
         # NOTE: arm size is one bigger when we have quaternions
-        assert train_size == 12296 + self.num_options
+        #assert train_size == 12296 + self.num_options
+        assert train_size == (64*64*3) + 7 + 1 + self.num_options
         assert I.shape[0] == I_target.shape[0]
 
         o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
@@ -518,7 +519,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         assert gripper_size == 1
         # NOTE: arm size is one bigger when we have quaternions
         #assert train_size == 12295 + self.num_options
-        assert train_size == 12296 + self.num_options
+        #assert train_size == 12296 + self.num_options
+        assert train_size == (64*64*3) + 7 + 1 + self.num_options
         self.train_predictor.compile(
                 loss=[
                     MhpLossWithShape(
