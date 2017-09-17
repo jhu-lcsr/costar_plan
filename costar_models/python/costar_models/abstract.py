@@ -137,7 +137,6 @@ class AbstractAgentBasedModel(object):
                         data[key] = value
                     if value.shape[0] == 0:
                         continue
-                    print (key, value.shape, data[key].shape)
                     data[key] = np.concatenate([data[key],value],axis=0)
             yield self._yield(data)
 
