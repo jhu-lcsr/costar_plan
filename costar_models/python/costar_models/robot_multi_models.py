@@ -356,6 +356,10 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         #x = MaxPooling2D(pool_size=(2,2))(x)
         if dropout:
             x = ApplyTD(Dropout(dropout_rate))(x)
+    
+    # ===============================================
+    # Skip connections
+    skips = [x]
 
     # ===============================================
     # ADD TILING
@@ -371,6 +375,8 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     else:
         ins = [samples]
 
+    # =================================================
+    # Decrease the size of the image
     for i in range(post_tiling_layers):
         if i == post_tiling_layers - 1:
             nfilters = output_filters
@@ -378,14 +384,14 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
             nfilters = filters
         x = ApplyTD(Conv2D(nfilters,
                    kernel_size=kernel_size, 
-                   strides=(1, 1),
+                   strides=(2, 2),
                    padding='same'))(x)
         if batchnorm:
             x = ApplyTD(BatchNormalization(momentum=0.9))(x)
         x = relu()(x)
-        x = MaxPooling2D(pool_size=(2,2))(x)
         if dropout:
             x = Dropout(dropout_rate)(x)
+        skips.append(x)
 
     if flatten or dense or discriminator:
         x = ApplyTD(Flatten())(x)
@@ -397,7 +403,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     if discriminator:
         x = Dense(1,activation="sigmoid")(x)
 
-    return ins, x
+    return ins, x, skips
 
 def AddOptionTiling(x, option_length, option_in, height, width):
     tile_shape = (1, width, height, 1)
