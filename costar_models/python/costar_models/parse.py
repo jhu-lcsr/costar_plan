@@ -105,6 +105,11 @@ def GetModelParser():
                         help="Specify feature function",
                         default="null",
                         choices=GetAvailableFeatures())
+    parser.add_argument('--steps_per_epoch',
+                        help="Steps per epoch (used with the generator-" + \
+                              "based version of the fit tool",
+                        default=300,
+                        type=int)
     return parser
 
 def ParseModelArgs():
