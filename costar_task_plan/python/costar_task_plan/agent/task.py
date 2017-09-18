@@ -52,7 +52,7 @@ class TaskAgent(AbstractAgent):
     executions.
     '''
     
-    NUM_REPEATS = 1
+    NUM_REPEATS = 5
     name = "random"
 
     def __init__(self, *args, **kwargs):
