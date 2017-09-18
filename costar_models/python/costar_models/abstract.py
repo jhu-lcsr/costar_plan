@@ -21,7 +21,7 @@ class AbstractAgentBasedModel(object):
     def __init__(self, taskdef=None, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
             clipnorm=100., show_iter=0, pretrain_iter=5,
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
-            steps_per_epoch=1000, validation_steps=100, choose_initial=5,
+            steps_per_epoch=300, validation_steps=100, choose_initial=5,
             num_generator_files=3,
             task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
