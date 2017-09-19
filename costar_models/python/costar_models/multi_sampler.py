@@ -290,7 +290,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             )
             imageCb = PredictorShowImage(
                 self.predictor,
-                features=features[:4],
+                features=features[:3],
                 targets=targets,
                 num_hypotheses=self.num_hypotheses,
                 verbose=True,
