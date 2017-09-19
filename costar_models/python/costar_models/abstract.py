@@ -100,12 +100,6 @@ class AbstractAgentBasedModel(object):
             print("Could not create dir", self.model_directory)
             raise e
 
-    def trainGenerator(self, dataset):
-        raise NotImplementedError('trainGenerator(dataset) unsupported.')
-
-    def testGenerator(self, dataset):
-        raise NotImplementedError('testGenerator(dataset) unsupported.')
-
     def _numLabels(self):
         '''
         Use the taskdef to get total number of labels
