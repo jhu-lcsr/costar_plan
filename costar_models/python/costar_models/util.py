@@ -10,6 +10,7 @@ from .multi_hierarchical import RobotMultiHierarchical
 
 # Model for sampling predictiosn
 from .multi_sampler import RobotMultiPredictionSampler
+from .husky_sampler import HuskyRobotMultiPredictionSampler
 
 def MakeModel(features, model, taskdef, **kwargs):
     '''
@@ -88,6 +89,10 @@ def MakeModel(features, model, taskdef, **kwargs):
             model_instance = RobotMultiUnsupervised1(taskdef,
                     model=model,
                     **kwargs)
+        elif model == "husky_predictor":
+            model_instance = HuskyRobotMultiPredictionSampler(taskdef,
+                    model=model,
+                    **kwargs)
     
     # If we did not create a model then die.
     if model_instance is None:
@@ -109,4 +114,5 @@ def GetModels():
             "hierarchical", # hierarchical policy for planning
             "unsupervised", # paper implementation for unsupervised method
             "unsupervised1", # alternative implementation
+            "husky_predictor", # husky multi prediction sampler implementation
             ]

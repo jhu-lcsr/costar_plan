@@ -37,7 +37,7 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
         As in the other models, we call super() to parse arguments from the
         command line and set things like our optimizer and learning rate.
         '''
-        super(RobotMultiPredictionSampler, self).__init__(taskdef, *args, **kwargs)
+        super(HuskyRobotMultiPredictionSampler, self).__init__(taskdef, *args, **kwargs)
 
         self.num_frames = 1
 
@@ -48,10 +48,332 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
         self.combined_dense_size = 128
         self.num_hypotheses = 8
         self.num_transforms = 3
+        self.num_options = 4
 
         self.predictor = None
         self.train_predictor = None
         self.actor = None
+        
+    def _TilePose(self, x, pose_in, tile_width, tile_height,
+        option=None, option_in=None,
+        time_distributed=None):
+        pose_size = int(pose_in.shape[-1])
+        
+    
+        # handle error: options and grippers
+        if option is None and option_in is not None \
+            or option is not None and option_in is None:
+                raise RuntimeError('must provide both #opts and input')
+    
+        # generate options and tile things together
+        if option is None:
+            robot = pose_in
+            reshape_size = pose_size
+        else:
+            robot = Concatenate(axis=-1)([pose_in, option_in])
+            reshape_size = pose_size+option
+    
+        # time distributed or not
+        if time_distributed is not None and time_distributed > 0:
+            tile_shape = (1, 1, tile_width, tile_height, 1)
+            robot = Reshape([time_distributed, 1, 1, reshape_size])(robot)
+        else:
+            tile_shape = (1, tile_width, tile_height, 1)
+            robot = Reshape([1, 1, reshape_size])(robot)
+    
+        # finally perform the actual tiling
+        robot = Lambda(lambda x: K.tile(x, tile_shape))(robot)
+        x = Concatenate(axis=-1)([x,robot])
+    
+        return x
+    
+    def _GetImageEncoder(self, img_shape, dim, dropout_rate,
+            filters, dropout=True, leaky=True,
+            dense=True, flatten=True,
+            layers=2,
+            kernel_size=[3,3],
+            time_distributed=0,):
+    
+        if time_distributed <= 0:
+            ApplyTD = lambda x: x
+            height4 = img_shape[0]/4
+            width4 = img_shape[1]/4
+            height2 = img_shape[0]/2
+            width2 = img_shape[1]/2
+            height = img_shape[0]
+            width = img_shape[1]
+            channels = img_shape[2]
+        else:
+            ApplyTD = lambda x: TimeDistributed(x)
+            height4 = img_shape[1]/4
+            width4 = img_shape[2]/4
+            height2 = img_shape[1]/2
+            width2 = img_shape[2]/2
+            height = img_shape[1]
+            width = img_shape[2]
+            channels = img_shape[3]
+    
+        samples = Input(shape=img_shape)
+    
+        '''
+        Convolutions for an image, terminating in a dense layer of size dim.
+        '''
+    
+        if leaky:
+            relu = lambda: LeakyReLU(alpha=0.2)
+        else:
+            relu = lambda: Activation('relu')
+    
+        x = samples
+    
+        x = ApplyTD(Conv2D(filters,
+                    kernel_size=kernel_size, 
+                    strides=(1, 1),
+                    padding='same'))(x)
+        x = ApplyTD(relu())(x)
+        if dropout:
+            x = ApplyTD(Dropout(dropout_rate))(x)
+    
+        for i in range(layers):
+    
+            x = ApplyTD(Conv2D(filters,
+                       kernel_size=kernel_size, 
+                       strides=(2, 2),
+                       padding='same'))(x)
+            x = ApplyTD(relu())(x)
+            if dropout:
+                x = ApplyTD(Dropout(dropout_rate))(x)
+    
+        if flatten or dense:
+            x = ApplyTD(Flatten())(x)
+        if dense:
+            x = ApplyTD(Dense(dim))(x)
+            x = ApplyTD(relu())(x)
+    
+        return [samples], x
+        
+    def _GetEncoder(self, img_shape, pose_size, dim, dropout_rate,
+        filters, discriminator=False, tile=False, dropout=True, leaky=True,
+        dense=True, option=None, flatten=True, batchnorm=False,
+        pre_tiling_layers=0,
+        post_tiling_layers=2,
+        kernel_size=[3,3], output_filters=None,
+        time_distributed=0,):
+
+
+        if output_filters is None:
+            output_filters = filters
+    
+        if time_distributed <= 0:
+            ApplyTD = lambda x: x
+            pose_in = Input((pose_size,))
+          
+            if option is not None:
+                option_in = Input((1,))
+                option_x = OneHot(size=option)(option_in)
+                option_x = Reshape((option,))(option_x)
+            else:
+                option_in, option_x = None, None
+            print ("img_shape", img_shape)
+            height4 = img_shape[0]/4
+            width4 = img_shape[1]/4
+            height2 = img_shape[0]/2
+            width2 = img_shape[1]/2
+            height = img_shape[0]
+            width = img_shape[1]
+            channels = img_shape[2]
+        else:
+            ApplyTD = lambda x: TimeDistributed(x)
+            pose_in = Input((time_distributed, pose_size,))
+           
+            if option is not None:
+                option_in = Input((time_distributed,1,))
+                option_x = TimeDistributed(OneHot(size=option),name="label_to_one_hot")(option_in)
+                option_x = Reshape((time_distributed,option,))(option_x)
+            else:
+                option_in, option_x = None, None
+            height4 = img_shape[1]/4
+            width4 = img_shape[2]/4
+            height2 = img_shape[1]/2
+            width2 = img_shape[2]/2
+            height = img_shape[1]
+            width = img_shape[2]
+            channels = img_shape[3]
+    
+        samples = Input(shape=img_shape)
+    
+        '''
+        Convolutions for an image, terminating in a dense layer of size dim.
+        '''
+    
+        if leaky:
+            relu = lambda: LeakyReLU(alpha=0.2)
+        else:
+            relu = lambda: Activation('relu')
+    
+        x = samples
+    
+        x = ApplyTD(Conv2D(filters,
+                    kernel_size=kernel_size, 
+                    strides=(1, 1),
+                    padding='same'))(x)
+        x = ApplyTD(relu())(x)
+        if batchnorm:
+            x = ApplyTD(BatchNormalization(momentum=0.9))(x)
+        if dropout:
+            x = ApplyTD(Dropout(dropout_rate))(x)
+    
+        for i in range(pre_tiling_layers):
+    
+            x = ApplyTD(Conv2D(filters,
+                       kernel_size=kernel_size, 
+                       strides=(2, 2),
+                       padding='same'))(x)
+            if batchnorm:
+                x = ApplyTD(BatchNormalization(momentum=0.9))(x)
+            x = ApplyTD(relu())(x)
+            #x = MaxPooling2D(pool_size=(2,2))(x)
+            if dropout:
+                x = ApplyTD(Dropout(dropout_rate))(x)
+    
+        # ===============================================
+        # ADD TILING
+        if tile:
+            tile_width = int(width/(pre_tiling_layers+1))
+            tile_height = int(height/(pre_tiling_layers+1))
+            if option is not None:
+                ins = [samples, pose_in, option_in]
+            else:
+                ins = [samples, pose_in]
+            x = self._TilePose(x, pose_in, tile_height, tile_width,
+                    option, option_x, time_distributed)
+        else:
+            ins = [samples]
+    
+        for i in range(post_tiling_layers):
+            if i == post_tiling_layers - 1:
+                nfilters = output_filters
+            else:
+                nfilters = filters
+            x = ApplyTD(Conv2D(nfilters,
+                       kernel_size=kernel_size, 
+                       strides=(2, 2),
+                       padding='same'))(x)
+            if batchnorm:
+                x = ApplyTD(BatchNormalization(momentum=0.9))(x)
+            x = relu()(x)
+            #x = MaxPooling2D(pool_size=(2,2))(x)
+            if dropout:
+                x = Dropout(dropout_rate)(x)
+    
+        if flatten or dense or discriminator:
+            x = ApplyTD(Flatten())(x)
+        if dense:
+            x = ApplyTD(Dense(dim))(x)
+            x = ApplyTD(relu())(x)
+    
+        # Single output -- sigmoid activation function
+        if discriminator:
+            x = Dense(1,activation="sigmoid")(x)
+    
+        return ins, x
+    
+    def _AddOptionTiling(self, x, option_length, option_in, height, width):
+        tile_shape = (1, width, height, 1)
+        option = Reshape([1,1,option_length])(option_in)
+        option = Lambda(lambda x: K.tile(x, tile_shape))(option)
+        x = Concatenate(
+                axis=-1,
+                name="add_option_%dx%d"%(width,height),
+            )([x, option])
+        return x
+    
+    def _GetDecoder(self, dim, img_shape, pose_size,
+            dropout_rate, filters, kernel_size=[3,3], dropout=True, leaky=True,
+            batchnorm=True,dense=True, option=None, num_hypotheses=None,
+            tform_filters=None,
+            stride2_layers=2, stride1_layers=1):
+    
+        '''
+        Initial decoder: just based on getting images out of the world state
+        created via the encoder.
+        '''
+    
+        height8 = img_shape[0]/8
+        width8 = img_shape[1]/8
+        height4 = img_shape[0]/4
+        width4 = img_shape[1]/4
+        height2 = img_shape[0]/2
+        width2 = img_shape[1]/2
+        nchannels = img_shape[2]
+    
+        if tform_filters is None:
+            tform_filters = filters
+    
+        if leaky:
+            relu = lambda: LeakyReLU(alpha=0.2)
+        else:
+            relu = lambda: Activation('relu')
+    
+        if option is not None:
+            oin = Input((1,),name="input_next_option")
+    
+        if dense:
+            z = Input((dim,),name="input_image")
+            x = Dense(filters/2 * height4 * width4)(z)
+            if batchnorm:
+                x = BatchNormalization(momentum=0.9)(x)
+            x = relu()(x)
+            x = Reshape((width4,height4,tform_filters/2))(x)
+        else:
+            z = Input((width8*height8*tform_filters,),name="input_image")
+            x = Reshape((width8,height8,tform_filters))(z)
+        x = Dropout(dropout_rate)(x)
+    
+        height = height4
+        width = width4
+        for i in range(stride2_layers):
+    
+            x = Conv2DTranspose(filters,
+                       kernel_size=kernel_size, 
+                       strides=(2, 2),
+                       padding='same')(x)
+            if batchnorm:
+                x = BatchNormalization(momentum=0.9)(x)
+            x = relu()(x)
+            #x = UpSampling2D(size=(2,2))(x)
+            if dropout:
+                x = Dropout(dropout_rate)(x)
+    
+            if option is not None:
+                opt = OneHot(option)(oin)
+                x = AddOptionTiling(x, option, opt, height, width)
+    
+            height *= 2
+            width *= 2
+    
+        for i in range(stride1_layers):
+            x = Conv2D(filters, # + num_labels
+                       kernel_size=kernel_size, 
+                       strides=(1, 1),
+                       padding="same")(x)
+            if batchnorm:
+                x = BatchNormalization(momentum=0.9)(x)
+            x = relu()(x)
+            if dropout:
+                x = Dropout(dropout_rate)(x)
+            if option is not None:
+                opt = OneHot(option)(oin)
+                x = AddOptionTiling(x, option, opt, height, width)
+    
+        x = Conv2D(nchannels, (1, 1), padding='same')(x)
+        x = Activation('sigmoid')(x)
+    
+        ins = [z]
+        if option is not None:
+            ins.append(oin)
+    
+        return ins, x
 
 
     def _makePolicy(self, features, action, hidden=None):
@@ -103,7 +425,7 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
         pose_size = pose.shape[-1]
         
 
-        ins, enc = GetEncoder(img_shape,
+        ins, enc = self._GetEncoder(img_shape,
                 pose_size,
                 self.img_col_dim,
                 self.dropout_rate,
@@ -116,11 +438,11 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
                 dense=False,
                 batchnorm=True,
                 tile=True,
-                option=64,
+                option=self.num_options,
                 flatten=False,
                 output_filters=self.tform_filters,
                 )
-        gins, genc = GetEncoder(img_shape,
+        gins, genc = self._GetEncoder(img_shape,
                 pose_size,
                 self.img_col_dim,
                 self.dropout_rate,
@@ -133,7 +455,7 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
                 dense=False,
                 batchnorm=True,
                 tile=True,
-                #option=64,
+                #option=self.num_options,
                 flatten=False,
                 output_filters=self.tform_filters,
                 )
@@ -162,7 +484,7 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
                             batchnorm=True,)
 
         # =====================================================================
-        # Decode arm/gripper state.
+        # Decode pose state.
         # Predict the next joint states and gripper position. We add these back
         # in from the inputs once again, in order to make sure they don't get
         # lost in all the convolution layers above...
@@ -184,7 +506,7 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
         x = LeakyReLU(0.2)(x)
         pose_out_x = Dense(pose_size,name="next_pose")(x)
        
-        label_out_x = Dense(64,name="next_label",activation="softmax")(x)
+        label_out_x = Dense(self.num_options,name="next_label",activation="softmax")(x)
 
         decoder = Model(rep, [dec, pose_out_x, label_out_x], name="decoder")
 
@@ -217,7 +539,7 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
                     name="img_hypothesis_%d"%i)(img_x)
             pose_x = Lambda(
                     lambda x: K.expand_dims(x, 1),
-                    name="pose_hypothesis_%d"%i)(arm_x)
+                    name="pose_hypothesis_%d"%i)(pose_x)
             label_x = Lambda(
                     lambda x: K.expand_dims(x, 1),
                     name="label_hypothesis_%d"%i)(label_x)
@@ -278,7 +600,7 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
 
         for i in range(features[0].shape[0]):
             img1 = targets[0][i,:int(image_size)].reshape((64,64,3))
-            img2 = features[4][i]
+            img2 = features[3][i]
             if not np.all(img1 == img2):
                 print(i,"failed")
                 plt.subplot(1,2,1); plt.imshow(img1);
@@ -293,7 +615,7 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
             )
             imageCb = PredictorShowImage(
                 self.predictor,
-                features=features[:4],
+                features=features[:3],
                 targets=targets,
                 num_hypotheses=self.num_hypotheses,
                 verbose=True,
@@ -360,6 +682,28 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
         plt.ion()
         plt.show(block=False)
         plt.pause(0.01)
+        
+    def load(self, features, pose, world, *args, **kwargs):
+        '''
+        Load will use the current model descriptor and name to load the file
+        that you are interested in, at least for now.
+        '''
+        if world is not None:
+            control = world.zeroAction()
+            reward = world.initial_reward
+            features = world.computeFeatures()
+            action_label = np.zeros((self._numLabels(),))
+            example = 0
+            done = False
+            data = world.vectorize(control, features, reward, done, example,
+                 action_label)
+            kwargs = {}
+            for k, v in data:
+                kwargs[k] = np.array([v])
+            self._makeModel(**kwargs)
+        else:
+            self._makeModel(features, pose, **kwargs)
+        self._loadWeights()
 
     def _makeModel(self, features, pose, *args, **kwargs):
         self.predictor, self.train_predictor, self.actor = \
@@ -400,24 +744,26 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
         image_size = int(image_size)
         pose_size = q.shape[-1]
 
-        train_size = image_size + pose_size + 64
-        assert train_size == 12295 + 64
+        train_size = image_size + pose_size + self.num_options
+        #assert train_size == 12295 + 64
+        assert train_size == 64*64*3 + 6 + self.num_options
         assert I.shape[0] == I_target.shape[0]
 
-        o_target = np.squeeze(self.toOneHot2D(o_target, 64))
+        o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
         length = I.shape[0]
         Itrain = np.reshape(I_target,(length, image_size))
-        train_target = np.concatenate([Itrain,q_target,g_target,o_target],axis=-1)
+        train_target = np.concatenate([Itrain,q_target,o_target],axis=-1)
 
         self.train_predictor.compile(
                 loss=[
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
-                        outputs=[image_size, pose_size, 64],
-                        weights=[0.6,0.2,0.1,0.1],
-                        loss=["mse","mse","mse","categorical_crossentropy"]), 
-                    "mse","mse"],
-                loss_weights=[0.8,0.1,0.1],
+                        outputs=[image_size, pose_size, self.num_options],
+                        #weights=[0.6,0.3,0.1],
+                        weights=[1.,0.,0.],
+                        loss=["mse","mse","categorical_crossentropy"]), 
+                    "mse"],
+                loss_weights=[0.8,0.1],
                 optimizer=self.getOptimizer())
         self.predictor.compile(loss="mse", optimizer=self.getOptimizer())
 
