@@ -10,6 +10,7 @@ from .multi_hierarchical import RobotMultiHierarchical
 
 # Model for sampling predictiosn
 from .multi_sampler import RobotMultiPredictionSampler
+from .multi_sequence import RobotMultiSequencePredictor
 
 def MakeModel(features, model, taskdef, **kwargs):
     '''
@@ -86,6 +87,10 @@ def MakeModel(features, model, taskdef, **kwargs):
                     **kwargs)
         elif model == "unsupervised1":
             model_instance = RobotMultiUnsupervised1(taskdef,
+                    model=model,
+                    **kwargs)
+        elif model == "sequence":
+            model_instance = RobotMultiSequencePredictor(taskdef,
                     model=model,
                     **kwargs)
     

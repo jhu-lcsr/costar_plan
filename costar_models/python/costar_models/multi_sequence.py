@@ -25,7 +25,7 @@ from .robot_multi_models import *
 from .split import *
 from .mhp_loss import *
 
-class RobotMultiPredictionSampler(RobotMultiHierarchical):
+class RobotMultiSequencePredictor(RobotMultiHierarchical):
 
     '''
     This class is set up as a SUPERVISED learning problem -- for more
@@ -37,7 +37,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         As in the other models, we call super() to parse arguments from the
         command line and set things like our optimizer and learning rate.
         '''
-        super(RobotMultiPredictionSampler, self).__init__(taskdef, *args, **kwargs)
+        super(RobotMultiSequencePredictor, self).__init__(taskdef, *args, **kwargs)
 
         self.num_frames = 1
 
@@ -127,10 +127,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 dense=False,
                 batchnorm=True,
                 tile=True,
+                option=self.num_options,
                 flatten=False,
                 output_filters=self.tform_filters,
                 )
-        img_in, arm_in, gripper_in = ins
+        img_in, arm_in, gripper_in, option_in = ins
         gins, genc, _, _ = GetEncoder(img_shape,
                 arm_size,
                 gripper_size,
@@ -145,6 +146,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 dense=False,
                 batchnorm=True,
                 tile=True,
+                #option=64,
                 flatten=False,
                 output_filters=self.tform_filters,
                 )
@@ -371,27 +373,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             self._makePredictor(
                 (features, arm, gripper))
 
-        image_shape = features.shape[1:]
-        image_size = 1
-        for dim in image_shape:
-            image_size *= dim
-        image_size = int(image_size)
-        arm_size = arm.shape[-1]
-        gripper_size = gripper.shape[-1]
-
-        self.train_predictor.compile(
-                loss=[
-                    MhpLossWithShape(
-                        num_hypotheses=self.num_hypotheses,
-                        outputs=[image_size, arm_size, gripper_size, self.num_options],
-                        weights=[1.,1.,0.2,0.1],
-                        loss=["mae","mse","mse","categorical_crossentropy"]), 
-                    ],#"mse","mse"],
-                #loss_weights=[0.8,0.1,0.1],
-                optimizer=self.getOptimizer())
-        self.predictor.compile(loss="mse", optimizer=self.getOptimizer())
-
-
     def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             prev_label, goal_features, goal_arm, goal_gripper, *args, **kwargs):
         '''
@@ -419,7 +400,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         print("options:", oin.shape, o_target.shape)
 
         if self.predictor is None:
-            self._makeModel(I, q, g, qa, ga)
+            self._makeModel(I, q, g, qa, ga, oin)
 
         # ==============================
         image_shape = I.shape[1:]
@@ -438,14 +419,24 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
         length = I.shape[0]
         Itrain = np.reshape(I_target,(length, image_size))
-        train_target = np.concatenate(
-                [Itrain,q_target,g_target,o_target],
-                axis=-1)
+        train_target = np.concatenate([Itrain,q_target,g_target,o_target],axis=-1)
+
+        self.train_predictor.compile(
+                loss=[
+                    MhpLossWithShape(
+                        num_hypotheses=self.num_hypotheses,
+                        outputs=[image_size, arm_size, gripper_size, self.num_options],
+                        weights=[1.,1.,0.2,0.1],
+                        loss=["mae","mse","mse","categorical_crossentropy"]), 
+                    ],#"mse","mse"],
+                #loss_weights=[0.8,0.1,0.1],
+                optimizer=self.getOptimizer())
+        self.predictor.compile(loss="mse", optimizer=self.getOptimizer())
 
         # ===============================================
         # Fit the main models
         self._fitPredictor(
-                [I, q, g, I_target, q_target, g_target,],
+                [I, q, g, oin, I_target, q_target, g_target,],
                 [train_target,]), #qa, ga],)
 
     def _getAllData(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
@@ -483,14 +474,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         Itrain = np.reshape(I_target,(length, image_size))
         train_target = np.concatenate([Itrain,q_target,g_target,o_target],axis=-1)
 
-        return [I, q, g, I_target, q_target, g_target,], [
+        return [I, q, g, oin, I_target, q_target, g_target,], [
                 np.expand_dims(train_target, axis=1),
                 np.expand_dims(qa, axis=1),
                 np.expand_dims(ga, axis=1)]
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
-        return features[:3], [targets[0]]
+        return features[:4], [targets[0]]
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''
@@ -511,11 +502,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Use sample data to compile the model and set everything else up.
         # Check to make sure data makes sense before running the model.
 
-        [I, q, g, I_target, q_target, g_target,] = features
+        [I, q, g, oin, I_target, q_target, g_target,] = features
         [I_target2, qa, ga,] = targets
 
         if self.predictor is None:
-            self._makeModel(I, q, g, qa, ga)
+            self._makeModel(I, q, g, qa, ga, oin)
 
         # Compute helpful variables
         image_shape = I.shape[1:]
@@ -532,6 +523,18 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         #assert train_size == 12295 + self.num_options
         #assert train_size == 12296 + self.num_options
         assert train_size == (64*64*3) + 7 + 1 + self.num_options
+        self.train_predictor.compile(
+                loss=[
+                    MhpLossWithShape(
+                        num_hypotheses=self.num_hypotheses,
+                        outputs=[image_size, arm_size, gripper_size, self.num_options],
+                        weights=[0.3,0.3,0.1,0.3],
+                        loss=["mse","mse","mse","categorical_crossentropy"]),
+                    ],
+                    #"mse","mse"],
+                #loss_weights=[0.8,0.1,0.1],
+                optimizer=self.getOptimizer())
+        self.predictor.compile(loss="mse", optimizer=self.getOptimizer())
 
         # ===================================================================
         # Create the callbacks and actually run the training loop.

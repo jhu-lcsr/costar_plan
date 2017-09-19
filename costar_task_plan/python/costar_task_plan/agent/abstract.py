@@ -72,6 +72,8 @@ class AbstractAgent(object):
             data_type=None,
             success_only=False, # save all examples
             seed=0, # set a default seed
+            collect_trajectories=False,
+            random_downsample=False,
             *args, **kwargs):
         '''
         Sets up the general Agent.
@@ -115,6 +117,8 @@ class AbstractAgent(object):
         self.data_type = data_type
         self.seed = seed
         self.success_only = success_only
+        self.random_downsample = random_downsample
+        self.collect_trajectories = collect_trajectories
 
         if self.data_type == self.NUMPY_ZIP:
             root = ""
@@ -244,12 +248,17 @@ class AbstractAgent(object):
         # This may require setting up window_length, etc.
         # NOTE: removing some unnecessary features that we really dont need to
         # save. This ued to add world.features.description
-        next_list = ["reward", "label"]
+        if self.collection_mode == "next":
+            next_list = ["reward", "label"] + world.features.description
+            goal_list = []
+        elif self.collection_mode == "goal":
+            goal_list = ["reward", "label"] + world.features.description
+            next_list = []
+
         # -- NOTE: you can add other features here in the future, but for now
         # we do not need these. Label gets some unique handling.
         prev_list  = []
         first_list = []
-        goal_list = world.features.description
         length = len(self.current_example['example'])
 
         # Create an empty dict to hold all the data from this last trial.
@@ -289,10 +298,11 @@ class AbstractAgent(object):
 
             # We will always include frames where the label changed. We may or
             # may not include frames where the 
-            if self.current_example["label"][i0] == self.current_example["label"][i1] \
-                    and not i0 == 0 \
-                    and not i1 == length - 1 \
-                    and not np.random.randint(2) == 0:
+            if (self.current_example["label"][i0] == self.current_example["label"][i1] 
+                    and not i0 == 0 
+                    and not i1 == length - 1 
+                    and self.random_downsample 
+                    and not np.random.randint(2) == 0):
                         continue
 
             # ==========================================
