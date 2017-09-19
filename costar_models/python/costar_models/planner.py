@@ -75,10 +75,11 @@ def TileArmAndGripper(x, arm_in, gripper_in, tile_width, tile_height,
         robot = Reshape([1, 1, reshape_size])(robot)
 
     # finally perform the actual tiling
+    robot0 = robot
     robot = Lambda(lambda x: K.tile(x, tile_shape))(robot)
     x = Concatenate(axis=-1)([x,robot])
 
-    return x
+    return x, robot
 
 def GetImageEncoder(img_shape, dim, dropout_rate,
         filters, dropout=True, leaky=True,
@@ -306,7 +307,7 @@ def GetImageArmGripperDecoder(dim, img_shape,
         dropout_rate, filters, dense_size, kernel_size=[3,3], dropout=True, leaky=True,
         batchnorm=True,dense=True, num_hypotheses=None, tform_filters=None,
         original=None, num_options=64, arm_size=7, gripper_size=1,
-        resnet_blocks=False, skips=None, arm_in=None, gripper_in=None,
+        resnet_blocks=False, skips=None, robot_skip=None,
         stride2_layers=2, stride1_layers=1):
 
     rep, dec = GetImageDecoder(dim,
@@ -340,6 +341,9 @@ def GetImageArmGripperDecoder(dim, img_shape,
     x = Reshape((width8,height8,tform_filters))(rep[0])
     if not resnet_blocks:
         for i in range(1):
+            if i == 1 and skips is not None:
+                smallest_skip = rep[1]
+                x = Concatenate(axis=-1)([x, smallest_skip])
             x = Conv2D(filters,
                     kernel_size=kernel_size, 
                     strides=(2, 2),

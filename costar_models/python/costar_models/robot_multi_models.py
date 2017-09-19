@@ -183,7 +183,7 @@ def GetEncoderConvLSTM(img_shape, arm_size, gripper_size,
     if tile:
         tile_width = int(width/(pre_tiling_layers+1))
         tile_height = int(height/(pre_tiling_layers+1))
-        x = TileArmAndGripper(arm_in, gripper_in,
+        x, _ = TileArmAndGripper(arm_in, gripper_in,
                 tile_width, tile_height,
                 time_distributed)
         ins = [samples, arm_in, gripper_in]
@@ -256,7 +256,7 @@ def GetEncoder3D(img_shape, arm_size, gripper_size, dropout_rate,
         tile_width = int(width/(pre_tiling_layers+1))
         tile_height = int(height/(pre_tiling_layers+1))
 
-        x = TileArmAndGripper(arm_in, gripper_in,
+        x, _ = TileArmAndGripper(arm_in, gripper_in,
                 tile_width, tile_height,
                 time_distributed)
         ins = [samples, arm_in, gripper_in]
@@ -370,7 +370,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
             ins = [samples, arm_in, gripper_in, option_in]
         else:
             ins = [samples, arm_in, gripper_in]
-        x = TileArmAndGripper(x, arm_in, gripper_in, tile_height, tile_width,
+        x, robot = TileArmAndGripper(x, arm_in, gripper_in, tile_height, tile_width,
                 option, option_x, time_distributed, dim)
     else:
         ins = [samples]
@@ -403,7 +403,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     if discriminator:
         x = Dense(1,activation="sigmoid")(x)
 
-    return ins, x, skips
+    return ins, x, skips, robot
 
 def AddOptionTiling(x, option_length, option_in, height, width):
     tile_shape = (1, width, height, 1)

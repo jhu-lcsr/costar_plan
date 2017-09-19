@@ -113,7 +113,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         else:
             gripper_size = 1
 
-        ins, enc, skips = GetEncoder(img_shape,
+        ins, enc, skips, robot_skip = GetEncoder(img_shape,
                 arm_size,
                 gripper_size,
                 self.img_col_dim,
@@ -132,7 +132,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 output_filters=self.tform_filters,
                 )
         img_in, arm_in, gripper_in, option_in = ins
-        gins, genc, _ = GetEncoder(img_shape,
+        gins, genc, _, _ = GetEncoder(img_shape,
                 arm_size,
                 gripper_size,
                 self.img_col_dim,
@@ -167,6 +167,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         leaky=True,
                         dense=False,
                         skips=skips,
+                        robot_skip=robot_skip,
                         resnet_blocks=self.residual,
                         batchnorm=True,)
 
