@@ -47,7 +47,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.tform_filters = 64
         self.combined_dense_size = 128
         self.num_hypotheses = 8
-        self.num_transforms = 2
+        self.num_transforms = 3
         self.validation_split = 0.1
         self.num_options = 48
         self.extra_layers = 0
@@ -113,7 +113,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         else:
             gripper_size = 1
 
-        ins, enc, skips = GetEncoder(img_shape,
+        ins, enc, skips, robot_skip = GetEncoder(img_shape,
                 arm_size,
                 gripper_size,
                 self.img_col_dim,
@@ -131,7 +131,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 flatten=False,
                 output_filters=self.tform_filters,
                 )
-        gins, genc, _ = GetEncoder(img_shape,
+        img_in, arm_in, gripper_in, option_in = ins
+        gins, genc, _, _ = GetEncoder(img_shape,
                 arm_size,
                 gripper_size,
                 self.img_col_dim,
@@ -166,6 +167,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         leaky=True,
                         dense=False,
                         skips=skips,
+                        robot_skip=robot_skip,
                         resnet_blocks=self.residual,
                         batchnorm=True,)
 
@@ -424,8 +426,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
-                        weights=[0.7,0.2,0.05,0.05],
-                        loss=["mse","mse","mse","categorical_crossentropy"]), 
+                        weights=[1.,1.,0.2,0.1],
+                        loss=["mae","mse","mse","categorical_crossentropy"]), 
                     ],#"mse","mse"],
                 #loss_weights=[0.8,0.1,0.1],
                 optimizer=self.getOptimizer())
