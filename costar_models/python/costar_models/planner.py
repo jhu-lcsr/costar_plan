@@ -32,13 +32,19 @@ Returns for all tools:
 out: an output tensor
 '''
 
-def CombineArmAndGripper(arm_in, gripper_in):
+def CombineArmAndGripper(arm_in, gripper_in, dim=64):
     robot = Concatenate(axis=-1)([arm_in, gripper_in])
+    robot = Dense(dim, activation="relu")(robot)
+    return robot
+
+def CombineArmAndGripperAndOption(arm_in, gripper_in, option_in, dim=64):
+    robot = Concatenate(axis=-1)([arm_in, gripper_in, option_in])
+    robot = Dense(dim, activation="relu")(robot)
     return robot
 
 def TileArmAndGripper(x, arm_in, gripper_in, tile_width, tile_height,
         option=None, option_in=None,
-        time_distributed=None):
+        time_distributed=None, dim=64):
     arm_size = int(arm_in.shape[-1])
     gripper_size = int(gripper_in.shape[-1])
 
@@ -49,11 +55,16 @@ def TileArmAndGripper(x, arm_in, gripper_in, tile_width, tile_height,
 
     # generate options and tile things together
     if option is None:
-        robot = CombineArmAndGripper(arm_in, gripper_in)
-        reshape_size = arm_size+gripper_size
+        robot = CombineArmAndGripper(arm_in, gripper_in, dim=dim)
+        #reshape_size = arm_size+gripper_size
+        reshape_size = dim
     else:
-        robot = Concatenate(axis=-1)([arm_in, gripper_in, option_in])
-        reshape_size = arm_size+gripper_size+option
+        robot = CombineArmAndGripperAndOption(arm_in, 
+                                              gripper_in,
+                                              option_in,
+                                              dim=dim)
+        reshape_size = dim
+        #reshape_size = arm_size+gripper_size+option
 
     # time distributed or not
     if time_distributed is not None and time_distributed > 0:
@@ -295,7 +306,7 @@ def GetImageArmGripperDecoder(dim, img_shape,
         dropout_rate, filters, dense_size, kernel_size=[3,3], dropout=True, leaky=True,
         batchnorm=True,dense=True, num_hypotheses=None, tform_filters=None,
         original=None, num_options=64, arm_size=7, gripper_size=1,
-        resnet_blocks=False, skips=None,
+        resnet_blocks=False, skips=None, arm_in=None, gripper_in=None,
         stride2_layers=2, stride1_layers=1):
 
     rep, dec = GetImageDecoder(dim,

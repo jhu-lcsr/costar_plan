@@ -47,7 +47,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.tform_filters = 64
         self.combined_dense_size = 128
         self.num_hypotheses = 8
-        self.num_transforms = 2
+        self.num_transforms = 3
         self.validation_split = 0.1
         self.num_options = 48
         self.extra_layers = 0
@@ -131,6 +131,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 flatten=False,
                 output_filters=self.tform_filters,
                 )
+        img_in, arm_in, gripper_in, option_in = ins
         gins, genc, _ = GetEncoder(img_shape,
                 arm_size,
                 gripper_size,

@@ -371,7 +371,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         else:
             ins = [samples, arm_in, gripper_in]
         x = TileArmAndGripper(x, arm_in, gripper_in, tile_height, tile_width,
-                option, option_x, time_distributed)
+                option, option_x, time_distributed, dim)
     else:
         ins = [samples]
 
