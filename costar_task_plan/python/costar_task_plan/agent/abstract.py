@@ -122,6 +122,7 @@ class AbstractAgent(object):
         self.random_downsample = random_downsample
         self.collect_trajectories = collect_trajectories
         self.collection_mode = collection_mode
+        self.trajectory_length = trajectory_length
         if self.collection_mode == "goal" and self.collect_trajectories:
             raise RuntimeError("trajectories over future goals currently " + \
                                "not supported")
@@ -293,11 +294,17 @@ class AbstractAgent(object):
         total_reward = np.sum(self.current_example["reward"])
         data["value"] = [total_reward] * len(self.current_example["example"])
 
+        if self.collect_trajectories:
+            feature_shapes = {}
+            for f in world.features.description:
+                shape = self.current_example[f][0].shape
+                feature_shapes[f] = (self.trajectory_length,) + shape
+
         # ============================================
         # Loop over all entries. For important items, take the previous frame
         # and the next frame -- and possibly even the final frame.
         prev_label = max_label
-        for i in xrange(length):
+        for i in range(length):
             i0 = max(i-1,0)
             i1 = min(i+1,length-1)
             ifirst = 0
@@ -306,8 +313,17 @@ class AbstractAgent(object):
                 # collect a trajectory from this point going forward, out to
                 # whatever length trajectories are (determined by command line
                 # options)
-                for i in range(self.trajectory_length):
-                    pass
+                if i + 10 >= length:
+                    break
+
+                # Take the next N examples and save them as a single entry.
+                # This is how we set up prediction for a sequence of images to
+                # come.
+                features = {}
+                for f, shape in feature_shapes.items():
+                    features[f] = np.zeros(shape)
+                for j in range(self.trajectory_length):
+                    features[f][j] = self.current_example[f][i+j]
 
             # We will always include frames where the label changed. We may or
             # may not include frames where the 
@@ -331,6 +347,8 @@ class AbstractAgent(object):
                         data["first_%s"%key] = []
                     if key in goal_list:
                         data["goal_%s"%key] = []
+                    if key in features:
+                        data["traj_%s"%key] = []
 
                 # Check data consistency
                 if len(data[key]) > 0:
@@ -343,6 +361,8 @@ class AbstractAgent(object):
 
                 # Append list of features to the whole dataset
                 data[key].append(values[i])
+                if self.collect_trajectories and key in features:
+                    data["traj_%s"%key].append(features[key])
                 if key == "label":
                     data["prev_%s"%key].append(prev_label)
                     prev_label = values[i]
