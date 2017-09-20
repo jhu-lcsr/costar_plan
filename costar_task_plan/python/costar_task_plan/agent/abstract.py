@@ -68,11 +68,13 @@ class AbstractAgent(object):
             load=False,
             directory='.',
             window_length=10,
+            trajectory_length=10,
             data_file='data.npz',
             data_type=None,
             success_only=False, # save all examples
             seed=0, # set a default seed
             collect_trajectories=False,
+            collection_mode="goal",
             random_downsample=False,
             *args, **kwargs):
         '''
@@ -119,6 +121,10 @@ class AbstractAgent(object):
         self.success_only = success_only
         self.random_downsample = random_downsample
         self.collect_trajectories = collect_trajectories
+        self.collection_mode = collection_mode
+        if self.collection_mode == "goal" and self.collect_trajectories:
+            raise RuntimeError("trajectories over future goals currently " + \
+                               "not supported")
 
         if self.data_type == self.NUMPY_ZIP:
             root = ""
@@ -295,6 +301,13 @@ class AbstractAgent(object):
             i0 = max(i-1,0)
             i1 = min(i+1,length-1)
             ifirst = 0
+
+            if self.collect_trajectories:
+                # collect a trajectory from this point going forward, out to
+                # whatever length trajectories are (determined by command line
+                # options)
+                for i in range(self.trajectory_length):
+                    pass
 
             # We will always include frames where the label changed. We may or
             # may not include frames where the 
