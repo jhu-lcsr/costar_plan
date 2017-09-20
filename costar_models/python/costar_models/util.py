@@ -92,6 +92,9 @@ def MakeModel(features, model, taskdef, **kwargs):
                     **kwargs)
         elif model == "sequence":
             model_instance = RobotMultiSequencePredictor(taskdef,
+                    model=model,
+                    **kwargs)
+
         elif model == "husky_predictor":
             model_instance = HuskyRobotMultiPredictionSampler(taskdef,
                     model=model,

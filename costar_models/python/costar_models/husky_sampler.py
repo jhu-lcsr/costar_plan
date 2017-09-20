@@ -19,7 +19,7 @@ from keras.optimizers import Adam
 from matplotlib import pyplot as plt
 
 from .abstract import *
-from .callbacks import *
+from .husky_callbacks import *
 from .multi_hierarchical import *
 from .robot_multi_models import *
 from .split import *
@@ -49,6 +49,8 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_hypotheses = 8
         self.num_transforms = 3
         self.num_options = 4
+        
+        self.include_label = False
 
         self.predictor = None
         self.train_predictor = None
