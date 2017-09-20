@@ -1,0 +1,86 @@
+#!/usr/bin/env python
+
+from costar_models import *
+from costar_models.datasets.npz import NpzDataset
+
+'''
+Tool for running model training without the rest of the simulation/planning/ROS
+code. This should be more or less independent and only rely on a couple
+external features.
+'''
+
+def main(args):
+    if 'cpu' in args and args['cpu']:
+        import tensorflow as tf
+        import keras.backend as K
+
+        with tf.device('/cpu:0'):
+            config = tf.ConfigProto(
+                device_count={'GPU': 0}
+            )
+            sess = tf.Session(config=config)
+            K.set_session(sess)
+            
+    data = NpzDataset(args['data_file']).load()
+    print "data keys are ", data.keys()
+
+#    data_file_info = args['data_file'].split('.')
+#    data_type = data_file_info[-1]
+#    if data_type == "npz":
+#        root = ""
+#        for i, tok in enumerate(data_file_info[:-1]):
+#            if i < len(data_file_info)-1 and i > 0:
+#                root += '.'
+#            root += tok
+#        print(root)
+#        data = NpzDataset(root).load()
+#        print "data is ",  data
+#    else:
+#        raise NotImplementedError('data type not implemented: %s'%data_type)
+
+    if 'model' in args and args['model'] is not None:
+        model = MakeModel(taskdef=None, **args)
+        print (args)
+        if 'load_model' in args and args['load_model']:
+            model.load(data['image']/255.,data['robot_pose'], world=None,**data)
+            
+        try:
+            print len(data['image'])
+            print len(data['robot_pose'])
+            print len(data['robot_action'])
+            print len(data['label'])
+            print len(data['prev_label'])
+            print len(data['goal_image'])
+            print len(data['goal_robot_pose'])
+            
+#            from scipy.misc import imsave
+#            cnt = 0
+#            for i in (data['image']):
+#                filename = ("/tmp/image%d.png"%cnt)
+#                print "prev label", cnt, data['prev_label'][cnt]
+#                print "label", cnt, data['label'][cnt]
+#                imsave(filename, i)
+#                cnt += 1
+#            
+            model.train(data['image']/255.,data['robot_pose'],data['robot_action'],data['label'],\
+            data['prev_label'],data['goal_image']/255.,data['goal_robot_pose'])
+        except KeyboardInterrupt:
+            pass
+        model.save()
+        if args['debug_model']:
+            model.plot(env)
+            try:
+                while True:
+                    time.sleep(0.1)
+            except KeyboardInterrupt:
+                pass
+    else:
+        pass
+
+if __name__ == '__main__':
+    args = ParseModelArgs()
+    if args['profile']:
+        import cProfile
+        cProfile.run('main(args)')
+    else:
+        main(args)
