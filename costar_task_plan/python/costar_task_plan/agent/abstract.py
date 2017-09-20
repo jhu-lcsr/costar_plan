@@ -255,12 +255,16 @@ class AbstractAgent(object):
         # This may require setting up window_length, etc.
         # NOTE: removing some unnecessary features that we really dont need to
         # save. This ued to add world.features.description
-        if self.collection_mode == "next":
-            next_list = ["reward", "label"] + world.features.description
-            goal_list = []
-        elif self.collection_mode == "goal":
-            goal_list = ["reward", "label"] + world.features.description
+        if not self.collect_trajectories:
+            if self.collection_mode == "next":
+                next_list = ["reward", "label"] + world.features.description
+                goal_list = []
+            elif self.collection_mode == "goal":
+                goal_list = ["reward", "label"] + world.features.description
+                next_list = []
+        else:
             next_list = []
+            goal_list = []
 
         # -- NOTE: you can add other features here in the future, but for now
         # we do not need these. Label gets some unique handling.
