@@ -248,7 +248,7 @@ class AbstractAgent(object):
         - compute transition points
         - compute option-level (mid-level) labels
         '''
-        print("Finishing example",example,seed)
+        print("Finishing example no.",example,"with seed =",seed)
 
         # ============================================================
         # Split into chunks and preprocess the data.
@@ -326,8 +326,8 @@ class AbstractAgent(object):
                 features = {}
                 for f, shape in feature_shapes.items():
                     features[f] = np.zeros(shape)
-                for j in range(self.trajectory_length):
-                    features[f][j] = self.current_example[f][i+j]
+                    for j in range(self.trajectory_length):
+                        features[f][j] = self.current_example[f][i+j]
 
             # We will always include frames where the label changed. We may or
             # may not include frames where the 
