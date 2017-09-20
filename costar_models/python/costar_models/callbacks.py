@@ -5,14 +5,16 @@ import keras
 import matplotlib.pyplot as plt
 import numpy as np
 
+DEFAULT_MODEL_DIRECTORY = os.path.expanduser('~/.costar/models')
+
 class PredictorShowImage(keras.callbacks.Callback):
     '''
     Save an image showing what some number of frames and associated predictions
     will look like at the end of an epoch.
     '''
-    directory = os.path.expanduser("~/.costar/debug")
 
     def __init__(self, predictor, features, targets,
+            model_directory=DEFAULT_MODEL_DIRECTORY,
             num_hypotheses=4,
             verbose=False,
             min_idx=0, max_idx=66, step=11):
@@ -34,6 +36,7 @@ class PredictorShowImage(keras.callbacks.Callback):
         self.targets = [np.squeeze(t[self.idxs]) for t in targets]
         self.epoch = 0
         self.num_hypotheses = num_hypotheses
+        self.directory = os.path.join(model_directory,'debug')
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
 

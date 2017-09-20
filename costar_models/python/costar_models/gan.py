@@ -20,78 +20,44 @@ from .abstract import AbstractAgentBasedModel
 
 __LABELS = False
 
+class GeneratorSpec(object):
+    def __init__(self,
+            inputs,
+            noise_input,
+            model,
+            *args,**kwargs):
+        pass
+
+class DiscriminatorSpec(object):
+    pass
+
 class GAN(AbstractAgentBasedModel):
 
-    def __init__(self, *args, **kwargs):
-        self.models = []
-        self.make(*args, **kwargs)
-
-    '''
-    This class is designed to wrap some basic functionality for GANs of
-    different sorts.
-
-    Parameters:
-    -----------
-    ins: lists of input variables for each model. List of lists of tensors.
-    outs: output variable for each model. List of tensors.
-    ops: optimizers associated with each output.
-    loss: loss function associated with each output.
-    noise dim: how much noise we generate as a vector to seed various samples.
-    '''
-    def make(self, ins, outs, opts, loss, noise_dim, *args, **kwargs):
-
-        # =====================================================================
-        # Compile all the basic models
-        for inputs, output, opt in zip(ins, outs, opts):
-            model = Model(inputs, output)
-            model.compile(optimizer=opt, loss=loss, metrics=["accuracy"])
-            self.models.append(model)
-        #self.models = outs
-        #for model, opt in zip(self.models, opts):
-        #    model.compile(optimizer=opt, loss=loss)
-        #ins[0] = self.models[0].inputs[0]
-        
-        self.generator = self.models[0]
-        self.discriminator = self.models[1]
-
-        # =====================================================================
-        # Set up adversarial model
-
-        # Create an adversarial version of the model
+    def _makeModel(self, *args, **kwargs):
+        gen_outputs, shared_inputs, self.generator = self._makeGenerator(*args, **kwargs)
+        self.discriminator = self._makeDiscriminator(
+                gen_outputs,
+                shared_inputs)
+        # Compile the predictor
+        self.generator.compile(
+                loss=self._getGeneratorLoss(),
+                optimizer=self.getOptimizer())
+        self.lr *= 2
+        self.discriminator.compile(
+                loss="binary_crossentropy",
+                optimizer=self.getOptimizer())
+        self.lr *= 0.5
         self.discriminator.trainable = False
-        self.adversarial = Model(
-                ins[0],
-                self.discriminator([self.generator.outputs[0],
-                    self.discriminator.inputs[1:]])
-                #self.discriminator([self.generator.outputs[0]])
-                )
-        self.adversarial.compile(loss=loss, optimizer=opts[0])
-        self.summary()
+        discriminator_target = self.discriminator(
+                self.shared_inputs + self.generator)
+        self.model = Model(self.shared_inputs,
+                self.gen_outputs + discriminator_target)
+        self.model.compile(
+                loss=self._getGeneratorLoss()+["binary_crossentropy"],
+                optimizer=self.getOptimizer())
 
-        """
-        adv_loss = losses.get(loss)(self.adversarial.targets[0], self.adversarial.outputs[0])
-    
-        # Collected trainable weights and sort them deterministically.
-        trainable_weights = self.adversarial.trainable_weights
-
-        # Sort weights by name.
-        if K.backend() == 'theano':
-            trainable_weights.sort(key=lambda x: x.name if x.name else x.auto_name)
-        else:
-            trainable_weights.sort(key=lambda x: x.name)
- 
-        updates = \
-            self.adversarial.optimizer.get_updates(
-                    trainable_weights,
-                    self.adversarial.constraints,
-                    adv_loss)
-        self.optimize_f = K.function(
-                inputs=self.adversarial.inputs,
-                outputs=self.adversarial.outputs,
-                updates=updates)
-        """
-
-        self.noise_dim = noise_dim
+    def _step(self, features, targets):
+        pass
 
     def predict(self, label):
         noise = np.random.random((self.noise_dim,))

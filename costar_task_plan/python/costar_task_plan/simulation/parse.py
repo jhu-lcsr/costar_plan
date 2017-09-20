@@ -89,6 +89,21 @@ def GetSimulationParser():
     parser.add_argument("--fast_reset",
                         help="May result in simulation instability over time.",
                         action="store_true")
+    parser.add_argument("--random_downsample",
+                        help="Decrease total samples created when " + \
+                             "collecting data",
+                        action="store_true")
+    parser.add_argument("--collect_trajectories",
+                        help="Save trajectories when collecting data",
+                        action="store_true")
+    parser.add_argument("--collection_mode",
+                        help="specify what sort of data to store",
+                        choices=["next","goal"],
+                        default="next")
+    parser.add_argument("--trajectory_length",
+                        help="Length of trajectories to save",
+                        type=int,
+                        default=10)
     return parser
     
 

@@ -68,10 +68,14 @@ class AbstractAgent(object):
             load=False,
             directory='.',
             window_length=10,
+            trajectory_length=10,
             data_file='data.npz',
             data_type=None,
             success_only=False, # save all examples
             seed=0, # set a default seed
+            collect_trajectories=False,
+            collection_mode="goal",
+            random_downsample=False,
             *args, **kwargs):
         '''
         Sets up the general Agent.
@@ -115,6 +119,13 @@ class AbstractAgent(object):
         self.data_type = data_type
         self.seed = seed
         self.success_only = success_only
+        self.random_downsample = random_downsample
+        self.collect_trajectories = collect_trajectories
+        self.collection_mode = collection_mode
+        self.trajectory_length = trajectory_length
+        if self.collection_mode == "goal" and self.collect_trajectories:
+            raise RuntimeError("trajectories over future goals currently " + \
+                               "not supported")
 
         if self.data_type == self.NUMPY_ZIP:
             root = ""
@@ -237,19 +248,28 @@ class AbstractAgent(object):
         - compute transition points
         - compute option-level (mid-level) labels
         '''
-        print("Finishing example",example,seed)
+        print("Finishing example no.",example,"with seed =",seed)
 
         # ============================================================
         # Split into chunks and preprocess the data.
         # This may require setting up window_length, etc.
         # NOTE: removing some unnecessary features that we really dont need to
         # save. This ued to add world.features.description
-        next_list = ["reward", "label"]
+        if not self.collect_trajectories:
+            if self.collection_mode == "next":
+                next_list = ["reward", "label"] + world.features.description
+                goal_list = []
+            elif self.collection_mode == "goal":
+                goal_list = ["reward", "label"] + world.features.description
+                next_list = []
+        else:
+            next_list = []
+            goal_list = []
+
         # -- NOTE: you can add other features here in the future, but for now
         # we do not need these. Label gets some unique handling.
         prev_list  = []
         first_list = []
-        goal_list = world.features.description
         length = len(self.current_example['example'])
 
         # Create an empty dict to hold all the data from this last trial.
@@ -278,21 +298,44 @@ class AbstractAgent(object):
         total_reward = np.sum(self.current_example["reward"])
         data["value"] = [total_reward] * len(self.current_example["example"])
 
+        if self.collect_trajectories:
+            feature_shapes = {}
+            for f in world.features.description:
+                shape = self.current_example[f][0].shape
+                feature_shapes[f] = (self.trajectory_length,) + shape
+
         # ============================================
         # Loop over all entries. For important items, take the previous frame
         # and the next frame -- and possibly even the final frame.
         prev_label = max_label
-        for i in xrange(length):
+        for i in range(length):
             i0 = max(i-1,0)
             i1 = min(i+1,length-1)
             ifirst = 0
 
+            if self.collect_trajectories:
+                # collect a trajectory from this point going forward, out to
+                # whatever length trajectories are (determined by command line
+                # options)
+                if i + 10 >= length:
+                    break
+
+                # Take the next N examples and save them as a single entry.
+                # This is how we set up prediction for a sequence of images to
+                # come.
+                features = {}
+                for f, shape in feature_shapes.items():
+                    features[f] = np.zeros(shape)
+                    for j in range(self.trajectory_length):
+                        features[f][j] = self.current_example[f][i+j]
+
             # We will always include frames where the label changed. We may or
             # may not include frames where the 
-            if self.current_example["label"][i0] == self.current_example["label"][i1] \
-                    and not i0 == 0 \
-                    and not i1 == length - 1 \
-                    and not np.random.randint(2) == 0:
+            if (self.current_example["label"][i0] == self.current_example["label"][i1] 
+                    and not i0 == 0 
+                    and not i1 == length - 1 
+                    and self.random_downsample 
+                    and not np.random.randint(2) == 0):
                         continue
 
             # ==========================================
@@ -308,6 +351,8 @@ class AbstractAgent(object):
                         data["first_%s"%key] = []
                     if key in goal_list:
                         data["goal_%s"%key] = []
+                    if key in features:
+                        data["traj_%s"%key] = []
 
                 # Check data consistency
                 if len(data[key]) > 0:
@@ -320,6 +365,8 @@ class AbstractAgent(object):
 
                 # Append list of features to the whole dataset
                 data[key].append(values[i])
+                if self.collect_trajectories and key in features:
+                    data["traj_%s"%key].append(features[key])
                 if key == "label":
                     data["prev_%s"%key].append(prev_label)
                     prev_label = values[i]
