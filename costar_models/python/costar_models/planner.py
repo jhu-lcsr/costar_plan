@@ -14,7 +14,7 @@ from keras.layers import UpSampling2D, Conv2DTranspose
 from keras.layers import BatchNormalization, Dropout
 from keras.layers import Dense, Conv2D, Activation, Flatten
 from keras.layers import Lambda
-from keras.layers.merge import Add
+from keras.layers.merge import Add, Multiply
 from keras.layers.merge import Concatenate
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
@@ -472,6 +472,33 @@ def GetTranform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tru
             x = Add()([x, x0])
 
     return Model(xin, x, name="transform%d"%idx)
+
+def GetHypothesisProbability(x, num_hypotheses, num_options, labels,
+        filters, kernel_size,
+        dropout_rate=0.5):
+
+    x = Conv2D(filters,
+            kernel_size=kernel_size, 
+            strides=(2, 2),
+            padding='same',
+            name="p_hypothesis")(x)
+    x = BatchNormalization(momentum=0.9)(x)
+    x = Dropout(dropout_rate)(x)
+    x = LeakyReLU(alpha=0.2)(x)
+    x = Flatten()(x)
+    x = Dense(num_hypotheses)(x)
+    x2 = Activation("softmax")(x)
+
+    def make_p_matrix(pred, num_actions):
+        x = K.softmax(pred)
+        x = K.expand_dims(pred,axis=-1)
+        x = K.repeat_elements(x, num_actions, axis=-1)
+        return x
+    x = Lambda(lambda x: make_p_matrix(x, num_options),name="p_mat")(x)
+    x = Multiply()([x, labels])
+    x = Lambda(lambda x: K.sum(x,axis=1),name="sum_p_h")(x)
+
+    return x, x2
 
 def OneHot(size=64):
     return Lambda(lambda x: tf.one_hot(tf.cast(x, tf.int32),size))#,name="label_to_one_hot")

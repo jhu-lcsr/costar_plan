@@ -54,7 +54,7 @@ class PredictorShowImage(keras.callbacks.Callback):
                                'are you sure you meant to use this callback'
                                'and not a normal image callback?')
         img = np.reshape(img, (self.num,64,64,3))
-        data, arms, grippers, label = self.predictor.predict(self.features)
+        data, arms, grippers, label, probs = self.predictor.predict(self.features)
         plt.ioff()
         if self.verbose:
             print("============================")
@@ -64,6 +64,7 @@ class PredictorShowImage(keras.callbacks.Callback):
             if self.verbose:
                 print("----------------")
                 print(name)
+                print("p =",probs[j])
             fig = plt.figure(figsize=(3+int(1.5*self.num_hypotheses),2))
             plt.subplot(1,2+self.num_hypotheses,1)
             plt.title('Input Image')
