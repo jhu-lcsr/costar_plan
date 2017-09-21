@@ -14,7 +14,7 @@ from keras.layers import UpSampling2D, Conv2DTranspose
 from keras.layers import BatchNormalization, Dropout
 from keras.layers import Dense, Conv2D, Activation, Flatten
 from keras.layers import Lambda
-from keras.layers.merge import Add
+from keras.layers.merge import Add, Multiply
 from keras.layers.merge import Concatenate
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
@@ -643,6 +643,63 @@ def GetTranform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tru
             x = Add()([x, x0])
 
     return Model(xin, x, name="transform%d"%idx)
+
+def GetHypothesisProbability(x, num_hypotheses, num_options, labels,
+        filters, kernel_size,
+        dropout_rate=0.5):
+
+    '''
+    Compute probabilities across a whole set of action hypotheses, to ensure
+    that the most likely hypothesis is one that seems reasonable.
+
+    This is interesting because we might actually see multiple different
+    hypotheses assigned to the same possible action. So the way it works is
+    that we compute p(h) for all hypotheses h, and then construct a matrix of
+    size:
+
+        M = N_h x N_a
+
+    with N_h = num hypotheses and N_a = number of actions.
+    The "labels" input should contain p(a | h) for all a, so we can compute the
+    matrix M as:
+
+        M(h,a) = p(h) p(a | h)
+
+    Then sum across all h to marginalize this out.
+
+    Parameters:
+    -----------
+    x: the input hidden state representation
+    num_hypotheses: N_h, as above
+    num_options: N_a, as above
+    labels: the input matrix of p(a | h), with size (?, N_h, N_a)
+    filters: convolutional filters for downsampling
+    kernel_size: kernel size for CNN downsampling
+    dropout_rate: dropout rate applied to model
+    '''
+
+    x = Conv2D(filters,
+            kernel_size=kernel_size, 
+            strides=(2, 2),
+            padding='same',
+            name="p_hypothesis")(x)
+    x = BatchNormalization(momentum=0.9)(x)
+    x = Dropout(dropout_rate)(x)
+    x = LeakyReLU(alpha=0.2)(x)
+    x = Flatten()(x)
+    x = Dense(num_hypotheses)(x)
+    x = Activation("softmax")(x)
+    x2 = x
+
+    def make_p_matrix(pred, num_actions):
+        x = K.expand_dims(pred,axis=-1)
+        x = K.repeat_elements(x, num_actions, axis=-1)
+        return x
+    x = Lambda(lambda x: make_p_matrix(x, num_options),name="p_mat")(x)
+    x = Multiply()([x, labels])
+    x = Lambda(lambda x: K.sum(x,axis=1),name="sum_p_h")(x)
+
+    return x, x2
 
 def OneHot(size=64):
     return Lambda(lambda x: tf.one_hot(tf.cast(x, tf.int32),size))#,name="label_to_one_hot")
