@@ -47,7 +47,11 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
         self.tform_filters = 64
         self.combined_dense_size = 128
         self.num_hypotheses = 8
-        self.num_transforms = 3
+        self.num_transforms = 2
+        self.validation_split = 0.1
+        
+        self.extra_layers = 0
+
         self.num_options = 4
         
         self.include_label = False
@@ -154,131 +158,7 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
     
         return [samples], x
         
-    def _GetEncoder(self, img_shape, pose_size, dim, dropout_rate,
-        filters, discriminator=False, tile=False, dropout=True, leaky=True,
-        dense=True, option=None, flatten=True, batchnorm=False,
-        pre_tiling_layers=0,
-        post_tiling_layers=2,
-        kernel_size=[3,3], output_filters=None,
-        time_distributed=0,):
-
-
-        if output_filters is None:
-            output_filters = filters
-    
-        if time_distributed <= 0:
-            ApplyTD = lambda x: x
-            pose_in = Input((pose_size,))
-          
-            if option is not None:
-                option_in = Input((1,))
-                option_x = OneHot(size=option)(option_in)
-                option_x = Reshape((option,))(option_x)
-            else:
-                option_in, option_x = None, None
-            print ("img_shape", img_shape)
-            height4 = img_shape[0]/4
-            width4 = img_shape[1]/4
-            height2 = img_shape[0]/2
-            width2 = img_shape[1]/2
-            height = img_shape[0]
-            width = img_shape[1]
-            channels = img_shape[2]
-        else:
-            ApplyTD = lambda x: TimeDistributed(x)
-            pose_in = Input((time_distributed, pose_size,))
-           
-            if option is not None:
-                option_in = Input((time_distributed,1,))
-                option_x = TimeDistributed(OneHot(size=option),name="label_to_one_hot")(option_in)
-                option_x = Reshape((time_distributed,option,))(option_x)
-            else:
-                option_in, option_x = None, None
-            height4 = img_shape[1]/4
-            width4 = img_shape[2]/4
-            height2 = img_shape[1]/2
-            width2 = img_shape[2]/2
-            height = img_shape[1]
-            width = img_shape[2]
-            channels = img_shape[3]
-    
-        samples = Input(shape=img_shape)
-    
-        '''
-        Convolutions for an image, terminating in a dense layer of size dim.
-        '''
-    
-        if leaky:
-            relu = lambda: LeakyReLU(alpha=0.2)
-        else:
-            relu = lambda: Activation('relu')
-    
-        x = samples
-    
-        x = ApplyTD(Conv2D(filters,
-                    kernel_size=kernel_size, 
-                    strides=(1, 1),
-                    padding='same'))(x)
-        x = ApplyTD(relu())(x)
-        if batchnorm:
-            x = ApplyTD(BatchNormalization(momentum=0.9))(x)
-        if dropout:
-            x = ApplyTD(Dropout(dropout_rate))(x)
-    
-        for i in range(pre_tiling_layers):
-    
-            x = ApplyTD(Conv2D(filters,
-                       kernel_size=kernel_size, 
-                       strides=(2, 2),
-                       padding='same'))(x)
-            if batchnorm:
-                x = ApplyTD(BatchNormalization(momentum=0.9))(x)
-            x = ApplyTD(relu())(x)
-            #x = MaxPooling2D(pool_size=(2,2))(x)
-            if dropout:
-                x = ApplyTD(Dropout(dropout_rate))(x)
-    
-        # ===============================================
-        # ADD TILING
-        if tile:
-            tile_width = int(width/(pre_tiling_layers+1))
-            tile_height = int(height/(pre_tiling_layers+1))
-            if option is not None:
-                ins = [samples, pose_in, option_in]
-            else:
-                ins = [samples, pose_in]
-            x = self._TilePose(x, pose_in, tile_height, tile_width,
-                    option, option_x, time_distributed)
-        else:
-            ins = [samples]
-    
-        for i in range(post_tiling_layers):
-            if i == post_tiling_layers - 1:
-                nfilters = output_filters
-            else:
-                nfilters = filters
-            x = ApplyTD(Conv2D(nfilters,
-                       kernel_size=kernel_size, 
-                       strides=(2, 2),
-                       padding='same'))(x)
-            if batchnorm:
-                x = ApplyTD(BatchNormalization(momentum=0.9))(x)
-            x = relu()(x)
-            #x = MaxPooling2D(pool_size=(2,2))(x)
-            if dropout:
-                x = Dropout(dropout_rate)(x)
-    
-        if flatten or dense or discriminator:
-            x = ApplyTD(Flatten())(x)
-        if dense:
-            x = ApplyTD(Dense(dim))(x)
-            x = ApplyTD(relu())(x)
-    
-        # Single output -- sigmoid activation function
-        if discriminator:
-            x = Dense(1,activation="sigmoid")(x)
-    
-        return ins, x
+   
     
     def _AddOptionTiling(self, x, option_length, option_in, height, width):
         tile_shape = (1, width, height, 1)
@@ -290,92 +170,7 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
             )([x, option])
         return x
     
-    def _GetDecoder(self, dim, img_shape, pose_size,
-            dropout_rate, filters, kernel_size=[3,3], dropout=True, leaky=True,
-            batchnorm=True,dense=True, option=None, num_hypotheses=None,
-            tform_filters=None,
-            stride2_layers=2, stride1_layers=1):
-    
-        '''
-        Initial decoder: just based on getting images out of the world state
-        created via the encoder.
-        '''
-    
-        height8 = img_shape[0]/8
-        width8 = img_shape[1]/8
-        height4 = img_shape[0]/4
-        width4 = img_shape[1]/4
-        height2 = img_shape[0]/2
-        width2 = img_shape[1]/2
-        nchannels = img_shape[2]
-    
-        if tform_filters is None:
-            tform_filters = filters
-    
-        if leaky:
-            relu = lambda: LeakyReLU(alpha=0.2)
-        else:
-            relu = lambda: Activation('relu')
-    
-        if option is not None:
-            oin = Input((1,),name="input_next_option")
-    
-        if dense:
-            z = Input((dim,),name="input_image")
-            x = Dense(filters/2 * height4 * width4)(z)
-            if batchnorm:
-                x = BatchNormalization(momentum=0.9)(x)
-            x = relu()(x)
-            x = Reshape((width4,height4,tform_filters/2))(x)
-        else:
-            z = Input((width8*height8*tform_filters,),name="input_image")
-            x = Reshape((width8,height8,tform_filters))(z)
-        x = Dropout(dropout_rate)(x)
-    
-        height = height4
-        width = width4
-        for i in range(stride2_layers):
-    
-            x = Conv2DTranspose(filters,
-                       kernel_size=kernel_size, 
-                       strides=(2, 2),
-                       padding='same')(x)
-            if batchnorm:
-                x = BatchNormalization(momentum=0.9)(x)
-            x = relu()(x)
-            #x = UpSampling2D(size=(2,2))(x)
-            if dropout:
-                x = Dropout(dropout_rate)(x)
-    
-            if option is not None:
-                opt = OneHot(option)(oin)
-                x = AddOptionTiling(x, option, opt, height, width)
-    
-            height *= 2
-            width *= 2
-    
-        for i in range(stride1_layers):
-            x = Conv2D(filters, # + num_labels
-                       kernel_size=kernel_size, 
-                       strides=(1, 1),
-                       padding="same")(x)
-            if batchnorm:
-                x = BatchNormalization(momentum=0.9)(x)
-            x = relu()(x)
-            if dropout:
-                x = Dropout(dropout_rate)(x)
-            if option is not None:
-                opt = OneHot(option)(oin)
-                x = AddOptionTiling(x, option, opt, height, width)
-    
-        x = Conv2D(nchannels, (1, 1), padding='same')(x)
-        x = Activation('sigmoid')(x)
-    
-        ins = [z]
-        if option is not None:
-            ins.append(oin)
-    
-        return ins, x
+   
 
 
     def _makePolicy(self, features, action, hidden=None):
@@ -427,41 +222,60 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
         pose_size = pose.shape[-1]
         
 
-        ins, enc = self._GetEncoder(img_shape,
+        ins, enc, skips, robot_skip = GetHuskyEncoder(img_shape,
                 pose_size,
                 self.img_col_dim,
                 self.dropout_rate,
                 self.img_num_filters,
                 leaky=False,
                 dropout=True,
-                pre_tiling_layers=0,
+                pre_tiling_layers=self.extra_layers,
                 post_tiling_layers=3,
                 kernel_size=[5,5],
                 dense=False,
                 batchnorm=True,
                 tile=True,
-                option=self.num_options,
-                flatten=False,
-                output_filters=self.tform_filters,
-                )
-        gins, genc = self._GetEncoder(img_shape,
-                pose_size,
-                self.img_col_dim,
-                self.dropout_rate,
-                self.img_num_filters,
-                leaky=False,
-                dropout=True,
-                pre_tiling_layers=0,
-                post_tiling_layers=3,
-                kernel_size=[5,5],
-                dense=False,
-                batchnorm=True,
-                tile=True,
-                #option=self.num_options,
                 flatten=False,
                 output_filters=self.tform_filters,
                 )
 
+        img_in, pose_in = ins
+
+        gins, genc, _, _ = GetHuskyEncoder(img_shape,
+                pose_size,
+                self.img_col_dim,
+                self.dropout_rate,
+                self.img_num_filters,
+                leaky=False,
+                dropout=True,
+                pre_tiling_layers=self.extra_layers,
+                post_tiling_layers=3,
+                kernel_size=[5,5],
+                dense=False,
+                batchnorm=True,
+                tile=True,
+                flatten=False,
+                output_filters=self.tform_filters,
+                )
+
+        decoder = GetImagePoseDecoder(self.img_col_dim,
+                img_shape,
+                dropout_rate=self.dropout_rate,
+                dense_size=self.combined_dense_size,
+                kernel_size=[5,5],
+                filters=self.img_num_filters,
+                stride2_layers=3,
+                stride1_layers=self.extra_layers,
+                tform_filters=self.tform_filters,
+                num_options=self.num_options,
+                pose_size=pose_size,
+                dropout=False,
+                leaky=True,
+                dense=False,
+                skips=skips,
+                robot_skip=robot_skip,
+                resnet_blocks=self.residual,
+                batchnorm=True,)
 
         image_outs = []
         #arm_outs = []
@@ -471,65 +285,33 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
         train_outs = []
         label_outs = []
 
+        skips.reverse()
+        decoder.summary()
+
         
-        rep, dec = GetImageDecoder(self.img_col_dim,
-                            img_shape,
-                            dropout_rate=self.dropout_rate,
-                            kernel_size=[5,5],
-                            filters=self.img_num_filters,
-                            stride2_layers=3,
-                            stride1_layers=0,
-                            tform_filters=self.tform_filters,
-                            dropout=False,
-                            leaky=True,
-                            dense=False,
-                            batchnorm=True,)
-
-        # =====================================================================
-        # Decode pose state.
-        # Predict the next joint states and gripper position. We add these back
-        # in from the inputs once again, in order to make sure they don't get
-        # lost in all the convolution layers above...
         
-        #assuming 8x8, need to update the strides/pooling to make sense        
-        height4 = int(img_shape[0]/4)
-        width4 = int(img_shape[1]/4)
-        height8 = int(img_shape[0]/8)
-        width8 = int(img_shape[1]/8)
-        x = Reshape((width8,height8,self.tform_filters))(rep)
-        x = Conv2D(int(self.img_num_filters/2),
-                kernel_size=[5,5], 
-                strides=(2, 2),
-                padding='same')(x)
-        x = Flatten()(x)
-        x = LeakyReLU(0.2)(x)
-        x = Dense(self.combined_dense_size)(x)
-        x = Dropout(self.dropout_rate)(x)
-        x = LeakyReLU(0.2)(x)
-        pose_out_x = Dense(pose_size,name="next_pose")(x)
-       
-        label_out_x = Dense(self.num_options,name="next_label",activation="softmax")(x)
 
-        decoder = Model(rep, [dec, pose_out_x, label_out_x], name="decoder")
-
+     
         # =====================================================================
         # Create many different image decoders
 
         for i in range(self.num_hypotheses):
-            x = enc
-            for j in range(self.num_transforms):
-                x = Conv2D(self.tform_filters,
-                        kernel_size=[5,5], 
-                        strides=(1, 1),
-                        padding='same',
-                        name="transform_%d_%d"%(i,j))(x)
-                x = BatchNormalization(momentum=0.9,
-                                      name="normalize_%d_%d"%(i,j))(x)
-                x = LeakyReLU(0.2,name="lrelu_%d_%d"%(i,j))(x)
-            
+            transform = GetTranform(
+                    rep_size=(8,8),
+                    filters=self.tform_filters,
+                    kernel_size=[5,5],
+                    idx=i,
+                    batchnorm=True,
+                    leaky=True,
+                    num_blocks=self.num_transforms,
+                    relu=True,
+                    resnet_blocks=self.residual,)
+            if i == 0:
+                transform.summary()
+            x = transform([enc])
             # This maps from our latent world state back into observable images.
             #decoder = Model(rep, dec)
-            img_x, pose_x, label_x = decoder(x)
+            img_x, pose_x, label_x = decoder([x]+skips)
 
             # Create the training outputs
             train_x = Concatenate(axis=-1,name="combine_train_%d"%i)([
@@ -575,7 +357,7 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
         y = Dropout(self.dropout_rate)(y)
         y = LeakyReLU(0.2)(y)
         pose_cmd_out = Lambda(lambda x: K.expand_dims(x, axis=1),name="pose_action")(
-                Dense(pose_size)(y))
+                Dense(pose_size)(y)) #KDK: hmm why -1?
         
 
         # =====================================================================
@@ -602,7 +384,7 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
 
         for i in range(features[0].shape[0]):
             img1 = targets[0][i,:int(image_size)].reshape((64,64,3))
-            img2 = features[3][i]
+            img2 = features[2][i]
             if not np.all(img1 == img2):
                 print(i,"failed")
                 plt.subplot(1,2,1); plt.imshow(img1);
@@ -611,22 +393,23 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
 
         if self.show_iter == 0 or self.show_iter == None:
             modelCheckpointCb = ModelCheckpoint(
-                filepath=self.name+"_predictor_weights.h5f",
+                filepath=self.name+"_train_predictor_weights.h5f",
                 verbose=1,
                 save_best_only=False # does not work without validation wts
             )
             imageCb = PredictorShowImage(
                 self.predictor,
-                features=features[:3],
+                features=features[:2],
                 targets=targets,
                 num_hypotheses=self.num_hypotheses,
                 verbose=True,
                 min_idx=0,
-                max_idx=30,
-                step=1,)
+                max_idx=300,
+                step=10,)
             self.train_predictor.fit(features,
                     [np.expand_dims(f,1) for f in targets],
                     callbacks=[modelCheckpointCb, imageCb],
+                    validation_split=self.validation_split,
                     epochs=self.epochs)
         else:
             for i in range(self.iter):
@@ -712,6 +495,26 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
             self._makePredictor(
                 (features, pose))
 
+        image_shape = features.shape[1:]
+        image_size = 1
+        for dim in image_shape:
+            image_size *= dim
+        image_size = int(image_size)
+        pose_size = pose.shape[-1]
+        
+
+        self.train_predictor.compile(
+                loss=[
+                    MhpLossWithShape(
+                        num_hypotheses=self.num_hypotheses,
+                        outputs=[image_size, pose_size, self.num_options],
+                        weights=[0.5,1.,0.1],
+                        loss=["mse","mse","categorical_crossentropy"]), 
+                    "mse"],
+                #loss_weights=[0.8,0.1,0.1],
+                optimizer=self.getOptimizer())
+        self.predictor.compile(loss="mse", optimizer=self.getOptimizer())
+
     def train(self, features, pose, pose_cmd, label,
             prev_label, goal_features, goal_pose, *args, **kwargs):
         '''
@@ -756,23 +559,12 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
         Itrain = np.reshape(I_target,(length, image_size))
         train_target = np.concatenate([Itrain,q_target,o_target],axis=-1)
 
-        self.train_predictor.compile(
-                loss=[
-                    MhpLossWithShape(
-                        num_hypotheses=self.num_hypotheses,
-                        outputs=[image_size, pose_size, self.num_options],
-                        #weights=[0.6,0.3,0.1],
-                        weights=[1.,0.,0.],
-                        loss=["mse","mse","categorical_crossentropy"]), 
-                    "mse"],
-                loss_weights=[0.8,0.1],
-                optimizer=self.getOptimizer())
-        self.predictor.compile(loss="mse", optimizer=self.getOptimizer())
+        
 
         # ===============================================
         # Fit the main models
         self._fitPredictor(
-                [I, q, oin, I_target, q_target,],
+                [I, q, I_target, q_target,],
                 #[I, q, g, oin, I_target, q_target, g_target, label],
                 #[I, q, g, I_target, q_target, g_target],
                 [train_target, qa],)
@@ -793,6 +585,110 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
         #self._fitPolicies([I, q, g], action_labels, action_target)
         #self._fitBaseline([I, q, g], action_target)
 
+
+    def _getAllData(self, features, pose, pose_cmd, label,
+            prev_label, goal_features, goal_pose, *args, **kwargs):
+        I = features
+        q = pose
+        qa = pose_cmd
+        oin = prev_label
+        I_target = goal_features
+        q_target = goal_pose
+        o_target = label
+        # ==============================
+        image_shape = I.shape[1:]
+        image_size = 1
+        for dim in image_shape:
+            image_size *= dim
+        image_size = int(image_size)
+        pose_size = q.shape[-1]
+        
+
+        train_size = image_size + pose_size + self.num_options
+        
+        assert train_size == 64*64*3 + 6 + self.num_options # KDK: verify
+        assert I.shape[0] == I_target.shape[0]
+
+        o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
+        length = I.shape[0]
+        Itrain = np.reshape(I_target,(length, image_size))
+        train_target = np.concatenate([Itrain,q_target,o_target],axis=-1)
+
+        return [I, q, I_target, q_target], [
+                np.expand_dims(train_target, axis=1),
+                np.expand_dims(qa, axis=1),
+                ]
+
+    def _getData(self, *args, **kwargs):
+        features, targets = self._getAllData(*args, **kwargs)
+        return features[:2], [targets[0]] # KDK: Verify
+
+    def trainFromGenerators(self, train_generator, test_generator, data=None):
+        '''
+        Train tool from generator
+
+        Parameters:
+        -----------
+        train_generator: produces training examples
+        test_generator: produces test examples
+        data: some extra data used for debugging (should be validation data)
+        '''
+        if data is not None:
+            features, targets = self._getAllData(**data)
+        else:
+            raise RuntimeError('predictor model sets sizes based on'
+                               'sample data; must be provided')
+        # ===================================================================
+        # Use sample data to compile the model and set everything else up.
+        # Check to make sure data makes sense before running the model.
+
+        [I, q, I_target, q_target] = features
+        [I_target2, qa] = targets
+
+        if self.predictor is None:
+            self._makeModel(I, q, qa)
+
+        # Compute helpful variables
+        image_shape = I.shape[1:]
+        image_size = 1
+        for dim in image_shape:
+            image_size *= dim
+        image_size = int(image_size)
+        pose_size = q.shape[-1]
+        
+
+        train_size = image_size + pose_size + self.num_options
+        
+        # NOTE: arm size is one bigger when we have quaternions
+        #assert train_size == 12295 + self.num_options
+        #assert train_size == 12296 + self.num_options
+        assert train_size == 64*64*3 + 6 + self.num_options # KDK: verify
+
+        # ===================================================================
+        # Create the callbacks and actually run the training loop.
+        modelCheckpointCb = ModelCheckpoint(
+            filepath=self.name+"_predictor_weights.h5f",
+            verbose=1,
+            save_best_only=True # does not work without validation wts
+        )
+        imageCb = PredictorShowImage(
+            self.predictor,
+            features=features[:2],
+            targets=targets,
+            num_hypotheses=self.num_hypotheses,
+            verbose=True,
+            min_idx=0,
+            max_idx=500,
+            step=10,)
+        self.train_predictor.fit_generator(
+                train_generator,
+                self.steps_per_epoch,
+                epochs=self.epochs,
+                validation_steps=self.validation_steps,
+                validation_data=test_generator,
+                callbacks=[modelCheckpointCb, imageCb])
+
+
     def save(self):
         '''
         Save to a filename determined by the "self.name" field.
@@ -800,8 +696,9 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.predictor is not None:
             print("----------------------------")
             print("Saving to " + self.name + "_{predictor, actor}")
-            self.predictor.save_weights(self.name + "_predictor.h5f")
+            self.train_predictor.save_weights(self.name + "_train_predictor.h5f")
             if self.actor is not None:
+                self.predictor.save_weights(self.name + "_predictor.h5f")
                 self.actor.save_weights(self.name + "_actor.h5f")
         else:
             raise RuntimeError('save() failed: model not found.')
@@ -816,9 +713,10 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
             print("using " + self.name + " to load")
             try:
                 self.actor.load_weights(self.name + "_actor.h5f")
+                #self.predictor.load_weights(self.name + "_predictor.h5f")
             except Exception as e:
                 print(e)
-            self.predictor.load_weights(self.name + "_predictor.h5f")
+            self.train_predictor.load_weights(self.name + "_train_predictor.h5f")
         else:
             raise RuntimeError('_loadWeights() failed: model not found.')
 
@@ -842,3 +740,4 @@ class HuskyRobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Evaluate this policy to get the next action out
         return policy.predict(features)
+
