@@ -477,6 +477,36 @@ def GetHypothesisProbability(x, num_hypotheses, num_options, labels,
         filters, kernel_size,
         dropout_rate=0.5):
 
+    '''
+    Compute probabilities across a whole set of action hypotheses, to ensure
+    that the most likely hypothesis is one that seems reasonable.
+
+    This is interesting because we might actually see multiple different
+    hypotheses assigned to the same possible action. So the way it works is
+    that we compute p(h) for all hypotheses h, and then construct a matrix of
+    size:
+
+        M = N_h x N_a
+
+    with N_h = num hypotheses and N_a = number of actions.
+    The "labels" input should contain p(a | h) for all a, so we can compute the
+    matrix M as:
+
+        M(h,a) = p(h) p(a | h)
+
+    Then sum across all h to marginalize this out.
+
+    Parameters:
+    -----------
+    x: the input hidden state representation
+    num_hypotheses: N_h, as above
+    num_options: N_a, as above
+    labels: the input matrix of p(a | h), with size (?, N_h, N_a)
+    filters: convolutional filters for downsampling
+    kernel_size: kernel size for CNN downsampling
+    dropout_rate: dropout rate applied to model
+    '''
+
     x = Conv2D(filters,
             kernel_size=kernel_size, 
             strides=(2, 2),
