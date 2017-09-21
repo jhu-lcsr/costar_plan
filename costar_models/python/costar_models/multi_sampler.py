@@ -242,6 +242,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         loss=["mae","mae","mae","categorical_crossentropy"]), 
                     "binary_crossentropy",
                     ],#"mse","mse"],
+                loss_weights=[0.9,0.1],
                 #loss_weights=[0.8,0.1,0.1],
                 optimizer=self.getOptimizer())
         predictor.compile(loss="mse", optimizer=self.getOptimizer())

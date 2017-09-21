@@ -688,10 +688,10 @@ def GetHypothesisProbability(x, num_hypotheses, num_options, labels,
     x = LeakyReLU(alpha=0.2)(x)
     x = Flatten()(x)
     x = Dense(num_hypotheses)(x)
-    x2 = Activation("softmax")(x)
+    x = Activation("sigmoid")(x)
+    x2 = x
 
     def make_p_matrix(pred, num_actions):
-        x = K.softmax(pred)
         x = K.expand_dims(pred,axis=-1)
         x = K.repeat_elements(x, num_actions, axis=-1)
         return x
