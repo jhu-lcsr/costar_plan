@@ -32,6 +32,16 @@ Returns for all tools:
 out: an output tensor
 '''
 
+def CombinePose(pose_in, dim=64):
+    robot = Dense(dim, activation="relu")(pose_in)
+    return robot
+
+def CombinePoseAndOption(pose_in, option_in, dim=64):
+    robot = Concatenate(axis=-1)([pose_in, option_in])
+    robot = Dense(dim, activation="relu")(robot)
+    return robot
+
+
 def CombineArmAndGripper(arm_in, gripper_in, dim=64):
     robot = Concatenate(axis=-1)([arm_in, gripper_in])
     robot = Dense(dim, activation="relu")(robot)
@@ -63,6 +73,42 @@ def TileArmAndGripper(x, arm_in, gripper_in, tile_width, tile_height,
                                               gripper_in,
                                               option_in,
                                               dim=dim)
+        reshape_size = dim
+        #reshape_size = arm_size+gripper_size+option
+
+    # time distributed or not
+    if time_distributed is not None and time_distributed > 0:
+        tile_shape = (1, 1, tile_width, tile_height, 1)
+        robot = Reshape([time_distributed, 1, 1, reshape_size])(robot)
+    else:
+        tile_shape = (1, tile_width, tile_height, 1)
+        robot = Reshape([1, 1, reshape_size])(robot)
+
+    # finally perform the actual tiling
+    robot0 = robot
+    robot = Lambda(lambda x: K.tile(x, tile_shape))(robot)
+    x = Concatenate(axis=-1)([x,robot])
+
+    return x, robot
+
+def TilePose(x, pose_in, tile_width, tile_height,
+        option=None, option_in=None,
+        time_distributed=None, dim=64):
+    pose_size = int(pose_in.shape[-1])
+    
+
+    # handle error: options and grippers
+    if option is None and option_in is not None \
+        or option is not None and option_in is None:
+            raise RuntimeError('must provide both #opts and input')
+
+    # generate options and tile things together
+    if option is None:
+        robot = CombinePose(pose_in, dim=dim)
+        #reshape_size = arm_size+gripper_size
+        reshape_size = dim
+    else:
+        robot = CombinePoseAndOption(pose_in, option_in, dim=dim)
         reshape_size = dim
         #reshape_size = arm_size+gripper_size+option
 
@@ -302,6 +348,131 @@ def GetImageDecoder(dim, img_shape,
     ins = [z] + skip_inputs
 
     return ins, x
+
+
+def GetImagePoseDecoder(dim, img_shape,
+        dropout_rate, filters, dense_size, kernel_size=[3,3], dropout=True, leaky=True,
+        batchnorm=True,dense=True, num_hypotheses=None, tform_filters=None,
+        original=None, num_options=64, pose_size=6,
+        resnet_blocks=False, skips=None, robot_skip=None,
+        stride2_layers=2, stride1_layers=1):
+
+    rep, dec = GetImageDecoder(dim,
+                        img_shape,
+                        dropout_rate=dropout_rate,
+                        kernel_size=kernel_size,
+                        filters=filters,
+                        stride2_layers=stride2_layers,
+                        stride1_layers=stride1_layers,
+                        tform_filters=tform_filters,
+                        dropout=dropout,
+                        leaky=leaky,
+                        dense=dense,
+                        skips=skips,
+                        original=original,
+                        resnet_blocks=resnet_blocks,
+                        batchnorm=batchnorm,)
+
+    if tform_filters is None:
+        tform_filters = filters
+
+    # =====================================================================
+    # Decode pose state.
+    # Predict the pose. We add these back
+    # in from the inputs once again, in order to make sure they don't get
+    # lost in all the convolution layers above...
+    height4 = int(img_shape[0]/4)
+    width4 = int(img_shape[1]/4)
+    height8 = int(img_shape[0]/8)
+    width8 = int(img_shape[1]/8)
+    x = Reshape((width8,height8,tform_filters))(rep[0])
+    if not resnet_blocks:
+        for i in range(1):
+            if i == 1 and skips is not None:
+                smallest_skip = rep[1]
+                x = Concatenate(axis=-1)([x, smallest_skip])
+            x = Conv2D(filters,
+                    kernel_size=kernel_size, 
+                    strides=(2, 2),
+                    padding='same',
+                    name="pose_label_dec%d"%i)(x)
+            x = BatchNormalization(momentum=0.9)(x)
+            x = Dropout(dropout_rate)(x)
+            x = Activation("relu")(x)
+        x = Flatten()(x)
+        #x = Dense(dense_size)(x)
+        #x = Dropout(dropout_rate)(x)
+        #x = Activation("relu")(x)
+    else:
+        for i in range(1):
+            # =================================================================
+            # Start ResNet with a convolutional block
+            # This will decrease the size and apply a convolutional filter
+            x0 = x
+            # ------------------------------------
+            x = BatchNormalization(momentum=0.9,)(x)
+            x = Dropout(dropout_rate)(x)
+            x = Activation("relu")(x)
+            x = Conv2D(filters,
+                    kernel_size=kernel_size, 
+                    strides=(2, 2),
+                    padding='same',)(x)
+            # ------------------------------------
+            x = BatchNormalization(momentum=0.9,)(x)
+            x = Dropout(dropout_rate)(x)
+            x = Activation("relu")(x)
+            x = Conv2D(filters,
+                    kernel_size=kernel_size, 
+                    strides=(1, 1),
+                    padding='same',)(x)
+
+            # ------------------------------------
+            if i >= 0:
+                # add in the convolution to the beginning of this block
+                x0 = BatchNormalization(momentum=0.9,name="norm_ag_%d"%i)(x0)
+                x0 = Conv2D(
+                        filters,
+                        kernel_size=kernel_size,
+                        strides=(2,2),
+                        padding="same",)(x0)
+            x = Add()([x, x0])
+
+            # =================================================================
+            # Add Resnet identity blocks after downsizing 
+            # Note: currently disabled
+            for _ in range(2):
+                x0 = x
+                # ------------------------------------
+                x = BatchNormalization(momentum=0.9,)(x)
+                x = Dropout(dropout_rate)(x)
+                x = Activation("relu")(x)
+                x = Conv2D(filters,
+                        kernel_size=kernel_size, 
+                        strides=(1, 1),
+                        padding='same',)(x)
+                # ------------------------------------
+                x = BatchNormalization(momentum=0.9,)(x)
+                x = Dropout(dropout_rate)(x)
+                x = Activation("relu")(x)
+                x = Conv2D(filters,
+                        kernel_size=kernel_size, 
+                        strides=(1, 1),
+                        padding='same',)(x)
+                # ------------------------------------
+                # Recombine
+                x = Add()([x, x0])
+
+        x = Flatten()(x)
+
+    pose_out_x = Dense(pose_size,name="next_pose")(x)
+    label_out_x = Dense(num_options,name="next_label",activation="softmax")(x)
+
+    decoder = Model(rep,
+                    [dec, pose_out_x, label_out_x],
+                    name="decoder")
+
+    return decoder
+
 
 def GetImageArmGripperDecoder(dim, img_shape,
         dropout_rate, filters, dense_size, kernel_size=[3,3], dropout=True, leaky=True,
