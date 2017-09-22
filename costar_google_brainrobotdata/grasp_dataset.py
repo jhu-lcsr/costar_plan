@@ -784,12 +784,13 @@ class GraspDataset(object):
         elif motion_params == 'final_pose_orientation_quaternion':
             pose_op_params = self.get_time_ordered_features(
                 features_complete_list,
-                feature_type='params',
-                step='transforms/base_T_endeffector/vec_quat_7'
+                feature_type='transforms/base_T_endeffector/vec_quat_7',
+                step='move_to_grasp'
             )
             for i in range(len(pose_op_params)):
                 # every input will be the final pose
                 pose_op_params[i] = pose_op_params[-1]
+            # print('pose_op_params:', pose_op_params)
 
         # print('features_complete_list: ', features_complete_list)
         grasp_success = self.get_time_ordered_features(
@@ -833,13 +834,14 @@ class GraspDataset(object):
                     pregrasp_op_batch.append(pregrasp_image_rgb_op)
                     grasp_step_rgb_feature_op = self._rgb_preprocessing(fixed_feature_op_dict[grasp_step_rgb_feature_name])
                     grasp_step_op_batch.append(grasp_step_rgb_feature_op)
-                    print("fixed_feature_op_dict[pose_op_param]: ", fixed_feature_op_dict[pose_op_param])
+                    # print("fixed_feature_op_dict[pose_op_param]: ", fixed_feature_op_dict[pose_op_param])
                     simplified_grasp_command_op_batch.append(fixed_feature_op_dict[pose_op_param])
                     grasp_success_op_batch.append(grasp_success_op)
 
         # TODO(ahundt) for multiple device batches, will need to split on batch_size and example_batch size will need to be updated
         example_batch_size = len(grasp_success_op_batch)
 
+        print('pregrasp_op_batch:',pregrasp_op_batch)
         pregrasp_op_batch = tf.parallel_stack(pregrasp_op_batch)
         grasp_step_op_batch = tf.parallel_stack(grasp_step_op_batch)
         simplified_grasp_command_op_batch = tf.parallel_stack(simplified_grasp_command_op_batch)
