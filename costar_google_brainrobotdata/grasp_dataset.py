@@ -787,10 +787,9 @@ class GraspDataset(object):
                 feature_type='params',
                 step='transforms/base_T_endeffector/vec_quat_7'
             )
-            for i in range(pose_op_params):
+            for i in range(len(pose_op_params)):
                 # every input will be the final pose
                 pose_op_params[i] = pose_op_params[-1]
-
 
         # print('features_complete_list: ', features_complete_list)
         grasp_success = self.get_time_ordered_features(
