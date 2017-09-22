@@ -81,6 +81,12 @@ flags.DEFINE_integer('grasp_sequence_min_time_step', None,
                         that will be used in training and evaluation. This may be needed
                         to reduce memory utilization or check performance at different
                         stages of a grasping motion.""")
+flags.DEFINE_string('grasp_sequence_motion_params', 'final_pose_orientation_quaternion',
+                    """Different ways of representing the motion vector parameter.
+                       'final_pose_orientation_quaternion' directly input the final pose translation and orientation.
+                       'next_timestep' input the params for the command saved in the dataset with translation,
+                       sin theta, cos theta from the current time step to the next
+                    """)
 
 FLAGS = flags.FLAGS
 
@@ -740,9 +746,16 @@ class GraspDataset(object):
                                      imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
                                      random_crop=FLAGS.random_crop,
                                      resize=FLAGS.resize,
+                                     motion_params=FLAGS.grasp_sequence_motion_params,
                                      grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
                                      grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step):
         """Get tensors configured for training on grasps at a single pose.
+
+            motion_params: different ways of representing the motion vector parameter.
+                           'final_pose_orientation_quaternion' directly input the final pose translation and orientation.
+                           'next_timestep' input the params for the command saved in the dataset with translation,
+                           sin theta, cos theta from the current time step to the next.
+
         """
         feature_op_dicts, features_complete_list, num_samples = self.get_simple_parallel_dataset_ops(batch_size=batch_size)
         # TODO(ahundt) https://www.tensorflow.org/performance/performance_models
@@ -762,11 +775,22 @@ class GraspDataset(object):
             step='move_to_grasp'
         )
 
-        pose_op_params = self.get_time_ordered_features(
-            features_complete_list,
-            feature_type='params',
-            step='move_to_grasp'
-        )
+        if motion_params == 'next_timestep':
+            pose_op_params = self.get_time_ordered_features(
+                features_complete_list,
+                feature_type='params',
+                step='move_to_grasp'
+            )
+        elif motion_params == 'final_pose_orientation_quaternion':
+            pose_op_params = self.get_time_ordered_features(
+                features_complete_list,
+                feature_type='params',
+                step='transforms/base_T_endeffector/vec_quat_7'
+            )
+            for i in range(pose_op_params):
+                # every input will be the final pose
+                pose_op_params[i] = pose_op_params[-1]
+
 
         # print('features_complete_list: ', features_complete_list)
         grasp_success = self.get_time_ordered_features(
