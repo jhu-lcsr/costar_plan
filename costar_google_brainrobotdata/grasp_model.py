@@ -98,7 +98,7 @@ def grasp_model_pretrained(clear_view_image_op,
     """export CUDA_VISIBLE_DEVICES="1" && python grasp_train.py --random_crop=1 --batch_size=1 --grasp_model grasp_model_pretrained --resize_width=320 --resize_height=256
     """
     if input_vector_op_shape is None:
-        input_vector_op_shape = [K.shape(input_vector_op)[0], 5]
+        input_vector_op_shape = [K.shape(input_vector_op)[0], 7]
         input_vector_op = K.reshape(input_vector_op, input_vector_op_shape)
     if input_image_shape is None:
         input_image_shape = [512, 640, 3]
