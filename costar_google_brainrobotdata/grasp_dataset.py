@@ -775,6 +775,7 @@ class GraspDataset(object):
             step='move_to_grasp'
         )
 
+        verify_feature_index = True
         if motion_params == 'next_timestep':
             pose_op_params = self.get_time_ordered_features(
                 features_complete_list,
@@ -782,6 +783,7 @@ class GraspDataset(object):
                 step='move_to_grasp'
             )
         elif motion_params == 'final_pose_orientation_quaternion':
+            verify_feature_index = False
             pose_op_params = self.get_time_ordered_features(
                 features_complete_list,
                 feature_type='transforms/base_T_endeffector/vec_quat_7',
@@ -822,13 +824,15 @@ class GraspDataset(object):
                                                             resize=resize)
 
             grasp_success_op = tf.squeeze(fixed_feature_op_dict[grasp_success[0]])
+            print('\npose_op_params: ', pose_op_params, '\nrgb_move_to_grasp_steps: ', rgb_move_to_grasp_steps)
+
             # each step in the grasp motion is also its own minibatch,
             # iterate in reversed direction because if training data will be dropped
             # it should be the first steps not the last steps.
             for i, (grasp_step_rgb_feature_name, pose_op_param) in enumerate(zip(reversed(rgb_move_to_grasp_steps), reversed(pose_op_params))):
                 if ((grasp_sequence_min_time_step is None or i >= grasp_sequence_min_time_step) and
                     (grasp_sequence_max_time_step is None or i <= grasp_sequence_max_time_step)):
-                    if int(grasp_step_rgb_feature_name.split('/')[1]) != int(pose_op_param.split('/')[1]):
+                    if verify_feature_index and int(grasp_step_rgb_feature_name.split('/')[1]) != int(pose_op_param.split('/')[1]):
                         raise ValueError('ERROR: the time step of the grasp step does not match the motion command params, '
                                          'make sure the lists are indexed correctly!')
                     pregrasp_op_batch.append(pregrasp_image_rgb_op)

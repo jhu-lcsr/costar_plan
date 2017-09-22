@@ -198,7 +198,7 @@ def grasp_model(clear_view_image_op,
                 include_top=True,
                 dropout_rate=0.0):
     if input_vector_op_shape is None:
-        input_vector_op_shape = [5]
+        input_vector_op_shape = [7]
     if input_image_shape is None:
         input_image_shape = [512, 640, 3]
     print('input_vector_op pre tile: ', input_vector_op)
