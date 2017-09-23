@@ -380,6 +380,14 @@ class AbstractAgent(object):
                     data["goal_%s"%key].append(values[switches[i]])
 
         # ===================================================================
+        # Add a failure flag to all examples.
+        if reward <= 0.:
+            success = [0.] * len(data["example"])
+        else:
+            success = [1.0] * len(data["example"])
+        data["success"] = success
+
+        # ===================================================================
         # Print out the seed associated with this example for reproduction, and
         # use it as part of the filename. If the seed is not provided, we will
         # set to the current example index.
