@@ -644,6 +644,10 @@ def GetTranform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tru
 
     return Model(xin, x, name="transform%d"%idx)
 
+
+def GetNextOption(x, num_options, filters, kernel_size, dropout_rate=0.5):
+    pass
+
 def GetHypothesisProbability(x, num_hypotheses, num_options, labels,
         filters, kernel_size,
         dropout_rate=0.5):
