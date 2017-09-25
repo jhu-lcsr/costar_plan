@@ -197,13 +197,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # =====================================================================
         # Hypothesis probabilities
-        sum_p_out, p_out = GetHypothesisProbability(enc,
-                self.num_hypotheses,
-                self.num_options,
-                labels=label_out,
-                filters=self.img_num_filters,
-                kernel_size=[5,5],
-                dropout_rate=self.dropout_rate)
+        #sum_p_out, p_out = GetHypothesisProbability(enc,
+        #        self.num_hypotheses,
+        #        self.num_options,
+        #        labels=label_out,
+        #        filters=self.img_num_filters,
+        #        kernel_size=[5,5],
+        #        dropout_rate=self.dropout_rate)
 
         # =====================================================================
         # Get a prior for the next label
