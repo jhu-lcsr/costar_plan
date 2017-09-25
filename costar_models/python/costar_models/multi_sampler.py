@@ -212,12 +212,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 strides=(2, 2),
                 padding='same')(enc)
         l = Dropout(self.dropout_rate)(l)
-        l = LeaklReLU(0.2)(l)
+        l = LeakyReLU(0.2)(l)
         l = BatchNormalization(momentum=0.9)(l)
         l = Flatten()(l)
         l = Dense(self.combined_dense_size)(l)
         l = Dropout(self.dropout_rate)(l)
-        l = LeaklReLU(0.2)(l)
+        l = LeakyReLU(0.2)(l)
         l = BatchNormalization(momentum=0.9)(l)
         next_label_out = Lambda(lambda x: K.expand_dims(x,
             axis=1),
