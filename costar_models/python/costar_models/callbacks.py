@@ -55,7 +55,7 @@ class PredictorShowImage(keras.callbacks.Callback):
                                'and not a normal image callback?')
         img = np.reshape(img, (self.num,64,64,3))
         #data, arms, grippers, label, probs = self.predictor.predict(self.features)
-        data, arms, grippers, label = self.predictor.predict(self.features)
+        data, arms, grippers, label, next_label = self.predictor.predict(self.features)
         plt.ioff()
         if self.verbose:
             print("============================")
