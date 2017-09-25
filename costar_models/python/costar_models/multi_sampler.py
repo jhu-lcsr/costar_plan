@@ -385,6 +385,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         unsuccessful examples.
         '''
 
+        raise RuntimeError('deprecated function')
+
         I = features
         q = arm
         g = gripper
@@ -430,7 +432,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Fit the main models
         self._fitPredictor(
                 [I, q, g, I_target, q_target, g_target,],
-                [train_target,o_target]), #qa, ga],)
+                [train_target,o_target, qa, ga],)
 
     def _getAllData(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             prev_label, goal_features, goal_arm, goal_gripper, *args, **kwargs):
@@ -475,8 +477,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
-        return features[:3], targets[:1]
-        #return features[:3], targets[:2]
+        return features[:3], targets[:4]
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''
