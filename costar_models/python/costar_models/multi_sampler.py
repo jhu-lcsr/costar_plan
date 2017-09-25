@@ -477,7 +477,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
-        return features[:3], targets[:4]
+        return features, targets
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''
