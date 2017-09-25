@@ -258,7 +258,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
                         weights=[0.7,0.7,0.1,0.1],
-                        loss=["mae","mae","mae","categorical_crossentropy"]),
+                        loss=["mse","mae","mae","categorical_crossentropy"]),
                     "binary_crossentropy", "mse","mse"],
                 loss_weights=[1.0,0.1,0.1,0.1],
                 optimizer=self.getOptimizer())
@@ -288,6 +288,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.show_iter == 0 or self.show_iter == None:
             modelCheckpointCb = ModelCheckpoint(
                 filepath=self.name+"_train_predictor_weights.h5f",
+                model_directory=self.model_directory,
                 verbose=1,
                 save_best_only=False # does not work without validation wts
             )
