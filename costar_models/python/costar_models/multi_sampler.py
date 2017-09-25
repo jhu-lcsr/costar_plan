@@ -219,10 +219,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         l = Dropout(self.dropout_rate)(l)
         l = LeakyReLU(0.2)(l)
         l = BatchNormalization(momentum=0.9)(l)
-        next_label_out = Lambda(lambda x: K.expand_dims(x,
-            axis=1),
-            name="next_label_out")(
-                Dense(self.num_options,activation="sigmoid")(l))
+        next_label_out = Dense(self.num_options,
+                activation="sigmoid",
+                name="next_label_out")(l)
 
         # =====================================================================
         # Training the actor policy
