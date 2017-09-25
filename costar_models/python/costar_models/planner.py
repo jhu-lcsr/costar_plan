@@ -707,3 +707,15 @@ def GetHypothesisProbability(x, num_hypotheses, num_options, labels,
 
 def OneHot(size=64):
     return Lambda(lambda x: tf.one_hot(tf.cast(x, tf.int32),size))#,name="label_to_one_hot")
+
+
+def GetActor(enc0, enc_h, supervisor, label_out, num_hypotheses, *args, **kwargs):
+    '''
+    Set up an actor according to the probability distribution over decent next
+    states.
+    '''
+    p_o = K.expand_dims(supervisor, axis=1)
+    p_o = K.repeat_elements(p_o, num_hypotheses, axis=1)
+
+    # Compute the probability of a high-level label under our distribution
+    p_oh = K.sum(label_out, axis=1) / num_hypotheses
