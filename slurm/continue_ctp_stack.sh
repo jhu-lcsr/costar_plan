@@ -26,5 +26,6 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--lr 0.001 \
 	 --model_directory $HOME/.costar/models_stack/ \
 	--optimizer adam \
-	--batch_size 64
+	--batch_size 64 \
+	--load_model
 
