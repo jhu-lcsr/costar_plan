@@ -270,10 +270,10 @@ def GetImageDecoder(dim, img_shape,
     width = width4
     for i in range(stride2_layers):
 
-        #if skips is not None:
-        #    skip_in = Input((width/2,height/2,filters))
-        #    x = Concatenate(axis=-1)([x, skip_in])
-        #    skip_inputs.append(skip_in)
+        if skips is not None:
+            skip_in = Input((width/2,height/2,filters))
+            x = Concatenate(axis=-1)([x, skip_in])
+            skip_inputs.append(skip_in)
 
         if not resnet_blocks:
             x = Conv2DTranspose(filters,
@@ -388,9 +388,9 @@ def GetImagePoseDecoder(dim, img_shape,
     x = Reshape((width8,height8,tform_filters))(rep[0])
     if not resnet_blocks:
         for i in range(1):
-            if i == 1 and skips is not None:
-                smallest_skip = rep[1]
-                x = Concatenate(axis=-1)([x, smallest_skip])
+            #if i == 1 and skips is not None:
+            #    smallest_skip = rep[1]
+            #    x = Concatenate(axis=-1)([x, smallest_skip])
             x = Conv2D(filters,
                     kernel_size=kernel_size, 
                     strides=(2, 2),
@@ -400,9 +400,9 @@ def GetImagePoseDecoder(dim, img_shape,
             x = Dropout(dropout_rate)(x)
             x = Activation("relu")(x)
         x = Flatten()(x)
-        #x = Dense(dense_size)(x)
-        #x = Dropout(dropout_rate)(x)
-        #x = Activation("relu")(x)
+        x = Dense(dense_size)(x)
+        x = Dropout(dropout_rate)(x)
+        x = Activation("relu")(x)
     else:
         for i in range(1):
             # =================================================================
