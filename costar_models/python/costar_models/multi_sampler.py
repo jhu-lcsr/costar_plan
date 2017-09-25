@@ -249,7 +249,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         predictor = Model(ins,
                 [image_out, arm_out, gripper_out, label_out, next_label_out])#, p_out])
         actor = Model(ins + gins, [arm_cmd_out, gripper_cmd_out])
-        train_predictor = Model(ins, [train_out, next_label_out, arm_cmd_out, gripper_cmd_out])
+        train_predictor = Model(ins + gins, [train_out, next_label_out, arm_cmd_out, gripper_cmd_out])
 
         # =====================================================================
         # Create models to train
