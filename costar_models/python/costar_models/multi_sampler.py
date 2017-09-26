@@ -12,7 +12,7 @@ from keras.layers import UpSampling2D, Conv2DTranspose
 from keras.layers import BatchNormalization, Dropout
 from keras.layers import Dense, Conv2D, Activation, Flatten
 from keras.layers.embeddings import Embedding
-from keras.layers.merge import Concatenate
+from keras.layers.merge import Concatenate, Multiply
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 from keras.optimizers import Adam
@@ -91,23 +91,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 output_filters=self.tform_filters,
                 )
         img_in, arm_in, gripper_in = ins
-        gins, genc, _, _ = GetEncoder(img_shape,
-                arm_size,
-                gripper_size,
-                self.img_col_dim,
-                self.dropout_rate,
-                self.img_num_filters,
-                leaky=False,
-                dropout=True,
-                pre_tiling_layers=self.extra_layers,
-                post_tiling_layers=3,
-                kernel_size=[5,5],
-                dense=False,
-                batchnorm=True,
-                tile=True,
-                flatten=False,
-                output_filters=self.tform_filters,
-                )
 
         decoder = GetImageArmGripperDecoder(self.img_col_dim,
                         img_shape,
@@ -225,6 +208,20 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # =====================================================================
         # Training the actor policy
+        def get_state(x):
+            y = K.expand_dims(next_label_out, 1)
+            print(y)
+            y = K.tile(y,[1,self.num_hypotheses,1])
+            print(y)
+            x = Multiply()([x,y])
+            print(x)
+            x = K.sum(x,axis=-1)
+            print(x)
+            return x
+        genc = Lambda(lambda x: get_state(x))(label_out)
+        print(genc)
+        genc = Activation("softmax")(genc)
+            
         y = Concatenate(axis=-1,name="combine_goal_current")([enc, genc])
         y = Conv2D(int(self.img_num_filters/4),
                 kernel_size=[5,5], 
@@ -247,8 +244,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Create models to train
         predictor = Model(ins,
                 [image_out, arm_out, gripper_out, label_out, next_label_out])#, p_out])
-        actor = Model(ins + gins, [arm_cmd_out, gripper_cmd_out])
-        train_predictor = Model(ins + gins, [train_out, next_label_out, arm_cmd_out, gripper_cmd_out])
+        actor = Model(ins, [arm_cmd_out, gripper_cmd_out])
+        train_predictor = Model(ins, [train_out, next_label_out, arm_cmd_out, gripper_cmd_out])
 
         # =====================================================================
         # Create models to train
