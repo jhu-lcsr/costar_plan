@@ -208,6 +208,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # =====================================================================
         # Training the actor policy
+        """
         def get_state(x):
             y = K.expand_dims(next_label_out, 1)
             print(y)
@@ -221,8 +222,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         genc = Lambda(lambda x: get_state(x))(label_out)
         print(genc)
         genc = Activation("softmax")(genc)
-            
-        y = Concatenate(axis=-1,name="combine_goal_current")([enc, genc])
+        """
+        #y = Concatenate(axis=-1,name="combine_goal_current")([enc])
+        y = enc
         y = Conv2D(int(self.img_num_filters/4),
                 kernel_size=[5,5], 
                 strides=(2, 2),
@@ -231,6 +233,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         y = LeakyReLU(0.2)(y)
         y = BatchNormalization(momentum=0.9)(y)
         y = Flatten()(y)
+        y = Concatenate(axis=-1)([next_label_out,y])
         y = Dense(self.combined_dense_size)(y)
         y = Dropout(self.dropout_rate)(y)
         y = LeakyReLU(0.2)(y)
@@ -474,7 +477,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
-        return features, targets
+        return features[:3], targets
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''
