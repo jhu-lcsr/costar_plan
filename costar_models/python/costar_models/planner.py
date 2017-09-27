@@ -436,7 +436,7 @@ def GetImageArmGripperDecoder(dim, img_shape,
                     name="arm_gripper_label_dec%d"%i)(x)
             x = BatchNormalization(momentum=0.9)(x)
             if leaky:
-                x = LeakyReLU(0.2,name="lrelu_%d_%d"%(idx,j))(x)
+                x = LeakyReLU(0.2)(x)
             else:
                 x = Activation("relu")(x)
             if dropout:
@@ -445,7 +445,7 @@ def GetImageArmGripperDecoder(dim, img_shape,
         x = Dense(dense_size)(x)
         x = BatchNormalization(momentum=0.9)(x)
         if leaky:
-            x = LeakyReLU(0.2,name="lrelu_%d_%d"%(idx,j))(x)
+            x = LeakyReLU(0.2)(x)
         else:
             x = Activation("relu")(x)
         if dropout:
