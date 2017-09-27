@@ -108,8 +108,8 @@ class MhpLossWithShape(object):
             self.losses = [loss] * len(self.outputs)
         assert len(self.outputs) == len(self.losses)
         self.__name__ = "mhp_loss"
-        self.avg_weight = 0.01
-        self.min_weight = 0.98
+        self.avg_weight = 0.05
+        self.min_weight = 0.90
 
     def __call__(self, target, pred):
         '''
