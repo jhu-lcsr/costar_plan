@@ -42,13 +42,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         self.num_frames = 1
 
-        self.dropout_rate = 0.1
+        self.dropout_rate = 0.2
         self.img_col_dim = 512
         self.img_num_filters = 64
         self.tform_filters = 64
         self.combined_dense_size = 128
         self.num_hypotheses = 8
-        self.num_transforms = 2
+        self.num_transforms = 3
         self.validation_split = 0.1
         self.num_options = 48
         self.extra_layers = 0
