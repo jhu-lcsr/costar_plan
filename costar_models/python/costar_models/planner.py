@@ -388,9 +388,9 @@ def GetImagePoseDecoder(dim, img_shape,
     x = Reshape((width8,height8,tform_filters))(rep[0])
     if not resnet_blocks:
         for i in range(1):
-            if i == 1 and skips is not None:
-                smallest_skip = rep[1]
-                x = Concatenate(axis=-1)([x, smallest_skip])
+            #if i == 1 and skips is not None:
+            #    smallest_skip = rep[1]
+            #    x = Concatenate(axis=-1)([x, smallest_skip])
             x = Conv2D(filters,
                     kernel_size=kernel_size, 
                     strides=(2, 2),
@@ -400,9 +400,9 @@ def GetImagePoseDecoder(dim, img_shape,
             x = Dropout(dropout_rate)(x)
             x = Activation("relu")(x)
         x = Flatten()(x)
-        #x = Dense(dense_size)(x)
-        #x = Dropout(dropout_rate)(x)
-        #x = Activation("relu")(x)
+        x = Dense(dense_size)(x)
+        x = Dropout(dropout_rate)(x)
+        x = Activation("relu")(x)
     else:
         for i in range(1):
             # =================================================================
@@ -707,3 +707,15 @@ def GetHypothesisProbability(x, num_hypotheses, num_options, labels,
 
 def OneHot(size=64):
     return Lambda(lambda x: tf.one_hot(tf.cast(x, tf.int32),size))#,name="label_to_one_hot")
+
+
+def GetActor(enc0, enc_h, supervisor, label_out, num_hypotheses, *args, **kwargs):
+    '''
+    Set up an actor according to the probability distribution over decent next
+    states.
+    '''
+    p_o = K.expand_dims(supervisor, axis=1)
+    p_o = K.repeat_elements(p_o, num_hypotheses, axis=1)
+
+    # Compute the probability of a high-level label under our distribution
+    p_oh = K.sum(label_out, axis=1) / num_hypotheses

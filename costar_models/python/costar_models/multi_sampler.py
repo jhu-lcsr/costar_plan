@@ -197,13 +197,31 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # =====================================================================
         # Hypothesis probabilities
-        sum_p_out, p_out = GetHypothesisProbability(enc,
-                self.num_hypotheses,
-                self.num_options,
-                labels=label_out,
-                filters=self.img_num_filters,
-                kernel_size=[5,5],
-                dropout_rate=self.dropout_rate)
+        #sum_p_out, p_out = GetHypothesisProbability(enc,
+        #        self.num_hypotheses,
+        #        self.num_options,
+        #        labels=label_out,
+        #        filters=self.img_num_filters,
+        #        kernel_size=[5,5],
+        #        dropout_rate=self.dropout_rate)
+
+        # =====================================================================
+        # Get a prior for the next label
+        l = Conv2D(int(self.img_num_filters/4),
+                kernel_size=[5,5], 
+                strides=(2, 2),
+                padding='same')(enc)
+        l = Dropout(self.dropout_rate)(l)
+        l = LeakyReLU(0.2)(l)
+        l = BatchNormalization(momentum=0.9)(l)
+        l = Flatten()(l)
+        l = Dense(self.combined_dense_size)(l)
+        l = Dropout(self.dropout_rate)(l)
+        l = LeakyReLU(0.2)(l)
+        l = BatchNormalization(momentum=0.9)(l)
+        next_label_out = Dense(self.num_options,
+                activation="sigmoid",
+                name="next_label_out")(l)
 
         # =====================================================================
         # Training the actor policy
@@ -214,22 +232,23 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 padding='same')(y)
         y = Dropout(self.dropout_rate)(y)
         y = LeakyReLU(0.2)(y)
+        y = BatchNormalization(momentum=0.9)(y)
         y = Flatten()(y)
         y = Dense(self.combined_dense_size)(y)
         y = Dropout(self.dropout_rate)(y)
         y = LeakyReLU(0.2)(y)
+        y = BatchNormalization(momentum=0.9)(y)
         arm_cmd_out = Lambda(lambda x: K.expand_dims(x, axis=1),name="arm_action")(
                 Dense(arm_size-1)(y))
         gripper_cmd_out = Lambda(lambda x: K.expand_dims(x, axis=1),name="gripper_action")(
                 Dense(gripper_size)(y))
 
-
         # =====================================================================
         # Create models to train
         predictor = Model(ins,
-                [image_out, arm_out, gripper_out, label_out])#, p_out])
+                [image_out, arm_out, gripper_out, label_out, next_label_out])#, p_out])
         actor = Model(ins + gins, [arm_cmd_out, gripper_cmd_out])
-        train_predictor = Model(ins, [train_out])#, sum_p_out])
+        train_predictor = Model(ins + gins, [train_out, next_label_out, arm_cmd_out, gripper_cmd_out])
 
         # =====================================================================
         # Create models to train
@@ -238,12 +257,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
-                        weights=[0.5,1.,0.2,0.1],
-                        loss=["mae","mae","mae","categorical_crossentropy"]), 
-                    #"binary_crossentropy",
-                    ],#"mse","mse"],
-                #loss_weights=[0.9,0.1],
-                #loss_weights=[0.8,0.1,0.1],
+                        weights=[0.7,0.7,0.1,0.1],
+                        loss=["mse","mae","mae","categorical_crossentropy"]),
+                    "binary_crossentropy", "mse","mse"],
+                loss_weights=[1.0,0.1,0.1,0.1],
                 optimizer=self.getOptimizer())
         predictor.compile(loss="mse", optimizer=self.getOptimizer())
 
@@ -271,6 +288,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.show_iter == 0 or self.show_iter == None:
             modelCheckpointCb = ModelCheckpoint(
                 filepath=self.name+"_train_predictor_weights.h5f",
+                model_directory=self.model_directory,
                 verbose=1,
                 save_best_only=False # does not work without validation wts
             )
@@ -367,6 +385,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         unsuccessful examples.
         '''
 
+        raise RuntimeError('deprecated function')
+
         I = features
         q = arm
         g = gripper
@@ -412,7 +432,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Fit the main models
         self._fitPredictor(
                 [I, q, g, I_target, q_target, g_target,],
-                [train_target,o_target]), #qa, ga],)
+                [train_target,o_target, qa, ga],)
 
     def _getAllData(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             prev_label, goal_features, goal_arm, goal_gripper, *args, **kwargs):
@@ -457,8 +477,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
-        return features[:3], targets[:1]
-        #return features[:3], targets[:2]
+        return features, targets
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''
