@@ -52,7 +52,7 @@ def grasp_model_resnet(clear_view_image_op,
                        include_top=True,
                        dropout_rate=0.0):
     if input_vector_op_shape is None:
-        input_vector_op_shape = [5]
+        input_vector_op_shape = [13]
     if input_image_shape is None:
         input_image_shape = [512, 640, 3]
     print('input_vector_op pre tile: ', input_vector_op)
@@ -75,11 +75,11 @@ def grasp_model_resnet(clear_view_image_op,
     model = ResNet(input_shape=combined_input_shape,
                    classes=1,
                    block='bottleneck',
-                   repetitions=[3, 3, 3, 3],
+                   repetitions=[2, 2, 2, 2],
                    include_top=include_top,
                    input_tensor=combined_input_data,
                    activation='sigmoid',
-                   initial_filters=96,
+                   initial_filters=48,
                    dropout=dropout_rate)
     return model
 
