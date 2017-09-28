@@ -389,7 +389,8 @@ class GraspDataset(object):
                 'params'
                     This is a simplified representation of a commanded robot pose and gripper status.
                     These are the values that were solved for in the network, the output of
-                    the Cross Entropy Method.
+                    the Cross Entropy Method. This contains the command from one timestep to the next,
+                    not the data that was trained on in the original paper.
                 'name'
                     A string indicating the name of the robot
                 'status'
@@ -887,6 +888,7 @@ class GraspDataset(object):
             """
             # decode all the image ops and other features
             [(features_op_dict, _)], features_complete_list, _, attempt_count = self.get_simple_tfrecordreader_dataset_ops()
+            print(features_complete_list)
             if self.verbose > 0:
                 print(features_complete_list)
             ordered_image_feature_names = GraspDataset.get_time_ordered_features(features_complete_list, '/image/decoded')
