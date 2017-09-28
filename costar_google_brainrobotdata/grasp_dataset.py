@@ -569,7 +569,7 @@ class GraspDataset(object):
                                                     context_features=features_dict,
                                                     sequence_features=sequence_features_dict)
 
-    def get_simple_parallel_dataset_ops(self, dataset=None, batch_size=1, buffer_size=100, parallelism=10):
+    def get_simple_parallel_dataset_ops(self, dataset=None, batch_size=1, buffer_size=100, parallelism=10, shift_ratio=0.1):
         """Simple unordered & parallel TensorFlow ops that go through the whole dataset.
 
         # Returns
@@ -581,15 +581,20 @@ class GraspDataset(object):
             features_complete_list: a list of all feature strings in the fixedLengthFeatureDict and sequenceFeatureDict,
                 and a parameter for get_time_ordered_features().
             num_samples: the number of samples in the dataset, used for configuring the size of one training epoch
+            shift_ratio: The order the files are read will be shifted each epoch by shift_amount so that the data
+                is presented in a different order every epoch, 0 means the order always stays the same.
+
 
         """
         tf_glob = self._get_tfrecord_path_glob_pattern(dataset=dataset)
-        record_input = data_flow_ops.RecordInput(tf_glob, batch_size, buffer_size, parallelism)
+        record_input = data_flow_ops.RecordInput(tf_glob, batch_size,
+                                                 buffer_size, parallelism, shift_ratio=shift_ratio)
         records_op = record_input.get_yield_op()
         records_op = tf.split(records_op, batch_size, 0)
         records_op = [tf.reshape(record, []) for record in records_op]
         features_complete_list, num_samples = self.get_features()
-        feature_op_dicts = [self.parse_grasp_attempt_protobuf(serialized_protobuf, features_complete_list) for serialized_protobuf in records_op]
+        feature_op_dicts = [self.parse_grasp_attempt_protobuf(serialized_protobuf, features_complete_list)
+                            for serialized_protobuf in records_op]
         # TODO(ahundt) https://www.tensorflow.org/performance/performance_models
         # make sure records are always ready to go on cpu and gpu via prefetching in a staging area
         # staging_area = tf.contrib.staging.StagingArea()
@@ -791,16 +796,10 @@ class GraspDataset(object):
                 # every input will be the final pose
                 pose_op_params[i] = pose_op_params[-1]
 
-
-        # print('features_complete_list: ', features_complete_list)
         grasp_success = self.get_time_ordered_features(
             features_complete_list,
             feature_type='grasp_success'
         )
-        # print('grasp_success: ', grasp_success)
-
-        # TODO(ahundt) Do we need to add some imagenet preprocessing here? YES when using imagenet pretrained weights
-        # TODO(ahundt) THE NUMBER OF GRASP STEPS MAY VARY... CAN WE DEAL WITH THIS? ARE WE?
 
         # our training batch size will be batch_size * grasp_steps
         # because we will train all grasp step images w.r.t. final
