@@ -148,7 +148,7 @@ class GraspTrain(object):
                                                               resize=resize,
                                                               grasp_sequence_min_time_step=grasp_sequence_min_time_step,
                                                               grasp_sequence_max_time_step=grasp_sequence_max_time_step)
-            max_num_samples = np.max(num_samples, max_num_samples)
+            max_num_samples = max(num_samples, max_num_samples)
             pregrasp_op_batch.append(pregrasp_op)
             grasp_step_op_batch.append(grasp_step_op)
             simplified_grasp_command_op_batch.append(simplified_grasp_command_op)
