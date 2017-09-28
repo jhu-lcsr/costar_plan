@@ -569,7 +569,7 @@ class GraspDataset(object):
                                                     context_features=features_dict,
                                                     sequence_features=sequence_features_dict)
 
-    def get_simple_parallel_dataset_ops(self, dataset=None, batch_size=1, buffer_size=100, parallelism=10, shift_ratio=0.1):
+    def get_simple_parallel_dataset_ops(self, dataset=None, batch_size=1, buffer_size=100, parallelism=10, shift_ratio=0.01):
         """Simple unordered & parallel TensorFlow ops that go through the whole dataset.
 
         # Returns
