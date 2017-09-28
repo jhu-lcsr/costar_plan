@@ -154,11 +154,6 @@ class GraspTrain(object):
             simplified_grasp_command_op_batch.append(simplified_grasp_command_op)
             grasp_success_op_batch.append(grasp_success_op)
 
-        pregrasp_op_batch = tf.parallel_stack(pregrasp_op_batch)
-        grasp_step_op_batch = tf.parallel_stack(grasp_step_op_batch)
-        simplified_grasp_command_op_batch = tf.parallel_stack(simplified_grasp_command_op_batch)
-        grasp_success_op_batch = tf.parallel_stack(grasp_success_op_batch)
-
         pregrasp_op_batch = tf.concat(pregrasp_op_batch, 0)
         grasp_step_op_batch = tf.concat(grasp_step_op_batch, 0)
         simplified_grasp_command_op_batch = tf.concat(simplified_grasp_command_op_batch, 0)
