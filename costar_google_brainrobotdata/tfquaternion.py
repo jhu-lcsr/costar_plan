@@ -121,7 +121,127 @@ class Quaternion():
         """
         return self._q
 
-    @ staticmethod
+
+
+    @property
+    def rotation_matrix(self):
+        """Get the 3x3 rotation matrix equivalent of the quaternion rotation.
+
+        Returns:
+            A 3x3 orthogonal rotation matrix as a 3x3 Numpy array
+
+        Note:
+            This feature only makes sense when referring to a unit quaternion. Calling this method will implicitly normalise the Quaternion object to a unit quaternion if it is not already one.
+
+        """
+        self._normalise()
+        product_matrix = np.dot(self._q_matrix(), self._q_bar_matrix().conj().transpose())
+        return product_matrix[1:][:,1:]
+
+    @property
+    def transformation_matrix(self):
+        """Get the 4x4 homogeneous transformation matrix equivalent of the quaternion rotation.
+
+        Returns:
+            A 4x4 homogeneous transformation matrix as a 4x4 Numpy array
+
+        Note:
+            This feature only makes sense when referring to a unit quaternion. Calling this method will implicitly normalise the Quaternion object to a unit quaternion if it is not already one.
+        """
+        t = np.array([[0.0], [0.0], [0.0]])
+        Rt = np.hstack([self.rotation_matrix, t])
+        return np.vstack([Rt, np.array([0.0, 0.0, 0.0, 1.0])])
+
+    @property
+    def yaw_pitch_roll(self):
+        """Get the equivalent yaw-pitch-roll angles aka. intrinsic Tait-Bryan angles following the z-y'-x'' convention
+
+        Returns:
+            yaw:    rotation angle around the z-axis in radians, in the range `[-pi, pi]`
+            pitch:  rotation angle around the y'-axis in radians, in the range `[-pi/2, -pi/2]`
+            roll:   rotation angle around the x''-axis in radians, in the range `[-pi, pi]`
+
+        The resulting rotation_matrix would be R = R_x(roll) R_y(pitch) R_z(yaw)
+
+        Note:
+            This feature only makes sense when referring to a unit quaternion. Calling this method will implicitly normalise the Quaternion object to a unit quaternion if it is not already one.
+        """
+
+        self._normalise()
+        yaw = np.arctan2(2*(self.q[0]*self.q[3] - self.q[1]*self.q[2]),
+            1 - 2*(self.q[2]**2 + self.q[3]**2))
+        pitch = np.arcsin(2*(self.q[0]*self.q[2] + self.q[3]*self.q[1]))
+        roll = np.arctan2(2*(self.q[0]*self.q[1] - self.q[2]*self.q[3]),
+            1 - 2*(self.q[1]**2 + self.q[2]**2))
+
+        return yaw, pitch, roll
+
+    def _wrap_angle(self, theta):
+        """Helper method: Wrap any angle to lie between -pi and pi
+
+        Odd multiples of pi are wrapped to +pi (as opposed to -pi)
+        """
+        result = ((theta + pi) % (2*pi)) - pi
+        if result == -pi: result = pi
+        return result
+
+    def get_axis(self, undefined=np.zeros(3)):
+        """Get the axis or vector about which the quaternion rotation occurs
+
+        For a null rotation (a purely real quaternion), the rotation angle will
+        always be `0`, but the rotation axis is undefined.
+        It is by default assumed to be `[0, 0, 0]`.
+
+        Params:
+            undefined: [optional] specify the axis vector that should define a null rotation.
+                This is geometrically meaningless, and could be any of an infinite set of vectors,
+                but can be specified if the default (`[0, 0, 0]`) causes undesired behaviour.
+
+        Returns:
+            A Numpy unit 3-vector describing the Quaternion object's axis of rotation.
+
+        Note:
+            This feature only makes sense when referring to a unit quaternion.
+            Calling this method will implicitly normalise the Quaternion object to a unit quaternion if it is not already one.
+        """
+        tolerance = 1e-17
+        self._normalise()
+        norm = np.linalg.norm(self.vector)
+        if norm < tolerance:
+            # Here there are an infinite set of possible axes, use what has been specified as an undefined axis.
+            return undefined
+        else:
+            return self.vector / norm
+
+    @property
+    def axis(self):
+        return self.get_axis()
+
+    @property
+    def angle(self):
+        """Get the angle (in radians) describing the magnitude of the quaternion rotation about its rotation axis.
+
+        This is guaranteed to be within the range (-pi:pi) with the direction of
+        rotation indicated by the sign.
+
+        When a particular rotation describes a 180 degree rotation about an arbitrary
+        axis vector `v`, the conversion to axis / angle representation may jump
+        discontinuously between all permutations of `(-pi, pi)` and `(-v, v)`,
+        each being geometrically equivalent (see Note in documentation).
+
+        Returns:
+            A real number in the range (-pi:pi) describing the angle of rotation
+                in radians about a Quaternion object's axis of rotation.
+
+        Note:
+            This feature only makes sense when referring to a unit quaternion.
+            Calling this method will implicitly normalise the Quaternion object to a unit quaternion if it is not already one.
+        """
+        self._normalise()
+        norm = tf.norm(self.vector)
+        return self._wrap_angle(2.0 * tf.atan2(norm,self.scalar))
+
+    @staticmethod
     def _quaternions_to_tensors(quats):
         return [q.value() if isinstance(q, Quaternion) else q for q in quats]
 
@@ -196,6 +316,31 @@ class Quaternion():
         return [[diag(y, z), tr_sub(x, y, z, w), tr_add(x, z, y, w)],
                 [tr_add(x, y, z, w), diag(x, z), tr_sub(y, z, x, w)],
                 [tr_sub(x, z, y, w), tr_add(y, z, x, w), diag(x, y)]]
+
+    # Initialise from axis-angle
+    @classmethod
+    def _from_axis_angle(self, axisAngle):
+        """Initialise from axis and angle representation
+
+        Create a Quaternion by specifying the 3-vector rotation axis and rotation
+        angle (in radians) from which the quaternion's rotation should be created.
+        TODO(ahundt) NOT COMPLETE!!!!!!!!!!!!!
+        Params:
+            axis: a valid numpy 3-vector
+            angle: a real valued angle in radians
+        """
+        assert(False)
+        mag_sq = tf.dot(axisAngle, axisAngle)
+        # Ensure Provided rotation axis has length
+        tf.Assert(tf.count_nonzero(mag_sq))
+        # size of axis must be rotation around center
+        tf.Assert(tf.less_equal(mag_sq, 1.0))
+        # Ensure axis is in unit vector form
+        theta = mag_sq
+        r = tf.cos(theta)
+        i = axis * tf.sin(theta)
+
+        return self(r, i[0], i[1], i[2])
 
     @scope_wrapper
     @staticmethod
