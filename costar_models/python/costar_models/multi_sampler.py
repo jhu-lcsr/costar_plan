@@ -12,7 +12,7 @@ from keras.layers import UpSampling2D, Conv2DTranspose
 from keras.layers import BatchNormalization, Dropout
 from keras.layers import Dense, Conv2D, Activation, Flatten
 from keras.layers.embeddings import Embedding
-from keras.layers.merge import Concatenate
+from keras.layers.merge import Concatenate, Multiply
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 from keras.optimizers import Adam
@@ -42,13 +42,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         self.num_frames = 1
 
-        self.dropout_rate = 0.5
+        self.dropout_rate = 0.2
         self.img_col_dim = 512
         self.img_num_filters = 64
         self.tform_filters = 64
         self.combined_dense_size = 128
         self.num_hypotheses = 8
-        self.num_transforms = 2
+        self.num_transforms = 3
         self.validation_split = 0.1
         self.num_options = 48
         self.extra_layers = 0
@@ -77,8 +77,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 arm_size,
                 gripper_size,
                 self.img_col_dim,
-                self.dropout_rate,
-                self.img_num_filters,
+                dropout_rate=self.dropout_rate,
+                filters=self.img_num_filters,
                 leaky=False,
                 dropout=True,
                 pre_tiling_layers=self.extra_layers,
@@ -91,23 +91,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 output_filters=self.tform_filters,
                 )
         img_in, arm_in, gripper_in = ins
-        gins, genc, _, _ = GetEncoder(img_shape,
-                arm_size,
-                gripper_size,
-                self.img_col_dim,
-                self.dropout_rate,
-                self.img_num_filters,
-                leaky=False,
-                dropout=True,
-                pre_tiling_layers=self.extra_layers,
-                post_tiling_layers=3,
-                kernel_size=[5,5],
-                dense=False,
-                batchnorm=True,
-                tile=True,
-                flatten=False,
-                output_filters=self.tform_filters,
-                )
 
         decoder = GetImageArmGripperDecoder(self.img_col_dim,
                         img_shape,
@@ -225,7 +208,23 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # =====================================================================
         # Training the actor policy
-        y = Concatenate(axis=-1,name="combine_goal_current")([enc, genc])
+        """
+        def get_state(x):
+            y = K.expand_dims(next_label_out, 1)
+            print(y)
+            y = K.tile(y,[1,self.num_hypotheses,1])
+            print(y)
+            x = Multiply()([x,y])
+            print(x)
+            x = K.sum(x,axis=-1)
+            print(x)
+            return x
+        genc = Lambda(lambda x: get_state(x))(label_out)
+        print(genc)
+        genc = Activation("softmax")(genc)
+        """
+        #y = Concatenate(axis=-1,name="combine_goal_current")([enc])
+        y = enc
         y = Conv2D(int(self.img_num_filters/4),
                 kernel_size=[5,5], 
                 strides=(2, 2),
@@ -234,6 +233,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         y = LeakyReLU(0.2)(y)
         y = BatchNormalization(momentum=0.9)(y)
         y = Flatten()(y)
+        y = Concatenate(axis=-1)([next_label_out,y])
         y = Dense(self.combined_dense_size)(y)
         y = Dropout(self.dropout_rate)(y)
         y = LeakyReLU(0.2)(y)
@@ -247,8 +247,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Create models to train
         predictor = Model(ins,
                 [image_out, arm_out, gripper_out, label_out, next_label_out])#, p_out])
-        actor = Model(ins + gins, [arm_cmd_out, gripper_cmd_out])
-        train_predictor = Model(ins + gins, [train_out, next_label_out, arm_cmd_out, gripper_cmd_out])
+        actor = Model(ins, [arm_cmd_out, gripper_cmd_out])
+        train_predictor = Model(ins, [train_out, next_label_out, arm_cmd_out, gripper_cmd_out])
 
         # =====================================================================
         # Create models to train
@@ -477,7 +477,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
-        return features, targets
+        return features[:3], targets
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''
@@ -531,6 +531,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             self.predictor,
             features=features[:3],
             targets=targets,
+            model_directory=self.model_directory,
             num_hypotheses=self.num_hypotheses,
             verbose=True,
             min_idx=0,
