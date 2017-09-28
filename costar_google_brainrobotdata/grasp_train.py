@@ -121,14 +121,27 @@ class GraspTrain(object):
         datasets = dataset.split(',')
         max_num_samples = 0
         grasp_datasets = []
+        pregrasp_op_batch = []
+        grasp_step_op_batch = []
+        # simplified_network_grasp_command_op
+        simplified_grasp_command_op_batch = []
+        grasp_success_op_batch = []
+
+        # Aggregate multiple datasets into training tensors
+        # Note that one limitation of this setup is that we will
+        # iterate over samples according to the largest dataset,
+        # which means we see smaller datasets more than once in
+        # a single epoch. Try not to aggregate a very small dataset
+        # with a very large one!
         for single_dataset in datasets:
 
             data = grasp_dataset.GraspDataset(dataset=single_dataset)
+            grasp_datasets.append(data)
             # list of dictionaries the length of batch_size
-            (pregrasp_op_batch, grasp_step_op_batch,
-             simplified_grasp_command_op_batch,
+            (pregrasp_op, grasp_step_op,
+             simplified_grasp_command_op,
              example_batch_size,
-             grasp_success_op_batch,
+             grasp_success_op,
              num_samples) = data.single_pose_training_tensors(batch_size=batch_size,
                                                               imagenet_mean_subtraction=imagenet_mean_subtraction,
                                                               random_crop=random_crop,
@@ -136,16 +149,20 @@ class GraspTrain(object):
                                                               grasp_sequence_min_time_step=grasp_sequence_min_time_step,
                                                               grasp_sequence_max_time_step=grasp_sequence_max_time_step)
             max_num_samples = np.max(num_samples, max_num_samples)
+            pregrasp_op_batch.append(pregrasp_op)
+            grasp_step_op_batch.append(grasp_step_op)
+            simplified_grasp_command_op_batch.append(simplified_grasp_command_op)
+            grasp_success_op_batch.append(grasp_success_op)
 
-            pregrasp_op_batch = tf.parallel_stack(pregrasp_op_batch)
-            grasp_step_op_batch = tf.parallel_stack(grasp_step_op_batch)
-            simplified_grasp_command_op_batch = tf.parallel_stack(simplified_grasp_command_op_batch)
-            grasp_success_op_batch = tf.parallel_stack(grasp_success_op_batch)
+        pregrasp_op_batch = tf.parallel_stack(pregrasp_op_batch)
+        grasp_step_op_batch = tf.parallel_stack(grasp_step_op_batch)
+        simplified_grasp_command_op_batch = tf.parallel_stack(simplified_grasp_command_op_batch)
+        grasp_success_op_batch = tf.parallel_stack(grasp_success_op_batch)
 
-            pregrasp_op_batch = tf.concat(pregrasp_op_batch, 0)
-            grasp_step_op_batch = tf.concat(grasp_step_op_batch, 0)
-            simplified_grasp_command_op_batch = tf.concat(simplified_grasp_command_op_batch, 0)
-            grasp_success_op_batch = tf.concat(grasp_success_op_batch, 0)
+        pregrasp_op_batch = tf.concat(pregrasp_op_batch, 0)
+        grasp_step_op_batch = tf.concat(grasp_step_op_batch, 0)
+        simplified_grasp_command_op_batch = tf.concat(simplified_grasp_command_op_batch, 0)
+        grasp_success_op_batch = tf.concat(grasp_success_op_batch, 0)
 
         if resize:
             input_image_shape = [resize_height, resize_width, 3]
