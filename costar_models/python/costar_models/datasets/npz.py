@@ -66,6 +66,8 @@ class NpzDataset(object):
                 for key, value in fdata.items():
                     if key not in data:
                         data[key] = value
+                    if value.shape[0] == 0:
+                        continue
                     data[key] = np.concatenate([data[key],value],axis=0)
         return data
 

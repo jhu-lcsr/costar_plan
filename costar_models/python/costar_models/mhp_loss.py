@@ -108,6 +108,8 @@ class MhpLossWithShape(object):
             self.losses = [loss] * len(self.outputs)
         assert len(self.outputs) == len(self.losses)
         self.__name__ = "mhp_loss"
+        self.avg_weight = 0.05
+        self.min_weight = 0.90
 
     def __call__(self, target, pred):
         '''
@@ -141,7 +143,8 @@ class MhpLossWithShape(object):
             xsum += (cc / len(self.outputs))
             xmin = tf.minimum(xmin, cc)
 
-        return (0.05 * xsum / self.num_hypotheses) + (0.90 * xmin)
+        return ((self.avg_weight * xsum / self.num_hypotheses)
+            + (self.min_weight * xmin))
 
 def _getOutputs(state, outputs, i):
     '''

@@ -105,6 +105,15 @@ def GetModelParser():
                         help="Specify feature function",
                         default="null",
                         choices=GetAvailableFeatures())
+    parser.add_argument('--steps_per_epoch',
+                        help="Steps per epoch (used with the generator-" + \
+                              "based version of the fit tool",
+                        default=300,
+                        type=int)
+    parser.add_argument("--residual",
+                        help="add a new residual connections to the model" + \
+                              "if possible. Not all models implement this.",
+                        action="store_true")
     return parser
 
 def ParseModelArgs():
