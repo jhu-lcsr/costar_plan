@@ -286,38 +286,8 @@ def GetImageDecoder(dim, img_shape,
             if dropout:
                 x = Dropout(dropout_rate)(x)
         else:
-            # ====================================
-            # Start a Resnet convolutional block
-            # The goal in making this change is to increase the representative
-            # power and learning rate of the network -- since we were having
-            # some trouble with convergence before.
-            x0 = x
-            # ------------------------------------
-            x = BatchNormalization(momentum=0.9,)(x)
-            x = Dropout(dropout_rate)(x)
-            x = Activation("relu")(x)
-            x = Conv2DTranspose(filters,
-                    kernel_size=kernel_size, 
-                    strides=(2, 2),
-                    padding='same',)(x)
-            # ------------------------------------
-            x = BatchNormalization(momentum=0.9,)(x)
-            x = Dropout(dropout_rate)(x)
-            x = Activation("relu")(x)
-            x = Conv2DTranspose(filters,
-                    kernel_size=kernel_size, 
-                    strides=(1, 1),
-                    padding='same',)(x)
+            raise RuntimeError('resnet not supported')
 
-            # ------------------------------------
-            # add in the convolution to the beginning of this block
-            x0 = BatchNormalization(momentum=0.9,)(x0)
-            x0 = Conv2DTranspose(
-                    filters,
-                    kernel_size=kernel_size,
-                    strides=(2,2),
-                    padding="same",)(x0)
-            x = Add()([x, x0])
 
         height *= 2
         width *= 2
@@ -397,72 +367,16 @@ def GetImagePoseDecoder(dim, img_shape,
                     padding='same',
                     name="pose_label_dec%d"%i)(x)
             x = BatchNormalization(momentum=0.9)(x)
-            x = Dropout(dropout_rate)(x)
             x = Activation("relu")(x)
+            if dropout:
+                x = Dropout(dropout_rate)(x)
         x = Flatten()(x)
         x = Dense(dense_size)(x)
-        x = Dropout(dropout_rate)(x)
         x = Activation("relu")(x)
+        if dropout:
+            x = Dropout(dropout_rate)(x)
     else:
-        for i in range(1):
-            # =================================================================
-            # Start ResNet with a convolutional block
-            # This will decrease the size and apply a convolutional filter
-            x0 = x
-            # ------------------------------------
-            x = BatchNormalization(momentum=0.9,)(x)
-            x = Dropout(dropout_rate)(x)
-            x = Activation("relu")(x)
-            x = Conv2D(filters,
-                    kernel_size=kernel_size, 
-                    strides=(2, 2),
-                    padding='same',)(x)
-            # ------------------------------------
-            x = BatchNormalization(momentum=0.9,)(x)
-            x = Dropout(dropout_rate)(x)
-            x = Activation("relu")(x)
-            x = Conv2D(filters,
-                    kernel_size=kernel_size, 
-                    strides=(1, 1),
-                    padding='same',)(x)
-
-            # ------------------------------------
-            if i >= 0:
-                # add in the convolution to the beginning of this block
-                x0 = BatchNormalization(momentum=0.9,name="norm_ag_%d"%i)(x0)
-                x0 = Conv2D(
-                        filters,
-                        kernel_size=kernel_size,
-                        strides=(2,2),
-                        padding="same",)(x0)
-            x = Add()([x, x0])
-
-            # =================================================================
-            # Add Resnet identity blocks after downsizing 
-            # Note: currently disabled
-            for _ in range(2):
-                x0 = x
-                # ------------------------------------
-                x = BatchNormalization(momentum=0.9,)(x)
-                x = Dropout(dropout_rate)(x)
-                x = Activation("relu")(x)
-                x = Conv2D(filters,
-                        kernel_size=kernel_size, 
-                        strides=(1, 1),
-                        padding='same',)(x)
-                # ------------------------------------
-                x = BatchNormalization(momentum=0.9,)(x)
-                x = Dropout(dropout_rate)(x)
-                x = Activation("relu")(x)
-                x = Conv2D(filters,
-                        kernel_size=kernel_size, 
-                        strides=(1, 1),
-                        padding='same',)(x)
-                # ------------------------------------
-                # Recombine
-                x = Add()([x, x0])
-
-        x = Flatten()(x)
+        raise RuntimeError('resnet not supported')
 
     pose_out_x = Dense(pose_size,name="next_pose")(x)
     label_out_x = Dense(num_options,name="next_label",activation="softmax")(x)
@@ -521,72 +435,23 @@ def GetImageArmGripperDecoder(dim, img_shape,
                     padding='same',
                     name="arm_gripper_label_dec%d"%i)(x)
             x = BatchNormalization(momentum=0.9)(x)
-            x = Dropout(dropout_rate)(x)
-            x = Activation("relu")(x)
+            if leaky:
+                x = LeakyReLU(0.2)(x)
+            else:
+                x = Activation("relu")(x)
+            if dropout:
+                x = Dropout(dropout_rate)(x)
         x = Flatten()(x)
-        #x = Dense(dense_size)(x)
-        #x = Dropout(dropout_rate)(x)
-        #x = Activation("relu")(x)
+        x = Dense(dense_size)(x)
+        x = BatchNormalization(momentum=0.9)(x)
+        if leaky:
+            x = LeakyReLU(0.2)(x)
+        else:
+            x = Activation("relu")(x)
+        if dropout:
+            x = Dropout(dropout_rate)(x)
     else:
-        for i in range(1):
-            # =================================================================
-            # Start ResNet with a convolutional block
-            # This will decrease the size and apply a convolutional filter
-            x0 = x
-            # ------------------------------------
-            x = BatchNormalization(momentum=0.9,)(x)
-            x = Dropout(dropout_rate)(x)
-            x = Activation("relu")(x)
-            x = Conv2D(filters,
-                    kernel_size=kernel_size, 
-                    strides=(2, 2),
-                    padding='same',)(x)
-            # ------------------------------------
-            x = BatchNormalization(momentum=0.9,)(x)
-            x = Dropout(dropout_rate)(x)
-            x = Activation("relu")(x)
-            x = Conv2D(filters,
-                    kernel_size=kernel_size, 
-                    strides=(1, 1),
-                    padding='same',)(x)
-
-            # ------------------------------------
-            if i >= 0:
-                # add in the convolution to the beginning of this block
-                x0 = BatchNormalization(momentum=0.9,name="norm_ag_%d"%i)(x0)
-                x0 = Conv2D(
-                        filters,
-                        kernel_size=kernel_size,
-                        strides=(2,2),
-                        padding="same",)(x0)
-            x = Add()([x, x0])
-
-            # =================================================================
-            # Add Resnet identity blocks after downsizing 
-            # Note: currently disabled
-            for _ in range(2):
-                x0 = x
-                # ------------------------------------
-                x = BatchNormalization(momentum=0.9,)(x)
-                x = Dropout(dropout_rate)(x)
-                x = Activation("relu")(x)
-                x = Conv2D(filters,
-                        kernel_size=kernel_size, 
-                        strides=(1, 1),
-                        padding='same',)(x)
-                # ------------------------------------
-                x = BatchNormalization(momentum=0.9,)(x)
-                x = Dropout(dropout_rate)(x)
-                x = Activation("relu")(x)
-                x = Conv2D(filters,
-                        kernel_size=kernel_size, 
-                        strides=(1, 1),
-                        padding='same',)(x)
-                # ------------------------------------
-                # Recombine
-                x = Add()([x, x0])
-
-        x = Flatten()(x)
+        raise RuntimeError('resnet not supported')
 
     arm_out_x = Dense(arm_size,name="next_arm")(x)
     gripper_out_x = Dense(gripper_size,
@@ -603,6 +468,8 @@ def GetImageArmGripperDecoder(dim, img_shape,
 def GetTranform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=True, 
         leaky=True,
         relu=True,
+        dropout_rate=0.,
+        dropout=False,
         resnet_blocks=False,):
     xin = Input((rep_size) + (filters,))
     x = xin
@@ -622,28 +489,9 @@ def GetTranform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tru
                 else:
                     x = Activation("relu",name="relu_%d_%d"%(idx,j))(x)
         else:
-            x0 = x
-            x = BatchNormalization(momentum=0.9,
-                                    name="normalize_%d_%d"%(idx,j))(x)
-            x = Activation("relu",name="reluA_%d_%d"%(idx,j))(x)
-            x = Conv2D(filters,
-                    kernel_size=[5,5], 
-                    strides=(1, 1),
-                    padding='same',
-                    name="transformA_%d_%d"%(idx,j))(x)
-            x = BatchNormalization(momentum=0.9,
-                                    name="normalizeB_%d_%d"%(idx,j))(x)
-            x = Activation("relu",name="reluB_%d_%d"%(idx,j))(x)
-            x = Conv2D(filters,
-                    kernel_size=[5,5], 
-                    strides=(1, 1),
-                    padding='same',
-                    name="transformB_%d_%d"%(idx,j))(x)
-            # Resnet block addition
-            x = Add()([x, x0])
+            raise RuntimeError('resnet not supported for transform')
 
     return Model(xin, x, name="transform%d"%idx)
-
 
 def GetNextOption(x, num_options, filters, kernel_size, dropout_rate=0.5):
     pass
@@ -688,8 +536,8 @@ def GetHypothesisProbability(x, num_hypotheses, num_options, labels,
             padding='same',
             name="p_hypothesis")(x)
     x = BatchNormalization(momentum=0.9)(x)
-    x = Dropout(dropout_rate)(x)
     x = LeakyReLU(alpha=0.2)(x)
+    x = Dropout(dropout_rate)(x)
     x = Flatten()(x)
     x = Dense(num_hypotheses)(x)
     x = Activation("softmax")(x)

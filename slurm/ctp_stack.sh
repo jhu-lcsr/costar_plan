@@ -1,10 +1,10 @@
 #!/bin/bash -l
 #SBATCH --job-name=ctp_stack
 #SBATCH --time=0-48:0:0
+#SBATCH --partition=gpu
+#SBATCH --gres=gpu:1
 #SBATCH --nodes=1
-#SBATCH -p unlimited
-#SBATCH -g 2
-#SBATCH --cpus-per-task=6
+#SBATCH --mem=8G
 #SBATCH --mail-type=end
 #SBATCH --mail-user=cpaxton3@jhu.edu
 
