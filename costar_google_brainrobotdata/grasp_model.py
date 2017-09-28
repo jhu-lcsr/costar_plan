@@ -52,7 +52,7 @@ def grasp_model_resnet(clear_view_image_op,
                        include_top=True,
                        dropout_rate=0.0):
     if input_vector_op_shape is None:
-        input_vector_op_shape = [5]
+        input_vector_op_shape = [7]
     if input_image_shape is None:
         input_image_shape = [512, 640, 3]
     print('input_vector_op pre tile: ', input_vector_op)
@@ -75,11 +75,11 @@ def grasp_model_resnet(clear_view_image_op,
     model = ResNet(input_shape=combined_input_shape,
                    classes=1,
                    block='bottleneck',
-                   repetitions=[3, 3, 3, 3],
+                   repetitions=[2, 2, 2, 2],
                    include_top=include_top,
                    input_tensor=combined_input_data,
                    activation='sigmoid',
-                   initial_filters=96,
+                   initial_filters=48,
                    dropout=dropout_rate)
     return model
 
@@ -98,7 +98,7 @@ def grasp_model_pretrained(clear_view_image_op,
     """export CUDA_VISIBLE_DEVICES="1" && python grasp_train.py --random_crop=1 --batch_size=1 --grasp_model grasp_model_pretrained --resize_width=320 --resize_height=256
     """
     if input_vector_op_shape is None:
-        input_vector_op_shape = [K.shape(input_vector_op)[0], 5]
+        input_vector_op_shape = [K.shape(input_vector_op)[0], 7]
         input_vector_op = K.reshape(input_vector_op, input_vector_op_shape)
     if input_image_shape is None:
         input_image_shape = [512, 640, 3]
@@ -198,7 +198,7 @@ def grasp_model(clear_view_image_op,
                 include_top=True,
                 dropout_rate=0.0):
     if input_vector_op_shape is None:
-        input_vector_op_shape = [5]
+        input_vector_op_shape = [7]
     if input_image_shape is None:
         input_image_shape = [512, 640, 3]
     print('input_vector_op pre tile: ', input_vector_op)
