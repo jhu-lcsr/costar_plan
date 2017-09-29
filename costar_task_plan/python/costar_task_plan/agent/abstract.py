@@ -351,7 +351,7 @@ class AbstractAgent(object):
                         data["first_%s"%key] = []
                     if key in goal_list:
                         data["goal_%s"%key] = []
-                    if key in features:
+                    if self.collect_trajectories and key in features:
                         data["traj_%s"%key] = []
 
                 # Check data consistency

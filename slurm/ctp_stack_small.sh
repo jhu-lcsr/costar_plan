@@ -24,7 +24,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--model predictor \
 	--data_file $HOME/work/ctp_test2small.npz \
 	--lr 0.001 \
-	 --model_directory $HOME/.costar/models_stack/ \
+	 --model_directory $HOME/.costar/models_stack_small/ \
 	--optimizer adam \
   --upsampling conv_transpose \
 	--batch_size 64
