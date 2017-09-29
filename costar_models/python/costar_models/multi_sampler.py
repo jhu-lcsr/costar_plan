@@ -42,7 +42,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         self.num_frames = 1
 
-        self.dropout_rate = 0.2
+        self.dropout_rate = 0.5
         self.img_col_dim = 512
         self.img_num_filters = 64
         self.tform_filters = 64
@@ -134,7 +134,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     kernel_size=[5,5],
                     idx=i,
                     batchnorm=True,
-                    dropout=False,
+                    dropout=True,
                     dropout_rate=self.dropout_rate,
                     leaky=True,
                     num_blocks=self.num_transforms,
@@ -251,7 +251,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         predictor = Model(ins,
                 [image_out, arm_out, gripper_out, label_out, next_label_out])#, p_out])
         actor = Model(ins, [arm_cmd_out, gripper_cmd_out])
-        train_predictor = Model(ins, [train_out, next_label_out, arm_cmd_out, gripper_cmd_out])
+        train_predictor = Model(ins, [train_out, next_label_out]) #, arm_cmd_out, gripper_cmd_out])
 
         # =====================================================================
         # Create models to train
@@ -261,9 +261,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
                         weights=[0.7,0.7,0.1,0.1],
-                        loss=["mse","mae","mae","categorical_crossentropy"]),
-                    "binary_crossentropy", "mse","mse"],
-                loss_weights=[1.0,0.1,0.1,0.1],
+                        loss=["mae","mae","mae","categorical_crossentropy"]),
+                    "binary_crossentropy",],# "mse","mse"],
+                loss_weights=[1.0,0.1,],#0.1,0.1],
                 optimizer=self.getOptimizer())
         predictor.compile(loss="mse", optimizer=self.getOptimizer())
         train_predictor.summary()
@@ -481,7 +481,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
-        return features[:3], targets
+        return features[:3], targets[:2]
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''

@@ -289,11 +289,11 @@ def GetImageDecoder(dim, img_shape,
                     [height, width]),
                     name="bilinear%dx%d"%(height,width))(x)
             elif upsampling == "upsampling":
+                x = UpSampling2D(size=(2,2))(x)
                 x = Conv2D(filters,
                            kernel_size=kernel_size, 
                            strides=(1, 1),
                            padding='same')(x)
-                x = UpSampling2D(size=(2,2))(x)
             else:
                 x = Conv2DTranspose(filters,
                            kernel_size=kernel_size, 
