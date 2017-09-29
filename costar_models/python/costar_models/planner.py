@@ -276,6 +276,10 @@ def GetImageDecoder(dim, img_shape,
             skip_inputs.append(skip_in)
 
         if not resnet_blocks:
+            # Upsampling.
+            # Alternatives to Conv2D transpose for generation; this is because
+            # conv2d transpose is known to result in artifacts, and we want to
+            # avoid those when learning our nice decoder.
             if upsampling == "bilinear":
                 x = Conv2D(filters,
                            kernel_size=kernel_size, 
