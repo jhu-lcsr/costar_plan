@@ -26,7 +26,7 @@ from .split import *
 from .mhp_loss import *
 from .loss import *
 
-class RobotMultiPredictionSampler(RobotMultiHierarchical):
+class RobotMultiGoalSampler(RobotMultiHierarchical):
 
     '''
     This class is set up as a SUPERVISED learning problem -- for more
@@ -43,7 +43,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_frames = 1
 
         self.dropout_rate = 0.2
-        self.img_col_dim = 64
+        self.img_col_dim = 512
         self.img_num_filters = 64
         self.tform_filters = 64
         self.combined_dense_size = 128
@@ -88,14 +88,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 batchnorm=True,
                 tile=True,
                 flatten=False,
-                option=None,
                 output_filters=self.tform_filters,
                 )
-        print(skips,robot_skip)
+
         img_in, arm_in, gripper_in = ins
 
-        decoder = GetImageArmGripperDecoder(
-                        self.img_col_dim,
+        decoder = GetArmGripperDecoder(self.img_col_dim,
                         img_shape,
                         dropout_rate=self.dropout_rate,
                         dense_size=self.combined_dense_size,

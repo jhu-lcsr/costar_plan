@@ -245,14 +245,8 @@ def GetImageDecoder(dim, img_shape,
     if tform_filters is None:
         tform_filters = filters
 
-    height16 = img_shape[0]/16
-    width16 = img_shape[1]/16
-    height8 = int(img_shape[0]/8)
-    width8 = int(img_shape[1]/8)
-    height4 = int(img_shape[0]/4)
-    width4 = int(img_shape[1]/4)
-    height2 = img_shape[0]/2
-    width2 = img_shape[1]/2
+    height = int(img_shape[0]/(2**stride2_layers))
+    width = int(img_shape[1]/(2**stride2_layers))
     nchannels = img_shape[2]
 
     if leaky:
@@ -260,14 +254,14 @@ def GetImageDecoder(dim, img_shape,
     else:
         relu = lambda: Activation('relu')
 
-    z = Input((width8*height8*tform_filters,),name="input_image")
-    x = Reshape((width8,height8,tform_filters))(z)
+    z = Input((width*height*tform_filters,),name="input_image")
+    x = Reshape((height,width,tform_filters))(z)
     if not resnet_blocks and dropout:
         x = Dropout(dropout_rate)(x)
 
     skip_inputs = []
-    height = height4
-    width = width4
+    height = height * 2
+    width = width * 2
     for i in range(stride2_layers):
 
         if skips is not None:
@@ -289,11 +283,11 @@ def GetImageDecoder(dim, img_shape,
                     [height, width]),
                     name="bilinear%dx%d"%(height,width))(x)
             elif upsampling == "upsampling":
+                x = UpSampling2D(size=(2,2))(x)
                 x = Conv2D(filters,
                            kernel_size=kernel_size, 
                            strides=(1, 1),
                            padding='same')(x)
-                x = UpSampling2D(size=(2,2))(x)
             else:
                 x = Conv2DTranspose(filters,
                            kernel_size=kernel_size, 
@@ -407,6 +401,70 @@ def GetImagePoseDecoder(dim, img_shape,
     return decoder
 
 
+def GetArmGripperDecoder(dim, img_shape,
+        dropout_rate, filters, dense_size, kernel_size=[3,3], dropout=True, leaky=True,
+        batchnorm=True,dense=True, num_hypotheses=None, tform_filters=None,
+        upsampling=None,
+        original=None, num_options=64, arm_size=7, gripper_size=1,
+        resnet_blocks=False, skips=None, robot_skip=None,
+        stride2_layers=2, stride1_layers=1):
+    '''
+    Create a version of the decoder that just estimates the robot's arm and
+    gripper state, plus the label of the resulting action.
+    '''
+
+    if tform_filters is None:
+        tform_filters = filters
+
+    # =====================================================================
+    # Decode arm/gripper state.
+    # Predict the next joint states and gripper position. We add these back
+    # in from the inputs once again, in order to make sure they don't get
+    # lost in all the convolution layers above...
+    height = int(img_shape[0]/(2**stride2_layers))
+    width = int(img_shape[1]/(2**stride2_layers))
+    x = Reshape((height,width,tform_filters))(rep[0])
+    if not resnet_blocks:
+        for i in range(1):
+            if i == 1 and skips is not None:
+                smallest_skip = rep[1]
+                x = Concatenate(axis=-1)([x, smallest_skip])
+            x = Conv2D(filters,
+                    kernel_size=kernel_size, 
+                    strides=(2, 2),
+                    padding='same',
+                    name="arm_gripper_label_dec%d"%i)(x)
+            x = BatchNormalization(momentum=0.9)(x)
+            if leaky:
+                x = LeakyReLU(0.2)(x)
+            else:
+                x = Activation("relu")(x)
+            if dropout:
+                x = Dropout(dropout_rate)(x)
+        x = Flatten()(x)
+        x = Dense(dense_size)(x)
+        x = BatchNormalization(momentum=0.9)(x)
+        if leaky:
+            x = LeakyReLU(0.2)(x)
+        else:
+            x = Activation("relu")(x)
+        if dropout:
+            x = Dropout(dropout_rate)(x)
+    else:
+        raise RuntimeError('resnet not supported')
+
+    arm_out_x = Dense(arm_size,name="next_arm")(x)
+    gripper_out_x = Dense(gripper_size,
+            name="next_gripper_flat")(x)
+    label_out_x = Dense(num_options,name="next_label",activation="softmax")(x)
+
+    decoder = Model(rep,
+                    [arm_out_x, gripper_out_x, label_out_x],
+                    name="decoder")
+    return decoder
+
+
+
 def GetImageArmGripperDecoder(dim, img_shape,
         dropout_rate, filters, dense_size, kernel_size=[3,3], dropout=True, leaky=True,
         batchnorm=True,dense=True, num_hypotheses=None, tform_filters=None,
@@ -414,7 +472,12 @@ def GetImageArmGripperDecoder(dim, img_shape,
         original=None, num_options=64, arm_size=7, gripper_size=1,
         resnet_blocks=False, skips=None, robot_skip=None,
         stride2_layers=2, stride1_layers=1):
+    '''
+    Decode image and gripper setup
+    '''
 
+    height = int(img_shape[0]/(2**stride2_layers))
+    width = int(img_shape[1]/(2**stride2_layers))
     rep, dec = GetImageDecoder(dim,
                         img_shape,
                         dropout_rate=dropout_rate,
@@ -440,11 +503,7 @@ def GetImageArmGripperDecoder(dim, img_shape,
     # Predict the next joint states and gripper position. We add these back
     # in from the inputs once again, in order to make sure they don't get
     # lost in all the convolution layers above...
-    height4 = int(img_shape[0]/4)
-    width4 = int(img_shape[1]/4)
-    height8 = int(img_shape[0]/8)
-    width8 = int(img_shape[1]/8)
-    x = Reshape((width8,height8,tform_filters))(rep[0])
+    x = Reshape((height,width,tform_filters))(rep[0])
     if not resnet_blocks:
         for i in range(1):
             if i == 1 and skips is not None:
