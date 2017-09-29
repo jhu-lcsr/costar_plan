@@ -476,7 +476,7 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
     for j in range(num_blocks):
         if not resnet_blocks:
             x = Conv2D(filters,
-                    kernel_size=[5,5], 
+                    kernel_size=kernel_size, 
                     strides=(1, 1),
                     padding='same',
                     name="transform_%d_%d"%(idx,j))(x)
