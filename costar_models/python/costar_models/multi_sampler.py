@@ -535,6 +535,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             self.predictor,
             features=features[:3],
             targets=targets,
+            model_directory=self.model_directory,
             num_hypotheses=self.num_hypotheses,
             verbose=True,
             min_idx=0,
