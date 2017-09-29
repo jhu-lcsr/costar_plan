@@ -51,11 +51,11 @@ class NpzGeneratorDataset(object):
 
         idx = np.array(range(len(acceptable_files)))
         length = int(self.split*len(acceptable_files))
-        np.random.shuffle(idx)
         print("---------------------------------------------")
         print("# Validation examples:",length)
         self.test = [acceptable_files[i] for i in idx[:length]]
         self.train = [acceptable_files[i] for i in idx[length:]]
+        np.random.shuffle(self.train)
         return sample
 
     def sampleTrainFilename(self):
