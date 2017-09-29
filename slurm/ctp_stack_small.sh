@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --job-name=ctp_stack
+#SBATCH --job-name=ctp_stack_small
 #SBATCH --time=0-48:0:0
 #SBATCH --nodes=1
 #SBATCH -p unlimited
@@ -22,7 +22,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--features multi \
 	-e 100 \
 	--model predictor \
-	--data_file $HOME/work/ctp_test2.npz \
+	--data_file $HOME/work/ctp_test2small.npz \
 	--lr 0.001 \
 	 --model_directory $HOME/.costar/models_stack/ \
 	--optimizer adam \
