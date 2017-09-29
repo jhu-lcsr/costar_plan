@@ -42,7 +42,6 @@ def CombinePoseAndOption(pose_in, option_in, dim=64):
     robot = Dense(dim, activation="relu")(robot)
     return robot
 
-
 def CombineArmAndGripper(arm_in, gripper_in, dim=64):
     robot = Concatenate(axis=-1)([arm_in, gripper_in])
     robot = Dense(dim, activation="relu")(robot)
@@ -278,14 +277,19 @@ def GetImageDecoder(dim, img_shape,
 
         if not resnet_blocks:
             if upsampling == "bilinear":
+                x = Lambda(lambda x: ktf.image.resize_images(x,
+                    [height, width]),
+                    name="bilinear%dx%d"%(height,width))(x)
                 x = Conv2D(filters,
                            kernel_size=kernel_size, 
                            strides=(1, 1),
                            padding='same')(x)
-                x = Lambda(lambda x: ktf.image.resize_images(x,
-                    [height, width]),
-                    output_shape=(height, width, filters),
-                    name="bilinear%dx%d"%(height,width))(x)
+            elif upsampling == "upsampling":
+                x = UpSampling2D(size=(2,2))(x)
+                x = Conv2D(filters,
+                           kernel_size=kernel_size, 
+                           strides=(1, 1),
+                           padding='same')(x)
             else:
                 x = Conv2DTranspose(filters,
                            kernel_size=kernel_size, 
