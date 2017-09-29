@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --job-name=ctp_stack_us2d
+#SBATCH --job-name=us2d_stack
 #SBATCH --time=0-48:0:0
 #SBATCH --nodes=1
 #SBATCH -p unlimited
@@ -24,7 +24,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--model predictor \
 	--data_file $HOME/work/ctp_test2.npz \
 	--lr 0.001 \
-	 --model_directory $HOME/.costar/models_stack2/ \
+	 --model_directory $HOME/.costar/models_stack_us2d/ \
 	--optimizer adam \
   --upsampling upsampling \
 	--batch_size 64
