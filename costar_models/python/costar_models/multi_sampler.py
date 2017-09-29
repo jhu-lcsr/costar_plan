@@ -43,12 +43,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_frames = 1
 
         self.dropout_rate = 0.2
-        self.img_col_dim = 512
+        self.img_col_dim = 64
         self.img_num_filters = 64
         self.tform_filters = 64
         self.combined_dense_size = 128
         self.num_hypotheses = 8
-        self.num_transforms = 2
+        self.num_transforms = 1
         self.validation_split = 0.1
         self.num_options = 48
         self.extra_layers = 0
@@ -82,23 +82,26 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 leaky=False,
                 dropout=True,
                 pre_tiling_layers=self.extra_layers,
-                post_tiling_layers=3,
+                post_tiling_layers=4,
                 kernel_size=[5,5],
                 dense=False,
                 batchnorm=True,
                 tile=True,
                 flatten=False,
+                option=None,
                 output_filters=self.tform_filters,
                 )
+        print(skips,robot_skip)
         img_in, arm_in, gripper_in = ins
 
-        decoder = GetImageArmGripperDecoder(self.img_col_dim,
+        decoder = GetImageArmGripperDecoder(
+                        self.img_col_dim,
                         img_shape,
                         dropout_rate=self.dropout_rate,
                         dense_size=self.combined_dense_size,
                         kernel_size=[5,5],
                         filters=self.img_num_filters,
-                        stride2_layers=3,
+                        stride2_layers=4,
                         stride1_layers=self.extra_layers,
                         tform_filters=self.tform_filters,
                         num_options=self.num_options,
@@ -129,7 +132,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         for i in range(self.num_hypotheses):
             transform = GetTransform(
-                    rep_size=(8,8),
+                    rep_size=(4,4),
                     filters=self.tform_filters,
                     kernel_size=[5,5],
                     idx=i,

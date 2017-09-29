@@ -99,7 +99,7 @@ class RobotMultiGoalSampler(RobotMultiHierarchical):
                         dense_size=self.combined_dense_size,
                         kernel_size=[5,5],
                         filters=self.img_num_filters,
-                        stride2_layers=3,
+                        stride2_layers=4,
                         stride1_layers=self.extra_layers,
                         tform_filters=self.tform_filters,
                         num_options=self.num_options,

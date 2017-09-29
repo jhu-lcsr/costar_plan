@@ -245,14 +245,8 @@ def GetImageDecoder(dim, img_shape,
     if tform_filters is None:
         tform_filters = filters
 
-    height16 = img_shape[0]/16
-    width16 = img_shape[1]/16
-    height8 = int(img_shape[0]/8)
-    width8 = int(img_shape[1]/8)
-    height4 = int(img_shape[0]/4)
-    width4 = int(img_shape[1]/4)
-    height2 = img_shape[0]/2
-    width2 = img_shape[1]/2
+    height = int(img_shape[0]/(2**stride2_layers))
+    width = int(img_shape[1]/(2**stride2_layers))
     nchannels = img_shape[2]
 
     if leaky:
@@ -260,14 +254,14 @@ def GetImageDecoder(dim, img_shape,
     else:
         relu = lambda: Activation('relu')
 
-    z = Input((width8*height8*tform_filters,),name="input_image")
-    x = Reshape((width8,height8,tform_filters))(z)
+    z = Input((width*height*tform_filters,),name="input_image")
+    x = Reshape((height,width,tform_filters))(z)
     if not resnet_blocks and dropout:
         x = Dropout(dropout_rate)(x)
 
     skip_inputs = []
-    height = height4
-    width = width4
+    height = height * 2
+    width = width * 2
     for i in range(stride2_layers):
 
         if skips is not None:
@@ -427,11 +421,9 @@ def GetArmGripperDecoder(dim, img_shape,
     # Predict the next joint states and gripper position. We add these back
     # in from the inputs once again, in order to make sure they don't get
     # lost in all the convolution layers above...
-    height4 = int(img_shape[0]/4)
-    width4 = int(img_shape[1]/4)
-    height8 = int(img_shape[0]/8)
-    width8 = int(img_shape[1]/8)
-    x = Reshape((width8,height8,tform_filters))(rep[0])
+    height = int(img_shape[0]/(2**stride2_layers))
+    width = int(img_shape[1]/(2**stride2_layers))
+    x = Reshape((height,width,tform_filters))(rep[0])
     if not resnet_blocks:
         for i in range(1):
             if i == 1 and skips is not None:
@@ -484,6 +476,8 @@ def GetImageArmGripperDecoder(dim, img_shape,
     Decode image and gripper setup
     '''
 
+    height = int(img_shape[0]/(2**stride2_layers))
+    width = int(img_shape[1]/(2**stride2_layers))
     rep, dec = GetImageDecoder(dim,
                         img_shape,
                         dropout_rate=dropout_rate,
@@ -509,11 +503,7 @@ def GetImageArmGripperDecoder(dim, img_shape,
     # Predict the next joint states and gripper position. We add these back
     # in from the inputs once again, in order to make sure they don't get
     # lost in all the convolution layers above...
-    height4 = int(img_shape[0]/4)
-    width4 = int(img_shape[1]/4)
-    height8 = int(img_shape[0]/8)
-    width8 = int(img_shape[1]/8)
-    x = Reshape((width8,height8,tform_filters))(rep[0])
+    x = Reshape((height,width,tform_filters))(rep[0])
     if not resnet_blocks:
         for i in range(1):
             if i == 1 and skips is not None:
