@@ -134,7 +134,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     kernel_size=[5,5],
                     idx=i,
                     batchnorm=True,
-                    dropout=True,
+                    dropout=False,
                     dropout_rate=self.dropout_rate,
                     leaky=True,
                     num_blocks=self.num_transforms,
