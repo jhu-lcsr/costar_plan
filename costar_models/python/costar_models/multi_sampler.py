@@ -48,7 +48,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.tform_filters = 64
         self.combined_dense_size = 128
         self.num_hypotheses = 8
-        self.num_transforms = 3
+        self.num_transforms = 2
         self.validation_split = 0.1
         self.num_options = 48
         self.extra_layers = 0
@@ -104,7 +104,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         num_options=self.num_options,
                         arm_size=arm_size,
                         gripper_size=gripper_size,
-                        dropout=False,
+                        dropout=True,
                         leaky=True,
                         dense=False,
                         skips=skips,
@@ -126,12 +126,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Create many different image decoders
 
         for i in range(self.num_hypotheses):
-            transform = GetTranform(
+            transform = GetTransform(
                     rep_size=(8,8),
                     filters=self.tform_filters,
                     kernel_size=[5,5],
                     idx=i,
                     batchnorm=True,
+                    dropout=True,
+                    dropout_rate=self.dropout_rate,
                     leaky=True,
                     num_blocks=self.num_transforms,
                     relu=True,
@@ -263,6 +265,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 loss_weights=[1.0,0.1,0.1,0.1],
                 optimizer=self.getOptimizer())
         predictor.compile(loss="mse", optimizer=self.getOptimizer())
+        train_predictor.summary()
 
         return predictor, train_predictor, actor
 
