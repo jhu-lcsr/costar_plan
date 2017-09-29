@@ -22,7 +22,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--features multi \
 	-e 100 \
 	--model predictor \
-	--data_file $HOME/work/ctp_test2small.npz \
+	--data_file $HOME/work/ctp_test2small/test2.npz \
 	--lr 0.001 \
 	 --model_directory $HOME/.costar/models_stack_small/ \
 	--optimizer adam \
