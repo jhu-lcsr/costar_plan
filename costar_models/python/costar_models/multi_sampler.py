@@ -105,6 +105,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         arm_size=arm_size,
                         gripper_size=gripper_size,
                         dropout=True,
+                        upsampling=self.upsampling_method,
                         leaky=True,
                         dense=False,
                         skips=skips,
@@ -120,6 +121,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         label_outs = []
 
         skips.reverse()
+        decoder.compile(loss="mse",optimizer=self.getOptimizer())
         decoder.summary()
 
         # =====================================================================
@@ -143,7 +145,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             x = transform([enc])
             
             # This maps from our latent world state back into observable images.
-            #decoder = Model(rep, dec)
             img_x, arm_x, gripper_x, label_x = decoder([x]+skips)
 
             # Create the training outputs

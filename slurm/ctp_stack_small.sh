@@ -1,10 +1,10 @@
 #!/bin/bash -l
-#SBATCH --job-name=ctp_large_blocks
+#SBATCH --job-name=ctp_stack_small
 #SBATCH --time=0-48:0:0
-#SBATCH --partition=gpu
-#SBATCH --gres=gpu:1
 #SBATCH --nodes=1
-#SBATCH --mem=8G
+#SBATCH -p unlimited
+#SBATCH -g 2
+#SBATCH --cpus-per-task=6
 #SBATCH --mail-type=end
 #SBATCH --mail-user=cpaxton3@jhu.edu
 
@@ -20,10 +20,12 @@ module load tensorflow/cuda-8.0/r1.3
 
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--features multi \
-	-e 100 --model predictor \
-	--data_file $HOME/work/ctp_large_v2.npz \
+	-e 100 \
+	--model predictor \
+	--data_file $HOME/work/ctp_test2small.npz \
 	--lr 0.001 \
-	 --model_directory $HOME/.costar/models_large/ \
+	 --model_directory $HOME/.costar/models_stack/ \
 	--optimizer adam \
-	--batch_size 64 
+  --upsampling conv_transpose \
+	--batch_size 64
 

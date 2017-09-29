@@ -8,6 +8,7 @@ import tensorflow as tf
 
 from matplotlib import pyplot as plt
 
+from keras.backend import tf as ktf
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
 from keras.layers import UpSampling2D, Conv2DTranspose
@@ -232,7 +233,7 @@ def SliceImageHypotheses(image_shape, num_hypotheses, x):
 def GetImageDecoder(dim, img_shape,
         dropout_rate, filters, kernel_size=[3,3], dropout=True, leaky=True,
         batchnorm=True,dense=True, num_hypotheses=None, tform_filters=None,
-        original=None,
+        original=None, upsampling=None,
         resnet_blocks=False,
         skips=None,
         stride2_layers=2, stride1_layers=1):
@@ -276,10 +277,20 @@ def GetImageDecoder(dim, img_shape,
             skip_inputs.append(skip_in)
 
         if not resnet_blocks:
-            x = Conv2DTranspose(filters,
-                       kernel_size=kernel_size, 
-                       strides=(2, 2),
-                       padding='same')(x)
+            if upsampling == "bilinear":
+                x = Conv2D(filters,
+                           kernel_size=kernel_size, 
+                           strides=(1, 1),
+                           padding='same')(x)
+                x = Lambda(lambda x: ktf.image.resize_images(x,
+                    [height, width]),
+                    output_shape=(height, width, filters),
+                    name="bilinear%dx%d"%(height,width))(x)
+            else:
+                x = Conv2DTranspose(filters,
+                           kernel_size=kernel_size, 
+                           strides=(2, 2),
+                           padding='same')(x)
             if batchnorm:
                 x = BatchNormalization(momentum=0.9)(x)
             x = relu()(x)
@@ -391,6 +402,7 @@ def GetImagePoseDecoder(dim, img_shape,
 def GetImageArmGripperDecoder(dim, img_shape,
         dropout_rate, filters, dense_size, kernel_size=[3,3], dropout=True, leaky=True,
         batchnorm=True,dense=True, num_hypotheses=None, tform_filters=None,
+        upsampling=None,
         original=None, num_options=64, arm_size=7, gripper_size=1,
         resnet_blocks=False, skips=None, robot_skip=None,
         stride2_layers=2, stride1_layers=1):
@@ -404,6 +416,7 @@ def GetImageArmGripperDecoder(dim, img_shape,
                         stride1_layers=stride1_layers,
                         tform_filters=tform_filters,
                         dropout=dropout,
+                        upsampling=upsampling,
                         leaky=leaky,
                         dense=dense,
                         skips=skips,
@@ -476,7 +489,7 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
     for j in range(num_blocks):
         if not resnet_blocks:
             x = Conv2D(filters,
-                    kernel_size=[5,5], 
+                    kernel_size=kernel_size, 
                     strides=(1, 1),
                     padding='same',
                     name="transform_%d_%d"%(idx,j))(x)
