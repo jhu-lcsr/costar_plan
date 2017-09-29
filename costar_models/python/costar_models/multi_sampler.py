@@ -43,7 +43,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_frames = 1
 
         self.dropout_rate = 0.2
-        self.img_col_dim = 64
+        self.img_col_dim = 16
         self.img_num_filters = 64
         self.tform_filters = 64
         self.combined_dense_size = 128
@@ -82,7 +82,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 leaky=False,
                 dropout=True,
                 pre_tiling_layers=self.extra_layers,
-                post_tiling_layers=4,
+                post_tiling_layers=3,
                 kernel_size=[5,5],
                 dense=False,
                 batchnorm=True,
@@ -101,7 +101,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         dense_size=self.combined_dense_size,
                         kernel_size=[5,5],
                         filters=self.img_num_filters,
-                        stride2_layers=4,
+                        stride2_layers=3,
                         stride1_layers=self.extra_layers,
                         tform_filters=self.tform_filters,
                         num_options=self.num_options,
@@ -132,7 +132,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         for i in range(self.num_hypotheses):
             transform = GetTransform(
-                    rep_size=(4,4),
+                    rep_size=(8,8),
                     filters=self.tform_filters,
                     kernel_size=[5,5],
                     idx=i,

@@ -43,7 +43,7 @@ class RobotMultiGoalSampler(RobotMultiHierarchical):
         self.num_frames = 1
 
         self.dropout_rate = 0.2
-        self.img_col_dim = 512
+        self.img_col_dim = 64
         self.img_num_filters = 64
         self.tform_filters = 64
         self.combined_dense_size = 128
@@ -130,7 +130,7 @@ class RobotMultiGoalSampler(RobotMultiHierarchical):
 
         for i in range(self.num_hypotheses):
             transform = GetTransform(
-                    rep_size=(4,4),
+                    rep_size=(8,8),
                     filters=self.tform_filters,
                     kernel_size=[5,5],
                     idx=i,
@@ -150,13 +150,9 @@ class RobotMultiGoalSampler(RobotMultiHierarchical):
 
             # Create the training outputs
             train_x = Concatenate(axis=-1,name="combine_train_%d"%i)([
-                            Flatten(name="flatten_img_%d"%i)(img_x),
                             arm_x,
                             gripper_x,
                             label_x])
-            img_x = Lambda(
-                    lambda x: K.expand_dims(x, 1),
-                    name="img_hypothesis_%d"%i)(img_x)
             arm_x = Lambda(
                     lambda x: K.expand_dims(x, 1),
                     name="arm_hypothesis_%d"%i)(arm_x)
@@ -184,13 +180,13 @@ class RobotMultiGoalSampler(RobotMultiHierarchical):
 
         # =====================================================================
         # Hypothesis probabilities
-        #sum_p_out, p_out = GetHypothesisProbability(enc,
-        #        self.num_hypotheses,
-        #        self.num_options,
-        #        labels=label_out,
-        #        filters=self.img_num_filters,
-        #        kernel_size=[5,5],
-        #        dropout_rate=self.dropout_rate)
+        sum_p_out, p_out = GetHypothesisProbability(enc,
+                self.num_hypotheses,
+                self.num_options,
+                labels=label_out,
+                filters=self.img_num_filters,
+                kernel_size=[5,5],
+                dropout_rate=self.dropout_rate)
 
         # =====================================================================
         # Get a prior for the next label
@@ -212,22 +208,6 @@ class RobotMultiGoalSampler(RobotMultiHierarchical):
 
         # =====================================================================
         # Training the actor policy
-        """
-        def get_state(x):
-            y = K.expand_dims(next_label_out, 1)
-            print(y)
-            y = K.tile(y,[1,self.num_hypotheses,1])
-            print(y)
-            x = Multiply()([x,y])
-            print(x)
-            x = K.sum(x,axis=-1)
-            print(x)
-            return x
-        genc = Lambda(lambda x: get_state(x))(label_out)
-        print(genc)
-        genc = Activation("softmax")(genc)
-        """
-        #y = Concatenate(axis=-1,name="combine_goal_current")([enc])
         y = enc
         y = Conv2D(int(self.img_num_filters/4),
                 kernel_size=[5,5], 
@@ -249,10 +229,10 @@ class RobotMultiGoalSampler(RobotMultiHierarchical):
 
         # =====================================================================
         # Create models to train
-        predictor = Model(ins,
-                [image_out, arm_out, gripper_out, label_out, next_label_out])#, p_out])
+        sampler = Model(ins,
+                [arm_out, gripper_out, label_out, next_label_out, p_out])
         actor = Model(ins, [arm_cmd_out, gripper_cmd_out])
-        train_predictor = Model(ins, [train_out, next_label_out]) #, arm_cmd_out, gripper_cmd_out])
+        train_predictor = Model(ins, [train_out, next_label_out, sum_p_out]) #, arm_cmd_out, gripper_cmd_out])
 
         # =====================================================================
         # Create models to train
@@ -260,16 +240,16 @@ class RobotMultiGoalSampler(RobotMultiHierarchical):
                 loss=[
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
-                        outputs=[image_size, arm_size, gripper_size, self.num_options],
-                        weights=[0.7,0.7,0.1,0.1],
-                        loss=["mae","mae","mae","categorical_crossentropy"]),
-                    "binary_crossentropy",],# "mse","mse"],
-                loss_weights=[1.0,0.1,],#0.1,0.1],
+                        outputs=[arm_size, gripper_size, self.num_options],
+                        weights=[1.0,0.1,0.1],
+                        loss=["mae","mae","categorical_crossentropy"]),
+                    "binary_crossentropy", "binary_crossentropy"],
+                loss_weights=[1.0,0.1,0.1,],
                 optimizer=self.getOptimizer())
-        predictor.compile(loss="mae", optimizer=self.getOptimizer())
+        sampler.compile(loss="mae", optimizer=self.getOptimizer())
         train_predictor.summary()
 
-        return predictor, train_predictor, actor
+        return sampler, train_predictor, actor
 
     def _fitPredictor(self, features, targets,):
         if self.show_iter > 0:

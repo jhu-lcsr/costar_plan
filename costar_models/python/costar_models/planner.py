@@ -425,22 +425,6 @@ def GetArmGripperDecoder(dim, img_shape,
     width = int(img_shape[1]/(2**stride2_layers))
     x = Reshape((height,width,tform_filters))(rep[0])
     if not resnet_blocks:
-        for i in range(1):
-            if i == 1 and skips is not None:
-                smallest_skip = rep[1]
-                x = Concatenate(axis=-1)([x, smallest_skip])
-            x = Conv2D(filters,
-                    kernel_size=kernel_size, 
-                    strides=(2, 2),
-                    padding='same',
-                    name="arm_gripper_label_dec%d"%i)(x)
-            x = BatchNormalization(momentum=0.9)(x)
-            if leaky:
-                x = LeakyReLU(0.2)(x)
-            else:
-                x = Activation("relu")(x)
-            if dropout:
-                x = Dropout(dropout_rate)(x)
         x = Flatten()(x)
         x = Dense(dense_size)(x)
         x = BatchNormalization(momentum=0.9)(x)
@@ -506,9 +490,6 @@ def GetImageArmGripperDecoder(dim, img_shape,
     x = Reshape((height,width,tform_filters))(rep[0])
     if not resnet_blocks:
         for i in range(1):
-            if i == 1 and skips is not None:
-                smallest_skip = rep[1]
-                x = Concatenate(axis=-1)([x, smallest_skip])
             x = Conv2D(filters,
                     kernel_size=kernel_size, 
                     strides=(2, 2),
@@ -622,7 +603,7 @@ def GetHypothesisProbability(x, num_hypotheses, num_options, labels,
     x = Dropout(dropout_rate)(x)
     x = Flatten()(x)
     x = Dense(num_hypotheses)(x)
-    x = Activation("softmax")(x)
+    x = Activation("sigmoid")(x) / num_options
     x2 = x
 
     def make_p_matrix(pred, num_actions):
