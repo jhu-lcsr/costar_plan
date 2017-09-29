@@ -465,7 +465,7 @@ def GetImageArmGripperDecoder(dim, img_shape,
     return decoder
 
 
-def GetTranform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=True, 
+def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=True, 
         leaky=True,
         relu=True,
         dropout_rate=0.,
@@ -488,6 +488,8 @@ def GetTranform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tru
                     x = LeakyReLU(0.2,name="lrelu_%d_%d"%(idx,j))(x)
                 else:
                     x = Activation("relu",name="relu_%d_%d"%(idx,j))(x)
+            if dropout:
+                x = Dropout(dropout_rate)(x)
         else:
             raise RuntimeError('resnet not supported for transform')
 
