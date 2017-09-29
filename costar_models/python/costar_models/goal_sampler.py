@@ -26,7 +26,7 @@ from .split import *
 from .mhp_loss import *
 from .loss import *
 
-class RobotMultiPredictionSampler(RobotMultiHierarchical):
+class RobotMultiGoalSampler(RobotMultiHierarchical):
 
     '''
     This class is set up as a SUPERVISED learning problem -- for more
@@ -48,7 +48,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.tform_filters = 64
         self.combined_dense_size = 128
         self.num_hypotheses = 8
-        self.num_transforms = 2
+        self.num_transforms = 1
         self.validation_split = 0.1
         self.num_options = 48
         self.extra_layers = 0
@@ -82,7 +82,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 leaky=False,
                 dropout=True,
                 pre_tiling_layers=self.extra_layers,
-                post_tiling_layers=3,
+                post_tiling_layers=4,
                 kernel_size=[5,5],
                 dense=False,
                 batchnorm=True,
@@ -90,9 +90,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 flatten=False,
                 output_filters=self.tform_filters,
                 )
+
         img_in, arm_in, gripper_in = ins
 
-        decoder = GetImageArmGripperDecoder(self.img_col_dim,
+        decoder = GetArmGripperDecoder(self.img_col_dim,
                         img_shape,
                         dropout_rate=self.dropout_rate,
                         dense_size=self.combined_dense_size,
@@ -129,7 +130,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         for i in range(self.num_hypotheses):
             transform = GetTransform(
-                    rep_size=(8,8),
+                    rep_size=(4,4),
                     filters=self.tform_filters,
                     kernel_size=[5,5],
                     idx=i,
