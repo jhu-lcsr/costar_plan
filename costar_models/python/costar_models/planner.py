@@ -277,19 +277,19 @@ def GetImageDecoder(dim, img_shape,
 
         if not resnet_blocks:
             if upsampling == "bilinear":
+                x = Conv2D(filters,
+                           kernel_size=kernel_size, 
+                           strides=(1, 1),
+                           padding='same')(x)
                 x = Lambda(lambda x: ktf.image.resize_images(x,
                     [height, width]),
                     name="bilinear%dx%d"%(height,width))(x)
-                x = Conv2D(filters,
-                           kernel_size=kernel_size, 
-                           strides=(1, 1),
-                           padding='same')(x)
             elif upsampling == "upsampling":
-                x = UpSampling2D(size=(2,2))(x)
                 x = Conv2D(filters,
                            kernel_size=kernel_size, 
                            strides=(1, 1),
                            padding='same')(x)
+                x = UpSampling2D(size=(2,2))(x)
             else:
                 x = Conv2DTranspose(filters,
                            kernel_size=kernel_size, 
