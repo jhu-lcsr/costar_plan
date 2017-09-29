@@ -22,7 +22,7 @@ class AbstractAgentBasedModel(object):
             clipnorm=100., show_iter=0, pretrain_iter=5,
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
             steps_per_epoch=300, validation_steps=100, choose_initial=5,
-            num_generator_files=3,
+            num_generator_files=3, predict_value=False, upsampling=None,
             task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
 
@@ -35,6 +35,7 @@ class AbstractAgentBasedModel(object):
         self.lr = lr
         self.iter = iter
         self.choose_initial = choose_initial
+        self.upsampling_method = upsampling
         self.show_iter = show_iter
         self.steps_per_epoch = steps_per_epoch
         self.pretrain_iter = pretrain_iter
@@ -54,6 +55,8 @@ class AbstractAgentBasedModel(object):
         self.name = os.path.join(self.model_directory, self.name_prefix)
         self.num_generator_files = num_generator_files
         self.residual = False
+        self.predict_value = predict_value
+
         if self.task is not None:
             self.name += "_%s"%self.task
         if self.features is not None:
@@ -79,6 +82,7 @@ class AbstractAgentBasedModel(object):
         print("Model directory = ", self.model_directory)
         print("Models saved with prefix = ", self.name)
         print("-----------------------------------------------------------")
+        print("---------------- General Training Options -----------------")
         print("Iterations =", self.iter)
         print("Epochs =", self.epochs)
         print("Steps per epoch =", self.steps_per_epoch)
@@ -87,6 +91,10 @@ class AbstractAgentBasedModel(object):
         print("Show images every %d iter"%self.show_iter)
         print("Pretrain for %d iter"%self.pretrain_iter)
         print("p(Generator sample first frame) = 1/%d"%(self.choose_initial))
+        print("-----------------------------------------------------------")
+        print("------------------ Model Specific Options -----------------")
+        print("residual =", self.residual)
+        print("predict values =", self.predict_value)
         print("-----------------------------------------------------------")
         print("Optimizer =", self.optimizer)
         print("Learning Rate = ", self.lr)
