@@ -423,7 +423,8 @@ def GetArmGripperDecoder(dim, img_shape,
     # lost in all the convolution layers above...
     height = int(img_shape[0]/(2**stride2_layers))
     width = int(img_shape[1]/(2**stride2_layers))
-    x = Reshape((height,width,tform_filters))(rep[0])
+    rep = Input((height,width,tform_filters))
+    x = rep
     if not resnet_blocks:
         x = Flatten()(x)
         x = Dense(dense_size)(x)
@@ -603,7 +604,7 @@ def GetHypothesisProbability(x, num_hypotheses, num_options, labels,
     x = Dropout(dropout_rate)(x)
     x = Flatten()(x)
     x = Dense(num_hypotheses)(x)
-    x = Activation("sigmoid")(x) / num_options
+    x = Activation("sigmoid")(x)
     x2 = x
 
     def make_p_matrix(pred, num_actions):

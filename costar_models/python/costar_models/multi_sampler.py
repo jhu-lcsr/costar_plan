@@ -52,6 +52,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.validation_split = 0.1
         self.num_options = 48
         self.extra_layers = 0
+        self.PredictorCb = PredictorShowImage
 
         self.predictor = None
         self.train_predictor = None
@@ -186,49 +187,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # =====================================================================
         # Hypothesis probabilities
-        #sum_p_out, p_out = GetHypothesisProbability(enc,
-        #        self.num_hypotheses,
-        #        self.num_options,
-        #        labels=label_out,
-        #        filters=self.img_num_filters,
-        #        kernel_size=[5,5],
-        #        dropout_rate=self.dropout_rate)
+        sum_p_out, p_out = GetHypothesisProbability(enc,
+                self.num_hypotheses,
+                self.num_options,
+                labels=label_out,
+                filters=self.img_num_filters,
+                kernel_size=[5,5],
+                dropout_rate=self.dropout_rate)
 
-        # =====================================================================
-        # Get a prior for the next label
-        l = Conv2D(int(self.img_num_filters/4),
-                kernel_size=[5,5], 
-                strides=(2, 2),
-                padding='same')(enc)
-        l = Dropout(self.dropout_rate)(l)
-        l = LeakyReLU(0.2)(l)
-        l = BatchNormalization(momentum=0.9)(l)
-        l = Flatten()(l)
-        l = Dense(self.combined_dense_size)(l)
-        l = Dropout(self.dropout_rate)(l)
-        l = LeakyReLU(0.2)(l)
-        l = BatchNormalization(momentum=0.9)(l)
-        next_label_out = Dense(self.num_options,
-                activation="sigmoid",
-                name="next_label_out")(l)
-
-        # =====================================================================
-        # Training the actor policy
-        """
-        def get_state(x):
-            y = K.expand_dims(next_label_out, 1)
-            print(y)
-            y = K.tile(y,[1,self.num_hypotheses,1])
-            print(y)
-            x = Multiply()([x,y])
-            print(x)
-            x = K.sum(x,axis=-1)
-            print(x)
-            return x
-        genc = Lambda(lambda x: get_state(x))(label_out)
-        print(genc)
-        genc = Activation("softmax")(genc)
-        """
         #y = Concatenate(axis=-1,name="combine_goal_current")([enc])
         y = enc
         y = Conv2D(int(self.img_num_filters/4),
@@ -252,9 +218,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # =====================================================================
         # Create models to train
         predictor = Model(ins,
-                [image_out, arm_out, gripper_out, label_out, next_label_out])#, p_out])
+                [image_out, arm_out, gripper_out, label_out, p_out])
         actor = Model(ins, [arm_cmd_out, gripper_cmd_out])
-        train_predictor = Model(ins, [train_out, next_label_out]) #, arm_cmd_out, gripper_cmd_out])
+        train_predictor = Model(ins, [train_out, sum_p_out])
 
         # =====================================================================
         # Create models to train
@@ -263,10 +229,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
-                        weights=[0.7,0.7,0.1,0.1],
+                        weights=[0.7,1.0,0.1,0.1],
                         loss=["mae","mae","mae","categorical_crossentropy"]),
-                    "binary_crossentropy",],# "mse","mse"],
-                loss_weights=[1.0,0.1,],#0.1,0.1],
+                    "binary_crossentropy",],
+                loss_weights=[1.0,0.1,],
                 optimizer=self.getOptimizer())
         predictor.compile(loss="mae", optimizer=self.getOptimizer())
         train_predictor.summary()
@@ -299,7 +265,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 verbose=1,
                 save_best_only=False # does not work without validation wts
             )
-            imageCb = PredictorShowImage(
+            imageCb = self.PredictorCb(
                 self.predictor,
                 features=features[:3],
                 targets=targets,
@@ -534,7 +500,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             verbose=1,
             save_best_only=True # does not work without validation wts
         )
-        imageCb = PredictorShowImage(
+        imageCb = self.PredictorCb(
             self.predictor,
             features=features[:3],
             targets=targets,
