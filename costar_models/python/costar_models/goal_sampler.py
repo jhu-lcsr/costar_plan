@@ -25,8 +25,9 @@ from .robot_multi_models import *
 from .split import *
 from .mhp_loss import *
 from .loss import *
+from .multi_sampler import *
 
-class RobotMultiPredictionSampler(RobotMultiHierarchical):
+class RobotMultiGoalSampler(RobotMultiPredictionSampler):
 
     '''
     This class is set up as a SUPERVISED learning problem -- for more
@@ -38,12 +39,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         As in the other models, we call super() to parse arguments from the
         command line and set things like our optimizer and learning rate.
         '''
-        super(RobotMultiPredictionSampler, self).__init__(taskdef, *args, **kwargs)
+        super(RobotMultiGoalSampler, self).__init__(taskdef, *args, **kwargs)
 
         self.num_frames = 1
 
         self.dropout_rate = 0.2
-        self.img_col_dim = 16
+        self.img_col_dim = 64
         self.img_num_filters = 64
         self.tform_filters = 64
         self.combined_dense_size = 128
@@ -52,7 +53,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.validation_split = 0.1
         self.num_options = 48
         self.extra_layers = 0
-        self.PredictorCb = PredictorShowImage
+        self.PredictorCb = PredictorGoals
 
         self.predictor = None
         self.train_predictor = None
@@ -83,26 +84,24 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 leaky=False,
                 dropout=True,
                 pre_tiling_layers=self.extra_layers,
-                post_tiling_layers=3,
+                post_tiling_layers=4,
                 kernel_size=[5,5],
                 dense=False,
                 batchnorm=True,
                 tile=True,
                 flatten=False,
-                option=None,
                 output_filters=self.tform_filters,
                 )
-        print(skips,robot_skip)
+
         img_in, arm_in, gripper_in = ins
 
-        decoder = GetImageArmGripperDecoder(
-                        self.img_col_dim,
+        decoder = GetArmGripperDecoder(self.img_col_dim,
                         img_shape,
                         dropout_rate=self.dropout_rate,
                         dense_size=self.combined_dense_size,
                         kernel_size=[5,5],
                         filters=self.img_num_filters,
-                        stride2_layers=3,
+                        stride2_layers=4,
                         stride1_layers=self.extra_layers,
                         tform_filters=self.tform_filters,
                         num_options=self.num_options,
@@ -118,7 +117,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         batchnorm=True,)
 
 
-        image_outs = []
         arm_outs = []
         gripper_outs = []
         train_outs = []
@@ -149,17 +147,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             x = transform([enc])
             
             # This maps from our latent world state back into observable images.
-            img_x, arm_x, gripper_x, label_x = decoder([x]+skips)
+            arm_x, gripper_x, label_x = decoder([x])
 
             # Create the training outputs
             train_x = Concatenate(axis=-1,name="combine_train_%d"%i)([
-                            Flatten(name="flatten_img_%d"%i)(img_x),
                             arm_x,
                             gripper_x,
                             label_x])
-            img_x = Lambda(
-                    lambda x: K.expand_dims(x, 1),
-                    name="img_hypothesis_%d"%i)(img_x)
             arm_x = Lambda(
                     lambda x: K.expand_dims(x, 1),
                     name="arm_hypothesis_%d"%i)(arm_x)
@@ -173,13 +167,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     lambda x: K.expand_dims(x, 1),
                     name="flattened_hypothesis_%d"%i)(train_x)
 
-            image_outs.append(img_x)
             arm_outs.append(arm_x)
             gripper_outs.append(gripper_x)
             label_outs.append(label_x)
             train_outs.append(train_x)
 
-        image_out = Concatenate(axis=1)(image_outs)
         arm_out = Concatenate(axis=1)(arm_outs)
         gripper_out = Concatenate(axis=1)(gripper_outs)
         label_out = Concatenate(axis=1)(label_outs)
@@ -196,11 +188,31 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 dropout_rate=self.dropout_rate)
 
         # =====================================================================
+        # Training the actor policy
+        y = enc
+        y = Conv2D(int(self.img_num_filters/4),
+                kernel_size=[5,5], 
+                strides=(2, 2),
+                padding='same')(y)
+        y = Dropout(self.dropout_rate)(y)
+        y = LeakyReLU(0.2)(y)
+        y = BatchNormalization(momentum=0.9)(y)
+        y = Flatten()(y)
+        y = Dense(self.combined_dense_size)(y)
+        y = Dropout(self.dropout_rate)(y)
+        y = LeakyReLU(0.2)(y)
+        y = BatchNormalization(momentum=0.9)(y)
+        arm_cmd_out = Lambda(lambda x: K.expand_dims(x, axis=1),name="arm_action")(
+                Dense(arm_size-1)(y))
+        gripper_cmd_out = Lambda(lambda x: K.expand_dims(x, axis=1),name="gripper_action")(
+                Dense(gripper_size)(y))
+
+        # =====================================================================
         # Create models to train
-        predictor = Model(ins,
-                [image_out, arm_out, gripper_out, label_out, p_out])
-        actor = None
-        train_predictor = Model(ins, [train_out, sum_p_out])
+        sampler = Model(ins,
+                [arm_out, gripper_out, label_out, p_out])
+        actor = Model(ins, [arm_cmd_out, gripper_cmd_out])
+        train_predictor = Model(ins, [train_out, sum_p_out]) #, arm_cmd_out, gripper_cmd_out])
 
         # =====================================================================
         # Create models to train
@@ -208,16 +220,16 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 loss=[
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
-                        outputs=[image_size, arm_size, gripper_size, self.num_options],
-                        weights=[0.7,1.0,0.1,0.1],
-                        loss=["mae","mae","mae","categorical_crossentropy"]),
-                    "binary_crossentropy",],
+                        outputs=[arm_size, gripper_size, self.num_options],
+                        weights=[1.0,0.1,0.1],
+                        loss=["mae","mae","categorical_crossentropy"]),
+                    "binary_crossentropy"],
                 loss_weights=[1.0,0.1,],
                 optimizer=self.getOptimizer())
-        predictor.compile(loss="mae", optimizer=self.getOptimizer())
+        sampler.compile(loss="mae", optimizer=self.getOptimizer())
         train_predictor.summary()
 
-        return predictor, train_predictor, actor
+        return sampler, train_predictor, actor
 
     def _fitPredictor(self, features, targets,):
         if self.show_iter > 0:
@@ -419,8 +431,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
         length = I.shape[0]
-        Itrain = np.reshape(I_target,(length, image_size))
-        train_target = np.concatenate([Itrain,q_target,g_target,o_target],axis=-1)
+        #Itrain = np.reshape(I_target,(length, image_size))
+        train_target = np.concatenate([q_target,g_target,o_target],axis=-1)
 
         return [I, q, g, I_target, q_target, g_target,], [
                 np.expand_dims(train_target, axis=1),
@@ -430,123 +442,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
-        return features[:3], targets[:2]
-
-    def trainFromGenerators(self, train_generator, test_generator, data=None):
-        '''
-        Train tool from generator
-
-        Parameters:
-        -----------
-        train_generator: produces training examples
-        test_generator: produces test examples
-        data: some extra data used for debugging (should be validation data)
-        '''
-        if data is not None:
-            features, targets = self._getAllData(**data)
-        else:
-            raise RuntimeError('predictor model sets sizes based on'
-                               'sample data; must be provided')
-        # ===================================================================
-        # Use sample data to compile the model and set everything else up.
-        # Check to make sure data makes sense before running the model.
-
-        [I, q, g, I_target, q_target, g_target,] = features
-        [I_target2, o_target, qa, ga,] = targets
-
-        if self.predictor is None:
-            self._makeModel(I, q, g, qa, ga)
-
-        # Compute helpful variables
-        image_shape = I.shape[1:]
-        image_size = 1
-        for dim in image_shape:
-            image_size *= dim
-        image_size = int(image_size)
-        arm_size = q.shape[-1]
-        gripper_size = g.shape[-1]
-
-        train_size = image_size + arm_size + gripper_size + self.num_options
-        assert gripper_size == 1
-        # NOTE: arm size is one bigger when we have quaternions
-        #assert train_size == 12295 + self.num_options
-        #assert train_size == 12296 + self.num_options
-        assert train_size == (64*64*3) + 7 + 1 + self.num_options
-
-        # ===================================================================
-        # Create the callbacks and actually run the training loop.
-        modelCheckpointCb = ModelCheckpoint(
-            filepath=self.name+"_predictor_weights.h5f",
-            verbose=1,
-            save_best_only=True # does not work without validation wts
-        )
-        imageCb = self.PredictorCb(
-            self.predictor,
-            features=features[:3],
-            targets=targets,
-            model_directory=self.model_directory,
-            num_hypotheses=self.num_hypotheses,
-            verbose=True,
-            min_idx=0,
-            max_idx=5,
-            step=1,)
-        self.train_predictor.fit_generator(
-                train_generator,
-                self.steps_per_epoch,
-                epochs=self.epochs,
-                validation_steps=self.validation_steps,
-                validation_data=test_generator,
-                callbacks=[modelCheckpointCb, imageCb])
-
-    def save(self):
-        '''
-        Save to a filename determined by the "self.name" field.
-        '''
-        if self.predictor is not None:
-            print("----------------------------")
-            print("Saving to " + self.name + "_{predictor, actor}")
-            self.train_predictor.save_weights(self.name + "_train_predictor.h5f")
-            if self.actor is not None:
-                self.predictor.save_weights(self.name + "_predictor.h5f")
-                self.actor.save_weights(self.name + "_actor.h5f")
-        else:
-            raise RuntimeError('save() failed: model not found.')
-
-    def _loadWeights(self, *args, **kwargs):
-        '''
-        Load model weights. This is the default load weights function; you may
-        need to overload this for specific models.
-        '''
-        if self.predictor is not None:
-            print("----------------------------")
-            print("using " + self.name + " to load")
-            try:
-                self.actor.load_weights(self.name + "_actor.h5f")
-                #self.predictor.load_weights(self.name + "_predictor.h5f")
-            except Exception as e:
-                print(e)
-            self.train_predictor.load_weights(self.name + "_train_predictor.h5f")
-        else:
-            raise RuntimeError('_loadWeights() failed: model not found.')
-
-    def predict(self, world):
-        '''
-        Evaluation for a feature-predictor model. This has two steps:
-          - predict a set of features associated with the current world state
-          - predict the expected reward based on each of those features
-          - choose the best one to execute
-        '''
-        features = world.initial_features #getHistoryMatrix()
-        if isinstance(features, list):
-            assert len(features) == len(self.supervisor.inputs) - 1
-        else:
-            features = [features]
-        features = [f.reshape((1,)+f.shape) for f in features]
-        res = self.predictor.predict(features +
-                [self._makeOption1h(self.prev_option)])
-        print("# results = ", len(res))
-        idx = np.random.randint(self.num_hypotheses)
-
-        # Evaluate this policy to get the next action out
-        return policy.predict(features)
+        tt, o1, qa, ga = targets
+        return features[:3], [tt, o1]
 

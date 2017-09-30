@@ -114,7 +114,19 @@ def GetModelParser():
                         help="add a new residual connections to the model" + \
                               "if possible. Not all models implement this.",
                         action="store_true")
+    parser.add_argument("--predict_value",
+                        help="tell predictor models to learn value as well",
+                        action="store_true")
+    parser.add_argument("--upsampling",
+                        help="set upsampling definition",
+                        choices=UpsamplingOptions(),
+                        default=None,)
+
     return parser
+
+def UpsamplingOptions():
+    return [None,"upsampling","conv_transpose","bilinear"]
+
 
 def ParseModelArgs():
     parser = argparse.ArgumentParser(add_help=True,

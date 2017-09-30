@@ -33,7 +33,7 @@ class NpzGeneratorDataset(object):
         acceptable_files = []
         for f in files:
             if not f[0] == '.':
-                print("%d:"%(i+1), f)
+                #print("%d:"%(i+1), f)
                 if success_only:
                     name = f.split('.')
                     if name[0] == 'failure':
@@ -50,12 +50,16 @@ class NpzGeneratorDataset(object):
                 acceptable_files.append(f)
 
         idx = np.array(range(len(acceptable_files)))
-        np.random.shuffle(idx)
         length = int(self.split*len(acceptable_files))
         print("---------------------------------------------")
+        print("Loaded data.")
+        print("# Total examples:", len(acceptable_files))
         print("# Validation examples:",length)
+        print("---------------------------------------------")
         self.test = [acceptable_files[i] for i in idx[:length]]
         self.train = [acceptable_files[i] for i in idx[length:]]
+        np.random.shuffle(self.test)
+        np.random.shuffle(self.train)
         return sample
 
     def sampleTrainFilename(self):
