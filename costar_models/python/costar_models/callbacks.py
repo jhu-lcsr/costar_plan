@@ -54,7 +54,7 @@ class PredictorShowImage(keras.callbacks.Callback):
                                'are you sure you meant to use this callback'
                                'and not a normal image callback?')
         img = np.reshape(img, (self.num,64,64,3))
-        data, arms, grippers, label, next_label, probs = self.predictor.predict(self.features)
+        data, arms, grippers, label, probs = self.predictor.predict(self.features)
         plt.ioff()
         if self.verbose:
             print("============================")
@@ -124,7 +124,7 @@ class PredictorGoals(keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs={}):
         # take the model and print it out
         self.epoch += 1
-        arms, grippers, label, next_label, ph = self.predictor.predict(self.features)
+        arms, grippers, label, ph = self.predictor.predict(self.features)
         plt.ioff()
         if self.verbose:
             print("============================")
@@ -134,7 +134,6 @@ class PredictorGoals(keras.callbacks.Callback):
             if self.verbose:
                 print("----------------")
                 print(name)
-                print("next label probs = ", next_label[j])
                 print("hypothesis probs = ", ph[j])
             for i in range(self.num_hypotheses):
                 if self.verbose:

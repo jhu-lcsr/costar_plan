@@ -188,24 +188,6 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                 dropout_rate=self.dropout_rate)
 
         # =====================================================================
-        # Get a prior for the next label
-        l = Conv2D(int(self.img_num_filters/4),
-                kernel_size=[5,5], 
-                strides=(2, 2),
-                padding='same')(enc)
-        l = Dropout(self.dropout_rate)(l)
-        l = LeakyReLU(0.2)(l)
-        l = BatchNormalization(momentum=0.9)(l)
-        l = Flatten()(l)
-        l = Dense(self.combined_dense_size)(l)
-        l = Dropout(self.dropout_rate)(l)
-        l = LeakyReLU(0.2)(l)
-        l = BatchNormalization(momentum=0.9)(l)
-        next_label_out = Dense(self.num_options,
-                activation="sigmoid",
-                name="next_label_out")(l)
-
-        # =====================================================================
         # Training the actor policy
         y = enc
         y = Conv2D(int(self.img_num_filters/4),
@@ -216,7 +198,6 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         y = LeakyReLU(0.2)(y)
         y = BatchNormalization(momentum=0.9)(y)
         y = Flatten()(y)
-        y = Concatenate(axis=-1)([next_label_out,y])
         y = Dense(self.combined_dense_size)(y)
         y = Dropout(self.dropout_rate)(y)
         y = LeakyReLU(0.2)(y)
@@ -229,9 +210,9 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         # =====================================================================
         # Create models to train
         sampler = Model(ins,
-                [arm_out, gripper_out, label_out, next_label_out, p_out])
+                [arm_out, gripper_out, label_out, p_out])
         actor = Model(ins, [arm_cmd_out, gripper_cmd_out])
-        train_predictor = Model(ins, [train_out, next_label_out, sum_p_out]) #, arm_cmd_out, gripper_cmd_out])
+        train_predictor = Model(ins, [train_out, sum_p_out]) #, arm_cmd_out, gripper_cmd_out])
 
         # =====================================================================
         # Create models to train
@@ -462,5 +443,5 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
         tt, o1, qa, ga = targets
-        return features[:3], [tt, o1, o1]
+        return features[:3], [tt, o1]
 
