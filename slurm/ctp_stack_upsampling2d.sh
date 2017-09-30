@@ -1,10 +1,10 @@
 #!/bin/bash -l
-#SBATCH --job-name=predictor250blocksmove
+#SBATCH --job-name=us2d_stack
 #SBATCH --time=0-48:0:0
-#SBATCH --partition=gpu
-#SBATCH --gres=gpu:1
 #SBATCH --nodes=1
-#SBATCH --mem=8G
+#SBATCH -p unlimited
+#SBATCH -g 2
+#SBATCH --cpus-per-task=6
 #SBATCH --mail-type=end
 #SBATCH --mail-user=cpaxton3@jhu.edu
 
@@ -18,14 +18,14 @@ echo
 
 module load tensorflow/cuda-8.0/r1.3 
 
-
-
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--features multi \
-	-i 1000 -e 100 \
+	-e 100 \
 	--model predictor \
-	 --data_file $HOME/work/ctp_blocks_500b.npz \
-	 --lr 0.001 \
-	 --model_directory $HOME/.costar/models2/ \
+	--data_file $HOME/work/ctp_test2.npz \
+	--lr 0.001 \
+	 --model_directory $HOME/.costar/models_stack_us2d/ \
 	--optimizer adam \
-	--batch_size 64 
+  --upsampling upsampling \
+	--batch_size 64
+

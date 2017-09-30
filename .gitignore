@@ -20,3 +20,6 @@
 0_VRDemoSettings.txt
 
 *.tfrecord*
+
+# Images
+*.png
