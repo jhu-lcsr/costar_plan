@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --job-name=ctp_stack_us2d
+#SBATCH --job-name=us2d_stack
 #SBATCH --time=0-48:0:0
 #SBATCH --nodes=1
 #SBATCH -p unlimited
