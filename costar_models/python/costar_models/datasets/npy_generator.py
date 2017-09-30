@@ -58,6 +58,7 @@ class NpzGeneratorDataset(object):
         print("---------------------------------------------")
         self.test = [acceptable_files[i] for i in idx[:length]]
         self.train = [acceptable_files[i] for i in idx[length:]]
+        np.random.shuffle(self.test)
         np.random.shuffle(self.train)
         return sample
 
