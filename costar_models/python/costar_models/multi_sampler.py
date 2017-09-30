@@ -92,7 +92,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 option=None,
                 output_filters=self.tform_filters,
                 )
-        print(skips,robot_skip)
         img_in, arm_in, gripper_in = ins
 
         decoder = GetImageArmGripperDecoder(
@@ -233,7 +232,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             img1 = targets[0][i,:int(image_size)].reshape((64,64,3))
             img2 = features[4][i]
             if not np.all(img1 == img2):
-                print(i,"failed")
+                print(i,"failed image sanity check")
                 plt.subplot(1,2,1); plt.imshow(img1);
                 plt.subplot(1,2,2); plt.imshow(img2);
                 plt.show()
@@ -243,7 +242,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 filepath=self.name+"_train_predictor_weights.h5f",
                 model_directory=self.model_directory,
                 verbose=1,
-                save_best_only=False # does not work without validation wts
+                save_best_only=True # does not work without validation wts
             )
             imageCb = self.PredictorCb(
                 self.predictor,
