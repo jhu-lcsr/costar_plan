@@ -195,31 +195,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 kernel_size=[5,5],
                 dropout_rate=self.dropout_rate)
 
-        #y = Concatenate(axis=-1,name="combine_goal_current")([enc])
-        y = enc
-        y = Conv2D(int(self.img_num_filters/4),
-                kernel_size=[5,5], 
-                strides=(2, 2),
-                padding='same')(y)
-        y = Dropout(self.dropout_rate)(y)
-        y = LeakyReLU(0.2)(y)
-        y = BatchNormalization(momentum=0.9)(y)
-        y = Flatten()(y)
-        y = Concatenate(axis=-1)([next_label_out,y])
-        y = Dense(self.combined_dense_size)(y)
-        y = Dropout(self.dropout_rate)(y)
-        y = LeakyReLU(0.2)(y)
-        y = BatchNormalization(momentum=0.9)(y)
-        arm_cmd_out = Lambda(lambda x: K.expand_dims(x, axis=1),name="arm_action")(
-                Dense(arm_size-1)(y))
-        gripper_cmd_out = Lambda(lambda x: K.expand_dims(x, axis=1),name="gripper_action")(
-                Dense(gripper_size)(y))
-
         # =====================================================================
         # Create models to train
         predictor = Model(ins,
                 [image_out, arm_out, gripper_out, label_out, p_out])
-        actor = Model(ins, [arm_cmd_out, gripper_cmd_out])
+        actor = None
         train_predictor = Model(ins, [train_out, sum_p_out])
 
         # =====================================================================
