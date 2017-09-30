@@ -223,8 +223,8 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                         outputs=[arm_size, gripper_size, self.num_options],
                         weights=[1.0,0.1,0.1],
                         loss=["mae","mae","categorical_crossentropy"]),
-                    "binary_crossentropy", "binary_crossentropy"],
-                loss_weights=[1.0,0.1,0.1,],
+                    "binary_crossentropy"],
+                loss_weights=[1.0,0.1,],
                 optimizer=self.getOptimizer())
         sampler.compile(loss="mae", optimizer=self.getOptimizer())
         train_predictor.summary()
