@@ -107,7 +107,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         num_options=self.num_options,
                         arm_size=arm_size,
                         gripper_size=gripper_size,
-                        dropout=True,
+                        dropout=False,
                         upsampling=self.upsampling_method,
                         leaky=True,
                         dense=False,
