@@ -557,8 +557,16 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
 
     return Model(xin, x, name="transform%d"%idx)
 
-def GetNextOption(x, num_options, filters, kernel_size, dropout_rate=0.5):
-    pass
+def GetNextOptionAndValue(x, num_options, filters, kernel_size, dropout_rate=0.5):
+    x = Conv2D(filters, kernel_size=kernel_size, strides=(2,2), padding="same")(x)
+    x = BatchNormalization(momentum=0.9)(x)
+    x = LeakyReLU(alpha=0.2)(x)
+    x = Dropout(dropout_rate)(x)
+    x = Flatten()(x)
+    next_option_out = Dense(num_options,
+            activation="sigmoid", name="next_label_out",)(x)
+    value_out = Dense(1, activation="sigmoid", name="value_out",)(x)
+    return value_out, next_option_out
 
 def GetHypothesisProbability(x, num_hypotheses, num_options, labels,
         filters, kernel_size,
@@ -612,6 +620,7 @@ def GetHypothesisProbability(x, num_hypotheses, num_options, labels,
         x = K.repeat_elements(x, num_actions, axis=-1)
         return x
     x = Lambda(lambda x: make_p_matrix(x, num_options),name="p_mat")(x)
+    labels.trainable = False
     x = Multiply()([x, labels])
     x = Lambda(lambda x: K.sum(x,axis=1),name="sum_p_h")(x)
 

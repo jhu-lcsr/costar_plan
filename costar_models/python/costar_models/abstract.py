@@ -22,6 +22,8 @@ class AbstractAgentBasedModel(object):
             clipnorm=100., show_iter=0, pretrain_iter=5,
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
             steps_per_epoch=300, validation_steps=100, choose_initial=5,
+            dropout_rate=0.5,
+            hypothesis_dropout=False,
             num_generator_files=3, predict_value=False, upsampling=None,
             task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
@@ -56,6 +58,8 @@ class AbstractAgentBasedModel(object):
         self.num_generator_files = num_generator_files
         self.residual = False
         self.predict_value = predict_value
+        self.dropout_rate = dropout_rate
+        self.hypothesis_dropout = hypothesis_dropout
 
         if self.task is not None:
             self.name += "_%s"%self.task
@@ -95,6 +99,8 @@ class AbstractAgentBasedModel(object):
         print("------------------ Model Specific Options -----------------")
         print("residual =", self.residual)
         print("predict values =", self.predict_value)
+        print("dropout in hypothesis decoder =", self.hypothesis_dropout)
+        print("dropout rate =", self.dropout_rate)
         print("-----------------------------------------------------------")
         print("Optimizer =", self.optimizer)
         print("Learning Rate = ", self.lr)

@@ -121,6 +121,13 @@ def GetModelParser():
                         help="set upsampling definition",
                         choices=UpsamplingOptions(),
                         default=None,)
+    parser.add_argument("--hypothesis_dropout",
+                        help="dropout in hypothesis decoder",
+                        action="store_true")
+    parser.add_argument("--dropout_rate",
+                        help="Dropout rate to use",
+                        type=float,
+                        default=0.5)
 
     return parser
 
