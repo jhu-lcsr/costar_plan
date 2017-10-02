@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --job-name=ctp_stack
+#SBATCH --job-name=ctp_value
 #SBATCH --time=0-48:0:0
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
@@ -32,7 +32,4 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--lr $1 \
 	--dropout_rate $2 \
 	--model_directory $HOME/.costar/models_stack_lr{$1}_dr{$2}/ \
-	--optimizer adam \
-  	--upsampling conv_transpose \
-	--batch_size 64
-
+	--optimizer adam 
