@@ -75,11 +75,13 @@ def grasp_model_resnet(clear_view_image_op,
     model = ResNet(input_shape=combined_input_shape,
                    classes=1,
                    block='bottleneck',
-                   repetitions=[2, 2, 2, 2],
+                   repetitions=[1, 1, 1, 1],
                    include_top=include_top,
                    input_tensor=combined_input_data,
                    activation='sigmoid',
-                   initial_filters=48,
+                   initial_filters=96,
+                   initial_kernel_size=(3, 3),
+                   pooling=None,
                    dropout=dropout_rate)
     return model
 
@@ -181,6 +183,8 @@ def grasp_model_pretrained(clear_view_image_op,
                        input_tensor=combined_input_data,
                        activation='sigmoid',
                        initial_filters=96,
+                       initial_kernel_size=(3, 3),
+                       pooling=None,
                        dropout=dropout_rate)
 
     return model
