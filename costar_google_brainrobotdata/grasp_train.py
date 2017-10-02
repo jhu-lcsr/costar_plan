@@ -27,9 +27,10 @@ flags.DEFINE_string('load_weights', 'grasp_model_weights.h5',
                     """Load and continue training the specified file containing model weights.""")
 flags.DEFINE_integer('epochs', 100,
                      """Epochs of training""")
-flags.DEFINE_string('grasp_datasets_train', '062_b,063,082_b,102',
+flags.DEFINE_string('grasp_datasets_train', '062_b,063,072_a,082_b,102',
                     """Filter multiple subsets of 1TB Grasp datasets to train.
-                    Comma separated list 062_b,063,082_b,102 by default.
+                    Comma separated list 062_b,063,072_a,082_b,102 by default,
+                    totaling 513,491 grasp attempts.
                     See https://sites.google.com/site/brainrobotdata/home
                     for a full listing.""")
 flags.DEFINE_string('grasp_dataset_eval', '097',
