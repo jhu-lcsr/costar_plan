@@ -42,7 +42,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         self.num_frames = 1
 
-        self.dropout_rate = 0.2
+        self.dropout_rate = 0.5
         self.img_col_dim = 16
         self.img_num_filters = 64
         self.tform_filters = 64
@@ -92,7 +92,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 option=None,
                 output_filters=self.tform_filters,
                 )
-        print(skips,robot_skip)
         img_in, arm_in, gripper_in = ins
 
         decoder = GetImageArmGripperDecoder(
@@ -108,7 +107,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         num_options=self.num_options,
                         arm_size=arm_size,
                         gripper_size=gripper_size,
-                        dropout=True,
+                        dropout=False,
                         upsampling=self.upsampling_method,
                         leaky=True,
                         dense=False,
@@ -138,7 +137,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     kernel_size=[5,5],
                     idx=i,
                     batchnorm=True,
-                    dropout=True,
+                    dropout=False,
                     dropout_rate=self.dropout_rate,
                     leaky=True,
                     num_blocks=self.num_transforms,
@@ -233,7 +232,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             img1 = targets[0][i,:int(image_size)].reshape((64,64,3))
             img2 = features[4][i]
             if not np.all(img1 == img2):
-                print(i,"failed")
+                print(i,"failed image sanity check")
                 plt.subplot(1,2,1); plt.imshow(img1);
                 plt.subplot(1,2,2); plt.imshow(img2);
                 plt.show()
@@ -243,7 +242,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 filepath=self.name+"_train_predictor_weights.h5f",
                 model_directory=self.model_directory,
                 verbose=1,
-                save_best_only=False # does not work without validation wts
+                save_best_only=True # does not work without validation wts
             )
             imageCb = self.PredictorCb(
                 self.predictor,
