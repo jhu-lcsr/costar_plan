@@ -159,7 +159,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     leaky=True,
                     num_blocks=self.num_transforms,
                     relu=True,
-                    resnet_blocks=self.residual,)
+                    resnet_blocks=self.residual,
+                    use_noise=self.use_noise,
+                    noise_dim=self.noise_dim,)
             if i == 0:
                 transform.summary()
             x = transform([enc2])
@@ -441,7 +443,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         features, targets = self._getAllData(*args, **kwargs)
         if self.use_noise:
             noise_len = features[0].shape[0]
-            np.random.random(size=(noise_len,self.noise_dim))
+            z = np.random.random(size=(noise_len,self.noise_dim))
             return features[:3] + [z], targets[:3]
         else:
             return features[:3], targets[:3]
@@ -501,6 +503,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             model_directory=self.model_directory,
             num_hypotheses=self.num_hypotheses,
             verbose=True,
+            use_noise=self.use_noise,
+            noise_dim=self.noise_dim,
             min_idx=0,
             max_idx=5,
             step=1,)

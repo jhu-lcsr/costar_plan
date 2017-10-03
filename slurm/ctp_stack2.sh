@@ -22,10 +22,13 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--features multi \
 	-e 250 \
 	--model predictor \
-	--data_file $HOME/work/ctp_test2.npz \
-	--lr 0.0001 \
-	--model_directory $HOME/.costar/models_stack_low_lr/ \
+	--data_file $HOME/work/ctp_value.npz \
+	--lr 0.001 \
+	--model_directory $HOME/.costar/models_stack6_hdtrue/ \
 	--optimizer adam \
   --upsampling conv_transpose \
+  --hypothesis_dropout false \
+  --use_noise true \
+  --noise_dim 32 \
 	--batch_size 64
 

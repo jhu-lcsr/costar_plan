@@ -17,6 +17,8 @@ class PredictorShowImage(keras.callbacks.Callback):
             model_directory=DEFAULT_MODEL_DIRECTORY,
             num_hypotheses=4,
             verbose=False,
+            noise_dim=64,
+            use_noise=False,
             min_idx=0, max_idx=66, step=11):
         '''
         Set up a data set we can use to output validation images.
@@ -37,6 +39,8 @@ class PredictorShowImage(keras.callbacks.Callback):
         self.epoch = 0
         self.num_hypotheses = num_hypotheses
         self.directory = os.path.join(model_directory,'debug')
+        self.use_noise = use_noise
+        self.noise_dim = noise_dim
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
 
@@ -54,7 +58,11 @@ class PredictorShowImage(keras.callbacks.Callback):
                                'are you sure you meant to use this callback'
                                'and not a normal image callback?')
         img = np.reshape(img, (self.num,64,64,3))
-        data, arms, grippers, label, probs, v = self.predictor.predict(self.features)
+        if self.use_noise:
+            z = np.random.random((self.features[0].shape[0],self.noise_dim))
+            data, arms, grippers, label, probs, v = self.predictor.predict(self.features + [z])
+        else:
+            data, arms, grippers, label, probs, v = self.predictor.predict(self.features)
         plt.ioff()
         if self.verbose:
             print("============================")

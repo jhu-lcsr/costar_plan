@@ -540,8 +540,13 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
         relu=True,
         dropout_rate=0.,
         dropout=False,
-        resnet_blocks=False,):
-    xin = Input((rep_size) + (filters,))
+        resnet_blocks=False,
+        use_noise=False,
+        noise_dim=32):
+    if use_noise:
+        xin = Input((rep_size) + (filters+noise_dim,))
+    else:
+        xin = Input((rep_size) + (filters,))
     x = xin
     for j in range(num_blocks):
         if not resnet_blocks:
