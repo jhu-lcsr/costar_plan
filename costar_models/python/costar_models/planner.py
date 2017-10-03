@@ -52,6 +52,14 @@ def CombineArmAndGripperAndOption(arm_in, gripper_in, option_in, dim=64):
     robot = Dense(dim, activation="relu")(robot)
     return robot
 
+def TileOnto(x,z,zlen,xsize):
+    z = Reshape([1,1,zlen])(z)
+    tile_shape = (1, xsize[0], xsize[1], 1)
+    z = Lambda(lambda x: K.tile(x, tile_shape))(z)
+    x = Concatenate(axis=-1)([x,z])
+    print(x,z)
+    return x
+
 def TileArmAndGripper(x, arm_in, gripper_in, tile_width, tile_height,
         option=None, option_in=None,
         time_distributed=None, dim=64):
@@ -532,8 +540,13 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
         relu=True,
         dropout_rate=0.,
         dropout=False,
-        resnet_blocks=False,):
-    xin = Input((rep_size) + (filters,))
+        resnet_blocks=False,
+        use_noise=False,
+        noise_dim=32):
+    if use_noise:
+        xin = Input((rep_size) + (filters+noise_dim,))
+    else:
+        xin = Input((rep_size) + (filters,))
     x = xin
     for j in range(num_blocks):
         if not resnet_blocks:
@@ -558,6 +571,9 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
     return Model(xin, x, name="transform%d"%idx)
 
 def GetNextOptionAndValue(x, num_options, filters, kernel_size, dropout_rate=0.5):
+    '''
+    Predict some information about an observed/encoded world state
+    '''
     x = Conv2D(filters, kernel_size=kernel_size, strides=(2,2), padding="same")(x)
     x = BatchNormalization(momentum=0.9)(x)
     x = LeakyReLU(alpha=0.2)(x)

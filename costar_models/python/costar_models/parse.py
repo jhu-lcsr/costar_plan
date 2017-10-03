@@ -64,6 +64,7 @@ def GetModelParser():
                         default="adam")
     parser.add_argument("-z", "--zdim", "--noise_dim",
                         help="size of action parameterization",
+                        type=int,
                         default=16)
     parser.add_argument("-D", "--debug_model", "--dm", "--debug",
                         help="Run a short script to debug the current model.",
@@ -129,6 +130,10 @@ def GetModelParser():
                         help="Dropout rate to use",
                         type=float,
                         default=0.5)
+    parser.add_argument("--use_noise",
+                        help="use random noise to sample distributions",
+                        type=bool,
+                        default=True)
 
     return parser
 
