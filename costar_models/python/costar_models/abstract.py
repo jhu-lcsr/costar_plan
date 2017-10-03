@@ -22,8 +22,9 @@ class AbstractAgentBasedModel(object):
             clipnorm=100., show_iter=0, pretrain_iter=5,
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
             steps_per_epoch=300, validation_steps=100, choose_initial=5,
-            dropout_rate=0.5,
+            dropout_rate=0.5, decoder_dropout_rate=0.5,
             hypothesis_dropout=False,
+            skip_connections=True,
             use_noise=False, noise_dim=32,
             num_generator_files=3, predict_value=False, upsampling=None,
             task=None, robot=None, model="", model_directory="./", *args,
@@ -63,6 +64,8 @@ class AbstractAgentBasedModel(object):
         self.hypothesis_dropout = hypothesis_dropout
         self.use_noise = use_noise
         self.noise_dim = noise_dim
+        self.decoder_dropout_rate = decoder_dropout_rate
+        self.skip_connections = skip_connections
 
         if self.task is not None:
             self.name += "_%s"%self.task
@@ -106,6 +109,8 @@ class AbstractAgentBasedModel(object):
         print("dropout rate =", self.dropout_rate)
         print("use noise in model =", self.use_noise)
         print("dimensionality of noise =", self.noise_dim)
+        print("skip connections =", self.skip_connections)
+        print("decoder dropout rate =", self.decoder_dropout_rate)
         print("-----------------------------------------------------------")
         print("Optimizer =", self.optimizer)
         print("Learning Rate = ", self.lr)

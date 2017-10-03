@@ -88,10 +88,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 batchnorm=True,
                 tile=True,
                 flatten=False,
-                option=None,
+                #option=None,
+                option=self.num_options,
                 output_filters=self.tform_filters,
                 )
-        img_in, arm_in, gripper_in = ins
+        img_in, arm_in, gripper_in, option_in = ins
 
 
         # =====================================================================
@@ -137,6 +138,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         skips.reverse()
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         decoder.summary()
+
+        #img0, arm0, gripper0, label0 = decoder([enc]+skips)
 
         # =====================================================================
         # Create many different image decoders
@@ -209,19 +212,22 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 [image_out, arm_out, gripper_out, label_out, next_option_out,
                     value_out])
         actor = None
-        train_predictor = Model(ins + [z], [train_out, next_option_out, value_out])
+        train_predictor = Model(ins + [z],
+                #[img0, arm0, gripper0, label0,
+                [train_out, next_option_out, value_out])
 
         # =====================================================================
         # Create models to train
         train_predictor.compile(
-                loss=[
+                loss=[#"mae","mse","mse","binary_crossentropy",
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
                         weights=[0.7,1.0,0.1,0.1],
                         loss=["mae","mse","mse","categorical_crossentropy"]),
                     "binary_crossentropy", "binary_crossentropy"],
-                loss_weights=[1.0,0.1,0.1],
+                loss_weights=[#0.1,0.1,0.1,0.1,
+                    1.0,0.1,0.1],
                 optimizer=self.getOptimizer())
         predictor.compile(loss="mae", optimizer=self.getOptimizer())
         train_predictor.summary()
@@ -256,7 +262,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             )
             imageCb = self.PredictorCb(
                 self.predictor,
-                features=features[:3],
+                features=features[:4],
                 targets=targets,
                 num_hypotheses=self.num_hypotheses,
                 verbose=True,
@@ -428,11 +434,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         assert I.shape[0] == I_target.shape[0]
 
         o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
+        #oin_onehot = np.squeeze(self.toOneHot2D(oin, self.num_options))
         length = I.shape[0]
         Itrain = np.reshape(I_target,(length, image_size))
         train_target = np.concatenate([Itrain,q_target,g_target,o_target],axis=-1)
 
-        return [I, q, g, I_target, q_target, g_target,], [
+        return [I, q, g, oin, I_target, q_target, g_target,], [
+                #I, q, g, oin_onehot,
                 np.expand_dims(train_target, axis=1),
                 o_target,
                 value_target,
@@ -444,9 +452,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.noise_dim))
-            return features[:3] + [z], targets[:3]
+            return features[:4] + [z], targets[:3]
         else:
-            return features[:3], targets[:3]
+            return features[:4], targets[:3]
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''
@@ -467,8 +475,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Use sample data to compile the model and set everything else up.
         # Check to make sure data makes sense before running the model.
 
-        [I, q, g, I_target, q_target, g_target,] = features
-        [I_target2, o_target, value_target, qa, ga,] = targets
+        [I, q, g, oprev, I_target, q_target, g_target,] = features
+        #[I, q, g, oprev, I_target2, o_target, value_target, qa, ga,] = targets
 
         if self.predictor is None:
             self._makeModel(I, q, g, qa, ga)
@@ -498,7 +506,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         )
         imageCb = self.PredictorCb(
             self.predictor,
-            features=features[:3],
+            features=features[:4],
             targets=targets,
             model_directory=self.model_directory,
             num_hypotheses=self.num_hypotheses,
