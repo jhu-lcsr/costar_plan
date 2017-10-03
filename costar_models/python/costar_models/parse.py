@@ -123,7 +123,8 @@ def GetModelParser():
                         default=None,)
     parser.add_argument("--hypothesis_dropout",
                         help="dropout in hypothesis decoder",
-                        action="store_true")
+                        default=False,
+                        type=bool)
     parser.add_argument("--dropout_rate",
                         help="Dropout rate to use",
                         type=float,
