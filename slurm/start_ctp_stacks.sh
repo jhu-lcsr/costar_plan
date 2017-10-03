@@ -12,10 +12,10 @@ do
 	do
 		for opt in adam
 		do
-			for flags in "" "--hypothesis_dropout"
+			for hd in true false
 			do
-				echo "starting LR=$lr, Dropout=$dr"
-				sbatch ctp.sh $lr $dr $opt $flags
+				echo "starting LR=$lr, Dropout=$dr, optimizer = $opt, use dropout in hypotheses = $hd"
+				sbatch ctp.sh $lr $dr $opt $hd
 			done
 		done
 	done

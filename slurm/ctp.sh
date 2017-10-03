@@ -32,4 +32,6 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--lr $1 \
 	--dropout_rate $2 \
 	--model_directory $HOME/.costar/models_stack_lr{$1}_dr{$2}_{$3}_{$4}/ \
-	--optimizer $3 $4
+	--optimizer $3 \
+	--hypothesis_dropout $4
+

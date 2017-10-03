@@ -32,6 +32,8 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--lr 0.001 \
 	--model_directory $HOME/.costar/models_stack5/ \
 	--optimizer adam \
-  --upsampling conv_transpose \
+        --upsampling conv_transpose \
+	--dropout_rate 0.2 \
+	--hypothesis_dropout false \
 	--batch_size 64
 
