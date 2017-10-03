@@ -24,6 +24,7 @@ class AbstractAgentBasedModel(object):
             steps_per_epoch=300, validation_steps=100, choose_initial=5,
             dropout_rate=0.5,
             hypothesis_dropout=False,
+            use_noise=False,
             num_generator_files=3, predict_value=False, upsampling=None,
             task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
@@ -60,6 +61,7 @@ class AbstractAgentBasedModel(object):
         self.predict_value = predict_value
         self.dropout_rate = dropout_rate
         self.hypothesis_dropout = hypothesis_dropout
+        self.use_noise = use_noise
 
         if self.task is not None:
             self.name += "_%s"%self.task
@@ -101,6 +103,7 @@ class AbstractAgentBasedModel(object):
         print("predict values =", self.predict_value)
         print("dropout in hypothesis decoder =", self.hypothesis_dropout)
         print("dropout rate =", self.dropout_rate)
+        print("use noise in model =", self.use_noise)
         print("-----------------------------------------------------------")
         print("Optimizer =", self.optimizer)
         print("Learning Rate = ", self.lr)

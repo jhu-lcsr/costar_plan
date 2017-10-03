@@ -129,6 +129,10 @@ def GetModelParser():
                         help="Dropout rate to use",
                         type=float,
                         default=0.5)
+    parser.add_argument("--use_noise",
+                        help="use random noise to sample distributions",
+                        type=bool,
+                        default=True)
 
     return parser
 
