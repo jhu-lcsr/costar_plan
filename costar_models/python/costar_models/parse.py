@@ -133,6 +133,10 @@ def GetModelParser():
                         help="use random noise to sample distributions",
                         type=bool,
                         default=True)
+    parser.add_argument("--noise_dim",
+                        help="size of noise vector",
+                        type=int,
+                        default=32)
 
     return parser
 

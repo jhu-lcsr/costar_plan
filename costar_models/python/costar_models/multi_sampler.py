@@ -51,6 +51,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_options = 48
         self.extra_layers = 0
         self.PredictorCb = PredictorShowImage
+        self.hidden_shape = (8,8,self.tform_filters)
 
         self.predictor = None
         self.train_predictor = None
@@ -139,6 +140,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # =====================================================================
         # Create many different image decoders
+        if not self.use_noise:
+            enc2 = enc
+        else:
+            # Add noise input and add to enc
+            z = Input((self.noise_dim,))
+            enc2 = TileOnto(enc,z,self.noise_dim,self.hidden_shape)
 
         for i in range(self.num_hypotheses):
             transform = GetTransform(
@@ -155,7 +162,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     resnet_blocks=self.residual,)
             if i == 0:
                 transform.summary()
-            x = transform([enc])
+            x = transform([enc2])
             
             # This maps from our latent world state back into observable images.
             img_x, arm_x, gripper_x, label_x = decoder([x]+skips)
@@ -196,11 +203,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # =====================================================================
         # Create models to train
-        predictor = Model(ins,
+        predictor = Model(ins + [z],
                 [image_out, arm_out, gripper_out, label_out, next_option_out,
                     value_out])
         actor = None
-        train_predictor = Model(ins, [train_out, next_option_out, value_out])
+        train_predictor = Model(ins + [z], [train_out, next_option_out, value_out])
 
         # =====================================================================
         # Create models to train
@@ -432,7 +439,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
-        return features[:3], targets[:3]
+        if self.use_noise:
+            noise_len = features[0].shape[0]
+            np.random.random(size=(noise_len,self.noise_dim))
+            return features[:3] + [z], targets[:3]
+        else:
+            return features[:3], targets[:3]
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''
