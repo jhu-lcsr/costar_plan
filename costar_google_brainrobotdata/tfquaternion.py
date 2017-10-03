@@ -121,7 +121,33 @@ class Quaternion():
         """
         return self._q
 
+    @property
+    def conjugate(self):
+        """Quaternion conjugate, encapsulated in a new instance.
+        For a unit quaternion, this is the same as the inverse.
+        Returns:
+            A new Quaternion object clone with its vector part negated
+        """
+        q = tf.stack([self._q[0], -self._q[1:]])
+        return self.__class__(initial_wxyz=q)
 
+    def _q_matrix(self):
+        """Matrix representation of quaternion for multiplication purposes.
+        """
+        return tf.stack([
+            [self._q[0], -self._q[1], -self._q[2], -self._q[3]],
+            [self._q[1],  self._q[0], -self._q[3],  self._q[2]],
+            [self._q[2],  self._q[3],  self._q[0], -self._q[1]],
+            [self._q[3], -self._q[2],  self._q[1],  self._q[0]]], axis=1)
+
+    def _q_bar_matrix(self):
+        """Matrix representation of quaternion for multiplication purposes.
+        """
+        return tf.stack([
+            [self._q[0], -self._q[1], -self._q[2], -self._q[3]],
+            [self._q[1],  self._q[0],  self._q[3], -self._q[2]],
+            [self._q[2], -self._q[3],  self._q[0],  self._q[1]],
+            [self._q[3],  self._q[2], -self._q[1],  self._q[0]]], axis=1)
 
     @property
     def rotation_matrix(self):
@@ -134,9 +160,9 @@ class Quaternion():
             This feature only makes sense when referring to a unit quaternion. Calling this method will implicitly normalise the Quaternion object to a unit quaternion if it is not already one.
 
         """
-        self._normalise()
-        product_matrix = np.dot(self._q_matrix(), self._q_bar_matrix().conj().transpose())
-        return product_matrix[1:][:,1:]
+        self.normalize()
+        product_matrix = tf.tensordot(self._q_matrix(), tf.transpose(tf.conj(self._q_bar_matrix())))
+        return product_matrix[1:][:, 1:]
 
     @property
     def transformation_matrix(self):
@@ -148,9 +174,9 @@ class Quaternion():
         Note:
             This feature only makes sense when referring to a unit quaternion. Calling this method will implicitly normalise the Quaternion object to a unit quaternion if it is not already one.
         """
-        t = np.array([[0.0], [0.0], [0.0]])
-        Rt = np.hstack([self.rotation_matrix, t])
-        return np.vstack([Rt, np.array([0.0, 0.0, 0.0, 1.0])])
+        t = tf.zeros([1, 3])
+        Rt = tf.stack([self.rotation_matrix(), t])
+        return tf.stack([Rt, tf.constant([0.0, 0.0, 0.0, 1.0])], axis=1)
 
     @property
     def yaw_pitch_roll(self):
@@ -167,25 +193,26 @@ class Quaternion():
             This feature only makes sense when referring to a unit quaternion. Calling this method will implicitly normalise the Quaternion object to a unit quaternion if it is not already one.
         """
 
-        self._normalise()
-        yaw = np.arctan2(2*(self.q[0]*self.q[3] - self.q[1]*self.q[2]),
-            1 - 2*(self.q[2]**2 + self.q[3]**2))
-        pitch = np.arcsin(2*(self.q[0]*self.q[2] + self.q[3]*self.q[1]))
-        roll = np.arctan2(2*(self.q[0]*self.q[1] - self.q[2]*self.q[3]),
-            1 - 2*(self.q[1]**2 + self.q[2]**2))
+        self.normalize()
+        yaw = tf.atan2(2*(self._q[0]*self._q[3] - self._q[1]*self._q[2]),
+                       1 - 2*(self._q[2]**2 + self._q[3]**2))
+        pitch = tf.asin(2*(self._q[0]*self._q[2] + self._q[3]*self._q[1]))
+        roll = tf.atan2(2*(self._q[0]*self._q[1] - self._q[2]*self._q[3]),
+                        1 - 2*(self._q[1]**2 + self._q[2]**2))
 
         return yaw, pitch, roll
 
     def _wrap_angle(self, theta):
         """Helper method: Wrap any angle to lie between -pi and pi
 
-        Odd multiples of pi are wrapped to +pi (as opposed to -pi)
+
         """
-        result = ((theta + pi) % (2*pi)) - pi
-        if result == -pi: result = pi
+        result = ((theta + math.pi) % (2 * math.pi)) - math.pi
+        # Odd multiples of pi were wrapped to +pi (as opposed to -pi)
+        # if result == -math.pi: result = math.pi
         return result
 
-    def get_axis(self, undefined=np.zeros(3)):
+    def get_axis(self, undefined=tf.zeros(3)):
         """Get the axis or vector about which the quaternion rotation occurs
 
         For a null rotation (a purely real quaternion), the rotation angle will
@@ -205,13 +232,13 @@ class Quaternion():
             Calling this method will implicitly normalise the Quaternion object to a unit quaternion if it is not already one.
         """
         tolerance = 1e-17
-        self._normalise()
-        norm = np.linalg.norm(self.vector)
+        self.normalize()
+        norm = tf.norm(self._q[1:])
         if norm < tolerance:
             # Here there are an infinite set of possible axes, use what has been specified as an undefined axis.
             return undefined
         else:
-            return self.vector / norm
+            return self._q[1:] / norm
 
     @property
     def axis(self):
@@ -237,24 +264,24 @@ class Quaternion():
             This feature only makes sense when referring to a unit quaternion.
             Calling this method will implicitly normalise the Quaternion object to a unit quaternion if it is not already one.
         """
-        self._normalise()
-        norm = tf.norm(self.vector)
-        return self._wrap_angle(2.0 * tf.atan2(norm,self.scalar))
+        self.normalize()
+        norm = tf.norm(self._q[1:])
+        return self._wrap_angle(2.0 * tf.atan2(norm, self._q[0]))
 
     @staticmethod
     def _quaternions_to_tensors(quats):
         return [q.value() if isinstance(q, Quaternion) else q for q in quats]
 
-    def __add__(a, b):
-        val_a, val_b = Quaternion._quaternions_to_tensors((a, b))
+    def __add__(self, b):
+        val_a, val_b = Quaternion._quaternions_to_tensors((self, b))
         return Quaternion(val_a + val_b)
 
-    def __sub__(a, b):
-        val_a, val_b = Quaternion._quaternions_to_tensors((a, b))
+    def __sub__(self, b):
+        val_a, val_b = Quaternion._quaternions_to_tensors((self, b))
         return Quaternion(val_a - val_b)
 
-    def __mul__(a, b):
-        return multiply(a, b)
+    def __mul__(self, b):
+        return multiply(self, b)
 
     def __imul__(self, other):
         if isinstance(other, Quaternion):
@@ -266,8 +293,8 @@ class Quaternion():
             msg = "Quaternion Multiplication not implemented for this type."
             raise NotImplementedError(msg)
 
-    def __div__(a, b):
-        return divide(a, b)
+    def __div__(self, b):
+        return divide(self, b)
 
     def __idiv__(self, other):
         if isinstance(other, Quaternion):
@@ -285,11 +312,11 @@ class Quaternion():
 
     @scope_wrapper
     def inverse(self):
-        w, x, y, z = tf.unpack(tf.divide(self._q, self._norm()))
+        w, x, y, z = tf.unstack(tf.divide(self._q, self._norm()))
         return Quaternion((w, -x, -y, -z))
 
     @scope_wrapper
-    def normalized(self):
+    def normalize(self):
         return Quaternion(tf.divide(self._q, self._abs()))
 
     @scope_wrapper
@@ -312,7 +339,7 @@ class Quaternion():
         def tr_sub(a, b, c, d):  # computes triangle entries with subtraction
             return 2 * a * b - 2 * c * d
 
-        w, x, y, z = tf.unstack(self.normalized().value())
+        w, x, y, z = tf.unstack(self.normalize().value())
         return [[diag(y, z), tr_sub(x, y, z, w), tr_add(x, z, y, w)],
                 [tr_add(x, y, z, w), diag(x, z), tr_sub(y, z, x, w)],
                 [tr_sub(x, z, y, w), tr_add(y, z, x, w), diag(x, y)]]
@@ -354,8 +381,8 @@ class Quaternion():
 
         q1 = tf.sqrt(1.0 - r1) * (tf.sin(2 * math.pi * r2))
         q2 = tf.sqrt(1.0 - r1) * (tf.cos(2 * math.pi * r2))
-        q3 = tf.sqrt(r1)       * (tf.sin(2 * math.pi * r3))
-        q4 = tf.sqrt(r1)       * (tf.cos(2 * math.pi * r3))
+        q3 = tf.sqrt(r1) * (tf.sin(2 * math.pi * r3))
+        q4 = tf.sqrt(r1) * (tf.cos(2 * math.pi * r3))
 
         return Quaternion((q1, q2, q3, q4))
 
