@@ -360,7 +360,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         else:
             ins = [samples, arm_in, gripper_in]
         x, robot = TileArmAndGripper(x, arm_in, gripper_in, tile_height, tile_width,
-                option, option_x, time_distributed, 2*dim)
+                option, option_x, time_distributed, dim)
     else:
         ins = [samples]
 
