@@ -45,10 +45,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.img_num_filters = 64
         self.tform_filters = 64
         self.combined_dense_size = 128
-        self.num_hypotheses = 8
+        self.num_hypotheses = 4
         self.num_transforms = 1
         self.validation_split = 0.1
-        self.option_in = False
         self.num_options = 48
         self.extra_layers = 0
         self.PredictorCb = PredictorShowImage
@@ -89,23 +88,18 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 batchnorm=True,
                 tile=True,
                 flatten=False,
-                option=None,
+                option=self.num_options,
                 output_filters=self.tform_filters,
                 )
-        img_in, arm_in, gripper_in = ins
-        option_in = Input((1,))
-        option_x = OneHot(size=self.num_options)(option_in)
-        option_x = Reshape((self.num_options,))(option_x)
+        img_in, arm_in, gripper_in, option_in = ins
 
         # =====================================================================
         # Create the predictors for value, next action label.
         value_out, next_option_out = GetNextOptionAndValue(enc,
-                                                           option_x,
                                                            self.num_options,
                                                            self.img_num_filters,
                                                            [5,5],
-                                                           dropout_rate=self.decoder_dropout_rate,
-                                                           )
+                                                           dropout_rate=self.decoder_dropout_rate)
 
         # =====================================================================
         # Create the decoders for image, arm, gripper.
@@ -212,11 +206,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # =====================================================================
         # Create models to train
-        predictor = Model(ins + [option_in, z],
+        predictor = Model(ins + [z],
                 [image_out, arm_out, gripper_out, label_out, next_option_out,
                     value_out])
         actor = None
-        train_predictor = Model(ins + [option_in, z],
+        train_predictor = Model(ins + [z],
+                #[img0, arm0, gripper0, label0,
                 [train_out, next_option_out, value_out])
 
         # =====================================================================

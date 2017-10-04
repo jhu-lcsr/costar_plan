@@ -456,8 +456,6 @@ def GetArmGripperDecoder(dim, img_shape,
                     name="decoder")
     return decoder
 
-
-
 def GetImageArmGripperDecoder(dim, img_shape,
         dropout_rate, filters, dense_size, kernel_size=[3,3], dropout=True, leaky=True,
         batchnorm=True,dense=True, num_hypotheses=None, tform_filters=None,
@@ -571,7 +569,7 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
 
     return Model(xin, x, name="transform%d"%idx)
 
-def GetNextOptionAndValue(x, option_in, num_options, filters, kernel_size, dropout_rate=0.5):
+def GetNextOptionAndValue(x, num_options, filters, kernel_size, dropout_rate=0.5):
     '''
     Predict some information about an observed/encoded world state
     '''
@@ -580,8 +578,8 @@ def GetNextOptionAndValue(x, option_in, num_options, filters, kernel_size, dropo
     x = LeakyReLU(alpha=0.2)(x)
     x = Dropout(dropout_rate)(x)
     x = Flatten()(x)
-    x = Concatenate()([x, option_in])
-    x = Dense(filters,activation="relu")(x)
+    #x = Concatenate()([x, option_in])
+    #x = Dense(filters,activation="relu")(x)
     next_option_out = Dense(num_options,
             activation="sigmoid", name="next_label_out",)(x)
     value_out = Dense(1, activation="sigmoid", name="value_out",)(x)

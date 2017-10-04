@@ -343,7 +343,6 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         if batchnorm:
             x = ApplyTD(BatchNormalization())(x)
         x = ApplyTD(relu())(x)
-        #x = MaxPooling2D(pool_size=(2,2))(x)
         if dropout:
             x = ApplyTD(Dropout(dropout_rate))(x)
     
@@ -361,7 +360,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         else:
             ins = [samples, arm_in, gripper_in]
         x, robot = TileArmAndGripper(x, arm_in, gripper_in, tile_height, tile_width,
-                option, option_x, time_distributed, dim)
+                option, option_x, time_distributed, 2*dim)
     else:
         ins = [samples]
 
