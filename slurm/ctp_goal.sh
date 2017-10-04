@@ -18,12 +18,14 @@ echo
 
 module load tensorflow/cuda-8.0/r1.3 
 
- rosrun costar_models ctp_model_tool --features multi \
+
+$HOME/costar_plan/costar_models/scripts/ctp_model_tool \
+        --features multi \
 	-e 250 \
 	--model goal_sampler \
 	--data_file $HOME/work/ctp_test2.npz \
 	--lr 0.001 \
 	--model_directory $HOME/.costar/models_goals_pose_only/ \
 	--optimizer adam \
-  --upsampling conv_transpose \
+        --upsampling conv_transpose \
 	--batch_size 64
