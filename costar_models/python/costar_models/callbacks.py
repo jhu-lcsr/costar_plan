@@ -39,8 +39,8 @@ class PredictorShowImage(keras.callbacks.Callback):
         self.epoch = 0
         self.num_hypotheses = num_hypotheses
         self.directory = os.path.join(model_directory,'debug')
-        self.use_noise = use_noise
         self.noise_dim = noise_dim
+        self.use_noise = use_noise
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
 
@@ -59,7 +59,7 @@ class PredictorShowImage(keras.callbacks.Callback):
                                'and not a normal image callback?')
         img = np.reshape(img, (self.num,64,64,3))
         if self.use_noise:
-            z = np.random.random((self.features[0].shape[0],self.noise_dim))
+            z= np.random.random((self.targets[0].shape[0], self.noise_dim))
             data, arms, grippers, label, probs, v = self.predictor.predict(self.features + [z])
         else:
             data, arms, grippers, label, probs, v = self.predictor.predict(self.features)
