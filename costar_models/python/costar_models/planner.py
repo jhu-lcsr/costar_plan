@@ -52,6 +52,13 @@ def CombineArmAndGripperAndOption(arm_in, gripper_in, option_in, dim=64):
     robot = Dense(dim, activation="relu")(robot)
     return robot
 
+def TileOnto(x,z,zlen,xsize):
+    z = Reshape([1,1,zlen])(z)
+    tile_shape = (1, xsize[0], xsize[1], 1)
+    z = Lambda(lambda x: K.tile(x, tile_shape))(z)
+    x = Concatenate(axis=-1)([x,z])
+    return x
+
 def TileArmAndGripper(x, arm_in, gripper_in, tile_width, tile_height,
         option=None, option_in=None,
         time_distributed=None, dim=64):
@@ -294,7 +301,7 @@ def GetImageDecoder(dim, img_shape,
                            strides=(2, 2),
                            padding='same')(x)
             if batchnorm:
-                x = BatchNormalization(momentum=0.9)(x)
+                x = BatchNormalization()(x)
             x = relu()(x)
             if dropout:
                 x = Dropout(dropout_rate)(x)
@@ -316,7 +323,7 @@ def GetImageDecoder(dim, img_shape,
                    strides=(1, 1),
                    padding="same")(x)
         if batchnorm:
-            x = BatchNormalization(momentum=0.9)(x)
+            x = BatchNormalization()(x)
         x = relu()(x)
         if dropout:
             x = Dropout(dropout_rate)(x)
@@ -379,7 +386,7 @@ def GetImagePoseDecoder(dim, img_shape,
                     strides=(2, 2),
                     padding='same',
                     name="pose_label_dec%d"%i)(x)
-            x = BatchNormalization(momentum=0.9)(x)
+            x = BatchNormalization()(x)
             x = Activation("relu")(x)
             if dropout:
                 x = Dropout(dropout_rate)(x)
@@ -428,7 +435,7 @@ def GetArmGripperDecoder(dim, img_shape,
     if not resnet_blocks:
         x = Flatten()(x)
         x = Dense(dense_size)(x)
-        x = BatchNormalization(momentum=0.9)(x)
+        x = BatchNormalization()(x)
         if leaky:
             x = LeakyReLU(0.2)(x)
         else:
@@ -447,8 +454,6 @@ def GetArmGripperDecoder(dim, img_shape,
                     [arm_out_x, gripper_out_x, label_out_x],
                     name="decoder")
     return decoder
-
-
 
 def GetImageArmGripperDecoder(dim, img_shape,
         dropout_rate, filters, dense_size, kernel_size=[3,3], dropout=True, leaky=True,
@@ -496,7 +501,7 @@ def GetImageArmGripperDecoder(dim, img_shape,
                     strides=(2, 2),
                     padding='same',
                     name="arm_gripper_label_dec%d"%i)(x)
-            x = BatchNormalization(momentum=0.9)(x)
+            x = BatchNormalization()(x)
             if leaky:
                 x = LeakyReLU(0.2)(x)
             else:
@@ -505,13 +510,15 @@ def GetImageArmGripperDecoder(dim, img_shape,
                 x = Dropout(dropout_rate)(x)
         x = Flatten()(x)
         x = Dense(dense_size)(x)
-        x = BatchNormalization(momentum=0.9)(x)
+        x = BatchNormalization()(x)
         if leaky:
             x = LeakyReLU(0.2)(x)
         else:
             x = Activation("relu")(x)
-        if dropout:
-            x = Dropout(dropout_rate)(x)
+        # ======
+        # Remove dropout after the dense layer?
+        #if dropout:
+        #    x = Dropout(dropout_rate)(x)
     else:
         raise RuntimeError('resnet not supported')
 
@@ -532,8 +539,17 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
         relu=True,
         dropout_rate=0.,
         dropout=False,
-        resnet_blocks=False,):
-    xin = Input((rep_size) + (filters,))
+        resnet_blocks=False,
+        use_noise=False,
+        option=None,
+        noise_dim=32):
+
+    dim = filters
+    if use_noise:
+        dim += noise_dim
+    if option is not None:
+        dim += option
+    xin = Input((rep_size) + (dim,))
     x = xin
     for j in range(num_blocks):
         if not resnet_blocks:
@@ -543,8 +559,7 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
                     padding='same',
                     name="transform_%d_%d"%(idx,j))(x)
             if batchnorm:
-                x = BatchNormalization(momentum=0.9,
-                                      name="normalize_%d_%d"%(idx,j))(x)
+                x = BatchNormalization(name="normalize_%d_%d"%(idx,j))(x)
             if relu:
                 if leaky:
                     x = LeakyReLU(0.2,name="lrelu_%d_%d"%(idx,j))(x)
@@ -557,8 +572,21 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
 
     return Model(xin, x, name="transform%d"%idx)
 
-def GetNextOption(x, num_options, filters, kernel_size, dropout_rate=0.5):
-    pass
+def GetNextOptionAndValue(x, num_options, filters, kernel_size, dropout_rate=0.5):
+    '''
+    Predict some information about an observed/encoded world state
+    '''
+    x = Conv2D(filters, kernel_size=kernel_size, strides=(2,2), padding="same")(x)
+    x = BatchNormalization()(x)
+    x = LeakyReLU(alpha=0.2)(x)
+    x = Dropout(dropout_rate)(x)
+    x = Flatten()(x)
+    #x = Concatenate()([x, option_in])
+    #x = Dense(filters,activation="relu")(x)
+    next_option_out = Dense(num_options,
+            activation="sigmoid", name="next_label_out",)(x)
+    value_out = Dense(1, activation="sigmoid", name="value_out",)(x)
+    return value_out, next_option_out
 
 def GetHypothesisProbability(x, num_hypotheses, num_options, labels,
         filters, kernel_size,
@@ -599,7 +627,7 @@ def GetHypothesisProbability(x, num_hypotheses, num_options, labels,
             strides=(2, 2),
             padding='same',
             name="p_hypothesis")(x)
-    x = BatchNormalization(momentum=0.9)(x)
+    x = BatchNormalization()(x)
     x = LeakyReLU(alpha=0.2)(x)
     x = Dropout(dropout_rate)(x)
     x = Flatten()(x)
@@ -612,6 +640,7 @@ def GetHypothesisProbability(x, num_hypotheses, num_options, labels,
         x = K.repeat_elements(x, num_actions, axis=-1)
         return x
     x = Lambda(lambda x: make_p_matrix(x, num_options),name="p_mat")(x)
+    labels.trainable = False
     x = Multiply()([x, labels])
     x = Lambda(lambda x: K.sum(x,axis=1),name="sum_p_h")(x)
 
