@@ -45,7 +45,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.img_num_filters = 64
         self.tform_filters = 64
         self.combined_dense_size = 128
-        self.num_hypotheses = 4
+        self.num_hypotheses = 8
         self.num_transforms = 1
         self.validation_split = 0.1
         self.num_options = 48
