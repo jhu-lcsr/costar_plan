@@ -126,7 +126,7 @@ def GetModelParser():
                         help="dropout in hypothesis decoder",
                         default=False,
                         type=bool)
-    parser.add_argument("--dropout_rate",
+    parser.add_argument("--dropout_rate", "--dr",
                         help="Dropout rate to use",
                         type=float,
                         default=0.5)
@@ -134,6 +134,14 @@ def GetModelParser():
                         help="use random noise to sample distributions",
                         type=bool,
                         default=True)
+    parser.add_argument("--skip_connections", "--sc",
+                        help="use skip connections to generate better outputs",
+                        type=bool,
+                        default=True)
+    parser.add_argument("--decoder_dropout_rate", "--ddr",
+                        help="specify a separate dropout for the model decoder",
+                        type=float,
+                        default=0.5)
 
     return parser
 
