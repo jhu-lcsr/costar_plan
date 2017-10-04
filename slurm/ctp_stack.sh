@@ -25,7 +25,8 @@ module load tensorflow/cuda-8.0/r1.3
 # models_stack5: (8,8,64) and ph output
 # models_stack6: (8,8,64) and noise
 # sequence A:(8,8,64), options, 1 transform layer
-# sequence B:(4,4,64), options, 2 transform layer
+# sequence B:(4,4,64), options, 2 transform layers
+# sequence C:(4,4,64), options, 3 transform layers
 
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--features multi \
@@ -33,12 +34,11 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--model predictor \
 	--data_file $HOME/work/ctp_value.npz \
 	--lr 0.001 \
-	--model_directory $HOME/.costar/models_stackB/ \
+	--model_directory $HOME/.costar/models_stackC/ \
 	--optimizer adam \
   --upsampling conv_transpose \
   --hypothesis_dropout false \
   --dropout_rate 0.5 \
-  --decoder_dropout_rate 0.1 \
   --use_noise true \
   --noise_dim 32 \
 	--batch_size 64
