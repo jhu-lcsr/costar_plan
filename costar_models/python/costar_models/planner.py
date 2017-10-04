@@ -571,7 +571,7 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
 
     return Model(xin, x, name="transform%d"%idx)
 
-def GetNextOptionAndValue(x, num_options, filters, kernel_size, dropout_rate=0.5):
+def GetNextOptionAndValue(x, option_in, num_options, filters, kernel_size, dropout_rate=0.5):
     '''
     Predict some information about an observed/encoded world state
     '''
@@ -580,6 +580,8 @@ def GetNextOptionAndValue(x, num_options, filters, kernel_size, dropout_rate=0.5
     x = LeakyReLU(alpha=0.2)(x)
     x = Dropout(dropout_rate)(x)
     x = Flatten()(x)
+    x = Concatenate()([x, option_in])
+    x = Dense(filters,activation="relu")(x)
     next_option_out = Dense(num_options,
             activation="sigmoid", name="next_label_out",)(x)
     value_out = Dense(1, activation="sigmoid", name="value_out",)(x)
