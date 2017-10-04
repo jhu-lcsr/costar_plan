@@ -28,24 +28,18 @@ def GetCameraColumn(img_shape, dim, dropout_rate, num_filters, dense_size):
     channels = img_shape[2]
 
     samples = Input(shape=img_shape)
-    #x = Concatenate(axis=3)([samples, labels2])
     x = Conv2D(num_filters, # + num_labels
                kernel_size=[5, 5], 
                strides=(2, 2),
-               #padding="same")(x)
                padding="same")(samples)
     x = LeakyReLU(alpha=0.2)(x)
     x = Dropout(dropout_rate)(x)
 
     # Add conv layer with more filters
-    #labels2 = RepeatVector(height2*width2)(labels)
-    #labels2 = Reshape((height2,width2,num_labels))(labels2)
-    #x = Concatenate(axis=3)([x, labels2])
     x = Conv2D(num_filters, # + num_labels
                kernel_size=[5, 5], 
                strides=(2, 2),
                padding="same")(x)
-    #x = BatchNormalization(momentum=0.9)(x)
     x = LeakyReLU(alpha=0.2)(x)
     x = Dropout(dropout_rate)(x)
 
@@ -53,7 +47,6 @@ def GetCameraColumn(img_shape, dim, dropout_rate, num_filters, dense_size):
                kernel_size=[5, 5], 
                strides=(2, 2),
                padding="same")(x)
-    #x = BatchNormalization(momentum=0.9)(x)
     x = LeakyReLU(alpha=0.2)(x)
     x = Dropout(dropout_rate)(x)
 
@@ -61,19 +54,16 @@ def GetCameraColumn(img_shape, dim, dropout_rate, num_filters, dense_size):
                kernel_size=[5, 5], 
                strides=(2, 2),
                padding="same")(x)
-    #x = BatchNormalization(momentum=0.9)(x)
     x = LeakyReLU(alpha=0.2)(x)
     x = Dropout(dropout_rate)(x)
 
     # Add dense layer
     x = Flatten()(x)
-    #x = Concatenate(axis=1)([x, labels])
     x = Dense(int(0.5 * dense_size))(x)
     x = LeakyReLU(alpha=0.2)(x)
     x = Dropout(dropout_rate)(x)
 
     # Single output -- sigmoid activation function
-    #x = Concatenate(axis=1)([x, labels])
     x = Dense(dim)(x)
     x = LeakyReLU(alpha=0.2)(x)
     return [samples], x
@@ -340,7 +330,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
                 padding='same'))(x)
     x = ApplyTD(relu())(x)
     if batchnorm:
-        x = ApplyTD(BatchNormalization(momentum=0.9))(x)
+        x = ApplyTD(BatchNormalization())(x)
     if dropout:
         x = ApplyTD(Dropout(dropout_rate))(x)
 
@@ -351,7 +341,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
                    strides=(1, 1),
                    padding='same'))(x)
         if batchnorm:
-            x = ApplyTD(BatchNormalization(momentum=0.9))(x)
+            x = ApplyTD(BatchNormalization())(x)
         x = ApplyTD(relu())(x)
         #x = MaxPooling2D(pool_size=(2,2))(x)
         if dropout:
@@ -387,7 +377,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
                    strides=(2, 2),
                    padding='same'))(x)
         if batchnorm:
-            x = ApplyTD(BatchNormalization(momentum=0.9))(x)
+            x = ApplyTD(BatchNormalization())(x)
         x = relu()(x)
         if dropout:
             x = Dropout(dropout_rate)(x)
@@ -481,7 +471,7 @@ def GetHuskyEncoder(img_shape, pose_size, dim, dropout_rate,
                 padding='same'))(x)
     x = ApplyTD(relu())(x)
     if batchnorm:
-        x = ApplyTD(BatchNormalization(momentum=0.9))(x)
+        x = ApplyTD(BatchNormalization())(x)
     if dropout:
         x = ApplyTD(Dropout(dropout_rate))(x)
 
@@ -492,7 +482,7 @@ def GetHuskyEncoder(img_shape, pose_size, dim, dropout_rate,
                    strides=(1, 1),
                    padding='same'))(x)
         if batchnorm:
-            x = ApplyTD(BatchNormalization(momentum=0.9))(x)
+            x = ApplyTD(BatchNormalization())(x)
         x = ApplyTD(relu())(x)
         #x = MaxPooling2D(pool_size=(2,2))(x)
         if dropout:
@@ -529,7 +519,7 @@ def GetHuskyEncoder(img_shape, pose_size, dim, dropout_rate,
                    strides=(2, 2),
                    padding='same'))(x)
         if batchnorm:
-            x = ApplyTD(BatchNormalization(momentum=0.9))(x)
+            x = ApplyTD(BatchNormalization())(x)
         x = relu()(x)
         if dropout:
             x = Dropout(dropout_rate)(x)
@@ -585,7 +575,7 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
         z = Input((dim,),name="input_image")
         x = Dense(filters/2 * height4 * width4)(z)
         if batchnorm:
-            x = BatchNormalization(momentum=0.9)(x)
+            x = BatchNormalization()(x)
         x = relu()(x)
         x = Reshape((width4,height4,tform_filters/2))(x)
     else:
@@ -602,7 +592,7 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
                    strides=(2, 2),
                    padding='same')(x)
         if batchnorm:
-            x = BatchNormalization(momentum=0.9)(x)
+            x = BatchNormalization()(x)
         x = relu()(x)
         #x = UpSampling2D(size=(2,2))(x)
         if dropout:
@@ -621,7 +611,7 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
                    strides=(1, 1),
                    padding="same")(x)
         if batchnorm:
-            x = BatchNormalization(momentum=0.9)(x)
+            x = BatchNormalization()(x)
         x = relu()(x)
         if dropout:
             x = Dropout(dropout_rate)(x)
@@ -672,7 +662,7 @@ def GetHuskyDecoder(dim, img_shape, pose_size,
         z = Input((dim,),name="input_image")
         x = Dense(filters/2 * height4 * width4)(z)
         if batchnorm:
-            x = BatchNormalization(momentum=0.9)(x)
+            x = BatchNormalization()(x)
         x = relu()(x)
         x = Reshape((width4,height4,tform_filters/2))(x)
     else:
@@ -689,7 +679,7 @@ def GetHuskyDecoder(dim, img_shape, pose_size,
                    strides=(2, 2),
                    padding='same')(x)
         if batchnorm:
-            x = BatchNormalization(momentum=0.9)(x)
+            x = BatchNormalization()(x)
         x = relu()(x)
         #x = UpSampling2D(size=(2,2))(x)
         if dropout:
@@ -708,7 +698,7 @@ def GetHuskyDecoder(dim, img_shape, pose_size,
                    strides=(1, 1),
                    padding="same")(x)
         if batchnorm:
-            x = BatchNormalization(momentum=0.9)(x)
+            x = BatchNormalization()(x)
         x = relu()(x)
         if dropout:
             x = Dropout(dropout_rate)(x)
@@ -782,7 +772,7 @@ def GetEncoder2(img_shape, arm_size, gripper_size, dim, dropout_rate,
                    kernel_size=[5, 5], 
                    strides=(2, 2),
                    padding='same')(x)
-        #x = BatchNormalization(momentum=0.9)(x)
+        #x = BatchNormalization()(x)
         x = Activation('relu')(x)
         x = Dropout(dropout_rate)(x)
 
@@ -807,7 +797,6 @@ def GetEncoder2(img_shape, arm_size, gripper_size, dim, dropout_rate,
                    kernel_size=[5, 5], 
                    strides=(2, 2),
                    padding='same')(x)
-        #x = BatchNormalization(momentum=0.9)(x)
         x = Activation('relu')(x)
         x = Dropout(dropout_rate)(x)
 

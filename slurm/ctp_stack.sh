@@ -35,6 +35,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--optimizer adam \
   --upsampling conv_transpose \
   --hypothesis_dropout false \
+  --dropout_rate 0.5 \
   --use_noise true \
   --noise_dim 32 \
 	--batch_size 64

@@ -302,7 +302,7 @@ def GetImageDecoder(dim, img_shape,
                            strides=(2, 2),
                            padding='same')(x)
             if batchnorm:
-                x = BatchNormalization(momentum=0.9)(x)
+                x = BatchNormalization()(x)
             x = relu()(x)
             if dropout:
                 x = Dropout(dropout_rate)(x)
@@ -324,7 +324,7 @@ def GetImageDecoder(dim, img_shape,
                    strides=(1, 1),
                    padding="same")(x)
         if batchnorm:
-            x = BatchNormalization(momentum=0.9)(x)
+            x = BatchNormalization()(x)
         x = relu()(x)
         if dropout:
             x = Dropout(dropout_rate)(x)
@@ -387,7 +387,7 @@ def GetImagePoseDecoder(dim, img_shape,
                     strides=(2, 2),
                     padding='same',
                     name="pose_label_dec%d"%i)(x)
-            x = BatchNormalization(momentum=0.9)(x)
+            x = BatchNormalization()(x)
             x = Activation("relu")(x)
             if dropout:
                 x = Dropout(dropout_rate)(x)
@@ -436,7 +436,7 @@ def GetArmGripperDecoder(dim, img_shape,
     if not resnet_blocks:
         x = Flatten()(x)
         x = Dense(dense_size)(x)
-        x = BatchNormalization(momentum=0.9)(x)
+        x = BatchNormalization()(x)
         if leaky:
             x = LeakyReLU(0.2)(x)
         else:
@@ -504,7 +504,7 @@ def GetImageArmGripperDecoder(dim, img_shape,
                     strides=(2, 2),
                     padding='same',
                     name="arm_gripper_label_dec%d"%i)(x)
-            x = BatchNormalization(momentum=0.9)(x)
+            x = BatchNormalization()(x)
             if leaky:
                 x = LeakyReLU(0.2)(x)
             else:
@@ -513,13 +513,15 @@ def GetImageArmGripperDecoder(dim, img_shape,
                 x = Dropout(dropout_rate)(x)
         x = Flatten()(x)
         x = Dense(dense_size)(x)
-        x = BatchNormalization(momentum=0.9)(x)
+        x = BatchNormalization()(x)
         if leaky:
             x = LeakyReLU(0.2)(x)
         else:
             x = Activation("relu")(x)
-        if dropout:
-            x = Dropout(dropout_rate)(x)
+        # ======
+        # Remove dropout after the dense layer?
+        #if dropout:
+        #    x = Dropout(dropout_rate)(x)
     else:
         raise RuntimeError('resnet not supported')
 
@@ -556,8 +558,7 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
                     padding='same',
                     name="transform_%d_%d"%(idx,j))(x)
             if batchnorm:
-                x = BatchNormalization(momentum=0.9,
-                                      name="normalize_%d_%d"%(idx,j))(x)
+                x = BatchNormalization(name="normalize_%d_%d"%(idx,j))(x)
             if relu:
                 if leaky:
                     x = LeakyReLU(0.2,name="lrelu_%d_%d"%(idx,j))(x)
@@ -575,7 +576,7 @@ def GetNextOptionAndValue(x, num_options, filters, kernel_size, dropout_rate=0.5
     Predict some information about an observed/encoded world state
     '''
     x = Conv2D(filters, kernel_size=kernel_size, strides=(2,2), padding="same")(x)
-    x = BatchNormalization(momentum=0.9)(x)
+    x = BatchNormalization()(x)
     x = LeakyReLU(alpha=0.2)(x)
     x = Dropout(dropout_rate)(x)
     x = Flatten()(x)
@@ -623,7 +624,7 @@ def GetHypothesisProbability(x, num_hypotheses, num_options, labels,
             strides=(2, 2),
             padding='same',
             name="p_hypothesis")(x)
-    x = BatchNormalization(momentum=0.9)(x)
+    x = BatchNormalization()(x)
     x = LeakyReLU(alpha=0.2)(x)
     x = Dropout(dropout_rate)(x)
     x = Flatten()(x)

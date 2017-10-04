@@ -224,7 +224,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
                         weights=[0.7,1.0,0.1,0.1],
-                        loss=["mae","mae","mae","categorical_crossentropy"]),
+                        loss=["mae","mae","mae","categorical_crossentropy"],
+                        avg_weight=0.05),
                     "binary_crossentropy", "binary_crossentropy"],
                 loss_weights=[#0.1,0.1,0.1,0.1,
                     1.0,0.1,0.1],
@@ -476,7 +477,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Check to make sure data makes sense before running the model.
 
         [I, q, g, oprev, I_target, q_target, g_target,] = features
-        #[I, q, g, oprev, I_target2, o_target, value_target, qa, ga,] = targets
+        [I_target2, o_target, value_target, qa, ga,] = targets
 
         if self.predictor is None:
             self._makeModel(I, q, g, qa, ga)
