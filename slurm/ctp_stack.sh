@@ -24,6 +24,8 @@ module load tensorflow/cuda-8.0/r1.3
 # models_stack4: smaller hidden arm+gripper layer and smaller hidden layers
 # models_stack5: (8,8,64) and ph output
 # models_stack6: (8,8,64) and noise
+# sequence A:(8,8,64), options, 1 transform layer
+# sequence B:(4,4,64), options, 2 transform layer
 
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--features multi \
@@ -31,7 +33,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--model predictor \
 	--data_file $HOME/work/ctp_value.npz \
 	--lr 0.001 \
-	--model_directory $HOME/.costar/models_stackA6/ \
+	--model_directory $HOME/.costar/models_stackB/ \
 	--optimizer adam \
   --upsampling conv_transpose \
   --hypothesis_dropout false \

@@ -32,7 +32,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--lr $1 \
 	--dropout_rate 0.5 \
 	--decoder_dropout_rate $2 \
-	--model_directory $HOME/.costar/models_stack_A$1$3$2$4/ \
+	--model_directory $HOME/.costar/models_stack_B$1$3$2$4/ \
 	--optimizer $3 \
         --use_noise true \
         --noise_dim 32 \

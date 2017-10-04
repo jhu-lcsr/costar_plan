@@ -27,5 +27,5 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--lr 0.001 \
 	--model_directory $HOME/.costar/models_goals_pose_only/ \
 	--optimizer adam \
-        --upsampling conv_transpose \
+  --upsampling conv_transpose \
 	--batch_size 64
