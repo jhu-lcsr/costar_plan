@@ -24,7 +24,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--model predictor \
 	--data_file $HOME/work/ctp_value.npz \
 	--lr 0.001 \
-	--model_directory $HOME/.costar/models_stack6_hdtrue/ \
+	--model_directory $HOME/.costar/models_stackA6_hdtrue/ \
 	--optimizer adam \
   --dropout_rate 0.5 \
   --decoder_dropout_rate 0.125 \
