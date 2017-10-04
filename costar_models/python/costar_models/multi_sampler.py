@@ -45,7 +45,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.img_num_filters = 64
         self.tform_filters = 64
         self.combined_dense_size = 128
-        self.num_hypotheses = 8
+        self.num_hypotheses = 4
         self.num_transforms = 1
         self.validation_split = 0.1
         self.num_options = 48
@@ -88,12 +88,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 batchnorm=True,
                 tile=True,
                 flatten=False,
-                #option=None,
                 option=self.num_options,
                 output_filters=self.tform_filters,
                 )
         img_in, arm_in, gripper_in, option_in = ins
-
 
         # =====================================================================
         # Create the predictors for value, next action label.
@@ -101,7 +99,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                                                            self.num_options,
                                                            self.img_num_filters,
                                                            [5,5],
-                                                           dropout_rate=self.dropout_rate)
+                                                           dropout_rate=self.decoder_dropout_rate)
 
         # =====================================================================
         # Create the decoders for image, arm, gripper.
@@ -109,7 +107,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         decoder = GetImageArmGripperDecoder(
                         self.img_col_dim,
                         img_shape,
-                        dropout_rate=self.dropout_rate,
+                        dropout_rate=self.decoder_dropout_rate,
                         dense_size=self.combined_dense_size,
                         kernel_size=[5,5],
                         filters=self.img_num_filters,
@@ -224,7 +222,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
                         weights=[0.7,1.0,0.1,0.1],
-                        loss=["mae","mse","mse","categorical_crossentropy"]),
+                        loss=["mae","mae","mae","categorical_crossentropy"],
+                        avg_weight=0.05),
                     "binary_crossentropy", "binary_crossentropy"],
                 loss_weights=[#0.1,0.1,0.1,0.1,
                     1.0,0.1,0.1],
@@ -440,12 +439,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         train_target = np.concatenate([Itrain,q_target,g_target,o_target],axis=-1)
 
         return [I, q, g, oin, I_target, q_target, g_target,], [
-                #I, q, g, oin_onehot,
                 np.expand_dims(train_target, axis=1),
                 o_target,
                 value_target,
                 np.expand_dims(qa, axis=1),
                 np.expand_dims(ga, axis=1)]
+
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
@@ -476,7 +475,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Check to make sure data makes sense before running the model.
 
         [I, q, g, oprev, I_target, q_target, g_target,] = features
-        #[I, q, g, oprev, I_target2, o_target, value_target, qa, ga,] = targets
+        [I_target2, o_target, value_target, qa, ga,] = targets
 
         if self.predictor is None:
             self._makeModel(I, q, g, qa, ga)
