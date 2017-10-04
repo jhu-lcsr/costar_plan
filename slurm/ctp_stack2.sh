@@ -30,6 +30,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --decoder_dropout_rate 0.125 \
   --upsampling conv_transpose \
   --hypothesis_dropout false \
+	--dropout_rate 0.2 \
   --use_noise true \
   --noise_dim 32 \
 	--batch_size 64
