@@ -55,6 +55,10 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         self.extra_layers = 0
         self.PredictorCb = PredictorGoals
 
+        self.steps_down = 4
+        self.hidden_dim = 64/(2**self.steps_down)
+        self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.tform_filters)
+
         self.predictor = None
         self.train_predictor = None
         self.actor = None
@@ -84,13 +88,14 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                 leaky=False,
                 dropout=True,
                 pre_tiling_layers=self.extra_layers,
-                post_tiling_layers=4,
+                post_tiling_layers=steps_down,
                 kernel_size=[5,5],
                 dense=False,
                 batchnorm=True,
                 tile=True,
                 flatten=False,
                 output_filters=self.tform_filters,
+                option=self.num_options,
                 )
 
         img_in, arm_in, gripper_in = ins
@@ -101,7 +106,7 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                         dense_size=self.combined_dense_size,
                         kernel_size=[5,5],
                         filters=self.img_num_filters,
-                        stride2_layers=4,
+                        stride2_layers=steps_down,
                         stride1_layers=self.extra_layers,
                         tform_filters=self.tform_filters,
                         num_options=self.num_options,
@@ -434,14 +439,20 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         #Itrain = np.reshape(I_target,(length, image_size))
         train_target = np.concatenate([q_target,g_target,o_target],axis=-1)
 
-        return [I, q, g, I_target, q_target, g_target,], [
+        return [I, q, g, oin, I_target, q_target, g_target,], [
                 np.expand_dims(train_target, axis=1),
                 o_target,
+                value_target,
                 np.expand_dims(qa, axis=1),
                 np.expand_dims(ga, axis=1)]
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
-        tt, o1, qa, ga = targets
-        return features[:3], [tt, o1]
+        tt, o1, v, qa, ga = targets
+        if self.use_noise:
+            noise_len = features[0].shape[0]
+            z = np.random.random(size=(noise_len,self.noise_dim))
+            return features[:4] + [z], [tt, o1, v]
+        else:
+            return features[:4], [tt, o1, v]
 

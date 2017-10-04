@@ -495,19 +495,6 @@ def GetImageArmGripperDecoder(dim, img_shape,
     # lost in all the convolution layers above...
     x = Reshape((height,width,tform_filters))(rep[0])
     if not resnet_blocks:
-        for i in range(1):
-            x = Conv2D(filters,
-                    kernel_size=kernel_size, 
-                    strides=(2, 2),
-                    padding='same',
-                    name="arm_gripper_label_dec%d"%i)(x)
-            x = BatchNormalization()(x)
-            if leaky:
-                x = LeakyReLU(0.2)(x)
-            else:
-                x = Activation("relu")(x)
-            if dropout:
-                x = Dropout(dropout_rate)(x)
         x = Flatten()(x)
         x = Dense(dense_size)(x)
         x = BatchNormalization()(x)
@@ -515,10 +502,8 @@ def GetImageArmGripperDecoder(dim, img_shape,
             x = LeakyReLU(0.2)(x)
         else:
             x = Activation("relu")(x)
-        # ======
-        # Remove dropout after the dense layer?
-        #if dropout:
-        #    x = Dropout(dropout_rate)(x)
+        if dropout:
+            x = Dropout(dropout_rate)(x)
     else:
         raise RuntimeError('resnet not supported')
 
@@ -576,13 +561,7 @@ def GetNextOptionAndValue(x, num_options, filters, kernel_size, dropout_rate=0.5
     '''
     Predict some information about an observed/encoded world state
     '''
-    x = Conv2D(filters, kernel_size=kernel_size, strides=(2,2), padding="same")(x)
-    x = BatchNormalization()(x)
-    x = LeakyReLU(alpha=0.2)(x)
-    x = Dropout(dropout_rate)(x)
     x = Flatten()(x)
-    #x = Concatenate()([x, option_in])
-    #x = Dense(filters,activation="relu")(x)
     next_option_out = Dense(num_options,
             activation="sigmoid", name="next_label_out",)(x)
     value_out = Dense(1, activation="sigmoid", name="value_out",)(x)

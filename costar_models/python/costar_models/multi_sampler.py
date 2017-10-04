@@ -8,9 +8,6 @@ import numpy as np
 from keras.callbacks import ModelCheckpoint
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
-from keras.layers import UpSampling2D, Conv2DTranspose
-from keras.layers import BatchNormalization, Dropout
-from keras.layers import Dense, Conv2D, Activation, Flatten
 from keras.layers.embeddings import Embedding
 from keras.layers.merge import Concatenate, Multiply
 from keras.losses import binary_crossentropy
@@ -46,12 +43,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.tform_filters = 64
         self.combined_dense_size = 128
         self.num_hypotheses = 8
-        self.num_transforms = 1
+        self.num_transforms = 2
         self.validation_split = 0.1
         self.num_options = 48
         self.extra_layers = 0
         self.PredictorCb = PredictorShowImage
-        self.hidden_shape = (8,8,self.tform_filters)
+        self.steps_down = 4
+        self.hidden_dim = 64/(2**self.steps_down)
+        self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.tform_filters)
         self.use_prev_option = True
 
         self.predictor = None
@@ -83,7 +82,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 leaky=False,
                 dropout=True,
                 pre_tiling_layers=self.extra_layers,
-                post_tiling_layers=3,
+                post_tiling_layers=self.steps_down,
                 kernel_size=[5,5],
                 dense=False,
                 batchnorm=True,
@@ -96,10 +95,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # =====================================================================
         # Create the predictors for value, next action label.
-        #if self.use_prev_option:
-        #    option_x = OneHot(size=self.num_options)(option_in)
-        #    option_x = Reshape((self.num_options,))(option_x)
-        #    next_enc = TileOnto(enc,option_x,self.num_options,self.hidden_shape)
         value_out, next_option_out = GetNextOptionAndValue(enc,
                                                            self.num_options,
                                                            self.img_num_filters,
@@ -116,7 +111,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         dense_size=self.combined_dense_size,
                         kernel_size=[5,5],
                         filters=self.img_num_filters,
-                        stride2_layers=3,
+                        stride2_layers=self.steps_down,
                         stride1_layers=self.extra_layers,
                         tform_filters=self.tform_filters,
                         num_options=self.num_options,
@@ -155,7 +150,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             transform = GetTransform(
                     rep_size=(8,8),
                     filters=self.tform_filters,
-                    kernel_size=[5,5],
+                    kernel_size=[3,3],
                     idx=i,
                     batchnorm=True,
                     dropout=False,
