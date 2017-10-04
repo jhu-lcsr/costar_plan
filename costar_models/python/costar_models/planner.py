@@ -57,7 +57,6 @@ def TileOnto(x,z,zlen,xsize):
     tile_shape = (1, xsize[0], xsize[1], 1)
     z = Lambda(lambda x: K.tile(x, tile_shape))(z)
     x = Concatenate(axis=-1)([x,z])
-    print(x,z)
     return x
 
 def TileArmAndGripper(x, arm_in, gripper_in, tile_width, tile_height,
@@ -542,11 +541,15 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
         dropout=False,
         resnet_blocks=False,
         use_noise=False,
+        option=None,
         noise_dim=32):
+
+    dim = filters
     if use_noise:
-        xin = Input((rep_size) + (filters+noise_dim,))
-    else:
-        xin = Input((rep_size) + (filters,))
+        dim += noise_dim
+    if option is not None:
+        dim += option
+    xin = Input((rep_size) + (dim,))
     x = xin
     for j in range(num_blocks):
         if not resnet_blocks:
