@@ -278,10 +278,10 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
 
     if time_distributed <= 0:
         ApplyTD = lambda x: x
-        arm_in = Input((arm_size,))
-        gripper_in = Input((gripper_size,))
+        arm_in = Input((arm_size,),name="arm_position_in")
+        gripper_in = Input((gripper_size,),name="gripper_state_in")
         if option is not None:
-            option_in = Input((1,))
+            option_in = Input((1,),name="prev_option_in")
             option_x = OneHot(size=option)(option_in)
             option_x = Reshape((option,))(option_x)
         else:
@@ -360,7 +360,8 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         else:
             ins = [samples, arm_in, gripper_in]
         x, robot = TileArmAndGripper(x, arm_in, gripper_in, tile_height, tile_width,
-                option, option_x, time_distributed, dim)
+                None, None, time_distributed, dim)
+                #option, option_x, time_distributed, dim)
     else:
         ins = [samples]
 
@@ -381,6 +382,24 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         if dropout:
             x = Dropout(dropout_rate)(x)
         skips.append(x)
+
+    if option is not None:
+        nfilters = output_filters
+        option_x = OneHot(size=option)(option_in)
+        option_x = Reshape((option,))(option_x)
+        x = TileOnto(x,option_x,option,
+                (height/(2**post_tiling_layers),
+                 width/(2**post_tiling_layers)))
+
+        x = ApplyTD(Conv2D(nfilters,
+                   kernel_size=kernel_size, 
+                   strides=(1, 1),
+                   padding='same'))(x)
+        if batchnorm:
+            x = ApplyTD(BatchNormalization())(x)
+        x = relu()(x)
+        if dropout:
+            x = Dropout(dropout_rate)(x)
 
     if flatten or dense or discriminator:
         x = ApplyTD(Flatten())(x)
@@ -403,7 +422,6 @@ def AddOptionTiling(x, option_length, option_in, height, width):
             name="add_option_%dx%d"%(width,height),
         )([x, option])
     return x
-
 
 def GetHuskyEncoder(img_shape, pose_size, dim, dropout_rate,
         filters, discriminator=False, tile=False, dropout=True, leaky=True,
@@ -483,7 +501,6 @@ def GetHuskyEncoder(img_shape, pose_size, dim, dropout_rate,
         if batchnorm:
             x = ApplyTD(BatchNormalization())(x)
         x = ApplyTD(relu())(x)
-        #x = MaxPooling2D(pool_size=(2,2))(x)
         if dropout:
             x = ApplyTD(Dropout(dropout_rate))(x)
     
@@ -534,10 +551,7 @@ def GetHuskyEncoder(img_shape, pose_size, dim, dropout_rate,
     if discriminator:
         x = Dense(1,activation="sigmoid")(x)
 
-    #print (ins)
     return ins, x, skips, robot
-
-
 
 
 def GetDecoder(dim, img_shape, arm_size, gripper_size,
@@ -593,7 +607,6 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
         if batchnorm:
             x = BatchNormalization()(x)
         x = relu()(x)
-        #x = UpSampling2D(size=(2,2))(x)
         if dropout:
             x = Dropout(dropout_rate)(x)
 
@@ -713,99 +726,4 @@ def GetHuskyDecoder(dim, img_shape, pose_size,
         ins.append(oin)
 
     return ins, x    
-
-def GetTCNStack(x, filters, num_levels=2, dense_size=128, dropout_rate=0.5):
-    '''
-    Add some convolutions to a simple image
-    '''
-
-    for i in range(num_levels):
-        x = Conv2D(filters,
-                kernel_size=[5,5],
-                strides=(2,2),
-                padding="same")(x)
-        x = LeakyReLU(alpha=0.2)(x)
-        x = Dropout(dropout_rate)(x)
-    x = Flatten()(x)
-    x = Dense(dense_size)(x)
-
-    return x
-
-def GetInvCameraColumn(noise, img_shape, dropout_rate, dense_size):
-    '''
-    Take noise vector, upsample into an image of size img.
-    '''
-    pass
-
-def GetInvArmGripperColumn(noise, arm, gripper, dropout_rate, dense_size):
-    '''
-    Get arm and gripper from noise.
-    '''
-    pass
-
-def GetEncoder2(img_shape, arm_size, gripper_size, dim, dropout_rate,
-        filters, discriminator=False, tile=False, option=None,
-        pre_tiling_layers=0,
-        post_tiling_layers=2):
-
-    '''
-    Convolutions for an image, terminating in a dense layer of size dim.
-    '''
-    height4 = img_shape[0]/4
-    width4 = img_shape[1]/4
-    height2 = img_shape[0]/2
-    width2 = img_shape[1]/2
-    width = img_shape[1]
-    channels = img_shape[2]
-
-    samples = Input(shape=img_shape)
-    arm_in = Input((arm_size,))
-    gripper_in = Input((gripper_size,))
-    if option is not None:
-        option_in = Input((option,))
-
-    x = samples
-
-    for i in range(pre_tiling_layers):
-        x = Conv2D(filters,
-                   kernel_size=[5, 5], 
-                   strides=(2, 2),
-                   padding='same')(x)
-        #x = BatchNormalization()(x)
-        x = Activation('relu')(x)
-        x = Dropout(dropout_rate)(x)
-
-    # ===============================================
-    # ADD TILING
-    if tile:
-        tile_shape = (1, width2, height2, 1)
-        if option is not None:
-            robot = Concatenate()([arm_in, gripper_in, option_in])
-            robot = Reshape([1,1,arm_size+gripper_size+option])(robot)
-        else:
-            robot = Concatenate()([arm_in, gripper_in])
-            robot = Reshape([1,1,arm_size+gripper_size])(robot)
-        robot = Lambda(lambda x: K.tile(x, tile_shape))(robot)
-        x = Concatenate(axis=3)([x,robot])
-        ins = [samples, arm_in, gripper_in]
-    else:
-        ins = [samples]
-
-    for i in range(post_tiling_layers):
-        x = Conv2D(filters,
-                   kernel_size=[5, 5], 
-                   strides=(2, 2),
-                   padding='same')(x)
-        x = Activation('relu')(x)
-        x = Dropout(dropout_rate)(x)
-
-    x = Flatten()(x)
-    x = Dense(dim)(x)
-    x = LeakyReLU(alpha=0.2)(x)
-
-    # Single output -- sigmoid activation function
-    if discriminator:
-        x = Dense(1,activation="sigmoid")(x)
-
-    return ins, x
 
