@@ -23,7 +23,6 @@ do
 done
 
 # ======================================
-#sbatch ctp_stack.sh
-#sbatch ctp_stack_upsampling2d.sh
-#sbatch ctp_stack2.sh
-#sbatch ctp_stack_small.sh
+sbatch ctp_stack.sh
+sbatch ctp_stack2.sh
+
