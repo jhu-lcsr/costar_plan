@@ -89,14 +89,17 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 batchnorm=True,
                 tile=True,
                 flatten=False,
-                option=None,
+                option=self.num_options,
                 output_filters=self.tform_filters,
                 )
-        img_in, arm_in, gripper_in = ins
-        option_in = Input((1,))
+        img_in, arm_in, gripper_in, option_in = ins
 
         # =====================================================================
         # Create the predictors for value, next action label.
+        #if self.use_prev_option:
+        #    option_x = OneHot(size=self.num_options)(option_in)
+        #    option_x = Reshape((self.num_options,))(option_x)
+        #    next_enc = TileOnto(enc,option_x,self.num_options,self.hidden_shape)
         value_out, next_option_out = GetNextOptionAndValue(enc,
                                                            self.num_options,
                                                            self.img_num_filters,
@@ -147,10 +150,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             # Add noise input and add to enc
             z = Input((self.noise_dim,))
             enc2 = TileOnto(enc,z,self.noise_dim,self.hidden_shape)
-        if self.use_prev_option:
-            option_x = OneHot(size=self.num_options)(option_in)
-            option_x = Reshape((self.num_options,))(option_x)
-            enc2 = TileOnto(enc2,option_x,self.num_options,self.hidden_shape)
 
         for i in range(self.num_hypotheses):
             transform = GetTransform(
@@ -165,7 +164,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     num_blocks=self.num_transforms,
                     relu=True,
                     resnet_blocks=self.residual,
-                    option=self.num_options,
+                    option=None,
                     use_noise=self.use_noise,
                     noise_dim=self.noise_dim,)
             if i == 0:
@@ -211,11 +210,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # =====================================================================
         # Create models to train
-        predictor = Model(ins + [option_in, z],
+        predictor = Model(ins + [z],
                 [image_out, arm_out, gripper_out, label_out, next_option_out,
                     value_out])
         actor = None
-        train_predictor = Model(ins + [option_in, z],
+        train_predictor = Model(ins + [z],
                 [train_out, next_option_out, value_out])
 
         # =====================================================================
