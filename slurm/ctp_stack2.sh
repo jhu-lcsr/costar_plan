@@ -27,7 +27,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--model_directory $HOME/.costar/models_stack6_hdtrue/ \
 	--optimizer adam \
   --dropout_rate 0.5 \
-  --decoder_dropout_rate 0.25 \
+  --decoder_dropout_rate 0.125 \
   --upsampling conv_transpose \
   --hypothesis_dropout false \
   --use_noise true \
