@@ -557,11 +557,60 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
 
     return Model(xin, x, name="transform%d"%idx)
 
+def GetDenseTransform(dim, output_size, num_blocks=2, batchnorm=True, 
+        idx=0,
+        leaky=True,
+        relu=True,
+        dropout_rate=0.,
+        dropout=False,
+        resnet_blocks=False,
+        use_noise=False,
+        option=None,
+        noise_dim=32):
+
+    xin = Input((dim,))
+    if use_noise:
+        zin = Input((noise_dim,))
+        x = Concatenate()([xin, zin])
+    else:
+        x = xin
+    for j in range(num_blocks):
+        if not resnet_blocks:
+            x = Dense(dim,name="dense_%d_%d"%(idx,j))(x)
+            if batchnorm:
+                x = BatchNormalization(name="normalize_%d_%d"%(idx,j))(x)
+            if relu:
+                if leaky:
+                    x = LeakyReLU(0.2,name="lrelu_%d_%d"%(idx,j))(x)
+                else:
+                    x = Activation("relu",name="relu_%d_%d"%(idx,j))(x)
+            if dropout:
+                x = Dropout(dropout_rate)(x)
+        else:
+            raise RuntimeError('resnet not supported for transform')
+
+    x = Reshape([1,1,dim])(x)
+    x = Lambda(lambda x: K.tile(x, [1] + output_size + [1]))(x)
+
+    if not use_noise:
+        return Model(xin, x, name="transform%d"%idx)
+    else:
+        return Model([xin, zin], x, name="transform%d"%idx)
+
 def GetNextOptionAndValue(x, num_options, filters, kernel_size, dropout_rate=0.5):
     '''
     Predict some information about an observed/encoded world state
     '''
     x = Flatten()(x)
+    next_option_out = Dense(num_options,
+            activation="sigmoid", name="next_label_out",)(x)
+    value_out = Dense(1, activation="sigmoid", name="value_out",)(x)
+    return value_out, next_option_out
+
+def GetNextOptionAndValueDense(x, num_options):
+    '''
+    Predict some information about an observed/encoded world state
+    '''
     next_option_out = Dense(num_options,
             activation="sigmoid", name="next_label_out",)(x)
     value_out = Dense(1, activation="sigmoid", name="value_out",)(x)
