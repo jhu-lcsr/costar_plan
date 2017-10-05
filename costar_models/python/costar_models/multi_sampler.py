@@ -146,9 +146,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             z = Input((self.noise_dim,))
             enc2 = TileOnto(enc,z,self.noise_dim,self.hidden_shape)
 
+        print (enc, enc2, self.hidden_dim, self.hidden_shape)
         for i in range(self.num_hypotheses):
             transform = GetTransform(
-                    rep_size=(8,8),
+                    rep_size=(self.hidden_dim, self.hidden_dim),
                     filters=self.tform_filters,
                     kernel_size=[3,3],
                     idx=i,
@@ -221,7 +222,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
                         weights=[0.7,1.0,0.1,0.1],
                         loss=["mae","mae","mae","categorical_crossentropy"],
-                        avg_weight=0.01),
+                        avg_weight=0.05),
                     "binary_crossentropy", "binary_crossentropy"],
                 loss_weights=[#0.1,0.1,0.1,0.1,
                     1.0,0.1,0.1],
