@@ -50,7 +50,7 @@ class NpzGeneratorDataset(object):
                 acceptable_files.append(f)
 
         idx = np.array(range(len(acceptable_files)))
-        length = int(self.split*len(acceptable_files))
+        length = max(1,int(self.split*len(acceptable_files)))
         print("---------------------------------------------")
         print("Loaded data.")
         print("# Total examples:", len(acceptable_files))

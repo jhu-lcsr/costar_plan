@@ -23,7 +23,7 @@ class AbstractAgentBasedModel(object):
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
             steps_per_epoch=300, validation_steps=100, choose_initial=5,
             dropout_rate=0.5, decoder_dropout_rate=0.5,
-            hypothesis_dropout=False,
+            hypothesis_dropout=False, dense_representation=True,
             skip_connections=True,
             use_noise=False, noise_dim=32,
             num_generator_files=3, predict_value=False, upsampling=None,
@@ -66,6 +66,7 @@ class AbstractAgentBasedModel(object):
         self.noise_dim = noise_dim
         self.decoder_dropout_rate = decoder_dropout_rate
         self.skip_connections = skip_connections
+        self.dense_representation = dense_representation
 
         if self.task is not None:
             self.name += "_%s"%self.task

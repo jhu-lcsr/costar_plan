@@ -42,20 +42,21 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         super(RobotMultiGoalSampler, self).__init__(taskdef, *args, **kwargs)
 
         self.num_frames = 1
-
-        self.dropout_rate = 0.2
-        self.img_col_dim = 64
+        self.img_col_dim = 128
         self.img_num_filters = 64
         self.tform_filters = 64
         self.combined_dense_size = 128
-        self.num_hypotheses = 8
+        self.num_hypotheses = 4
         self.num_transforms = 3
         self.validation_split = 0.1
         self.num_options = 48
-        self.extra_layers = 0
+        self.pose_col_dim = 32
         self.PredictorCb = PredictorGoals
 
-        self.steps_down = 4
+        # Encoder architecture
+        self.extra_layers = 1
+        self.steps_down = 3
+
         self.hidden_dim = 64/(2**self.steps_down)
         self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.tform_filters)
 
@@ -80,17 +81,17 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         image_size = int(image_size)    
 
         ins, enc, skips, robot_skip = GetEncoder(img_shape,
-                arm_size,
-                gripper_size,
+                [arm_size, gripper_size],
                 self.img_col_dim,
+                pose_col_dim=self.pose_col_dim,
                 dropout_rate=self.dropout_rate,
                 filters=self.img_num_filters,
                 leaky=False,
                 dropout=True,
                 pre_tiling_layers=self.extra_layers,
                 post_tiling_layers=self.steps_down,
-                kernel_size=[5,5],
-                dense=False,
+                kernel_size=[3,3],
+                dense=self.dense_representation,
                 batchnorm=True,
                 tile=True,
                 flatten=False,
@@ -104,7 +105,8 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                         img_shape,
                         dropout_rate=self.dropout_rate,
                         dense_size=self.combined_dense_size,
-                        kernel_size=[5,5],
+                        dense=self.dense_representation,
+                        kernel_size=[3,3],
                         filters=self.img_num_filters,
                         stride2_layers=self.steps_down,
                         stride1_layers=self.extra_layers,
@@ -112,15 +114,13 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                         num_options=self.num_options,
                         arm_size=arm_size,
                         gripper_size=gripper_size,
-                        dropout=True,
+                        dropout=self.hypothesis_dropout,
                         upsampling=self.upsampling_method,
                         leaky=True,
-                        dense=False,
                         skips=skips,
                         robot_skip=robot_skip,
                         resnet_blocks=self.residual,
                         batchnorm=True,)
-
 
         arm_outs = []
         gripper_outs = []
@@ -131,26 +131,14 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         decoder.summary()
 
-        z = Input((self.num_hypotheses, self.noise_dim,))
+        z = Input((self.num_hypotheses, self.noise_dim,),name="noise_in")
 
         # =====================================================================
         # Create many different image decoders
 
         for i in range(self.num_hypotheses):
-            transform = GetTransform(
-                    rep_size=(self.hidden_dim, self.hidden_dim),
-                    filters=self.tform_filters,
-                    kernel_size=[3,3],
-                    idx=i,
-                    batchnorm=True,
-                    dropout=True,
-                    dropout_rate=self.dropout_rate,
-                    leaky=True,
-                    num_blocks=self.num_transforms,
-                    relu=True,
-                    resnet_blocks=self.residual,
-                    use_noise=self.use_noise,
-                    noise_dim=self.noise_dim,)
+            transform = self._getTransform(i)
+
             if i == 0:
                 transform.summary()
             if self.use_noise:
@@ -192,26 +180,20 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
 
         # =====================================================================
         # Hypothesis probabilities
-        #sum_p_out, p_out = GetHypothesisProbability(enc,
-        #        self.num_hypotheses,
-        #        self.num_options,
-        #        labels=label_out,
-        #        filters=self.img_num_filters,
-        #        kernel_size=[5,5],
-        #        dropout_rate=self.dropout_rate)
-        value_out, next_option_out = GetNextOptionAndValue(enc,
-                                                           self.num_options,)
+        value_out, next_option_out = GetNextOptionAndValue(enc, self.num_options,)
+
         # =====================================================================
         # Training the actor policy
         y = enc
-        y = Conv2D(int(self.img_num_filters/4),
-                kernel_size=[5,5], 
-                strides=(2, 2),
-                padding='same')(y)
-        y = Dropout(self.dropout_rate)(y)
-        y = LeakyReLU(0.2)(y)
-        y = BatchNormalization(momentum=0.9)(y)
-        y = Flatten()(y)
+        if not self.dense_representation:
+            y = Conv2D(int(self.img_num_filters/4),
+                    kernel_size=[5,5], 
+                    strides=(2, 2),
+                    padding='same')(y)
+            y = Dropout(self.dropout_rate)(y)
+            y = LeakyReLU(0.2)(y)
+            y = BatchNormalization(momentum=0.9)(y)
+            y = Flatten()(y)
         y = Dense(self.combined_dense_size)(y)
         y = Dropout(self.dropout_rate)(y)
         y = LeakyReLU(0.2)(y)
@@ -260,56 +242,6 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
             self._makePredictor(
                 (features, arm, gripper))
 
-    def _getAllData(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
-            prev_label, goal_features, goal_arm, goal_gripper, value, *args, **kwargs):
-        I = features
-        q = arm
-        g = gripper
-        qa = arm_cmd
-        ga = gripper_cmd
-        oin = prev_label
-        I_target = goal_features
-        q_target = goal_arm
-        g_target = goal_gripper
-        o_target = label
-        value_target = np.array(value > 1.,dtype=float)
-
-        # ==============================
-        image_shape = I.shape[1:]
-        image_size = 1
-        for dim in image_shape:
-            image_size *= dim
-        image_size = int(image_size)
-        arm_size = q.shape[-1]
-        gripper_size = g.shape[-1]
-
-        train_size = image_size + arm_size + gripper_size + self.num_options
-        assert gripper_size == 1
-        #assert train_size == 12295 + self.num_options
-        # NOTE: arm size is one bigger when we have quaternions
-        #assert train_size == 12296 + self.num_options
-        assert train_size == (64*64*3) + 7 + 1 + self.num_options
-        assert I.shape[0] == I_target.shape[0]
-
-        o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
-        length = I.shape[0]
-        #Itrain = np.reshape(I_target,(length, image_size))
-        train_target = np.concatenate([q_target,g_target,o_target],axis=-1)
-
-        return [I, q, g, oin, I_target, q_target, g_target,], [
-                np.expand_dims(train_target, axis=1),
-                o_target,
-                value_target,
-                np.expand_dims(qa, axis=1),
-                np.expand_dims(ga, axis=1)]
-
-    def _getData(self, *args, **kwargs):
-        features, targets = self._getAllData(*args, **kwargs)
-        tt, o1, v, qa, ga = targets
-        if self.use_noise:
-            noise_len = features[0].shape[0]
-            z = np.random.random(size=(noise_len,self.num_hypotheses, self.noise_dim))
-            return features[:4] + [z], [tt, o1, v]
-        else:
-            return features[:4], [tt, o1, v]
+    def _makeTrainTarget(self, I_target, q_target, g_target, o_target):
+        return np.concatenate([q_target,g_target,o_target],axis=-1)
 

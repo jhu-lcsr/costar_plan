@@ -238,10 +238,11 @@ def SliceImageHypotheses(image_shape, num_hypotheses, x):
 
 def GetImageDecoder(dim, img_shape,
         dropout_rate, filters, kernel_size=[3,3], dropout=True, leaky=True,
+        dense_rep_size=None,
         batchnorm=True,dense=True, num_hypotheses=None, tform_filters=None,
         original=None, upsampling=None,
         resnet_blocks=False,
-        skips=None,
+        skips=False,
         stride2_layers=2, stride1_layers=1):
 
     '''
@@ -261,17 +262,25 @@ def GetImageDecoder(dim, img_shape,
     else:
         relu = lambda: Activation('relu')
 
-    z = Input((width*height*tform_filters,),name="input_image")
-    x = Reshape((height,width,tform_filters))(z)
-    if not resnet_blocks and dropout:
-        x = Dropout(dropout_rate)(x)
-
+    if not dense:
+        z = Input((width*height*tform_filters,),name="input_image")
+        x = Reshape((height,width,tform_filters))(z)
+    else:
+        z = Input((dense_rep_size,),name="input_latent")
+        x = Dense(height*width*filters,name="dense_input_size")(z)
+        if batchnorm:
+            x = BatchNormalization()(x)
+        x = relu()(x)
+        if dropout:
+            x = Dropout(dropout_rate)(x)
+        x = Reshape((height,width,filters))(x)
+    
     skip_inputs = []
     height = height * 2
     width = width * 2
     for i in range(stride2_layers):
 
-        if skips is not None:
+        if skips:
             skip_in = Input((width/2,height/2,filters))
             x = Concatenate(axis=-1)([x, skip_in])
             skip_inputs.append(skip_in)
@@ -312,7 +321,7 @@ def GetImageDecoder(dim, img_shape,
         height *= 2
         width *= 2
 
-    if skips is not None:
+    if skips:
         skip_in = Input((img_shape[0],img_shape[1],filters))
         x = Concatenate(axis=-1)([x,skip_in])
         skip_inputs.append(skip_in)
@@ -344,7 +353,7 @@ def GetImagePoseDecoder(dim, img_shape,
         dropout_rate, filters, dense_size, kernel_size=[3,3], dropout=True, leaky=True,
         batchnorm=True,dense=True, num_hypotheses=None, tform_filters=None,
         original=None, num_options=64, pose_size=6,
-        resnet_blocks=False, skips=None, robot_skip=None,
+        resnet_blocks=False, skips=False, robot_skip=None,
         stride2_layers=2, stride1_layers=1):
 
     rep, dec = GetImageDecoder(dim,
@@ -378,9 +387,6 @@ def GetImagePoseDecoder(dim, img_shape,
     x = Reshape((width8,height8,tform_filters))(rep[0])
     if not resnet_blocks:
         for i in range(1):
-            #if i == 1 and skips is not None:
-            #    smallest_skip = rep[1]
-            #    x = Concatenate(axis=-1)([x, smallest_skip])
             x = Conv2D(filters,
                     kernel_size=kernel_size, 
                     strides=(2, 2),
@@ -412,6 +418,7 @@ def GetArmGripperDecoder(dim, img_shape,
         dropout_rate, filters, dense_size, kernel_size=[3,3], dropout=True, leaky=True,
         batchnorm=True,dense=True, num_hypotheses=None, tform_filters=None,
         upsampling=None,
+        dense_rep_size=128,
         original=None, num_options=64, arm_size=7, gripper_size=1,
         resnet_blocks=False, skips=None, robot_skip=None,
         stride2_layers=2, stride1_layers=1):
@@ -428,25 +435,27 @@ def GetArmGripperDecoder(dim, img_shape,
     # Predict the next joint states and gripper position. We add these back
     # in from the inputs once again, in order to make sure they don't get
     # lost in all the convolution layers above...
-    height = int(img_shape[0]/(2**stride2_layers))
-    width = int(img_shape[1]/(2**stride2_layers))
-    rep = Input((height,width,tform_filters))
-    x = rep
-    if not resnet_blocks:
-        x = Flatten()(x)
-        x = Dense(dense_size)(x)
-        x = BatchNormalization()(x)
-        if leaky:
-            x = LeakyReLU(0.2)(x)
-        else:
-            x = Activation("relu")(x)
-        if dropout:
-            x = Dropout(dropout_rate)(x)
+    if not dense:
+        height = int(img_shape[0]/(2**stride2_layers))
+        width = int(img_shape[1]/(2**stride2_layers))
+        rep = Input((height,width,tform_filters))
+        x = Flatten()(rep)
     else:
-        raise RuntimeError('resnet not supported')
+        rep = Input((dim,))
+        x = rep
 
-    arm_out_x = Dense(arm_size,name="next_arm")(x)
+    x = Dense(dense_size)(x)
+    x = BatchNormalization()(x)
+    if leaky:
+        x = LeakyReLU(0.2)(x)
+    else:
+        x = Activation("relu")(x)
+    if dropout:
+        x = Dropout(dropout_rate)(x)
+
+    arm_out_x = Dense(arm_size, name="next_arm", activation="tanh")(x)
     gripper_out_x = Dense(gripper_size,
+            activation="sigmoid",
             name="next_gripper_flat")(x)
     label_out_x = Dense(num_options,name="next_label",activation="softmax")(x)
 
@@ -457,6 +466,7 @@ def GetArmGripperDecoder(dim, img_shape,
 
 def GetImageArmGripperDecoder(dim, img_shape,
         dropout_rate, filters, dense_size, kernel_size=[3,3], dropout=True, leaky=True,
+        dense_rep_size=None,
         batchnorm=True,dense=True, num_hypotheses=None, tform_filters=None,
         upsampling=None,
         original=None, num_options=64, arm_size=7, gripper_size=1,
@@ -470,6 +480,7 @@ def GetImageArmGripperDecoder(dim, img_shape,
     width = int(img_shape[1]/(2**stride2_layers))
     rep, dec = GetImageDecoder(dim,
                         img_shape,
+                        dense_rep_size=dense_rep_size,
                         dropout_rate=dropout_rate,
                         kernel_size=kernel_size,
                         filters=filters,
@@ -493,19 +504,19 @@ def GetImageArmGripperDecoder(dim, img_shape,
     # Predict the next joint states and gripper position. We add these back
     # in from the inputs once again, in order to make sure they don't get
     # lost in all the convolution layers above...
-    x = Reshape((height,width,tform_filters))(rep[0])
-    if not resnet_blocks:
+    if not dense:
+        x = Reshape((height,width,tform_filters))(rep[0])
         x = Flatten()(x)
-        x = Dense(dense_size)(x)
-        x = BatchNormalization()(x)
-        if leaky:
-            x = LeakyReLU(0.2)(x)
-        else:
-            x = Activation("relu")(x)
-        if dropout:
-            x = Dropout(dropout_rate)(x)
     else:
-        raise RuntimeError('resnet not supported')
+        x = rep[0]
+    x = Dense(dense_size)(x)
+    x = BatchNormalization()(x)
+    if leaky:
+        x = LeakyReLU(0.2)(x)
+    else:
+        x = Activation("relu")(x)
+    if dropout:
+        x = Dropout(dropout_rate)(x)
 
     arm_out_x = Dense(arm_size,name="next_arm")(x)
     gripper_out_x = Dense(gripper_size,
@@ -591,8 +602,8 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
         else:
             raise RuntimeError('resnet not supported for transform')
 
-    x = Reshape([1,1,dim])(x)
-    x = Lambda(lambda x: K.tile(x, [1] + output_size + [1]))(x)
+    #x = Reshape([1,1,dim])(x)
+    #x = Lambda(lambda x: K.tile(x, [1] + output_size + [1]))(x)
 
     if not use_noise:
         return Model(xin, x, name="transform%d"%idx)
@@ -602,21 +613,19 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
 def GetNextOptionAndValue(x, num_options):
     '''
     Predict some information about an observed/encoded world state
+
+    Parameters:
+    -----------
+    x: input vector/image of hidden representation
+    num_options: number of possible actions to predict
     '''
-    x = Flatten()(x)
+    if len(x.shape) > 2:
+        x = Flatten()(x)
     next_option_out = Dense(num_options,
             activation="sigmoid", name="next_label_out",)(x)
     value_out = Dense(1, activation="sigmoid", name="value_out",)(x)
     return value_out, next_option_out
 
-def GetNextOptionAndValueDense(x, num_options):
-    '''
-    Predict some information about an observed/encoded world state
-    '''
-    next_option_out = Dense(num_options,
-            activation="sigmoid", name="next_label_out",)(x)
-    value_out = Dense(1, activation="sigmoid", name="value_out",)(x)
-    return value_out, next_option_out
 
 def GetHypothesisProbability(x, num_hypotheses, num_options, labels,
         filters, kernel_size,

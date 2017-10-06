@@ -13,7 +13,7 @@ set -x
 set -u
 
 echo
-echo "Running $@ on $SLURMD_NODENAME ..."
+echo "Running $@ on $SLURME_NOEENAME ..."
 echo
 
 module load tensorflow/cuda-8.0/r1.3 
@@ -27,6 +27,7 @@ module load tensorflow/cuda-8.0/r1.3
 # sequence A:(8,8,64), options, 1 transform layer
 # sequence B:(4,4,64), options, 2 transform layers
 # sequence C:(4,4,64), options, 3 transform layers
+# sequence C:(8,8,64), options, 3 transform layers, dense
 
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--features multi \
@@ -34,7 +35,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--model predictor \
 	--data_file $HOME/work/ctp_value2.npz \
 	--lr 0.001 \
-	--model_directory $HOME/.costar/models_stackD/ \
+	--model_directory $HOME/.costar/models_stackE/ \
 	--optimizer adam \
   --upsampling conv_transpose \
   --hypothesis_dropout false \

@@ -82,30 +82,6 @@ def GetArmGripperColumns(arm, gripper, dim, dropout_rate, dense_size):
 
     return [arm_in, gripper_in], x
 
-def GetSeparateEncoder(img_shape, img_col_dim, dropout_rate, img_num_filters,
-        img_dense_size, arm_size, gripper_size, robot_col_dim,
-        robot_col_dense_size,
-        combined_dense_size):
-
-        img_ins, img_out = GetCameraColumn(
-                img_shape,
-                img_col_dim,
-                dropout_rate,
-                img_num_filters,
-                img_dense_size,)
-        robot_ins, robot_out = GetArmGripperColumns(
-                arm_size, 
-                gripper_size,
-                robot_col_dim,
-                dropout_rate,
-                robot_col_dense_size,)
-
-        x = Concatenate()([img_out, robot_out])
-        x = Dense(combined_dense_size)(x)
-        x = LeakyReLU(alpha=0.2)(x)
-
-        return img_ins + robot_ins, x
-
 def MakeStacked(ins, x, num_to_stack):
     '''
     Stacked latent representations -- for temporal convolutions in particular
@@ -196,8 +172,6 @@ def GetEncoderConvLSTM(img_shape, arm_size, gripper_size,
 
     return ins, x
 
-
-
 def GetEncoder3D(img_shape, arm_size, gripper_size, dropout_rate,
         filters, tile=False, dropout=True, leaky=True,
         pre_tiling_layers=0,
@@ -264,17 +238,63 @@ def GetEncoder3D(img_shape, arm_size, gripper_size, dropout_rate,
 
     return ins, x
 
-def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
+def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
         filters, discriminator=False, tile=False, dropout=True, leaky=True,
+        pose_col_dim=None,
         dense=True, option=None, flatten=True, batchnorm=False,
         pre_tiling_layers=0,
         post_tiling_layers=2,
         kernel_size=[3,3], output_filters=None,
-        time_distributed=0,):
+        time_distributed=0,
+        config="arm"):
+    '''
+    This is the "master" version of the encoder creation function. It takes in
+    a massive number of parameters and creates the appropriate inputs and
+    structure.
 
+    Parameters:
+    -----------
+    img_shape:
+    arm_size:
+    gripper_size:
+    dim:
+    dropout_rate:
+    filters:
+    discriminator: 
+    tile:
+    dropout:
+    leaky:
+    dense:
+    option:
+    flatten:
+    batchnorm:
+    pre_tiling_layers:
+    post_tiling_layers:
+    kernel_size:
+    output_filters:
+    time_distributed:
+    config:
+    '''
+
+    if not config in ["arm", "mobile"]:
+        raise RuntimeError("Encoder config type must be in [arm, mobile]")
+    elif config == "arm":
+        arm_size, gripper_size = state_sizes
+    elif config == "mobile":
+        if isinstance(state_sizes,list):
+            pose_size = state_sizes[0]
+        else:
+            pose_size = state_sizes
+
+    if pose_col_dim is None:
+        pose_col_dim = dim
 
     if output_filters is None:
         output_filters = filters
+
+    # ===============================================
+    # Parse all of our many options to set up the appropriate inputs for this
+    # problem.
 
     if time_distributed <= 0:
         ApplyTD = lambda x: x
@@ -313,10 +333,6 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
 
     samples = Input(shape=img_shape)
 
-    '''
-    Convolutions for an image, terminating in a dense layer of size dim.
-    '''
-
     if leaky:
         relu = lambda: LeakyReLU(alpha=0.2)
     else:
@@ -334,6 +350,9 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     if dropout:
         x = ApplyTD(Dropout(dropout_rate))(x)
 
+    # ===============================================
+    # Create preprocessing layers that just act on the image. These do not
+    # modify the image size at all.
     for i in range(pre_tiling_layers):
 
         x = ApplyTD(Conv2D(filters,
@@ -353,15 +372,14 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     # ===============================================
     # ADD TILING
     if tile:
-        tile_width = width #int(width/(pre_tiling_layers+))
-        tile_height = height #int(height/(pre_tiling_layers+1))
+        tile_width = width 
+        tile_height = height 
         if option is not None:
             ins = [samples, arm_in, gripper_in, option_in]
         else:
             ins = [samples, arm_in, gripper_in]
         x, robot = TileArmAndGripper(x, arm_in, gripper_in, tile_height, tile_width,
-                None, None, time_distributed, dim)
-                #option, option_x, time_distributed, dim)
+                None, None, time_distributed, pose_col_dim)
     else:
         ins = [samples]
 
