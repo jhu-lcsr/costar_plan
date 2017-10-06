@@ -238,6 +238,7 @@ def SliceImageHypotheses(image_shape, num_hypotheses, x):
 
 def GetImageDecoder(dim, img_shape,
         dropout_rate, filters, kernel_size=[3,3], dropout=True, leaky=True,
+        dense_rep_size=None,
         batchnorm=True,dense=True, num_hypotheses=None, tform_filters=None,
         original=None, upsampling=None,
         resnet_blocks=False,
@@ -261,11 +262,16 @@ def GetImageDecoder(dim, img_shape,
     else:
         relu = lambda: Activation('relu')
 
-    z = Input((width*height*tform_filters,),name="input_image")
-    x = Reshape((height,width,tform_filters))(z)
-    if not resnet_blocks and dropout:
-        x = Dropout(dropout_rate)(x)
-
+    if not dense:
+        z = Input((width*height*tform_filters,),name="input_image")
+        x = Reshape((height,width,tform_filters))(z)
+    else:
+        z = Input((dense_rep_size,),name="input_latent")
+        x = Reshape((1,1,dense_rep_size))(z)
+        print (x)
+        x = UpSampling2D(size=(height,width))(x)
+        print (x)
+    
     skip_inputs = []
     height = height * 2
     width = width * 2
@@ -459,6 +465,7 @@ def GetArmGripperDecoder(dim, img_shape,
 
 def GetImageArmGripperDecoder(dim, img_shape,
         dropout_rate, filters, dense_size, kernel_size=[3,3], dropout=True, leaky=True,
+        dense_rep_size=None,
         batchnorm=True,dense=True, num_hypotheses=None, tform_filters=None,
         upsampling=None,
         original=None, num_options=64, arm_size=7, gripper_size=1,
@@ -472,6 +479,7 @@ def GetImageArmGripperDecoder(dim, img_shape,
     width = int(img_shape[1]/(2**stride2_layers))
     rep, dec = GetImageDecoder(dim,
                         img_shape,
+                        dense_rep_size=dense_rep_size,
                         dropout_rate=dropout_rate,
                         kernel_size=kernel_size,
                         filters=filters,
@@ -495,19 +503,19 @@ def GetImageArmGripperDecoder(dim, img_shape,
     # Predict the next joint states and gripper position. We add these back
     # in from the inputs once again, in order to make sure they don't get
     # lost in all the convolution layers above...
-    x = Reshape((height,width,tform_filters))(rep[0])
-    if not resnet_blocks:
+    if not dense:
+        x = Reshape((height,width,tform_filters))(rep[0])
         x = Flatten()(x)
-        x = Dense(dense_size)(x)
-        x = BatchNormalization()(x)
-        if leaky:
-            x = LeakyReLU(0.2)(x)
-        else:
-            x = Activation("relu")(x)
-        if dropout:
-            x = Dropout(dropout_rate)(x)
     else:
-        raise RuntimeError('resnet not supported')
+        x = rep[0]
+    x = Dense(dense_size)(x)
+    x = BatchNormalization()(x)
+    if leaky:
+        x = LeakyReLU(0.2)(x)
+    else:
+        x = Activation("relu")(x)
+    if dropout:
+        x = Dropout(dropout_rate)(x)
 
     arm_out_x = Dense(arm_size,name="next_arm")(x)
     gripper_out_x = Dense(gripper_size,

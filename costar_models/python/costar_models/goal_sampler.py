@@ -140,36 +140,8 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         # Create many different image decoders
 
         for i in range(self.num_hypotheses):
-            if self.dense_representation:
-                transform = GetDenseTransform(
-                        dim=self.img_col_dim,
-                        input_size=self.img_col_dim,
-                        output_size=self.img_col_dim,
-                        idx=i,
-                        batchnorm=True,
-                        dropout=False,
-                        dropout_rate=self.dropout_rate,
-                        leaky=True,
-                        num_blocks=self.num_transforms,
-                        relu=True,
-                        resnet_blocks=self.residual,
-                        use_noise=self.use_noise,
-                        noise_dim=self.noise_dim,)
-            else:
-                transform = GetTransform(
-                        rep_size=(self.hidden_dim, self.hidden_dim),
-                        filters=self.tform_filters,
-                        kernel_size=[3,3],
-                        idx=i,
-                        batchnorm=True,
-                        dropout=False,
-                        dropout_rate=self.dropout_rate,
-                        leaky=True,
-                        num_blocks=self.num_transforms,
-                        relu=True,
-                        resnet_blocks=self.residual,
-                        use_noise=self.use_noise,
-                        noise_dim=self.noise_dim,)
+            transform = self._getTransform(i)
+
             if i == 0:
                 transform.summary()
             if self.use_noise:
