@@ -54,7 +54,7 @@ def CombineArmAndGripperAndOption(arm_in, gripper_in, option_in, dim=64):
 
 def TileOnto(x,z,zlen,xsize):
     z = Reshape([1,1,zlen])(z)
-    tile_shape = (1, xsize[0], xsize[1], 1)
+    tile_shape = (int(1), int(xsize[0]), int(xsize[1]), 1)
     z = Lambda(lambda x: K.tile(x, tile_shape))(z)
     x = Concatenate(axis=-1)([x,z])
     return x
