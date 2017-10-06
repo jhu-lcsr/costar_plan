@@ -353,8 +353,8 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     # ===============================================
     # ADD TILING
     if tile:
-        tile_width = width #int(width/(pre_tiling_layers+))
-        tile_height = height #int(height/(pre_tiling_layers+1))
+        tile_width = width 
+        tile_height = height 
         if option is not None:
             ins = [samples, arm_in, gripper_in, option_in]
         else:

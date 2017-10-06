@@ -48,12 +48,13 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
     def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
         img_shape = features.shape[1:]
         arm_size = arm.shape[1]
+        arm_cmd_size = arm_cmd.shape[1]
         if len(gripper.shape) > 1:
             gripper_size = gripper.shape[1]
         else:
             gripper_size = 1
 
-        ins, x = GetEncoder(
+        ins, x, skips, robot_skip = GetEncoder(
                 img_shape,
                 arm_size,
                 gripper_size,
@@ -63,16 +64,31 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
                 discriminator=False,
                 tile=True,
                 pre_tiling_layers=1,
-                post_tiling_layers=2)
+                post_tiling_layers=3)
 
-        arm_out = Dense(arm_size)(x)
+        arm_out = Dense(arm_cmd_size)(x)
         gripper_out = Dense(gripper_size)(x)
 
         model = Model(ins, [arm_out, gripper_out])
-        #model = Model(img_ins, [arm_out])
         optimizer = self.getOptimizer()
-        model.compile(loss="mse", optimizer=optimizer)
+        model.compile(loss="mae", optimizer=optimizer)
         self.model = model
+
+
+    def _getData(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
+        return [features, arm, gripper], [arm_cmd, gripper_cmd]
+
+    def trainFromGenerators(self, train_generator, test_generator, data=None, *args, **kwargs):
+        [features, arm, gripper], [arm_cmd, gripper_cmd] = self._getData(**data)
+        self._makeModel(features, arm, gripper, arm_cmd,
+                gripper_cmd, *args, **kwargs)
+        self.model.summary()
+        self.model.fit_generator(
+                train_generator,
+                self.steps_per_epoch,
+                epochs=self.epochs,
+                validation_steps=self.validation_steps,
+                validation_data=test_generator,)
 
     def train(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
         '''
