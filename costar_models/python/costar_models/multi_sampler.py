@@ -43,7 +43,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.tform_filters = 64
         self.combined_dense_size = 128
         self.num_hypotheses = 8
-        self.num_transforms = 2
+        self.num_transforms = 3
         self.validation_split = 0.1
         self.num_options = 48
         self.extra_layers = 0
@@ -92,14 +92,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 output_filters=self.tform_filters,
                 )
         img_in, arm_in, gripper_in, option_in = ins
-
-        # =====================================================================
-        # Create the predictors for value, next action label.
-        value_out, next_option_out = GetNextOptionAndValue(enc,
-                                                           self.num_options,
-                                                           self.img_num_filters,
-                                                           [5,5],
-                                                           dropout_rate=self.decoder_dropout_rate)
+        if self.use_noise:
+            z = Input((self.num_hypotheses, self.noise_dim))
 
         # =====================================================================
         # Create the decoders for image, arm, gripper.
@@ -136,19 +130,15 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         skips.reverse()
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         decoder.summary()
+    
+        value_out, next_option_out = GetNextOptionAndValue(enc,
+                                                           self.num_options,)
 
         # =====================================================================
         # Create many different image decoders
-        if not self.use_noise:
-            enc2 = enc
-        else:
-            # Add noise input and add to enc
-            z = Input((self.noise_dim,))
-            enc2 = TileOnto(enc,z,self.noise_dim,self.hidden_shape)
-
         for i in range(self.num_hypotheses):
             transform = GetTransform(
-                    rep_size=(8,8),
+                    rep_size=(self.hidden_dim, self.hidden_dim),
                     filters=self.tform_filters,
                     kernel_size=[3,3],
                     idx=i,
@@ -159,12 +149,15 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     num_blocks=self.num_transforms,
                     relu=True,
                     resnet_blocks=self.residual,
-                    option=None,
                     use_noise=self.use_noise,
                     noise_dim=self.noise_dim,)
             if i == 0:
                 transform.summary()
-            x = transform([enc2])
+            if self.use_noise:
+                zi = Lambda(lambda x: x[:,i])(z)
+                x = transform([enc, zi])
+            else:
+                x = transform([enc])
             
             # This maps from our latent world state back into observable images.
             img_x, arm_x, gripper_x, label_x = decoder([x]+skips)
@@ -221,7 +214,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
                         weights=[0.7,1.0,0.1,0.1],
                         loss=["mae","mae","mae","categorical_crossentropy"],
-                        avg_weight=0.1),
+                        avg_weight=0.05),
                     "binary_crossentropy", "binary_crossentropy"],
                 loss_weights=[#0.1,0.1,0.1,0.1,
                     1.0,0.1,0.1],
@@ -293,7 +286,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         features, targets = self._getAllData(*args, **kwargs)
         if self.use_noise:
             noise_len = features[0].shape[0]
-            z = np.random.random(size=(noise_len,self.noise_dim))
+            z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
             return features[:4] + [z], targets[:3]
         else:
             return features[:4], targets[:3]

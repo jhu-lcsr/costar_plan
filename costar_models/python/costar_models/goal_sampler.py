@@ -302,37 +302,6 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
 
         self._fixWeights()
 
-    def plotPredictions(self, features, targets, axes):
-        STEP = 20
-        idxs = range(0,120,STEP)
-        STEP = 11
-        idxs = range(0,66,STEP)
-        subset = [f[idxs] for f in features[:4]]
-        allt = targets[0][idxs]
-        imglen = 64*64*3
-        img = allt[:,:imglen]
-        img = np.reshape(img, (6,64,64,3))
-        data, arms, grippers, labels = self.predictor.predict(subset)
-        for j in range(6):
-            jj = j * STEP
-            for k in range(min(4,self.num_hypotheses)):
-                ax = axes[1+k][j]
-                ax.set_axis_off()
-                ax.imshow(np.squeeze(data[j][k]))
-                ax.axis('off')
-            ax = axes[0][j]
-            ax.set_axis_off()
-            ax.imshow(np.squeeze(features[0][jj]))
-            ax.axis('off')
-            ax = axes[-1][j]
-            ax.set_axis_off()
-            ax.imshow(np.squeeze(img[j]))
-            ax.axis('off')
-
-        plt.ion()
-        plt.show(block=False)
-        plt.pause(0.01)
-
     def _makeModel(self, features, arm, gripper, *args, **kwargs):
         '''
         Little helper function wraps makePredictor to consturct all the models.
@@ -344,65 +313,6 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         self.predictor, self.train_predictor, self.actor = \
             self._makePredictor(
                 (features, arm, gripper))
-
-
-    def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
-            prev_label, goal_features, goal_arm, goal_gripper, *args, **kwargs):
-        '''
-        Pre-process training data.
-
-        Then, create the model. Train based on labeled data. Remove
-        unsuccessful examples.
-        '''
-
-        raise RuntimeError('deprecated function')
-
-        I = features
-        q = arm
-        g = gripper
-        qa = arm_cmd
-        ga = gripper_cmd
-        oin = prev_label
-        I_target = goal_features
-        q_target = goal_arm
-        g_target = goal_gripper
-        o_target = label
-
-        print("sanity check:")
-        print("-------------")
-        print("images:", I.shape, I_target.shape)
-        print("joints:", q.shape)
-        print("options:", oin.shape, o_target.shape)
-
-        if self.predictor is None:
-            self._makeModel(I, q, g, qa, ga)
-
-        # ==============================
-        image_shape = I.shape[1:]
-        image_size = 1
-        for dim in image_shape:
-            image_size *= dim
-        image_size = int(image_size)
-        arm_size = q.shape[-1]
-        gripper_size = g.shape[-1]
-
-        train_size = image_size + arm_size + gripper_size + self.num_options
-        assert gripper_size == 1
-        assert train_size == 12295 + self.num_options
-        assert I.shape[0] == I_target.shape[0]
-
-        o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
-        length = I.shape[0]
-        Itrain = np.reshape(I_target,(length, image_size))
-        train_target = np.concatenate(
-                [Itrain,q_target,g_target,o_target],
-                axis=-1)
-
-        # ===============================================
-        # Fit the main models
-        self._fitPredictor(
-                [I, q, g, I_target, q_target, g_target,],
-                [train_target,o_target, qa, ga],)
 
     def _getAllData(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             prev_label, goal_features, goal_arm, goal_gripper, *args, **kwargs):

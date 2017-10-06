@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --job-name=ctp_value
+#SBATCH --job-name=ctpD
 #SBATCH --time=0-48:0:0
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
@@ -28,13 +28,13 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--features multi \
 	-e 250 \
 	--model predictor \
-	--data_file $HOME/work/ctp_value.npz \
+	--data_file $HOME/work/ctp_value2.npz \
 	--lr $1 \
 	--dropout_rate 0.5 \
 	--decoder_dropout_rate $2 \
-	--model_directory $HOME/.costar/models_stack_B$1$3$2$4/ \
+	--model_directory $HOME/.costar/models_stack_D$1$3$2$4/ \
 	--optimizer $3 \
-        --use_noise true \
-        --noise_dim 32 \
+  --use_noise true \
+  --noise_dim 32 \
 	--hypothesis_dropout $4
 

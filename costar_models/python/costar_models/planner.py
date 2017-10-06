@@ -526,16 +526,15 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
         dropout=False,
         resnet_blocks=False,
         use_noise=False,
-        option=None,
         noise_dim=32):
 
     dim = filters
-    if use_noise:
-        dim += noise_dim
-    if option is not None:
-        dim += option
     xin = Input((rep_size) + (dim,))
-    x = xin
+    if use_noise:
+        zin = Input((noise_dim,))
+        x = TileOnto(xin,zin,noise_dim,rep_size)
+    else:
+        x = xin
     for j in range(num_blocks):
         if not resnet_blocks:
             x = Conv2D(filters,
@@ -555,13 +554,65 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
         else:
             raise RuntimeError('resnet not supported for transform')
 
-    return Model(xin, x, name="transform%d"%idx)
+    if use_noise:
+        return Model([xin, zin], x, name="transform%d"%idx)
+    else:
+        return Model(xin, x, name="transform%d"%idx)
 
-def GetNextOptionAndValue(x, num_options, filters, kernel_size, dropout_rate=0.5):
+def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True, 
+        idx=0,
+        leaky=True,
+        relu=True,
+        dropout_rate=0.,
+        dropout=False,
+        resnet_blocks=False,
+        use_noise=False,
+        option=None,
+        noise_dim=32):
+
+    xin = Input((input_size,))
+    if use_noise:
+        zin = Input((noise_dim,))
+        x = Concatenate()([xin, zin])
+    else:
+        x = xin
+    for j in range(num_blocks):
+        if not resnet_blocks:
+            x = Dense(dim,name="dense_%d_%d"%(idx,j))(x)
+            if batchnorm:
+                x = BatchNormalization(name="normalize_%d_%d"%(idx,j))(x)
+            if relu:
+                if leaky:
+                    x = LeakyReLU(0.2,name="lrelu_%d_%d"%(idx,j))(x)
+                else:
+                    x = Activation("relu",name="relu_%d_%d"%(idx,j))(x)
+            if dropout:
+                x = Dropout(dropout_rate)(x)
+        else:
+            raise RuntimeError('resnet not supported for transform')
+
+    x = Reshape([1,1,dim])(x)
+    x = Lambda(lambda x: K.tile(x, [1] + output_size + [1]))(x)
+
+    if not use_noise:
+        return Model(xin, x, name="transform%d"%idx)
+    else:
+        return Model([xin, zin], x, name="transform%d"%idx)
+
+def GetNextOptionAndValue(x, num_options):
     '''
     Predict some information about an observed/encoded world state
     '''
     x = Flatten()(x)
+    next_option_out = Dense(num_options,
+            activation="sigmoid", name="next_label_out",)(x)
+    value_out = Dense(1, activation="sigmoid", name="value_out",)(x)
+    return value_out, next_option_out
+
+def GetNextOptionAndValueDense(x, num_options):
+    '''
+    Predict some information about an observed/encoded world state
+    '''
     next_option_out = Dense(num_options,
             activation="sigmoid", name="next_label_out",)(x)
     value_out = Dense(1, activation="sigmoid", name="value_out",)(x)

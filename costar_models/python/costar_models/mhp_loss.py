@@ -112,7 +112,7 @@ class MhpLossWithShape(object):
             raise RuntimeError('avg_weight must be in [0,0.25]')
         self.avg_weight = avg_weight
         #self.min_weight = 1.0 - (2 * self.avg_weight)
-        self.min_weight = 1.0 - (self.avg_weight)
+        self.min_weight = 1.0 - (2 * self.avg_weight)
 
     def __call__(self, target, pred):
         '''

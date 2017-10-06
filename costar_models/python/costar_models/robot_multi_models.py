@@ -382,7 +382,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         if dropout:
             x = Dropout(dropout_rate)(x)
         skips.append(x)
-
+    
     if option is not None:
         nfilters = output_filters
         option_x = OneHot(size=option)(option_in)
