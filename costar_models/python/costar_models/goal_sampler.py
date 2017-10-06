@@ -49,7 +49,7 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         self.tform_filters = 64
         self.combined_dense_size = 128
         self.num_hypotheses = 8
-        self.num_transforms = 1
+        self.num_transforms = 3
         self.validation_split = 0.1
         self.num_options = 48
         self.extra_layers = 0
@@ -238,7 +238,8 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                         num_hypotheses=self.num_hypotheses,
                         outputs=[arm_size, gripper_size, self.num_options],
                         weights=[0.4,0.3,0.3],
-                        loss=["mae","mae","categorical_crossentropy"]),
+                        loss=["mae","mae","categorical_crossentropy"],
+                        avg_weight=0.05),
                     "binary_crossentropy","binary_crossentropy"],
                 loss_weights=[1.0,0.1,0.1,],
                 optimizer=self.getOptimizer())

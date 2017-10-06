@@ -108,11 +108,11 @@ class MhpLossWithShape(object):
         assert len(self.outputs) == len(self.losses)
         self.__name__ = "mhp_loss"
 
-        if avg_weight > 0.25 or avg_weight < 0.:
-            raise RuntimeError('avg_weight must be in [0,0.25]')
+        if avg_weight > 1.0 or avg_weight < 0.:
+            raise RuntimeError('avg_weight must be in [0,1]')
         self.avg_weight = avg_weight
         #self.min_weight = 1.0 - (2 * self.avg_weight)
-        self.min_weight = 1.0 - (2 * self.avg_weight)
+        self.min_weight = 1.0 - self.avg_weight
 
     def __call__(self, target, pred):
         '''
