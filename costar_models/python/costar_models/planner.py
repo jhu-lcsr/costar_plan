@@ -526,16 +526,15 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
         dropout=False,
         resnet_blocks=False,
         use_noise=False,
-        option=None,
         noise_dim=32):
 
     dim = filters
-    if use_noise:
-        dim += noise_dim
-    if option is not None:
-        dim += option
     xin = Input((rep_size) + (dim,))
-    x = xin
+    if use_noise:
+        zin = Input((noise_dim,))
+        x = TileOnto(xin,zin,noise_dim,rep_size)
+    else:
+        x = xin
     for j in range(num_blocks):
         if not resnet_blocks:
             x = Conv2D(filters,
@@ -555,9 +554,12 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
         else:
             raise RuntimeError('resnet not supported for transform')
 
-    return Model(xin, x, name="transform%d"%idx)
+    if use_noise:
+        return Model([xin, zin], x, name="transform%d"%idx)
+    else:
+        return Model(xin, x, name="transform%d"%idx)
 
-def GetDenseTransform(dim, output_size, num_blocks=2, batchnorm=True, 
+def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True, 
         idx=0,
         leaky=True,
         relu=True,
@@ -568,7 +570,7 @@ def GetDenseTransform(dim, output_size, num_blocks=2, batchnorm=True,
         option=None,
         noise_dim=32):
 
-    xin = Input((dim,))
+    xin = Input((input_size,))
     if use_noise:
         zin = Input((noise_dim,))
         x = Concatenate()([xin, zin])
@@ -597,7 +599,7 @@ def GetDenseTransform(dim, output_size, num_blocks=2, batchnorm=True,
     else:
         return Model([xin, zin], x, name="transform%d"%idx)
 
-def GetNextOptionAndValue(x, num_options, filters, kernel_size, dropout_rate=0.5):
+def GetNextOptionAndValue(x, num_options):
     '''
     Predict some information about an observed/encoded world state
     '''
