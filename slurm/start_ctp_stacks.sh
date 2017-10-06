@@ -25,4 +25,4 @@ done
 # ======================================
 sbatch ctp_stack.sh
 sbatch ctp_stack2.sh
-
+sbatch ctp_goal.sh
