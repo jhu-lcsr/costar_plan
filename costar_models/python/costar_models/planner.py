@@ -453,8 +453,9 @@ def GetArmGripperDecoder(dim, img_shape,
     if dropout:
         x = Dropout(dropout_rate)(x)
 
-    arm_out_x = Dense(arm_size,name="next_arm")(x)
+    arm_out_x = Dense(arm_size, name="next_arm", activation="tanh")(x)
     gripper_out_x = Dense(gripper_size,
+            activation="sigmoid",
             name="next_gripper_flat")(x)
     label_out_x = Dense(num_options,name="next_label",activation="softmax")(x)
 

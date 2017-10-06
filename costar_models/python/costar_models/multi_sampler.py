@@ -266,18 +266,22 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             self._makePredictor(
                 (features, arm, gripper))
 
+    def _makeTrainTarget(self, I_target, q_target, g_target, o_target):
+        length = I_target.shape[0]
+        Itrain = np.reshape(I_target,(length, image_size))
+        return np.concatenate([Itrain, q_target,g_target,o_target],axis=-1)
 
     def _getAllData(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             prev_label, goal_features, goal_arm, goal_gripper, value, *args, **kwargs):
         I = features
         q = arm
-        g = gripper
+        g = gripper * -1
         qa = arm_cmd
-        ga = gripper_cmd
+        ga = gripper_cmd * -1
         oin = prev_label
         I_target = goal_features
         q_target = goal_arm
-        g_target = goal_gripper
+        g_target = goal_gripper * -1
         o_target = label
         value_target = np.array(value > 1.,dtype=float)
 
@@ -299,10 +303,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         assert I.shape[0] == I_target.shape[0]
 
         o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
-        #oin_onehot = np.squeeze(self.toOneHot2D(oin, self.num_options))
-        length = I.shape[0]
-        Itrain = np.reshape(I_target,(length, image_size))
-        train_target = np.concatenate([Itrain,q_target,g_target,o_target],axis=-1)
+        train_target = self._makeTrainTarget(
+                I_target,
+                q_target,
+                g_target,
+                o_target)
 
         return [I, q, g, oin, I_target, q_target, g_target,], [
                 np.expand_dims(train_target, axis=1),
@@ -314,12 +319,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
+        tt, o1, v, qa, ga = targets
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-            return features[:4] + [z], targets[:3]
+            return features[:4] + [z], [tt, o1, v]
         else:
-            return features[:4], targets[:3]
+            return features[:4], [tt, o1, v]
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''

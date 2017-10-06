@@ -108,7 +108,7 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                         dropout_rate=self.dropout_rate,
                         dense_size=self.combined_dense_size,
                         dense=self.dense_representation,
-                        kernel_size=[5,5],
+                        kernel_size=[3,3],
                         filters=self.img_num_filters,
                         stride2_layers=self.steps_down,
                         stride1_layers=self.extra_layers,
@@ -123,7 +123,6 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                         robot_skip=robot_skip,
                         resnet_blocks=self.residual,
                         batchnorm=True,)
-
 
         arm_outs = []
         gripper_outs = []
@@ -183,15 +182,8 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
 
         # =====================================================================
         # Hypothesis probabilities
-        #sum_p_out, p_out = GetHypothesisProbability(enc,
-        #        self.num_hypotheses,
-        #        self.num_options,
-        #        labels=label_out,
-        #        filters=self.img_num_filters,
-        #        kernel_size=[5,5],
-        #        dropout_rate=self.dropout_rate)
-        value_out, next_option_out = GetNextOptionAndValue(enc,
-                                                           self.num_options,)
+        value_out, next_option_out = GetNextOptionAndValue(enc, self.num_options,)
+
         # =====================================================================
         # Training the actor policy
         y = enc
@@ -252,56 +244,6 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
             self._makePredictor(
                 (features, arm, gripper))
 
-    def _getAllData(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
-            prev_label, goal_features, goal_arm, goal_gripper, value, *args, **kwargs):
-        I = features
-        q = arm
-        g = gripper
-        qa = arm_cmd
-        ga = gripper_cmd
-        oin = prev_label
-        I_target = goal_features
-        q_target = goal_arm
-        g_target = goal_gripper
-        o_target = label
-        value_target = np.array(value > 1.,dtype=float)
-
-        # ==============================
-        image_shape = I.shape[1:]
-        image_size = 1
-        for dim in image_shape:
-            image_size *= dim
-        image_size = int(image_size)
-        arm_size = q.shape[-1]
-        gripper_size = g.shape[-1]
-
-        train_size = image_size + arm_size + gripper_size + self.num_options
-        assert gripper_size == 1
-        #assert train_size == 12295 + self.num_options
-        # NOTE: arm size is one bigger when we have quaternions
-        #assert train_size == 12296 + self.num_options
-        assert train_size == (64*64*3) + 7 + 1 + self.num_options
-        assert I.shape[0] == I_target.shape[0]
-
-        o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
-        length = I.shape[0]
-        #Itrain = np.reshape(I_target,(length, image_size))
-        train_target = np.concatenate([q_target,g_target,o_target],axis=-1)
-
-        return [I, q, g, oin, I_target, q_target, g_target,], [
-                np.expand_dims(train_target, axis=1),
-                o_target,
-                value_target,
-                np.expand_dims(qa, axis=1),
-                np.expand_dims(ga, axis=1)]
-
-    def _getData(self, *args, **kwargs):
-        features, targets = self._getAllData(*args, **kwargs)
-        tt, o1, v, qa, ga = targets
-        if self.use_noise:
-            noise_len = features[0].shape[0]
-            z = np.random.random(size=(noise_len,self.num_hypotheses, self.noise_dim))
-            return features[:4] + [z], [tt, o1, v]
-        else:
-            return features[:4], [tt, o1, v]
+    def _makeTrainTarget(self, I_target, q_target, g_target, o_target):
+        return np.concatenate([q_target,g_target,o_target],axis=-1)
 
