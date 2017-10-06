@@ -32,9 +32,9 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--features multi \
 	-e 250 \
 	--model predictor \
-	--data_file $HOME/work/ctp_value.npz \
+	--data_file $HOME/work/ctp_value2.npz \
 	--lr 0.001 \
-	--model_directory $HOME/.costar/models_stackC/ \
+	--model_directory $HOME/.costar/models_stackD/ \
 	--optimizer adam \
   --upsampling conv_transpose \
   --hypothesis_dropout false \
