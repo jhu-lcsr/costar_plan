@@ -268,6 +268,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
     def _makeTrainTarget(self, I_target, q_target, g_target, o_target):
         length = I_target.shape[0]
+        image_shape = I_target.shape[1:]
+        image_size = 1
+        for dim in image_shape:
+            image_size *= dim
+        image_size = int(image_size)
         Itrain = np.reshape(I_target,(length, image_size))
         return np.concatenate([Itrain, q_target,g_target,o_target],axis=-1)
 
@@ -284,23 +289,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         g_target = goal_gripper * -1
         o_target = label
         value_target = np.array(value > 1.,dtype=float)
-
-        # ==============================
-        image_shape = I.shape[1:]
-        image_size = 1
-        for dim in image_shape:
-            image_size *= dim
-        image_size = int(image_size)
-        arm_size = q.shape[-1]
-        gripper_size = g.shape[-1]
-
-        train_size = image_size + arm_size + gripper_size + self.num_options
-        assert gripper_size == 1
-        #assert train_size == 12295 + self.num_options
-        # NOTE: arm size is one bigger when we have quaternions
-        #assert train_size == 12296 + self.num_options
-        assert train_size == (64*64*3) + 7 + 1 + self.num_options
-        assert I.shape[0] == I_target.shape[0]
 
         o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
         train_target = self._makeTrainTarget(
