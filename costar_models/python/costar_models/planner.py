@@ -242,7 +242,7 @@ def GetImageDecoder(dim, img_shape,
         batchnorm=True,dense=True, num_hypotheses=None, tform_filters=None,
         original=None, upsampling=None,
         resnet_blocks=False,
-        skips=None,
+        skips=False,
         stride2_layers=2, stride1_layers=1):
 
     '''
@@ -267,17 +267,20 @@ def GetImageDecoder(dim, img_shape,
         x = Reshape((height,width,tform_filters))(z)
     else:
         z = Input((dense_rep_size,),name="input_latent")
-        x = Reshape((1,1,dense_rep_size))(z)
-        print (x)
-        x = UpSampling2D(size=(height,width))(x)
-        print (x)
+        x = Dense(height*width*filters,name="dense_input_size")(z)
+        if batchnorm:
+            x = BatchNormalization()(x)
+        x = relu()(x)
+        if dropout:
+            x = Dropout(dropout_rate)(x)
+        x = Reshape((height,width,filters))(x)
     
     skip_inputs = []
     height = height * 2
     width = width * 2
     for i in range(stride2_layers):
 
-        if skips is not None:
+        if skips:
             skip_in = Input((width/2,height/2,filters))
             x = Concatenate(axis=-1)([x, skip_in])
             skip_inputs.append(skip_in)
@@ -318,7 +321,7 @@ def GetImageDecoder(dim, img_shape,
         height *= 2
         width *= 2
 
-    if skips is not None:
+    if skips:
         skip_in = Input((img_shape[0],img_shape[1],filters))
         x = Concatenate(axis=-1)([x,skip_in])
         skip_inputs.append(skip_in)
@@ -350,7 +353,7 @@ def GetImagePoseDecoder(dim, img_shape,
         dropout_rate, filters, dense_size, kernel_size=[3,3], dropout=True, leaky=True,
         batchnorm=True,dense=True, num_hypotheses=None, tform_filters=None,
         original=None, num_options=64, pose_size=6,
-        resnet_blocks=False, skips=None, robot_skip=None,
+        resnet_blocks=False, skips=False, robot_skip=None,
         stride2_layers=2, stride1_layers=1):
 
     rep, dec = GetImageDecoder(dim,
@@ -384,9 +387,6 @@ def GetImagePoseDecoder(dim, img_shape,
     x = Reshape((width8,height8,tform_filters))(rep[0])
     if not resnet_blocks:
         for i in range(1):
-            #if i == 1 and skips is not None:
-            #    smallest_skip = rep[1]
-            #    x = Concatenate(axis=-1)([x, smallest_skip])
             x = Conv2D(filters,
                     kernel_size=kernel_size, 
                     strides=(2, 2),

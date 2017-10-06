@@ -104,7 +104,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # =====================================================================
         # Create the decoders for image, arm, gripper.
-
         decoder = GetImageArmGripperDecoder(
                         self.img_col_dim,
                         img_shape,
@@ -123,7 +122,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         leaky=True,
                         dense=self.dense_representation,
                         dense_rep_size=self.img_col_dim,
-                        skips=skips,
+                        skips=self.skip_connections,
                         robot_skip=robot_skip,
                         resnet_blocks=self.residual,
                         batchnorm=True,)
@@ -135,7 +134,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         train_outs = []
         label_outs = []
 
-        skips.reverse()
+        if self.skip_connections:
+            skips.reverse()
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         decoder.summary()
     
@@ -146,7 +146,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Create many different image decoders
         for i in range(self.num_hypotheses):
             transform = self._getTransform(i)
-            print (enc, decoder.inputs, transform.inputs)
 
             if i == 0:
                 transform.summary()
@@ -157,7 +156,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 x = transform([enc])
             
             # This maps from our latent world state back into observable images.
-            img_x, arm_x, gripper_x, label_x = decoder([x]+skips)
+            if self.skip_connections:
+                decoder_inputs = [x] + skips
+            else:
+                decoder_inputs = [x]
+            img_x, arm_x, gripper_x, label_x = decoder(decoder_inputs)
 
             # Create the training outputs
             train_x = Concatenate(axis=-1,name="combine_train_%d"%i)([
