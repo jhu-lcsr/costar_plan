@@ -52,6 +52,7 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         self.num_transforms = 3
         self.validation_split = 0.1
         self.num_options = 48
+        self.pose_col_dim = 32
         self.PredictorCb = PredictorGoals
 
         # Encoder architecture
@@ -82,9 +83,9 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         image_size = int(image_size)    
 
         ins, enc, skips, robot_skip = GetEncoder(img_shape,
-                arm_size,
-                gripper_size,
+                [arm_size, gripper_size],
                 self.img_col_dim,
+                pose_col_dim=self.pose_col_dim,
                 dropout_rate=self.dropout_rate,
                 filters=self.img_num_filters,
                 leaky=False,

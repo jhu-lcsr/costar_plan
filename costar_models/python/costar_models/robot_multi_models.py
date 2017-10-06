@@ -238,8 +238,9 @@ def GetEncoder3D(img_shape, arm_size, gripper_size, dropout_rate,
 
     return ins, x
 
-def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
+def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
         filters, discriminator=False, tile=False, dropout=True, leaky=True,
+        pose_col_dim=None,
         dense=True, option=None, flatten=True, batchnorm=False,
         pre_tiling_layers=0,
         post_tiling_layers=2,
@@ -277,7 +278,16 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
 
     if not config in ["arm", "mobile"]:
         raise RuntimeError("Encoder config type must be in [arm, mobile]")
+    elif config == "arm":
+        arm_size, gripper_size = state_sizes
+    elif config == "mobile":
+        if isinstance(state_sizes,list):
+            pose_size = state_sizes[0]
+        else:
+            pose_size = state_sizes
 
+    if pose_col_dim is None:
+        pose_col_dim = dim
 
     if output_filters is None:
         output_filters = filters
@@ -369,8 +379,7 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         else:
             ins = [samples, arm_in, gripper_in]
         x, robot = TileArmAndGripper(x, arm_in, gripper_in, tile_height, tile_width,
-                None, None, time_distributed, dim)
-                #option, option_x, time_distributed, dim)
+                None, None, time_distributed, pose_col_dim)
     else:
         ins = [samples]
 

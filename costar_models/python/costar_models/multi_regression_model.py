@@ -44,6 +44,7 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
         self.robot_col_dense_size = 128
         self.robot_col_dim = 64
         self.combined_dense_size = 64
+        self.pose_col_dim = 32
 
     def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
         img_shape = features.shape[1:]
@@ -56,11 +57,11 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
 
         ins, x, skips, robot_skip = GetEncoder(
                 img_shape,
-                arm_size,
-                gripper_size,
+                [arm_size, gripper_size],
                 self.img_col_dim,
                 self.dropout_rate,
                 self.img_num_filters,
+                pose_col_dim=self.pose_col_dim,
                 discriminator=False,
                 kernel_size=[3,3],
                 tile=True,
