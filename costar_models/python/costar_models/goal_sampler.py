@@ -42,8 +42,6 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         super(RobotMultiGoalSampler, self).__init__(taskdef, *args, **kwargs)
 
         self.num_frames = 1
-
-        self.dropout_rate = 0.2
         self.img_col_dim = 128
         self.img_num_filters = 64
         self.tform_filters = 64
