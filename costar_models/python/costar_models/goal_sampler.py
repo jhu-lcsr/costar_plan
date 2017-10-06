@@ -44,7 +44,7 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         self.num_frames = 1
 
         self.dropout_rate = 0.2
-        self.img_col_dim = 64
+        self.img_col_dim = 128
         self.img_num_filters = 64
         self.tform_filters = 64
         self.combined_dense_size = 128
@@ -92,7 +92,7 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                 pre_tiling_layers=self.extra_layers,
                 post_tiling_layers=self.steps_down,
                 kernel_size=[3,3],
-                dense=False,
+                dense=self.dense_representation,
                 batchnorm=True,
                 tile=True,
                 flatten=False,
@@ -106,6 +106,7 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                         img_shape,
                         dropout_rate=self.dropout_rate,
                         dense_size=self.combined_dense_size,
+                        dense=self.dense_representation,
                         kernel_size=[5,5],
                         filters=self.img_num_filters,
                         stride2_layers=self.steps_down,
@@ -117,7 +118,6 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                         dropout=True,
                         upsampling=self.upsampling_method,
                         leaky=True,
-                        dense=False,
                         skips=skips,
                         robot_skip=robot_skip,
                         resnet_blocks=self.residual,
@@ -139,20 +139,36 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         # Create many different image decoders
 
         for i in range(self.num_hypotheses):
-            transform = GetTransform(
-                    rep_size=(self.hidden_dim, self.hidden_dim),
-                    filters=self.tform_filters,
-                    kernel_size=[3,3],
-                    idx=i,
-                    batchnorm=True,
-                    dropout=True,
-                    dropout_rate=self.dropout_rate,
-                    leaky=True,
-                    num_blocks=self.num_transforms,
-                    relu=True,
-                    resnet_blocks=self.residual,
-                    use_noise=self.use_noise,
-                    noise_dim=self.noise_dim,)
+            if self.dense_representation:
+                transform = GetDenseTransform(
+                        dim=self.img_col_dim,
+                        input_size=self.img_col_dim,
+                        output_size=self.img_col_dim,
+                        idx=i,
+                        batchnorm=True,
+                        dropout=True,
+                        dropout_rate=self.dropout_rate,
+                        leaky=True,
+                        num_blocks=self.num_transforms,
+                        relu=True,
+                        resnet_blocks=self.residual,
+                        use_noise=self.use_noise,
+                        noise_dim=self.noise_dim,)
+            else:
+                transform = GetTransform(
+                        rep_size=(self.hidden_dim, self.hidden_dim),
+                        filters=self.tform_filters,
+                        kernel_size=[3,3],
+                        idx=i,
+                        batchnorm=True,
+                        dropout=True,
+                        dropout_rate=self.dropout_rate,
+                        leaky=True,
+                        num_blocks=self.num_transforms,
+                        relu=True,
+                        resnet_blocks=self.residual,
+                        use_noise=self.use_noise,
+                        noise_dim=self.noise_dim,)
             if i == 0:
                 transform.summary()
             if self.use_noise:
@@ -206,14 +222,15 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         # =====================================================================
         # Training the actor policy
         y = enc
-        y = Conv2D(int(self.img_num_filters/4),
-                kernel_size=[5,5], 
-                strides=(2, 2),
-                padding='same')(y)
-        y = Dropout(self.dropout_rate)(y)
-        y = LeakyReLU(0.2)(y)
-        y = BatchNormalization(momentum=0.9)(y)
-        y = Flatten()(y)
+        if not self.dense_representation:
+            y = Conv2D(int(self.img_num_filters/4),
+                    kernel_size=[5,5], 
+                    strides=(2, 2),
+                    padding='same')(y)
+            y = Dropout(self.dropout_rate)(y)
+            y = LeakyReLU(0.2)(y)
+            y = BatchNormalization(momentum=0.9)(y)
+            y = Flatten()(y)
         y = Dense(self.combined_dense_size)(y)
         y = Dropout(self.dropout_rate)(y)
         y = LeakyReLU(0.2)(y)

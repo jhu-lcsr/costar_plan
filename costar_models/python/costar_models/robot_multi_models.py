@@ -250,6 +250,29 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     This is the "master" version of the encoder creation function. It takes in
     a massive number of parameters and creates the appropriate inputs and
     structure.
+
+    Parameters:
+    -----------
+    img_shape:
+    arm_size:
+    gripper_size:
+    dim:
+    dropout_rate:
+    filters:
+    discriminator: 
+    tile:
+    dropout:
+    leaky:
+    dense:
+    option:
+    flatten:
+    batchnorm:
+    pre_tiling_layers:
+    post_tiling_layers:
+    kernel_size:
+    output_filters:
+    time_distributed:
+    config:
     '''
 
     if not config in ["arm", "mobile"]:
@@ -258,6 +281,10 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
 
     if output_filters is None:
         output_filters = filters
+
+    # ===============================================
+    # Parse all of our many options to set up the appropriate inputs for this
+    # problem.
 
     if time_distributed <= 0:
         ApplyTD = lambda x: x
@@ -296,10 +323,6 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
 
     samples = Input(shape=img_shape)
 
-    '''
-    Convolutions for an image, terminating in a dense layer of size dim.
-    '''
-
     if leaky:
         relu = lambda: LeakyReLU(alpha=0.2)
     else:
@@ -317,6 +340,9 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
     if dropout:
         x = ApplyTD(Dropout(dropout_rate))(x)
 
+    # ===============================================
+    # Create preprocessing layers that just act on the image. These do not
+    # modify the image size at all.
     for i in range(pre_tiling_layers):
 
         x = ApplyTD(Conv2D(filters,
