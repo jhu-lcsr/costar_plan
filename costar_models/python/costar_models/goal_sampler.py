@@ -88,7 +88,7 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                 leaky=False,
                 dropout=True,
                 pre_tiling_layers=self.extra_layers,
-                post_tiling_layers=steps_down,
+                post_tiling_layers=self.steps_down,
                 kernel_size=[5,5],
                 dense=False,
                 batchnorm=True,
@@ -98,7 +98,7 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                 option=self.num_options,
                 )
 
-        img_in, arm_in, gripper_in = ins
+        img_in, arm_in, gripper_in, option_in = ins
 
         decoder = GetArmGripperDecoder(self.img_col_dim,
                         img_shape,
@@ -106,7 +106,7 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                         dense_size=self.combined_dense_size,
                         kernel_size=[5,5],
                         filters=self.img_num_filters,
-                        stride2_layers=steps_down,
+                        stride2_layers=self.steps_down,
                         stride1_layers=self.extra_layers,
                         tform_filters=self.tform_filters,
                         num_options=self.num_options,
@@ -131,14 +131,16 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         decoder.summary()
 
+        z = Input((self.num_hypotheses, self.noise_dim,))
+
         # =====================================================================
         # Create many different image decoders
 
         for i in range(self.num_hypotheses):
             transform = GetTransform(
-                    rep_size=(8,8),
+                    rep_size=(self.hidden_dim, self.hidden_dim),
                     filters=self.tform_filters,
-                    kernel_size=[5,5],
+                    kernel_size=[3,3],
                     idx=i,
                     batchnorm=True,
                     dropout=True,
@@ -146,10 +148,16 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                     leaky=True,
                     num_blocks=self.num_transforms,
                     relu=True,
-                    resnet_blocks=self.residual,)
+                    resnet_blocks=self.residual,
+                    use_noise=self.use_noise,
+                    noise_dim=self.noise_dim,)
             if i == 0:
                 transform.summary()
-            x = transform([enc])
+            if self.use_noise:
+                zi = Lambda(lambda x: x[:,i], name="slice_z%d"%i)(z)
+                x = transform([enc, zi])
+            else:
+                x = transform([enc])
             
             # This maps from our latent world state back into observable images.
             arm_x, gripper_x, label_x = decoder([x])
@@ -184,14 +192,15 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
 
         # =====================================================================
         # Hypothesis probabilities
-        sum_p_out, p_out = GetHypothesisProbability(enc,
-                self.num_hypotheses,
-                self.num_options,
-                labels=label_out,
-                filters=self.img_num_filters,
-                kernel_size=[5,5],
-                dropout_rate=self.dropout_rate)
-
+        #sum_p_out, p_out = GetHypothesisProbability(enc,
+        #        self.num_hypotheses,
+        #        self.num_options,
+        #        labels=label_out,
+        #        filters=self.img_num_filters,
+        #        kernel_size=[5,5],
+        #        dropout_rate=self.dropout_rate)
+        value_out, next_option_out = GetNextOptionAndValue(enc,
+                                                           self.num_options,)
         # =====================================================================
         # Training the actor policy
         y = enc
@@ -214,10 +223,12 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
 
         # =====================================================================
         # Create models to train
-        sampler = Model(ins,
-                [arm_out, gripper_out, label_out, p_out])
+        sampler = Model(ins + [z],
+                [arm_out, gripper_out, label_out, next_option_out, value_out])
         actor = Model(ins, [arm_cmd_out, gripper_cmd_out])
-        train_predictor = Model(ins, [train_out, sum_p_out]) #, arm_cmd_out, gripper_cmd_out])
+        train_predictor = Model(ins + [z],
+                [train_out, next_option_out,
+                value_out]) #, arm_cmd_out, gripper_cmd_out])
 
         # =====================================================================
         # Create models to train
@@ -226,81 +237,15 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[arm_size, gripper_size, self.num_options],
-                        weights=[1.0,0.1,0.1],
+                        weights=[0.4,0.3,0.3],
                         loss=["mae","mae","categorical_crossentropy"]),
-                    "binary_crossentropy"],
-                loss_weights=[1.0,0.1,],
+                    "binary_crossentropy","binary_crossentropy"],
+                loss_weights=[1.0,0.1,0.1,],
                 optimizer=self.getOptimizer())
         sampler.compile(loss="mae", optimizer=self.getOptimizer())
         train_predictor.summary()
 
         return sampler, train_predictor, actor
-
-    def _fitPredictor(self, features, targets,):
-        if self.show_iter > 0:
-            fig, axes = plt.subplots(6, 6,)
-            plt.tight_layout()
-
-        image_shape = features[0].shape[1:]
-        image_size = 1.
-        for dim in image_shape:
-            image_size *= dim
-
-        for i in range(features[0].shape[0]):
-            img1 = targets[0][i,:int(image_size)].reshape((64,64,3))
-            img2 = features[4][i]
-            if not np.all(img1 == img2):
-                print(i,"failed")
-                plt.subplot(1,2,1); plt.imshow(img1);
-                plt.subplot(1,2,2); plt.imshow(img2);
-                plt.show()
-
-        if self.show_iter == 0 or self.show_iter == None:
-            modelCheckpointCb = ModelCheckpoint(
-                filepath=self.name+"_train_predictor_weights.h5f",
-                model_directory=self.model_directory,
-                verbose=1,
-                save_best_only=False # does not work without validation wts
-            )
-            imageCb = self.PredictorCb(
-                self.predictor,
-                features=features[:3],
-                targets=targets,
-                num_hypotheses=self.num_hypotheses,
-                verbose=True,
-                min_idx=0,
-                max_idx=5,
-                step=1,)
-            self.train_predictor.fit(features,
-                    [np.expand_dims(f,1) for f in targets],
-                    callbacks=[modelCheckpointCb, imageCb],
-                    validation_split=self.validation_split,
-                    epochs=self.epochs)
-        else:
-            for i in range(self.iter):
-                idx = np.random.randint(0, features[0].shape[0], size=self.batch_size)
-                x = []
-                y = []
-                for f in features:
-                    x.append(f[idx])
-                for f in targets:
-                    y.append(np.expand_dims(f[idx],1))
-                yimg = y[0][:,0,:int(image_size)]
-                yimg = yimg.reshape((self.batch_size,64,64,3))
-                for j in range(self.batch_size):
-                    if not np.all(x[4][j] == yimg[j]):
-                        plt.subplot(1,3,1); plt.imshow(x[0][j]);
-                        plt.subplot(1,3,2); plt.imshow(x[4][j]);
-                        plt.subplot(1,3,3); plt.imshow(yimg[j]);
-                        plt.show()
-        
-                losses = self.train_predictor.train_on_batch(x, y)
-
-                print("Iter %d: loss ="%(i),losses)
-                if self.show_iter > 0 and (i+1) % self.show_iter == 0:
-                    self.plotPredictions(features, targets, axes)
-
-        self._fixWeights()
 
     def _makeModel(self, features, arm, gripper, *args, **kwargs):
         '''
@@ -315,7 +260,7 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                 (features, arm, gripper))
 
     def _getAllData(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
-            prev_label, goal_features, goal_arm, goal_gripper, *args, **kwargs):
+            prev_label, goal_features, goal_arm, goal_gripper, value, *args, **kwargs):
         I = features
         q = arm
         g = gripper
@@ -326,6 +271,7 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         q_target = goal_arm
         g_target = goal_gripper
         o_target = label
+        value_target = np.array(value > 1.,dtype=float)
 
         # ==============================
         image_shape = I.shape[1:]
@@ -361,7 +307,7 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         tt, o1, v, qa, ga = targets
         if self.use_noise:
             noise_len = features[0].shape[0]
-            z = np.random.random(size=(noise_len,self.noise_dim))
+            z = np.random.random(size=(noise_len,self.num_hypotheses, self.noise_dim))
             return features[:4] + [z], [tt, o1, v]
         else:
             return features[:4], [tt, o1, v]

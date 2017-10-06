@@ -154,7 +154,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             if i == 0:
                 transform.summary()
             if self.use_noise:
-                zi = Lambda(lambda x: x[:,i])(z)
+                zi = Lambda(lambda x: x[:,i], name="slice_z%d"%i)(z)
                 x = transform([enc, zi])
             else:
                 x = transform([enc])
