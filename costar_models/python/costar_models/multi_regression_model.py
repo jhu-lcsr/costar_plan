@@ -62,6 +62,7 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
                 self.dropout_rate,
                 self.img_num_filters,
                 discriminator=False,
+                kernel_size=[3,3],
                 tile=True,
                 pre_tiling_layers=1,
                 post_tiling_layers=3)

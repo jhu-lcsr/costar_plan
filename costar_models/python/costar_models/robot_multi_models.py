@@ -82,30 +82,6 @@ def GetArmGripperColumns(arm, gripper, dim, dropout_rate, dense_size):
 
     return [arm_in, gripper_in], x
 
-def GetSeparateEncoder(img_shape, img_col_dim, dropout_rate, img_num_filters,
-        img_dense_size, arm_size, gripper_size, robot_col_dim,
-        robot_col_dense_size,
-        combined_dense_size):
-
-        img_ins, img_out = GetCameraColumn(
-                img_shape,
-                img_col_dim,
-                dropout_rate,
-                img_num_filters,
-                img_dense_size,)
-        robot_ins, robot_out = GetArmGripperColumns(
-                arm_size, 
-                gripper_size,
-                robot_col_dim,
-                dropout_rate,
-                robot_col_dense_size,)
-
-        x = Concatenate()([img_out, robot_out])
-        x = Dense(combined_dense_size)(x)
-        x = LeakyReLU(alpha=0.2)(x)
-
-        return img_ins + robot_ins, x
-
 def MakeStacked(ins, x, num_to_stack):
     '''
     Stacked latent representations -- for temporal convolutions in particular
@@ -196,8 +172,6 @@ def GetEncoderConvLSTM(img_shape, arm_size, gripper_size,
 
     return ins, x
 
-
-
 def GetEncoder3D(img_shape, arm_size, gripper_size, dropout_rate,
         filters, tile=False, dropout=True, leaky=True,
         pre_tiling_layers=0,
@@ -270,7 +244,16 @@ def GetEncoder(img_shape, arm_size, gripper_size, dim, dropout_rate,
         pre_tiling_layers=0,
         post_tiling_layers=2,
         kernel_size=[3,3], output_filters=None,
-        time_distributed=0,):
+        time_distributed=0,
+        config="arm"):
+    '''
+    This is the "master" version of the encoder creation function. It takes in
+    a massive number of parameters and creates the appropriate inputs and
+    structure.
+    '''
+
+    if not config in ["arm", "mobile"]:
+        raise RuntimeError("Encoder config type must be in [arm, mobile]")
 
 
     if output_filters is None:

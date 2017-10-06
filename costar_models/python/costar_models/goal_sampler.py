@@ -52,10 +52,12 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         self.num_transforms = 3
         self.validation_split = 0.1
         self.num_options = 48
-        self.extra_layers = 0
         self.PredictorCb = PredictorGoals
 
-        self.steps_down = 4
+        # Encoder architecture
+        self.extra_layers = 1
+        self.steps_down = 3
+
         self.hidden_dim = 64/(2**self.steps_down)
         self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.tform_filters)
 
@@ -89,7 +91,7 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                 dropout=True,
                 pre_tiling_layers=self.extra_layers,
                 post_tiling_layers=self.steps_down,
-                kernel_size=[5,5],
+                kernel_size=[3,3],
                 dense=False,
                 batchnorm=True,
                 tile=True,
@@ -131,7 +133,7 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         decoder.summary()
 
-        z = Input((self.num_hypotheses, self.noise_dim,))
+        z = Input((self.num_hypotheses, self.noise_dim,),name="noise_in")
 
         # =====================================================================
         # Create many different image decoders
