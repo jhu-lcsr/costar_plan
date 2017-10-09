@@ -59,7 +59,7 @@ class PredictorShowImage(keras.callbacks.Callback):
                                'and not a normal image callback?')
         img = np.reshape(img, (self.num,64,64,3))
         if self.use_noise:
-            z= np.random.random((self.targets[0].shape[0], self.noise_dim))
+            z= np.random.random((self.targets[0].shape[0], self.num_hypotheses, self.noise_dim))
             data, arms, grippers, label, probs, v = self.predictor.predict(self.features + [z])
         else:
             data, arms, grippers, label, probs, v = self.predictor.predict(self.features)
@@ -109,6 +109,8 @@ class PredictorGoals(keras.callbacks.Callback):
             model_directory=DEFAULT_MODEL_DIRECTORY,
             num_hypotheses=4,
             verbose=False,
+            noise_dim=64,
+            use_noise=False,
             min_idx=0, max_idx=66, step=11):
         '''
         Set up a data set we can use to output validation images.
@@ -129,13 +131,19 @@ class PredictorGoals(keras.callbacks.Callback):
         self.epoch = 0
         self.num_hypotheses = num_hypotheses
         self.directory = os.path.join(model_directory,'debug')
+        self.noise_dim = noise_dim
+        self.use_noise = use_noise
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
 
     def on_epoch_end(self, epoch, logs={}):
         # take the model and print it out
         self.epoch += 1
-        arms, grippers, label, ph = self.predictor.predict(self.features)
+        if self.use_noise:
+            z= np.random.random((self.targets[0].shape[0], self.num_hypotheses, self.noise_dim))
+            arms, grippers, label, probs, v = self.predictor.predict(self.features + [z])
+        else:
+            arms, grippers, label, probs, v = self.predictor.predict(self.features)
         plt.ioff()
         if self.verbose:
             print("============================")
@@ -145,7 +153,8 @@ class PredictorGoals(keras.callbacks.Callback):
             if self.verbose:
                 print("----------------")
                 print(name)
-                print("hypothesis probs = ", ph[j])
+                print("max(p(o' | x)) =", np.argmax(probs[j]))
+                print("v(x) =", v[j])
             for i in range(self.num_hypotheses):
                 if self.verbose:
                     print("Arms = ", arms[j][i])

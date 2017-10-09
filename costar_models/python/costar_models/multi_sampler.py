@@ -8,9 +8,6 @@ import numpy as np
 from keras.callbacks import ModelCheckpoint
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
-from keras.layers import UpSampling2D, Conv2DTranspose
-from keras.layers import BatchNormalization, Dropout
-from keras.layers import Dense, Conv2D, Activation, Flatten
 from keras.layers.embeddings import Embedding
 from keras.layers.merge import Concatenate, Multiply
 from keras.losses import binary_crossentropy
@@ -41,17 +38,26 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         super(RobotMultiPredictionSampler, self).__init__(taskdef, *args, **kwargs)
 
         self.num_frames = 1
-        self.img_col_dim = 16
         self.img_num_filters = 64
         self.tform_filters = 64
         self.combined_dense_size = 128
         self.num_hypotheses = 8
-        self.num_transforms = 1
+        self.num_transforms = 3
         self.validation_split = 0.1
         self.num_options = 48
-        self.extra_layers = 0
+
+        self.extra_layers = 1
+        self.steps_down = 4
+
+        # Size of the "pose" column containing arm, gripper info
+        self.pose_col_dim = 32
+
+        # Size of the hidden representation when using dense
+        self.img_col_dim = 128
+
         self.PredictorCb = PredictorShowImage
-        self.hidden_shape = (8,8,self.tform_filters)
+        self.hidden_dim = 64/(2**self.steps_down)
+        self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.tform_filters)
         self.use_prev_option = True
 
         self.predictor = None
@@ -75,17 +81,17 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         image_size = int(image_size)    
 
         ins, enc, skips, robot_skip = GetEncoder(img_shape,
-                arm_size,
-                gripper_size,
+                [arm_size, gripper_size],
                 self.img_col_dim,
                 dropout_rate=self.dropout_rate,
                 filters=self.img_num_filters,
                 leaky=False,
                 dropout=True,
                 pre_tiling_layers=self.extra_layers,
-                post_tiling_layers=3,
-                kernel_size=[5,5],
-                dense=False,
+                post_tiling_layers=self.steps_down,
+                pose_col_dim=self.pose_col_dim,
+                kernel_size=[3,3],
+                dense=self.dense_representation,
                 batchnorm=True,
                 tile=True,
                 flatten=False,
@@ -93,30 +99,19 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 output_filters=self.tform_filters,
                 )
         img_in, arm_in, gripper_in, option_in = ins
-
-        # =====================================================================
-        # Create the predictors for value, next action label.
-        #if self.use_prev_option:
-        #    option_x = OneHot(size=self.num_options)(option_in)
-        #    option_x = Reshape((self.num_options,))(option_x)
-        #    next_enc = TileOnto(enc,option_x,self.num_options,self.hidden_shape)
-        value_out, next_option_out = GetNextOptionAndValue(enc,
-                                                           self.num_options,
-                                                           self.img_num_filters,
-                                                           [5,5],
-                                                           dropout_rate=self.decoder_dropout_rate)
+        if self.use_noise:
+            z = Input((self.num_hypotheses, self.noise_dim))
 
         # =====================================================================
         # Create the decoders for image, arm, gripper.
-
         decoder = GetImageArmGripperDecoder(
                         self.img_col_dim,
                         img_shape,
                         dropout_rate=self.decoder_dropout_rate,
                         dense_size=self.combined_dense_size,
-                        kernel_size=[5,5],
+                        kernel_size=[3,3],
                         filters=self.img_num_filters,
-                        stride2_layers=3,
+                        stride2_layers=self.steps_down,
                         stride1_layers=self.extra_layers,
                         tform_filters=self.tform_filters,
                         num_options=self.num_options,
@@ -125,8 +120,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         dropout=self.hypothesis_dropout,
                         upsampling=self.upsampling_method,
                         leaky=True,
-                        dense=False,
-                        skips=skips,
+                        dense=self.dense_representation,
+                        dense_rep_size=self.img_col_dim,
+                        skips=self.skip_connections,
                         robot_skip=robot_skip,
                         resnet_blocks=self.residual,
                         batchnorm=True,)
@@ -138,41 +134,33 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         train_outs = []
         label_outs = []
 
-        skips.reverse()
+        if self.skip_connections:
+            skips.reverse()
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         decoder.summary()
+    
+        value_out, next_option_out = GetNextOptionAndValue(enc,
+                                                           self.num_options,)
 
         # =====================================================================
         # Create many different image decoders
-        if not self.use_noise:
-            enc2 = enc
-        else:
-            # Add noise input and add to enc
-            z = Input((self.noise_dim,))
-            enc2 = TileOnto(enc,z,self.noise_dim,self.hidden_shape)
-
         for i in range(self.num_hypotheses):
-            transform = GetTransform(
-                    rep_size=(8,8),
-                    filters=self.tform_filters,
-                    kernel_size=[5,5],
-                    idx=i,
-                    batchnorm=True,
-                    dropout=False,
-                    dropout_rate=self.dropout_rate,
-                    leaky=True,
-                    num_blocks=self.num_transforms,
-                    relu=True,
-                    resnet_blocks=self.residual,
-                    option=None,
-                    use_noise=self.use_noise,
-                    noise_dim=self.noise_dim,)
+            transform = self._getTransform(i)
+
             if i == 0:
                 transform.summary()
-            x = transform([enc2])
+            if self.use_noise:
+                zi = Lambda(lambda x: x[:,i], name="slice_z%d"%i)(z)
+                x = transform([enc, zi])
+            else:
+                x = transform([enc])
             
             # This maps from our latent world state back into observable images.
-            img_x, arm_x, gripper_x, label_x = decoder([x]+skips)
+            if self.skip_connections:
+                decoder_inputs = [x] + skips
+            else:
+                decoder_inputs = [x]
+            img_x, arm_x, gripper_x, label_x = decoder(decoder_inputs)
 
             # Create the training outputs
             train_x = Concatenate(axis=-1,name="combine_train_%d"%i)([
@@ -236,6 +224,39 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         return predictor, train_predictor, actor
 
+    def _getTransform(self,i=0):
+        if self.dense_representation:
+            transform = GetDenseTransform(
+                    dim=self.img_col_dim,
+                    input_size=self.img_col_dim,
+                    output_size=self.img_col_dim,
+                    idx=i,
+                    batchnorm=True,
+                    dropout=False,
+                    dropout_rate=self.dropout_rate,
+                    leaky=True,
+                    num_blocks=self.num_transforms,
+                    relu=True,
+                    resnet_blocks=self.residual,
+                    use_noise=self.use_noise,
+                    noise_dim=self.noise_dim,)
+        else:
+            transform = GetTransform(
+                    rep_size=(self.hidden_dim, self.hidden_dim),
+                    filters=self.tform_filters,
+                    kernel_size=[3,3],
+                    idx=i,
+                    batchnorm=True,
+                    dropout=False,
+                    dropout_rate=self.dropout_rate,
+                    leaky=True,
+                    num_blocks=self.num_transforms,
+                    relu=True,
+                    resnet_blocks=self.residual,
+                    use_noise=self.use_noise,
+                    noise_dim=self.noise_dim,)
+        return transform
+
     def _makeModel(self, features, arm, gripper, *args, **kwargs):
         '''
         Little helper function wraps makePredictor to consturct all the models.
@@ -248,43 +269,36 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             self._makePredictor(
                 (features, arm, gripper))
 
+    def _makeTrainTarget(self, I_target, q_target, g_target, o_target):
+        length = I_target.shape[0]
+        image_shape = I_target.shape[1:]
+        image_size = 1
+        for dim in image_shape:
+            image_size *= dim
+        image_size = int(image_size)
+        Itrain = np.reshape(I_target,(length, image_size))
+        return np.concatenate([Itrain, q_target,g_target,o_target],axis=-1)
 
     def _getAllData(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             prev_label, goal_features, goal_arm, goal_gripper, value, *args, **kwargs):
         I = features
         q = arm
-        g = gripper
+        g = gripper * -1
         qa = arm_cmd
-        ga = gripper_cmd
+        ga = gripper_cmd * -1
         oin = prev_label
         I_target = goal_features
         q_target = goal_arm
-        g_target = goal_gripper
+        g_target = goal_gripper * -1
         o_target = label
         value_target = np.array(value > 1.,dtype=float)
 
-        # ==============================
-        image_shape = I.shape[1:]
-        image_size = 1
-        for dim in image_shape:
-            image_size *= dim
-        image_size = int(image_size)
-        arm_size = q.shape[-1]
-        gripper_size = g.shape[-1]
-
-        train_size = image_size + arm_size + gripper_size + self.num_options
-        assert gripper_size == 1
-        #assert train_size == 12295 + self.num_options
-        # NOTE: arm size is one bigger when we have quaternions
-        #assert train_size == 12296 + self.num_options
-        assert train_size == (64*64*3) + 7 + 1 + self.num_options
-        assert I.shape[0] == I_target.shape[0]
-
         o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
-        #oin_onehot = np.squeeze(self.toOneHot2D(oin, self.num_options))
-        length = I.shape[0]
-        Itrain = np.reshape(I_target,(length, image_size))
-        train_target = np.concatenate([Itrain,q_target,g_target,o_target],axis=-1)
+        train_target = self._makeTrainTarget(
+                I_target,
+                q_target,
+                g_target,
+                o_target)
 
         return [I, q, g, oin, I_target, q_target, g_target,], [
                 np.expand_dims(train_target, axis=1),
@@ -296,12 +310,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
+        tt, o1, v, qa, ga = targets
         if self.use_noise:
             noise_len = features[0].shape[0]
-            z = np.random.random(size=(noise_len,self.noise_dim))
-            return features[:4] + [z], targets[:3]
+            z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
+            return features[:4] + [z], [tt, o1, v]
         else:
-            return features[:4], targets[:3]
+            return features[:4], [tt, o1, v]
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''
