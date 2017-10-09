@@ -12,9 +12,7 @@ set -e
 set -x
 set -u
 
-echo
-echo "Running $@ on $SLURME_NOEENAME ..."
-echo
+echo "Running $@ on $SLURMD_NODENAME ..."
 
 module load tensorflow/cuda-8.0/r1.3 
 
