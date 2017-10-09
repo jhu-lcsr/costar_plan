@@ -1,4 +1,4 @@
-# Copyright Philipp Jund, Andrew Hundt, Kieran Wynn 2017. All Rights Reserved.
+# Copyright 2017 Andrew Hundt, Philipp Jund, Kieran Wynn 2017.
 #
 # https://github.com/PhilJd/tf-quaternion
 # https://github.com/KieranWynn/pyquaternion
@@ -26,47 +26,52 @@ import tensorflow as tf
 import math
 
 
-def scope_wrapper(func, *args, **kwargs):
+def quat_scope(func, *args, **kwargs):
     def scoped_func(*args, **kwargs):
         with tf.name_scope("quat_{}".format(func.__name__)):
             return func(*args, **kwargs)
     return scoped_func
 
 
-@scope_wrapper
+@quat_scope
 def point_to_quaternion():
     raise NotImplementedError()
 
 
-@scope_wrapper
+@quat_scope
 def from_rotation_matrix():
     raise NotImplementedError()
 
 
-@scope_wrapper
+@quat_scope
 def multiply(a, b):
-    if not isinstance(a, Quaternion) and not isinstance(b, Quaternion):
-        msg = "Multiplication is currently only implemented " \
-              "for quaternion * quaternion"
-        raise NotImplementedError(msg)
-    w1, x1, y1, z1 = tf.unstack(a.value())
-    w2, x2, y2, z2 = tf.unstack(b.value())
-    w = w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2
-    x = w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2
-    y = w1 * y2 + y1 * w2 + z1 * x2 - x1 * z2
-    z = w1 * z2 + z1 * w2 + x1 * y2 - y1 * x2
-    return Quaternion(tf.stack((w, x, y, z)))
+    if isinstance(a, Quaternion) and isinstance(b, Quaternion):
+        w1, x1, y1, z1 = tf.unstack(a.value())
+        w2, x2, y2, z2 = tf.unstack(b.value())
+        w = w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2
+        x = w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2
+        y = w1 * y2 + y1 * w2 + z1 * x2 - x1 * z2
+        z = w1 * z2 + z1 * w2 + x1 * y2 - y1 * x2
+        return Quaternion(tf.stack((w, x, y, z)))
+
+    elif(isinstance(a, DualQuaternion) and isinstance(b, DualQuaternion)):
+        real = a.real() * b.real()
+        dual = Quaternion((a.real() * b.dual()).coeffs() + (a.dual() * b.real()).coeffs())
+        return DualQuaternion(real_wxyz=real, dual_wxyz=dual)
+    else:
+        raise NotImplementedError("Multiplication is currently only implemented "
+                                  "for Quaternion * Quaternion and DualQuaternion * DualQuaternion")
 
 
-@scope_wrapper
+@quat_scope
 def divide(a, b):
     if not isinstance(a, Quaternion) and not isinstance(b, Quaternion):
         msg = "Division is currently only implemented " \
-              "for quaternion \ quaternion"
+              "for Quaternion \ Quaternion"
         raise NotImplementedError(msg)
     w1, x1, y1, z1 = tf.unstack(a.value())
     w2, x2, y2, z2 = tf.unstack(b.value())
-    bnorm = b._norm()
+    bnorm = b._squared_norm()
     w = (w1*w2 + x1*x2 + y1*y2 + z1*z2) / bnorm,
     x = (-w1*x2 + x1*w2 - y1*z2 + z1*y2) / bnorm,
     y = (-w1*y2 + x1*z2 + y1*w2 - z1*x2) / bnorm,
@@ -76,16 +81,16 @@ def divide(a, b):
 
 class Quaternion():
 
-    def __init__(self, initial_wxyz=(1.0, 0.0, 0.0, 0.0), dtype=tf.float32):
+    def __init__(self, wxyz=(1.0, 0.0, 0.0, 0.0), dtype=tf.float32):
         """
         Args:
-            initial_wxyz: The values for w, x, y, z. Must have shape=[4].
+            wxyz: The values for w, x, y, z. Must have shape=[4].
                 - `tf.Tensor` or `tf.Variable` of type float16/float32/float64
                 - list/tuple/np.array
                 - Quaternion
                 Defaults to (1.0, 0.0, 0.0, 0.0)
             dtype: The type to create the value tensor. Only considered if
-                initial_wxyz is passed as list, tuple or np.array. Otherwise
+                wxyz is passed as list, tuple or np.array. Otherwise
                 the type of the `Tensor` is used. This is to prevent silent
                 changes to the gradient type resulting in a different precision
                 Allowed types are float16, float32, float64.
@@ -94,25 +99,37 @@ class Quaternion():
             A Quaternion.
 
         Raises:
-            ValueError, if the shape of initial_wxyz is not [4].
-            TypeError, either if the `Tensor` initial_wxyz's type is not float
-                or if initial_wxyz is not a Tensor/list/tuple etc.
+            ValueError, if the shape of wxyz is not [4].
+            TypeError, either if the `Tensor` wxyz's type is not float
+                or if wxyz is not a Tensor/list/tuple etc.
         """
-        if isinstance(initial_wxyz, (tf.Tensor, tf.Variable)):
-            self._validate_shape(initial_wxyz)
-            self._validate_type(initial_wxyz)
-            self._q = (initial_wxyz if initial_wxyz.dtype == dtype
-                       else tf.cast(initial_wxyz, dtype))
-        elif isinstance(initial_wxyz, (np.ndarray, list, tuple)):
-            self._validate_shape(initial_wxyz)
-            self._q = tf.constant(initial_wxyz, dtype=dtype)
-        elif isinstance(initial_wxyz, Quaternion):
-            tensor = initial_wxyz.value()
+        if isinstance(wxyz, (tf.Tensor, tf.Variable)):
+            self._validate_shape(wxyz)
+            self._validate_type(wxyz)
+            self._q = (wxyz if wxyz.dtype == dtype
+                       else tf.cast(wxyz, dtype))
+        elif isinstance(wxyz, (np.ndarray, list, tuple)):
+            self._validate_shape(wxyz)
+            self._q = tf.constant(wxyz, dtype=dtype)
+        elif isinstance(wxyz, Quaternion):
+            tensor = wxyz.value()
             self._q = (tensor if tensor.dtype == dtype
                        else tf.cast(tensor, dtype))
         else:
             raise TypeError("Can not convert object of type {} to Quaternion"
-                            "".format(type(initial_wxyz)))
+                            "".format(type(wxyz)))
+
+    @staticmethod
+    def zeros(dtype=tf.float32):
+        """Get a quaternion where all coefficients are 0.
+        """
+        return Quaternion(wxyz=(0.0, 0.0, 0.0, 0.0), dtype=dtype)
+
+    @staticmethod
+    def identity(dtype=tf.float32):
+        """Get the identity unit quaternion where coefficients wxyz are (1,0,0,0).
+        """
+        return Quaternion(wxyz=(1.0, 0.0, 0.0, 0.0), dtype=dtype)
 
     def value(self):
         """ Returns a `Tensor` which holds the value of the quaternion. Note
@@ -120,6 +137,21 @@ class Quaternion():
             quaternion through this.
         """
         return self._q
+
+    def imaginary(self):
+        """Returns a Tensor containing [x, y, z] the imaginary part of the quaternion.
+        """
+        return self._q[1:]
+
+    def real(self):
+        """Returns a Tensor containing w, the real part of the quaternion.
+        """
+        return self._q[0]
+
+    def w(self):
+        """Returns a Tensor containing w, the real part of the quaternion.
+        """
+        return self._q[0]
 
     @property
     def conjugate(self):
@@ -129,7 +161,7 @@ class Quaternion():
             A new Quaternion object clone with its vector part negated
         """
         q = tf.stack([self._q[0], -self._q[1:]])
-        return self.__class__(initial_wxyz=q)
+        return self.__class__(wxyz=q)
 
     def _q_matrix(self):
         """Matrix representation of quaternion for multiplication purposes.
@@ -157,7 +189,7 @@ class Quaternion():
             A 3x3 orthogonal rotation matrix as a 3x3 Numpy array
 
         Note:
-            This feature only makes sense when referring to a unit quaternion. Calling this method will implicitly normalise the Quaternion object to a unit quaternion if it is not already one.
+            This feature only makes sense when referring to a unit quaternion. Calling this method will implicitly normalize the Quaternion object to a unit quaternion if it is not already one.
 
         """
         self.normalize()
@@ -165,16 +197,17 @@ class Quaternion():
         return product_matrix[1:][:, 1:]
 
     @property
-    def transformation_matrix(self):
+    def transformation_matrix(self, t=tf.zeros([1, 3])):
         """Get the 4x4 homogeneous transformation matrix equivalent of the quaternion rotation.
+
+           t: Translation component of the transformation matrix, defaults to identity translation `[0, 0, 0]^t`.
 
         Returns:
             A 4x4 homogeneous transformation matrix as a 4x4 Numpy array
 
         Note:
-            This feature only makes sense when referring to a unit quaternion. Calling this method will implicitly normalise the Quaternion object to a unit quaternion if it is not already one.
+            This feature only makes sense when referring to a unit quaternion. Calling this method will implicitly normalize the Quaternion object to a unit quaternion if it is not already one.
         """
-        t = tf.zeros([1, 3])
         Rt = tf.stack([self.rotation_matrix(), t])
         return tf.stack([Rt, tf.constant([0.0, 0.0, 0.0, 1.0])], axis=1)
 
@@ -190,7 +223,7 @@ class Quaternion():
         The resulting rotation_matrix would be R = R_x(roll) R_y(pitch) R_z(yaw)
 
         Note:
-            This feature only makes sense when referring to a unit quaternion. Calling this method will implicitly normalise the Quaternion object to a unit quaternion if it is not already one.
+            This feature only makes sense when referring to a unit quaternion. Calling this method will implicitly normalize the Quaternion object to a unit quaternion if it is not already one.
         """
 
         self.normalize()
@@ -229,7 +262,7 @@ class Quaternion():
 
         Note:
             This feature only makes sense when referring to a unit quaternion.
-            Calling this method will implicitly normalise the Quaternion object to a unit quaternion if it is not already one.
+            Calling this method will implicitly normalize the Quaternion object to a unit quaternion if it is not already one.
         """
         tolerance = 1e-17
         self.normalize()
@@ -262,7 +295,7 @@ class Quaternion():
 
         Note:
             This feature only makes sense when referring to a unit quaternion.
-            Calling this method will implicitly normalise the Quaternion object to a unit quaternion if it is not already one.
+            Calling this method will implicitly normalize the Quaternion object to a unit quaternion if it is not already one.
         """
         self.normalize()
         norm = tf.norm(self._q[1:])
@@ -286,12 +319,8 @@ class Quaternion():
     def __imul__(self, other):
         if isinstance(other, Quaternion):
             return multiply(self, other)
-        #elif isinstance(other, tf.Variable) or isinstance(other, tf.Tensor):
-        #    self._validate_shape(other)
-        #    return multiply(self, Quaternion(other))
         else:
-            msg = "Quaternion Multiplication not implemented for this type."
-            raise NotImplementedError(msg)
+            raise NotImplementedError("Quaternion Multiplication not implemented for this type.")
 
     def __div__(self, b):
         return divide(self, b)
@@ -300,28 +329,29 @@ class Quaternion():
         if isinstance(other, Quaternion):
             return divide(self, other)
         else:
-            msg = "Quaternion Multiplication not implemented for this type."
-            raise NotImplementedError(msg)
+            raise NotImplementedError("Quaternion Division not implemented for this type.")
 
     def __repr__(self):
         return "<tfq.Quaternion ({})>".format(self._q.__repr__()[1:-1])
 
-    @scope_wrapper
+    @quat_scope
     def coeffs(self):
         return self._q
 
-    @scope_wrapper
+    @quat_scope
     def inverse(self):
-        w, x, y, z = tf.unstack(tf.divide(self._q, self._norm()))
+        w, x, y, z = tf.unstack(tf.divide(self._q, self._squared_norm()))
         return Quaternion((w, -x, -y, -z))
 
-    @scope_wrapper
+    @quat_scope
     def normalize(self):
-        return Quaternion(tf.divide(self._q, self._abs()))
+        """Normalizes this object and returns the result in a new quaternion.
+        """
+        return self.__class__(tf.divide(self._q, self._abs()))
 
-    @scope_wrapper
+    @quat_scope
     def as_rotation_matrix(self):
-        """ Calculates the rotation matrix. See
+        """Calculates the rotation matrix. See
         [http://www.euclideanspace.com/maths/geometry/rotations/
          conversions/quaternionToMatrix/]
 
@@ -369,7 +399,7 @@ class Quaternion():
 
         return self(r, i[0], i[1], i[2])
 
-    @scope_wrapper
+    @quat_scope
     @staticmethod
     def random():
         """Generate a random unit quaternion.
@@ -402,10 +432,133 @@ class Quaternion():
         if not x.dtype.is_floating:
             raise TypeError("Quaternion only supports floating point numbers")
 
-    @scope_wrapper
-    def _norm(self):
+    @quat_scope
+    def _squared_norm(self):
         return tf.reduce_sum(tf.square(self._q))
 
-    @scope_wrapper
+    @quat_scope
     def _abs(self):
         return tf.sqrt(tf.reduce_sum(tf.square(self._q)))
+
+    def w(self):
+        return self._q[0]
+
+
+def dual_quat_scope(func, *args, **kwargs):
+    def scoped_func(*args, **kwargs):
+        with tf.name_scope("dual_quat_{}".format(func.__name__)):
+            return func(*args, **kwargs)
+    return scoped_func
+
+
+class DualQuaternion():
+    """Dual Quaternions are useful for rigid body transform representations in SE(3).
+
+    Dual quaternions contain two quaternions, the real quaternion and a dual quaternion component.
+    """
+    def __init__(self, real_wxyz=(1.0, 0.0, 0.0, 0.0), dual_wxyz=(0.0, 0.0, 0.0, 0.0), dtype=tf.float32):
+        if isinstance(real_wxyz, Quaternion):
+            self._real = real_wxyz
+        else:
+            self._real = Quaternion(wxyz=real_wxyz, dtype=dtype)
+
+        if isinstance(dual_wxyz, Quaternion):
+            self._dual = real_wxyz
+        else:
+            self._dual = Quaternion(wxyz=dual_wxyz, dtype=dtype)
+
+    @staticmethod
+    def zeros(dtype=tf.float32):
+        return DualQuaternion(real_wxyz=(0.0, 0.0, 0.0, 0.0), dual_wxyz=(0.0, 0.0, 0.0, 0.0), dtype=dtype)
+
+    @staticmethod
+    def identity(dtype=tf.float32):
+        return DualQuaternion(real_wxyz=(0.0, 0.0, 0.0, 0.0), dual_wxyz=(0.0, 0.0, 0.0, 0.0), dtype=dtype)
+
+    @dual_quat_scope
+    def conjugate(self):
+        """Dual Quaternion conjugate, encapsulated in a new instance.
+
+        Returns:
+            A new DualQuaternion object clone with the conjugate of the real and dual component quaternions.
+        """
+        return self.__class__(real_wxyz=self._real.conjugate(), dual_wxyz=self._dual.conjugate())
+
+    @dual_quat_scope
+    def inverse(self):
+        sqrLen0 = self._real._squared_norm()
+        sqrLenE = 2.0 * tf.tensordot(self._real.coeffs(), self._dual.coeffs())
+
+        def invert_valid_dual_quaternion():
+            invSqrLen0 = 1.0 / sqrLen0
+            invSqrLenE = -sqrLenE / (sqrLen0 * sqrLen0)
+
+            conj = self.conjugate()
+            conj._real = Quaternion(invSqrLen0 * conj._real.coeffs())
+            conj._dual = Quaternion(invSqrLen0 * conj._dual.coeffs() + invSqrLenE * conj._real.coeffs())
+            return conj
+
+        inv = tf.cond(sqrLen0 > 0.0, invert_valid_dual_quaternion, lambda: DualQuaternion.zeros())
+        return inv
+
+    def real(self):
+        """Get the real quaternion component of the dual quaternion.
+        """
+        return self._real
+
+    def dual(self):
+        """Get the dual quaternion component of the dual quaternion.
+        """
+        return self._dual
+
+    def rotation_matrix(self):
+        return self._real.rotation_matrix()
+
+    @dual_quat_scope
+    def translation_quaternion(self):
+        """Get the translation quaternion associated with the Dual Quaternion.
+        """
+        return Quaternion(2.0 * (self._dual * self._real.conjugate()).coeffs())
+
+    @dual_quat_scope
+    def translation(self):
+        """Get the translation tensor [x, y, z] associated with the Dual Quaternion.
+        """
+        return self.translation_quaternion().coeffs()[1:3]
+
+    @dual_quat_scope
+    def transformation_matrix(self):
+        """Get the 4x4 homogeneous transformation matrix equivalent of the dual quaternion.
+        """
+        translation = self.translation()
+        return self._real.transformation_matrix(t=translation[1:3])
+
+    @dual_quat_scope
+    def transform_point(self, point):
+        dq = DualQuaternion(real_wxyz=Quaternion.identity(), dual_wxyz=(0.0, point[0], point[1], point[2]))
+        dq = self * point_dq * self.conjugate()
+
+        # extract the point
+        p = tf.reshape(dq.translation(), [1, 3])
+
+        # perform translation
+        p += (2.0 * (self._real.w() * self._dual.imaginary() - self._dual.w() * self._real.imaginary() + tf.cross(self._real.imaginary(), self._dual.imaginary())))
+        return p
+
+    @dual_quat_scope
+    def transform_vector(self, vector):
+        dq = DualQuaternion(real_wxyz=Quaternion.identity(), dual_wxyz=(0.0, vector[0], vector[1], vector[2]))
+        # perform the transform
+        dq = self * point_dq * self.conjugate()
+
+        # extract the vector
+        return tf.reshape(dq.translation(), [1, 3])
+
+    def __mul__(self, b):
+        return multiply(self, b)
+
+    def __imul__(self, other):
+        if isinstance(other, DualQuaternion):
+            return multiply(self, other)
+        else:
+            raise NotImplementedError("Quaternion Multiplication not implemented for this type.")
