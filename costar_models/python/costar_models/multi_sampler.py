@@ -47,7 +47,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_options = 48
 
         self.extra_layers = 1
-        self.steps_down = 3
+        self.steps_down = 4
 
         # Size of the "pose" column containing arm, gripper info
         self.pose_col_dim = 32
