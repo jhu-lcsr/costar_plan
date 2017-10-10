@@ -106,11 +106,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 batchnorm=True,
                 tile=True,
                 flatten=False,
-                option=None, #self.num_options,
+                option=self.num_options,
+                #option=None,
                 output_filters=self.tform_filters,
                 )
-        #img_in, arm_in, gripper_in, option_in = ins
-        img_in, arm_in, gripper_in = ins
+        img_in, arm_in, gripper_in, option_in = ins
+        #img_in, arm_in, gripper_in = ins
         if self.use_noise:
             z = Input((self.num_hypotheses, self.noise_dim))
 
@@ -151,12 +152,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         decoder.summary()
     
-        option_in = Input((1,),name="prev_option_in")
-        ins += [option_in]
+        #option_in = Input((1,),name="prev_option_in")
+        #ins += [option_in]
         value_out, next_option_out = GetNextOptionAndValue(enc,
                                                            self.num_options,
-                                                           #option_in=None)
-                                                           option_in=option_in)
+                                                           option_in=None)
+                                                           #option_in=option_in)
 
         # =====================================================================
         # Create many different image decoders
@@ -170,7 +171,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 transform.summary()
             if self.use_noise:
                 zi = Lambda(lambda x: x[:,i], name="slice_z%d"%i)(z)
-                x = transform([enc, zi, next_option_out])
+                #x = transform([enc, zi, next_option_out])
+                x = transform([enc, zi])
             else:
                 x = transform([enc])
             
@@ -245,7 +247,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
     def _getTransform(self,i=0):
         transform_dropout = False
-        use_options_again = True
+        use_options_again = False
         if use_options_again:
             options = self.num_options
         else:
