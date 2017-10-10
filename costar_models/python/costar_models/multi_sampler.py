@@ -227,8 +227,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
                         weights=[0.7,1.0,0.2,0.1],
                         loss=["mae","mae","mae","categorical_crossentropy"],
-                        avg_weight=0.),
-                    "binary_crossentropy", "binary_crossentropy"],
+                        avg_weight=0.05),
+                    "categorical_crossentropy", "binary_crossentropy"],
                 loss_weights=[#0.1,0.1,0.1,0.1,
                     1.0,0.1,0.1],
                 optimizer=self.getOptimizer())
