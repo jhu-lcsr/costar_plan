@@ -30,5 +30,5 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --hypothesis_dropout false \
   --use_noise true \
   --noise_dim 32 \
-	--batch_size 64
+  --batch_size 64
 
