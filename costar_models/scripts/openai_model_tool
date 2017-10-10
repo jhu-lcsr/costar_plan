@@ -51,8 +51,7 @@ def main(args):
     print len(data['image'])
     source = "breakout"
     data['source'] = list([source] * len(data['image']))
-    data['image'] = data['image']/255.
-
+    
     #[np.expand_dims(i, axis=0) for i in data['image']]
 
     #print data['image'][0].shape
