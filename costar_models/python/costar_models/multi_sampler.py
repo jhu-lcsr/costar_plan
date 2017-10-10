@@ -234,7 +234,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         weights=[0.7,1.0,0.2,0.1],
                         loss=["mae","mae","mae","categorical_crossentropy"],
                         avg_weight=0.05),
-                    "categorical_crossentropy", "binary_crossentropy"],
+                    "binary_crossentropy", "binary_crossentropy"],
                 loss_weights=[#0.1,0.1,0.1,0.1,
                     1.0,0.1,0.1],
                 optimizer=self.getOptimizer())
@@ -245,6 +245,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
     def _getTransform(self,i=0):
         transform_dropout = False
+        use_options_again = True
+        if use_options_again:
+            options = self.num_options
+        else:
+            options = None
         if self.dense_representation:
             transform = GetDenseTransform(
                     dim=self.img_col_dim,
@@ -257,7 +262,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     leaky=True,
                     num_blocks=self.num_transforms,
                     relu=True,
-                    option=self.num_options,
+                    option=options,
                     resnet_blocks=self.residual,
                     use_noise=self.use_noise,
                     noise_dim=self.noise_dim,)
@@ -273,6 +278,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     leaky=True,
                     num_blocks=self.num_transforms,
                     relu=True,
+                    option=options,
                     resnet_blocks=self.residual,
                     use_noise=self.use_noise,
                     noise_dim=self.noise_dim,)
