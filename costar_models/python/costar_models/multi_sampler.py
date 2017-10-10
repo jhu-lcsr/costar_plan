@@ -40,20 +40,26 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_frames = 1
         self.img_num_filters = 64
         self.tform_filters = 64
-        self.combined_dense_size = 64
+        self.combined_dense_size = 128
         self.num_hypotheses = 8
-        self.num_transforms = 3
         self.validation_split = 0.05
         self.num_options = 48
 
         self.extra_layers = 1
         self.steps_down = 4
 
+        # Number of nonlinear transformations to be applied to the hidden state
+        # in order to compute a possible next state.
+        if self.dense_representation:
+            self.num_transforms = 3
+        else:
+            self.num_transforms = 3
+
         # Size of the "pose" column containing arm, gripper info
         self.pose_col_dim = 32
 
         # Size of the hidden representation when using dense
-        self.img_col_dim = 64
+        self.img_col_dim = 128
 
         self.PredictorCb = PredictorShowImage
         self.hidden_dim = 64/(2**self.steps_down)
@@ -227,7 +233,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
                         weights=[0.7,1.0,0.2,0.1],
                         loss=["mae","mae","mae","categorical_crossentropy"],
-                        avg_weight=0.),
+                        avg_weight=0.05),
                     "binary_crossentropy", "binary_crossentropy"],
                 loss_weights=[#0.1,0.1,0.1,0.1,
                     1.0,0.1,0.1],
@@ -239,6 +245,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
     def _getTransform(self,i=0):
         transform_dropout = False
+        use_options_again = True
+        if use_options_again:
+            options = self.num_options
+        else:
+            options = None
         if self.dense_representation:
             transform = GetDenseTransform(
                     dim=self.img_col_dim,
@@ -251,7 +262,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     leaky=True,
                     num_blocks=self.num_transforms,
                     relu=True,
-                    option=self.num_options,
+                    option=options,
                     resnet_blocks=self.residual,
                     use_noise=self.use_noise,
                     noise_dim=self.noise_dim,)
@@ -267,6 +278,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     leaky=True,
                     num_blocks=self.num_transforms,
                     relu=True,
+                    option=options,
                     resnet_blocks=self.residual,
                     use_noise=self.use_noise,
                     noise_dim=self.noise_dim,)

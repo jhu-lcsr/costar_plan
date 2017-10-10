@@ -594,9 +594,10 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
     if option is not None:
         oin = Input((option,))
         extra += [oin]
+    if len(extra) > 0:
+        x = Concatenate()([x] + extra)
     for j in range(num_blocks):
         if not resnet_blocks:
-            x = Concatenate()([x] + extra)
             x = Dense(dim,name="dense_%d_%d"%(idx,j))(x)
             if batchnorm:
                 x = BatchNormalization(name="normalize_%d_%d"%(idx,j))(x)
@@ -610,12 +611,7 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
         else:
             raise RuntimeError('resnet not supported for transform')
 
-    ins = [xin]
-    if use_noise:
-        ins += [zin]
-    if option:
-        ins += [oin]
-    return Model(ins, x, name="transform%d"%idx)
+    return Model([xin] + extra, x, name="transform%d"%idx)
 
 def GetNextOptionAndValue(x, num_options, option_in=None):
     '''
@@ -633,7 +629,7 @@ def GetNextOptionAndValue(x, num_options, option_in=None):
         option_x = Flatten()(option_x)
         x = Concatenate()([x, option_in])
     next_option_out = Dense(num_options,
-            activation="softmax", name="next_label_out",)(x)
+            activation="sigmoid", name="next_label_out",)(x)
     value_out = Dense(1, activation="sigmoid", name="value_out",)(x)
     return value_out, next_option_out
 
