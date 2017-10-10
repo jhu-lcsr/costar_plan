@@ -9,6 +9,8 @@ Our training data is sequences of task execution created with the `costar_bullet
 
 The tool lets us generate large amounts of task performances, with randomized high level (and eventually low level) actions.
 
+**ABOUT THIS DOCUMENT:** This mostly consists of notes by Chris Paxton for how to get these methods to work. Some of these notes will be good; some may be out of date.
+
 ## Task Definition
 
 The task is defined as a set of high- and low-level actions at various levels, given by a task plan such as that shown below. For now, we will consider the simple version of the "blocks" task.
@@ -115,7 +117,6 @@ Some notes:
   - `--task stack1` will generate a slightly more complex and more interesting task than `--task blocks`.
   - You can use the `--fast_reset` flag to quickly visualize and debug tasks, but PyBullet seems unstable over long data collection runs with this flag on.
 
-
 ## Current Best Practice
 
 Create some data for predictor learning, 2017-09-12:
@@ -139,6 +140,21 @@ The current preferred model is **Predictor.** You should use that one when possi
 
 The predictor model learns to generate a bunch of possible futures.
 
+Useful notes:
+  - Use the `ctp_model_tool`, not the `costar_bullet` tool to start the training process.
+  - larger amounts of data are necessary to get good performance; 5000+ examples is a good target. These do not all have to be successful examples.
+  - Learning rate should be 0.001; a learning rate of 0.01 did not converge. Faster learning rates will cause trouble.
+  - Multiple transforms are crucial; setting the number of transforms to 2 or 3 speeds loss, and gives nicer results.
+  - Dropout makes a big difference with the MHP loss.
+    - You certainly want dropout rate of 0.5 on the input models.
+    - You may want to play around with dropout rate on the hypotheses; this can be enabled with the `--hypothesis_dropout` flag.
+    - Hypothesis dropout may cause predictions to blur together, so using less may actually work better.
+
+### Old Method
+
+This is now deprecated and should not be used. The old way used the
+`costar_bullet` tool to run the learning algoirthm.
+
 ```
 rosrun costar_bullet start --robot ur5 --task blocks --agent null \
   --features multi -i 100000 -e 1000 --model predictor \
@@ -149,6 +165,9 @@ Some notes:
   - The learning rate here needs to be a bit lower, or you need to set the `--clipnorm` option, as the loss is fairly complex. With a higher learning rate I observed spikes in the loss function.
   - `adam` and `nadam` converge very quickly on small datasets
 
+## Goal Sampler Model
+
+This is a newer version of the `predictor` model that predicts the distribution over goals first, then predicts images separately. It is supposed to reduce some of the issues we see with learning.
 
 ## Hierarchical Model
 

@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --job-name=stack2
+#SBATCH --job-name=gpose
 #SBATCH --time=0-48:0:0
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
@@ -12,23 +12,24 @@ set -e
 set -x
 set -u
 
+echo
 echo "Running $@ on $SLURMD_NODENAME ..."
+echo
 
 module load tensorflow/cuda-8.0/r1.3 
 
+
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
-	--features multi \
+  --features multi \
 	-e 250 \
-	--model predictor \
+	--model goal_sampler \
 	--data_file $HOME/work/ctp_value2.npz \
 	--lr 0.001 \
-	--model_directory $HOME/.costar/models_stackF_hdtrue/ \
+	--model_directory $HOME/.costar/models_stackE_goal_pose_only/ \
 	--optimizer adam \
-  --dropout_rate 0.5 \
-  --decoder_dropout_rate 0.125 \
   --upsampling conv_transpose \
   --hypothesis_dropout false \
+  --dropout_rate 0.5 \
   --use_noise true \
   --noise_dim 32 \
 	--batch_size 64
-
