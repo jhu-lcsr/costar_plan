@@ -537,10 +537,13 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
         dropout=False,
         resnet_blocks=False,
         use_noise=False,
+        pred_option_in=None,
         noise_dim=32):
 
     dim = filters
     xin = Input((rep_size) + (dim,))
+    if pred_option_in is not None:
+        dim += pred_option_in
     if use_noise:
         zin = Input((noise_dim,))
         x = TileOnto(xin,zin,noise_dim,rep_size)
@@ -564,11 +567,12 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
                 x = Dropout(dropout_rate)(x)
         else:
             raise RuntimeError('resnet not supported for transform')
-
+    ins = [xin]
     if use_noise:
-        return Model([xin, zin], x, name="transform%d"%idx)
-    else:
-        return Model(xin, x, name="transform%d"%idx)
+        ins += [zin]
+    if pred_option_in is not None:
+        ins += [oin]
+    return Model(ins, x, name="transform%d"%idx)
 
 def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True, 
         idx=0,
@@ -582,13 +586,17 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
         noise_dim=32):
 
     xin = Input((input_size,))
+    x = xin
+    extra = []
     if use_noise:
         zin = Input((noise_dim,))
-        x = Concatenate()([xin, zin])
-    else:
-        x = xin
+        extra += [zin]
+    if option is not None:
+        oin = Input((option,))
+        extra += [oin]
     for j in range(num_blocks):
         if not resnet_blocks:
+            x = Concatenate()([x] + extra)
             x = Dense(dim,name="dense_%d_%d"%(idx,j))(x)
             if batchnorm:
                 x = BatchNormalization(name="normalize_%d_%d"%(idx,j))(x)
@@ -602,10 +610,12 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
         else:
             raise RuntimeError('resnet not supported for transform')
 
-    if not use_noise:
-        return Model(xin, x, name="transform%d"%idx)
-    else:
-        return Model([xin, zin], x, name="transform%d"%idx)
+    ins = [xin]
+    if use_noise:
+        ins += [zin]
+    if option:
+        ins += [oin]
+    return Model(ins, x, name="transform%d"%idx)
 
 def GetNextOptionAndValue(x, num_options, option_in=None):
     '''

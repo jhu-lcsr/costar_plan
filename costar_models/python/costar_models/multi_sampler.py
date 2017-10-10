@@ -43,7 +43,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.combined_dense_size = 64
         self.num_hypotheses = 8
         self.num_transforms = 3
-        self.validation_split = 0.1
+        self.validation_split = 0.05
         self.num_options = 48
 
         self.extra_layers = 1
@@ -53,17 +53,21 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.pose_col_dim = 32
 
         # Size of the hidden representation when using dense
-        self.img_col_dim = 32
+        self.img_col_dim = 64
 
         self.PredictorCb = PredictorShowImage
         self.hidden_dim = 64/(2**self.steps_down)
         self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.tform_filters)
-        self.use_prev_option = True
 
         self.predictor = None
         self.train_predictor = None
         self.actor = None
-        self.always_same_transform = True
+
+        # ===================================================================
+        # These are hard coded settings -- tweaking them may break a bunch of
+        # things.
+        self.use_prev_option = True
+        self.always_same_transform = False
 
     def _makePredictor(self, features):
         '''
@@ -96,7 +100,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 batchnorm=True,
                 tile=True,
                 flatten=False,
-                option=None,#self.num_options,
+                option=None, #self.num_options,
                 output_filters=self.tform_filters,
                 )
         #img_in, arm_in, gripper_in, option_in = ins
@@ -145,6 +149,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         ins += [option_in]
         value_out, next_option_out = GetNextOptionAndValue(enc,
                                                            self.num_options,
+                                                           #option_in=None)
                                                            option_in=option_in)
 
         # =====================================================================
@@ -159,7 +164,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 transform.summary()
             if self.use_noise:
                 zi = Lambda(lambda x: x[:,i], name="slice_z%d"%i)(z)
-                x = transform([enc, zi])
+                x = transform([enc, zi, next_option_out])
             else:
                 x = transform([enc])
             
@@ -220,7 +225,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
-                        weights=[0.5,1.0,0.25,0.25],
+                        weights=[0.7,1.0,0.2,0.1],
                         loss=["mae","mae","mae","categorical_crossentropy"],
                         avg_weight=0.),
                     "binary_crossentropy", "binary_crossentropy"],
@@ -246,6 +251,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     leaky=True,
                     num_blocks=self.num_transforms,
                     relu=True,
+                    option=self.num_options,
                     resnet_blocks=self.residual,
                     use_noise=self.use_noise,
                     noise_dim=self.noise_dim,)
