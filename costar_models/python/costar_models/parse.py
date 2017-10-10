@@ -64,6 +64,7 @@ def GetModelParser():
                         default="adam")
     parser.add_argument("-z", "--zdim", "--noise_dim",
                         help="size of action parameterization",
+                        type=int,
                         default=16)
     parser.add_argument("-D", "--debug_model", "--dm", "--debug",
                         help="Run a short script to debug the current model.",
@@ -121,6 +122,26 @@ def GetModelParser():
                         help="set upsampling definition",
                         choices=UpsamplingOptions(),
                         default=None,)
+    parser.add_argument("--hypothesis_dropout",
+                        help="dropout in hypothesis decoder",
+                        default=False,
+                        type=bool)
+    parser.add_argument("--dropout_rate", "--dr",
+                        help="Dropout rate to use",
+                        type=float,
+                        default=0.5)
+    parser.add_argument("--use_noise",
+                        help="use random noise to sample distributions",
+                        type=bool,
+                        default=True)
+    parser.add_argument("--skip_connections", "--sc",
+                        help="use skip connections to generate better outputs",
+                        type=bool,
+                        default=True)
+    parser.add_argument("--decoder_dropout_rate", "--ddr",
+                        help="specify a separate dropout for the model decoder",
+                        type=float,
+                        default=0.5)
 
     return parser
 

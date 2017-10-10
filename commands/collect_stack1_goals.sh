@@ -4,6 +4,12 @@
 rosrun costar_bullet start \
   --robot ur5 --task stack1 --agent task \
   -i 5000 --features multi  --verbose \
-  --seed 9 --success_only  --cpu \
+  --seed 0 \
+  --cpu \
   --save --data_file test.npz \
   --collection_mode goal
+
+# NOTE: removing this flag now that we are predicting both successful and
+# unsuccessful futures from any given state.
+#--success_only \
+
