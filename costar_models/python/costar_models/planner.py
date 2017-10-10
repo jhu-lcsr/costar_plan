@@ -602,15 +602,12 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
         else:
             raise RuntimeError('resnet not supported for transform')
 
-    #x = Reshape([1,1,dim])(x)
-    #x = Lambda(lambda x: K.tile(x, [1] + output_size + [1]))(x)
-
     if not use_noise:
         return Model(xin, x, name="transform%d"%idx)
     else:
         return Model([xin, zin], x, name="transform%d"%idx)
 
-def GetNextOptionAndValue(x, num_options):
+def GetNextOptionAndValue(x, num_options, option_in=None):
     '''
     Predict some information about an observed/encoded world state
 
@@ -621,6 +618,10 @@ def GetNextOptionAndValue(x, num_options):
     '''
     if len(x.shape) > 2:
         x = Flatten()(x)
+    if option_in is not None:
+        option_x = OneHot(num_options)(option_in)
+        option_x = Flatten()(option_x)
+        x = Concatenate()([x, option_in])
     next_option_out = Dense(num_options,
             activation="sigmoid", name="next_label_out",)(x)
     value_out = Dense(1, activation="sigmoid", name="value_out",)(x)
