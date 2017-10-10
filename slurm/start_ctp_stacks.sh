@@ -10,14 +10,17 @@ for lr in 0.01 0.001
 do
 	for opt in adam
 	do
-		for dr in 0.1 0.2 0.5
+		for dr in 0.125 0.5
 		do
-			hd=true
-			echo "starting LR=$lr, Dropout=$dr, optimizer = $opt, use dropout in hypotheses = $hd"
-			sbatch ctp.sh $lr $dr $opt $hd
-			hd=false
-			echo "starting LR=$lr, Dropout=$dr, optimizer = $opt, use dropout in hypotheses = $hd"
-			sbatch ctp.sh $lr $dr $opt $hd
+      for noise_dim in 1 8 32 
+      do
+        hd=true
+        echo "starting LR=$lr, Dropout=$dr, optimizer = $opt, use dropout in hypotheses: $hd noise=$noise_dim"
+        sbatch ctp.sh $lr $dr $opt $hd $noise_dim
+        hd=false
+        echo "starting LR=$lr, Dropout=$dr, optimizer = $opt, use dropout in hypotheses = $hd"
+        sbatch ctp.sh $lr $dr $opt $hd $noise_dim
+      done
 		done
 	done
 done

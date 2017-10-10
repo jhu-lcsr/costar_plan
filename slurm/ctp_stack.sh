@@ -35,12 +35,12 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--model predictor \
 	--data_file $HOME/work/ctp_value2.npz \
 	--lr 0.001 \
-	--model_directory $HOME/.costar/models_stackG/ \
+	--model_directory $HOME/.costar/models_stackH/ \
 	--optimizer adam \
   --upsampling conv_transpose \
   --hypothesis_dropout false \
   --dropout_rate 0.5 \
   --use_noise true \
-  --noise_dim 32 \
+  --noise_dim 8 \
 	--batch_size 64
 
