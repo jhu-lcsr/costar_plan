@@ -63,6 +63,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.predictor = None
         self.train_predictor = None
         self.actor = None
+        self.always_same_transform = True
 
     def _makePredictor(self, features):
         '''
@@ -148,8 +149,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # =====================================================================
         # Create many different image decoders
+        if self.always_same_transform:
+            transform = self._getTransform(0)
         for i in range(self.num_hypotheses):
-            transform = self._getTransform(i)
+            if not self.always_same_transform:
+                transform = self._getTransform(i)
 
             if i == 0:
                 transform.summary()
@@ -216,9 +220,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
-                        weights=[0.7,1.0,0.2,0.1],
+                        weights=[0.5,1.0,0.25,0.25],
                         loss=["mae","mae","mae","categorical_crossentropy"],
-                        avg_weight=0.05),
+                        avg_weight=0.),
                     "binary_crossentropy", "binary_crossentropy"],
                 loss_weights=[#0.1,0.1,0.1,0.1,
                     1.0,0.1,0.1],
@@ -229,7 +233,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         return predictor, train_predictor, actor
 
     def _getTransform(self,i=0):
-        transform_dropout = True
+        transform_dropout = False
         if self.dense_representation:
             transform = GetDenseTransform(
                     dim=self.img_col_dim,
