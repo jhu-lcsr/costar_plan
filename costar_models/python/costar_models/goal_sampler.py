@@ -194,10 +194,11 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
             y = LeakyReLU(0.2)(y)
             y = BatchNormalization(momentum=0.9)(y)
             y = Flatten()(y)
-        y = Dense(self.combined_dense_size)(y)
-        y = Dropout(self.dropout_rate)(y)
-        y = LeakyReLU(0.2)(y)
-        y = BatchNormalization(momentum=0.9)(y)
+        else:
+            y = Dense(self.combined_dense_size)(y)
+            y = Dropout(self.dropout_rate)(y)
+            y = LeakyReLU(0.2)(y)
+            y = BatchNormalization(momentum=0.9)(y)
         arm_cmd_out = Lambda(lambda x: K.expand_dims(x, axis=1),name="arm_action")(
                 Dense(arm_size-1)(y))
         gripper_cmd_out = Lambda(lambda x: K.expand_dims(x, axis=1),name="gripper_action")(

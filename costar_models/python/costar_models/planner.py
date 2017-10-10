@@ -633,7 +633,7 @@ def GetNextOptionAndValue(x, num_options, option_in=None):
         option_x = Flatten()(option_x)
         x = Concatenate()([x, option_in])
     next_option_out = Dense(num_options,
-            activation="sigmoid", name="next_label_out",)(x)
+            activation="softmax", name="next_label_out",)(x)
     value_out = Dense(1, activation="sigmoid", name="value_out",)(x)
     return value_out, next_option_out
 
