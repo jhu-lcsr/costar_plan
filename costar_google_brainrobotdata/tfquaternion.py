@@ -344,10 +344,16 @@ class Quaternion():
         return Quaternion((w, -x, -y, -z))
 
     @quat_scope
-    def normalize(self):
-        """Normalizes this object and returns the result in a new quaternion.
+    def normalized(self):
+        """Copies this quaternion, normalizes it, then returns the normalized version.
         """
         return self.__class__(tf.divide(self._q, self._abs()))
+
+    @quat_scope
+    def normalize(self):
+        """Normalizes this quaternion object.
+        """
+        self._q = tf.divide(self._q, self._abs())
 
     @quat_scope
     def as_rotation_matrix(self):
@@ -381,13 +387,12 @@ class Quaternion():
 
         Create a Quaternion by specifying the 3-vector rotation axis and rotation
         angle (in radians) from which the quaternion's rotation should be created.
-        TODO(ahundt) NOT COMPLETE!!!!!!!!!!!!!
+
         Params:
             axis: a valid numpy 3-vector
             angle: a real valued angle in radians
         """
-        assert(False)
-        mag_sq = tf.dot(axisAngle, axisAngle)
+        mag_sq = tf.tensordot(axisAngle, axisAngle)
         # Ensure Provided rotation axis has length
         tf.Assert(tf.count_nonzero(mag_sq))
         # size of axis must be rotation around center
@@ -455,17 +460,26 @@ class DualQuaternion():
     """Dual Quaternions are useful for rigid body transform representations in SE(3).
 
     Dual quaternions contain two quaternions, the real quaternion and a dual quaternion component.
+
+    # Arguments
+
+        real_wxyz: rotation component
+        translation: translation component, 3 element vector or array
+        dual_wxyz: direct quaternion representing translation component, translation parameter must be None.
     """
-    def __init__(self, real_wxyz=(1.0, 0.0, 0.0, 0.0), dual_wxyz=(0.0, 0.0, 0.0, 0.0), dtype=tf.float32):
+    def __init__(self, real_wxyz=(1.0, 0.0, 0.0, 0.0), translation=(0.0, 0.0, 0.0), dual_wxyz=None, dtype=tf.float32):
         if isinstance(real_wxyz, Quaternion):
             self._real = real_wxyz
         else:
             self._real = Quaternion(wxyz=real_wxyz, dtype=dtype)
 
-        if isinstance(dual_wxyz, Quaternion):
-            self._dual = real_wxyz
+        if translation is not None:
+            self.set_translation(translation=translation)
         else:
-            self._dual = Quaternion(wxyz=dual_wxyz, dtype=dtype)
+            if isinstance(dual_wxyz, Quaternion):
+                self._dual = real_wxyz
+            else:
+                self._dual = Quaternion(wxyz=dual_wxyz, dtype=dtype)
 
     @staticmethod
     def zeros(dtype=tf.float32):
@@ -525,6 +539,21 @@ class DualQuaternion():
         """Get the translation tensor [x, y, z] associated with the Dual Quaternion.
         """
         return self.translation_quaternion().coeffs()[1:3]
+
+    @dual_quat_scope
+    def set_translation(self, translation=[0.0, 0.0, 0.0]):
+        """Set the translation component of this dual quaternion. Also normalizes the real component.
+
+        # Arguments
+
+        translation: A Tensor, list, or numpy array containing 3 elements, x, y, z.
+        """
+        self._real = self.normalize()
+        cq_arr = tf.concat([0], translation)
+        conv_q = Quaternion(cq_arr)
+        conv_q = conv_q * self._real
+        cq_arr = conv_q.coeffs() * 0.5
+        self._dual = Quaternion(cq_arr)
 
     @dual_quat_scope
     def transformation_matrix(self):
