@@ -40,9 +40,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_frames = 1
         self.img_num_filters = 64
         self.tform_filters = 64
-        self.combined_dense_size = 128
         self.num_hypotheses = 8
-        self.validation_split = 0.05
+        self.validation_split = 0.1
         self.num_options = 48
 
         self.extra_layers = 1
@@ -55,11 +54,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         else:
             self.num_transforms = 3
 
+        # Used for classifiers: value and next option
+        self.combined_dense_size = 64
+
         # Size of the "pose" column containing arm, gripper info
-        self.pose_col_dim = 32
+        self.pose_col_dim = 64
 
         # Size of the hidden representation when using dense
-        self.img_col_dim = 128
+        self.img_col_dim = 64
 
         self.PredictorCb = PredictorShowImage
         self.hidden_dim = 64/(2**self.steps_down)
