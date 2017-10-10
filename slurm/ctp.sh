@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --job-name=ctpE
+#SBATCH --job-name=ctpF
 #SBATCH --time=0-48:0:0
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
@@ -12,9 +12,7 @@ set -e
 set -x
 set -u
 
-echo
-echo "Running $@ on $SLURME_NOEENAME ..."
-echo
+echo "Running $@ on $SLURMD_NODENAME ..."
 
 module load tensorflow/cuda-8.0/r1.3 
 
@@ -26,7 +24,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--lr $1 \
 	--dropout_rate 0.5 \
 	--decoder_dropout_rate $2 \
-	--model_directory $HOME/.costar/models_stack_E$1$3$2$4/ \
+	--model_directory $HOME/.costar/models_stack_F$1$3$2$4/ \
 	--optimizer $3 \
   --use_noise true \
   --noise_dim 32 \
