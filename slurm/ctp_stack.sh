@@ -25,7 +25,7 @@ module load tensorflow/cuda-8.0/r1.3
 # sequence A:(8,8,64), options, 1 transform layer
 # sequence B:(4,4,64), options, 2 transform layers
 # sequence C:(4,4,64), options, 3 transform layers
-# sequence C:(8,8,64), options, 3 transform layers, dense
+# sequence D:(8,8,64), options, 3 transform layers, dense
 # sequence F: dense, 128
 # sequence G: dense, 32
 
@@ -35,7 +35,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--model predictor \
 	--data_file $HOME/work/ctp_value2.npz \
 	--lr 0.001 \
-	--model_directory $HOME/.costar/models_stackH/ \
+	--model_directory $HOME/.costar/models_stackI/ \
 	--optimizer adam \
   --upsampling conv_transpose \
   --hypothesis_dropout false \
