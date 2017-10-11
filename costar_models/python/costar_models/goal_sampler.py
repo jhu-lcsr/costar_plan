@@ -47,7 +47,6 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         self.num_hypotheses = 4
         self.validation_split = 0.1
         self.num_options = 48
-        self.pose_col_dim = 32
         self.PredictorCb = PredictorGoals
 
         if self.dense_representation:
@@ -59,10 +58,10 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         self.combined_dense_size = 128
 
         # Size of the "pose" column containing arm, gripper info
-        self.pose_col_dim = 32
+        self.pose_col_dim = 64
 
         # Size of the hidden representation when using dense
-        self.img_col_dim = 256
+        self.img_col_dim = 128
 
         # Encoder architecture
         self.extra_layers = 1
@@ -145,7 +144,8 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                         robot_skip=robot_skip,
                         resnet_blocks=self.residual,
                         batchnorm=True,)
-        generator = self._getGenerator(img_shape, [5,5])
+        decoder.compile(loss="mae",optimizer=self.getOptimizer())
+        decoder.summary()
 
         arm_outs = []
         gripper_outs = []
@@ -153,8 +153,7 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         label_outs = []
 
         skips.reverse()
-        decoder.compile(loss="mae",optimizer=self.getOptimizer())
-        decoder.summary()
+        generator = self._makeGenerator(img_shape, [3,3], skips)
 
         z = Input((self.num_hypotheses, self.noise_dim,),name="noise_in")
 
@@ -209,12 +208,16 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
 
         # =====================================================================
         # Training the actor policy
-        arm_goal = Input((7,),name="arm_goal_in")
+        arm_goal = Input((self.num_arm_vars,),name="arm_goal_in")
         gripper_goal = Input((1,),name="gripper_goal_in")
         actor = self._makeActorPolicy()
+        actor.summary()
         arm_cmd_out, gripper_cmd_out = actor([enc, arm_goal, gripper_goal])
         generator.summary()
-        img_out = generator([enc, arm_goal, gripper_goal])
+        if self.skip_connections:
+            img_out = generator([enc, arm_goal, gripper_goal] + skips)
+        else:
+            img_out = generator([enc, arm_goal, gripper_goal])
 
         # =====================================================================
         # Create models to train
@@ -234,8 +237,8 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[arm_size, gripper_size, self.num_options],
-                        weights=[0.6,0.25,0.15],
-                        loss=["mae","mae","categorical_crossentropy"],
+                        weights=[0.8,0.1,0.1],
+                        loss=["mse","mse","categorical_crossentropy"],
                         avg_weight=0.05),
                     "binary_crossentropy","binary_crossentropy","mse","mse","mae"],
                 loss_weights=[1.0,0.1,0.1,0.1,0.1,1.0],
