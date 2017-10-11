@@ -80,13 +80,13 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
-        tt, o1, v, qa, ga = targets
+        tt, o1, v, qa, ga, I = targets
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-            return features[:self.num_features] + [z], [tt, o1, v, qa, ga]
+            return features[:self.num_features] + [z], [tt, o1, v, qa, ga, I]
         else:
-            return features[:self.num_features], [tt, o1, v, qa, ga]
+            return features[:self.num_features], [tt, o1, v, qa, ga, I]
 
     def _makePredictor(self, features):
         '''
@@ -114,7 +114,7 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                 dropout=True,
                 pre_tiling_layers=self.extra_layers,
                 post_tiling_layers=self.steps_down,
-                kernel_size=[3,3],
+                kernel_size=[5,5],
                 dense=self.dense_representation,
                 batchnorm=True,
                 tile=True,
@@ -130,7 +130,7 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                         dropout_rate=self.dropout_rate,
                         dense_size=self.combined_dense_size,
                         dense=self.dense_representation,
-                        kernel_size=[3,3],
+                        kernel_size=[5,5],
                         filters=self.img_num_filters,
                         stride2_layers=self.steps_down,
                         stride1_layers=self.extra_layers,
@@ -145,6 +145,7 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                         robot_skip=robot_skip,
                         resnet_blocks=self.residual,
                         batchnorm=True,)
+        generator = self._getGenerator(img_shape, [5,5])
 
         arm_outs = []
         gripper_outs = []
@@ -212,6 +213,8 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         gripper_goal = Input((1,),name="gripper_goal_in")
         actor = self._makeActorPolicy()
         arm_cmd_out, gripper_cmd_out = actor([enc, arm_goal, gripper_goal])
+        generator.summary()
+        img_out = generator([enc, arm_goal, gripper_goal])
 
         # =====================================================================
         # Create models to train
@@ -222,7 +225,7 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                 [arm_cmd_out, gripper_cmd_out])
         train_predictor = Model(ins + [arm_goal, gripper_goal, z],
                 [train_out, next_option_out,
-                value_out, arm_cmd_out, gripper_cmd_out])
+                value_out, arm_cmd_out, gripper_cmd_out, img_out])
 
         # =====================================================================
         # Create models to train
@@ -234,8 +237,8 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                         weights=[0.6,0.25,0.15],
                         loss=["mae","mae","categorical_crossentropy"],
                         avg_weight=0.05),
-                    "binary_crossentropy","binary_crossentropy","mse","mse"],
-                loss_weights=[1.0,0.1,0.1,0.3,0.1],
+                    "binary_crossentropy","binary_crossentropy","mse","mse","mae"],
+                loss_weights=[1.0,0.1,0.1,0.1,0.1,1.0],
                 optimizer=self.getOptimizer())
         sampler.compile(loss="mae", optimizer=self.getOptimizer())
         train_predictor.summary()
