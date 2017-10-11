@@ -552,5 +552,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         generator = Model(
                 [hidden, arm_goal, gripper_goal] + rep[1:],
-                img_out)
+                img_out,
+                name="generator")
         return generator
