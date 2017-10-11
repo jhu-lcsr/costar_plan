@@ -25,7 +25,7 @@ module load tensorflow/cuda-8.0/r1.3
 # sequence A:(8,8,64), options, 1 transform layer
 # sequence B:(4,4,64), options, 2 transform layers
 # sequence C:(4,4,64), options, 3 transform layers
-# sequence C:(8,8,64), options, 3 transform layers, dense
+# sequence D:(8,8,64), options, 3 transform layers, dense
 # sequence F: dense, 128
 # sequence G: dense, 32
 
