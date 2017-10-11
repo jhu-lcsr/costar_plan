@@ -28,7 +28,9 @@ module load tensorflow/cuda-8.0/r1.3
 # sequence D:(8,8,64), options, 3 transform layers, dense
 # sequence F: dense, 128
 # sequence G: dense, 32
-
+# sequence H: dense, 32, 1 tform
+# sequence I: dense, bigger
+# sequence J: dense, 256, multiple tforms
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--features multi \
 	-e 250 \
@@ -41,6 +43,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --hypothesis_dropout false \
   --dropout_rate 0.5 \
   --use_noise true \
+  --steps_per_epoch 300 \
   --noise_dim 8 \
 	--batch_size 64
 

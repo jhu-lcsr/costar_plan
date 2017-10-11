@@ -27,6 +27,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--model_directory $HOME/.costar/models_stack_J$1$3$2$4$5/ \
 	--optimizer $3 \
   --use_noise true \
+  --steps_per_epoch 300 \
   --noise_dim $5 \
   --hypothesis_dropout $4 \
   --upsampling conv_transpose \

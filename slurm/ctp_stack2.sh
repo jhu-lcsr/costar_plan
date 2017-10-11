@@ -29,6 +29,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --upsampling conv_transpose \
   --hypothesis_dropout false \
   --use_noise true \
+  --steps_per_epoch 300 \
   --noise_dim 8 \
   --batch_size 64
 
