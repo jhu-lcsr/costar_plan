@@ -47,7 +47,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         self.extra_layers = 1
         self.steps_down = 4
-        self.num_actor_policy_layers = 2
+        self.num_actor_policy_layers = 3
+        self.num_generator_layers = 1
 
         # Number of nonlinear transformations to be applied to the hidden state
         # in order to compute a possible next state.
@@ -342,12 +343,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 o_target,
                 value_target,
                 np.expand_dims(qa, axis=1),
-                np.expand_dims(ga, axis=1)]
+                np.expand_dims(ga, axis=1),
+                I_target]
 
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
-        tt, o1, v, qa, ga = targets
+        tt, o1, v, qa, ga, I = targets
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
@@ -375,7 +377,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Check to make sure data makes sense before running the model.
 
         [I, q, g, oprev, q_target, g_target,] = features
-        [I_target2, o_target, value_target, qa, ga,] = targets
+        [I_target2, o_target, value_target, qa, ga, I_target0] = targets
 
         if self.predictor is None:
             self._makeModel(I, q, g, qa, ga)
@@ -512,3 +514,43 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         actor = Model([enc, arm_goal, gripper_goal], [arm_cmd_out,
             gripper_cmd_out], name="actor")
         return actor
+
+    def _getGenerator(self, img_shape, kernel_size, skips=None):
+        rep, dec = GetImageDecoder(self.img_col_dim,
+                        img_shape,
+                        dropout_rate=self.dropout_rate,
+                        kernel_size=kernel_size,
+                        filters=self.img_num_filters,
+                        stride2_layers=self.steps_down,
+                        stride1_layers=self.extra_layers,
+                        tform_filters=self.tform_filters,
+                        dropout=self.hypothesis_dropout,
+                        upsampling=self.upsampling_method,
+                        dense=self.dense_representation,
+                        dense_rep_size=self.img_col_dim,
+                        leaky=True,
+                        skips=skips,
+                        original=None,
+                        resnet_blocks=self.residual,
+                        batchnorm=True,)
+        decoder = Model(rep, dec)
+        hidden = Input((self.img_col_dim,), name="generator_hidden_in")
+        arm_goal = Input((7,),name="generator_arm_goal_in")
+        gripper_goal = Input((1,),name="generator_gripper_goal_in")
+
+        y = Concatenate()([hidden, arm_goal, gripper_goal])
+        for _ in range(self.num_generator_layers):
+            y = Dense(self.img_col_dim)(y)
+            y = BatchNormalization(momentum=0.9)(y)
+            y = LeakyReLU(0.2)(y)
+            y = Dropout(self.dropout_rate)(y)
+
+        if skips is not None:
+            img_out = decoder([y] + skips)
+        else:
+            img_out = decoder([y])
+
+        generator = Model(
+                [hidden, arm_goal, gripper_goal] + rep[1:],
+                img_out)
+        return generator
