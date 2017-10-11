@@ -68,12 +68,25 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         self.extra_layers = 1
         self.steps_down = 4
 
+        # Number of model inputs for training only
+        self.num_features = 6
+
         self.hidden_dim = 64/(2**self.steps_down)
         self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.tform_filters)
 
         self.predictor = None
         self.train_predictor = None
         self.actor = None
+
+    def _getData(self, *args, **kwargs):
+        features, targets = self._getAllData(*args, **kwargs)
+        tt, o1, v, qa, ga = targets
+        if self.use_noise:
+            noise_len = features[0].shape[0]
+            z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
+            return features[:self.num_features] + [z], [tt, o1, v, qa, ga]
+        else:
+            return features[:self.num_features], [tt, o1, v, qa, ga]
 
     def _makePredictor(self, features):
         '''
@@ -195,34 +208,21 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
 
         # =====================================================================
         # Training the actor policy
-        y = enc
-        if not self.dense_representation:
-            y = Conv2D(int(self.img_num_filters/4),
-                    kernel_size=[5,5], 
-                    strides=(2, 2),
-                    padding='same')(y)
-            y = Dropout(self.dropout_rate)(y)
-            y = LeakyReLU(0.2)(y)
-            y = BatchNormalization(momentum=0.9)(y)
-            y = Flatten()(y)
-        else:
-            y = Dense(self.combined_dense_size)(y)
-            y = Dropout(self.dropout_rate)(y)
-            y = LeakyReLU(0.2)(y)
-            y = BatchNormalization(momentum=0.9)(y)
-        arm_cmd_out = Lambda(lambda x: K.expand_dims(x, axis=1),name="arm_action")(
-                Dense(arm_size-1)(y))
-        gripper_cmd_out = Lambda(lambda x: K.expand_dims(x, axis=1),name="gripper_action")(
-                Dense(gripper_size)(y))
+        arm_goal = Input((7,),name="arm_goal_in")
+        gripper_goal = Input((1,),name="gripper_goal_in")
+        actor = self._makeActorPolicy()
+        arm_cmd_out, gripper_cmd_out = actor([enc, arm_goal, gripper_goal])
 
         # =====================================================================
         # Create models to train
         sampler = Model(ins + [z],
                 [arm_out, gripper_out, label_out, next_option_out, value_out])
-        actor = Model(ins, [arm_cmd_out, gripper_cmd_out])
-        train_predictor = Model(ins + [z],
+        # TODO: fix actor model
+        actor = Model(ins + [arm_goal, gripper_goal],
+                [arm_cmd_out, gripper_cmd_out])
+        train_predictor = Model(ins + [arm_goal, gripper_goal, z],
                 [train_out, next_option_out,
-                value_out]) #, arm_cmd_out, gripper_cmd_out])
+                value_out, arm_cmd_out, gripper_cmd_out])
 
         # =====================================================================
         # Create models to train
@@ -234,8 +234,8 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                         weights=[0.6,0.25,0.15],
                         loss=["mae","mae","categorical_crossentropy"],
                         avg_weight=0.05),
-                    "binary_crossentropy","binary_crossentropy"],
-                loss_weights=[1.0,0.1,0.1,],
+                    "binary_crossentropy","binary_crossentropy","mse","mse"],
+                loss_weights=[1.0,0.1,0.1,0.3,0.1],
                 optimizer=self.getOptimizer())
         sampler.compile(loss="mae", optimizer=self.getOptimizer())
         train_predictor.summary()
