@@ -44,6 +44,12 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
 
         self.PredictorCb = PredictorShowImageOnly
 
+        # ===================================================================
+        # These are hard coded settings -- tweaking them may break a bunch of
+        # things.
+        self.use_prev_option = True
+        self.always_same_transform = False
+
     def _makePredictor(self, features):
         '''
         Create model to predict possible manipulation goals.

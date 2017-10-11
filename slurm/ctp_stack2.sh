@@ -18,7 +18,7 @@ module load tensorflow/cuda-8.0/r1.3
 
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--features multi \
-	-e 250 \
+	-e 100 \
 	--model predictor \
 	--data_file $HOME/work/ctp_value2.npz \
 	--lr 0.001 \
