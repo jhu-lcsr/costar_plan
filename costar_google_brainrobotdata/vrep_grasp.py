@@ -200,13 +200,15 @@ class VREPGraspSimulation(object):
         base_to_camera_vec_quat_7 = matrix_to_vector_quaternion_array(camera_to_base_4x4matrix)
         # gripper_positions = [features_dict_np[transform_name] for transform_name in base_to_endeffector_transforms]
         for i, transform_name, depth_name, rgb_name in zip(range(len(base_to_endeffector_transforms)),
-                                                           base_to_endeffector_transforms, depth_image_features, rgb_image_features):
+                                                           base_to_endeffector_transforms,
+                                                           depth_image_features, rgb_image_features):
             # 2. Now create a dummy object at coordinate 0.1,0.2,0.3 with name 'MyDummyName':
             empty_buffer = bytearray()
             # 3 cartesian (x, y, z) and 4 quaternion (x, y, z, w) elements, same as vrep
             gripper_pose = features_dict_np[transform_name]
             # format the dummy string nicely for display
-            transform_display_name = str(i).zfill(2) + '_' + transform_name.replace('/transforms/base_T_endeffector/vec_quat_7', '').replace('/', '_')
+            transform_display_name = str(i).zfill(2) + '_' + transform_name.replace(
+                '/transforms/base_T_endeffector/vec_quat_7', '').replace('/', '_')
             print transform_name, transform_display_name, gripper_pose
             self.create_dummy(transform_display_name, gripper_pose, parent_handle)
 

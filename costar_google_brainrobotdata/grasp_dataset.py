@@ -1,4 +1,6 @@
-"""Code for building the input for the prediction model.
+"""Code for loading data from the google brain robotics grasping dataset.
+
+https://sites.google.com/site/brainrobotdata/home/grasping-dataset
 
 Author: Andrew Hundt <ATHundt@gmail.com>
 
@@ -124,7 +126,6 @@ class GraspDataset(object):
         you tensorflow tensors for the original dataset configuration and parameterization. Then initialize
         your model with the tensors and train or predict.
 
-        TODO(ahundt) update to use new TF Dataset API https://github.com/tensorflow/tensorflow/tree/master/tensorflow/contrib/data
         This interface only supports one dataset at a time (aka 102 feature version or 057).
 
         # Arguments
@@ -490,7 +491,7 @@ class GraspDataset(object):
         return matching_features
 
     @staticmethod
-    def parse_grasp_attempt_protobuf(serialized_grasp_attempt_proto, features_complete_list):
+    def _parse_grasp_attempt_protobuf(serialized_grasp_attempt_proto, features_complete_list):
         """Parses an Example protobuf containing a training example of an image.
         The output of the build_image_data.py image preprocessing script is a dataset
         containing serialized Example protocol buffers. Each Example proto contains
@@ -508,7 +509,7 @@ class GraspDataset(object):
             sequence_feature_op_dict: dictionary of sequence tensors for every features,
                 contains base to end effector transforms.
         """
-        with tf.name_scope('parse_grasp_attempt_protobuf') as scope:
+        with tf.name_scope('_parse_grasp_attempt_protobuf') as scope:
             # Dense features in Example proto.
             num_grasp_steps_name = 'num_grasp_steps'
             camera_to_base_name = 'camera/transforms/camera_T_base/matrix44'
@@ -570,7 +571,25 @@ class GraspDataset(object):
                                                     context_features=features_dict,
                                                     sequence_features=sequence_features_dict)
 
-    def get_simple_parallel_dataset_ops(self, dataset=None, batch_size=1, buffer_size=100, parallelism=10, shift_ratio=0.1):
+    # def _endeffector_current_T_endeffector_final(self, feature_op_dicts):
+    #     """Add a feature op which defines a transform from the current time step's endeffector pose to the final endeffector pose.
+    #     'grasp/final/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_quat_7'
+    #     """
+
+    #     for fixed_feature_op_dict, sequence_feature_op_dict in feature_op_dicts:
+    #         currentPoseToEndPose
+
+    #         pose_op_params = self.get_time_ordered_features(
+    #             features_complete_list,
+    #             feature_type='transforms/base_T_endeffector/vec_quat_7',
+    #             step='move_to_grasp'
+    #         )
+    #         for i in range(len(pose_op_params)):
+    #             # every input will be the final pose
+    #             pose_op_params[i] = pose_op_params[-1]
+
+
+    def _get_simple_parallel_dataset_ops(self, dataset=None, batch_size=1, buffer_size=100, parallelism=10, shift_ratio=0.1):
         """Simple unordered & parallel TensorFlow ops that go through the whole dataset.
 
         # Returns
@@ -594,7 +613,7 @@ class GraspDataset(object):
         records_op = tf.split(records_op, batch_size, 0)
         records_op = [tf.reshape(record, []) for record in records_op]
         features_complete_list, num_samples = self.get_features()
-        feature_op_dicts = [self.parse_grasp_attempt_protobuf(serialized_protobuf, features_complete_list)
+        feature_op_dicts = [self._parse_grasp_attempt_protobuf(serialized_protobuf, features_complete_list)
                             for serialized_protobuf in records_op]
         # TODO(ahundt) https://www.tensorflow.org/performance/performance_models
         # make sure records are always ready to go on cpu and gpu via prefetching in a staging area
@@ -633,7 +652,7 @@ class GraspDataset(object):
         reader = tf.TFRecordReader()
         _, serialized_example = reader.read(filename_queue)
 
-        feature_op_dicts = [self.parse_grasp_attempt_protobuf(serialized_example, features_complete_list)]
+        feature_op_dicts = [self._parse_grasp_attempt_protobuf(serialized_example, features_complete_list)]
         # TODO(ahundt) https://www.tensorflow.org/performance/performance_models
         # make sure records are always ready to go
         # staging_area = tf.contrib.staging.StagingArea()
@@ -757,13 +776,42 @@ class GraspDataset(object):
                                      grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step):
         """Get tensors configured for training on grasps at a single pose.
 
-            motion_params: different ways of representing the motion vector parameter.
-                           'final_pose_orientation_quaternion' directly input the final pose translation and orientation.
-                           'next_timestep' input the params for the command saved in the dataset with translation,
-                           sin theta, cos theta from the current time step to the next.
+            motion_params: different ways of representing the motion vector parameter used as an input to predicting grasp success.
+                Options include
+                    'final_pose_orientation_quaternion' directly input the final pose translation and orientation.
+                        Vector and quaternion representing the absolute end effector position at the end of the grasp attempt,
+                        the actual final value will vary based on the dataset being used. This is the same as the
+                        'grasp/final/reached_pose/transforms/base_T_endeffector/vec_quat_7' feature.
+                    'next_timestep' input the params for the command saved in the dataset with translation,
+                        sin theta, cos theta from the current time step to the next. This is the same as the 'params' feature.
+                    'grasp/final/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_quat_7'
+                        TODO(ahundt) not yet implemented
+                        vector and quaternion representing the transform from the current time step's pose
+                        to the pose at the final time step in the current time step's end effector frame.
+                    'pixel_depth_to_final_pose'
+                        TODO(ahundt) not yet implemented
+                        Surface relative transform from the final gripper pixel depth position
+                        This is fairly complex, so please inquire if additional details are needed.
+                        Determine the 'final_pose_orientation_quaternion', the specific feature will vary based on the dataset,
+                        for example in dataset 102 it is `grasp/10/reached_pose/transforms/base_T_endeffector/vec_quat_7`.
+                        Using this pose, we determine the x,y pixel coordinate of the gripper's reached pose at the final time step
+                        in the camera frame, and use this to look up the depth value in the initial clear view image.
+                        TODO(ahundt) consider the following for the applicable feature name:
+                        'grasp/final/reached_pose/transforms/endeffector_final_depth_pixel_T_endeffector_final/vec_quat_7'
 
+            grasp_sequence_max_time_step: Grasp examples consist of time steps from 0 to up to a max of 11.
+                To train on specific range of data set this value to the maximum desired time step.
+                A value of None gives unlimited range.
+            grasp_sequence_min_time_step: Grasp examples consist of time steps from 0 to up to a max of 11.
+                To train on specific range of data set this value to the minimum desired time step.
+                A value of None gives unlimited range.
+            grasp_command: The grasp command parameter to be supplied during training.
+
+           # Returns
+
+               (pregrasp_op_batch, grasp_step_op_batch, simplified_grasp_command_op_batch, example_batch_size, grasp_success_op_batch, num_samples)
         """
-        feature_op_dicts, features_complete_list, num_samples = self.get_simple_parallel_dataset_ops(batch_size=batch_size)
+        feature_op_dicts, features_complete_list, num_samples = self._get_simple_parallel_dataset_ops(batch_size=batch_size)
         # TODO(ahundt) https://www.tensorflow.org/performance/performance_models
         # make sure records are always ready to go
         # staging_area = tf.contrib.staging.StagingArea()
@@ -781,15 +829,15 @@ class GraspDataset(object):
             step='move_to_grasp'
         )
 
-        verify_feature_index = True
+        verify_feature_index = False
         if motion_params == 'next_timestep':
+            verify_feature_index = True
             pose_op_params = self.get_time_ordered_features(
                 features_complete_list,
                 feature_type='params',
                 step='move_to_grasp'
             )
         elif motion_params == 'final_pose_orientation_quaternion':
-            verify_feature_index = False
             pose_op_params = self.get_time_ordered_features(
                 features_complete_list,
                 feature_type='transforms/base_T_endeffector/vec_quat_7',
@@ -799,10 +847,11 @@ class GraspDataset(object):
                 # every input will be the final pose
                 pose_op_params[i] = pose_op_params[-1]
             # print('pose_op_params:', pose_op_params)
-        grasp_success = self.get_time_ordered_features(
-            features_complete_list,
-            feature_type='grasp_success'
-        )
+        # elif motion_params ==
+        # grasp_success = self.get_time_ordered_features(
+        #     features_complete_list,
+        #     feature_type='grasp_success'
+        # )
 
         # our training batch size will be batch_size * grasp_steps
         # because we will train all grasp step images w.r.t. final
@@ -824,7 +873,8 @@ class GraspDataset(object):
                                                             resize=resize)
 
             grasp_success_op = tf.squeeze(fixed_feature_op_dict[grasp_success[0]])
-            print('\npose_op_params: ', pose_op_params, '\nrgb_move_to_grasp_steps: ', rgb_move_to_grasp_steps)
+            if self.verbose > 2:
+                print('\npose_op_params: ', pose_op_params, '\nrgb_move_to_grasp_steps: ', rgb_move_to_grasp_steps)
 
             # each step in the grasp motion is also its own minibatch,
             # iterate in reversed direction because if training data will be dropped
@@ -845,7 +895,8 @@ class GraspDataset(object):
         # TODO(ahundt) for multiple device batches, will need to split on batch_size and example_batch size will need to be updated
         example_batch_size = len(grasp_success_op_batch)
 
-        print('pregrasp_op_batch:',pregrasp_op_batch)
+        if self.verbose > 2:
+            print('pregrasp_op_batch:', pregrasp_op_batch)
         pregrasp_op_batch = tf.parallel_stack(pregrasp_op_batch)
         grasp_step_op_batch = tf.parallel_stack(grasp_step_op_batch)
         simplified_grasp_command_op_batch = tf.parallel_stack(simplified_grasp_command_op_batch)
@@ -888,7 +939,6 @@ class GraspDataset(object):
             """
             # decode all the image ops and other features
             [(features_op_dict, _)], features_complete_list, _, attempt_count = self.get_simple_tfrecordreader_dataset_ops()
-            print(features_complete_list)
             if self.verbose > 0:
                 print(features_complete_list)
             ordered_image_feature_names = GraspDataset.get_time_ordered_features(features_complete_list, '/image/decoded')

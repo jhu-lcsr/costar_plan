@@ -224,7 +224,7 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix):
       shape (rows, cols, 3). Pixels with invalid depth in the input have
       NaN for the z-coordinate in the result.
 
-      intrinsics_matris: 3x3 matrix for projecting depth values to z values
+      intrinsics_matrix: 3x3 matrix for projecting depth values to z values
       in the point cloud frame. http://ksimek.github.io/2013/08/13/intrinsic/
 
       transform: 4x4 Rt matrix for rotating and translating the point cloud
