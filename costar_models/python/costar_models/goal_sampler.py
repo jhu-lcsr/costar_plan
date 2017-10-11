@@ -66,7 +66,7 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
 
         # Encoder architecture
         self.extra_layers = 1
-        self.steps_down = 3
+        self.steps_down = 4
 
         self.hidden_dim = 64/(2**self.steps_down)
         self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.tform_filters)
@@ -231,7 +231,7 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[arm_size, gripper_size, self.num_options],
-                        weights=[0.4,0.3,0.3],
+                        weights=[0.6,0.25,0.15],
                         loss=["mae","mae","categorical_crossentropy"],
                         avg_weight=0.05),
                     "binary_crossentropy","binary_crossentropy"],
