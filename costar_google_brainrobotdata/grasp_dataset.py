@@ -28,6 +28,8 @@ except ImportError:
     print('moviepy not available, try `pip install moviepy`. '
           'Skipping dataset gif extraction components.')
 
+import grasp_geometry
+
 flags.DEFINE_string('data_dir',
                     os.path.join(os.path.expanduser("~"),
                                  '.keras', 'datasets', 'grasping'),
@@ -468,6 +470,9 @@ class GraspDataset(object):
             max_grasp_steps = 11  # 0 through 10
             for i in range(max_grasp_steps):
                 matching_features.extend(_match_feature(features, r'^grasp/{}/'.format(i), feature_type, 'post'))
+                # note that this feature is user created and not directly present in the stored dataset files
+                # see _endeffector_current_T_endeffector_final for details
+                matching_features.extend(_match_feature(features, r'^move_to_grasp/{:03}/'.format(i), feature_type, 'post'))
         # closing the gripper
         if step in ['close_gripper', 'all', '']:
             matching_features.extend(_match_feature(features, r'^gripper/', feature_type, exclude_substring))
@@ -571,23 +576,46 @@ class GraspDataset(object):
                                                     context_features=features_dict,
                                                     sequence_features=sequence_features_dict)
 
-    # def _endeffector_current_T_endeffector_final(self, feature_op_dicts):
-    #     """Add a feature op which defines a transform from the current time step's endeffector pose to the final endeffector pose.
-    #     'grasp/final/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_quat_7'
-    #     """
+    def _endeffector_current_T_endeffector_final(self,
+                                                 feature_op_dicts,
+                                                 features_complete_list,
+                                                 feature_type='transforms/base_T_endeffector/vec_quat_7'):
+        """Add a feature op which defines a transform from the current time step's endeffector pose to the final endeffector pose.
+        'move_to_grasp/###/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_quat_7'
 
-    #     for fixed_feature_op_dict, sequence_feature_op_dict in feature_op_dicts:
-    #         currentPoseToEndPose
+        # TODO(ahundt) use tfquaternion.py, not tf.py_func() due to limitations in https://www.tensorflow.org/api_docs/python/tf/py_func
 
-    #         pose_op_params = self.get_time_ordered_features(
-    #             features_complete_list,
-    #             feature_type='transforms/base_T_endeffector/vec_quat_7',
-    #             step='move_to_grasp'
-    #         )
-    #         for i in range(len(pose_op_params)):
-    #             # every input will be the final pose
-    #             pose_op_params[i] = pose_op_params[-1]
+        # Returns
 
+            new_feature_op_dicts, features_complete_list, new_pose_op_param_names
+        """
+
+        pose_op_params = self.get_time_ordered_features(
+            features_complete_list,
+            feature_type=feature_type,
+            step='move_to_grasp'
+        )
+
+        final_pose_op = pose_op_params[-1]
+        new_pose_op_param_names = []
+        new_feature_op_dicts = []
+
+        for i, (fixed_feature_op_dict, sequence_feature_op_dict) in enumerate(feature_op_dicts):
+            for j, pose_op_param in enumerate(pose_op_params):
+                # generate the transform calculation op, might be able to set stateful=False for a performance boost
+                current_to_end_op = tf.py_func(grasp_geometry.currentPoseToEndPose,
+                    [fixed_feature_op_dict[pose_op_param], fixed_feature_op_dict[final_pose_op]], tf.float32)
+                current_to_end_name = 'move_to_grasp/{:03}/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_quat_7'.format(j)
+                fixed_feature_op_dict[current_to_end_name] = current_to_end_op
+                if i == 0:
+                    # assume all batches have the same features
+                    features_complete_list.append(current_to_end_name)
+                    new_pose_op_param_names.append(current_to_end_name)
+
+            # assemble the updated feature op dicts
+            new_feature_op_dicts.append((fixed_feature_op_dict, sequence_feature_op_dict))
+
+        return new_feature_op_dicts, features_complete_list, new_pose_op_param_names
 
     def _get_simple_parallel_dataset_ops(self, dataset=None, batch_size=1, buffer_size=100, parallelism=10, shift_ratio=0.1):
         """Simple unordered & parallel TensorFlow ops that go through the whole dataset.
@@ -784,10 +812,12 @@ class GraspDataset(object):
                         'grasp/final/reached_pose/transforms/base_T_endeffector/vec_quat_7' feature.
                     'next_timestep' input the params for the command saved in the dataset with translation,
                         sin theta, cos theta from the current time step to the next. This is the same as the 'params' feature.
-                    'grasp/final/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_quat_7'
-                        TODO(ahundt) not yet implemented
+                    'endeffector_current_T_endeffector_final_vector_quaternion'
                         vector and quaternion representing the transform from the current time step's pose
                         to the pose at the final time step in the current time step's end effector frame.
+                        This also generates the new feature
+                        'move_to_grasp/###/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_quat_7',
+                        where ### is a number for each step from 000 to the number of time steps in the example.
                     'pixel_depth_to_final_pose'
                         TODO(ahundt) not yet implemented
                         Surface relative transform from the final gripper pixel depth position
@@ -823,12 +853,15 @@ class GraspDataset(object):
             step='view_clear_scene'
         )
 
+        # get the feature names for the sequence of rgb images
+        # in which movement towards the close gripper step is made
         rgb_move_to_grasp_steps = self.get_time_ordered_features(
             features_complete_list,
             feature_type='/image/decoded',
             step='move_to_grasp'
         )
 
+        # verify_feature_index is just an extra data ordering check
         verify_feature_index = False
         if motion_params == 'next_timestep':
             verify_feature_index = True
@@ -847,11 +880,11 @@ class GraspDataset(object):
                 # every input will be the final pose
                 pose_op_params[i] = pose_op_params[-1]
             # print('pose_op_params:', pose_op_params)
-        # elif motion_params ==
-        # grasp_success = self.get_time_ordered_features(
-        #     features_complete_list,
-        #     feature_type='grasp_success'
-        # )
+        elif motion_params == 'endeffector_current_T_endeffector_final_vector_quaternion':
+            # reprocess and update motion params with new transforms from
+            # the current end effector pose to the final pose
+            feature_op_dicts, features_complete_list, pose_op_params = self._endeffector_current_T_endeffector_final(
+                feature_op_dicts, features_complete_list)
 
         # our training batch size will be batch_size * grasp_steps
         # because we will train all grasp step images w.r.t. final
