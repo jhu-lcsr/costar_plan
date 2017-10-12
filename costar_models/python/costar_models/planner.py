@@ -542,7 +542,7 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
         noise_dim=32):
 
     dim = filters
-    xin = Input((rep_size) + (dim,))
+    xin = Input((rep_size) + (dim,),"features_input")
     if pred_option_in is not None:
         dim += pred_option_in
     if use_noise:
@@ -586,14 +586,14 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
         option=None,
         noise_dim=32):
 
-    xin = Input((input_size,))
+    xin = Input((input_size,),name="tform%d_hidden_in"%idx)
     x = xin
     extra = []
     if use_noise:
-        zin = Input((noise_dim,))
+        zin = Input((noise_dim,),name="tform%d_noise_in"%idx)
         extra += [zin]
     if option is not None:
-        oin = Input((option,))
+        oin = Input((option,),name="tform%d_option_in"%idx)
         extra += [oin]
     if len(extra) > 0:
         x = Concatenate()([x] + extra)

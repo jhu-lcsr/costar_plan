@@ -41,7 +41,7 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
         '''
         super(RobotMultiImageSampler, self).__init__(taskdef, *args, **kwargs)
         self.num_features = 4
-        self.num_hypotheses = 4
+        self.num_hypotheses = 8
         self.steps_down = 2
         self.steps_up = 4
         self.steps_up_no_skip = 2
@@ -153,7 +153,6 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
                         weights=[1.0],
                         loss=["mae"],
                         avg_weight=0.05)],
-                loss_weights=[1.0],
                 optimizer=self.getOptimizer())
         predictor.compile(loss="mae", optimizer=self.getOptimizer())
         train_predictor.summary()
