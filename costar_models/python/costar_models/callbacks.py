@@ -74,6 +74,7 @@ class PredictorShowImage(keras.callbacks.Callback):
                 print(name)
                 print("max(p(o' | x)) =", np.argmax(probs[j]))
                 print("v(x) =", v[j])
+                print("o_{i-1} = ", self.features[3][j])
             fig = plt.figure(figsize=(3+int(1.5*self.num_hypotheses),2))
             plt.subplot(1,2+self.num_hypotheses,1)
             plt.title('Input Image')
@@ -92,9 +93,9 @@ class PredictorShowImage(keras.callbacks.Callback):
             fig.savefig(name, bbox_inches="tight")
             if self.verbose:
                 print("Arm/gripper target =",
-                        self.targets[0][j,imglen:imglen+8])
+                        self.targets[0][j,imglen:imglen+7])
                 print("Label target =",
-                        np.argmax(self.targets[0][j,(imglen+8):]))
+                        np.argmax(self.targets[0][j,(imglen+7):]))
                 print("Label target 2 =", np.argmax(self.targets[1][j]))
                 print("Value target =", np.argmax(self.targets[2][j]))
             plt.close(fig)
