@@ -18,17 +18,18 @@ module load tensorflow/cuda-8.0/r1.3
 
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--features multi \
-	-e 250 \
+	-e 100 \
 	--model predictor \
-	--data_file $HOME/work/ctp_value2.npz \
+	--data_file $HOME/work/ctp_rpy.npz \
 	--lr 0.001 \
-	--model_directory $HOME/.costar/models_stackJ_hdtrue/ \
+	--model_directory $HOME/.costar/models_stackL_hdtrue/ \
 	--optimizer adam \
   --dropout_rate 0.5 \
   --decoder_dropout_rate 0.125 \
   --upsampling conv_transpose \
   --hypothesis_dropout false \
   --use_noise true \
+  --steps_per_epoch 300 \
   --noise_dim 8 \
   --batch_size 64
 

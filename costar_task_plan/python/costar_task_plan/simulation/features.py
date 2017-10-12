@@ -102,7 +102,7 @@ class ImagePlusFeatures(AbstractFeatures):
     def __init__(self, *args, **kwargs):
         super(ImagePlusFeatures, self).__init__(*args, **kwargs)
         self.last_rpy = None
-        self.use_rpy = False
+        self.use_rpy = True
 
     def compute(self, world, state):
         '''

@@ -244,6 +244,7 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
         dense=True, option=None, flatten=True, batchnorm=False,
         pre_tiling_layers=0,
         post_tiling_layers=2,
+        stride1_post_tiling_layers=0,
         kernel_size=[3,3], output_filters=None,
         time_distributed=0,
         config="arm"):
@@ -400,6 +401,21 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
         if dropout:
             x = Dropout(dropout_rate)(x)
         skips.append(x)
+
+    for i in range(stride1_post_tiling_layers):
+        if i == post_tiling_layers - 1:
+            nfilters = output_filters
+        else:
+            nfilters = filters
+        x = ApplyTD(Conv2D(nfilters,
+                   kernel_size=kernel_size, 
+                   strides=(1, 1),
+                   padding='same'))(x)
+        if batchnorm:
+            x = ApplyTD(BatchNormalization())(x)
+        x = relu()(x)
+        if dropout:
+            x = Dropout(dropout_rate)(x)
     
     if option is not None:
         nfilters = output_filters

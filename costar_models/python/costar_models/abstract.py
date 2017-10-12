@@ -26,7 +26,7 @@ class AbstractAgentBasedModel(object):
             hypothesis_dropout=False,
             dense_representation=True,
             skip_connections=True,
-            use_noise=False, noise_dim=32,
+            use_noise=False,
             num_generator_files=3, predict_value=False, upsampling=None,
             task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
@@ -64,7 +64,6 @@ class AbstractAgentBasedModel(object):
         self.dropout_rate = dropout_rate
         self.hypothesis_dropout = hypothesis_dropout
         self.use_noise = use_noise
-        self.noise_dim = noise_dim
         self.decoder_dropout_rate = decoder_dropout_rate
         self.skip_connections = skip_connections
         self.dense_representation = dense_representation

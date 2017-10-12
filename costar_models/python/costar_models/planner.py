@@ -295,7 +295,8 @@ def GetImageDecoder(dim, img_shape,
                            kernel_size=kernel_size, 
                            strides=(1, 1),
                            padding='same')(x)
-                x = Lambda(lambda x: ktf.image.resize_images(x,
+
+                x = Lambda(lambda x: ktf.image.resize_bilinear(x,
                     [height, width]),
                     name="bilinear%dx%d"%(height,width))(x)
             elif upsampling == "upsampling":
@@ -453,7 +454,7 @@ def GetArmGripperDecoder(dim, img_shape,
     if dropout:
         x = Dropout(dropout_rate)(x)
 
-    arm_out_x = Dense(arm_size, name="next_arm", activation="tanh")(x)
+    arm_out_x = Dense(arm_size, name="next_arm", activation="linear")(x)
     gripper_out_x = Dense(gripper_size,
             activation="sigmoid",
             name="next_gripper_flat")(x)
