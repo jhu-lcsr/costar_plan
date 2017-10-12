@@ -36,7 +36,7 @@ class MhpLoss(object):
     }
     '''
 
-    def __init__(self, num_hypotheses, num_outputs):
+    def __init__(self, num_hypotheses, avg_weight=0.05):
         '''
         Set up the MHP loss function.
 
@@ -49,14 +49,12 @@ class MhpLoss(object):
                      necessary later on.
         '''
         self.num_hypotheses = num_hypotheses
-        self.num_outputs = num_outputs
-        #for dim in output_shape:
-        #    self.num_outputs *= dim
-        #self.output_shape = output_shape
         self.__name__ = "mhp_loss"
         
-        self.avg_weight = 0.05
-        self.min_weight = 0.90
+        if avg_weight > 0.25 or avg_weight < 0.:
+            raise RuntimeError('avg_weight must be in [0,0.25]')
+        self.avg_weight = avg_weight
+        self.min_weight = 1.0 - (2 * self.avg_weight)
 
     def __call__(self, target, pred):
         '''
@@ -92,7 +90,8 @@ class MhpLossWithShape(object):
     This version of the MHP loss assumes that it will receive multiple outputs.
 
     '''
-    def __init__(self, num_hypotheses, outputs, weights=None, loss="mse"):
+    def __init__(self, num_hypotheses, outputs, weights=None, loss="mse",
+            avg_weight=0.05):
         self.num_hypotheses = num_hypotheses
         self.outputs = outputs # these are the sizes of the various outputs
         if weights is None:
@@ -108,8 +107,12 @@ class MhpLossWithShape(object):
             self.losses = [loss] * len(self.outputs)
         assert len(self.outputs) == len(self.losses)
         self.__name__ = "mhp_loss"
-        self.avg_weight = 0.05
-        self.min_weight = 0.90
+
+        if avg_weight > 1.0 or avg_weight < 0.:
+            raise RuntimeError('avg_weight must be in [0,1]')
+        self.avg_weight = avg_weight
+        self.min_weight = 1.0 - (2 * self.avg_weight)
+        #self.min_weight = 1.0 - self.avg_weight
 
     def __call__(self, target, pred):
         '''
