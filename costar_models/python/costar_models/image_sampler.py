@@ -48,7 +48,7 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
         # These are hard coded settings -- tweaking them may break a bunch of
         # things.
         self.use_prev_option = True
-        self.always_same_transform = False
+        self.always_same_transform = True
 
     def _makePredictor(self, features):
         '''
@@ -148,7 +148,7 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
                         outputs=[image_size],
                         weights=[1.0],
                         loss=["mae"],
-                        avg_weight=0.05)],
+                        avg_weight=0.25)],
                 loss_weights=[1.0],
                 optimizer=self.getOptimizer())
         predictor.compile(loss="mae", optimizer=self.getOptimizer())

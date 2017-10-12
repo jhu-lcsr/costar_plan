@@ -83,9 +83,9 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-            return features[:self.num_features] + [z], [tt, o1, v, qa, ga, I]
+            return features[:self.num_features] + [z], [tt]#, o1, v, qa, ga, I]
         else:
-            return features[:self.num_features], [tt, o1, v, qa, ga, I]
+            return features[:self.num_features], [tt]#, o1, v, qa, ga, I]
 
     def _makePredictor(self, features):
         '''
@@ -227,8 +227,8 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         actor = Model(ins + [arm_goal, gripper_goal],
                 [arm_cmd_out, gripper_cmd_out])
         train_predictor = Model(ins + [arm_goal, gripper_goal, z],
-                [train_out, next_option_out,
-                value_out, arm_cmd_out, gripper_cmd_out, img_out])
+                [train_out]) #, next_option_out,
+                #value_out, arm_cmd_out, gripper_cmd_out, img_out])
 
         # =====================================================================
         # Create models to train
@@ -240,8 +240,9 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                         weights=[0.8,0.1,0.1],
                         loss=["mse","mse","categorical_crossentropy"],
                         avg_weight=0.05),
-                    "binary_crossentropy","binary_crossentropy","mse","mse","mae"],
-                loss_weights=[1.0,0.1,0.1,0.1,0.1,1.0],
+                    ],
+                    #"binary_crossentropy","binary_crossentropy","mse","mse","mae"],
+                #loss_weights=[1.0,0.1,0.1,0.1,0.1,1.0],
                 optimizer=self.getOptimizer())
         sampler.compile(loss="mae", optimizer=self.getOptimizer())
         train_predictor.summary()
