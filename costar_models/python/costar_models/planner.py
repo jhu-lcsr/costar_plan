@@ -295,7 +295,8 @@ def GetImageDecoder(dim, img_shape,
                            kernel_size=kernel_size, 
                            strides=(1, 1),
                            padding='same')(x)
-                x = Lambda(lambda x: ktf.image.resize_images(x,
+
+                x = Lambda(lambda x: ktf.image.resize_bilinear(x,
                     [height, width]),
                     name="bilinear%dx%d"%(height,width))(x)
             elif upsampling == "upsampling":

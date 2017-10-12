@@ -169,6 +169,18 @@ Some notes:
 
 This is a newer version of the `predictor` model that predicts the distribution over goals first, then predicts images separately. It is supposed to reduce some of the issues we see with learning.
 
+```
+rosrun costar_models ctp_model_tool --data_file rpy.npz --model goal_sampler \
+  -e 1000 \
+  --features multi \
+  --batch_size 64  \
+  --optimizer adam \
+  --lr 0.001 \
+  --upsampling conv_transpose \
+  --steps_per_epoch 300 \
+  --cpu
+```
+
 ## Hierarchical Model
 
 The hierarchical model learns an encoding for feature detection.

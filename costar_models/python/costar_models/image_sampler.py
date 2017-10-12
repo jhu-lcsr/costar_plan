@@ -120,6 +120,7 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
             else:
                 decoder_inputs = [x]
 
+            decoder.summary()
             img_x = decoder(decoder_inputs)
 
             img_x = Lambda(
