@@ -47,6 +47,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         self.extra_layers = 1
         self.steps_down = 4
+        self.steps_up = self.steps_down
+        self.steps_up_no_skip = 0
         self.num_actor_policy_layers = 2
         self.num_generator_layers = 1
         self.num_arm_vars = 6
@@ -569,9 +571,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         dropout_rate=self.dropout_rate,
                         kernel_size=kernel_size,
                         filters=self.img_num_filters,
-                        stride2_layers=self.steps_down,
+                        stride2_layers=self.steps_up,
                         stride1_layers=self.extra_layers,
                         tform_filters=self.tform_filters,
+                        stride2_layers_no_skip=self.steps_up_no_skip,
                         dropout=self.hypothesis_dropout,
                         upsampling=self.upsampling_method,
                         dense=self.dense_representation,

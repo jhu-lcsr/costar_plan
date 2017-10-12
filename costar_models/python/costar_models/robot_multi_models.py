@@ -15,6 +15,7 @@ from keras.optimizers import Adam
 import keras.backend as K
 
 from .planner import *
+from .temporary import *
 
 def GetCameraColumn(img_shape, dim, dropout_rate, num_filters, dense_size):
     '''
@@ -247,6 +248,7 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
         stride1_post_tiling_layers=0,
         kernel_size=[3,3], output_filters=None,
         time_distributed=0,
+        use_spatial_softmax=False,
         config="arm"):
     '''
     This is the "master" version of the encoder creation function. It takes in
@@ -271,11 +273,13 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
     batchnorm:
     pre_tiling_layers:
     post_tiling_layers:
-    kernel_size:
+    kernel_size: 
     output_filters:
-    time_distributed:
-    config:
-    '''
+    time_distributed: True if you want to wrap this layer in a time distributed
+                       setup... sort of deprecated right now.
+    config: arm or mobile (arm supported for now)
+
+    1'''
 
     if not config in ["arm", "mobile"]:
         raise RuntimeError("Encoder config type must be in [arm, mobile]")
@@ -286,6 +290,8 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
             pose_size = state_sizes[0]
         else:
             pose_size = state_sizes
+    else:
+        raise RuntimeError('huh? what did you do?')
 
     if pose_col_dim is None:
         pose_col_dim = dim
@@ -402,6 +408,8 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
             x = Dropout(dropout_rate)(x)
         skips.append(x)
 
+    # =================================================
+    # Perform additional operations
     for i in range(stride1_post_tiling_layers):
         if i == post_tiling_layers - 1:
             nfilters = output_filters
@@ -416,7 +424,7 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
         x = relu()(x)
         if dropout:
             x = Dropout(dropout_rate)(x)
-    
+
     if option is not None:
         nfilters = output_filters
         option_x = OneHot(size=option)(option_in)
@@ -435,12 +443,18 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
         if dropout:
             x = Dropout(dropout_rate)(x)
 
-    if flatten or dense or discriminator:
+    # =================================================
+    # Compute spatial softmax
+    if use_spatial_softmax:
+        def _ssm(x):
+            #return tf.contrib.
+            return spatial_softmax(x)
+        x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
+    elif flatten or dense or discriminator:
         x = ApplyTD(Flatten())(x)
-    if dense:
-        x = ApplyTD(Dense(dim))(x)
-        x = ApplyTD(relu())(x)
-
+        if dense:
+            x = ApplyTD(Dense(dim))(x)
+            x = ApplyTD(relu())(x)
     # Single output -- sigmoid activation function
     if discriminator:
         x = Dense(1,activation="sigmoid")(x)

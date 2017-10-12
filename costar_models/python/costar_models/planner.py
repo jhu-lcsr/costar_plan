@@ -243,7 +243,8 @@ def GetImageDecoder(dim, img_shape,
         original=None, upsampling=None,
         resnet_blocks=False,
         skips=False,
-        stride2_layers=2, stride1_layers=1):
+        stride2_layers=2, stride1_layers=1,
+        stride2_layers_no_skip=0):
 
     '''
     Initial decoder: just based on getting images out of the world state
@@ -252,6 +253,9 @@ def GetImageDecoder(dim, img_shape,
 
     if tform_filters is None:
         tform_filters = filters
+
+    if resnet_blocks:
+        raise RuntimeError('RESNET: this option has been removed.')
 
     height = int(img_shape[0]/(2**stride2_layers))
     width = int(img_shape[1]/(2**stride2_layers))
@@ -280,44 +284,40 @@ def GetImageDecoder(dim, img_shape,
     width = width * 2
     for i in range(stride2_layers):
 
-        if skips:
+        if skips and i >= stride2_layers_no_skip:
             skip_in = Input((width/2,height/2,filters))
             x = Concatenate(axis=-1)([x, skip_in])
             skip_inputs.append(skip_in)
 
-        if not resnet_blocks:
-            # Upsampling.
-            # Alternatives to Conv2D transpose for generation; this is because
-            # conv2d transpose is known to result in artifacts, and we want to
-            # avoid those when learning our nice decoder.
-            if upsampling == "bilinear":
-                x = Conv2D(filters,
-                           kernel_size=kernel_size, 
-                           strides=(1, 1),
-                           padding='same')(x)
+        # Upsampling.
+        # Alternatives to Conv2D transpose for generation; this is because
+        # conv2d transpose is known to result in artifacts, and we want to
+        # avoid those when learning our nice decoder.
+        if upsampling == "bilinear":
+            x = Conv2D(filters,
+                       kernel_size=kernel_size, 
+                       strides=(1, 1),
+                       padding='same')(x)
 
-                x = Lambda(lambda x: ktf.image.resize_bilinear(x,
-                    [height, width]),
-                    name="bilinear%dx%d"%(height,width))(x)
-            elif upsampling == "upsampling":
-                x = UpSampling2D(size=(2,2))(x)
-                x = Conv2D(filters,
-                           kernel_size=kernel_size, 
-                           strides=(1, 1),
-                           padding='same')(x)
-            else:
-                x = Conv2DTranspose(filters,
-                           kernel_size=kernel_size, 
-                           strides=(2, 2),
-                           padding='same')(x)
-            if batchnorm:
-                x = BatchNormalization()(x)
-            x = relu()(x)
-            if dropout:
-                x = Dropout(dropout_rate)(x)
+            x = Lambda(lambda x: ktf.image.resize_bilinear(x,
+                [height, width]),
+                name="bilinear%dx%d"%(height,width))(x)
+        elif upsampling == "upsampling":
+            x = UpSampling2D(size=(2,2))(x)
+            x = Conv2D(filters,
+                       kernel_size=kernel_size, 
+                       strides=(1, 1),
+                       padding='same')(x)
         else:
-            raise RuntimeError('resnet not supported')
-
+            x = Conv2DTranspose(filters,
+                       kernel_size=kernel_size, 
+                       strides=(2, 2),
+                       padding='same')(x)
+        if batchnorm:
+            x = BatchNormalization()(x)
+        x = relu()(x)
+        if dropout:
+            x = Dropout(dropout_rate)(x)
 
         height *= 2
         width *= 2
