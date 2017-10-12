@@ -6,14 +6,14 @@ set -u
 
 module load tensorflow/cuda-8.0/r1.3 
 
-for lr in 0.01 0.001
+for lr in 0.001
 do
 	for opt in adam
 	do
-    for noise_dim in 1 8 32 
+    for noise_dim in 1 32
     do
       hd=true
-      for dr in 0.125 0.5
+      for dr in 0.125
       do
         echo "starting LR=$lr, Dropout=$dr, optimizer=$opt, use dropout in hypotheses: $hd noise=$noise_dim"
         sbatch ctp.sh $lr $dr $opt $hd $noise_dim
