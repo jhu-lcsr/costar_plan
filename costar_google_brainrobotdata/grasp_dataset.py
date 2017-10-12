@@ -886,6 +886,12 @@ class GraspDataset(object):
             feature_op_dicts, features_complete_list, pose_op_params = self._endeffector_current_T_endeffector_final(
                 feature_op_dicts, features_complete_list)
 
+        # get the tensor indicating if the grasp ultimately succeeded or not
+        grasp_success = self.get_time_ordered_features(
+            features_complete_list,
+            feature_type='grasp_success'
+        )
+
         # our training batch size will be batch_size * grasp_steps
         # because we will train all grasp step images w.r.t. final
         # grasp success result value
