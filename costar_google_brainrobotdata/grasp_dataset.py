@@ -514,7 +514,7 @@ class GraspDataset(object):
             sequence_feature_op_dict: dictionary of sequence tensors for every features,
                 contains base to end effector transforms.
         """
-        with tf.name_scope('_parse_grasp_attempt_protobuf') as scope:
+        with tf.name_scope('parse_grasp_attempt_protobuf') as scope:
             # Dense features in Example proto.
             num_grasp_steps_name = 'num_grasp_steps'
             camera_to_base_name = 'camera/transforms/camera_T_base/matrix44'
