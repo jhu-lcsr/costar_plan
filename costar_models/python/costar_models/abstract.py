@@ -153,10 +153,10 @@ class AbstractAgentBasedModel(object):
             for _ in range(self.num_generator_files):
                 fdata = dataset.sampleTest()
                 for key, value in fdata.items():
-                    if key not in data:
-                        data[key] = value
                     if value.shape[0] == 0:
                         continue
+                    if key not in data:
+                        data[key] = value
                     data[key] = np.concatenate([data[key],value],axis=0)
             yield self._yield(data)
 
@@ -170,10 +170,10 @@ class AbstractAgentBasedModel(object):
             for _ in range(self.num_generator_files):
                 fdata = dataset.sampleTest()
                 for key, value in fdata.items():
-                    if key not in data:
-                        data[key] = value
                     if value.shape[0] == 0:
                         continue
+                    if key not in data:
+                        data[key] = value
                     data[key] = np.concatenate([data[key],value],axis=0)
             yield self._yield(data)
 
