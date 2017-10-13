@@ -36,7 +36,7 @@ def main(args):
                 root += '.'
             root += tok
         dataset = NpzGeneratorDataset(root)
-        data = dataset.load()
+        data = dataset.load(success_only = args['success_only'])
     else:
         raise NotImplementedError('data type not implemented: %s'%data_type)
 
