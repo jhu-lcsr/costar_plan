@@ -8,7 +8,6 @@ import tensorflow as tf
 
 from matplotlib import pyplot as plt
 
-from keras.backend import tf as ktf
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
 from keras.layers import UpSampling2D, Conv2DTranspose
@@ -243,7 +242,8 @@ def GetImageDecoder(dim, img_shape,
         original=None, upsampling=None,
         resnet_blocks=False,
         skips=False,
-        stride2_layers=2, stride1_layers=1):
+        stride2_layers=2, stride1_layers=1,
+        stride2_layers_no_skip=0):
 
     '''
     Initial decoder: just based on getting images out of the world state
@@ -252,6 +252,9 @@ def GetImageDecoder(dim, img_shape,
 
     if tform_filters is None:
         tform_filters = filters
+
+    if resnet_blocks:
+        raise RuntimeError('RESNET: this option has been removed.')
 
     height = int(img_shape[0]/(2**stride2_layers))
     width = int(img_shape[1]/(2**stride2_layers))
@@ -280,43 +283,40 @@ def GetImageDecoder(dim, img_shape,
     width = width * 2
     for i in range(stride2_layers):
 
-        if skips:
+        if skips and i >= stride2_layers_no_skip:
             skip_in = Input((width/2,height/2,filters))
             x = Concatenate(axis=-1)([x, skip_in])
             skip_inputs.append(skip_in)
 
-        if not resnet_blocks:
-            # Upsampling.
-            # Alternatives to Conv2D transpose for generation; this is because
-            # conv2d transpose is known to result in artifacts, and we want to
-            # avoid those when learning our nice decoder.
-            if upsampling == "bilinear":
-                x = Conv2D(filters,
-                           kernel_size=kernel_size, 
-                           strides=(1, 1),
-                           padding='same')(x)
-                x = Lambda(lambda x: ktf.image.resize_images(x,
-                    [height, width]),
-                    name="bilinear%dx%d"%(height,width))(x)
-            elif upsampling == "upsampling":
-                x = UpSampling2D(size=(2,2))(x)
-                x = Conv2D(filters,
-                           kernel_size=kernel_size, 
-                           strides=(1, 1),
-                           padding='same')(x)
-            else:
-                x = Conv2DTranspose(filters,
-                           kernel_size=kernel_size, 
-                           strides=(2, 2),
-                           padding='same')(x)
-            if batchnorm:
-                x = BatchNormalization()(x)
-            x = relu()(x)
-            if dropout:
-                x = Dropout(dropout_rate)(x)
-        else:
-            raise RuntimeError('resnet not supported')
+        # Upsampling.
+        # Alternatives to Conv2D transpose for generation; this is because
+        # conv2d transpose is known to result in artifacts, and we want to
+        # avoid those when learning our nice decoder.
+        if upsampling == "bilinear":
+            x = Conv2D(filters,
+                       kernel_size=kernel_size, 
+                       strides=(1, 1),
+                       padding='same')(x)
 
+            x = Lambda(lambda x: tf.image.resize_bilinear(x,
+                [height, width]),
+                name="bilinear%dx%d"%(height,width))(x)
+        elif upsampling == "upsampling":
+            x = UpSampling2D(size=(2,2))(x)
+            x = Conv2D(filters,
+                       kernel_size=kernel_size, 
+                       strides=(1, 1),
+                       padding='same')(x)
+        else:
+            x = Conv2DTranspose(filters,
+                       kernel_size=kernel_size, 
+                       strides=(2, 2),
+                       padding='same')(x)
+        if batchnorm:
+            x = BatchNormalization()(x)
+        x = relu()(x)
+        if dropout:
+            x = Dropout(dropout_rate)(x)
 
         height *= 2
         width *= 2
@@ -354,7 +354,7 @@ def GetImagePoseDecoder(dim, img_shape,
         batchnorm=True,dense=True, num_hypotheses=None, tform_filters=None,
         original=None, num_options=64, pose_size=6,
         resnet_blocks=False, skips=False, robot_skip=None,
-        stride2_layers=2, stride1_layers=1):
+        stride2_layers=2, stride1_layers=1, stride1_post_tiling_layers=0):
 
     rep, dec = GetImageDecoder(dim,
                         img_shape,
@@ -363,6 +363,7 @@ def GetImagePoseDecoder(dim, img_shape,
                         filters=filters,
                         stride2_layers=stride2_layers,
                         stride1_layers=stride1_layers,
+                        stride1_post_tiling_layers=stride1_post_tiling_layers,
                         tform_filters=tform_filters,
                         dropout=dropout,
                         leaky=leaky,
@@ -453,7 +454,7 @@ def GetArmGripperDecoder(dim, img_shape,
     if dropout:
         x = Dropout(dropout_rate)(x)
 
-    arm_out_x = Dense(arm_size, name="next_arm", activation="tanh")(x)
+    arm_out_x = Dense(arm_size, name="next_arm", activation="linear")(x)
     gripper_out_x = Dense(gripper_size,
             activation="sigmoid",
             name="next_gripper_flat")(x)
@@ -471,9 +472,15 @@ def GetImageArmGripperDecoder(dim, img_shape,
         upsampling=None,
         original=None, num_options=64, arm_size=7, gripper_size=1,
         resnet_blocks=False, skips=None, robot_skip=None,
-        stride2_layers=2, stride1_layers=1):
+        stride2_layers=2, stride1_layers=1,
+        stride2_layers_no_skip=0):
     '''
-    Decode image and gripper setup
+    Decode image and gripper setup.
+
+    Parameters:
+    -----------
+    dim: dimensionality of hidden representation
+    img_shape: shape of hidden image representation
     '''
 
     height = int(img_shape[0]/(2**stride2_layers))
@@ -486,6 +493,7 @@ def GetImageArmGripperDecoder(dim, img_shape,
                         filters=filters,
                         stride2_layers=stride2_layers,
                         stride1_layers=stride1_layers,
+                        stride2_layers_no_skip=stride2_layers_no_skip,
                         tform_filters=tform_filters,
                         dropout=dropout,
                         upsampling=upsampling,
@@ -539,9 +547,21 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
         use_noise=False,
         pred_option_in=None,
         noise_dim=32):
+    '''
+    Old version of the "transform" block. It assumes the hidden representation
+    will be a very small image (say, 8x8x64).
+
+    In general, all our predictor models are set up as:
+
+        h ~ f_{enc}(x)
+        h' ~ T(h)
+        x ~ f_{dec}
+
+    This is the middle part, where we compute the new hidden world state.
+    '''
 
     dim = filters
-    xin = Input((rep_size) + (dim,))
+    xin = Input((rep_size) + (dim,),"features_input")
     if pred_option_in is not None:
         dim += pred_option_in
     if use_noise:
@@ -583,16 +603,38 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
         resnet_blocks=False,
         use_noise=False,
         option=None,
+        sampler=False,
         noise_dim=32):
+    '''
+    This is the suggested way of creating a "transform" -- AKA a mapping
+    between the observed hidden world state at an encoding.
 
-    xin = Input((input_size,))
+    In general, all our predictor models are set up as:
+
+        h ~ f_{enc}(x)
+        h' ~ T(h)
+        x ~ f_{dec}
+
+    This is the middle part, where we compute the new hidden world state.
+
+    Parameters:
+    -----------
+    dim: size of the hidden representation
+    input_size: 
+    leaky: use LReLU instead of normal ReLU
+    dropout_rate: amount of dropout to use (not recommended for MHP)
+    dropout: use dropout (recommended FALSE for MHP)
+    sampler: set up as a "sampler" model
+    '''
+
+    xin = Input((input_size,),name="tform%d_hidden_in"%idx)
     x = xin
     extra = []
     if use_noise:
-        zin = Input((noise_dim,))
+        zin = Input((noise_dim,),name="tform%d_noise_in"%idx)
         extra += [zin]
     if option is not None:
-        oin = Input((option,))
+        oin = Input((option,),name="tform%d_option_in"%idx)
         extra += [oin]
     if len(extra) > 0:
         x = Concatenate()([x] + extra)
@@ -611,7 +653,35 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
         else:
             raise RuntimeError('resnet not supported for transform')
 
-    return Model([xin] + extra, x, name="transform%d"%idx)
+    # =========================================================================
+    # In this block we divide into two separate paths:
+    # (a) we deterministically return a hidden world
+    # (b) we compute a mean and variance, then draw a sampled hidden world
+    # The default path right now is via (a); (b) is experimental.
+    if not sampler:
+        return Model([xin] + extra, x, name="transform%d"%idx)
+    else:
+        mu = Dense(dim, name="tform%d_mu"%idx)(x)
+        sigma = Dense(dim, name="tform%d_simga"%idx)(x)
+
+        def _sampling(args):
+            '''
+            Helper function for continuously sampling based on Mu and Sigma
+            '''
+            mu, sigma = args
+            eps = K.random_normal(shape=(K.shape(mu)[0], dim),
+                    mean=0.,
+                    stddev=1.)
+            return mu + K.exp(sigma / 2) * eps
+
+        x = Lambda(_sampling,
+                output_shape=(dim,),
+                name="tform%d_sample"%idx)([mu, sigma])
+
+        # Note that mu and sigma are both important outputs for computing the
+        # KL regularization termin the loss function
+        return Model([xin] + extra, [mu, sigma, x], name="transform%d"%idx)
+
 
 def GetNextOptionAndValue(x, num_options, option_in=None):
     '''

@@ -26,7 +26,7 @@ class AbstractAgentBasedModel(object):
             hypothesis_dropout=False,
             dense_representation=True,
             skip_connections=True,
-            use_noise=False, noise_dim=32,
+            use_noise=False,
             num_generator_files=3, predict_value=False, upsampling=None,
             task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
@@ -64,7 +64,6 @@ class AbstractAgentBasedModel(object):
         self.dropout_rate = dropout_rate
         self.hypothesis_dropout = hypothesis_dropout
         self.use_noise = use_noise
-        self.noise_dim = noise_dim
         self.decoder_dropout_rate = decoder_dropout_rate
         self.skip_connections = skip_connections
         self.dense_representation = dense_representation
@@ -103,6 +102,7 @@ class AbstractAgentBasedModel(object):
         print("Show images every %d iter"%self.show_iter)
         print("Pretrain for %d iter"%self.pretrain_iter)
         print("p(Generator sample first frame) = 1/%d"%(self.choose_initial))
+        print("Number of generator files = %d"%self.num_generator_files)
         print("-----------------------------------------------------------")
         print("------------------ Model Specific Options -----------------")
         print("residual =", self.residual)
@@ -153,10 +153,10 @@ class AbstractAgentBasedModel(object):
             for _ in range(self.num_generator_files):
                 fdata = dataset.sampleTest()
                 for key, value in fdata.items():
-                    if key not in data:
-                        data[key] = value
                     if value.shape[0] == 0:
                         continue
+                    if key not in data:
+                        data[key] = value
                     data[key] = np.concatenate([data[key],value],axis=0)
             yield self._yield(data)
 
@@ -170,10 +170,10 @@ class AbstractAgentBasedModel(object):
             for _ in range(self.num_generator_files):
                 fdata = dataset.sampleTest()
                 for key, value in fdata.items():
-                    if key not in data:
-                        data[key] = value
                     if value.shape[0] == 0:
                         continue
+                    if key not in data:
+                        data[key] = value
                     data[key] = np.concatenate([data[key],value],axis=0)
             yield self._yield(data)
 

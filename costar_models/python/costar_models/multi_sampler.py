@@ -45,14 +45,21 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_options = 48
         self.num_features = 4
 
+        # Layer and model configuration
         self.extra_layers = 1
-        self.steps_down = 4
+        self.steps_down = 2
+        self.steps_up = 4
+        self.steps_up_no_skip = 2
+        self.encoder_stride1_steps = 2
+
         self.num_actor_policy_layers = 2
+        self.num_generator_layers = 1
+        self.num_arm_vars = 6
 
         # Number of nonlinear transformations to be applied to the hidden state
         # in order to compute a possible next state.
         if self.dense_representation:
-            self.num_transforms = 1
+            self.num_transforms = 2
         else:
             self.num_transforms = 3
 
@@ -64,10 +71,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.combined_dense_size = 128
 
         # Size of the "pose" column containing arm, gripper info
-        self.pose_col_dim = 32
+        self.pose_col_dim = 64
 
         # Size of the hidden representation when using dense
-        self.img_col_dim = 256
+        self.img_col_dim = 128
 
         self.PredictorCb = PredictorShowImage
         self.hidden_dim = 64/(2**self.steps_down)
@@ -76,6 +83,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.predictor = None
         self.train_predictor = None
         self.actor = None
+        self.image_decoder = None
 
         # ===================================================================
         # These are hard coded settings -- tweaking them may break a bunch of
@@ -108,13 +116,15 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 dropout=True,
                 pre_tiling_layers=self.extra_layers,
                 post_tiling_layers=self.steps_down,
+                stride1_post_tiling_layers=self.encoder_stride1_steps,
                 pose_col_dim=self.pose_col_dim,
-                kernel_size=[3,3],
+                kernel_size=[5,5],
                 dense=self.dense_representation,
                 batchnorm=True,
                 tile=True,
                 flatten=False,
                 option=self.num_options,
+                use_spatial_softmax=True,
                 #option=None,
                 output_filters=self.tform_filters,
                 )
@@ -132,8 +142,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         dense_size=self.combined_dense_size,
                         kernel_size=[3,3],
                         filters=self.img_num_filters,
-                        stride2_layers=self.steps_down,
+                        stride2_layers=self.steps_up,
                         stride1_layers=self.extra_layers,
+                        stride2_layers_no_skip=self.steps_up_no_skip,
                         tform_filters=self.tform_filters,
                         num_options=self.num_options,
                         arm_size=arm_size,
@@ -241,12 +252,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
-                        weights=[0.7,1.0,0.2,0.1],
-                        loss=["mae","mae","mae","categorical_crossentropy"],
+                        weights=[0.4,0.5,0.05,0.05],
+                        loss=["mae","mse","mse","categorical_crossentropy"],
                         avg_weight=0.05),
                     "binary_crossentropy", "binary_crossentropy"],
                 loss_weights=[#0.1,0.1,0.1,0.1,
-                    1.0,0.1,0.1],
+                    1.0,0.01,0.01],
                 optimizer=self.getOptimizer())
         predictor.compile(loss="mae", optimizer=self.getOptimizer())
         train_predictor.summary()
@@ -342,12 +353,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 o_target,
                 value_target,
                 np.expand_dims(qa, axis=1),
-                np.expand_dims(ga, axis=1)]
+                np.expand_dims(ga, axis=1),
+                I_target]
 
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
-        tt, o1, v, qa, ga = targets
+        tt, o1, v, qa, ga, I = targets
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
@@ -375,7 +387,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Check to make sure data makes sense before running the model.
 
         [I, q, g, oprev, q_target, g_target,] = features
-        [I_target2, o_target, value_target, qa, ga,] = targets
+        [I_target2, o_target, value_target, qa, ga, I_target0] = targets
 
         if self.predictor is None:
             self._makeModel(I, q, g, qa, ga)
@@ -394,7 +406,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # NOTE: arm size is one bigger when we have quaternions
         #assert train_size == 12295 + self.num_options
         #assert train_size == 12296 + self.num_options
-        assert train_size == (64*64*3) + 7 + 1 + self.num_options
+        assert train_size == (64*64*3) + self.num_arm_vars + 1 + self.num_options
 
         # ===================================================================
         # Create the callbacks and actually run the training loop.
@@ -429,11 +441,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         '''
         if self.predictor is not None:
             print("----------------------------")
-            print("Saving to " + self.name + "_{predictor, actor}")
+            print("Saving to " + self.name + "_{predictor, actor, image_decoder}")
             self.train_predictor.save_weights(self.name + "_train_predictor.h5f")
             if self.actor is not None:
                 self.predictor.save_weights(self.name + "_predictor.h5f")
                 self.actor.save_weights(self.name + "_actor.h5f")
+            if self.image_decoder is not None:
+                self.image_decoder.save_weights(self.name +
+                "_image_decoder.h5f")
         else:
             raise RuntimeError('save() failed: model not found.')
 
@@ -451,6 +466,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             except Exception as e:
                 print("Could not load actor:", e)
             self.train_predictor.load_weights(self.name + "_train_predictor.h5f")
+            if self.image_decoder is not None:
+                self.image_decoder.save_weights(self.name +
+                "_image_decoder.h5f")
         else:
             raise RuntimeError('_loadWeights() failed: model not found.')
 
@@ -485,7 +503,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         policies, but using the same underlying representation.
         '''
         enc = Input((self.img_col_dim,))
-        arm_goal = Input((7,),name="actor_arm_goal_in")
+        arm_goal = Input((self.num_arm_vars,),name="actor_arm_goal_in")
         gripper_goal = Input((1,),name="actor_gripper_goal_in")
         y = enc
         if not self.dense_representation:
@@ -512,3 +530,72 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         actor = Model([enc, arm_goal, gripper_goal], [arm_cmd_out,
             gripper_cmd_out], name="actor")
         return actor
+
+    def _makeGenerator(self, img_shape, kernel_size, skips=None):
+        rep, dec = GetImageDecoder(self.img_col_dim,
+                        img_shape,
+                        dropout_rate=self.dropout_rate,
+                        kernel_size=kernel_size,
+                        filters=self.img_num_filters,
+                        stride2_layers=self.steps_down,
+                        stride1_layers=self.extra_layers,
+                        tform_filters=self.tform_filters,
+                        dropout=self.hypothesis_dropout,
+                        upsampling=self.upsampling_method,
+                        dense=self.dense_representation,
+                        dense_rep_size=self.img_col_dim,
+                        leaky=True,
+                        skips=skips,
+                        original=None,
+                        resnet_blocks=self.residual,
+                        batchnorm=True,)
+        decoder = Model(rep, dec)
+        decoder.compile(loss="mae",optimizer=self.getOptimizer())
+        hidden = Input((self.img_col_dim,), name="generator_hidden_in")
+        arm_goal = Input((self.num_arm_vars,),name="generator_arm_goal_in")
+        gripper_goal = Input((1,),name="generator_gripper_goal_in")
+
+        y = Concatenate()([hidden, arm_goal, gripper_goal])
+        for _ in range(self.num_generator_layers):
+            y = Dense(self.img_col_dim)(y)
+            y = BatchNormalization(momentum=0.9)(y)
+            y = LeakyReLU(0.2)(y)
+            y = Dropout(self.dropout_rate)(y)
+    
+        skip_ins = []
+        if self.skip_connections:
+            for skip in skips:
+                shape = [int(i) for i in skip.shape[1:]]
+                skip_ins.append(Input(shape))
+            img_out = decoder([y] + skip_ins)
+        else:
+            img_out = decoder([y])
+
+        generator = Model(
+                [hidden, arm_goal, gripper_goal] + skip_ins,
+                img_out,
+                name="generator")
+        return generator
+
+    def _makeImageDecoder(self, img_shape, kernel_size, skips=None):
+        rep, dec = GetImageDecoder(self.img_col_dim,
+                        img_shape,
+                        dropout_rate=self.dropout_rate,
+                        kernel_size=kernel_size,
+                        filters=self.img_num_filters,
+                        stride2_layers=self.steps_up,
+                        stride1_layers=self.extra_layers,
+                        tform_filters=self.tform_filters,
+                        stride2_layers_no_skip=self.steps_up_no_skip,
+                        dropout=self.hypothesis_dropout,
+                        upsampling=self.upsampling_method,
+                        dense=self.dense_representation,
+                        dense_rep_size=self.img_col_dim,
+                        leaky=True,
+                        skips=skips,
+                        original=None,
+                        resnet_blocks=self.residual,
+                        batchnorm=True,)
+        decoder = Model(rep, dec, name="image_decoder")
+        decoder.compile(loss="mae",optimizer=self.getOptimizer())
+        return decoder

@@ -142,6 +142,9 @@ def GetModelParser():
                         help="specify a separate dropout for the model decoder",
                         type=float,
                         default=0.5)
+    parser.add_argument("--success_only",
+                        help="only train on positive examples",
+                        action="store_true")
 
     return parser
 
