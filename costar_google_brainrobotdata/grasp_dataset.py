@@ -307,7 +307,8 @@ class GraspDataset(object):
             attempt_count: total number of grasp attempts
         """
         features = np.genfromtxt(os.path.join(os.path.expanduser(self.data_dir), feature_csv_file), dtype=str)
-        feature_count = int(features[0])
+        # need to account for multiple datasets with n features like 062_a and 062_b
+        feature_count = int(features[0].split('_')[0])
         attempt_count = int(features[1])
         features = features[2:]
         # Workaround for csv files which may not actually list the key features below,
@@ -617,7 +618,7 @@ class GraspDataset(object):
 
         return new_feature_op_dicts, features_complete_list, new_pose_op_param_names
 
-    def _get_simple_parallel_dataset_ops(self, dataset=None, batch_size=1, buffer_size=100, parallelism=10, shift_ratio=0.1):
+    def get_simple_parallel_dataset_ops(self, dataset=None, batch_size=1, buffer_size=100, parallelism=10, shift_ratio=0.01):
         """Simple unordered & parallel TensorFlow ops that go through the whole dataset.
 
         # Returns
