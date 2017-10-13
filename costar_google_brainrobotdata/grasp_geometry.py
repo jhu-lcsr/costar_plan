@@ -134,7 +134,7 @@ def surface_relative_transform(depth_image,
     base_T_endeffector_pt = vector_quaternion_array_to_ptransform(base_T_endeffector)
     # In this case camera_T_base is a transform that takes a point in the base
     # frame of reference and transforms it to the camera frame of reference.
-    camera_T_base_pt = matrix_to_ptransform(camera_T_base, inverse=True)
+    camera_T_base_pt = matrix_to_ptransform(camera_T_base)
     # In this case camera_T_base is a transform that takes a point in the base
     # frame of reference and transforms it to the camera frame of reference.
     camera_T_endeffector_pt = camera_T_base_pt * base_T_endeffector_pt
