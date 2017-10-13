@@ -41,41 +41,11 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         '''
         super(RobotMultiGoalSampler, self).__init__(taskdef, *args, **kwargs)
 
-        self.num_frames = 1
-        self.img_num_filters = 64
-        self.tform_filters = 64
         self.num_hypotheses = 4
-        self.validation_split = 0.1
-        self.num_options = 48
         self.PredictorCb = PredictorGoals
-
-        if self.dense_representation:
-            self.num_transforms = 1
-        else:
-            self.num_transforms = 3
-
-        # Used for classifiers: value and next option
-        self.combined_dense_size = 128
-
-        # Size of the "pose" column containing arm, gripper info
-        self.pose_col_dim = 64
-
-        # Size of the hidden representation when using dense
-        self.img_col_dim = 128
-
-        # Encoder architecture
-        self.extra_layers = 1
-        self.steps_down = 4
 
         # Number of model inputs for training only
         self.num_features = 6
-
-        self.hidden_dim = 64/(2**self.steps_down)
-        self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.tform_filters)
-
-        self.predictor = None
-        self.train_predictor = None
-        self.actor = None
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
