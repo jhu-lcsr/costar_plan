@@ -974,6 +974,7 @@ class GraspDataset(object):
         elif(motion_params == 'surface_relative_grasp/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/vec_quat_7' or
              motion_params == 'endeffector_final_clear_view_depth_pixel_T_endeffector_final'):
             # surface relative grasp algorithm
+            # TODO(ahundt) need to split pose op params from image index used for training
             feature_op_dicts, features_complete_list, pose_op_params = self._endeffector_final_clear_view_depth_pixel_T_endeffector_final(
                 feature_op_dicts, features_complete_list)
 

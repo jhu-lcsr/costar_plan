@@ -116,7 +116,8 @@ def surface_relative_transform(depth_image,
                                camera_intrinsics_matrix,
                                camera_T_base,
                                base_T_endeffector,
-                               augmentation_rectangle=None):
+                               augmentation_rectangle=None,
+                               return_depth_image_coordinate=False):
     """Get the transform from a depth pixel to a gripper pose.
 
     TODO(ahundt) add ability to incorporate random pixel offsets for data augmentation
@@ -137,14 +138,19 @@ def surface_relative_transform(depth_image,
        It will randomly select a pixel in a box around the endeffector coordinate.
        Default (1, 1) has no augmentation.
 
+    return_depth_image_coordinate:
+       changes the return
+
     # Returns
 
-       Numpy array [dx, dy, x, y, z, qx, qy, qz, qw], which contains:
-       - The selected (dx, dy) pixel width, height coordinate in the depth image.
-         This coordinate is used to calculate the point cloud point used for the
-         surface relative transform.
-       - vector (x, y, z) for cartesian motion
-       - quaternion (qx, qy, qz, qw) for rotation
+       [x, y, z, qx, qy, qz, qw] when return_depth_image_coordinate is False.
+       When return_depth_image_coordinate is True:
+           Numpy array [dx, dy, x, y, z, qx, qy, qz, qw], which contains:
+           - The selected (dx, dy) pixel width, height coordinate in the depth image.
+             This coordinate is used to calculate the point cloud point used for the
+             surface relative transform.
+           - vector (x, y, z) for cartesian motion
+           - quaternion (qx, qy, qz, qw) for rotation
     """
     # In this case base_T_endeffector is a transform that takes a point in the endeffector
     # frame of reference and transforms it to the base frame of reference.
@@ -193,7 +199,7 @@ def surface_relative_transform(depth_image,
     q = q.setIdentity()
     v = eigen.Vector3d(np.array([X, Y, Z]))
     # multiply back out to the point cloud location
-    camera_T_cloud_point = sva.PTransformd(q,v)
+    camera_T_cloud_point = sva.PTransformd(q, v)
     # TODO(ahundt) is this inverse correct?
     cloud_point_T_camera = camera_T_cloud_point.inverse()
     # transform point all the way to depth frame
@@ -203,6 +209,9 @@ def surface_relative_transform(depth_image,
     # return new vector and quaternion
     depth_relative_vec_quat_array = ptransform_to_vector_quaternion_array(depth_pixel_T_endeffector)
 
-    return np.concatenate((x, z, depth_relative_vec_quat_array))
+    if return_image_index:
+        return np.concatenate((x, z, depth_relative_vec_quat_array))
+    else:
+        return depth_relative_vec_quat_array
 
 
