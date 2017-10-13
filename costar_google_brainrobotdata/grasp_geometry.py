@@ -106,9 +106,9 @@ def matrix_to_vector_quaternion_array(matrix, inverse=False, verbose=0):
     return vec_quat_7
 
 
-def matrix_to_ptransform(matrix, inverse=False):
+def matrix_to_ptransform(matrix):
     vq = matrix_to_vector_quaternion_array(matrix)
-    pt = vector_quaternion_array_to_ptransform(vq, inverse=inverse)
+    pt = vector_quaternion_array_to_ptransform(vq)
     return pt
 
 
