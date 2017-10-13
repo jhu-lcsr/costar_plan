@@ -8,7 +8,6 @@ import tensorflow as tf
 
 from matplotlib import pyplot as plt
 
-from keras.backend import tf as ktf
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
 from keras.layers import UpSampling2D, Conv2DTranspose
@@ -299,7 +298,7 @@ def GetImageDecoder(dim, img_shape,
                        strides=(1, 1),
                        padding='same')(x)
 
-            x = Lambda(lambda x: ktf.image.resize_bilinear(x,
+            x = Lambda(lambda x: tf.image.resize_bilinear(x,
                 [height, width]),
                 name="bilinear%dx%d"%(height,width))(x)
         elif upsampling == "upsampling":
