@@ -36,7 +36,7 @@ class NpzGeneratorDataset(object):
                 #print("%d:"%(i+1), f)
                 if success_only:
                     name = f.split('.')
-                    if name[0] == 'failure':
+                    if name[1] == 'failure':
                         continue
                 if i == 0:
                     fsample = np.load(os.path.join(self.name,f))
