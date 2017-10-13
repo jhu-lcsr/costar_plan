@@ -115,8 +115,11 @@ def matrix_to_ptransform(matrix):
 def surface_relative_transform(depth_image,
                                camera_intrinsics_matrix,
                                camera_T_base,
-                               base_T_endeffector):
+                               base_T_endeffector,
+                               augmentation_rectangle=(1, 1)):
     """Get the transform from a depth pixel to a gripper pose.
+
+    TODO(ahundt) add ability to incorporate random pixel offsets for data augmentation
 
     # Params
 
@@ -126,8 +129,22 @@ def surface_relative_transform(depth_image,
         'camera/transforms/camera_T_base/matrix44'
         Same as base_T_endeffector but from the camera center to the robot base,
         and contains a 4x4 transformation matrix instead of a vector and quaternion.
-    base_T_endeffector
+    base_T_endeffector:
        vector (x, y, z) for cartesian motion and quaternion (qx, qy, qz, qw) for rotation.
+
+    augmentation_rectangle:
+       A random offset for the selected (dx, dy) pixel index.
+       It will randomly select a pixel in a box around the endeffector coordinate.
+       Default (1, 1) has no augmentation.
+
+    # Returns
+
+       Numpy array [dx, dy, x, y, z, qx, qy, qz, qw], which contains:
+       - The selected (dx, dy) pixel width, height coordinate in the depth image.
+         This coordinate is used to calculate the point cloud point used for the
+         surface relative transform.
+       - vector (x, y, z) for cartesian motion
+       - quaternion (qx, qy, qz, qw) for rotation
     """
     # In this case base_T_endeffector is a transform that takes a point in the endeffector
     # frame of reference and transforms it to the base frame of reference.
@@ -149,6 +166,13 @@ def surface_relative_transform(depth_image,
     # get the point index in the depth image
     x = pixel_coordinate_of_endeffector[0]
     z = pixel_coordinate_of_endeffector[1]
+    if augmentation_rectangle is not (1, 1):
+        # Add a random coordinate offset for the depth data
+        # to augment the surface relative transforms
+        x_max = np.ceil(augmentation_rectangle[0]/2)
+        y_max = np.ceil(augmentation_rectangle[1]/2)
+        x += np.randint(-x_max, x_max)
+        z += np.randint(-y_max, y_max)
 
     # get focal length and camera image center from the intrinsics matrix
     fx = camera_intrinsics_matrix[0, 0]
@@ -163,6 +187,7 @@ def surface_relative_transform(depth_image,
     # Capital Z is verical point, up in camera image frame
     Z = (z - center_y) * Y / fy
 
+    # make an identity quaternion because the pixel will use the camera orientation
     q = eigen.Quaterniond()
     q = q.setIdentity()
     v = eigen.Vector3d(np.array([X, Y, Z]))
@@ -176,6 +201,7 @@ def surface_relative_transform(depth_image,
     # get the depth value
     # return new vector and quaternion
     depth_relative_vec_quat_array = ptransform_to_vector_quaternion_array(depth_pixel_T_endeffector)
-    return depth_relative_vec_quat_array
+
+    return np.concatenate((x, z, depth_relative_vec_quat_array))
 
 
