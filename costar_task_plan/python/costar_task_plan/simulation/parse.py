@@ -82,7 +82,7 @@ def GetSimulationParser():
     parser.add_argument("--verbose",
                         help="Run world in verbose mode, printing out errors.",
                         action="store_true")
-    parser.add_argument("--success_only",
+    parser.add_argument("--save_success_only",
                         help="Only include successful trials when creating" + \
                              " training data sets.",
                         action="store_true")

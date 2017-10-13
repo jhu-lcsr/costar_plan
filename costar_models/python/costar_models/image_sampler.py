@@ -30,6 +30,14 @@ from .multi_sampler import *
 class RobotMultiImageSampler(RobotMultiPredictionSampler):
 
     '''
+    Image-only version of the prediction sampler. This just looks at whether or
+    not we can predict images using the MHP loss and does not look at secondary
+    problems, like whether or not we can predict grasp poses, or learning the
+    actor network for joint states.
+
+    Results generally show this one converging much faster -- but not
+    necessarily to results that are as useful.
+
     This class is set up as a SUPERVISED learning problem -- for more
     interactive training we will need to add data from an appropriate agent.
     '''
@@ -41,10 +49,11 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
         '''
         super(RobotMultiImageSampler, self).__init__(taskdef, *args, **kwargs)
         self.num_features = 4
-        self.num_hypotheses = 4
+        self.num_hypotheses = 8
         self.steps_down = 2
         self.steps_up = 4
         self.steps_up_no_skip = 2
+        self.encoder_stride1_steps = 2
 
         self.PredictorCb = PredictorShowImageOnly
 
@@ -79,7 +88,7 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
                 dropout=True,
                 pre_tiling_layers=self.extra_layers,
                 post_tiling_layers=self.steps_down,
-                stride1_post_tiling_layers=2,
+                stride1_post_tiling_layers=self.encoder_stride1_steps,
                 pose_col_dim=self.pose_col_dim,
                 kernel_size=[5,5],
                 dense=self.dense_representation,
@@ -98,7 +107,7 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
         # Create the decoders for image
         if self.skip_connections:
             skips.reverse()
-        decoder = self._makeImageDecoder(img_shape, [3,3], skips)
+        self.image_decoder = self._makeImageDecoder(img_shape, [3,3], skips)
 
         # =====================================================================
         # Create many different image decoders
@@ -124,8 +133,7 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
             else:
                 decoder_inputs = [x]
 
-            decoder.summary()
-            img_x = decoder(decoder_inputs)
+            img_x = self.image_decoder(decoder_inputs)
 
             img_x = Lambda(
                     lambda x: K.expand_dims(x, 1),
@@ -153,7 +161,6 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
                         weights=[1.0],
                         loss=["mae"],
                         avg_weight=0.05)],
-                loss_weights=[1.0],
                 optimizer=self.getOptimizer())
         predictor.compile(loss="mae", optimizer=self.getOptimizer())
         train_predictor.summary()

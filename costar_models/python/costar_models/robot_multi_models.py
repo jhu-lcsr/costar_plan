@@ -444,7 +444,12 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
             x = Dropout(dropout_rate)(x)
 
     # =================================================
-    # Compute spatial softmax
+    # Compute spatial softmax. This converts from an image to a set of
+    # keypoints capturing salient features of the image. For example, keypoints
+    # capture relevant objects, robot gripper position, etc. See:
+    #   "Learning visual feature spaces for robotic manipulation with
+    #   deep spatial autoencoders." Finn et al.,
+    #   http://arxiv.org/abs/1509.06113.
     if use_spatial_softmax:
         def _ssm(x):
             #return tf.contrib.
