@@ -91,7 +91,6 @@ def spatial_softmax(features,
                      '`spatial_softmax` should be defined. Found `None`.')
 
   with ops.name_scope(name, 'spatial_softmax', [features]) as name:
-    print("name =", name)
     # Create tensors for x and y coordinate values, scaled to range [-1, 1].
     pos_x, pos_y = array_ops.meshgrid(math_ops.lin_space(-1., 1., num=height),
                                       math_ops.lin_space(-1., 1., num=width),
