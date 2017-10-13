@@ -41,6 +41,10 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
         '''
         super(RobotMultiImageSampler, self).__init__(taskdef, *args, **kwargs)
         self.num_features = 4
+        self.num_hypotheses = 8
+        self.steps_down = 2
+        self.steps_up = 4
+        self.steps_up_no_skip = 2
 
         self.PredictorCb = PredictorShowImageOnly
 
@@ -48,7 +52,7 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
         # These are hard coded settings -- tweaking them may break a bunch of
         # things.
         self.use_prev_option = True
-        self.always_same_transform = True
+        self.always_same_transform = False
 
     def _makePredictor(self, features):
         '''
@@ -75,13 +79,14 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
                 dropout=True,
                 pre_tiling_layers=self.extra_layers,
                 post_tiling_layers=self.steps_down,
-                stride1_post_tiling_layers=1,
+                stride1_post_tiling_layers=2,
                 pose_col_dim=self.pose_col_dim,
                 kernel_size=[5,5],
                 dense=self.dense_representation,
                 batchnorm=True,
                 tile=True,
                 flatten=False,
+                use_spatial_softmax=True,
                 option=self.num_options,
                 output_filters=self.tform_filters,
                 )
@@ -93,8 +98,7 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
         # Create the decoders for image
         if self.skip_connections:
             skips.reverse()
-        decoder = self._makeImageDecoder(img_shape, [3,3], skips)
-
+        self.image_decoder = self._makeImageDecoder(img_shape, [3,3], skips)
 
         # =====================================================================
         # Create many different image decoders
@@ -148,8 +152,7 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
                         outputs=[image_size],
                         weights=[1.0],
                         loss=["mae"],
-                        avg_weight=0.)],
-                loss_weights=[1.0],
+                        avg_weight=0.05)],
                 optimizer=self.getOptimizer())
         predictor.compile(loss="mae", optimizer=self.getOptimizer())
         train_predictor.summary()
