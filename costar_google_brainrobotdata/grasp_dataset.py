@@ -353,10 +353,15 @@ class GraspDataset(object):
                     A pose is a 6 degree of freedom rigid transform represented with 7 values:
                        vector (x, y, z) and quaternion (x, y, z, w).
                        A pose is always annotated with the target and source frames of reference.
+                       In this case base_T_endeffector is a transform that takes a point in the endeffector
+                       frame of reference and transforms it to the base frame of reference.
                        For example, base_T_camera is a transform that takes a point in the camera frame
                        of reference and transforms it to the base frame of reference.
                 'camera/transforms/camera_T_base/matrix44'
-                    Same as base_T_endeffector but from the camera center to the robot base
+                    Same as base_T_endeffector but from the camera center to the robot base,
+                    and contains a 4x4 transformation matrix instead of a vector and quaternion.
+                    For example, camera_T_base is a transform that takes a point in the base frame
+                    of reference and transforms it to the camera frame of reference.
                 'camera/intrinsics/matrix33'
                     The 3x3 camera intrinsics matrix.
                 'commanded_pose'
@@ -581,10 +586,20 @@ class GraspDataset(object):
                                                  feature_op_dicts,
                                                  features_complete_list,
                                                  feature_type='transforms/base_T_endeffector/vec_quat_7'):
-        """Add a feature op which defines a transform from the current time step's endeffector pose to the final endeffector pose.
+        """Transforms between the current and final end effector poses.
+
+        Generate feature ops which define a transform from the current time step's reached endeffector pose to the final time step's reached endeffector pose.
         'move_to_grasp/###/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_quat_7'
 
         # TODO(ahundt) use tfquaternion.py, not tf.py_func() due to limitations in https://www.tensorflow.org/api_docs/python/tf/py_func
+
+        # Parameters
+
+        feature_op_dicts: A list containing a tuple of (fixed_feature_dict, sequence_feature_dict) from string to ops.
+            See _get_simple_parallel_dataset_ops for details.
+        features_complete_list: A list of all feature strings.
+            See _get_simple_parallel_dataset_ops for details.
+        feature_type: The feature type to be used for this calculation.
 
         # Returns
 
@@ -604,12 +619,71 @@ class GraspDataset(object):
         for i, (fixed_feature_op_dict, sequence_feature_op_dict) in enumerate(feature_op_dicts):
             for j, pose_op_param in enumerate(pose_op_params):
                 # generate the transform calculation op, might be able to set stateful=False for a performance boost
-                current_to_end_op = tf.py_func(grasp_geometry.currentPoseToEndPose,
+                current_to_end_op = tf.py_func(
+                    grasp_geometry.currentPoseToEndPose,
                     [fixed_feature_op_dict[pose_op_param], fixed_feature_op_dict[final_pose_op]], tf.float32)
                 current_to_end_name = 'move_to_grasp/{:03}/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_quat_7'.format(j)
                 fixed_feature_op_dict[current_to_end_name] = current_to_end_op
                 if i == 0:
                     # assume all batches have the same features
+                    features_complete_list.append(current_to_end_name)
+                    new_pose_op_param_names.append(current_to_end_name)
+
+            # assemble the updated feature op dicts
+            new_feature_op_dicts.append((fixed_feature_op_dict, sequence_feature_op_dict))
+
+        return new_feature_op_dicts, features_complete_list, new_pose_op_param_names
+
+    def _endeffector_final_depth_pixel_T_endeffector_final(self,
+                                                 feature_op_dicts,
+                                                 features_complete_list,
+                                                 feature_type='transforms/base_T_endeffector/vec_quat_7'):
+        """Transforms from the depth image pixel world coordinate to the gripper coordinate.
+
+        Generate feature ops which define a transform from the current time step's reached endeffector pose to the final time step's reached endeffector pose.
+        'move_to_grasp/###/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_quat_7'
+
+        # TODO(ahundt) use tfquaternion.py, not tf.py_func() due to limitations in https://www.tensorflow.org/api_docs/python/tf/py_func
+
+        # Parameters
+
+        feature_op_dicts: A list containing a tuple of (fixed_feature_dict, sequence_feature_dict) from string to ops.
+            See _get_simple_parallel_dataset_ops for details.
+        features_complete_list: A list of all feature strings.
+            See _get_simple_parallel_dataset_ops for details.
+        feature_type: The feature type to be used for this calculation.
+
+        # Returns
+
+            new_feature_op_dicts, features_complete_list, new_pose_op_param_names
+        """
+
+        pose_op_params = self.get_time_ordered_features(
+            features_complete_list,
+            feature_type=feature_type,
+            step='move_to_grasp'
+        )
+
+        depth_clear_view = self.get_time_ordered_features(
+            features_complete_list,
+            feature_type='depth_image/decoded',
+            step='view_clear_scene'
+        )
+
+        final_pose_op = pose_op_params[-1]
+        new_pose_op_param_names = []
+        new_feature_op_dicts = []
+
+        for i, (fixed_feature_op_dict, sequence_feature_op_dict) in enumerate(feature_op_dicts):
+            for j, pose_op_param in enumerate(pose_op_params):
+                # generate the transform calculation op, might be able to set stateful=False for a performance boost
+                current_to_end_op = tf.py_func(
+                    grasp_geometry.currentPoseToEndPose,
+                    [fixed_feature_op_dict[pose_op_param], fixed_feature_op_dict[final_pose_op]], tf.float32)
+                current_to_end_name = 'move_to_grasp/{:03}/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_quat_7'.format(j)
+                fixed_feature_op_dict[current_to_end_name] = current_to_end_op
+                if i == 0:
+                    # assume all *batches* have the same features
                     features_complete_list.append(current_to_end_name)
                     new_pose_op_param_names.append(current_to_end_name)
 
@@ -777,7 +851,7 @@ class GraspDataset(object):
 
            WARNING: do not use if you are processing depth images in addition to rgb, the random crop dimeions won't match up!
         """
-        with tf.name_scope('rgb_preprocessing') as scope:
+        with tf.name_scope('rgb_preprocessing'):
             # make sure the shape is correct
             rgb_image_op = tf.squeeze(rgb_image_op)
             # apply image augmentation and imagenet preprocessing steps adapted from keras
@@ -847,7 +921,6 @@ class GraspDataset(object):
         # make sure records are always ready to go
         # staging_area = tf.contrib.staging.StagingArea()
 
-        # TODO(ahundt) make "batches" also contain additional steps in the grasp attempt
         rgb_clear_view = self.get_time_ordered_features(
             features_complete_list,
             feature_type='/image/decoded',
