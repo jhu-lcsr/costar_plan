@@ -116,7 +116,7 @@ def surface_relative_transform(depth_image,
                                camera_intrinsics_matrix,
                                camera_T_base,
                                base_T_endeffector,
-                               augmentation_rectangle=(1, 1)):
+                               augmentation_rectangle=None):
     """Get the transform from a depth pixel to a gripper pose.
 
     TODO(ahundt) add ability to incorporate random pixel offsets for data augmentation
@@ -166,11 +166,12 @@ def surface_relative_transform(depth_image,
     # get the point index in the depth image
     x = pixel_coordinate_of_endeffector[0]
     z = pixel_coordinate_of_endeffector[1]
-    if augmentation_rectangle is not (1, 1):
+    if(augmentation_rectangle is not None and
+       augmentation_rectangle is not (1, 1)):
         # Add a random coordinate offset for the depth data
         # to augment the surface relative transforms
-        x_max = np.ceil(augmentation_rectangle[0]/2)
-        y_max = np.ceil(augmentation_rectangle[1]/2)
+        x_max = np.ceil((augmentation_rectangle[0]-1)/2)
+        y_max = np.ceil((augmentation_rectangle[1]-1)/2)
         x += np.randint(-x_max, x_max)
         z += np.randint(-y_max, y_max)
 
