@@ -634,14 +634,26 @@ class GraspDataset(object):
 
         return new_feature_op_dicts, features_complete_list, new_pose_op_param_names
 
-    def _endeffector_final_depth_pixel_T_endeffector_final(self,
-                                                 feature_op_dicts,
-                                                 features_complete_list,
-                                                 feature_type='transforms/base_T_endeffector/vec_quat_7'):
-        """Transforms from the depth image pixel world coordinate to the gripper coordinate.
+    def _endeffector_final_clear_view_depth_pixel_T_endeffector_final(self,
+                                                                      feature_op_dicts,
+                                                                      features_complete_list,
+                                                                      feature_type='transforms/base_T_endeffector/vec_quat_7'):
+        """Transforms from the clear view depth image pixel world coordinate to the final gripper coordinate.
 
-        Generate feature ops which define a transform from the current time step's reached endeffector pose to the final time step's reached endeffector pose.
-        'move_to_grasp/###/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_quat_7'
+        This applies the surface relative transforms.
+        The point cloud point is selected by using the (x, y) pixel
+        coordinate of the final gripper pose in the camera frame.
+        The depth value is then taken at this coordinate from the
+        clear view frame's depth image, and this depth pixel is projected
+        into its 3D space point cloud point. A transform is calculated
+        from this point to the final gripper pose, which is the input
+        to the training algorithm.
+
+        Generate feature ops which define a transform from the current time step's
+        reached endeffector pose to the final time step's reached endeffector pose.
+        'surface_relative_grasp/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/vec_quat_7'
+
+        See also: surface_relative_transform in grasp_geometry.py.
 
         # TODO(ahundt) use tfquaternion.py, not tf.py_func() due to limitations in https://www.tensorflow.org/api_docs/python/tf/py_func
 
@@ -674,21 +686,23 @@ class GraspDataset(object):
         new_pose_op_param_names = []
         new_feature_op_dicts = []
 
-        for i, (fixed_feature_op_dict, sequence_feature_op_dict) in enumerate(feature_op_dicts):
-            for j, pose_op_param in enumerate(pose_op_params):
-                # generate the transform calculation op, might be able to set stateful=False for a performance boost
-                current_to_end_op = tf.py_func(
-                    grasp_geometry.currentPoseToEndPose,
-                    [fixed_feature_op_dict[pose_op_param], fixed_feature_op_dict[final_pose_op]], tf.float32)
-                current_to_end_name = 'move_to_grasp/{:03}/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_quat_7'.format(j)
-                fixed_feature_op_dict[current_to_end_name] = current_to_end_op
-                if i == 0:
-                    # assume all *batches* have the same features
-                    features_complete_list.append(current_to_end_name)
-                    new_pose_op_param_names.append(current_to_end_name)
+        current_to_end_name = 'surface_relative_grasp/reached_pose/transforms/depth_pixel_T_endeffector_final/vec_quat_7'
 
+        for i, (fixed_feature_op_dict, sequence_feature_op_dict) in enumerate(feature_op_dicts):
+            camera_intrinsics_matrix = fixed_feature_op_dict['camera/intrinsics/matrix33']
+            camera_T_base = fixed_feature_op_dict['camera/transforms/camera_T_base/matrix44']
+            current_to_end_op = tf.py_func(
+                grasp_geometry.surface_relative_transform,
+                # parameters for call to surface_relative_transform function call
+                [depth_clear_view, camera_intrinsics_matrix, camera_T_base, fixed_feature_op_dict[final_pose_op]], tf.float32)
+            fixed_feature_op_dict[current_to_end_name] = current_to_end_op
+            features_complete_list.append(current_to_end_name)
+            new_pose_op_param_names.append(current_to_end_name)
             # assemble the updated feature op dicts
             new_feature_op_dicts.append((fixed_feature_op_dict, sequence_feature_op_dict))
+
+        # same command for all ops, so duplicate it
+        new_pose_op_param_names = new_pose_op_param_names * len(pose_op_params)
 
         return new_feature_op_dicts, features_complete_list, new_pose_op_param_names
 
@@ -893,16 +907,14 @@ class GraspDataset(object):
                         This also generates the new feature
                         'move_to_grasp/###/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_quat_7',
                         where ### is a number for each step from 000 to the number of time steps in the example.
-                    'pixel_depth_to_final_pose'
-                        TODO(ahundt) not yet implemented
+                    'endeffector_final_clear_view_depth_pixel_T_endeffector_final'
                         Surface relative transform from the final gripper pixel depth position
                         This is fairly complex, so please inquire if additional details are needed.
                         Determine the 'final_pose_orientation_quaternion', the specific feature will vary based on the dataset,
                         for example in dataset 102 it is `grasp/10/reached_pose/transforms/base_T_endeffector/vec_quat_7`.
                         Using this pose, we determine the x,y pixel coordinate of the gripper's reached pose at the final time step
                         in the camera frame, and use this to look up the depth value in the initial clear view image.
-                        TODO(ahundt) consider the following for the applicable feature name:
-                        'grasp/final/reached_pose/transforms/endeffector_final_depth_pixel_T_endeffector_final/vec_quat_7'
+                        'surface_relative_grasp/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/vec_quat_7'
 
             grasp_sequence_max_time_step: Grasp examples consist of time steps from 0 to up to a max of 11.
                 To train on specific range of data set this value to the maximum desired time step.
@@ -958,6 +970,10 @@ class GraspDataset(object):
             # reprocess and update motion params with new transforms from
             # the current end effector pose to the final pose
             feature_op_dicts, features_complete_list, pose_op_params = self._endeffector_current_T_endeffector_final(
+                feature_op_dicts, features_complete_list)
+        elif(motion_params == 'surface_relative_grasp/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/vec_quat_7' or
+             motion_params == 'endeffector_final_clear_view_depth_pixel_T_endeffector_final'):
+            feature_op_dicts, features_complete_list, pose_op_params = self._endeffector_final_clear_view_depth_pixel_T_endeffector_final(
                 feature_op_dicts, features_complete_list)
 
         # get the tensor indicating if the grasp ultimately succeeded or not
