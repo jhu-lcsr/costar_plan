@@ -587,7 +587,21 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
         resnet_blocks=False,
         use_noise=False,
         option=None,
+        sampler=False,
         noise_dim=32):
+    '''
+    This is the suggested way of creating a "transform" -- AKA a mapping
+    between the observed hidden world state at an encoding.
+
+    Parameters:
+    -----------
+    dim: size of the hidden representation
+    input_size: 
+    leaky: use LReLU instead of normal ReLU
+    dropout_rate: amount of dropout to use (not recommended for MHP)
+    dropout: use dropout (recommended FALSE for MHP)
+    sampler: set up as a "sampler" model
+    '''
 
     xin = Input((input_size,),name="tform%d_hidden_in"%idx)
     x = xin
@@ -615,7 +629,35 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
         else:
             raise RuntimeError('resnet not supported for transform')
 
-    return Model([xin] + extra, x, name="transform%d"%idx)
+    # =========================================================================
+    # In this block we divide into two separate paths:
+    # (a) we deterministically return a hidden world
+    # (b) we compute a mean and variance, then draw a sampled hidden world
+    # The default path right now is via (a); (b) is experimental.
+    if not sampler:
+        return Model([xin] + extra, x, name="transform%d"%idx)
+    else:
+        mu = Dense(dim, name="tform%d_mu"%idx)(x)
+        sigma = Dense(dim, name="tform%d_simga"%idx)(x)
+
+        def _sampling(args):
+            '''
+            Helper function for continuously sampling based on Mu and Sigma
+            '''
+            mu, sigma = args
+            eps = K.random_normal(shape=(K.shape(mu)[0], dim),
+                    mean=0.,
+                    stddev=1.)
+            return mu + K.exp(sigma / 2) * eps
+
+        x = Lambda(_sampling,
+                output_shape=(dim,),
+                name="tform%d_sample"%idx)([mu, sigma])
+
+        # Note that mu and sigma are both important outputs for computing the
+        # KL regularization termin the loss function
+        return Model([xin] + extra, [mu, sigma, x], name="transform%d"%idx)
+
 
 def GetNextOptionAndValue(x, num_options, option_in=None):
     '''
