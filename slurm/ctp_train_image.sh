@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --job-name=Mimageonly
+#SBATCH --job-name=Nimageonly
 #SBATCH --time=0-48:0:0
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
@@ -23,7 +23,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --features multi \
   --optimizer adam \
   --lr 0.001 \
-  --model_directory $HOME/.costar/models_M_image/ \
+  --model_directory $HOME/.costar/models_N_image/ \
   --upsampling conv_transpose \
   --use_noise true \
   --noise_dim 8 \
