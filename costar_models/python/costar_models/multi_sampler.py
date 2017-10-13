@@ -80,6 +80,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.predictor = None
         self.train_predictor = None
         self.actor = None
+        self.image_decoder = None
 
         # ===================================================================
         # These are hard coded settings -- tweaking them may break a bunch of
@@ -435,11 +436,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         '''
         if self.predictor is not None:
             print("----------------------------")
-            print("Saving to " + self.name + "_{predictor, actor}")
+            print("Saving to " + self.name + "_{predictor, actor, image_decoder}")
             self.train_predictor.save_weights(self.name + "_train_predictor.h5f")
             if self.actor is not None:
                 self.predictor.save_weights(self.name + "_predictor.h5f")
                 self.actor.save_weights(self.name + "_actor.h5f")
+            if self.image_decoder is not None:
+                self.image_decoder.save_weights(self.name +
+                "_image_decoder.h5f")
         else:
             raise RuntimeError('save() failed: model not found.')
 
@@ -457,6 +461,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             except Exception as e:
                 print("Could not load actor:", e)
             self.train_predictor.load_weights(self.name + "_train_predictor.h5f")
+            if self.image_decoder is not None:
+                self.image_decoder.save_weights(self.name +
+                "_image_decoder.h5f")
         else:
             raise RuntimeError('_loadWeights() failed: model not found.')
 

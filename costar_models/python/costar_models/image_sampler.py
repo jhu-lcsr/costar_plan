@@ -98,7 +98,7 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
         # Create the decoders for image
         if self.skip_connections:
             skips.reverse()
-        decoder = self._makeImageDecoder(img_shape, [3,3], skips)
+        self.image_decoder = self._makeImageDecoder(img_shape, [3,3], skips)
 
         # =====================================================================
         # Create many different image decoders
