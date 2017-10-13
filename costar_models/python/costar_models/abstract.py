@@ -21,11 +21,12 @@ class AbstractAgentBasedModel(object):
     def __init__(self, taskdef=None, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
             clipnorm=100., show_iter=0, pretrain_iter=5,
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
-            steps_per_epoch=300, validation_steps=100, choose_initial=5,
+            steps_per_epoch=300, validation_steps=25, choose_initial=50,
             dropout_rate=0.5, decoder_dropout_rate=0.5,
-            hypothesis_dropout=False, dense_representation=True,
+            hypothesis_dropout=False,
+            dense_representation=True,
             skip_connections=True,
-            use_noise=False, noise_dim=32,
+            use_noise=False,
             num_generator_files=3, predict_value=False, upsampling=None,
             task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
@@ -63,7 +64,6 @@ class AbstractAgentBasedModel(object):
         self.dropout_rate = dropout_rate
         self.hypothesis_dropout = hypothesis_dropout
         self.use_noise = use_noise
-        self.noise_dim = noise_dim
         self.decoder_dropout_rate = decoder_dropout_rate
         self.skip_connections = skip_connections
         self.dense_representation = dense_representation

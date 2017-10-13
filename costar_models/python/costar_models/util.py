@@ -12,6 +12,7 @@ from .multi_hierarchical import RobotMultiHierarchical
 from .multi_sampler import RobotMultiPredictionSampler
 from .goal_sampler import RobotMultiGoalSampler
 from .multi_sequence import RobotMultiSequencePredictor
+from .image_sampler import RobotMultiImageSampler
 from .husky_sampler import HuskyRobotMultiPredictionSampler
 
 def MakeModel(features, model, taskdef, **kwargs):
@@ -102,6 +103,9 @@ def MakeModel(features, model, taskdef, **kwargs):
         elif model == "goal_sampler":
             model_instance = RobotMultiGoalSampler(taskdef, model=model,
                     **kwargs)
+        elif model == "image_sampler":
+            model_instance = RobotMultiImageSampler(taskdef, model=model,
+                    **kwargs)
     
     # If we did not create a model then die.
     if model_instance is None:
@@ -125,4 +129,5 @@ def GetModels():
             "unsupervised1", # alternative implementation
             "husky_predictor", # husky multi prediction sampler implementation
             "goal_sampler", # samples goals instead of everything else
+            "image_sampler", #just learn to predict goal image
             ]
