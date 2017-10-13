@@ -45,6 +45,7 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
         self.steps_down = 2
         self.steps_up = 4
         self.steps_up_no_skip = 2
+        self.encoder_stride1_steps = 2
 
         self.PredictorCb = PredictorShowImageOnly
 
@@ -79,7 +80,7 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
                 dropout=True,
                 pre_tiling_layers=self.extra_layers,
                 post_tiling_layers=self.steps_down,
-                stride1_post_tiling_layers=2,
+                stride1_post_tiling_layers=self.encoder_stride1_steps,
                 pose_col_dim=self.pose_col_dim,
                 kernel_size=[5,5],
                 dense=self.dense_representation,
@@ -124,8 +125,7 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
             else:
                 decoder_inputs = [x]
 
-            decoder.summary()
-            img_x = decoder(decoder_inputs)
+            img_x = self.image_decoder(decoder_inputs)
 
             img_x = Lambda(
                     lambda x: K.expand_dims(x, 1),

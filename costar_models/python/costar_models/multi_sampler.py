@@ -40,15 +40,18 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_frames = 1
         self.img_num_filters = 64
         self.tform_filters = 64
-        self.num_hypotheses = 4
+        self.num_hypotheses = 8
         self.validation_split = 0.1
         self.num_options = 48
         self.num_features = 4
 
+        # Layer and model configuration
         self.extra_layers = 1
-        self.steps_down = 4
-        self.steps_up = self.steps_down
-        self.steps_up_no_skip = 0
+        self.steps_down = 2
+        self.steps_up = 4
+        self.steps_up_no_skip = 2
+        self.encoder_stride1_steps = 2
+
         self.num_actor_policy_layers = 2
         self.num_generator_layers = 1
         self.num_arm_vars = 6
@@ -113,7 +116,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 dropout=True,
                 pre_tiling_layers=self.extra_layers,
                 post_tiling_layers=self.steps_down,
-                stride1_post_tiling_layers=1,
+                stride1_post_tiling_layers=self.encoder_stride1_steps,
                 pose_col_dim=self.pose_col_dim,
                 kernel_size=[5,5],
                 dense=self.dense_representation,
@@ -121,6 +124,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 tile=True,
                 flatten=False,
                 option=self.num_options,
+                use_spatial_softmax=True,
                 #option=None,
                 output_filters=self.tform_filters,
                 )
@@ -138,8 +142,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         dense_size=self.combined_dense_size,
                         kernel_size=[3,3],
                         filters=self.img_num_filters,
-                        stride2_layers=self.steps_down,
+                        stride2_layers=self.steps_up,
                         stride1_layers=self.extra_layers,
+                        stride2_layers_no_skip=self.steps_up_no_skip,
                         tform_filters=self.tform_filters,
                         num_options=self.num_options,
                         arm_size=arm_size,
@@ -247,7 +252,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
-                        weights=[0.7,0.3,0.1,0.1],
+                        weights=[0.4,0.5,0.05,0.05],
                         loss=["mae","mse","mse","categorical_crossentropy"],
                         avg_weight=0.05),
                     "binary_crossentropy", "binary_crossentropy"],
