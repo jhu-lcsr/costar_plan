@@ -355,7 +355,7 @@ def GetImagePoseDecoder(dim, img_shape,
         batchnorm=True,dense=True, num_hypotheses=None, tform_filters=None,
         original=None, num_options=64, pose_size=6,
         resnet_blocks=False, skips=False, robot_skip=None,
-        stride2_layers=2, stride1_layers=1):
+        stride2_layers=2, stride1_layers=1, stride1_post_tiling_layers=0):
 
     rep, dec = GetImageDecoder(dim,
                         img_shape,
@@ -364,6 +364,7 @@ def GetImagePoseDecoder(dim, img_shape,
                         filters=filters,
                         stride2_layers=stride2_layers,
                         stride1_layers=stride1_layers,
+                        stride1_post_tiling_layers=stride1_post_tiling_layers,
                         tform_filters=tform_filters,
                         dropout=dropout,
                         leaky=leaky,
@@ -472,7 +473,8 @@ def GetImageArmGripperDecoder(dim, img_shape,
         upsampling=None,
         original=None, num_options=64, arm_size=7, gripper_size=1,
         resnet_blocks=False, skips=None, robot_skip=None,
-        stride2_layers=2, stride1_layers=1):
+        stride2_layers=2, stride1_layers=1,
+        stride2_layers_no_skip=0):
     '''
     Decode image and gripper setup
     '''
@@ -487,6 +489,7 @@ def GetImageArmGripperDecoder(dim, img_shape,
                         filters=filters,
                         stride2_layers=stride2_layers,
                         stride1_layers=stride1_layers,
+                        stride2_layers_no_skip=stride2_layers_no_skip,
                         tform_filters=tform_filters,
                         dropout=dropout,
                         upsampling=upsampling,
