@@ -176,11 +176,17 @@ class AbstractAgentBasedModel(object):
                     print("WARNING: ", fn, "was empty.")
                     continue
                 for key, value in fdata.items():
-                    if key not in data:
-                        data[key] = value
                     if value.shape[0] == 0:
                         continue
-                    data[key] = np.concatenate([data[key],value],axis=0)
+                    if key not in data:
+                        data[key] = value
+                    try:
+                        data[key] = np.concatenate([data[key],value],axis=0)
+                    except ValueError as e:
+                        print "filename =", fn
+                        print "Data shape =", data[key].shape
+                        print "value shape =", value.shape
+                        raise e
                 i += 1
             yield self._yield(data, fn)
 
