@@ -90,6 +90,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # things.
         self.use_prev_option = True
         self.always_same_transform = False
+        self.use_sampling = False
 
     def _makePredictor(self, features):
         '''
@@ -339,7 +340,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         q_target = goal_arm
         g_target = goal_gripper * -1
         o_target = label
+
+        # Preprocess values
         value_target = np.array(value > 1.,dtype=float)
+        q[3:] = q[3:] / np.pi
+        qa /= np.pi
 
         o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
         train_target = self._makeTrainTarget(

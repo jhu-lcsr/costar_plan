@@ -54,6 +54,7 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
         # things.
         self.use_prev_option = True
         self.always_same_transform = False
+        self.use_sampling = False
 
     def _makePredictor(self, features):
         '''
@@ -104,6 +105,7 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
         # =====================================================================
         # Create many different image decoders
         image_outs = []
+        stats = []
         if self.always_same_transform:
             transform = self._getTransform(0)
         for i in range(self.num_hypotheses):
@@ -114,7 +116,6 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
                 transform.summary()
             if self.use_noise:
                 zi = Lambda(lambda x: x[:,i], name="slice_z%d"%i)(z)
-                #x = transform([enc, zi, next_option_out])
                 x = transform([enc, zi])
             else:
                 x = transform([enc])
@@ -152,7 +153,8 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
                         outputs=[image_size],
                         weights=[1.0],
                         loss=["mae"],
-                        avg_weight=0.05)],
+                        avg_weight=0.05,
+                        stats=stats)],
                 optimizer=self.getOptimizer())
         predictor.compile(loss="mae", optimizer=self.getOptimizer())
         train_predictor.summary()
