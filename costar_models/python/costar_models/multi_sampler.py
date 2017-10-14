@@ -90,7 +90,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # things.
         self.use_prev_option = True
         self.always_same_transform = False
-        self.use_sampling = False
 
     def _makePredictor(self, features):
         '''
@@ -181,6 +180,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # =====================================================================
         # Create many different image decoders
+        stats = []
         if self.always_same_transform:
             transform = self._getTransform(0)
         for i in range(self.num_hypotheses):
@@ -196,11 +196,16 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             else:
                 x = transform([enc])
             
+            if self.sampling:
+                x, mu, sigma = x
+                stats.append((mu, sigma))
+
             # This maps from our latent world state back into observable images.
             if self.skip_connections:
                 decoder_inputs = [x] + skips
             else:
                 decoder_inputs = [x]
+
             img_x, arm_x, gripper_x, label_x = decoder(decoder_inputs)
 
             # Create the training outputs
@@ -255,6 +260,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
                         weights=[0.4,0.5,0.05,0.05],
                         loss=["mae","mse","mse","categorical_crossentropy"],
+                        stats=stats,
                         avg_weight=0.05),
                     "binary_crossentropy", "binary_crossentropy"],
                 loss_weights=[#0.1,0.1,0.1,0.1,
@@ -283,6 +289,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     dropout_rate=self.dropout_rate,
                     leaky=True,
                     num_blocks=self.num_transforms,
+                    use_sampling=self.sampling,
                     relu=True,
                     option=options,
                     resnet_blocks=self.residual,

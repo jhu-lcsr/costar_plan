@@ -27,6 +27,7 @@ class AbstractAgentBasedModel(object):
             dense_representation=True,
             skip_connections=True,
             use_noise=False,
+            sampling=False,
             num_generator_files=3, predict_value=False, upsampling=None,
             task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
@@ -67,6 +68,7 @@ class AbstractAgentBasedModel(object):
         self.decoder_dropout_rate = decoder_dropout_rate
         self.skip_connections = skip_connections
         self.dense_representation = dense_representation
+        self.sampling = sampling
 
         if self.task is not None:
             self.name += "_%s"%self.task
@@ -113,6 +115,7 @@ class AbstractAgentBasedModel(object):
         print("use noise in model =", self.use_noise)
         print("dimensionality of noise =", self.noise_dim)
         print("skip connections =", self.skip_connections)
+        print("sampling =", self.sampling)
         print("-----------------------------------------------------------")
         print("Optimizer =", self.optimizer)
         print("Learning Rate = ", self.lr)

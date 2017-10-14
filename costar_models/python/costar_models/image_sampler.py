@@ -41,7 +41,7 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
         '''
         super(RobotMultiImageSampler, self).__init__(taskdef, *args, **kwargs)
         self.num_features = 4
-        self.num_hypotheses = 8
+        self.num_hypotheses = 4
         self.steps_down = 2
         self.steps_up = 4
         self.steps_up_no_skip = 2
@@ -54,7 +54,6 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
         # things.
         self.use_prev_option = True
         self.always_same_transform = False
-        self.use_sampling = False
 
     def _makePredictor(self, features):
         '''
@@ -119,6 +118,10 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
                 x = transform([enc, zi])
             else:
                 x = transform([enc])
+
+            if self.sampling:
+                x, mu, sigma = x
+                stats.append((mu, sigma))
             
             # This maps from our latent world state back into observable images.
             if self.skip_connections:
@@ -154,7 +157,8 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
                         weights=[1.0],
                         loss=["mae"],
                         avg_weight=0.05,
-                        stats=stats)],
+                        stats=stats
+                        )],
                 optimizer=self.getOptimizer())
         predictor.compile(loss="mae", optimizer=self.getOptimizer())
         train_predictor.summary()

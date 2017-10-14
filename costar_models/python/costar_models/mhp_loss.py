@@ -164,7 +164,11 @@ class MhpLossWithShape(object):
             for wt, target_out, pred_out, loss in zip(self.weights, target_outputs,
                     pred_outputs, self.losses):
                 # loss = feature weight * MSE for this feature
-                cc += wt * loss(target_out, pred_out)
+                loss_term = loss(target_out, pred_out)
+                while len(loss_term.shape) > 1:
+                    # remove axes one at a time
+                    loss_term = K.mean(loss_term,axis=-1)
+                cc += wt * loss_term
 
             cc = cc / len(self.outputs)
             if self.stats is not None:
