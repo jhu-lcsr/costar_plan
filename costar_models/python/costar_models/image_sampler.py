@@ -149,10 +149,12 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
 
         # =====================================================================
         # Create models to train
-        predictor = Model(ins + [z],
+        if self.use_noise:
+            ins += [z]
+        predictor = Model(ins ,
                 [image_out])
         actor = None
-        train_predictor = Model(ins + [z],
+        train_predictor = Model(ins,
                 [image_out])
 
         # =====================================================================

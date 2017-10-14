@@ -70,6 +70,8 @@ class AbstractAgentBasedModel(object):
         self.dense_representation = dense_representation
         self.sampling = sampling
 
+        if self.sampling:
+            self.use_noise = False
         if self.task is not None:
             self.name += "_%s"%self.task
         if self.features is not None:

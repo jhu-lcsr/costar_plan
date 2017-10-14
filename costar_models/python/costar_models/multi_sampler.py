@@ -74,7 +74,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.pose_col_dim = 64
 
         # Size of the hidden representation when using dense
-        self.img_col_dim = 128
+        self.img_col_dim = 128 #+64
 
         self.PredictorCb = PredictorShowImage
         self.hidden_dim = 64/(2**self.steps_down)
@@ -244,11 +244,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # =====================================================================
         # Create models to train
-        predictor = Model(ins + [z],
+        if self.use_noise:
+            ins += [z]
+        predictor = Model(ins,
                 [image_out, arm_out, gripper_out, label_out, next_option_out,
                     value_out])
         actor = None
-        train_predictor = Model(ins + [z],
+        train_predictor = Model(ins,
                 [train_out, next_option_out, value_out])
 
         # =====================================================================

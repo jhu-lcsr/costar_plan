@@ -455,6 +455,11 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
             #return tf.contrib.
             return spatial_softmax(x)
         x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
+        #pool_size = (height/(2**post_tiling_layers),
+        #         width/(2**post_tiling_layers))
+        #x2 = MaxPooling2D(pool_size=pool_size)(x)
+        #x2 = Flatten()(x2)
+        #x = Concatenate()([x1,x2])
     elif flatten or dense or discriminator:
         x = ApplyTD(Flatten())(x)
         if dense:
