@@ -30,6 +30,14 @@ from .multi_sampler import *
 class RobotMultiImageSampler(RobotMultiPredictionSampler):
 
     '''
+    Image-only version of the prediction sampler. This just looks at whether or
+    not we can predict images using the MHP loss and does not look at secondary
+    problems, like whether or not we can predict grasp poses, or learning the
+    actor network for joint states.
+
+    Results generally show this one converging much faster -- but not
+    necessarily to results that are as useful.
+
     This class is set up as a SUPERVISED learning problem -- for more
     interactive training we will need to add data from an appropriate agent.
     '''
