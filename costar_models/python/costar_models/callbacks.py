@@ -180,7 +180,7 @@ class PredictorShowImageOnly(keras.callbacks.Callback):
                 for i in range(self.num_hypotheses):
                     plt.subplot(self.num_random,2+self.num_hypotheses,i+2+rand_offset)
                     #print(self.num_random,2+self.num_hypotheses,2+i+rand_offset)
-                    plt.imshow(np.squeeze(data[k][j][i]))
+                    plt.imshow(np.squeeze(data[k][i]))
                     plt.title('Hypothesis %d'%(i+1))
             if self.verbose:
                 print(name)
