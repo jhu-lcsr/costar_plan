@@ -17,6 +17,7 @@ class PredictorShowImage(keras.callbacks.Callback):
             model_directory=DEFAULT_MODEL_DIRECTORY,
             num_hypotheses=4,
             verbose=False,
+            use_prev_option=True,
             noise_dim=64,
             use_noise=False,
             min_idx=0, max_idx=66, step=11):
@@ -31,6 +32,7 @@ class PredictorShowImage(keras.callbacks.Callback):
         verbose: print out extra information
         '''
         self.verbose = verbose
+        self.use_prev_option = use_prev_option
         self.predictor = predictor
         self.idxs = range(min_idx, max_idx, step)
         self.num = len(self.idxs)
@@ -113,6 +115,7 @@ class PredictorShowImageOnly(keras.callbacks.Callback):
             verbose=False,
             noise_dim=64,
             use_noise=False,
+            use_prev_option=True,
             min_idx=0, max_idx=66, step=11):
         '''
         Set up a data set we can use to output validation images.
@@ -180,7 +183,7 @@ class PredictorShowImageOnly(keras.callbacks.Callback):
                 for i in range(self.num_hypotheses):
                     plt.subplot(self.num_random,2+self.num_hypotheses,i+2+rand_offset)
                     #print(self.num_random,2+self.num_hypotheses,2+i+rand_offset)
-                    plt.imshow(np.squeeze(data[k][j][i]))
+                    plt.imshow(np.squeeze(data[k][i]))
                     plt.title('Hypothesis %d'%(i+1))
             if self.verbose:
                 print(name)

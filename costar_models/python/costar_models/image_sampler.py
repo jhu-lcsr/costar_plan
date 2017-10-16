@@ -49,7 +49,7 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
         '''
         super(RobotMultiImageSampler, self).__init__(taskdef, *args, **kwargs)
         self.num_features = 4
-        self.num_hypotheses = 8
+        self.num_hypotheses = 4
         self.steps_down = 2
         self.steps_up = 4
         self.steps_up_no_skip = 2
@@ -62,6 +62,9 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
         # things.
         self.use_prev_option = True
         self.always_same_transform = False
+
+        if not self.use_prev_option:
+            self.num_features -= 1
 
     def _makePredictor(self, features):
         '''
@@ -79,6 +82,10 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
             image_size *= dim
         image_size = int(image_size)    
 
+        if self.use_prev_option:
+            num_options = self.num_options
+        else:
+            num_options = None
         ins, enc, skips, robot_skip = GetEncoder(img_shape,
                 [arm_size, gripper_size],
                 self.img_col_dim,
@@ -96,10 +103,16 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
                 tile=True,
                 flatten=False,
                 use_spatial_softmax=True,
-                option=self.num_options,
+                option=num_options,
                 output_filters=self.tform_filters,
                 )
-        img_in, arm_in, gripper_in, option_in = ins
+
+        # =====================================================================
+        # Create list of model inputs depending on current configuration
+        if self.use_prev_option:
+            img_in, arm_in, gripper_in, option_in = ins
+        else:
+            img_in, arm_in, gripper_in = ins
         if self.use_noise:
             z = Input((self.num_hypotheses, self.noise_dim))
 
@@ -112,6 +125,7 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
         # =====================================================================
         # Create many different image decoders
         image_outs = []
+        stats = []
         if self.always_same_transform:
             transform = self._getTransform(0)
         for i in range(self.num_hypotheses):
@@ -122,10 +136,13 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
                 transform.summary()
             if self.use_noise:
                 zi = Lambda(lambda x: x[:,i], name="slice_z%d"%i)(z)
-                #x = transform([enc, zi, next_option_out])
                 x = transform([enc, zi])
             else:
                 x = transform([enc])
+
+            if self.sampling:
+                x, mu, sigma = x
+                stats.append((mu, sigma))
             
             # This maps from our latent world state back into observable images.
             if self.skip_connections:
@@ -145,10 +162,12 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
 
         # =====================================================================
         # Create models to train
-        predictor = Model(ins + [z],
+        if self.use_noise:
+            ins += [z]
+        predictor = Model(ins ,
                 [image_out])
         actor = None
-        train_predictor = Model(ins + [z],
+        train_predictor = Model(ins,
                 [image_out])
 
         # =====================================================================
@@ -160,7 +179,9 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
                         outputs=[image_size],
                         weights=[1.0],
                         loss=["mae"],
-                        avg_weight=0.05)],
+                        avg_weight=0.05,
+                        stats=stats
+                        )],
                 optimizer=self.getOptimizer())
         predictor.compile(loss="mae", optimizer=self.getOptimizer())
         train_predictor.summary()
@@ -169,12 +190,17 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
+        I, q, g, oin, q_target, g_target = features
         tt, o1, v, qa, ga, I = targets
+        if self.use_prev_option:
+            fin = I, q, g, oin
+        else:
+            fin = I, q, g
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-            return (features[:self.num_features] + [z],
+            return (fin + [z],
                     [np.expand_dims(I,axis=1)])
         else:
-            return (features[:self.num_features],
+            return (fin,
                     [np.expand_dims(I,axis=1)])

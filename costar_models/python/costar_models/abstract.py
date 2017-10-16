@@ -27,6 +27,8 @@ class AbstractAgentBasedModel(object):
             dense_representation=True,
             skip_connections=True,
             use_noise=False,
+            sampling=False,
+            use_prev_option=True,
             num_generator_files=3, predict_value=False, upsampling=None,
             task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
@@ -37,6 +39,7 @@ class AbstractAgentBasedModel(object):
         elif lr > 1.:
             raise RuntimeError('Extremely high learning rate: %f' % lr)
 
+        self.use_prev_option = use_prev_option
         self.lr = lr
         self.iter = iter
         self.choose_initial = choose_initial
@@ -67,7 +70,10 @@ class AbstractAgentBasedModel(object):
         self.decoder_dropout_rate = decoder_dropout_rate
         self.skip_connections = skip_connections
         self.dense_representation = dense_representation
+        self.sampling = sampling
 
+        if self.sampling:
+            self.use_noise = False
         if self.task is not None:
             self.name += "_%s"%self.task
         if self.features is not None:
@@ -113,6 +119,7 @@ class AbstractAgentBasedModel(object):
         print("use noise in model =", self.use_noise)
         print("dimensionality of noise =", self.noise_dim)
         print("skip connections =", self.skip_connections)
+        print("sampling =", self.sampling)
         print("-----------------------------------------------------------")
         print("Optimizer =", self.optimizer)
         print("Learning Rate = ", self.lr)
@@ -183,12 +190,12 @@ class AbstractAgentBasedModel(object):
                     try:
                         data[key] = np.concatenate([data[key],value],axis=0)
                     except ValueError as e:
-                        print "filename =", fn
-                        print "Data shape =", data[key].shape
-                        print "value shape =", value.shape
+                        print ("filename =", fn)
+                        print ("Data shape =", data[key].shape)
+                        print ("value shape =", value.shape)
                         raise e
                 i += 1
-            yield self._yield(data, fn)
+            yield self._yield(data)
 
     def _yield(self, data):
             features, targets = self._getData(**data)
