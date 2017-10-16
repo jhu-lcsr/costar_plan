@@ -183,12 +183,12 @@ class AbstractAgentBasedModel(object):
                     try:
                         data[key] = np.concatenate([data[key],value],axis=0)
                     except ValueError as e:
-                        print "filename =", fn
-                        print "Data shape =", data[key].shape
-                        print "value shape =", value.shape
+                        print ("filename =", fn)
+                        print ("Data shape =", data[key].shape)
+                        print ("value shape =", value.shape)
                         raise e
                 i += 1
-            yield self._yield(data, fn)
+            yield self._yield(data)
 
     def _yield(self, data):
             features, targets = self._getData(**data)
