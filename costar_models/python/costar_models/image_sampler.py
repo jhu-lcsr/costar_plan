@@ -49,7 +49,7 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
         '''
         super(RobotMultiImageSampler, self).__init__(taskdef, *args, **kwargs)
         self.num_features = 4
-        self.num_hypotheses = 8
+        self.num_hypotheses = 4
         self.steps_down = 2
         self.steps_up = 4
         self.steps_up_no_skip = 2
@@ -112,6 +112,7 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
         # =====================================================================
         # Create many different image decoders
         image_outs = []
+        stats = []
         if self.always_same_transform:
             transform = self._getTransform(0)
         for i in range(self.num_hypotheses):
@@ -122,10 +123,13 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
                 transform.summary()
             if self.use_noise:
                 zi = Lambda(lambda x: x[:,i], name="slice_z%d"%i)(z)
-                #x = transform([enc, zi, next_option_out])
                 x = transform([enc, zi])
             else:
                 x = transform([enc])
+
+            if self.sampling:
+                x, mu, sigma = x
+                stats.append((mu, sigma))
             
             # This maps from our latent world state back into observable images.
             if self.skip_connections:
@@ -145,10 +149,12 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
 
         # =====================================================================
         # Create models to train
-        predictor = Model(ins + [z],
+        if self.use_noise:
+            ins += [z]
+        predictor = Model(ins ,
                 [image_out])
         actor = None
-        train_predictor = Model(ins + [z],
+        train_predictor = Model(ins,
                 [image_out])
 
         # =====================================================================
@@ -160,7 +166,9 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
                         outputs=[image_size],
                         weights=[1.0],
                         loss=["mae"],
-                        avg_weight=0.05)],
+                        avg_weight=0.05,
+                        stats=stats
+                        )],
                 optimizer=self.getOptimizer())
         predictor.compile(loss="mae", optimizer=self.getOptimizer())
         train_predictor.summary()

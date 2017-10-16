@@ -603,7 +603,7 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
         resnet_blocks=False,
         use_noise=False,
         option=None,
-        sampler=False,
+        use_sampling=False,
         noise_dim=32):
     '''
     This is the suggested way of creating a "transform" -- AKA a mapping
@@ -658,11 +658,11 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
     # (a) we deterministically return a hidden world
     # (b) we compute a mean and variance, then draw a sampled hidden world
     # The default path right now is via (a); (b) is experimental.
-    if not sampler:
+    if not use_sampling:
         return Model([xin] + extra, x, name="transform%d"%idx)
     else:
         mu = Dense(dim, name="tform%d_mu"%idx)(x)
-        sigma = Dense(dim, name="tform%d_simga"%idx)(x)
+        sigma = Dense(dim, name="tform%d_sigma"%idx)(x)
 
         def _sampling(args):
             '''
@@ -680,7 +680,7 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
 
         # Note that mu and sigma are both important outputs for computing the
         # KL regularization termin the loss function
-        return Model([xin] + extra, [mu, sigma, x], name="transform%d"%idx)
+        return Model([xin] + extra, [x, mu, sigma], name="transform%d"%idx)
 
 
 def GetNextOptionAndValue(x, num_options, option_in=None):
