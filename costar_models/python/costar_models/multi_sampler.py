@@ -268,7 +268,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
-                        weights=[0.4,0.5,0.05,0.05],
+                        weights=[0.4,0.5,0.075,0.025],
                         loss=["mae","mae","mae","categorical_crossentropy"],
                         stats=stats,
                         avg_weight=0.05),
