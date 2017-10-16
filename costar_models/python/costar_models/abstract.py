@@ -195,7 +195,7 @@ class AbstractAgentBasedModel(object):
                         print ("value shape =", value.shape)
                         raise e
                 i += 1
-            yield self._yield(data, fn)
+            yield self._yield(data)
 
     def _yield(self, data):
             features, targets = self._getData(**data)
