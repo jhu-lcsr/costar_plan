@@ -373,13 +373,20 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
+        I, q, g, oin, q_target, g_target = features
         tt, o1, v, qa, ga, I = targets
+
+        if self.use_prev_option:
+            fin = I, q, g, oin, q_target, g_target
+        else:
+            fin = I, q, g, q_target, g_target
+
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-            return features[:self.num_features] + [z], [tt, o1, v]
+            return fin + [z], [tt, o1, v]
         else:
-            return features[:self.num_features], [tt, o1, v]
+            return fin, [tt, o1, v]
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''
@@ -400,7 +407,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Use sample data to compile the model and set everything else up.
         # Check to make sure data makes sense before running the model.
 
-        [I, q, g, oprev, q_target, g_target,] = features
+        [I, q, g, oin, q_target, g_target,] = features
         [I_target2, o_target, value_target, qa, ga, I_target0] = targets
 
         if self.predictor is None:
@@ -429,15 +436,19 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             verbose=1,
             save_best_only=True # does not work without validation wts
         )
+        num_cb_features = 4
+        if not self.use_prev_option:
+            num_cb_features -= 1
         imageCb = self.PredictorCb(
             self.predictor,
-            features=features[:4],
+            features=features[:num_cb_features],
             targets=targets,
             model_directory=self.model_directory,
             num_hypotheses=self.num_hypotheses,
             verbose=True,
             use_noise=self.use_noise,
             noise_dim=self.noise_dim,
+            use_prev_option=self.use_prev_option,
             min_idx=0,
             max_idx=5,
             step=1,)

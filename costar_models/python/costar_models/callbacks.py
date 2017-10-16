@@ -113,6 +113,7 @@ class PredictorShowImageOnly(keras.callbacks.Callback):
             verbose=False,
             noise_dim=64,
             use_noise=False,
+            use_prev_option=True,
             min_idx=0, max_idx=66, step=11):
         '''
         Set up a data set we can use to output validation images.

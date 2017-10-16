@@ -28,6 +28,7 @@ class AbstractAgentBasedModel(object):
             skip_connections=True,
             use_noise=False,
             sampling=False,
+            use_prev_option=True,
             num_generator_files=3, predict_value=False, upsampling=None,
             task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
@@ -38,6 +39,7 @@ class AbstractAgentBasedModel(object):
         elif lr > 1.:
             raise RuntimeError('Extremely high learning rate: %f' % lr)
 
+        self.use_prev_option = use_prev_option
         self.lr = lr
         self.iter = iter
         self.choose_initial = choose_initial
