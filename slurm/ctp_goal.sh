@@ -25,7 +25,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--model goal_sampler \
 	--data_file $HOME/work/ctp_rpy.npz \
 	--lr 0.001 \
-	--model_directory $HOME/.costar/models_stackL_goal_pose_only/ \
+	--model_directory $HOME/.costar/models_stackM_goal_pose_only/ \
 	--optimizer adam \
   --upsampling conv_transpose \
   --hypothesis_dropout false \

@@ -47,10 +47,18 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Layer and model configuration
         self.extra_layers = 1
-        self.steps_down = 2
-        self.steps_up = 4
-        self.steps_up_no_skip = 2
-        self.encoder_stride1_steps = 2
+
+        self.use_spatial_softmax=True
+        if self.use_spatial_softmax:
+            self.steps_down = 2
+            self.steps_up = 4
+            self.steps_up_no_skip = 2
+            self.encoder_stride1_steps = 2
+        else:
+            self.steps_down = 4
+            self.steps_up = 4
+            self.steps_up_no_skip = 0
+            self.encoder_stride1_steps = 1
 
         self.num_actor_policy_layers = 2
         self.num_generator_layers = 1
@@ -124,7 +132,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 tile=True,
                 flatten=False,
                 option=self.num_options,
-                use_spatial_softmax=True,
+                use_spatial_softmax=self.use_spatial_softmax,
                 #option=None,
                 output_filters=self.tform_filters,
                 )
@@ -261,7 +269,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
                         weights=[0.4,0.5,0.05,0.05],
-                        loss=["mae","mse","mse","categorical_crossentropy"],
+                        loss=["mae","mae","mae","categorical_crossentropy"],
                         stats=stats,
                         avg_weight=0.05),
                     "binary_crossentropy", "binary_crossentropy"],
