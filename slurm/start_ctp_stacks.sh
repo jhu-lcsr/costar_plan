@@ -6,7 +6,7 @@ set -u
 
 module load tensorflow/cuda-8.0/r1.3 
 
-for lr in 0.001 # 0.01
+for lr in 0.001 0.01
 do
 	for opt in adam
 	do
