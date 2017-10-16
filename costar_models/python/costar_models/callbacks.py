@@ -200,6 +200,7 @@ class PredictorGoals(keras.callbacks.Callback):
             model_directory=DEFAULT_MODEL_DIRECTORY,
             num_hypotheses=4,
             verbose=False,
+            use_prev_option=True,
             noise_dim=64,
             use_noise=False,
             min_idx=0, max_idx=66, step=11):
