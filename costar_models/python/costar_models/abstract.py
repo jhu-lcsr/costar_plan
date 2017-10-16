@@ -148,34 +148,47 @@ class AbstractAgentBasedModel(object):
         raise NotImplementedError('_getData() requires a dataset.')
         
     def trainGenerator(self, dataset):
-        while True:
-            data = {}
-            for _ in range(self.num_generator_files):
-                fdata = dataset.sampleTest()
-                for key, value in fdata.items():
-                    if value.shape[0] == 0:
-                        continue
-                    if key not in data:
-                        data[key] = value
-                    data[key] = np.concatenate([data[key],value],axis=0)
-            yield self._yield(data)
+        return self._yieldLoop(dataset.sampleTrain)
 
     def testGenerator(self, dataset):
         if self.validation_steps is None:
             # update the validation steps if we did not already set it --
             # something proportional to the amount of validation data we have
             self.validation_steps = len(dataset.test) + 1
-        while True:
+        return self._yieldLoop(dataset.sampleTest)
+
+    def _yieldLoop(self, sampleFn):
+      '''
+      This helper function runs in a loop infinitely, executing some callable 
+      to extract a set of feature information from a dataset file, and then
+      performs any necessary preprocessing on it.
+
+      Parameters:
+      -----------
+      sampleFn: callable to receive a feature dict
+      '''
+      while True:
             data = {}
-            for _ in range(self.num_generator_files):
-                fdata = dataset.sampleTest()
+            i = 0
+            while i < self.num_generator_files:
+                fdata, fn = sampleFn()
+                if len(fdata.keys()) == 0:
+                    print("WARNING: ", fn, "was empty.")
+                    continue
                 for key, value in fdata.items():
                     if value.shape[0] == 0:
                         continue
                     if key not in data:
                         data[key] = value
-                    data[key] = np.concatenate([data[key],value],axis=0)
-            yield self._yield(data)
+                    try:
+                        data[key] = np.concatenate([data[key],value],axis=0)
+                    except ValueError as e:
+                        print "filename =", fn
+                        print "Data shape =", data[key].shape
+                        print "value shape =", value.shape
+                        raise e
+                i += 1
+            yield self._yield(data, fn)
 
     def _yield(self, data):
             features, targets = self._getData(**data)

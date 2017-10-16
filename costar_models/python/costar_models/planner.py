@@ -8,7 +8,6 @@ import tensorflow as tf
 
 from matplotlib import pyplot as plt
 
-from keras.backend import tf as ktf
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
 from keras.layers import UpSampling2D, Conv2DTranspose
@@ -299,7 +298,7 @@ def GetImageDecoder(dim, img_shape,
                        strides=(1, 1),
                        padding='same')(x)
 
-            x = Lambda(lambda x: ktf.image.resize_bilinear(x,
+            x = Lambda(lambda x: tf.image.resize_bilinear(x,
                 [height, width]),
                 name="bilinear%dx%d"%(height,width))(x)
         elif upsampling == "upsampling":
@@ -476,7 +475,12 @@ def GetImageArmGripperDecoder(dim, img_shape,
         stride2_layers=2, stride1_layers=1,
         stride2_layers_no_skip=0):
     '''
-    Decode image and gripper setup
+    Decode image and gripper setup.
+
+    Parameters:
+    -----------
+    dim: dimensionality of hidden representation
+    img_shape: shape of hidden image representation
     '''
 
     height = int(img_shape[0]/(2**stride2_layers))
@@ -543,6 +547,18 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
         use_noise=False,
         pred_option_in=None,
         noise_dim=32):
+    '''
+    Old version of the "transform" block. It assumes the hidden representation
+    will be a very small image (say, 8x8x64).
+
+    In general, all our predictor models are set up as:
+
+        h ~ f_{enc}(x)
+        h' ~ T(h)
+        x ~ f_{dec}
+
+    This is the middle part, where we compute the new hidden world state.
+    '''
 
     dim = filters
     xin = Input((rep_size) + (dim,),"features_input")
@@ -592,6 +608,14 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
     '''
     This is the suggested way of creating a "transform" -- AKA a mapping
     between the observed hidden world state at an encoding.
+
+    In general, all our predictor models are set up as:
+
+        h ~ f_{enc}(x)
+        h' ~ T(h)
+        x ~ f_{dec}
+
+    This is the middle part, where we compute the new hidden world state.
 
     Parameters:
     -----------
