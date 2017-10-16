@@ -77,9 +77,9 @@ class NpzGeneratorDataset(object):
     def sampleTrain(self):
         filename = self.sampleTrainFilename()
         sample = np.load(filename)
-        return sample
+        return sample, filename
 
     def sampleTest(self):
         filename = self.sampleTestFilename()
         sample = np.load(filename)
-        return sample
+        return sample, filename

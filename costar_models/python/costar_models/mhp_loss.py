@@ -172,6 +172,8 @@ class MhpLossWithShape(object):
 
             cc = cc / len(self.outputs)
             if self.stats is not None:
+                print("!!!!!!!!!!!!!!!!!!")
+                print("adding kl loss term")
                 mu, sigma = self.stats[i]
                 kl_loss = -0.5 * K.sum(1 + sigma - K.square(mu) -
                         K.exp(sigma), axis=-1)
