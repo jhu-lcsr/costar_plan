@@ -17,6 +17,7 @@ class PredictorShowImage(keras.callbacks.Callback):
             model_directory=DEFAULT_MODEL_DIRECTORY,
             num_hypotheses=4,
             verbose=False,
+            use_prev_option=True,
             noise_dim=64,
             use_noise=False,
             min_idx=0, max_idx=66, step=11):
@@ -31,6 +32,7 @@ class PredictorShowImage(keras.callbacks.Callback):
         verbose: print out extra information
         '''
         self.verbose = verbose
+        self.use_prev_option = use_prev_option
         self.predictor = predictor
         self.idxs = range(min_idx, max_idx, step)
         self.num = len(self.idxs)

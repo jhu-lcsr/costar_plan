@@ -40,7 +40,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_frames = 1
         self.img_num_filters = 64
         self.tform_filters = 64
-        self.num_hypotheses = 8
+        self.num_hypotheses = 4
         self.validation_split = 0.1
         self.num_options = 48
         self.num_features = 4
@@ -352,7 +352,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Preprocess values
         value_target = np.array(value > 1.,dtype=float)
-        q[3:] = q[3:] / np.pi
+        q[:,3:] = q[:,3:] / np.pi
+        q_target[:,3:] = q_target[:,3:] / np.pi
         qa /= np.pi
 
         o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
@@ -377,9 +378,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         tt, o1, v, qa, ga, I = targets
 
         if self.use_prev_option:
-            fin = I, q, g, oin, q_target, g_target
+            fin = [I, q, g, oin] #, q_target, g_target
         else:
-            fin = I, q, g, q_target, g_target
+            fin = [I, q, g] #, q_target, g_target
 
         if self.use_noise:
             noise_len = features[0].shape[0]

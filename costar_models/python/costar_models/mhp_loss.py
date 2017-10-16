@@ -175,7 +175,7 @@ class MhpLossWithShape(object):
                 mu, sigma = self.stats[i]
                 kl_loss = -0.5 * K.sum(1 + sigma - K.square(mu) -
                         K.exp(sigma), axis=-1)
-                cc += kl_loss
+                cc += 0.01 * kl_loss
 
             xsum += cc
             xmin = tf.minimum(xmin, cc)
