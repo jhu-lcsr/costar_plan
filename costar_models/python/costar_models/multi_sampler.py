@@ -74,7 +74,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.pose_col_dim = 64
 
         # Size of the hidden representation when using dense
-        self.img_col_dim = 128
+        self.img_col_dim = 128 #+64
 
         self.PredictorCb = PredictorShowImage
         self.hidden_dim = 64/(2**self.steps_down)
@@ -180,6 +180,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # =====================================================================
         # Create many different image decoders
+        stats = []
         if self.always_same_transform:
             transform = self._getTransform(0)
         for i in range(self.num_hypotheses):
@@ -195,11 +196,16 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             else:
                 x = transform([enc])
             
+            if self.sampling:
+                x, mu, sigma = x
+                stats.append((mu, sigma))
+
             # This maps from our latent world state back into observable images.
             if self.skip_connections:
                 decoder_inputs = [x] + skips
             else:
                 decoder_inputs = [x]
+
             img_x, arm_x, gripper_x, label_x = decoder(decoder_inputs)
 
             # Create the training outputs
@@ -238,11 +244,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # =====================================================================
         # Create models to train
-        predictor = Model(ins + [z],
+        if self.use_noise:
+            ins += [z]
+        predictor = Model(ins,
                 [image_out, arm_out, gripper_out, label_out, next_option_out,
                     value_out])
         actor = None
-        train_predictor = Model(ins + [z],
+        train_predictor = Model(ins,
                 [train_out, next_option_out, value_out])
 
         # =====================================================================
@@ -254,6 +262,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
                         weights=[0.4,0.5,0.05,0.05],
                         loss=["mae","mse","mse","categorical_crossentropy"],
+                        stats=stats,
                         avg_weight=0.05),
                     "binary_crossentropy", "binary_crossentropy"],
                 loss_weights=[#0.1,0.1,0.1,0.1,
@@ -282,6 +291,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     dropout_rate=self.dropout_rate,
                     leaky=True,
                     num_blocks=self.num_transforms,
+                    use_sampling=self.sampling,
                     relu=True,
                     option=options,
                     resnet_blocks=self.residual,
@@ -339,7 +349,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         q_target = goal_arm
         g_target = goal_gripper * -1
         o_target = label
+
+        # Preprocess values
         value_target = np.array(value > 1.,dtype=float)
+        q[3:] = q[3:] / np.pi
+        qa /= np.pi
 
         o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
         train_target = self._makeTrainTarget(
