@@ -162,7 +162,8 @@ class PredictorShowImageOnly(keras.callbacks.Callback):
                 z= np.random.random((self.targets[0].shape[0], self.num_hypotheses, self.noise_dim))
                 data[k] = self.predictor.predict(self.features + [z])
         else:
-            data = self.predictor.predict(self.features)
+            for k in range(self.num_random):
+                data[k] = self.predictor.predict(self.features)
         plt.ioff()
         if self.verbose:
             print("============================")
