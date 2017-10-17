@@ -145,12 +145,12 @@ def surface_relative_transform(depth_image,
 
        [x, y, z, qx, qy, qz, qw] when return_depth_image_coordinate is False.
        When return_depth_image_coordinate is True:
-           Numpy array [dx, dy, x, y, z, qx, qy, qz, qw], which contains:
+           Numpy array [x, y, z, qx, qy, qz, qw, dx, dy], which contains:
+           - vector (x, y, z) for cartesian motion
+           - quaternion (qx, qy, qz, qw) for rotation
            - The selected (dx, dy) pixel width, height coordinate in the depth image.
              This coordinate is used to calculate the point cloud point used for the
              surface relative transform.
-           - vector (x, y, z) for cartesian motion
-           - quaternion (qx, qy, qz, qw) for rotation
     """
     # In this case base_T_endeffector is a transform that takes a point in the endeffector
     # frame of reference and transforms it to the base frame of reference.
@@ -209,8 +209,8 @@ def surface_relative_transform(depth_image,
     # return new vector and quaternion
     depth_relative_vec_quat_array = ptransform_to_vector_quaternion_array(depth_pixel_T_endeffector)
 
-    if return_image_index:
-        return np.concatenate((x, z, depth_relative_vec_quat_array))
+    if return_depth_image_coordinate:
+        return np.concatenate((depth_relative_vec_quat_array, x, z))
     else:
         return depth_relative_vec_quat_array
 
