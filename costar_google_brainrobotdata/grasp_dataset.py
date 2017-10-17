@@ -29,6 +29,7 @@ except ImportError:
           'Skipping dataset gif extraction components.')
 
 import grasp_geometry
+import depth_image_encoding
 
 flags.DEFINE_string('data_dir',
                     os.path.join(os.path.expanduser("~"),
@@ -805,6 +806,10 @@ class GraspDataset(object):
                 image = tf.image.decode_jpeg(image_buffer, channels=sensor_image_dimensions[3])
             image.set_shape(sensor_image_dimensions[1:])
             image = tf.reshape(image, sensor_image_dimensions)
+            if 'depth' in image_feature:
+                # convert depth from the depth image encoding to float32 depths
+                # https://sites.google.com/site/brainrobotdata/home/depth-image-encoding
+                image = tf.py_func(depth_image_encoding.ImageToFloatArray, [image], tf.float32)
             decoded_image_feature = image_feature.replace('encoded', 'decoded')
             feature_op_dict[decoded_image_feature] = image
             new_feature_list.append(decoded_image_feature)
