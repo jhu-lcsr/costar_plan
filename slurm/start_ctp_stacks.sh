@@ -6,7 +6,6 @@ set -u
 
 module load tensorflow/cuda-8.0/r1.3 
 
-
 # models_stack: no dropouts, 2 tforms
 # models_stack2: all dropouts, including on tforms
 # models_stack3: no dropouts on tforms?
@@ -24,8 +23,8 @@ module load tensorflow/cuda-8.0/r1.3
 # sequence J: dense, 256, multiple tforms
 # sequence L: dense, 128, using SSM now
 # sequence M: try with the --sampling flag
-
-for lr in 0.001 # 0.01
+# sequence O: dense, 128, spatial softmax, some sampling
+for lr in 0.001 0.01
 do
 	for opt in adam
 	do
