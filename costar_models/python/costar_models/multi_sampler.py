@@ -40,7 +40,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_frames = 1
         self.img_num_filters = 64
         self.tform_filters = 64
-        self.num_hypotheses = 8
+        self.num_hypotheses = 4
         self.validation_split = 0.1
         self.num_options = 48
         self.num_features = 4
@@ -264,12 +264,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # =====================================================================
         # Create models to train
         train_predictor.compile(
-                loss=[#"mae","mse","mse","binary_crossentropy",
+                loss=[
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
                         weights=[0.4,0.5,0.05,0.05],
-                        loss=["mae","mse","mse","categorical_crossentropy"],
+                        loss=["mae","mae","mae","categorical_crossentropy"],
                         stats=stats,
                         avg_weight=0.05),
                     "binary_crossentropy", "binary_crossentropy"],

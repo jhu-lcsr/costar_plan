@@ -106,7 +106,7 @@ class MhpLossWithShape(object):
         stats: mean, log variance of Gaussian from which each hypothesis was
                drawn, used to add a KL regularization term to the weight
         '''
-        self.kl_weight = 0.001
+        self.kl_weight = 1e-8
         self.num_hypotheses = num_hypotheses
         self.outputs = outputs # these are the sizes of the various outputs
         if weights is None:

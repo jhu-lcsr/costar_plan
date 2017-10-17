@@ -31,6 +31,7 @@ module load tensorflow/cuda-8.0/r1.3
 # sequence H: dense, 32, 1 tform
 # sequence I: dense, bigger
 # sequence J: dense, 256, multiple tforms
+# sequence O: 
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--features multi \
 	-e 100 \
