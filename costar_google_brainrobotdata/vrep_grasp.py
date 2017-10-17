@@ -29,7 +29,6 @@ from ply import write_xyz_rgb_as_ply
 import moviepy.editor as mpy
 from grasp_dataset import GraspDataset
 from grasp_geometry import matrix_to_vector_quaternion_array
-from depth_image_encoding import ImageToFloatArray
 from depth_image_encoding import depth_image_to_point_cloud
 
 # https://github.com/jrl-umi3218/Eigen3ToPython/tree/topic/Cython
@@ -143,7 +142,7 @@ class VREPGraspSimulation(object):
         """
         grasp_dataset_object = GraspDataset(dataset=dataset)
         batch_size = 1
-        feature_op_dicts, features_complete_list, num_samples = grasp_dataset_object.get_simple_parallel_dataset_ops(
+        feature_op_dicts, features_complete_list, num_samples = grasp_dataset_object._get_simple_parallel_dataset_ops(
             batch_size=batch_size)
 
         tf_session.run(tf.global_variables_initializer())
@@ -217,7 +216,7 @@ class VREPGraspSimulation(object):
             # TODO(ahundt) move depth image creation into tensorflow ops
             # TODO(ahundt) check scale
             # TODO(ahundt) move squeeze steps into dataset api if possible
-            depth_image_float_format = ImageToFloatArray(np.squeeze(features_dict_np[depth_name]))
+            depth_image_float_format = np.squeeze(features_dict_np[depth_name])
             if np.count_nonzero(depth_image_float_format) is 0:
                 print 'WARNING: DEPTH IMAGE IS ALL ZEROS'
             print depth_name, depth_image_float_format.shape, depth_image_float_format
@@ -232,8 +231,8 @@ class VREPGraspSimulation(object):
                     point_cloud = depth_image_to_point_cloud(np.ones(depth_image_float_format.shape), camera_intrinsics_matrix)
                 print 'point_cloud.shape:', point_cloud.shape, 'rgb_image.shape:', rgb_image.shape
                 point_cloud_display_name = ('point_cloud_' + str(dataset_name) + '_' + str(attempt_num) + '_' + str(i).zfill(2) +
-                    '_rgbd_' + depth_name.replace('/depth_image/decoded', '').replace('/', '_') +
-                    '_success_' + str(int(features_dict_np[grasp_success_feature_name])))
+                                            '_rgbd_' + depth_name.replace('/depth_image/decoded', '').replace('/', '_') +
+                                            '_success_' + str(int(features_dict_np[grasp_success_feature_name])))
                 print 'point_cloud:', point_cloud.transpose()[:30, :3]
                 path = os.path.join(visualization_dir, point_cloud_display_name + '.ply')
                 print 'point_cloud.size:', point_cloud.size
