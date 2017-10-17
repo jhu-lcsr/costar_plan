@@ -55,7 +55,7 @@ class MhpLoss(object):
             raise RuntimeError('avg_weight must be in [0,0.25]')
         self.avg_weight = avg_weight
         self.min_weight = 1.0 - (2 * self.avg_weight)
-        self.kl_weight = 0.01
+        self.kl_weight = 0.001
 
     def __call__(self, target, pred):
         '''
@@ -106,6 +106,7 @@ class MhpLossWithShape(object):
         stats: mean, log variance of Gaussian from which each hypothesis was
                drawn, used to add a KL regularization term to the weight
         '''
+        self.kl_weight = 0.001
         self.num_hypotheses = num_hypotheses
         self.outputs = outputs # these are the sizes of the various outputs
         if weights is None:
