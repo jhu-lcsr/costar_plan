@@ -31,5 +31,5 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --use_noise true \
   --steps_per_epoch 300 \
   --noise_dim 8 \
-  --batch_size 64
+  --batch_size 32
 
