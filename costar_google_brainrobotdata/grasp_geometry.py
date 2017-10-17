@@ -169,6 +169,13 @@ def surface_relative_transform(depth_image,
     # TODO(ahundt) is this multiplication ordering correct?
     pixel_coordinate_of_endeffector = camera_intrinsics_matrix * cte_xyz
 
+    # The frame definitions switch up a bit here, the calculation of the
+    # gripper pose in the image frame is done with the graphics coordinate
+    # convention where:
+    # - Y is depth
+    # - X is right in the image frame
+    # - Z is up in the image frame
+
     # get the point index in the depth image
     x = pixel_coordinate_of_endeffector[0]
     z = pixel_coordinate_of_endeffector[1]
