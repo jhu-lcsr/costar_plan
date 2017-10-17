@@ -1,5 +1,8 @@
 """Creates an image from a numpy array of floating point depth data.
 
+For details about the encoding see:
+https://sites.google.com/site/brainrobotdata/home/depth-image-encoding
+
 Examples:
 
   depth_array is a 2D numpy array of floating point depth data in meters.
@@ -179,6 +182,8 @@ def ImageToFloatArray(image, scale_factor=None):
 
     The result of this function should be equal to the original input
     within the precision of the conversion.
+
+    For details see https://sites.google.com/site/brainrobotdata/home/depth-image-encoding.
 
     Args:
       image: Depth image output of FloatArrayTo[Format]Image.
