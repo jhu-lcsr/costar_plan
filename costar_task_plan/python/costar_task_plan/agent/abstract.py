@@ -130,9 +130,9 @@ class AbstractAgent(object):
         if self.collection_mode == CM_GOAL and self.collect_trajectories:
             raise RuntimeError("trajectories over future goals currently " + \
                                "not supported")
-        if self.collection_mode_mode = CM_PLUS10 and self.collect_trajectories:
+        if self.collection_mode == CM_PLUS10 and self.collect_trajectories:
             raise RuntimeError("collecting timestepped predictions over " + \
-                               "trajectories not currently supported"
+                               "trajectories not currently supported")
 
         if self.data_type == self.NUMPY_ZIP:
             root = ""

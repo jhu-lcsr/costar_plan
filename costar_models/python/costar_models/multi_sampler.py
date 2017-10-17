@@ -264,16 +264,17 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # =====================================================================
         # Create models to train
         train_predictor.compile(
-                loss=[
+                loss=[#"mae","mse","mse","binary_crossentropy",
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
-                        weights=[0.5,1.0,0.4,0.1],
+                        weights=[0.4,0.5,0.05,0.05],
                         loss=["mae","mae","mae","categorical_crossentropy"],
                         stats=stats,
                         avg_weight=0.05),
                     "binary_crossentropy", "binary_crossentropy"],
-                loss_weights=[1.0,0.01,0.01],
+                loss_weights=[#0.1,0.1,0.1,0.1,
+                    1.0,0.01,0.01],
                 optimizer=self.getOptimizer())
         predictor.compile(loss="mae", optimizer=self.getOptimizer())
         train_predictor.summary()
@@ -359,8 +360,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Preprocess values
         value_target = np.array(value > 1.,dtype=float)
-        q[:,3:] = q[:,3:] / np.pi
-        q_target[:,3:] = q_target[:,3:] / np.pi
         qa /= np.pi
 
         o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
@@ -381,20 +380,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
-        I, q, g, oin, q_target, g_target = features
         tt, o1, v, qa, ga, I = targets
-
-        if self.use_prev_option:
-            fin = [I, q, g, oin] #, q_target, g_target
-        else:
-            fin = [I, q, g] #, q_target, g_target
-
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-            return fin + [z], [tt, o1, v]
+            return features[:self.num_features] + [z], [tt, o1, v]
         else:
-            return fin, [tt, o1, v]
+            return features[:self.num_features], [tt, o1, v]
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''
@@ -415,7 +407,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Use sample data to compile the model and set everything else up.
         # Check to make sure data makes sense before running the model.
 
-        [I, q, g, oin, q_target, g_target,] = features
+        [I, q, g, oprev, q_target, g_target,] = features
         [I_target2, o_target, value_target, qa, ga, I_target0] = targets
 
         if self.predictor is None:
@@ -444,19 +436,15 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             verbose=1,
             save_best_only=True # does not work without validation wts
         )
-        num_cb_features = 4
-        if not self.use_prev_option:
-            num_cb_features -= 1
         imageCb = self.PredictorCb(
             self.predictor,
-            features=features[:num_cb_features],
+            features=features[:4],
             targets=targets,
             model_directory=self.model_directory,
             num_hypotheses=self.num_hypotheses,
             verbose=True,
             use_noise=self.use_noise,
             noise_dim=self.noise_dim,
-            use_prev_option=self.use_prev_option,
             min_idx=0,
             max_idx=5,
             step=1,)

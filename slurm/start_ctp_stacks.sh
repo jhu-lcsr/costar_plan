@@ -24,6 +24,7 @@ module load tensorflow/cuda-8.0/r1.3
 # sequence L: dense, 128, using SSM now
 # sequence M: try with the --sampling flag
 # sequence O: dense, 128, spatial softmax, some sampling
+# sequence P: as above, some fixes
 for lr in 0.001 0.01
 do
 	for opt in adam
