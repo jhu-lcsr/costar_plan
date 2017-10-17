@@ -56,26 +56,6 @@ def vector_quaternion_array_to_ptransform(vector_quaternion_array):
     return pt
 
 
-def currentPoseToEndPose(currentPoseReached, endPoseCommanded):
-    """A pose is a 6 degree of freedom rigid transform represented with 7 values:
-       vector (x, y, z) and quaternion (x, y, z, w).
-       A pose is always annotated with the target and source frames of reference.
-       For example, base_T_camera is a transform that takes a point in the camera
-       frame of reference and transforms it to the base frame of reference.
-
-       We will be dealing with, for example:
-       grasp/4/reached_pose/transforms/base_T_endeffector/vec_quat_7
-       grasp/10/commanded_pose/transforms/base_T_endeffector/vec_quat_7
-    """
-    base_to_current = vector_quaternion_array_to_ptransform(currentPoseReached)
-    base_to_end = vector_quaternion_array_to_ptransform(endPoseCommanded)
-    inv_b2c = base_to_current.inverse()
-    current_to_end = inv_b2c * base_to_end
-    # we have ptransforms for both data, now get transform from current to commanded
-    current_to_end = ptransform_to_vector_quaternion_array(current_to_end)
-    return current_to_end
-
-
 def ptransform_to_vector_quaternion_array(pt):
     """Convert a PTransformD into a vector quaternion array
     containing 3 vector entries (x, y, z) and 4 quaternion entries (x, y, z, w)
@@ -179,31 +159,26 @@ def depth_image_pixel_to_cloud_point(camera_intrinsics_matrix, depth_image, pixe
 
 def surface_relative_transform(depth_image,
                                camera_intrinsics_matrix,
-                               camera_T_base,
-                               base_T_endeffector,
+                               camera_T_endeffector,
                                augmentation_rectangle=None,
                                return_depth_image_coordinate=False):
-    """Get the transform from a depth pixel to a gripper pose.
+    """Get the transform from a depth pixel to a gripper pose with optional data augmentation.
 
     # Params
 
     depth_image:
-        width x height x depth image in floating point format
+        width x height x depth image in floating point format, depth in meters
     camera_intrinsics_matrix:
         'camera/intrinsics/matrix33' The 3x3 camera intrinsics matrix.
-    camera_T_base:
-        'camera/transforms/camera_T_base/matrix44'
-        Same as base_T_endeffector but from the camera center to the robot base,
-        and contains a 4x4 transformation matrix instead of a vector and quaternion.
-    base_T_endeffector:
-       vector (x, y, z) for cartesian motion and quaternion (qx, qy, qz, qw) for rotation.
+    camera_T_endeffector:
+       PTransformd that takes a point in the endeffector frame and transforms
+       it to a point in the camera frame.
     augmentation_rectangle:
        A random offset for the selected (dx, dy) pixel index.
        It will randomly select a pixel in a box around the endeffector coordinate.
        Default (1, 1) has no augmentation.
-
     return_depth_image_coordinate:
-       changes the return
+       changes the return to include the x, y coordinate used for the depth image.
 
     # Returns
 
@@ -216,12 +191,8 @@ def surface_relative_transform(depth_image,
              This coordinate is used to calculate the point cloud point used for the
              surface relative transform.
     """
-    # In this case camera_T_endeffector is a transform that takes a point in the endeffector
-    # frame of reference and transforms it to the camera frame of reference.
-    camera_T_endeffector_ptrans = camera_to_endeffector_ptransform(camera_T_base, base_T_endeffector)
-
     # xyz coordinate of the endeffector in the camera frame
-    cte_xyz = camera_T_endeffector_ptrans.translation()
+    cte_xyz = camera_T_endeffector.translation()
     # transform the end effector coordinate into the depth image coordinate
     pixel_coordinate_of_endeffector = camera_intrinsics_matrix * cte_xyz
 
@@ -242,7 +213,7 @@ def surface_relative_transform(depth_image,
     # TODO(ahundt) is this inverse correct?
     cloud_point_T_camera_ptrans = camera_T_cloud_point_ptrans.inverse()
     # transform point all the way to depth frame
-    depth_pixel_T_endeffector_ptrans = cloud_point_T_camera_ptrans * camera_T_endeffector_ptrans
+    depth_pixel_T_endeffector_ptrans = cloud_point_T_camera_ptrans * camera_T_endeffector
     # get the depth relative transform
     # TODO(ahundt) maybe the rotation component of this needs to be inverted due to sva implementation?
     depth_relative_vec_quat_array = ptransform_to_vector_quaternion_array(depth_pixel_T_endeffector_ptrans)
@@ -255,37 +226,84 @@ def surface_relative_transform(depth_image,
     else:
         return depth_relative_vec_quat_array
 
+def brain_robot_data_to_surface_relative_transform(depth_image,
+                                                   camera_intrinsics_matrix,
+                                                   camera_T_base,
+                                                   base_T_endeffector,
+                                                   augmentation_rectangle=None,
+                                                   return_depth_image_coordinate=False):
+    """Get the transform from a depth pixel to a gripper pose from data in the brain robot data feature formats.
 
-def camera_to_endeffector_ptransform(camera_T_base, base_T_endeffector):
-    """Get a ptransform from the camera to the end effector given brain robot data input transforms.
+    Includes optional data augmentation.
 
     # Params
 
-    camera_T_base: A 4x4 homogeneous transformation matrix that takes a
-        point in the base frame of reference and transforms
-        it to the camera frame of reference.
+    depth_image:
+        width x height x depth image in floating point format
+    camera_intrinsics_matrix:
+        'camera/intrinsics/matrix33' The 3x3 camera intrinsics matrix.
+    camera_T_base:
+        'camera/transforms/camera_T_base/matrix44'
+        4x4 transformation matrix from the camera center to the robot base.
+        camera_T_base is a transform that takes a point in the base
+        frame of reference and transforms it to the camera frame of reference.
     base_T_endeffector:
-        A translation quaternion vector that takes a point in the endeffector
-        frame of reference and transforms it to the base frame of reference.
-        A numpy array containing a pose.
-        A pose is a 6 degree of freedom rigid transform represented with 7 values:
-        [x, y, z, qx, qy, qz, qw] consisting of a
-        vector (x, y, z) for cartesian motion and quaternion (qx, qy, qz, qw) for rotation.
-        This is the data format used by the google brain robot data grasping dataset's
-        tfrecord poses.
+       vector (x, y, z) for cartesian motion and quaternion (qx, qy, qz, qw) for rotation.
+       base_T_endeffector is a transform that takes a point in the endeffector
+       frame of reference and transforms it to the base frame of reference.
+    augmentation_rectangle:
+       A random offset for the selected (dx, dy) pixel index.
+       It will randomly select a pixel in a box around the endeffector coordinate.
+       Default (1, 1) has no augmentation.
+
+    return_depth_image_coordinate:
+       changes the return
+
     # Returns
 
-    sva.PTransformd transform camera_T_endeffector,
-    which is a transform that takes a point in the endeffector
-    frame of reference and transforms it to the camera frame of reference.
+       [x, y, z, qx, qy, qz, qw] when return_depth_image_coordinate is False.
+       When return_depth_image_coordinate is True:
+           Numpy array [x, y, z, qx, qy, qz, qw, dx, dy], which contains:
+           - vector (x, y, z) for cartesian motion
+           - quaternion (qx, qy, qz, qw) for rotation
+           - The selected (dx, dy) pixel width, height coordinate in the depth image.
+             This coordinate is used to calculate the point cloud point used for the
+             surface relative transform.
     """
-    # In this case base_T_endeffector is a transform that takes a point in the endeffector
-    # frame of reference and transforms it to the base frame of reference.
     base_T_endeffector_ptrans = vector_quaternion_array_to_ptransform(base_T_endeffector)
     # In this case camera_T_base is a transform that takes a point in the base
     # frame of reference and transforms it to the camera frame of reference.
     camera_T_base_ptrans = matrix_to_ptransform(camera_T_base)
-    # In this case camera_T_base is a transform that takes a point in the base
-    # frame of reference and transforms it to the camera frame of reference.
     camera_T_endeffector_ptrans = camera_T_base_ptrans * base_T_endeffector_ptrans
-    return camera_T_endeffector_ptrans
+    return surface_relative_transform(depth_image,
+                                      camera_intrinsics_matrix,
+                                      camera_T_endeffector_ptrans,
+                                      augmentation_rectangle,
+                                      return_depth_image_coordinate)
+
+
+def current_endeffector_to_final_endeffector_ptransform(current_base_T_endeffector, end_base_T_endeffector):
+    """Calculate the ptransform between two poses in the same base frame.
+
+       A pose is a 6 degree of freedom rigid transform represented with 7 values:
+       vector (x, y, z) and quaternion (x, y, z, w).
+       A pose is always annotated with the target and source frames of reference.
+       For example, base_T_camera is a transform that takes a point in the camera
+       frame of reference and transforms it to the base frame of reference.
+
+       We will be dealing with, for example:
+       grasp/4/reached_pose/transforms/base_T_endeffector/vec_quat_7
+       grasp/10/commanded_pose/transforms/base_T_endeffector/vec_quat_7
+
+       # Params
+
+       current_base_T_endeffector: A vector quaternion array from a base frame to an end effector frame
+       end_base_T_endeffector: A vector quaternion array from a base frame to an end effector frame
+    """
+    base_to_current = vector_quaternion_array_to_ptransform(current_base_T_endeffector)
+    base_to_end = vector_quaternion_array_to_ptransform(end_base_T_endeffector)
+    inv_b2c = base_to_current.inverse()
+    current_to_end = inv_b2c * base_to_end
+    # we have ptransforms for both data, now get transform from current to commanded
+    current_to_end = ptransform_to_vector_quaternion_array(current_to_end)
+    return current_to_end

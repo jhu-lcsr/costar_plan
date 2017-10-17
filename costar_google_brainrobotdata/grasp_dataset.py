@@ -621,7 +621,7 @@ class GraspDataset(object):
             for j, pose_op_param in enumerate(pose_op_params):
                 # generate the transform calculation op, might be able to set stateful=False for a performance boost
                 current_to_end_op = tf.py_func(
-                    grasp_geometry.currentPoseToEndPose,
+                    grasp_geometry.current_endeffector_to_final_endeffector_ptransform,
                     [fixed_feature_op_dict[pose_op_param], fixed_feature_op_dict[final_pose_op]], tf.float32)
                 current_to_end_name = 'move_to_grasp/{:03}/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_quat_7'.format(j)
                 fixed_feature_op_dict[current_to_end_name] = current_to_end_op
@@ -693,7 +693,7 @@ class GraspDataset(object):
             camera_intrinsics_matrix = fixed_feature_op_dict['camera/intrinsics/matrix33']
             camera_T_base = fixed_feature_op_dict['camera/transforms/camera_T_base/matrix44']
             current_to_end_op = tf.py_func(
-                grasp_geometry.surface_relative_transform,
+                grasp_geometry.brain_robot_data_to_surface_relative_transform,
                 # parameters for call to surface_relative_transform function call
                 [depth_clear_view, camera_intrinsics_matrix, camera_T_base, fixed_feature_op_dict[final_pose_op]], tf.float32)
             fixed_feature_op_dict[current_to_end_name] = current_to_end_op
