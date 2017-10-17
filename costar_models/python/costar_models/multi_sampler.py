@@ -359,8 +359,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Preprocess values
         value_target = np.array(value > 1.,dtype=float)
-        q[:,3:] = q[:,3:] / np.pi
-        q_target[:,3:] = q_target[:,3:] / np.pi
+        #q[:,3:] = q[:,3:] / np.pi
+        #q_target[:,3:] = q_target[:,3:] / np.pi
         qa /= np.pi
 
         o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
