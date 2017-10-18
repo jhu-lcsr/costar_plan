@@ -860,7 +860,7 @@ class GraspDataset(object):
            zero centers by the mean pixel value found in the imagenet dataset.
         """
         # TODO(ahundt) do we need to divide by 255 to make it floats from 0 to 1? It seems no based on https://keras.io/applications/
-        # TODO(ahundt) apply resolution to https://github.com/fchollet/keras/pull/7705 when linked PR is closed
+        # TODO(ahundt) use keras tensor imagenet preprocessing when https://github.com/fchollet/keras/pull/7705 is closed
         # TODO(ahundt) also apply per image standardization?
         pixel_value_offset = tf.constant([103.939, 116.779, 123.68])
         return tf.subtract(tensor, pixel_value_offset)
