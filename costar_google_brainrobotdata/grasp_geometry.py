@@ -47,7 +47,7 @@ def vector_quaternion_array_to_ptransform(vector_quaternion_array):
       https://en.wikipedia.org/wiki/Pl%C3%BCcker_coordinates
     """
     v = eigen.Vector3d(vector_quaternion_array[:3])
-    qa4 = eigen.Vector4d(vector_quaternion_array[4:])
+    qa4 = eigen.Vector4d(vector_quaternion_array[3:])
     q = eigen.Quaterniond(qa4)
     # The ptransform needs the rotation component inverted.
     # see https://github.com/ahundt/grl/blob/master/include/grl/vrep/SpaceVecAlg.hpp#L22
@@ -56,13 +56,14 @@ def vector_quaternion_array_to_ptransform(vector_quaternion_array):
     return pt
 
 
-def ptransform_to_vector_quaternion_array(pt):
+def ptransform_to_vector_quaternion_array(ptransform):
     """Convert a PTransformD into a vector quaternion array
     containing 3 vector entries (x, y, z) and 4 quaternion entries (x, y, z, w)
     """
-    rot = pt.rotation()
+    rot = ptransform.rotation()
     quaternion = eigen.Quaterniond(rot)
-    translation = current_to_end.translation()
+    quaternion = quaternion.inverse()
+    translation = ptransform.translation()
     translation = np.array(translation).reshape(3)
     q_floats_array = np.array(quaternion.coeffs()).astype(np.float32)
     vec_quat_7 = np.append(translation, q_floats_array)
@@ -104,16 +105,16 @@ def vector_to_ptransform(XYZ):
     return ptransform
 
 
-def depth_image_pixel_to_cloud_point(camera_intrinsics_matrix, depth_image, pixel_coordinate, augmentation_rectangle=None):
+def depth_image_pixel_to_cloud_point(depth_image, camera_intrinsics_matrix, pixel_coordinate, augmentation_rectangle=None):
     """Convert a single specific depth image pixel coordinate into a point cloud point.
 
     # Params
 
+    depth_image:
+        width x height x depth image in floating point format
     camera_intrinsics_matrix:
         'camera/intrinsics/matrix33' The 3x3 camera intrinsics matrix
         used to convert depth to point cloud points.
-    depth_image:
-        width x height x depth image in floating point format
     pixel_coordinate:
         The x, y depth image pixel coordinate of the depth image pixel to convert.
     augmentation_rectangle:
@@ -130,7 +131,8 @@ def depth_image_pixel_to_cloud_point(camera_intrinsics_matrix, depth_image, pixe
 
     # get the point index in the depth image
     # TODO(ahundt) is this the correct indexing scheme, are any axes flipped?
-    x, z, _ = pixel_coordinate
+    x = pixel_coordinate[0]
+    z = pixel_coordinate[1]
 
     # choose a random pixel in the specified box
     if(augmentation_rectangle is not None and
@@ -192,20 +194,8 @@ def surface_relative_transform(depth_image,
              surface relative transform.
     """
     # xyz coordinate of the endeffector in the camera frame
-    cte_xyz = camera_T_endeffector.translation()
-    # transform the end effector coordinate into the depth image coordinate
-    pixel_coordinate_of_endeffector = camera_intrinsics_matrix * cte_xyz
-
-    # The frame definitions switch up a bit here, the calculation of the
-    # gripper pose in the image frame is done with the graphics coordinate
-    # convention where:
-    # - Y is depth
-    # - X is right in the image frame
-    # - Z is up in the image frame
-    XYZ = depth_image_pixel_to_cloud_point(augmentation_rectangle,
-                                           camera_intrinsics_matrix,
-                                           depth_image,
-                                           pixel_coordinate_of_endeffector)
+    XYZ, pixel_coordinate_of_endeffector = endeffector_image_coordinate_and_cloud_point(
+        depth_image, camera_intrinsics_matrix, camera_T_endeffector, augmentation_rectangle,)
 
     # make an identity quaternion because the pixel will use the camera orientation
     # TODO(ahundt) is this the right axis ordering for the translation component
@@ -226,13 +216,93 @@ def surface_relative_transform(depth_image,
     else:
         return depth_relative_vec_quat_array
 
-def brain_robot_data_to_surface_relative_transform(depth_image,
-                                                   camera_intrinsics_matrix,
-                                                   camera_T_base,
-                                                   base_T_endeffector,
-                                                   augmentation_rectangle=None,
-                                                   return_depth_image_coordinate=False):
+
+def endeffector_image_coordinate(camera_intrinsics_matrix, xyz):
+
+    # get focal length and camera image center from the intrinsics matrix
+    fx = camera_intrinsics_matrix[0, 0]
+    fy = camera_intrinsics_matrix[1, 1]
+    center_x = camera_intrinsics_matrix[2, 0]
+    center_y = camera_intrinsics_matrix[2, 1]
+
+    # Capital X is horizontal point, right in camera image frame
+    X = xyz[0]
+    # Capital Y is depth in camera frame
+    Y = xyz[1]
+    # Capital Z is vertical point, up in camera image frame
+    Z = xyz[2]
+    # x is the image coordinate horizontal axis
+    x = (X * fx / Y) + center_x
+    # y is the image coordinate vertical axis
+    y = (Z * fy / Y) + center_y
+    return np.array([x, y])
+
+
+def endeffector_image_coordinate_and_cloud_point(depth_image,
+                                                 camera_intrinsics_matrix,
+                                                 camera_T_endeffector,
+                                                 augmentation_rectangle=None):
+    """Get the xyz coordinate of the endeffector in the camera frame as well as its image coordinate.
+
+    # Returns
+
+    [XYZ, pixel_coordinate_of_endeffector]
+
+    xyz: the xyz coordinate of the end effector's point cloud point.
+    pixel_coordinate_of_endeffector: the x, y coordinate in the depth image frame of the xyz point cloud point.
+    """
+    # xyz coordinate of the endeffector in the camera frame
+    cte_xyz = camera_T_endeffector.translation()
+    # transform the end effector coordinate into the depth image coordinate
+    pixel_coordinate_of_endeffector = endeffector_image_coordinate(camera_intrinsics_matrix, cte_xyz)
+
+    # The frame definitions switch up a bit here, the calculation of the
+    # gripper pose in the image frame is done with the graphics coordinate
+    # convention where:
+    # - Y is depth
+    # - X is right in the image frame
+    # - Z is up in the image frame
+    XYZ = depth_image_pixel_to_cloud_point(depth_image,
+                                           camera_intrinsics_matrix,
+                                           pixel_coordinate_of_endeffector,
+                                           augmentation_rectangle=augmentation_rectangle)
+    return XYZ, pixel_coordinate_of_endeffector
+
+
+def brainrobotdata_to_ptransform(camera_T_base, base_T_endeffector):
+    """Convert brainrobotdata features camera_T_base and base_T_endeffector to base_T_endeffector and ptransforms.
+
+    This specific function exists because it accepts the raw feature types
+    defined in the google brain robot grasping dataset.
+
+    # Params
+
+    camera_T_base: a vector quaternion array
+    base_T_endeffector: a 4x4 homogeneous 3D transformation matrix
+
+    # Returns
+
+      PTransformd formatted transforms:
+      camera_T_endeffector_ptrans, base_T_endeffector_ptrans, camera_T_base_ptrans
+    """
+    base_T_endeffector_ptrans = vector_quaternion_array_to_ptransform(base_T_endeffector)
+    # In this case camera_T_base is a transform that takes a point in the base
+    # frame of reference and transforms it to the camera frame of reference.
+    camera_T_base_ptrans = matrix_to_ptransform(camera_T_base)
+    camera_T_endeffector_ptrans = camera_T_base_ptrans * base_T_endeffector_ptrans
+    return camera_T_endeffector_ptrans, base_T_endeffector_ptrans, camera_T_base_ptrans
+
+
+def brainrobotdata_to_surface_relative_transform(depth_image,
+                                                 camera_intrinsics_matrix,
+                                                 camera_T_base,
+                                                 base_T_endeffector,
+                                                 augmentation_rectangle=None,
+                                                 return_depth_image_coordinate=False):
     """Get the transform from a depth pixel to a gripper pose from data in the brain robot data feature formats.
+
+    This specific function exists because it accepts the raw feature types
+    defined in the google brain robot grasping dataset.
 
     Includes optional data augmentation.
 
@@ -270,11 +340,7 @@ def brain_robot_data_to_surface_relative_transform(depth_image,
              This coordinate is used to calculate the point cloud point used for the
              surface relative transform.
     """
-    base_T_endeffector_ptrans = vector_quaternion_array_to_ptransform(base_T_endeffector)
-    # In this case camera_T_base is a transform that takes a point in the base
-    # frame of reference and transforms it to the camera frame of reference.
-    camera_T_base_ptrans = matrix_to_ptransform(camera_T_base)
-    camera_T_endeffector_ptrans = camera_T_base_ptrans * base_T_endeffector_ptrans
+    camera_T_endeffector_ptrans, _, _ = brainrobotdata_to_ptransform(camera_T_base, base_T_endeffector)
     return surface_relative_transform(depth_image,
                                       camera_intrinsics_matrix,
                                       camera_T_endeffector_ptrans,

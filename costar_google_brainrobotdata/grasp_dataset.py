@@ -693,7 +693,7 @@ class GraspDataset(object):
             camera_intrinsics_matrix = fixed_feature_op_dict['camera/intrinsics/matrix33']
             camera_T_base = fixed_feature_op_dict['camera/transforms/camera_T_base/matrix44']
             current_to_end_op = tf.py_func(
-                grasp_geometry.brain_robot_data_to_surface_relative_transform,
+                grasp_geometry.brainrobotdata_to_surface_relative_transform,
                 # parameters for call to surface_relative_transform function call
                 [depth_clear_view, camera_intrinsics_matrix, camera_T_base, fixed_feature_op_dict[final_pose_op]], tf.float32)
             fixed_feature_op_dict[current_to_end_name] = current_to_end_op
