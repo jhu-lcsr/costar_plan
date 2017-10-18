@@ -792,8 +792,6 @@ class GraspDataset(object):
 
             updated feature_op_dict, new_feature_list
         """
-        if sensor_image_dimensions is None:
-            sensor_image_dimensions = [1, FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels]
         features = [feature for (feature, tf_op) in iteritems(feature_op_dict)]
         image_features = GraspDataset.get_time_ordered_features(features, '/image/encoded')
         image_features.extend(GraspDataset.get_time_ordered_features(features, 'depth_image/encoded'))
@@ -802,14 +800,20 @@ class GraspDataset(object):
             image_buffer = tf.reshape(feature_op_dict[image_feature], shape=[])
             if 'depth' in image_feature:
                 image = tf.image.decode_png(image_buffer, channels=sensor_image_dimensions[3])
-            else:
-                image = tf.image.decode_jpeg(image_buffer, channels=sensor_image_dimensions[3])
-            image.set_shape(sensor_image_dimensions[1:])
-            image = tf.reshape(image, sensor_image_dimensions)
-            if 'depth' in image_feature:
-                # convert depth from the depth image encoding to float32 depths
+                # convert depth from the rgb depth image encoding to float32 depths
                 # https://sites.google.com/site/brainrobotdata/home/depth-image-encoding
-                image = tf.py_func(depth_image_encoding.ImageToFloatArray, [image], tf.float32)
+                image = tf.cast(image, tf.float32)
+                image = tf.reduce_sum(image * [65536, 256, 1], axis=2)
+                RGB_SCALE_FACTOR = 256000.0
+                image = image / RGB_SCALE_FACTOR
+                image.set_shape([FLAGS.sensor_image_height, FLAGS.sensor_image_width])
+                image = tf.reshape(image, [1, FLAGS.sensor_image_height, FLAGS.sensor_image_width, 1])
+                # image = tf.py_func(depth_image_encoding.ImageToFloatArray, [image], tf.float32)
+            else:
+                sensor_image_dimensions = [1, FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels]
+                image = tf.image.decode_jpeg(image_buffer, channels=sensor_image_dimensions[3])
+                image.set_shape(sensor_image_dimensions[1:])
+                image = tf.reshape(image, sensor_image_dimensions)
             decoded_image_feature = image_feature.replace('encoded', 'decoded')
             feature_op_dict[decoded_image_feature] = image
             new_feature_list.append(decoded_image_feature)
