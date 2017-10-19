@@ -67,7 +67,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Number of nonlinear transformations to be applied to the hidden state
         # in order to compute a possible next state.
         if self.dense_representation:
-            self.num_transforms = 2
+            self.num_transforms = 3
         else:
             self.num_transforms = 3
 
@@ -76,13 +76,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.gripper_cmd_size = 1
 
         # Used for classifiers: value and next option
-        self.combined_dense_size = 128
+        self.combined_dense_size = 64
 
         # Size of the "pose" column containing arm, gripper info
         self.pose_col_dim = 64
 
         # Size of the hidden representation when using dense
-        self.img_col_dim = 128 #+64
+        self.img_col_dim = 64
 
         self.PredictorCb = PredictorShowImage
         self.hidden_dim = 64/(2**self.steps_down)
@@ -268,10 +268,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
-                        weights=[0.4,0.5,0.05,0.05],
+                        weights=[0.7,1.0,0.1,0.1],
                         loss=["mae","mae","mae","categorical_crossentropy"],
                         stats=stats,
-                        avg_weight=0.05),],
+                        avg_weight=0.01),],
                     #"binary_crossentropy", "binary_crossentropy"],
                 #loss_weights=[1.0,0.01,0.01],
                 optimizer=self.getOptimizer())
