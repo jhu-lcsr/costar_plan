@@ -17,6 +17,7 @@ class PredictorShowImage(keras.callbacks.Callback):
             model_directory=DEFAULT_MODEL_DIRECTORY,
             num_hypotheses=4,
             verbose=False,
+            use_prev_option=True,
             noise_dim=64,
             use_noise=False,
             min_idx=0, max_idx=66, step=11):
@@ -31,6 +32,7 @@ class PredictorShowImage(keras.callbacks.Callback):
         verbose: print out extra information
         '''
         self.verbose = verbose
+        self.use_prev_option = use_prev_option
         self.predictor = predictor
         self.idxs = range(min_idx, max_idx, step)
         self.num = len(self.idxs)
@@ -113,6 +115,7 @@ class PredictorShowImageOnly(keras.callbacks.Callback):
             verbose=False,
             noise_dim=64,
             use_noise=False,
+            use_prev_option=True,
             min_idx=0, max_idx=66, step=11):
         '''
         Set up a data set we can use to output validation images.
@@ -159,7 +162,8 @@ class PredictorShowImageOnly(keras.callbacks.Callback):
                 z= np.random.random((self.targets[0].shape[0], self.num_hypotheses, self.noise_dim))
                 data[k] = self.predictor.predict(self.features + [z])
         else:
-            data = self.predictor.predict(self.features)
+            for k in range(self.num_random):
+                data[k] = self.predictor.predict(self.features)
         plt.ioff()
         if self.verbose:
             print("============================")
@@ -197,6 +201,7 @@ class PredictorGoals(keras.callbacks.Callback):
             model_directory=DEFAULT_MODEL_DIRECTORY,
             num_hypotheses=4,
             verbose=False,
+            use_prev_option=True,
             noise_dim=64,
             use_noise=False,
             min_idx=0, max_idx=66, step=11):

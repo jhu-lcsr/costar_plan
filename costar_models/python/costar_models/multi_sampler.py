@@ -259,22 +259,21 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     value_out])
         actor = None
         train_predictor = Model(ins,
-                [train_out, next_option_out, value_out])
+                [train_out],)#, next_option_out, value_out])
 
         # =====================================================================
         # Create models to train
         train_predictor.compile(
-                loss=[
+                loss=[#"mae","mse","mse","binary_crossentropy",
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
-                        weights=[0.5,1.0,0.4,0.1],
+                        weights=[0.4,0.5,0.05,0.05],
                         loss=["mae","mae","mae","categorical_crossentropy"],
                         stats=stats,
-                        avg_weight=0.05),
-                    "binary_crossentropy", "binary_crossentropy"],
-                loss_weights=[#0.1,0.1,0.1,0.1,
-                    1.0,0.01,0.01],
+                        avg_weight=0.05),],
+                    #"binary_crossentropy", "binary_crossentropy"],
+                #loss_weights=[1.0,0.01,0.01],
                 optimizer=self.getOptimizer())
         predictor.compile(loss="mae", optimizer=self.getOptimizer())
         train_predictor.summary()
@@ -360,8 +359,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Preprocess values
         value_target = np.array(value > 1.,dtype=float)
-        q[:,3:] = q[:,3:] / np.pi
-        q_target[:,3:] = q_target[:,3:] / np.pi
         qa /= np.pi
 
         o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
@@ -386,9 +383,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-            return features[:self.num_features] + [z], [tt, o1, v]
+            return features[:self.num_features] + [z], [tt] #, o1, v]
         else:
-            return features[:self.num_features], [tt, o1, v]
+            return features[:self.num_features], [tt] #, o1, v]
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''
