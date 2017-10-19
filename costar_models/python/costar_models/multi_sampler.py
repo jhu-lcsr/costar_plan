@@ -40,7 +40,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_frames = 1
         self.img_num_filters = 64
         self.tform_filters = 64
-        self.num_hypotheses = 8
+        self.num_hypotheses = 4
         self.validation_split = 0.1
         self.num_options = 48
         self.num_features = 4
@@ -67,7 +67,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Number of nonlinear transformations to be applied to the hidden state
         # in order to compute a possible next state.
         if self.dense_representation:
-            self.num_transforms = 1
+            self.num_transforms = 3
         else:
             self.num_transforms = 3
 
@@ -82,7 +82,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.pose_col_dim = 64
 
         # Size of the hidden representation when using dense
-        self.img_col_dim = 64
+        self.img_col_dim = 128
 
         self.PredictorCb = PredictorShowImage
         self.hidden_dim = 64/(2**self.steps_down)
@@ -126,7 +126,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 post_tiling_layers=self.steps_down,
                 stride1_post_tiling_layers=self.encoder_stride1_steps,
                 pose_col_dim=self.pose_col_dim,
-                kernel_size=[5,5],
+                kernel_size=[3,3],
                 dense=self.dense_representation,
                 batchnorm=True,
                 tile=True,
@@ -244,11 +244,19 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             label_outs.append(label_x)
             train_outs.append(train_x)
 
+
         image_out = Concatenate(axis=1)(image_outs)
         arm_out = Concatenate(axis=1)(arm_outs)
         gripper_out = Concatenate(axis=1)(gripper_outs)
         label_out = Concatenate(axis=1)(label_outs)
         train_out = Concatenate(axis=1,name="all_train_outs")(train_outs)
+
+        #next_option_out, p_h = GetHypothesisProbability(enc,
+        #        self.num_hypotheses,
+        #        self.num_options,
+        #        label_out,
+        #        self.combined_dense_size,
+        #        kernel_size=None,)
 
         # =====================================================================
         # Create models to train
@@ -257,9 +265,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         predictor = Model(ins,
                 [image_out, arm_out, gripper_out, label_out, next_option_out,
                     value_out])
+                #[image_out, arm_out, gripper_out, label_out, next_option_out,])
         actor = None
         train_predictor = Model(ins,
-                [train_out],)#, next_option_out, value_out])
+                #[train_out, next_option_out, value_out])
+                #[train_out, next_option_out])#, value_out])
+                [train_out, value_out])
 
         # =====================================================================
         # Create models to train
@@ -268,12 +279,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
-                        weights=[0.7,1.0,0.1,0.1],
+                        weights=[0.7, 1.0, 0.1, 0.1],
                         loss=["mae","mae","mae","categorical_crossentropy"],
                         stats=stats,
-                        avg_weight=0.1),],
-                    #"binary_crossentropy", "binary_crossentropy"],
-                #loss_weights=[1.0,0.01,0.01],
+                        avg_weight=0.01),
+                    "binary_crossentropy",],# "binary_crossentropy"],
+                loss_weights=[0.99,0.01,],#0.1],
                 optimizer=self.getOptimizer())
         predictor.compile(loss="mae", optimizer=self.getOptimizer())
         train_predictor.summary()
@@ -283,6 +294,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
     def _getTransform(self,i=0):
         transform_dropout = False
         use_options_again = False
+        transform_batchnorm = True
+        transform_relu = True
         if use_options_again:
             options = self.num_options
         else:
@@ -293,13 +306,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     input_size=self.img_col_dim,
                     output_size=self.img_col_dim,
                     idx=i,
-                    batchnorm=True,
+                    batchnorm=transform_batchnorm,
                     dropout=transform_dropout,
                     dropout_rate=self.dropout_rate,
                     leaky=True,
                     num_blocks=self.num_transforms,
                     use_sampling=self.sampling,
-                    relu=True,
+                    relu=transform_relu,
                     option=options,
                     resnet_blocks=self.residual,
                     use_noise=self.use_noise,
@@ -383,9 +396,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-            return features[:self.num_features] + [z], [tt] #, o1, v]
+            #return features[:self.num_features] + [z], [tt, o1, v]
+            #return features[:self.num_features] + [z], [tt, o1]#, v]
+            return features[:self.num_features] + [z], [tt, v]
         else:
-            return features[:self.num_features], [tt] #, o1, v]
+            #return features[:self.num_features], [tt, o1, v]
+            #return features[:self.num_features], [tt, o1]#, v]
+            return features[:self.num_features], [tt, v]
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''

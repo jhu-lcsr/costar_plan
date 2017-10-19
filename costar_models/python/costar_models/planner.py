@@ -406,7 +406,7 @@ def GetImagePoseDecoder(dim, img_shape,
         raise RuntimeError('resnet not supported')
 
     pose_out_x = Dense(pose_size,name="next_pose")(x)
-    label_out_x = Dense(num_options,name="next_label",activation="softmax")(x)
+    label_out_x = Dense(num_options,name="next_label",activation="sigmoid")(x)
 
     decoder = Model(rep,
                     [dec, pose_out_x, label_out_x],
@@ -738,15 +738,20 @@ def GetHypothesisProbability(x, num_hypotheses, num_options, labels,
     dropout_rate: dropout rate applied to model
     '''
 
-    x = Conv2D(filters,
-            kernel_size=kernel_size, 
-            strides=(2, 2),
-            padding='same',
-            name="p_hypothesis")(x)
-    x = BatchNormalization()(x)
-    x = LeakyReLU(alpha=0.2)(x)
-    x = Dropout(dropout_rate)(x)
-    x = Flatten()(x)
+    #x = Conv2D(filters,
+    #        kernel_size=kernel_size, 
+    #        strides=(2, 2),
+    #        padding='same',
+    #        name="p_hypothesis")(x)
+    #x = BatchNormalization()(x)
+    #x = LeakyReLU(alpha=0.2)(x)
+    #x = Dropout(dropout_rate)(x)
+    #x = Flatten()(x)
+    for _ in range(1):
+        x = Dense(filters)(x)
+        x = BatchNormalization()(x)
+        x = LeakyReLU(alpha=0.2)(x)
+        x = Dropout(dropout_rate)(x)
     x = Dense(num_hypotheses)(x)
     x = Activation("sigmoid")(x)
     x2 = x
@@ -756,7 +761,7 @@ def GetHypothesisProbability(x, num_hypotheses, num_options, labels,
         x = K.repeat_elements(x, num_actions, axis=-1)
         return x
     x = Lambda(lambda x: make_p_matrix(x, num_options),name="p_mat")(x)
-    labels.trainable = False
+    #labels.trainable = False
     x = Multiply()([x, labels])
     x = Lambda(lambda x: K.sum(x,axis=1),name="sum_p_h")(x)
 
