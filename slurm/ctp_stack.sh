@@ -31,13 +31,14 @@ module load tensorflow/cuda-8.0/r1.3
 # sequence H: dense, 32, 1 tform
 # sequence I: dense, bigger
 # sequence J: dense, 256, multiple tforms
+# sequence O: 
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--features multi \
 	-e 100 \
 	--model predictor \
 	--data_file $HOME/work/ctp_rpy.npz \
 	--lr 0.001 \
-	--model_directory $HOME/.costar/models_stackL/ \
+	--model_directory $HOME/.costar/models_stackO/ \
 	--optimizer adam \
   --upsampling conv_transpose \
   --hypothesis_dropout false \
@@ -45,5 +46,5 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --use_noise true \
   --steps_per_epoch 300 \
   --noise_dim 8 \
-	--batch_size 64
+	--batch_size 32
 
