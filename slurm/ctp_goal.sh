@@ -25,11 +25,12 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--model goal_sampler \
 	--data_file $HOME/work/ctp_rpy.npz \
 	--lr 0.001 \
-	--model_directory $HOME/.costar/models_stackP_goal_pose_only/ \
+	--model_directory $HOME/.costar/models_stackQ_goal_pose_only/ \
 	--optimizer adam \
   --upsampling conv_transpose \
   --hypothesis_dropout false \
   --dropout_rate 0.5 \
   --use_noise true \
   --noise_dim 32 \
+  --success_only \
 	--batch_size 64

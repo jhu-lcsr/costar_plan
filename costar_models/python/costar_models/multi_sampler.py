@@ -259,7 +259,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     value_out])
         actor = None
         train_predictor = Model(ins,
-                [train_out, next_option_out, value_out])
+                [train_out],)#, next_option_out, value_out])
 
         # =====================================================================
         # Create models to train
@@ -271,10 +271,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         weights=[0.4,0.5,0.05,0.05],
                         loss=["mae","mae","mae","categorical_crossentropy"],
                         stats=stats,
-                        avg_weight=0.05),
-                    "binary_crossentropy", "binary_crossentropy"],
-                loss_weights=[#0.1,0.1,0.1,0.1,
-                    1.0,0.01,0.01],
+                        avg_weight=0.05),],
+                    #"binary_crossentropy", "binary_crossentropy"],
+                #loss_weights=[1.0,0.01,0.01],
                 optimizer=self.getOptimizer())
         predictor.compile(loss="mae", optimizer=self.getOptimizer())
         train_predictor.summary()
@@ -384,9 +383,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-            return features[:self.num_features] + [z], [tt, o1, v]
+            return features[:self.num_features] + [z], [tt] #, o1, v]
         else:
-            return features[:self.num_features], [tt, o1, v]
+            return features[:self.num_features], [tt] #, o1, v]
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''
