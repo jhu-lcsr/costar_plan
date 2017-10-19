@@ -46,9 +46,18 @@ def vector_quaternion_array_to_ptransform(vector_quaternion_array):
       https://github.com/jrl-umi3218/SpaceVecAlg
       https://en.wikipedia.org/wiki/Pl%C3%BCcker_coordinates
     """
-    v = eigen.Vector3d(vector_quaternion_array[:3])
-    qa4 = eigen.Vector4d(vector_quaternion_array[3:])
-    q = eigen.Quaterniond(qa4)
+    # TODO(ahundt) use following lines after https://github.com/jrl-umi3218/Eigen3ToPython/pull/15 is fixed
+    # v = eigen.Vector3d(vector_quaternion_array[:3])
+    # qa4 = eigen.Vector4d()
+    # q = eigen.Quaterniond(qa4)
+
+    # Quaterniond(x, y, z, w) is being constructed from:
+    # [x, y, z, qx, qy, qz, qw]
+    # [0, 1, 2,  3,  4,  5,  6]
+    q = eigen.Quaterniond(vector_quaternion_array[6],  # qw
+                          vector_quaternion_array[3],  # qx
+                          vector_quaternion_array[4],  # qy
+                          vector_quaternion_array[5])  # qz
     # The ptransform needs the rotation component inverted.
     # see https://github.com/ahundt/grl/blob/master/include/grl/vrep/SpaceVecAlg.hpp#L22
     q = q.inverse()
@@ -65,7 +74,8 @@ def ptransform_to_vector_quaternion_array(ptransform):
     quaternion = quaternion.inverse()
     translation = ptransform.translation()
     translation = np.array(translation).reshape(3)
-    q_floats_array = np.array(quaternion.coeffs()).astype(np.float32)
+    # TODO(ahundt) use quaternion.coeffs() after https://github.com/jrl-umi3218/Eigen3ToPython/pull/15 is fixed
+    q_floats_array = np.array([quaternion.w(), quaternion.x(), quaternion.y(), quaternion.z()]).astype(np.float32)
     vec_quat_7 = np.append(translation, q_floats_array)
     return vec_quat_7
 
@@ -80,7 +90,8 @@ def matrix_to_vector_quaternion_array(matrix, inverse=False, verbose=0):
     if inverse:
         quaternion = quaternion.inverse()
         translation *= -1
-    q_floats_array = np.array(quaternion.coeffs()).astype(np.float32)
+    # TODO(ahundt) use quaternion.coeffs() after https://github.com/jrl-umi3218/Eigen3ToPython/pull/15 is fixed
+    q_floats_array = np.array([quaternion.w(), quaternion.x(), quaternion.y(), quaternion.z()]).astype(np.float32)
     vec_quat_7 = np.append(translation, q_floats_array)
     if verbose > 0:
         print(vec_quat_7)
@@ -103,6 +114,25 @@ def vector_to_ptransform(XYZ):
     v = eigen.Vector3d(XYZ)
     ptransform = sva.PTransformd(q, v)
     return ptransform
+
+
+def ptransform_to_vector_sin_theta_cos_theta(ptransform):
+    """Plucker transform to [dx, dy, dz, sin(theta), cos(theta)]
+    Convert a PTransform 3D Rigid body transform into a numpy array with 5 total entries,
+    including a 3 entry translation vector and 2 entries for
+    a single rotation angle theta containing sin(theta), cos(theta). This format
+    does not allow for arbitrary commands to be defined, and originates from the paper and dataset:
+    https://sites.google.com/site/brainrobotdata/home/grasping-dataset
+    https://arxiv.org/abs/1603.02199
+
+    """
+    identity = eigen.Quaterniond()
+    identity.setIdentity()
+    theta = identity.angularDistance(ptransform)
+    translation = ptransform.translation()
+    sin_cos_theta = np.array([np.sin(theta), np.cos(theta)])
+    vector_sin_theta_cos_theta = np.concatenate((translation, sin_cos_theta))
+    return vector_sin_theta_cos_theta
 
 
 def depth_image_pixel_to_cloud_point(depth_image, camera_intrinsics_matrix, pixel_coordinate, augmentation_rectangle=None):
@@ -269,7 +299,7 @@ def endeffector_image_coordinate_and_cloud_point(depth_image,
     return XYZ, pixel_coordinate_of_endeffector
 
 
-def brainrobotdata_to_ptransform(camera_T_base, base_T_endeffector):
+def grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector):
     """Convert brainrobotdata features camera_T_base and base_T_endeffector to base_T_endeffector and ptransforms.
 
     This specific function exists because it accepts the raw feature types
@@ -293,12 +323,12 @@ def brainrobotdata_to_ptransform(camera_T_base, base_T_endeffector):
     return camera_T_endeffector_ptrans, base_T_endeffector_ptrans, camera_T_base_ptrans
 
 
-def brainrobotdata_to_surface_relative_transform(depth_image,
-                                                 camera_intrinsics_matrix,
-                                                 camera_T_base,
-                                                 base_T_endeffector,
-                                                 augmentation_rectangle=None,
-                                                 return_depth_image_coordinate=False):
+def grasp_dataset_to_surface_relative_transform(depth_image,
+                                                camera_intrinsics_matrix,
+                                                camera_T_base,
+                                                base_T_endeffector,
+                                                augmentation_rectangle=None,
+                                                return_depth_image_coordinate=False):
     """Get the transform from a depth pixel to a gripper pose from data in the brain robot data feature formats.
 
     This specific function exists because it accepts the raw feature types
@@ -340,7 +370,7 @@ def brainrobotdata_to_surface_relative_transform(depth_image,
              This coordinate is used to calculate the point cloud point used for the
              surface relative transform.
     """
-    camera_T_endeffector_ptrans, _, _ = brainrobotdata_to_ptransform(camera_T_base, base_T_endeffector)
+    camera_T_endeffector_ptrans, _, _ = grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector)
     return surface_relative_transform(depth_image,
                                       camera_intrinsics_matrix,
                                       camera_T_endeffector_ptrans,
@@ -348,7 +378,7 @@ def brainrobotdata_to_surface_relative_transform(depth_image,
                                       return_depth_image_coordinate)
 
 
-def current_endeffector_to_final_endeffector_ptransform(current_base_T_endeffector, end_base_T_endeffector):
+def current_endeffector_to_final_endeffector_feature(current_base_T_endeffector, end_base_T_endeffector, feature_type='vec_sin_cos_5'):
     """Calculate the ptransform between two poses in the same base frame.
 
        A pose is a 6 degree of freedom rigid transform represented with 7 values:
@@ -365,11 +395,29 @@ def current_endeffector_to_final_endeffector_ptransform(current_base_T_endeffect
 
        current_base_T_endeffector: A vector quaternion array from a base frame to an end effector frame
        end_base_T_endeffector: A vector quaternion array from a base frame to an end effector frame
+       feature_type: String identifying the feature type to return, which should contain one of the following options:
+          'vec_quat_7' A numpy array with 7 total entries including a 3 entry translation vector and 4 entry quaternion.
+          'vec_sin_cos_5'  A numpy array with 5 total entries [dx, dy, dz, sin(theta), cos(theta)]
+                           including a 3 entry translation vector and 2 entries for the angle of the rotation.
+                          for a single rotation angle theta containing sin(theta), cos(theta). This format
+                          does not allow for arbitrary commands to be defined, and originates from the paper and dataset:
+                          https://sites.google.com/site/brainrobotdata/home/grasping-dataset
+                          https://arxiv.org/abs/1603.02199
+
+                          see also: ptransform_to_vector_sin_theta_cos_theta()
+
+       # Returns
+
+       A numpy array or object of the type specified in the feature_type parameter.
+
     """
     base_to_current = vector_quaternion_array_to_ptransform(current_base_T_endeffector)
     base_to_end = vector_quaternion_array_to_ptransform(end_base_T_endeffector)
     inv_b2c = base_to_current.inverse()
     current_to_end = inv_b2c * base_to_end
     # we have ptransforms for both data, now get transform from current to commanded
-    current_to_end = ptransform_to_vector_quaternion_array(current_to_end)
+    if 'vec_quat_7' in feature_type:
+        current_to_end = ptransform_to_vector_quaternion_array(current_to_end)
+    elif feature_type == 'vec_sin_cos_5':
+        current_to_end = ptransform_to_vector_sin_theta_cos_theta(current_to_end)
     return current_to_end

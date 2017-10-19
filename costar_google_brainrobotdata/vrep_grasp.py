@@ -211,7 +211,7 @@ class VREPGraspSimulation(object):
             empty_buffer = bytearray()
             # 3 cartesian (x, y, z) and 4 quaternion (x, y, z, w) elements, same as vrep
             gripper_pose = features_dict_np[transform_name]
-            camera_T_endeffector_ptrans, base_T_endeffector_ptrans, camera_T_base_ptrans = grasp_geometry.brainrobotdata_to_ptransform(
+            camera_T_endeffector_ptrans, base_T_endeffector_ptrans, camera_T_base_ptrans = grasp_geometry.grasp_dataset_to_ptransform(
                 camera_to_base_4x4matrix,
                 gripper_pose
             )

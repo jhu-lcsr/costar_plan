@@ -586,11 +586,12 @@ class GraspDataset(object):
     def _endeffector_current_T_endeffector_final(self,
                                                  feature_op_dicts,
                                                  features_complete_list,
-                                                 feature_type='transforms/base_T_endeffector/vec_quat_7'):
+                                                 feature_type='vec_sin_cos_5'):
         """Transforms between the current and final end effector poses.
 
         Generate feature ops which define a transform from the current time step's reached endeffector pose to the final time step's reached endeffector pose.
         'move_to_grasp/###/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_quat_7'
+        'move_to_grasp/###/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_sin_cos_5'
 
         # TODO(ahundt) use tfquaternion.py, not tf.py_func() due to limitations in https://www.tensorflow.org/api_docs/python/tf/py_func
 
@@ -601,10 +602,16 @@ class GraspDataset(object):
         features_complete_list: A list of all feature strings.
             See _get_simple_parallel_dataset_ops for details.
         feature_type: The feature type to be used for this calculation.
+            'vec_quat_7' Create the 7 entry vector quaternion feature [dx, dy, dz, qx, qy, qz, qw]
+            'vec_sin_cos_5' Create the 5 entry vector quaternion feature [dx, dy, dz, sin(theta), cos(theta)]
 
         # Returns
 
-            new_feature_op_dicts, features_complete_list, new_pose_op_param_names
+            [ new_feature_op_dicts, features_complete_list, new_pose_op_param_names]
+
+            new_feature_op_dicts will contain update dictionaries which include the newly added features.
+            features_complete_list will contain the new complete list of features.
+            new_pose_op_param_names will only include the param names that match feature_type.
         """
 
         pose_op_params = self.get_time_ordered_features(
@@ -619,16 +626,31 @@ class GraspDataset(object):
 
         for i, (fixed_feature_op_dict, sequence_feature_op_dict) in enumerate(feature_op_dicts):
             for j, pose_op_param in enumerate(pose_op_params):
+                # Create the 7 entry vector quaternion feature [dx, dy, dz, qx, qy, qz, qw]
                 # generate the transform calculation op, might be able to set stateful=False for a performance boost
                 current_to_end_op = tf.py_func(
-                    grasp_geometry.current_endeffector_to_final_endeffector_ptransform,
-                    [fixed_feature_op_dict[pose_op_param], fixed_feature_op_dict[final_pose_op]], tf.float32)
+                    grasp_geometry.current_endeffector_to_final_endeffector_feature,
+                    [fixed_feature_op_dict[pose_op_param], fixed_feature_op_dict[final_pose_op], 'vec_quat_7'], tf.float32)
                 current_to_end_name = 'move_to_grasp/{:03}/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_quat_7'.format(j)
                 fixed_feature_op_dict[current_to_end_name] = current_to_end_op
                 if i == 0:
                     # assume all batches have the same features
                     features_complete_list.append(current_to_end_name)
-                    new_pose_op_param_names.append(current_to_end_name)
+                    if feature_type == 'vec_quat_7':
+                        new_pose_op_param_names.append(current_to_end_name)
+
+                # Create the 5 entry vector quaternion feature [dx, dy, dz, sin(theta), cos(theta)]
+                # generate the transform calculation op, might be able to set stateful=False for a performance boost
+                current_to_end_op = tf.py_func(
+                    grasp_geometry.current_endeffector_to_final_endeffector_feature,
+                    [fixed_feature_op_dict[pose_op_param], fixed_feature_op_dict[final_pose_op], 'vec_sin_cos_5'], tf.float32)
+                current_to_end_name = 'move_to_grasp/{:03}/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_sin_cos_5'.format(j)
+                fixed_feature_op_dict[current_to_end_name] = current_to_end_op
+                if i == 0:
+                    # assume all batches have the same features
+                    features_complete_list.append(current_to_end_name)
+                    if feature_type == 'vec_sin_cos_5':
+                        new_pose_op_param_names.append(current_to_end_name)
 
             # assemble the updated feature op dicts
             new_feature_op_dicts.append((fixed_feature_op_dict, sequence_feature_op_dict))
@@ -639,8 +661,10 @@ class GraspDataset(object):
                                                                       feature_op_dicts,
                                                                       features_complete_list,
                                                                       feature_type='transforms/base_T_endeffector/vec_quat_7'):
-        """Transforms from the clear view depth image pixel world coordinate to the final gripper coordinate.
+        """This generates the surface relative transform features.
 
+        The surface relative transform is from the clear view depth image
+        pixel world coordinate to the final gripper coordinate.
         This applies the surface relative transforms.
         The point cloud point is selected by using the (x, y) pixel
         coordinate of the final gripper pose in the camera frame.
@@ -693,7 +717,7 @@ class GraspDataset(object):
             camera_intrinsics_matrix = fixed_feature_op_dict['camera/intrinsics/matrix33']
             camera_T_base = fixed_feature_op_dict['camera/transforms/camera_T_base/matrix44']
             current_to_end_op = tf.py_func(
-                grasp_geometry.brainrobotdata_to_surface_relative_transform,
+                grasp_geometry.grasp_dataset_to_surface_relative_transform,
                 # parameters for call to surface_relative_transform function call
                 [depth_clear_view, camera_intrinsics_matrix, camera_T_base, fixed_feature_op_dict[final_pose_op]], tf.float32)
             fixed_feature_op_dict[current_to_end_name] = current_to_end_op
