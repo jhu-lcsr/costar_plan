@@ -455,7 +455,7 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
             #return tf.contrib.
             return spatial_softmax(x)
         x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
-        x = Dense(dim,name="encode_to_hidden",activation="sigmoid")(x)
+        x = Dense(dim,name="encode_to_hidden",activation="linear")(x)
         #if batchnorm:
         #    x = BatchNormalization()(x)
         #x = relu()(x)
