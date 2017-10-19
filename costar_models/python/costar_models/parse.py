@@ -133,7 +133,7 @@ def GetModelParser():
     parser.add_argument("--use_noise",
                         help="use random noise to sample distributions",
                         type=bool,
-                        default=True)
+                        default=False)
     parser.add_argument("--skip_connections", "--sc",
                         help="use skip connections to generate better outputs",
                         type=bool,

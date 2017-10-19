@@ -66,7 +66,7 @@ class AbstractAgentBasedModel(object):
         self.predict_value = predict_value
         self.dropout_rate = dropout_rate
         self.hypothesis_dropout = hypothesis_dropout
-        self.use_noise = use_noise
+        self.use_noise = use_noise and False
         self.decoder_dropout_rate = decoder_dropout_rate
         self.skip_connections = skip_connections
         self.dense_representation = dense_representation
