@@ -24,12 +24,13 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--lr $1 \
 	--dropout_rate 0.5 \
 	--decoder_dropout_rate $2 \
-  --model_directory $HOME/.costar/models_stack_P$1$3$2$4$5/ \
+  --model_directory $HOME/.costar/models_stack_Q$1$3$2$4$5/ \
 	--optimizer $3 \
   --use_noise false \
-  --steps_per_epoch 300 \
+  --steps_per_epoch 500 \
   --noise_dim $5 \
   --hypothesis_dropout $4 \
   --upsampling conv_transpose \
+  --success_only \
   --batch_size 32
 

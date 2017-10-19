@@ -22,14 +22,15 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--model predictor \
 	--data_file $HOME/work/ctp_rpy.npz \
 	--lr 0.001 \
-  --model_directory $HOME/.costar/models_stackP_no_sample/ \
+  --model_directory $HOME/.costar/models_stackQ_no_sample/ \
 	--optimizer adam \
   --dropout_rate 0.5 \
   --decoder_dropout_rate 0.125 \
   --upsampling conv_transpose \
   --hypothesis_dropout false \
   --use_noise true \
-  --steps_per_epoch 300 \
+  --steps_per_epoch 500 \
   --noise_dim 8 \
+  --success_only \
   --batch_size 64
 
