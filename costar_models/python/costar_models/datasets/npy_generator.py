@@ -38,7 +38,7 @@ class NpzGeneratorDataset(object):
                     name = f.split('.')
                     if name[1] == 'failure':
                         continue
-                if i == 0:
+                if i < 2:
                     fsample = np.load(os.path.join(self.name,f))
                     for key, value in fsample.items():
                         if key not in sample:
@@ -58,7 +58,8 @@ class NpzGeneratorDataset(object):
         print("---------------------------------------------")
         self.test = [acceptable_files[i] for i in idx[:length]]
         self.train = [acceptable_files[i] for i in idx[length:]]
-        for filename in self.test:
+        for i, filename in enumerate(self.test):
+            print("%d:"%(i+1), filename)
             if filename in self.train:
                 raise RuntimeError('error with test/train setup! ' + \
                                    filename + ' in training!')

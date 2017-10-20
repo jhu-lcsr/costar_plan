@@ -71,7 +71,9 @@ class AbstractAgentBasedModel(object):
         self.skip_connections = skip_connections
         self.dense_representation = dense_representation
         self.sampling = sampling
-
+        
+        if self.noise_dim < 1:
+            self.use_noise = False
         if self.sampling:
             self.use_noise = False
         if self.task is not None:
