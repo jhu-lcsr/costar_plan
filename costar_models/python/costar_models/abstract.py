@@ -29,7 +29,7 @@ class AbstractAgentBasedModel(object):
             use_noise=False,
             sampling=False,
             use_prev_option=True,
-            num_generator_files=3, predict_value=False, upsampling=None,
+            num_generator_files=1, predict_value=False, upsampling=None,
             task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
 
