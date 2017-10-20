@@ -40,7 +40,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_frames = 1
         self.img_num_filters = 64
         self.tform_filters = 64
-        self.num_hypotheses = 8
+        self.num_hypotheses = 4
         self.validation_split = 0.1
         self.num_options = 48
         self.num_features = 4
@@ -131,13 +131,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 batchnorm=True,
                 tile=True,
                 flatten=False,
-                #option=self.num_options,
+                option=self.num_options,
                 use_spatial_softmax=self.use_spatial_softmax,
-                option=None,
+                #option=None,
                 output_filters=self.tform_filters,
                 )
-        #img_in, arm_in, gripper_in, option_in = ins
-        img_in, arm_in, gripper_in = ins
+        img_in, arm_in, gripper_in, option_in = ins
+        #img_in, arm_in, gripper_in = ins
         if self.use_noise:
             z = Input((self.num_hypotheses, self.noise_dim))
 
@@ -179,12 +179,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         decoder.summary()
     
-        option_in = Input((1,),name="prev_option_in")
-        ins += [option_in]
+        #option_in = Input((1,),name="prev_option_in")
+        #ins += [option_in]
         value_out, next_option_out = GetNextOptionAndValue(enc,
                                                            self.num_options,
-                                                           #option_in=None)
-                                                           option_in=option_in)
+                                                           option_in=None)
+                                                           #option_in=option_in)
 
         # =====================================================================
         # Create many different image decoders
