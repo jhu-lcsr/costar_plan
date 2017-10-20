@@ -44,15 +44,15 @@ def RunKeypointsVisualizer(args):
         raise NotImplementedError('data type not implemented: %s'%data_type)
 
     if 'model' in args and args['model'] is not None:
-        model = MakeModel(taskdef=None, **args)
-        print (args)
-        if 'load_model' in args and args['load_model']:
-            model.load(world=None,**data)
+        model = args["model"]
+        if not model == "predictor":
+            raise RuntimeError('Unsupported model type "%s"'%model)
+        model = RobotMultiKeypointsVisualizer(taskdef=None, **args)
+        model.load(world=None,**data)
         train_generator = model.trainGenerator(dataset)
         test_generator = model.testGenerator(dataset)
-
     else:
-        pass
+        raise RuntimeError('Must specify model type to visualize')
 
 if __name__ == '__main__':
     args = ParseModelArgs()
