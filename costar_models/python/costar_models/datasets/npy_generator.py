@@ -77,7 +77,10 @@ class NpzGeneratorDataset(object):
 
     def sampleTrain(self):
         filename = self.sampleTrainFilename()
-        sample = np.load(filename)
+        try:
+            sample = np.load(filename)
+        except Exception as e:
+            raise RuntimeError("Could not load file " + filename + ": " + str(e))
         return sample, filename
 
     def sampleTest(self):
