@@ -40,7 +40,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_frames = 1
         self.img_num_filters = 64
         self.tform_filters = 64
-        self.num_hypotheses = 4
+        self.num_hypotheses = 8
         self.validation_split = 0.1
         self.num_options = 48
         self.num_features = 4
@@ -126,18 +126,18 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 post_tiling_layers=self.steps_down,
                 stride1_post_tiling_layers=self.encoder_stride1_steps,
                 pose_col_dim=self.pose_col_dim,
-                kernel_size=[3,3],
+                kernel_size=[5,5],
                 dense=self.dense_representation,
                 batchnorm=True,
                 tile=True,
                 flatten=False,
-                option=self.num_options,
+                #option=self.num_options,
                 use_spatial_softmax=self.use_spatial_softmax,
-                #option=None,
+                option=None,
                 output_filters=self.tform_filters,
                 )
-        img_in, arm_in, gripper_in, option_in = ins
-        #img_in, arm_in, gripper_in = ins
+        #img_in, arm_in, gripper_in, option_in = ins
+        img_in, arm_in, gripper_in = ins
         if self.use_noise:
             z = Input((self.num_hypotheses, self.noise_dim))
 
@@ -148,7 +148,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         img_shape,
                         dropout_rate=self.decoder_dropout_rate,
                         dense_size=self.combined_dense_size,
-                        kernel_size=[3,3],
+                        kernel_size=[5,5],
                         filters=self.img_num_filters,
                         stride2_layers=self.steps_up,
                         stride1_layers=self.extra_layers,
@@ -179,12 +179,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         decoder.summary()
     
-        #option_in = Input((1,),name="prev_option_in")
-        #ins += [option_in]
+        option_in = Input((1,),name="prev_option_in")
+        ins += [option_in]
         value_out, next_option_out = GetNextOptionAndValue(enc,
                                                            self.num_options,
-                                                           option_in=None)
-                                                           #option_in=option_in)
+                                                           #option_in=None)
+                                                           option_in=option_in)
 
         # =====================================================================
         # Create many different image decoders
@@ -282,7 +282,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         weights=[0.7, 1.0, 0.1, 0.1],
                         loss=["mae","mae","mae","categorical_crossentropy"],
                         stats=stats,
-                        avg_weight=0.01),
+                        avg_weight=0.05),
                     "binary_crossentropy",],# "binary_crossentropy"],
                 loss_weights=[0.99,0.01,],#0.1],
                 optimizer=self.getOptimizer())
@@ -321,7 +321,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             transform = GetTransform(
                     rep_size=(self.hidden_dim, self.hidden_dim),
                     filters=self.tform_filters,
-                    kernel_size=[3,3],
+                    kernel_size=[5,5],
                     idx=i,
                     batchnorm=True,
                     dropout=transform_dropout,

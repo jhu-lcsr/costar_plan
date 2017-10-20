@@ -66,12 +66,14 @@ class AbstractAgentBasedModel(object):
         self.predict_value = predict_value
         self.dropout_rate = dropout_rate
         self.hypothesis_dropout = hypothesis_dropout
-        self.use_noise = use_noise and False
+        self.use_noise = use_noise
         self.decoder_dropout_rate = decoder_dropout_rate
         self.skip_connections = skip_connections
         self.dense_representation = dense_representation
         self.sampling = sampling
-
+        
+        if self.noise_dim < 1:
+            self.use_noise = False
         if self.sampling:
             self.use_noise = False
         if self.task is not None:
