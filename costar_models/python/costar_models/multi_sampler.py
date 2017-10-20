@@ -269,7 +269,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         predictor = Model(ins,
                 [image_out, arm_out, gripper_out, label_out, next_option_out,
                     value_out])
-                #[image_out, arm_out, gripper_out, label_out, next_option_out,])
         actor = None
         train_predictor = Model(ins,
                 #[train_out, next_option_out, value_out])
@@ -459,7 +458,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         logCb = LogCallback(self.name,self.model_directory)
         imageCb = self.PredictorCb(
             self.predictor,
-            features=features[:4],
+            features=features[:4]+[o_target],
             targets=targets,
             model_directory=self.model_directory,
             num_hypotheses=self.num_hypotheses,
