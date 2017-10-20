@@ -7,6 +7,33 @@ import numpy as np
 
 DEFAULT_MODEL_DIRECTORY = os.path.expanduser('~/.costar/models')
 
+
+class LogCallback(keras.callbacks.Callback):
+    def __init__(self,
+            name="model",
+            model_directory=DEFAULT_MODEL_DIRECTORY):
+        self.directory = model_directory
+        if not os.path.exists(self.directory):
+            os.makedirs(self.directory)
+        self.file = open(os.path.join(self.directory,"%s_log.csv"%name),'w')
+
+    def on_epoch_end(self, epoch, logs={}):
+        print(epoch,logs)
+        if epoch == 0:
+            msg = ""
+            for i, key in enumerate(logs.keys()):
+                msg += str(key)
+                if i < len(logs.keys())-1:
+                    msg += ","
+            self.file.write(msg)
+
+        msg = ""
+        for i, (key, value) in enumerate(logs.items()):
+            msg += str(value)
+            if i < len(logs.keys())-1:
+                msg += ","
+        self.file.write(msg)
+
 class PredictorShowImage(keras.callbacks.Callback):
     '''
     Save an image showing what some number of frames and associated predictions

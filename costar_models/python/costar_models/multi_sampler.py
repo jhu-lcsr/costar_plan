@@ -41,7 +41,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.img_num_filters = 64
         self.tform_filters = 64
         self.num_hypotheses = 4
-        self.validation_split = 0.1
+        self.validation_split = 0.05
         self.num_options = 48
         self.num_features = 4
 
@@ -67,7 +67,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Number of nonlinear transformations to be applied to the hidden state
         # in order to compute a possible next state.
         if self.dense_representation:
-            self.num_transforms = 3
+            self.num_transforms = 2
         else:
             self.num_transforms = 3
 
@@ -452,6 +452,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             verbose=1,
             save_best_only=True # does not work without validation wts
         )
+        logCb = LogCallback(self.name,self.model_directory)
         imageCb = self.PredictorCb(
             self.predictor,
             features=features[:4],
@@ -470,7 +471,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 epochs=self.epochs,
                 validation_steps=self.validation_steps,
                 validation_data=test_generator,
-                callbacks=[modelCheckpointCb, imageCb])
+                callbacks=[modelCheckpointCb, logCb, imageCb])
 
     def save(self):
         '''
