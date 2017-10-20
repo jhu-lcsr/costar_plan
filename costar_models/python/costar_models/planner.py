@@ -630,12 +630,16 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
     xin = Input((input_size,),name="tform%d_hidden_in"%idx)
     x = xin
     extra = []
+    extra_concat = []
     if use_noise:
         zin = Input((noise_dim,),name="tform%d_noise_in"%idx)
         extra += [zin]
+        extra_concat += [zin]
     if option is not None:
         oin = Input((option,),name="tform%d_option_in"%idx)
         extra += [oin]
+        extra_concat += [oin]
+        #option_x= OneHot(option)(oin)
     if len(extra) > 0:
         x = Concatenate()([x] + extra)
     for j in range(num_blocks):

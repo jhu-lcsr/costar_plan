@@ -53,7 +53,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             self.steps_down = 2
             self.steps_up = 4
             self.steps_up_no_skip = 2
-            self.encoder_stride1_steps = 2
+            #self.encoder_stride1_steps = 2+1
+            self.encoder_stride1_steps = 1
         else:
             self.steps_down = 4
             self.steps_up = 4
@@ -131,13 +132,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 batchnorm=True,
                 tile=True,
                 flatten=False,
-                option=self.num_options,
+                #option=self.num_options,
                 use_spatial_softmax=self.use_spatial_softmax,
-                #option=None,
+                option=None,
                 output_filters=self.tform_filters,
                 )
-        img_in, arm_in, gripper_in, option_in = ins
-        #img_in, arm_in, gripper_in = ins
+        #img_in, arm_in, gripper_in, option_in = ins
+        img_in, arm_in, gripper_in = ins
         if self.use_noise:
             z = Input((self.num_hypotheses, self.noise_dim))
 
@@ -179,12 +180,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         decoder.summary()
     
-        #option_in = Input((1,),name="prev_option_in")
-        #ins += [option_in]
+        option_in = Input((1,),name="prev_option_in")
+        ins += [option_in]
+        next_option_in = Input((self.num_options,),name="next_option_in")
+        ins += [next_option_in]
         value_out, next_option_out = GetNextOptionAndValue(enc,
                                                            self.num_options,
-                                                           option_in=None)
-                                                           #option_in=option_in)
+                                                           #option_in=None)
+                                                           option_in=option_in)
 
         # =====================================================================
         # Create many different image decoders
@@ -199,10 +202,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 transform.summary()
             if self.use_noise:
                 zi = Lambda(lambda x: x[:,i], name="slice_z%d"%i)(z)
-                #x = transform([enc, zi, next_option_out])
-                x = transform([enc, zi])
+                x = transform([enc, zi, next_option_in])
+                #x = transform([enc, zi])
             else:
-                x = transform([enc])
+                x = transform([enc, next_option_in])
+                #x = transform([enc])
             
             if self.sampling:
                 x, mu, sigma = x
@@ -293,7 +297,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
     def _getTransform(self,i=0):
         transform_dropout = False
-        use_options_again = False
+        use_options_again = True
         transform_batchnorm = True
         transform_relu = True
         if use_options_again:
@@ -398,11 +402,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
             #return features[:self.num_features] + [z], [tt, o1, v]
             #return features[:self.num_features] + [z], [tt, o1]#, v]
-            return features[:self.num_features] + [z], [tt, v]
+            return features[:self.num_features] + [o1, z], [tt, v]
         else:
             #return features[:self.num_features], [tt, o1, v]
             #return features[:self.num_features], [tt, o1]#, v]
-            return features[:self.num_features], [tt, v]
+            return features[:self.num_features] + [o1], [tt, v]
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''
