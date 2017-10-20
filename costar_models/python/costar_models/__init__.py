@@ -7,7 +7,9 @@ __all__ = [
     # Utilities
     "MakeModel", "GetModels", "ParseModelArgs",
     # ===========================================================================
-    # Dataset stuff
+    # Visualization and models
+    "RobotMultiKeypointsVisualizer",
+    "RobotMultiPredictionSampler",
     ]
 
 # general learning utilites
