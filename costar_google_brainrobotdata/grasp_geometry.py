@@ -39,10 +39,18 @@ def vector_quaternion_array_to_ptransform(vector_quaternion_array, q_inverse=Tru
         This is the data format used by the google brain robot data grasping dataset's
         tfrecord poses.
         eigen Quaterniond is also ordered xyzw.
+        q_inverse: Invert the quaternion before it is loaded into the PTransformd, defaults to True.
+            With a PTransform the rotation component must be inverted before loading and after extraction.
+            See https://github.com/ahundt/grl/blob/master/include/grl/vrep/SpaceVecAlg.hpp#L22 for a well tested example.
+            See https://github.com/jrl-umi3218/Tasks/issues/10 for a detailed discussion leading to this conclusion.
+            The default for q_inverse should be True, do not switch the q_inverse default to False
+            without careful consideration and testing, though such a change may be appropriate when
+            loading into another transform representation in which the rotation component is expected
+            to be inverted.
 
     # Returns
 
-      A plucker transform as defined by the spatial vector algebra library.
+      A plucker transform PTransformd object as defined by the spatial vector algebra library.
       https://github.com/jrl-umi3218/SpaceVecAlg
       https://en.wikipedia.org/wiki/Pl%C3%BCcker_coordinates
     """
@@ -53,19 +61,28 @@ def vector_quaternion_array_to_ptransform(vector_quaternion_array, q_inverse=Tru
     # qa4 = eigen.Vector4d()
     # q = eigen.Quaterniond(qa4)
 
+    # Quaterniond important coefficient ordering details:
+    # scalar constructor is Quaterniond(w,x,y,z)
+    # vector constructor is Quaterniond(np.array([x,y,z,w]))
+    # Quaterniond.coeffs() is [x,y,z,w]
     # https://eigen.tuxfamily.org/dox/classEigen_1_1Quaternion.html
     xyzw = eigen.Vector4d(vector_quaternion_array[3:])
     q = eigen.Quaterniond(xyzw)
+
+    # TODO(ahundt) remove this commented code block
     # Quaterniond(w, x, y, z) is being constructed from:
     # [x, y, z, qx, qy, qz, qw]
     # q = eigen.Quaterniond(vector_quaternion_array[6],  # qw
     #                       vector_quaternion_array[3],  # qx
     #                       vector_quaternion_array[4],  # qy
     #                       vector_quaternion_array[5])  # qz
+
+
+    # The ptransform needs the rotation component to inverted before construction.
+    # see https://github.com/ahundt/grl/blob/master/include/grl/vrep/SpaceVecAlg.hpp#L22 for a well tested example
+    # see https://github.com/jrl-umi3218/Tasks/issues/10 for a detailed discussion leading to this conclusion
     if q_inverse is True:
         q.inverse()
-    # The ptransform needs the rotation component inverted.
-    # see https://github.com/ahundt/grl/blob/master/include/grl/vrep/SpaceVecAlg.hpp#L22
     pt = sva.PTransformd(q,v)
     if pt_inverse is True:
         pt.inverse()
@@ -75,10 +92,21 @@ def vector_quaternion_array_to_ptransform(vector_quaternion_array, q_inverse=Tru
 def ptransform_to_vector_quaternion_array(ptransform, q_inverse=True):
     """Convert a PTransformD into a vector quaternion array
     containing 3 vector entries (x, y, z) and 4 quaternion entries (x, y, z, w)
+
+    # Params
+
+    ptransform: The plucker transform from sva.PTransformd to be converted
+    q_inverse: Invert the quaternion after it is extracted, defaults to True.
+    With a PTransform the rotation component must be inverted before loading and after extraction.
+    See https://github.com/ahundt/grl/blob/master/include/grl/vrep/SpaceVecAlg.hpp#L22 for a well tested example.
+    See https://github.com/jrl-umi3218/Tasks/issues/10 for a detailed discussion leading to this conclusion.
+    The default for q_inverse should be True, do not switch the q_inverse default to False
+    without careful consideration and testing, though such a change may be appropriate when
+    loading into another transform representation in which the rotation component is expected
+    to be inverted.
     """
     rot = ptransform.rotation()
     quaternion = eigen.Quaterniond(rot)
-    # see https://github.com/ahundt/grl/blob/master/include/grl/vrep/SpaceVecAlg.hpp#L22
     if q_inverse:
         quaternion = quaternion.inverse()
     translation = ptransform.translation()
@@ -92,6 +120,12 @@ def ptransform_to_vector_quaternion_array(ptransform, q_inverse=True):
 def matrix_to_vector_quaternion_array(matrix, inverse=False, verbose=0):
     """Convert a 4x4 Rt transformation matrix into a vector quaternion array
     containing 3 vector entries (x, y, z) and 4 quaternion entries (x, y, z, w)
+
+    # Params
+
+        matrix: The 4x4 Rt rigid body transformation matrix to convert into a vector quaternion array.
+        inverse: Inverts the full matrix before loading into the array.
+            Useful when the transformation to be reversed and for testing/debugging purposes.
     """
     rot = eigen.Matrix3d(matrix[:3, :3])
     quaternion = eigen.Quaterniond(rot)
@@ -100,7 +134,9 @@ def matrix_to_vector_quaternion_array(matrix, inverse=False, verbose=0):
         quaternion = quaternion.inverse()
         translation *= -1
     # TODO(ahundt) use quaternion.coeffs() after https://github.com/jrl-umi3218/Eigen3ToPython/pull/15 is fixed
-    q_floats_array = np.array([quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w()]).astype(np.float32)
+    # coeffs are in xyzw order
+    q_floats_array = np.array(quaternion.coeffs())
+    # q_floats_array = np.array([quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w()]).astype(np.float32)
     vec_quat_7 = np.append(translation, q_floats_array)
     if verbose > 0:
         print(vec_quat_7)
@@ -108,7 +144,7 @@ def matrix_to_vector_quaternion_array(matrix, inverse=False, verbose=0):
 
 
 def matrix_to_ptransform(matrix):
-    """Convert a 4x4 homogeneous transformation matrix into a ptransform
+    """Convert a 4x4 homogeneous transformation matrix into an sva.PTransformd plucker ptransform object.
     """
     vq = matrix_to_vector_quaternion_array(matrix)
     pt = vector_quaternion_array_to_ptransform(vq)
@@ -116,7 +152,11 @@ def matrix_to_ptransform(matrix):
 
 
 def vector_to_ptransform(XYZ):
-    """Convert a 3 element translation vector into a ptransform with no rotation
+    """Convert (x,y,z) translation to sva.Ptransformd.
+
+    Convert an xyz 3 element translation vector to an sva.PTransformd plucker
+    ptransform object with no rotation applied. In other words,
+    the rotation component will be the identity rotation.
     """
     q = eigen.Quaterniond()
     q = q.setIdentity()
