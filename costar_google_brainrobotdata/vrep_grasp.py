@@ -261,16 +261,16 @@ class VREPGraspSimulation(object):
             # Perform some consistency checks based on the above
             assert(np.allclose(base_T_endeffector_vec_quat, base_T_endeffector_vec_quat_feature))
 
-            ee_cloud_point, ee_image_coordinate = grasp_geometry.endeffector_image_coordinate_and_cloud_point(
-                clear_frame_depth_image, camera_intrinsics_matrix, camera_T_endeffector_ptrans)
-
-            # Create a dummy for the key depth point and display it
-            depth_point_dummy_ptrans = grasp_geometry.vector_to_ptransform(ee_cloud_point)
-            depth_point_display_name = str(i).zfill(2) + '_depth_point'
-            depth_point_vec_quat = grasp_geometry.ptransform_to_vector_quaternion_array(depth_point_dummy_ptrans)
-            depth_point_dummy_handle = self.create_dummy(depth_point_display_name, depth_point_vec_quat, camera_T_base_handle)
-
             if vrepVisualizeSurfaceRelativeTransform:
+                ee_cloud_point, ee_image_coordinate = grasp_geometry.endeffector_image_coordinate_and_cloud_point(
+                    clear_frame_depth_image, camera_intrinsics_matrix, camera_T_endeffector_ptrans)
+
+                # Create a dummy for the key depth point and display it
+                depth_point_dummy_ptrans = grasp_geometry.vector_to_ptransform(ee_cloud_point)
+                depth_point_display_name = str(i).zfill(2) + '_depth_point'
+                depth_point_vec_quat = grasp_geometry.ptransform_to_vector_quaternion_array(depth_point_dummy_ptrans)
+                depth_point_dummy_handle = self.create_dummy(depth_point_display_name, depth_point_vec_quat, camera_T_base_handle)
+
                 # get the transform for the gripper relative to the key depth point and display it
                 # it should coincide with the gripper pose if done correctly
                 surface_relative_transform_vec_quat = grasp_geometry.surface_relative_transform(
