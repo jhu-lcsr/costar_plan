@@ -470,3 +470,15 @@ def current_endeffector_to_final_endeffector_feature(current_base_T_endeffector,
     elif feature_type == 'vec_sin_cos_5' or feature_type == 'endeffector_current_T_endeffector_final_vec_sin_cos_5':
         current_to_end = ptransform_to_vector_sin_theta_cos_theta(current_to_end)
     return current_to_end
+
+
+def vector_quaternion_arrays_allclose(vq1, vq2):
+    """Check if all the entries are close for two vector quaternion arrays.
+    This special function is needed because for quaternions q == -q.
+    """
+    # for the quaternion component q == -q
+    q3 = vq2[3:]
+    q3 *= -1.
+    v3 = vq2[:3]
+    vq3 = np.concatenate([v3, q3])
+    return np.allclose(vq1, vq2) or np.allclose(vq1, vq3)
