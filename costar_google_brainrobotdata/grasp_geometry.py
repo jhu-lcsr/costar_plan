@@ -89,7 +89,7 @@ def vector_quaternion_array_to_ptransform(vector_quaternion_array, q_inverse=Tru
     return pt
 
 
-def ptransform_to_vector_quaternion_array(ptransform, q_inverse=True):
+def ptransform_to_vector_quaternion_array(ptransform, q_inverse=False):
     """Convert a PTransformD into a vector quaternion array
     containing 3 vector entries (x, y, z) and 4 quaternion entries (x, y, z, w)
 
@@ -104,6 +104,7 @@ def ptransform_to_vector_quaternion_array(ptransform, q_inverse=True):
     without careful consideration and testing, though such a change may be appropriate when
     loading into another transform representation in which the rotation component is expected
     to be inverted.
+    TODO(ahundt) in process of debugging, correct docstring when all issues are resolved.
     """
     rot = ptransform.rotation()
     quaternion = eigen.Quaterniond(rot)
@@ -111,8 +112,8 @@ def ptransform_to_vector_quaternion_array(ptransform, q_inverse=True):
         quaternion = quaternion.inverse()
     translation = ptransform.translation()
     translation = np.array(translation).reshape(3)
-    # TODO(ahundt) use quaternion.coeffs() after https://github.com/jrl-umi3218/Eigen3ToPython/pull/15 is fixed
-    q_floats_array = np.array([quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w()]).astype(np.float32)
+    # coeffs are in xyzw order
+    q_floats_array = np.array(quaternion.coeffs())
     vec_quat_7 = np.append(translation, q_floats_array)
     return vec_quat_7
 
@@ -133,7 +134,6 @@ def matrix_to_vector_quaternion_array(matrix, inverse=False, verbose=0):
     if inverse:
         quaternion = quaternion.inverse()
         translation *= -1
-    # TODO(ahundt) use quaternion.coeffs() after https://github.com/jrl-umi3218/Eigen3ToPython/pull/15 is fixed
     # coeffs are in xyzw order
     q_floats_array = np.array(quaternion.coeffs())
     # q_floats_array = np.array([quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w()]).astype(np.float32)
