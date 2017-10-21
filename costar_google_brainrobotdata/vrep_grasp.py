@@ -259,7 +259,7 @@ class VREPGraspSimulation(object):
             # display the gripper pose
             self.create_dummy(transform_display_name, base_T_endeffector_vec_quat_feature, parent_handle)
             # Perform some consistency checks based on the above
-            assert(np.allclose(base_T_endeffector_vec_quat, base_T_endeffector_vec_quat_feature))
+            assert(grasp_geometry.vector_quaternion_arrays_allclose(base_T_endeffector_vec_quat, base_T_endeffector_vec_quat_feature))
 
             if vrepVisualizeSurfaceRelativeTransform:
                 ee_cloud_point, ee_image_coordinate = grasp_geometry.endeffector_image_coordinate_and_cloud_point(

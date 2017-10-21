@@ -472,13 +472,31 @@ def current_endeffector_to_final_endeffector_feature(current_base_T_endeffector,
     return current_to_end
 
 
-def vector_quaternion_arrays_allclose(vq1, vq2):
+def vector_quaternion_arrays_allclose(vq1, vq2, rtol=1e-6, atol=1e-6, verbose=0):
     """Check if all the entries are close for two vector quaternion arrays.
     This special function is needed because for quaternions q == -q.
+
+    # Params
+    vq1: vector quaternion array
+    vq2: vector quaternion array
+    rtol: relative tolerance.
+    atol: absolute tolerance.
+
+    # Returns
+
+    True if the transforms are within the defined tolerance, False otherwise.
     """
-    # for the quaternion component q == -q
-    q3 = vq2[3:]
+    vq1 = np.array(vq1)
+    vq2 = np.array(vq2)
+    q3 = np.array(vq2[3:])
     q3 *= -1.
     v3 = vq2[:3]
-    vq3 = np.concatenate([v3, q3])
-    return np.allclose(vq1, vq2) or np.allclose(vq1, vq3)
+    vq3 = np.array(np.concatenate([v3, q3]))
+    comp12 = np.allclose(np.array(vq1), np.array(vq2), rtol=rtol, atol=atol)
+    comp13 = np.allclose(np.array(vq1), np.array(vq3), rtol=rtol, atol=atol)
+    if verbose > 0:
+        print(vq1)
+        print(vq2)
+        print(vq3)
+        print(comp12, comp13)
+    return comp12 or comp13
