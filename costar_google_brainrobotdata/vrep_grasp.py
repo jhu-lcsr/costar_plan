@@ -211,6 +211,7 @@ class VREPGraspSimulation(object):
         camera_to_base_vec_quat_7_ptransform_conversion_test = grasp_geometry.ptransform_to_vector_quaternion_array(camera_T_base_ptrans)
         display_name = 'camera_T_base_vec_quat_7_ptransform_conversion_test'
         self.create_dummy(display_name, camera_to_base_vec_quat_7_ptransform_conversion_test, parent_handle)
+        assert(np.allclose(camera_to_base_vec_quat_7, camera_to_base_vec_quat_7_ptransform_conversion_test))
         # gripper_positions = [features_dict_np[base_T_endeffector_vec_quat_feature_name] for
         #                      base_T_endeffector_vec_quat_feature_name in base_to_endeffector_transforms]
         for i, base_T_endeffector_vec_quat_feature_name, depth_name, rgb_name in zip(range(len(base_to_endeffector_transforms)),
@@ -220,14 +221,21 @@ class VREPGraspSimulation(object):
             empty_buffer = bytearray()
             # 3 cartesian (x, y, z) and 4 quaternion (x, y, z, w) elements, same as vrep
             base_T_endeffector_vec_quat_feature = features_dict_np[base_T_endeffector_vec_quat_feature_name]
+            # display the raw base to endeffector feature
+            bTe_display_name = str(i).zfill(2) + '_' + base_T_endeffector_vec_quat_feature_name.replace('/', '_')
+            self.create_dummy(bTe_display_name, base_T_endeffector_vec_quat_feature, parent_handle)
+
+            # do the conversion needed for training
             camera_T_endeffector_ptrans, base_T_endeffector_ptrans, camera_T_base_ptrans = grasp_geometry.grasp_dataset_to_ptransform(
                 camera_to_base_4x4matrix,
                 base_T_endeffector_vec_quat_feature
             )
 
+            # test that the base_T_endeffector -> ptransform -> vec_quat_7 roundtrip returns the same transform
             base_T_endeffector_vec_quat = grasp_geometry.ptransform_to_vector_quaternion_array(base_T_endeffector_ptrans)
-            bTe_display_name = str(i).zfill(2) + '_base_T_endeffector_ptransform_initial_commanded'
+            bTe_display_name = str(i).zfill(2) + '_base_T_endeffector_ptransform_conversion_test'
             self.create_dummy(bTe_display_name, base_T_endeffector_vec_quat, parent_handle)
+            assert(np.allclose(base_T_endeffector_vec_quat_feature, base_T_endeffector_vec_quat))
 
             # verify that another transform path gets the same result
             # camera_to_base_vec_quat_7_ptransform_conversion_test = grasp_geometry.ptransform_to_vector_quaternion_array(camera_T_base_ptrans)
@@ -248,7 +256,6 @@ class VREPGraspSimulation(object):
             self.create_dummy(transform_display_name, base_T_endeffector_vec_quat_feature, parent_handle)
             # Perform some consistency checks based on the above
             assert(np.allclose(base_T_endeffector_vec_quat, base_T_endeffector_vec_quat_feature))
-            assert(np.allclose(camera_to_base_vec_quat_7, camera_to_base_vec_quat_7_ptransform_conversion_test))
 
             ee_cloud_point, ee_image_coordinate = grasp_geometry.endeffector_image_coordinate_and_cloud_point(
                 clear_frame_depth_image, camera_intrinsics_matrix, camera_T_endeffector_ptrans)
