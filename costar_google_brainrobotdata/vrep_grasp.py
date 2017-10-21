@@ -203,19 +203,26 @@ class VREPGraspSimulation(object):
 
         camera_intrinsics_matrix = features_dict_np[camera_intrinsics_name]
         camera_to_base_4x4matrix = features_dict_np[camera_to_base_transform_name]
+        print('camera/transforms/camera_T_base/matrix44: \n', camera_to_base_4x4matrix)
         camera_to_base_vec_quat_7 = grasp_geometry.matrix_to_vector_quaternion_array(camera_to_base_4x4matrix)
         camera_T_base_handle = self.create_dummy('camera_T_base', camera_to_base_vec_quat_7, parent_handle)
-        # gripper_positions = [features_dict_np[transform_name] for transform_name in base_to_endeffector_transforms]
-        for i, transform_name, depth_name, rgb_name in zip(range(len(base_to_endeffector_transforms)),
-                                                           base_to_endeffector_transforms,
-                                                           depth_image_features, rgb_image_features):
+        # verify that another transform path gets the same result
+        camera_T_base_ptrans = grasp_geometry.matrix_to_ptransform(camera_to_base_4x4matrix)
+        camera_to_base_vec_quat_7_ptransform_conversion_test = grasp_geometry.ptransform_to_vector_quaternion_array(camera_T_base_ptrans)
+        display_name = 'camera_T_base_vec_quat_7_ptransform_conversion_test'
+        self.create_dummy(display_name, camera_to_base_vec_quat_7_ptransform_conversion_test, parent_handle)
+        # gripper_positions = [features_dict_np[base_T_endeffector_vec_quat_feature_name] for
+        #                      base_T_endeffector_vec_quat_feature_name in base_to_endeffector_transforms]
+        for i, base_T_endeffector_vec_quat_feature_name, depth_name, rgb_name in zip(range(len(base_to_endeffector_transforms)),
+                                                                                     base_to_endeffector_transforms,
+                                                                                     depth_image_features, rgb_image_features):
             # 2. Now create a dummy object at coordinate 0.1,0.2,0.3 with name 'MyDummyName':
             empty_buffer = bytearray()
             # 3 cartesian (x, y, z) and 4 quaternion (x, y, z, w) elements, same as vrep
-            gripper_pose = features_dict_np[transform_name]
+            base_T_endeffector_vec_quat_feature = features_dict_np[base_T_endeffector_vec_quat_feature_name]
             camera_T_endeffector_ptrans, base_T_endeffector_ptrans, camera_T_base_ptrans = grasp_geometry.grasp_dataset_to_ptransform(
                 camera_to_base_4x4matrix,
-                gripper_pose
+                base_T_endeffector_vec_quat_feature
             )
 
             base_T_endeffector_vec_quat = grasp_geometry.ptransform_to_vector_quaternion_array(base_T_endeffector_ptrans)
@@ -223,7 +230,9 @@ class VREPGraspSimulation(object):
             self.create_dummy(bTe_display_name, base_T_endeffector_vec_quat, parent_handle)
 
             # verify that another transform path gets the same result
-            test_camera_to_base_vec_quat_7 = grasp_geometry.ptransform_to_vector_quaternion_array(camera_T_base_ptrans)
+            # camera_to_base_vec_quat_7_ptransform_conversion_test = grasp_geometry.ptransform_to_vector_quaternion_array(camera_T_base_ptrans)
+            # display_name = str(i).zfill(2) + '_camera_to_base_vec_quat_7_ptransform_conversion_test'
+            # self.create_dummy(display_name, camera_to_base_vec_quat_7_ptransform_conversion_test, parent_handle)
 
             cTe_display_name = str(i).zfill(2) + '_camera_T_endeffector'
             cTe_vec_quat = grasp_geometry.ptransform_to_vector_quaternion_array(camera_T_endeffector_ptrans)
@@ -232,14 +241,14 @@ class VREPGraspSimulation(object):
             if i == 0:
                 clear_frame_depth_image = np.squeeze(features_dict_np[depth_name])
             # format the dummy string nicely for display
-            transform_display_name = str(i).zfill(2) + '_' + transform_name.replace(
+            transform_display_name = str(i).zfill(2) + '_' + base_T_endeffector_vec_quat_feature_name.replace(
                 '/transforms/base_T_endeffector/vec_quat_7', '').replace('/', '_')
-            print transform_name, transform_display_name, gripper_pose
+            print base_T_endeffector_vec_quat_feature_name, transform_display_name, base_T_endeffector_vec_quat_feature
             # display the gripper pose
-            self.create_dummy(transform_display_name, gripper_pose, parent_handle)
+            self.create_dummy(transform_display_name, base_T_endeffector_vec_quat_feature, parent_handle)
             # Perform some consistency checks based on the above
-            assert(np.allclose(base_T_endeffector_vec_quat, gripper_pose))
-            assert(np.allclose(camera_to_base_vec_quat_7, test_camera_to_base_vec_quat_7))
+            assert(np.allclose(base_T_endeffector_vec_quat, base_T_endeffector_vec_quat_feature))
+            assert(np.allclose(camera_to_base_vec_quat_7, camera_to_base_vec_quat_7_ptransform_conversion_test))
 
             ee_cloud_point, ee_image_coordinate = grasp_geometry.endeffector_image_coordinate_and_cloud_point(
                 clear_frame_depth_image, camera_intrinsics_matrix, camera_T_endeffector_ptrans)
