@@ -91,6 +91,7 @@ flags.DEFINE_string('grasp_sequence_motion_params', 'final_pose_orientation_quat
                        'final_pose_orientation_quaternion' directly input the final pose translation and orientation.
                        'next_timestep' input the params for the command saved in the dataset with translation,
                        sin theta, cos theta from the current time step to the next
+                       'endeffector_current_T_endeffector_final_vec_sin_cos_5'
                     """)
 
 FLAGS = flags.FLAGS
@@ -948,6 +949,7 @@ class GraspDataset(object):
                         Using this pose, we determine the x,y pixel coordinate of the gripper's reached pose at the final time step
                         in the camera frame, and use this to look up the depth value in the initial clear view image.
                         'surface_relative_grasp/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/vec_quat_7'
+                    'endeffector_current_T_endeffector_final_vec_sin_cos_5'
 
             grasp_sequence_max_time_step: Grasp examples consist of time steps from 0 to up to a max of 11.
                 To train on specific range of data set this value to the maximum desired time step.
@@ -1003,7 +1005,13 @@ class GraspDataset(object):
             # reprocess and update motion params with new transforms from
             # the current end effector pose to the final pose
             feature_op_dicts, features_complete_list, pose_op_params = self._endeffector_current_T_endeffector_final(
-                feature_op_dicts, features_complete_list)
+                feature_op_dicts, features_complete_list, feature_type='vec_quat_7')
+        elif motion_params == 'endeffector_current_T_endeffector_final_vec_sin_cos_5':
+            # reprocess and update motion params with new transforms from
+            # the current end effector pose to the final pose
+            feature_op_dicts, features_complete_list, pose_op_params = self._endeffector_current_T_endeffector_final(
+                feature_op_dicts, features_complete_list, feature_type='vec_sin_cos_5')
+
         elif(motion_params == 'surface_relative_grasp/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/vec_quat_7' or
              motion_params == 'endeffector_final_clear_view_depth_pixel_T_endeffector_final'):
             # surface relative grasp algorithm

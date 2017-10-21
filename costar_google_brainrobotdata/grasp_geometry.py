@@ -46,8 +46,8 @@ def vector_quaternion_array_to_ptransform(vector_quaternion_array):
       https://github.com/jrl-umi3218/SpaceVecAlg
       https://en.wikipedia.org/wiki/Pl%C3%BCcker_coordinates
     """
+    v = eigen.Vector3d(vector_quaternion_array[:3])
     # TODO(ahundt) use following lines after https://github.com/jrl-umi3218/Eigen3ToPython/pull/15 is fixed
-    # v = eigen.Vector3d(vector_quaternion_array[:3])
     # qa4 = eigen.Vector4d()
     # q = eigen.Quaterniond(qa4)
 
@@ -71,6 +71,7 @@ def ptransform_to_vector_quaternion_array(ptransform):
     """
     rot = ptransform.rotation()
     quaternion = eigen.Quaterniond(rot)
+    # see https://github.com/ahundt/grl/blob/master/include/grl/vrep/SpaceVecAlg.hpp#L22
     quaternion = quaternion.inverse()
     translation = ptransform.translation()
     translation = np.array(translation).reshape(3)
@@ -418,6 +419,6 @@ def current_endeffector_to_final_endeffector_feature(current_base_T_endeffector,
     # we have ptransforms for both data, now get transform from current to commanded
     if 'vec_quat_7' in feature_type:
         current_to_end = ptransform_to_vector_quaternion_array(current_to_end)
-    elif feature_type == 'vec_sin_cos_5':
+    elif feature_type == 'vec_sin_cos_5' or feature_type == 'endeffector_current_T_endeffector_final_vec_sin_cos_5':
         current_to_end = ptransform_to_vector_sin_theta_cos_theta(current_to_end)
     return current_to_end

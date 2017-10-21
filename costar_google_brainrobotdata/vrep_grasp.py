@@ -31,7 +31,7 @@ from grasp_dataset import GraspDataset
 import grasp_geometry
 from depth_image_encoding import depth_image_to_point_cloud
 
-# https://github.com/jrl-umi3218/Eigen3ToPython/tree/topic/Cython
+# https://github.com/jrl-umi3218/Eigen3ToPython/
 # alternatives to consider:
 # https://github.com/adamlwgriffiths/Pyrr
 # https://github.com/KieranWynn/pyquaternion
@@ -219,11 +219,9 @@ class VREPGraspSimulation(object):
             base_T_endeffector_vec_quat = grasp_geometry.ptransform_to_vector_quaternion_array(base_T_endeffector_ptrans)
             bTe_display_name = str(i).zfill(2) + '_base_T_endeffector_ptransform_initial_commanded'
             self.create_dummy(bTe_display_name, base_T_endeffector_vec_quat, parent_handle)
-            assert(np.allclose(base_T_endeffector_vec_quat, gripper_pose))
 
             # verify that another transform path gets the same result
             test_base_to_camera_vec_quat_7 = grasp_geometry.ptransform_to_vector_quaternion_array(camera_T_base_ptrans)
-            assert(np.allclose(base_to_camera_vec_quat_7, base_to_camera_vec_quat_7))
 
             cTe_display_name = str(i).zfill(2) + '_camera_T_endeffector'
             cTe_vec_quat = grasp_geometry.ptransform_to_vector_quaternion_array(camera_T_endeffector_ptrans)
@@ -237,6 +235,9 @@ class VREPGraspSimulation(object):
             print transform_name, transform_display_name, gripper_pose
             # display the gripper pose
             self.create_dummy(transform_display_name, gripper_pose, parent_handle)
+            # Perform some consistency checks based on the above
+            assert(np.allclose(base_T_endeffector_vec_quat, gripper_pose))
+            assert(np.allclose(base_to_camera_vec_quat_7, test_base_to_camera_vec_quat_7))
 
             ee_cloud_point, ee_image_coordinate = grasp_geometry.endeffector_image_coordinate_and_cloud_point(
                 clear_frame_depth_image, camera_intrinsics_matrix, camera_T_endeffector_ptrans)
