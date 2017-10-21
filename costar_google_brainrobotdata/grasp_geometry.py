@@ -27,7 +27,7 @@ except ImportError:
           'are enabled.')
 
 
-def vector_quaternion_array_to_ptransform(vector_quaternion_array):
+def vector_quaternion_array_to_ptransform(vector_quaternion_array, q_inverse=True, t_inverse=False, pt_inverse=False):
     """Convert a vector and quaternion pose array to a plucker transform.
 
     # Params
@@ -47,36 +47,44 @@ def vector_quaternion_array_to_ptransform(vector_quaternion_array):
       https://en.wikipedia.org/wiki/Pl%C3%BCcker_coordinates
     """
     v = eigen.Vector3d(vector_quaternion_array[:3])
+    if t_inverse is True:
+        v *= -1
     # TODO(ahundt) use following lines after https://github.com/jrl-umi3218/Eigen3ToPython/pull/15 is fixed
     # qa4 = eigen.Vector4d()
     # q = eigen.Quaterniond(qa4)
 
-    # Quaterniond(x, y, z, w) is being constructed from:
+    # https://eigen.tuxfamily.org/dox/classEigen_1_1Quaternion.html
+    xyzw = eigen.Vector4d(vector_quaternion_array[3:])
+    q = eigen.Quaterniond(xyzw)
+    # Quaterniond(w, x, y, z) is being constructed from:
     # [x, y, z, qx, qy, qz, qw]
-    # [0, 1, 2,  3,  4,  5,  6]
-    q = eigen.Quaterniond(vector_quaternion_array[6],  # qw
-                          vector_quaternion_array[3],  # qx
-                          vector_quaternion_array[4],  # qy
-                          vector_quaternion_array[5])  # qz
+    # q = eigen.Quaterniond(vector_quaternion_array[6],  # qw
+    #                       vector_quaternion_array[3],  # qx
+    #                       vector_quaternion_array[4],  # qy
+    #                       vector_quaternion_array[5])  # qz
+    if q_inverse is True:
+        q.inverse()
     # The ptransform needs the rotation component inverted.
     # see https://github.com/ahundt/grl/blob/master/include/grl/vrep/SpaceVecAlg.hpp#L22
-    q = q.inverse()
     pt = sva.PTransformd(q,v)
+    if pt_inverse is True:
+        pt.inverse()
     return pt
 
 
-def ptransform_to_vector_quaternion_array(ptransform):
+def ptransform_to_vector_quaternion_array(ptransform, q_inverse=True):
     """Convert a PTransformD into a vector quaternion array
     containing 3 vector entries (x, y, z) and 4 quaternion entries (x, y, z, w)
     """
     rot = ptransform.rotation()
     quaternion = eigen.Quaterniond(rot)
     # see https://github.com/ahundt/grl/blob/master/include/grl/vrep/SpaceVecAlg.hpp#L22
-    quaternion = quaternion.inverse()
+    if q_inverse:
+        quaternion = quaternion.inverse()
     translation = ptransform.translation()
     translation = np.array(translation).reshape(3)
     # TODO(ahundt) use quaternion.coeffs() after https://github.com/jrl-umi3218/Eigen3ToPython/pull/15 is fixed
-    q_floats_array = np.array([quaternion.w(), quaternion.x(), quaternion.y(), quaternion.z()]).astype(np.float32)
+    q_floats_array = np.array([quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w()]).astype(np.float32)
     vec_quat_7 = np.append(translation, q_floats_array)
     return vec_quat_7
 
@@ -92,7 +100,7 @@ def matrix_to_vector_quaternion_array(matrix, inverse=False, verbose=0):
         quaternion = quaternion.inverse()
         translation *= -1
     # TODO(ahundt) use quaternion.coeffs() after https://github.com/jrl-umi3218/Eigen3ToPython/pull/15 is fixed
-    q_floats_array = np.array([quaternion.w(), quaternion.x(), quaternion.y(), quaternion.z()]).astype(np.float32)
+    q_floats_array = np.array([quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w()]).astype(np.float32)
     vec_quat_7 = np.append(translation, q_floats_array)
     if verbose > 0:
         print(vec_quat_7)
@@ -320,7 +328,7 @@ def grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector):
     # In this case camera_T_base is a transform that takes a point in the base
     # frame of reference and transforms it to the camera frame of reference.
     camera_T_base_ptrans = matrix_to_ptransform(camera_T_base)
-    camera_T_endeffector_ptrans = camera_T_base_ptrans * base_T_endeffector_ptrans
+    camera_T_endeffector_ptrans = base_T_endeffector_ptrans * camera_T_base_ptrans
     return camera_T_endeffector_ptrans, base_T_endeffector_ptrans, camera_T_base_ptrans
 
 

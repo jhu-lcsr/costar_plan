@@ -176,6 +176,8 @@ class VREPGraspSimulation(object):
         # Params
 
         parent_handle: the frame in which to display transforms, defaults to base frame of 'LBR_iiwa_14_R820'
+
+        It is important to note that both V-REP and the grasp dataset use the xyzw quaternion format.
         """
         # TODO(ahundt) actually put transforms into V-REP or pybullet
         base_to_endeffector_transforms = grasp_dataset_object.get_time_ordered_features(
@@ -201,8 +203,8 @@ class VREPGraspSimulation(object):
 
         camera_intrinsics_matrix = features_dict_np[camera_intrinsics_name]
         camera_to_base_4x4matrix = features_dict_np[camera_to_base_transform_name]
-        base_to_camera_vec_quat_7 = grasp_geometry.matrix_to_vector_quaternion_array(camera_to_base_4x4matrix)
-        camera_T_base_handle = self.create_dummy('camera_T_base', base_to_camera_vec_quat_7, parent_handle)
+        camera_to_base_vec_quat_7 = grasp_geometry.matrix_to_vector_quaternion_array(camera_to_base_4x4matrix)
+        camera_T_base_handle = self.create_dummy('camera_T_base', camera_to_base_vec_quat_7, parent_handle)
         # gripper_positions = [features_dict_np[transform_name] for transform_name in base_to_endeffector_transforms]
         for i, transform_name, depth_name, rgb_name in zip(range(len(base_to_endeffector_transforms)),
                                                            base_to_endeffector_transforms,
@@ -221,7 +223,7 @@ class VREPGraspSimulation(object):
             self.create_dummy(bTe_display_name, base_T_endeffector_vec_quat, parent_handle)
 
             # verify that another transform path gets the same result
-            test_base_to_camera_vec_quat_7 = grasp_geometry.ptransform_to_vector_quaternion_array(camera_T_base_ptrans)
+            test_camera_to_base_vec_quat_7 = grasp_geometry.ptransform_to_vector_quaternion_array(camera_T_base_ptrans)
 
             cTe_display_name = str(i).zfill(2) + '_camera_T_endeffector'
             cTe_vec_quat = grasp_geometry.ptransform_to_vector_quaternion_array(camera_T_endeffector_ptrans)
@@ -237,7 +239,7 @@ class VREPGraspSimulation(object):
             self.create_dummy(transform_display_name, gripper_pose, parent_handle)
             # Perform some consistency checks based on the above
             assert(np.allclose(base_T_endeffector_vec_quat, gripper_pose))
-            assert(np.allclose(base_to_camera_vec_quat_7, test_base_to_camera_vec_quat_7))
+            assert(np.allclose(camera_to_base_vec_quat_7, test_camera_to_base_vec_quat_7))
 
             ee_cloud_point, ee_image_coordinate = grasp_geometry.endeffector_image_coordinate_and_cloud_point(
                 clear_frame_depth_image, camera_intrinsics_matrix, camera_T_endeffector_ptrans)
@@ -288,7 +290,7 @@ class VREPGraspSimulation(object):
                     write_xyz_rgb_as_ply(xyz, rgb, path)
                 xyz = xyz[:3000, :]
                 # xyz = np.array([[0,0,0], [0,0,1], [0,1,0], [1,0,0]])
-                self.create_point_cloud(point_cloud_display_name, xyz, base_to_camera_vec_quat_7, rgb, parent_handle)
+                self.create_point_cloud(point_cloud_display_name, xyz, camera_to_base_vec_quat_7, rgb, parent_handle)
 
     def __del__(self):
         v.simxFinish(-1)
