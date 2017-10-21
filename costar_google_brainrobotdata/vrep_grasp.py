@@ -45,6 +45,8 @@ tf.flags.DEFINE_boolean('vrepDoNotReconnectOnceDisconnected', True, '')
 tf.flags.DEFINE_integer('vrepTimeOutInMs', 5000, 'Timeout in milliseconds upon which connection fails')
 tf.flags.DEFINE_integer('vrepCommThreadCycleInMs', 5, 'time between communication cycles')
 tf.flags.DEFINE_string('vrepDebugMode', 'save_ply', """Options are: '', 'fixed_depth', 'save_ply'.""")
+tf.flags.DEFINE_boolean('vrepVisualizeRGBD', False, 'display the rgbd images and point cloud')
+tf.flags.DEFINE_boolean('vrepVisualizeSurfaceRelativeTransform', False, 'display the rgbd images and point cloud')
 
 flags.FLAGS._parse_flags()
 FLAGS = flags.FLAGS
@@ -170,7 +172,9 @@ class VREPGraspSimulation(object):
                                      grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
                                      grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
                                      visualization_dir=FLAGS.visualization_dir,
-                                     vrepDebugMode=FLAGS.vrepDebugMode):
+                                     vrepDebugMode=FLAGS.vrepDebugMode,
+                                     vrepVisualizeRGBD=FLAGS.vrepVisualizeRGBD,
+                                     vrepVisualizeSurfaceRelativeTransform=FLAGS.vrepVisualizeSurfaceRelativeTransform):
         """Take an extracted grasp attempt tfrecord numpy dictionary and visualize it in vrep
 
         # Params
@@ -266,47 +270,56 @@ class VREPGraspSimulation(object):
             depth_point_vec_quat = grasp_geometry.ptransform_to_vector_quaternion_array(depth_point_dummy_ptrans)
             depth_point_dummy_handle = self.create_dummy(depth_point_display_name, depth_point_vec_quat, camera_T_base_handle)
 
-            # get the transform for the gripper relative to the key depth point and display it
-            # it should coincide with the gripper pose if done correctly
-            surface_relative_transform_vec_quat = grasp_geometry.surface_relative_transform(
-                clear_frame_depth_image, camera_intrinsics_matrix, camera_T_endeffector_ptrans)
-            surface_relative_transform_display_name = str(i).zfill(2) + '_depth_point'
-            surface_relative_transform_dummy_handle = self.create_dummy(surface_relative_transform_display_name,
-                                                                        surface_relative_transform_vec_quat,
-                                                                        depth_point_dummy_handle)
+            if vrepVisualizeSurfaceRelativeTransform:
+                # get the transform for the gripper relative to the key depth point and display it
+                # it should coincide with the gripper pose if done correctly
+                surface_relative_transform_vec_quat = grasp_geometry.surface_relative_transform(
+                    clear_frame_depth_image, camera_intrinsics_matrix, camera_T_endeffector_ptrans)
+                surface_relative_transform_display_name = str(i).zfill(2) + '_depth_point'
+                surface_relative_transform_dummy_handle = self.create_dummy(surface_relative_transform_display_name,
+                                                                            surface_relative_transform_vec_quat,
+                                                                            depth_point_dummy_handle)
 
-            rgb_image = features_dict_np[rgb_name]
-            print rgb_name, rgb_image.shape, rgb_image
-            # TODO(ahundt) move depth image creation into tensorflow ops
-            # TODO(ahundt) check scale
-            # TODO(ahundt) move squeeze steps into dataset api if possible
-            depth_image_float_format = np.squeeze(features_dict_np[depth_name])
-            if np.count_nonzero(depth_image_float_format) is 0:
-                print 'WARNING: DEPTH IMAGE IS ALL ZEROS'
-            print depth_name, depth_image_float_format.shape, depth_image_float_format
-            if ((grasp_sequence_min_time_step is None or i >= grasp_sequence_min_time_step) and
-                    (grasp_sequence_max_time_step is None or i <= grasp_sequence_max_time_step)):
-                # only output one depth image while debugging
-                # mp.pyplot.imshow(depth_image_float_format, block=True)
-                print 'plot done'
-                # TODO(ahundt) uncomment next line after debugging is done
-                point_cloud = depth_image_to_point_cloud(depth_image_float_format, camera_intrinsics_matrix)
-                if 'fixed_depth' in vrepDebugMode:
-                    point_cloud = depth_image_to_point_cloud(np.ones(depth_image_float_format.shape), camera_intrinsics_matrix)
-                print 'point_cloud.shape:', point_cloud.shape, 'rgb_image.shape:', rgb_image.shape
-                point_cloud_display_name = ('point_cloud_' + str(dataset_name) + '_' + str(attempt_num) + '_' + str(i).zfill(2) +
-                                            '_rgbd_' + depth_name.replace('/depth_image/decoded', '').replace('/', '_') +
-                                            '_success_' + str(int(features_dict_np[grasp_success_feature_name])))
-                print 'point_cloud:', point_cloud.transpose()[:30, :3]
-                path = os.path.join(visualization_dir, point_cloud_display_name + '.ply')
-                print 'point_cloud.size:', point_cloud.size
-                xyz = point_cloud.reshape([point_cloud.size/3, 3])
-                rgb = np.squeeze(rgb_image).reshape([point_cloud.size/3, 3])
-                if 'save_ply' in vrepDebugMode:
-                    write_xyz_rgb_as_ply(xyz, rgb, path)
-                xyz = xyz[:3000, :]
-                # xyz = np.array([[0,0,0], [0,0,1], [0,1,0], [1,0,0]])
-                self.create_point_cloud(point_cloud_display_name, xyz, camera_to_base_vec_quat_7, rgb, parent_handle)
+            if(vrepVisualizeRGBD):
+                self.visualize_rgbd(features_dict_np, rgb_name, depth_name, grasp_sequence_min_time_step, i, grasp_sequence_max_time_step,
+                                    camera_intrinsics_matrix, vrepDebugMode, dataset_name, attempt_num, grasp_success_feature_name,
+                                    visualization_dir, camera_to_base_vec_quat_7, parent_handle)
+
+    def visualize_rgbd(self, features_dict_np, rgb_name, depth_name, grasp_sequence_min_time_step, i,
+                       grasp_sequence_max_time_step, camera_intrinsics_matrix, vrepDebugMode, dataset_name, attempt_num,
+                       grasp_success_feature_name, visualization_dir, camera_to_base_vec_quat_7, parent_handle):
+        rgb_image = features_dict_np[rgb_name]
+        print rgb_name, rgb_image.shape, rgb_image
+        # TODO(ahundt) move depth image creation into tensorflow ops
+        # TODO(ahundt) check scale
+        # TODO(ahundt) move squeeze steps into dataset api if possible
+        depth_image_float_format = np.squeeze(features_dict_np[depth_name])
+        if np.count_nonzero(depth_image_float_format) is 0:
+            print 'WARNING: DEPTH IMAGE IS ALL ZEROS'
+        print depth_name, depth_image_float_format.shape, depth_image_float_format
+        if ((grasp_sequence_min_time_step is None or i >= grasp_sequence_min_time_step) and
+                (grasp_sequence_max_time_step is None or i <= grasp_sequence_max_time_step)):
+            # only output one depth image while debugging
+            # mp.pyplot.imshow(depth_image_float_format, block=True)
+            print 'plot done'
+            # TODO(ahundt) uncomment next line after debugging is done
+            point_cloud = depth_image_to_point_cloud(depth_image_float_format, camera_intrinsics_matrix)
+            if 'fixed_depth' in vrepDebugMode:
+                point_cloud = depth_image_to_point_cloud(np.ones(depth_image_float_format.shape), camera_intrinsics_matrix)
+            print 'point_cloud.shape:', point_cloud.shape, 'rgb_image.shape:', rgb_image.shape
+            point_cloud_display_name = ('point_cloud_' + str(dataset_name) + '_' + str(attempt_num) + '_' + str(i).zfill(2) +
+                                        '_rgbd_' + depth_name.replace('/depth_image/decoded', '').replace('/', '_') +
+                                        '_success_' + str(int(features_dict_np[grasp_success_feature_name])))
+            print 'point_cloud:', point_cloud.transpose()[:30, :3]
+            path = os.path.join(visualization_dir, point_cloud_display_name + '.ply')
+            print 'point_cloud.size:', point_cloud.size
+            xyz = point_cloud.reshape([point_cloud.size/3, 3])
+            rgb = np.squeeze(rgb_image).reshape([point_cloud.size/3, 3])
+            if 'save_ply' in vrepDebugMode:
+                write_xyz_rgb_as_ply(xyz, rgb, path)
+            xyz = xyz[:3000, :]
+            # xyz = np.array([[0,0,0], [0,0,1], [0,1,0], [1,0,0]])
+            self.create_point_cloud(point_cloud_display_name, xyz, camera_to_base_vec_quat_7, rgb, parent_handle)
 
     def __del__(self):
         v.simxFinish(-1)
