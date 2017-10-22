@@ -389,9 +389,9 @@ def grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector):
 
     ###############
     # Perform the actual transform calculation
-    camera_T_endeffector_ptrans = base_T_endeffector_ptrans2 * camera_T_base_ptrans2
+    camera_T_endeffector_ptrans = base_T_endeffector_ptrans2 * camera_T_base_ptrans2.inv()
     # camera_T_endeffector_ptrans = camera_T_base_ptrans2 * base_T_endeffector_ptrans2
-    camera_T_endeffector_ptrans.inv()
+    # camera_T_endeffector_ptrans.inv()
 
     ###############
     # allow tweaking of camera T endeffector
