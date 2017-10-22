@@ -82,14 +82,14 @@ def vector_quaternion_array_to_ptransform(vector_quaternion_array, q_inverse=Tru
     # see https://github.com/ahundt/grl/blob/master/include/grl/vrep/SpaceVecAlg.hpp#L22 for a well tested example
     # see https://github.com/jrl-umi3218/Tasks/issues/10 for a detailed discussion leading to this conclusion
     if q_inverse is True:
-        q.inverse()
+        q = q.inverse()
     pt = sva.PTransformd(q,v)
     if pt_inverse is True:
-        pt.inverse()
+        pt = pt.inv()
     return pt
 
 
-def ptransform_to_vector_quaternion_array(ptransform, q_inverse=False):
+def ptransform_to_vector_quaternion_array(ptransform, q_inverse=True):
     """Convert a PTransformD into a vector quaternion array
     containing 3 vector entries (x, y, z) and 4 quaternion entries (x, y, z, w)
 
@@ -143,11 +143,11 @@ def matrix_to_vector_quaternion_array(matrix, inverse=False, verbose=0):
     return vec_quat_7
 
 
-def matrix_to_ptransform(matrix):
+def matrix_to_ptransform(matrix, q_inverse=True, t_inverse=False, pt_inverse=False):
     """Convert a 4x4 homogeneous transformation matrix into an sva.PTransformd plucker ptransform object.
     """
     vq = matrix_to_vector_quaternion_array(matrix)
-    pt = vector_quaternion_array_to_ptransform(vq)
+    pt = vector_quaternion_array_to_ptransform(vq, q_inverse=q_inverse, t_inverse=t_inverse, pt_inverse=pt_inverse)
     return pt
 
 
@@ -378,7 +378,6 @@ def grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector):
     camera_T_base_ptrans2 = sva.PTransformd(R, t)
     ###############
 
-
     ###############
     # allow tweaking of base T endeffector
     t = base_T_endeffector_ptrans.translation()
@@ -390,8 +389,8 @@ def grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector):
 
     ###############
     # Perform the actual transform calculation
-    camera_T_endeffector_ptrans = base_T_endeffector_ptrans * camera_T_base_ptrans
-    #camera_T_endeffector_ptrans = camera_T_base_ptrans2 * base_T_endeffector_ptrans2
+    camera_T_endeffector_ptrans = base_T_endeffector_ptrans2 * camera_T_base_ptrans2
+    # camera_T_endeffector_ptrans = camera_T_base_ptrans2 * base_T_endeffector_ptrans2
     camera_T_endeffector_ptrans.inv()
 
     ###############
