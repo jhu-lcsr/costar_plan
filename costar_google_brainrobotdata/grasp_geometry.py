@@ -494,8 +494,7 @@ def current_endeffector_to_final_endeffector_feature(current_base_T_endeffector,
     """
     base_to_current = vector_quaternion_array_to_ptransform(current_base_T_endeffector)
     base_to_end = vector_quaternion_array_to_ptransform(end_base_T_endeffector)
-    inv_b2c = base_to_current.inverse()
-    current_to_end = inv_b2c * base_to_end
+    current_to_end = base_to_end * base_to_current.inv()
     # we have ptransforms for both data, now get transform from current to commanded
     if 'vec_quat_7' in feature_type:
         current_to_end = ptransform_to_vector_quaternion_array(current_to_end)
