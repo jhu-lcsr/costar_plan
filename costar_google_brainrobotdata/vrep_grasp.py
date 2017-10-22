@@ -209,6 +209,9 @@ class VREPGraspSimulation(object):
         camera_to_base_4x4matrix = features_dict_np[camera_to_base_transform_name]
         print('camera/transforms/camera_T_base/matrix44: \n', camera_to_base_4x4matrix)
         camera_to_base_vec_quat_7 = grasp_geometry.matrix_to_vector_quaternion_array(camera_to_base_4x4matrix)
+        #####################
+        # TODO(ahundt) camera_T_base might differ between here and grasp_dataset_to_ptransform, resulting in incorrect visualization!
+        #####################
         camera_T_base_handle = self.create_dummy('camera_T_base', camera_to_base_vec_quat_7, parent_handle)
         # verify that another transform path gets the same result
         camera_T_base_ptrans = grasp_geometry.matrix_to_ptransform(camera_to_base_4x4matrix)
