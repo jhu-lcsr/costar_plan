@@ -52,7 +52,7 @@ class TaskAgent(AbstractAgent):
     executions.
     '''
     
-    NUM_REPEATS = 10
+    NUM_REPEATS = 5
     name = "random"
 
     def __init__(self, *args, **kwargs):
@@ -100,6 +100,9 @@ class TaskAgent(AbstractAgent):
                 idx = plan.idx
                 if idx >= len(names):
                     idx = -1
+                    print(idx,"---")
+                else:
+                    print(idx,task.name(idx))
                 self._addToDataset(self.env.world,
                         control,
                         features,
