@@ -183,10 +183,10 @@ class VREPGraspSimulation(object):
 
         It is important to note that both V-REP and the grasp dataset use the xyzw quaternion format.
         """
-        # TODO(ahundt) actually put transforms into V-REP or pybullet
         base_to_endeffector_transforms = grasp_dataset_object.get_time_ordered_features(
             features_complete_list,
-            feature_type='transforms/base_T_endeffector/vec_quat_7')
+            # feature_type='transforms/base_T_endeffector/vec_quat_7')  # display only commanded transforms
+            feature_type='vec_quat_7')  # display all transforms
         camera_to_base_transform_name = 'camera/transforms/camera_T_base/matrix44'
         camera_intrinsics_name = 'camera/intrinsics/matrix33'
 
@@ -242,7 +242,7 @@ class VREPGraspSimulation(object):
 
             # test that the base_T_endeffector -> ptransform -> vec_quat_7 roundtrip returns the same transform
             base_T_endeffector_vec_quat = grasp_geometry.ptransform_to_vector_quaternion_array(base_T_endeffector_ptrans)
-            bTe_display_name = str(i).zfill(2) + '_base_T_endeffector_ptransform_conversion_test'
+            bTe_display_name = str(i).zfill(2) + '_base_T_endeffector_ptransform_conversion_test_' + base_T_endeffector_vec_quat_feature_name.replace('/', '_')
             self.create_dummy(bTe_display_name, base_T_endeffector_vec_quat, parent_handle)
             assert(grasp_geometry.vector_quaternion_arrays_allclose(base_T_endeffector_vec_quat_feature, base_T_endeffector_vec_quat))
 
@@ -251,7 +251,8 @@ class VREPGraspSimulation(object):
             # display_name = str(i).zfill(2) + '_camera_to_base_vec_quat_7_ptransform_conversion_test'
             # self.create_dummy(display_name, camera_to_base_vec_quat_7_ptransform_conversion_test, parent_handle)
 
-            cTe_display_name = str(i).zfill(2) + '_camera_T_endeffector'
+            cTe_display_name = str(i).zfill(2) + '_camera_T_endeffector_' + base_T_endeffector_vec_quat_feature_name.replace(
+                '/transforms/base_T_endeffector/vec_quat_7', '').replace('/', '_')
             cTe_vec_quat = grasp_geometry.ptransform_to_vector_quaternion_array(camera_T_endeffector_ptrans)
             self.create_dummy(cTe_display_name, cTe_vec_quat, camera_T_base_handle)
 
