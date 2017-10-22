@@ -100,18 +100,18 @@ class TaskAgent(AbstractAgent):
                 idx = plan.idx
                 if idx >= len(names):
                     idx = -1
-                    print(idx,"---")
+                    done = True
                 else:
-                    print(idx,task.name(idx))
-                self._addToDataset(self.env.world,
-                        control,
-                        features,
-                        reward,
-                        done,
-                        i,
-                        task.index(names[idx]),
-                        task.numIndices(),
-                        seed=seed)
+                    print(idx,task.index(names[idx]),names[idx])
+                    self._addToDataset(self.env.world,
+                            control,
+                            features,
+                            reward,
+                            done,
+                            i,
+                            task.index(names[idx]),
+                            task.numIndices(),
+                            seed=seed)
                 if done:
                     break
 
