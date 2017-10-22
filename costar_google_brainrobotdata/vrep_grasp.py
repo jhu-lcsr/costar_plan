@@ -218,7 +218,7 @@ class VREPGraspSimulation(object):
         camera_to_base_vec_quat_7_ptransform_conversion_test = grasp_geometry.ptransform_to_vector_quaternion_array(camera_T_base_ptrans)
         display_name = 'camera_T_base_vec_quat_7_ptransform_conversion_test'
         self.create_dummy(display_name, camera_to_base_vec_quat_7_ptransform_conversion_test, parent_handle)
-        assert(np.allclose(camera_to_base_vec_quat_7, camera_to_base_vec_quat_7_ptransform_conversion_test))
+        assert(grasp_geometry.vector_quaternion_arrays_allclose(camera_to_base_vec_quat_7, camera_to_base_vec_quat_7_ptransform_conversion_test))
         # gripper_positions = [features_dict_np[base_T_endeffector_vec_quat_feature_name] for
         #                      base_T_endeffector_vec_quat_feature_name in base_to_endeffector_transforms]
         for i, base_T_endeffector_vec_quat_feature_name, depth_name, rgb_name in zip(range(len(base_to_endeffector_transforms)),
@@ -237,6 +237,8 @@ class VREPGraspSimulation(object):
                 camera_to_base_4x4matrix,
                 base_T_endeffector_vec_quat_feature
             )
+            # update the camera to base transform so we can visually ensure consistency
+            camera_T_base_handle = self.create_dummy('camera_T_base', camera_to_base_vec_quat_7, parent_handle)
 
             # test that the base_T_endeffector -> ptransform -> vec_quat_7 roundtrip returns the same transform
             base_T_endeffector_vec_quat = grasp_geometry.ptransform_to_vector_quaternion_array(base_T_endeffector_ptrans)
