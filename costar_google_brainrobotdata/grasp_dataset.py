@@ -426,10 +426,7 @@ class GraspDataset(object):
                 `tf.parse_single_example()` which can only do fixed length features
 
         # Returns
-            TODO(ahundt) may just be returning a list of feature name strings, no tuples at all.
-            tuple of size two containing:
-            list of fixed length features organized by time step in a single grasp and
-            list of sequence features organized by time step in a single grasp
+            list of features organized by time step in a single grasp
         """
         matching_features = []
 
@@ -445,13 +442,14 @@ class GraspDataset(object):
             """
             if ('image/encoded' in feature_type) and ('depth' not in feature_type):
                 feature_type = '/image/encoded'
+            ifnames = []
             for ifname in features:
                 if (bool(re.search(feature_name_regex, ifname)) and  # feature name matches
                         ((exclude_substring is None) or (exclude_substring not in ifname)) and
                         ((exclude_regex is None) or not bool(re.search(exclude_regex, ifname))) and
                         (feature_type in ifname)):
-                    return [str(ifname)]
-            return []
+                    ifnames.append(str(ifname))
+            return ifnames
 
         # see feature type docstring for details
         if record_type is 'fixed':
@@ -1018,6 +1016,8 @@ class GraspDataset(object):
             # TODO(ahundt) need to split pose op params from image index used for training
             feature_op_dicts, features_complete_list, pose_op_params = self._endeffector_final_clear_view_depth_pixel_T_endeffector_final(
                 feature_op_dicts, features_complete_list)
+        else:
+            raise ValueError('ERROR: unknown grasp_sequence_motion_params selected: {}'.format(motion_params))
 
         # get the tensor indicating if the grasp ultimately succeeded or not
         grasp_success = self.get_time_ordered_features(
