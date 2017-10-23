@@ -364,6 +364,7 @@ class HuskyRobotMultiPredictionSampler(RobotMultiPredictionSampler):
             verbose=1,
             save_best_only=True # does not work without validation wts
         )
+        logCb = LogCallback(self.name,self.model_directory)
         imageCb = self.PredictorCb(
             self.predictor,
             features=features[:4],
@@ -382,7 +383,7 @@ class HuskyRobotMultiPredictionSampler(RobotMultiPredictionSampler):
                 epochs=self.epochs,
                 validation_steps=self.validation_steps,
                 validation_data=test_generator,
-                callbacks=[modelCheckpointCb, imageCb])
+                callbacks=[modelCheckpointCb, logCb, imageCb])
 
     def _makeTrainTarget(self, I_target, q_target, o_target):
         length = I_target.shape[0]
