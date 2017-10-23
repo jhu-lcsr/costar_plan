@@ -52,7 +52,7 @@ class TaskAgent(AbstractAgent):
     executions.
     '''
     
-    NUM_REPEATS = 5
+    NUM_REPEATS = 4
     name = "random"
 
     def __init__(self, *args, **kwargs):
@@ -100,15 +100,18 @@ class TaskAgent(AbstractAgent):
                 idx = plan.idx
                 if idx >= len(names):
                     idx = -1
-                self._addToDataset(self.env.world,
-                        control,
-                        features,
-                        reward,
-                        done,
-                        i,
-                        task.index(names[idx]),
-                        task.numIndices(),
-                        seed=seed)
+                    done = True
+                else:
+                    print(idx,task.index(names[idx]),names[idx])
+                    self._addToDataset(self.env.world,
+                            control,
+                            features,
+                            reward,
+                            done,
+                            i,
+                            task.index(names[idx]),
+                            task.numIndices(),
+                            seed=seed)
                 if done:
                     break
 

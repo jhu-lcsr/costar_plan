@@ -469,6 +469,10 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
             #return tf.contrib.
             return spatial_softmax(x)
         x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
+        #x = Dense(dim,name="encode_to_hidden")(x)
+        #if batchnorm:
+        #    x = BatchNormalization()(x)
+        #x = relu()(x)
         #pool_size = (height/(2**post_tiling_layers),
         #         width/(2**post_tiling_layers))
         #x2 = MaxPooling2D(pool_size=pool_size)(x)

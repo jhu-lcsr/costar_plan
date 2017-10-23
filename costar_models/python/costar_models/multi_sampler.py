@@ -40,8 +40,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_frames = 1
         self.img_num_filters = 64
         self.tform_filters = 64
-        self.num_hypotheses = 8
-        self.validation_split = 0.1
+        self.num_hypotheses = 4
+        self.validation_split = 0.05
         self.num_options = 48
         self.num_features = 4
 
@@ -53,7 +53,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             self.steps_down = 2
             self.steps_up = 4
             self.steps_up_no_skip = 2
-            self.encoder_stride1_steps = 2
+            #self.encoder_stride1_steps = 2+1
+            self.encoder_stride1_steps = 1
         else:
             self.steps_down = 4
             self.steps_up = 4
@@ -76,13 +77,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.gripper_cmd_size = 1
 
         # Used for classifiers: value and next option
-        self.combined_dense_size = 128
+        self.combined_dense_size = 64
 
         # Size of the "pose" column containing arm, gripper info
         self.pose_col_dim = 64
 
         # Size of the hidden representation when using dense
-        self.img_col_dim = 128 #+64
+        self.img_col_dim = 128
 
         self.PredictorCb = PredictorShowImage
         self.hidden_dim = 64/(2**self.steps_down)
@@ -131,13 +132,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 batchnorm=True,
                 tile=True,
                 flatten=False,
-                option=self.num_options,
+                #option=self.num_options,
                 use_spatial_softmax=self.use_spatial_softmax,
-                #option=None,
+                option=None,
                 output_filters=self.tform_filters,
                 )
-        img_in, arm_in, gripper_in, option_in = ins
-        #img_in, arm_in, gripper_in = ins
+        #img_in, arm_in, gripper_in, option_in = ins
+        img_in, arm_in, gripper_in = ins
         if self.use_noise:
             z = Input((self.num_hypotheses, self.noise_dim))
 
@@ -148,7 +149,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         img_shape,
                         dropout_rate=self.decoder_dropout_rate,
                         dense_size=self.combined_dense_size,
-                        kernel_size=[3,3],
+                        kernel_size=[5,5],
                         filters=self.img_num_filters,
                         stride2_layers=self.steps_up,
                         stride1_layers=self.extra_layers,
@@ -179,12 +180,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         decoder.summary()
     
-        #option_in = Input((1,),name="prev_option_in")
-        #ins += [option_in]
+        option_in = Input((1,),name="prev_option_in")
+        ins += [option_in]
+        next_option_in = Input((self.num_options,),name="next_option_in")
+        ins += [next_option_in]
         value_out, next_option_out = GetNextOptionAndValue(enc,
                                                            self.num_options,
-                                                           option_in=None)
-                                                           #option_in=option_in)
+                                                           #option_in=None)
+                                                           option_in=option_in)
 
         # =====================================================================
         # Create many different image decoders
@@ -199,10 +202,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 transform.summary()
             if self.use_noise:
                 zi = Lambda(lambda x: x[:,i], name="slice_z%d"%i)(z)
-                #x = transform([enc, zi, next_option_out])
-                x = transform([enc, zi])
+                x = transform([enc, zi, next_option_in])
+                #x = transform([enc, zi])
             else:
-                x = transform([enc])
+                x = transform([enc, next_option_in])
+                #x = transform([enc])
             
             if self.sampling:
                 x, mu, sigma = x
@@ -244,11 +248,19 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             label_outs.append(label_x)
             train_outs.append(train_x)
 
+
         image_out = Concatenate(axis=1)(image_outs)
         arm_out = Concatenate(axis=1)(arm_outs)
         gripper_out = Concatenate(axis=1)(gripper_outs)
         label_out = Concatenate(axis=1)(label_outs)
         train_out = Concatenate(axis=1,name="all_train_outs")(train_outs)
+
+        #next_option_out, p_h = GetHypothesisProbability(enc,
+        #        self.num_hypotheses,
+        #        self.num_options,
+        #        label_out,
+        #        self.combined_dense_size,
+        #        kernel_size=None,)
 
         # =====================================================================
         # Create models to train
@@ -259,7 +271,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     value_out])
         actor = None
         train_predictor = Model(ins,
-                [train_out],)#, next_option_out, value_out])
+                #[train_out, next_option_out, value_out])
+                #[train_out, next_option_out])#, value_out])
+                [train_out, value_out])
 
         # =====================================================================
         # Create models to train
@@ -268,12 +282,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
-                        weights=[0.4,0.5,0.05,0.05],
+                        weights=[0.7, 1.0, 0.1, 0.1],
                         loss=["mae","mae","mae","categorical_crossentropy"],
                         stats=stats,
-                        avg_weight=0.05),],
-                    #"binary_crossentropy", "binary_crossentropy"],
-                #loss_weights=[1.0,0.01,0.01],
+                        avg_weight=0.05),
+                    "binary_crossentropy",],# "binary_crossentropy"],
+                loss_weights=[0.99,0.01,],#0.1],
                 optimizer=self.getOptimizer())
         predictor.compile(loss="mae", optimizer=self.getOptimizer())
         train_predictor.summary()
@@ -282,7 +296,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
     def _getTransform(self,i=0):
         transform_dropout = False
-        use_options_again = False
+        use_options_again = True
+        transform_batchnorm = True
+        transform_relu = True
         if use_options_again:
             options = self.num_options
         else:
@@ -293,13 +309,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     input_size=self.img_col_dim,
                     output_size=self.img_col_dim,
                     idx=i,
-                    batchnorm=True,
+                    batchnorm=transform_batchnorm,
                     dropout=transform_dropout,
                     dropout_rate=self.dropout_rate,
                     leaky=True,
                     num_blocks=self.num_transforms,
                     use_sampling=self.sampling,
-                    relu=True,
+                    relu=transform_relu,
                     option=options,
                     resnet_blocks=self.residual,
                     use_noise=self.use_noise,
@@ -308,7 +324,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             transform = GetTransform(
                     rep_size=(self.hidden_dim, self.hidden_dim),
                     filters=self.tform_filters,
-                    kernel_size=[3,3],
+                    kernel_size=[5,5],
                     idx=i,
                     batchnorm=True,
                     dropout=transform_dropout,
@@ -383,9 +399,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-            return features[:self.num_features] + [z], [tt] #, o1, v]
+            #return features[:self.num_features] + [z], [tt, o1, v]
+            #return features[:self.num_features] + [z], [tt, o1]#, v]
+            return features[:self.num_features] + [o1, z], [tt, v]
         else:
-            return features[:self.num_features], [tt] #, o1, v]
+            #return features[:self.num_features], [tt, o1, v]
+            #return features[:self.num_features], [tt, o1]#, v]
+            return features[:self.num_features] + [o1], [tt, v]
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''
@@ -435,9 +455,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             verbose=1,
             save_best_only=True # does not work without validation wts
         )
+        logCb = LogCallback(self.name,self.model_directory)
         imageCb = self.PredictorCb(
             self.predictor,
-            features=features[:4],
+            features=features[:4]+[o_target],
             targets=targets,
             model_directory=self.model_directory,
             num_hypotheses=self.num_hypotheses,
@@ -445,15 +466,15 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             use_noise=self.use_noise,
             noise_dim=self.noise_dim,
             min_idx=0,
-            max_idx=5,
-            step=1,)
+            max_idx=50,
+            step=10,)
         self.train_predictor.fit_generator(
                 train_generator,
                 self.steps_per_epoch,
                 epochs=self.epochs,
                 validation_steps=self.validation_steps,
                 validation_data=test_generator,
-                callbacks=[modelCheckpointCb, imageCb])
+                callbacks=[modelCheckpointCb, logCb, imageCb])
 
     def save(self):
         '''

@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --job-name=gposeO
+#SBATCH --job-name=gposeS
 #SBATCH --time=0-48:0:0
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
@@ -25,12 +25,12 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--model goal_sampler \
 	--data_file $HOME/work/ctp_rpy.npz \
 	--lr 0.001 \
-	--model_directory $HOME/.costar/models_stackQ_goal_pose_only/ \
+	--model_directory $HOME/.costar/models_stackS2_goal_pose_only/ \
 	--optimizer adam \
   --upsampling conv_transpose \
   --hypothesis_dropout false \
-  --dropout_rate 0.5 \
+  --dropout_rate 0.125 \
   --use_noise true \
   --noise_dim 32 \
-  --success_only \
+  #--success_only \
 	--batch_size 64

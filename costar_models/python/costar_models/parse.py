@@ -133,7 +133,7 @@ def GetModelParser():
     parser.add_argument("--use_noise",
                         help="use random noise to sample distributions",
                         type=bool,
-                        default=True)
+                        default=False)
     parser.add_argument("--skip_connections", "--sc",
                         help="use skip connections to generate better outputs",
                         type=bool,
@@ -159,4 +159,40 @@ def ParseModelArgs():
     parser = argparse.ArgumentParser(add_help=True,
                                      parents=[GetModelParser()],
                                      description=_desc, epilog=_epilog)
+    return vars(parser.parse_args())
+
+def GetVisualizeParser():
+    '''
+    Get the set of arguments for showing data information.
+    '''
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--data_file", "-d",
+                        help="file",
+                        default="data.npz")
+    parser.add_argument("--low", "-l",
+                        help="Low index for images",
+                        default=0,
+                        type=int)
+    parser.add_argument("--high", "-h",
+                        help="High index for images",
+                        default=10,
+                        type=int)
+    parser.add_argument("--comparison", "-c",
+                        help="field to compare to input image",
+                        default="goal_features",)
+    parser.add_argument("--num_sets", "-n",
+                        default=10)
+    parser.add_argument("--visualization_mode",
+                        choices=["train","test","sequence"],
+                        default="train",
+                        help="choose whether to debug train or test images")
+    return parser
+
+def ParseVisualizeArgs():
+    _visualize_desc = "Visualize image data."
+    _visualize_epilog = ""
+    parser = argparse.ArgumentParser(add_help=True,
+                                     parents=[GetVisualizeParser(),GetModelParser()],
+                                     description=_visualize_desc,
+                                     epilog=_visualize_epilog)
     return vars(parser.parse_args())

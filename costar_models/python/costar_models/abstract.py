@@ -29,7 +29,7 @@ class AbstractAgentBasedModel(object):
             use_noise=False,
             sampling=False,
             use_prev_option=True,
-            num_generator_files=3, predict_value=False, upsampling=None,
+            num_generator_files=1, predict_value=False, upsampling=None,
             task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
 
@@ -71,7 +71,9 @@ class AbstractAgentBasedModel(object):
         self.skip_connections = skip_connections
         self.dense_representation = dense_representation
         self.sampling = sampling
-
+        
+        if self.noise_dim < 1:
+            self.use_noise = False
         if self.sampling:
             self.use_noise = False
         if self.task is not None:
