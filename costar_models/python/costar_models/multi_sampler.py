@@ -77,7 +77,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.gripper_cmd_size = 1
 
         # Used for classifiers: value and next option
-        self.combined_dense_size = 64
+        self.combined_dense_size = 128
 
         # Size of the "pose" column containing arm, gripper info
         self.pose_col_dim = 64
@@ -186,6 +186,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         ins += [next_option_in]
         value_out, next_option_out = GetNextOptionAndValue(enc,
                                                            self.num_options,
+                                                           self.combined_dense_size,
                                                            #option_in=None)
                                                            option_in=option_in)
 
@@ -270,24 +271,29 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 [image_out, arm_out, gripper_out, label_out, next_option_out,
                     value_out])
         actor = None
-        train_predictor = Model(ins,
-                #[train_out, next_option_out, value_out])
-                #[train_out, next_option_out])#, value_out])
-                [train_out, value_out])
-
-        # =====================================================================
-        # Create models to train
-        train_predictor.compile(
-                loss=[#"mae","mse","mse","binary_crossentropy",
-                    MhpLossWithShape(
+        losses = [MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
                         weights=[0.7, 1.0, 0.1, 0.1],
                         loss=["mae","mae","mae","categorical_crossentropy"],
                         stats=stats,
                         avg_weight=0.05),
-                    "binary_crossentropy",],# "binary_crossentropy"],
-                loss_weights=[0.99,0.01,],#0.1],
+                    "binary_crossentropy",]
+        loss_weights = [0.99, 0.01]
+        if self.success_only:
+            outs = [train_out, next_option_out, value_out]
+            losses += ["binary_crossentropy"]
+            loss_weights += [0.01]
+        else:
+            outs = [train_out, value_out]
+
+        train_predictor = Model(ins, outs)
+
+        # =====================================================================
+        # Create models to train
+        train_predictor.compile(
+                loss=losses,
+                loss_weights=loss_weights,
                 optimizer=self.getOptimizer())
         predictor.compile(loss="mae", optimizer=self.getOptimizer())
         train_predictor.summary()

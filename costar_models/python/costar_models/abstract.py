@@ -25,7 +25,7 @@ class AbstractAgentBasedModel(object):
             dropout_rate=0.5, decoder_dropout_rate=0.5,
             hypothesis_dropout=False,
             dense_representation=True,
-            skip_connections=True,
+            skip_connections=1,
             use_noise=False,
             sampling=False,
             use_prev_option=True,
@@ -68,7 +68,7 @@ class AbstractAgentBasedModel(object):
         self.hypothesis_dropout = hypothesis_dropout
         self.use_noise = use_noise
         self.decoder_dropout_rate = decoder_dropout_rate
-        self.skip_connections = skip_connections
+        self.skip_connections = skip_connections > 0
         self.dense_representation = dense_representation
         self.sampling = sampling
         
