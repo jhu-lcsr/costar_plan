@@ -159,7 +159,7 @@ def vector_to_ptransform(XYZ):
     the rotation component will be the identity rotation.
     """
     q = eigen.Quaterniond()
-    q = q.setIdentity()
+    q.setIdentity()
     v = eigen.Vector3d(XYZ)
     ptransform = sva.PTransformd(q, v)
     return ptransform
@@ -210,8 +210,8 @@ def depth_image_pixel_to_cloud_point(depth_image, camera_intrinsics_matrix, pixe
 
     # get the point index in the depth image
     # TODO(ahundt) is this the correct indexing scheme, are any axes flipped?
-    x = pixel_coordinate[0]
-    z = pixel_coordinate[1]
+    x = int(pixel_coordinate[0])
+    z = int(pixel_coordinate[1])
 
     # choose a random pixel in the specified box
     if(augmentation_rectangle is not None and
@@ -229,13 +229,25 @@ def depth_image_pixel_to_cloud_point(depth_image, camera_intrinsics_matrix, pixe
     center_x = camera_intrinsics_matrix[0, 2]
     center_y = camera_intrinsics_matrix[1, 2]
 
+    if x < 0 or x >= depth_image.shape[0] or z < 0 or z >= depth_image.shape[1]:
+        print('warning: attempting to access pixel outside of image dimensions, '
+              'choosing center pixel instead.')
+        x = depth_image.shape[0]/2
+        z = depth_image.shape[1]/2
+
     # Capital Y is depth in camera frame
     Y = depth_image[x, z]
     # Capital X is horizontal point, right in camera image frame
     X = (x - center_x) * Y / fx
     # Capital Z is vertical point, up in camera image frame
     Z = (z - center_y) * Y / fy
-    return np.array((X, Y, Z))
+
+    # switching back to original coordinate frame indexing scheme
+    # X -> X is right in image frame
+    # Z -> Y is up in image frame
+    # Y -> Z is depth
+    XYZ = np.array([X, Z, Y])
+    return XYZ
 
 
 def surface_relative_transform(depth_image,
@@ -305,11 +317,11 @@ def endeffector_image_coordinate(camera_intrinsics_matrix, xyz):
     center_y = camera_intrinsics_matrix[2, 1]
 
     # Capital X is horizontal point, right in camera image frame
-    X = xyz[0]
+    X = xyz[1]
     # Capital Y is depth in camera frame
-    Y = xyz[1]
+    Y = xyz[2]
     # Capital Z is vertical point, up in camera image frame
-    Z = xyz[2]
+    Z = xyz[0]
     # x is the image coordinate horizontal axis
     x = (X * fx / Y) + center_x
     # y is the image coordinate vertical axis
