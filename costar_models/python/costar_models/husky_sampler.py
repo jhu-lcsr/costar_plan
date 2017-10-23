@@ -43,6 +43,7 @@ class HuskyRobotMultiPredictionSampler(RobotMultiPredictionSampler):
 
         self.num_pose_vars = 6
         self.num_options = 6
+        self.PredictorCb = HuskyPredictorShowImage
 
 
 

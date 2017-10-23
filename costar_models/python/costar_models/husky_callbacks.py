@@ -8,7 +8,7 @@ import numpy as np
 DEFAULT_MODEL_DIRECTORY = os.path.expanduser('~/.costar/models')
 
 
-class PredictorShowImage(keras.callbacks.Callback):
+class HuskyPredictorShowImage(keras.callbacks.Callback):
     '''
     Save an image showing what some number of frames and associated predictions
     will look like at the end of an epoch.
@@ -19,7 +19,7 @@ class PredictorShowImage(keras.callbacks.Callback):
             model_directory=DEFAULT_MODEL_DIRECTORY,
             num_hypotheses=4,
             verbose=False,
-            min_idx=0, max_idx=66, step=11):
+            min_idx=0, max_idx=66, step=11, **kwargs):
         '''
         Set up a data set we can use to output validation images.
 
@@ -58,7 +58,9 @@ class PredictorShowImage(keras.callbacks.Callback):
                                'and not a normal image callback?')
         img = np.reshape(img, (self.num,64,64,3))
         
-        data, poses, label = self.predictor.predict(self.features)
+
+        data, poses, label, next_option, value = self.predictor.predict(self.features)
+        
         if self.verbose:
             print("============================")
 
