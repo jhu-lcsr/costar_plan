@@ -3,7 +3,7 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import PoseStamped, Pose, Twist
 import numpy as np
-from npz import NpzDataset
+from costar_models.datasets.npz import NpzDataset
 import tf
 from tf import TransformListener
 
