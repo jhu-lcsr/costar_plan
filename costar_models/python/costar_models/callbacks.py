@@ -25,6 +25,7 @@ class LogCallback(keras.callbacks.Callback):
                 msg += str(key)
                 if i < len(logs.keys())-1:
                     msg += ","
+            msg += "\n"
             self.file.write(msg)
 
         msg = ""
@@ -32,6 +33,7 @@ class LogCallback(keras.callbacks.Callback):
             msg += str(value)
             if i < len(logs.keys())-1:
                 msg += ","
+        msg += "\n"
         self.file.write(msg)
 
 class PredictorShowImage(keras.callbacks.Callback):
