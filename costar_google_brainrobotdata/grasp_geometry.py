@@ -184,7 +184,7 @@ def ptransform_to_vector_sin_theta_cos_theta(ptransform):
     theta = identity.angularDistance(ptransform)
     translation = ptransform.translation()
     sin_cos_theta = np.array([np.sin(theta), np.cos(theta)])
-    vector_sin_theta_cos_theta = np.concatenate((translation, sin_cos_theta))
+    vector_sin_theta_cos_theta = np.concatenate([translation, sin_cos_theta])
     return vector_sin_theta_cos_theta
 
 
@@ -305,7 +305,7 @@ def surface_relative_transform(depth_image,
         # return the transform and the image coordinate used to generate the transform
         image_x = pixel_coordinate_of_endeffector[0]
         image_y = pixel_coordinate_of_endeffector[1]
-        return np.concatenate((depth_relative_vec_quat_array, image_x, image_y))
+        return np.concatenate([depth_relative_vec_quat_array, image_x, image_y])
     else:
         return depth_relative_vec_quat_array
 
