@@ -22,11 +22,11 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--model predictor \
 	--data_file $HOME/work/ctp_rpy.npz \
 	--lr $1 \
-	--dropout_rate 0.5 \
+	--dropout_rate 0.125 \
 	--decoder_dropout_rate $2 \
-  --model_directory $HOME/.costar/models_stack_S$1$3$2$4$5/ \
+  --model_directory $HOME/.costar/models_stack_S2_$1$3$2$4$5/ \
 	--optimizer $3 \
-  --use_noise false \
+  --use_noise true \
   --steps_per_epoch 500 \
   --noise_dim $5 \
   --hypothesis_dropout $4 \
