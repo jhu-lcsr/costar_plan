@@ -56,7 +56,7 @@ def ClipFloatValues(float_array, min_value, max_value):
 
     """
     if float_array.min() < min_value or float_array.max() > max_value:
-        logging.debug('Image has out-of-range values [%f,%f] not in [%d,%d]',
+        print('Image has out-of-range values [%f,%f] not in [%d,%d]',
                       float_array.min(), float_array.max(), min_value, max_value)
         float_array = np.clip(float_array, min_value, max_value)
     return float_array
