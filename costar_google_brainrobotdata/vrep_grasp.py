@@ -46,7 +46,7 @@ tf.flags.DEFINE_integer('vrepTimeOutInMs', 5000, 'Timeout in milliseconds upon w
 tf.flags.DEFINE_integer('vrepCommThreadCycleInMs', 5, 'time between communication cycles')
 tf.flags.DEFINE_string('vrepDebugMode', 'save_ply', """Options are: '', 'fixed_depth', 'save_ply'.""")
 tf.flags.DEFINE_boolean('vrepVisualizeRGBD', False, 'display the rgbd images and point cloud')
-tf.flags.DEFINE_boolean('vrepVisualizeSurfaceRelativeTransform', True, 'display the rgbd images and point cloud')
+tf.flags.DEFINE_boolean('vrepVisualizeSurfaceRelativeTransform', False, 'display the surface relative transform frames')
 tf.flags.DEFINE_string('vrepParentName', 'LBR_iiwa_14_R820', 'The default parent frame name from which to base all visualized transforms.')
 
 flags.FLAGS._parse_flags()
@@ -184,21 +184,34 @@ class VREPGraspSimulation(object):
 
         It is important to note that both V-REP and the grasp dataset use the xyzw quaternion format.
         """
+        # get param strings for every single gripper position
         base_to_endeffector_transforms = grasp_dataset_object.get_time_ordered_features(
             features_complete_list,
             # feature_type='transforms/base_T_endeffector/vec_quat_7')  # display only commanded transforms
-            feature_type='vec_quat_7')  # display all transforms
+            # feature_type='vec_quat_7')  # display all transforms
+            feature_type='reached_pose',
+            step='move_to_grasp')
+        print(features_complete_list)
+        print(base_to_endeffector_transforms)
         camera_to_base_transform_name = 'camera/transforms/camera_T_base/matrix44'
         camera_intrinsics_name = 'camera/intrinsics/matrix33'
 
+        pregrasp_depth_image_feature = grasp_dataset_object.get_time_ordered_features(
+            features_complete_list,
+            feature_type='depth_image/decoded',
+            step='view_clear_scene'
+        )[0]
+
         depth_image_features = grasp_dataset_object.get_time_ordered_features(
             features_complete_list,
-            feature_type='depth_image/decoded'
+            feature_type='depth_image/decoded',
+            step='move_to_grasp'
         )
 
         rgb_image_features = grasp_dataset_object.get_time_ordered_features(
             features_complete_list,
-            feature_type='/image/decoded'
+            feature_type='/image/decoded',
+            step='move_to_grasp'
         )
 
         grasp_success_feature_name = grasp_dataset_object.get_time_ordered_features(
@@ -206,6 +219,11 @@ class VREPGraspSimulation(object):
             feature_type='grasp_success'
         )[0]
 
+        # Create repeated values for the final grasp position where the gripper closed
+        base_T_endeffector_final_close_gripper_name = base_to_endeffector_transforms[-1]
+        base_T_endeffector_final_close_gripper = features_dict_np[base_T_endeffector_final_close_gripper_name]
+
+        # get the camera intrinsics matrix and camera extrinsics matrix
         camera_intrinsics_matrix = features_dict_np[camera_intrinsics_name]
         camera_to_base_4x4matrix = features_dict_np[camera_to_base_transform_name]
         print('camera/transforms/camera_T_base/matrix44: \n', camera_to_base_4x4matrix)
@@ -233,15 +251,17 @@ class VREPGraspSimulation(object):
             base_T_endeffector_vec_quat_feature = features_dict_np[base_T_endeffector_vec_quat_feature_name]
             # display the raw base to endeffector feature
             bTe_display_name = str(i).zfill(2) + '_' + base_T_endeffector_vec_quat_feature_name.replace('/', '_')
-            self.create_dummy(bTe_display_name, base_T_endeffector_vec_quat_feature, parent_handle)
+            bTe_handle = self.create_dummy(bTe_display_name, base_T_endeffector_vec_quat_feature, parent_handle)
 
             # do the conversion needed for training
-            camera_T_endeffector_ptrans, base_T_endeffector_ptrans, camera_T_base_ptrans = grasp_geometry.grasp_dataset_to_ptransform(
+            camera_T_endeffector_ptrans, base_T_endeffector_ptrans, base_T_camera_ptrans = grasp_geometry.grasp_dataset_to_ptransform(
                 camera_to_base_4x4matrix,
                 base_T_endeffector_vec_quat_feature
             )
             # update the camera to base transform so we can visually ensure consistency
             camera_T_base_handle = self.create_dummy('camera_T_base', camera_to_base_vec_quat_7, parent_handle)
+            base_to_camera_vec_quat_7 = grasp_geometry.ptransform_to_vector_quaternion_array(base_T_camera_ptrans)
+            base_T_camera_handle = self.create_dummy('base_T_camera', base_to_camera_vec_quat_7, parent_handle)
 
             # test that the base_T_endeffector -> ptransform -> vec_quat_7 roundtrip returns the same transform
             base_T_endeffector_vec_quat = grasp_geometry.ptransform_to_vector_quaternion_array(base_T_endeffector_ptrans)
@@ -257,10 +277,10 @@ class VREPGraspSimulation(object):
             cTe_display_name = str(i).zfill(2) + '_camera_T_endeffector_' + base_T_endeffector_vec_quat_feature_name.replace(
                 '/transforms/base_T_endeffector/vec_quat_7', '').replace('/', '_')
             cTe_vec_quat = grasp_geometry.ptransform_to_vector_quaternion_array(camera_T_endeffector_ptrans)
-            self.create_dummy(cTe_display_name, cTe_vec_quat, camera_T_base_handle)
+            self.create_dummy(cTe_display_name, cTe_vec_quat, base_T_camera_handle)
 
             if i == 0:
-                clear_frame_depth_image = np.squeeze(features_dict_np[depth_name])
+                clear_frame_depth_image = np.squeeze(features_dict_np[pregrasp_depth_image_feature])
             # format the dummy string nicely for display
             transform_display_name = str(i).zfill(2) + '_' + base_T_endeffector_vec_quat_feature_name.replace(
                 '/transforms/base_T_endeffector/vec_quat_7', '').replace('/', '_')
@@ -270,6 +290,15 @@ class VREPGraspSimulation(object):
             # Perform some consistency checks based on the above
             assert(grasp_geometry.vector_quaternion_arrays_allclose(base_T_endeffector_vec_quat, base_T_endeffector_vec_quat_feature))
 
+            #############################
+            # get the transform from the current endeffector pose to the final
+            transform_display_name = str(i).zfill(2) + '_current_T_end'
+            current_to_end = grasp_geometry.current_endeffector_to_final_endeffector_feature(
+                base_T_endeffector_vec_quat_feature, base_T_endeffector_final_close_gripper, feature_type='vec_quat_7')
+            self.create_dummy(transform_display_name, base_T_endeffector_vec_quat_feature, bTe_handle)
+
+            #############################
+            # visualize surface relative transform
             if vrepVisualizeSurfaceRelativeTransform:
                 ee_cloud_point, ee_image_coordinate = grasp_geometry.endeffector_image_coordinate_and_cloud_point(
                     clear_frame_depth_image, camera_intrinsics_matrix, camera_T_endeffector_ptrans)
@@ -293,6 +322,7 @@ class VREPGraspSimulation(object):
                 self.visualize_rgbd(features_dict_np, rgb_name, depth_name, grasp_sequence_min_time_step, i, grasp_sequence_max_time_step,
                                     camera_intrinsics_matrix, vrepDebugMode, dataset_name, attempt_num, grasp_success_feature_name,
                                     visualization_dir, camera_to_base_vec_quat_7, parent_handle)
+        print('visualization of grasp attempt #', attempt_num, ' complete')
 
     def visualize_rgbd(self, features_dict_np, rgb_name, depth_name, grasp_sequence_min_time_step, i,
                        grasp_sequence_max_time_step, camera_intrinsics_matrix, vrepDebugMode, dataset_name, attempt_num,
