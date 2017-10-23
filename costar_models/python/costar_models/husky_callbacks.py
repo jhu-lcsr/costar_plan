@@ -56,7 +56,11 @@ class HuskyPredictorShowImage(keras.callbacks.Callback):
             raise RuntimeError('did not recognize big train target shape; '
                                'are you sure you meant to use this callback'
                                'and not a normal image callback?')
+
+
         img = np.reshape(img, (self.num,64,64,3))
+
+       
         
 
         data, poses, label, next_option, value = self.predictor.predict(self.features)
