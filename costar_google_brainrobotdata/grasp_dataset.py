@@ -86,12 +86,20 @@ flags.DEFINE_integer('grasp_sequence_min_time_step', None,
                         that will be used in training and evaluation. This may be needed
                         to reduce memory utilization or check performance at different
                         stages of a grasping motion.""")
-flags.DEFINE_string('grasp_sequence_motion_params', 'final_pose_orientation_quaternion',
+flags.DEFINE_string('grasp_sequence_motion_params', 'endeffector_current_T_endeffector_final_vec_sin_cos_5',
                     """Different ways of representing the motion vector parameter.
                        'final_pose_orientation_quaternion' directly input the final pose translation and orientation.
                        'next_timestep' input the params for the command saved in the dataset with translation,
-                       sin theta, cos theta from the current time step to the next
-                       'endeffector_current_T_endeffector_final_vec_sin_cos_5'
+                           sin theta, cos theta from the current time step to the next.
+                       'endeffector_current_T_endeffector_final_vec_sin_cos_5' use
+                           the real reached gripperer pose of the end effector to calculate
+                           the transform from the current time step to the final time step
+                           to generate the parameters defined in https://arxiv.org/abs/1603.02199,
+                           consisting of [x,y,z, sin(theta), cos(theta)].
+                       'endeffector_current_T_endeffector_final_vec_quat_7' use
+                           the real reached gripperer pose of the end effector to calculate
+                           the transform from the current time step to the final time step
+                           to generate the parameters [x, y, z, qx, qy, qz, qw].
                     """)
 
 FLAGS = flags.FLAGS
@@ -613,23 +621,26 @@ class GraspDataset(object):
             new_pose_op_param_names will only include the param names that match feature_type.
         """
 
-        pose_op_params = self.get_time_ordered_features(
+        base_to_endeffector_transforms = self.get_time_ordered_features(
             features_complete_list,
-            feature_type=feature_type,
-            step='move_to_grasp'
-        )
+            feature_type='reached_pose',
+            step='move_to_grasp')
 
-        final_pose_op = pose_op_params[-1]
+        # Create repeated values for the final grasp position where the gripper closed
+        base_T_endeffector_final_close_gripper_name = base_to_endeffector_transforms[-1]
         new_pose_op_param_names = []
         new_feature_op_dicts = []
 
         for i, (fixed_feature_op_dict, sequence_feature_op_dict) in enumerate(feature_op_dicts):
-            for j, pose_op_param in enumerate(pose_op_params):
+            for j, base_to_endeffector_transform_name in enumerate(base_to_endeffector_transforms):
                 # Create the 7 entry vector quaternion feature [dx, dy, dz, qx, qy, qz, qw]
                 # generate the transform calculation op, might be able to set stateful=False for a performance boost
                 current_to_end_op = tf.py_func(
                     grasp_geometry.current_endeffector_to_final_endeffector_feature,
-                    [fixed_feature_op_dict[pose_op_param], fixed_feature_op_dict[final_pose_op], 'vec_quat_7'], tf.float32)
+                    [fixed_feature_op_dict[base_to_endeffector_transform_name],
+                     fixed_feature_op_dict[base_T_endeffector_final_close_gripper_name],
+                     'vec_quat_7'],
+                    tf.float32)
                 current_to_end_name = 'move_to_grasp/{:03}/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_quat_7'.format(j)
                 fixed_feature_op_dict[current_to_end_name] = current_to_end_op
                 if i == 0:
@@ -642,7 +653,10 @@ class GraspDataset(object):
                 # generate the transform calculation op, might be able to set stateful=False for a performance boost
                 current_to_end_op = tf.py_func(
                     grasp_geometry.current_endeffector_to_final_endeffector_feature,
-                    [fixed_feature_op_dict[pose_op_param], fixed_feature_op_dict[final_pose_op], 'vec_sin_cos_5'], tf.float32)
+                    [fixed_feature_op_dict[base_to_endeffector_transform_name],
+                     fixed_feature_op_dict[base_T_endeffector_final_close_gripper_name],
+                     'vec_sin_cos_5'],
+                    tf.float32)
                 current_to_end_name = 'move_to_grasp/{:03}/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_sin_cos_5'.format(j)
                 fixed_feature_op_dict[current_to_end_name] = current_to_end_op
                 if i == 0:
@@ -933,12 +947,6 @@ class GraspDataset(object):
                         'grasp/final/reached_pose/transforms/base_T_endeffector/vec_quat_7' feature.
                     'next_timestep' input the params for the command saved in the dataset with translation,
                         sin theta, cos theta from the current time step to the next. This is the same as the 'params' feature.
-                    'endeffector_current_T_endeffector_final_vector_quaternion'
-                        vector and quaternion representing the transform from the current time step's pose
-                        to the pose at the final time step in the current time step's end effector frame.
-                        This also generates the new feature
-                        'move_to_grasp/###/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_quat_7',
-                        where ### is a number for each step from 000 to the number of time steps in the example.
                     'endeffector_final_clear_view_depth_pixel_T_endeffector_final'
                         Surface relative transform from the final gripper pixel depth position
                         This is fairly complex, so please inquire if additional details are needed.
@@ -946,8 +954,21 @@ class GraspDataset(object):
                         for example in dataset 102 it is `grasp/10/reached_pose/transforms/base_T_endeffector/vec_quat_7`.
                         Using this pose, we determine the x,y pixel coordinate of the gripper's reached pose at the final time step
                         in the camera frame, and use this to look up the depth value in the initial clear view image.
-                        'surface_relative_grasp/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/vec_quat_7'
-                    'endeffector_current_T_endeffector_final_vec_sin_cos_5'
+                        'surface_relative_grasp/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/vec_quat_7'.
+                    'endeffector_current_T_endeffector_final_vec_sin_cos_5' use
+                        the real reached gripper pose of the end effector to calculate
+                        the transform from the current time step to the final time step
+                        to generate the parameters defined in https://arxiv.org/abs/1603.02199,
+                        consisting of [x,y,z, sin(theta), cos(theta)].
+                    'endeffector_current_T_endeffector_final_vec_quat_7'
+                        vector and quaternion representing the transform from the current time step's pose
+                        to the pose at the final time step in the current time step's end effector frame.
+                        This also generates the new feature
+                        'move_to_grasp/###/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_quat_7',
+                        where ### is a number for each step from 000 to the number of time steps in the example.
+                        use the real reached gripper pose of the end effector to calculate
+                        the transform from the current time step to the final time step
+                        to generate the parameters [x, y, z, qx, qy, qz, qw].
 
             grasp_sequence_max_time_step: Grasp examples consist of time steps from 0 to up to a max of 11.
                 To train on specific range of data set this value to the maximum desired time step.
@@ -999,7 +1020,7 @@ class GraspDataset(object):
                 # every input will be the final pose
                 pose_op_params[i] = pose_op_params[-1]
             # print('pose_op_params:', pose_op_params)
-        elif motion_params == 'endeffector_current_T_endeffector_final_vector_quaternion':
+        elif motion_params == 'endeffector_current_T_endeffector_final_vec_quat_7':
             # reprocess and update motion params with new transforms from
             # the current end effector pose to the final pose
             feature_op_dicts, features_complete_list, pose_op_params = self._endeffector_current_T_endeffector_final(

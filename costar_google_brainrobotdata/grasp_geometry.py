@@ -514,7 +514,7 @@ def current_endeffector_to_final_endeffector_feature(current_base_T_endeffector,
     # we have ptransforms for both data, now get transform from current to commanded
     if 'vec_quat_7' in feature_type:
         current_to_end = ptransform_to_vector_quaternion_array(current_to_end)
-    elif feature_type == 'vec_sin_cos_5' or feature_type == 'endeffector_current_T_endeffector_final_vec_sin_cos_5':
+    elif 'vec_sin_cos_5' in feature_type:
         current_to_end = ptransform_to_vector_sin_theta_cos_theta(current_to_end)
     return current_to_end
 
