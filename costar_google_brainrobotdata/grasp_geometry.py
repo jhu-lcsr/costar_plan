@@ -127,6 +127,10 @@ def matrix_to_vector_quaternion_array(matrix, inverse=False, verbose=0):
         matrix: The 4x4 Rt rigid body transformation matrix to convert into a vector quaternion array.
         inverse: Inverts the full matrix before loading into the array.
             Useful when the transformation to be reversed and for testing/debugging purposes.
+
+    # Returns
+
+      np.array([x, y, z, qx, qy, qz, qw])
     """
     rot = eigen.Matrix3d(matrix[:3, :3])
     quaternion = eigen.Quaterniond(rot)
@@ -505,15 +509,8 @@ def current_endeffector_to_final_endeffector_feature(current_base_T_endeffector,
     """
     base_to_current = vector_quaternion_array_to_ptransform(current_base_T_endeffector)
     base_to_end = vector_quaternion_array_to_ptransform(end_base_T_endeffector)
-    end_to_base = base_to_end.inv()
-    current_to_base = base_to_current.inv()
-    # current_to_end = base_to_current * end_to_base
-    # current_to_end = end_to_base * base_to_current
-    # current_to_end = end_to_base * current_to_base
-    current_to_end = base_to_end * end_to_base
-    # current_to_end = base_to_current.inv() * base_to_end
-    # current_to_end = base_to_end * base_to_current.inv()
-    # current_to_end = base_to_end.inv() * base_to_current
+    current_to_end = base_to_end * base_to_current.inv()
+
     # we have ptransforms for both data, now get transform from current to commanded
     if 'vec_quat_7' in feature_type:
         current_to_end = ptransform_to_vector_quaternion_array(current_to_end)
@@ -523,12 +520,20 @@ def current_endeffector_to_final_endeffector_feature(current_base_T_endeffector,
 
 
 def vector_quaternion_arrays_allclose(vq1, vq2, rtol=1e-6, atol=1e-6, verbose=0):
-    """Check if all the entries are close for two vector quaternion arrays.
-    This special function is needed because for quaternions q == -q.
+    """Check if all the entries are close for two vector quaternion nupy arrays.
+
+    Quaterions are a way of representing rigid body 3D rotations that is more
+    numerically stable and compact in memory than other methods such as a 3x3
+    rotation matrix.
+
+    This special comparison function is needed because for quaternions q == -q.
+    Vector Quaternion numpy arrays are expected to be in format
+    [x, y, z, qx, qy, qz, qw].
 
     # Params
-    vq1: vector quaternion array
-    vq2: vector quaternion array
+
+    vq1: First vector quaternion array to compare.
+    vq2: Second vector quaternion array to compare.
     rtol: relative tolerance.
     atol: absolute tolerance.
 

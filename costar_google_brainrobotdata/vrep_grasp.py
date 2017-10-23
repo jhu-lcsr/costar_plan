@@ -35,7 +35,8 @@ from depth_image_encoding import depth_image_to_point_cloud
 # alternatives to consider:
 # https://github.com/adamlwgriffiths/Pyrr
 # https://github.com/KieranWynn/pyquaternion
-import eigen as e
+import eigen as e  # https://github.com/jrl-umi3218/Eigen3ToPython
+import sva  # https://github.com/jrl-umi3218/SpaceVecAlg
 # import matplotlib as mp
 
 tf.flags.DEFINE_string('vrepConnectionAddress', '127.0.0.1', 'The IP address of the running V-REP simulation.')
@@ -237,6 +238,11 @@ class VREPGraspSimulation(object):
         assert(grasp_geometry.vector_quaternion_arrays_allclose(camera_to_base_vec_quat_7, camera_to_base_vec_quat_7_ptransform_conversion_test))
         # verify that another transform path gets the same result
         base_T_camera_ptrans = camera_T_base_ptrans.inv()
+
+        # TODO(ahundt) check that ptransform times its inverse is identity, or very close to it
+        identity = sva.PTransformd.Identity()
+        should_be_identity = base_T_camera_ptrans * camera_T_base_ptrans
+
         base_to_camera_vec_quat_7_ptransform_conversion_test = grasp_geometry.ptransform_to_vector_quaternion_array(base_T_camera_ptrans)
         display_name = 'base_to_camera_vec_quat_7_ptransform_conversion_test'
         self.create_dummy(display_name, base_to_camera_vec_quat_7_ptransform_conversion_test, parent_handle)
@@ -295,7 +301,13 @@ class VREPGraspSimulation(object):
             transform_display_name = str(i).zfill(2) + '_current_T_end'
             current_to_end = grasp_geometry.current_endeffector_to_final_endeffector_feature(
                 base_T_endeffector_vec_quat_feature, base_T_endeffector_final_close_gripper, feature_type='vec_quat_7')
-            self.create_dummy(transform_display_name, base_T_endeffector_vec_quat_feature, bTe_handle)
+            self.create_dummy(transform_display_name, current_to_end, bTe_handle)
+
+            # TODO(ahundt) check that transform from end step to itself should be identity, or very close to it
+            # if base_T_endeffector_final_close_gripper_name == base_T_endeffector_vec_quat_feature_name:
+            #     transform from end step to itself should be identity.
+            #     identity = sva.PTransformd.Identity()
+            #     assert(identity == current_to_end)
 
             #############################
             # visualize surface relative transform
