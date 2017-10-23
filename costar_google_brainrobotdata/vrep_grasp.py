@@ -46,7 +46,8 @@ tf.flags.DEFINE_integer('vrepTimeOutInMs', 5000, 'Timeout in milliseconds upon w
 tf.flags.DEFINE_integer('vrepCommThreadCycleInMs', 5, 'time between communication cycles')
 tf.flags.DEFINE_string('vrepDebugMode', 'save_ply', """Options are: '', 'fixed_depth', 'save_ply'.""")
 tf.flags.DEFINE_boolean('vrepVisualizeRGBD', False, 'display the rgbd images and point cloud')
-tf.flags.DEFINE_boolean('vrepVisualizeSurfaceRelativeTransform', False, 'display the rgbd images and point cloud')
+tf.flags.DEFINE_boolean('vrepVisualizeSurfaceRelativeTransform', True, 'display the rgbd images and point cloud')
+tf.flags.DEFINE_string('vrepParentName', 'LBR_iiwa_14_R820', 'The default parent frame name from which to base all visualized transforms.')
 
 flags.FLAGS._parse_flags()
 FLAGS = flags.FLAGS
@@ -140,7 +141,7 @@ class VREPGraspSimulation(object):
             print 'create_point_cloud remote function call failed.'
             return -1
 
-    def visualize(self, tf_session, dataset=FLAGS.grasp_dataset, batch_size=1, parent_name='LBR_iiwa_14_R820'):
+    def visualize(self, tf_session, dataset=FLAGS.grasp_dataset, batch_size=1, parent_name=FLAGS.vrepParentName):
         """Visualize one dataset in V-REP
         """
         grasp_dataset_object = GraspDataset(dataset=dataset)
@@ -209,9 +210,6 @@ class VREPGraspSimulation(object):
         camera_to_base_4x4matrix = features_dict_np[camera_to_base_transform_name]
         print('camera/transforms/camera_T_base/matrix44: \n', camera_to_base_4x4matrix)
         camera_to_base_vec_quat_7 = grasp_geometry.matrix_to_vector_quaternion_array(camera_to_base_4x4matrix)
-        #####################
-        # TODO(ahundt) camera_T_base might differ between here and grasp_dataset_to_ptransform, resulting in incorrect visualization!
-        #####################
         camera_T_base_handle = self.create_dummy('camera_T_base', camera_to_base_vec_quat_7, parent_handle)
         # verify that another transform path gets the same result
         camera_T_base_ptrans = grasp_geometry.matrix_to_ptransform(camera_to_base_4x4matrix)
@@ -219,6 +217,11 @@ class VREPGraspSimulation(object):
         display_name = 'camera_T_base_vec_quat_7_ptransform_conversion_test'
         self.create_dummy(display_name, camera_to_base_vec_quat_7_ptransform_conversion_test, parent_handle)
         assert(grasp_geometry.vector_quaternion_arrays_allclose(camera_to_base_vec_quat_7, camera_to_base_vec_quat_7_ptransform_conversion_test))
+        # verify that another transform path gets the same result
+        base_T_camera_ptrans = camera_T_base_ptrans.inv()
+        base_to_camera_vec_quat_7_ptransform_conversion_test = grasp_geometry.ptransform_to_vector_quaternion_array(base_T_camera_ptrans)
+        display_name = 'base_to_camera_vec_quat_7_ptransform_conversion_test'
+        self.create_dummy(display_name, base_to_camera_vec_quat_7_ptransform_conversion_test, parent_handle)
         # gripper_positions = [features_dict_np[base_T_endeffector_vec_quat_feature_name] for
         #                      base_T_endeffector_vec_quat_feature_name in base_to_endeffector_transforms]
         for i, base_T_endeffector_vec_quat_feature_name, depth_name, rgb_name in zip(range(len(base_to_endeffector_transforms)),
@@ -281,7 +284,7 @@ class VREPGraspSimulation(object):
                 # it should coincide with the gripper pose if done correctly
                 surface_relative_transform_vec_quat = grasp_geometry.surface_relative_transform(
                     clear_frame_depth_image, camera_intrinsics_matrix, camera_T_endeffector_ptrans)
-                surface_relative_transform_display_name = str(i).zfill(2) + '_depth_point'
+                surface_relative_transform_display_name = str(i).zfill(2) + '_depth_point_T_endeffector'
                 surface_relative_transform_dummy_handle = self.create_dummy(surface_relative_transform_display_name,
                                                                             surface_relative_transform_vec_quat,
                                                                             depth_point_dummy_handle)
