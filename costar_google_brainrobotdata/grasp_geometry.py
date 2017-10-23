@@ -372,46 +372,47 @@ def grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector):
     # Returns
 
       PTransformd formatted transforms:
-      camera_T_endeffector_ptrans, base_T_endeffector_ptrans, camera_T_base_ptrans
+      camera_T_endeffector_ptrans, base_T_endeffector_ptrans, base_T_camera_ptrans
     """
     base_T_endeffector_ptrans = vector_quaternion_array_to_ptransform(base_T_endeffector)
     # In this case camera_T_base is a transform that takes a point in the base
     # frame of reference and transforms it to the camera frame of reference.
     camera_T_base_ptrans = matrix_to_ptransform(camera_T_base)
+    base_T_camera = camera_T_base_ptrans.inv()
 
-    ###############
-    # allow tweaking of camera T base
-    t = camera_T_base_ptrans.translation()
-    # t *= -1
-    R = eigen.Quaterniond(camera_T_base_ptrans.rotation())
-    # R.inverse()
-    camera_T_base_ptrans2 = sva.PTransformd(R, t)
-    ###############
+    # ###############
+    # # allow tweaking of camera T base
+    # t = camera_T_base_ptrans.translation()
+    # # t *= -1
+    # R = eigen.Quaterniond(camera_T_base_ptrans.rotation())
+    # # R.inverse()
+    # camera_T_base_ptrans2 = sva.PTransformd(R, t)
+    # ###############
 
-    ###############
-    # allow tweaking of base T endeffector
-    t = base_T_endeffector_ptrans.translation()
-    # t *= -1
-    R = eigen.Quaterniond(base_T_endeffector_ptrans.rotation())
-    # R.inverse()
-    base_T_endeffector_ptrans2 = sva.PTransformd(R, t)
-    ###############
+    # ###############
+    # # allow tweaking of base T endeffector
+    # t = base_T_endeffector_ptrans.translation()
+    # # t *= -1
+    # R = eigen.Quaterniond(base_T_endeffector_ptrans.rotation())
+    # # R.inverse()
+    # base_T_endeffector_ptrans2 = sva.PTransformd(R, t)
+    # ###############
 
     ###############
     # Perform the actual transform calculation
-    camera_T_endeffector_ptrans = base_T_endeffector_ptrans2 * camera_T_base_ptrans2.inv()
+    camera_T_endeffector_ptrans = base_T_endeffector_ptrans * base_T_camera.inv()
     # camera_T_endeffector_ptrans = camera_T_base_ptrans2 * base_T_endeffector_ptrans2
     # camera_T_endeffector_ptrans.inv()
 
-    ###############
-    # allow tweaking of camera T endeffector
-    t = camera_T_endeffector_ptrans.translation()
-    # t *= -1
-    R = eigen.Quaterniond(camera_T_endeffector_ptrans.rotation())
-    # R.inverse()
-    camera_T_endeffector_ptrans = sva.PTransformd(R, t)
-    ###############
-    return camera_T_endeffector_ptrans, base_T_endeffector_ptrans, camera_T_base_ptrans
+    # ###############
+    # # allow tweaking of camera T endeffector
+    # t = camera_T_endeffector_ptrans.translation()
+    # # t *= -1
+    # R = eigen.Quaterniond(camera_T_endeffector_ptrans.rotation())
+    # # R.inverse()
+    # camera_T_endeffector_ptrans = sva.PTransformd(R, t)
+    # ###############
+    return camera_T_endeffector_ptrans, base_T_endeffector_ptrans, base_T_camera
 
 
 def grasp_dataset_to_surface_relative_transform(depth_image,
@@ -504,7 +505,15 @@ def current_endeffector_to_final_endeffector_feature(current_base_T_endeffector,
     """
     base_to_current = vector_quaternion_array_to_ptransform(current_base_T_endeffector)
     base_to_end = vector_quaternion_array_to_ptransform(end_base_T_endeffector)
-    current_to_end = base_to_end * base_to_current.inv()
+    end_to_base = base_to_end.inv()
+    current_to_base = base_to_current.inv()
+    # current_to_end = base_to_current * end_to_base
+    # current_to_end = end_to_base * base_to_current
+    # current_to_end = end_to_base * current_to_base
+    current_to_end = base_to_end * end_to_base
+    # current_to_end = base_to_current.inv() * base_to_end
+    # current_to_end = base_to_end * base_to_current.inv()
+    # current_to_end = base_to_end.inv() * base_to_current
     # we have ptransforms for both data, now get transform from current to commanded
     if 'vec_quat_7' in feature_type:
         current_to_end = ptransform_to_vector_quaternion_array(current_to_end)
