@@ -32,5 +32,6 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --hypothesis_dropout $4 \
   --upsampling conv_transpose \
   --batch_size 32
-  #--success_only \
+
+#--success_only \
 
