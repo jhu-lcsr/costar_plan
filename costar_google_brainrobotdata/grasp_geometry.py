@@ -174,15 +174,45 @@ def ptransform_to_vector_sin_theta_cos_theta(ptransform):
     Convert a PTransform 3D Rigid body transform into a numpy array with 5 total entries,
     including a 3 entry translation vector and 2 entries for
     a single rotation angle theta containing sin(theta), cos(theta). This format
-    does not allow for arbitrary commands to be defined, and originates from the paper and dataset:
+    does not allow for arbitrary rotation commands to be defined,
+    and originates from the paper and dataset:
     https://sites.google.com/site/brainrobotdata/home/grasping-dataset
     https://arxiv.org/abs/1603.02199
 
+    In the google brain dataset the gripper is only commanded to
+    rotate around a single vertical axis,
+    so you might clearly visualize it, this also happens to
+    approximately match the vector defined by gravity.
+    Furthermore, the original paper had the geometry of the
+    arm joints on which params could easily be extracted,
+    which is not available here. To resolve this discrepancy
+    Here we assume that the gripper generally starts off at a
+    quaternion orientation of approximately [qx=-1, qy=0, qz=0, qw=0].
+    This is equivalent to the angle axis
+    representation of [a=np.pi, x=-1, y=0, z=0],
+    which I'll name default_rot.
+
+    It is also important to note the ambiguity of the
+    angular distance between any current pose
+    and the end pose. This angular distance will
+    always have a positive value so the network
+    could not naturally discriminate between
+    turning left and turning right.
+    For this reason, we use the angular distance
+    from default_rot to define the input angle parameter,
+    and if the angle axis x axis component is > 0
+    we will use [sin(theta), cos(theta)] for rotation,
+    but if the angle axis x axis component is < 0
+    we will use [sin(-theta), cos(-theta)].
+
+    Also note that in the eigen API being used:
+    e.AngleAxisd(e.Quaterniond().Identity()) == [a=0.0, x=1, y=0, z=0]
     """
-    identity = eigen.Quaterniond()
-    identity.setIdentity()
-    theta = identity.angularDistance(ptransform)
     translation = ptransform.translation()
+    aa = e.AngleAxisd(ptransform)
+    theta = aa.angle()
+    if aa.axis().x() < 0:
+        theta *= -1
     sin_cos_theta = np.array([np.sin(theta), np.cos(theta)])
     vector_sin_theta_cos_theta = np.concatenate([translation, sin_cos_theta])
     return vector_sin_theta_cos_theta
