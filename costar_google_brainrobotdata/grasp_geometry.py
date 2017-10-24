@@ -114,8 +114,8 @@ def ptransform_to_vector_quaternion_array(ptransform, q_inverse=True, dtype=np.f
     translation = np.array(translation).reshape(3)
     # coeffs are in xyzw order
     q_floats_array = np.array(quaternion.coeffs())
-    vec_quat_7 = np.append(translation, q_floats_array, dtype=dtype)
-    return vec_quat_7
+    vec_quat_7 = np.append(translation, q_floats_array)
+    return vec_quat_7.astype(dtype)
 
 
 def matrix_to_vector_quaternion_array(matrix, inverse=False, verbose=0):
@@ -214,8 +214,8 @@ def ptransform_to_vector_sin_theta_cos_theta(ptransform, dtype=np.float32):
     if aa.axis().x() < 0:
         theta *= -1
     sin_cos_theta = np.array([np.sin(theta), np.cos(theta)])
-    vector_sin_theta_cos_theta = np.concatenate([translation, sin_cos_theta], dtype=dtype)
-    return vector_sin_theta_cos_theta
+    vector_sin_theta_cos_theta = np.concatenate([translation, sin_cos_theta])
+    return vector_sin_theta_cos_theta.astype(dtype)
 
 
 def depth_image_pixel_to_cloud_point(depth_image, camera_intrinsics_matrix, pixel_coordinate, augmentation_rectangle=None):
@@ -546,10 +546,10 @@ def current_endeffector_to_final_endeffector_feature(current_base_T_endeffector,
 
     # we have ptransforms for both data, now get transform from current to commanded
     if 'vec_quat_7' in feature_type:
-        current_to_end = ptransform_to_vector_quaternion_array(current_to_end, dtype=dtype)
+        current_to_end = ptransform_to_vector_quaternion_array(current_to_end)
     elif 'vec_sin_cos_5' in feature_type:
-        current_to_end = ptransform_to_vector_sin_theta_cos_theta(current_to_end, dtype=dtype)
-    return current_to_end
+        current_to_end = ptransform_to_vector_sin_theta_cos_theta(current_to_end)
+    return current_to_end.astype(dtype)
 
 
 def vector_quaternion_arrays_allclose(vq1, vq2, rtol=1e-6, atol=1e-6, verbose=0):
