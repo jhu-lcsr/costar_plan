@@ -208,7 +208,7 @@ def ptransform_to_vector_sin_theta_cos_theta(ptransform):
     Also note that in the eigen API being used:
     e.AngleAxisd(e.Quaterniond().Identity()) == [a=0.0, x=1, y=0, z=0]
     """
-    translation = ptransform.translation()
+    translation = np.squeeze(ptransform.translation())
     aa = eigen.AngleAxisd(ptransform.rotation())
     theta = aa.angle()
     if aa.axis().x() < 0:
