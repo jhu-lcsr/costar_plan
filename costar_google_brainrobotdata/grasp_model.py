@@ -129,6 +129,11 @@ def grasp_model_resnet(clear_view_image_op,
 
     combined_input_data = combine_images_with_tiled_vector([clear_view_image_op, current_time_image_op], input_vector_op)
     combined_input_shape = K.int_shape(combined_input_data)
+    # the input shape should be a tuple of 3 values
+    # if the batch size is present, strip it out
+    # for call to ResNet constructor.
+    if len(combined_input_shape) == 4:
+        combined_input_shape = combined_input_shape[1:]
     # tile_vector_as_image_channels(input_vector_op, clear_view_image_op.get_shape().as_list()):
     # combined_input_data = tf.concat([clear_view_image_op, input_vector_op, current_time_image_op], -1)
     # combined_input_shape = input_image_shape
