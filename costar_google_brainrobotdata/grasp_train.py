@@ -158,7 +158,9 @@ class GraspTrain(object):
         pregrasp_op_batch = tf.concat(pregrasp_op_batch, 0)
         grasp_step_op_batch = tf.concat(grasp_step_op_batch, 0)
         simplified_grasp_command_op_batch = tf.concat(simplified_grasp_command_op_batch, 0)
+        print('grasp_success_op_batch before concat: ', grasp_success_op_batch)
         grasp_success_op_batch = tf.concat(grasp_success_op_batch, 0)
+        print('grasp_success_op_batch after concat: ', grasp_success_op_batch)
 
         if resize:
             input_image_shape = [resize_height, resize_width, 3]
