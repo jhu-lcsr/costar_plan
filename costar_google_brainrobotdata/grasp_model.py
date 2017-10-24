@@ -46,6 +46,7 @@ def tile_vector_as_image_channels(vector_op, image_shape):
         if K.backend() is 'tensorflow':
             output_shape = [ivs[0], image_shape[1], image_shape[2], ivs[1]]
             vector_op.set_shape(output_shape)
+        print('tile_vector_as_image_channels vector_op: ', vector_op)
         return vector_op
 
 
@@ -59,7 +60,10 @@ def combine_images_with_tiled_vectors(images, vectors):
         image_shape = images[0].get_shape().as_list()
         tiled_vectors = tile_vector_as_image_channels(vectors, image_shape)
         images.append(tiled_vectors)
+        print('images and tiled vectors: ', images)
         K.concatenate(images)
+
+        print('concatenated images: ', images)
         return images
 
 
