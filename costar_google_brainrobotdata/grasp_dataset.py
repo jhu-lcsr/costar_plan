@@ -72,7 +72,7 @@ flags.DEFINE_boolean('resize', True,
                         resize_width and resize_height flags. It is suggested that an exact factor of 2 be used
                         relative to the input image directions if random_crop is disabled or the crop dimensions otherwise.
                      """)
-flags.DEFINE_boolean('image_augmentation', False,
+flags.DEFINE_boolean('image_augmentation', True,
                      'image augmentation applies random brightness, saturation, hue, contrast')
 flags.DEFINE_boolean('imagenet_mean_subtraction', True,
                      'subtract the imagenet mean pixel values from the rgb images')
