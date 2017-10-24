@@ -121,7 +121,11 @@ def grasp_model_resnet(clear_view_image_op,
     #     [clear_view_image_op, current_time_image_op], input_vector_op, input_image_shape, input_vector_op_shape)
 
     combined_input_data = combine_images_with_tiled_vectors([clear_view_image_op, current_time_image_op], input_vector_op)
-    combined_input_shape = K.shape(combined_input_data)
+
+    if K.backend() is 'tensorflow':
+        combined_input_shape = combined_input_data.get_shape().as_list()
+    else:
+        combined_input_shape = K.shape(combined_input_data)
     # tile_vector_as_image_channels(input_vector_op, clear_view_image_op.get_shape().as_list()):
     # combined_input_data = tf.concat([clear_view_image_op, input_vector_op, current_time_image_op], -1)
     # combined_input_shape = input_image_shape
