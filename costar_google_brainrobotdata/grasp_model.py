@@ -48,6 +48,7 @@ def tile_vector_as_image_channels(vector_op, image_shape):
         vector_pixel_shape = [ivs[0], 1, 1, ivs[1]]
         print('vector_pixel_shape: ', vector_pixel_shape)
         vector_op = K.reshape(vector_op, vector_pixel_shape)
+        print('vector_op_shape_as_pixel: ', vector_op)
         # tile the pixel into a full image
         # tile_dimensions = K.stack([1, image_shape[1], image_shape[2], 1])
         tile_dimensions = [1, image_shape[1], image_shape[2], 1]
