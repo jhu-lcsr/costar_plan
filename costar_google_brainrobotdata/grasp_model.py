@@ -32,19 +32,33 @@ from keras_contrib.applications.resnet import ResNet
 from keras.engine import Layer
 
 
-# def tile_vector_as_image_channels(vector_op, image_shape):
-#     """
+def tile_vector_as_image_channels(vector_op, image_shape):
+    """
+    Takes a vector of length n and an image shape BHWC,
+    and repeat the vector as channels at each pixel.
+    """
+    with K.name_scope('tile_vector_as_image_channels'):
+        ivs = K.shape(vector_op)
+        vector_op = K.reshape(vector_op, [ivs[0], 1, 1, ivs[1]])
+        vector_op = K.tile(vector_op, K.stack([1, image_shape[1], image_shape[2], 1]))
+        return vector_op
 
-#     Takes a vector of length n and an image shape BHWC,
-#     and repeat the vector as channels at each pixel.
-#     """
-#     ivs = K.shape(vector_op)
-#     vector_op = K.reshape(vector_op, [ivs[0], 1, 1, ivs[1]])
-#     vector_op = K.tile(vector_op, K.stack([1, image_shape[1], image_shape[2], 1]))
-#     return vector_op
+
+def combine_images_with_tiled_vectors(images, vectors):
+    with K.name_scope('combine_images_and_tile_vectors_as_image_channels'):
+        if not isinstance(images, list):
+            images = [images]
+        if isinstance(vectors, list):
+            # just concat all the vectors into a big one if needed
+            vectors = K.concatenate(vectors)
+        image_shape = images[0].get_shape().as_list()
+        tiled_vectors = tile_vector_as_image_channels(vectors, image_shape)
+        images.append(tiled_vectors)
+        K.concatenate(images)
+        return images
 
 
-def tile_vector_as_image_channels(images, vector, image_shape=None, vector_shape=None):
+def tile_vector_as_image_channels_layer(images, vector, image_shape=None, vector_shape=None):
     """Tile a vector as if it were channels onto every pixel of an image
 
     # Params
@@ -86,15 +100,20 @@ def grasp_model_resnet(clear_view_image_op,
     # if input_image_shape is None:
     #     input_image_shape = [512, 640, 3]
     print('input_vector_op pre tile: ', input_vector_op)
+    print('clear_view_image_op pre tile: ', clear_view_image_op)
+    print('current_time_image_op pre tile: ', current_time_image_op)
 
-    combined_input_data = tile_vector_as_image_channels(
-        [clear_view_image_op, current_time_image_op], input_vector_op, input_image_shape, input_vector_op_shape)
+    # combined_input_data = tile_vector_as_image_channels_layer(
+    #     [clear_view_image_op, current_time_image_op], input_vector_op, input_image_shape, input_vector_op_shape)
 
+    combined_input_data = combine_images_with_tiled_vectors([clear_view_image_op, current_time_image_op], input_vector_op)
+    combined_input_shape = K.shape(combined_input_data)
+    # tile_vector_as_image_channels(input_vector_op, clear_view_image_op.get_shape().as_list()):
     # combined_input_data = tf.concat([clear_view_image_op, input_vector_op, current_time_image_op], -1)
-    combined_input_shape = input_image_shape
+    # combined_input_shape = input_image_shape
     # add up the total number of channels
     # combined_input_shape[-1] = combined_input_shape[-1] * 2 + input_vector_op_shape[0]
-    combined_input_shape = K.shape(combined_input_data)
+    # combined_input_shape = K.shape(combined_input_data)
     print('combined_input_shape: ', combined_input_shape)
     # print('nb_filters: ', nb_filters)
     print('combined_input_data: ', combined_input_data)
