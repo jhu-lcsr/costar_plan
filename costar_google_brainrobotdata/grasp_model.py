@@ -32,16 +32,42 @@ from keras_contrib.applications.resnet import ResNet
 from keras.engine import Layer
 
 
-def tile_vector_as_image_channels(vector_op, image_shape):
-    """
+# def tile_vector_as_image_channels(vector_op, image_shape):
+#     """
 
-    Takes a vector of length n and an image shape BHWC,
-    and repeat the vector as channels at each pixel.
+#     Takes a vector of length n and an image shape BHWC,
+#     and repeat the vector as channels at each pixel.
+#     """
+#     ivs = K.shape(vector_op)
+#     vector_op = K.reshape(vector_op, [ivs[0], 1, 1, ivs[1]])
+#     vector_op = K.tile(vector_op, K.stack([1, image_shape[1], image_shape[2], 1]))
+#     return vector_op
+
+
+def tile_vector_as_image_channels(images, vector, image_shape=None, vector_shape=None):
+    """Tile a vector as if it were channels onto every pixel of an image
+
+    # Params
+       images: a list of images to combine, must have equal dimensions
+       vector: the 1D vector to tile onto every pixel
+       image_shape: Tuple with 3 entries defining the shape (batch, height, width)
+           images should be expected to have, do not specify the number
+           of batches.
+       vector_shape: Tuple with 3 entries defining the shape (batch, height, width)
+           images should be expected to have, do not specify the number
+           of batches.
     """
-    ivs = K.shape(vector_op)
-    vector_op = K.reshape(vector_op, [ivs[0], 1, 1, ivs[1]])
-    vector_op = K.tile(vector_op, K.stack([1, image_shape[1], image_shape[2], 1]))
-    return vector_op
+    if not isinstance(images, list):
+        images = [images]
+    if vector_shape is None:
+        vector_shape = images[0].get_shape().as_list()[1:]
+    if image_shape is None:
+        image_shape = images[0].get_shape().as_list()[1:]
+    vector = Reshape([1, 1, vector_shape[-1]])(vector)
+    tile_shape = (int(1), int(image_shape[0]), int(image_shape[1]), 1)
+    tiled_vector = Lambda(lambda x: K.tile(x, tile_shape))(vector)
+    x = Concatenate(axis=-1)([] + images + [tiled_vector])
+    return x
 
 
 def grasp_model_resnet(clear_view_image_op,
