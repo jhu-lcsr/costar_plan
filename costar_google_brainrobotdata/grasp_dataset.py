@@ -641,6 +641,7 @@ class GraspDataset(object):
                      fixed_feature_op_dict[base_T_endeffector_final_close_gripper_name],
                      'vec_quat_7'],
                     tf.float32)
+                current_to_end_op.set_shape([7])
                 current_to_end_name = 'move_to_grasp/{:03}/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_quat_7'.format(j)
                 fixed_feature_op_dict[current_to_end_name] = current_to_end_op
                 if i == 0:
@@ -657,6 +658,7 @@ class GraspDataset(object):
                      fixed_feature_op_dict[base_T_endeffector_final_close_gripper_name],
                      'vec_sin_cos_5'],
                     tf.float32)
+                current_to_end_op.set_shape([5])
                 current_to_end_name = 'move_to_grasp/{:03}/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_sin_cos_5'.format(j)
                 fixed_feature_op_dict[current_to_end_name] = current_to_end_op
                 if i == 0:
@@ -733,6 +735,8 @@ class GraspDataset(object):
                 grasp_geometry.grasp_dataset_to_surface_relative_transform,
                 # parameters for call to surface_relative_transform function call
                 [depth_clear_view, camera_intrinsics_matrix, camera_T_base, fixed_feature_op_dict[final_pose_op]], tf.float32)
+            # vector quaternion array of size 7
+            current_to_end_op.set_shape([7])
             fixed_feature_op_dict[current_to_end_name] = current_to_end_op
             features_complete_list = np.append(features_complete_list, current_to_end_name)
             new_pose_op_param_names = np.append(new_pose_op_param_names, current_to_end_name)
