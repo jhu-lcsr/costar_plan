@@ -40,13 +40,18 @@ def tile_vector_as_image_channels(vector_op, image_shape):
     with K.name_scope('tile_vector_as_image_channels'):
         ivs = K.shape(vector_op)
         # reshape the vector into a single pixel
-        vector_op = K.reshape(vector_op, [ivs[0], 1, 1, ivs[1]])
+        vector_pixel_shape = [ivs[0], 1, 1, ivs[1]]
+        print('vector_pixel_shape: ', vector_pixel_shape)
+        vector_op = K.reshape(vector_op, vector_pixel_shape)
         # tile the pixel into a full image
-        vector_op = K.tile(vector_op, K.stack([1, image_shape[1], image_shape[2], 1]))
+        tile_dimensions = K.stack([1, image_shape[1], image_shape[2], 1])
+        print('tile_dimensions to add: ', tile_dimensions)
+        vector_op = K.tile(vector_op, tile_dimensions)
+        print('tile_vector_as_image_channels default shape: ', vector_op)
         if K.backend() is 'tensorflow':
             output_shape = [ivs[0], image_shape[1], image_shape[2], ivs[1]]
             vector_op.set_shape(output_shape)
-        print('tile_vector_as_image_channels vector_op: ', vector_op)
+        print('tile_vector_as_image_channels with set shape vector_op: ', vector_op)
         return vector_op
 
 
@@ -61,10 +66,10 @@ def combine_images_with_tiled_vectors(images, vectors):
         tiled_vectors = tile_vector_as_image_channels(vectors, image_shape)
         images.append(tiled_vectors)
         print('images and tiled vectors: ', images)
-        K.concatenate(images)
+        combined = K.concatenate(images)
 
-        print('concatenated images: ', images)
-        return images
+        print('combined concatenated images: ', combined)
+        return combined
 
 
 def tile_vector_as_image_channels_layer(images, vector, image_shape=None, vector_shape=None):
