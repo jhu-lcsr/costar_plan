@@ -52,7 +52,7 @@ def grasp_model_resnet(clear_view_image_op,
                        include_top=True,
                        dropout_rate=0.0):
     if input_vector_op_shape is None:
-        input_vector_op_shape = [7]
+        input_vector_op_shape = input_vector_op.get_shape().as_list()
     if input_image_shape is None:
         input_image_shape = [512, 640, 3]
     print('input_vector_op pre tile: ', input_vector_op)
@@ -202,7 +202,7 @@ def grasp_model(clear_view_image_op,
                 include_top=True,
                 dropout_rate=0.0):
     if input_vector_op_shape is None:
-        input_vector_op_shape = [7]
+        input_vector_op_shape = input_vector_op.get_shape().as_list()
     if input_image_shape is None:
         input_image_shape = [512, 640, 3]
     print('input_vector_op pre tile: ', input_vector_op)
@@ -248,7 +248,7 @@ def grasp_model_segmentation(clear_view_image_op=None,
                              dense_blocks=4,
                              dropout_rate=0.0):
     if input_vector_op_shape is None:
-        input_vector_op_shape = [5]
+        input_vector_op_shape = input_vector_op.get_shape().as_list()
     if input_image_shape is None:
         input_image_shape = [512, 640, 3]
 
