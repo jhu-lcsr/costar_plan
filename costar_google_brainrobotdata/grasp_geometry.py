@@ -89,7 +89,7 @@ def vector_quaternion_array_to_ptransform(vector_quaternion_array, q_inverse=Tru
     return pt
 
 
-def ptransform_to_vector_quaternion_array(ptransform, q_inverse=True):
+def ptransform_to_vector_quaternion_array(ptransform, q_inverse=True, dtype=np.float32):
     """Convert a PTransformD into a vector quaternion array
     containing 3 vector entries (x, y, z) and 4 quaternion entries (x, y, z, w)
 
@@ -114,7 +114,7 @@ def ptransform_to_vector_quaternion_array(ptransform, q_inverse=True):
     translation = np.array(translation).reshape(3)
     # coeffs are in xyzw order
     q_floats_array = np.array(quaternion.coeffs())
-    vec_quat_7 = np.append(translation, q_floats_array)
+    vec_quat_7 = np.append(translation, q_floats_array, dtype=dtype)
     return vec_quat_7
 
 
@@ -169,7 +169,7 @@ def vector_to_ptransform(XYZ):
     return ptransform
 
 
-def ptransform_to_vector_sin_theta_cos_theta(ptransform):
+def ptransform_to_vector_sin_theta_cos_theta(ptransform, dtype=np.float32):
     """Plucker transform to [dx, dy, dz, sin(theta), cos(theta)]
     Convert a PTransform 3D Rigid body transform into a numpy array with 5 total entries,
     including a 3 entry translation vector and 2 entries for
@@ -214,7 +214,7 @@ def ptransform_to_vector_sin_theta_cos_theta(ptransform):
     if aa.axis().x() < 0:
         theta *= -1
     sin_cos_theta = np.array([np.sin(theta), np.cos(theta)])
-    vector_sin_theta_cos_theta = np.concatenate([translation, sin_cos_theta])
+    vector_sin_theta_cos_theta = np.concatenate([translation, sin_cos_theta], dtype=dtype)
     return vector_sin_theta_cos_theta
 
 
@@ -504,7 +504,10 @@ def grasp_dataset_to_surface_relative_transform(depth_image,
                                       return_depth_image_coordinate)
 
 
-def current_endeffector_to_final_endeffector_feature(current_base_T_endeffector, end_base_T_endeffector, feature_type='vec_sin_cos_5'):
+def current_endeffector_to_final_endeffector_feature(current_base_T_endeffector,
+                                                     end_base_T_endeffector,
+                                                     feature_type='vec_sin_cos_5',
+                                                     dype=np.float32):
     """Calculate the ptransform between two poses in the same base frame.
 
        A pose is a 6 degree of freedom rigid transform represented with 7 values:
@@ -543,9 +546,9 @@ def current_endeffector_to_final_endeffector_feature(current_base_T_endeffector,
 
     # we have ptransforms for both data, now get transform from current to commanded
     if 'vec_quat_7' in feature_type:
-        current_to_end = ptransform_to_vector_quaternion_array(current_to_end)
+        current_to_end = ptransform_to_vector_quaternion_array(current_to_end, dtype=dtype)
     elif 'vec_sin_cos_5' in feature_type:
-        current_to_end = ptransform_to_vector_sin_theta_cos_theta(current_to_end)
+        current_to_end = ptransform_to_vector_sin_theta_cos_theta(current_to_end, dtype=dtype)
     return current_to_end
 
 
