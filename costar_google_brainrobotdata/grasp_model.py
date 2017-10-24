@@ -39,6 +39,7 @@ def tile_vector_as_image_channels(vector_op, image_shape):
     """
     with K.name_scope('tile_vector_as_image_channels'):
         ivs = K.shape(vector_op)
+        print('input_vector_shape: ',ivs)
         # reshape the vector into a single pixel
         vector_pixel_shape = [ivs[0], 1, 1, ivs[1]]
         print('vector_pixel_shape: ', vector_pixel_shape)
