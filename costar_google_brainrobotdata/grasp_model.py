@@ -39,8 +39,13 @@ def tile_vector_as_image_channels(vector_op, image_shape):
     """
     with K.name_scope('tile_vector_as_image_channels'):
         ivs = K.shape(vector_op)
+        # reshape the vector into a single pixel
         vector_op = K.reshape(vector_op, [ivs[0], 1, 1, ivs[1]])
+        # tile the pixel into a full image
         vector_op = K.tile(vector_op, K.stack([1, image_shape[1], image_shape[2], 1]))
+        if K.backend() is 'tensorflow':
+            output_shape = [ivs[0], image_shape[1], image_shape[2], ivs[1]]
+            vector_op.set_shape(output_shape)
         return vector_op
 
 
