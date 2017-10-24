@@ -302,7 +302,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
     def _getTransform(self,i=0):
         transform_dropout = False
-        use_options_again = True
+        use_options_again = False
         transform_batchnorm = True
         transform_relu = True
         if use_options_again:

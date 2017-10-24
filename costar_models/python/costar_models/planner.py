@@ -456,6 +456,7 @@ def GetArmGripperDecoder(dim, img_shape,
         rep = Input((dim,))
         x = rep
 
+    """
     x = Dense(dense_size)(x)
     x = BatchNormalization()(x)
     if leaky:
@@ -464,12 +465,16 @@ def GetArmGripperDecoder(dim, img_shape,
         x = Activation("relu")(x)
     if dropout:
         x = Dropout(dropout_rate)(x)
+    """
 
-    arm_out_x = Dense(arm_size, name="next_arm", activation="linear")(x)
+    x1 = DenseHelper(x, dense_size, dropout_rate, 2)
+    x2 = DenseHelper(x, dense_size, dropout_rate, 2)
+
+    arm_out_x = Dense(arm_size, name="next_arm", activation="linear")(x1)
     gripper_out_x = Dense(gripper_size,
             activation="sigmoid",
-            name="next_gripper_flat")(x)
-    label_out_x = Dense(num_options,name="next_label",activation="softmax")(x)
+            name="next_gripper_flat")(x1)
+    label_out_x = Dense(num_options,name="next_label",activation="softmax")(x2)
 
     decoder = Model(rep,
                     [arm_out_x, gripper_out_x, label_out_x],
@@ -542,7 +547,7 @@ def GetImageArmGripperDecoder(dim, img_shape,
     x1 = DenseHelper(x, dense_size, dropout_rate, 2)
     x2 = DenseHelper(x, dense_size, dropout_rate, 2)
 
-    arm_out_x = Dense(arm_size,name="next_arm")(x)
+    arm_out_x = Dense(arm_size,name="next_arm")(x1)
     gripper_out_x = Dense(gripper_size,
             name="next_gripper_flat")(x1)
     label_out_x = Dense(num_options,name="next_label",activation="softmax")(x2)
