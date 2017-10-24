@@ -46,6 +46,7 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
 
         # Number of model inputs for training only
         self.num_features = 4
+        self.use_next_option = False
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)

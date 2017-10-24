@@ -77,12 +77,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.gripper_cmd_size = 1
 
         # Used for classifiers: value and next option
-        self.combined_dense_size = 128
+        self.combined_dense_size = 256
 
         # Size of the "pose" column containing arm, gripper info
         self.pose_col_dim = 64
 
-        # Size of the hidden representation when using dense
+        # Size of the hidden representation when using dense hidden
+        # repesentations
         self.img_col_dim = 128
 
         self.PredictorCb = PredictorShowImage
@@ -98,6 +99,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # These are hard coded settings -- tweaking them may break a bunch of
         # things.
         self.use_prev_option = True
+        self.use_next_option = True
         self.always_same_transform = False
 
     def _makePredictor(self, features):
@@ -302,7 +304,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
     def _getTransform(self,i=0):
         transform_dropout = False
-        use_options_again = True
+        use_options_again = self.use_next_option
         transform_batchnorm = True
         transform_relu = True
         if use_options_again:
@@ -381,6 +383,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Preprocess values
         value_target = np.array(value > 1.,dtype=float)
+        q[:,3:] = q[:,3:] / np.pi
+        q_target[:,3:] = q_target[:,3:] / np.pi
         qa /= np.pi
 
         o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
