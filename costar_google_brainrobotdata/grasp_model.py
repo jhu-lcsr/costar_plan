@@ -62,16 +62,16 @@ def tile_vector_as_image_channels(vector_op, image_shape):
         return vector_op
 
 
-def combine_images_with_tiled_vectors(images, vectors):
-    with K.name_scope('combine_images_and_tile_vectors_as_image_channels'):
+def combine_images_with_tiled_vector(images, vector):
+    with K.name_scope('combine_images_with_tiled_vector'):
         if not isinstance(images, list):
             images = [images]
-        if isinstance(vectors, list):
+        # if isinstance(vectors, list):
             # just concat all the vectors into a big one if needed
-            vectors = K.concatenate(vectors)
+            # vectors = K.concatenate(vectors)
         image_shape = images[0].get_shape().as_list()
-        tiled_vectors = tile_vector_as_image_channels(vectors, image_shape)
-        images.append(tiled_vectors)
+        tiled_vector = tile_vector_as_image_channels(vector, image_shape)
+        images.append(tiled_vector)
         print('images and tiled vectors: ', images)
         combined = K.concatenate(images)
 
@@ -127,7 +127,7 @@ def grasp_model_resnet(clear_view_image_op,
     # combined_input_data = tile_vector_as_image_channels_layer(
     #     [clear_view_image_op, current_time_image_op], input_vector_op, input_image_shape, input_vector_op_shape)
 
-    combined_input_data = combine_images_with_tiled_vectors([clear_view_image_op, current_time_image_op], input_vector_op)
+    combined_input_data = combine_images_with_tiled_vector([clear_view_image_op, current_time_image_op], input_vector_op)
 
     if K.backend() is 'tensorflow':
         combined_input_shape = combined_input_data.get_shape().as_list()
