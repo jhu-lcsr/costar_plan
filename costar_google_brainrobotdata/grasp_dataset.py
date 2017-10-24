@@ -832,10 +832,18 @@ class GraspDataset(object):
         """Add features to dict that supply decoded png and jpeg images for any encoded images present.
         Feature path that is 'image/encoded' will also now have 'image/decoded'
 
+        # Params
+
+            feature_op_dict: dictionary of strings to feature tensors.
+            sensor_image_dimensions: [batch, height, width, channels], defaults to
+                [1, FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels]
+
         # Returns
 
             updated feature_op_dict, new_feature_list
         """
+        if sensor_image_dimensions is None:
+                sensor_image_dimensions = [1, FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels]
         features = [feature for (feature, tf_op) in iteritems(feature_op_dict)]
         image_features = GraspDataset.get_time_ordered_features(features, '/image/encoded')
         image_features.extend(GraspDataset.get_time_ordered_features(features, 'depth_image/encoded'))
@@ -854,7 +862,6 @@ class GraspDataset(object):
                 image = tf.reshape(image, [1, FLAGS.sensor_image_height, FLAGS.sensor_image_width, 1])
                 # image = tf.py_func(depth_image_encoding.ImageToFloatArray, [image], tf.float32)
             else:
-                sensor_image_dimensions = [1, FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels]
                 image = tf.image.decode_jpeg(image_buffer, channels=sensor_image_dimensions[3])
                 image.set_shape(sensor_image_dimensions[1:])
                 image = tf.reshape(image, sensor_image_dimensions)
