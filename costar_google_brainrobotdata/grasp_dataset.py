@@ -561,12 +561,12 @@ class GraspDataset(object):
                                   for image_name in ordered_depth_feature_names})
 
             # load all vec/quat base to end effector transforms that aren't sequences
-            base_to_endeffector_names = GraspDataset.get_time_ordered_features(
+            vec_quat_transform_names = GraspDataset.get_time_ordered_features(
                 features_complete_list,
-                feature_type='transforms/base_T_endeffector/vec_quat_7'
+                feature_type='vec_quat_7'
                 )
             features_dict.update({x_form: tf.FixedLenFeature([7], tf.float32)
-                                  for x_form in base_to_endeffector_names})
+                                  for x_form in vec_quat_transform_names})
 
             # load all vec/quat base to end effector transforms that are sequences
             base_to_endeffector_sequence_names = GraspDataset.get_time_ordered_features(
@@ -645,9 +645,9 @@ class GraspDataset(object):
                 fixed_feature_op_dict[current_to_end_name] = current_to_end_op
                 if i == 0:
                     # assume all batches have the same features
-                    features_complete_list.append(current_to_end_name)
+                    features_complete_list = np.append(features_complete_list, current_to_end_name)
                     if feature_type == 'vec_quat_7':
-                        new_pose_op_param_names.append(current_to_end_name)
+                        new_pose_op_param_names = np.append(new_pose_op_param_names, current_to_end_name)
 
                 # Create the 5 entry vector quaternion feature [dx, dy, dz, sin(theta), cos(theta)]
                 # generate the transform calculation op, might be able to set stateful=False for a performance boost
@@ -661,9 +661,9 @@ class GraspDataset(object):
                 fixed_feature_op_dict[current_to_end_name] = current_to_end_op
                 if i == 0:
                     # assume all batches have the same features
-                    features_complete_list.append(current_to_end_name)
+                    features_complete_list = np.append(features_complete_list, current_to_end_name)
                     if feature_type == 'vec_sin_cos_5':
-                        new_pose_op_param_names.append(current_to_end_name)
+                        new_pose_op_param_names = np.append(new_pose_op_param_names, current_to_end_name)
 
             # assemble the updated feature op dicts
             new_feature_op_dicts.append((fixed_feature_op_dict, sequence_feature_op_dict))
@@ -734,10 +734,10 @@ class GraspDataset(object):
                 # parameters for call to surface_relative_transform function call
                 [depth_clear_view, camera_intrinsics_matrix, camera_T_base, fixed_feature_op_dict[final_pose_op]], tf.float32)
             fixed_feature_op_dict[current_to_end_name] = current_to_end_op
-            features_complete_list.append(current_to_end_name)
-            new_pose_op_param_names.append(current_to_end_name)
+            features_complete_list = np.append(features_complete_list, current_to_end_name)
+            new_pose_op_param_names = np.append(new_pose_op_param_names, current_to_end_name)
             # assemble the updated feature op dicts
-            new_feature_op_dicts.append((fixed_feature_op_dict, sequence_feature_op_dict))
+            new_feature_op_dicts = np.append(new_feature_op_dicts, (fixed_feature_op_dict, sequence_feature_op_dict))
 
         # same command for all ops, so duplicate it
         new_pose_op_param_names = new_pose_op_param_names * len(pose_op_params)
@@ -853,7 +853,7 @@ class GraspDataset(object):
                 image = tf.reshape(image, sensor_image_dimensions)
             decoded_image_feature = image_feature.replace('encoded', 'decoded')
             feature_op_dict[decoded_image_feature] = image
-            new_feature_list.append(decoded_image_feature)
+            new_feature_list = np.append(new_feature_list, decoded_image_feature)
 
         return feature_op_dict, new_feature_list
 
