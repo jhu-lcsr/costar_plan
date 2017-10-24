@@ -203,11 +203,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 transform.summary()
             if self.use_noise:
                 zi = Lambda(lambda x: x[:,i], name="slice_z%d"%i)(z)
-                #x = transform([enc, zi, next_option_in])
-                x = transform([enc, zi])
+                x = transform([enc, zi, next_option_in])
+                #x = transform([enc, zi])
             else:
-                #x = transform([enc, next_option_in])
-                x = transform([enc])
+                x = transform([enc, next_option_in])
+                #x = transform([enc])
             
             if self.sampling:
                 x, mu, sigma = x
@@ -302,7 +302,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
     def _getTransform(self,i=0):
         transform_dropout = False
-        use_options_again = False
+        use_options_again = True
         transform_batchnorm = True
         transform_relu = True
         if use_options_again:
