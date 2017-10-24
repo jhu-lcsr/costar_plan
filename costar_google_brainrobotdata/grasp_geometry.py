@@ -507,7 +507,7 @@ def grasp_dataset_to_surface_relative_transform(depth_image,
 def current_endeffector_to_final_endeffector_feature(current_base_T_endeffector,
                                                      end_base_T_endeffector,
                                                      feature_type='vec_sin_cos_5',
-                                                     dype=np.float32):
+                                                     dtype=np.float32):
     """Calculate the ptransform between two poses in the same base frame.
 
        A pose is a 6 degree of freedom rigid transform represented with 7 values:
