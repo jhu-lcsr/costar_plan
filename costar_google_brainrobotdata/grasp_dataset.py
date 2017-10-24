@@ -640,7 +640,7 @@ class GraspDataset(object):
                     [fixed_feature_op_dict[base_to_endeffector_transform_name],
                      fixed_feature_op_dict[base_T_endeffector_final_close_gripper_name],
                      'vec_quat_7'],
-                    name='py_func/current_endeffector_to_final_endeffector_feature/vec_quat_7'
+                    name='py_func/current_endeffector_to_final_endeffector_feature/vec_quat_7',
                     tf.float32)
                 current_to_end_op.set_shape([7])
                 current_to_end_name = 'move_to_grasp/{:03}/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_quat_7'.format(j)
