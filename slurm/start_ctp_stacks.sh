@@ -39,7 +39,7 @@ do
     for noise_dim in 0 1 8 32
     do
       hd=true
-      for dr in 0.125 0.25 0.5
+      for dr in 0.01 0.125 0.25 0.5
       do
         echo "starting LR=$lr, Dropout=$dr, optimizer=$opt, use dropout in hypotheses: $hd noise=$noise_dim"
         sbatch ctp.sh $lr $dr $opt $hd $noise_dim 

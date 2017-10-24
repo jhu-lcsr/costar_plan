@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --job-name=ctpS
+#SBATCH --job-name=ctpT
 #SBATCH --time=0-48:0:0
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
@@ -20,11 +20,11 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--features multi \
 	-e 100 \
 	--model predictor \
-	--data_file $HOME/work/ctp_rpy.npz \
+	--data_file $HOME/work/ctp_rpy2.npz \
 	--lr $1 \
-	--dropout_rate 0.125 \
+	--dropout_rate $2 \
 	--decoder_dropout_rate $2 \
-  --model_directory $HOME/.costar/models_stack_S2_$1$3$2$4$5/ \
+  --model_directory $HOME/.costar/models_stack_T$1$3$2$4$5/ \
 	--optimizer $3 \
   --use_noise true \
   --steps_per_epoch 500 \
@@ -32,6 +32,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --hypothesis_dropout $4 \
   --upsampling conv_transpose \
   --batch_size 32
+  #--success_only \
 
 #--success_only \
 
