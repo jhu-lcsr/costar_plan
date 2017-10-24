@@ -36,6 +36,7 @@ def tile_vector_as_image_channels(vector_op, image_shape):
     """
     Takes a vector of length n and an image shape BHWC,
     and repeat the vector as channels at each pixel.
+
     # Params
 
       vector_op: A tensor vector to tile.
@@ -62,8 +63,20 @@ def tile_vector_as_image_channels(vector_op, image_shape):
         return vector_op
 
 
-def combine_images_with_tiled_vector(images, vector):
-    with K.name_scope('combine_images_with_tiled_vector'):
+def concat_images_with_tiled_vector(images, vector):
+    """Combine a set of images with a vector, tiling the vector at each pixel in the images and concatenating on the channel axis.
+
+    # Params
+
+        images: list of images with the same dimensions
+        vector: vector to tile on each image. If you have
+            more than one vector, simply concatenate them
+            all before calling this function.
+
+    # Returns
+
+    """
+    with K.name_scope('concat_images_with_tiled_vector'):
         if not isinstance(images, list):
             images = [images]
         # if isinstance(vectors, list):
@@ -127,7 +140,7 @@ def grasp_model_resnet(clear_view_image_op,
     # combined_input_data = tile_vector_as_image_channels_layer(
     #     [clear_view_image_op, current_time_image_op], input_vector_op, input_image_shape, input_vector_op_shape)
 
-    combined_input_data = combine_images_with_tiled_vector([clear_view_image_op, current_time_image_op], input_vector_op)
+    combined_input_data = concat_images_with_tiled_vector([clear_view_image_op, current_time_image_op], input_vector_op)
     combined_input_shape = K.int_shape(combined_input_data)
     # the input shape should be a tuple of 3 values
     # if the batch size is present, strip it out
