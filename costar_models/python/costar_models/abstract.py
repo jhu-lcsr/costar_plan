@@ -29,6 +29,7 @@ class AbstractAgentBasedModel(object):
             use_noise=False,
             sampling=False,
             use_prev_option=True,
+            success_only=False,
             num_generator_files=1, predict_value=False, upsampling=None,
             task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
@@ -39,6 +40,7 @@ class AbstractAgentBasedModel(object):
         elif lr > 1.:
             raise RuntimeError('Extremely high learning rate: %f' % lr)
 
+        self.success_only = success_only
         self.use_prev_option = use_prev_option
         self.lr = lr
         self.iter = iter
@@ -111,6 +113,7 @@ class AbstractAgentBasedModel(object):
         print("Pretrain for %d iter"%self.pretrain_iter)
         print("p(Generator sample first frame) = 1/%d"%(self.choose_initial))
         print("Number of generator files = %d"%self.num_generator_files)
+        print("Successful examples only = ", self.success_only)
         print("-----------------------------------------------------------")
         print("------------------ Model Specific Options -----------------")
         print("residual =", self.residual)

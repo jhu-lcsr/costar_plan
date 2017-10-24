@@ -132,13 +132,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 batchnorm=True,
                 tile=True,
                 flatten=False,
-                #option=self.num_options,
+                option=self.num_options,
                 use_spatial_softmax=self.use_spatial_softmax,
-                option=None,
+                #option=None,
                 output_filters=self.tform_filters,
                 )
-        #img_in, arm_in, gripper_in, option_in = ins
-        img_in, arm_in, gripper_in = ins
+        img_in, arm_in, gripper_in, option_in = ins
+        #img_in, arm_in, gripper_in = ins
         if self.use_noise:
             z = Input((self.num_hypotheses, self.noise_dim))
 
@@ -180,8 +180,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         decoder.summary()
     
-        option_in = Input((1,),name="prev_option_in")
-        ins += [option_in]
+        #option_in = Input((1,),name="prev_option_in")
+        #ins += [option_in]
         next_option_in = Input((self.num_options,),name="next_option_in")
         ins += [next_option_in]
         value_out, next_option_out = GetNextOptionAndValue(enc,
@@ -203,11 +203,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 transform.summary()
             if self.use_noise:
                 zi = Lambda(lambda x: x[:,i], name="slice_z%d"%i)(z)
-                x = transform([enc, zi, next_option_in])
-                #x = transform([enc, zi])
+                #x = transform([enc, zi, next_option_in])
+                x = transform([enc, zi])
             else:
-                x = transform([enc, next_option_in])
-                #x = transform([enc])
+                #x = transform([enc, next_option_in])
+                x = transform([enc])
             
             if self.sampling:
                 x, mu, sigma = x
