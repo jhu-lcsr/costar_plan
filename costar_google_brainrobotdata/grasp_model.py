@@ -44,7 +44,8 @@ def tile_vector_as_image_channels(vector_op, image_shape):
         print('vector_pixel_shape: ', vector_pixel_shape)
         vector_op = K.reshape(vector_op, vector_pixel_shape)
         # tile the pixel into a full image
-        tile_dimensions = K.stack([1, image_shape[1], image_shape[2], 1])
+        # tile_dimensions = K.stack([1, image_shape[1], image_shape[2], 1])
+        tile_dimensions = [1, image_shape[1], image_shape[2], 1]
         print('tile_dimensions to add: ', tile_dimensions)
         vector_op = K.tile(vector_op, tile_dimensions)
         print('tile_vector_as_image_channels default shape: ', vector_op)
