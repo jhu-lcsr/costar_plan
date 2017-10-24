@@ -209,7 +209,7 @@ def ptransform_to_vector_sin_theta_cos_theta(ptransform):
     e.AngleAxisd(e.Quaterniond().Identity()) == [a=0.0, x=1, y=0, z=0]
     """
     translation = ptransform.translation()
-    aa = e.AngleAxisd(ptransform)
+    aa = eigen.AngleAxisd(ptransform)
     theta = aa.angle()
     if aa.axis().x() < 0:
         theta *= -1

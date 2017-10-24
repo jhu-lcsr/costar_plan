@@ -1081,7 +1081,7 @@ class GraspDataset(object):
             # it should be the first steps not the last steps.
             for i, (grasp_step_rgb_feature_name, pose_op_param) in enumerate(zip(reversed(rgb_move_to_grasp_steps), reversed(pose_op_params))):
                 if ((grasp_sequence_min_time_step is None or i >= grasp_sequence_min_time_step) and
-                    (grasp_sequence_max_time_step is None or i <= grasp_sequence_max_time_step)):
+                        (grasp_sequence_max_time_step is None or i <= grasp_sequence_max_time_step)):
                     if verify_feature_index and int(grasp_step_rgb_feature_name.split('/')[1]) != int(pose_op_param.split('/')[1]):
                         raise ValueError('ERROR: the time step of the grasp step does not match the motion command params, '
                                          'make sure the lists are indexed correctly!')
