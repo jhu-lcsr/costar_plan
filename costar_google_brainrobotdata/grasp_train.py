@@ -251,13 +251,17 @@ class GraspTrain(object):
         # make sure we visit every image once
         steps_per_epoch = int(np.ceil(float(max_num_samples)/float(batch_size)))
 
-        try:
-            model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=callbacks)
-        finally:
-            # always try to save weights
-            final_weights_name = weights_name + '-final.h5'
-            model.save_weights(final_weights_name)
-            return final_weights_name
+        model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=callbacks)
+        final_weights_name = weights_name + '-final.h5'
+        model.save_weights(final_weights_name)
+        return final_weights_name
+        # try:
+        #     model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=callbacks)
+        # finally:
+        #     # always try to save weights
+        #     final_weights_name = weights_name + '-final.h5'
+        #     model.save_weights(final_weights_name)
+        #     return final_weights_name
 
     def eval(self, dataset=FLAGS.grasp_dataset_eval,
              batch_size=FLAGS.eval_batch_size,
