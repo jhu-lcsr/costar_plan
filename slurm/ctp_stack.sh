@@ -29,8 +29,8 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --dropout_rate 0.01 \
   --use_noise false \
   --steps_per_epoch 500 \
-  --noise_dim 8 \
+  --noise_dim 0 \
   --sampling \
-	--batch_size 32
+  --batch_size 32
   #--success_only \
 
