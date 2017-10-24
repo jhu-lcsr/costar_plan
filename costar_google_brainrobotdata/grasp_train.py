@@ -355,7 +355,7 @@ class GraspTrain(object):
                 model.save_weights(weights_name_str)
                 print('\n saved weights with evaluation result to ' + weights_name_str)
 
-        except KeyboardInterrupt, e:
+        except KeyboardInterrupt as e:
             print('Evaluation canceled at user request, '
                   'any results are incomplete for this run.')
 
