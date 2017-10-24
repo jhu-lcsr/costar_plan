@@ -263,9 +263,11 @@ class PredictorGoals(keras.callbacks.Callback):
         self.epoch += 1
         if self.use_noise:
             z= np.random.random((self.targets[0].shape[0], self.num_hypotheses, self.noise_dim))
-            arms, grippers, label, probs, v = self.predictor.predict(self.features + [z])
+            arms, grippers, label, probs, v = self.predictor.predict(
+                    self.features[:4] + [z])
         else:
-            arms, grippers, label, probs, v = self.predictor.predict(self.features)
+            arms, grippers, label, probs, v = self.predictor.predict(
+                    self.features[:4])
         plt.ioff()
         if self.verbose:
             print("============================")
@@ -284,7 +286,7 @@ class PredictorGoals(keras.callbacks.Callback):
                     print("Label = ", np.argmax(label[j][i]))
             if self.verbose:
                 print("Arm/gripper target = ",
-                        self.targets[0][j,:8])
+                        self.targets[0][j,:7])
                 print("Label target = ",
-                        np.argmax(self.targets[0][j,8:]))
+                        np.argmax(self.targets[0][j,7:]))
 
