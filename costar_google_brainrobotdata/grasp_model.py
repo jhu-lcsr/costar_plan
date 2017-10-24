@@ -60,9 +60,13 @@ def tile_vector_as_image_channels(images, vector, image_shape=None, vector_shape
     if not isinstance(images, list):
         images = [images]
     if vector_shape is None:
-        vector_shape = images[0].get_shape().as_list()[1:]
+        # check if K.shape, K.int_shape, or vector.get_shape().as_list()[1:] is better
+        # https://github.com/fchollet/keras/issues/5211
+        vector_shape = K.shape(vector)[1:]
     if image_shape is None:
-        image_shape = images[0].get_shape().as_list()[1:]
+        # check if K.shape, K.int_shape, or image.get_shape().as_list()[1:] is better
+        # https://github.com/fchollet/keras/issues/5211
+        image_shape = K.shape(images[0])[1:]
     vector = Reshape([1, 1, vector_shape[-1]])(vector)
     tile_shape = (int(1), int(image_shape[0]), int(image_shape[1]), 1)
     tiled_vector = Lambda(lambda x: K.tile(x, tile_shape))(vector)
@@ -77,21 +81,20 @@ def grasp_model_resnet(clear_view_image_op,
                        input_vector_op_shape=None,
                        include_top=True,
                        dropout_rate=0.0):
-    if input_vector_op_shape is None:
-        input_vector_op_shape = input_vector_op.get_shape().as_list()
-    if input_image_shape is None:
-        input_image_shape = [512, 640, 3]
+    # if input_vector_op_shape is None:
+    #     input_vector_op_shape = input_vector_op.get_shape().as_list()
+    # if input_image_shape is None:
+    #     input_image_shape = [512, 640, 3]
     print('input_vector_op pre tile: ', input_vector_op)
 
-    input_vector_op = tile_vector_as_image_channels(input_vector_op, K.shape(clear_view_image_op))
+    combined_input_data = tile_vector_as_image_channels(
+        [clear_view_image_op, current_time_image_op], input_vector_op, input_image_shape, input_vector_op_shape)
 
-    combined_input_data = tf.concat([clear_view_image_op, input_vector_op, current_time_image_op], -1)
+    # combined_input_data = tf.concat([clear_view_image_op, input_vector_op, current_time_image_op], -1)
     combined_input_shape = input_image_shape
     # add up the total number of channels
-    combined_input_shape[-1] = combined_input_shape[-1] * 2 + input_vector_op_shape[0]
-    # initial number of filters should be
-    # the number of input channels times the growth rate
-    # nb_filters = combined_input_shape[-1] * growth_rate
+    # combined_input_shape[-1] = combined_input_shape[-1] * 2 + input_vector_op_shape[0]
+    combined_input_shape = K.shape(combined_input_data)
     print('combined_input_shape: ', combined_input_shape)
     # print('nb_filters: ', nb_filters)
     print('combined_input_data: ', combined_input_data)
