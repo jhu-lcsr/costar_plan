@@ -118,6 +118,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             image_size *= dim
         image_size = int(image_size)    
 
+        if self.use_prev_option:
+            enc_options = self.num_options
+        else:
+            enc_options = None
         ins, enc, skips, robot_skip = GetEncoder(img_shape,
                 [arm_size, gripper_size],
                 self.img_col_dim,
@@ -134,13 +138,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 batchnorm=True,
                 tile=True,
                 flatten=False,
-                option=self.num_options,
+                option=enc_options,
                 use_spatial_softmax=self.use_spatial_softmax,
-                #option=None,
                 output_filters=self.tform_filters,
                 )
-        img_in, arm_in, gripper_in, option_in = ins
-        #img_in, arm_in, gripper_in = ins
+        if self.use_prev_option:
+            img_in, arm_in, gripper_in, option_in = ins
+        else:
+            img_in, arm_in, gripper_in = ins
         if self.use_noise:
             z = Input((self.num_hypotheses, self.noise_dim))
 
@@ -181,15 +186,19 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             skips.reverse()
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         decoder.summary()
-    
-        #option_in = Input((1,),name="prev_option_in")
-        #ins += [option_in]
+        
+        if not self.use_prev_option:
+            option_in = Input((1,),name="prev_option_in")
+            ins += [option_in]
+            pv_option_in = option_in
+        else:
+            pv_option_in = None
         next_option_in = Input((self.num_options,),name="next_option_in")
         ins += [next_option_in]
         value_out, next_option_out = GetNextOptionAndValue(enc,
                                                            self.num_options,
                                                            self.combined_dense_size,
-                                                           #option_in=None)
+                                                           option_in=pv_option_in)
                                                            option_in=option_in)
 
         # =====================================================================
@@ -205,11 +214,15 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 transform.summary()
             if self.use_noise:
                 zi = Lambda(lambda x: x[:,i], name="slice_z%d"%i)(z)
-                x = transform([enc, zi, next_option_in])
-                #x = transform([enc, zi])
+                if self.use_next_option:
+                    x = transform([enc, zi, next_option_in])
+                else:
+                    x = transform([enc, zi])
             else:
-                x = transform([enc, next_option_in])
-                #x = transform([enc])
+                if self.use_next_option:
+                    x = transform([enc, next_option_in])
+                else:
+                    x = transform([enc])
             
             if self.sampling:
                 x, mu, sigma = x
