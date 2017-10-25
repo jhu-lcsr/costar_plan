@@ -41,28 +41,21 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         '''
         super(RobotMultiGoalSampler, self).__init__(taskdef, *args, **kwargs)
 
-        self.num_frames = 1
-        self.img_col_dim = 128
-        self.img_num_filters = 64
-        self.tform_filters = 64
-        self.combined_dense_size = 128
         self.num_hypotheses = 4
-        self.num_transforms = 3
-        self.validation_split = 0.1
-        self.num_options = 48
-        self.pose_col_dim = 32
         self.PredictorCb = PredictorGoals
 
-        # Encoder architecture
-        self.extra_layers = 1
-        self.steps_down = 3
+        # Number of model inputs for training only
+        self.num_features = 6
 
-        self.hidden_dim = 64/(2**self.steps_down)
-        self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.tform_filters)
-
-        self.predictor = None
-        self.train_predictor = None
-        self.actor = None
+    def _getData(self, *args, **kwargs):
+        features, targets = self._getAllData(*args, **kwargs)
+        tt, o1, v, qa, ga, I = targets
+        if self.use_noise:
+            noise_len = features[0].shape[0]
+            z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
+            return features[:self.num_features] + [z], [tt]#, o1, v, qa, ga, I]
+        else:
+            return features[:self.num_features], [tt]#, o1, v, qa, ga, I]
 
     def _makePredictor(self, features):
         '''
@@ -90,7 +83,7 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                 dropout=True,
                 pre_tiling_layers=self.extra_layers,
                 post_tiling_layers=self.steps_down,
-                kernel_size=[3,3],
+                kernel_size=[5,5],
                 dense=self.dense_representation,
                 batchnorm=True,
                 tile=True,
@@ -106,7 +99,7 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                         dropout_rate=self.dropout_rate,
                         dense_size=self.combined_dense_size,
                         dense=self.dense_representation,
-                        kernel_size=[3,3],
+                        kernel_size=[5,5],
                         filters=self.img_num_filters,
                         stride2_layers=self.steps_down,
                         stride1_layers=self.extra_layers,
@@ -121,6 +114,8 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                         robot_skip=robot_skip,
                         resnet_blocks=self.residual,
                         batchnorm=True,)
+        decoder.compile(loss="mae",optimizer=self.getOptimizer())
+        decoder.summary()
 
         arm_outs = []
         gripper_outs = []
@@ -128,8 +123,7 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         label_outs = []
 
         skips.reverse()
-        decoder.compile(loss="mae",optimizer=self.getOptimizer())
-        decoder.summary()
+        generator = self._makeGenerator(img_shape, [3,3], skips)
 
         z = Input((self.num_hypotheses, self.noise_dim,),name="noise_in")
 
@@ -184,33 +178,27 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
 
         # =====================================================================
         # Training the actor policy
-        y = enc
-        if not self.dense_representation:
-            y = Conv2D(int(self.img_num_filters/4),
-                    kernel_size=[5,5], 
-                    strides=(2, 2),
-                    padding='same')(y)
-            y = Dropout(self.dropout_rate)(y)
-            y = LeakyReLU(0.2)(y)
-            y = BatchNormalization(momentum=0.9)(y)
-            y = Flatten()(y)
-        y = Dense(self.combined_dense_size)(y)
-        y = Dropout(self.dropout_rate)(y)
-        y = LeakyReLU(0.2)(y)
-        y = BatchNormalization(momentum=0.9)(y)
-        arm_cmd_out = Lambda(lambda x: K.expand_dims(x, axis=1),name="arm_action")(
-                Dense(arm_size-1)(y))
-        gripper_cmd_out = Lambda(lambda x: K.expand_dims(x, axis=1),name="gripper_action")(
-                Dense(gripper_size)(y))
+        arm_goal = Input((self.num_arm_vars,),name="arm_goal_in")
+        gripper_goal = Input((1,),name="gripper_goal_in")
+        actor = self._makeActorPolicy()
+        actor.summary()
+        arm_cmd_out, gripper_cmd_out = actor([enc, arm_goal, gripper_goal])
+        generator.summary()
+        if self.skip_connections:
+            img_out = generator([enc, arm_goal, gripper_goal] + skips)
+        else:
+            img_out = generator([enc, arm_goal, gripper_goal])
 
         # =====================================================================
         # Create models to train
         sampler = Model(ins + [z],
                 [arm_out, gripper_out, label_out, next_option_out, value_out])
-        actor = Model(ins, [arm_cmd_out, gripper_cmd_out])
-        train_predictor = Model(ins + [z],
-                [train_out, next_option_out,
-                value_out]) #, arm_cmd_out, gripper_cmd_out])
+        # TODO: fix actor model
+        actor = Model(ins + [arm_goal, gripper_goal],
+                [arm_cmd_out, gripper_cmd_out])
+        train_predictor = Model(ins + [arm_goal, gripper_goal, z],
+                [train_out]) #, next_option_out,
+                #value_out, arm_cmd_out, gripper_cmd_out, img_out])
 
         # =====================================================================
         # Create models to train
@@ -219,11 +207,12 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                     MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[arm_size, gripper_size, self.num_options],
-                        weights=[0.4,0.3,0.3],
-                        loss=["mae","mae","categorical_crossentropy"],
+                        weights=[0.8,0.1,0.1],
+                        loss=["mse","mse","categorical_crossentropy"],
                         avg_weight=0.05),
-                    "binary_crossentropy","binary_crossentropy"],
-                loss_weights=[1.0,0.1,0.1,],
+                    ],
+                    #"binary_crossentropy","binary_crossentropy","mse","mse","mae"],
+                #loss_weights=[1.0,0.1,0.1,0.1,0.1,1.0],
                 optimizer=self.getOptimizer())
         sampler.compile(loss="mae", optimizer=self.getOptimizer())
         train_predictor.summary()

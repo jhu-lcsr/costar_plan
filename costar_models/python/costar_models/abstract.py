@@ -21,11 +21,14 @@ class AbstractAgentBasedModel(object):
     def __init__(self, taskdef=None, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
             clipnorm=100., show_iter=0, pretrain_iter=5,
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
-            steps_per_epoch=300, validation_steps=100, choose_initial=5,
+            steps_per_epoch=300, validation_steps=25, choose_initial=50,
             dropout_rate=0.5, decoder_dropout_rate=0.5,
-            hypothesis_dropout=False, dense_representation=True,
+            hypothesis_dropout=False,
+            dense_representation=True,
             skip_connections=True,
-            use_noise=False, noise_dim=32,
+            use_noise=False,
+            sampling=False,
+            use_prev_option=True,
             num_generator_files=3, predict_value=False, upsampling=None,
             task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
@@ -36,6 +39,7 @@ class AbstractAgentBasedModel(object):
         elif lr > 1.:
             raise RuntimeError('Extremely high learning rate: %f' % lr)
 
+        self.use_prev_option = use_prev_option
         self.lr = lr
         self.iter = iter
         self.choose_initial = choose_initial
@@ -63,11 +67,13 @@ class AbstractAgentBasedModel(object):
         self.dropout_rate = dropout_rate
         self.hypothesis_dropout = hypothesis_dropout
         self.use_noise = use_noise
-        self.noise_dim = noise_dim
         self.decoder_dropout_rate = decoder_dropout_rate
         self.skip_connections = skip_connections
         self.dense_representation = dense_representation
+        self.sampling = sampling
 
+        if self.sampling:
+            self.use_noise = False
         if self.task is not None:
             self.name += "_%s"%self.task
         if self.features is not None:
@@ -113,6 +119,7 @@ class AbstractAgentBasedModel(object):
         print("use noise in model =", self.use_noise)
         print("dimensionality of noise =", self.noise_dim)
         print("skip connections =", self.skip_connections)
+        print("sampling =", self.sampling)
         print("-----------------------------------------------------------")
         print("Optimizer =", self.optimizer)
         print("Learning Rate = ", self.lr)
@@ -148,33 +155,46 @@ class AbstractAgentBasedModel(object):
         raise NotImplementedError('_getData() requires a dataset.')
         
     def trainGenerator(self, dataset):
-        while True:
-            data = {}
-            for _ in range(self.num_generator_files):
-                fdata = dataset.sampleTest()
-                for key, value in fdata.items():
-                    if value.shape[0] == 0:
-                        continue
-                    if key not in data:
-                        data[key] = value
-                    data[key] = np.concatenate([data[key],value],axis=0)
-            yield self._yield(data)
+        return self._yieldLoop(dataset.sampleTrain)
 
     def testGenerator(self, dataset):
         if self.validation_steps is None:
             # update the validation steps if we did not already set it --
             # something proportional to the amount of validation data we have
             self.validation_steps = len(dataset.test) + 1
-        while True:
+        return self._yieldLoop(dataset.sampleTest)
+
+    def _yieldLoop(self, sampleFn):
+      '''
+      This helper function runs in a loop infinitely, executing some callable 
+      to extract a set of feature information from a dataset file, and then
+      performs any necessary preprocessing on it.
+
+      Parameters:
+      -----------
+      sampleFn: callable to receive a feature dict
+      '''
+      while True:
             data = {}
-            for _ in range(self.num_generator_files):
-                fdata = dataset.sampleTest()
+            i = 0
+            while i < self.num_generator_files:
+                fdata, fn = sampleFn()
+                if len(fdata.keys()) == 0:
+                    print("WARNING: ", fn, "was empty.")
+                    continue
                 for key, value in fdata.items():
                     if value.shape[0] == 0:
                         continue
                     if key not in data:
                         data[key] = value
-                    data[key] = np.concatenate([data[key],value],axis=0)
+                    try:
+                        data[key] = np.concatenate([data[key],value],axis=0)
+                    except ValueError as e:
+                        print ("filename =", fn)
+                        print ("Data shape =", data[key].shape)
+                        print ("value shape =", value.shape)
+                        raise e
+                i += 1
             yield self._yield(data)
 
     def _yield(self, data):

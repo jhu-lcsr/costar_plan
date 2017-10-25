@@ -42,6 +42,10 @@ import signal
 from costar_models.datasets.tfrecord import TFRecordConverter
 from costar_models.datasets.npz import NpzDataset
 
+CM_NEXT = "next"
+CM_GOAL = "goal"
+CM_PLUS10 = "+10"
+
 class AbstractAgent(object):
     '''
     The AGENT handles data I/O, creation, and testing. Basically it is the
@@ -74,7 +78,7 @@ class AbstractAgent(object):
             success_only=False, # save all examples
             seed=0, # set a default seed
             collect_trajectories=False,
-            collection_mode="goal",
+            collection_mode=CM_GOAL,
             random_downsample=False,
             *args, **kwargs):
         '''
@@ -123,9 +127,12 @@ class AbstractAgent(object):
         self.collect_trajectories = collect_trajectories
         self.collection_mode = collection_mode
         self.trajectory_length = trajectory_length
-        if self.collection_mode == "goal" and self.collect_trajectories:
+        if self.collection_mode == CM_GOAL and self.collect_trajectories:
             raise RuntimeError("trajectories over future goals currently " + \
                                "not supported")
+        if self.collection_mode == CM_PLUS10 and self.collect_trajectories:
+            raise RuntimeError("collecting timestepped predictions over " + \
+                               "trajectories not currently supported")
 
         if self.data_type == self.NUMPY_ZIP:
             root = ""
@@ -256,10 +263,10 @@ class AbstractAgent(object):
         # NOTE: removing some unnecessary features that we really dont need to
         # save. This ued to add world.features.description
         if not self.collect_trajectories:
-            if self.collection_mode == "next":
+            if self.collection_mode == CM_NEXT:
                 next_list = ["reward", "label"] + world.features.description
                 goal_list = []
-            elif self.collection_mode == "goal":
+            elif self.collection_mode == CM_GOAL:
                 goal_list = ["reward", "label"] + world.features.description
                 next_list = []
         else:

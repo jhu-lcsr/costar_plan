@@ -2,20 +2,23 @@
 
 from __future__ import print_function
 
+# ----------------------------------------
+# Before importing anything else -- make sure we load the right library to save
+# images to disk.
 import matplotlib as mpl
 mpl.use("Agg")
 
-from costar_models import *
-from costar_models.datasets.npz import NpzDataset
-from costar_models.datasets.npy_generator import NpzGeneratorDataset
 
-'''
-Tool for running model training without the rest of the simulation/planning/ROS
-code. This should be more or less independent and only rely on a couple
-external features.
-'''
+def RunKeypointsVisualizer(args):
+    '''
+    This function 
 
-def main(args):
+    Parameters:
+    -----------
+    args: output of ParseModelArgs function, a dictionary of model parameters
+          that determine how we should create and run the architecture we want
+          to test.
+    '''
     if 'cpu' in args and args['cpu']:
         import tensorflow as tf
         import keras.backend as K
@@ -41,36 +44,16 @@ def main(args):
         raise NotImplementedError('data type not implemented: %s'%data_type)
 
     if 'model' in args and args['model'] is not None:
-        model = MakeModel(taskdef=None, **args)
-        print (args)
-        if 'load_model' in args and args['load_model']:
-            model.load(world=None,**data)
+        model = args["model"]
+        if not model == "predictor":
+            raise RuntimeError('Unsupported model type "%s"'%model)
+        model = RobotMultiKeypointsVisualizer(taskdef=None, **args)
+        model.load(world=None,**data)
         train_generator = model.trainGenerator(dataset)
         test_generator = model.testGenerator(dataset)
-        try:
-            # was:
-            #model.train(**data)
-            model.trainFromGenerators(train_generator, test_generator, data)
-        except KeyboardInterrupt:
-            pass
-        #except Exception as e:
-        #    print(e)
-        #    pass
-        model.save()
-        if args['debug_model']:
-            model.plot(env)
-            try:
-                while True:
-                    time.sleep(0.1)
-            except KeyboardInterrupt:
-                pass
     else:
-        pass
+        raise RuntimeError('Must specify model type to visualize')
 
 if __name__ == '__main__':
     args = ParseModelArgs()
-    if args['profile']:
-        import cProfile
-        cProfile.run('main(args)')
-    else:
-        main(args)
+    RunKeypointsVisualizer(args)
