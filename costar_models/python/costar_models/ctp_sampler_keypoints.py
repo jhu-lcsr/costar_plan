@@ -42,4 +42,18 @@ class RobotMultiKeypointsVisualizer(RobotMultiPredictionSampler):
 
     def __init__(self, taskdef, *args, **kwargs):
         super(RobotMultiKeypointsVisualizer, self).__init__(taskdef, *args, **kwargs)
+        self.keypoints = None
 
+    def _makeModel(self, features, arm, gripper, *args, **kwargs):
+        '''
+        Little helper function wraps makePredictor to consturct all the models.
+
+        Parameters:
+        -----------
+        features, arm, gripper: variables of the appropriate sizes
+        '''
+        self.predictor, self.train_predictor, self.actor, ins, hidden = \
+            self._makePredictor(
+                (features, arm, gripper))
+        self.keypoints = Model(ins, hidden, name="get_keypoints")
+        self.keypoints.compile(loss="mae", optimizer=self.getOptimizer())
