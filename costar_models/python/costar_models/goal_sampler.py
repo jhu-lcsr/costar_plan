@@ -91,10 +91,14 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                 flatten=False,
                 output_filters=self.tform_filters,
                 option=self.num_options,
+                #option=None,
                 use_spatial_softmax=self.use_spatial_softmax,
                 )
 
         img_in, arm_in, gripper_in, option_in = ins
+        #img_in, arm_in, gripper_in = ins
+        #option_in = Input((1,),name="option_in")
+        #ins += [option_in]
 
         decoder = GetArmGripperDecoder(self.img_col_dim,
                         img_shape,
