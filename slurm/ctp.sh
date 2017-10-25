@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --job-name=ctpF
+#SBATCH --job-name=ctpP
 #SBATCH --time=0-48:0:0
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
@@ -18,15 +18,19 @@ module load tensorflow/cuda-8.0/r1.3
 
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--features multi \
-	-e 250 \
+	-e 100 \
 	--model predictor \
-	--data_file $HOME/work/ctp_value2.npz \
+	--data_file $HOME/work/ctp_rpy.npz \
 	--lr $1 \
 	--dropout_rate 0.5 \
 	--decoder_dropout_rate $2 \
-	--model_directory $HOME/.costar/models_stack_F$1$3$2$4/ \
+  --model_directory $HOME/.costar/models_stack_Q$1$3$2$4$5/ \
 	--optimizer $3 \
-  --use_noise true \
-  --noise_dim 32 \
-	--hypothesis_dropout $4
+  --use_noise false \
+  --steps_per_epoch 500 \
+  --noise_dim $5 \
+  --hypothesis_dropout $4 \
+  --upsampling conv_transpose \
+  --success_only \
+  --batch_size 32
 

@@ -82,7 +82,7 @@ def GetSimulationParser():
     parser.add_argument("--verbose",
                         help="Run world in verbose mode, printing out errors.",
                         action="store_true")
-    parser.add_argument("--success_only",
+    parser.add_argument("--save_success_only",
                         help="Only include successful trials when creating" + \
                              " training data sets.",
                         action="store_true")
@@ -97,11 +97,14 @@ def GetSimulationParser():
                         help="Save trajectories when collecting data",
                         action="store_true")
     parser.add_argument("--collection_mode",
-                        help="specify what sort of data to store",
-                        choices=["next","goal"],
+                        help="specify what sort of data to store. Choices " + \
+                             "are {next, goal, +10}, corresponding to the " + \
+                             "next frame, the end of the high-level action" + \
+                             ", and the frame 10 steps ahead.",
+                        choices=["next","goal","+10"],
                         default="next")
     parser.add_argument("--trajectory_length",
-                        help="Length of trajectories to save",
+                        help="Length of trajectories to save.",
                         type=int,
                         default=10)
     return parser

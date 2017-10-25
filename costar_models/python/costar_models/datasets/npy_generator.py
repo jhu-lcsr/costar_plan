@@ -36,7 +36,7 @@ class NpzGeneratorDataset(object):
                 #print("%d:"%(i+1), f)
                 if success_only:
                     name = f.split('.')
-                    if name[0] == 'failure':
+                    if name[1] == 'failure':
                         continue
                 if i == 0:
                     fsample = np.load(os.path.join(self.name,f))
@@ -58,6 +58,10 @@ class NpzGeneratorDataset(object):
         print("---------------------------------------------")
         self.test = [acceptable_files[i] for i in idx[:length]]
         self.train = [acceptable_files[i] for i in idx[length:]]
+        for filename in self.test:
+            if filename in self.train:
+                raise RuntimeError('error with test/train setup! ' + \
+                                   filename + ' in training!')
         np.random.shuffle(self.test)
         np.random.shuffle(self.train)
         return sample
@@ -73,9 +77,9 @@ class NpzGeneratorDataset(object):
     def sampleTrain(self):
         filename = self.sampleTrainFilename()
         sample = np.load(filename)
-        return sample
+        return sample, filename
 
     def sampleTest(self):
         filename = self.sampleTestFilename()
         sample = np.load(filename)
-        return sample
+        return sample, filename

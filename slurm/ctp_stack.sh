@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --job-name=stack1
+#SBATCH --job-name=stack1P
 #SBATCH --time=0-48:0:0
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
@@ -16,29 +16,21 @@ echo "Running $@ on $SLURMD_NODENAME ..."
 
 module load tensorflow/cuda-8.0/r1.3 
 
-# models_stack: no dropouts, 2 tforms
-# models_stack2: all dropouts, including on tforms
-# models_stack3: no dropouts on tforms?
-# models_stack4: smaller hidden arm+gripper layer and smaller hidden layers
-# models_stack5: (8,8,64) and ph output
-# models_stack6: (8,8,64) and noise
-# sequence A:(8,8,64), options, 1 transform layer
-# sequence B:(4,4,64), options, 2 transform layers
-# sequence C:(4,4,64), options, 3 transform layers
-# sequence C:(8,8,64), options, 3 transform layers, dense
-
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--features multi \
-	-e 250 \
+	-e 100 \
 	--model predictor \
-	--data_file $HOME/work/ctp_value2.npz \
+	--data_file $HOME/work/ctp_rpy.npz \
 	--lr 0.001 \
-	--model_directory $HOME/.costar/models_stackE/ \
+	--model_directory $HOME/.costar/models_stackQ/ \
 	--optimizer adam \
   --upsampling conv_transpose \
   --hypothesis_dropout false \
   --dropout_rate 0.5 \
-  --use_noise true \
-  --noise_dim 32 \
-	--batch_size 64
+  --use_noise false \
+  --steps_per_epoch 500 \
+  --noise_dim 8 \
+  --sampling \
+  --success_only \
+	--batch_size 32
 

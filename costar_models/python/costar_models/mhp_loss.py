@@ -55,6 +55,7 @@ class MhpLoss(object):
             raise RuntimeError('avg_weight must be in [0,0.25]')
         self.avg_weight = avg_weight
         self.min_weight = 1.0 - (2 * self.avg_weight)
+        self.kl_weight = 0.001
 
     def __call__(self, target, pred):
         '''
@@ -91,13 +92,37 @@ class MhpLossWithShape(object):
 
     '''
     def __init__(self, num_hypotheses, outputs, weights=None, loss="mse",
-            avg_weight=0.05):
+            avg_weight=0.05, stats=[]):
+        '''
+
+        Parameters:
+        -----------
+        num_hypotheses: number of hypotheses 
+        outputs: length of each output 
+        weights: None or vector of weights for each target
+        loss: loss function or vector of loss function names to use (keras)
+        avg_weight: amount of weight to give to average loss across all
+                    hypotheses
+        stats: mean, log variance of Gaussian from which each hypothesis was
+               drawn, used to add a KL regularization term to the weight
+        '''
+        self.kl_weight = 1e-8
         self.num_hypotheses = num_hypotheses
         self.outputs = outputs # these are the sizes of the various outputs
         if weights is None:
             self.weights = [1.] * len(self.outputs)
         else:
             self.weights = weights
+        if stats is not None and len(stats) > 0:
+            if len(stats) == 1:
+                stats = stats * self.num_hypotheses
+                self.stats = stats
+            elif len(stats) == self.num_hypotheses:
+                self.stats = stats
+            else:
+                raise RuntimeError('statistics vector not acceptable length')
+        else:
+            self.stats = None
         assert len(self.weights) == len(self.outputs)
         self.losses = []
         if isinstance(loss, list):
@@ -111,8 +136,8 @@ class MhpLossWithShape(object):
         if avg_weight > 1.0 or avg_weight < 0.:
             raise RuntimeError('avg_weight must be in [0,1]')
         self.avg_weight = avg_weight
-        self.min_weight = 1.0 - (2 * self.avg_weight)
-        #self.min_weight = 1.0 - self.avg_weight
+        #self.min_weight = 1.0 - (2 * self.avg_weight)
+        self.min_weight = 1.0 - self.avg_weight
 
     def __call__(self, target, pred):
         '''
@@ -141,9 +166,20 @@ class MhpLossWithShape(object):
             for wt, target_out, pred_out, loss in zip(self.weights, target_outputs,
                     pred_outputs, self.losses):
                 # loss = feature weight * MSE for this feature
-                cc += wt * loss(target_out, pred_out)
+                loss_term = loss(target_out, pred_out)
+                while len(loss_term.shape) > 1:
+                    # remove axes one at a time
+                    loss_term = K.mean(loss_term,axis=-1)
+                cc += wt * loss_term
 
-            xsum += (cc / len(self.outputs))
+            cc = cc / len(self.outputs)
+            if self.stats is not None:
+                mu, sigma = self.stats[i]
+                kl_loss = -0.5 * K.sum(1 + sigma - K.square(mu) -
+                        K.exp(sigma), axis=-1)
+                cc += self.kl_weight * kl_loss
+
+            xsum += cc
             xmin = tf.minimum(xmin, cc)
 
         return ((self.avg_weight * xsum / self.num_hypotheses)
