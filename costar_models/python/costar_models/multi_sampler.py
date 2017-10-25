@@ -199,7 +199,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                                                            self.num_options,
                                                            self.combined_dense_size,
                                                            option_in=pv_option_in)
-                                                           option_in=option_in)
 
         # =====================================================================
         # Create many different image decoders
