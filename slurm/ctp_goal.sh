@@ -21,16 +21,16 @@ module load tensorflow/cuda-8.0/r1.3
 
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --features multi \
-	-e 500 \
-	--model goal_sampler \
-	--data_file $HOME/work/ctp_rpy2.npz \
-	--lr 0.001 \
-	--model_directory $HOME/.costar/models_stackV_goal_pose_only/ \
-	--optimizer adam \
+  -e 500 \
+  --model goal_sampler \
+  --data_file $HOME/work/ctp_rpy2.npz \
+  --lr 0.001 \
+  --model_directory $HOME/.costar/models_stackV_goal_pose_only/ \
+  --optimizer adam \
   --upsampling conv_transpose \
   --hypothesis_dropout false \
   --dropout_rate 0.001 \
   --use_noise true \
   --noise_dim 32 \
-	--batch_size 64
+  --batch_size 64
   #--success_only \
