@@ -322,3 +322,68 @@ def grasp_model_segmentation(clear_view_image_op=None,
                         reduction=reduction,
                         nb_dense_block=dense_blocks)
     return model
+
+
+def grasp_model_levine_2016(clear_view_image_op,
+                            current_time_image_op,
+                            input_vector_op):
+    """Model designed to match prior work.
+
+    Learning Hand-Eye Coordination for Robotic Grasping with Deep Learning and Large-Scale Data Collection.
+
+    Original paper input dimensions:
+    img_rows, img_cols, img_channels = 472, 472, 3  # 6 or 3
+    """
+    img_shape = K.int_shape(clear_view_image_op)[1:]
+    inputImg1 = Input(shape=img_shape, tensor=clear_view_image_op)
+    inputImg2 = Input(shape=img_shape, tensor=current_time_image_op)
+    combImg = Concatenate(-1)([inputImg1, inputImg2])
+    # img Conv 1
+    imgConv = Conv2D(64, kernel_size=(6, 6),
+                     activation='relu',
+                     strides=(2, 2),
+                     padding='same')(combImg)
+    # img maxPool
+    imgConv = MaxPooling2D(pool_size=(3, 3))(imgConv)
+
+    # img Conv 2 - 7
+    for i in range(6):
+        imgConv = Conv2D(64, (5, 5), padding='same', activation='relu')(imgConv)
+
+    # img maxPool 2
+    imgConv = MaxPooling2D(pool_size=(3, 3))(imgConv)
+
+    # motor Data
+    vector_shape = K.int_shape(input_vector_op)[1:]
+    motorData = Input(shape=vector_shape, tensor=input_vector_op)
+
+    # motor full conn
+    motorConv = Dense(64, activation='relu')(motorData)
+
+    # tile and concat the data
+    combinedData = Lambda(lambda x: concat_images_with_tiled_vector(x[0], x[1]))([motorConv, imgConv])
+    print('Combined', combinedData)
+
+    # combine conv 8
+    combConv = Conv2D(64, (3, 3), activation='relu'  # ,
+                      # input_shape=[26,26, 128]
+                      )(combinedData)
+
+    # combine conv 9 - 13
+    for i in range(3):
+        combConv = Conv2D(64, (3, 3), activation='relu')(combConv)
+
+    # combine maxPool
+    combConv = MaxPooling2D(pool_size=(2, 2))(combConv)
+
+    # combine conv 14 - 16
+    for i in range(3):
+        combConv = Conv2D(64, (3, 3), activation='relu')(combConv)
+
+    # combine full conn
+    combConv = Dense(64, activation='relu')(combConv)
+    combConv = Dense(64, activation='relu')(combConv)
+    combConv = Activation(activation='sigmoid')(combConv)
+
+    model = Model(inputs=[inputImg1, inputImg2, motorData], outputs=combConv)
+    return model
