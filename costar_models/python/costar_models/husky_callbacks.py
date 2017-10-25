@@ -42,8 +42,17 @@ class HuskyPredictorShowImage(keras.callbacks.Callback):
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
 
+
+        self.logfile = open(os.path.join(self.directory,"pose_log.csv"),'w')
+
     def on_epoch_end(self, epoch, logs={}):
         # take the model and print it out
+        if epoch == 0:
+            msg = "epoch, idx, hypothesis, pose_x, pose_y, pose_z, pose_r, pose_p, pose_y, label\n"
+            self.logfile.write(msg)
+
+
+
         self.epoch += 1
         imglen = 64*64*3
         #img = self.targets[0][:,:imglen]
@@ -83,6 +92,9 @@ class HuskyPredictorShowImage(keras.callbacks.Callback):
             plt.title('Observed Goal')
             plt.imshow(img[j])
             for i in range(self.num_hypotheses):
+
+                msg = str(self.epoch) + "," + str(j) + "," + str(i) + "," + str(poses[j][i][0]) + "," + str(poses[j][i][1]) + "," + str(poses[j][i][2]) + "," + str(poses[j][i][3]) + "," + str(poses[j][i][4]) + "," + str(poses[j][i][5]) + "," + str(np.argmax(label[j][i])) + "\n"
+                self.logfile.write(msg)
                 if self.verbose:
                     print("Pose = ", poses[j][i])
                     print("Label = ", np.argmax(label[j][i]))
