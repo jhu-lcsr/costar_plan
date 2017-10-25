@@ -31,8 +31,8 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --noise_dim $5 \
   --hypothesis_dropout $4 \
   --upsampling conv_transpose \
+  --skip_connections $5 \
   --batch_size 32
   #--success_only \
 
-#--success_only \
 

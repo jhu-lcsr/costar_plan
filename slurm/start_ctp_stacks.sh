@@ -35,25 +35,28 @@ module load tensorflow/cuda-8.0/r1.3
 # seqeunce U: as per T, but also use 512 weights in arm+gripper decoder
 # sequence V: as per T/U, but remove prev action and remove next label
 #             prediction
-for lr in 0.001 0.01
+for lr in 0.001 #0.01
 do
   # just use the adam optimizer
 	for opt in adam
 	do
-    # Noise: add extra ones with no noise at all
-    for noise_dim in 0 1 8 32
+    # what do we do about skip connections?
+    for skip in 0 1
     do
-      hd=true
-      for dr in 0.01 0.125 0.25 0.5
+      # Noise: add extra ones with no noise at all
+      for noise_dim in 0 1 8 32
       do
-        echo "starting LR=$lr, Dropout=$dr, optimizer=$opt, use dropout in hypotheses: $hd noise=$noise_dim"
-        sbatch ctp.sh $lr $dr $opt $hd $noise_dim 
+        hd=true
+        for dr in 0.01 0.125 0.25 0.5
+        do
+          echo "starting LR=$lr, Dropout=$dr, optimizer=$opt, use dropout in hypotheses: $hd noise=$noise_dim, skip connections = $skip"
+          sbatch ctp.sh $lr $dr $opt $hd $noise_dim $skip
+        done
+        hd=false
+        dr=0.0
+        echo "starting LR=$lr, Dropout=$dr, optimizer=$opt, use dropout in hypotheses: $hd noise=$noise_dim, skip connections = $skip"
+        sbatch ctp.sh $lr $dr $opt $hd $noise_dim $skip
       done
-      hd=false
-      dr=0.0
-      echo "starting LR=$lr, Dropout=$dr, optimizer=$opt, use dropout in hypotheses: $hd noise=$noise_dim"
-      sbatch ctp.sh $lr $dr $opt $hd $noise_dim
-    done
 	done
 done
 
