@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --job-name=stack1V
+#SBATCH --job-name=stack1V2
 #SBATCH --time=0-48:0:0
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
@@ -22,7 +22,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--model predictor \
 	--data_file $HOME/work/ctp_rpy2.npz \
 	--lr 0.001 \
-	--model_directory $HOME/.costar/models_stackV/ \
+	--model_directory $HOME/.costar/models_stackV2/ \
 	--optimizer adam \
   --upsampling conv_transpose \
   --hypothesis_dropout false \

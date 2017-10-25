@@ -53,6 +53,11 @@ do
           sbatch ctp.sh $lr $dr $opt $hd $noise_dim $skip
         done
         hd=false
+        for dr in 0.125 0.25 0.5
+          echo "starting LR=$lr, Dropout=$dr, optimizer=$opt, use dropout in hypotheses: $hd noise=$noise_dim, skip connections = $skip"
+          sbatch ctp.sh $lr $dr $opt $hd $noise_dim $skip
+        do
+        done
         dr=0.0
         echo "starting LR=$lr, Dropout=$dr, optimizer=$opt, use dropout in hypotheses: $hd noise=$noise_dim, skip connections = $skip"
         sbatch ctp.sh $lr $dr $opt $hd $noise_dim $skip
