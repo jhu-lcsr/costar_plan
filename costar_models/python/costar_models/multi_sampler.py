@@ -480,6 +480,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         logCb = LogCallback(self.name,self.model_directory)
         imageCb = self.PredictorCb(
             self.predictor,
+            name=self.name,
             features=features[:4]+[o_target],
             targets=targets,
             model_directory=self.model_directory,
