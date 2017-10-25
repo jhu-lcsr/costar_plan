@@ -30,6 +30,11 @@ module load tensorflow/cuda-8.0/r1.3
 #             have a good world state.
 # sequence R: success only, 128, spatial softmax
 # sequence S: ssm, 128, include failures, use action prior
+# sequence T: ssm, 128, include failures, use action prior + prev action in
+#             encoder
+# seqeunce U: as per T, but also use 512 weights in arm+gripper decoder
+# sequence V: as per T/U, but remove prev action and remove next label
+#             prediction
 for lr in 0.001 0.01
 do
   # just use the adam optimizer
