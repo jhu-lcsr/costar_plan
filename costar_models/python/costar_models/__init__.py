@@ -9,7 +9,9 @@ __all__ = [
     "ParseVisualizeArgs",
     "SetCPU",
     # ===========================================================================
-    # Dataset stuff
+    # Visualization and models
+    "RobotMultiKeypointsVisualizer",
+    "RobotMultiPredictionSampler",
     ]
 
 # general learning utilites
