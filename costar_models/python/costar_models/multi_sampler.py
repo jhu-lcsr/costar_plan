@@ -66,7 +66,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_arm_vars = 6
 
         # compatibility mode -- set > 0 if loading dataset ~ U
-        self.compatibility = 1
+        self.compatibility = 0
 
         # Number of nonlinear transformations to be applied to the hidden state
         # in order to compute a possible next state.
@@ -165,7 +165,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         img_shape,
                         dropout_rate=self.decoder_dropout_rate,
                         dense_size=self.combined_dense_size,
-                        kernel_size=[5,5],
+                        kernel_size=[3,3],
                         filters=self.img_num_filters,
                         stride2_layers=self.steps_up,
                         stride1_layers=self.extra_layers,
@@ -444,11 +444,17 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
             #return features[:self.num_features] + [z], [tt, o1, v]
             #return features[:self.num_features] + [z], [tt, o1]#, v]
-            return features[:self.num_features] + [o1, z], [tt, v]
+            if self.success_only:
+                return features[:self.num_features] + [o1, z], [tt, o1]
+            else:
+                return features[:self.num_features] + [o1, z], [tt, v]
         else:
             #return features[:self.num_features], [tt, o1, v]
             #return features[:self.num_features], [tt, o1]#, v]
-            return features[:self.num_features] + [o1], [tt, v]
+            if self.success_only:
+                return features[:self.num_features] + [o1], [tt, o1]
+            else:
+                return features[:self.num_features] + [o1], [tt, v]
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''
