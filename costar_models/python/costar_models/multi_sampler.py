@@ -68,7 +68,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Number of nonlinear transformations to be applied to the hidden state
         # in order to compute a possible next state.
         if self.dense_representation:
-            self.num_transforms = 1
+            if self.compatibility > 0:
+                self.num_transforms = 2
+            else:
+                self.num_transforms = 1
         else:
             self.num_transforms = 3
 
@@ -194,7 +197,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             ins += [option_in]
             pv_option_in = option_in
         else:
-            pv_option_in = None
+            if self.compatibility > 0 or True:
+                pv_option_in = option_in
+            else:
+                pv_option_in = None
         next_option_in = Input((self.num_options,),name="next_option_in")
         ins += [next_option_in]
         value_out, next_option_out = GetNextOptionAndValue(enc,
