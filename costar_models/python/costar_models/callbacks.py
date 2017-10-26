@@ -160,7 +160,6 @@ class PredictorShowImage(keras.callbacks.Callback):
             plt.close(fig)
 
 
-
 class PredictorShowImageOnly(keras.callbacks.Callback):
     '''
     Save an image showing what some number of frames and associated predictions

@@ -35,4 +35,3 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --batch_size 32
   #--success_only \
 
-
