@@ -38,8 +38,8 @@ module load tensorflow/cuda-8.0/r1.3
 for lr in 0.001 #0.01
 do
   # just use the adam optimizer
-	for opt in adam
-	do
+  for opt in adam
+  do
     # what do we do about skip connections?
     for skip in 0 1
     do
@@ -54,18 +54,20 @@ do
         done
         hd=false
         for dr in 0.125 0.25 0.5
+        do
           echo "starting LR=$lr, Dropout=$dr, optimizer=$opt, use dropout in hypotheses: $hd noise=$noise_dim, skip connections = $skip"
           sbatch ctp.sh $lr $dr $opt $hd $noise_dim $skip
-        do
         done
         dr=0.0
         echo "starting LR=$lr, Dropout=$dr, optimizer=$opt, use dropout in hypotheses: $hd noise=$noise_dim, skip connections = $skip"
         sbatch ctp.sh $lr $dr $opt $hd $noise_dim $skip
       done
-	done
+    done
+  done
 done
 
 # ======================================
 sbatch ctp_stack.sh
 sbatch ctp_stack2.sh
 sbatch ctp_goal.sh
+
