@@ -371,6 +371,8 @@ def main():
     session = tf.Session(config=config)
     K.set_session(session)
     with K.get_session() as sess:
+        # Launch the training script for the particular model specified on the command line
+        # or via the default flag value
         load_weights = FLAGS.load_weights
         if FLAGS.grasp_model == 'grasp_model_resnet':
             def make_model_fn(*a, **kw):
@@ -398,16 +400,26 @@ def main():
                     reduction=FLAGS.densenet_reduction,
                     dense_blocks=FLAGS.densenet_dense_blocks,
                     *a, **kw)
+        elif FLAGS.grasp_model == 'grasp_model_levine_2016':
+            def make_model_fn(*a, **kw):
+                return grasp_model.grasp_model_levine_2016(
+                    *a, **kw)
         else:
-            raise ValueError('unknown model selected: {}'.format(FLAGS.grasp_model))
+            available_functions = globals()
+            if FLAGS.grasp_model in available_functions:
+                make_model_fn = available_functions[FLAGS.grasp_model]
+            else:
+                raise ValueError('unknown model selected: {}'.format(FLAGS.grasp_model))
 
         gt = GraspTrain()
 
+        # train the model
         if 'train' in FLAGS.pipeline_stage:
             print('Training ' + FLAGS.grasp_model)
             load_weights = gt.train(make_model_fn=make_model_fn,
                                     load_weights=load_weights,
                                     model_name=FLAGS.grasp_model)
+        # evaluate the model
         if 'eval' in FLAGS.pipeline_stage:
             print('Evaluating ' + FLAGS.grasp_model + ' on weights ' + load_weights)
             # evaluate using weights that were just computed, if available
