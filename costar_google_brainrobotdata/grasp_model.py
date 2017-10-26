@@ -207,6 +207,7 @@ def grasp_model_pretrained(clear_view_image_op,
             combined_input_data, final_nb_layer, nb_filter, growth_rate,
             bottleneck=True, dropout_rate=dropout_rate, weight_decay=weight_decay)
 
+        concat_axis = -1
         x = BatchNormalization(axis=concat_axis, epsilon=1.1e-5)(x)
         x = Activation('relu')(x)
         x = GlobalAveragePooling2D()(x)
