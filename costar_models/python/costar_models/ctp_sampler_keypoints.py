@@ -42,4 +42,39 @@ class RobotMultiKeypointsVisualizer(RobotMultiPredictionSampler):
 
     def __init__(self, taskdef, *args, **kwargs):
         super(RobotMultiKeypointsVisualizer, self).__init__(taskdef, *args, **kwargs)
+        self.keypoints = None
 
+    def _makeModel(self, features, arm, gripper, *args, **kwargs):
+        '''
+        Little helper function wraps makePredictor to consturct all the models.
+
+        Parameters:
+        -----------
+        features, arm, gripper: variables of the appropriate sizes
+        '''
+        self.predictor, self.train_predictor, self.actor, ins, hidden = \
+            self._makePredictor(
+                (features, arm, gripper))
+        self.keypoints = Model(ins, hidden, name="get_keypoints")
+        self.keypoints.compile(loss="mae", optimizer=self.getOptimizer())
+
+    def predictKeypoints(self, features):
+        return self.keypoints.predict(features)
+
+    def generateImages(self, *args, **kwargs):
+        '''
+        Take in data representing a particular file. Generate a set of images,
+        one for each frame in the file, representing the locations of important
+        keypoints in the image.
+        '''
+        features, targets = self._getData(*args, **kwargs)
+        length = features[0].shape[0]
+        for i in range(length):
+            self.predict([f[i] for f in features])
+
+    def generateKeypointsByOption(self, data, option, num=10):
+        '''
+        Generate an image with a set of keypoints, weighted by the predicted
+        next option.
+        '''
+        pass
