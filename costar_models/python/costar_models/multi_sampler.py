@@ -197,6 +197,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             ins += [option_in]
             pv_option_in = option_in
         else:
+            pv_option_in = option_in
             if self.compatibility > 0 or True:
                 pv_option_in = option_in
             else:
