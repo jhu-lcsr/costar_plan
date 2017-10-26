@@ -399,14 +399,18 @@ def GetImagePoseDecoder(dim, img_shape,
                 x = Dropout(dropout_rate)(x)
         x = Flatten()(x)
         x = Dense(dense_size)(x)
+        x = BatchNormalization()(x)
         x = Activation("relu")(x)
         if dropout:
             x = Dropout(dropout_rate)(x)
     else:
         raise RuntimeError('resnet not supported')
 
-    pose_out_x = Dense(pose_size,name="next_pose")(x)
-    label_out_x = Dense(num_options,name="next_label",activation="softmax")(x)
+    x1 = DenseHelper(x, dense_size, dropout_rate, 1)
+    x2 = DenseHelper(x, dense_size, dropout_rate, 1)
+
+    pose_out_x = Dense(pose_size,name="next_pose")(x1)
+    label_out_x = Dense(num_options,name="next_label",activation="sigmoid")(x2)
 
     decoder = Model(rep,
                     [dec, pose_out_x, label_out_x],
@@ -414,6 +418,13 @@ def GetImagePoseDecoder(dim, img_shape,
 
     return decoder
 
+def DenseHelper(x, dense_size, dropout_rate, repeat):
+    for _ in range(repeat):
+        x = Dense(dense_size)(x)
+        x = BatchNormalization()(x)
+        x = Activation("relu")(x)
+        x = Dropout(dropout_rate)(x)
+    return x
 
 def GetArmGripperDecoder(dim, img_shape,
         dropout_rate, filters, dense_size, kernel_size=[3,3], dropout=True, leaky=True,
@@ -445,6 +456,7 @@ def GetArmGripperDecoder(dim, img_shape,
         rep = Input((dim,))
         x = rep
 
+    """
     x = Dense(dense_size)(x)
     x = BatchNormalization()(x)
     if leaky:
@@ -453,12 +465,16 @@ def GetArmGripperDecoder(dim, img_shape,
         x = Activation("relu")(x)
     if dropout:
         x = Dropout(dropout_rate)(x)
+    """
 
-    arm_out_x = Dense(arm_size, name="next_arm", activation="linear")(x)
+    x1 = DenseHelper(x, 2*dense_size, dropout_rate, 2)
+    x2 = DenseHelper(x, 2*dense_size, dropout_rate, 2)
+
+    arm_out_x = Dense(arm_size, name="next_arm", activation="linear")(x1)
     gripper_out_x = Dense(gripper_size,
             activation="sigmoid",
-            name="next_gripper_flat")(x)
-    label_out_x = Dense(num_options,name="next_label",activation="softmax")(x)
+            name="next_gripper_flat")(x1)
+    label_out_x = Dense(num_options,name="next_label",activation="softmax")(x2)
 
     decoder = Model(rep,
                     [arm_out_x, gripper_out_x, label_out_x],
@@ -517,6 +533,8 @@ def GetImageArmGripperDecoder(dim, img_shape,
         x = Flatten()(x)
     else:
         x = rep[0]
+
+    """
     x = Dense(dense_size)(x)
     x = BatchNormalization()(x)
     if leaky:
@@ -525,11 +543,15 @@ def GetImageArmGripperDecoder(dim, img_shape,
         x = Activation("relu")(x)
     if dropout:
         x = Dropout(dropout_rate)(x)
+    """
 
-    arm_out_x = Dense(arm_size,name="next_arm")(x)
+    x1 = DenseHelper(x, 2*dense_size, dropout_rate, 2)
+    x2 = DenseHelper(x, 2*dense_size, dropout_rate, 2)
+
+    arm_out_x = Dense(arm_size,name="next_arm")(x1)
     gripper_out_x = Dense(gripper_size,
-            name="next_gripper_flat")(x)
-    label_out_x = Dense(num_options,name="next_label",activation="softmax")(x)
+            name="next_gripper_flat")(x1)
+    label_out_x = Dense(num_options,name="next_label",activation="softmax")(x2)
 
     decoder = Model(rep,
                     [dec, arm_out_x, gripper_out_x, label_out_x],
@@ -630,12 +652,16 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
     xin = Input((input_size,),name="tform%d_hidden_in"%idx)
     x = xin
     extra = []
+    extra_concat = []
     if use_noise:
         zin = Input((noise_dim,),name="tform%d_noise_in"%idx)
         extra += [zin]
+        extra_concat += [zin]
     if option is not None:
         oin = Input((option,),name="tform%d_option_in"%idx)
         extra += [oin]
+        extra_concat += [oin]
+        #option_x= OneHot(option)(oin)
     if len(extra) > 0:
         x = Concatenate()([x] + extra)
     for j in range(num_blocks):
@@ -683,7 +709,7 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
         return Model([xin] + extra, [x, mu, sigma], name="transform%d"%idx)
 
 
-def GetNextOptionAndValue(x, num_options, option_in=None):
+def GetNextOptionAndValue(x, num_options, dense_size, option_in=None):
     '''
     Predict some information about an observed/encoded world state
 
@@ -698,9 +724,13 @@ def GetNextOptionAndValue(x, num_options, option_in=None):
         option_x = OneHot(num_options)(option_in)
         option_x = Flatten()(option_x)
         x = Concatenate()([x, option_in])
+
+    x1 = DenseHelper(x, dense_size, 0.5, 1)
+    x2 = DenseHelper(x, dense_size, 0.5, 1)
+
     next_option_out = Dense(num_options,
-            activation="softmax", name="next_label_out",)(x)
-    value_out = Dense(1, activation="sigmoid", name="value_out",)(x)
+            activation="softmax", name="next_label_out",)(x1)
+    value_out = Dense(1, activation="sigmoid", name="value_out",)(x2)
     return value_out, next_option_out
 
 
@@ -738,15 +768,20 @@ def GetHypothesisProbability(x, num_hypotheses, num_options, labels,
     dropout_rate: dropout rate applied to model
     '''
 
-    x = Conv2D(filters,
-            kernel_size=kernel_size, 
-            strides=(2, 2),
-            padding='same',
-            name="p_hypothesis")(x)
-    x = BatchNormalization()(x)
-    x = LeakyReLU(alpha=0.2)(x)
-    x = Dropout(dropout_rate)(x)
-    x = Flatten()(x)
+    #x = Conv2D(filters,
+    #        kernel_size=kernel_size, 
+    #        strides=(2, 2),
+    #        padding='same',
+    #        name="p_hypothesis")(x)
+    #x = BatchNormalization()(x)
+    #x = LeakyReLU(alpha=0.2)(x)
+    #x = Dropout(dropout_rate)(x)
+    #x = Flatten()(x)
+    for _ in range(1):
+        x = Dense(filters)(x)
+        x = BatchNormalization()(x)
+        x = LeakyReLU(alpha=0.2)(x)
+        x = Dropout(dropout_rate)(x)
     x = Dense(num_hypotheses)(x)
     x = Activation("sigmoid")(x)
     x2 = x
@@ -756,7 +791,7 @@ def GetHypothesisProbability(x, num_hypotheses, num_options, labels,
         x = K.repeat_elements(x, num_actions, axis=-1)
         return x
     x = Lambda(lambda x: make_p_matrix(x, num_options),name="p_mat")(x)
-    labels.trainable = False
+    #labels.trainable = False
     x = Multiply()([x, labels])
     x = Lambda(lambda x: K.sum(x,axis=1),name="sum_p_h")(x)
 

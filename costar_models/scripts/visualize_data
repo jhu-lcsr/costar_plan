@@ -1,0 +1,47 @@
+#!/usr/bin/env python
+
+from __future__ import print_function
+
+import matplotlib as mpl
+mpl.use("Agg")
+
+from costar_models import *
+from costar_models.datasets.npz import NpzDataset
+from costar_models.datasets.npy_generator import NpzGeneratorDataset
+
+'''
+Tool for showing the goals of different actions given particular data.
+'''
+
+
+def main(args):
+    SetCPU(args)
+
+    data_file_info = args['data_file'].split('.')
+    data_type = data_file_info[-1]
+
+    if data_type == "npz":
+        root = ""
+        for i, tok in enumerate(data_file_info[:-1]):
+            if i < len(data_file_info)-1 and i > 0:
+                root += '.'
+            root += tok
+        dataset = NpzGeneratorDataset(root)
+        data = dataset.load(success_only = args['success_only'])
+    else:
+        raise NotImplementedError('data type not implemented: %s'%data_type)
+
+    model = MakeModel(taskdef=None, **args)
+    train_generator = model.trainGenerator(dataset)
+    test_generator = model.testGenerator(dataset)
+
+    mode = args['visualization_mode']
+    for i in range(args['num_sets']):
+        if mode == "train":
+            data = train_generator.next()
+        elif mode == "test":
+            data = test_generator.next()
+        elif mode == "sequence":
+            filename = dataest.sampleTestFilename()
+            print(i,filename)
+
