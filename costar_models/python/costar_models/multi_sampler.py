@@ -730,3 +730,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         decoder = Model(rep, dec, name="image_decoder")
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         return decoder
+
+    def _validate(self, *args, **kwargs):
+        features, targets = self._getData(*args, **kwargs)
+        length = features[0].shape[0]
+        for i in range(length):
+            f = [np.array([f[i]]) for f in features]
+            t = [np.array([t[i]]) for t in targets]
+            loss, train_loss, next_loss = self.train_predictor.evaluate(f, t)
+            print (loss, train_loss, next_loss)
