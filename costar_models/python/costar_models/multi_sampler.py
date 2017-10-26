@@ -570,19 +570,38 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
           - predict the expected reward based on each of those features
           - choose the best one to execute
         '''
-        features = world.initial_features #getHistoryMatrix()
+        features = world.initial_features
         if isinstance(features, list):
             assert len(features) == len(self.supervisor.inputs) - 1
         else:
             features = [features]
-        features = [f.reshape((1,)+f.shape) for f in features]
-        res = self.predictor.predict(features +
-                [self._makeOption1h(self.prev_option)])
+        test_features = []
+        for f in features:
+            f2 = f.reshape(1,) + f.shape
+            tile_shape = [self.batch_size,] + [1]*len(f.shape)
+            f2 = np.tile(f2,tile_shape)
+            print(f2.shape)
+            test_features.append(f2)
+
+        if self.use_prev_option:
+            # previous options
+            prev_option = self._makeOption1h(self.prev_option)
+            print("prev shape", prev_option.shape)
+        if self.use_next_option:
+            # don't include anything from the next options...
+            next_opt = np.zeros((self.batch_size,self.num_options))
+        if self.use_noise:
+            z = np.random.random((
+                self.batch_size,
+                self.num_hypotheses,
+                self.noise_dim))
+
+        res = self.predictor.predict(test_features)
         print("# results = ", len(res))
         idx = np.random.randint(self.num_hypotheses)
 
-        # Evaluate this policy to get the next action out
-        return policy.predict(features)
+        # Return the chosen goal pose
+        return None
 
     def _makeActorPolicy(self):
         '''
@@ -731,7 +750,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         return decoder
 
-    def _validate(self, *args, **kwargs):
+    def validate(self, *args, **kwargs):
         features, targets = self._getData(*args, **kwargs)
         length = features[0].shape[0]
         for i in range(length):

@@ -4,8 +4,8 @@ from __future__ import print_function
 
 # ----------------------------------------
 # Before importing anything else -- make sure we load the right library to save
-# images to disk.
-import matplotlib as mpl
+# images to disk for saving images.
+#import matplotlib as mpl
 #mpl.use("Agg")
 
 from costar_models import *
@@ -53,7 +53,9 @@ def RunKeypointsVisualizer(args):
         model = RobotMultiKeypointsVisualizer(taskdef=None, **args)
         model.load(world=None,**data)
         for i in range(dataset.numTest()):
-            model.generateImages(**dataset.loadTest(i))
+            data, success = dataset.loadTest(i)
+            if success or not model.success_only:
+                model.generateImages(**dataset.loadTest(i))
     else:
         raise RuntimeError('Must specify model type to visualize')
 
