@@ -75,6 +75,20 @@ class NpzGeneratorDataset(object):
         return os.path.join(self.name,
                 self.test[np.random.randint(len(self.test))])
 
+    def testFiles(self):
+        return self.test
+
+    def trainFiles(self):
+        return self.train
+
+    def numTest(self):
+        return len(self.test)
+
+    def loadTest(self, i):
+        if i > len(self.test):
+            raise RuntimeError('index %d greater than number of files'%i)
+        return np.load(os.path.join(self.name,self.test[i]))
+
     def sampleTrain(self):
         filename = self.sampleTrainFilename()
         try:

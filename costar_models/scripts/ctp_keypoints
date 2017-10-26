@@ -6,8 +6,11 @@ from __future__ import print_function
 # Before importing anything else -- make sure we load the right library to save
 # images to disk.
 import matplotlib as mpl
-mpl.use("Agg")
+#mpl.use("Agg")
 
+from costar_models import *
+from costar_models.datasets.npz import NpzDataset
+from costar_models.datasets.npy_generator import NpzGeneratorDataset
 
 def RunKeypointsVisualizer(args):
     '''
@@ -49,8 +52,8 @@ def RunKeypointsVisualizer(args):
             raise RuntimeError('Unsupported model type "%s"'%model)
         model = RobotMultiKeypointsVisualizer(taskdef=None, **args)
         model.load(world=None,**data)
-        train_generator = model.trainGenerator(dataset)
-        test_generator = model.testGenerator(dataset)
+        for i in range(dataset.numTest()):
+            model.generateImages(**dataset.loadTest(i))
     else:
         raise RuntimeError('Must specify model type to visualize')
 

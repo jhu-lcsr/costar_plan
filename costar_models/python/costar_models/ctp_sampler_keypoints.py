@@ -40,7 +40,7 @@ class RobotMultiKeypointsVisualizer(RobotMultiPredictionSampler):
     visualize outputs from the spatial softmax layer.
     '''
 
-    def __init__(self, taskdef, *args, **kwargs):
+    def __init__(self, taskdef, features, *args, **kwargs):
         super(RobotMultiKeypointsVisualizer, self).__init__(taskdef, *args, **kwargs)
         self.keypoints = None
 
@@ -59,7 +59,7 @@ class RobotMultiKeypointsVisualizer(RobotMultiPredictionSampler):
         self.keypoints.compile(loss="mae", optimizer=self.getOptimizer())
 
     def predictKeypoints(self, features):
-        return self.keypoints.predict(features)
+        return self.keypoints.predict(features)[0]
 
     def generateImages(self, *args, **kwargs):
         '''
@@ -69,8 +69,23 @@ class RobotMultiKeypointsVisualizer(RobotMultiPredictionSampler):
         '''
         features, targets = self._getData(*args, **kwargs)
         length = features[0].shape[0]
+        num_pts = self.img_col_dim/2
         for i in range(length):
-            self.predict([f[i] for f in features])
+            keypoints = self.predictKeypoints([np.array([f[i]]) for f in features])
+
+            x = np.zeros((num_pts,))
+            y = np.zeros((num_pts,))
+            for j in range(self.img_col_dim / 2):
+                jx = 2*j
+                jy = 2*j + 1
+                x[j] = (keypoints[jx] * 32) + 32
+                y[j] = (keypoints[jy] * 32) + 32
+            print('-------')
+            print(x)
+            print(y)
+            plt.imshow(features[0][i])
+            plt.plot(x,y,'*')
+            plt.show()
 
     def generateKeypointsByOption(self, data, option, num=10):
         '''

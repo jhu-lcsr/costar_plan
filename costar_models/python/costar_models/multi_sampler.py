@@ -65,6 +65,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_generator_layers = 1
         self.num_arm_vars = 6
 
+        # compatibility mode -- set > 0 if loading dataset ~ U
+        self.compatibility = 1
+
         # Number of nonlinear transformations to be applied to the hidden state
         # in order to compute a possible next state.
         if self.dense_representation:
@@ -81,6 +84,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Used for classifiers: value and next option
         self.combined_dense_size = 256
+        self.value_dense_size = 64
 
         # Size of the "pose" column containing arm, gripper info
         self.pose_col_dim = 64
@@ -204,10 +208,17 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 pv_option_in = None
         next_option_in = Input((self.num_options,),name="next_option_in")
         ins += [next_option_in]
-        value_out, next_option_out = GetNextOptionAndValue(enc,
-                                                           self.num_options,
-                                                           self.combined_dense_size,
-                                                           option_in=pv_option_in)
+
+        if self.compatibility > 0:
+            value_out, next_option_out = GetNextOptionAndValue(enc,
+                                                               self.num_options,
+                                                               self.combined_dense_size,
+                                                               option_in=pv_option_in)
+        else:
+            value_out, next_option_out = GetNextOptionAndValue(enc,
+                                                               self.num_options,
+                                                               self.value_dense_size,
+                                                               option_in=pv_option_in)
 
         # =====================================================================
         # Create many different image decoders
@@ -304,9 +315,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     "binary_crossentropy",]
         loss_weights = [0.99, 0.01]
         if self.success_only:
-            outs = [train_out, next_option_out, value_out]
-            losses += ["binary_crossentropy"]
-            loss_weights += [0.01]
+            #outs = [train_out, next_option_out, value_out]
+            outs = [train_out, next_option_out]
+            #losses += ["binary_crossentropy"]
+            #loss_weights += [0.01]
         else:
             outs = [train_out, value_out]
 
