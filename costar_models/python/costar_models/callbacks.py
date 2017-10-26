@@ -7,6 +7,35 @@ import numpy as np
 
 DEFAULT_MODEL_DIRECTORY = os.path.expanduser('~/.costar/models')
 
+
+class LogCallback(keras.callbacks.Callback):
+    def __init__(self,
+            name="model",
+            model_directory=DEFAULT_MODEL_DIRECTORY):
+        self.directory = model_directory
+        if not os.path.exists(self.directory):
+            os.makedirs(self.directory)
+        self.file = open(os.path.join(self.directory,"%s_log.csv"%name),'w')
+
+    def on_epoch_end(self, epoch, logs={}):
+        print(epoch,logs)
+        if epoch == 0:
+            msg = ""
+            for i, key in enumerate(logs.keys()):
+                msg += str(key)
+                if i < len(logs.keys())-1:
+                    msg += ","
+            msg += "\n"
+            self.file.write(msg)
+
+        msg = ""
+        for i, (key, value) in enumerate(logs.items()):
+            msg += str(value)
+            if i < len(logs.keys())-1:
+                msg += ","
+        msg += "\n"
+        self.file.write(msg)
+
 class PredictorShowImage(keras.callbacks.Callback):
     '''
     Save an image showing what some number of frames and associated predictions
@@ -234,9 +263,11 @@ class PredictorGoals(keras.callbacks.Callback):
         self.epoch += 1
         if self.use_noise:
             z= np.random.random((self.targets[0].shape[0], self.num_hypotheses, self.noise_dim))
-            arms, grippers, label, probs, v = self.predictor.predict(self.features + [z])
+            arms, grippers, label, probs, v = self.predictor.predict(
+                    self.features[:4] + [z])
         else:
-            arms, grippers, label, probs, v = self.predictor.predict(self.features)
+            arms, grippers, label, probs, v = self.predictor.predict(
+                    self.features[:4])
         plt.ioff()
         if self.verbose:
             print("============================")
@@ -255,7 +286,7 @@ class PredictorGoals(keras.callbacks.Callback):
                     print("Label = ", np.argmax(label[j][i]))
             if self.verbose:
                 print("Arm/gripper target = ",
-                        self.targets[0][j,:8])
+                        self.targets[0][j,:7])
                 print("Label target = ",
-                        np.argmax(self.targets[0][j,8:]))
+                        np.argmax(self.targets[0][j,7:]))
 

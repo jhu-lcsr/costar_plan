@@ -6,6 +6,8 @@ __all__ = [
     # ===========================================================================
     # Utilities
     "MakeModel", "GetModels", "ParseModelArgs",
+    "ParseVisualizeArgs",
+    "SetCPU",
     # ===========================================================================
     # Visualization and models
     "RobotMultiKeypointsVisualizer",
@@ -27,5 +29,6 @@ from .gan import *
 # Tools for training, etc
 from .parse import *
 from .util import GetModels, MakeModel
+from .cpu import SetCPU
 
 

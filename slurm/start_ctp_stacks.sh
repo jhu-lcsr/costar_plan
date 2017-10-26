@@ -28,14 +28,18 @@ module load tensorflow/cuda-8.0/r1.3
 # sequence Q: as above but adding success only, stripping out value + prior +
 #             actor learning so that it can happen separately after we already
 #             have a good world state.
+# sequence R: success only, 128, spatial softmax
+# sequence S: ssm, 128, include failures, use action prior
 for lr in 0.001 0.01
 do
+  # just use the adam optimizer
 	for opt in adam
 	do
-    for noise_dim in 1 8 32
+    # Noise: add extra ones with no noise at all
+    for noise_dim in 0 1 8 32
     do
       hd=true
-      for dr in 0.125 0.25 0.5
+      for dr in 0.01 0.125 0.25 0.5
       do
         echo "starting LR=$lr, Dropout=$dr, optimizer=$opt, use dropout in hypotheses: $hd noise=$noise_dim"
         sbatch ctp.sh $lr $dr $opt $hd $noise_dim 

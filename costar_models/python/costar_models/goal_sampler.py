@@ -45,7 +45,8 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         self.PredictorCb = PredictorGoals
 
         # Number of model inputs for training only
-        self.num_features = 6
+        self.num_features = 4
+        self.use_next_option = False
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
@@ -90,9 +91,14 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
                 flatten=False,
                 output_filters=self.tform_filters,
                 option=self.num_options,
+                #option=None,
+                use_spatial_softmax=self.use_spatial_softmax,
                 )
 
         img_in, arm_in, gripper_in, option_in = ins
+        #img_in, arm_in, gripper_in = ins
+        #option_in = Input((1,),name="option_in")
+        #ins += [option_in]
 
         decoder = GetArmGripperDecoder(self.img_col_dim,
                         img_shape,
@@ -174,16 +180,18 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
 
         # =====================================================================
         # Hypothesis probabilities
-        value_out, next_option_out = GetNextOptionAndValue(enc, self.num_options,)
+        value_out, next_option_out = GetNextOptionAndValue(enc,
+                self.num_options,
+                self.combined_dense_size)
 
         # =====================================================================
         # Training the actor policy
         arm_goal = Input((self.num_arm_vars,),name="arm_goal_in")
         gripper_goal = Input((1,),name="gripper_goal_in")
         actor = self._makeActorPolicy()
-        actor.summary()
+        #actor.summary()
         arm_cmd_out, gripper_cmd_out = actor([enc, arm_goal, gripper_goal])
-        generator.summary()
+        #generator.summary()
         if self.skip_connections:
             img_out = generator([enc, arm_goal, gripper_goal] + skips)
         else:
@@ -191,14 +199,19 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
 
         # =====================================================================
         # Create models to train
-        sampler = Model(ins + [z],
-                [arm_out, gripper_out, label_out, next_option_out, value_out])
-        # TODO: fix actor model
-        actor = Model(ins + [arm_goal, gripper_goal],
-                [arm_cmd_out, gripper_cmd_out])
-        train_predictor = Model(ins + [arm_goal, gripper_goal, z],
+        #actor = Model(ins + [arm_goal, gripper_goal],
+        #        [arm_cmd_out, gripper_cmd_out])
+        #train_predictor = Model(ins + [arm_goal, gripper_goal, z],
+        if self.use_noise:
+            sampler = Model(ins + [z],
+                    [arm_out, gripper_out, label_out, next_option_out, value_out])
+            train_predictor = Model(ins + [z],
                 [train_out]) #, next_option_out,
-                #value_out, arm_cmd_out, gripper_cmd_out, img_out])
+        else:
+            sampler = Model(ins,
+                [arm_out, gripper_out, label_out, next_option_out, value_out])
+            train_predictor = Model(ins,
+                    [train_out]) #, next_option_out,
 
         # =====================================================================
         # Create models to train
