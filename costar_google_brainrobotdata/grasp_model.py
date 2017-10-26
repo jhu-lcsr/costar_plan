@@ -34,14 +34,80 @@ from keras.engine import Layer
 
 def tile_vector_as_image_channels(vector_op, image_shape):
     """
-
     Takes a vector of length n and an image shape BHWC,
     and repeat the vector as channels at each pixel.
+
+    # Params
+
+      vector_op: A tensor vector to tile.
+      image_shape: A list of integers [width, height] with the desired dimensions.
     """
-    ivs = K.shape(vector_op)
-    vector_op = K.reshape(vector_op, [ivs[0], 1, 1, ivs[1]])
-    vector_op = K.tile(vector_op, K.stack([1, image_shape[1], image_shape[2], 1]))
-    return vector_op
+    with K.name_scope('tile_vector_as_image_channels'):
+        ivs = K.int_shape(vector_op)
+        # reshape the vector into a single pixel
+        vector_pixel_shape = [ivs[0], 1, 1, ivs[1]]
+        vector_op = K.reshape(vector_op, vector_pixel_shape)
+        # tile the pixel into a full image
+        tile_dimensions = [1, image_shape[1], image_shape[2], 1]
+        vector_op = K.tile(vector_op, tile_dimensions)
+        if K.backend() is 'tensorflow':
+            output_shape = [ivs[0], image_shape[1], image_shape[2], ivs[1]]
+            vector_op.set_shape(output_shape)
+        return vector_op
+
+
+def concat_images_with_tiled_vector(images, vector):
+    """Combine a set of images with a vector, tiling the vector at each pixel in the images and concatenating on the channel axis.
+
+    # Params
+
+        images: list of images with the same dimensions
+        vector: vector to tile on each image. If you have
+            more than one vector, simply concatenate them
+            all before calling this function.
+
+    # Returns
+
+    """
+    with K.name_scope('concat_images_with_tiled_vector'):
+        if not isinstance(images, list):
+            images = [images]
+        image_shape = K.int_shape(images[0])
+        tiled_vector = tile_vector_as_image_channels(vector, image_shape)
+        images.append(tiled_vector)
+        combined = K.concatenate(images)
+
+        return combined
+
+
+def tile_vector_as_image_channels_layer(images, vector, image_shape=None, vector_shape=None):
+    """Tile a vector as if it were channels onto every pixel of an image
+
+    # Params
+       images: a list of images to combine, must have equal dimensions
+       vector: the 1D vector to tile onto every pixel
+       image_shape: Tuple with 3 entries defining the shape (batch, height, width)
+           images should be expected to have, do not specify the number
+           of batches.
+       vector_shape: Tuple with 3 entries defining the shape (batch, height, width)
+           images should be expected to have, do not specify the number
+           of batches.
+    """
+    if not isinstance(images, list):
+        images = [images]
+    if vector_shape is None:
+        # check if K.shape, K.int_shape, or vector.get_shape().as_list()[1:] is better
+        # https://github.com/fchollet/keras/issues/5211
+        vector_shape = K.shape(vector)[1:]
+    if image_shape is None:
+        # check if K.shape, K.int_shape, or image.get_shape().as_list()[1:] is better
+        # https://github.com/fchollet/keras/issues/5211
+        image_shape = K.shape(images[0])[1:]
+    vector = Reshape([1, 1, vector_shape[-1]])(vector)
+    tile_shape = (int(1), int(image_shape[0]), int(image_shape[1]), 1)
+    tiled_vector = Lambda(lambda x: K.tile(x, tile_shape))(vector)
+    x = Concatenate(axis=-1)([] + images + [tiled_vector])
+    return x
 
 
 def grasp_model_resnet(clear_view_image_op,
@@ -51,35 +117,23 @@ def grasp_model_resnet(clear_view_image_op,
                        input_vector_op_shape=None,
                        include_top=True,
                        dropout_rate=0.0):
-    if input_vector_op_shape is None:
-        input_vector_op_shape = [5]
-    if input_image_shape is None:
-        input_image_shape = [512, 640, 3]
-    print('input_vector_op pre tile: ', input_vector_op)
-
-    input_vector_op = tile_vector_as_image_channels(input_vector_op, K.shape(clear_view_image_op))
-
-    combined_input_data = tf.concat([clear_view_image_op, input_vector_op, current_time_image_op], -1)
-    combined_input_shape = input_image_shape
-    # add up the total number of channels
-    combined_input_shape[-1] = combined_input_shape[-1] * 2 + input_vector_op_shape[0]
-    # initial number of filters should be
-    # the number of input channels times the growth rate
-    # nb_filters = combined_input_shape[-1] * growth_rate
-    print('combined_input_shape: ', combined_input_shape)
-    # print('nb_filters: ', nb_filters)
-    print('combined_input_data: ', combined_input_data)
-    print('clear_view_image_op: ', clear_view_image_op)
-    print('current_time_image_op: ', current_time_image_op)
-    print('input_vector_op: ', input_vector_op)
+    combined_input_data = concat_images_with_tiled_vector([clear_view_image_op, current_time_image_op], input_vector_op)
+    combined_input_shape = K.int_shape(combined_input_data)
+    # the input shape should be a tuple of 3 values
+    # if the batch size is present, strip it out
+    # for call to ResNet constructor.
+    if len(combined_input_shape) == 4:
+        combined_input_shape = combined_input_shape[1:]
     model = ResNet(input_shape=combined_input_shape,
                    classes=1,
                    block='bottleneck',
-                   repetitions=[3, 3, 3, 3],
+                   repetitions=[1, 1, 1, 1],
                    include_top=include_top,
                    input_tensor=combined_input_data,
                    activation='sigmoid',
                    initial_filters=96,
+                   initial_kernel_size=(3, 3),
+                   pooling=None,
                    dropout=dropout_rate)
     return model
 
@@ -98,7 +152,7 @@ def grasp_model_pretrained(clear_view_image_op,
     """export CUDA_VISIBLE_DEVICES="1" && python grasp_train.py --random_crop=1 --batch_size=1 --grasp_model grasp_model_pretrained --resize_width=320 --resize_height=256
     """
     if input_vector_op_shape is None:
-        input_vector_op_shape = [K.shape(input_vector_op)[0], 5]
+        input_vector_op_shape = [K.shape(input_vector_op)[0], 7]
         input_vector_op = K.reshape(input_vector_op, input_vector_op_shape)
     if input_image_shape is None:
         input_image_shape = [512, 640, 3]
@@ -181,6 +235,8 @@ def grasp_model_pretrained(clear_view_image_op,
                        input_tensor=combined_input_data,
                        activation='sigmoid',
                        initial_filters=96,
+                       initial_kernel_size=(3, 3),
+                       pooling=None,
                        dropout=dropout_rate)
 
     return model
@@ -198,7 +254,7 @@ def grasp_model(clear_view_image_op,
                 include_top=True,
                 dropout_rate=0.0):
     if input_vector_op_shape is None:
-        input_vector_op_shape = [5]
+        input_vector_op_shape = input_vector_op.get_shape().as_list()
     if input_image_shape is None:
         input_image_shape = [512, 640, 3]
     print('input_vector_op pre tile: ', input_vector_op)
@@ -244,7 +300,7 @@ def grasp_model_segmentation(clear_view_image_op=None,
                              dense_blocks=4,
                              dropout_rate=0.0):
     if input_vector_op_shape is None:
-        input_vector_op_shape = [5]
+        input_vector_op_shape = input_vector_op.get_shape().as_list()
     if input_image_shape is None:
         input_image_shape = [512, 640, 3]
 
