@@ -271,6 +271,7 @@ def GetImageDecoder(dim, img_shape,
         z = Input((width*height*tform_filters,),name="input_image")
         x = Reshape((height,width,tform_filters))(z)
     else:
+        print ("dens rep size ", dense_rep_size)
         z = Input((dense_rep_size,),name="input_latent")
         x = Dense(height*width*filters,name="dense_input_size")(z)
         if batchnorm:
@@ -345,7 +346,7 @@ def GetImageDecoder(dim, img_shape,
     else:
         x = Conv2D(nchannels, (1, 1), padding='same')(x)
     x = Activation('sigmoid')(x)
-
+    print ("z ", [z], "skip inputs ", skip_inputs)
     ins = [z] + skip_inputs
 
     return ins, x
@@ -403,6 +404,8 @@ def GetImagePoseDecoder(dim, img_shape,
         x = Flatten()(x)
     else:
         x = rep[0]
+
+    """
     x = Dense(dense_size)(x)
     x = BatchNormalization()(x)
     if leaky:
@@ -411,9 +414,13 @@ def GetImagePoseDecoder(dim, img_shape,
         x = Activation("relu")(x)
     if dropout:
         x = Dropout(dropout_rate)(x)
+    """
 
-    pose_out_x = Dense(pose_size,name="next_pose")(x)
-    label_out_x = Dense(num_options,name="next_label",activation="sigmoid")(x)
+    x1 = DenseHelper(x, 2*dense_size, dropout_rate, 2)
+    x2 = DenseHelper(x, 2*dense_size, dropout_rate, 2)
+
+    pose_out_x = Dense(pose_size,name="next_pose")(x1)
+    label_out_x = Dense(num_options,name="next_label",activation="softmax")(x2)
 
     decoder = Model(rep,
                     [dec, pose_out_x, label_out_x],
@@ -422,7 +429,98 @@ def GetImagePoseDecoder(dim, img_shape,
     return decoder
 
 
+# def GetImagePoseDecoder(dim, img_shape, 
+#         dropout_rate, filters, dense_size, kernel_size=[3,3], dropout=True, leaky=True, dense_rep_size=None,
+#         batchnorm=True,dense=True, num_hypotheses=None, tform_filters=None,
+#         original=None, num_options=64, pose_size=6,
+#         resnet_blocks=False, skips=False, robot_skip=None,
+#         stride2_layers=2, stride1_layers=1, stride1_post_tiling_layers=0,
+#         stride2_layers_no_skip=0):
+#     '''
+#     Decode image and gripper setup.
 
+#     Parameters:
+#     -----------
+#     dim: dimensionality of hidden representation
+#     img_shape: shape of hidden image representation
+#     '''
+
+#     height = int(img_shape[0]/(2**stride2_layers))
+#     width = int(img_shape[1]/(2**stride2_layers))
+#     rep, dec = GetImageDecoder(dim,
+#                         img_shape,
+#                         dropout_rate=dropout_rate,
+#                         kernel_size=kernel_size,
+#                         filters=filters,
+#                         stride2_layers=stride2_layers,
+#                         stride1_layers=stride1_layers,
+#                         stride2_layers_no_skip=stride2_layers_no_skip,
+#                         tform_filters=tform_filters,
+#                         dropout=dropout,
+#                         leaky=leaky,
+#                         dense=dense,
+#                         dense_rep_size=128,
+#                         skips=skips,
+#                         original=original,
+#                         resnet_blocks=resnet_blocks,
+#                         batchnorm=batchnorm,)
+
+#     if tform_filters is None:
+#         tform_filters = filters
+
+#     # =====================================================================
+#     # Decode pose state.
+#     # Predict the pose. We add these back
+#     # in from the inputs once again, in order to make sure they don't get
+#     # lost in all the convolution layers above...
+#     height4 = int(img_shape[0]/4)
+#     width4 = int(img_shape[1]/4)
+#     height8 = int(img_shape[0]/8)
+#     width8 = int(img_shape[1]/8)
+#     print (rep[0])
+#     print (width8)
+#     print (height8)
+#     print (tform_filters)
+#     x = Reshape((width8,height8,tform_filters))(rep[0])
+#     if not resnet_blocks:
+#         for i in range(1):
+#             x = Conv2D(filters,
+#                     kernel_size=kernel_size, 
+#                     strides=(2, 2),
+#                     padding='same',
+#                     name="pose_label_dec%d"%i)(x)
+#             x = BatchNormalization()(x)
+#             x = Activation("relu")(x)
+#             if dropout:
+#                 x = Dropout(dropout_rate)(x)
+#         x = Flatten()(x)
+#         x = Dense(dense_size)(x)
+#         x = BatchNormalization()(x)
+#         x = Activation("relu")(x)
+#         if dropout:
+#             x = Dropout(dropout_rate)(x)
+#     else:
+#         raise RuntimeError('resnet not supported')
+
+#     x1 = DenseHelper(x, dense_size, dropout_rate, 1)
+#     x2 = DenseHelper(x, dense_size, dropout_rate, 1)
+
+#     pose_out_x = Dense(pose_size,name="next_pose")(x1)
+#     label_out_x = Dense(num_options,name="next_label",activation="sigmoid")(x2)
+
+#     decoder = Model(rep,
+#                     [dec, pose_out_x, label_out_x],
+#                     name="decoder")
+
+#     return decoder
+
+def DenseHelper(x, dense_size, dropout_rate, repeat):
+    for _ in range(repeat):
+        x = Dense(dense_size)(x)
+        x = BatchNormalization()(x)
+        x = Activation("relu")(x)
+        x = Dropout(dropout_rate)(x)
+    return x
 
 def GetArmGripperDecoder(dim, img_shape,
         dropout_rate, filters, dense_size, kernel_size=[3,3], dropout=True, leaky=True,
@@ -454,6 +552,7 @@ def GetArmGripperDecoder(dim, img_shape,
         rep = Input((dim,))
         x = rep
 
+    """
     x = Dense(dense_size)(x)
     x = BatchNormalization()(x)
     if leaky:
@@ -462,12 +561,16 @@ def GetArmGripperDecoder(dim, img_shape,
         x = Activation("relu")(x)
     if dropout:
         x = Dropout(dropout_rate)(x)
+    """
 
-    arm_out_x = Dense(arm_size, name="next_arm", activation="linear")(x)
+    x1 = DenseHelper(x, 2*dense_size, dropout_rate, 2)
+    x2 = DenseHelper(x, 2*dense_size, dropout_rate, 2)
+
+    arm_out_x = Dense(arm_size, name="next_arm", activation="linear")(x1)
     gripper_out_x = Dense(gripper_size,
             activation="sigmoid",
-            name="next_gripper_flat")(x)
-    label_out_x = Dense(num_options,name="next_label",activation="softmax")(x)
+            name="next_gripper_flat")(x1)
+    label_out_x = Dense(num_options,name="next_label",activation="softmax")(x2)
 
     decoder = Model(rep,
                     [arm_out_x, gripper_out_x, label_out_x],
@@ -526,6 +629,8 @@ def GetImageArmGripperDecoder(dim, img_shape,
         x = Flatten()(x)
     else:
         x = rep[0]
+
+    """
     x = Dense(dense_size)(x)
     x = BatchNormalization()(x)
     if leaky:
@@ -534,11 +639,15 @@ def GetImageArmGripperDecoder(dim, img_shape,
         x = Activation("relu")(x)
     if dropout:
         x = Dropout(dropout_rate)(x)
+    """
 
-    arm_out_x = Dense(arm_size,name="next_arm")(x)
+    x1 = DenseHelper(x, 2*dense_size, dropout_rate, 2)
+    x2 = DenseHelper(x, 2*dense_size, dropout_rate, 2)
+
+    arm_out_x = Dense(arm_size,name="next_arm")(x1)
     gripper_out_x = Dense(gripper_size,
-            name="next_gripper_flat")(x)
-    label_out_x = Dense(num_options,name="next_label",activation="softmax")(x)
+            name="next_gripper_flat")(x1)
+    label_out_x = Dense(num_options,name="next_label",activation="softmax")(x2)
 
     decoder = Model(rep,
                     [dec, arm_out_x, gripper_out_x, label_out_x],
@@ -696,7 +805,7 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
         return Model([xin] + extra, [x, mu, sigma], name="transform%d"%idx)
 
 
-def GetNextOptionAndValue(x, num_options, option_in=None):
+def GetNextOptionAndValue(x, num_options, dense_size, option_in=None):
     '''
     Predict some information about an observed/encoded world state
 
@@ -712,9 +821,12 @@ def GetNextOptionAndValue(x, num_options, option_in=None):
         option_x = Flatten()(option_x)
         x = Concatenate()([x, option_in])
 
+    x1 = DenseHelper(x, dense_size, 0.5, 1)
+    x2 = DenseHelper(x, dense_size, 0.5, 1)
+
     next_option_out = Dense(num_options,
-            activation="softmax", name="next_label_out",)(x)
-    value_out = Dense(1, activation="sigmoid", name="value_out",)(x)
+            activation="softmax", name="next_label_out",)(x1)
+    value_out = Dense(1, activation="sigmoid", name="value_out",)(x2)
     return value_out, next_option_out
 
 

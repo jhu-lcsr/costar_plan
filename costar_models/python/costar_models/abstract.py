@@ -25,10 +25,12 @@ class AbstractAgentBasedModel(object):
             dropout_rate=0.5, decoder_dropout_rate=0.5,
             hypothesis_dropout=False,
             dense_representation=True,
-            skip_connections=True,
+            skip_connections=1,
+            compatibility=1,
             use_noise=False,
             sampling=False,
             use_prev_option=True,
+            success_only=False,
             num_generator_files=1, predict_value=False, upsampling=None,
             task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
@@ -39,6 +41,12 @@ class AbstractAgentBasedModel(object):
         elif lr > 1.:
             raise RuntimeError('Extremely high learning rate: %f' % lr)
 
+        # ===================================
+        # REMOVE THIS 
+        self.compatibility = compatibility
+        # ===================================
+
+        self.success_only = success_only
         self.use_prev_option = use_prev_option
         self.lr = lr
         self.iter = iter
@@ -68,7 +76,7 @@ class AbstractAgentBasedModel(object):
         self.hypothesis_dropout = hypothesis_dropout
         self.use_noise = use_noise
         self.decoder_dropout_rate = decoder_dropout_rate
-        self.skip_connections = skip_connections
+        self.skip_connections = skip_connections > 0
         self.dense_representation = dense_representation
         self.sampling = sampling
         
@@ -111,6 +119,7 @@ class AbstractAgentBasedModel(object):
         print("Pretrain for %d iter"%self.pretrain_iter)
         print("p(Generator sample first frame) = 1/%d"%(self.choose_initial))
         print("Number of generator files = %d"%self.num_generator_files)
+        print("Successful examples only = ", self.success_only)
         print("-----------------------------------------------------------")
         print("------------------ Model Specific Options -----------------")
         print("residual =", self.residual)

@@ -52,7 +52,7 @@ class TaskAgent(AbstractAgent):
     executions.
     '''
     
-    NUM_REPEATS = 4
+    NUM_REPEATS = 5
     name = "random"
 
     def __init__(self, *args, **kwargs):
@@ -99,7 +99,12 @@ class TaskAgent(AbstractAgent):
                     done = True
                 idx = plan.idx
                 if idx >= len(names):
-                    idx = -1
+                    # We reached the end of the task plan and were not
+                    # successful -- this indicates that we failed for some
+                    # reason, and we should not just sit here waiting to see
+                    # what happens.
+                    idx = len(names) - 1
+                    reward -= 100
                     done = True
                 else:
                     print(idx,task.index(names[idx]),names[idx])

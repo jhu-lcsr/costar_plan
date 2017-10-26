@@ -44,6 +44,7 @@ class HuskyRobotMultiPredictionSampler(RobotMultiPredictionSampler):
         self.num_pose_vars = 6
         self.num_options = 6
         self.PredictorCb = HuskyPredictorShowImage
+        self.num_features = 3 
 
 
 
@@ -51,21 +52,23 @@ class HuskyRobotMultiPredictionSampler(RobotMultiPredictionSampler):
 
 
     def _makePredictor(self, features):
-        '''
+        
  
-        Create model to predict possible manipulation goals.
-        '''
         (images, pose) = features
         img_shape = images.shape[1:]
         pose_size = pose.shape[-1]
-        
         image_size = 1
         for dim in img_shape:
             image_size *= dim
         image_size = int(image_size)    
 
+        if self.use_prev_option:
+            enc_options = self.num_options
+        else:
+            enc_options = None
+
         ins, enc, skips, robot_skip = GetEncoder(img_shape,
-                pose_size,
+                [pose_size],
                 self.img_col_dim,
                 dropout_rate=self.dropout_rate,
                 filters=self.img_num_filters,
@@ -80,19 +83,21 @@ class HuskyRobotMultiPredictionSampler(RobotMultiPredictionSampler):
                 batchnorm=True,
                 tile=True,
                 flatten=False,
-                option=self.num_options,
+                option=enc_options,
                 use_spatial_softmax=self.use_spatial_softmax,
-                #option=None,
                 output_filters=self.tform_filters,
                 config="mobile"
                 )
-        img_in, pose_in, option_in = ins
-        #img_in, pose_in, gripper_in = ins
+
+        if self.use_prev_option:
+            img_in, pose_in, option_in = ins
+        else:
+            img_in, pose_in= ins
         if self.use_noise:
             z = Input((self.num_hypotheses, self.noise_dim))
 
         # =====================================================================
-        # Create the decoders for image, pose, gripper.
+        # Create the decoders for image, arm, gripper.
         decoder = GetImagePoseDecoder(
                         self.img_col_dim,
                         img_shape,
@@ -126,17 +131,30 @@ class HuskyRobotMultiPredictionSampler(RobotMultiPredictionSampler):
             skips.reverse()
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         decoder.summary()
-
-
+        
+        if not self.use_prev_option:
+            option_in = Input((1,),name="prev_option_in")
+            ins += [option_in]
+            pv_option_in = option_in
+        else:
+            pv_option_in = option_in
+            if self.compatibility > 0 or True:
+                pv_option_in = option_in
+            else:
+                pv_option_in = None
         next_option_in = Input((self.num_options,),name="next_option_in")
         ins += [next_option_in]
-    
-        #option_in = Input((1,),name="prev_option_in")
-        #ins += [option_in]
-        value_out, next_option_out = GetNextOptionAndValue(enc,
-                                                           self.num_options,
-                                                           option_in=None)
-                                                           #option_in=option_in)
+
+        if self.compatibility > 0:
+            value_out, next_option_out = GetNextOptionAndValue(enc,
+                                                               self.num_options,
+                                                               self.combined_dense_size,
+                                                               option_in=pv_option_in)
+        else:
+            value_out, next_option_out = GetNextOptionAndValue(enc,
+                                                               self.num_options,
+                                                               self.value_dense_size,
+                                                               option_in=pv_option_in)
 
         # =====================================================================
         # Create many different image decoders
@@ -151,10 +169,15 @@ class HuskyRobotMultiPredictionSampler(RobotMultiPredictionSampler):
                 transform.summary()
             if self.use_noise:
                 zi = Lambda(lambda x: x[:,i], name="slice_z%d"%i)(z)
-                #x = transform([enc, zi, next_option_out])
-                x = transform([enc, zi, next_option_in])
+                if self.use_next_option:
+                    x = transform([enc, zi, next_option_in])
+                else:
+                    x = transform([enc, zi])
             else:
-                x = transform([enc, next_option_in])
+                if self.use_next_option:
+                    x = transform([enc, next_option_in])
+                else:
+                    x = transform([enc])
             
             if self.sampling:
                 x, mu, sigma = x
@@ -178,8 +201,7 @@ class HuskyRobotMultiPredictionSampler(RobotMultiPredictionSampler):
                     name="img_hypothesis_%d"%i)(img_x)
             pose_x = Lambda(
                     lambda x: K.expand_dims(x, 1),
-                    name="pose_hypothesis_%d"%i)(pose_x)
-          
+                    name="arm_hypothesis_%d"%i)(pose_x)
             label_x = Lambda(
                     lambda x: K.expand_dims(x, 1),
                     name="label_hypothesis_%d"%i)(label_x)
@@ -192,10 +214,18 @@ class HuskyRobotMultiPredictionSampler(RobotMultiPredictionSampler):
             label_outs.append(label_x)
             train_outs.append(train_x)
 
+
         image_out = Concatenate(axis=1)(image_outs)
         pose_out = Concatenate(axis=1)(pose_outs)
         label_out = Concatenate(axis=1)(label_outs)
         train_out = Concatenate(axis=1,name="all_train_outs")(train_outs)
+
+        #next_option_out, p_h = GetHypothesisProbability(enc,
+        #        self.num_hypotheses,
+        #        self.num_options,
+        #        label_out,
+        #        self.combined_dense_size,
+        #        kernel_size=None,)
 
         # =====================================================================
         # Create models to train
@@ -205,27 +235,35 @@ class HuskyRobotMultiPredictionSampler(RobotMultiPredictionSampler):
                 [image_out, pose_out, label_out, next_option_out,
                     value_out])
         actor = None
-        train_predictor = Model(ins,
-                [train_out],)#, next_option_out, value_out])
+        losses = [MhpLossWithShape(
+                        num_hypotheses=self.num_hypotheses,
+                        outputs=[image_size, pose_size, self.num_options],
+                        weights=[0.7, 1.0, 0.1],
+                        loss=["mae","mae","categorical_crossentropy"],
+                        stats=stats,
+                        avg_weight=0.05),
+                    "binary_crossentropy",]
+        loss_weights = [0.99, 0.01]
+        if self.success_only:
+            #outs = [train_out, next_option_out, value_out]
+            outs = [train_out, next_option_out]
+            #losses += ["binary_crossentropy"]
+            #loss_weights += [0.01]
+        else:
+            outs = [train_out, value_out]
+
+        train_predictor = Model(ins, outs)
 
         # =====================================================================
         # Create models to train
         train_predictor.compile(
-                loss=[#"mae","mse","mse","binary_crossentropy",
-                    MhpLossWithShape(
-                        num_hypotheses=self.num_hypotheses,
-                        outputs=[image_size, pose_size, self.num_options],
-                        weights=[0.4,0.5,0.05],
-                        loss=["mae","mae","categorical_crossentropy"],
-                        stats=stats,
-                        avg_weight=0.05),],
-                    #"binary_crossentropy", "binary_crossentropy"],
-                #loss_weights=[1.0,0.01,0.01],
+                loss=losses,
+                loss_weights=loss_weights,
                 optimizer=self.getOptimizer())
         predictor.compile(loss="mae", optimizer=self.getOptimizer())
         train_predictor.summary()
 
-        return predictor, train_predictor, actor
+        return predictor, train_predictor, actor, ins, enc
 
    
   
@@ -260,7 +298,7 @@ class HuskyRobotMultiPredictionSampler(RobotMultiPredictionSampler):
         -----------
         features, arm, gripper: variables of the appropriate sizes
         '''
-        self.predictor, self.train_predictor, self.actor = \
+        self.predictor, self.train_predictor, self.actor, ins, hidden = \
             self._makePredictor(
                 (features, pose))
 
@@ -424,17 +462,41 @@ class HuskyRobotMultiPredictionSampler(RobotMultiPredictionSampler):
                 I_target]
 
 
-    def _getData(self, *args, **kwargs):
+    # def _getData(self, *args, **kwargs):
         
+    #     features, targets = self._getAllData(kwargs['image']/255.,kwargs['robot_pose'],kwargs['robot_action'],kwargs['label'],\
+    #         kwargs['prev_label'],kwargs['goal_image']/255.,kwargs['goal_robot_pose'], np.ones(len(kwargs['goal_robot_pose'])))
+    #     tt, o1, v, qa, I = targets
+    #     if self.use_noise:
+    #         noise_len = features[0].shape[0]
+    #         z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
+    #         return features[:self.num_features] + [z], [tt] #, o1, v]
+    #     else:
+    #         return features[:self.num_features], [tt] #, o1, v]
+
+  
+   
+   
+
+    def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(kwargs['image']/255.,kwargs['robot_pose'],kwargs['robot_action'],kwargs['label'],\
             kwargs['prev_label'],kwargs['goal_image']/255.,kwargs['goal_robot_pose'], np.ones(len(kwargs['goal_robot_pose'])))
         tt, o1, v, qa, I = targets
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-            return features[:self.num_features] + [z], [tt] #, o1, v]
+            #return features[:self.num_features] + [z], [tt, o1, v]
+            #return features[:self.num_features] + [z], [tt, o1]#, v]
+            if self.success_only:
+                return features[:self.num_features] + [o1, z], [tt, o1]
+            else:
+                return features[:self.num_features] + [o1, z], [tt, v]
         else:
-            return features[:self.num_features], [tt] #, o1, v]
-
-  
-   
+            #return features[:self.num_features], [tt, o1, v]
+            #return features[:self.num_features], [tt, o1]#, v]
+            if self.success_only:
+                
+                return features[:self.num_features] + [o1], [tt, o1]
+            else:
+                
+                return features[:self.num_features] + [o1], [tt, v]
