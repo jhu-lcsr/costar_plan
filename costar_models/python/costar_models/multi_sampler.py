@@ -122,6 +122,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             enc_options = self.num_options
         else:
             enc_options = None
+
         ins, enc, skips, robot_skip = GetEncoder(img_shape,
                 [arm_size, gripper_size],
                 self.img_col_dim,
@@ -142,6 +143,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 use_spatial_softmax=self.use_spatial_softmax,
                 output_filters=self.tform_filters,
                 )
+
         if self.use_prev_option:
             img_in, arm_in, gripper_in, option_in = ins
         else:
@@ -312,7 +314,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         predictor.compile(loss="mae", optimizer=self.getOptimizer())
         train_predictor.summary()
 
-        return predictor, train_predictor, actor
+        return predictor, train_predictor, actor, ins, enc
 
     def _getTransform(self,i=0):
         transform_dropout = False
@@ -366,7 +368,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         -----------
         features, arm, gripper: variables of the appropriate sizes
         '''
-        self.predictor, self.train_predictor, self.actor = \
+        self.predictor, self.train_predictor, self.actor, ins, hidden = \
             self._makePredictor(
                 (features, arm, gripper))
 
@@ -641,7 +643,47 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 name="generator")
         return generator
 
+    def _makeEncoder(self, img_shape, arm_size, gripper_size):
+        ins, enc, skips, robot_skip = GetEncoder(img_shape,
+                [arm_size, gripper_size],
+                self.img_col_dim,
+                dropout_rate=self.dropout_rate,
+                filters=self.img_num_filters,
+                leaky=False,
+                dropout=True,
+                pre_tiling_layers=self.extra_layers,
+                post_tiling_layers=self.steps_down,
+                stride1_post_tiling_layers=self.encoder_stride1_steps,
+                pose_col_dim=self.pose_col_dim,
+                kernel_size=[5,5],
+                dense=self.dense_representation,
+                batchnorm=True,
+                tile=True,
+                flatten=False,
+                option=enc_options,
+                use_spatial_softmax=self.use_spatial_softmax,
+                output_filters=self.tform_filters,
+                )
+        self.encoder = Model(ins, [enc]+skips, name="encoder")
+        new_ins = []
+        for i in ins:
+            i2 = Input([int(d) for d in i.shape],name="model_%s"%i.name)
+            new_ins.append(i2)
+
+        outs = self.encoder(new_ins)
+        new_enc = outs[0]
+        new_skips = outs[1:]
+        return new_ins, new_enc, new_skips
+
     def _makeImageDecoder(self, img_shape, kernel_size, skips=None):
+        '''
+        Helper function to construct a decoder that will make images.
+
+        Parameters:
+        -----------
+        img_shape: shape of the image, e.g. (64,64,3)
+        kernel_size: used for deconvolutions, e.g. [5,5]
+        '''
         rep, dec = GetImageDecoder(self.img_col_dim,
                         img_shape,
                         dropout_rate=self.dropout_rate,
