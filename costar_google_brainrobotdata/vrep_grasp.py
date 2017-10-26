@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Code for building the input for the prediction model."""
+"""Code for visualizing the grasp attempt examples."""
 # from __future__ import unicode_literals
 import os
 import errno
@@ -28,15 +28,15 @@ from ply import write_xyz_rgb_as_ply
 
 import moviepy.editor as mpy
 from grasp_dataset import GraspDataset
-from grasp_geometry import matrix_to_vector_quaternion_array
-from depth_image_encoding import ImageToFloatArray
+import grasp_geometry
 from depth_image_encoding import depth_image_to_point_cloud
 
-# https://github.com/jrl-umi3218/Eigen3ToPython/tree/topic/Cython
+# https://github.com/jrl-umi3218/Eigen3ToPython/
 # alternatives to consider:
 # https://github.com/adamlwgriffiths/Pyrr
 # https://github.com/KieranWynn/pyquaternion
-import eigen as e
+import eigen as e  # https://github.com/jrl-umi3218/Eigen3ToPython
+import sva  # https://github.com/jrl-umi3218/SpaceVecAlg
 # import matplotlib as mp
 
 tf.flags.DEFINE_string('vrepConnectionAddress', '127.0.0.1', 'The IP address of the running V-REP simulation.')
@@ -46,6 +46,9 @@ tf.flags.DEFINE_boolean('vrepDoNotReconnectOnceDisconnected', True, '')
 tf.flags.DEFINE_integer('vrepTimeOutInMs', 5000, 'Timeout in milliseconds upon which connection fails')
 tf.flags.DEFINE_integer('vrepCommThreadCycleInMs', 5, 'time between communication cycles')
 tf.flags.DEFINE_string('vrepDebugMode', 'save_ply', """Options are: '', 'fixed_depth', 'save_ply'.""")
+tf.flags.DEFINE_boolean('vrepVisualizeRGBD', False, 'display the rgbd images and point cloud')
+tf.flags.DEFINE_boolean('vrepVisualizeSurfaceRelativeTransform', False, 'display the surface relative transform frames')
+tf.flags.DEFINE_string('vrepParentName', 'LBR_iiwa_14_R820', 'The default parent frame name from which to base all visualized transforms.')
 
 flags.FLAGS._parse_flags()
 FLAGS = flags.FLAGS
@@ -92,7 +95,8 @@ class VREPGraspSimulation(object):
             empty_buffer,
             v.simx_opmode_blocking)
         if res == v.simx_return_ok:
-            print ('Dummy handle: ', ret_ints[0])  # display the reply from V-REP (in this case, the handle of the created dummy)
+            # display the reply from V-REP (in this case, the handle of the created dummy)
+            print ('Dummy name:', display_name, ' handle: ', ret_ints[0], ' transform: ', transform)
         else:
             print 'create_dummy remote function call failed.'
             return -1
@@ -138,12 +142,12 @@ class VREPGraspSimulation(object):
             print 'create_point_cloud remote function call failed.'
             return -1
 
-    def visualize(self, tf_session, dataset=FLAGS.grasp_dataset, batch_size=1, parent_name='LBR_iiwa_14_R820'):
+    def visualize(self, tf_session, dataset=FLAGS.grasp_dataset, batch_size=1, parent_name=FLAGS.vrepParentName):
         """Visualize one dataset in V-REP
         """
         grasp_dataset_object = GraspDataset(dataset=dataset)
         batch_size = 1
-        feature_op_dicts, features_complete_list, num_samples = grasp_dataset_object.get_simple_parallel_dataset_ops(
+        feature_op_dicts, features_complete_list, num_samples = grasp_dataset_object._get_simple_parallel_dataset_ops(
             batch_size=batch_size)
 
         tf_session.run(tf.global_variables_initializer())
@@ -170,24 +174,45 @@ class VREPGraspSimulation(object):
                                      grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
                                      grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
                                      visualization_dir=FLAGS.visualization_dir,
-                                     vrepDebugMode=FLAGS.vrepDebugMode):
+                                     vrepDebugMode=FLAGS.vrepDebugMode,
+                                     vrepVisualizeRGBD=FLAGS.vrepVisualizeRGBD,
+                                     vrepVisualizeSurfaceRelativeTransform=FLAGS.vrepVisualizeSurfaceRelativeTransform):
         """Take an extracted grasp attempt tfrecord numpy dictionary and visualize it in vrep
+
+        # Params
+
+        parent_handle: the frame in which to display transforms, defaults to base frame of 'LBR_iiwa_14_R820'
+
+        It is important to note that both V-REP and the grasp dataset use the xyzw quaternion format.
         """
-        # TODO(ahundt) actually put transforms into V-REP or pybullet
+        # get param strings for every single gripper position
         base_to_endeffector_transforms = grasp_dataset_object.get_time_ordered_features(
             features_complete_list,
-            feature_type='transforms/base_T_endeffector/vec_quat_7')
+            # feature_type='transforms/base_T_endeffector/vec_quat_7')  # display only commanded transforms
+            # feature_type='vec_quat_7')  # display all transforms
+            feature_type='reached_pose',
+            step='move_to_grasp')
+        print(features_complete_list)
+        print(base_to_endeffector_transforms)
         camera_to_base_transform_name = 'camera/transforms/camera_T_base/matrix44'
         camera_intrinsics_name = 'camera/intrinsics/matrix33'
 
+        pregrasp_depth_image_feature = grasp_dataset_object.get_time_ordered_features(
+            features_complete_list,
+            feature_type='depth_image/decoded',
+            step='view_clear_scene'
+        )[0]
+
         depth_image_features = grasp_dataset_object.get_time_ordered_features(
             features_complete_list,
-            feature_type='depth_image/decoded'
+            feature_type='depth_image/decoded',
+            step='move_to_grasp'
         )
 
         rgb_image_features = grasp_dataset_object.get_time_ordered_features(
             features_complete_list,
-            feature_type='/image/decoded'
+            feature_type='/image/decoded',
+            step='move_to_grasp'
         )
 
         grasp_success_feature_name = grasp_dataset_object.get_time_ordered_features(
@@ -195,53 +220,157 @@ class VREPGraspSimulation(object):
             feature_type='grasp_success'
         )[0]
 
+        # Create repeated values for the final grasp position where the gripper closed
+        base_T_endeffector_final_close_gripper_name = base_to_endeffector_transforms[-1]
+        base_T_endeffector_final_close_gripper = features_dict_np[base_T_endeffector_final_close_gripper_name]
+
+        # get the camera intrinsics matrix and camera extrinsics matrix
         camera_intrinsics_matrix = features_dict_np[camera_intrinsics_name]
         camera_to_base_4x4matrix = features_dict_np[camera_to_base_transform_name]
-        base_to_camera_vec_quat_7 = matrix_to_vector_quaternion_array(camera_to_base_4x4matrix)
-        # gripper_positions = [features_dict_np[transform_name] for transform_name in base_to_endeffector_transforms]
-        for i, transform_name, depth_name, rgb_name in zip(range(len(base_to_endeffector_transforms)),
-                                                           base_to_endeffector_transforms, depth_image_features, rgb_image_features):
+        print('camera/transforms/camera_T_base/matrix44: \n', camera_to_base_4x4matrix)
+        camera_to_base_vec_quat_7 = grasp_geometry.matrix_to_vector_quaternion_array(camera_to_base_4x4matrix)
+        camera_T_base_handle = self.create_dummy('camera_T_base', camera_to_base_vec_quat_7, parent_handle)
+        # verify that another transform path gets the same result
+        camera_T_base_ptrans = grasp_geometry.matrix_to_ptransform(camera_to_base_4x4matrix)
+        camera_to_base_vec_quat_7_ptransform_conversion_test = grasp_geometry.ptransform_to_vector_quaternion_array(camera_T_base_ptrans)
+        display_name = 'camera_T_base_vec_quat_7_ptransform_conversion_test'
+        self.create_dummy(display_name, camera_to_base_vec_quat_7_ptransform_conversion_test, parent_handle)
+        assert(grasp_geometry.vector_quaternion_arrays_allclose(camera_to_base_vec_quat_7, camera_to_base_vec_quat_7_ptransform_conversion_test))
+        # verify that another transform path gets the same result
+        base_T_camera_ptrans = camera_T_base_ptrans.inv()
+
+        # TODO(ahundt) check that ptransform times its inverse is identity, or very close to it
+        identity = sva.PTransformd.Identity()
+        should_be_identity = base_T_camera_ptrans * camera_T_base_ptrans
+
+        base_to_camera_vec_quat_7_ptransform_conversion_test = grasp_geometry.ptransform_to_vector_quaternion_array(base_T_camera_ptrans)
+        display_name = 'base_to_camera_vec_quat_7_ptransform_conversion_test'
+        self.create_dummy(display_name, base_to_camera_vec_quat_7_ptransform_conversion_test, parent_handle)
+        # gripper_positions = [features_dict_np[base_T_endeffector_vec_quat_feature_name] for
+        #                      base_T_endeffector_vec_quat_feature_name in base_to_endeffector_transforms]
+        for i, base_T_endeffector_vec_quat_feature_name, depth_name, rgb_name in zip(range(len(base_to_endeffector_transforms)),
+                                                                                     base_to_endeffector_transforms,
+                                                                                     depth_image_features, rgb_image_features):
             # 2. Now create a dummy object at coordinate 0.1,0.2,0.3 with name 'MyDummyName':
             empty_buffer = bytearray()
             # 3 cartesian (x, y, z) and 4 quaternion (x, y, z, w) elements, same as vrep
-            gripper_pose = features_dict_np[transform_name]
-            # format the dummy string nicely for display
-            transform_display_name = str(i).zfill(2) + '_' + transform_name.replace('/transforms/base_T_endeffector/vec_quat_7', '').replace('/', '_')
-            print transform_name, transform_display_name, gripper_pose
-            self.create_dummy(transform_display_name, gripper_pose, parent_handle)
+            base_T_endeffector_vec_quat_feature = features_dict_np[base_T_endeffector_vec_quat_feature_name]
+            # display the raw base to endeffector feature
+            bTe_display_name = str(i).zfill(2) + '_' + base_T_endeffector_vec_quat_feature_name.replace('/', '_')
+            bTe_handle = self.create_dummy(bTe_display_name, base_T_endeffector_vec_quat_feature, parent_handle)
 
-            rgb_image = features_dict_np[rgb_name]
-            print rgb_name, rgb_image.shape, rgb_image
-            # TODO(ahundt) move depth image creation into tensorflow ops
-            # TODO(ahundt) check scale
-            # TODO(ahundt) move squeeze steps into dataset api if possible
-            depth_image_float_format = ImageToFloatArray(np.squeeze(features_dict_np[depth_name]))
-            if np.count_nonzero(depth_image_float_format) is 0:
-                print 'WARNING: DEPTH IMAGE IS ALL ZEROS'
-            print depth_name, depth_image_float_format.shape, depth_image_float_format
-            if ((grasp_sequence_min_time_step is None or i >= grasp_sequence_min_time_step) and
-                    (grasp_sequence_max_time_step is None or i <= grasp_sequence_max_time_step)):
-                # only output one depth image while debugging
-                # mp.pyplot.imshow(depth_image_float_format, block=True)
-                print 'plot done'
-                # TODO(ahundt) uncomment next line after debugging is done
-                point_cloud = depth_image_to_point_cloud(depth_image_float_format, camera_intrinsics_matrix)
-                if 'fixed_depth' in vrepDebugMode:
-                    point_cloud = depth_image_to_point_cloud(np.ones(depth_image_float_format.shape), camera_intrinsics_matrix)
-                print 'point_cloud.shape:', point_cloud.shape, 'rgb_image.shape:', rgb_image.shape
-                point_cloud_display_name = ('point_cloud_' + str(dataset_name) + '_' + str(attempt_num) + '_' + str(i).zfill(2) +
-                    '_rgbd_' + depth_name.replace('/depth_image/decoded', '').replace('/', '_') +
-                    '_success_' + str(int(features_dict_np[grasp_success_feature_name])))
-                print 'point_cloud:', point_cloud.transpose()[:30, :3]
-                path = os.path.join(visualization_dir, point_cloud_display_name + '.ply')
-                print 'point_cloud.size:', point_cloud.size
-                xyz = point_cloud.reshape([point_cloud.size/3, 3])
-                rgb = np.squeeze(rgb_image).reshape([point_cloud.size/3, 3])
-                if 'save_ply' in vrepDebugMode:
-                    write_xyz_rgb_as_ply(xyz, rgb, path)
-                xyz = xyz[:3000, :]
-                # xyz = np.array([[0,0,0], [0,0,1], [0,1,0], [1,0,0]])
-                self.create_point_cloud(point_cloud_display_name, xyz, base_to_camera_vec_quat_7, rgb, parent_handle)
+            # do the conversion needed for training
+            camera_T_endeffector_ptrans, base_T_endeffector_ptrans, base_T_camera_ptrans = grasp_geometry.grasp_dataset_to_ptransform(
+                camera_to_base_4x4matrix,
+                base_T_endeffector_vec_quat_feature
+            )
+            # update the camera to base transform so we can visually ensure consistency
+            camera_T_base_handle = self.create_dummy('camera_T_base', camera_to_base_vec_quat_7, parent_handle)
+            base_to_camera_vec_quat_7 = grasp_geometry.ptransform_to_vector_quaternion_array(base_T_camera_ptrans)
+            base_T_camera_handle = self.create_dummy('base_T_camera', base_to_camera_vec_quat_7, parent_handle)
+
+            # test that the base_T_endeffector -> ptransform -> vec_quat_7 roundtrip returns the same transform
+            base_T_endeffector_vec_quat = grasp_geometry.ptransform_to_vector_quaternion_array(base_T_endeffector_ptrans)
+            bTe_display_name = str(i).zfill(2) + '_base_T_endeffector_ptransform_conversion_test_' + base_T_endeffector_vec_quat_feature_name.replace('/', '_')
+            self.create_dummy(bTe_display_name, base_T_endeffector_vec_quat, parent_handle)
+            assert(grasp_geometry.vector_quaternion_arrays_allclose(base_T_endeffector_vec_quat_feature, base_T_endeffector_vec_quat))
+
+            # verify that another transform path gets the same result
+            # camera_to_base_vec_quat_7_ptransform_conversion_test = grasp_geometry.ptransform_to_vector_quaternion_array(camera_T_base_ptrans)
+            # display_name = str(i).zfill(2) + '_camera_to_base_vec_quat_7_ptransform_conversion_test'
+            # self.create_dummy(display_name, camera_to_base_vec_quat_7_ptransform_conversion_test, parent_handle)
+
+            cTe_display_name = str(i).zfill(2) + '_camera_T_endeffector_' + base_T_endeffector_vec_quat_feature_name.replace(
+                '/transforms/base_T_endeffector/vec_quat_7', '').replace('/', '_')
+            cTe_vec_quat = grasp_geometry.ptransform_to_vector_quaternion_array(camera_T_endeffector_ptrans)
+            self.create_dummy(cTe_display_name, cTe_vec_quat, base_T_camera_handle)
+
+            if i == 0:
+                clear_frame_depth_image = np.squeeze(features_dict_np[pregrasp_depth_image_feature])
+            # format the dummy string nicely for display
+            transform_display_name = str(i).zfill(2) + '_' + base_T_endeffector_vec_quat_feature_name.replace(
+                '/transforms/base_T_endeffector/vec_quat_7', '').replace('/', '_')
+            print base_T_endeffector_vec_quat_feature_name, transform_display_name, base_T_endeffector_vec_quat_feature
+            # display the gripper pose
+            self.create_dummy(transform_display_name, base_T_endeffector_vec_quat_feature, parent_handle)
+            # Perform some consistency checks based on the above
+            assert(grasp_geometry.vector_quaternion_arrays_allclose(base_T_endeffector_vec_quat, base_T_endeffector_vec_quat_feature))
+
+            #############################
+            # get the transform from the current endeffector pose to the final
+            transform_display_name = str(i).zfill(2) + '_current_T_end'
+            current_to_end = grasp_geometry.current_endeffector_to_final_endeffector_feature(
+                base_T_endeffector_vec_quat_feature, base_T_endeffector_final_close_gripper, feature_type='vec_quat_7')
+            self.create_dummy(transform_display_name, current_to_end, bTe_handle)
+
+            # TODO(ahundt) check that transform from end step to itself should be identity, or very close to it
+            # if base_T_endeffector_final_close_gripper_name == base_T_endeffector_vec_quat_feature_name:
+            #     transform from end step to itself should be identity.
+            #     identity = sva.PTransformd.Identity()
+            #     assert(identity == current_to_end)
+
+            #############################
+            # visualize surface relative transform
+            if vrepVisualizeSurfaceRelativeTransform:
+                ee_cloud_point, ee_image_coordinate = grasp_geometry.endeffector_image_coordinate_and_cloud_point(
+                    clear_frame_depth_image, camera_intrinsics_matrix, camera_T_endeffector_ptrans)
+
+                # Create a dummy for the key depth point and display it
+                depth_point_dummy_ptrans = grasp_geometry.vector_to_ptransform(ee_cloud_point)
+                depth_point_display_name = str(i).zfill(2) + '_depth_point'
+                depth_point_vec_quat = grasp_geometry.ptransform_to_vector_quaternion_array(depth_point_dummy_ptrans)
+                depth_point_dummy_handle = self.create_dummy(depth_point_display_name, depth_point_vec_quat, camera_T_base_handle)
+
+                # get the transform for the gripper relative to the key depth point and display it
+                # it should coincide with the gripper pose if done correctly
+                surface_relative_transform_vec_quat = grasp_geometry.surface_relative_transform(
+                    clear_frame_depth_image, camera_intrinsics_matrix, camera_T_endeffector_ptrans)
+                surface_relative_transform_display_name = str(i).zfill(2) + '_depth_point_T_endeffector'
+                surface_relative_transform_dummy_handle = self.create_dummy(surface_relative_transform_display_name,
+                                                                            surface_relative_transform_vec_quat,
+                                                                            depth_point_dummy_handle)
+
+            if(vrepVisualizeRGBD):
+                self.visualize_rgbd(features_dict_np, rgb_name, depth_name, grasp_sequence_min_time_step, i, grasp_sequence_max_time_step,
+                                    camera_intrinsics_matrix, vrepDebugMode, dataset_name, attempt_num, grasp_success_feature_name,
+                                    visualization_dir, camera_to_base_vec_quat_7, parent_handle)
+        print('visualization of grasp attempt #', attempt_num, ' complete')
+
+    def visualize_rgbd(self, features_dict_np, rgb_name, depth_name, grasp_sequence_min_time_step, i,
+                       grasp_sequence_max_time_step, camera_intrinsics_matrix, vrepDebugMode, dataset_name, attempt_num,
+                       grasp_success_feature_name, visualization_dir, camera_to_base_vec_quat_7, parent_handle):
+        rgb_image = features_dict_np[rgb_name]
+        print rgb_name, rgb_image.shape, rgb_image
+        # TODO(ahundt) move depth image creation into tensorflow ops
+        # TODO(ahundt) check scale
+        # TODO(ahundt) move squeeze steps into dataset api if possible
+        depth_image_float_format = np.squeeze(features_dict_np[depth_name])
+        if np.count_nonzero(depth_image_float_format) is 0:
+            print 'WARNING: DEPTH IMAGE IS ALL ZEROS'
+        print depth_name, depth_image_float_format.shape, depth_image_float_format
+        if ((grasp_sequence_min_time_step is None or i >= grasp_sequence_min_time_step) and
+                (grasp_sequence_max_time_step is None or i <= grasp_sequence_max_time_step)):
+            # only output one depth image while debugging
+            # mp.pyplot.imshow(depth_image_float_format, block=True)
+            print 'plot done'
+            # TODO(ahundt) uncomment next line after debugging is done
+            point_cloud = depth_image_to_point_cloud(depth_image_float_format, camera_intrinsics_matrix)
+            if 'fixed_depth' in vrepDebugMode:
+                point_cloud = depth_image_to_point_cloud(np.ones(depth_image_float_format.shape), camera_intrinsics_matrix)
+            print 'point_cloud.shape:', point_cloud.shape, 'rgb_image.shape:', rgb_image.shape
+            point_cloud_display_name = ('point_cloud_' + str(dataset_name) + '_' + str(attempt_num) + '_' + str(i).zfill(2) +
+                                        '_rgbd_' + depth_name.replace('/depth_image/decoded', '').replace('/', '_') +
+                                        '_success_' + str(int(features_dict_np[grasp_success_feature_name])))
+            print 'point_cloud:', point_cloud.transpose()[:30, :3]
+            path = os.path.join(visualization_dir, point_cloud_display_name + '.ply')
+            print 'point_cloud.size:', point_cloud.size
+            xyz = point_cloud.reshape([point_cloud.size/3, 3])
+            rgb = np.squeeze(rgb_image).reshape([point_cloud.size/3, 3])
+            if 'save_ply' in vrepDebugMode:
+                write_xyz_rgb_as_ply(xyz, rgb, path)
+            xyz = xyz[:3000, :]
+            # xyz = np.array([[0,0,0], [0,0,1], [0,1,0], [1,0,0]])
+            self.create_point_cloud(point_cloud_display_name, xyz, camera_to_base_vec_quat_7, rgb, parent_handle)
 
     def __del__(self):
         v.simxFinish(-1)

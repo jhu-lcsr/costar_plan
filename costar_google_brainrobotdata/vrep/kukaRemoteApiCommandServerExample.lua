@@ -11,9 +11,15 @@ end
 createDummy_function=function(inInts,inFloats,inStrings,inBuffer)
     -- Create a dummy object with specific name and coordinates
     if #inStrings>=1 and #inFloats>=3 then
+        dummyHandle=-1
+        if pcall(function()
+            dummyHandle=simGetObjectHandle(inStrings[1])
+        end) == false then
+            dummyHandle=simCreateDummy(0.05)
+        end
         -- local dummyHandle=simGetObjectHandle(inStrings[1])
         -- if dummyHandle == -1 then
-            dummyHandle=simCreateDummy(0.05)
+        --     dummyHandle=simCreateDummy(0.05)
         -- end
         local parent_handle=inInts[1]
         local errorReportMode=simGetInt32Parameter(sim_intparam_error_report_mode)
