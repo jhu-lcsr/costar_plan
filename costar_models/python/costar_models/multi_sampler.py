@@ -653,7 +653,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         i = np.random.randint(self.num_hypotheses)
         j = np.random.randint(self.batch_size)
         self.prev_option = np.argmax(label[j,i])
-        print ("choosing ", j, i, "=", self.prev_option)
+        print ("choosing ", j, i, "=",
+                self.prev_option,
+                self.taskdef.name(self.prev_option))
 
         # Return the chosen goal pose
         return arms[j,i], grippers[j,i]
