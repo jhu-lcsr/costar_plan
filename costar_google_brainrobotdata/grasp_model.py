@@ -333,7 +333,7 @@ def grasp_model_levine_2016(clear_view_image_op,
                             input_image_shape=None,
                             input_vector_op_shape=None,
                             dropout_rate=None,
-                            pooling=None,):
+                            pooling='max',):
     """Model designed to match prior work.
 
     Learning Hand-Eye Coordination for Robotic Grasping with Deep Learning and Large-Scale Data Collection.
