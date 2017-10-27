@@ -68,6 +68,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # compatibility mode -- set > 0 if loading dataset ~ U
         self.compatibility = 1
+        if self.compatibility == 1:
+            self.decoder_kernel_size = [5,5]
+        else:
+            self.decoder_kernel_size = [3,3]
 
         # Number of nonlinear transformations to be applied to the hidden state
         # in order to compute a possible next state.
@@ -166,7 +170,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         img_shape,
                         dropout_rate=self.decoder_dropout_rate,
                         dense_size=self.combined_dense_size,
-                        kernel_size=[5,5],
+                        kernel_size=self.decoder_kernel_size,
                         filters=self.img_num_filters,
                         stride2_layers=self.steps_up,
                         stride1_layers=self.extra_layers,
@@ -373,7 +377,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             transform = GetTransform(
                     rep_size=(self.hidden_dim, self.hidden_dim),
                     filters=self.tform_filters,
-                    kernel_size=[5,5],
+                    kernel_size=self.decoder_kernel_size,
                     idx=i,
                     batchnorm=True,
                     dropout=transform_dropout,
@@ -645,6 +649,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 idx = (i*self.batch_size) + j + 1
                 plt.subplot(self.num_hypotheses,self.batch_size,idx)
                 plt.imshow(data[j,i])
+                print("arms = ", arms[j,i])
         plt.show()
 
         # Return the chosen goal pose
