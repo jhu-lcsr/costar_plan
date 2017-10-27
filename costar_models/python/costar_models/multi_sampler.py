@@ -67,7 +67,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_arm_vars = 6
 
         # compatibility mode -- set > 0 if loading dataset ~ U
-        self.compatibility = 1
+        self.compatibility = 0
         if self.compatibility == 1:
             self.decoder_kernel_size = [5,5]
         else:
@@ -620,7 +620,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             test_features.append(z)
 
         data, arms, grippers, label, probs, v = self.predictor.predict(test_features)
-        """
         if self.use_next_option:
             next_probs = np.zeros_like(probs)
             for i in range(self.batch_size):
@@ -638,7 +637,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     a,
                     np.max(probs[i]),
                     self.taskdef.name(a))
-        """
 
         idx = np.random.randint(self.num_hypotheses)
 
@@ -652,8 +650,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 print("arms = ", arms[j,i])
         plt.show()
 
+        i = np.random.randint(self.num_hypotheses)
+        j = np.random.randint(self.batch_size)
+
         # Return the chosen goal pose
-        return None
+        return arms[j,i], grippers[j,i]
 
     def _makeActorPolicy(self):
         '''

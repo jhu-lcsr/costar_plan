@@ -1,7 +1,11 @@
 from abstract import AbstractAgent
 
+import numpy as np
+import PyKDL as kdl
+
 from costar_models import MakeModel
 from costar_task_plan.simulation.world import SimulationRobotAction
+from costar_task_plan.abstract import *
 
 class NeuralNetworkPlannerAgent(AbstractAgent):
     '''
@@ -41,8 +45,14 @@ class NeuralNetworkPlannerAgent(AbstractAgent):
 
             while not self._break:
                 arm_goal, gripper_goal= self.model.predict(self.env.world)
-                control = SimulationRobotAction(arm_cmd=arm_cmd[0],
-                        gripper_cmd=gripper_cmd[0])
+                policy = self.SimpleMotionPolicy(
+                        arm_goal[:3],
+                        arm_goal[3:],
+                        gripper_goal)
+                control = policy.evaluate(
+                        self.env.world,
+                        self.env.world.actors[0].state,
+                        self.env.world.actors[0],)
                 features, reward, done, info = self.env.step(control)
                 self._addToDataset(self.env.world,
                         control,
@@ -57,3 +67,71 @@ class NeuralNetworkPlannerAgent(AbstractAgent):
             if self._break:
                 return
         
+    class SimpleMotionPolicy(AbstractPolicy):
+
+        def __init__(self, pos, rot, gripper, goal=None, cartesian_vel=0.35, angular_vel=0.5):
+            self.pos = pos
+            self.rot = [r * np.pi for r in rot]
+            self.goal = goal
+            self.gripper = gripper
+            self.cartesian_vel = cartesian_vel
+            self.angular_vel = angular_vel
+
+            print (self.pos, self.rot)
+
+            pg = kdl.Vector(*self.pos)
+            Rg = kdl.Rotation.RPY(*self.rot)
+            self.T = kdl.Frame(Rg, pg)
+
+        def evaluate(self, world, state, actor):
+            '''
+            Compute IK to goal pose for actor.
+            Goal pose is computed based on the position of a goal object, if one
+            has been specified; otherwise we assume the goal has been specified
+            in global coordinates.
+            '''
+
+            if self.goal is not None:
+                # Get position of the object we are grasping. Since we compute a
+                # KDL transform whenever we update the world's state, we can use
+                # that for computing positions and stuff like that.
+                obj = world.getObject(self.goal)
+                T = obj.state.T * self.T
+            else:
+                # We can just use the cached position, since this is a known world
+                # position and not something special.
+                T = self.T
+
+            if actor.robot.grasp_idx is None:
+                raise RuntimeError(
+                    'Did you properly set up the robot URDF to specify grasp frame?')
+
+            # =====================================================================
+            # Compute transformation from current to goal frame
+            T_r_goal = state.T.Inverse() * T
+
+            # Interpolate in position alone
+            dist = T_r_goal.p.Norm()
+            step = min(self.cartesian_vel*world.dt, dist)
+            p = T_r_goal.p / dist * step
+
+            # Interpolate in rotation alone
+            angle, axis = T_r_goal.M.GetRotAngle()
+
+            angle = min(self.angular_vel*world.dt, angle)
+            R = kdl.Rotation.Rot(axis, angle)
+            T_step = state.T * kdl.Frame(R, p)
+
+            # =====================================================================
+            # Compute motion goak and send
+            q_goal = actor.robot.ik(T_step, state.arm)
+            print (q_goal, state.arm, self.gripper)
+            if q_goal is None:
+                error = True
+            else:
+                error = False
+            # print q_goal, state.arm, state.arm_v
+            return SimulationRobotAction(
+                    arm_cmd=q_goal,
+                    gripper_cmd=self.gripper,
+                    error=error)
