@@ -63,6 +63,7 @@ do
         echo "starting LR=$lr, Dropout=$dr, optimizer=$opt, use dropout in hypotheses: $hd noise=$noise_dim, skip connections = $skip"
         sbatch ctp.sh $lr $dr $opt $hd $noise_dim $skip
       done
+    done
 	done
 done
 
