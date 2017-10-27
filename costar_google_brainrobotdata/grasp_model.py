@@ -333,7 +333,7 @@ def grasp_model_levine_2016(clear_view_image_op,
                             input_image_shape=None,
                             input_vector_op_shape=None,
                             dropout_rate=None,
-                            pooling='max',):
+                            pooling='max'):
     """Model designed to match prior work.
 
     Learning Hand-Eye Coordination for Robotic Grasping with Deep Learning and Large-Scale Data Collection.
@@ -389,6 +389,11 @@ def grasp_model_levine_2016(clear_view_image_op,
     for i in range(3):
         combConv = Conv2D(64, (3, 3), activation='relu', padding='same')(combConv)
 
+    # Extra Global Average Pooling allows more flexible input dimensions
+    # but only use if necessary.
+    feature_shape = K.int_shape(combConv)
+    if (feature_shape[1] > 1 or feature_shape[2] > 1):
+        combConv = GlobalAveragePooling2D()(combConv)
     # combined full connected layers
     combConv = Dense(64, activation='relu')(combConv)
     combConv = Dense(64, activation='relu')(combConv)
