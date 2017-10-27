@@ -330,6 +330,8 @@ def grasp_model_segmentation(clear_view_image_op=None,
 def grasp_model_levine_2016(clear_view_image_op,
                             current_time_image_op,
                             input_vector_op,
+                            input_image_shape=None,
+                            input_vector_op_shape=None,
                             dropout_rate=None):
     """Model designed to match prior work.
 
