@@ -215,7 +215,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             pv_option_in = option_in
         else:
             pv_option_in = None
-
+            
         next_option_in = Input((self.num_options,),name="next_option_in")
         ins += [next_option_in]
 

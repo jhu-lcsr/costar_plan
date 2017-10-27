@@ -1,5 +1,8 @@
 """Creates an image from a numpy array of floating point depth data.
 
+For details about the encoding see:
+https://sites.google.com/site/brainrobotdata/home/depth-image-encoding
+
 Examples:
 
   depth_array is a 2D numpy array of floating point depth data in meters.
@@ -53,7 +56,7 @@ def ClipFloatValues(float_array, min_value, max_value):
 
     """
     if float_array.min() < min_value or float_array.max() > max_value:
-        logging.debug('Image has out-of-range values [%f,%f] not in [%d,%d]',
+        print('Image has out-of-range values [%f,%f] not in [%d,%d]',
                       float_array.min(), float_array.max(), min_value, max_value)
         float_array = np.clip(float_array, min_value, max_value)
     return float_array
@@ -180,6 +183,8 @@ def ImageToFloatArray(image, scale_factor=None):
     The result of this function should be equal to the original input
     within the precision of the conversion.
 
+    For details see https://sites.google.com/site/brainrobotdata/home/depth-image-encoding.
+
     Args:
       image: Depth image output of FloatArrayTo[Format]Image.
       scale_factor: Fixed point scale factor.
@@ -224,14 +229,16 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix):
       shape (rows, cols, 3). Pixels with invalid depth in the input have
       NaN for the z-coordinate in the result.
 
-      intrinsics_matris: 3x3 matrix for projecting depth values to z values
+      intrinsics_matrix: 3x3 matrix for projecting depth values to z values
       in the point cloud frame. http://ksimek.github.io/2013/08/13/intrinsic/
 
       transform: 4x4 Rt matrix for rotating and translating the point cloud
     """
     fx = intrinsics_matrix[0, 0]
     fy = intrinsics_matrix[1, 1]
+    # center of image x coordinate
     cx = intrinsics_matrix[0, 2]
+    # center of image y coordinate
     cy = intrinsics_matrix[1, 2]
     Y = depth
     x, z = np.meshgrid(np.arange(depth.shape[-1]),
