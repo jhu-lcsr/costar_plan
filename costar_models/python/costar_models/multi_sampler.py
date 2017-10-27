@@ -616,6 +616,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         data, arms, grippers, label, probs, v = self.predictor.predict(test_features)
         if self.use_next_option:
+            next_probs = np.zeros_like(probs)
+            for i in range(self.batch_size):
+                p = np.cumsum(probs[i]) / np.sum(probs[i])
+                r = np.random.random()
+                opt = np.argmax(r < p)
+                print (i, r, p, opt)
+                next_probs[i,opt] = 1   
             test_features[next_option_idx] = probs
             data, arms, grippers, label, probs, v = self.predictor.predict(test_features)
 
