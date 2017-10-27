@@ -367,7 +367,7 @@ def grasp_model_levine_2016(clear_view_image_op,
     motorConv = Dense(64, activation='relu')(motorData)
 
     # tile and concat the data
-    combinedData = Lambda(concat_images_with_tiled_vector, arguments={'images': imgConv, 'vector': motorConv})()
+    combinedData = Lambda(concat_images_with_tiled_vector, arguments={'vector': motorConv})(imgConv)
     print('Combined', combinedData)
 
     # combine conv 8
