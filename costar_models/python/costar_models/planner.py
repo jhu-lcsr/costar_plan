@@ -730,7 +730,7 @@ def GetNextOptionAndValue(x, num_options, dense_size, option_in=None):
 
     next_option_out = Dense(num_options,
             activation="softmax", name="next_label_out",)(x1)
-    value_out = Dense(1, activation="sigmoid", name="value_out",)(x2)
+    value_out = Dense(1, activation="softmax", name="value_out",)(x2)
     return value_out, next_option_out
 
 
@@ -800,6 +800,15 @@ def GetHypothesisProbability(x, num_hypotheses, num_options, labels,
 def OneHot(size=64):
     return Lambda(lambda x: tf.one_hot(tf.cast(x, tf.int32),size))#,name="label_to_one_hot")
 
+def AddOptionTiling(x, option_length, option_in, height, width):
+    tile_shape = (1, width, height, 1)
+    option = Reshape([1,1,option_length])(option_in)
+    option = Lambda(lambda x: K.tile(x, tile_shape))(option)
+    x = Concatenate(
+            axis=-1,
+            name="add_option_%dx%d"%(width,height),
+        )([x, option])
+    return x
 
 def GetActor(enc0, enc_h, supervisor, label_out, num_hypotheses, *args, **kwargs):
     '''

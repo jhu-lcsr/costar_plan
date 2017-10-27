@@ -107,6 +107,7 @@ def GetEncoderConvLSTM(img_shape, arm_size, gripper_size,
         pre_tiling_layers=0,
         post_tiling_layers=2,
         kernel_size=[3,3],
+        padding="same",
         time_distributed=10,):
 
     arm_in = Input((time_distributed, arm_size,))
@@ -245,6 +246,7 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
         dense=True, option=None, flatten=True, batchnorm=False,
         pre_tiling_layers=0,
         post_tiling_layers=2,
+        padding="same",
         stride1_post_tiling_layers=0,
         kernel_size=[3,3], output_filters=None,
         time_distributed=0,
@@ -275,6 +277,7 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
     post_tiling_layers:
     kernel_size: 
     output_filters:
+    padding: 
     time_distributed: True if you want to wrap this layer in a time distributed
                        setup... sort of deprecated right now.
     config: arm or mobile (arm supported for now)
@@ -326,7 +329,9 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
         gripper_in = Input((time_distributed, gripper_size,))
         if option is not None:
             option_in = Input((time_distributed,1,))
-            option_x = TimeDistributed(OneHot(size=option),name="label_to_one_hot")(option_in)
+            option_x = TimeDistributed(
+                    OneHot(size=option),
+                    name="label_to_one_hot")(option_in)
             option_x = Reshape((time_distributed,option,))(option_x)
         else:
             option_in, option_x = None, None
@@ -347,10 +352,11 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
 
     x = samples
 
+    # Padding for this one has to be the same
     x = ApplyTD(Conv2D(filters,
                 kernel_size=kernel_size, 
                 strides=(1, 1),
-                padding='same'))(x)
+                padding="same"))(x)
     x = ApplyTD(relu())(x)
     if batchnorm:
         x = ApplyTD(BatchNormalization())(x)
@@ -360,12 +366,14 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
     # ===============================================
     # Create preprocessing layers that just act on the image. These do not
     # modify the image size at all.
+    # Padding here is locked to the same -- since we always want to use this
+    # one with skip connections
     for i in range(pre_tiling_layers):
 
         x = ApplyTD(Conv2D(filters,
                    kernel_size=kernel_size, 
                    strides=(1, 1),
-                   padding='same'))(x)
+                   padding="same"))(x)
         if batchnorm:
             x = ApplyTD(BatchNormalization())(x)
         x = ApplyTD(relu())(x)
@@ -400,7 +408,7 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
         x = ApplyTD(Conv2D(nfilters,
                    kernel_size=kernel_size, 
                    strides=(2, 2),
-                   padding='same'))(x)
+                   padding=padding))(x)
         if batchnorm:
             x = ApplyTD(BatchNormalization())(x)
         x = relu()(x)
@@ -474,16 +482,6 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
         x = Dense(1,activation="sigmoid")(x)
 
     return ins, x, skips, robot
-
-def AddOptionTiling(x, option_length, option_in, height, width):
-    tile_shape = (1, width, height, 1)
-    option = Reshape([1,1,option_length])(option_in)
-    option = Lambda(lambda x: K.tile(x, tile_shape))(option)
-    x = Concatenate(
-            axis=-1,
-            name="add_option_%dx%d"%(width,height),
-        )([x, option])
-    return x
 
 def GetHuskyEncoder(img_shape, pose_size, dim, dropout_rate,
         filters, discriminator=False, tile=False, dropout=True, leaky=True,

@@ -149,6 +149,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 filters=self.img_num_filters,
                 leaky=False,
                 dropout=True,
+                padding="valid",
                 pre_tiling_layers=self.extra_layers,
                 post_tiling_layers=self.steps_down,
                 stride1_post_tiling_layers=self.encoder_stride1_steps,
@@ -302,13 +303,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         label_out = Concatenate(axis=1)(label_outs)
         train_out = Concatenate(axis=1,name="all_train_outs")(train_outs)
 
-        #next_option_out, p_h = GetHypothesisProbability(enc,
-        #        self.num_hypotheses,
-        #        self.num_options,
-        #        label_out,
-        #        self.combined_dense_size,
-        #        kernel_size=None,)
-
         # =====================================================================
         # Create models to train
         if self.use_noise:
@@ -324,16 +318,17 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         weights=[0.5, 0.25, 0.05, 0.2],
                         loss=["mae","mae","mae","categorical_crossentropy"],
                         stats=stats,
-                        avg_weight=0.05),
-                    "binary_crossentropy",]
-        loss_weights = [0.95, 0.05]
+                        avg_weight=0.05),]
         if self.success_only:
             #outs = [train_out, next_option_out, value_out]
             outs = [train_out, next_option_out]
-            #losses += ["binary_crossentropy"]
+            losses += ["binary_crossentropy"]
+            loss_weights = [0.60, 0.40]
             #loss_weights += [0.01]
         else:
-            outs = [train_out, value_out]
+            outs = [train_out, next_option_out, value_out]
+            loss_weights = [0.40, 0.30, 0.30]
+            losses += ["categorical_crossentropy", "binary_crossentropy"]
 
         train_predictor = Model(ins, outs)
 
@@ -348,7 +343,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 MhpLoss(self.num_hypotheses,avg_weight=0.,loss="mae"),
                 MhpLoss(self.num_hypotheses,avg_weight=0.,loss="mae"),
                 MhpLoss(self.num_hypotheses,avg_weight=0.,loss="categorical_crossentropy"),
-                "binary_crossentropy",
+                "categorical_crossentropy",
                 "mae"],
         optimizer=self.getOptimizer())
         train_predictor.summary()
@@ -467,14 +462,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             if self.success_only:
                 return features[:self.num_features] + [o1, z], [tt, o1]
             else:
-                return features[:self.num_features] + [o1, z], [tt, v]
+                return features[:self.num_features] + [o1, z], [tt, o1, v]
         else:
             #return features[:self.num_features], [tt, o1, v]
             #return features[:self.num_features], [tt, o1]#, v]
             if self.success_only:
                 return features[:self.num_features] + [o1], [tt, o1]
             else:
-                return features[:self.num_features] + [o1], [tt, v]
+                return features[:self.num_features] + [o1], [tt, o1, v]
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''
