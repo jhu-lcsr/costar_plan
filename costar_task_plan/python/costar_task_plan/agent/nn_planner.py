@@ -43,12 +43,15 @@ class NeuralNetworkPlannerAgent(AbstractAgent):
             # step.
             self.model.reset()
 
+            policy = None
+            j = 0
             while not self._break:
-                arm_goal, gripper_goal= self.model.predict(self.env.world)
-                policy = self.SimpleMotionPolicy(
-                        arm_goal[:3],
-                        arm_goal[3:],
-                        gripper_goal)
+                if policy is None or j % 10 == 0:
+                    arm_goal, gripper_goal= self.model.predict(self.env.world)
+                    policy = self.SimpleMotionPolicy(
+                            arm_goal[:3],
+                            arm_goal[3:],
+                            gripper_goal)
                 control = policy.evaluate(
                         self.env.world,
                         self.env.world.actors[0].state,
@@ -63,6 +66,7 @@ class NeuralNetworkPlannerAgent(AbstractAgent):
                         self.model.name)
                 if done:
                     break
+                j += 1
 
             if self._break:
                 return
