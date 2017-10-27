@@ -351,7 +351,7 @@ def grasp_model_levine_2016(clear_view_image_op,
                      strides=(2, 2),
                      padding='same')(combImg)
 
-    if pooling is not None:
+    if pooling is 'max':
         # img maxPool
         imgConv = MaxPooling2D(pool_size=(3, 3))(imgConv)
 
@@ -359,7 +359,7 @@ def grasp_model_levine_2016(clear_view_image_op,
     for i in range(6):
         imgConv = Conv2D(64, (5, 5), padding='same', activation='relu')(imgConv)
 
-    if pooling is not None:
+    if pooling is 'max':
         # img maxPool 2
         imgConv = MaxPooling2D(pool_size=(3, 3))(imgConv)
 
@@ -381,7 +381,7 @@ def grasp_model_levine_2016(clear_view_image_op,
     for i in range(3):
         combConv = Conv2D(64, (3, 3), activation='relu', padding='same')(combConv)
 
-    if pooling is not None:
+    if pooling is 'max':
         # combined maxPool
         combConv = MaxPooling2D(pool_size=(2, 2))(combConv)
 
@@ -397,7 +397,8 @@ def grasp_model_levine_2016(clear_view_image_op,
     # combined full connected layers
     combConv = Dense(64, activation='relu')(combConv)
     combConv = Dense(64, activation='relu')(combConv)
-    combConv = Activation(activation='sigmoid')(combConv)
+    # get down to a single prediction
+    combConv = Dense(1, activation='sigmoid')(combConv)
 
     model = Model(inputs=[inputImg1, inputImg2, motorData], outputs=combConv)
     return model
