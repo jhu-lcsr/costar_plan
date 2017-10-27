@@ -441,7 +441,7 @@ def grasp_dataset_ptransform_to_vector_sin_theta_cos_theta(ptransform, dtype=np.
     vector_sin_theta_cos_theta
     """
     translation = np.squeeze(ptransform.translation())
-    theta = grasp_dataset_rotation_to_theta(ptranform.rotation())
+    theta = grasp_dataset_rotation_to_theta(ptransform.rotation())
     sin_cos_theta = np.array([np.sin(theta), np.cos(theta)])
     vector_sin_theta_cos_theta = np.concatenate([translation, sin_cos_theta])
     vector_sin_theta_cos_theta = vector_sin_theta_cos_theta.astype(dtype)
