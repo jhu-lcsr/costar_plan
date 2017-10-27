@@ -329,7 +329,8 @@ def grasp_model_segmentation(clear_view_image_op=None,
 
 def grasp_model_levine_2016(clear_view_image_op,
                             current_time_image_op,
-                            input_vector_op):
+                            input_vector_op,
+                            dropout_rate=None):
     """Model designed to match prior work.
 
     Learning Hand-Eye Coordination for Robotic Grasping with Deep Learning and Large-Scale Data Collection.
