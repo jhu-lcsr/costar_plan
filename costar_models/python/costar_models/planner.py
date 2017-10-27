@@ -83,6 +83,7 @@ def TileArmAndGripper(x, arm_in, gripper_in, tile_width, tile_height,
         #reshape_size = arm_size+gripper_size+option
 
     # time distributed or not
+    robot0 = robot
     if time_distributed is not None and time_distributed > 0:
         tile_shape = (1, 1, tile_width, tile_height, 1)
         robot = Reshape([time_distributed, 1, 1, reshape_size])(robot)
@@ -91,11 +92,10 @@ def TileArmAndGripper(x, arm_in, gripper_in, tile_width, tile_height,
         robot = Reshape([1, 1, reshape_size])(robot)
 
     # finally perform the actual tiling
-    robot0 = robot
     robot = Lambda(lambda x: K.tile(x, tile_shape))(robot)
     x = Concatenate(axis=-1)([x,robot])
 
-    return x, robot
+    return x, robot0
 
 def TilePose(x, pose_in, tile_width, tile_height,
         option=None, option_in=None,
@@ -534,16 +534,11 @@ def GetImageArmGripperDecoder(dim, img_shape,
     else:
         x = rep[0]
 
-    """
-    x = Dense(dense_size)(x)
-    x = BatchNormalization()(x)
-    if leaky:
-        x = LeakyReLU(0.2)(x)
-    else:
-        x = Activation("relu")(x)
-    if dropout:
-        x = Dropout(dropout_rate)(x)
-    """
+    if robot_skip is not None:
+        size = [int(d) for d in robot_skip.shape[1:]]
+        robot_skip_in = Input(size,name="robot_state_skip_in")
+        rep += [robot_skip_in]
+        x = Concatenate()([x, robot_skip_in])
 
     x1 = DenseHelper(x, 2*dense_size, dropout_rate, 2)
     x2 = DenseHelper(x, 2*dense_size, dropout_rate, 2)
