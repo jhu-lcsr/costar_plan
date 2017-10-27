@@ -750,7 +750,63 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         return decoder
 
+    def _targetsFromTrainTargets(self, train_targets):
+        '''
+        This helper function splits the train targets into separate fields. It
+        is equivalent to the targets used in the training data.
+
+        Parameters:
+        -----------
+        train_targets: training for multiple hypothesis data
+
+        Returns:
+        --------
+        list of separated training targets
+        '''
+        imglen = 64*64*3
+        if len(train_targets[0].shape) == 2:
+            img = train_targets[0][:,:imglen]
+        elif len(train_targets[0].shape) == 3:
+            assert train_targets[0].shape[1] == 1
+            img = train_targets[0][:,0,:imglen]
+        else:
+            raise RuntimeError('did not recognize big train target shape; '
+                               'are you sure you meant to use this callback'
+                               'and not a normal image callback?')
+        num = train_targets[0].shape[0]
+        img = np.reshape(img, (num,64,64,3))
+        arm = train_targets[0][:,:,imglen:imglen+6]
+        gripper = train_targets[0][:,:,imglen+6]
+        option = train_targets[0][:,:,imglen+7:]
+        #print (train_targets[0].shape,imglen,imglen+6)
+        #print("img",img.shape)
+        #print("arm",arm.shape,arm[0])
+        #print("gripper",gripper.shape,gripper[0])
+        #print("option",option.shape,np.argmax(option[0,0]))
+        return [img,arm,gripper,option]
+
     def validate(self, *args, **kwargs):
+        '''
+        Run validation on a given trial.
+
+        Note: this takes in whatever data your model needs to extract
+        information for the next task. It's designed to work for any variant of
+        the "predictor" model architecture, regardless of the specifics of the
+        dataset -- or at least so we hope.
+
+        > For a special case of the multi-predictor model:
+          You MUST override the _targetsFromTrainTargets function above.
+
+        Parameters:
+        ----------
+        None - just args and kwargs passed to _getData.
+
+        Returns:
+        --------
+        error
+        train_loss
+        [loss per train target]
+        '''
         features, targets = self._getData(*args, **kwargs)
         length = features[0].shape[0]
         for i in range(length):
@@ -758,3 +814,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             t = [np.array([t[i]]) for t in targets]
             loss, train_loss, next_loss = self.train_predictor.evaluate(f, t)
             print (loss, train_loss, next_loss)
+            img, arm, gripper, option = self._targetsFromTrainTargets(targets)
+            #print ("actual arm = ", kwargs['goal_arm'][0])
+            #print ("actual gripper = ", kwargs['goal_gripper'][0])
+            #print ("actual prev opt = ", kwargs['label'][0])
