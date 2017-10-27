@@ -110,8 +110,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # ===================================================================
         # These are hard coded settings -- tweaking them may break a bunch of
         # things.
-        self.use_prev_option = True
+        # ===================================================================
+
+        # This controls how we use the previous option.
+        self.use_prev_option = False
         self.use_next_option = True
+        self.train_actor = True
         self.always_same_transform = False
 
     def _makePredictor(self, features):
