@@ -330,7 +330,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 loss=losses,
                 loss_weights=loss_weights,
                 optimizer=self.getOptimizer())
-        predictor.compile(loss="mae", optimizer=self.getOptimizer())
+        predictor.compile(loss=[
+                MhpLoss(self.num_hypotheses,avg_weight=0.,loss="mae"),
+                MhpLoss(self.num_hypotheses,avg_weight=0.,loss="mae"),
+                MhpLoss(self.num_hypotheses,avg_weight=0.,loss="mae"),
+                MhpLoss(self.num_hypotheses,avg_weight=0.,loss="categorical_crossentropy"),
+                "binary_crossentropy",
+                "mae"],
+        optimizer=self.getOptimizer())
         train_predictor.summary()
 
         return predictor, train_predictor, actor, ins, enc
@@ -775,15 +782,25 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                                'and not a normal image callback?')
         num = train_targets[0].shape[0]
         img = np.reshape(img, (num,64,64,3))
-        arm = train_targets[0][:,:,imglen:imglen+6]
+        arm = np.squeeze(train_targets[0][:,:,imglen:imglen+6])
         gripper = train_targets[0][:,:,imglen+6]
-        option = train_targets[0][:,:,imglen+7:]
-        #print (train_targets[0].shape,imglen,imglen+6)
-        #print("img",img.shape)
-        #print("arm",arm.shape,arm[0])
-        #print("gripper",gripper.shape,gripper[0])
-        #print("option",option.shape,np.argmax(option[0,0]))
+        option = np.squeeze(train_targets[0][:,:,imglen+7:])
+        print (train_targets[0].shape,imglen,imglen+6)
+        print("img",img.shape)
+        print("arm",arm.shape,arm[0])
+        print("gripper",gripper.shape,gripper[0])
+        print("option",option.shape,np.argmax(option[0,0]))
         return [img,arm,gripper,option]
+
+    def _parsePredictorLoss(self, losses):
+        (_, img_loss, arm_loss, gripper_loss, label_loss, next_opt_loss,
+            val_loss) = losses
+        print("img loss = ", img_loss)
+        print("arm loss = ", arm_loss)
+        print("gripper loss = ", gripper_loss)
+        print("label loss = ", label_loss)
+        print("next_opt loss = ", next_opt_loss)
+        return [img_loss, arm_loss, gripper_loss, label_loss]
 
     def validate(self, *args, **kwargs):
         '''
@@ -809,12 +826,27 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         '''
         features, targets = self._getData(*args, **kwargs)
         length = features[0].shape[0]
+        prediction_targets = self._targetsFromTrainTargets(targets)
+        for i in range(len(prediction_targets)):
+                prediction_targets[i] = np.expand_dims(
+                        prediction_targets[i],
+                        axis=1)
+        prediction_targets += [np.zeros((length,self.num_options))]
+        prediction_targets += [np.zeros((length,))]
+        for x in self.predictor.outputs:
+            print (x)
+        for y in prediction_targets:
+            print (y.shape)
         for i in range(length):
             f = [np.array([f[i]]) for f in features]
             t = [np.array([t[i]]) for t in targets]
+            pt = [np.array([pt[i]]) for pt in prediction_targets]
             loss, train_loss, next_loss = self.train_predictor.evaluate(f, t)
             print (loss, train_loss, next_loss)
-            img, arm, gripper, option = self._targetsFromTrainTargets(targets)
             #print ("actual arm = ", kwargs['goal_arm'][0])
             #print ("actual gripper = ", kwargs['goal_gripper'][0])
             #print ("actual prev opt = ", kwargs['label'][0])
+            predictor_losses = self.predictor.evaluate(f, pt)
+            losses = self._parsePredictorLoss(predictor_losses)
+            print(losses)
+            
