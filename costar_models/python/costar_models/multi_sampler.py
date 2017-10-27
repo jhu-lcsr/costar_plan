@@ -51,11 +51,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         self.use_spatial_softmax=True
         if self.use_spatial_softmax:
-            self.steps_down = 2
+            self.steps_down = 0
             self.steps_up = 4
-            self.steps_up_no_skip = 2
+            self.steps_up_no_skip = 4
             #self.encoder_stride1_steps = 2+1
-            self.encoder_stride1_steps = 1
+            self.encoder_stride1_steps = 3
         else:
             self.steps_down = 4
             self.steps_up = 4
@@ -71,7 +71,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.compatibility == 1:
             self.decoder_kernel_size = [5,5]
         else:
-            self.decoder_kernel_size = [3,3]
+            self.decoder_kernel_size = [5,5]
 
         # Number of nonlinear transformations to be applied to the hidden state
         # in order to compute a possible next state.
@@ -114,8 +114,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # This controls how we use the previous option.
         self.use_prev_option = False
+        # Give transforms a prior on the next action
         self.use_next_option = True
+        # Train actor model
         self.train_actor = True
+        # Use the same transform for everything
         self.always_same_transform = False
 
     def _makePredictor(self, features):
@@ -317,12 +320,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         losses = [MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
-                        weights=[0.7, 1.0, 0.1, 0.1],
+                        #weights=[0.7,1.0,0.1,0.1],
+                        weights=[0.5, 0.25, 0.05, 0.2],
                         loss=["mae","mae","mae","categorical_crossentropy"],
                         stats=stats,
                         avg_weight=0.05),
                     "binary_crossentropy",]
-        loss_weights = [0.99, 0.01]
+        loss_weights = [0.95, 0.05]
         if self.success_only:
             #outs = [train_out, next_option_out, value_out]
             outs = [train_out, next_option_out]
