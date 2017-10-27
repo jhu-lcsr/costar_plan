@@ -21,7 +21,7 @@ class NeuralNetworkPlannerAgent(AbstractAgent):
     approved_models = ["predictor"]
 
     def __init__(self, env, model, *args, **kwargs):
-        super(FeedForwardAgent, self).__init__(env=env, *args, **kwargs)
+        super(NeuralNetworkPlannerAgent, self).__init__(env=env, *args, **kwargs)
 
         if model not in self.approved_models:
             raise RuntimeError('Model type %s not approved.'%model)

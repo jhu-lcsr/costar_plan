@@ -44,6 +44,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.validation_split = 0.05
         self.num_options = 48
         self.num_features = 4
+        self.null_option = 37
 
         # Layer and model configuration
         self.extra_layers = 1
@@ -578,34 +579,63 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
           - choose the best one to execute
         '''
         features = world.initial_features
-        if isinstance(features, list):
-            assert len(features) == len(self.supervisor.inputs) - 1
-        else:
-            features = [features]
+        print('---')
         test_features = []
+        next_option_idx = 0
         for f in features:
-            f2 = f.reshape(1,) + f.shape
+            f2 = np.expand_dims(f,axis=0)
             tile_shape = [self.batch_size,] + [1]*len(f.shape)
             f2 = np.tile(f2,tile_shape)
-            print(f2.shape)
             test_features.append(f2)
+            next_option_idx += 1
 
         if self.use_prev_option:
             # previous options
-            prev_option = self._makeOption1h(self.prev_option)
-            print("prev shape", prev_option.shape)
+            #prev_option = self._makeOption1h(self.prev_option)
+            #tile_shape = [self.batch_size,1]
+            #prev_option = np.tile(prev_option, tile_shape)
+            if self.prev_option is None:
+                prev = self.null_option
+            else:
+                prev = self.prev_option
+            prev_option = np.ones((self.batch_size,1)) * prev
+            test_features.append(prev_option)
+            next_option_idx += 1
+            
         if self.use_next_option:
             # don't include anything from the next options...
             next_opt = np.zeros((self.batch_size,self.num_options))
+            test_features.append(next_opt)
+
         if self.use_noise:
             z = np.random.random((
                 self.batch_size,
                 self.num_hypotheses,
                 self.noise_dim))
+            test_features.append(z)
 
-        res = self.predictor.predict(test_features)
-        print("# results = ", len(res))
+        data, arms, grippers, label, probs, v = self.predictor.predict(test_features)
+        if self.use_next_option:
+            test_features[next_option_idx] = probs
+            data, arms, grippers, label, probs, v = self.predictor.predict(test_features)
+
+        for i in range(self.batch_size):
+            a = np.argmax(probs[i])
+            print ("action = ",
+                    a,
+                    np.max(probs[i]),
+                    self.taskdef.name(a))
+
         idx = np.random.randint(self.num_hypotheses)
+
+        fig = plt.figure()
+        for i in range(self.num_hypotheses):
+            print ("label = ", np.argmax(label[0,i]),np.max(label[0,i]))
+            for j in range(self.batch_size):
+                idx = (i*self.batch_size) + j + 1
+                plt.subplot(self.num_hypotheses,self.batch_size,idx)
+                plt.imshow(data[j,i])
+        plt.show()
 
         # Return the chosen goal pose
         return None
