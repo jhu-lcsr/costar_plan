@@ -730,7 +730,7 @@ def GetNextOptionAndValue(x, num_options, dense_size, option_in=None):
 
     next_option_out = Dense(num_options,
             activation="softmax", name="next_label_out",)(x1)
-    value_out = Dense(1, activation="softmax", name="value_out",)(x2)
+    value_out = Dense(1, activation="sigmoid", name="value_out",)(x2)
     return value_out, next_option_out
 
 

@@ -320,11 +320,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         stats=stats,
                         avg_weight=0.05),]
         if self.success_only:
-            #outs = [train_out, next_option_out, value_out]
             outs = [train_out, next_option_out]
             losses += ["binary_crossentropy"]
             loss_weights = [0.60, 0.40]
-            #loss_weights += [0.01]
         else:
             outs = [train_out, next_option_out, value_out]
             loss_weights = [0.40, 0.30, 0.30]
