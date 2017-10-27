@@ -80,8 +80,10 @@ def concat_images_with_tiled_vector(images, vector):
         return combined
 
 
-def tile_vector_as_image_channels_layer(images, vector, image_shape=None, vector_shape=None):
-    """Tile a vector as if it were channels onto every pixel of an image
+def concat_images_with_tiled_vector_layer(images, vector, image_shape=None, vector_shape=None):
+    """Tile a vector as if it were channels onto every pixel of an image.
+
+    This version is designed to be used as layers within a Keras model.
 
     # Params
        images: a list of images to combine, must have equal dimensions
@@ -93,20 +95,21 @@ def tile_vector_as_image_channels_layer(images, vector, image_shape=None, vector
            images should be expected to have, do not specify the number
            of batches.
     """
-    if not isinstance(images, list):
-        images = [images]
-    if vector_shape is None:
-        # check if K.shape, K.int_shape, or vector.get_shape().as_list()[1:] is better
-        # https://github.com/fchollet/keras/issues/5211
-        vector_shape = K.int_shape(vector)[1:]
-    if image_shape is None:
-        # check if K.shape, K.int_shape, or image.get_shape().as_list()[1:] is better
-        # https://github.com/fchollet/keras/issues/5211
-        image_shape = K.int_shape(images[0])[1:]
-    vector = Reshape([1, 1, vector_shape[-1]])(vector)
-    tile_shape = (int(1), int(image_shape[0]), int(image_shape[1]), int(1))
-    tiled_vector = Lambda(lambda x: K.tile(x, tile_shape))(vector)
-    x = Concatenate(axis=-1)([] + images + [tiled_vector])
+    with K.name_scope('concat_images_with_tiled_vector_layer'):
+        if not isinstance(images, list):
+            images = [images]
+        if vector_shape is None:
+            # check if K.shape, K.int_shape, or vector.get_shape().as_list()[1:] is better
+            # https://github.com/fchollet/keras/issues/5211
+            vector_shape = K.int_shape(vector)[1:]
+        if image_shape is None:
+            # check if K.shape, K.int_shape, or image.get_shape().as_list()[1:] is better
+            # https://github.com/fchollet/keras/issues/5211
+            image_shape = K.int_shape(images[0])[1:]
+        vector = Reshape([1, 1, vector_shape[-1]])(vector)
+        tile_shape = (int(1), int(image_shape[0]), int(image_shape[1]), int(1))
+        tiled_vector = Lambda(lambda x: K.tile(x, tile_shape))(vector)
+        x = Concatenate(axis=-1)([] + images + [tiled_vector])
     return x
 
 
@@ -371,7 +374,7 @@ def grasp_model_levine_2016(clear_view_image_op,
     motorConv = Dense(64, activation='relu')(motorData)
 
     # tile and concat the data
-    combinedData = tile_vector_as_image_channels_layer(imgConv, motorConv)
+    combinedData = concat_images_with_tiled_vector_layer(imgConv, motorConv)
     print('Combined', combinedData)
 
     # combined conv 8
