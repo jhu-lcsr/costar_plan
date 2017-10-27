@@ -67,7 +67,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_arm_vars = 6
 
         # compatibility mode -- set > 0 if loading dataset ~ U
-        self.compatibility = 0
+        self.compatibility = 1
 
         # Number of nonlinear transformations to be applied to the hidden state
         # in order to compute a possible next state.
@@ -166,7 +166,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         img_shape,
                         dropout_rate=self.decoder_dropout_rate,
                         dense_size=self.combined_dense_size,
-                        kernel_size=[3,3],
+                        kernel_size=[5,5],
                         filters=self.img_num_filters,
                         stride2_layers=self.steps_up,
                         stride1_layers=self.extra_layers,
@@ -605,6 +605,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.use_next_option:
             # don't include anything from the next options...
             next_opt = np.zeros((self.batch_size,self.num_options))
+            next_opt[0,34] = 1
             test_features.append(next_opt)
 
         if self.use_noise:
@@ -615,6 +616,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             test_features.append(z)
 
         data, arms, grippers, label, probs, v = self.predictor.predict(test_features)
+        """
         if self.use_next_option:
             next_probs = np.zeros_like(probs)
             for i in range(self.batch_size):
@@ -632,6 +634,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     a,
                     np.max(probs[i]),
                     self.taskdef.name(a))
+        """
 
         idx = np.random.randint(self.num_hypotheses)
 
