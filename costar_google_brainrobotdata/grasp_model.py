@@ -332,7 +332,8 @@ def grasp_model_levine_2016(clear_view_image_op,
                             input_vector_op,
                             input_image_shape=None,
                             input_vector_op_shape=None,
-                            dropout_rate=None):
+                            dropout_rate=None,
+                            pooling=None,):
     """Model designed to match prior work.
 
     Learning Hand-Eye Coordination for Robotic Grasping with Deep Learning and Large-Scale Data Collection.
@@ -349,15 +350,18 @@ def grasp_model_levine_2016(clear_view_image_op,
                      activation='relu',
                      strides=(2, 2),
                      padding='same')(combImg)
-    # img maxPool
-    imgConv = MaxPooling2D(pool_size=(3, 3))(imgConv)
+
+    if pooling is not None:
+        # img maxPool
+        imgConv = MaxPooling2D(pool_size=(3, 3))(imgConv)
 
     # img Conv 2 - 7
     for i in range(6):
         imgConv = Conv2D(64, (5, 5), padding='same', activation='relu')(imgConv)
 
-    # img maxPool 2
-    imgConv = MaxPooling2D(pool_size=(3, 3))(imgConv)
+    if pooling is not None:
+        # img maxPool 2
+        imgConv = MaxPooling2D(pool_size=(3, 3))(imgConv)
 
     # motor Data
     vector_shape = K.int_shape(input_vector_op)[1:]
@@ -370,23 +374,22 @@ def grasp_model_levine_2016(clear_view_image_op,
     combinedData = tile_vector_as_image_channels_layer(imgConv, motorConv)
     print('Combined', combinedData)
 
-    # combine conv 8
-    combConv = Conv2D(64, (3, 3), activation='relu'  # ,
-                      # input_shape=[26,26, 128]
-                      )(combinedData)
+    # combined conv 8
+    combConv = Conv2D(64, (3, 3), activation='relu', padding='same')(combinedData)
 
-    # combine conv 9 - 13
+    # combined conv 9 - 13
     for i in range(3):
-        combConv = Conv2D(64, (3, 3), activation='relu')(combConv)
+        combConv = Conv2D(64, (3, 3), activation='relu', padding='same')(combConv)
 
-    # combine maxPool
-    combConv = MaxPooling2D(pool_size=(2, 2))(combConv)
+    if pooling is not None:
+        # combined maxPool
+        combConv = MaxPooling2D(pool_size=(2, 2))(combConv)
 
-    # combine conv 14 - 16
+    # combined conv 14 - 16
     for i in range(3):
-        combConv = Conv2D(64, (3, 3), activation='relu')(combConv)
+        combConv = Conv2D(64, (3, 3), activation='relu', padding='same')(combConv)
 
-    # combine full conn
+    # combined full connected layers
     combConv = Dense(64, activation='relu')(combConv)
     combConv = Dense(64, activation='relu')(combConv)
     combConv = Activation(activation='sigmoid')(combConv)
