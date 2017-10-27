@@ -55,7 +55,7 @@ def RunKeypointsVisualizer(args):
         for i in range(dataset.numTest()):
             data, success = dataset.loadTest(i)
             if success or not model.success_only:
-                model.generateImages(**dataset.loadTest(i))
+                model.generateImages(**data)
     else:
         raise RuntimeError('Must specify model type to visualize')
 

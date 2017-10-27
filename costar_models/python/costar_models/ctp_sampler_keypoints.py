@@ -70,6 +70,10 @@ class RobotMultiKeypointsVisualizer(RobotMultiPredictionSampler):
         features, targets = self._getData(*args, **kwargs)
         length = features[0].shape[0]
         num_pts = self.img_col_dim/2
+
+        scale = 64 / 2**self.steps_down / 2
+        
+
         for i in range(length):
             keypoints = self.predictKeypoints([np.array([f[i]]) for f in features])
 
@@ -78,11 +82,21 @@ class RobotMultiKeypointsVisualizer(RobotMultiPredictionSampler):
             for j in range(self.img_col_dim / 2):
                 jx = 2*j
                 jy = 2*j + 1
-                x[j] = (keypoints[jx] * 32) + 32
-                y[j] = (keypoints[jy] * 32) + 32
-            print('-------')
-            print(x)
-            print(y)
+                x[j] = (keypoints[jx])
+                y[j] = (keypoints[jy])
+
+            #print('1 -------')
+            #print(x * scale + scale)
+            #print(y * scale + scale)
+            x = ((x * scale) + scale) * (2**self.steps_down) 
+            y = ((y * scale) + scale) * (2**self.steps_down)
+            #print('-------')
+            #print(x, 64-x)
+            #x2 = x
+            #y2 = y
+            #y = x2
+            #x = y2
+            #print(y)
             plt.imshow(features[0][i])
             plt.plot(x,y,'*')
             plt.show()

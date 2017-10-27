@@ -21,6 +21,12 @@ rosrun costar_models ctp_validate --data_file rpy.npz --model predictor
   ~/.costar/MODEL_GOOD_NO_SKIP
 ```
 
+
+### Validation: No Noise
+
+```
+```
+
 ## Keypoints
 
 And the other command:
