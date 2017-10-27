@@ -785,21 +785,21 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         arm = np.squeeze(train_targets[0][:,:,imglen:imglen+6])
         gripper = train_targets[0][:,:,imglen+6]
         option = np.squeeze(train_targets[0][:,:,imglen+7:])
-        print (train_targets[0].shape,imglen,imglen+6)
-        print("img",img.shape)
-        print("arm",arm.shape,arm[0])
-        print("gripper",gripper.shape,gripper[0])
-        print("option",option.shape,np.argmax(option[0,0]))
+        #print (train_targets[0].shape,imglen,imglen+6)
+        #print("img",img.shape)
+        #print("arm",arm.shape,arm[0])
+        #print("gripper",gripper.shape,gripper[0])
+        #print("option",option.shape,np.argmax(option[0,0]))
         return [img,arm,gripper,option]
 
     def _parsePredictorLoss(self, losses):
         (_, img_loss, arm_loss, gripper_loss, label_loss, next_opt_loss,
             val_loss) = losses
-        print("img loss = ", img_loss)
-        print("arm loss = ", arm_loss)
-        print("gripper loss = ", gripper_loss)
-        print("label loss = ", label_loss)
-        print("next_opt loss = ", next_opt_loss)
+        #print("img loss = ", img_loss)
+        #print("arm loss = ", arm_loss)
+        #print("gripper loss = ", gripper_loss)
+        #print("label loss = ", label_loss)
+        #print("next_opt loss = ", next_opt_loss)
         return [img_loss, arm_loss, gripper_loss, label_loss]
 
     def validate(self, *args, **kwargs):
@@ -833,20 +833,26 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         axis=1)
         prediction_targets += [np.zeros((length,self.num_options))]
         prediction_targets += [np.zeros((length,))]
-        for x in self.predictor.outputs:
-            print (x)
-        for y in prediction_targets:
-            print (y.shape)
+        #for x in self.predictor.outputs:
+        #    print (x)
+        #for y in prediction_targets:
+        #    print (y.shape)
+        sums = None
+        train_sum = 0
         for i in range(length):
             f = [np.array([f[i]]) for f in features]
             t = [np.array([t[i]]) for t in targets]
             pt = [np.array([pt[i]]) for pt in prediction_targets]
-            loss, train_loss, next_loss = self.train_predictor.evaluate(f, t)
-            print (loss, train_loss, next_loss)
+            loss, train_loss, next_loss = self.train_predictor.evaluate(f, t,
+                    verbose=0)
             #print ("actual arm = ", kwargs['goal_arm'][0])
             #print ("actual gripper = ", kwargs['goal_gripper'][0])
             #print ("actual prev opt = ", kwargs['label'][0])
-            predictor_losses = self.predictor.evaluate(f, pt)
+            predictor_losses = self.predictor.evaluate(f, pt, verbose=0)
             losses = self._parsePredictorLoss(predictor_losses)
-            print(losses)
-            
+            train_sum += train_loss
+            if sums is None:
+                sums = np.array(losses)
+            else:
+                sums += np.array(losses)
+        return sums, train_sum, length
