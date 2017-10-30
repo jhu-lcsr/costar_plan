@@ -49,18 +49,20 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Layer and model configuration
         self.extra_layers = 1
 
-        self.use_spatial_softmax=True
+        self.use_spatial_softmax=False
         if self.use_spatial_softmax:
             self.steps_down = 0
             self.steps_up = 4
             self.steps_up_no_skip = 4
             #self.encoder_stride1_steps = 2+1
             self.encoder_stride1_steps = 3
+            self.padding="valid"
         else:
             self.steps_down = 4
             self.steps_up = 4
             self.steps_up_no_skip = 0
-            self.encoder_stride1_steps = 1
+            self.encoder_stride1_steps = 0
+            self.padding = "same"
 
         self.num_actor_policy_layers = 2
         self.num_generator_layers = 1
@@ -71,15 +73,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.compatibility == 1:
             self.decoder_kernel_size = [5,5]
         else:
-            self.decoder_kernel_size = [5,5]
+            self.decoder_kernel_size = [3,3]
 
         # Number of nonlinear transformations to be applied to the hidden state
         # in order to compute a possible next state.
         if self.dense_representation:
-            if self.compatibility > 0:
-                self.num_transforms = 2
-            else:
-                self.num_transforms = 1
+            self.num_transforms = 1
         else:
             self.num_transforms = 3
 
@@ -96,7 +95,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Size of the hidden representation when using dense hidden
         # repesentations
-        self.img_col_dim = 128
+        self.img_col_dim = 128 * 2
 
         self.PredictorCb = PredictorShowImage
         self.hidden_dim = 64/(2**self.steps_down)
@@ -149,7 +148,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 filters=self.img_num_filters,
                 leaky=False,
                 dropout=True,
-                padding="valid",
+                padding=self.padding,
                 pre_tiling_layers=self.extra_layers,
                 post_tiling_layers=self.steps_down,
                 stride1_post_tiling_layers=self.encoder_stride1_steps,
@@ -158,7 +157,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 dense=self.dense_representation,
                 batchnorm=True,
                 tile=True,
-                flatten=False,
+                flatten=(not self.use_spatial_softmax),
                 option=enc_options,
                 use_spatial_softmax=self.use_spatial_softmax,
                 output_filters=self.tform_filters,

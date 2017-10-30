@@ -718,7 +718,7 @@ def GetNextOptionAndValue(x, num_options, dense_size, option_in=None):
     if option_in is not None:
         option_x = OneHot(num_options)(option_in)
         option_x = Flatten()(option_x)
-        x = Concatenate()([x, option_in])
+        x = Concatenate()([x, option_x])
 
     x1 = DenseHelper(x, dense_size, 0.5, 1)
     x2 = DenseHelper(x, dense_size, 0.5, 1)
