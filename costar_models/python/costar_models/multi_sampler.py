@@ -322,7 +322,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             loss_weights = [0.60, 0.40]
         else:
             outs = [train_out, next_option_out, value_out]
-            loss_weights = [0.40, 0.30, 0.30]
+            loss_weights = [0.90, 0.05, 0.05]
             losses += ["categorical_crossentropy", "binary_crossentropy"]
 
         train_predictor = Model(ins, outs)
