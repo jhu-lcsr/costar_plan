@@ -246,6 +246,7 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
         dense=True, option=None, flatten=True, batchnorm=False,
         pre_tiling_layers=0,
         post_tiling_layers=2,
+        post_tiling_layers_no_skip=0,
         padding="same",
         stride1_post_tiling_layers=0,
         kernel_size=[3,3], output_filters=None,
@@ -414,7 +415,8 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
         x = relu()(x)
         if dropout:
             x = Dropout(dropout_rate)(x)
-        skips.append(x)
+        if i + 1 <=  (post_tiling_layers - post_tiling_layers_no_skip):
+            skips.append(x)
 
     # =================================================
     # Perform additional operations

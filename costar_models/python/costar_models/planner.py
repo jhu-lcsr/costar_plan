@@ -704,7 +704,7 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
         return Model([xin] + extra, [x, mu, sigma], name="transform%d"%idx)
 
 
-def GetNextOptionAndValue(x, num_options, dense_size, option_in=None):
+def GetNextOptionAndValue(x, num_options, dense_size, dropout_rate=0.5, option_in=None):
     '''
     Predict some information about an observed/encoded world state
 
@@ -720,8 +720,8 @@ def GetNextOptionAndValue(x, num_options, dense_size, option_in=None):
         option_x = Flatten()(option_x)
         x = Concatenate()([x, option_x])
 
-    x1 = DenseHelper(x, dense_size, 0.5, 1)
-    x2 = DenseHelper(x, dense_size, 0.5, 1)
+    x1 = DenseHelper(x, dense_size, dropout_rate, 1)
+    x2 = DenseHelper(x, dense_size, dropout_rate, 1)
 
     next_option_out = Dense(num_options,
             activation="softmax", name="next_label_out",)(x1)

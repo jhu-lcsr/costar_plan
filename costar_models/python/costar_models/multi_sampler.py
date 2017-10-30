@@ -52,6 +52,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.use_spatial_softmax=False
         if self.use_spatial_softmax:
             self.steps_down = 0
+            self.steps_down_no_skip = 0
             self.steps_up = 4
             self.steps_up_no_skip = 4
             #self.encoder_stride1_steps = 2+1
@@ -59,8 +60,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             self.padding="valid"
         else:
             self.steps_down = 4
+            self.steps_down_no_skip = 3
             self.steps_up = 4
-            self.steps_up_no_skip = 0
+            self.steps_up_no_skip = 3
             self.encoder_stride1_steps = 0
             self.padding = "same"
 
@@ -88,14 +90,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Used for classifiers: value and next option
         self.combined_dense_size = 256
-        self.value_dense_size = 64
+        self.value_dense_size = 128
 
         # Size of the "pose" column containing arm, gripper info
         self.pose_col_dim = 64
 
         # Size of the hidden representation when using dense hidden
         # repesentations
-        self.img_col_dim = 128 * 2
+        self.img_col_dim = 128 / 2
 
         self.PredictorCb = PredictorShowImage
         self.hidden_dim = 64/(2**self.steps_down)
@@ -151,6 +153,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 padding=self.padding,
                 pre_tiling_layers=self.extra_layers,
                 post_tiling_layers=self.steps_down,
+                post_tiling_layers_no_skip=self.steps_down_no_skip,
                 stride1_post_tiling_layers=self.encoder_stride1_steps,
                 pose_col_dim=self.pose_col_dim,
                 kernel_size=[5,5],
@@ -222,11 +225,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             value_out, next_option_out = GetNextOptionAndValue(enc,
                                                                self.num_options,
                                                                self.combined_dense_size,
+                                                               dropout_rate=self.dropout_rate,
                                                                option_in=pv_option_in)
         else:
             value_out, next_option_out = GetNextOptionAndValue(enc,
                                                                self.num_options,
                                                                self.value_dense_size,
+                                                               dropout_rate=self.dropout_rate,
                                                                option_in=pv_option_in)
 
         # =====================================================================
@@ -428,6 +433,24 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         q[:,3:] = q[:,3:] / np.pi
         q_target[:,3:] = q_target[:,3:] / np.pi
         qa /= np.pi
+
+        """
+        # Only include a limited number of examples from the value target. We
+        # do not want to include lots of bad training data here.
+        min_idx = max(0,q.shape[0]-100)
+        max_idx = q.shape[0]
+        if value_target[-1] == 0:
+            I = I[min_idx:max_idx,:]
+            q = q[min_idx:max_idx,:]
+            g = g[min_idx:max_idx,:]
+            qa = qa[min_idx:max_idx,:]
+            ga = ga[min_idx:max_idx,:]
+            oin = oin[min_idx:max_idx]
+            I_target = I_target[min_idx:max_idx]
+            q_target = q_target[min_idx:max_idx]
+            g_target = g_target[min_idx:max_idx]
+            o_target = o_target[min_idx:max_idx]
+        """
 
         o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
         train_target = self._makeTrainTarget(
