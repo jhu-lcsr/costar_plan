@@ -38,7 +38,7 @@ class NpzGeneratorDataset(object):
                     name = f.split('.')
                     if name[1] == 'failure':
                         continue
-                if i == 0:
+                if i < 2:
                     fsample = np.load(os.path.join(self.name,f))
                     for key, value in fsample.items():
                         if key not in sample:
@@ -58,7 +58,8 @@ class NpzGeneratorDataset(object):
         print("---------------------------------------------")
         self.test = [acceptable_files[i] for i in idx[:length]]
         self.train = [acceptable_files[i] for i in idx[length:]]
-        for filename in self.test:
+        for i, filename in enumerate(self.test):
+            print("%d:"%(i+1), filename)
             if filename in self.train:
                 raise RuntimeError('error with test/train setup! ' + \
                                    filename + ' in training!')
@@ -74,9 +75,28 @@ class NpzGeneratorDataset(object):
         return os.path.join(self.name,
                 self.test[np.random.randint(len(self.test))])
 
+    def testFiles(self):
+        return self.test
+
+    def trainFiles(self):
+        return self.train
+
+    def numTest(self):
+        return len(self.test)
+
+    def loadTest(self, i):
+        if i > len(self.test):
+            raise RuntimeError('index %d greater than number of files'%i)
+        filename = self.test[i]
+        success = 'success' in filename
+        return np.load(os.path.join(self.name,filename)), success
+
     def sampleTrain(self):
         filename = self.sampleTrainFilename()
-        sample = np.load(filename)
+        try:
+            sample = np.load(filename)
+        except Exception as e:
+            raise RuntimeError("Could not load file " + filename + ": " + str(e))
         return sample, filename
 
     def sampleTest(self):

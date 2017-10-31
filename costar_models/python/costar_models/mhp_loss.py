@@ -36,7 +36,7 @@ class MhpLoss(object):
     }
     '''
 
-    def __init__(self, num_hypotheses, avg_weight=0.05):
+    def __init__(self, num_hypotheses, avg_weight=0.05, loss="mae"):
         '''
         Set up the MHP loss function.
 
@@ -54,8 +54,10 @@ class MhpLoss(object):
         if avg_weight > 0.25 or avg_weight < 0.:
             raise RuntimeError('avg_weight must be in [0,0.25]')
         self.avg_weight = avg_weight
-        self.min_weight = 1.0 - (2 * self.avg_weight)
+        #self.min_weight = 1.0 - (2 * self.avg_weight)
+        self.min_weight = 1.0 - self.avg_weight
         self.kl_weight = 0.001
+        self.loss = keras.losses.get(loss)
 
     def __call__(self, target, pred):
         '''
@@ -78,8 +80,8 @@ class MhpLoss(object):
         for i in range(self.num_hypotheses):
             target_image = target[:,0]
             pred_image = pred[:,i]
-            cc = losses.mean_squared_error(target_image, pred_image)
-            #cc = losses.mean_absolute_error(target_image, pred_image)
+            #cc = losses.mean_squared_error(target_image, pred_image)
+            cc = self.loss(target_image, pred_image)
             xsum += cc
             xmin = tf.minimum(xmin, cc)
 

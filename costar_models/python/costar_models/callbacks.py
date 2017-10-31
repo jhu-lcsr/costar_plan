@@ -7,14 +7,48 @@ import numpy as np
 
 DEFAULT_MODEL_DIRECTORY = os.path.expanduser('~/.costar/models')
 
+
+class LogCallback(keras.callbacks.Callback):
+    def __init__(self,
+            name="model",
+            model_directory=DEFAULT_MODEL_DIRECTORY):
+        self.directory = model_directory
+        if not os.path.exists(self.directory):
+            os.makedirs(self.directory)
+        self.file = open(os.path.join(self.directory,"%s_log.csv"%name),'w')
+
+    def on_epoch_end(self, epoch, logs={}):
+        print(epoch,logs)
+        if epoch == 0:
+            msg = ""
+            for i, key in enumerate(logs.keys()):
+                msg += str(key)
+                if i < len(logs.keys())-1:
+                    msg += ","
+            msg += "\n"
+            self.file.write(msg)
+            self.file.flush()
+
+        msg = ""
+        for i, (key, value) in enumerate(logs.items()):
+            msg += str(value)
+            if i < len(logs.keys())-1:
+                msg += ","
+        msg += "\n"
+        self.file.write(msg)
+        self.file.flush()
+
 class PredictorShowImage(keras.callbacks.Callback):
     '''
     Save an image showing what some number of frames and associated predictions
     will look like at the end of an epoch.
     '''
 
+    variables = ["x","y","z","roll","pitch","yaw","gripper"]
+
     def __init__(self, predictor, features, targets,
             model_directory=DEFAULT_MODEL_DIRECTORY,
+            name="model",
             num_hypotheses=4,
             verbose=False,
             use_prev_option=True,
@@ -43,8 +77,19 @@ class PredictorShowImage(keras.callbacks.Callback):
         self.directory = os.path.join(model_directory,'debug')
         self.noise_dim = noise_dim
         self.use_noise = use_noise
+        self.files=[]
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
+        self.header = "V(h),max(p(A|H)),o_{i-1}"
+        for i in range(self.num_hypotheses):
+            for var in self.variables:
+                self.header += ",%s%d"%(var,i)
+        for var in self.variables:
+            self.header += ",observed_%s"%(var)
+        for i in range(self.num):
+            self.files.append(open(os.path.join(model_directory,"%s_poses_log%d.csv"%(name,i)),'w'))
+            self.files[-1].write(self.header+"\n")
+            self.files[-1].flush()
 
     def on_epoch_end(self, epoch, logs={}):
         # take the model and print it out
@@ -69,6 +114,7 @@ class PredictorShowImage(keras.callbacks.Callback):
         if self.verbose:
             print("============================")
         for j in range(self.num):
+            msg = ''
             name = os.path.join(self.directory,
                     "predictor_epoch%d_result%d.png"%(self.epoch,j))
             if self.verbose:
@@ -77,6 +123,7 @@ class PredictorShowImage(keras.callbacks.Callback):
                 print("max(p(o' | x)) =", np.argmax(probs[j]))
                 print("v(x) =", v[j])
                 print("o_{i-1} = ", self.features[3][j])
+                msg += "%f,%d,%d"%(v[j],np.argmax(probs[j]),self.features[3][j])
             fig = plt.figure(figsize=(3+int(1.5*self.num_hypotheses),2))
             plt.subplot(1,2+self.num_hypotheses,1)
             plt.title('Input Image')
@@ -84,15 +131,25 @@ class PredictorShowImage(keras.callbacks.Callback):
             plt.subplot(1,2+self.num_hypotheses,2+self.num_hypotheses)
             plt.title('Observed Goal')
             plt.imshow(img[j])
+            arm_target = self.targets[0][j,imglen:imglen+6]
+            gripper_target = self.targets[0][j,imglen+6]
             for i in range(self.num_hypotheses):
                 if self.verbose:
                     print("Arms = ", arms[j][i])
                     print("Gripper = ", grippers[j][i])
                     print("Label = ", np.argmax(label[j][i]))
+                for q, q0 in zip(arms[j][i],arm_target):
+                    msg += ",%f"%(q-q0)
+                msg += ",%f"%(grippers[j][i][0]-gripper_target)
                 plt.subplot(1,2+self.num_hypotheses,i+2)
                 plt.imshow(np.squeeze(data[j][i]))
                 plt.title('Hypothesis %d'%(i+1))
             fig.savefig(name, bbox_inches="tight")
+            for q0 in arm_target:
+                msg += ",%f"%q0
+            msg += ",%f"%gripper_target
+            self.files[j].write(msg+"\n")
+            self.files[j].flush()
             if self.verbose:
                 print("Arm/gripper target =",
                         self.targets[0][j,imglen:imglen+7])
@@ -115,6 +172,7 @@ class PredictorShowImageOnly(keras.callbacks.Callback):
             verbose=False,
             noise_dim=64,
             use_noise=False,
+            name="model",
             use_prev_option=True,
             min_idx=0, max_idx=66, step=11):
         '''
@@ -203,6 +261,7 @@ class PredictorGoals(keras.callbacks.Callback):
             verbose=False,
             use_prev_option=True,
             noise_dim=64,
+            name="model",
             use_noise=False,
             min_idx=0, max_idx=66, step=11):
         '''
@@ -234,9 +293,11 @@ class PredictorGoals(keras.callbacks.Callback):
         self.epoch += 1
         if self.use_noise:
             z= np.random.random((self.targets[0].shape[0], self.num_hypotheses, self.noise_dim))
-            arms, grippers, label, probs, v = self.predictor.predict(self.features + [z])
+            arms, grippers, label, probs, v = self.predictor.predict(
+                    self.features[:4] + [z])
         else:
-            arms, grippers, label, probs, v = self.predictor.predict(self.features)
+            arms, grippers, label, probs, v = self.predictor.predict(
+                    self.features[:4])
         plt.ioff()
         if self.verbose:
             print("============================")
@@ -255,7 +316,7 @@ class PredictorGoals(keras.callbacks.Callback):
                     print("Label = ", np.argmax(label[j][i]))
             if self.verbose:
                 print("Arm/gripper target = ",
-                        self.targets[0][j,:8])
+                        self.targets[0][j,:7])
                 print("Label target = ",
-                        np.argmax(self.targets[0][j,8:]))
+                        np.argmax(self.targets[0][j,7:]))
 

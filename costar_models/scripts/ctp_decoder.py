@@ -12,7 +12,7 @@ from costar_models import *
 from costar_models.datasets.npz import NpzDataset
 from costar_models.datasets.npy_generator import NpzGeneratorDataset
 
-def RunKeypointsVisualizer(args):
+def RunDecoderVisualizer(args):
     '''
     This function 
 
@@ -50,7 +50,7 @@ def RunKeypointsVisualizer(args):
         model = args["model"]
         if not model == "predictor":
             raise RuntimeError('Unsupported model type "%s"'%model)
-        model = RobotMultiKeypointsVisualizer(taskdef=None, **args)
+        model = RobotMultiDecoderVisualizer(taskdef=None, **args)
         model.load(world=None,**data)
         for i in range(dataset.numTest()):
             data, success = dataset.loadTest(i)
@@ -61,4 +61,4 @@ def RunKeypointsVisualizer(args):
 
 if __name__ == '__main__':
     args = ParseModelArgs()
-    RunKeypointsVisualizer(args)
+    RunDecoderVisualizer(args)
