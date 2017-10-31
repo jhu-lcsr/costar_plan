@@ -297,10 +297,17 @@ class VREPGraspSimulation(object):
             assert(grasp_geometry.vector_quaternion_arrays_allclose(base_T_endeffector_vec_quat, base_T_endeffector_vec_quat_feature))
 
             #############################
-            # get the transform from the current endeffector pose to the final
+            # get the transform from the current endeffector pose to the final, plus include the angle theta in the name
             transform_display_name = str(i).zfill(2) + '_current_T_end'
             current_to_end = grasp_geometry.current_endeffector_to_final_endeffector_feature(
                 base_T_endeffector_vec_quat_feature, base_T_endeffector_final_close_gripper, feature_type='vec_quat_7')
+            current_to_end_ptransform = grasp_geometry.vector_quaternion_array_to_ptransform(current_to_end)
+            current_to_end_rotation = current_to_end_ptransform.rotation()
+            theta = grasp_geometry.brainrobotdata_rotation_to_theta(current_to_end_rotation, verbose=1)
+            # compare these printed theta values in the visualization to what is documented in
+            # see brainrobotdata_rotation_to_theta() this printout will let you verify that
+            # theta is estimated correctly for training.
+            print('current to end estimated theta ', transform_display_name, theta)
             self.create_dummy(transform_display_name, current_to_end, bTe_handle)
 
             # TODO(ahundt) check that transform from end step to itself should be identity, or very close to it
