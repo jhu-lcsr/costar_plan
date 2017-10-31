@@ -47,7 +47,7 @@ flags.DEFINE_string('pipeline_stage', 'train_eval',
 flags.DEFINE_float('learning_rate_scheduler_power_decay_rate', 0.9,
                    """Determines how fast the learning rate drops at each epoch.
                       lr = learning_rate * ((1 - float(epoch)/epochs) ** learning_power_decay_rate)""")
-flags.DEFINE_float('grasp_learning_rate', 0.1,
+flags.DEFINE_float('grasp_learning_rate', 0.01,
                    """Determines the initial learning rate""")
 flags.DEFINE_integer('eval_batch_size', 1, 'batch size per compute device')
 flags.DEFINE_integer('densenet_growth_rate', 12,
