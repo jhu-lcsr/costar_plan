@@ -26,6 +26,7 @@ class AbstractAgentBasedModel(object):
             hypothesis_dropout=False,
             dense_representation=True,
             skip_connections=1,
+            compatibility=1,
             use_noise=False,
             sampling=False,
             use_prev_option=True,
@@ -39,6 +40,11 @@ class AbstractAgentBasedModel(object):
                                'learning rate to %f'%lr)
         elif lr > 1.:
             raise RuntimeError('Extremely high learning rate: %f' % lr)
+
+        # ===================================
+        # REMOVE THIS 
+        self.compatibility = compatibility
+        # ===================================
 
         self.success_only = success_only
         self.use_prev_option = use_prev_option
@@ -78,10 +84,12 @@ class AbstractAgentBasedModel(object):
             self.use_noise = False
         if self.sampling:
             self.use_noise = False
-        if self.task is not None:
-            self.name += "_%s"%self.task
-        if self.features is not None:
-            self.name += "_%s"%self.features   
+        # NOTE: removed because it's used inconsistently.
+        # TODO: add this again
+        #if self.task is not None:
+        #    self.name += "_%s"%self.task
+        #if self.features is not None:
+        #    self.name += "_%s"%self.features   
 
         # Define previous option for when executing -- this should default to
         # None, set to 2 for testing only

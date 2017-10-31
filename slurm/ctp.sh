@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --job-name=ctpV2
+#SBATCH --job-name=ctpW
 #SBATCH --time=0-48:0:0
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
@@ -24,14 +24,14 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--lr $1 \
 	--dropout_rate $2 \
 	--decoder_dropout_rate $2 \
-  --model_directory $HOME/.costar/models_stack_V2$1$3$2$4$5/ \
+  --model_directory $HOME/.costar/models_stack_W$1$3$2$4$5$6/ \
 	--optimizer $3 \
   --use_noise true \
   --steps_per_epoch 500 \
   --noise_dim $5 \
   --hypothesis_dropout $4 \
   --upsampling conv_transpose \
-  --skip_connections $5 \
+  --skip_connections $6 \
   --batch_size 32
   #--success_only \
 
