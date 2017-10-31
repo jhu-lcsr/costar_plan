@@ -644,7 +644,6 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
     sampler: set up as a "sampler" model
     '''
 
-    dim = int(dim)
     xin = Input((input_size,),name="tform%d_hidden_in"%idx)
     x = xin
     extra = []
@@ -662,7 +661,7 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
         x = Concatenate()([x] + extra)
     for j in range(num_blocks):
         if not resnet_blocks:
-            print(dim,type(dim))
+            print(dim,x,type(dim))
             x = Dense(dim,name="dense_%d_%d"%(idx,j))(x)
             if batchnorm:
                 x = BatchNormalization(name="normalize_%d_%d"%(idx,j))(x)
