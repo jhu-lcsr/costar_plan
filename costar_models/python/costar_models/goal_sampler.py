@@ -230,19 +230,7 @@ class RobotMultiGoalSampler(RobotMultiPredictionSampler):
         sampler.compile(loss="mae", optimizer=self.getOptimizer())
         train_predictor.summary()
 
-        return sampler, train_predictor, actor
-
-    def _makeModel(self, features, arm, gripper, *args, **kwargs):
-        '''
-        Little helper function wraps makePredictor to consturct all the models.
-
-        Parameters:
-        -----------
-        features, arm, gripper: variables of the appropriate sizes
-        '''
-        self.predictor, self.train_predictor, self.actor = \
-            self._makePredictor(
-                (features, arm, gripper))
+        return sampler, train_predictor, actor, ins, enc
 
     def _makeTrainTarget(self, I_target, q_target, g_target, o_target):
         return np.concatenate([q_target,g_target,o_target],axis=-1)

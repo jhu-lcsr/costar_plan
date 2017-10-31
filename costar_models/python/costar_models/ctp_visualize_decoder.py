@@ -34,7 +34,7 @@ from .multi_sampler import *
 from .datasets.npy_generator import *
 from .parse import *
 
-class RobotMultiKeypointsVisualizer(RobotMultiPredictionSampler):
+class RobotMultiDecoderVisualizer(RobotMultiPredictionSampler):
     '''
     This loads the weights from the keypoint sampler robot and uses them to
     visualize outputs from the spatial softmax layer.
@@ -42,7 +42,7 @@ class RobotMultiKeypointsVisualizer(RobotMultiPredictionSampler):
 
     def __init__(self, taskdef, features, *args, **kwargs):
         super(RobotMultiKeypointsVisualizer, self).__init__(taskdef, *args, **kwargs)
-        self.keypoints = None
+        self.decoder = None
 
     def _makeModel(self, features, arm, gripper, *args, **kwargs):
         '''
@@ -55,8 +55,8 @@ class RobotMultiKeypointsVisualizer(RobotMultiPredictionSampler):
         self.predictor, self.train_predictor, self.actor, ins, hidden = \
             self._makePredictor(
                 (features, arm, gripper))
-        self.keypoints = Model(ins, hidden, name="get_keypoints")
-        self.keypoints.compile(loss="mae", optimizer=self.getOptimizer())
+        print (self.train_predictor.layers())
+
 
     def predictKeypoints(self, features):
         return self.keypoints.predict(features)[0]
@@ -75,35 +75,6 @@ class RobotMultiKeypointsVisualizer(RobotMultiPredictionSampler):
         
 
         for i in range(length):
-            keypoints = self.predictKeypoints([np.array([f[i]]) for f in features])
+            for i in range(8):
+                fig = plt.figure()
 
-            x = np.zeros((num_pts,))
-            y = np.zeros((num_pts,))
-            for j in range(self.img_col_dim / 2):
-                jx = 2*j
-                jy = 2*j + 1
-                x[j] = (keypoints[jx])
-                y[j] = (keypoints[jy])
-
-            #print('1 -------')
-            #print(x * scale + scale)
-            #print(y * scale + scale)
-            x = ((x * scale) + scale) * (2**self.steps_down) 
-            y = ((y * scale) + scale) * (2**self.steps_down)
-            #print('-------')
-            #print(x, 64-x)
-            #x2 = x
-            #y2 = y
-            #y = x2
-            #x = y2
-            #print(y)
-            plt.imshow(features[0][i])
-            plt.plot(x,y,'*')
-            plt.show()
-
-    def generateKeypointsByOption(self, data, option, num=10):
-        '''
-        Generate an image with a set of keypoints, weighted by the predicted
-        next option.
-        '''
-        pass
