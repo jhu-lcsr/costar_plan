@@ -266,11 +266,11 @@ def GetImageDecoder(dim, img_shape,
         relu = lambda: Activation('relu')
 
     if not dense:
-        z = Input((width*height*tform_filters,),name="input_image")
+        z = Input((int(width*height*tform_filters),),name="input_image")
         x = Reshape((height,width,tform_filters))(z)
     else:
-        z = Input((dense_rep_size,),name="input_latent")
-        x = Dense(height*width*filters,name="dense_input_size")(z)
+        z = Input((int(dense_rep_size),),name="input_latent")
+        x = Dense(int(height*width*filters),name="dense_input_size")(z)
         if batchnorm:
             x = BatchNormalization()(x)
         x = relu()(x)
@@ -644,6 +644,7 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
     sampler: set up as a "sampler" model
     '''
 
+    dim = int(dim)
     xin = Input((input_size,),name="tform%d_hidden_in"%idx)
     x = xin
     extra = []
@@ -661,6 +662,7 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
         x = Concatenate()([x] + extra)
     for j in range(num_blocks):
         if not resnet_blocks:
+            print(dim,type(dim))
             x = Dense(dim,name="dense_%d_%d"%(idx,j))(x)
             if batchnorm:
                 x = BatchNormalization(name="normalize_%d_%d"%(idx,j))(x)

@@ -477,6 +477,7 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
     elif flatten or dense or discriminator:
         x = ApplyTD(Flatten())(x)
         if dense:
+            dim = int(dim)
             x = ApplyTD(Dense(dim))(x)
             x = ApplyTD(relu())(x)
     # Single output -- sigmoid activation function
