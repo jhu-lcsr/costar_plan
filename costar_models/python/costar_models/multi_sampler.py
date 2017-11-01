@@ -114,7 +114,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # ===================================================================
 
         # This controls how we use the previous option.
-        self.use_prev_option = False
+        self.use_prev_option = True
         # Give transforms a prior on the next action
         self.use_next_option = False
         # Train actor model
@@ -316,10 +316,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
                         #weights=[0.7,1.0,0.1,0.1],
-                        weights=[1.0, 0.25, 0.05, 0.2],
+                        weights=[0.3, 0.45, 0.05, 0.2],
                         loss=["mae","mae","mae","categorical_crossentropy"],
                         stats=stats,
-                        avg_weight=0.15),]
+                        avg_weight=0.05),]
         if self.success_only:
             outs = [train_out, next_option_out]
             losses += ["binary_crossentropy"]
