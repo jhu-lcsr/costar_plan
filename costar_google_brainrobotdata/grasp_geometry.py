@@ -169,55 +169,6 @@ def vector_to_ptransform(XYZ):
     return ptransform
 
 
-def ptransform_to_vector_sin_theta_cos_theta(ptransform, dtype=np.float32):
-    """Plucker transform to [dx, dy, dz, sin(theta), cos(theta)]
-    Convert a PTransform 3D Rigid body transform into a numpy array with 5 total entries,
-    including a 3 entry translation vector and 2 entries for
-    a single rotation angle theta containing sin(theta), cos(theta). This format
-    does not allow for arbitrary rotation commands to be defined,
-    and originates from the paper and dataset:
-    https://sites.google.com/site/brainrobotdata/home/grasping-dataset
-    https://arxiv.org/abs/1603.02199
-
-    In the google brain dataset the gripper is only commanded to
-    rotate around a single vertical axis,
-    so you might clearly visualize it, this also happens to
-    approximately match the vector defined by gravity.
-    Furthermore, the original paper had the geometry of the
-    arm joints on which params could easily be extracted,
-    which is not available here. To resolve this discrepancy
-    Here we assume that the gripper generally starts off at a
-    quaternion orientation of approximately [qx=-1, qy=0, qz=0, qw=0].
-    This is equivalent to the angle axis
-    representation of [a=np.pi, x=-1, y=0, z=0],
-    which I'll name default_rot.
-
-    It is also important to note the ambiguity of the
-    angular distance between any current pose
-    and the end pose. This angular distance will
-    always have a positive value so the network
-    could not naturally discriminate between
-    turning left and turning right.
-    For this reason, we use the angular distance
-    from default_rot to define the input angle parameter,
-    and if the angle axis x axis component is > 0
-    we will use [sin(theta), cos(theta)] for rotation,
-    but if the angle axis x axis component is < 0
-    we will use [sin(-theta), cos(-theta)].
-
-    Also note that in the eigen API being used:
-    e.AngleAxisd(e.Quaterniond().Identity()) == [a=0.0, x=1, y=0, z=0]
-    """
-    translation = np.squeeze(ptransform.translation())
-    aa = eigen.AngleAxisd(ptransform.rotation())
-    theta = aa.angle()
-    if aa.axis().x() < 0:
-        theta *= -1
-    sin_cos_theta = np.array([np.sin(theta), np.cos(theta)])
-    vector_sin_theta_cos_theta = np.concatenate([translation, sin_cos_theta])
-    return vector_sin_theta_cos_theta.astype(dtype)
-
-
 def depth_image_pixel_to_cloud_point(depth_image, camera_intrinsics_matrix, pixel_coordinate, augmentation_rectangle=None):
     """Convert a single specific depth image pixel coordinate into a point cloud point.
 
@@ -392,6 +343,111 @@ def endeffector_image_coordinate_and_cloud_point(depth_image,
     return XYZ, pixel_coordinate_of_endeffector
 
 
+def grasp_dataset_rotation_to_theta(rotation, verbose=0):
+    """Convert a rotation to an angle theta specifically for brainrobotdata
+
+    From above, a rotation to the right should be a positive theta,
+    and a rotation to the left negative theta. The initial pose is with the
+    z axis pointing down, the y axis to the right and the x axis forward.
+
+    This format does not allow for arbitrary rotation commands to be defined,
+    and originates from the paper and dataset:
+    https://sites.google.com/site/brainrobotdata/home/grasping-dataset
+    https://arxiv.org/abs/1603.02199
+
+    In the google brain dataset the gripper is only commanded to
+    rotate around a single vertical axis,
+    so you might clearly visualize it, this also happens to
+    approximately match the vector defined by gravity.
+    Furthermore, the original paper had the geometry of the
+    arm joints on which params could easily be extracted,
+    which is not available here. To resolve this discrepancy
+    Here we assume that the gripper generally starts off at a
+    quaternion orientation of approximately [qx=-1, qy=0, qz=0, qw=0].
+    This is equivalent to the angle axis
+    representation of [a=np.pi, x=-1, y=0, z=0],
+    which I'll name default_rot.
+
+    It is also important to note the ambiguity of the
+    angular distance between any current pose
+    and the end pose. This angular distance will
+    always have a positive value so the network
+    could not naturally discriminate between
+    turning left and turning right.
+    For this reason, we use the angular distance
+    from default_rot to define the input angle parameter,
+    and if the angle axis x axis component is > 0
+    we will use theta for rotation,
+    but if the angle axis x axis component is < 0
+    we will use -theta.
+    """
+    aa = eigen.AngleAxisd(rotation)
+    theta = aa.angle()
+    if aa.axis().z() < 0:
+        multiply = 1.0
+    else:
+        multiply = -1.0
+    if verbose > 0:
+        print("ANGLE_AXIS_MULTIPLY: ", aa.angle(), np.array(aa.axis()), multiply)
+    theta *= multiply
+    return theta
+
+
+def grasp_dataset_ptransform_to_vector_sin_theta_cos_theta(ptransform, dtype=np.float32):
+    """Plucker transform to [dx, dy, dz, sin(theta), cos(theta)]
+    Convert a PTransform 3D Rigid body transform into a numpy array with 5 total entries,
+    including a 3 entry translation vector and 2 entries for
+    a single rotation angle theta containing sin(theta), cos(theta). This format
+    does not allow for arbitrary rotation commands to be defined,
+    and originates from the paper and dataset:
+    https://sites.google.com/site/brainrobotdata/home/grasping-dataset
+    https://arxiv.org/abs/1603.02199
+
+    In the google brain dataset the gripper is only commanded to
+    rotate around a single vertical axis,
+    so you might clearly visualize it, this also happens to
+    approximately match the vector defined by gravity.
+    Furthermore, the original paper had the geometry of the
+    arm joints on which params could easily be extracted,
+    which is not available here. To resolve this discrepancy
+    Here we assume that the gripper generally starts off at a
+    quaternion orientation of approximately [qx=-1, qy=0, qz=0, qw=0].
+    This is equivalent to the angle axis
+    representation of [a=np.pi, x=-1, y=0, z=0],
+    which I'll name default_rot.
+
+    It is also important to note the ambiguity of the
+    angular distance between any current pose
+    and the end pose. This angular distance will
+    always have a positive value so the network
+    could not naturally discriminate between
+    turning left and turning right.
+    For this reason, we use the angular distance
+    from default_rot to define the input angle parameter,
+    and if the angle axis x axis component is > 0
+    we will use [sin(theta), cos(theta)] for rotation,
+    but if the angle axis x axis component is < 0
+    we will use [sin(-theta), cos(-theta)].
+
+    Also note that in the eigen API being used:
+    e.AngleAxisd(e.Quaterniond().Identity()) == [a=0.0, x=1, y=0, z=0]
+
+    # Params
+
+    ptransform: the PTransformd to convert
+
+    # Returns
+
+    vector_sin_theta_cos_theta
+    """
+    translation = np.squeeze(ptransform.translation())
+    theta = grasp_dataset_rotation_to_theta(ptranform.rotation())
+    sin_cos_theta = np.array([np.sin(theta), np.cos(theta)])
+    vector_sin_theta_cos_theta = np.concatenate([translation, sin_cos_theta])
+    vector_sin_theta_cos_theta = vector_sin_theta_cos_theta.astype(dtype)
+    return vector_sin_theta_cos_theta
+
+
 def grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector):
     """Convert brainrobotdata features camera_T_base and base_T_endeffector to base_T_endeffector and ptransforms.
 
@@ -533,7 +589,7 @@ def current_endeffector_to_final_endeffector_feature(current_base_T_endeffector,
                           https://sites.google.com/site/brainrobotdata/home/grasping-dataset
                           https://arxiv.org/abs/1603.02199
 
-                          see also: ptransform_to_vector_sin_theta_cos_theta()
+                          see also: grasp_dataset_ptransform_to_vector_sin_theta_cos_theta()
 
        # Returns
 
@@ -548,7 +604,7 @@ def current_endeffector_to_final_endeffector_feature(current_base_T_endeffector,
     if 'vec_quat_7' in feature_type:
         current_to_end = ptransform_to_vector_quaternion_array(current_to_end)
     elif 'vec_sin_cos_5' in feature_type:
-        current_to_end = ptransform_to_vector_sin_theta_cos_theta(current_to_end)
+        current_to_end = grasp_dataset_ptransform_to_vector_sin_theta_cos_theta(current_to_end)
     return current_to_end.astype(dtype)
 
 
