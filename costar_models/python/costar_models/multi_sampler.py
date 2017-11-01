@@ -316,11 +316,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
                         #weights=[0.7,1.0,0.1,0.1],
-                        weights=[0.3, 0.45, 0.05, 0.2],
+                        weights=[0.3, 0.4, 0.05, 0.3],
                         loss=["mae","mae","mae","categorical_crossentropy"],
                         stats=stats,
-                        avg_weight=0.05),]
-        if self.success_only:
+                        avg_weight=0.025),]
+        if self.success_only and False:
             outs = [train_out, next_option_out]
             losses += ["binary_crossentropy"]
             loss_weights = [0.60, 0.40]
@@ -476,14 +476,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
             #return features[:self.num_features] + [z], [tt, o1, v]
             #return features[:self.num_features] + [z], [tt, o1]#, v]
-            if self.success_only:
+            if self.success_only and False:
                 return features[:self.num_features] + [o1, z], [tt, o1]
             else:
                 return features[:self.num_features] + [o1, z], [tt, o1, v]
         else:
             #return features[:self.num_features], [tt, o1, v]
             #return features[:self.num_features], [tt, o1]#, v]
-            if self.success_only:
+            if self.success_only and False:
                 return features[:self.num_features] + [o1], [tt, o1]
             else:
                 return features[:self.num_features] + [o1], [tt, o1, v]
