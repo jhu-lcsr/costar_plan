@@ -44,31 +44,43 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.validation_split = 0.05
         self.num_options = 48
         self.num_features = 4
+        self.null_option = 37
 
         # Layer and model configuration
         self.extra_layers = 1
 
-        self.use_spatial_softmax=True
+        self.use_spatial_softmax=False
         if self.use_spatial_softmax:
-            self.steps_down = 2
+            self.steps_down = 0
+            self.steps_down_no_skip = 0
             self.steps_up = 4
-            self.steps_up_no_skip = 2
+            self.steps_up_no_skip = 4
             #self.encoder_stride1_steps = 2+1
-            self.encoder_stride1_steps = 1
+            self.encoder_stride1_steps = 3
+            self.padding="valid"
         else:
             self.steps_down = 4
+            self.steps_down_no_skip = 3
             self.steps_up = 4
-            self.steps_up_no_skip = 0
-            self.encoder_stride1_steps = 1
+            self.steps_up_no_skip = 3
+            self.encoder_stride1_steps = 0
+            self.padding = "same"
 
         self.num_actor_policy_layers = 2
         self.num_generator_layers = 1
         self.num_arm_vars = 6
 
+        # compatibility mode -- set > 0 if loading dataset ~ U
+        self.compatibility = 0
+        if self.compatibility == 1:
+            self.decoder_kernel_size = [5,5]
+        else:
+            self.decoder_kernel_size = [3,3]
+
         # Number of nonlinear transformations to be applied to the hidden state
         # in order to compute a possible next state.
         if self.dense_representation:
-            self.num_transforms = 2
+            self.num_transforms = 1
         else:
             self.num_transforms = 3
 
@@ -78,13 +90,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Used for classifiers: value and next option
         self.combined_dense_size = 256
+        self.value_dense_size = 128
 
         # Size of the "pose" column containing arm, gripper info
         self.pose_col_dim = 64
 
         # Size of the hidden representation when using dense hidden
         # repesentations
-        self.img_col_dim = 128
+        self.img_col_dim = 128 / 2
 
         self.PredictorCb = PredictorShowImage
         self.hidden_dim = 64/(2**self.steps_down)
@@ -98,8 +111,15 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # ===================================================================
         # These are hard coded settings -- tweaking them may break a bunch of
         # things.
-        self.use_prev_option = True
+        # ===================================================================
+
+        # This controls how we use the previous option.
+        self.use_prev_option = False
+        # Give transforms a prior on the next action
         self.use_next_option = True
+        # Train actor model
+        self.train_actor = True
+        # Use the same transform for everything
         self.always_same_transform = False
 
     def _makePredictor(self, features):
@@ -118,6 +138,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             image_size *= dim
         image_size = int(image_size)    
 
+        if self.use_prev_option:
+            enc_options = self.num_options
+        else:
+            enc_options = None
+
         ins, enc, skips, robot_skip = GetEncoder(img_shape,
                 [arm_size, gripper_size],
                 self.img_col_dim,
@@ -125,22 +150,26 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 filters=self.img_num_filters,
                 leaky=False,
                 dropout=True,
+                padding=self.padding,
                 pre_tiling_layers=self.extra_layers,
                 post_tiling_layers=self.steps_down,
+                post_tiling_layers_no_skip=self.steps_down_no_skip,
                 stride1_post_tiling_layers=self.encoder_stride1_steps,
                 pose_col_dim=self.pose_col_dim,
                 kernel_size=[5,5],
                 dense=self.dense_representation,
                 batchnorm=True,
                 tile=True,
-                flatten=False,
-                option=self.num_options,
+                flatten=(not self.use_spatial_softmax),
+                option=enc_options,
                 use_spatial_softmax=self.use_spatial_softmax,
-                #option=None,
                 output_filters=self.tform_filters,
                 )
-        img_in, arm_in, gripper_in, option_in = ins
-        #img_in, arm_in, gripper_in = ins
+
+        if self.use_prev_option:
+            img_in, arm_in, gripper_in, option_in = ins
+        else:
+            img_in, arm_in, gripper_in = ins
         if self.use_noise:
             z = Input((self.num_hypotheses, self.noise_dim))
 
@@ -151,7 +180,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         img_shape,
                         dropout_rate=self.decoder_dropout_rate,
                         dense_size=self.combined_dense_size,
-                        kernel_size=[5,5],
+                        kernel_size=self.decoder_kernel_size,
                         filters=self.img_num_filters,
                         stride2_layers=self.steps_up,
                         stride1_layers=self.extra_layers,
@@ -181,16 +210,29 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             skips.reverse()
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         decoder.summary()
-    
-        #option_in = Input((1,),name="prev_option_in")
-        #ins += [option_in]
+        
+        if not self.use_prev_option:
+            option_in = Input((1,),name="prev_option_in")
+            ins += [option_in]
+            pv_option_in = option_in
+        else:
+            pv_option_in = None
+            
         next_option_in = Input((self.num_options,),name="next_option_in")
         ins += [next_option_in]
-        value_out, next_option_out = GetNextOptionAndValue(enc,
-                                                           self.num_options,
-                                                           self.combined_dense_size,
-                                                           #option_in=None)
-                                                           option_in=option_in)
+
+        if self.compatibility > 0:
+            value_out, next_option_out = GetNextOptionAndValue(enc,
+                                                               self.num_options,
+                                                               self.combined_dense_size,
+                                                               dropout_rate=self.dropout_rate,
+                                                               option_in=pv_option_in)
+        else:
+            value_out, next_option_out = GetNextOptionAndValue(enc,
+                                                               self.num_options,
+                                                               self.value_dense_size,
+                                                               dropout_rate=self.dropout_rate,
+                                                               option_in=pv_option_in)
 
         # =====================================================================
         # Create many different image decoders
@@ -205,11 +247,15 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 transform.summary()
             if self.use_noise:
                 zi = Lambda(lambda x: x[:,i], name="slice_z%d"%i)(z)
-                x = transform([enc, zi, next_option_in])
-                #x = transform([enc, zi])
+                if self.use_next_option:
+                    x = transform([enc, zi, next_option_in])
+                else:
+                    x = transform([enc, zi])
             else:
-                x = transform([enc, next_option_in])
-                #x = transform([enc])
+                if self.use_next_option:
+                    x = transform([enc, next_option_in])
+                else:
+                    x = transform([enc])
             
             if self.sampling:
                 x, mu, sigma = x
@@ -217,7 +263,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
             # This maps from our latent world state back into observable images.
             if self.skip_connections:
-                decoder_inputs = [x] + skips
+                decoder_inputs = [x] + skips + [robot_skip]
             else:
                 decoder_inputs = [x]
 
@@ -258,13 +304,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         label_out = Concatenate(axis=1)(label_outs)
         train_out = Concatenate(axis=1,name="all_train_outs")(train_outs)
 
-        #next_option_out, p_h = GetHypothesisProbability(enc,
-        #        self.num_hypotheses,
-        #        self.num_options,
-        #        label_out,
-        #        self.combined_dense_size,
-        #        kernel_size=None,)
-
         # =====================================================================
         # Create models to train
         if self.use_noise:
@@ -276,18 +315,19 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         losses = [MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
-                        weights=[0.7, 1.0, 0.1, 0.1],
+                        #weights=[0.7,1.0,0.1,0.1],
+                        weights=[0.5, 0.25, 0.05, 0.2],
                         loss=["mae","mae","mae","categorical_crossentropy"],
                         stats=stats,
-                        avg_weight=0.05),
-                    "binary_crossentropy",]
-        loss_weights = [0.99, 0.01]
+                        avg_weight=0.05),]
         if self.success_only:
-            outs = [train_out, next_option_out, value_out]
+            outs = [train_out, next_option_out]
             losses += ["binary_crossentropy"]
-            loss_weights += [0.01]
+            loss_weights = [0.60, 0.40]
         else:
-            outs = [train_out, value_out]
+            outs = [train_out, next_option_out, value_out]
+            loss_weights = [0.90, 0.05, 0.05]
+            losses += ["categorical_crossentropy", "binary_crossentropy"]
 
         train_predictor = Model(ins, outs)
 
@@ -297,10 +337,17 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 loss=losses,
                 loss_weights=loss_weights,
                 optimizer=self.getOptimizer())
-        predictor.compile(loss="mae", optimizer=self.getOptimizer())
+        predictor.compile(loss=[
+                MhpLoss(self.num_hypotheses,avg_weight=0.,loss="mae"),
+                MhpLoss(self.num_hypotheses,avg_weight=0.,loss="mae"),
+                MhpLoss(self.num_hypotheses,avg_weight=0.,loss="mae"),
+                MhpLoss(self.num_hypotheses,avg_weight=0.,loss="categorical_crossentropy"),
+                "categorical_crossentropy",
+                "mae"],
+        optimizer=self.getOptimizer())
         train_predictor.summary()
 
-        return predictor, train_predictor, actor
+        return predictor, train_predictor, actor, ins, enc
 
     def _getTransform(self,i=0):
         transform_dropout = False
@@ -332,7 +379,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             transform = GetTransform(
                     rep_size=(self.hidden_dim, self.hidden_dim),
                     filters=self.tform_filters,
-                    kernel_size=[5,5],
+                    kernel_size=self.decoder_kernel_size,
                     idx=i,
                     batchnorm=True,
                     dropout=transform_dropout,
@@ -354,7 +401,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         -----------
         features, arm, gripper: variables of the appropriate sizes
         '''
-        self.predictor, self.train_predictor, self.actor = \
+        self.predictor, self.train_predictor, self.actor, ins, hidden = \
             self._makePredictor(
                 (features, arm, gripper))
 
@@ -387,6 +434,24 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         q_target[:,3:] = q_target[:,3:] / np.pi
         qa /= np.pi
 
+        """
+        # Only include a limited number of examples from the value target. We
+        # do not want to include lots of bad training data here.
+        min_idx = max(0,q.shape[0]-100)
+        max_idx = q.shape[0]
+        if value_target[-1] == 0:
+            I = I[min_idx:max_idx,:]
+            q = q[min_idx:max_idx,:]
+            g = g[min_idx:max_idx,:]
+            qa = qa[min_idx:max_idx,:]
+            ga = ga[min_idx:max_idx,:]
+            oin = oin[min_idx:max_idx]
+            I_target = I_target[min_idx:max_idx]
+            q_target = q_target[min_idx:max_idx]
+            g_target = g_target[min_idx:max_idx]
+            o_target = o_target[min_idx:max_idx]
+        """
+
         o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
         train_target = self._makeTrainTarget(
                 I_target,
@@ -411,11 +476,17 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
             #return features[:self.num_features] + [z], [tt, o1, v]
             #return features[:self.num_features] + [z], [tt, o1]#, v]
-            return features[:self.num_features] + [o1, z], [tt, v]
+            if self.success_only:
+                return features[:self.num_features] + [o1, z], [tt, o1]
+            else:
+                return features[:self.num_features] + [o1, z], [tt, o1, v]
         else:
             #return features[:self.num_features], [tt, o1, v]
             #return features[:self.num_features], [tt, o1]#, v]
-            return features[:self.num_features] + [o1], [tt, v]
+            if self.success_only:
+                return features[:self.num_features] + [o1], [tt, o1]
+            else:
+                return features[:self.num_features] + [o1], [tt, o1, v]
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''
@@ -468,6 +539,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         logCb = LogCallback(self.name,self.model_directory)
         imageCb = self.PredictorCb(
             self.predictor,
+            name=self.name,
             features=features[:4]+[o_target],
             targets=targets,
             model_directory=self.model_directory,
@@ -530,19 +602,83 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
           - predict the expected reward based on each of those features
           - choose the best one to execute
         '''
-        features = world.initial_features #getHistoryMatrix()
-        if isinstance(features, list):
-            assert len(features) == len(self.supervisor.inputs) - 1
-        else:
-            features = [features]
-        features = [f.reshape((1,)+f.shape) for f in features]
-        res = self.predictor.predict(features +
-                [self._makeOption1h(self.prev_option)])
-        print("# results = ", len(res))
+        features = world.initial_features
+        print('---')
+        test_features = []
+        next_option_idx = 0
+        for f in features:
+            f2 = np.expand_dims(f,axis=0)
+            tile_shape = [self.batch_size,] + [1]*len(f.shape)
+            f2 = np.tile(f2,tile_shape)
+            test_features.append(f2)
+            next_option_idx += 1
+
+        if self.use_prev_option:
+            # previous options
+            #prev_option = self._makeOption1h(self.prev_option)
+            #tile_shape = [self.batch_size,1]
+            #prev_option = np.tile(prev_option, tile_shape)
+            if self.prev_option is None:
+                prev = self.null_option
+            else:
+                prev = self.prev_option
+            prev_option = np.ones((self.batch_size,1)) * prev
+            test_features.append(prev_option)
+            next_option_idx += 1
+            
+        if self.use_next_option:
+            # don't include anything from the next options...
+            next_opt = np.zeros((self.batch_size,self.num_options))
+            next_opt[0,34] = 1
+            test_features.append(next_opt)
+
+        if self.use_noise:
+            z = np.random.random((
+                self.batch_size,
+                self.num_hypotheses,
+                self.noise_dim))
+            test_features.append(z)
+
+        data, arms, grippers, label, probs, v = self.predictor.predict(test_features)
+        if self.use_next_option:
+            next_probs = np.zeros_like(probs)
+            for i in range(self.batch_size):
+                p = np.cumsum(probs[i]) / np.sum(probs[i])
+                r = np.random.random()
+                opt = np.argmax(r < p)
+                print (i, r, p, opt)
+                next_probs[i,opt] = 1   
+            test_features[next_option_idx] = probs
+            data, arms, grippers, label, probs, v = self.predictor.predict(test_features)
+
+        for i in range(self.batch_size):
+            a = np.argmax(probs[i])
+            print ("action = ",
+                    a,
+                    np.max(probs[i]),
+                    self.taskdef.name(a))
+
         idx = np.random.randint(self.num_hypotheses)
 
-        # Evaluate this policy to get the next action out
-        return policy.predict(features)
+        fig = plt.figure()
+        for i in range(self.num_hypotheses):
+            print ("label = ", np.argmax(label[0,i]),np.max(label[0,i]))
+            for j in range(self.batch_size):
+                idx = (i*self.batch_size) + j + 1
+                plt.subplot(self.num_hypotheses,self.batch_size,idx)
+                plt.imshow(data[j,i])
+                print("arms = ", arms[j,i])
+        plt.show()
+
+        i = np.random.randint(self.num_hypotheses)
+        j = np.random.randint(self.batch_size)
+        self.prev_option = np.argmax(label[j,i])
+        print ("choosing ", j, i, "=",
+                self.prev_option,
+                self.taskdef.name(self.prev_option))
+
+        # Return the chosen goal pose
+        return arms[j,i], grippers[j,i]
 
     def _makeActorPolicy(self):
         '''
@@ -628,7 +764,47 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 name="generator")
         return generator
 
+    def _makeEncoder(self, img_shape, arm_size, gripper_size):
+        ins, enc, skips, robot_skip = GetEncoder(img_shape,
+                [arm_size, gripper_size],
+                self.img_col_dim,
+                dropout_rate=self.dropout_rate,
+                filters=self.img_num_filters,
+                leaky=False,
+                dropout=True,
+                pre_tiling_layers=self.extra_layers,
+                post_tiling_layers=self.steps_down,
+                stride1_post_tiling_layers=self.encoder_stride1_steps,
+                pose_col_dim=self.pose_col_dim,
+                kernel_size=[5,5],
+                dense=self.dense_representation,
+                batchnorm=True,
+                tile=True,
+                flatten=False,
+                option=enc_options,
+                use_spatial_softmax=self.use_spatial_softmax,
+                output_filters=self.tform_filters,
+                )
+        self.encoder = Model(ins, [enc]+skips, name="encoder")
+        new_ins = []
+        for i in ins:
+            i2 = Input([int(d) for d in i.shape],name="model_%s"%i.name)
+            new_ins.append(i2)
+
+        outs = self.encoder(new_ins)
+        new_enc = outs[0]
+        new_skips = outs[1:]
+        return new_ins, new_enc, new_skips
+
     def _makeImageDecoder(self, img_shape, kernel_size, skips=None):
+        '''
+        Helper function to construct a decoder that will make images.
+
+        Parameters:
+        -----------
+        img_shape: shape of the image, e.g. (64,64,3)
+        kernel_size: used for deconvolutions, e.g. [5,5]
+        '''
         rep, dec = GetImageDecoder(self.img_col_dim,
                         img_shape,
                         dropout_rate=self.dropout_rate,
@@ -650,3 +826,103 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         decoder = Model(rep, dec, name="image_decoder")
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         return decoder
+
+    def _targetsFromTrainTargets(self, train_targets):
+        '''
+        This helper function splits the train targets into separate fields. It
+        is equivalent to the targets used in the training data.
+
+        Parameters:
+        -----------
+        train_targets: training for multiple hypothesis data
+
+        Returns:
+        --------
+        list of separated training targets
+        '''
+        imglen = 64*64*3
+        if len(train_targets[0].shape) == 2:
+            img = train_targets[0][:,:imglen]
+        elif len(train_targets[0].shape) == 3:
+            assert train_targets[0].shape[1] == 1
+            img = train_targets[0][:,0,:imglen]
+        else:
+            raise RuntimeError('did not recognize big train target shape; '
+                               'are you sure you meant to use this callback'
+                               'and not a normal image callback?')
+        num = train_targets[0].shape[0]
+        img = np.reshape(img, (num,64,64,3))
+        arm = np.squeeze(train_targets[0][:,:,imglen:imglen+6])
+        gripper = train_targets[0][:,:,imglen+6]
+        option = np.squeeze(train_targets[0][:,:,imglen+7:])
+        #print (train_targets[0].shape,imglen,imglen+6)
+        #print("img",img.shape)
+        #print("arm",arm.shape,arm[0])
+        #print("gripper",gripper.shape,gripper[0])
+        #print("option",option.shape,np.argmax(option[0,0]))
+        return [img,arm,gripper,option]
+
+    def _parsePredictorLoss(self, losses):
+        (_, img_loss, arm_loss, gripper_loss, label_loss, next_opt_loss,
+            val_loss) = losses
+        #print("img loss = ", img_loss)
+        #print("arm loss = ", arm_loss)
+        #print("gripper loss = ", gripper_loss)
+        #print("label loss = ", label_loss)
+        #print("next_opt loss = ", next_opt_loss)
+        return [img_loss, arm_loss, gripper_loss, label_loss]
+
+    def validate(self, *args, **kwargs):
+        '''
+        Run validation on a given trial.
+
+        Note: this takes in whatever data your model needs to extract
+        information for the next task. It's designed to work for any variant of
+        the "predictor" model architecture, regardless of the specifics of the
+        dataset -- or at least so we hope.
+
+        > For a special case of the multi-predictor model:
+          You MUST override the _targetsFromTrainTargets function above.
+
+        Parameters:
+        ----------
+        None - just args and kwargs passed to _getData.
+
+        Returns:
+        --------
+        error
+        train_loss
+        [loss per train target]
+        '''
+        features, targets = self._getData(*args, **kwargs)
+        length = features[0].shape[0]
+        prediction_targets = self._targetsFromTrainTargets(targets)
+        for i in range(len(prediction_targets)):
+                prediction_targets[i] = np.expand_dims(
+                        prediction_targets[i],
+                        axis=1)
+        prediction_targets += [np.zeros((length,self.num_options))]
+        prediction_targets += [np.zeros((length,))]
+        #for x in self.predictor.outputs:
+        #    print (x)
+        #for y in prediction_targets:
+        #    print (y.shape)
+        sums = None
+        train_sum = 0
+        for i in range(length):
+            f = [np.array([f[i]]) for f in features]
+            t = [np.array([t[i]]) for t in targets]
+            pt = [np.array([pt[i]]) for pt in prediction_targets]
+            loss, train_loss, next_loss = self.train_predictor.evaluate(f, t,
+                    verbose=0)
+            #print ("actual arm = ", kwargs['goal_arm'][0])
+            #print ("actual gripper = ", kwargs['goal_gripper'][0])
+            #print ("actual prev opt = ", kwargs['label'][0])
+            predictor_losses = self.predictor.evaluate(f, pt, verbose=0)
+            losses = self._parsePredictorLoss(predictor_losses)
+            train_sum += train_loss
+            if sums is None:
+                sums = np.array(losses)
+            else:
+                sums += np.array(losses)
+        return sums, train_sum, length
