@@ -1,0 +1,8 @@
+<launch>
+  <arg name="red_xyz" default="0 0 0"/>
+  <arg name="blue_xyz" default="0 0 0"/>
+  <arg name="yellow_xyz" default="0 0 0"/>
+  <arg name="green_xyz" default="0 0 0"/>
+  <arg name="obstacle_xyz" default="0 0 0"/>
+
+<launch>
