@@ -97,10 +97,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Size of the hidden representation when using dense hidden
         # repesentations
-        self.img_col_dim = 128
+        self.img_col_dim = int(128 / 2)
 
         self.PredictorCb = PredictorShowImage
-        self.hidden_dim = 64/(2**self.steps_down)
+        self.hidden_dim = int(64/(2**self.steps_down))
         self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.tform_filters)
 
         self.predictor = None
@@ -195,7 +195,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         dense=self.dense_representation,
                         dense_rep_size=self.img_col_dim,
                         skips=self.skip_connections,
-                        robot_skip=robot_skip,
+                        robot_skip=None,
                         resnet_blocks=self.residual,
                         batchnorm=True,)
 
@@ -903,10 +903,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         axis=1)
         prediction_targets += [np.zeros((length,self.num_options))]
         prediction_targets += [np.zeros((length,))]
-        #for x in self.predictor.outputs:
-        #    print (x)
-        #for y in prediction_targets:
-        #    print (y.shape)
         sums = None
         train_sum = 0
         for i in range(length):

@@ -266,11 +266,11 @@ def GetImageDecoder(dim, img_shape,
         relu = lambda: Activation('relu')
 
     if not dense:
-        z = Input((width*height*tform_filters,),name="input_image")
+        z = Input((int(width*height*tform_filters),),name="input_image")
         x = Reshape((height,width,tform_filters))(z)
     else:
-        z = Input((dense_rep_size,),name="input_latent")
-        x = Dense(height*width*filters,name="dense_input_size")(z)
+        z = Input((int(dense_rep_size),),name="input_latent")
+        x = Dense(int(height*width*filters),name="dense_input_size")(z)
         if batchnorm:
             x = BatchNormalization()(x)
         x = relu()(x)
@@ -660,19 +660,16 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
     if len(extra) > 0:
         x = Concatenate()([x] + extra)
     for j in range(num_blocks):
-        if not resnet_blocks:
-            x = Dense(dim,name="dense_%d_%d"%(idx,j))(x)
-            if batchnorm:
-                x = BatchNormalization(name="normalize_%d_%d"%(idx,j))(x)
-            if relu:
-                if leaky:
-                    x = LeakyReLU(0.2,name="lrelu_%d_%d"%(idx,j))(x)
-                else:
-                    x = Activation("relu",name="relu_%d_%d"%(idx,j))(x)
-            if dropout:
-                x = Dropout(dropout_rate)(x)
-        else:
-            raise RuntimeError('resnet not supported for transform')
+        x = Dense(dim,name="dense_%d_%d"%(idx,j))(x)
+        if batchnorm:
+            x = BatchNormalization(name="normalize_%d_%d"%(idx,j))(x)
+        if relu:
+            if leaky:
+                x = LeakyReLU(0.2,name="lrelu_%d_%d"%(idx,j))(x)
+            else:
+                x = Activation("relu",name="relu_%d_%d"%(idx,j))(x)
+        if dropout:
+            x = Dropout(dropout_rate)(x)
 
     # =========================================================================
     # In this block we divide into two separate paths:
