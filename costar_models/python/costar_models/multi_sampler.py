@@ -39,7 +39,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         self.num_frames = 1
         self.img_num_filters = 64
-        self.tform_filters = 64
+        self.tform_filters = 32
         self.num_hypotheses = 4
         self.validation_split = 0.05
         self.num_options = 48
@@ -49,7 +49,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Layer and model configuration
         self.extra_layers = 1
 
-        self.use_spatial_softmax=False
+        self.use_spatial_softmax=True
         if self.use_spatial_softmax:
             self.steps_down = 0
             self.steps_down_no_skip = 0
@@ -90,7 +90,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Used for classifiers: value and next option
         self.combined_dense_size = 256
-        self.value_dense_size = 128
+        self.value_dense_size = 32
 
         # Size of the "pose" column containing arm, gripper info
         self.pose_col_dim = 64
@@ -221,18 +221,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         next_option_in = Input((self.num_options,),name="next_option_in")
         ins += [next_option_in]
 
-        if self.compatibility > 0:
-            value_out, next_option_out = GetNextOptionAndValue(enc,
-                                                               self.num_options,
-                                                               self.combined_dense_size,
-                                                               dropout_rate=self.dropout_rate,
-                                                               option_in=pv_option_in)
-        else:
-            value_out, next_option_out = GetNextOptionAndValue(enc,
-                                                               self.num_options,
-                                                               self.value_dense_size,
-                                                               dropout_rate=self.dropout_rate,
-                                                               option_in=pv_option_in)
+        value_out, next_option_out = GetNextOptionAndValue(enc,
+                                                           self.num_options,
+                                                           self.value_dense_size,
+                                                           dropout_rate=0.5,
+                                                           option_in=pv_option_in)
 
         # =====================================================================
         # Create many different image decoders
@@ -263,7 +256,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
             # This maps from our latent world state back into observable images.
             if self.skip_connections:
-                decoder_inputs = [x] + skips + [robot_skip]
+                decoder_inputs = [x] + skips #+ [robot_skip]
             else:
                 decoder_inputs = [x]
 
