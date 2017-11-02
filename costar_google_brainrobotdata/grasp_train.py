@@ -448,4 +448,4 @@ if __name__ == '__main__':
     FLAGS._parse_flags()
     main()
     print('grasp_train.py run complete, original command: ', sys.argv)
-    exit()
+    sys.exit()
