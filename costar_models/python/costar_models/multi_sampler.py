@@ -38,7 +38,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         super(RobotMultiPredictionSampler, self).__init__(taskdef, *args, **kwargs)
 
         self.num_frames = 1
-        self.img_num_filters = 64
+        self.img_num_filters = 32
         self.tform_filters = 64
         self.num_hypotheses = 4
         self.validation_split = 0.05
@@ -263,7 +263,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
             # This maps from our latent world state back into observable images.
             if self.skip_connections:
-                decoder_inputs = [x] + skips + [robot_skip]
+                decoder_inputs = [x] + skips #+ [robot_skip]
             else:
                 decoder_inputs = [x]
 
