@@ -1,4 +1,5 @@
 import os
+import sys
 import datetime
 import numpy as np
 import tensorflow as tf
@@ -44,7 +45,7 @@ flags.DEFINE_string('grasp_dataset_eval', '097',
 flags.DEFINE_string('pipeline_stage', 'train_eval',
                     """Choose to "train", "eval", or "train_eval" with the grasp_dataset
                        data for training and grasp_dataset_eval for evaluation.""")
-flags.DEFINE_float('learning_rate_scheduler_power_decay_rate', 0.9,
+flags.DEFINE_float('learning_rate_scheduler_power_decay_rate', 2,
                    """Determines how fast the learning rate drops at each epoch.
                       lr = learning_rate * ((1 - float(epoch)/epochs) ** learning_power_decay_rate)""")
 flags.DEFINE_float('grasp_learning_rate', 0.01,
@@ -174,6 +175,12 @@ class GraspTrain(object):
 
         # ###############learning rate scheduler####################
         # source: https://github.com/aurora95/Keras-FCN/blob/master/train.py
+        # some quick lines to see what a power_decay schedule would do at each epoch:
+        # import numpy as np
+        # epochs = 100
+        # learning_rate = 0.1
+        # learning_power_decay_rate = 2
+        # print([learning_rate * ((1 - float(epoch)/epochs) ** learning_power_decay_rate) for epoch in np.arange(epochs)])
         def lr_scheduler(epoch, learning_rate=learning_rate,
                          mode=learning_rate_decay_algorithm,
                          epochs=epochs,
@@ -440,4 +447,5 @@ def main():
 if __name__ == '__main__':
     FLAGS._parse_flags()
     main()
-    print('run complete')
+    print('grasp_train.py run complete, original command: ', sys.argv)
+    exit()
