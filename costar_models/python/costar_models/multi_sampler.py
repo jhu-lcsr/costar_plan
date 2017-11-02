@@ -263,7 +263,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
             # This maps from our latent world state back into observable images.
             if self.skip_connections:
-                decoder_inputs = [x] + skips + [robot_skip]
+                decoder_inputs = [x] + skips #+ [robot_skip]
             else:
                 decoder_inputs = [x]
 
