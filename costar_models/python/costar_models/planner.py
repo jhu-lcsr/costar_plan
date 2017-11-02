@@ -717,7 +717,7 @@ def GetNextOptionAndValue(x, num_options, dense_size, dropout_rate=0.5, option_i
         option_x = Flatten()(option_x)
         x = Concatenate()([x, option_x])
 
-    x1 = DenseHelper(x, dense_size, dropout_rate, 1)
+    x1 = DenseHelper(x, int(2*dense_size), dropout_rate, 1)
     x2 = DenseHelper(x, dense_size, dropout_rate, 1)
 
     next_option_out = Dense(num_options,
