@@ -36,7 +36,8 @@ module load tensorflow/cuda-8.0/r1.3
 # sequence V: as per T/U, but remove prev action and remove next label
 #             prediction
 # sequence W: adjust weights and retrain
-for lr in 0.001 #0.01
+# sequence X: back to using SSM
+for lr in 0.001 0.01
 do
   # just use the adam optimizer
   for opt in adam
@@ -68,7 +69,7 @@ do
 done
 
 # ======================================
-sbatch ctp_stack.sh
-sbatch ctp_stack2.sh
+#sbatch ctp_stack.sh
+#sbatch ctp_stack2.sh
 #sbatch ctp_goal.sh
 
