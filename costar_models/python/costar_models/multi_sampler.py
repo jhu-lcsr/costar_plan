@@ -39,7 +39,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         self.num_frames = 1
         self.img_num_filters = 64
-        self.tform_filters = 64
+        self.tform_filters = 32
         self.num_hypotheses = 4
         self.validation_split = 0.05
         self.num_options = 48
@@ -49,7 +49,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Layer and model configuration
         self.extra_layers = 1
 
-        self.use_spatial_softmax=False
+        self.use_spatial_softmax=True
         if self.use_spatial_softmax:
             self.steps_down = 0
             self.steps_down_no_skip = 0
@@ -90,7 +90,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Used for classifiers: value and next option
         self.combined_dense_size = 256
-        self.value_dense_size = 128
+        self.value_dense_size = 32
 
         # Size of the "pose" column containing arm, gripper info
         self.pose_col_dim = 64
@@ -114,9 +114,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # ===================================================================
 
         # This controls how we use the previous option.
-        self.use_prev_option = False
+        self.use_prev_option = True
         # Give transforms a prior on the next action
-        self.use_next_option = True
+        self.use_next_option = False
         # Train actor model
         self.train_actor = True
         # Use the same transform for everything
@@ -195,7 +195,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         dense=self.dense_representation,
                         dense_rep_size=self.img_col_dim,
                         skips=self.skip_connections,
-                        robot_skip=robot_skip,
+                        robot_skip=None,
                         resnet_blocks=self.residual,
                         batchnorm=True,)
 
@@ -221,18 +221,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         next_option_in = Input((self.num_options,),name="next_option_in")
         ins += [next_option_in]
 
-        if self.compatibility > 0:
-            value_out, next_option_out = GetNextOptionAndValue(enc,
-                                                               self.num_options,
-                                                               self.combined_dense_size,
-                                                               dropout_rate=self.dropout_rate,
-                                                               option_in=pv_option_in)
-        else:
-            value_out, next_option_out = GetNextOptionAndValue(enc,
-                                                               self.num_options,
-                                                               self.value_dense_size,
-                                                               dropout_rate=self.dropout_rate,
-                                                               option_in=pv_option_in)
+        value_out, next_option_out = GetNextOptionAndValue(enc,
+                                                           self.num_options,
+                                                           self.value_dense_size,
+                                                           dropout_rate=0.5,
+                                                           option_in=pv_option_in)
 
         # =====================================================================
         # Create many different image decoders
@@ -263,7 +256,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
             # This maps from our latent world state back into observable images.
             if self.skip_connections:
-                decoder_inputs = [x] + skips + [robot_skip]
+                decoder_inputs = [x] + skips #+ [robot_skip]
             else:
                 decoder_inputs = [x]
 
@@ -316,11 +309,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
                         #weights=[0.7,1.0,0.1,0.1],
-                        weights=[0.5, 0.25, 0.05, 0.2],
+                        weights=[0.3, 0.4, 0.05, 0.3],
                         loss=["mae","mae","mae","categorical_crossentropy"],
                         stats=stats,
-                        avg_weight=0.05),]
-        if self.success_only:
+                        avg_weight=0.025),]
+        if self.success_only and False:
             outs = [train_out, next_option_out]
             losses += ["binary_crossentropy"]
             loss_weights = [0.60, 0.40]
@@ -476,14 +469,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
             #return features[:self.num_features] + [z], [tt, o1, v]
             #return features[:self.num_features] + [z], [tt, o1]#, v]
-            if self.success_only:
+            if self.success_only and False:
                 return features[:self.num_features] + [o1, z], [tt, o1]
             else:
                 return features[:self.num_features] + [o1, z], [tt, o1, v]
         else:
             #return features[:self.num_features], [tt, o1, v]
             #return features[:self.num_features], [tt, o1]#, v]
-            if self.success_only:
+            if self.success_only and False:
                 return features[:self.num_features] + [o1], [tt, o1]
             else:
                 return features[:self.num_features] + [o1], [tt, o1, v]
@@ -903,10 +896,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         axis=1)
         prediction_targets += [np.zeros((length,self.num_options))]
         prediction_targets += [np.zeros((length,))]
-        #for x in self.predictor.outputs:
-        #    print (x)
-        #for y in prediction_targets:
-        #    print (y.shape)
         sums = None
         train_sum = 0
         for i in range(length):
