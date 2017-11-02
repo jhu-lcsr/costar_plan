@@ -263,6 +263,7 @@ class GraspTrain(object):
             final_weights_name = weights_name + '-final.h5'
             model.save_weights(final_weights_name)
             return final_weights_name
+        return final_weights_name
 
     def eval(self, dataset=FLAGS.grasp_dataset_eval,
              batch_size=FLAGS.eval_batch_size,
@@ -294,6 +295,10 @@ class GraspTrain(object):
             grasp_sequence_max_time_step: number of motion steps to train in the grasp sequence,
                 this affects the memory consumption of the system when training, but if it fits into memory
                 you almost certainly want the value to be None, which includes every image.
+
+        # Returns
+
+           weights_name_str or None if a new weights file was not saved.
         """
         data = grasp_dataset.GraspDataset(dataset=dataset)
         # list of dictionaries the length of batch_size
@@ -363,6 +368,9 @@ class GraspTrain(object):
         except KeyboardInterrupt as e:
             print('Evaluation canceled at user request, '
                   'any results are incomplete for this run.')
+            return None
+
+        return weights_name_str
 
 
 def main():
@@ -426,8 +434,10 @@ def main():
             gt.eval(make_model_fn=make_model_fn,
                     load_weights=load_weights,
                     model_name=FLAGS.grasp_model)
+        return None
 
 
 if __name__ == '__main__':
     FLAGS._parse_flags()
     main()
+    print('run complete')
