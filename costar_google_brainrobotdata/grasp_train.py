@@ -45,10 +45,13 @@ flags.DEFINE_string('grasp_dataset_eval', '097',
 flags.DEFINE_string('pipeline_stage', 'train_eval',
                     """Choose to "train", "eval", or "train_eval" with the grasp_dataset
                        data for training and grasp_dataset_eval for evaluation.""")
-flags.DEFINE_float('learning_rate_scheduler_power_decay_rate', 2,
+flags.DEFINE_float('learning_rate_scheduler_power_decay_rate', 1.5,
                    """Determines how fast the learning rate drops at each epoch.
-                      lr = learning_rate * ((1 - float(epoch)/epochs) ** learning_power_decay_rate)""")
-flags.DEFINE_float('grasp_learning_rate', 0.01,
+                      lr = learning_rate * ((1 - float(epoch)/epochs) ** learning_power_decay_rate)
+                      Training from scratch within an initial learning rate of 0.1 might find a
+                         power decay value of 2 to be useful.
+                      Fine tuning with an initial learning rate of 0.001 may consder 1.5 power decay.""")
+flags.DEFINE_float('grasp_learning_rate', 0.001,
                    """Determines the initial learning rate""")
 flags.DEFINE_integer('eval_batch_size', 1, 'batch size per compute device')
 flags.DEFINE_integer('densenet_growth_rate', 12,
