@@ -690,7 +690,6 @@ def GetHuskyDecoder(dim, img_shape, pose_size,
         if batchnorm:
             x = BatchNormalization()(x)
         x = relu()(x)
-        #x = UpSampling2D(size=(2,2))(x)
         if dropout:
             x = Dropout(dropout_rate)(x)
 
