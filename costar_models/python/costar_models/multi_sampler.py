@@ -39,7 +39,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         self.num_frames = 1
         self.img_num_filters = 64
-        self.tform_filters = 32
+        self.tform_filters = 64
         self.num_hypotheses = 4
         self.validation_split = 0.05
         self.num_options = 48
@@ -50,7 +50,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.extra_layers = 1
 
         self.use_spatial_softmax=True
-        if self.use_spatial_softmax:
+        if self.use_spatial_softmax and self.dense_representation:
             self.steps_down = 0
             self.steps_down_no_skip = 0
             self.steps_up = 4
@@ -70,12 +70,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_generator_layers = 1
         self.num_arm_vars = 6
 
-        # compatibility mode -- set > 0 if loading dataset ~ U
-        self.compatibility = 0
-        if self.compatibility == 1:
-            self.decoder_kernel_size = [5,5]
-        else:
-            self.decoder_kernel_size = [3,3]
+        self.decoder_kernel_size = [5,5]
 
         # Number of nonlinear transformations to be applied to the hidden state
         # in order to compute a possible next state.
@@ -318,9 +313,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             losses += ["binary_crossentropy"]
             loss_weights = [0.60, 0.40]
         else:
-            outs = [train_out, next_option_out, value_out]
-            loss_weights = [0.90, 0.05, 0.05]
-            losses += ["categorical_crossentropy", "binary_crossentropy"]
+            outs = [train_out,]# arm_cmd_out, gripper_cmd_out], #next_option_out, value_out]
+            loss_weights = [1.] #0.90, 0.05, 0.05]
+            #losses += ["categorical_crossentropy", "binary_crossentropy"]
 
         train_predictor = Model(ins, outs)
 
@@ -467,19 +462,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-            #return features[:self.num_features] + [z], [tt, o1, v]
-            #return features[:self.num_features] + [z], [tt, o1]#, v]
-            if self.success_only and False:
-                return features[:self.num_features] + [o1, z], [tt, o1]
-            else:
-                return features[:self.num_features] + [o1, z], [tt, o1, v]
+            return features[:self.num_features] + [o1, z], [tt]#, o1, v]
         else:
-            #return features[:self.num_features], [tt, o1, v]
-            #return features[:self.num_features], [tt, o1]#, v]
-            if self.success_only and False:
-                return features[:self.num_features] + [o1], [tt, o1]
-            else:
-                return features[:self.num_features] + [o1], [tt, o1, v]
+            return features[:self.num_features] + [o1], [tt, o1, v]
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''
