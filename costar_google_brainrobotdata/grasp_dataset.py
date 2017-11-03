@@ -14,6 +14,7 @@ from six import iteritems
 import numpy as np
 import tensorflow as tf
 import re
+from tqdm import tqdm # progress bars https://github.com/tqdm/tqdm
 
 from tensorflow.python.platform import flags
 from tensorflow.python.platform import gfile
@@ -214,8 +215,8 @@ class GraspDataset(object):
         if os.path.isfile(listing_hash):
             files_and_hashes = np.genfromtxt(listing_hash, dtype='str', delimiter=' ')
             files = [get_file(fpath.split('/')[-1], url_prefix + fpath, cache_subdir=data_dir, file_hash=hash_str)
-                     for fpath, hash_str in files_and_hashes
-                     if '_' + dataset in fpath]
+                     for fpath, hash_str in tqdm(files_and_hashes)
+                     if '_' + str(dataset) in fpath]
         else:
             # If a hashed version of the listing is not available,
             # simply download the dataset normally.
