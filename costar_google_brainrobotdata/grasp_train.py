@@ -35,7 +35,9 @@ flags.DEFINE_string('grasp_datasets_train', '062_b,063,072_a,082_b,102',
                     See https://sites.google.com/site/brainrobotdata/home
                     for a full listing.""")
 flags.DEFINE_string('grasp_datasets_batch_algorithm','constant',
-					"""Use default batch if constant, otherwise proportional""")
+					"""Use default batch if constant,
+                    'constant' training on multiple datasets reads  `batch_size` elements from each dataset at each training step when this parameter. 
+                    'proportional' each dataset's batch size will be individually set to int(batch_size*single_batch/max_batch_size) so smaller datasets are run more slowly than larger datasets.""")
 flags.DEFINE_string('grasp_dataset_eval', '097',
                     """Filter the subset of 1TB Grasp datasets to evaluate.
                     None by default. 'all' will run all datasets in data_dir.
@@ -124,8 +126,7 @@ class GraspTrain(object):
                 you almost certainly want the value to be None, which includes every image.
         """
         if (grasp_datasets_batch_algorithm != 'constant' and grasp_datasets_batch_algorithm != 'proportional'):
-            raise TypeError('Invalid choice of batch, which should be either constant or proportional')
-	    raise ValueError('grasp_datasets_batch_algorithm string value must be either constant or proportional.')
+	        raise ValueError('grasp_datasets_batch_algorithm string value must be either constant or proportional.')
         datasets = dataset.split(',')
         max_num_samples = 0
         grasp_datasets = []
@@ -148,7 +149,7 @@ class GraspTrain(object):
             dataset_batch_sizes.append(single_dataset.get_features()[1])
 
         max_batch_size = max(grasp_dataset_list)
-        for single_dataset, single_batch in zip(datasets_list, dataset_batch_sizes):
+        for single_dataset, single_batch in zip(grasp_dataset_list, dataset_batch_sizes):
             proportional_batch_size = batch_size
             if(grasp_datasets_batch_algorithm == 'proportional'):
                 proportional_batch_size = int(batch_size*single_batch/max_batch_size) 
