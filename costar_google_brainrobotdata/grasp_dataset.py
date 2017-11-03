@@ -22,11 +22,12 @@ from tensorflow.contrib.keras.python.keras.utils import get_file
 from tensorflow.contrib.keras.python.keras.utils.data_utils import _hash_file
 from tensorflow.contrib.keras.python.keras.utils.generic_utils import Progbar
 
-try:
-    import moviepy.editor as mpy
-except ImportError:
-    print('moviepy not available, try `pip install moviepy`. '
-          'Skipping dataset gif extraction components.')
+# TODO(ahundt) importing moviepy prevented python from exiting, uncomment lines when fixed.
+# try:
+#     import moviepy.editor as mpy
+# except ImportError:
+#     print('moviepy not available, try `pip install moviepy`. '
+#           'Skipping dataset gif extraction components.')
 
 import grasp_geometry
 import depth_image_encoding
@@ -1122,6 +1123,8 @@ class GraspDataset(object):
     def npy_to_gif(self, npy, filename, fps=2):
         """Convert a numpy array into a gif file at the location specified by filename.
         """
+        # TODO(ahundt) currently importing moviepy prevents python from exiting. Once this is resolved remove the import below.
+        import moviepy.editor as mpy
         clip = mpy.ImageSequenceClip(list(npy), fps)
         clip.write_gif(filename)
 
