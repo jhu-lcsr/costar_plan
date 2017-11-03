@@ -144,7 +144,7 @@ class GraspTrain(object):
         datasets_list = []
         for single_dataset in datasets:
             datasets_list.append(grasp_dataset.GraspDataset(dataset=single_dataset))
-            batch_each_dataset.append(data.get_features()[1])
+            batch_each_dataset.append(single_data.get_features()[1])
 
         max_batch_size = max(batch_each_dataset)
         for single_dataset, single_batch in zip(datasets_list, batch_each_dataset):
