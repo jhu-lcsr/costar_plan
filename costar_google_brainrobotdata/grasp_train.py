@@ -35,8 +35,8 @@ flags.DEFINE_string('grasp_datasets_train', '062_b,063,072_a,082_b,102',
                     See https://sites.google.com/site/brainrobotdata/home
                     for a full listing.""")
 flags.DEFINE_string('grasp_datasets_batch_algorithm','constant',
-					"""Use default batch if constant,
-                    'constant' training on multiple datasets reads  `batch_size` elements from each dataset at each training step when this parameter. 
+                    """Use default batch if constant,
+                    'constant' training on multiple datasets reads `batch_size` elements from each dataset at each training step when this parameter. 
                     'proportional' each dataset's batch size will be individually set to int(batch_size*single_batch/max_batch_size) so smaller datasets are run more slowly than larger datasets.""")
 flags.DEFINE_string('grasp_dataset_eval', '097',
                     """Filter the subset of 1TB Grasp datasets to evaluate.
