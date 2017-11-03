@@ -145,16 +145,16 @@ class GraspTrain(object):
         dataset_batch_sizes = []
         grasp_dataset_list = []
         for single_dataset in datasets:
-            grasp_dataset_list.append(grasp_dataset.GraspDataset(dataset=single_dataset))
-            dataset_batch_sizes.append(single_dataset.get_features()[1])
+            data = grasp_dataset.GraspDataset(dataset=single_dataset)
+            grasp_dataset_list.append(data)
+            dataset_batch_sizes.append(data.get_features()[1])
 
         max_batch_size = max(grasp_dataset_list)
         for single_dataset, single_batch in zip(grasp_dataset_list, dataset_batch_sizes):
             proportional_batch_size = batch_size
             if(grasp_datasets_batch_algorithm == 'proportional'):
                 proportional_batch_size = int(batch_size*single_batch/max_batch_size) 
-            data = grasp_dataset.GraspDataset(dataset=single_dataset)
-            grasp_datasets.append(data)
+            data = single_dataset
             # list of dictionaries the length of batch_size
             (pregrasp_op, grasp_step_op,
              simplified_grasp_command_op,
