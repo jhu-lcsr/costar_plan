@@ -138,13 +138,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Create the encoder and decoder networks -- these are sub-networks
         # that we may find useful in different situations.
         ins, enc, skips, robot_skip = self._makeEncoder(img_shape, arm_size, gripper_size)
-        print (ins, enc, skips, robot_skip)
         decoder = self._makeDecoder(
                 img_shape,
                 arm_size,
                 gripper_size,
                 robot_skip=robot_skip)
-
 
         if self.use_prev_option:
             img_in, arm_in, gripper_in, option_in = ins
@@ -708,6 +706,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         outputs -- because in this case we may not want to explicitly break up
         the outputs ourselves every time as we do for the multiple hypotheses.
 
+        The job of the encoder is to reduce the dimensionality of a single
+        image. Integrating this information from multiple images is a different
+        matter entirely.
+
         Parameters:
         -----------
         img_shape: shape of the input images
@@ -748,7 +750,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 use_spatial_softmax=self.use_spatial_softmax,
                 output_filters=self.tform_filters,
                 )
-        self.encoder = Model(ins, [enc]+skips, name="encoder")
+        self.encoder = Model(ins, [enc]+skips+[robot_skip], name="encoder")
         self.encoder.compile(loss="mae",optimizer=self.getOptimizer())
         new_ins = []
         for idx, i in enumerate(ins):
