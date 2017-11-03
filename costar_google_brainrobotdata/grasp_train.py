@@ -267,7 +267,7 @@ class GraspTrain(object):
             model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=callbacks)
         except Exception as e:
             # always try to save weights
-            final_weights_name = weights_name + '-autosaved.h5'
+            final_weights_name = weights_name + '-autosaved-on-exception.h5'
             model.save_weights(final_weights_name)
             raise e
         return final_weights_name
