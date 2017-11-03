@@ -149,7 +149,8 @@ class GraspTrain(object):
             grasp_dataset_list.append(data)
             dataset_batch_sizes.append(data.get_features()[1])
 
-        max_batch_size = max(grasp_dataset_list)
+        max_batch_size = max(dataset_batch_sizes)
+        #Not sure why any thing assigned to max_batch_size, it can pass
         for single_dataset, single_batch in zip(grasp_dataset_list, dataset_batch_sizes):
             proportional_batch_size = batch_size
             if(grasp_datasets_batch_algorithm == 'proportional'):
