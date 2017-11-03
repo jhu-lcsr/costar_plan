@@ -51,6 +51,11 @@ def CombineArmAndGripperAndOption(arm_in, gripper_in, option_in, dim=64):
     robot = Dense(dim, activation="relu")(robot)
     return robot
 
+def GetArmGripperEncoder(arm_size, gripper_size, dim=64):
+    arm_in = Input((arm_size,))
+    gripper_in = Input((gripper_size,))
+    
+
 def TileOnto(x,z,zlen,xsize):
     z = Reshape([1,1,zlen])(z)
     tile_shape = (int(1), int(xsize[0]), int(xsize[1]), 1)

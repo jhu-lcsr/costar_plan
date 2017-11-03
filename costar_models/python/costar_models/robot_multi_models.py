@@ -183,7 +183,9 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
         post_tiling_layers_no_skip=0,
         padding="same",
         stride1_post_tiling_layers=0,
-        kernel_size=[3,3], output_filters=None,
+        kernel_size=[3,3],
+        kernel_size_stride1=None,
+        output_filters=None,
         time_distributed=0,
         use_spatial_softmax=False,
         config="arm"):
@@ -217,12 +219,15 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
                        setup... sort of deprecated right now.
     config: arm or mobile (arm supported for now)
 
-    1'''
+    '''
 
+    use_arm_gripper = False
     if not config in ["arm", "mobile"]:
         raise RuntimeError("Encoder config type must be in [arm, mobile]")
     elif config == "arm":
         arm_size, gripper_size = state_sizes
+        if arm_size is not None:
+            use_arm_gripper = True
     elif config == "mobile":
         if isinstance(state_sizes,list):
             pose_size = state_sizes[0]
@@ -233,9 +238,10 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
 
     if pose_col_dim is None:
         pose_col_dim = dim
-
     if output_filters is None:
         output_filters = filters
+    if kernel_size_stride1 is None:
+        kernel_size_stride1 = kernel_size
 
     # ===============================================
     # Parse all of our many options to set up the appropriate inputs for this
@@ -243,8 +249,9 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
 
     if time_distributed <= 0:
         ApplyTD = lambda x: x
-        arm_in = Input((arm_size,),name="arm_position_in")
-        gripper_in = Input((gripper_size,),name="gripper_state_in")
+        if use_arm_gripper:
+            arm_in = Input((arm_size,),name="arm_position_in")
+            gripper_in = Input((gripper_size,),name="gripper_state_in")
         if option is not None:
             option_in = Input((1,),name="prev_option_in")
             option_x = OneHot(size=option)(option_in)
@@ -260,8 +267,9 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
         channels = img_shape[2]
     else:
         ApplyTD = lambda x: TimeDistributed(x)
-        arm_in = Input((time_distributed, arm_size,))
-        gripper_in = Input((time_distributed, gripper_size,))
+        if use_arm_gripper:
+            arm_in = Input((time_distributed, arm_size,))
+            gripper_in = Input((time_distributed, gripper_size,))
         if option is not None:
             option_in = Input((time_distributed,1,))
             option_x = TimeDistributed(
@@ -321,7 +329,7 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
 
     # ===============================================
     # ADD TILING
-    if tile:
+    if use_arm_gripper and tile:
         tile_width = width 
         tile_height = height 
         if option is not None:
@@ -352,23 +360,8 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
         if i + 1 <=  (post_tiling_layers - post_tiling_layers_no_skip):
             skips.append(x)
 
-    # =================================================
-    # Perform additional operations
-    for i in range(stride1_post_tiling_layers):
-        if i == post_tiling_layers - 1:
-            nfilters = output_filters
-        else:
-            nfilters = filters
-        x = ApplyTD(Conv2D(nfilters,
-                   kernel_size=kernel_size, 
-                   strides=(1, 1),
-                   padding='same'))(x)
-        if batchnorm:
-            x = ApplyTD(BatchNormalization())(x)
-        x = relu()(x)
-        if dropout:
-            x = Dropout(dropout_rate)(x)
-
+    # ==================================================
+    # Add previous option slightly earlier
     if option is not None:
         nfilters = output_filters
         option_x = OneHot(size=option)(option_in)
@@ -378,9 +371,26 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
                  width/(2**post_tiling_layers)))
 
         x = ApplyTD(Conv2D(nfilters,
-                   kernel_size=kernel_size, 
+                   kernel_size=kernel_size_stride1, 
                    strides=(1, 1),
-                   padding='same'))(x)
+                   padding=padding))(x)
+        if batchnorm:
+            x = ApplyTD(BatchNormalization())(x)
+        x = relu()(x)
+        if dropout:
+            x = Dropout(dropout_rate)(x)
+
+    # =================================================
+    # Perform additional operations
+    for i in range(stride1_post_tiling_layers):
+        if i == post_tiling_layers - 1:
+            nfilters = output_filters
+        else:
+            nfilters = filters
+        x = ApplyTD(Conv2D(nfilters,
+                   kernel_size=kernel_size_stride1, 
+                   strides=(1, 1),
+                   padding=padding))(x)
         if batchnorm:
             x = ApplyTD(BatchNormalization())(x)
         x = relu()(x)
@@ -396,24 +406,15 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
     #   http://arxiv.org/abs/1509.06113.
     if use_spatial_softmax:
         def _ssm(x):
-            #return tf.contrib.
             return spatial_softmax(x)
         x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
-        #x = Dense(dim,name="encode_to_hidden")(x)
-        #if batchnorm:
-        #    x = BatchNormalization()(x)
-        #x = relu()(x)
-        #pool_size = (height/(2**post_tiling_layers),
-        #         width/(2**post_tiling_layers))
-        #x2 = MaxPooling2D(pool_size=pool_size)(x)
-        #x2 = Flatten()(x2)
-        #x = Concatenate()([x1,x2])
     elif flatten or dense or discriminator:
         x = ApplyTD(Flatten())(x)
         if dense:
             dim = int(dim)
             x = ApplyTD(Dense(dim))(x)
             x = ApplyTD(relu())(x)
+
     # Single output -- sigmoid activation function
     if discriminator:
         x = Dense(1,activation="sigmoid")(x)
@@ -616,7 +617,7 @@ def GetDecoder(dim, img_shape, arm_size, gripper_size,
 
     for i in range(stride1_layers):
         x = Conv2D(filters, # + num_labels
-                   kernel_size=kernel_size, 
+                   kernel_size=kernel_size_stride1, 
                    strides=(1, 1),
                    padding="same")(x)
         if batchnorm:
