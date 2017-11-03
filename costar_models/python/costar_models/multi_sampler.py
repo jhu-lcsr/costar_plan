@@ -98,10 +98,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.hidden_dim = int(64/(2**self.steps_down))
         self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.tform_filters)
 
-        self.predictor = None
+        # These are the list of models that we want to learn
         self.train_predictor = None
+        self.predictor = None
         self.actor = None
+        self.image_encoder = None
         self.image_decoder = None
+        self.arm_encoder = None
+        self.arm_decoder = None
 
         # ===================================================================
         # These are hard coded settings -- tweaking them may break a bunch of
@@ -486,11 +490,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             save_best_only=True # does not work without validation wts
         )
         logCb = LogCallback(self.name,self.model_directory)
+        cbf, cbt = self._getData(**data)
         imageCb = self.PredictorCb(
             self.predictor,
             name=self.name,
-            features=features[:4]+[o_target],
-            targets=targets,
+            features=cbf,
+            targets=cbt,
             model_directory=self.model_directory,
             num_hypotheses=self.num_hypotheses,
             verbose=True,
@@ -784,7 +789,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         '''
         Create image-only decoder to extract keypoints from the scene.
         '''
-        ins, enc, skips, robot_skip = GetEncoder(img_shape,
+        ins, enc, skips, _ = GetEncoder(img_shape,
                 [None, None],
                 self.img_col_dim,
                 dropout_rate=self.dropout_rate,
@@ -807,8 +812,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 option=None,
                 output_filters=self.tform_filters,
                 )
-        print (ins, enc, skips, robot_skip)
-        
+        print (ins, enc, skips)
+        return ins, enc, skips
 
     def _makeDecoder(self, img_shape, arm_size, gripper_size,
             skips=None,

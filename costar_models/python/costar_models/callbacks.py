@@ -160,6 +160,64 @@ class PredictorShowImage(keras.callbacks.Callback):
             plt.close(fig)
 
 
+class ImageCb(keras.callbacks.Callback):
+    '''
+    Save an image showing what some number of frames and associated predictions
+    will look like at the end of an epoch.
+    '''
+
+    def __init__(self, predictor, features, targets,
+            model_directory=DEFAULT_MODEL_DIRECTORY,
+            num_hypotheses=4,
+            verbose=False,
+            noise_dim=64,
+            use_noise=False,
+            name="model",
+            use_prev_option=True,
+            min_idx=0, max_idx=66, step=11):
+        '''
+        Set up a data set we can use to output validation images.
+
+        Parameters:
+        -----------
+        predictor: model used to generate predictions
+        targets: training target info, in compressed form
+        num_hypotheses: how many outputs to expect
+        verbose: print out extra information
+        '''
+        self.verbose = verbose
+        self.predictor = predictor
+        self.idxs = range(min_idx, max_idx, step)
+        self.num = len(self.idxs)
+        self.features = [features[0][self.idxs]]
+        self.targets = [np.squeeze(t[self.idxs]) for t in targets]
+        self.epoch = 0
+        self.num_hypotheses = num_hypotheses
+        self.directory = os.path.join(model_directory,'debug')
+        self.noise_dim = noise_dim
+        self.use_noise = use_noise
+        self.num_random = 3
+        if not os.path.exists(self.directory):
+            os.makedirs(self.directory)
+
+    def on_epoch_end(self, epoch, logs={}):
+        img = self.predictor.predict(self.features)
+        for j in range(self.num):
+            name = os.path.join(self.directory,
+                    "image_ae_epoch%d_result%d.png"%(self.epoch,j))
+            fig = plt.figure()
+            plt.subplot(1,3,1)
+            plt.title('Input Image')
+            plt.imshow(self.features[0][j])
+            plt.subplot(1,3,3)
+            plt.title('Observed Goal')
+            plt.imshow(self.targets[0][j])
+            plt.subplot(1,3,2)
+            plt.imshow(np.squeeze(img[0][j]))
+            plt.title('Output')
+            fig.savefig(name, bbox_inches="tight")
+            plt.close(fig)
+
 class PredictorShowImageOnly(keras.callbacks.Callback):
     '''
     Save an image showing what some number of frames and associated predictions

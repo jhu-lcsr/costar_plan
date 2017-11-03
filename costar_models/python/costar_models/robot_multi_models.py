@@ -340,6 +340,7 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
                 None, None, time_distributed, pose_col_dim)
     else:
         ins = [samples]
+        robot = None
 
     # =================================================
     # Decrease the size of the image
@@ -519,6 +520,7 @@ def GetHuskyEncoder(img_shape, pose_size, dim, dropout_rate,
                 option, option_x, time_distributed, dim)
     else:
         ins = [samples]
+        robot = None
         
 
     # =================================================
