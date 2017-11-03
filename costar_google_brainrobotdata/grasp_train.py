@@ -68,6 +68,8 @@ flags.DEFINE_string('eval_results_file', 'grasp_model_eval.txt',
                     """Save a file with results of model evaluation.""")
 flags.DEFINE_string('device', '/gpu:0',
                     """Save a file with results of model evaluation.""")
+flags.DEFINE_string('datataset_batch_representation','constant',
+					"""Use default batch if constant, otherwise proportional""")
 flags.DEFINE_bool('tf_allow_memory_growth', True,
                   """False if memory usage will be allocated all in advance
                      or True if it should grow as needed. Allocating all in
@@ -85,6 +87,7 @@ def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
 class GraspTrain(object):
 
     def train(self, dataset=FLAGS.grasp_datasets_train,
+              choose_batch = FLAGS.datataset_batch_representation,
               batch_size=FLAGS.batch_size,
               epochs=FLAGS.epochs,
               load_weights=FLAGS.load_weights,
@@ -120,6 +123,8 @@ class GraspTrain(object):
                 this affects the memory consumption of the system when training, but if it fits into memory
                 you almost certainly want the value to be None, which includes every image.
         """
+        if (choose_batch != 'constant' and choose_batch != 'proportional'):
+            raise TypeError('Invalid choice of batch')
         datasets = dataset.split(',')
         max_num_samples = 0
         grasp_datasets = []
@@ -135,8 +140,17 @@ class GraspTrain(object):
         # which means we see smaller datasets more than once in
         # a single epoch. Try not to aggregate a very small dataset
         # with a very large one!
+        batch_each_dataset = []
+        datasets_list = []
         for single_dataset in datasets:
+            datasets_list.append(grasp_dataset.GraspDataset(dataset=single_dataset))
+            batch_each_dataset.append(data.get_features()[1])
 
+        max_batch_size = max(batch_each_dataset)
+        for single_dataset, single_batch in zip(datasets_list, batch_each_dataset):
+            prop_size = batch_size
+            if(choose_batch != 'constant'):
+                prop_size = int(batch_size*single_batch/max_batch_size) 
             data = grasp_dataset.GraspDataset(dataset=single_dataset)
             grasp_datasets.append(data)
             # list of dictionaries the length of batch_size
@@ -144,7 +158,7 @@ class GraspTrain(object):
              simplified_grasp_command_op,
              example_batch_size,
              grasp_success_op,
-             num_samples) = data.single_pose_training_tensors(batch_size=batch_size,
+             num_samples) = data.single_pose_training_tensors(batch_size=prop_size,
                                                               imagenet_mean_subtraction=imagenet_mean_subtraction,
                                                               random_crop=random_crop,
                                                               resize=resize,
