@@ -97,7 +97,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Size of the hidden representation when using dense hidden
         # repesentations
-        self.img_col_dim = int(128 / 2)
+        self.img_col_dim = int(2 * self.tform_filters)
 
         self.PredictorCb = PredictorShowImage
         self.hidden_dim = int(64/(2**self.steps_down))
