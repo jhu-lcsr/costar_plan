@@ -44,18 +44,9 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
             gripper_size = gripper.shape[-1]
         else:
             gripper_size = 1
-        image_size = 1
-        for dim in img_shape:
-            image_size *= dim
-        image_size = int(image_size)
-
 
         ins, enc, _ = self._makeImageEncoder(img_shape)
-        print(ins, enc)
-        decoder = self._makeImageDecoder(
-                img_shape,
-                self.decoder_kernel_size,
-                skips=None)
+        decoder = self._makeImageDecoder(img_shape)
         out = decoder(enc)
         ae = Model(ins, out)
         ae.compile(loss="mae", optimizer=self.getOptimizer())
