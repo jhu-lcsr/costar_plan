@@ -310,7 +310,6 @@ class AbstractAgentBasedModel(object):
                     oh[i,j,idx] = 1.
         return oh
 
-
 class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
 
     '''
@@ -545,4 +544,3 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
 
         # Evaluate this policy to get the next action out
         return policy.predict(features)
-

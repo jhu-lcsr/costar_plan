@@ -189,7 +189,7 @@ class ImageCb(keras.callbacks.Callback):
         self.predictor = predictor
         self.idxs = range(min_idx, max_idx, step)
         self.num = len(self.idxs)
-        self.features = [features[0][self.idxs]]
+        self.features = features[0][self.idxs]
         self.targets = [np.squeeze(t[self.idxs]) for t in targets]
         self.epoch = 0
         self.num_hypotheses = num_hypotheses
@@ -208,12 +208,12 @@ class ImageCb(keras.callbacks.Callback):
             fig = plt.figure()
             plt.subplot(1,3,1)
             plt.title('Input Image')
-            plt.imshow(self.features[0][j])
+            plt.imshow(self.features[j])
             plt.subplot(1,3,3)
             plt.title('Observed Goal')
             plt.imshow(self.targets[0][j])
             plt.subplot(1,3,2)
-            plt.imshow(np.squeeze(img[0][j]))
+            plt.imshow(np.squeeze(img[j]))
             plt.title('Output')
             fig.savefig(name, bbox_inches="tight")
             plt.close(fig)

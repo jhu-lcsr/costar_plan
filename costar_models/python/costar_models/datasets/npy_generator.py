@@ -59,7 +59,7 @@ class NpzGeneratorDataset(object):
         self.test = [acceptable_files[i] for i in idx[:length]]
         self.train = [acceptable_files[i] for i in idx[length:]]
         for i, filename in enumerate(self.test):
-            print("%d:"%(i+1), filename)
+            #print("%d:"%(i+1), filename)
             if filename in self.train:
                 raise RuntimeError('error with test/train setup! ' + \
                                    filename + ' in training!')

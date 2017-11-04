@@ -32,6 +32,51 @@ Returns for all tools:
 out: an output tensor
 '''
 
+def AddConv2D(x, filters, kernel, stride, dropout_rate):
+    '''
+    Helper for creating networks. This one will add a convolutional block.
+
+    Parameters:
+    -----------
+    x: input tensor
+    filters: num conv filters
+    kernel: kernel size to use
+    stride: stride to use
+    dropout_rate: amount of dropout to apply
+
+    Returns:
+    --------
+    x: output tensor
+    '''
+    x = Conv2D(filters, kernel_size=kernel, strides=(stride,stride))(x)
+    x = BatchNormalization()(x)
+    x = LeakyReLU(alpha=0.2)(x)
+    if dropout_rate > 0:
+        x = Dropout(dropout_rate)(x)
+    return x
+
+def AddDense(x, size, activation, dropout_rate):
+    '''
+    Add a single dense block with batchnorm and activation.
+
+    Parameters:
+    -----------
+    x: input tensor
+    size: number of dense neurons
+    activation: activation fn to use
+    dropout_rate: dropout to use after activation
+
+    Returns:
+    --------
+    x: output tensor
+    '''
+    x = Dense(size)(x)
+    x = BatchNormalization()(x)
+    x = Activation(activation)(x)
+    if dropout_rate > 0:
+        x = Dropout(dropout_rate)(x)
+    return x
+
 def CombinePose(pose_in, dim=64):
     robot = Dense(dim, activation="relu")(pose_in)
     return robot
@@ -275,13 +320,13 @@ def GetImageDecoder(dim, img_shape,
         x = Reshape((height,width,tform_filters))(z)
     else:
         z = Input((int(dense_rep_size),),name="input_latent")
-        x = Dense(int(height*width*filters),name="dense_input_size")(z)
+        x = Dense(int(height*width*3),name="dense_input_size")(z)
         if batchnorm:
             x = BatchNormalization()(x)
         x = relu()(x)
         if dropout:
             x = Dropout(dropout_rate)(x)
-        x = Reshape((height,width,filters))(x)
+        x = Reshape((height,width,3))(x)
     
     skip_inputs = []
     height = height * 2
@@ -424,11 +469,11 @@ def GetImagePoseDecoder(dim, img_shape,
     return decoder
 
 def DenseHelper(x, dense_size, dropout_rate, repeat):
+    '''
+    Add a repeated number of dense layers of the same size.
+    '''
     for _ in range(repeat):
-        x = Dense(dense_size)(x)
-        x = BatchNormalization()(x)
-        x = Activation("relu")(x)
-        x = Dropout(dropout_rate)(x)
+        AddDense(x, dense_size, "relu", dropout_rate)
     return x
 
 def GetArmGripperDecoder(dim, img_shape,
