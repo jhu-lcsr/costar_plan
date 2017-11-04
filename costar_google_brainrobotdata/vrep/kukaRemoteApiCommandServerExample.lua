@@ -67,14 +67,15 @@ createPointCloud_function=function(inInts,inFloats,inStrings,inBuffer)
 
         -- Set the pose
         local parent_handle=inInts[1]
-        setObjectRelativeToParentWithPoseArray(cloudHandle, parent_handle, inFloats)
+        -- commented because we will set position and orientation separately later
+        -- setObjectRelativeToParentWithPoseArray(cloudHandle, parent_handle, inFloats)
         -- Get the number of float entries used for the pose
         poseEntries=inInts[2]
         -- print('pose vec quat:' .. {unpack(inFloats, 4, 7)})
         -- local cloud = simUnpackFloatTable(inStrings[2])
         cloudFloatCount=inInts[3]
         simAddStatusbarMessage('cloudFloatCount: '..cloudFloatCount)
-        pointBatchSize=30
+        pointBatchSize=3000
         colorBatch=nil
         -- bit 1 is 1 so point clouds in cloud reference frame
         options = 1
@@ -83,21 +84,22 @@ createPointCloud_function=function(inInts,inFloats,inStrings,inBuffer)
           options = 3
           colors = simUnpackUInt8Table(inStrings[3])
         end
+        simInsertPointsIntoPointCloud(cloudHandle, options, inFloats, colors)
         -- Insert the point cloud points
-        for i = 1, cloudFloatCount, pointBatchSize do
-            startEntry=1+poseEntries+i
-            local pointBatch={unpack(inFloats, startEntry, startEntry+pointBatchSize)}
-            simAddStatusbarMessage('threePoints:')
+        -- for i = 1, cloudFloatCount, pointBatchSize do
+        --     startEntry=poseEntries+i
+        --     stopEntry = startEntry+pointBatchSize+1
+        --     if stopEntry > cloudFloatCount then
+        --         stopEntry = poseEntries+cloudFloatCount+1
+        --     end
+        --     local pointBatch={unpack(inFloats, startEntry, stopEntry)}
+        --     simAddStatusbarMessage('threePoints: ' .. pointBatch[1] .. ' ' .. pointBatch[2] .. ' ' .. pointBatch[3] .. ' startEntry: ' .. startEntry .. ' stopEntry: ' .. stopEntry)
+        --     if #inStrings > 2 then
+        --         colorBatch = {unpack(colors, startEntry, stopEntry)}
+        --     end
 
-            simAddStatusbarMessage(pointBatch[1])
-            simAddStatusbarMessage(pointBatch[2])
-            simAddStatusbarMessage(pointBatch[3])
-            if #inStrings > 2 then
-                colorBatch = {unpack(colors, startEntry, startEntry+pointBatchSize)}
-            end
-
-           simInsertPointsIntoPointCloud(cloudHandle, options, pointBatch, colors)
-        end
+        --    simInsertPointsIntoPointCloud(cloudHandle, options, pointBatch, colors)
+        -- end
         return {cloudHandle},{},{},'' -- return the handle of the created dummy
     end
 end
