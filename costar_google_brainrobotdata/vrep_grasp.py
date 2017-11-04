@@ -102,7 +102,7 @@ class VREPGraspSimulation(object):
             return -1
         return ret_ints[0]
 
-    def create_point_cloud(self, display_name, points, transform, color_image=None, parent_handle=-1):
+    def create_point_cloud(self, display_name, points, transform, color_image=None, parent_handle=-1, point_batch_size=30):
         """Create a dummy object in the simulation
 
         # Arguments
@@ -340,7 +340,7 @@ class VREPGraspSimulation(object):
             if(vrepVisualizeRGBD):
                 self.visualize_rgbd(features_dict_np, rgb_name, depth_name, grasp_sequence_min_time_step, i, grasp_sequence_max_time_step,
                                     camera_intrinsics_matrix, vrepDebugMode, dataset_name, attempt_num, grasp_success_feature_name,
-                                    visualization_dir, camera_to_base_vec_quat_7, parent_handle)
+                                    visualization_dir, base_to_camera_vec_quat_7, base_T_camera_handle)
         print('visualization of grasp attempt #', attempt_num, ' complete')
 
     def visualize_rgbd(self, features_dict_np, rgb_name, depth_name, grasp_sequence_min_time_step, i,
@@ -375,8 +375,8 @@ class VREPGraspSimulation(object):
             rgb = np.squeeze(rgb_image).reshape([point_cloud.size/3, 3])
             if 'save_ply' in vrepDebugMode:
                 write_xyz_rgb_as_ply(xyz, rgb, path)
-            xyz = xyz[:3000, :]
-            # xyz = np.array([[0,0,0], [0,0,1], [0,1,0], [1,0,0]])
+            # xyz = xyz[:3000, :]
+            xyz = np.array([[0,0,0], [0,0,1], [0,1,0], [1,0,0]])
             self.create_point_cloud(point_cloud_display_name, xyz, camera_to_base_vec_quat_7, rgb, parent_handle)
 
     def __del__(self):
