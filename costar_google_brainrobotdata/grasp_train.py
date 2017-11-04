@@ -34,6 +34,10 @@ flags.DEFINE_string('grasp_datasets_train', '062_b,063,072_a,082_b,102',
                     totaling 513,491 grasp attempts.
                     See https://sites.google.com/site/brainrobotdata/home
                     for a full listing.""")
+flags.DEFINE_string('grasp_datasets_batch_algorithm','constant',
+                    """Use default batch if constant,
+                    'constant' training on multiple datasets reads `batch_size` elements from each dataset at each training step when this parameter. 
+                    'proportional' each dataset's batch size will be individually set to int(batch_size*single_batch/max_batch_size) so smaller datasets are run more slowly than larger datasets.""")
 flags.DEFINE_string('grasp_dataset_eval', '097',
                     """Filter the subset of 1TB Grasp datasets to evaluate.
                     None by default. 'all' will run all datasets in data_dir.
@@ -88,6 +92,7 @@ def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
 class GraspTrain(object):
 
     def train(self, dataset=FLAGS.grasp_datasets_train,
+              grasp_datasets_batch_algorithm = FLAGS.grasp_datasets_batch_algorithm,
               batch_size=FLAGS.batch_size,
               epochs=FLAGS.epochs,
               load_weights=FLAGS.load_weights,
@@ -123,6 +128,8 @@ class GraspTrain(object):
                 this affects the memory consumption of the system when training, but if it fits into memory
                 you almost certainly want the value to be None, which includes every image.
         """
+        if (grasp_datasets_batch_algorithm != 'constant' and grasp_datasets_batch_algorithm != 'proportional'):
+	        raise ValueError('grasp_datasets_batch_algorithm string value must be either constant or proportional.')
         datasets = dataset.split(',')
         max_num_samples = 0
         grasp_datasets = []
@@ -138,16 +145,26 @@ class GraspTrain(object):
         # which means we see smaller datasets more than once in
         # a single epoch. Try not to aggregate a very small dataset
         # with a very large one!
+        dataset_batch_sizes = []
+        grasp_dataset_list = []
         for single_dataset in datasets:
-
             data = grasp_dataset.GraspDataset(dataset=single_dataset)
-            grasp_datasets.append(data)
+            grasp_dataset_list.append(data)
+            dataset_batch_sizes.append(data.get_features()[1])
+
+        max_batch_size = max(dataset_batch_sizes)
+        #Not sure why any thing assigned to max_batch_size, it can pass
+        for single_dataset, single_batch in zip(grasp_dataset_list, dataset_batch_sizes):
+            proportional_batch_size = batch_size
+            if(grasp_datasets_batch_algorithm == 'proportional'):
+                proportional_batch_size = int(batch_size*single_batch/max_batch_size) 
+            data = single_dataset
             # list of dictionaries the length of batch_size
             (pregrasp_op, grasp_step_op,
              simplified_grasp_command_op,
              example_batch_size,
              grasp_success_op,
-             num_samples) = data.single_pose_training_tensors(batch_size=batch_size,
+             num_samples) = data.single_pose_training_tensors(batch_size=proportional_batch_size,
                                                               imagenet_mean_subtraction=imagenet_mean_subtraction,
                                                               random_crop=random_crop,
                                                               resize=resize,
