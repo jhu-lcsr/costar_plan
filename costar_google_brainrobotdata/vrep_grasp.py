@@ -410,7 +410,7 @@ class VREPGraspSimulation(object):
             if(vrepVisualizeRGBD and i >= FLAGS.vrepVisualizeRGBD_min and i < FLAGS.vrepVisualizeRGBD_max):
                 self.visualize_rgbd(features_dict_np, rgb_name, depth_name, grasp_sequence_min_time_step, i, grasp_sequence_max_time_step,
                                     camera_intrinsics_matrix, vrepDebugMode, dataset_name, attempt_num, grasp_success_feature_name,
-                                    visualization_dir, camera_to_base_vec_quat_7, parent_handle)
+                                    visualization_dir, base_to_camera_vec_quat_7, parent_handle)
         print('visualization of grasp attempt #', attempt_num, ' complete')
 
     def visualize_rgbd(self, features_dict_np, rgb_name, depth_name, grasp_sequence_min_time_step, i,
