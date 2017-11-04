@@ -52,6 +52,31 @@ end
 
 
 createPointCloud_function=function(inInts,inFloats,inStrings,inBuffer)
+    -- Create a point cloud with specific name and coordinates, plus the option to clear an existing cloud.
+    if #inStrings>=1 and #inInts>=5 then
+        cloudHandle=-1
+        -- Get the existing point cloud's handle or create a new one
+        if pcall(function()
+            cloudHandle=simGetObjectHandle(inStrings[1])
+        end) == false then
+            -- create a new cloud if none exists
+            cloudHandle=simCreatePointCloud(0.01, 10, 0, 10)
+            -- Update the name of the cloud
+            setObjectName(cloudHandle, inStrings[1])
+        end
+
+        local clearPointCloud=inInts[5]
+        if clearPointCloud == 1 then
+            simRemovePointsFromPointCloud(cloudHandle, 0, nil, 0)
+        end
+        -- Set the pose
+        local parent_handle=inInts[1]
+        return {cloudHandle},{},{},'' -- return the handle of the created dummy
+    end
+end
+
+
+insertPointCloud_function=function(inInts,inFloats,inStrings,inBuffer)
     -- Create a dummy object with specific name and coordinates
     if #inStrings>=1 and #inFloats>=3 then
         cloudHandle=-1
@@ -84,7 +109,11 @@ createPointCloud_function=function(inInts,inFloats,inStrings,inBuffer)
           options = 3
           colors = simUnpackUInt8Table(inStrings[3])
         end
-        simInsertPointsIntoPointCloud(cloudHandle, options, inFloats, colors)
+
+        -- Try color values as extracted from a string
+        simInsertPointsIntoPointCloud(cloudHandle, options, inFloats, nil)
+        -- Try color values as provided in a buffer
+        -- simInsertPointsIntoPointCloud(cloudHandle, options, inFloats, inBuffer)
         -- Insert the point cloud points
         -- for i = 1, cloudFloatCount, pointBatchSize do
         --     startEntry=poseEntries+i

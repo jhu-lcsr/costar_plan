@@ -133,7 +133,7 @@ class VREPGraspSimulation(object):
             return -1
         return ret_ints[0]
 
-    def create_point_cloud(self, display_name, points, transform, color_image=None, parent_handle=-1, point_batch_size=30):
+    def create_point_cloud(self, display_name, points, transform, color_image=None, parent_handle=-1, clear=True):
         """Create a dummy object in the simulation
 
         # Arguments
@@ -141,6 +141,7 @@ class VREPGraspSimulation(object):
             transform_display_name: name string to use for the object in the vrep scene
             transform: 3 cartesian (x, y, z) and 4 quaternion (x, y, z, w) elements, same as vrep
             parent_handle: -1 is the world frame, any other int should be a vrep object handle
+            clear: clear the point cloud if it already exists with the provided display name
         """
         # 2. Now create a dummy object at coordinate 0.1,0.2,0.3 with name 'MyDummyName':
         empty_buffer = bytearray()
@@ -148,32 +149,68 @@ class VREPGraspSimulation(object):
         # for when the numpy array can be packed in a byte string
         # strings = [display_name, points.flatten().tostring()]
         strings = [display_name]
-        # if color_image is not None:
-        #     # strings.extend(unicode(color_image.flatten().tostring(), 'utf-8'))
         #     # for when the numpy array can be packed in a byte string
-        #     trings.extend(color_image.flatten().tostring())
+        #     strings.extend(color_image.flatten().tostring())
         transform_entries = 7
         print 'points.size:', points.size
+        if clear is True:
+            clear = 1
+        else:
+            clear = 0
+
+        cloud_handle = -1
+
+        # Create the point cloud if it does not exist, or retrieve the handle if it does
         res, ret_ints, ret_floats, ret_strings, ret_buffer = v.simxCallScriptFunction(
             self.client_id,
             'remoteApiCommandServer',
             v.sim_scripttype_childscript,
             'createPointCloud_function',
-            [parent_handle, transform_entries, points.size],
+            [parent_handle, transform_entries, points.size, cloud_handle, clear],
             # np.append(transform, points),
-            np.append(points, []),
+            [],
             # for when the double array can be packed in a byte string
             # transform,
             strings,
             empty_buffer,
             v.simx_opmode_blocking)
+
         if res == v.simx_return_ok:
-            print ('point cloud handle: ', ret_ints[0])  # display the reply from V-REP (in this case, the handle of the created dummy)
-            self.setPose(display_name, transform, parent_handle)
-            return ret_ints[0]
+            cloud_handle = ret_ints[0]
+
+            # convert the rgb values to a string
+            color_size = 0
+            if color_image is not None:
+                # strings = [unicode(color_image.flatten().tostring(), 'utf-8')]
+                strings = [display_name]
+                empty_buffer = bytearray(color_image.tobytes())
+                color_size = color_image.size
+            else:
+                strings = [display_name]
+
+            # Actually transfer the point cloud
+            res, ret_ints, ret_floats, ret_strings, ret_buffer = v.simxCallScriptFunction(
+                self.client_id,
+                'remoteApiCommandServer',
+                v.sim_scripttype_childscript,
+                'insertPointCloud_function',
+                [parent_handle, transform_entries, points.size, cloud_handle, color_size],
+                # np.append(transform, points),
+                np.append(points, []),
+                # for when the double array can be packed in a byte string
+                # transform,
+                strings,
+                empty_buffer,
+                v.simx_opmode_blocking)
+            if res == v.simx_return_ok:
+                print ('point cloud handle: ', ret_ints[0])  # display the reply from V-REP (in this case, the handle of the created dummy)
+                self.setPose(display_name, transform, parent_handle)
+                return ret_ints[0]
+            else:
+                print 'insertPointCloud_function remote function call failed.'
+                return -1
         else:
-            print 'create_point_cloud remote function call failed.'
-            return -1
+            print('createPointCloud_function remote function call failed')
 
     def visualize(self, tf_session, dataset=FLAGS.grasp_dataset, batch_size=1, parent_name=FLAGS.vrepParentName):
         """Visualize one dataset in V-REP
@@ -413,7 +450,7 @@ class VREPGraspSimulation(object):
             # xyz = xyz[:3000, :]
             # xyz = np.array([[1,0,0], [0,0,0], [0,0,1], [0,1,0]])
             # strip any repeated points
-            xyz = np.unique(xyz, axis=0)
+            # xyz = np.unique(xyz, axis=0)
             point_cloud_display_name = str(i).zfill(2) + '_point_cloud'
             self.create_point_cloud(point_cloud_display_name, xyz, camera_to_base_vec_quat_7, rgb, parent_handle)
 
