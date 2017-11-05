@@ -19,9 +19,9 @@ from tqdm import tqdm # progress bars https://github.com/tqdm/tqdm
 from tensorflow.python.platform import flags
 from tensorflow.python.platform import gfile
 from tensorflow.python.ops import data_flow_ops
-from tensorflow.contrib.keras.python.keras.utils import get_file
-from tensorflow.contrib.keras.python.keras.utils.data_utils import _hash_file
-from tensorflow.contrib.keras.python.keras.utils.generic_utils import Progbar
+from tensorflow.python.keras.utils import get_file
+from tensorflow.python.keras._impl.keras.utils.data_utils import _hash_file
+from tensorflow.python.keras.utils import Progbar
 
 # TODO(ahundt) importing moviepy prevented python from exiting, uncomment lines when fixed.
 # try:
