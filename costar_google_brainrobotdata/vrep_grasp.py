@@ -25,6 +25,7 @@ from tensorflow.python.platform import gfile
 from tensorflow.python.ops import data_flow_ops
 from keras.utils import get_file
 from ply import write_xyz_rgb_as_ply
+from PIL import Image
 
 import moviepy.editor as mpy
 from grasp_dataset import GraspDataset
@@ -45,10 +46,12 @@ tf.flags.DEFINE_boolean('vrepWaitUntilConnected', True, 'block startup call unti
 tf.flags.DEFINE_boolean('vrepDoNotReconnectOnceDisconnected', True, '')
 tf.flags.DEFINE_integer('vrepTimeOutInMs', 5000, 'Timeout in milliseconds upon which connection fails')
 tf.flags.DEFINE_integer('vrepCommThreadCycleInMs', 5, 'time between communication cycles')
+tf.flags.DEFINE_integer('vrepVisualizeGraspAttempt_min', 0, 'min grasp attempt to display from dataset, or -1 for no limit')
+tf.flags.DEFINE_integer('vrepVisualizeGraspAttempt_max', 1, 'max grasp attempt to display from dataset, exclusive, or -1 for no limit')
 tf.flags.DEFINE_string('vrepDebugMode', 'save_ply', """Options are: '', 'fixed_depth', 'save_ply'.""")
 tf.flags.DEFINE_boolean('vrepVisualizeRGBD', True, 'display the rgbd images and point cloud')
-tf.flags.DEFINE_integer('vrepVisualizeRGBD_min', 0, 'min step on each grasp attempt to display')
-tf.flags.DEFINE_integer('vrepVisualizeRGBD_max', 1, 'max step on each grasp attempt to display, exclusive')
+tf.flags.DEFINE_integer('vrepVisualizeRGBD_min', 0, 'min time step on each grasp attempt to display')
+tf.flags.DEFINE_integer('vrepVisualizeRGBD_max', 1, 'max time step on each grasp attempt to display, exclusive')
 tf.flags.DEFINE_boolean('vrepVisualizeSurfaceRelativeTransform', False, 'display the surface relative transform frames')
 tf.flags.DEFINE_string('vrepParentName', 'LBR_iiwa_14_R820', 'The default parent frame name from which to base all visualized transforms.')
 
@@ -228,15 +231,19 @@ class VREPGraspSimulation(object):
             print 'could not find object with the specified name, so putting objects in world frame:', parent_name
 
         for attempt_num in range(num_samples / batch_size):
+            # load data from the next grasp attempt
             output_features_dict = tf_session.run(feature_op_dicts)
-            for features_dict_np, sequence_dict_np in output_features_dict:
-                # TODO(ahundt) actually put transforms into V-REP or pybullet
-                self._visualize_one_grasp_attempt(
-                        grasp_dataset_object, features_complete_list, features_dict_np, parent_handle,
-                        dataset_name=dataset,
-                        attempt_num=attempt_num)
-
-                # returnCode, dummyHandle = v.simxCreateDummy(self.client_id, 0.1, colors=None, operationMode=simx_opmode_blocking)
+            if ((attempt_num >= FLAGS.vrepVisualizeGraspAttempt_min or FLAGS.vrepVisualizeGraspAttempt_min == -1) and
+                    (attempt_num < FLAGS.vrepVisualizeGraspAttempt_max or FLAGS.vrepVisualizeGraspAttempt_max == -1)):
+                for features_dict_np, sequence_dict_np in output_features_dict:
+                    # TODO(ahundt) actually put transforms into V-REP or pybullet
+                    self._visualize_one_grasp_attempt(
+                            grasp_dataset_object, features_complete_list, features_dict_np, parent_handle,
+                            dataset_name=dataset,
+                            attempt_num=attempt_num)
+            if (attempt_num > FLAGS.vrepVisualizeGraspAttempt_max and not FLAGS.vrepVisualizeGraspAttempt_max == -1):
+                # stop running if we've gone through all the relevant attempts.
+                break
 
     def _visualize_one_grasp_attempt(self, grasp_dataset_object, features_complete_list, features_dict_np, parent_handle,
                                      dataset_name=FLAGS.grasp_dataset,
