@@ -464,6 +464,9 @@ class VREPGraspSimulation(object):
 
     def display_images(self, rgb, depth_image_float_format):
         """Display the rgb and depth image in V-REP (not yet working)
+
+        Reference code: https://github.com/nemilya/vrep-api-python-opencv/blob/master/handle_vision_sensor.py
+        V-REP Docs: http://www.coppeliarobotics.com/helpFiles/en/remoteApiFunctionsPython.htm#simxSetVisionSensorImage
         """
         res, kcam_rgb_handle = v.simxGetObjectHandle(self.client_id, 'kcam_rgb', v.simx_opmode_oneshot_wait)
         print('kcam_rgb_handle: ', kcam_rgb_handle)
@@ -471,14 +474,14 @@ class VREPGraspSimulation(object):
         rgb_for_display = rgb_for_display.ravel()
         is_color = 1
         res = v.simxSetVisionSensorImage(self.client_id, kcam_rgb_handle, rgb_for_display, is_color, v.simx_opmode_oneshot)
-        print('simxSetVisionSensorImage rgb result: ', res)
+        print('simxSetVisionSensorImage rgb result: ', res, ' rgb shape: ', rgb.shape)
         res, kcam_depth_handle = v.simxGetObjectHandle(self.client_id, 'kcam_depth', v.simx_opmode_oneshot_wait)
         normalized_depth = depth_image_float_format * 255 / depth_image_float_format.max()
         normalized_depth = normalized_depth.astype('uint8')
         normalized_depth = normalized_depth.ravel()
         is_color = 0
         res = v.simxSetVisionSensorImage(self.client_id, kcam_depth_handle, normalized_depth, is_color, v.simx_opmode_oneshot)
-        print('simxSetVisionSensorImage depth result: ', res)
+        print('simxSetVisionSensorImage depth result: ', res, ' depth shape: ', depth_image_float_format.shape)
 
     def __del__(self):
         v.simxFinish(-1)
