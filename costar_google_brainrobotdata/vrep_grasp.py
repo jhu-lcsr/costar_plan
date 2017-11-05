@@ -452,14 +452,33 @@ class VREPGraspSimulation(object):
             print 'point_cloud.size:', point_cloud.size
             xyz = point_cloud.reshape([point_cloud.size/3, 3])
             rgb = np.squeeze(rgb_image).reshape([point_cloud.size/3, 3])
+
+            # Save out Point cloud
             if 'save_ply' in vrepDebugMode:
                 write_xyz_rgb_as_ply(xyz, rgb, path)
-            # xyz = xyz[:3000, :]
-            # xyz = np.array([[1,0,0], [0,0,0], [0,0,1], [0,1,0]])
-            # strip any repeated points
-            # xyz = np.unique(xyz, axis=0)
             point_cloud_display_name = str(i).zfill(2) + '_point_cloud'
             self.create_point_cloud(point_cloud_display_name, xyz, camera_to_base_vec_quat_7, rgb, parent_handle)
+
+            # display the rgb and depth image
+            self.display_images(rgb, depth_image_float_format)
+
+    def display_images(self, rgb, depth_image_float_format):
+        """Display the rgb and depth image in V-REP (not yet working)
+        """
+        res, kcam_rgb_handle = v.simxGetObjectHandle(self.client_id, 'kcam_rgb', v.simx_opmode_oneshot_wait)
+        print('kcam_rgb_handle: ', kcam_rgb_handle)
+        rgb_for_display = rgb.astype('uint8')
+        rgb_for_display = rgb_for_display.ravel()
+        is_color = 1
+        res = v.simxSetVisionSensorImage(self.client_id, kcam_rgb_handle, rgb_for_display, is_color, v.simx_opmode_oneshot)
+        print('simxSetVisionSensorImage rgb result: ', res)
+        res, kcam_depth_handle = v.simxGetObjectHandle(self.client_id, 'kcam_depth', v.simx_opmode_oneshot_wait)
+        normalized_depth = depth_image_float_format * 255 / depth_image_float_format.max()
+        normalized_depth = normalized_depth.astype('uint8')
+        normalized_depth = normalized_depth.ravel()
+        is_color = 0
+        res = v.simxSetVisionSensorImage(self.client_id, kcam_depth_handle, normalized_depth, is_color, v.simx_opmode_oneshot)
+        print('simxSetVisionSensorImage depth result: ', res)
 
     def __del__(self):
         v.simxFinish(-1)
