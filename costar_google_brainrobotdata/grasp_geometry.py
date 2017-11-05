@@ -469,39 +469,8 @@ def grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector):
     # frame of reference and transforms it to the camera frame of reference.
     camera_T_base_ptrans = matrix_to_ptransform(camera_T_base)
     base_T_camera = camera_T_base_ptrans.inv()
-
-    # ###############
-    # # allow tweaking of camera T base
-    # t = camera_T_base_ptrans.translation()
-    # # t *= -1
-    # R = eigen.Quaterniond(camera_T_base_ptrans.rotation())
-    # # R.inverse()
-    # camera_T_base_ptrans2 = sva.PTransformd(R, t)
-    # ###############
-
-    # ###############
-    # # allow tweaking of base T endeffector
-    # t = base_T_endeffector_ptrans.translation()
-    # # t *= -1
-    # R = eigen.Quaterniond(base_T_endeffector_ptrans.rotation())
-    # # R.inverse()
-    # base_T_endeffector_ptrans2 = sva.PTransformd(R, t)
-    # ###############
-
-    ###############
     # Perform the actual transform calculation
     camera_T_endeffector_ptrans = base_T_endeffector_ptrans * base_T_camera.inv()
-    # camera_T_endeffector_ptrans = camera_T_base_ptrans2 * base_T_endeffector_ptrans2
-    # camera_T_endeffector_ptrans.inv()
-
-    # ###############
-    # # allow tweaking of camera T endeffector
-    # t = camera_T_endeffector_ptrans.translation()
-    # # t *= -1
-    # R = eigen.Quaterniond(camera_T_endeffector_ptrans.rotation())
-    # # R.inverse()
-    # camera_T_endeffector_ptrans = sva.PTransformd(R, t)
-    # ###############
     return camera_T_endeffector_ptrans, base_T_endeffector_ptrans, base_T_camera
 
 
