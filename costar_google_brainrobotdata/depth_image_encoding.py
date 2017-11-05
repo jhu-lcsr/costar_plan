@@ -240,14 +240,13 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix):
     cx = intrinsics_matrix[0, 2]
     # center of image y coordinate
     cy = intrinsics_matrix[1, 2]
-    Y = depth
-    x, z = np.meshgrid(np.arange(depth.shape[-1]),
+    x, y = np.meshgrid(np.arange(depth.shape[-1]),
                        np.arange(depth.shape[-2]-1, -1, -1))
-    for i in range(Y.ndim-2):
+    for i in range(depth.ndim-2):
         x = np.expand_dims(x, axis=0)
-        z = np.expand_dims(z, axis=0)
-    X = (x - cx) * Y / fx
-    Z = (z - cy) * Y / fy
-    XYZ = np.concatenate((X[..., np.newaxis], Y[..., np.newaxis],
-                          Z[..., np.newaxis]), axis=X.ndim)
+        y = np.expand_dims(y, axis=0)
+    X = (x - cx) * depth / fx
+    Y = (y - cy) * depth / fy
+    XYZ = np.column_stack((X.flatten(), Y.flatten(), depth.flatten()))
+    # XYZ = np.concatenate((X[..., np.newaxis], Y[..., np.newaxis], depth[..., np.newaxis]), axis=X.ndim)
     return XYZ
