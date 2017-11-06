@@ -52,7 +52,7 @@ tf.flags.DEFINE_string('vrepDebugMode', 'save_ply', """Options are: '', 'fixed_d
 tf.flags.DEFINE_boolean('vrepVisualizeRGBD', True, 'display the rgbd images and point cloud')
 tf.flags.DEFINE_integer('vrepVisualizeRGBD_min', 0, 'min time step on each grasp attempt to display')
 tf.flags.DEFINE_integer('vrepVisualizeRGBD_max', 1, 'max time step on each grasp attempt to display, exclusive')
-tf.flags.DEFINE_boolean('vrepVisualizeSurfaceRelativeTransform', False, 'display the surface relative transform frames')
+tf.flags.DEFINE_boolean('vrepVisualizeSurfaceRelativeTransform', True, 'display the surface relative transform frames')
 tf.flags.DEFINE_string('vrepParentName', 'LBR_iiwa_14_R820', 'The default parent frame name from which to base all visualized transforms.')
 
 flags.FLAGS._parse_flags()
@@ -398,6 +398,7 @@ class VREPGraspSimulation(object):
             if vrepVisualizeSurfaceRelativeTransform:
                 ee_cloud_point, ee_image_coordinate = grasp_geometry.endeffector_image_coordinate_and_cloud_point(
                     clear_frame_depth_image, camera_intrinsics_matrix, camera_T_endeffector_ptrans)
+                print('end_effector cloud point: ', ee_cloud_point, ' end_effector image coordinate: ', ee_image_coordinate)
 
                 # Create a dummy for the key depth point and display it
                 depth_point_dummy_ptrans = grasp_geometry.vector_to_ptransform(ee_cloud_point)
