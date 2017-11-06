@@ -39,7 +39,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         self.num_frames = 1
         self.img_num_filters = 64
-        self.tform_filters = 16
+        self.tform_filters = 32
         self.num_hypotheses = 4
         self.validation_split = 0.05
         self.num_options = 48
@@ -69,8 +69,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_actor_policy_layers = 2
         self.num_generator_layers = 1
         self.num_arm_vars = 6
-
-        self.decoder_kernel_size = [5,5]
 
         # Number of nonlinear transformations to be applied to the hidden state
         # in order to compute a possible next state.
@@ -332,10 +330,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     use_noise=self.use_noise,
                     noise_dim=self.noise_dim,)
         else:
+            transform_kernel_size = [5, 5]
             transform = GetTransform(
                     rep_size=(self.hidden_dim, self.hidden_dim),
                     filters=self.tform_filters,
-                    kernel_size=self.decoder_kernel_size,
+                    kernel_size=transform_kernel_size,
                     idx=i,
                     batchnorm=True,
                     dropout=transform_dropout,
@@ -866,7 +865,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         img_shape: shape of the image, e.g. (64,64,3)
         '''
         skips = None
-        kernel_size = self.decoder_kernel_size
+        kernel_size = [5,5]
         rep, dec = GetImageDecoder(self.img_col_dim,
                         img_shape,
                         dropout_rate=self.dropout_rate,
@@ -875,6 +874,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         stride2_layers=self.steps_up,
                         tform_filters=self.tform_filters,
                         stride2_layers_no_skip=self.steps_up_no_skip,
+                        stride1_layers=1, # for fine-tuning the output
                         dropout=self.hypothesis_dropout,
                         upsampling=self.upsampling_method,
                         dense=self.dense_representation,
@@ -882,7 +882,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         leaky=True,
                         skips=skips,
                         original=None,
-                        resnet_blocks=self.residual,
                         num_hypotheses=None,
                         batchnorm=True,)
         print (dec)

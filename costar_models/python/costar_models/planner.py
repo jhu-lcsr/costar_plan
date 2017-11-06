@@ -288,14 +288,11 @@ def SliceImageHypotheses(image_shape, num_hypotheses, x):
 def GetImageDecoder(dim, img_shape,
         dropout_rate, filters, kernel_size=[3,3], dropout=True, leaky=True,
         dense_rep_size=None,
-        batchnorm=True,
-        dense=True,
-        num_hypotheses=None,
-        tform_filters=None,
+        batchnorm=True,dense=True, num_hypotheses=None, tform_filters=None,
         original=None, upsampling=None,
         resnet_blocks=False,
         skips=False,
-        stride2_layers=2,
+        stride2_layers=2, stride1_layers=1,
         stride2_layers_no_skip=0):
 
     '''
@@ -380,6 +377,17 @@ def GetImageDecoder(dim, img_shape,
         skip_in = Input((img_shape[0],img_shape[1],filters))
         x = Concatenate(axis=-1)([x,skip_in])
         skip_inputs.append(skip_in)
+
+    for i in range(stride1_layers):
+        x = Conv2D(filters, # + num_labels
+                   kernel_size=kernel_size, 
+                   strides=(1, 1),
+                   padding="same")(x)
+        if batchnorm:
+            x = BatchNormalization()(x)
+        x = relu()(x)
+        if dropout:
+            x = Dropout(dropout_rate)(x)
 
     if num_hypotheses is not None:
         x = Conv2D(num_hypotheses*nchannels, (1, 1), padding='same')(x)
