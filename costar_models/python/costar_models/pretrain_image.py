@@ -55,7 +55,7 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
         encoder.summary()
         out = decoder(enc)
         ae = Model([img_in], out)
-        ae.compile(loss="mae", optimizer=self.getOptimizer())
+        ae.compile(loss="mse", optimizer=self.getOptimizer())
         ae.summary()
     
         return ae, ae, None, [img_in], enc
