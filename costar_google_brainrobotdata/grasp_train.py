@@ -27,6 +27,12 @@ flags.DEFINE_string('load_weights', 'grasp_model_weights.h5',
                     """Load and continue training the specified file containing model weights.""")
 flags.DEFINE_integer('epochs', 100,
                      """Epochs of training""")
+flags.DEFINE_string('grasp_datasets_train', '062_b,063,072_a,082_b,102',
+                    """Filter multiple subsets of 1TB Grasp datasets to train.
+                    Comma separated list 062_b,063,072_a,082_b,102 by default,
+                    totaling 513,491 grasp attempts.
+                    See https://sites.google.com/site/brainrobotdata/home
+                    for a full listing.""")
 flags.DEFINE_string('grasp_dataset_eval', '097',
                     """Filter the subset of 1TB Grasp datasets to evaluate.
                     None by default. 'all' will run all datasets in data_dir.
@@ -77,7 +83,7 @@ def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
 
 class GraspTrain(object):
 
-    def train(self, dataset=FLAGS.grasp_dataset,
+    def train(self, dataset=FLAGS.grasp_datasets_train,
               batch_size=FLAGS.batch_size,
               epochs=FLAGS.epochs,
               load_weights=FLAGS.load_weights,
@@ -113,18 +119,48 @@ class GraspTrain(object):
                 this affects the memory consumption of the system when training, but if it fits into memory
                 you almost certainly want the value to be None, which includes every image.
         """
-        data = grasp_dataset.GraspDataset(dataset=dataset)
-        # list of dictionaries the length of batch_size
-        (pregrasp_op_batch, grasp_step_op_batch,
-         simplified_grasp_command_op_batch,
-         example_batch_size,
-         grasp_success_op_batch,
-         num_samples) = data.single_pose_training_tensors(batch_size=batch_size,
-                                                          imagenet_mean_subtraction=imagenet_mean_subtraction,
-                                                          random_crop=random_crop,
-                                                          resize=resize,
-                                                          grasp_sequence_min_time_step=grasp_sequence_min_time_step,
-                                                          grasp_sequence_max_time_step=grasp_sequence_max_time_step)
+        datasets = dataset.split(',')
+        max_num_samples = 0
+        grasp_datasets = []
+        pregrasp_op_batch = []
+        grasp_step_op_batch = []
+        # simplified_network_grasp_command_op
+        simplified_grasp_command_op_batch = []
+        grasp_success_op_batch = []
+
+        # Aggregate multiple datasets into training tensors
+        # Note that one limitation of this setup is that we will
+        # iterate over samples according to the largest dataset,
+        # which means we see smaller datasets more than once in
+        # a single epoch. Try not to aggregate a very small dataset
+        # with a very large one!
+        for single_dataset in datasets:
+
+            data = grasp_dataset.GraspDataset(dataset=single_dataset)
+            grasp_datasets.append(data)
+            # list of dictionaries the length of batch_size
+            (pregrasp_op, grasp_step_op,
+             simplified_grasp_command_op,
+             example_batch_size,
+             grasp_success_op,
+             num_samples) = data.single_pose_training_tensors(batch_size=batch_size,
+                                                              imagenet_mean_subtraction=imagenet_mean_subtraction,
+                                                              random_crop=random_crop,
+                                                              resize=resize,
+                                                              grasp_sequence_min_time_step=grasp_sequence_min_time_step,
+                                                              grasp_sequence_max_time_step=grasp_sequence_max_time_step)
+            max_num_samples = max(num_samples, max_num_samples)
+            pregrasp_op_batch.append(pregrasp_op)
+            grasp_step_op_batch.append(grasp_step_op)
+            simplified_grasp_command_op_batch.append(simplified_grasp_command_op)
+            grasp_success_op_batch.append(grasp_success_op)
+
+        pregrasp_op_batch = tf.concat(pregrasp_op_batch, 0)
+        grasp_step_op_batch = tf.concat(grasp_step_op_batch, 0)
+        simplified_grasp_command_op_batch = tf.concat(simplified_grasp_command_op_batch, 0)
+        print('grasp_success_op_batch before concat: ', grasp_success_op_batch)
+        grasp_success_op_batch = tf.concat(grasp_success_op_batch, 0)
+        print('grasp_success_op_batch after concat: ', grasp_success_op_batch)
 
         if resize:
             input_image_shape = [resize_height, resize_width, 3]
@@ -215,8 +251,11 @@ class GraspTrain(object):
         model.summary()
 
         # make sure we visit every image once
-        steps_per_epoch = int(np.ceil(float(num_samples)/float(batch_size)))
+        steps_per_epoch = int(np.ceil(float(max_num_samples)/float(batch_size)))
 
+        model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=callbacks)
+        final_weights_name = weights_name + '-final.h5'
+        model.save_weights(final_weights_name)
         try:
             model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=callbacks)
         finally:
@@ -321,7 +360,7 @@ class GraspTrain(object):
                 model.save_weights(weights_name_str)
                 print('\n saved weights with evaluation result to ' + weights_name_str)
 
-        except KeyboardInterrupt, e:
+        except KeyboardInterrupt as e:
             print('Evaluation canceled at user request, '
                   'any results are incomplete for this run.')
 
@@ -332,6 +371,8 @@ def main():
     session = tf.Session(config=config)
     K.set_session(session)
     with K.get_session() as sess:
+        # Launch the training script for the particular model specified on the command line
+        # or via the default flag value
         load_weights = FLAGS.load_weights
         if FLAGS.grasp_model == 'grasp_model_resnet':
             def make_model_fn(*a, **kw):
@@ -359,16 +400,26 @@ def main():
                     reduction=FLAGS.densenet_reduction,
                     dense_blocks=FLAGS.densenet_dense_blocks,
                     *a, **kw)
+        elif FLAGS.grasp_model == 'grasp_model_levine_2016':
+            def make_model_fn(*a, **kw):
+                return grasp_model.grasp_model_levine_2016(
+                    *a, **kw)
         else:
-            raise ValueError('unknown model selected: {}'.format(FLAGS.grasp_model))
+            available_functions = globals()
+            if FLAGS.grasp_model in available_functions:
+                make_model_fn = available_functions[FLAGS.grasp_model]
+            else:
+                raise ValueError('unknown model selected: {}'.format(FLAGS.grasp_model))
 
         gt = GraspTrain()
 
+        # train the model
         if 'train' in FLAGS.pipeline_stage:
             print('Training ' + FLAGS.grasp_model)
             load_weights = gt.train(make_model_fn=make_model_fn,
                                     load_weights=load_weights,
                                     model_name=FLAGS.grasp_model)
+        # evaluate the model
         if 'eval' in FLAGS.pipeline_stage:
             print('Evaluating ' + FLAGS.grasp_model + ' on weights ' + load_weights)
             # evaluate using weights that were just computed, if available

@@ -87,7 +87,9 @@ class NpzGeneratorDataset(object):
     def loadTest(self, i):
         if i > len(self.test):
             raise RuntimeError('index %d greater than number of files'%i)
-        return np.load(os.path.join(self.name,self.test[i]))
+        filename = self.test[i]
+        success = 'success' in filename
+        return np.load(os.path.join(self.name,filename)), success
 
     def sampleTrain(self):
         filename = self.sampleTrainFilename()

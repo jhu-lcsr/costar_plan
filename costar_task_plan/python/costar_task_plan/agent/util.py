@@ -1,16 +1,17 @@
 
-from null import *
-from random_agent import *
-from task import *
-from ff import *
+from .null import *
+from .random_agent import *
+from .task import *
+from .ff import *
 
-from keras_ddpg import *
-from keras_naf import *
-from apl_ddpg import *
+from .keras_ddpg import *
+from .keras_naf import *
+from .apl_ddpg import *
+from .nn_planner import *
 
-from albert import *
-from albert2 import *
-from albert3 import *
+from .albert import *
+from .albert2 import *
+from .albert3 import *
 
 def GetAgents():
     return ["none", "null",
@@ -21,6 +22,7 @@ def GetAgents():
             "keras_naf", # not implemented
             "ff", # FF regression agent
             "apl_ddpg", # custom DDPG implementation
+            "nn_planner",
             ]
 
 def MakeAgent(env, name, *args, **kwargs):
@@ -37,6 +39,10 @@ def MakeAgent(env, name, *args, **kwargs):
                 'apl_ddpg': lambda: APLDDPGAgent(env, *args, **kwargs),
             		'keras_ddpg': lambda: KerasDDPGAgent(env, *args, **kwargs),
                 'ff': lambda: FeedForwardAgent(env, *args, **kwargs),
+                'nn_planner': lambda: NeuralNetworkPlannerAgent(
+                    env,
+                    *args,
+                    **kwargs),
                 }[name.lower()]()
     except KeyError, e:
         raise NotImplementedError('Agent "%s" not implemented'%name)

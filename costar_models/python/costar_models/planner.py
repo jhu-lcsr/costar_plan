@@ -85,6 +85,7 @@ def TileArmAndGripper(x, arm_in, gripper_in, tile_width, tile_height,
         #reshape_size = arm_size+gripper_size+option
 
     # time distributed or not
+    robot0 = robot
     if time_distributed is not None and time_distributed > 0:
         tile_shape = (1, 1, tile_width, tile_height, 1)
         robot = Reshape([time_distributed, 1, 1, reshape_size])(robot)
@@ -93,11 +94,10 @@ def TileArmAndGripper(x, arm_in, gripper_in, tile_width, tile_height,
         robot = Reshape([1, 1, reshape_size])(robot)
 
     # finally perform the actual tiling
-    robot0 = robot
     robot = Lambda(lambda x: K.tile(x, tile_shape))(robot)
     x = Concatenate(axis=-1)([x,robot])
 
-    return x, robot
+    return x, robot0
 
 def TilePose(x, pose_in, tile_width, tile_height,
         option=None, option_in=None,
@@ -268,12 +268,12 @@ def GetImageDecoder(dim, img_shape,
         relu = lambda: Activation('relu')
 
     if not dense:
-        z = Input((width*height*tform_filters,),name="input_image")
+        z = Input((int(width*height*tform_filters),),name="input_image")
         x = Reshape((height,width,tform_filters))(z)
     else:
         print ("dens rep size ", dense_rep_size)
-        z = Input((dense_rep_size,),name="input_latent")
-        x = Dense(height*width*filters,name="dense_input_size")(z)
+        z = Input((int(dense_rep_size),),name="input_latent")
+        x = Dense(int(height*width*filters),name="dense_input_size")(z)
         if batchnorm:
             x = BatchNormalization()(x)
         x = relu()(x)
@@ -630,16 +630,11 @@ def GetImageArmGripperDecoder(dim, img_shape,
     else:
         x = rep[0]
 
-    """
-    x = Dense(dense_size)(x)
-    x = BatchNormalization()(x)
-    if leaky:
-        x = LeakyReLU(0.2)(x)
-    else:
-        x = Activation("relu")(x)
-    if dropout:
-        x = Dropout(dropout_rate)(x)
-    """
+    if robot_skip is not None:
+        size = [int(d) for d in robot_skip.shape[1:]]
+        robot_skip_in = Input(size,name="robot_state_skip_in")
+        rep += [robot_skip_in]
+        x = Concatenate()([x, robot_skip_in])
 
     x1 = DenseHelper(x, 2*dense_size, dropout_rate, 2)
     x2 = DenseHelper(x, 2*dense_size, dropout_rate, 2)
@@ -761,19 +756,16 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
     if len(extra) > 0:
         x = Concatenate()([x] + extra)
     for j in range(num_blocks):
-        if not resnet_blocks:
-            x = Dense(dim,name="dense_%d_%d"%(idx,j))(x)
-            if batchnorm:
-                x = BatchNormalization(name="normalize_%d_%d"%(idx,j))(x)
-            if relu:
-                if leaky:
-                    x = LeakyReLU(0.2,name="lrelu_%d_%d"%(idx,j))(x)
-                else:
-                    x = Activation("relu",name="relu_%d_%d"%(idx,j))(x)
-            if dropout:
-                x = Dropout(dropout_rate)(x)
-        else:
-            raise RuntimeError('resnet not supported for transform')
+        x = Dense(dim,name="dense_%d_%d"%(idx,j))(x)
+        if batchnorm:
+            x = BatchNormalization(name="normalize_%d_%d"%(idx,j))(x)
+        if relu:
+            if leaky:
+                x = LeakyReLU(0.2,name="lrelu_%d_%d"%(idx,j))(x)
+            else:
+                x = Activation("relu",name="relu_%d_%d"%(idx,j))(x)
+        if dropout:
+            x = Dropout(dropout_rate)(x)
 
     # =========================================================================
     # In this block we divide into two separate paths:
@@ -805,7 +797,7 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
         return Model([xin] + extra, [x, mu, sigma], name="transform%d"%idx)
 
 
-def GetNextOptionAndValue(x, num_options, dense_size, option_in=None):
+def GetNextOptionAndValue(x, num_options, dense_size, dropout_rate=0.5, option_in=None):
     '''
     Predict some information about an observed/encoded world state
 
@@ -819,10 +811,10 @@ def GetNextOptionAndValue(x, num_options, dense_size, option_in=None):
     if option_in is not None:
         option_x = OneHot(num_options)(option_in)
         option_x = Flatten()(option_x)
-        x = Concatenate()([x, option_in])
+        x = Concatenate()([x, option_x])
 
-    x1 = DenseHelper(x, dense_size, 0.5, 1)
-    x2 = DenseHelper(x, dense_size, 0.5, 1)
+    x1 = DenseHelper(x, int(2*dense_size), dropout_rate, 1)
+    x2 = DenseHelper(x, dense_size, dropout_rate, 1)
 
     next_option_out = Dense(num_options,
             activation="softmax", name="next_label_out",)(x1)
@@ -896,6 +888,15 @@ def GetHypothesisProbability(x, num_hypotheses, num_options, labels,
 def OneHot(size=64):
     return Lambda(lambda x: tf.one_hot(tf.cast(x, tf.int32),size))#,name="label_to_one_hot")
 
+def AddOptionTiling(x, option_length, option_in, height, width):
+    tile_shape = (1, width, height, 1)
+    option = Reshape([1,1,option_length])(option_in)
+    option = Lambda(lambda x: K.tile(x, tile_shape))(option)
+    x = Concatenate(
+            axis=-1,
+            name="add_option_%dx%d"%(width,height),
+        )([x, option])
+    return x
 
 def GetActor(enc0, enc_h, supervisor, label_out, num_hypotheses, *args, **kwargs):
     '''

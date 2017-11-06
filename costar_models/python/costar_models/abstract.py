@@ -84,10 +84,12 @@ class AbstractAgentBasedModel(object):
             self.use_noise = False
         if self.sampling:
             self.use_noise = False
-        if self.task is not None:
-            self.name += "_%s"%self.task
-        if self.features is not None:
-            self.name += "_%s"%self.features   
+        # NOTE: removed because it's used inconsistently.
+        # TODO: add this again
+        #if self.task is not None:
+        #    self.name += "_%s"%self.task
+        #if self.features is not None:
+        #    self.name += "_%s"%self.features   
 
         # Define previous option for when executing -- this should default to
         # None, set to 2 for testing only
