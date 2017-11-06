@@ -394,7 +394,7 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
     #   "Learning visual feature spaces for robotic manipulation with
     #   deep spatial autoencoders." Finn et al.,
     #   http://arxiv.org/abs/1509.06113.
-    if use_spatial_softmax:
+    if dense and use_spatial_softmax:
         def _ssm(x):
             return spatial_softmax(x)
         x = Lambda(_ssm,name="encoder_spatial_softmax")(x)

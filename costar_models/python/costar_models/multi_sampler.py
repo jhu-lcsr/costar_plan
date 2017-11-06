@@ -39,7 +39,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         self.num_frames = 1
         self.img_num_filters = 64
-        self.tform_filters = 32
+        self.tform_filters = 16
         self.num_hypotheses = 4
         self.validation_split = 0.05
         self.num_options = 48
@@ -48,7 +48,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Layer and model configuration
         self.extra_layers = 1
-        self.use_spatial_softmax=True
+        self.use_spatial_softmax = True
+        self.dense_representation = False
         if self.use_spatial_softmax and self.dense_representation:
             self.steps_down = 1
             self.steps_down_no_skip = 0
@@ -62,7 +63,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             self.steps_down_no_skip = 3
             self.steps_up = 4
             self.steps_up_no_skip = 3
-            self.encoder_stride1_steps = 0
+            self.encoder_stride1_steps = 1
             self.padding = "same"
 
         self.num_actor_policy_layers = 2
@@ -140,7 +141,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # =====================================================================
         # Create the encoder and decoder networks -- these are sub-networks
         # that we may find useful in different situations.
-        ins, enc, _ = self._makeImageEncoder(img_shape)
+        img_in = Input(img_shape,name="predictor_img_in")
+        encoder = self._makeImageEncoder(img_shape)
         decoder = self._makeImageDecoder(img_shape)
 
         # ===================================================================
@@ -813,7 +815,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 option=None,
                 output_filters=self.tform_filters,
                 )
-        return ins, enc, skips
+        image_encoder = Model(ins, enc, name="image_encoder")
+        image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
+        self.image_encoder = image_encoder
+        return image_encoder
 
     def _makeDecoder(self, img_shape, arm_size, gripper_size,
             skips=None,
@@ -868,7 +873,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         kernel_size=kernel_size,
                         filters=self.img_num_filters,
                         stride2_layers=self.steps_up,
-                        stride1_layers=self.extra_layers,
                         tform_filters=self.tform_filters,
                         stride2_layers_no_skip=self.steps_up_no_skip,
                         dropout=self.hypothesis_dropout,
@@ -879,7 +883,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         skips=skips,
                         original=None,
                         resnet_blocks=self.residual,
+                        num_hypotheses=None,
                         batchnorm=True,)
+        print (dec)
         decoder = Model(rep, dec, name="image_decoder")
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         return decoder

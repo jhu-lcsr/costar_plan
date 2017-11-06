@@ -32,6 +32,7 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
         '''
         super(PretrainImageAutoencoder, self).__init__(taskdef, *args, **kwargs)
         self.PredictorCb = ImageCb
+        self.skip_connections = False
 
     def _makePredictor(self, features):
         '''
@@ -45,14 +46,19 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
         else:
             gripper_size = 1
 
-        ins, enc, _ = self._makeImageEncoder(img_shape)
+
+        img_in = Input(img_shape,name="predictor_img_in")
+        encoder = self._makeImageEncoder(img_shape)
+        enc = encoder(img_in)
+        
         decoder = self._makeImageDecoder(img_shape)
+        encoder.summary()
         out = decoder(enc)
-        ae = Model(ins, out)
+        ae = Model([img_in], out)
         ae.compile(loss="mae", optimizer=self.getOptimizer())
         ae.summary()
     
-        return ae, ae, None, ins, enc
+        return ae, ae, None, [img_in], enc
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
