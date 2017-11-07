@@ -310,8 +310,6 @@ class VREPGraspSimulation(object):
         # verify that another transform path gets the same result
         camera_T_base_ptrans = grasp_geometry.matrix_to_ptransform(camera_to_base_4x4matrix)
         camera_to_base_vec_quat_7_ptransform_conversion_test = grasp_geometry.ptransform_to_vector_quaternion_array(camera_T_base_ptrans)
-        display_name = 'camera_T_base_vec_quat_7_ptransform_conversion_test'
-        self.create_dummy(display_name, camera_to_base_vec_quat_7_ptransform_conversion_test, parent_handle)
         assert(grasp_geometry.vector_quaternion_arrays_allclose(camera_to_base_vec_quat_7, camera_to_base_vec_quat_7_ptransform_conversion_test))
         # verify that another transform path gets the same result
         base_T_camera_ptrans = camera_T_base_ptrans.inv()
@@ -342,9 +340,10 @@ class VREPGraspSimulation(object):
                 base_T_endeffector_vec_quat_feature
             )
             # update the camera to base transform so we can visually ensure consistency
-            camera_T_base_handle = self.create_dummy('camera_T_base', camera_to_base_vec_quat_7, parent_handle)
             base_to_camera_vec_quat_7 = grasp_geometry.ptransform_to_vector_quaternion_array(base_T_camera_ptrans)
             base_T_camera_handle = self.create_dummy('base_T_camera', base_to_camera_vec_quat_7, parent_handle)
+            camera_T_base_handle = self.create_dummy('camera_T_base', camera_to_base_vec_quat_7, base_T_camera_handle)
+            self.create_dummy('camera_T_base_vec_quat_7_ptransform_conversion_test', camera_to_base_vec_quat_7_ptransform_conversion_test, base_T_camera_handle)
 
             # test that the base_T_endeffector -> ptransform -> vec_quat_7 roundtrip returns the same transform
             base_T_endeffector_vec_quat = grasp_geometry.ptransform_to_vector_quaternion_array(base_T_endeffector_ptrans)
@@ -404,7 +403,7 @@ class VREPGraspSimulation(object):
                 depth_point_dummy_ptrans = grasp_geometry.vector_to_ptransform(ee_cloud_point)
                 depth_point_display_name = str(i).zfill(2) + '_depth_point'
                 depth_point_vec_quat = grasp_geometry.ptransform_to_vector_quaternion_array(depth_point_dummy_ptrans)
-                depth_point_dummy_handle = self.create_dummy(depth_point_display_name, depth_point_vec_quat, camera_T_base_handle)
+                depth_point_dummy_handle = self.create_dummy(depth_point_display_name, depth_point_vec_quat, base_T_camera_handle)
 
                 # get the transform for the gripper relative to the key depth point and display it
                 # it should coincide with the gripper pose if done correctly
