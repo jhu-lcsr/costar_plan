@@ -34,7 +34,7 @@ end
 createDummy_function=function(inInts, inFloats, inStrings, inBuffer)
     -- Create a dummy object with specific name and coordinates
     if #inStrings>=1 and #inFloats>=3 then
-        dummyHandle=-1
+        local dummyHandle=-1
         -- Get the existing dummy object's handle or create a new one
         if pcall(function()
             dummyHandle=simGetObjectHandle(inStrings[1])

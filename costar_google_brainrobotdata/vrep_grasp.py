@@ -3,6 +3,7 @@
 # from __future__ import unicode_literals
 import os
 import errno
+import traceback
 
 import numpy as np
 
@@ -64,7 +65,7 @@ class VREPGraspSimulation(object):
     def __init__(self):
         """Start the connection to the remote V-REP simulation
         """
-        print 'Program started'
+        print('Program started')
         # just in case, close all opened connections
         vrep.simxFinish(-1)
         # Connect to V-REP
@@ -75,7 +76,9 @@ class VREPGraspSimulation(object):
                                         FLAGS.vrepTimeOutInMs,
                                         FLAGS.vrepCommThreadCycleInMs)
         if self.client_id != -1:
-            print 'Connected to remote API server'
+            print('Connected to remote API server')
+        else:
+            print('Error connecting to remote API server')
         return
 
     def create_dummy(self, display_name, transform, parent_handle=-1):
@@ -103,7 +106,8 @@ class VREPGraspSimulation(object):
             # display the reply from V-REP (in this case, the handle of the created dummy)
             print ('Dummy name:', display_name, ' handle: ', ret_ints[0], ' transform: ', transform)
         else:
-            print 'create_dummy remote function call failed.'
+            print('create_dummy remote function call failed.')
+            print(''.join(traceback.format_stack()))
             return -1
         return ret_ints[0]
 
@@ -132,7 +136,8 @@ class VREPGraspSimulation(object):
             # display the reply from V-REP (in this case, the handle of the created dummy)
             print ('SetPose object name:', display_name, ' handle: ', ret_ints[0], ' transform: ', transform)
         else:
-            print 'setPose remote function call failed.'
+            print('setPose remote function call failed.')
+            print(''.join(traceback.format_stack()))
             return -1
         return ret_ints[0]
 
@@ -223,7 +228,8 @@ class VREPGraspSimulation(object):
                 self.setPose(display_name, transform, parent_handle)
                 return ret_ints[0]
             else:
-                print 'insertPointCloud_function remote function call failed.'
+                print('insertPointCloud_function remote function call failed.')
+                print(''.join(traceback.format_stack()))
                 return -1
         else:
             print('createPointCloud_function remote function call failed')
@@ -241,7 +247,7 @@ class VREPGraspSimulation(object):
         error_code, parent_handle = vrep.simxGetObjectHandle(self.client_id, parent_name, vrep.simx_opmode_blocking)
         if error_code is -1:
             parent_handle = -1
-            print 'could not find object with the specified name, so putting objects in world frame:', parent_name
+            print('could not find object with the specified name, so putting objects in world frame:', parent_name)
 
         for attempt_num in range(num_samples / batch_size):
             # load data from the next grasp attempt
@@ -319,28 +325,28 @@ class VREPGraspSimulation(object):
         camera_to_base_4x4matrix = features_dict_np[camera_to_base_transform_name]
         print('camera/transforms/camera_T_base/matrix44: \n', camera_to_base_4x4matrix)
         camera_to_base_vec_quat_7 = grasp_geometry.matrix_to_vector_quaternion_array(camera_to_base_4x4matrix)
-        camera_T_base_handle = self.create_dummy('camera_T_base', camera_to_base_vec_quat_7, parent_handle)
         # verify that another transform path gets the same result
         camera_T_base_ptrans = grasp_geometry.matrix_to_ptransform(camera_to_base_4x4matrix)
         camera_to_base_vec_quat_7_ptransform_conversion_test = grasp_geometry.ptransform_to_vector_quaternion_array(camera_T_base_ptrans)
         assert(grasp_geometry.vector_quaternion_arrays_allclose(camera_to_base_vec_quat_7, camera_to_base_vec_quat_7_ptransform_conversion_test))
         # verify that another transform path gets the same result
         base_T_camera_ptrans = camera_T_base_ptrans.inv()
+        base_to_camera_vec_quat_7 = grasp_geometry.ptransform_to_vector_quaternion_array(base_T_camera_ptrans)
+        base_T_camera_handle = self.create_dummy('base_T_camera', base_to_camera_vec_quat_7, parent_handle)
+        camera_T_base_handle = self.create_dummy('camera_T_base', camera_to_base_vec_quat_7, base_T_camera_handle)
 
         # TODO(ahundt) check that ptransform times its inverse is identity, or very close to it
         identity = sva.PTransformd.Identity()
         should_be_identity = base_T_camera_ptrans * camera_T_base_ptrans
 
         base_to_camera_vec_quat_7_ptransform_conversion_test = grasp_geometry.ptransform_to_vector_quaternion_array(base_T_camera_ptrans)
-        display_name = 'base_to_camera_vec_quat_7_ptransform_conversion_test'
-        self.create_dummy(display_name, base_to_camera_vec_quat_7_ptransform_conversion_test, parent_handle)
-        # gripper_positions = [features_dict_np[base_T_endeffector_vec_quat_feature_name] for
-        #                      base_T_endeffector_vec_quat_feature_name in base_to_endeffector_transforms]
+        # Make sure converting to a ptransform and back to a quaternion generates a sensible transform
+        self.create_dummy('base_to_camera_vec_quat_7_ptransform_conversion_test', base_to_camera_vec_quat_7_ptransform_conversion_test, parent_handle)
+
         for i, base_T_endeffector_vec_quat_feature_name, depth_name, rgb_name in zip(range(len(base_to_endeffector_transforms)),
                                                                                      base_to_endeffector_transforms,
                                                                                      depth_image_features, rgb_image_features):
             # 2. Now create a dummy object at coordinate 0.1,0.2,0.3 with name 'MyDummyName':
-            empty_buffer = bytearray()
             # 3 cartesian (x, y, z) and 4 quaternion (x, y, z, w) elements, same as vrep
             base_T_endeffector_vec_quat_feature = features_dict_np[base_T_endeffector_vec_quat_feature_name]
             # display the raw base to endeffector feature
@@ -353,10 +359,10 @@ class VREPGraspSimulation(object):
                 base_T_endeffector_vec_quat_feature
             )
             # update the camera to base transform so we can visually ensure consistency
-            base_to_camera_vec_quat_7 = grasp_geometry.ptransform_to_vector_quaternion_array(base_T_camera_ptrans)
+            # while this is run above, this second run validates the correctness of grasp_dataset_to_ptransform()
+            self.create_dummy('camera_T_base_vec_quat_7_ptransform_conversion_test', camera_to_base_vec_quat_7_ptransform_conversion_test, base_T_camera_handle)
             base_T_camera_handle = self.create_dummy('base_T_camera', base_to_camera_vec_quat_7, parent_handle)
             camera_T_base_handle = self.create_dummy('camera_T_base', camera_to_base_vec_quat_7, base_T_camera_handle)
-            self.create_dummy('camera_T_base_vec_quat_7_ptransform_conversion_test', camera_to_base_vec_quat_7_ptransform_conversion_test, base_T_camera_handle)
 
             # test that the base_T_endeffector -> ptransform -> vec_quat_7 roundtrip returns the same transform
             base_T_endeffector_vec_quat = grasp_geometry.ptransform_to_vector_quaternion_array(base_T_endeffector_ptrans)
@@ -437,32 +443,30 @@ class VREPGraspSimulation(object):
                        grasp_sequence_max_time_step, camera_intrinsics_matrix, vrepDebugMode, dataset_name, attempt_num,
                        grasp_success_feature_name, visualization_dir, camera_to_base_vec_quat_7, parent_handle):
         rgb_image = features_dict_np[rgb_name]
-        print rgb_name, rgb_image.shape, rgb_image
+        # print rgb_name, rgb_image.shape, rgb_image
         # TODO(ahundt) move depth image creation into tensorflow ops
         # TODO(ahundt) check scale
         # TODO(ahundt) move squeeze steps into dataset api if possible
         depth_image_float_format = np.squeeze(features_dict_np[depth_name])
         if np.count_nonzero(depth_image_float_format) is 0:
-            print 'WARNING: DEPTH IMAGE IS ALL ZEROS'
+            print('WARNING: DEPTH IMAGE IS ALL ZEROS')
         print depth_name, depth_image_float_format.shape, depth_image_float_format
         if ((grasp_sequence_min_time_step is None or i >= grasp_sequence_min_time_step) and
                 (grasp_sequence_max_time_step is None or i <= grasp_sequence_max_time_step)):
             # only output one depth image while debugging
             # mp.pyplot.imshow(depth_image_float_format, block=True)
-            print 'plot done'
-            # TODO(ahundt) uncomment next line after debugging is done
+            # print 'plot done'
             point_cloud = depth_image_to_point_cloud(depth_image_float_format, camera_intrinsics_matrix)
             if 'fixed_depth' in vrepDebugMode:
                 point_cloud = depth_image_to_point_cloud(np.ones(depth_image_float_format.shape), camera_intrinsics_matrix)
-            print 'point_cloud.shape:', point_cloud.shape, 'rgb_image.shape:', rgb_image.shape
+            print('point_cloud.shape:', point_cloud.shape, 'rgb_image.shape:', rgb_image.shape)
             point_cloud_detailed_name = ('point_cloud_' + str(dataset_name) + '_' + str(attempt_num) + '_' + str(i).zfill(2) +
                                          '_rgbd_' + depth_name.replace('/depth_image/decoded', '').replace('/', '_') +
                                          '_success_' + str(int(features_dict_np[grasp_success_feature_name])))
             print(point_cloud_detailed_name)
 
-            # print 'point_cloud:', point_cloud.transpose()[:30, :3]
             path = os.path.join(visualization_dir, point_cloud_detailed_name + '.ply')
-            print 'point_cloud.size:', point_cloud.size
+            print('point_cloud.size:', point_cloud.size)
             xyz = point_cloud.reshape([point_cloud.size/3, 3])
             rgb = np.squeeze(rgb_image).reshape([point_cloud.size/3, 3])
 
