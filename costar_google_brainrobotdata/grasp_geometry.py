@@ -270,7 +270,7 @@ def surface_relative_transform(depth_image,
     # TODO(ahundt) is this the right axis ordering for the translation component
     camera_T_cloud_point_ptrans = vector_to_ptransform(XYZ)
     # transform point all the way to depth frame
-    depth_pixel_T_endeffector_ptrans = camera_T_cloud_point_ptrans * camera_T_endeffector.inv()
+    depth_pixel_T_endeffector_ptrans = camera_T_endeffector * camera_T_cloud_point_ptrans.inv()
     # get the depth relative transform
     # TODO(ahundt) maybe the rotation component of this needs to be inverted due to sva implementation?
     depth_relative_vec_quat_array = ptransform_to_vector_quaternion_array(depth_pixel_T_endeffector_ptrans)
