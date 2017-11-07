@@ -152,6 +152,7 @@ Useful notes:
 
 ### Pretraining the Image Encoder
 
+Pretraining has been a critical part of many of the examples of previous work we have looked at when designing the predictor networks. To help leverage these models, we have a separate training pipeline that (1) learns encoders and decoders to generate possible goals, and (2) then uses this learned representation for the predictor network.
 
 ```
 rosrun costar_models ctp_model_tool --data_file rpy.npz \
@@ -171,6 +172,25 @@ rosrun costar_models ctp_model_tool --data_file rpy.npz \
   --hypothesis_dropout 1  \
   --steps_per_epoch 300 --load_model
 ```
+
+Another option is something like this:
+```
+rosrun costar_models ctp_model_tool --data_file rpy.npz \
+  --model pretrain_image_encoder \
+  -e 1000 --features multi \
+  --batch_size 48  \
+  --optimizer adam \
+  --lr 0.001 \
+  --upsampling conv_transpose \
+  --use_noise true \
+  --noise_dim 32  \
+  --steps_per_epoch 300 \
+  --dropout_rate 0.1 \
+  --skip_connections 1 \
+  --hypothesis_dropout 1 --decoder_dropout_rate 0.1
+```
+
+Regardless, adding dropout to the decoder notably slows the learning process, but it does seem to be very important as far as getting good results. Also, using MSE instead of MAE for the autoencoder regression target helps.
 
 ## Goal Sampler Model
 

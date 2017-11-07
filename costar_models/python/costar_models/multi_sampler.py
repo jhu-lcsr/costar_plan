@@ -802,7 +802,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         img_shape,
                         dropout_rate=self.decoder_dropout_rate,
                         dense_size=self.combined_dense_size,
-                        kernel_size=self.decoder_kernel_size,
+                        kernel_size=[5,5],
                         filters=self.img_num_filters,
                         stride2_layers=self.steps_up,
                         stride1_layers=self.extra_layers,
@@ -877,6 +877,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
         x = AddConv2DTranspose(x, 32, [5,5], 1, dr)
         x = Conv2D(3, kernel_size=[1,1], strides=(1,1),name="convert_to_rgb")(x)
+        x = Activation("sigmoid")(x)
         decoder = Model(rep, x, name="image_decoder")
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         return decoder
