@@ -7,7 +7,7 @@ import errno
 import numpy as np
 
 try:
-    import vrep.vrep as v
+    import vrep.vrep as vrep
 except:
     print ('--------------------------------------------------------------')
     print ('"vrep.py" could not be imported. This means very probably that')
@@ -36,7 +36,7 @@ from depth_image_encoding import depth_image_to_point_cloud
 # alternatives to consider:
 # https://github.com/adamlwgriffiths/Pyrr
 # https://github.com/KieranWynn/pyquaternion
-import eigen as e  # https://github.com/jrl-umi3218/Eigen3ToPython
+import eigen  # https://github.com/jrl-umi3218/Eigen3ToPython
 import sva  # https://github.com/jrl-umi3218/SpaceVecAlg
 # import matplotlib as mp
 
@@ -66,14 +66,14 @@ class VREPGraspSimulation(object):
         """
         print 'Program started'
         # just in case, close all opened connections
-        v.simxFinish(-1)
+        vrep.simxFinish(-1)
         # Connect to V-REP
-        self.client_id = v.simxStart(FLAGS.vrepConnectionAddress,
-                                     FLAGS.vrepConnectionPort,
-                                     FLAGS.vrepWaitUntilConnected,
-                                     FLAGS.vrepDoNotReconnectOnceDisconnected,
-                                     FLAGS.vrepTimeOutInMs,
-                                     FLAGS.vrepCommThreadCycleInMs)
+        self.client_id = vrep.simxStart(FLAGS.vrepConnectionAddress,
+                                        FLAGS.vrepConnectionPort,
+                                        FLAGS.vrepWaitUntilConnected,
+                                        FLAGS.vrepDoNotReconnectOnceDisconnected,
+                                        FLAGS.vrepTimeOutInMs,
+                                        FLAGS.vrepCommThreadCycleInMs)
         if self.client_id != -1:
             print 'Connected to remote API server'
         return
@@ -89,17 +89,17 @@ class VREPGraspSimulation(object):
         """
         # 2. Now create a dummy object at coordinate 0.1,0.2,0.3 with name 'MyDummyName':
         empty_buffer = bytearray()
-        res, ret_ints, ret_floats, ret_strings, ret_buffer = v.simxCallScriptFunction(
+        res, ret_ints, ret_floats, ret_strings, ret_buffer = vrep.simxCallScriptFunction(
             self.client_id,
             'remoteApiCommandServer',
-            v.sim_scripttype_childscript,
+            vrep.sim_scripttype_childscript,
             'createDummy_function',
             [parent_handle],
             transform,
             [display_name],
             empty_buffer,
-            v.simx_opmode_blocking)
-        if res == v.simx_return_ok:
+            vrep.simx_opmode_blocking)
+        if res == vrep.simx_return_ok:
             # display the reply from V-REP (in this case, the handle of the created dummy)
             print ('Dummy name:', display_name, ' handle: ', ret_ints[0], ' transform: ', transform)
         else:
@@ -118,17 +118,17 @@ class VREPGraspSimulation(object):
         """
         # 2. Now create a dummy object at coordinate 0.1,0.2,0.3 with name 'MyDummyName':
         empty_buffer = bytearray()
-        res, ret_ints, ret_floats, ret_strings, ret_buffer = v.simxCallScriptFunction(
+        res, ret_ints, ret_floats, ret_strings, ret_buffer = vrep.simxCallScriptFunction(
             self.client_id,
             'remoteApiCommandServer',
-            v.sim_scripttype_childscript,
+            vrep.sim_scripttype_childscript,
             'createDummy_function',
             [parent_handle],
             transform,
             [display_name],
             empty_buffer,
-            v.simx_opmode_blocking)
-        if res == v.simx_return_ok:
+            vrep.simx_opmode_blocking)
+        if res == vrep.simx_return_ok:
             # display the reply from V-REP (in this case, the handle of the created dummy)
             print ('SetPose object name:', display_name, ' handle: ', ret_ints[0], ' transform: ', transform)
         else:
@@ -136,49 +136,54 @@ class VREPGraspSimulation(object):
             return -1
         return ret_ints[0]
 
-    def create_point_cloud(self, display_name, points, transform, color_image=None, parent_handle=-1, clear=True):
+    def create_point_cloud(self, display_name, points, transform, color_image=None, parent_handle=-1, clear=True,
+                           max_voxel_size=0.01, max_point_count_per_voxel=10, point_size=10, options=0):
         """Create a dummy object in the simulation
 
         # Arguments
 
-            transform_display_name: name string to use for the object in the vrep scene
-            transform: 3 cartesian (x, y, z) and 4 quaternion (x, y, z, w) elements, same as vrep
+            display_name: name string to use for the object in the vrep scene
+            transform: [x, y, z, qw, qx, qy, qz] with 3 cartesian (x, y, z) and 4 quaternion (qx, qy, qz, qw) elements, same as vrep
             parent_handle: -1 is the world frame, any other int should be a vrep object handle
             clear: clear the point cloud if it already exists with the provided display name
+            maxVoxelSize: the maximum size of the octree voxels containing points
+            maxPtCntPerVoxel: the maximum number of points allowed in a same octree voxel
+            options: bit-coded:
+            bit0 set (1): points have random colors
+            bit1 set (2): show octree structure
+            bit2 set (4): reserved. keep unset
+            bit3 set (8): do not use an octree structure. When enabled, point cloud operations are limited, and point clouds will not be collidable, measurable or detectable anymore, but adding points will be much faster
+            bit4 set (16): color is emissive
+            pointSize: the size of the points, in pixels
+            reserved: reserved for future extensions. Set to NULL
         """
-        # 2. Now create a dummy object at coordinate 0.1,0.2,0.3 with name 'MyDummyName':
-        empty_buffer = bytearray()
-        # strings = [display_name, unicode(points.flatten().tostring(), 'utf-8')]
-        # for when the numpy array can be packed in a byte string
-        # strings = [display_name, points.flatten().tostring()]
+        # color_buffer is initially empty
+        color_buffer = bytearray()
         strings = [display_name]
-        #     # for when the numpy array can be packed in a byte string
-        #     strings.extend(color_image.flatten().tostring())
         transform_entries = 7
-        print 'points.size:', points.size
-        if clear is True:
+        if clear:
             clear = 1
         else:
             clear = 0
 
         cloud_handle = -1
-
         # Create the point cloud if it does not exist, or retrieve the handle if it does
-        res, ret_ints, ret_floats, ret_strings, ret_buffer = v.simxCallScriptFunction(
+        res, ret_ints, ret_floats, ret_strings, ret_buffer = vrep.simxCallScriptFunction(
             self.client_id,
             'remoteApiCommandServer',
-            v.sim_scripttype_childscript,
+            vrep.sim_scripttype_childscript,
             'createPointCloud_function',
-            [parent_handle, transform_entries, points.size, cloud_handle, clear],
-            # np.append(transform, points),
-            [],
-            # for when the double array can be packed in a byte string
-            # transform,
+            # int params
+            [parent_handle, transform_entries, points.size, cloud_handle, clear, max_point_count_per_voxel, options, point_size],
+            # float params
+            [max_voxel_size],
+            # string params
             strings,
-            empty_buffer,
-            v.simx_opmode_blocking)
+            # byte buffer params
+            color_buffer,
+            vrep.simx_opmode_blocking)
 
-        if res == v.simx_return_ok:
+        if res == vrep.simx_return_ok:
             cloud_handle = ret_ints[0]
 
             # convert the rgb values to a string
@@ -192,7 +197,7 @@ class VREPGraspSimulation(object):
                 # 3 indicates the cloud should be in the parent frame, and color is enabled
                 # bit 2 is 1 so each point is colored
                 simInsertPointsIntoPointCloudOptions = 3
-                empty_buffer = bytearray(color_image.flatten().tobytes())
+                color_buffer = bytearray(color_image.flatten().tobytes())
                 color_size = color_image.size
             else:
                 strings = [display_name]
@@ -202,21 +207,19 @@ class VREPGraspSimulation(object):
                 simInsertPointsIntoPointCloudOptions = 1
 
             # Actually transfer the point cloud
-            res, ret_ints, ret_floats, ret_strings, ret_buffer = v.simxCallScriptFunction(
+            res, ret_ints, ret_floats, ret_strings, ret_buffer = vrep.simxCallScriptFunction(
                 self.client_id,
                 'remoteApiCommandServer',
-                v.sim_scripttype_childscript,
+                vrep.sim_scripttype_childscript,
                 'insertPointCloud_function',
                 [parent_handle, transform_entries, points.size, cloud_handle, color_size, simInsertPointsIntoPointCloudOptions],
-                # np.append(transform, points),
                 np.append(points, []),
-                # for when the double array can be packed in a byte string
-                # transform,
                 strings,
-                empty_buffer,
-                v.simx_opmode_blocking)
-            if res == v.simx_return_ok:
+                color_buffer,
+                vrep.simx_opmode_blocking)
+            if res == vrep.simx_return_ok:
                 print ('point cloud handle: ', ret_ints[0])  # display the reply from V-REP (in this case, the handle of the created dummy)
+                # set the transform for the point cloud
                 self.setPose(display_name, transform, parent_handle)
                 return ret_ints[0]
             else:
@@ -235,7 +238,7 @@ class VREPGraspSimulation(object):
 
         tf_session.run(tf.global_variables_initializer())
 
-        error_code, parent_handle = v.simxGetObjectHandle(self.client_id, parent_name, v.simx_opmode_blocking)
+        error_code, parent_handle = vrep.simxGetObjectHandle(self.client_id, parent_name, vrep.simx_opmode_blocking)
         if error_code is -1:
             parent_handle = -1
             print 'could not find object with the specified name, so putting objects in world frame:', parent_name
@@ -478,23 +481,23 @@ class VREPGraspSimulation(object):
         Reference code: https://github.com/nemilya/vrep-api-python-opencv/blob/master/handle_vision_sensor.py
         V-REP Docs: http://www.coppeliarobotics.com/helpFiles/en/remoteApiFunctionsPython.htm#simxSetVisionSensorImage
         """
-        res, kcam_rgb_handle = v.simxGetObjectHandle(self.client_id, 'kcam_rgb', v.simx_opmode_oneshot_wait)
+        res, kcam_rgb_handle = vrep.simxGetObjectHandle(self.client_id, 'kcam_rgb', vrep.simx_opmode_oneshot_wait)
         print('kcam_rgb_handle: ', kcam_rgb_handle)
         rgb_for_display = rgb.astype('uint8')
         rgb_for_display = rgb_for_display.ravel()
         is_color = 1
-        res = v.simxSetVisionSensorImage(self.client_id, kcam_rgb_handle, rgb_for_display, is_color, v.simx_opmode_oneshot)
+        res = vrep.simxSetVisionSensorImage(self.client_id, kcam_rgb_handle, rgb_for_display, is_color, vrep.simx_opmode_oneshot)
         print('simxSetVisionSensorImage rgb result: ', res, ' rgb shape: ', rgb.shape)
-        res, kcam_depth_handle = v.simxGetObjectHandle(self.client_id, 'kcam_depth', v.simx_opmode_oneshot_wait)
+        res, kcam_depth_handle = vrep.simxGetObjectHandle(self.client_id, 'kcam_depth', vrep.simx_opmode_oneshot_wait)
         normalized_depth = depth_image_float_format * 255 / depth_image_float_format.max()
         normalized_depth = normalized_depth.astype('uint8')
         normalized_depth = normalized_depth.ravel()
         is_color = 0
-        res = v.simxSetVisionSensorImage(self.client_id, kcam_depth_handle, normalized_depth, is_color, v.simx_opmode_oneshot)
+        res = vrep.simxSetVisionSensorImage(self.client_id, kcam_depth_handle, normalized_depth, is_color, vrep.simx_opmode_oneshot)
         print('simxSetVisionSensorImage depth result: ', res, ' depth shape: ', depth_image_float_format.shape)
 
     def __del__(self):
-        v.simxFinish(-1)
+        vrep.simxFinish(-1)
 
 
 if __name__ == '__main__':

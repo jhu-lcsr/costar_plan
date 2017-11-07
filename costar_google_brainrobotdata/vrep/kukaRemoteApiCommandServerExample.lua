@@ -53,14 +53,18 @@ end
 
 createPointCloud_function=function(inInts,inFloats,inStrings,inBuffer)
     -- Create a point cloud with specific name and coordinates, plus the option to clear an existing cloud.
-    if #inStrings>=1 and #inInts>=5 then
-        cloudHandle=-1
+    if #inStrings>=1 and #inInts>=8 and #inFloats>=1 then
+        local cloudHandle=-1
         -- Get the existing point cloud's handle or create a new one
         if pcall(function()
             cloudHandle=simGetObjectHandle(inStrings[1])
         end) == false then
             -- create a new cloud if none exists
-            cloudHandle=simCreatePointCloud(0.01, 10, 0, 10)
+            local maxVoxelSize = inFloats[1]
+            local max_point_count_per_voxel = inInts[6]
+            local options = inInts[7]
+            local pointSize = inInts[8]
+            cloudHandle=simCreatePointCloud(maxVoxelSize, max_point_count_per_voxel, options, pointSize)
             -- Update the name of the cloud
             setObjectName(cloudHandle, inStrings[1])
         end
@@ -72,6 +76,8 @@ createPointCloud_function=function(inInts,inFloats,inStrings,inBuffer)
         -- Set the pose
         local parent_handle=inInts[1]
         return {cloudHandle},{},{},'' -- return the handle of the created dummy
+    else
+        simAddStatusbarMessage('createPointCloud_function call failed because incorrect parameters were passed.')
     end
 end
 
@@ -80,8 +86,8 @@ insertPointCloud_function=function(inInts,inFloats,inStrings,inBuffer)
     -- inFloats contains the point cloud points
     -- inBuffer contains the pixel colors
     -- Create a dummy object with specific name and coordinates
-    if #inStrings>=1 and #inFloats>=3 then
-        cloudHandle=-1
+    if #inStrings>=1 and #inInts>=6 then
+        local cloudHandle=-1
         -- Get the existing point cloud's handle or create a new one
         if pcall(function()
             cloudHandle=simGetObjectHandle(inStrings[1])
@@ -97,21 +103,21 @@ insertPointCloud_function=function(inInts,inFloats,inStrings,inBuffer)
         -- commented because we will set position and orientation separately later
         -- setObjectRelativeToParentWithPoseArray(cloudHandle, parent_handle, inFloats)
         -- Get the number of float entries used for the pose
-        poseEntries=inInts[2]
-        cloudFloatCount=inInts[3]
+        local poseEntries=inInts[2]
+        local cloudFloatCount=inInts[3]
         simAddStatusbarMessage('cloudFloatCount: '..cloudFloatCount)
-        pointBatchSize=3000
-        colorBatch=nil
         -- bit 1 is 1 so point clouds in cloud reference frame
-        options = inInts[6]
+        local options = inInts[6]
+
+        local colors = nil
         if options == 3 then
             colors = simUnpackUInt8Table(inBuffer)
-        else
-            colors = nil
         end
         -- Insert the points and color elements into the point cloud
         simInsertPointsIntoPointCloud(cloudHandle, options, inFloats, colors)
         return {cloudHandle},{},{},'' -- return the handle of the created dummy
+    else
+        simAddStatusbarMessage('createPointCloud_function call failed because incorrect parameters were passed.')
     end
 end
 
