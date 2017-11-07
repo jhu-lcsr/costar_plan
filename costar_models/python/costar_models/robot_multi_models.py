@@ -221,13 +221,10 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
 
     '''
 
-    use_arm_gripper = False
     if not config in ["arm", "mobile"]:
         raise RuntimeError("Encoder config type must be in [arm, mobile]")
     elif config == "arm":
         pose_size, gripper_size = state_sizes
-        if pose_size is not None:
-            use_arm_gripper = True
     elif config == "mobile":
         if isinstance(state_sizes,list):
             pose_size = state_sizes[0]
@@ -251,7 +248,6 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
         ApplyTD = lambda x: x
         pose_in = Input((pose_size,),name="pose_position_in")
         if config == "arm":
-        if use_arm_gripper:
             gripper_in = Input((gripper_size,),name="gripper_state_in")
         if option is not None:
             option_in = Input((1,),name="prev_option_in")
@@ -270,7 +266,6 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
         ApplyTD = lambda x: TimeDistributed(x)
         pose_in = Input((time_distributed, pose_size,))
         if config == "arm":
-        if use_arm_gripper:
             gripper_in = Input((time_distributed, gripper_size,))
         if option is not None:
             option_in = Input((time_distributed,1,))
@@ -320,7 +315,7 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
 
     # ===============================================
     # ADD TILING
-    if use_arm_gripper and tile:
+    if tile:
         tile_width = width 
         tile_height = height 
         if option is not None:
