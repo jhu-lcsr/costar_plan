@@ -397,11 +397,11 @@ class VREPGraspSimulation(object):
             if vrepVisualizeSurfaceRelativeTransform:
                 ee_cloud_point, ee_image_coordinate = grasp_geometry.endeffector_image_coordinate_and_cloud_point(
                     clear_frame_depth_image, camera_intrinsics_matrix, camera_T_endeffector_ptrans)
-                print('end_effector cloud point: ', ee_cloud_point, ' end_effector image coordinate: ', ee_image_coordinate)
 
                 # Create a dummy for the key depth point and display it
                 depth_point_dummy_ptrans = grasp_geometry.vector_to_ptransform(ee_cloud_point)
                 depth_point_display_name = str(i).zfill(2) + '_depth_point'
+                print(depth_point_display_name + ': ' + str(ee_cloud_point) + ' end_effector image coordinate: ' + str(ee_image_coordinate))
                 depth_point_vec_quat = grasp_geometry.ptransform_to_vector_quaternion_array(depth_point_dummy_ptrans)
                 depth_point_dummy_handle = self.create_dummy(depth_point_display_name, depth_point_vec_quat, base_T_camera_handle)
 
