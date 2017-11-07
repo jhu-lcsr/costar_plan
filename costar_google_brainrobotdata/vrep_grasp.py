@@ -330,14 +330,14 @@ class VREPGraspSimulation(object):
                 for features_dict_np, sequence_dict_np in output_features_dict:
                     # Visualize the data from a single grasp attempt
                     self._visualize_one_grasp_attempt(
-                            grasp_dataset_object, features_complete_list, features_dict_np, parent_handle,
-                            clear_frame_depth_image_feature,
-                            clear_frame_rgb_image_feature,
-                            depth_image_features,
-                            rgb_image_features,
-                            grasp_success_feature_name,
-                            dataset_name=dataset,
-                            attempt_num=attempt_num)
+                        grasp_dataset_object, features_complete_list, features_dict_np, parent_handle,
+                        clear_frame_depth_image_feature,
+                        clear_frame_rgb_image_feature,
+                        depth_image_features,
+                        rgb_image_features,
+                        grasp_success_feature_name,
+                        dataset_name=dataset,
+                        attempt_num=attempt_num)
             if (attempt_num > FLAGS.vrepVisualizeGraspAttempt_max and not FLAGS.vrepVisualizeGraspAttempt_max == -1):
                 # stop running if we've gone through all the relevant attempts.
                 break
