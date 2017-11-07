@@ -69,15 +69,6 @@ def vector_quaternion_array_to_ptransform(vector_quaternion_array, q_inverse=Tru
     xyzw = eigen.Vector4d(vector_quaternion_array[3:])
     q = eigen.Quaterniond(xyzw)
 
-    # TODO(ahundt) remove this commented code block
-    # Quaterniond(w, x, y, z) is being constructed from:
-    # [x, y, z, qx, qy, qz, qw]
-    # q = eigen.Quaterniond(vector_quaternion_array[6],  # qw
-    #                       vector_quaternion_array[3],  # qx
-    #                       vector_quaternion_array[4],  # qy
-    #                       vector_quaternion_array[5])  # qz
-
-
     # The ptransform needs the rotation component to inverted before construction.
     # see https://github.com/ahundt/grl/blob/master/include/grl/vrep/SpaceVecAlg.hpp#L22 for a well tested example
     # see https://github.com/jrl-umi3218/Tasks/issues/10 for a detailed discussion leading to this conclusion
@@ -266,13 +257,11 @@ def surface_relative_transform(depth_image,
     XYZ, pixel_coordinate_of_endeffector = endeffector_image_coordinate_and_cloud_point(
         depth_image, camera_intrinsics_matrix, camera_T_endeffector, augmentation_rectangle)
 
-    # make an identity quaternion because the pixel will use the camera orientation
-    # TODO(ahundt) is this the right axis ordering for the translation component
+    # Convert the point cloud point to a transform with identity rotation
     camera_T_cloud_point_ptrans = vector_to_ptransform(XYZ)
-    # transform point all the way to depth frame
+    # get the depth pixel to endeffector transform, aka surface relative transform
     depth_pixel_T_endeffector_ptrans = camera_T_endeffector * camera_T_cloud_point_ptrans.inv()
-    # get the depth relative transform
-    # TODO(ahundt) maybe the rotation component of this needs to be inverted due to sva implementation?
+    # convert the transform into the vector + quaternion format
     depth_relative_vec_quat_array = ptransform_to_vector_quaternion_array(depth_pixel_T_endeffector_ptrans)
 
     if return_depth_image_coordinate:
