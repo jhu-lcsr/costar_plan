@@ -11,7 +11,7 @@ end
 setObjectName=function(handle, string)
     local errorReportMode=simGetInt32Parameter(sim_intparam_error_report_mode)
     simSetInt32Parameter(sim_intparam_error_report_mode,0) -- temporarily suppress error output (because we are not allowed to have two times the same object name)
-    result = simSetObjectName(handle,string)
+    local result = simSetObjectName(handle,string)
     if result == -1 then
       simAddStatusbarMessage('Setting object name failed: ' .. string)
     end
@@ -19,10 +19,12 @@ setObjectName=function(handle, string)
 end
 
 setObjectRelativeToParentWithPoseArray=function(handle, parent_handle, inFloats)
+    -- Set the position and orientation of the parameter "handle" relative to the parent_handle
+    -- infloats should be a table [x, y, z, qx, qy, qz, qw], though just 3 position arguments are acceptable
     if #inFloats>=3 then
       -- pose should be a vector with an optional quaternion array of floats
       -- 3 cartesian (x, y, z) and 4 quaternion (x, y, z, w) elements, same as vrep
-      result = simSetObjectPosition(handle, parent_handle, inFloats)
+      local result = simSetObjectPosition(handle, parent_handle, inFloats)
       if #inFloats>=7 then
           local orientation={unpack(inFloats, 4, 7)} -- get 4 quaternion entries from 4 to 7
           result = simSetObjectQuaternion(handle, parent_handle, orientation)
@@ -104,8 +106,8 @@ insertPointCloud_function=function(inInts,inFloats,inStrings,inBuffer)
         -- setObjectRelativeToParentWithPoseArray(cloudHandle, parent_handle, inFloats)
         -- Get the number of float entries used for the pose
         local poseEntries=inInts[2]
+        -- number of floating point numbers in the point cloud
         local cloudFloatCount=inInts[3]
-        simAddStatusbarMessage('cloudFloatCount: '..cloudFloatCount)
         -- bit 1 is 1 so point clouds in cloud reference frame
         local options = inInts[6]
 
