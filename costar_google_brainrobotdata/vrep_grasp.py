@@ -293,6 +293,35 @@ class VREPGraspSimulation(object):
             parent_handle = -1
             print('could not find object with the specified name, so putting objects in world frame:', parent_name)
 
+        clear_frame_depth_image_feature = grasp_dataset_object.get_time_ordered_features(
+            features_complete_list,
+            feature_type='depth_image/decoded',
+            step='view_clear_scene'
+        )[0]
+
+        clear_frame_rgb_image_feature = grasp_dataset_object.get_time_ordered_features(
+            features_complete_list,
+            feature_type='/image/decoded',
+            step='view_clear_scene'
+        )[0]
+
+        depth_image_features = grasp_dataset_object.get_time_ordered_features(
+            features_complete_list,
+            feature_type='depth_image/decoded',
+            step='move_to_grasp'
+        )
+
+        rgb_image_features = grasp_dataset_object.get_time_ordered_features(
+            features_complete_list,
+            feature_type='/image/decoded',
+            step='move_to_grasp'
+        )
+
+        grasp_success_feature_name = grasp_dataset_object.get_time_ordered_features(
+            features_complete_list,
+            feature_type='grasp_success'
+        )[0]
+
         for attempt_num in range(num_samples / batch_size):
             # load data from the next grasp attempt
             output_features_dict = tf_session.run(feature_op_dicts)
@@ -302,6 +331,11 @@ class VREPGraspSimulation(object):
                     # Visualize the data from a single grasp attempt
                     self._visualize_one_grasp_attempt(
                             grasp_dataset_object, features_complete_list, features_dict_np, parent_handle,
+                            clear_frame_depth_image_feature,
+                            clear_frame_rgb_image_feature,
+                            depth_image_features,
+                            rgb_image_features,
+                            grasp_success_feature_name,
                             dataset_name=dataset,
                             attempt_num=attempt_num)
             if (attempt_num > FLAGS.vrepVisualizeGraspAttempt_max and not FLAGS.vrepVisualizeGraspAttempt_max == -1):
@@ -309,6 +343,11 @@ class VREPGraspSimulation(object):
                 break
 
     def _visualize_one_grasp_attempt(self, grasp_dataset_object, features_complete_list, features_dict_np, parent_handle,
+                                     clear_frame_depth_image_feature,
+                                     clear_frame_rgb_image_feature,
+                                     depth_image_features,
+                                     rgb_image_features,
+                                     grasp_success_feature_name,
                                      dataset_name=FLAGS.grasp_dataset,
                                      attempt_num=0,
                                      grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
@@ -339,35 +378,6 @@ class VREPGraspSimulation(object):
         print(base_to_endeffector_transforms)
         camera_to_base_transform_name = 'camera/transforms/camera_T_base/matrix44'
         camera_intrinsics_name = 'camera/intrinsics/matrix33'
-
-        clear_frame_depth_image_feature = grasp_dataset_object.get_time_ordered_features(
-            features_complete_list,
-            feature_type='depth_image/decoded',
-            step='view_clear_scene'
-        )[0]
-
-        clear_frame_rgb_image_feature = grasp_dataset_object.get_time_ordered_features(
-            features_complete_list,
-            feature_type='/image/decoded',
-            step='view_clear_scene'
-        )[0]
-
-        depth_image_features = grasp_dataset_object.get_time_ordered_features(
-            features_complete_list,
-            feature_type='depth_image/decoded',
-            step='move_to_grasp'
-        )
-
-        rgb_image_features = grasp_dataset_object.get_time_ordered_features(
-            features_complete_list,
-            feature_type='/image/decoded',
-            step='move_to_grasp'
-        )
-
-        grasp_success_feature_name = grasp_dataset_object.get_time_ordered_features(
-            features_complete_list,
-            feature_type='grasp_success'
-        )[0]
 
         # Create repeated values for the final grasp position where the gripper closed
         base_T_endeffector_final_close_gripper_name = base_to_endeffector_transforms[-1]
