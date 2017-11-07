@@ -830,6 +830,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         '''
         ins = Input(img_shape,name="img_encoder_in")
         x = ins
+        '''
         x = AddConv2D(x, 32, [5,5], 1, self.dropout_rate)
         x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate)
         x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate)
@@ -838,7 +839,15 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate)
         x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate)
         x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate)
-        self.steps_down = 4
+        x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate)
+        '''
+        x = AddConv2D(x, 32, [5,5], 1, self.dropout_rate)
+        x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate)
+        x = AddConv2D(x, 32, [5,5], 2, self.dropout_rate)
+        x = AddConv2D(x, 16, [5,5], 2, self.dropout_rate)
+        #x = AddConv2D(x, 8, [5,5], 2, self.dropout_rate)
+        
+        self.steps_down = 3
         self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
         self.tform_filters = 64
         self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.tform_filters)
@@ -862,11 +871,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             dr = self.decoder_dropout_rate
         else:
             dr = 0.
+        #x = AddConv2DTranspose(x, 16, [5,5], 2, dr)
+        x = AddConv2DTranspose(x, 16, [5,5], 2, dr)
+        x = AddConv2DTranspose(x, 32, [5,5], 2, dr)
         x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
-        x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
-        x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
-        x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
-        x = AddConv2DTranspose(x, 64, [5,5], 1, dr)
+        x = AddConv2DTranspose(x, 32, [5,5], 1, dr)
         x = Conv2D(3, kernel_size=[1,1], strides=(1,1),name="convert_to_rgb")(x)
         decoder = Model(rep, x, name="image_decoder")
         decoder.compile(loss="mae",optimizer=self.getOptimizer())

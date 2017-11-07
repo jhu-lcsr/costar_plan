@@ -44,13 +44,22 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
         img_in = Input(img_shape,name="predictor_img_in")
         encoder = self._makeImageEncoder(img_shape)
         enc = encoder(img_in)
-        decoder = self._makeImageDecoder((4,4,64))
+        decoder = self._makeImageDecoder(self.hidden_shape)
         #decoder = self._makeImageDecoder(img_shape)
         encoder.summary()
         decoder.summary()
+        #aux = Flatten()(enc)
+        #aux = Dense(self.num_options,
+        #        activation="softmax",
+        #        name="aux_output")(aux)
         out = decoder(enc)
         ae = Model([img_in], out)
-        ae.compile(loss="mae", optimizer=self.getOptimizer())
+        #ae = Model([img_in], [out, aux])
+        ae.compile(
+                loss="mae",
+                #loss=["mae","categorical_crossentropy"],
+                #loss_weights=[0.99,0.01],
+                optimizer=self.getOptimizer())
         ae.summary()
     
         return ae, ae, None, [img_in], enc
@@ -58,4 +67,5 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
         I = features[0]
+        o1 = targets[1]
         return [I], [I]
