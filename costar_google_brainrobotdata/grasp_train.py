@@ -1,4 +1,5 @@
 import os
+import sys
 import datetime
 import numpy as np
 import tensorflow as tf
@@ -33,6 +34,10 @@ flags.DEFINE_string('grasp_datasets_train', '062_b,063,072_a,082_b,102',
                     totaling 513,491 grasp attempts.
                     See https://sites.google.com/site/brainrobotdata/home
                     for a full listing.""")
+flags.DEFINE_string('grasp_datasets_batch_algorithm','constant',
+                    """Use default batch if constant,
+                    'constant' training on multiple datasets reads `batch_size` elements from each dataset at each training step when this parameter. 
+                    'proportional' each dataset's batch size will be individually set to int(batch_size*single_batch/max_batch_size) so smaller datasets are run more slowly than larger datasets.""")
 flags.DEFINE_string('grasp_dataset_eval', '097',
                     """Filter the subset of 1TB Grasp datasets to evaluate.
                     None by default. 'all' will run all datasets in data_dir.
@@ -44,10 +49,13 @@ flags.DEFINE_string('grasp_dataset_eval', '097',
 flags.DEFINE_string('pipeline_stage', 'train_eval',
                     """Choose to "train", "eval", or "train_eval" with the grasp_dataset
                        data for training and grasp_dataset_eval for evaluation.""")
-flags.DEFINE_float('learning_rate_scheduler_power_decay_rate', 0.9,
+flags.DEFINE_float('learning_rate_scheduler_power_decay_rate', 1.5,
                    """Determines how fast the learning rate drops at each epoch.
-                      lr = learning_rate * ((1 - float(epoch)/epochs) ** learning_power_decay_rate)""")
-flags.DEFINE_float('grasp_learning_rate', 0.1,
+                      lr = learning_rate * ((1 - float(epoch)/epochs) ** learning_power_decay_rate)
+                      Training from scratch within an initial learning rate of 0.1 might find a
+                         power decay value of 2 to be useful.
+                      Fine tuning with an initial learning rate of 0.001 may consder 1.5 power decay.""")
+flags.DEFINE_float('grasp_learning_rate', 0.001,
                    """Determines the initial learning rate""")
 flags.DEFINE_integer('eval_batch_size', 1, 'batch size per compute device')
 flags.DEFINE_integer('densenet_growth_rate', 12,
@@ -84,6 +92,7 @@ def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
 class GraspTrain(object):
 
     def train(self, dataset=FLAGS.grasp_datasets_train,
+              grasp_datasets_batch_algorithm = FLAGS.grasp_datasets_batch_algorithm,
               batch_size=FLAGS.batch_size,
               epochs=FLAGS.epochs,
               load_weights=FLAGS.load_weights,
@@ -119,6 +128,8 @@ class GraspTrain(object):
                 this affects the memory consumption of the system when training, but if it fits into memory
                 you almost certainly want the value to be None, which includes every image.
         """
+        if (grasp_datasets_batch_algorithm != 'constant' and grasp_datasets_batch_algorithm != 'proportional'):
+	        raise ValueError('grasp_datasets_batch_algorithm string value must be either constant or proportional.')
         datasets = dataset.split(',')
         max_num_samples = 0
         grasp_datasets = []
@@ -134,16 +145,26 @@ class GraspTrain(object):
         # which means we see smaller datasets more than once in
         # a single epoch. Try not to aggregate a very small dataset
         # with a very large one!
+        dataset_batch_sizes = []
+        grasp_dataset_list = []
         for single_dataset in datasets:
-
             data = grasp_dataset.GraspDataset(dataset=single_dataset)
-            grasp_datasets.append(data)
+            grasp_dataset_list.append(data)
+            dataset_batch_sizes.append(data.get_features()[1])
+
+        max_batch_size = max(dataset_batch_sizes)
+        #Not sure why any thing assigned to max_batch_size, it can pass
+        for single_dataset, single_batch in zip(grasp_dataset_list, dataset_batch_sizes):
+            proportional_batch_size = batch_size
+            if(grasp_datasets_batch_algorithm == 'proportional'):
+                proportional_batch_size = int(batch_size*single_batch/max_batch_size) 
+            data = single_dataset
             # list of dictionaries the length of batch_size
             (pregrasp_op, grasp_step_op,
              simplified_grasp_command_op,
              example_batch_size,
              grasp_success_op,
-             num_samples) = data.single_pose_training_tensors(batch_size=batch_size,
+             num_samples) = data.single_pose_training_tensors(batch_size=proportional_batch_size,
                                                               imagenet_mean_subtraction=imagenet_mean_subtraction,
                                                               random_crop=random_crop,
                                                               resize=resize,
@@ -174,6 +195,12 @@ class GraspTrain(object):
 
         # ###############learning rate scheduler####################
         # source: https://github.com/aurora95/Keras-FCN/blob/master/train.py
+        # some quick lines to see what a power_decay schedule would do at each epoch:
+        # import numpy as np
+        # epochs = 100
+        # learning_rate = 0.1
+        # learning_power_decay_rate = 2
+        # print([learning_rate * ((1 - float(epoch)/epochs) ** learning_power_decay_rate) for epoch in np.arange(epochs)])
         def lr_scheduler(epoch, learning_rate=learning_rate,
                          mode=learning_rate_decay_algorithm,
                          epochs=epochs,
@@ -258,11 +285,12 @@ class GraspTrain(object):
         model.save_weights(final_weights_name)
         try:
             model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=callbacks)
-        finally:
+        except Exception as e:
             # always try to save weights
-            final_weights_name = weights_name + '-final.h5'
+            final_weights_name = weights_name + '-autosaved-on-exception.h5'
             model.save_weights(final_weights_name)
-            return final_weights_name
+            raise e
+        return final_weights_name
 
     def eval(self, dataset=FLAGS.grasp_dataset_eval,
              batch_size=FLAGS.eval_batch_size,
@@ -294,6 +322,10 @@ class GraspTrain(object):
             grasp_sequence_max_time_step: number of motion steps to train in the grasp sequence,
                 this affects the memory consumption of the system when training, but if it fits into memory
                 you almost certainly want the value to be None, which includes every image.
+
+        # Returns
+
+           weights_name_str or None if a new weights file was not saved.
         """
         data = grasp_dataset.GraspDataset(dataset=dataset)
         # list of dictionaries the length of batch_size
@@ -363,6 +395,9 @@ class GraspTrain(object):
         except KeyboardInterrupt as e:
             print('Evaluation canceled at user request, '
                   'any results are incomplete for this run.')
+            return None
+
+        return weights_name_str
 
 
 def main():
@@ -426,8 +461,11 @@ def main():
             gt.eval(make_model_fn=make_model_fn,
                     load_weights=load_weights,
                     model_name=FLAGS.grasp_model)
+        return None
 
 
 if __name__ == '__main__':
     FLAGS._parse_flags()
     main()
+    print('grasp_train.py run complete, original command: ', sys.argv)
+    sys.exit()
