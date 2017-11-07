@@ -191,13 +191,6 @@ def depth_image_pixel_to_cloud_point(depth_image,
        It will randomly select a pixel in a box around the endeffector coordinate.
        Default (1, 1) has no augmentation.
     """
-    # The frame definitions switch up a bit here, the calculation of the
-    # gripper pose in the image frame is done with the graphics coordinate
-    # convention where:
-    # - Y is depth
-    # - X is right in the image frame
-    # - Z is up in the image frame
-
     # get the point index in the depth image
     # TODO(ahundt) is this the correct indexing scheme, are any axes flipped?
     x = int(pixel_coordinate[0])
@@ -223,7 +216,7 @@ def depth_image_pixel_to_cloud_point(depth_image,
         print('warning: attempting to access pixel outside of image dimensions, '
               'choosing center pixel instead.')
         x = depth_image.shape[0]/2
-        z = depth_image.shape[1]/2
+        y = depth_image.shape[1]/2
 
     # Capital Z is depth in camera frame
     Z = depth_image[x, y]
