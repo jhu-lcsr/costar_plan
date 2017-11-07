@@ -140,8 +140,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Create the encoder and decoder networks -- these are sub-networks
         # that we may find useful in different situations.
         img_in = Input(img_shape,name="predictor_img_in")
-        encoder = self._makeImageEncoder(img_shape)
-        decoder = self._makeImageDecoder(img_shape)
+        encoder = self._makeEncoder(img_shape, arm_size, gripper_size)
+        decoder = self._makeDecoder(img_shape)
 
         # ===================================================================
         # Encode history
