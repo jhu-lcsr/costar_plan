@@ -49,7 +49,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Layer and model configuration
         self.extra_layers = 1
         self.use_spatial_softmax = True
-        self.dense_representation = False
+        self.dense_representation = True
         if self.use_spatial_softmax and self.dense_representation:
             self.steps_down = 1
             self.steps_down_no_skip = 0
@@ -849,7 +849,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         
         self.steps_down = 3
         self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
-        self.tform_filters = 64
+        self.tform_filters = 16
         self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.tform_filters)
 
         image_encoder = Model(ins, x, name="image_encoder")
