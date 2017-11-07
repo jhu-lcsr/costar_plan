@@ -185,11 +185,21 @@ class VREPGraspSimulation(object):
             color_size = 0
             if color_image is not None:
                 # strings = [unicode(color_image.flatten().tostring(), 'utf-8')]
+                # color_string = color_image.flatten().tostring().encode('utf-8')
+                # strings = [display_name, color_string]
                 strings = [display_name]
-                empty_buffer = bytearray(color_image.tobytes())
+                # see simInsertPointsIntoPointCloud() in vrep documentation
+                # 3 indicates the cloud should be in the parent frame, and color is enabled
+                # bit 2 is 1 so each point is colored
+                simInsertPointsIntoPointCloudOptions = 3
+                empty_buffer = bytearray(color_image.flatten().tobytes())
                 color_size = color_image.size
             else:
                 strings = [display_name]
+                # see simInsertPointsIntoPointCloud() in vrep documentation
+                # 1 indicates the cloud should be in the parent frame, and color is disabled
+                # bit 1 is 1 so point clouds in cloud reference frame
+                simInsertPointsIntoPointCloudOptions = 1
 
             # Actually transfer the point cloud
             res, ret_ints, ret_floats, ret_strings, ret_buffer = v.simxCallScriptFunction(
@@ -197,7 +207,7 @@ class VREPGraspSimulation(object):
                 'remoteApiCommandServer',
                 v.sim_scripttype_childscript,
                 'insertPointCloud_function',
-                [parent_handle, transform_entries, points.size, cloud_handle, color_size],
+                [parent_handle, transform_entries, points.size, cloud_handle, color_size, simInsertPointsIntoPointCloudOptions],
                 # np.append(transform, points),
                 np.append(points, []),
                 # for when the double array can be packed in a byte string
