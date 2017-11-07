@@ -230,9 +230,45 @@ class VREPGraspSimulation(object):
             else:
                 print('insertPointCloud_function remote function call failed.')
                 print(''.join(traceback.format_stack()))
-                return -1
+                return res
         else:
             print('createPointCloud_function remote function call failed')
+            print(''.join(traceback.format_stack()))
+            return res
+
+    def create_point_cloud_from_depth_image(self, display_name, depth_image, camera_intrinsics_matrix, transform,
+                                            color_image=None, parent_handle=-1, clear=True,
+                                            max_voxel_size=0.01, max_point_count_per_voxel=10, point_size=10, options=0, save_ply_path=None):
+        """Create a dummy object in the simulation
+
+        # Arguments
+
+            display_name: name string to use for the object in the vrep scene
+            transform: [x, y, z, qw, qx, qy, qz] with 3 cartesian (x, y, z) and 4 quaternion (qx, qy, qz, qw) elements, same as vrep
+            parent_handle: -1 is the world frame, any other int should be a vrep object handle
+            clear: clear the point cloud if it already exists with the provided display name
+            maxVoxelSize: the maximum size of the octree voxels containing points
+            maxPtCntPerVoxel: the maximum number of points allowed in a same octree voxel
+            options: bit-coded:
+            bit0 set (1): points have random colors
+            bit1 set (2): show octree structure
+            bit2 set (4): reserved. keep unset
+            bit3 set (8): do not use an octree structure. When enabled, point cloud operations are limited, and point clouds will not be collidable, measurable or detectable anymore, but adding points will be much faster
+            bit4 set (16): color is emissive
+            pointSize: the size of the points, in pixels
+            reserved: reserved for future extensions. Set to NULL
+            save_ply_path: save out a ply file with the point cloud data
+        """
+        point_cloud = depth_image_to_point_cloud(depth_image, camera_intrinsics_matrix)
+        point_cloud = point_cloud.reshape([point_cloud.size/3, 3])
+        res = self.create_point_cloud(display_name, point_cloud, transform, color_image, parent_handle,
+                                      clear=clear, max_voxel_size=max_voxel_size, max_point_count_per_voxel=max_point_count_per_voxel,
+                                      point_size=point_size, options=options)
+        # Save out Point cloud
+        if save_ply_path is not None:
+            write_xyz_rgb_as_ply(point_cloud, color_image, save_ply_path)
+
+        return res
 
     def visualize(self, tf_session, dataset=FLAGS.grasp_dataset, batch_size=1, parent_name=FLAGS.vrepParentName):
         """Visualize one dataset in V-REP
@@ -293,9 +329,15 @@ class VREPGraspSimulation(object):
         camera_to_base_transform_name = 'camera/transforms/camera_T_base/matrix44'
         camera_intrinsics_name = 'camera/intrinsics/matrix33'
 
-        pregrasp_depth_image_feature = grasp_dataset_object.get_time_ordered_features(
+        clear_frame_depth_image_feature = grasp_dataset_object.get_time_ordered_features(
             features_complete_list,
             feature_type='depth_image/decoded',
+            step='view_clear_scene'
+        )[0]
+
+        clear_frame_rgb_image_feature = grasp_dataset_object.get_time_ordered_features(
+            features_complete_list,
+            feature_type='/image/decoded',
             step='view_clear_scene'
         )[0]
 
@@ -343,6 +385,14 @@ class VREPGraspSimulation(object):
         # Make sure converting to a ptransform and back to a quaternion generates a sensible transform
         self.create_dummy('base_to_camera_vec_quat_7_ptransform_conversion_test', base_to_camera_vec_quat_7_ptransform_conversion_test, parent_handle)
 
+        clear_frame_depth_image = np.squeeze(features_dict_np[clear_frame_depth_image_feature])
+        clear_frame_rgb_image = np.squeeze(features_dict_np[clear_frame_rgb_image_feature])
+        # Visualize clear view point cloud
+        if FLAGS.vrepVisualizeRGBD:
+            self.create_point_cloud_from_depth_image('clear_view_cloud', clear_frame_depth_image, camera_intrinsics_matrix, base_to_camera_vec_quat_7,
+                                                     clear_frame_rgb_image, parent_handle=parent_handle)
+
+        # loop through each time step
         for i, base_T_endeffector_vec_quat_feature_name, depth_name, rgb_name in zip(range(len(base_to_endeffector_transforms)),
                                                                                      base_to_endeffector_transforms,
                                                                                      depth_image_features, rgb_image_features):
@@ -380,8 +430,6 @@ class VREPGraspSimulation(object):
             cTe_vec_quat = grasp_geometry.ptransform_to_vector_quaternion_array(camera_T_endeffector_ptrans)
             self.create_dummy(cTe_display_name, cTe_vec_quat, base_T_camera_handle)
 
-            if i == 0:
-                clear_frame_depth_image = np.squeeze(features_dict_np[pregrasp_depth_image_feature])
             # format the dummy string nicely for display
             transform_display_name = str(i).zfill(2) + '_' + base_T_endeffector_vec_quat_feature_name.replace(
                 '/transforms/base_T_endeffector/vec_quat_7', '').replace('/', '_')
@@ -441,43 +489,40 @@ class VREPGraspSimulation(object):
 
     def visualize_rgbd(self, features_dict_np, rgb_name, depth_name, grasp_sequence_min_time_step, i,
                        grasp_sequence_max_time_step, camera_intrinsics_matrix, vrepDebugMode, dataset_name, attempt_num,
-                       grasp_success_feature_name, visualization_dir, camera_to_base_vec_quat_7, parent_handle):
-        rgb_image = features_dict_np[rgb_name]
-        # print rgb_name, rgb_image.shape, rgb_image
-        # TODO(ahundt) move depth image creation into tensorflow ops
-        # TODO(ahundt) check scale
+                       grasp_success_feature_name, visualization_dir, base_to_camera_vec_quat_7, parent_handle):
+
         # TODO(ahundt) move squeeze steps into dataset api if possible
         depth_image_float_format = np.squeeze(features_dict_np[depth_name])
+        rgb_image = np.squeeze(features_dict_np[rgb_name])
+        # print rgb_name, rgb_image.shape, rgb_image
         if np.count_nonzero(depth_image_float_format) is 0:
             print('WARNING: DEPTH IMAGE IS ALL ZEROS')
-        print depth_name, depth_image_float_format.shape, depth_image_float_format
+        print(depth_name, depth_image_float_format.shape)
         if ((grasp_sequence_min_time_step is None or i >= grasp_sequence_min_time_step) and
                 (grasp_sequence_max_time_step is None or i <= grasp_sequence_max_time_step)):
             # only output one depth image while debugging
             # mp.pyplot.imshow(depth_image_float_format, block=True)
             # print 'plot done'
-            point_cloud = depth_image_to_point_cloud(depth_image_float_format, camera_intrinsics_matrix)
             if 'fixed_depth' in vrepDebugMode:
                 point_cloud = depth_image_to_point_cloud(np.ones(depth_image_float_format.shape), camera_intrinsics_matrix)
-            print('point_cloud.shape:', point_cloud.shape, 'rgb_image.shape:', rgb_image.shape)
             point_cloud_detailed_name = ('point_cloud_' + str(dataset_name) + '_' + str(attempt_num) + '_' + str(i).zfill(2) +
                                          '_rgbd_' + depth_name.replace('/depth_image/decoded', '').replace('/', '_') +
                                          '_success_' + str(int(features_dict_np[grasp_success_feature_name])))
             print(point_cloud_detailed_name)
 
             path = os.path.join(visualization_dir, point_cloud_detailed_name + '.ply')
-            print('point_cloud.size:', point_cloud.size)
-            xyz = point_cloud.reshape([point_cloud.size/3, 3])
-            rgb = np.squeeze(rgb_image).reshape([point_cloud.size/3, 3])
+            if 'fixed_depth' in vrepDebugMode:
+                depth_image_float_format = np.ones(depth_image.shape)
 
             # Save out Point cloud
-            if 'save_ply' in vrepDebugMode:
-                write_xyz_rgb_as_ply(xyz, rgb, path)
+            if 'save_ply' not in vrepDebugMode:
+                point_cloud_detailed_name = None
             point_cloud_display_name = str(i).zfill(2) + '_point_cloud'
-            self.create_point_cloud(point_cloud_display_name, xyz, camera_to_base_vec_quat_7, rgb, parent_handle)
+            self.create_point_cloud_from_depth_image(point_cloud_display_name, depth_image_float_format, camera_intrinsics_matrix, base_to_camera_vec_quat_7,
+                                                     color_image=rgb_image, save_ply_path=path, parent_handle=parent_handle)
 
             # display the rgb and depth image
-            self.display_images(rgb, depth_image_float_format)
+            self.display_images(rgb_image, depth_image_float_format)
 
     def display_images(self, rgb, depth_image_float_format):
         """Display the rgb and depth image in V-REP (not yet working)
