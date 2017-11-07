@@ -25,6 +25,7 @@ from tensorflow.python.platform import gfile
 from tensorflow.python.ops import data_flow_ops
 from keras.utils import get_file
 from ply import write_xyz_rgb_as_ply
+from PIL import Image
 
 import moviepy.editor as mpy
 from grasp_dataset import GraspDataset
@@ -45,9 +46,13 @@ tf.flags.DEFINE_boolean('vrepWaitUntilConnected', True, 'block startup call unti
 tf.flags.DEFINE_boolean('vrepDoNotReconnectOnceDisconnected', True, '')
 tf.flags.DEFINE_integer('vrepTimeOutInMs', 5000, 'Timeout in milliseconds upon which connection fails')
 tf.flags.DEFINE_integer('vrepCommThreadCycleInMs', 5, 'time between communication cycles')
+tf.flags.DEFINE_integer('vrepVisualizeGraspAttempt_min', 0, 'min grasp attempt to display from dataset, or -1 for no limit')
+tf.flags.DEFINE_integer('vrepVisualizeGraspAttempt_max', 1, 'max grasp attempt to display from dataset, exclusive, or -1 for no limit')
 tf.flags.DEFINE_string('vrepDebugMode', 'save_ply', """Options are: '', 'fixed_depth', 'save_ply'.""")
-tf.flags.DEFINE_boolean('vrepVisualizeRGBD', False, 'display the rgbd images and point cloud')
-tf.flags.DEFINE_boolean('vrepVisualizeSurfaceRelativeTransform', False, 'display the surface relative transform frames')
+tf.flags.DEFINE_boolean('vrepVisualizeRGBD', True, 'display the rgbd images and point cloud')
+tf.flags.DEFINE_integer('vrepVisualizeRGBD_min', 0, 'min time step on each grasp attempt to display')
+tf.flags.DEFINE_integer('vrepVisualizeRGBD_max', 1, 'max time step on each grasp attempt to display, exclusive')
+tf.flags.DEFINE_boolean('vrepVisualizeSurfaceRelativeTransform', True, 'display the surface relative transform frames')
 tf.flags.DEFINE_string('vrepParentName', 'LBR_iiwa_14_R820', 'The default parent frame name from which to base all visualized transforms.')
 
 flags.FLAGS._parse_flags()
@@ -102,8 +107,8 @@ class VREPGraspSimulation(object):
             return -1
         return ret_ints[0]
 
-    def create_point_cloud(self, display_name, points, transform, color_image=None, parent_handle=-1):
-        """Create a dummy object in the simulation
+    def setPose(self, display_name, transform, parent_handle=-1):
+        """Set the pose of an object in the simulation
 
         # Arguments
 
@@ -113,34 +118,112 @@ class VREPGraspSimulation(object):
         """
         # 2. Now create a dummy object at coordinate 0.1,0.2,0.3 with name 'MyDummyName':
         empty_buffer = bytearray()
+        res, ret_ints, ret_floats, ret_strings, ret_buffer = v.simxCallScriptFunction(
+            self.client_id,
+            'remoteApiCommandServer',
+            v.sim_scripttype_childscript,
+            'createDummy_function',
+            [parent_handle],
+            transform,
+            [display_name],
+            empty_buffer,
+            v.simx_opmode_blocking)
+        if res == v.simx_return_ok:
+            # display the reply from V-REP (in this case, the handle of the created dummy)
+            print ('SetPose object name:', display_name, ' handle: ', ret_ints[0], ' transform: ', transform)
+        else:
+            print 'setPose remote function call failed.'
+            return -1
+        return ret_ints[0]
+
+    def create_point_cloud(self, display_name, points, transform, color_image=None, parent_handle=-1, clear=True):
+        """Create a dummy object in the simulation
+
+        # Arguments
+
+            transform_display_name: name string to use for the object in the vrep scene
+            transform: 3 cartesian (x, y, z) and 4 quaternion (x, y, z, w) elements, same as vrep
+            parent_handle: -1 is the world frame, any other int should be a vrep object handle
+            clear: clear the point cloud if it already exists with the provided display name
+        """
+        # 2. Now create a dummy object at coordinate 0.1,0.2,0.3 with name 'MyDummyName':
+        empty_buffer = bytearray()
         # strings = [display_name, unicode(points.flatten().tostring(), 'utf-8')]
         # for when the numpy array can be packed in a byte string
         # strings = [display_name, points.flatten().tostring()]
         strings = [display_name]
-        # if color_image is not None:
-        #     # strings.extend(unicode(color_image.flatten().tostring(), 'utf-8'))
         #     # for when the numpy array can be packed in a byte string
-        #     trings.extend(color_image.flatten().tostring())
+        #     strings.extend(color_image.flatten().tostring())
         transform_entries = 7
         print 'points.size:', points.size
+        if clear is True:
+            clear = 1
+        else:
+            clear = 0
+
+        cloud_handle = -1
+
+        # Create the point cloud if it does not exist, or retrieve the handle if it does
         res, ret_ints, ret_floats, ret_strings, ret_buffer = v.simxCallScriptFunction(
             self.client_id,
             'remoteApiCommandServer',
             v.sim_scripttype_childscript,
             'createPointCloud_function',
-            [parent_handle, transform_entries, points.size],
-            np.append(transform, points),
+            [parent_handle, transform_entries, points.size, cloud_handle, clear],
+            # np.append(transform, points),
+            [],
             # for when the double array can be packed in a byte string
             # transform,
             strings,
             empty_buffer,
             v.simx_opmode_blocking)
+
         if res == v.simx_return_ok:
-            print ('point cloud handle: ', ret_ints[0])  # display the reply from V-REP (in this case, the handle of the created dummy)
-            return ret_ints[0]
+            cloud_handle = ret_ints[0]
+
+            # convert the rgb values to a string
+            color_size = 0
+            if color_image is not None:
+                # strings = [unicode(color_image.flatten().tostring(), 'utf-8')]
+                # color_string = color_image.flatten().tostring().encode('utf-8')
+                # strings = [display_name, color_string]
+                strings = [display_name]
+                # see simInsertPointsIntoPointCloud() in vrep documentation
+                # 3 indicates the cloud should be in the parent frame, and color is enabled
+                # bit 2 is 1 so each point is colored
+                simInsertPointsIntoPointCloudOptions = 3
+                empty_buffer = bytearray(color_image.flatten().tobytes())
+                color_size = color_image.size
+            else:
+                strings = [display_name]
+                # see simInsertPointsIntoPointCloud() in vrep documentation
+                # 1 indicates the cloud should be in the parent frame, and color is disabled
+                # bit 1 is 1 so point clouds in cloud reference frame
+                simInsertPointsIntoPointCloudOptions = 1
+
+            # Actually transfer the point cloud
+            res, ret_ints, ret_floats, ret_strings, ret_buffer = v.simxCallScriptFunction(
+                self.client_id,
+                'remoteApiCommandServer',
+                v.sim_scripttype_childscript,
+                'insertPointCloud_function',
+                [parent_handle, transform_entries, points.size, cloud_handle, color_size, simInsertPointsIntoPointCloudOptions],
+                # np.append(transform, points),
+                np.append(points, []),
+                # for when the double array can be packed in a byte string
+                # transform,
+                strings,
+                empty_buffer,
+                v.simx_opmode_blocking)
+            if res == v.simx_return_ok:
+                print ('point cloud handle: ', ret_ints[0])  # display the reply from V-REP (in this case, the handle of the created dummy)
+                self.setPose(display_name, transform, parent_handle)
+                return ret_ints[0]
+            else:
+                print 'insertPointCloud_function remote function call failed.'
+                return -1
         else:
-            print 'create_point_cloud remote function call failed.'
-            return -1
+            print('createPointCloud_function remote function call failed')
 
     def visualize(self, tf_session, dataset=FLAGS.grasp_dataset, batch_size=1, parent_name=FLAGS.vrepParentName):
         """Visualize one dataset in V-REP
@@ -158,15 +241,19 @@ class VREPGraspSimulation(object):
             print 'could not find object with the specified name, so putting objects in world frame:', parent_name
 
         for attempt_num in range(num_samples / batch_size):
+            # load data from the next grasp attempt
             output_features_dict = tf_session.run(feature_op_dicts)
-            for features_dict_np, sequence_dict_np in output_features_dict:
-                # TODO(ahundt) actually put transforms into V-REP or pybullet
-                self._visualize_one_grasp_attempt(
-                        grasp_dataset_object, features_complete_list, features_dict_np, parent_handle,
-                        dataset_name=dataset,
-                        attempt_num=attempt_num)
-
-                # returnCode, dummyHandle = v.simxCreateDummy(self.client_id, 0.1, colors=None, operationMode=simx_opmode_blocking)
+            if ((attempt_num >= FLAGS.vrepVisualizeGraspAttempt_min or FLAGS.vrepVisualizeGraspAttempt_min == -1) and
+                    (attempt_num < FLAGS.vrepVisualizeGraspAttempt_max or FLAGS.vrepVisualizeGraspAttempt_max == -1)):
+                for features_dict_np, sequence_dict_np in output_features_dict:
+                    # TODO(ahundt) actually put transforms into V-REP or pybullet
+                    self._visualize_one_grasp_attempt(
+                            grasp_dataset_object, features_complete_list, features_dict_np, parent_handle,
+                            dataset_name=dataset,
+                            attempt_num=attempt_num)
+            if (attempt_num > FLAGS.vrepVisualizeGraspAttempt_max and not FLAGS.vrepVisualizeGraspAttempt_max == -1):
+                # stop running if we've gone through all the relevant attempts.
+                break
 
     def _visualize_one_grasp_attempt(self, grasp_dataset_object, features_complete_list, features_dict_np, parent_handle,
                                      dataset_name=FLAGS.grasp_dataset,
@@ -233,8 +320,6 @@ class VREPGraspSimulation(object):
         # verify that another transform path gets the same result
         camera_T_base_ptrans = grasp_geometry.matrix_to_ptransform(camera_to_base_4x4matrix)
         camera_to_base_vec_quat_7_ptransform_conversion_test = grasp_geometry.ptransform_to_vector_quaternion_array(camera_T_base_ptrans)
-        display_name = 'camera_T_base_vec_quat_7_ptransform_conversion_test'
-        self.create_dummy(display_name, camera_to_base_vec_quat_7_ptransform_conversion_test, parent_handle)
         assert(grasp_geometry.vector_quaternion_arrays_allclose(camera_to_base_vec_quat_7, camera_to_base_vec_quat_7_ptransform_conversion_test))
         # verify that another transform path gets the same result
         base_T_camera_ptrans = camera_T_base_ptrans.inv()
@@ -265,9 +350,10 @@ class VREPGraspSimulation(object):
                 base_T_endeffector_vec_quat_feature
             )
             # update the camera to base transform so we can visually ensure consistency
-            camera_T_base_handle = self.create_dummy('camera_T_base', camera_to_base_vec_quat_7, parent_handle)
             base_to_camera_vec_quat_7 = grasp_geometry.ptransform_to_vector_quaternion_array(base_T_camera_ptrans)
             base_T_camera_handle = self.create_dummy('base_T_camera', base_to_camera_vec_quat_7, parent_handle)
+            camera_T_base_handle = self.create_dummy('camera_T_base', camera_to_base_vec_quat_7, base_T_camera_handle)
+            self.create_dummy('camera_T_base_vec_quat_7_ptransform_conversion_test', camera_to_base_vec_quat_7_ptransform_conversion_test, base_T_camera_handle)
 
             # test that the base_T_endeffector -> ptransform -> vec_quat_7 roundtrip returns the same transform
             base_T_endeffector_vec_quat = grasp_geometry.ptransform_to_vector_quaternion_array(base_T_endeffector_ptrans)
@@ -303,9 +389,9 @@ class VREPGraspSimulation(object):
                 base_T_endeffector_vec_quat_feature, base_T_endeffector_final_close_gripper, feature_type='vec_quat_7')
             current_to_end_ptransform = grasp_geometry.vector_quaternion_array_to_ptransform(current_to_end)
             current_to_end_rotation = current_to_end_ptransform.rotation()
-            theta = grasp_geometry.brainrobotdata_rotation_to_theta(current_to_end_rotation, verbose=1)
+            theta = grasp_geometry.grasp_dataset_rotation_to_theta(current_to_end_rotation, verbose=1)
             # compare these printed theta values in the visualization to what is documented in
-            # see brainrobotdata_rotation_to_theta() this printout will let you verify that
+            # see grasp_dataset_rotation_to_theta() this printout will let you verify that
             # theta is estimated correctly for training.
             print('current to end estimated theta ', transform_display_name, theta)
             self.create_dummy(transform_display_name, current_to_end, bTe_handle)
@@ -325,8 +411,9 @@ class VREPGraspSimulation(object):
                 # Create a dummy for the key depth point and display it
                 depth_point_dummy_ptrans = grasp_geometry.vector_to_ptransform(ee_cloud_point)
                 depth_point_display_name = str(i).zfill(2) + '_depth_point'
+                print(depth_point_display_name + ': ' + str(ee_cloud_point) + ' end_effector image coordinate: ' + str(ee_image_coordinate))
                 depth_point_vec_quat = grasp_geometry.ptransform_to_vector_quaternion_array(depth_point_dummy_ptrans)
-                depth_point_dummy_handle = self.create_dummy(depth_point_display_name, depth_point_vec_quat, camera_T_base_handle)
+                depth_point_dummy_handle = self.create_dummy(depth_point_display_name, depth_point_vec_quat, base_T_camera_handle)
 
                 # get the transform for the gripper relative to the key depth point and display it
                 # it should coincide with the gripper pose if done correctly
@@ -337,10 +424,10 @@ class VREPGraspSimulation(object):
                                                                             surface_relative_transform_vec_quat,
                                                                             depth_point_dummy_handle)
 
-            if(vrepVisualizeRGBD):
+            if(vrepVisualizeRGBD and i >= FLAGS.vrepVisualizeRGBD_min and i < FLAGS.vrepVisualizeRGBD_max):
                 self.visualize_rgbd(features_dict_np, rgb_name, depth_name, grasp_sequence_min_time_step, i, grasp_sequence_max_time_step,
                                     camera_intrinsics_matrix, vrepDebugMode, dataset_name, attempt_num, grasp_success_feature_name,
-                                    visualization_dir, camera_to_base_vec_quat_7, parent_handle)
+                                    visualization_dir, base_to_camera_vec_quat_7, parent_handle)
         print('visualization of grasp attempt #', attempt_num, ' complete')
 
     def visualize_rgbd(self, features_dict_np, rgb_name, depth_name, grasp_sequence_min_time_step, i,
@@ -365,19 +452,46 @@ class VREPGraspSimulation(object):
             if 'fixed_depth' in vrepDebugMode:
                 point_cloud = depth_image_to_point_cloud(np.ones(depth_image_float_format.shape), camera_intrinsics_matrix)
             print 'point_cloud.shape:', point_cloud.shape, 'rgb_image.shape:', rgb_image.shape
-            point_cloud_display_name = ('point_cloud_' + str(dataset_name) + '_' + str(attempt_num) + '_' + str(i).zfill(2) +
-                                        '_rgbd_' + depth_name.replace('/depth_image/decoded', '').replace('/', '_') +
-                                        '_success_' + str(int(features_dict_np[grasp_success_feature_name])))
-            print 'point_cloud:', point_cloud.transpose()[:30, :3]
-            path = os.path.join(visualization_dir, point_cloud_display_name + '.ply')
+            point_cloud_detailed_name = ('point_cloud_' + str(dataset_name) + '_' + str(attempt_num) + '_' + str(i).zfill(2) +
+                                         '_rgbd_' + depth_name.replace('/depth_image/decoded', '').replace('/', '_') +
+                                         '_success_' + str(int(features_dict_np[grasp_success_feature_name])))
+            print(point_cloud_detailed_name)
+
+            # print 'point_cloud:', point_cloud.transpose()[:30, :3]
+            path = os.path.join(visualization_dir, point_cloud_detailed_name + '.ply')
             print 'point_cloud.size:', point_cloud.size
             xyz = point_cloud.reshape([point_cloud.size/3, 3])
             rgb = np.squeeze(rgb_image).reshape([point_cloud.size/3, 3])
+
+            # Save out Point cloud
             if 'save_ply' in vrepDebugMode:
                 write_xyz_rgb_as_ply(xyz, rgb, path)
-            xyz = xyz[:3000, :]
-            # xyz = np.array([[0,0,0], [0,0,1], [0,1,0], [1,0,0]])
+            point_cloud_display_name = str(i).zfill(2) + '_point_cloud'
             self.create_point_cloud(point_cloud_display_name, xyz, camera_to_base_vec_quat_7, rgb, parent_handle)
+
+            # display the rgb and depth image
+            self.display_images(rgb, depth_image_float_format)
+
+    def display_images(self, rgb, depth_image_float_format):
+        """Display the rgb and depth image in V-REP (not yet working)
+
+        Reference code: https://github.com/nemilya/vrep-api-python-opencv/blob/master/handle_vision_sensor.py
+        V-REP Docs: http://www.coppeliarobotics.com/helpFiles/en/remoteApiFunctionsPython.htm#simxSetVisionSensorImage
+        """
+        res, kcam_rgb_handle = v.simxGetObjectHandle(self.client_id, 'kcam_rgb', v.simx_opmode_oneshot_wait)
+        print('kcam_rgb_handle: ', kcam_rgb_handle)
+        rgb_for_display = rgb.astype('uint8')
+        rgb_for_display = rgb_for_display.ravel()
+        is_color = 1
+        res = v.simxSetVisionSensorImage(self.client_id, kcam_rgb_handle, rgb_for_display, is_color, v.simx_opmode_oneshot)
+        print('simxSetVisionSensorImage rgb result: ', res, ' rgb shape: ', rgb.shape)
+        res, kcam_depth_handle = v.simxGetObjectHandle(self.client_id, 'kcam_depth', v.simx_opmode_oneshot_wait)
+        normalized_depth = depth_image_float_format * 255 / depth_image_float_format.max()
+        normalized_depth = normalized_depth.astype('uint8')
+        normalized_depth = normalized_depth.ravel()
+        is_color = 0
+        res = v.simxSetVisionSensorImage(self.client_id, kcam_depth_handle, normalized_depth, is_color, v.simx_opmode_oneshot)
+        print('simxSetVisionSensorImage depth result: ', res, ' depth shape: ', depth_image_float_format.shape)
 
     def __del__(self):
         v.simxFinish(-1)

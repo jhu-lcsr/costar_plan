@@ -80,8 +80,10 @@ def concat_images_with_tiled_vector(images, vector):
         return combined
 
 
-def tile_vector_as_image_channels_layer(images, vector, image_shape=None, vector_shape=None):
-    """Tile a vector as if it were channels onto every pixel of an image
+def concat_images_with_tiled_vector_layer(images, vector, image_shape=None, vector_shape=None):
+    """Tile a vector as if it were channels onto every pixel of an image.
+
+    This version is designed to be used as layers within a Keras model.
 
     # Params
        images: a list of images to combine, must have equal dimensions
@@ -93,20 +95,21 @@ def tile_vector_as_image_channels_layer(images, vector, image_shape=None, vector
            images should be expected to have, do not specify the number
            of batches.
     """
-    if not isinstance(images, list):
-        images = [images]
-    if vector_shape is None:
-        # check if K.shape, K.int_shape, or vector.get_shape().as_list()[1:] is better
-        # https://github.com/fchollet/keras/issues/5211
-        vector_shape = K.int_shape(vector)[1:]
-    if image_shape is None:
-        # check if K.shape, K.int_shape, or image.get_shape().as_list()[1:] is better
-        # https://github.com/fchollet/keras/issues/5211
-        image_shape = K.int_shape(images[0])[1:]
-    vector = Reshape([1, 1, vector_shape[-1]])(vector)
-    tile_shape = (int(1), int(image_shape[0]), int(image_shape[1]), int(1))
-    tiled_vector = Lambda(lambda x: K.tile(x, tile_shape))(vector)
-    x = Concatenate(axis=-1)([] + images + [tiled_vector])
+    with K.name_scope('concat_images_with_tiled_vector_layer'):
+        if not isinstance(images, list):
+            images = [images]
+        if vector_shape is None:
+            # check if K.shape, K.int_shape, or vector.get_shape().as_list()[1:] is better
+            # https://github.com/fchollet/keras/issues/5211
+            vector_shape = K.int_shape(vector)[1:]
+        if image_shape is None:
+            # check if K.shape, K.int_shape, or image.get_shape().as_list()[1:] is better
+            # https://github.com/fchollet/keras/issues/5211
+            image_shape = K.int_shape(images[0])[1:]
+        vector = Reshape([1, 1, vector_shape[-1]])(vector)
+        tile_shape = (int(1), int(image_shape[0]), int(image_shape[1]), int(1))
+        tiled_vector = Lambda(lambda x: K.tile(x, tile_shape))(vector)
+        x = Concatenate(axis=-1)([] + images + [tiled_vector])
     return x
 
 
@@ -329,7 +332,11 @@ def grasp_model_segmentation(clear_view_image_op=None,
 
 def grasp_model_levine_2016(clear_view_image_op,
                             current_time_image_op,
-                            input_vector_op):
+                            input_vector_op,
+                            input_image_shape=None,
+                            input_vector_op_shape=None,
+                            dropout_rate=None,
+                            pooling='max'):
     """Model designed to match prior work.
 
     Learning Hand-Eye Coordination for Robotic Grasping with Deep Learning and Large-Scale Data Collection.
@@ -346,15 +353,18 @@ def grasp_model_levine_2016(clear_view_image_op,
                      activation='relu',
                      strides=(2, 2),
                      padding='same')(combImg)
-    # img maxPool
-    imgConv = MaxPooling2D(pool_size=(3, 3))(imgConv)
+
+    if pooling is 'max':
+        # img maxPool
+        imgConv = MaxPooling2D(pool_size=(3, 3))(imgConv)
 
     # img Conv 2 - 7
     for i in range(6):
         imgConv = Conv2D(64, (5, 5), padding='same', activation='relu')(imgConv)
 
-    # img maxPool 2
-    imgConv = MaxPooling2D(pool_size=(3, 3))(imgConv)
+    if pooling is 'max':
+        # img maxPool 2
+        imgConv = MaxPooling2D(pool_size=(3, 3))(imgConv)
 
     # motor Data
     vector_shape = K.int_shape(input_vector_op)[1:]
@@ -364,29 +374,34 @@ def grasp_model_levine_2016(clear_view_image_op,
     motorConv = Dense(64, activation='relu')(motorData)
 
     # tile and concat the data
-    combinedData = Lambda(lambda x: concat_images_with_tiled_vector(x[0], x[1]))([motorConv, imgConv])
+    combinedData = concat_images_with_tiled_vector_layer(imgConv, motorConv)
     print('Combined', combinedData)
 
-    # combine conv 8
-    combConv = Conv2D(64, (3, 3), activation='relu'  # ,
-                      # input_shape=[26,26, 128]
-                      )(combinedData)
+    # combined conv 8
+    combConv = Conv2D(64, (3, 3), activation='relu', padding='same')(combinedData)
 
-    # combine conv 9 - 13
+    # combined conv 9 - 13
     for i in range(3):
-        combConv = Conv2D(64, (3, 3), activation='relu')(combConv)
+        combConv = Conv2D(64, (3, 3), activation='relu', padding='same')(combConv)
 
-    # combine maxPool
-    combConv = MaxPooling2D(pool_size=(2, 2))(combConv)
+    if pooling is 'max':
+        # combined maxPool
+        combConv = MaxPooling2D(pool_size=(2, 2))(combConv)
 
-    # combine conv 14 - 16
+    # combined conv 14 - 16
     for i in range(3):
-        combConv = Conv2D(64, (3, 3), activation='relu')(combConv)
+        combConv = Conv2D(64, (3, 3), activation='relu', padding='same')(combConv)
 
-    # combine full conn
+    # Extra Global Average Pooling allows more flexible input dimensions
+    # but only use if necessary.
+    feature_shape = K.int_shape(combConv)
+    if (feature_shape[1] > 1 or feature_shape[2] > 1):
+        combConv = GlobalAveragePooling2D()(combConv)
+    # combined full connected layers
     combConv = Dense(64, activation='relu')(combConv)
     combConv = Dense(64, activation='relu')(combConv)
-    combConv = Activation(activation='sigmoid')(combConv)
+    # get down to a single prediction
+    combConv = Dense(1, activation='sigmoid')(combConv)
 
     model = Model(inputs=[inputImg1, inputImg2, motorData], outputs=combConv)
     return model

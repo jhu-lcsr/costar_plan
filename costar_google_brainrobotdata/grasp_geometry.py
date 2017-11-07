@@ -22,7 +22,7 @@ except ImportError:
     print('eigen and sva not available, skipping components utilizing 3D geometry algorithms.'
           'To install run the script at'
           'https://github.com/ahundt/robotics_setup/blob/master/robotics_tasks.sh'
-          'or follow the instructions at https://github.com/jrl-umi3218/SpaceVecAlg'
+          'or follow the instructions at https://github.com/jrl-umi3218/Eigen3ToPython'
           'and https://github.com/jrl-umi3218/SpaceVecAlg and make sure python bindings'
           'are enabled.')
 
@@ -68,15 +68,6 @@ def vector_quaternion_array_to_ptransform(vector_quaternion_array, q_inverse=Tru
     # https://eigen.tuxfamily.org/dox/classEigen_1_1Quaternion.html
     xyzw = eigen.Vector4d(vector_quaternion_array[3:])
     q = eigen.Quaterniond(xyzw)
-
-    # TODO(ahundt) remove this commented code block
-    # Quaterniond(w, x, y, z) is being constructed from:
-    # [x, y, z, qx, qy, qz, qw]
-    # q = eigen.Quaterniond(vector_quaternion_array[6],  # qw
-    #                       vector_quaternion_array[3],  # qx
-    #                       vector_quaternion_array[4],  # qy
-    #                       vector_quaternion_array[5])  # qz
-
 
     # The ptransform needs the rotation component to inverted before construction.
     # see https://github.com/ahundt/grl/blob/master/include/grl/vrep/SpaceVecAlg.hpp#L22 for a well tested example
@@ -169,7 +160,12 @@ def vector_to_ptransform(XYZ):
     return ptransform
 
 
-def depth_image_pixel_to_cloud_point(depth_image, camera_intrinsics_matrix, pixel_coordinate, augmentation_rectangle=None):
+def depth_image_pixel_to_cloud_point(depth_image,
+                                     camera_intrinsics_matrix,
+                                     pixel_coordinate,
+                                     augmentation_rectangle=None,
+                                     flip_x=1.0,
+                                     flip_y=-1.0):
     """Convert a single specific depth image pixel coordinate into a point cloud point.
 
     # Params
@@ -186,17 +182,10 @@ def depth_image_pixel_to_cloud_point(depth_image, camera_intrinsics_matrix, pixe
        It will randomly select a pixel in a box around the endeffector coordinate.
        Default (1, 1) has no augmentation.
     """
-    # The frame definitions switch up a bit here, the calculation of the
-    # gripper pose in the image frame is done with the graphics coordinate
-    # convention where:
-    # - Y is depth
-    # - X is right in the image frame
-    # - Z is up in the image frame
-
     # get the point index in the depth image
     # TODO(ahundt) is this the correct indexing scheme, are any axes flipped?
     x = int(pixel_coordinate[0])
-    z = int(pixel_coordinate[1])
+    y = int(pixel_coordinate[1])
 
     # choose a random pixel in the specified box
     if(augmentation_rectangle is not None and
@@ -206,32 +195,27 @@ def depth_image_pixel_to_cloud_point(depth_image, camera_intrinsics_matrix, pixe
         x_max = np.ceil((augmentation_rectangle[0]-1)/2)
         y_max = np.ceil((augmentation_rectangle[1]-1)/2)
         x += np.randint(-x_max, x_max)
-        z += np.randint(-y_max, y_max)
+        y += np.randint(-y_max, y_max)
 
     # get focal length and camera image center from the intrinsics matrix
     fx = camera_intrinsics_matrix[0, 0]
     fy = camera_intrinsics_matrix[1, 1]
-    center_x = camera_intrinsics_matrix[0, 2]
-    center_y = camera_intrinsics_matrix[1, 2]
+    center_x = camera_intrinsics_matrix[2, 0]
+    center_y = camera_intrinsics_matrix[2, 1]
 
-    if x < 0 or x >= depth_image.shape[0] or z < 0 or z >= depth_image.shape[1]:
+    if x < 0 or x >= depth_image.shape[0] or y < 0 or y >= depth_image.shape[1]:
         print('warning: attempting to access pixel outside of image dimensions, '
               'choosing center pixel instead.')
         x = depth_image.shape[0]/2
-        z = depth_image.shape[1]/2
+        y = depth_image.shape[1]/2
 
-    # Capital Y is depth in camera frame
-    Y = depth_image[x, z]
+    # Capital Z is depth in camera frame
+    Z = depth_image[x, y]
     # Capital X is horizontal point, right in camera image frame
-    X = (x - center_x) * Y / fx
-    # Capital Z is vertical point, up in camera image frame
-    Z = (z - center_y) * Y / fy
-
-    # switching back to original coordinate frame indexing scheme
-    # X -> X is right in image frame
-    # Z -> Y is up in image frame
-    # Y -> Z is depth
-    XYZ = np.array([X, Z, Y])
+    X = flip_x * (x - center_x) * Z / fx
+    # Capital Y is vertical point, up in camera image frame
+    Y = flip_y * (y - center_y) * Z / fy
+    XYZ = np.array([X, Y, Z])
     return XYZ
 
 
@@ -271,15 +255,13 @@ def surface_relative_transform(depth_image,
     """
     # xyz coordinate of the endeffector in the camera frame
     XYZ, pixel_coordinate_of_endeffector = endeffector_image_coordinate_and_cloud_point(
-        depth_image, camera_intrinsics_matrix, camera_T_endeffector, augmentation_rectangle,)
+        depth_image, camera_intrinsics_matrix, camera_T_endeffector, augmentation_rectangle)
 
-    # make an identity quaternion because the pixel will use the camera orientation
-    # TODO(ahundt) is this the right axis ordering for the translation component
+    # Convert the point cloud point to a transform with identity rotation
     camera_T_cloud_point_ptrans = vector_to_ptransform(XYZ)
-    # transform point all the way to depth frame
-    depth_pixel_T_endeffector_ptrans = camera_T_cloud_point_ptrans * camera_T_endeffector.inv()
-    # get the depth relative transform
-    # TODO(ahundt) maybe the rotation component of this needs to be inverted due to sva implementation?
+    # get the depth pixel to endeffector transform, aka surface relative transform
+    depth_pixel_T_endeffector_ptrans = camera_T_endeffector * camera_T_cloud_point_ptrans.inv()
+    # convert the transform into the vector + quaternion format
     depth_relative_vec_quat_array = ptransform_to_vector_quaternion_array(depth_pixel_T_endeffector_ptrans)
 
     if return_depth_image_coordinate:
@@ -291,7 +273,7 @@ def surface_relative_transform(depth_image,
         return depth_relative_vec_quat_array
 
 
-def endeffector_image_coordinate(camera_intrinsics_matrix, xyz):
+def endeffector_image_coordinate(camera_intrinsics_matrix, xyz, flip_x=1.0, flip_y=-1.0):
 
     # get focal length and camera image center from the intrinsics matrix
     fx = camera_intrinsics_matrix[0, 0]
@@ -300,15 +282,15 @@ def endeffector_image_coordinate(camera_intrinsics_matrix, xyz):
     center_y = camera_intrinsics_matrix[2, 1]
 
     # Capital X is horizontal point, right in camera image frame
-    X = xyz[1]
-    # Capital Y is depth in camera frame
-    Y = xyz[2]
-    # Capital Z is vertical point, up in camera image frame
-    Z = xyz[0]
+    X = xyz[0]
+    # Capital Y is vertical point, up in camera image frame
+    Y = xyz[1]
+    # Capital Z is depth in camera frame
+    Z = xyz[2]
     # x is the image coordinate horizontal axis
-    x = (X * fx / Y) + center_x
+    x = flip_x * (X * fx / Z) + center_x
     # y is the image coordinate vertical axis
-    y = (Z * fy / Y) + center_y
+    y = flip_y * (Y * fy / Z) + center_y
     return np.array([x, y])
 
 
@@ -330,12 +312,11 @@ def endeffector_image_coordinate_and_cloud_point(depth_image,
     # transform the end effector coordinate into the depth image coordinate
     pixel_coordinate_of_endeffector = endeffector_image_coordinate(camera_intrinsics_matrix, cte_xyz)
 
-    # The frame definitions switch up a bit here, the calculation of the
-    # gripper pose in the image frame is done with the graphics coordinate
-    # convention where:
-    # - Y is depth
+    # The calculation of the gripper pose in the
+    # image frame is done with the convention:
     # - X is right in the image frame
-    # - Z is up in the image frame
+    # - Y is up in the image frame
+    # - Z is depth
     XYZ = depth_image_pixel_to_cloud_point(depth_image,
                                            camera_intrinsics_matrix,
                                            pixel_coordinate_of_endeffector,
@@ -441,7 +422,7 @@ def grasp_dataset_ptransform_to_vector_sin_theta_cos_theta(ptransform, dtype=np.
     vector_sin_theta_cos_theta
     """
     translation = np.squeeze(ptransform.translation())
-    theta = grasp_dataset_rotation_to_theta(ptranform.rotation())
+    theta = grasp_dataset_rotation_to_theta(ptransform.rotation())
     sin_cos_theta = np.array([np.sin(theta), np.cos(theta)])
     vector_sin_theta_cos_theta = np.concatenate([translation, sin_cos_theta])
     vector_sin_theta_cos_theta = vector_sin_theta_cos_theta.astype(dtype)
@@ -469,39 +450,8 @@ def grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector):
     # frame of reference and transforms it to the camera frame of reference.
     camera_T_base_ptrans = matrix_to_ptransform(camera_T_base)
     base_T_camera = camera_T_base_ptrans.inv()
-
-    # ###############
-    # # allow tweaking of camera T base
-    # t = camera_T_base_ptrans.translation()
-    # # t *= -1
-    # R = eigen.Quaterniond(camera_T_base_ptrans.rotation())
-    # # R.inverse()
-    # camera_T_base_ptrans2 = sva.PTransformd(R, t)
-    # ###############
-
-    # ###############
-    # # allow tweaking of base T endeffector
-    # t = base_T_endeffector_ptrans.translation()
-    # # t *= -1
-    # R = eigen.Quaterniond(base_T_endeffector_ptrans.rotation())
-    # # R.inverse()
-    # base_T_endeffector_ptrans2 = sva.PTransformd(R, t)
-    # ###############
-
-    ###############
     # Perform the actual transform calculation
     camera_T_endeffector_ptrans = base_T_endeffector_ptrans * base_T_camera.inv()
-    # camera_T_endeffector_ptrans = camera_T_base_ptrans2 * base_T_endeffector_ptrans2
-    # camera_T_endeffector_ptrans.inv()
-
-    # ###############
-    # # allow tweaking of camera T endeffector
-    # t = camera_T_endeffector_ptrans.translation()
-    # # t *= -1
-    # R = eigen.Quaterniond(camera_T_endeffector_ptrans.rotation())
-    # # R.inverse()
-    # camera_T_endeffector_ptrans = sva.PTransformd(R, t)
-    # ###############
     return camera_T_endeffector_ptrans, base_T_endeffector_ptrans, base_T_camera
 
 
