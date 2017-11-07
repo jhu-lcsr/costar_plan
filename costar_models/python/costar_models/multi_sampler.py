@@ -39,7 +39,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         self.num_frames = 1
         self.img_num_filters = 64
-        self.tform_filters = 32
+        self.tform_filters = 64
         self.num_hypotheses = 4
         self.validation_split = 0.05
         self.num_options = 48
@@ -787,38 +787,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         new_robot_skip = outs[-1]
         return new_ins, new_enc, new_skips, new_robot_skip
 
-    def _makeImageEncoder(self, img_shape):
-        '''
-        Create image-only decoder to extract keypoints from the scene.
-        '''
-        ins, enc, skips, _ = GetEncoder(img_shape,
-                [None, None],
-                self.img_col_dim,
-                dropout_rate=self.dropout_rate,
-                filters=self.img_num_filters,
-                leaky=False,
-                dropout=True,
-                padding=self.padding,
-                pre_tiling_layers=self.extra_layers,
-                post_tiling_layers=self.steps_down,
-                post_tiling_layers_no_skip=self.steps_down_no_skip,
-                stride1_post_tiling_layers=self.encoder_stride1_steps,
-                pose_col_dim=self.pose_col_dim,
-                kernel_size=[7,7],
-                kernel_size_stride1=[5,5],
-                dense=self.dense_representation,
-                batchnorm=True,
-                tile=False,
-                flatten=(not self.use_spatial_softmax),
-                use_spatial_softmax=self.use_spatial_softmax,
-                option=None,
-                output_filters=self.tform_filters,
-                )
-        image_encoder = Model(ins, enc, name="image_encoder")
-        image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
-        self.image_encoder = image_encoder
-        return image_encoder
-
     def _makeDecoder(self, img_shape, arm_size, gripper_size,
             skips=None,
             robot_skip=None):
@@ -856,36 +824,51 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         decoder.summary()
         return decoder
 
+    def _makeImageEncoder(self, img_shape):
+        '''
+        create image-only decoder to extract keypoints from the scene.
+        '''
+        ins = Input(img_shape,name="img_encoder_in")
+        x = ins
+        x = AddConv2D(x, 32, [5,5], 1, self.dropout_rate)
+        x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate)
+        x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate)
+        x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate)
+        x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate)
+        x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate)
+        x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate)
+        x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate)
+        self.steps_down = 4
+        self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
+        self.tform_filters = 64
+        self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.tform_filters)
+
+        image_encoder = Model(ins, x, name="image_encoder")
+        image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
+        self.image_encoder = image_encoder
+        return image_encoder
+
     def _makeImageDecoder(self, img_shape):
         '''
-        Helper function to construct a decoder that will make images.
+        helper function to construct a decoder that will make images.
 
-        Parameters:
+        parameters:
         -----------
         img_shape: shape of the image, e.g. (64,64,3)
         '''
-        skips = None
-        kernel_size = [5,5]
-        rep, dec = GetImageDecoder(self.img_col_dim,
-                        img_shape,
-                        dropout_rate=self.dropout_rate,
-                        kernel_size=kernel_size,
-                        filters=self.img_num_filters,
-                        stride2_layers=self.steps_up,
-                        tform_filters=self.tform_filters,
-                        stride2_layers_no_skip=self.steps_up_no_skip,
-                        stride1_layers=1, # for fine-tuning the output
-                        dropout=self.hypothesis_dropout,
-                        upsampling=self.upsampling_method,
-                        dense=self.dense_representation,
-                        dense_rep_size=self.img_col_dim,
-                        leaky=True,
-                        skips=skips,
-                        original=None,
-                        num_hypotheses=None,
-                        batchnorm=True,)
-        print (dec)
-        decoder = Model(rep, dec, name="image_decoder")
+        rep = Input(img_shape,name="decoder_hidden_shape")
+        x = rep
+        if self.hypothesis_dropout:
+            dr = self.decoder_dropout_rate
+        else:
+            dr = 0.
+        x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
+        x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
+        x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
+        x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
+        x = AddConv2DTranspose(x, 64, [5,5], 1, dr)
+        x = Conv2D(3, kernel_size=[1,1], strides=(1,1),name="convert_to_rgb")(x)
+        decoder = Model(rep, x, name="image_decoder")
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         return decoder
 

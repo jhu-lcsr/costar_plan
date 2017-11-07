@@ -44,9 +44,10 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
         img_in = Input(img_shape,name="predictor_img_in")
         encoder = self._makeImageEncoder(img_shape)
         enc = encoder(img_in)
-        
-        decoder = self._makeImageDecoder(img_shape)
+        decoder = self._makeImageDecoder((4,4,64))
+        #decoder = self._makeImageDecoder(img_shape)
         encoder.summary()
+        decoder.summary()
         out = decoder(enc)
         ae = Model([img_in], out)
         ae.compile(loss="mae", optimizer=self.getOptimizer())
