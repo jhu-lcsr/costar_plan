@@ -69,24 +69,24 @@ class BinaryDataLogger(Callback):
 
 
     def on_episode_end(self, episode, logs):
-        if self.counter > self.interval:
-            self.npz_writer.write(self.current_example, self.current_example['example'][0], 100)
-            self.seqNumber = self.seqNumber + 1
+    	if self.counter > self.interval:
+			print "writing"
+			self.npz_writer.write(self.current_example, self.current_example['example'][0], 100)
+			self.seqNumber = self.seqNumber + 1
 
-            self.current_example = {}
-            
-            self.current_example['action'] = list()
-            self.current_example['image'] = list() 
-            self.current_example['example'] = list() 
+			self.current_example = {}
 
-            self.counter = 0
+			self.current_example['action'] = list()
+			self.current_example['image'] = list() 
+			self.current_example['example'] = list() 
+
+			self.counter = 0
 
         else:
             self.counter += 1
 
 
     def on_step_end(self, step, logs):
-
         self.current_example['example'].append(self.seqNumber)
         self.current_example['image'].append(logs['observation'])
         self.current_example['action'].append(logs['action'])
@@ -123,7 +123,7 @@ class AtariProcessor(Processor):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--mode', choices=['train', 'test', 'explore'], default='train')
-parser.add_argument('--env-name', type=str, default='BreakoutDeterministic-v4')
+parser.add_argument('--env-name', type=str, default='Robotank-v0')
 parser.add_argument('--weights', type=str, default=None)
 args = parser.parse_args()
 
@@ -206,7 +206,7 @@ elif args.mode == 'test':
 elif args.mode == 'explore':
     home = expanduser("~")
     path = home + '/.costar/data/test'
-    callbacks = [BinaryDataLogger(path, interval=50)]
+    callbacks = [BinaryDataLogger(path, interval=-1)]
     #callbacks = [TrainEpisodeLogger1()]
     dqn.policy = RandomPolicy()
     dqn.fit(env, visualize=False, callbacks=callbacks, nb_steps=1750000, log_interval=10000)

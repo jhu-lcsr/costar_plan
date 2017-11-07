@@ -197,7 +197,7 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
     Parameters:
     -----------
     img_shape:
-    arm_size:
+    pose_size:
     gripper_size:
     dim:
     dropout_rate:
@@ -221,13 +221,10 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
 
     '''
 
-    use_arm_gripper = False
     if not config in ["arm", "mobile"]:
         raise RuntimeError("Encoder config type must be in [arm, mobile]")
     elif config == "arm":
-        arm_size, gripper_size = state_sizes
-        if arm_size is not None:
-            use_arm_gripper = True
+        pose_size, gripper_size = state_sizes
     elif config == "mobile":
         if isinstance(state_sizes,list):
             pose_size = state_sizes[0]
@@ -249,8 +246,8 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
 
     if time_distributed <= 0:
         ApplyTD = lambda x: x
-        if use_arm_gripper:
-            arm_in = Input((arm_size,),name="arm_position_in")
+        pose_in = Input((pose_size,),name="pose_position_in")
+        if config == "arm":
             gripper_in = Input((gripper_size,),name="gripper_state_in")
         if option is not None:
             option_in = Input((1,),name="prev_option_in")
@@ -267,8 +264,8 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
         channels = img_shape[2]
     else:
         ApplyTD = lambda x: TimeDistributed(x)
-        if use_arm_gripper:
-            arm_in = Input((time_distributed, arm_size,))
+        pose_in = Input((time_distributed, pose_size,))
+        if config == "arm":
             gripper_in = Input((time_distributed, gripper_size,))
         if option is not None:
             option_in = Input((time_distributed,1,))
@@ -318,15 +315,27 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
 
     # ===============================================
     # ADD TILING
-    if use_arm_gripper and tile:
+    if tile:
         tile_width = width 
         tile_height = height 
         if option is not None:
-            ins = [samples, arm_in, gripper_in, option_in]
+            if config == "arm":
+                ins = [samples, pose_in, gripper_in, option_in]
+            elif config == "mobile":
+                ins = [samples, pose_in, option_in]
         else:
-            ins = [samples, arm_in, gripper_in]
-        x, robot = TileArmAndGripper(x, arm_in, gripper_in, tile_height, tile_width,
-                None, None, time_distributed, pose_col_dim)
+            if config == "arm":
+                ins = [samples, pose_in, gripper_in]
+            elif config == "mobile":
+                ins = [samples, pose_in]
+
+        if config == "arm":
+            x, robot = TileArmAndGripper(x, pose_in, gripper_in, tile_height, tile_width,
+                    None, None, time_distributed, pose_col_dim)
+        elif config == "mobile":
+            x, robot = TilePose(x, pose_in, tile_height, tile_width, None, None, time_distributed, pose_col_dim)
+        
+
     else:
         ins = [samples]
         robot = None

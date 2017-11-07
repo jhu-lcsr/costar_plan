@@ -8,7 +8,7 @@ import numpy as np
 DEFAULT_MODEL_DIRECTORY = os.path.expanduser('~/.costar/models')
 
 
-class PredictorShowImage(keras.callbacks.Callback):
+class HuskyPredictorShowImage(keras.callbacks.Callback):
     '''
     Save an image showing what some number of frames and associated predictions
     will look like at the end of an epoch.
@@ -19,7 +19,7 @@ class PredictorShowImage(keras.callbacks.Callback):
             model_directory=DEFAULT_MODEL_DIRECTORY,
             num_hypotheses=4,
             verbose=False,
-            min_idx=0, max_idx=66, step=11):
+            min_idx=0, max_idx=66, step=11, **kwargs):
         '''
         Set up a data set we can use to output validation images.
 
@@ -42,8 +42,17 @@ class PredictorShowImage(keras.callbacks.Callback):
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
 
+
+        self.logfile = open(os.path.join(self.directory,"pose_log.csv"),'w')
+
     def on_epoch_end(self, epoch, logs={}):
         # take the model and print it out
+        if epoch == 0:
+            msg = "epoch, idx, hypothesis, pose_x, pose_y, pose_z, pose_r, pose_p, pose_y, label\n"
+            self.logfile.write(msg)
+
+
+
         self.epoch += 1
         imglen = 64*64*3
         #img = self.targets[0][:,:imglen]
@@ -56,9 +65,15 @@ class PredictorShowImage(keras.callbacks.Callback):
             raise RuntimeError('did not recognize big train target shape; '
                                'are you sure you meant to use this callback'
                                'and not a normal image callback?')
+
+
         img = np.reshape(img, (self.num,64,64,3))
+
+       
         
-        data, poses, label = self.predictor.predict(self.features)
+
+        data, poses, label, next_option, value = self.predictor.predict(self.features)
+        
         if self.verbose:
             print("============================")
 
@@ -77,6 +92,9 @@ class PredictorShowImage(keras.callbacks.Callback):
             plt.title('Observed Goal')
             plt.imshow(img[j])
             for i in range(self.num_hypotheses):
+
+                msg = str(self.epoch) + "," + str(j) + "," + str(i) + "," + str(poses[j][i][0]) + "," + str(poses[j][i][1]) + "," + str(poses[j][i][2]) + "," + str(poses[j][i][3]) + "," + str(poses[j][i][4]) + "," + str(poses[j][i][5]) + "," + str(np.argmax(label[j][i])) + "\n"
+                self.logfile.write(msg)
                 if self.verbose:
                     print("Pose = ", poses[j][i])
                     print("Label = ", np.argmax(label[j][i]))
