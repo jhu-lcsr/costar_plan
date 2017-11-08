@@ -542,11 +542,6 @@ class VREPGraspSimulation(object):
                 print(depth_point_display_name + ': ' + str(ee_cloud_point) + ' end_effector image coordinate: ' + str(ee_image_coordinate))
                 depth_point_vec_quat = grasp_geometry.ptransform_to_vector_quaternion_array(depth_point_dummy_ptrans)
                 depth_point_dummy_handle = self.create_dummy(depth_point_display_name, depth_point_vec_quat, base_T_camera_handle)
-                if FLAGS.vrepVisualizeSurfaceRelativeTransformLines:
-                    # Draw lines from the camera through the gripper pose to the depth pixel in the clear view frame used for surface transforms
-                    ret, camera_world_position = vrep.simxGetObjectPosition(self.client_id, base_T_camera_handle, -1, vrep.simx_opmode_oneshot_wait)
-                    ret, depth_world_position = vrep.simxGetObjectPosition(self.client_id, depth_point_dummy_handle, -1, vrep.simx_opmode_oneshot_wait)
-                    self.drawLines('camera_to_depth_lines', np.append(camera_world_position, depth_world_position), base_T_camera_handle)
 
                 # Get the transform for the gripper relative to the key depth point and display it.
                 # Dummy should coincide with the gripper pose if done correctly
@@ -555,6 +550,13 @@ class VREPGraspSimulation(object):
                 surface_relative_transform_dummy_handle = self.create_dummy(time_step_name + 'depth_point_T_endeffector',
                                                                             surface_relative_transform_vec_quat,
                                                                             depth_point_dummy_handle)
+                if FLAGS.vrepVisualizeSurfaceRelativeTransformLines:
+                    # Draw lines from the camera through the gripper pose to the depth pixel in the clear view frame used for surface transforms
+                    ret, camera_world_position = vrep.simxGetObjectPosition(self.client_id, base_T_camera_handle, -1, vrep.simx_opmode_oneshot_wait)
+                    ret, depth_world_position = vrep.simxGetObjectPosition(self.client_id, depth_point_dummy_handle, -1, vrep.simx_opmode_oneshot_wait)
+                    ret, surface_relative_gripper_world_position = vrep.simxGetObjectPosition(self.client_id, surface_relative_transform_dummy_handle, -1, vrep.simx_opmode_oneshot_wait)
+                    self.drawLines('camera_to_depth_lines', np.append(camera_world_position, depth_world_position), base_T_camera_handle)
+                    self.drawLines('camera_to_depth_lines', np.append(depth_world_position, surface_relative_gripper_world_position), base_T_camera_handle)
 
             # only visualize the RGBD point clouds if they are within the user specified range
             if(vrepVisualizeRGBD and (attempt_num >= FLAGS.vrepVisualizeRGBD_min or FLAGS.vrepVisualizeRGBD_min == -1) and
