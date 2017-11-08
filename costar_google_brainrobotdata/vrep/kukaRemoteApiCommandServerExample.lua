@@ -59,8 +59,10 @@ createPointCloud_function=function(inInts,inFloats,inStrings,inBuffer)
         local cloudHandle=-1
         -- Get the existing point cloud's handle or create a new one
         if pcall(function()
+            -- simAddStatusbarMessage('getting cloud handle' .. inStrings[1])
             cloudHandle=simGetObjectHandle(inStrings[1])
         end) == false then
+            -- simAddStatusbarMessage('adding cloud object')
             -- create a new cloud if none exists
             local maxVoxelSize = inFloats[1]
             local max_point_count_per_voxel = inInts[6]
@@ -120,6 +122,47 @@ insertPointCloud_function=function(inInts,inFloats,inStrings,inBuffer)
         return {cloudHandle},{},{},'' -- return the handle of the created dummy
     else
         simAddStatusbarMessage('createPointCloud_function call failed because incorrect parameters were passed.')
+    end
+end
+
+addDrawingObject_function=function(inInts, inFloats, inStrings, inBuffer)
+    -- Create a dummy object with specific name and coordinates
+    if #inStrings>=1 and #inFloats>=6 and #inInts>=2 then
+        local drawingHandle=-1
+        local parent_handle=inInts[1]
+        local linewidth = 2
+        local minTolerance = 0.0
+        local maxItemCount = 100
+        -- drawingHandle=simAddDrawingObject(sim_drawing_lines+sim_drawing_cyclic, linewidth, minTolerance, parent_handle, maxItemCount, nil, nil, nil, nil)
+        -- Get the existing dummy object's handle or create a new one
+        if pcall(function()
+            -- please note that as of vrep 3.4 there is a bug where sometimes a handle will be found when none exists.
+            -- If you encounter it please completely exit and restart V-REP
+            -- simAddStatusbarMessage('getting drawing handle ' .. inStrings[1])
+            drawingHandle=simGetObjectHandle(inStrings[1])
+        end) == false then
+            -- simAddStatusbarMessage('adding drawing object')
+            drawingHandle=simAddDrawingObject(sim_drawing_lines+sim_drawing_cyclic, linewidth, minTolerance, parent_handle, maxItemCount, nil, nil, nil, nil)
+            setObjectName(drawingHandle, inStrings[1])
+        end
+        -- Set the dummy position
+        -- setObjectRelativeToParentWithPoseArray(drawingHandle, parent_handle, inFloats)
+
+        -- please note that as of vrep 3.4 there is a bug where sometimes a handle will be found when none exists.
+        -- If you encounter it please completely exit and restart V-REP
+        simAddDrawingObjectItem(drawingHandle, inFloats)
+        -- local lineCount=inInts[2]
+        -- for i=0,lineCount do
+        --     local startFloats=(i*6)+7
+        --     local line = {unpack(inFloats, startFloats, startFloats+6)}
+        --     simAddStatusbarMessage('line: ' .. line)
+        --     simAddDrawingObjectItem(drawingHandle, {0,0,0,1,1,1})
+        --     simAddDrawingObjectItem(drawingHandle, line)
+        -- end
+
+        return {drawingHandle},{},{},'' -- return the handle of the created dummy
+    else
+        simAddStatusbarMessage('addDrawingObject_function call failed because incorrect parameters were passed.')
     end
 end
 

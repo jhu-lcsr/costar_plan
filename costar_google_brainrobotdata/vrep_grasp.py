@@ -54,6 +54,7 @@ tf.flags.DEFINE_boolean('vrepVisualizeRGBD', True, 'display the rgbd images and 
 tf.flags.DEFINE_integer('vrepVisualizeRGBD_min', 0, 'min time step on each grasp attempt to display, or -1 for no limit')
 tf.flags.DEFINE_integer('vrepVisualizeRGBD_max', 0, 'max time step on each grasp attempt to display, exclusive, or -1 for no limit')
 tf.flags.DEFINE_boolean('vrepVisualizeSurfaceRelativeTransform', True, 'display the surface relative transform frames')
+tf.flags.DEFINE_boolean('vrepVisualizeSurfaceRelativeTransformLines', True, 'display lines from the camera to surface depth points')
 tf.flags.DEFINE_string('vrepParentName', 'LBR_iiwa_14_R820', 'The default parent frame name from which to base all visualized transforms.')
 
 flags.FLAGS._parse_flags()
@@ -107,6 +108,47 @@ class VREPGraspSimulation(object):
             print ('Dummy name:', display_name, ' handle: ', ret_ints[0], ' transform: ', transform)
         else:
             print('create_dummy remote function call failed.')
+            print(''.join(traceback.format_stack()))
+            return -1
+        return ret_ints[0]
+
+    def drawLines(self, display_name, lines, parent_handle=-1, transform=None):
+        """Create a line in the simulation.
+
+        Note that there are currently some quirks with this function. Only one line is accepted,
+        and sometimes v-rep fails to delete the object correctly and lines will fail to draw.
+        In that case you need to close and restart V-REP.
+
+        # Arguments
+
+            transform_display_name: name string to use for the object in the vrep scene
+            transform: 3 cartesian (x, y, z) and 4 quaternion (x, y, z, w) elements, same as vrep
+            parent_handle: -1 is the world frame, any other int should be a vrep object handle
+            lines: array of line definitions using two endpoints (x0, y0, z0, x1, y1, z1).
+                Multiple lines can be defined but there should be 6 entries (two points) per line.
+        """
+        # 2. Now create a dummy object at coordinate 0.1,0.2,0.3 with name 'MyDummyName':
+        empty_buffer = bytearray()
+        res, ret_ints, ret_floats, ret_strings, ret_buffer = vrep.simxCallScriptFunction(
+            self.client_id,
+            'remoteApiCommandServer',
+            vrep.sim_scripttype_childscript,
+            'addDrawingObject_function',
+            [parent_handle, int(lines.size/6)],
+            # np.append(transform, lines),
+            lines,
+            [display_name],
+            empty_buffer,
+            vrep.simx_opmode_blocking)
+        if res == vrep.simx_return_ok:
+            # display the reply from V-REP (in this case, the handle of the created dummy)
+            print ('drawLines name:', display_name, ' handle: ', ret_ints[0], ' transform: ', transform)
+
+            if transform is not None:
+                # set the transform for the point cloud
+                self.setPose(display_name, transform, parent_handle)
+        else:
+            print('drawLines remote function call failed.')
             print(''.join(traceback.format_stack()))
             return -1
         return ret_ints[0]
@@ -364,6 +406,11 @@ class VREPGraspSimulation(object):
 
         It is important to note that both V-REP and the grasp dataset use the xyzw quaternion format.
         """
+        # workaround for V-REP bug where handles may not be correctly deleted
+        res, lines_handle = vrep.simxGetObjectHandle(self.client_id, 'camera_to_depth_lines', vrep.simx_opmode_oneshot_wait)
+        print(lines_handle)
+        if res == vrep.simx_return_ok and lines_handle is not -1:
+            vrep.simxRemoveObject(self.client_id, lines_handle, vrep.simx_opmode_oneshot)
         # grasp attempt is complete
         attempt_num_string = 'attempt_' + str(attempt_num).zfill(4) + '_'
         self.vrepPrint(attempt_num_string + 'started')
@@ -401,10 +448,10 @@ class VREPGraspSimulation(object):
         # TODO(ahundt) check that ptransform times its inverse is identity, or very close to it
         identity = sva.PTransformd.Identity()
         should_be_identity = base_T_camera_ptrans * camera_T_base_ptrans
-
-        base_to_camera_vec_quat_7_ptransform_conversion_test = grasp_geometry.ptransform_to_vector_quaternion_array(base_T_camera_ptrans)
         # Make sure converting to a ptransform and back to a quaternion generates a sensible transform
+        base_to_camera_vec_quat_7_ptransform_conversion_test = grasp_geometry.ptransform_to_vector_quaternion_array(base_T_camera_ptrans)
         self.create_dummy('base_to_camera_vec_quat_7_ptransform_conversion_test', base_to_camera_vec_quat_7_ptransform_conversion_test, parent_handle)
+        assert(grasp_geometry.vector_quaternion_arrays_allclose(base_to_camera_vec_quat_7, base_to_camera_vec_quat_7_ptransform_conversion_test))
 
         clear_frame_depth_image = np.squeeze(features_dict_np[clear_frame_depth_image_feature])
         clear_frame_rgb_image = np.squeeze(features_dict_np[clear_frame_rgb_image_feature])
@@ -495,6 +542,11 @@ class VREPGraspSimulation(object):
                 print(depth_point_display_name + ': ' + str(ee_cloud_point) + ' end_effector image coordinate: ' + str(ee_image_coordinate))
                 depth_point_vec_quat = grasp_geometry.ptransform_to_vector_quaternion_array(depth_point_dummy_ptrans)
                 depth_point_dummy_handle = self.create_dummy(depth_point_display_name, depth_point_vec_quat, base_T_camera_handle)
+                if FLAGS.vrepVisualizeSurfaceRelativeTransformLines:
+                    # Draw lines from the camera through the gripper pose to the depth pixel in the clear view frame used for surface transforms
+                    ret, camera_world_position = vrep.simxGetObjectPosition(self.client_id, base_T_camera_handle, -1, vrep.simx_opmode_oneshot_wait)
+                    ret, depth_world_position = vrep.simxGetObjectPosition(self.client_id, depth_point_dummy_handle, -1, vrep.simx_opmode_oneshot_wait)
+                    self.drawLines('camera_to_depth_lines', np.append(camera_world_position, depth_world_position), base_T_camera_handle)
 
                 # Get the transform for the gripper relative to the key depth point and display it.
                 # Dummy should coincide with the gripper pose if done correctly
