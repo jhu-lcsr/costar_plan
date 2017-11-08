@@ -411,7 +411,7 @@ class VREPGraspSimulation(object):
         print(lines_handle)
         if res == vrep.simx_return_ok and lines_handle is not -1:
             vrep.simxRemoveObject(self.client_id, lines_handle, vrep.simx_opmode_oneshot)
-        # grasp attempt is complete
+        # grasp attempt string for showing status
         attempt_num_string = 'attempt_' + str(attempt_num).zfill(4) + '_'
         self.vrepPrint(attempt_num_string + 'started')
         # get param strings for every single gripper position
@@ -554,7 +554,8 @@ class VREPGraspSimulation(object):
                     # Draw lines from the camera through the gripper pose to the depth pixel in the clear view frame used for surface transforms
                     ret, camera_world_position = vrep.simxGetObjectPosition(self.client_id, base_T_camera_handle, -1, vrep.simx_opmode_oneshot_wait)
                     ret, depth_world_position = vrep.simxGetObjectPosition(self.client_id, depth_point_dummy_handle, -1, vrep.simx_opmode_oneshot_wait)
-                    ret, surface_relative_gripper_world_position = vrep.simxGetObjectPosition(self.client_id, surface_relative_transform_dummy_handle, -1, vrep.simx_opmode_oneshot_wait)
+                    ret, surface_relative_gripper_world_position = vrep.simxGetObjectPosition(
+                        self.client_id, surface_relative_transform_dummy_handle, -1, vrep.simx_opmode_oneshot_wait)
                     self.drawLines('camera_to_depth_lines', np.append(camera_world_position, depth_world_position), base_T_camera_handle)
                     self.drawLines('camera_to_depth_lines', np.append(depth_world_position, surface_relative_gripper_world_position), base_T_camera_handle)
 
