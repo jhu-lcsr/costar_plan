@@ -185,7 +185,8 @@ class ImageCb(keras.callbacks.Callback):
         self.predictor = predictor
         self.idxs = range(min_idx, max_idx, step)
         self.num = len(self.idxs)
-        self.features = features[0][self.idxs]
+        #self.features = features[0][self.idxs]
+        self.features = [f[self.idxs] for f in features]
         self.targets = [np.squeeze(t[self.idxs]) for t in targets]
         self.epoch = 0
         self.directory = os.path.join(model_directory,'debug')
@@ -194,14 +195,18 @@ class ImageCb(keras.callbacks.Callback):
 
     def on_epoch_end(self, epoch, logs={}):
         self.epoch += 1
-        img = self.predictor.predict(self.features)
+        res = self.predictor.predict(self.features)
+        if isinstance(res, list):
+            img, arm, gripper, out, value = res
+        else:
+            img = res
         for j in range(self.num):
             name = os.path.join(self.directory,
                     "image_ae_epoch%d_result%d.png"%(self.epoch,j))
             fig = plt.figure()
             plt.subplot(1,3,1)
             plt.title('Input Image')
-            plt.imshow(self.features[j])
+            plt.imshow(self.features[0][j])
             plt.subplot(1,3,3)
             plt.title('Observed Goal')
             plt.imshow(self.targets[0][j])

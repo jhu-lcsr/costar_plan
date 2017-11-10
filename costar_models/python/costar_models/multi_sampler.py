@@ -104,6 +104,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.image_decoder = None
         self.arm_encoder = None
         self.arm_decoder = None
+        self.hidden_encoder = None
+        self.hidden_decoder = None
 
         # ===================================================================
         # These are hard coded settings -- tweaking them may break a bunch of
@@ -519,6 +521,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             if self.image_encoder is not None:
                 self.image_encoder.save_weights(self.name + 
                 "_image_encoder.h5f")
+            if self.hidden_encoder is not None:
+                self.hidden_encoder.save_weights(self.name + 
+                "_hidden_encoder.h5f")
+            if self.hidden_decoder is not None:
+                self.hidden_decoder.save_weights(self.name + 
+                "_hidden_decoder.h5f")
         else:
             raise RuntimeError('save() failed: model not found.')
 
