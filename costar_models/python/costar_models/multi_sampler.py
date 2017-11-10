@@ -874,6 +874,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = Activation("sigmoid")(x)
         decoder = Model(rep, x, name="image_decoder")
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
+        self.image_decoder = decoder
         return decoder
 
     def _targetsFromTrainTargets(self, train_targets):

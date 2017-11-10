@@ -39,7 +39,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         ih, iw, ic = self.hidden_shape
 
         # ---------------------------------
-        x = AddDense(x,int(ih*iw*ic),"relu",self.decoder_dropout_rate)
+        x = AddDense(h,int(ih*iw*ic),"relu",self.decoder_dropout_rate)
         x = Reshape((ih,iw,ic))(x)
         img = self.image_decoder(x)
 
@@ -79,10 +79,14 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         # Load the image decoders
         img_in = Input(img_shape,name="predictor_img_in")
         encoder = self._makeImageEncoder(img_shape)
-        encoder.load_weights(self._makeName("pretrain_image_encoder_model","image_encoder"))
+        encoder.load_weights(self._makeName(
+            "pretrain_image_encoder_model",
+            "image_encoder.h5f"))
         enc = encoder(img_in)
         decoder = self._makeImageDecoder(self.hidden_shape)
-        decoder.load_weights(self._makeName("pretrain_image_encoder_model","image_decoder"))
+        decoder.load_weights(self._makeName(
+            "pretrain_image_encoder_model",
+            "image_decoder.h5f"))
 
         # =====================================================================
         # Load the arm and gripper representation
@@ -90,22 +94,25 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         gripper_in = Input((gripper_size,))
         arm_gripper = Concatenate()([arm_in, gripper_in])
         label_in = Input((1,))
+        ins = [img_in, arm_in, gripper_in, label_in]
 
         # =====================================================================
         # combine these models together with state information and label
         # information
         img_rep = encoder(img_in)
-        dense_rep = AddDense(arm_gripper, 64)
+        dense_rep = AddDense(arm_gripper, 64, "relu", self.dropout_rate)
         img_rep = Flatten()(img_rep)
-        label_rep = OneHot(label_in)
-        all_rep = Concatenate()([dense_rep, img_rep, label_rep)
-        x = AddDense(all_rep, 128)
+        label_rep = OneHot(self.num_options)(label_in)
+        label_rep = Flatten()(label_rep)
+        all_rep = Concatenate()([dense_rep, img_rep, label_rep])
+        x = AddDense(all_rep, self.rep_size, "relu", self.dropout_rate)
         value_out, next_option_out = GetNextOptionAndValue(x,
                                                            self.num_options,
-                                                           128,
+                                                           self.rep_size,
                                                            dropout_rate=0.5,
                                                            option_in=None)
-        hidden_decoder = self._makeFromHidden(128)
+        hidden_decoder = self._makeFromHidden(self.rep_size)
+        z = Input((self.num_hypotheses, self.noise_dim))
 
         # =====================================================================
         # Create many different image decoders
@@ -186,7 +193,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
                         #weights=[0.7,1.0,0.1,0.1],
                         weights=[0.3, 0.4, 0.05, 0.3],
                         loss=["mae","mae","mae","categorical_crossentropy"],
-                        stats=stats,
+                        #stats=stats,
                         avg_weight=0.025),]
         if self.success_only and False:
             outs = [train_out, next_option_out]
@@ -198,7 +205,15 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             losses += ["categorical_crossentropy", "binary_crossentropy"]
 
         train_predictor = Model(ins, outs)
+        train_predictor.compile(
+                loss=losses,
+                loss_weights=loss_weights,
+                optimizer=self.getOptimizer())
+        predictor.compile(
+                loss=["mae", "mae", "mae", "mae", "categorical_crossentropy",
+                      "mae"],
+                optimizer=self.getOptimizer())
 
-        return ae, ae, None, [img_in], enc
+        return train_predictor, predictor, None, ins, enc
 
 
