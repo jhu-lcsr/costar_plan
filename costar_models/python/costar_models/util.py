@@ -15,6 +15,7 @@ from .multi_sequence import RobotMultiSequencePredictor
 from .image_sampler import RobotMultiImageSampler
 from .husky_sampler import HuskyRobotMultiPredictionSampler
 from .pretrain_image import PretrainImageAutoencoder
+from .sampler2 import PredictionSampler2
 
 def MakeModel(features, model, taskdef, **kwargs):
     '''
@@ -110,6 +111,8 @@ def MakeModel(features, model, taskdef, **kwargs):
         elif model == "pretrain_image_encoder":
             model_instance = PretrainImageAutoencoder(taskdef, model=model,
                     **kwargs)
+        elif model == "predictor2":
+            model_instance = PredictionSampler2(taskdef, model=model, **kwargs)
     
     # If we did not create a model then die.
     if model_instance is None:
@@ -135,5 +138,5 @@ def GetModels():
             "goal_sampler", # samples goals instead of everything else
             "image_sampler", #just learn to predict goal image
             "pretrain_image_encoder", # tool for pretraining images
-            "sampler2", # second version of the prediction-sampler code
+            "predictor2", # second version of the prediction-sampler code
             ]
