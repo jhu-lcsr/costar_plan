@@ -7,17 +7,15 @@ from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import control_flow_ops
 from tensorflow.python.ops import gen_random_ops
 from tensorflow.python.ops import math_ops
-# go/tf-wildcard-import
-# pylint: disable=wildcard-import
+
 from tensorflow.python.ops.gen_random_ops import *
 
-# pylint: enable=wildcard-import
 
 def random_crop_parameters(input_shape, output_shape, seed=None, name=None):
     """ Generate crop parameter by random.
         # Params
-        input_shape: shape if input image need to crop.
-        output_shape: output shape of image after cropping.
+        input_shape: shape of input image need to crop.
+        output_shape: shape of image after cropping.
         seed: Python integer. Used to create a random seed. See tf.set_random_seed for behavior.
         name: A name for this operation.
     """
@@ -38,7 +36,7 @@ def random_crop_parameters(input_shape, output_shape, seed=None, name=None):
 
     return offset
 
-def crop_images(image_list, size, offset, image_intrinsics=None, name=None):
+def crop_images(image_list, size, offset, name=None):
     """ Crop color image and depth image by random.
         # Params
         image_list: input images need to crop.
@@ -47,20 +45,21 @@ def crop_images(image_list, size, offset, image_intrinsics=None, name=None):
         seed: Python integer. Used to create a random seed. See tf.set_random_seed for behavior.
         name: A name for this operation.
     """
-    cropped_image_list = []
-    with ops.name_scope(name, "crop_images", [image_list, size]) as name:
-        size = ops.convert_to_tensor(size, dtype=dtypes.int32, name="size")
-        for image in image_list:
-            image = ops.convert_to_tensor(image, name="image")
-            image = array_ops.slice(image, offset, size, name=name)
-            cropped_image_list.append(image)
-
-    if image_intrinsics == None:
-        return cropped_image_list
+    if isinstance(image_list, list):
+        cropped_image_list = []
+        with ops.name_scope(name, "crop_images", [image_list, size]) as name:
+            size = ops.convert_to_tensor(size, dtype=dtypes.int32, name="size")
+            for image in image_list:
+                image = ops.convert_to_tensor(image, name="image")
+                image = array_ops.slice(image, offset, size, name=name)
+                cropped_image_list.append(image) 
     else:
-        image_intrinsics = crop_image_intrinsics(image_intrinsics,offset)
-        return cropped_image_list, image_intrinsics
-
+        with ops.name_scope(name, "crop_images", [image_list, size]) as name:
+            size = ops.convert_to_tensor(size, dtype=dtypes.int32, name="size")
+            image_list = ops.convert_to_tensor(image_list, name="image")
+            cropped_image_list = array_ops.slice(image_list, offset, size, name=name)
+            
+    return cropped_image_list 
 
 def crop_image_intrinsics(camera_intrinsics_matrix,offset,name=None):
     """ Calculate the intrinsic after crop.
@@ -79,3 +78,4 @@ def crop_image_intrinsics(camera_intrinsics_matrix,offset,name=None):
         camera_intrinsics_matrix = tf.convert_to_tensor( array_intrinsic)
         
     return camera_intrinsics_matrix
+

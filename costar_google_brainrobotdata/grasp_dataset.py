@@ -727,12 +727,6 @@ class GraspDataset(object):
             step='view_clear_scene'
         )
 
-        rgb_move_to_grasp_steps = self.get_time_ordered_features(
-            features_complete_list,
-            feature_type='depth_image/decoded',
-            step='move_to_grasp'
-        )
-
         final_pose_op = pose_op_params[-1]
         new_pose_op_param_names = []
         new_feature_op_dicts = []
@@ -925,7 +919,7 @@ class GraspDataset(object):
         pixel_value_offset = tf.constant([103.939, 116.779, 123.68])
         return tf.subtract(tensor, pixel_value_offset)
 
-    def _get_rgb_offset(self):
+    def _get_offset(self):
         """Get random offset for crop.
         """
         offset = rcp.random_crop_parameters(tf.constant([FLAGS.sensor_image_height, FLAGS.sensor_image_width, 3],
@@ -934,27 +928,17 @@ class GraspDataset(object):
                                                     name='random_image_height_width'))
         return offset
 
-    def _get_depth_offset(self):
-        """Get random offset for crop.
-        """
-        offset = rcp.random_crop_parameters(tf.constant([FLAGS.sensor_image_height, FLAGS.sensor_image_width, 1],
-                                                    name='sensor_image_height_width'),
-                                            tf.constant([FLAGS.random_crop_height, FLAGS.random_crop_width,1],
-                                                    name='random_image_height_width'))
-        return offset
-
     def _depth_preprocessing(self, depth_image_op, offset, intrinsics_matrix_op,random_crop=FLAGS.random_crop):
         """Randomly crop depth image, return cropped image and intrinsics.
         """
         with tf.name_scope('depth_preprocessing'):                           
             depth_image_op = tf.squeeze(depth_image_op,0)
-            if random_crop:
-                input_image_list = []
-                input_image_list.append(depth_image_op)                                       
-                output_image_list, intrinsics_matrix_op = rcp.crop_images(image_list=input_image_list, 
-                                                                          size=tf.constant([FLAGS.random_crop_height, FLAGS.random_crop_width,1]), 
-                                                                          offset=offset, image_intrinsics=intrinsics_matrix_op)
-        return tf.cast(output_image_list[0], tf.float32), intrinsics_matrix_op
+            if random_crop:                                  
+                output_image_list = rcp.crop_images(image_list=depth_image_op, 
+                                                    size=tf.constant([FLAGS.random_crop_height, FLAGS.random_crop_width,1]), 
+                                                    offset=offset)
+                cropped_intrinsics_matrix_op =rcp.crop_image_intrinsics(intrinsics_matrix_op,offset)
+        return tf.cast(output_image_list, tf.float32), cropped_intrinsics_matrix_op
 
     def _rgb_preprocessing(self, rgb_image_op, offset,
                            image_augmentation=FLAGS.image_augmentation,
@@ -969,13 +953,10 @@ class GraspDataset(object):
             # make sure the shape is correct
             rgb_image_op = tf.squeeze(rgb_image_op)
             # apply image augmentation and imagenet preprocessing steps adapted from keras
-            if random_crop:
-                input_image_list = []
-                input_image_list.append(rgb_image_op)                                       
-                output_image_list = rcp.crop_images(image_list=input_image_list, 
-                                                    size=tf.constant([FLAGS.random_crop_height, FLAGS.random_crop_width, 3]), 
-                                                    offset=offset, image_intrinsics=None)
-                rgb_image_op = output_image_list[0]
+            if random_crop:                                    
+                rgb_image_op = rcp.crop_images(image_list=rgb_image_op, 
+                                               size=tf.constant([FLAGS.random_crop_height, FLAGS.random_crop_width, 3]), 
+                                               offset=offset)
             if resize:
                 rgb_image_op = tf.image.resize_images(rgb_image_op,
                                                       tf.constant([FLAGS.resize_height, FLAGS.resize_width],
@@ -1050,11 +1031,7 @@ class GraspDataset(object):
             step='view_clear_scene'
         )
 
-        depth_clear_view = self.get_time_ordered_features(
-            features_complete_list,
-            feature_type='depth_image/decoded',
-            step='view_clear_scene'
-        )
+        
         # get the feature names for the sequence of rgb images
         # in which movement towards the close gripper step is made
         rgb_move_to_grasp_steps = self.get_time_ordered_features(
@@ -1123,16 +1100,11 @@ class GraspDataset(object):
             # TODO(ahundt) move squeeze steps into dataset api if possible
             camera_intrinsics_matrix = fixed_feature_op_dict['camera/intrinsics/matrix33']
             pregrasp_image_rgb_op = fixed_feature_op_dict[rgb_clear_view[0]]
-            pregrasp_image_depth_op = fixed_feature_op_dict[depth_clear_view[0]]
-            rgb_offset = self._get_rgb_offset()
-            depth_offset = self._get_depth_offset()
-            pregrasp_image_rgb_op = self._rgb_preprocessing(pregrasp_image_rgb_op, rgb_offset,
+            offset = self._get_offset()
+            pregrasp_image_rgb_op = self._rgb_preprocessing(pregrasp_image_rgb_op, offset,
                                                             imagenet_mean_subtraction=imagenet_mean_subtraction,
                                                             random_crop=random_crop,
                                                             resize=resize)
-            pregrasp_image_depth_op, camera_intrinsics_matrix = self._depth_preprocessing(pregrasp_image_depth_op, depth_offset,
-                                                                                          intrinsics_matrix_op=camera_intrinsics_matrix,
-                                                                                          random_crop=random_crop)
             grasp_success_op = tf.squeeze(fixed_feature_op_dict[grasp_success[0]])
             if self.verbose > 2:
                 print('\npose_op_params: ', pose_op_params, '\nrgb_move_to_grasp_steps: ', rgb_move_to_grasp_steps)
@@ -1147,7 +1119,7 @@ class GraspDataset(object):
                         raise ValueError('ERROR: the time step of the grasp step does not match the motion command params, '
                                          'make sure the lists are indexed correctly!')
                     pregrasp_op_batch.append(pregrasp_image_rgb_op)
-                    grasp_step_rgb_feature_op = self._rgb_preprocessing(fixed_feature_op_dict[grasp_step_rgb_feature_name],rgb_offset)
+                    grasp_step_rgb_feature_op = self._rgb_preprocessing(fixed_feature_op_dict[grasp_step_rgb_feature_name],offset)
                     grasp_step_op_batch.append(grasp_step_rgb_feature_op)
                     # print("fixed_feature_op_dict[pose_op_param]: ", fixed_feature_op_dict[pose_op_param])
                     simplified_grasp_command_op_batch.append(fixed_feature_op_dict[pose_op_param])
