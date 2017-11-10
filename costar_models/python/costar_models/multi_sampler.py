@@ -172,8 +172,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         else:
             pv_option_in = None
             
-        next_option_in = Input((self.num_options,),name="next_option_in")
-        ins += [next_option_in]
+        #next_option_in = Input((self.num_options,),name="next_option_in")
+        #ins += [next_option_in]
 
         value_out, next_option_out = GetNextOptionAndValue(enc,
                                                            self.num_options,
@@ -426,9 +426,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-            return features[:self.num_features] + [o1, z], [tt, o1, v]
+            #return features[:self.num_features] + [o1, z], [tt, o1, v]
+            return features[:self.num_features] + [z], [tt, o1, v]
         else:
-            return features[:self.num_features] + [o1], [tt, o1, v]
+            return features[:self.num_features], [tt, o1, v]
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''

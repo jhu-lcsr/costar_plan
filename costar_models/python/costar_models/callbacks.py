@@ -106,8 +106,8 @@ class PredictorShowImage(keras.callbacks.Callback):
                                'and not a normal image callback?')
         img = np.reshape(img, (self.num,64,64,3))
         if self.use_noise:
-            z= np.random.random((self.targets[0].shape[0], self.num_hypotheses, self.noise_dim))
-            data, arms, grippers, label, probs, v = self.predictor.predict(self.features + [z])
+            #z= np.random.random((self.targets[0].shape[0], self.num_hypotheses, self.noise_dim))
+            data, arms, grippers, label, probs, v = self.predictor.predict(self.features)
         else:
             data, arms, grippers, label, probs, v = self.predictor.predict(self.features)
         plt.ioff()

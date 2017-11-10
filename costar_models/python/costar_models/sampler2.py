@@ -82,11 +82,13 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         encoder.load_weights(self._makeName(
             "pretrain_image_encoder_model",
             "image_encoder.h5f"))
+        encoder.trainable = False
         enc = encoder(img_in)
         decoder = self._makeImageDecoder(self.hidden_shape)
         decoder.load_weights(self._makeName(
             "pretrain_image_encoder_model",
             "image_decoder.h5f"))
+        decoder.trainable = False
 
         # =====================================================================
         # Load the arm and gripper representation
@@ -209,11 +211,12 @@ class PredictionSampler2(RobotMultiPredictionSampler):
                 loss=losses,
                 loss_weights=loss_weights,
                 optimizer=self.getOptimizer())
+        train_predictor.summary()
         predictor.compile(
                 loss=["mae", "mae", "mae", "mae", "categorical_crossentropy",
                       "mae"],
                 optimizer=self.getOptimizer())
 
-        return train_predictor, predictor, None, ins, enc
+        return predictor, train_predictor, None, ins, enc
 
 
