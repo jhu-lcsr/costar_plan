@@ -141,7 +141,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # that we may find useful in different situations.
         img_in = Input(img_shape,name="predictor_img_in")
         encoder = self._makeEncoder(img_shape, arm_size, gripper_size)
-        decoder = self._makeDecoder(img_shape)
+        decoder = self._makeDecoder(img_shape, arm_size, gripper_size)
 
         # ===================================================================
         # Encode history
@@ -844,12 +844,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = AddConv2D(x, 32, [5,5], 1, self.dropout_rate)
         x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate)
         x = AddConv2D(x, 32, [5,5], 2, self.dropout_rate)
-        x = AddConv2D(x, 16, [5,5], 2, self.dropout_rate)
+        x = AddConv2D(x, 32, [5,5], 2, self.dropout_rate)
         #x = AddConv2D(x, 8, [5,5], 2, self.dropout_rate)
         
         self.steps_down = 3
         self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
-        self.tform_filters = 16
+        self.tform_filters = 32
         self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.tform_filters)
 
         image_encoder = Model(ins, x, name="image_encoder")

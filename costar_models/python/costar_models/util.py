@@ -135,4 +135,5 @@ def GetModels():
             "goal_sampler", # samples goals instead of everything else
             "image_sampler", #just learn to predict goal image
             "pretrain_image_encoder", # tool for pretraining images
+            "sampler2", # second version of the prediction-sampler code
             ]

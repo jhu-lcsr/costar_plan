@@ -18,10 +18,16 @@ class AbstractAgentBasedModel(object):
     will also provide the model with a way to collect data or whatever.
     '''
 
+    def _makeName(self, prefix, model_type=None):
+        name = os.path.join(self.model_directory, prefix)
+        if model_type is not None:
+            name = name + "_%s"%(str(model_type))
+        return name
+
     def __init__(self, taskdef=None, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
             clipnorm=100., show_iter=0, pretrain_iter=5,
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
-            steps_per_epoch=300, validation_steps=25, choose_initial=50,
+            steps_per_epoch=500, validation_steps=25, choose_initial=50,
             dropout_rate=0.5, decoder_dropout_rate=0.5,
             hypothesis_dropout=False,
             dense_representation=True,
@@ -68,14 +74,17 @@ class AbstractAgentBasedModel(object):
         self.clipnorm = float(clipnorm)
         self.taskdef = taskdef
         self.model_directory = os.path.expanduser(model_directory)
-        self.name = os.path.join(self.model_directory, self.name_prefix)
+        self.name = self._makeName(self.name_prefix)
         self.num_generator_files = num_generator_files
         self.residual = False
         self.predict_value = predict_value
         self.dropout_rate = dropout_rate
         self.hypothesis_dropout = hypothesis_dropout
         self.use_noise = use_noise
-        self.decoder_dropout_rate = decoder_dropout_rate
+        if self.hypothesis_dropout:
+            self.decoder_dropout_rate = decoder_dropout_rate
+        else:
+            self.decoder_dropout_rate = 0.
         self.skip_connections = skip_connections > 0
         self.dense_representation = dense_representation
         self.sampling = sampling
