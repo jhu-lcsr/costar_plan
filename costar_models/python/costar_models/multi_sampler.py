@@ -51,10 +51,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.use_spatial_softmax = True
         self.dense_representation = True
         if self.use_spatial_softmax and self.dense_representation:
-            self.steps_down = 1
+            self.steps_down = 0
             self.steps_down_no_skip = 0
-            self.steps_up = 1
-            self.steps_up_no_skip = 1
+            self.steps_up = 4
+            self.steps_up_no_skip = 4
             #self.encoder_stride1_steps = 2+1
             self.encoder_stride1_steps = 3
             self.padding="same"
@@ -140,18 +140,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Create the encoder and decoder networks -- these are sub-networks
         # that we may find useful in different situations.
         img_in = Input(img_shape,name="predictor_img_in")
-        encoder = self._makeEncoder(img_shape, arm_size, gripper_size)
+        ins, enc, skips, robot_skip = self._makeEncoder(img_shape, arm_size, gripper_size)
         decoder = self._makeDecoder(img_shape, arm_size, gripper_size)
 
         # ===================================================================
         # Encode history
-        himg = Input(img_shape)
-        harm = Input((arm_size,))
-        hgripper = Input((gripper_size,))
-        hoption = Input((1,))
-        hout = self.encoder([himg, harm, hgripper, hoption])
-        history_enc = hout[0]
-
         if self.use_prev_option:
             img_in, arm_in, gripper_in, option_in = ins
         else:
@@ -217,7 +210,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
             # This maps from our latent world state back into observable images.
             if self.skip_connections:
-                decoder_inputs = [x] + skips + [robot_skip]
+                decoder_inputs = [x] + skips #+ [robot_skip]
             else:
                 decoder_inputs = [x]
 
@@ -820,6 +813,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         robot_skip=robot_skip,
                         resnet_blocks=self.residual,
                         batchnorm=True,)
+        print (decoder.inputs)
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         decoder.summary()
         return decoder
