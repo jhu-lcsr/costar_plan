@@ -45,6 +45,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_options = 48
         self.num_features = 4
         self.null_option = 37
+        self.encoder_channels = 16
 
         # Layer and model configuration
         self.extra_layers = 1
@@ -847,12 +848,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = AddConv2D(x, 32, [5,5], 1, self.dropout_rate)
         x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate)
         x = AddConv2D(x, 32, [5,5], 2, self.dropout_rate)
-        x = AddConv2D(x, 32, [5,5], 2, self.dropout_rate)
+        x = AddConv2D(x, self.encoder_channels, [5,5], 2, self.dropout_rate)
         #x = AddConv2D(x, 8, [5,5], 2, self.dropout_rate)
         
         self.steps_down = 3
         self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
-        self.tform_filters = 32
+        self.tform_filters = self.encoder_channels
         self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.tform_filters)
 
         image_encoder = Model(ins, x, name="image_encoder")
