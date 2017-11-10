@@ -69,13 +69,11 @@ def crop_image_intrinsics(camera_intrinsics_matrix,offset,name=None):
     """
     #offset should be array can be access by index
     with ops.name_scope(name, "crop_image_intrinsics", [camera_intrinsics_matrix, offset]) as name:
-        #Change offset to an numpy array compatible to intrinsic matrix
-        array_offset = tf.Session().run(offset)
-        array_intrinsic = tf.Session().run(camera_intrinsics_matrix)
-        #camera_intrinsics_matrix is transposed
-        array_intrinsic[2,0] = array_intrinsic[2,0] - array_offset[0]
-        array_intrinsic[2,1] = array_intrinsic[2,1] - array_offset[1]
-        camera_intrinsics_matrix = tf.convert_to_tensor( array_intrinsic)
+        offset_x = tf.gather(offset,tf.constant([0]))
+        offset_x = tf.pad(offset_x,tf.constant([[2,0,],[0,2]]))
+        offset_y = tf.gather(offset,tf.constant([1]))
+        offset_y = tf.pad(offset_x,tf.constant([[2,0,],[1,1]]))
+        camera_intrinsics_matrix = camera_intrinsics_matrix - offset_x - offset_y
         
     return camera_intrinsics_matrix
 
