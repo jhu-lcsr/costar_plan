@@ -40,22 +40,23 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         ih, iw, ic = self.hidden_shape
 
         # ---------------------------------
-        x = AddDense(h, 2*self.rep_size, "relu", self.decoder_dropout_rate)
-        x = AddDense(x,int(ih*iw*ic),"relu",self.decoder_dropout_rate)
+        x = h
+        x = AddDense(x,int(ih*iw*ic),"lrelu",self.decoder_dropout_rate)
         x = Reshape((ih,iw,ic))(x)
         img = self.image_decoder(x)
 
         # ---------------------------------
-        x = AddDense(h, 256, "relu", self.decoder_dropout_rate)
-        x = AddDense(x, 512, "relu", self.decoder_dropout_rate)
+        x = AddDense(h, 256, "lrelu", self.decoder_dropout_rate)
+        x = AddDense(x, 512, "lrelu", self.decoder_dropout_rate)
         arm = AddDense(x, 6, "linear", 0.)
         gripper = AddDense(x, 1, "sigmoid", 0.)
         
         # ---------------------------------
-        x = AddDense(h, 64, "relu", self.decoder_dropout_rate)
+        x = AddDense(h, 64, "lrelu", self.decoder_dropout_rate)
         label = AddDense(x, self.num_options, "softmax", 0.)
 
-        model = Model(h, [img, arm, gripper, label])
+        #model = Model(h, [img, arm, gripper, label])
+        model = Model(h, img)
         model.summary()
         self.hidden_decoder = model
         return model
@@ -117,12 +118,16 @@ class PredictionSampler2(RobotMultiPredictionSampler):
                                                            dropout_rate=0.5,
                                                            option_in=None)
         hidden_decoder = self._makeFromHidden(self.rep_size)
-        img_x, arm_x, gripper_x, label_x = hidden_decoder(x)
-        ae_outs = [img_x, arm_x, gripper_x, label_x, value_out]
+        #img_x, arm_x, gripper_x, label_x = hidden_decoder(x)
+        img_x = hidden_decoder(x)
+        #ae_outs = [img_x, arm_x, gripper_x, label_x, ] #value_out]
+        ae_outs = [img_x] #value_out]
         ae2 = Model(ins, ae_outs)
         ae2.compile(
-            loss=["mae","mae", "mae",
-                "categorical_crossentropy","binary_crossentropy"],
+            loss="mae",
+            #loss=["mae","mae", "mae",
+            #    "categorical_crossentropy",],#"binary_crossentropy"],
+            #loss_weights=[1.,0.,0.,0.,],#0.25],
             optimizer=self.getOptimizer())
 
         #return predictor, train_predictor, None, ins, enc
@@ -133,7 +138,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         [I, q, g, oin, q_target, g_target,] = features
         [tt, o1, v, qa, ga, I] = targets
         oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
-        return [I, q, g, oin], [I, q, g, oin_1h, v]
+        return [I, q, g, oin], [I]#, q, g, oin_1h]#, v]
 
     def makePredictor(self):
         # =====================================================================

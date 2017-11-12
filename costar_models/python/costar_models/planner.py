@@ -101,7 +101,10 @@ def AddDense(x, size, activation, dropout_rate):
     '''
     x = Dense(size)(x)
     x = BatchNormalization()(x)
-    x = Activation(activation)(x)
+    if activation == "lrelu":
+        x = LeakyReLU(alpha=0.2)(x)
+    else:
+        x = Activation(activation)(x)
     if dropout_rate > 0:
         x = Dropout(dropout_rate)(x)
     return x
