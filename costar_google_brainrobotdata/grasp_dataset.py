@@ -1024,7 +1024,6 @@ class GraspDataset(object):
             step='view_clear_scene'
         )
 
-
         # get the feature names for the sequence of rgb images
         # in which movement towards the close gripper step is made
         rgb_move_to_grasp_steps = self.get_time_ordered_features(
