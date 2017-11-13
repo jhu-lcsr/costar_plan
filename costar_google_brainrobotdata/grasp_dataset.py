@@ -14,19 +14,21 @@ from six import iteritems
 import numpy as np
 import tensorflow as tf
 import re
+from tqdm import tqdm # progress bars https://github.com/tqdm/tqdm
 
 from tensorflow.python.platform import flags
 from tensorflow.python.platform import gfile
 from tensorflow.python.ops import data_flow_ops
-from tensorflow.contrib.keras.python.keras.utils import get_file
-from tensorflow.contrib.keras.python.keras.utils.data_utils import _hash_file
-from tensorflow.contrib.keras.python.keras.utils.generic_utils import Progbar
+from tensorflow.python.keras.utils import get_file
+from tensorflow.python.keras._impl.keras.utils.data_utils import _hash_file
+from tensorflow.python.keras.utils import Progbar
 
-try:
-    import moviepy.editor as mpy
-except ImportError:
-    print('moviepy not available, try `pip install moviepy`. '
-          'Skipping dataset gif extraction components.')
+# TODO(ahundt) importing moviepy prevented python from exiting, uncomment lines when fixed.
+# try:
+#     import moviepy.editor as mpy
+# except ImportError:
+#     print('moviepy not available, try `pip install moviepy`. '
+#           'Skipping dataset gif extraction components.')
 
 import grasp_geometry
 import depth_image_encoding
@@ -73,7 +75,7 @@ flags.DEFINE_boolean('resize', True,
                         resize_width and resize_height flags. It is suggested that an exact factor of 2 be used
                         relative to the input image directions if random_crop is disabled or the crop dimensions otherwise.
                      """)
-flags.DEFINE_boolean('image_augmentation', True,
+flags.DEFINE_boolean('image_augmentation', False,
                      'image augmentation applies random brightness, saturation, hue, contrast')
 flags.DEFINE_boolean('imagenet_mean_subtraction', True,
                      'subtract the imagenet mean pixel values from the rgb images')
@@ -214,8 +216,8 @@ class GraspDataset(object):
         if os.path.isfile(listing_hash):
             files_and_hashes = np.genfromtxt(listing_hash, dtype='str', delimiter=' ')
             files = [get_file(fpath.split('/')[-1], url_prefix + fpath, cache_subdir=data_dir, file_hash=hash_str)
-                     for fpath, hash_str in files_and_hashes
-                     if '_' + dataset in fpath]
+                     for fpath, hash_str in tqdm(files_and_hashes)
+                     if '_' + str(dataset) in fpath]
         else:
             # If a hashed version of the listing is not available,
             # simply download the dataset normally.
@@ -1146,6 +1148,8 @@ class GraspDataset(object):
     def npy_to_gif(self, npy, filename, fps=2):
         """Convert a numpy array into a gif file at the location specified by filename.
         """
+        # TODO(ahundt) currently importing moviepy prevents python from exiting. Once this is resolved remove the import below.
+        import moviepy.editor as mpy
         clip = mpy.ImageSequenceClip(list(npy), fps)
         clip.write_gif(filename)
 

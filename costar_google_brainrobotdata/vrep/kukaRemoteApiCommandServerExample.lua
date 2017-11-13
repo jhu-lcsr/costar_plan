@@ -3,106 +3,166 @@
 displayText_function=function(inInts,inFloats,inStrings,inBuffer)
     -- Simply display a dialog box that prints the text stored in inStrings[1]:
     if #inStrings>=1 then
-        simDisplayDialog('Message from the remote API client',inStrings[1],sim_dlgstyle_ok,false)
+        simAddStatusbarMessage('Message from the remote API client: ' .. inStrings[1])
         return {},{},{'message was displayed'},'' -- return a string
     end
 end
 
-createDummy_function=function(inInts,inFloats,inStrings,inBuffer)
+setObjectName=function(handle, string)
+    local errorReportMode=simGetInt32Parameter(sim_intparam_error_report_mode)
+    simSetInt32Parameter(sim_intparam_error_report_mode,0) -- temporarily suppress error output (because we are not allowed to have two times the same object name)
+    local result = simSetObjectName(handle,string)
+    if result == -1 then
+      simAddStatusbarMessage('Setting object name failed: ' .. string)
+    end
+    simSetInt32Parameter(sim_intparam_error_report_mode,errorReportMode) -- restore the original error report mode
+end
+
+setObjectRelativeToParentWithPoseArray=function(handle, parent_handle, inFloats)
+    -- Set the position and orientation of the parameter "handle" relative to the parent_handle
+    -- infloats should be a table [x, y, z, qx, qy, qz, qw], though just 3 position arguments are acceptable
+    if #inFloats>=3 then
+      -- pose should be a vector with an optional quaternion array of floats
+      -- 3 cartesian (x, y, z) and 4 quaternion (x, y, z, w) elements, same as vrep
+      local result = simSetObjectPosition(handle, parent_handle, inFloats)
+      if #inFloats>=7 then
+          local orientation={unpack(inFloats, 4, 7)} -- get 4 quaternion entries from 4 to 7
+          result = simSetObjectQuaternion(handle, parent_handle, orientation)
+      end
+      return result
+    end
+end
+
+createDummy_function=function(inInts, inFloats, inStrings, inBuffer)
     -- Create a dummy object with specific name and coordinates
     if #inStrings>=1 and #inFloats>=3 then
-        dummyHandle=-1
+        local dummyHandle=-1
+        -- Get the existing dummy object's handle or create a new one
         if pcall(function()
             dummyHandle=simGetObjectHandle(inStrings[1])
         end) == false then
             dummyHandle=simCreateDummy(0.05)
+            setObjectName(dummyHandle, inStrings[1])
         end
-        -- local dummyHandle=simGetObjectHandle(inStrings[1])
-        -- if dummyHandle == -1 then
-        --     dummyHandle=simCreateDummy(0.05)
-        -- end
+
+        -- Set the dummy position
         local parent_handle=inInts[1]
-        local errorReportMode=simGetInt32Parameter(sim_intparam_error_report_mode)
-        simSetInt32Parameter(sim_intparam_error_report_mode,0) -- temporarily suppress error output (because we are not allowed to have two times the same object name)
-        result = simSetObjectName(dummyHandle,inStrings[1])
-        if result == -1 then
-          simDisplayDialog('Setting object name failed',inStrings[1],sim_dlgstyle_ok,false)
-        end
-        simSetInt32Parameter(sim_intparam_error_report_mode,errorReportMode) -- restore the original error report mode
-        simSetObjectPosition(dummyHandle,parent_handle,inFloats)
-        if #inFloats>=7 then
-            local orientation={unpack(inFloats, 4, 7)} -- get 4 quaternion entries from 4 to 7
-            simSetObjectQuaternion(dummyHandle,parent_handle,orientation)
-        end
+        setObjectRelativeToParentWithPoseArray(dummyHandle, parent_handle, inFloats)
         return {dummyHandle},{},{},'' -- return the handle of the created dummy
     end
 end
 
 
 createPointCloud_function=function(inInts,inFloats,inStrings,inBuffer)
-    -- Create a dummy object with specific name and coordinates
-    if #inStrings>=1 and #inFloats>=3 then
+    -- Create a point cloud with specific name and coordinates, plus the option to clear an existing cloud.
+    if #inStrings>=1 and #inInts>=8 and #inFloats>=1 then
+        local cloudHandle=-1
+        -- Get the existing point cloud's handle or create a new one
+        if pcall(function()
+            -- simAddStatusbarMessage('getting cloud handle' .. inStrings[1])
+            cloudHandle=simGetObjectHandle(inStrings[1])
+        end) == false then
+            -- simAddStatusbarMessage('adding cloud object')
+            -- create a new cloud if none exists
+            local maxVoxelSize = inFloats[1]
+            local max_point_count_per_voxel = inInts[6]
+            local options = inInts[7]
+            local pointSize = inInts[8]
+            cloudHandle=simCreatePointCloud(maxVoxelSize, max_point_count_per_voxel, options, pointSize)
+            -- Update the name of the cloud
+            setObjectName(cloudHandle, inStrings[1])
+        end
 
-        -- The parent handle is the first integer parameter
+        local clearPointCloud=inInts[5]
+        if clearPointCloud == 1 then
+            simRemovePointsFromPointCloud(cloudHandle, 0, nil, 0)
+        end
+        -- Set the pose
         local parent_handle=inInts[1]
-
-        -- Find an existing cloud with the specified name or create a new one
-        simSetInt32Parameter(sim_intparam_error_report_mode,0) -- temporarily suppress error output (because we are not allowed to have two times the same object name)
-        cloudHandle=simGetObjectHandle(inStrings[1])
-        simSetInt32Parameter(sim_intparam_error_report_mode,errorReportMode) -- restore the original error report mode
-
-        if cloudHandle ~= -1 then
-            simRemoveObject(cloudHandle)
-        end
-        -- create a new cloud if none exists
-        cloudHandle=simCreatePointCloud(0.01, 10, 0, 10)
-        -- simDisplayDialog(('Call received! handle: ' .. cloudHandle),inStrings[1],sim_dlgstyle_ok,false)
-
-        -- Update the name of the cloud
-        local errorReportMode=simGetInt32Parameter(sim_intparam_error_report_mode)
-        simSetInt32Parameter(sim_intparam_error_report_mode,0) -- temporarily suppress error output (because we are not allowed to have two times the same object name)
-        result = simSetObjectName(cloudHandle,inStrings[1])
-        if result == -1 then
-          simDisplayDialog('Setting object name failed',inStrings[1],sim_dlgstyle_ok,false)
-        end
-        simSetInt32Parameter(sim_intparam_error_report_mode,errorReportMode) -- restore the original error report mode
-        --- Set the position of the cloud relative to teh parent handle
-        simSetObjectPosition(cloudHandle,parent_handle,inFloats)
-
-        poseEntries=inInts[2]
-        if #inFloats>=7 then
-            local orientation={unpack(inFloats, 4, 7)} -- get 4 quaternion entries from 4 to 7
-            simSetObjectQuaternion(cloudHandle,parent_handle,orientation)
-        end
-        -- print('pose vec quat:' .. {unpack(inFloats, 4, 7)})
-        -- local cloud = simUnpackFloatTable(inStrings[2])
-        cloudFloatCount=inInts[3]
-        simAuxiliaryConsolePrint('cloudFloatCount: '..cloudFloatCount)
-        pointBatchSize=30
-        colorBatch=nil
-        -- bit 1 is 1 so point clouds in cloud reference frame
-        options = 1
-        if #inStrings > 2 then
-          -- bit 2 is 1 so each point is colored
-          options = 3
-          colors = simUnpackUInt8Table(inStrings[3])
-        end
-        -- Insert the point cloud points
-        for i = 1, cloudFloatCount, pointBatchSize do
-            startEntry=1+poseEntries+i
-            local pointBatch={unpack(inFloats, startEntry, startEntry+pointBatchSize)}
-            simAuxiliaryConsolePrint('threePoints:')
-
-            simAuxiliaryConsolePrint(pointBatch[1])
-            simAuxiliaryConsolePrint(pointBatch[2])
-            simAuxiliaryConsolePrint(pointBatch[3])
-            if #inStrings > 2 then
-                colorBatch = {unpack(colors, startEntry, startEntry+pointBatchSize)}
-            end
-
-           simInsertPointsIntoPointCloud(cloudHandle, options, pointBatch, colors)
-        end
         return {cloudHandle},{},{},'' -- return the handle of the created dummy
+    else
+        simAddStatusbarMessage('createPointCloud_function call failed because incorrect parameters were passed.')
+    end
+end
+
+
+insertPointCloud_function=function(inInts,inFloats,inStrings,inBuffer)
+    -- inFloats contains the point cloud points
+    -- inBuffer contains the pixel colors
+    -- Create a dummy object with specific name and coordinates
+    if #inStrings>=1 and #inInts>=6 then
+        local cloudHandle=-1
+        -- Get the existing point cloud's handle or create a new one
+        if pcall(function()
+            cloudHandle=simGetObjectHandle(inStrings[1])
+        end) == false then
+            -- create a new cloud if none exists
+            cloudHandle=simCreatePointCloud(0.01, 10, 0, 10)
+            -- Update the name of the cloud
+            setObjectName(cloudHandle, inStrings[1])
+        end
+
+        -- Set the pose
+        local parent_handle=inInts[1]
+        -- commented because we will set position and orientation separately later
+        -- setObjectRelativeToParentWithPoseArray(cloudHandle, parent_handle, inFloats)
+        -- Get the number of float entries used for the pose
+        local poseEntries=inInts[2]
+        -- number of floating point numbers in the point cloud
+        local cloudFloatCount=inInts[3]
+        -- bit 1 is 1 so point clouds in cloud reference frame
+        local options = inInts[6]
+
+        local colors = nil
+        if options == 3 then
+            colors = simUnpackUInt8Table(inBuffer)
+        end
+        -- Insert the points and color elements into the point cloud
+        simInsertPointsIntoPointCloud(cloudHandle, options, inFloats, colors)
+        return {cloudHandle},{},{},'' -- return the handle of the created dummy
+    else
+        simAddStatusbarMessage('createPointCloud_function call failed because incorrect parameters were passed.')
+    end
+end
+
+addDrawingObject_function=function(inInts, inFloats, inStrings, inBuffer)
+    -- Create a dummy object with specific name and coordinates
+    if #inStrings>=1 and #inFloats>=6 and #inInts>=2 then
+        local drawingHandle=-1
+        local parent_handle=inInts[1]
+        local linewidth = 2
+        local minTolerance = 0.0
+        local maxItemCount = 100
+        -- drawingHandle=simAddDrawingObject(sim_drawing_lines+sim_drawing_cyclic, linewidth, minTolerance, parent_handle, maxItemCount, nil, nil, nil, nil)
+        -- Get the existing dummy object's handle or create a new one
+        if pcall(function()
+            -- please note that as of vrep 3.4 there is a bug where sometimes a handle will be found when none exists.
+            -- If you encounter it please completely exit and restart V-REP
+            -- simAddStatusbarMessage('getting drawing handle ' .. inStrings[1])
+            drawingHandle=simGetObjectHandle(inStrings[1])
+        end) == false then
+            -- simAddStatusbarMessage('adding drawing object')
+            drawingHandle=simAddDrawingObject(sim_drawing_lines+sim_drawing_cyclic, linewidth, minTolerance, parent_handle, maxItemCount, nil, nil, nil, nil)
+            setObjectName(drawingHandle, inStrings[1])
+        end
+        -- Set the dummy position
+        -- setObjectRelativeToParentWithPoseArray(drawingHandle, parent_handle, inFloats)
+
+        -- please note that as of vrep 3.4 there is a bug where sometimes a handle will be found when none exists.
+        -- If you encounter it please completely exit and restart V-REP
+        simAddDrawingObjectItem(drawingHandle, inFloats)
+        -- local lineCount=inInts[2]
+        -- for i=0,lineCount do
+        --     local startFloats=(i*6)+7
+        --     local line = {unpack(inFloats, startFloats, startFloats+6)}
+        --     simAddStatusbarMessage('line: ' .. line)
+        --     simAddDrawingObjectItem(drawingHandle, {0,0,0,1,1,1})
+        --     simAddDrawingObjectItem(drawingHandle, line)
+        -- end
+
+        return {drawingHandle},{},{},'' -- return the handle of the created dummy
+    else
+        simAddStatusbarMessage('addDrawingObject_function call failed because incorrect parameters were passed.')
     end
 end
 
