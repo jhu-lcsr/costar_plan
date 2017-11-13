@@ -921,15 +921,6 @@ class GraspDataset(object):
         pixel_value_offset = tf.constant([103.939, 116.779, 123.68])
         return tf.subtract(tensor, pixel_value_offset)
 
-    def _get_offset(self):
-        """Get random offset for crop.
-        """
-        offset = rcp.random_crop_parameters(tf.constant([FLAGS.sensor_image_height, FLAGS.sensor_image_width, 3],
-                                                        name='sensor_image_height_width'),
-                                            tf.constant([FLAGS.random_crop_height, FLAGS.random_crop_width, 3],
-                                                        name='random_image_height_width'))
-        return offset
-
     def _depth_preprocessing(self, depth_image_op, offset, intrinsics_matrix_op, random_crop=FLAGS.random_crop):
         """Randomly crop depth image, return cropped image and intrinsics.
         """
