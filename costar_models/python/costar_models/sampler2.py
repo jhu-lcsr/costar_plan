@@ -32,7 +32,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         '''
         super(PredictionSampler2, self).__init__(taskdef, *args, **kwargs)
         self.skip_connections = False
-        self.rep_size = 128
+        self.rep_size = 64
         self.PredictorCb = ImageCb
 
     def _makeFromHidden(self, size):
@@ -108,10 +108,11 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         img_rep = encoder(img_in)
         dense_rep = AddDense(arm_gripper, 64, "relu", self.dropout_rate)
         img_rep = Flatten()(img_rep)
-        label_rep = OneHot(self.num_options)(label_in)
-        label_rep = Flatten()(label_rep)
-        all_rep = Concatenate()([dense_rep, img_rep, label_rep])
-        x = AddDense(all_rep, self.rep_size, "relu", self.dropout_rate)
+        #label_rep = OneHot(self.num_options)(label_in)
+        #label_rep = Flatten()(label_rep)
+        #all_rep = Concatenate()([dense_rep, img_rep, label_rep])
+        #x = AddDense(all_rep, self.rep_size, "relu", self.dropout_rate)
+        x = AddDense(img_rep, self.rep_size, "relu", self.dropout_rate)
         value_out, next_option_out = GetNextOptionAndValue(x,
                                                            self.num_options,
                                                            self.rep_size,

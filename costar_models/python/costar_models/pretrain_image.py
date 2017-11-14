@@ -32,7 +32,6 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
         '''
         super(PretrainImageAutoencoder, self).__init__(taskdef, *args, **kwargs)
         self.PredictorCb = ImageCb
-        self.skip_connections = False
         self.encoder_channels = 16
 
     def _makePredictor(self, features):
@@ -42,15 +41,24 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
         (images, arm, gripper) = features
         img_shape = images.shape[1:]
 
+        img0_in = Input(img_shape,name="predictor_img0_in")
         img_in = Input(img_shape,name="predictor_img_in")
         encoder = self._makeImageEncoder(img_shape)
-        enc = encoder(img_in)
-        decoder = self._makeImageDecoder(self.hidden_shape)
-        #decoder = self._makeImageDecoder(img_shape)
+        print ("asdf", self.skip_connections)
+        ins = [img0_in, img_in]
+        if self.skip_connections:
+            enc, skip = encoder(ins)
+            decoder = self._makeImageDecoder(self.hidden_shape,(64,64,32))
+            out = decoder([enc, skip])
+        else:
+            enc = encoder(ins)
+            decoder = self._makeImageDecoder(self.hidden_shape)
+            out = decoder(enc)
+
         encoder.summary()
         decoder.summary()
-        out = decoder(enc)
-        ae = Model([img_in], out)
+
+        ae = Model(ins, out)
         ae.compile(
                 loss="mae",
                 optimizer=self.getOptimizer())
@@ -61,5 +69,8 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
         I = features[0]
+        I0 = I[0,:,:,:]
+        length = I.shape[0]
+        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
         o1 = targets[1]
-        return [I], [I]
+        return [I0, I], [I]
