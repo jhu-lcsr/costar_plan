@@ -154,26 +154,30 @@ Useful notes:
 
 Pretraining has been a critical part of many of the examples of previous work we have looked at when designing the predictor networks. To help leverage these models, we have a separate training pipeline that (1) learns encoders and decoders to generate possible goals, and (2) then uses this learned representation for the predictor network.
 
+Updated command:
 ```
 rosrun costar_models ctp_model_tool --data_file rpy.npz \
   --model pretrain_image_encoder \
-  -e 1000 \
-  --features multi \
+  -e 500 --features multi \
   --batch_size 24  \
   --optimizer adam \
-  --lr 0.01 \
+  --lr 0.001 \
   --upsampling conv_transpose \
   --use_noise true \
   --noise_dim 32  \
-  --steps_per_epoch 300 \
-  --dropout_rate 0.2 \
-  --skip_connections 1 \
-  --decoder_dropout_rate 0.2 \
-  --hypothesis_dropout 1  \
-  --steps_per_epoch 300 --load_model
+  --steps_per_epoch 500 \
+  --dropout_rate 0.2 --skip_connections 1
 ```
 
-Another option is something like this:
+Notes:
+  - Skip connections add in features from the first frame of the sequence. This represents the "root" of the planning call, and helps capture how things will change over time.
+  - Dropout is only used on the encoder. Using dropout on the decoder results in blurrier images.
+
+#### Add Dropout
+
+It's also possible to add dropout to the "decoder" network, but this results in blurrier predictions and probably is not strictly necessary, especially for training the autoencoder.
+
+To do so:
 ```
 rosrun costar_models ctp_model_tool --data_file rpy.npz \
   --model pretrain_image_encoder \
@@ -190,11 +194,11 @@ rosrun costar_models ctp_model_tool --data_file rpy.npz \
   --hypothesis_dropout 1 --decoder_dropout_rate 0.1
 ```
 
-Regardless, adding dropout to the decoder notably slows the learning process, but it does seem to be very important as far as getting good results. Also, using MSE instead of MAE for the autoencoder regression target helps.
+As of Nov. 14, 2017, I would not recommend doing this. Recommended practice is to use dropout on the encoder only.
 
-## Goal Sampler Model
+### Goal Sampler Model
 
-This is a newer version of the `predictor` model that predicts the distribution over goals first, then predicts images separately. It is supposed to reduce some of the issues we see with learning.
+This is a stripped down version of the `predictor` model that predicts the distribution over goals first, then predicts images separately. It is supposed to reduce some of the issues we see with learning.
 
 ```
 rosrun costar_models ctp_model_tool --data_file rpy.npz --model goal_sampler \

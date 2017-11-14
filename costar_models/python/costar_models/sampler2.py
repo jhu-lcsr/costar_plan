@@ -32,7 +32,8 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         '''
         super(PredictionSampler2, self).__init__(taskdef, *args, **kwargs)
         self.skip_connections = False
-        self.rep_size = 64
+        self.rep_size = 128
+        self.encoder_channels = 16
         self.PredictorCb = ImageCb
 
     def _makeFromHidden(self, size):
@@ -81,18 +82,19 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         
         # =====================================================================
         # Load the image decoders
+        img0_in = Input(img_shape,name="predictor_img0_in")
         img_in = Input(img_shape,name="predictor_img_in")
         encoder = self._makeImageEncoder(img_shape)
         encoder.load_weights(self._makeName(
             "pretrain_image_encoder_model",
             "image_encoder.h5f"))
-        #encoder.trainable = False
-        enc = encoder(img_in)
+        encoder.trainable = False
+        enc = encoder([img0_in, img_in])
         decoder = self._makeImageDecoder(self.hidden_shape)
         decoder.load_weights(self._makeName(
             "pretrain_image_encoder_model",
             "image_decoder.h5f"))
-        #decoder.trainable = False
+        decoder.trainable = False
 
         # =====================================================================
         # Load the arm and gripper representation
@@ -100,7 +102,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         gripper_in = Input((gripper_size,))
         arm_gripper = Concatenate()([arm_in, gripper_in])
         label_in = Input((1,))
-        ins = [img_in, arm_in, gripper_in, label_in]
+        ins = [img0_in, img_in, arm_in, gripper_in, label_in]
 
         # =====================================================================
         # combine these models together with state information and label
@@ -108,11 +110,11 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         img_rep = encoder(img_in)
         dense_rep = AddDense(arm_gripper, 64, "relu", self.dropout_rate)
         img_rep = Flatten()(img_rep)
-        #label_rep = OneHot(self.num_options)(label_in)
-        #label_rep = Flatten()(label_rep)
-        #all_rep = Concatenate()([dense_rep, img_rep, label_rep])
-        #x = AddDense(all_rep, self.rep_size, "relu", self.dropout_rate)
-        x = AddDense(img_rep, self.rep_size, "relu", self.dropout_rate)
+        label_rep = OneHot(self.num_options)(label_in)
+        label_rep = Flatten()(label_rep)
+        all_rep = Concatenate()([dense_rep, img_rep, label_rep])
+        x = AddDense(all_rep, self.rep_size, "relu", self.dropout_rate)
+        #x = AddDense(img_rep, self.rep_size, "relu", self.dropout_rate)
         value_out, next_option_out = GetNextOptionAndValue(x,
                                                            self.num_options,
                                                            self.rep_size,
@@ -125,7 +127,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         ae_outs = [img_x] #value_out]
         ae2 = Model(ins, ae_outs)
         ae2.compile(
-            loss="mae",
+            loss=["mae", "binary_crossentropy"],
             #loss=["mae","mae", "mae",
             #    "categorical_crossentropy",],#"binary_crossentropy"],
             #loss_weights=[1.,0.,0.,0.,],#0.25],
@@ -137,9 +139,12 @@ class PredictionSampler2(RobotMultiPredictionSampler):
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
         [I, q, g, oin, q_target, g_target,] = features
+        I0 = I[0,:,:,:]
+        length = I.shape[0]
+        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
         [tt, o1, v, qa, ga, I] = targets
         oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
-        return [I, q, g, oin], [I]#, q, g, oin_1h]#, v]
+        return [I0, I, q, g, oin], [I, v]#, q, g, oin_1h]
 
     def makePredictor(self):
         # =====================================================================
