@@ -39,43 +39,37 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         self.num_frames = 1
         self.img_num_filters = 64
-        self.tform_filters = 32
+        self.tform_filters = 64
         self.num_hypotheses = 4
         self.validation_split = 0.05
         self.num_options = 48
         self.num_features = 4
         self.null_option = 37
+        self.encoder_channels = 16
 
         # Layer and model configuration
         self.extra_layers = 1
-
-        self.use_spatial_softmax=True
-        if self.use_spatial_softmax:
+        self.use_spatial_softmax = True
+        self.dense_representation = True
+        if self.use_spatial_softmax and self.dense_representation:
             self.steps_down = 0
             self.steps_down_no_skip = 0
             self.steps_up = 4
             self.steps_up_no_skip = 4
             #self.encoder_stride1_steps = 2+1
             self.encoder_stride1_steps = 3
-            self.padding="valid"
+            self.padding="same"
         else:
             self.steps_down = 4
             self.steps_down_no_skip = 3
             self.steps_up = 4
             self.steps_up_no_skip = 3
-            self.encoder_stride1_steps = 0
+            self.encoder_stride1_steps = 1
             self.padding = "same"
 
         self.num_actor_policy_layers = 2
         self.num_generator_layers = 1
         self.num_arm_vars = 6
-
-        # compatibility mode -- set > 0 if loading dataset ~ U
-        self.compatibility = 0
-        if self.compatibility == 1:
-            self.decoder_kernel_size = [5,5]
-        else:
-            self.decoder_kernel_size = [3,3]
 
         # Number of nonlinear transformations to be applied to the hidden state
         # in order to compute a possible next state.
@@ -97,16 +91,22 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Size of the hidden representation when using dense hidden
         # repesentations
-        self.img_col_dim = int(128 / 2)
+        self.img_col_dim = int(2 * self.tform_filters)
 
         self.PredictorCb = PredictorShowImage
         self.hidden_dim = int(64/(2**self.steps_down))
         self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.tform_filters)
 
-        self.predictor = None
+        # These are the list of models that we want to learn
         self.train_predictor = None
+        self.predictor = None
         self.actor = None
+        self.image_encoder = None
         self.image_decoder = None
+        self.arm_encoder = None
+        self.arm_decoder = None
+        self.hidden_encoder = None
+        self.hidden_decoder = None
 
         # ===================================================================
         # These are hard coded settings -- tweaking them may break a bunch of
@@ -136,36 +136,18 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         image_size = 1
         for dim in img_shape:
             image_size *= dim
-        image_size = int(image_size)    
+        image_size = int(image_size)
 
-        if self.use_prev_option:
-            enc_options = self.num_options
-        else:
-            enc_options = None
+        
+        # =====================================================================
+        # Create the encoder and decoder networks -- these are sub-networks
+        # that we may find useful in different situations.
+        img_in = Input(img_shape,name="predictor_img_in")
+        ins, enc, skips, robot_skip = self._makeEncoder(img_shape, arm_size, gripper_size)
+        decoder = self._makeDecoder(img_shape, arm_size, gripper_size)
 
-        ins, enc, skips, robot_skip = GetEncoder(img_shape,
-                [arm_size, gripper_size],
-                self.img_col_dim,
-                dropout_rate=self.dropout_rate,
-                filters=self.img_num_filters,
-                leaky=False,
-                dropout=True,
-                padding=self.padding,
-                pre_tiling_layers=self.extra_layers,
-                post_tiling_layers=self.steps_down,
-                post_tiling_layers_no_skip=self.steps_down_no_skip,
-                stride1_post_tiling_layers=self.encoder_stride1_steps,
-                pose_col_dim=self.pose_col_dim,
-                kernel_size=[5,5],
-                dense=self.dense_representation,
-                batchnorm=True,
-                tile=True,
-                flatten=(not self.use_spatial_softmax),
-                option=enc_options,
-                use_spatial_softmax=self.use_spatial_softmax,
-                output_filters=self.tform_filters,
-                )
-
+        # ===================================================================
+        # Encode history
         if self.use_prev_option:
             img_in, arm_in, gripper_in, option_in = ins
         else:
@@ -174,31 +156,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             z = Input((self.num_hypotheses, self.noise_dim))
 
         # =====================================================================
-        # Create the decoders for image, arm, gripper.
-        decoder = GetImageArmGripperDecoder(
-                        self.img_col_dim,
-                        img_shape,
-                        dropout_rate=self.decoder_dropout_rate,
-                        dense_size=self.combined_dense_size,
-                        kernel_size=self.decoder_kernel_size,
-                        filters=self.img_num_filters,
-                        stride2_layers=self.steps_up,
-                        stride1_layers=self.extra_layers,
-                        stride2_layers_no_skip=self.steps_up_no_skip,
-                        tform_filters=self.tform_filters,
-                        num_options=self.num_options,
-                        arm_size=arm_size,
-                        gripper_size=gripper_size,
-                        dropout=self.hypothesis_dropout,
-                        upsampling=self.upsampling_method,
-                        leaky=True,
-                        dense=self.dense_representation,
-                        dense_rep_size=self.img_col_dim,
-                        skips=self.skip_connections,
-                        robot_skip=None,
-                        resnet_blocks=self.residual,
-                        batchnorm=True,)
-
+        # Decode results -- create all the various outputs we want from this
+        # image
 
         image_outs = []
         arm_outs = []
@@ -208,8 +167,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         if self.skip_connections:
             skips.reverse()
-        decoder.compile(loss="mae",optimizer=self.getOptimizer())
-        decoder.summary()
         
         if not self.use_prev_option:
             option_in = Input((1,),name="prev_option_in")
@@ -218,8 +175,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         else:
             pv_option_in = None
             
-        next_option_in = Input((self.num_options,),name="next_option_in")
-        ins += [next_option_in]
+        #next_option_in = Input((self.num_options,),name="next_option_in")
+        #ins += [next_option_in]
 
         value_out, next_option_out = GetNextOptionAndValue(enc,
                                                            self.num_options,
@@ -369,10 +326,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     use_noise=self.use_noise,
                     noise_dim=self.noise_dim,)
         else:
+            transform_kernel_size = [5, 5]
             transform = GetTransform(
                     rep_size=(self.hidden_dim, self.hidden_dim),
                     filters=self.tform_filters,
-                    kernel_size=self.decoder_kernel_size,
+                    kernel_size=transform_kernel_size,
                     idx=i,
                     batchnorm=True,
                     dropout=transform_dropout,
@@ -399,14 +357,18 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 (features, arm, gripper))
 
     def _makeTrainTarget(self, I_target, q_target, g_target, o_target):
-        length = I_target.shape[0]
-        image_shape = I_target.shape[1:]
-        image_size = 1
-        for dim in image_shape:
-            image_size *= dim
-        image_size = int(image_size)
-        Itrain = np.reshape(I_target,(length, image_size))
-        return np.concatenate([Itrain, q_target,g_target,o_target],axis=-1)
+        if I_target is not None:
+            length = I_target.shape[0]
+            image_shape = I_target.shape[1:]
+            image_size = 1
+            for dim in image_shape:
+                image_size *= dim
+            image_size = int(image_size)
+            Itrain = np.reshape(I_target,(length, image_size))
+            return np.concatenate([Itrain, q_target,g_target,o_target],axis=-1)
+        else:
+            length = q_target.shape[0]
+            return np.concatenate([q_target,g_target,o_target],axis=-1)
 
     def _getAllData(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             prev_label, goal_features, goal_arm, goal_gripper, value, *args, **kwargs):
@@ -467,19 +429,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-            #return features[:self.num_features] + [z], [tt, o1, v]
-            #return features[:self.num_features] + [z], [tt, o1]#, v]
-            if self.success_only and False:
-                return features[:self.num_features] + [o1, z], [tt, o1]
-            else:
-                return features[:self.num_features] + [o1, z], [tt, o1, v]
+            #return features[:self.num_features] + [o1, z], [tt, o1, v]
+            return features[:self.num_features] + [z], [tt, o1, v]
         else:
-            #return features[:self.num_features], [tt, o1, v]
-            #return features[:self.num_features], [tt, o1]#, v]
-            if self.success_only and False:
-                return features[:self.num_features] + [o1], [tt, o1]
-            else:
-                return features[:self.num_features] + [o1], [tt, o1, v]
+            return features[:self.num_features], [tt, o1, v]
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''
@@ -530,18 +483,19 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             save_best_only=True # does not work without validation wts
         )
         logCb = LogCallback(self.name,self.model_directory)
+        cbf, cbt = self._getData(**data)
         imageCb = self.PredictorCb(
             self.predictor,
             name=self.name,
-            features=features[:4]+[o_target],
-            targets=targets,
+            features=cbf,
+            targets=cbt,
             model_directory=self.model_directory,
             num_hypotheses=self.num_hypotheses,
             verbose=True,
             use_noise=self.use_noise,
             noise_dim=self.noise_dim,
             min_idx=0,
-            max_idx=50,
+            max_idx=70,
             step=10,)
         self.train_predictor.fit_generator(
                 train_generator,
@@ -565,6 +519,15 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             if self.image_decoder is not None:
                 self.image_decoder.save_weights(self.name +
                 "_image_decoder.h5f")
+            if self.image_encoder is not None:
+                self.image_encoder.save_weights(self.name + 
+                "_image_encoder.h5f")
+            if self.hidden_encoder is not None:
+                self.hidden_encoder.save_weights(self.name + 
+                "_hidden_encoder.h5f")
+            if self.hidden_decoder is not None:
+                self.hidden_decoder.save_weights(self.name + 
+                "_hidden_decoder.h5f")
         else:
             raise RuntimeError('save() failed: model not found.')
 
@@ -585,6 +548,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             if self.image_decoder is not None:
                 self.image_decoder.save_weights(self.name +
                 "_image_decoder.h5f")
+            if self.image_encoder is not None:
+                self.image_encoder.save_weights(self.name +
+                "_image_encoder.h5f")
         else:
             raise RuntimeError('_loadWeights() failed: model not found.')
 
@@ -596,7 +562,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
           - choose the best one to execute
         '''
         features = world.initial_features
-        print('---')
         test_features = []
         next_option_idx = 0
         for f in features:
@@ -758,6 +723,34 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         return generator
 
     def _makeEncoder(self, img_shape, arm_size, gripper_size):
+        '''
+        Make the encoder, update our model's associated "encoder" network.
+        Unlike with the decoder, this one actually returns a parsed list of
+        outputs -- because in this case we may not want to explicitly break up
+        the outputs ourselves every time as we do for the multiple hypotheses.
+
+        The job of the encoder is to reduce the dimensionality of a single
+        image. Integrating this information from multiple images is a different
+        matter entirely.
+
+        Parameters:
+        -----------
+        img_shape: shape of the input images
+        arm_size: size of the arm's end effector representation
+        gripper_size: number of variables representing our gripper state
+
+        Returns:
+        --------
+        ins: the input variables we need to fill (for the predictor model, not
+             the encoder block)
+        enc: encoded state
+        skips: list of skip connections
+        robot_skip: end effector state "skip"
+        '''
+        if self.use_prev_option:
+            enc_options = self.num_options
+        else:
+            enc_options = None
         ins, enc, skips, robot_skip = GetEncoder(img_shape,
                 [arm_size, gripper_size],
                 self.img_col_dim,
@@ -765,59 +758,147 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 filters=self.img_num_filters,
                 leaky=False,
                 dropout=True,
+                padding=self.padding,
                 pre_tiling_layers=self.extra_layers,
                 post_tiling_layers=self.steps_down,
+                post_tiling_layers_no_skip=self.steps_down_no_skip,
                 stride1_post_tiling_layers=self.encoder_stride1_steps,
                 pose_col_dim=self.pose_col_dim,
                 kernel_size=[5,5],
+                kernel_size_stride1=[5,5],
                 dense=self.dense_representation,
                 batchnorm=True,
                 tile=True,
-                flatten=False,
+                flatten=(not self.use_spatial_softmax),
                 option=enc_options,
                 use_spatial_softmax=self.use_spatial_softmax,
                 output_filters=self.tform_filters,
                 )
-        self.encoder = Model(ins, [enc]+skips, name="encoder")
+        self.encoder = Model(ins, [enc]+skips+[robot_skip], name="encoder")
+        self.encoder.compile(loss="mae",optimizer=self.getOptimizer())
+        self.encoder.summary()
         new_ins = []
-        for i in ins:
-            i2 = Input([int(d) for d in i.shape],name="model_%s"%i.name)
+        for idx, i in enumerate(ins):
+            i2 = Input(
+                    [int(d) for d in i.shape[1:]],
+                    name="predictor_input_%d"%idx)
             new_ins.append(i2)
 
         outs = self.encoder(new_ins)
         new_enc = outs[0]
-        new_skips = outs[1:]
-        return new_ins, new_enc, new_skips
+        new_skips = outs[1:len(outs)-1]
+        new_robot_skip = outs[-1]
+        return new_ins, new_enc, new_skips, new_robot_skip
 
-    def _makeImageDecoder(self, img_shape, kernel_size, skips=None):
+    def _makeDecoder(self, img_shape, arm_size, gripper_size,
+            skips=None,
+            robot_skip=None):
         '''
-        Helper function to construct a decoder that will make images.
-
-        Parameters:
-        -----------
-        img_shape: shape of the image, e.g. (64,64,3)
-        kernel_size: used for deconvolutions, e.g. [5,5]
+        Make the decoder network. This one takes in a hidden state (a set of
+        keypoints in 2D image space) and from these keypoints computes:
+        - an image of the world
+        - a robot end effector
+        - a robot gripper
         '''
-        rep, dec = GetImageDecoder(self.img_col_dim,
+        decoder = GetImageArmGripperDecoder(
+                        self.img_col_dim,
                         img_shape,
-                        dropout_rate=self.dropout_rate,
-                        kernel_size=kernel_size,
+                        dropout_rate=self.decoder_dropout_rate,
+                        dense_size=self.combined_dense_size,
+                        kernel_size=[5,5],
                         filters=self.img_num_filters,
                         stride2_layers=self.steps_up,
                         stride1_layers=self.extra_layers,
-                        tform_filters=self.tform_filters,
                         stride2_layers_no_skip=self.steps_up_no_skip,
+                        tform_filters=self.tform_filters,
+                        num_options=self.num_options,
+                        arm_size=arm_size,
+                        gripper_size=gripper_size,
                         dropout=self.hypothesis_dropout,
                         upsampling=self.upsampling_method,
+                        leaky=True,
                         dense=self.dense_representation,
                         dense_rep_size=self.img_col_dim,
-                        leaky=True,
-                        skips=skips,
-                        original=None,
+                        skips=self.skip_connections,
+                        robot_skip=robot_skip,
                         resnet_blocks=self.residual,
                         batchnorm=True,)
-        decoder = Model(rep, dec, name="image_decoder")
+        print (decoder.inputs)
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
+        decoder.summary()
+        return decoder
+
+    def _makeImageEncoder(self, img_shape):
+        '''
+        create image-only decoder to extract keypoints from the scene.
+        '''
+        img = Input(img_shape,name="img_encoder_in")
+        img0 = Input(img_shape,name="img0_encoder_in")
+        x = img
+        x = AddConv2D(x, 32, [7,7], 1, self.dropout_rate)
+        y = img0
+        y = AddConv2D(y, 32, [7,7], 1, self.dropout_rate)
+        x = Concatenate()([x,y])
+        x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate)
+        x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate)
+        x = AddConv2D(x, 32, [5,5], 2, self.dropout_rate)
+        x = AddConv2D(x, 32, [5,5], 1, self.dropout_rate)
+        x = AddConv2D(x, self.encoder_channels, [5,5], 2, self.dropout_rate)
+        #def _ssm(x):
+        #    return spatial_softmax(x)
+        #x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
+        
+        self.steps_down = 4
+        self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
+        self.tform_filters = self.encoder_channels
+        self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.tform_filters)
+        #self.hidden_shape = (self.encoder_channels*2,)
+
+        if self.skip_connections:
+            image_encoder = Model([img0, img], [x, y], name="image_encoder")
+        else:
+            image_encoder = Model([img0, img], x, name="image_encoder")
+        image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
+        self.image_encoder = image_encoder
+        return image_encoder
+
+    def _makeImageDecoder(self, hidden_shape, img_shape=None):
+        '''
+        helper function to construct a decoder that will make images.
+
+        parameters:
+        -----------
+        img_shape: shape of the image, e.g. (64,64,3)
+        '''
+        rep = Input(hidden_shape,name="decoder_hidden_in")
+        if img_shape is not None:
+            skip = Input(img_shape,name="decoder_skip_in")
+        x = rep
+        if self.hypothesis_dropout:
+            dr = self.decoder_dropout_rate
+        else:
+            dr = 0.
+        #self.steps_up = 3
+        #self.hidden_dim = int(img_shape[0]/(2**self.steps_up))
+        #self.tform_filters = self.encoder_channels
+        #(h,w,c) = (self.hidden_dim,self.hidden_dim,self.tform_filters)
+        #x = AddDense(x, int(h*w*c), "lrelu", dr)
+        #x = Reshape((h,w,c))(x)
+        x = AddConv2DTranspose(x, self.encoder_channels, [5,5], 2, dr)
+        x = AddConv2DTranspose(x, 32, [5,5], 2, dr)
+        x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
+        x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
+        if self.skip_connections and img_shape is not None:
+            x = Concatenate(axis=-1)([x, skip])
+            ins = [rep, skip]
+        else:
+            ins = rep
+        x = AddConv2DTranspose(x, 32, [5,5], 1, dr)
+        x = Conv2D(3, kernel_size=[1,1], strides=(1,1),name="convert_to_rgb")(x)
+        x = Activation("sigmoid")(x)
+        decoder = Model(ins, x, name="image_decoder")
+        decoder.compile(loss="mae",optimizer=self.getOptimizer())
+        self.image_decoder = decoder
         return decoder
 
     def _targetsFromTrainTargets(self, train_targets):

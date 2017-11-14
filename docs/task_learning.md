@@ -150,24 +150,55 @@ Useful notes:
     - You may want to play around with dropout rate on the hypotheses; this can be enabled with the `--hypothesis_dropout` flag.
     - Hypothesis dropout may cause predictions to blur together, so using less may actually work better.
 
-### Old Method
+### Pretraining the Image Encoder
 
-This is now deprecated and should not be used. The old way used the
-`costar_bullet` tool to run the learning algoirthm.
+Pretraining has been a critical part of many of the examples of previous work we have looked at when designing the predictor networks. To help leverage these models, we have a separate training pipeline that (1) learns encoders and decoders to generate possible goals, and (2) then uses this learned representation for the predictor network.
 
+Updated command:
 ```
-rosrun costar_bullet start --robot ur5 --task blocks --agent null \
-  --features multi -i 100000 -e 1000 --model predictor \
-  --data_file blocks10.npz --load --si 1000 --optimizer nadam --lr 0.001
+rosrun costar_models ctp_model_tool --data_file rpy.npz \
+  --model pretrain_image_encoder \
+  -e 500 --features multi \
+  --batch_size 24  \
+  --optimizer adam \
+  --lr 0.001 \
+  --upsampling conv_transpose \
+  --use_noise true \
+  --noise_dim 32  \
+  --steps_per_epoch 500 \
+  --dropout_rate 0.2 --skip_connections 1
 ```
 
-Some notes:
-  - The learning rate here needs to be a bit lower, or you need to set the `--clipnorm` option, as the loss is fairly complex. With a higher learning rate I observed spikes in the loss function.
-  - `adam` and `nadam` converge very quickly on small datasets
+Notes:
+  - Skip connections add in features from the first frame of the sequence. This represents the "root" of the planning call, and helps capture how things will change over time.
+  - Dropout is only used on the encoder. Using dropout on the decoder results in blurrier images.
 
-## Goal Sampler Model
+#### Add Dropout
 
-This is a newer version of the `predictor` model that predicts the distribution over goals first, then predicts images separately. It is supposed to reduce some of the issues we see with learning.
+It's also possible to add dropout to the "decoder" network, but this results in blurrier predictions and probably is not strictly necessary, especially for training the autoencoder.
+
+To do so:
+```
+rosrun costar_models ctp_model_tool --data_file rpy.npz \
+  --model pretrain_image_encoder \
+  -e 1000 --features multi \
+  --batch_size 48  \
+  --optimizer adam \
+  --lr 0.001 \
+  --upsampling conv_transpose \
+  --use_noise true \
+  --noise_dim 32  \
+  --steps_per_epoch 300 \
+  --dropout_rate 0.1 \
+  --skip_connections 1 \
+  --hypothesis_dropout 1 --decoder_dropout_rate 0.1
+```
+
+As of Nov. 14, 2017, I would not recommend doing this. Recommended practice is to use dropout on the encoder only.
+
+### Goal Sampler Model
+
+This is a stripped down version of the `predictor` model that predicts the distribution over goals first, then predicts images separately. It is supposed to reduce some of the issues we see with learning.
 
 ```
 rosrun costar_models ctp_model_tool --data_file rpy.npz --model goal_sampler \
@@ -183,7 +214,8 @@ rosrun costar_models ctp_model_tool --data_file rpy.npz --model goal_sampler \
 
 ## Hierarchical Model
 
-The hierarchical model learns an encoding for feature detection.
+*This version is old and will at some point no longer be supported.*
+The hierarchical model learns an encoding for predicting both the next set of features and an associated action.
 
 We can now use the standard CoSTAR bullet tool to train a model:
 ```
