@@ -495,7 +495,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             use_noise=self.use_noise,
             noise_dim=self.noise_dim,
             min_idx=0,
-            max_idx=50,
+            max_idx=70,
             step=10,)
         self.train_predictor.fit_generator(
                 train_generator,
