@@ -1,7 +1,7 @@
 
 # ROS, Planning, and TOM
 
-The TOM examples require the [TOM Robot package]() to execute.
+The TOM examples require the [TOM Robot package](https://github.com/cpaxton/tom_robot) to execute.
 
 ## Downloading Dataset
 
