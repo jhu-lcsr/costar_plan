@@ -44,7 +44,6 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
         img0_in = Input(img_shape,name="predictor_img0_in")
         img_in = Input(img_shape,name="predictor_img_in")
         encoder = self._makeImageEncoder(img_shape)
-        print ("asdf", self.skip_connections)
         ins = [img0_in, img_in]
         if self.skip_connections:
             enc, skip = encoder(ins)
