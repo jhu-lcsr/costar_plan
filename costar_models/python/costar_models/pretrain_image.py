@@ -43,6 +43,7 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
 
         img0_in = Input(img_shape,name="predictor_img0_in")
         img_in = Input(img_shape,name="predictor_img_in")
+        option_in = Input((1,), name="predictor_option_in")
         encoder = self._makeImageEncoder(img_shape)
         ins = [img0_in, img_in]
         if self.skip_connections:
