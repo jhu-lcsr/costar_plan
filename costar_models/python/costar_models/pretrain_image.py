@@ -48,7 +48,10 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
         ins = [img0_in, img_in]
         if self.skip_connections:
             enc, skip = encoder(ins)
-            decoder = self._makeImageDecoder(self.hidden_shape,(64,64,32))
+            decoder = self._makeImageDecoder(
+                    self.hidden_shape,
+                    (64,64,3),
+                    (32,32,32))
             out = decoder([enc, skip])
         else:
             enc = encoder(ins)
