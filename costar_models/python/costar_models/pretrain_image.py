@@ -32,7 +32,7 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
         '''
         super(PretrainImageAutoencoder, self).__init__(taskdef, *args, **kwargs)
         self.PredictorCb = ImageCb
-        self.encoder_channels = 16
+        self.encoder_channels = 32
 
     def _makePredictor(self, features):
         '''
