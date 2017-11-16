@@ -823,10 +823,65 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         robot_skip=robot_skip,
                         resnet_blocks=self.residual,
                         batchnorm=True,)
-        print (decoder.inputs)
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         decoder.summary()
         return decoder
+
+    def _makeActionEncoder(self, arm_size, gripper_size, disc=False):
+        '''
+        Encode arm state.
+        '''
+        arm = Input((arm_size,))
+        gripper = Input((gripper_size,))
+        option = Input((1,))
+        x = Concatenate()([arm, gripper])
+        if disc:
+            activation = "lrelu"
+        else:
+            activation = "relu"
+        x = AddDense(x, 64, activation, self.dropout_rate)
+        x = Concatenate()([x, option])
+        x = AddDense(x, 128, activation, self.dropout_rate)
+        
+        action_encoder = Model([arm, gripper, option], x)
+        action_encoder.compile(loss="mae", optimizer=self.getOptimizer())
+        if not disc:
+            self.action_encoder = action_encoder
+        return action_encoder
+
+    def _makeActionDecoder(self, arm_size, gripper_size):
+        '''
+        Compute actions from hidden representation
+        '''
+        rep_in = Input((128,))
+        if self.hypothesis_dropout:
+            dr = self.decoder_dropout_rate
+        else:
+            dr = 0.
+
+        x = rep_in
+        option = AddDense(x, self.num_options, "softmax", dr)
+        x = AddDense(x, 64, "relu", dr)
+        arm = AddDense(x, arm_size, dr)
+        gripper = AddDense(x, gripper_size, dr)
+        action_decoder = Model(rep_in, [arm, gripper, option])
+        action_decoder.compile(loss="mae", optimizer=self.getOptimizer())
+        self.action_decoder = action_decoder
+        return action_decoder
+
+    def _makeMergeEncoder(self, rep_size):
+        image_input_shape = self.hidden_shape
+        state_input_shape = (128,)
+        rep_shape = (rep_size,)
+
+    def _makeMergeDecoder(self, rep_size):
+        image_input_shape = self.hidden_shape
+        state_input_shape = (128,)
+        rep_shape = (rep_size,)
+        if self.hypothesis_dropout:
+            dr = self.decoder_dropout_rate
+        else:
+            dr = 0.
 
     def _makeImageEncoder(self, img_shape, disc=False):
         '''
@@ -847,8 +902,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = Concatenate()([x,y])
         x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate, "same", disc)
         x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate, "same", disc)
-        x = AddConv2D(x, 32, [5,5], 2, self.dropout_rate, "same", disc)
-        x = AddConv2D(x, 32, [5,5], 1, self.dropout_rate, "same", disc)
         x = AddConv2D(x, self.encoder_channels, [5,5], 2, self.dropout_rate,
                 "same", disc)
 
@@ -856,21 +909,25 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         #    return spatial_softmax(x)
         #x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
         
-        self.steps_down = 4
+        self.steps_down = 3
         self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
         self.tform_filters = self.encoder_channels
         self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.tform_filters)
         #self.hidden_shape = (self.encoder_channels*2,)
+        #x = Flatten()(x)
+        #x = AddDense(x, 512, "relu", self.dropout_rate)
+        #self.hidden_shape = (512,)
 
         if self.skip_connections:
             image_encoder = Model([img0, img], [x, y], name="image_encoder")
         else:
             image_encoder = Model([img0, img], x, name="image_encoder")
         image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
-        self.image_encoder = image_encoder
+        if not disc:
+            self.image_encoder = image_encoder
         return image_encoder
 
-    def _makeImageDecoder(self, hidden_shape, img_shape=None):
+    def _makeImageDecoder(self, hidden_shape, img_shape=None, skip=False):
         '''
         helper function to construct a decoder that will make images.
 
@@ -879,30 +936,27 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         img_shape: shape of the image, e.g. (64,64,3)
         '''
         rep = Input(hidden_shape,name="decoder_hidden_in")
-        if img_shape is not None:
+        if skip:
             skip = Input(img_shape,name="decoder_skip_in")
         x = rep
         if self.hypothesis_dropout:
             dr = self.decoder_dropout_rate
         else:
             dr = 0.
-        #self.steps_up = 3
+        #self.steps_up = 4
         #self.hidden_dim = int(img_shape[0]/(2**self.steps_up))
         #self.tform_filters = self.encoder_channels
         #(h,w,c) = (self.hidden_dim,self.hidden_dim,self.tform_filters)
-        #x = AddDense(x, int(h*w*c), "lrelu", dr)
+        #x = AddDense(x, int(h*w*c), "linear", dr)
         #x = Reshape((h,w,c))(x)
-        x = AddConv2DTranspose(x, self.encoder_channels, [5,5], 2, dr)
+        x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
         x = AddConv2DTranspose(x, 32, [5,5], 2, dr)
-        x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
-        x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
+        x = AddConv2DTranspose(x, 16, [5,5], 2, dr)
         if self.skip_connections and img_shape is not None:
             x = Concatenate(axis=-1)([x, skip])
             ins = [rep, skip]
         else:
             ins = rep
-        x = AddConv2DTranspose(x, 32, [5,5], 1, dr)
-        x = AddConv2DTranspose(x, 32, [5,5], 1, dr)
         x = Conv2D(3, kernel_size=[1,1], strides=(1,1),name="convert_to_rgb")(x)
         x = Activation("sigmoid")(x)
         decoder = Model(ins, x, name="image_decoder")
