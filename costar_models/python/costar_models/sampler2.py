@@ -31,8 +31,8 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         command line and set things like our optimizer and learning rate.
         '''
         super(PredictionSampler2, self).__init__(taskdef, *args, **kwargs)
-        self.rep_size = 128
-        self.encoder_channels = 16
+        #self.rep_size = 128
+        self.encoder_channels = 128
         self.PredictorCb = ImageCb
         self.skip_shape = (64,64,32)
 
