@@ -159,6 +159,49 @@ class PredictorShowImage(keras.callbacks.Callback):
                 print("Value target =", np.argmax(self.targets[2][j]))
             plt.close(fig)
 
+class StateCb(keras.callbacks.Callback):
+    '''
+    Just predict state information from our models
+    '''
+
+    def __init__(self, predictor, features, targets,
+            model_directory=DEFAULT_MODEL_DIRECTORY,
+            name="model",
+            min_idx=0, max_idx=66, step=11,
+            *args, **kwargs):
+        '''
+        Set up a data set we can use to output validation images.
+
+        Parameters:
+        -----------
+        predictor: model used to generate predictions (can be different from
+                   the model being trained)
+        targets: training target info, in compressed form
+        verbose: print out extra information
+        '''
+        self.predictor = predictor
+        self.idxs = range(min_idx, max_idx, step)
+        self.num = len(self.idxs)
+        #self.features = features[0][self.idxs]
+        self.features = [f[self.idxs] for f in features]
+        self.targets = [np.squeeze(t[self.idxs]) for t in targets]
+        self.epoch = 0
+        self.directory = os.path.join(model_directory,'debug')
+        if not os.path.exists(self.directory):
+            os.makedirs(self.directory)
+
+    def on_epoch_end(self, epoch, logs={}):
+        self.epoch += 1
+        res = self.predictor.predict(self.features)
+        arm, gripper, label = res
+        for j in range(self.num):
+            print("%d: arm = %s"%(j,arm[j]))
+            print("%d: gripper = %s"%(j,gripper[j]))
+            print("%d: label = %s"%(j,np.argmax(label[j])))
+            print("vs:")
+            print("arm =", targets[0][j])
+            print("gripper =", targets[1][j])
+            print("label =", np.argmax(targets[2][j]))
 
 class ImageCb(keras.callbacks.Callback):
     '''
@@ -185,7 +228,6 @@ class ImageCb(keras.callbacks.Callback):
         self.predictor = predictor
         self.idxs = range(min_idx, max_idx, step)
         self.num = len(self.idxs)
-        #self.features = features[0][self.idxs]
         self.features = [f[self.idxs] for f in features]
         self.targets = [np.squeeze(t[self.idxs]) for t in targets]
         self.epoch = 0
