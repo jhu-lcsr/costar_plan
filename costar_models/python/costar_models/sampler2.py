@@ -31,10 +31,37 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         command line and set things like our optimizer and learning rate.
         '''
         super(PredictionSampler2, self).__init__(taskdef, *args, **kwargs)
-        self.rep_size = 128
-        self.encoder_channels = 16
+        #self.rep_size = 128
+        self.encoder_channels = 128
         self.PredictorCb = ImageCb
         self.skip_shape = (64,64,32)
+
+    def _makeToHidden(self, img_shape, arm_size, gripper_size, rep_size):
+        img0_in = Input(img_shape,name="predictor_img0_in")
+        img_in = Input(img_shape,name="predictor_img_in")
+        arm_in = Input((arm_size,))
+        gripper_in = Input((gripper_size,))
+        arm_gripper = Concatenate()([arm_in, gripper_in])
+        label_in = Input((1,))
+        ins = [img0_in, img_in, arm_in, gripper_in, label_in]
+
+        if self.skip_connections:
+            img_rep, skip_rep = self.image_encoder([img0_in, img_in])
+        else:
+            img_rep = self.image_encoder(img0_in, img_in)
+        dense_rep = AddDense(arm_gripper, 64, "sigmoid", self.dropout_rate)
+        img_rep = Flatten()(img_rep)
+        label_rep = OneHot(self.num_options)(label_in)
+        label_rep = Flatten()(label_rep)
+        all_rep = Concatenate()([dense_rep, img_rep, label_rep])
+        x = AddDense(all_rep, rep_size, "relu", self.dropout_rate)
+        if self.skip_connections:
+            model = Model(ins, [x, skip_rep], name="encode_hidden_state")
+        else:
+            model = Model(ins, x, name="encode_hidden_state")
+        model.compile(loss="mae", optimizer=self.getOptimizer())
+        self.hidden_encoder = model
+        return model
 
     def _makeFromHidden(self, size):
         h = Input((size,))
@@ -63,8 +90,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         x = AddDense(h, 64, "lrelu", self.decoder_dropout_rate)
         label = AddDense(x, self.num_options, "softmax", 0.)
 
-        #model = Model(h, [img, arm, gripper, label])
-        model = Model(hidden_decoder_ins, img)
+        model = Model(hidden_decoder_ins, [img, arm, gripper, label])
         model.summary()
         self.hidden_decoder = model
         return model
@@ -119,36 +145,27 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         # =====================================================================
         # combine these models together with state information and label
         # information
-        if self.skip_connections:
-            img_rep, skip_rep = encoder([img0_in, img_in])
-        else:
-            img_rep = encoder(img0_in, img_in)
-        dense_rep = AddDense(arm_gripper, 64, "relu", self.dropout_rate)
-        img_rep = Flatten()(img_rep)
-        label_rep = OneHot(self.num_options)(label_in)
-        label_rep = Flatten()(label_rep)
-        all_rep = Concatenate()([dense_rep, img_rep, label_rep])
-        x = AddDense(all_rep, self.rep_size, "relu", self.dropout_rate)
-        #x = AddDense(img_rep, self.rep_size, "relu", self.dropout_rate)
-        value_out, next_option_out = GetNextOptionAndValue(x,
+        hidden_encoder = self._makeToHidden(img_shape, arm_size, gripper_size, self.rep_size)
+        h, skip_rep = hidden_encoder(ins)
+        value_out, next_option_out = GetNextOptionAndValue(h,
                                                            self.num_options,
                                                            self.rep_size,
                                                            dropout_rate=0.5,
                                                            option_in=None)
         hidden_decoder = self._makeFromHidden(self.rep_size)
-        #img_x, arm_x, gripper_x, label_x = hidden_decoder(x)
         if self.skip_connections:
-            img_x = hidden_decoder([x, skip_rep])
+            #img_x = hidden_decoder([x, skip_rep])
+            img_x, arm_x, gripper_x, label_x = hidden_decoder([h, skip_rep])
         else:
-            img_x = hidden_decoder(x)
+            #img_x = hidden_decoder(x)
+            img_x, arm_x, gripper_x, label_x = hidden_decoder(h)
         #ae_outs = [img_x, arm_x, gripper_x, label_x, ] #value_out]
-        ae_outs = [img_x, value_out]
+        ae_outs = [img_x, arm_x, gripper_x, label_x]
         ae2 = Model(ins, ae_outs)
         ae2.compile(
-            loss=["mae", "binary_crossentropy"],
-            #loss=["mae","mae", "mae",
-            #    "categorical_crossentropy",],#"binary_crossentropy"],
-            #loss_weights=[1.,0.,0.,0.,],#0.25],
+            loss=["mae","mae", "mae",
+                "categorical_crossentropy",],
+            loss_weights=[1.,1.,.2,0.1,],#0.25],
             optimizer=self.getOptimizer())
 
         #return predictor, train_predictor, None, ins, enc
@@ -162,7 +179,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
         [tt, o1, v, qa, ga, I] = targets
         oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
-        return [I0, I, q, g, oin], [I, v]#, q, g, oin_1h]
+        return [I0, I, q, g, oin], [I, q, g, oin_1h]
 
     def makePredictor(self):
         # =====================================================================
