@@ -41,7 +41,7 @@ createDummy_function=function(inInts, inFloats, inStrings, inBuffer)
         if pcall(function()
             dummyHandle=simGetObjectHandle(inStrings[1])
         end) == false then
-            dummyHandle=simCreateDummy(0.05)
+            dummyHandle=simCreateDummy(0.025)
             setObjectName(dummyHandle, inStrings[1])
         end
 
