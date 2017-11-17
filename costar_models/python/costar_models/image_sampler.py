@@ -82,46 +82,13 @@ class RobotMultiImageSampler(RobotMultiPredictionSampler):
             image_size *= dim
         image_size = int(image_size)    
 
-        if self.use_prev_option:
-            num_options = self.num_options
-        else:
-            num_options = None
-        ins, enc, skips, robot_skip = GetEncoder(img_shape,
-                [arm_size, gripper_size],
-                self.img_col_dim,
-                dropout_rate=self.dropout_rate,
-                filters=self.img_num_filters,
-                leaky=False,
-                dropout=True,
-                pre_tiling_layers=self.extra_layers,
-                post_tiling_layers=self.steps_down,
-                stride1_post_tiling_layers=self.encoder_stride1_steps,
-                pose_col_dim=self.pose_col_dim,
-                kernel_size=[5,5],
-                dense=self.dense_representation,
-                batchnorm=True,
-                tile=True,
-                flatten=False,
-                use_spatial_softmax=True,
-                option=num_options,
-                output_filters=self.tform_filters,
-                )
-
         # =====================================================================
-        # Create list of model inputs depending on current configuration
-        if self.use_prev_option:
-            img_in, arm_in, gripper_in, option_in = ins
-        else:
-            img_in, arm_in, gripper_in = ins
-        if self.use_noise:
-            z = Input((self.num_hypotheses, self.noise_dim))
-
-        # =====================================================================
-        # Create the decoders for image
-        if self.skip_connections:
-            skips.reverse()
-        self.image_decoder = self._makeImageDecoder(img_shape, [3,3], skips)
-
+        # Create image inputs
+        img_in = Input(img_shape,name="predictor_img_in")
+        encoder = self._makeImageEncoder(img_shape)
+        enc = encoder(img_in)
+        
+        decoder = self._makeImageDecoder(img_shape)
         # =====================================================================
         # Create many different image decoders
         image_outs = []
