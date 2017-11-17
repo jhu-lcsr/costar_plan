@@ -32,8 +32,6 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
         '''
         super(PretrainImageAutoencoder, self).__init__(taskdef, *args, **kwargs)
         self.PredictorCb = ImageCb
-        self.encoder_channels = 128
-        self.skip_shape = (64,64,32)
 
     def _makePredictor(self, features):
         '''

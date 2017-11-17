@@ -45,7 +45,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_options = 48
         self.num_features = 4
         self.null_option = 37
-        self.encoder_channels = 16
+
+        # For the new model setup
+        self.encoder_channels = 128
+        self.skip_shape = (64,64,32)
 
         # Layer and model configuration
         self.extra_layers = 1
