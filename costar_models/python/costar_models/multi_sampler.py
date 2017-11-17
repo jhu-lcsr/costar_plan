@@ -840,6 +840,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
     def _makeStateEncoder(self, arm_size, gripper_size, disc=False):
         '''
         Encode arm state.
+
+        Parameters:
+        -----------
+        arm_size: number of arm input variables
+        gripper_size: number of gripper input variables
+        disc: is this a discriminator? if so, use leaky relu
         '''
         arm = Input((arm_size,))
         gripper = Input((gripper_size,))
@@ -849,7 +855,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             activation = "lrelu"
         else:
             activation = "relu"
-        x = AddDense(x, 64, activation, self.dropout_rate)
+        x = AddDense(x, 512, activation, self.dropout_rate)
+        x = AddDense(x, 256, activation, self.dropout_rate)
         x = Concatenate()([x, option])
         x = AddDense(x, 128, activation, self.dropout_rate)
         
@@ -862,6 +869,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
     def _makeStateDecoder(self, arm_size, gripper_size):
         '''
         Compute actions from hidden representation
+
+        Parameters:
+        -----------
+        arm_size: number of arm output variables to predict
+        gripper_size: number of gripper output variables to predict
         '''
         rep_in = Input((128,))
         if self.hypothesis_dropout:
@@ -872,8 +884,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = rep_in
         option = AddDense(x, 64, "softmax", dr)
         option = AddDense(option, self.num_options, "softmax", dr)
-        x = AddDense(x, 64, "relu", dr)
-        arm = AddDense(x, arm_size, "tanh", dr)
+        x = AddDense(x, 256, "relu", dr)
+        x = AddDense(x, 512, "relu", dr)
+        arm = AddDense(x, arm_size, "linear", dr)
         gripper = AddDense(x, gripper_size, "sigmoid", dr)
         action_decoder = Model(rep_in, [arm, gripper, option])
         action_decoder.compile(loss="mae", optimizer=self.getOptimizer())
@@ -881,18 +894,38 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         return action_decoder
 
     def _makeMergeEncoder(self, rep_size):
+        '''
+        Take input image and state information and encode them into a single
+        hidden representation
+        '''
         image_input_shape = self.hidden_shape
         state_input_shape = (128,)
         rep_shape = (rep_size,)
 
     def _makeMergeDecoder(self, rep_size):
+        '''
+        Take input state and image information projected into a latent space
+        and decode them back into their appropriate output representations
+        '''
+
+        # ---------------------------------------------------------------------
+        # Compute the state information and image information sizes for the 
+        # decoders
         image_input_shape = self.hidden_shape
         state_input_shape = (128,)
+        state_ouput_dim = state_input_shape[0]
+        h, w, c = image_input_shape
+
+        # Compute the actual size of the input 
         rep_shape = (rep_size,)
         if self.hypothesis_dropout:
             dr = self.decoder_dropout_rate
         else:
             dr = 0.
+
+        # ---------------------------------------------------------------------
+        # Create the decoders
+        pass
 
     def _makeImageEncoder(self, img_shape, disc=False):
         '''
