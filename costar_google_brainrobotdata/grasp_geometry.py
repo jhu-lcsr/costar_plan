@@ -278,7 +278,9 @@ def endeffector_image_coordinate(camera_intrinsics_matrix, xyz, flip_x=1.0, flip
     # get focal length and camera image center from the intrinsics matrix
     fx = camera_intrinsics_matrix[0, 0]
     fy = camera_intrinsics_matrix[1, 1]
+    # center of image x coordinate
     center_x = camera_intrinsics_matrix[2, 0]
+    # center of image y coordinate
     center_y = camera_intrinsics_matrix[2, 1]
 
     # Capital X is horizontal point, right in camera image frame
@@ -310,7 +312,8 @@ def endeffector_image_coordinate_and_cloud_point(depth_image,
     # xyz coordinate of the endeffector in the camera frame
     cte_xyz = camera_T_endeffector.translation()
     # transform the end effector coordinate into the depth image coordinate
-    pixel_coordinate_of_endeffector = endeffector_image_coordinate(camera_intrinsics_matrix, cte_xyz)
+    pixel_coordinate_of_endeffector = endeffector_image_coordinate(
+        camera_intrinsics_matrix, cte_xyz)
 
     # The calculation of the gripper pose in the
     # image frame is done with the convention:

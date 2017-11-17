@@ -222,6 +222,8 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix, flip_x=1.0, flip_y=-1.0
     https://github.com/tensorflow/models/blob/master/cognitive_mapping_and_planning/src/depth_utils.py
     https://codereview.stackexchange.com/a/84990/10101
 
+    # TODO(ahundt) move depth image creation into tensorflow ops
+
     # Arguments
 
       depth: is a 2-D ndarray with shape (rows, cols) containing
