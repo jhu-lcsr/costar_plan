@@ -60,7 +60,7 @@ class PretrainStateAutoencoder(RobotMultiPredictionSampler):
         ae = Model(ins, out)
         ae.compile(
                 loss=["mae","mae","categorical_crossentropy"],
-                loss_weights=[0.7,0.2,0.1],
+                loss_weights=[1.,0.2,0.1],
                 optimizer=self.getOptimizer())
         ae.summary()
     

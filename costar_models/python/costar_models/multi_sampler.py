@@ -850,14 +850,17 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         arm = Input((arm_size,))
         gripper = Input((gripper_size,))
         option = Input((1,))
-        x = Concatenate()([arm, gripper])
         if disc:
             activation = "lrelu"
         else:
             activation = "relu"
+        #x1 = Concatenate()([arm, gripper])
+        x1 = AddDense(arm, 128, activation, self.dropout_rate)
+        x2 = AddDense(gripper, 64, activation, self.dropout_rate)
+        x3 = AddDense(option, 64, activation, self.dropout_rate)
+        x = Concatenate()([x1, x2, x3])
         x = AddDense(x, 512, activation, self.dropout_rate)
         x = AddDense(x, 256, activation, self.dropout_rate)
-        x = Concatenate()([x, option])
         x = AddDense(x, 128, activation, self.dropout_rate)
         
         action_encoder = Model([arm, gripper, option], x)
@@ -882,12 +885,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             dr = 0.
 
         x = rep_in
-        option = AddDense(x, 64, "softmax", dr)
-        option = AddDense(option, self.num_options, "softmax", dr)
         x = AddDense(x, 256, "relu", dr)
         x = AddDense(x, 512, "relu", dr)
-        arm = AddDense(x, arm_size, "linear", dr)
-        gripper = AddDense(x, gripper_size, "sigmoid", dr)
+        x1 = AddDense(x, 128, "relu", dr)
+        x2 = AddDense(x, 64, "relu", dr)
+        x3 = AddDense(x, 64, "relu", dr)
+        option = AddDense(x3, self.num_options, "softmax", dr)
+        arm = AddDense(x1, arm_size, "linear", dr)
+        gripper = AddDense(x2, gripper_size, "sigmoid", dr)
         action_decoder = Model(rep_in, [arm, gripper, option])
         action_decoder.compile(loss="mae", optimizer=self.getOptimizer())
         self.action_decoder = action_decoder

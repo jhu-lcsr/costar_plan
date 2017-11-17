@@ -14,14 +14,11 @@ import signal
 
 from costar_models.datasets.tfrecord import TFRecordConverter
 from costar_models.datasets.npz import NpzDataset
+from costar_models.datasets.h5f import H5fDataset
 
 CM_NEXT = "next"
 CM_GOAL = "goal"
 CM_PLUS10 = "+10"
-
-DATA_TYPE_NPZ = "npz"
-DATA_TYPE_TFRECORD = "tfrecord"
-DATA_TYPE_MOVIE = "mov"
 
 class AbstractAgent(object):
     '''
@@ -42,6 +39,7 @@ class AbstractAgent(object):
     NUMPY_ZIP = 'npz'
     TFRECORD = 'tfrecord'
     MOVIE = 'npz+movie'
+    H5F = 'h5f'
 
     def __init__(self,
             env=None,
@@ -84,6 +82,8 @@ class AbstractAgent(object):
         if data_type is None:
             if '.npz' in data_file:
                 data_type = self.NUMPY_ZIP
+            elif '.h5f' in data_file:
+                data_type = self.H5F
             elif '.tfrecord' in data_file:
                 data_type = self.TFRECORD
             else:
@@ -112,13 +112,21 @@ class AbstractAgent(object):
             raise RuntimeError("collecting timestepped predictions over " + \
                                "trajectories not currently supported")
 
-        if self.data_type == self.NUMPY_ZIP:
+        if self.data_type == self.NUMPY_ZIP or self.data_type == self.H5F:
             root = ""
             for tok in data_file.split('.')[:-1]:
                 root += tok
-            self.npz_writer = NpzDataset(root)
-        else:
+            if self.data_type == self.NUMPY_ZIP:
+                self.npz_writer = NpzDataset(root)
+            elif self.data_type == self.H5F:
+                self.npz_writer = H5fDataset(root)
+            else:
+                raise RuntimeError('data type %s not recognized'
+                        % self.data_type)
+        elif self.data_type == self.TFRECORD:
             self.tf_writer = TFRecordConverter(data_file)
+        else:
+            raise RuntimeError('data type %s not recognized'%self.data_type)
 
         self.datafile_name = data_file
         self.datafile = os.path.join(directory, data_file)
@@ -127,7 +135,7 @@ class AbstractAgent(object):
             # =====================================================================
             # This is necessary for reading data in to the models.
             self.data = {}
-            if self.data_type == self.NUMPY_ZIP:
+            if self.data_type == self.NUMPY_ZIP or self.data_type == self.H5F:
                 self.data = self.npz_writer.load(success_only=self.success_only)
             elif self.load:
                 raise RuntimeError('Could not load data from %s!' %
