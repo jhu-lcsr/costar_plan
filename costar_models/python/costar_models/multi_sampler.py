@@ -870,7 +870,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             dr = 0.
 
         x = rep_in
-        option = AddDense(x, self.num_options, "softmax", dr)
+        option = AddDense(x, 64, "softmax", dr)
+        option = AddDense(option, self.num_options, "softmax", dr)
         x = AddDense(x, 64, "relu", dr)
         arm = AddDense(x, arm_size, "tanh", dr)
         gripper = AddDense(x, gripper_size, "sigmoid", dr)

@@ -40,7 +40,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--features multi \
 	-e 100 \
-	--model pretrain_arm_encoder \
+	--model pretrain_state_encoder \
 	--data_file $HOME/work/$DATASET.npz \
 	--lr $1 \
 	--dropout_rate $2 \
