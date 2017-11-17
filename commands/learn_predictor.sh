@@ -17,8 +17,8 @@ rosrun costar_models ctp_model_tool --data_file rpy.npz \
   --steps_per_epoch 500 \
   --dropout_rate 0.1 \
   --skip_connections 0 \
-  --load_model \
   --decoder_dropout_rate 0. --hypothesis_dropout 0
+  #--load_model \
 
 rosrun costar_models ctp_model_tool --data_file rpy.npz \
   --model pretrain_state_encoder \
@@ -33,7 +33,7 @@ rosrun costar_models ctp_model_tool --data_file rpy.npz \
   --steps_per_epoch 500 \
   --dropout_rate 0.1 \
   --skip_connections 0 \
-  --load_model \
   --decoder_dropout_rate 0. --hypothesis_dropout 0
+  #--load_model \
 
 
