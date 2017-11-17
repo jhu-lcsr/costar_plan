@@ -32,7 +32,8 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
         '''
         super(PretrainImageAutoencoder, self).__init__(taskdef, *args, **kwargs)
         self.PredictorCb = ImageCb
-        self.encoder_channels = 16
+        self.encoder_channels = 128
+        self.skip_shape = (64,64,32)
 
     def _makePredictor(self, features):
         '''
@@ -43,15 +44,20 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
 
         img0_in = Input(img_shape,name="predictor_img0_in")
         img_in = Input(img_shape,name="predictor_img_in")
+        option_in = Input((1,), name="predictor_option_in")
         encoder = self._makeImageEncoder(img_shape)
         ins = [img0_in, img_in]
         if self.skip_connections:
             enc, skip = encoder(ins)
-            decoder = self._makeImageDecoder(self.hidden_shape,(64,64,32))
+            decoder = self._makeImageDecoder(
+                    self.hidden_shape,
+                    self.skip_shape, True)
             out = decoder([enc, skip])
         else:
             enc = encoder(ins)
-            decoder = self._makeImageDecoder(self.hidden_shape)
+            decoder = self._makeImageDecoder(
+                    self.hidden_shape,
+                    self.skip_shape, False)
             out = decoder(enc)
 
         encoder.summary()
