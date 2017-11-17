@@ -369,6 +369,11 @@ class VREPGraspSimulation(object):
 
         for attempt_num in range(num_samples / batch_size):
             # load data from the next grasp attempt
+            depth_image_tensor = feature_op_dicts[0][0][clear_frame_depth_image_feature]
+            dilated_tensor = tf.nn.dilation2d(depth_image_tensor, tf.zeros([5, 5, 1]),
+                                              [1, 5, 5, 1], [1, 5, 5,1], 'SAME')
+            feature_op_dicts[0][0]['dilated_depth_tensor'] = dilated_tensor
+            feature_op_dicts[0][0][clear_frame_depth_image_feature] = dilated_tensor
             output_features_dict = tf_session.run(feature_op_dicts)
             if ((attempt_num >= FLAGS.vrepVisualizeGraspAttempt_min or FLAGS.vrepVisualizeGraspAttempt_min == -1) and
                     (attempt_num < FLAGS.vrepVisualizeGraspAttempt_max or FLAGS.vrepVisualizeGraspAttempt_max == -1)):
