@@ -199,9 +199,9 @@ class StateCb(keras.callbacks.Callback):
             print("%d: gripper = %s"%(j,gripper[j]))
             print("%d: label = %s"%(j,np.argmax(label[j])))
             print("vs:")
-            print("arm =", targets[0][j])
-            print("gripper =", targets[1][j])
-            print("label =", np.argmax(targets[2][j]))
+            print("arm =", self.targets[0][j])
+            print("gripper =", self.targets[1][j])
+            print("label =", np.argmax(self.targets[2][j]))
 
 class ImageCb(keras.callbacks.Callback):
     '''

@@ -125,11 +125,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Use the same transform for everything
         self.always_same_transform = False
 
-    def _makePredictor(self, features):
-        '''
-        Create model to predict possible manipulation goals.
-        '''
-        (images, arm, gripper) = features
+    def _sizes(self, images, arm, gripper):
         img_shape = images.shape[1:]
         arm_size = arm.shape[-1]
         if len(gripper.shape) > 1:
@@ -141,6 +137,17 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             image_size *= dim
         image_size = int(image_size)
 
+        return img_shape, image_size, arm_size, gripper_size
+
+    def _makePredictor(self, features):
+        '''
+        Create model to predict possible manipulation goals.
+        '''
+        (images, arm, gripper) = features
+        img_shape, image_size, arm_size, gripper_size = self._sizes(
+                images,
+                arm,
+                gripper)
         
         # =====================================================================
         # Create the encoder and decoder networks -- these are sub-networks
@@ -830,7 +837,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         decoder.summary()
         return decoder
 
-    def _makeActionEncoder(self, arm_size, gripper_size, disc=False):
+    def _makeStateEncoder(self, arm_size, gripper_size, disc=False):
         '''
         Encode arm state.
         '''
@@ -852,7 +859,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             self.action_encoder = action_encoder
         return action_encoder
 
-    def _makeActionDecoder(self, arm_size, gripper_size):
+    def _makeStateDecoder(self, arm_size, gripper_size):
         '''
         Compute actions from hidden representation
         '''
@@ -865,8 +872,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = rep_in
         option = AddDense(x, self.num_options, "softmax", dr)
         x = AddDense(x, 64, "relu", dr)
-        arm = AddDense(x, arm_size, dr)
-        gripper = AddDense(x, gripper_size, dr)
+        arm = AddDense(x, arm_size, "tanh", dr)
+        gripper = AddDense(x, gripper_size, "sigmoid", dr)
         action_decoder = Model(rep_in, [arm, gripper, option])
         action_decoder.compile(loss="mae", optimizer=self.getOptimizer())
         self.action_decoder = action_decoder
