@@ -9,7 +9,7 @@ import numpy as np
 
 try:
     import vrep.vrep as vrep
-except:
+except Exception as e:
     print ('--------------------------------------------------------------')
     print ('"vrep.py" could not be imported. This means very probably that')
     print ('either "vrep.py" or the remoteApi library could not be found.')
@@ -18,6 +18,7 @@ except:
     print ('ReadMe.txt in the vrep remote API folder')
     print ('--------------------------------------------------------------')
     print ('')
+    raise e
 
 import tensorflow as tf
 
@@ -230,6 +231,8 @@ class VREPGraspSimulation(object):
             color_buffer,
             vrep.simx_opmode_blocking)
 
+        self.setPose(display_name, transform, parent_handle)
+
         if res == vrep.simx_return_ok:
             cloud_handle = ret_ints[0]
 
@@ -264,10 +267,10 @@ class VREPGraspSimulation(object):
                 strings,
                 color_buffer,
                 vrep.simx_opmode_blocking)
+
             if res == vrep.simx_return_ok:
                 print ('point cloud handle: ', ret_ints[0])  # display the reply from V-REP (in this case, the handle of the created dummy)
                 # set the transform for the point cloud
-                self.setPose(display_name, transform, parent_handle)
                 return ret_ints[0]
             else:
                 print('insertPointCloud_function remote function call failed.')
@@ -504,7 +507,7 @@ class VREPGraspSimulation(object):
             # format the dummy string nicely for display
             transform_display_name = time_step_name + base_T_endeffector_vec_quat_feature_name.replace(
                 '/transforms/base_T_endeffector/vec_quat_7', '').replace('/', '_')
-            print base_T_endeffector_vec_quat_feature_name, transform_display_name, base_T_endeffector_vec_quat_feature
+            print(base_T_endeffector_vec_quat_feature_name, transform_display_name, base_T_endeffector_vec_quat_feature)
             # display the gripper pose
             self.create_dummy(transform_display_name, base_T_endeffector_vec_quat_feature, parent_handle)
             # Perform some consistency checks based on the above
