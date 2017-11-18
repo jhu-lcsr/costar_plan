@@ -57,6 +57,7 @@ tf.flags.DEFINE_integer('vrepVisualizeRGBD_max', 0, 'max time step on each grasp
 tf.flags.DEFINE_boolean('vrepVisualizeSurfaceRelativeTransform', True, 'display the surface relative transform frames')
 tf.flags.DEFINE_boolean('vrepVisualizeSurfaceRelativeTransformLines', True, 'display lines from the camera to surface depth points')
 tf.flags.DEFINE_string('vrepParentName', 'LBR_iiwa_14_R820', 'The default parent frame name from which to base all visualized transforms.')
+tf.flags.DEFINE_boolean('vrepVisualizeDilation', False, 'Visualize result of dilation performed on depth image used for point cloud.')
 
 flags.FLAGS._parse_flags()
 FLAGS = flags.FLAGS
@@ -369,11 +370,12 @@ class VREPGraspSimulation(object):
 
         for attempt_num in range(num_samples / batch_size):
             # load data from the next grasp attempt
-            depth_image_tensor = feature_op_dicts[0][0][clear_frame_depth_image_feature]
-            dilated_tensor = tf.nn.dilation2d(depth_image_tensor, tf.zeros([5, 5, 1]),
-                                              [1, 5, 5, 1], [1, 5, 5,1], 'SAME')
-            feature_op_dicts[0][0]['dilated_depth_tensor'] = dilated_tensor
-            feature_op_dicts[0][0][clear_frame_depth_image_feature] = dilated_tensor
+            if FLAGS.vrepVisualizeDilation:
+                depth_image_tensor = feature_op_dicts[0][0][clear_frame_depth_image_feature]
+                dilated_tensor = tf.nn.dilation2d(depth_image_tensor, tf.zeros([5, 5, 1]),
+                                                  [1, 5, 5, 1], [1, 5, 5, 1], 'SAME')
+                feature_op_dicts[0][0]['dilated_depth_tensor'] = dilated_tensor
+                feature_op_dicts[0][0][clear_frame_depth_image_feature] = dilated_tensor
             output_features_dict = tf_session.run(feature_op_dicts)
             if ((attempt_num >= FLAGS.vrepVisualizeGraspAttempt_min or FLAGS.vrepVisualizeGraspAttempt_min == -1) and
                     (attempt_num < FLAGS.vrepVisualizeGraspAttempt_max or FLAGS.vrepVisualizeGraspAttempt_max == -1)):
