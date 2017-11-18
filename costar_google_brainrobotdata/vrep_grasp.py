@@ -186,7 +186,8 @@ class VREPGraspSimulation(object):
         return ret_ints[0]
 
     def create_point_cloud(self, display_name, points, transform, color_image=None, parent_handle=-1, clear=True,
-                           max_voxel_size=0.01, max_point_count_per_voxel=10, point_size=10, options=0):
+                           max_voxel_size=0.01, max_point_count_per_voxel=10, point_size=10, options=0,
+                           rgb_sensor_display_name=None):
         """Create a dummy object in the simulation
 
         # Arguments
@@ -205,10 +206,14 @@ class VREPGraspSimulation(object):
             bit4 set (16): color is emissive
             pointSize: the size of the points, in pixels
             reserved: reserved for future extensions. Set to NULL
+            rgb_sensor_display_name: an optional v-rep rgb sensor device on which to show the colors
         """
         # color_buffer is initially empty
         color_buffer = bytearray()
         strings = [display_name]
+        if rgb_sensor_display_name is not None:
+            strings = [display_name, rgb_sensor_display_name]
+
         transform_entries = 7
         if clear:
             clear = 1
@@ -240,10 +245,6 @@ class VREPGraspSimulation(object):
             # convert the rgb values to a string
             color_size = 0
             if color_image is not None:
-                # strings = [unicode(color_image.flatten().tostring(), 'utf-8')]
-                # color_string = color_image.flatten().tostring().encode('utf-8')
-                # strings = [display_name, color_string]
-                strings = [display_name]
                 # see simInsertPointsIntoPointCloud() in vrep documentation
                 # 3 indicates the cloud should be in the parent frame, and color is enabled
                 # bit 2 is 1 so each point is colored
@@ -251,10 +252,6 @@ class VREPGraspSimulation(object):
                 color_buffer = bytearray(color_image.flatten().tobytes())
                 color_size = color_image.size
             else:
-                strings = [display_name]
-                # see simInsertPointsIntoPointCloud() in vrep documentation
-                # 1 indicates the cloud should be in the parent frame, and color is disabled
-                # bit 1 is 1 so point clouds in cloud reference frame
                 simInsertPointsIntoPointCloudOptions = 1
 
             # Actually transfer the point cloud
@@ -282,9 +279,54 @@ class VREPGraspSimulation(object):
             print(''.join(traceback.format_stack()))
             return res
 
+    def set_vision_sensor_image(self, display_name, image, is_greyscale=False):
+        strings = [display_name]
+        parent_handle = -1
+        if is_greyscale:
+            is_greyscale = 1
+        else:
+            is_greyscale = 0
+
+        if isinstance(image.dtype, np.float32):
+            is_float = 1
+            floats = [image]
+            color_buffer = bytearray()
+            num_floats = image.size
+        else:
+            is_float = 0
+            floats = []
+            color_buffer = bytearray(image.flatten().tobytes())
+            color_size = image.size
+            num_floats = 0
+
+        cloud_handle = -1
+        res, ret_ints, ret_floats, ret_strings, ret_buffer = vrep.simxCallScriptFunction(
+            self.client_id,
+            'remoteApiCommandServer',
+            vrep.sim_scripttype_childscript,
+            'setVisionSensorImage_function',
+            # int params
+            [parent_handle, num_floats, is_greyscale, color_size],
+            # float params
+            np.append(floats, []),
+            # string params
+            strings,
+            # byte buffer params
+            color_buffer,
+            vrep.simx_opmode_blocking)
+        if res == vrep.simx_return_ok:
+            print ('point cloud handle: ', ret_ints[0])  # display the reply from V-REP (in this case, the handle of the created dummy)
+            # set the transform for the point cloud
+            return ret_ints[0]
+        else:
+            print('insertPointCloud_function remote function call failed.')
+            print(''.join(traceback.format_stack()))
+            return res
+
     def create_point_cloud_from_depth_image(self, display_name, depth_image, camera_intrinsics_matrix, transform,
                                             color_image=None, parent_handle=-1, clear=True,
-                                            max_voxel_size=0.01, max_point_count_per_voxel=10, point_size=10, options=0, save_ply_path=None):
+                                            max_voxel_size=0.01, max_point_count_per_voxel=10, point_size=10, options=0, save_ply_path=None,
+                                            rgb_sensor_display_name=None):
         """Create a dummy object in the simulation
 
         # Arguments
@@ -309,7 +351,7 @@ class VREPGraspSimulation(object):
         point_cloud = point_cloud.reshape([point_cloud.size/3, 3])
         res = self.create_point_cloud(display_name, point_cloud, transform, color_image, parent_handle,
                                       clear=clear, max_voxel_size=max_voxel_size, max_point_count_per_voxel=max_point_count_per_voxel,
-                                      point_size=point_size, options=options)
+                                      point_size=point_size, options=options, rgb_sensor_display_name=rgb_sensor_display_name)
         # Save out Point cloud
         if save_ply_path is not None:
             write_xyz_rgb_as_ply(point_cloud, color_image, save_ply_path)
@@ -469,8 +511,11 @@ class VREPGraspSimulation(object):
         if FLAGS.vrepVisualizeRGBD:
             self.create_point_cloud_from_depth_image('clear_view_cloud', clear_frame_depth_image,
                                                      camera_intrinsics_matrix, base_to_camera_vec_quat_7,
-                                                     clear_frame_rgb_image, parent_handle=parent_handle)
-            self.display_images(clear_frame_rgb_image, clear_frame_depth_image)
+                                                     clear_frame_rgb_image, parent_handle=parent_handle,
+                                                     rgb_sensor_display_name='kcam_rgb')
+            self.set_vision_sensor_image('kcam_depth', clear_frame_depth_image, is_greyscale=True)
+            # not yet working
+            # self.display_images(clear_frame_rgb_image, clear_frame_depth_image)
 
         # loop through each time step
         for i, base_T_endeffector_vec_quat_feature_name, depth_name, rgb_name in zip(range(len(base_to_endeffector_transforms)),
@@ -621,7 +666,7 @@ class VREPGraspSimulation(object):
                                                      color_image=rgb_image, save_ply_path=path, parent_handle=parent_handle)
 
             # display the rgb and depth image
-            self.display_images(rgb_image, depth_image_float_format)
+            self.set_vision_sensor_image('kcam_depth', depth_image_float_format)
 
     def display_images(self, rgb, depth_image_float_format):
         """Display the rgb and depth image in V-REP (not yet working)
