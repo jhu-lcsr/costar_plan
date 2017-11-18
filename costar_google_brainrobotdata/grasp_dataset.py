@@ -928,8 +928,8 @@ class GraspDataset(object):
             depth_image_op = tf.squeeze(depth_image_op, 0)
             if random_crop:
                 output_image_list = rcp.crop_images(image_list=depth_image_op,
-                                                    size=tf.constant([FLAGS.random_crop_height, FLAGS.random_crop_width, 1]),
-                                                    offset=offset)
+                                                    offset=offset,
+                                                    size=tf.constant([FLAGS.random_crop_height, FLAGS.random_crop_width, 1]))
                 cropped_intrinsics_matrix_op = rcp.crop_image_intrinsics(intrinsics_matrix_op, offset)
         return tf.cast(output_image_list, tf.float32), cropped_intrinsics_matrix_op
 
@@ -948,8 +948,8 @@ class GraspDataset(object):
             # apply image augmentation and imagenet preprocessing steps adapted from keras
             if random_crop:
                 rgb_image_op = rcp.crop_images(image_list=rgb_image_op,
-                                               size=tf.constant([FLAGS.random_crop_height, FLAGS.random_crop_width, 3]),
-                                               offset=offset)
+                                               offset=offset,
+                                               size=tf.constant([FLAGS.random_crop_height, FLAGS.random_crop_width, 3]))
             if resize:
                 rgb_image_op = tf.image.resize_images(rgb_image_op,
                                                       tf.constant([FLAGS.resize_height, FLAGS.resize_width],

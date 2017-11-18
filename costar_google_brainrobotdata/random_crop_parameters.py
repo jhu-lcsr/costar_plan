@@ -39,7 +39,7 @@ def random_crop_parameters(input_shape, output_shape, seed=None, name=None):
     return offset
 
 
-def crop_images(image_list, size, offset, name=None):
+def crop_images(image_list, offset, size, name=None):
     """ Crop color image and depth image by random.
         # Params
         image_list: input images need to crop.
