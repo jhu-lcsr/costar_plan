@@ -414,8 +414,11 @@ class VREPGraspSimulation(object):
             # load data from the next grasp attempt
             if FLAGS.vrepVisualizeDilation:
                 depth_image_tensor = feature_op_dicts[0][0][clear_frame_depth_image_feature]
-                dilated_tensor = tf.nn.dilation2d(depth_image_tensor, tf.zeros([5, 5, 1]),
-                                                  [1, 5, 5, 1], [1, 5, 5, 1], 'SAME')
+                dilated_tensor = tf.nn.dilation2d(input=depth_image_tensor,
+                                                  filter=tf.zeros([50, 50, 1], dtype=dtypes.int16),
+                                                  strides=[1, 1, 1, 1],
+                                                  rates=[1, 10, 10, 1],
+                                                  padding='VALID')
                 feature_op_dicts[0][0]['dilated_depth_tensor'] = dilated_tensor
                 feature_op_dicts[0][0][clear_frame_depth_image_feature] = dilated_tensor
             output_features_dict = tf_session.run(feature_op_dicts)
