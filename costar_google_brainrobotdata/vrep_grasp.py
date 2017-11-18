@@ -460,6 +460,7 @@ class VREPGraspSimulation(object):
             self.create_point_cloud_from_depth_image('clear_view_cloud', clear_frame_depth_image,
                                                      camera_intrinsics_matrix, base_to_camera_vec_quat_7,
                                                      clear_frame_rgb_image, parent_handle=parent_handle)
+            self.display_images(clear_frame_rgb_image, clear_frame_depth_image)
 
         # loop through each time step
         for i, base_T_endeffector_vec_quat_feature_name, depth_name, rgb_name in zip(range(len(base_to_endeffector_transforms)),
@@ -623,14 +624,14 @@ class VREPGraspSimulation(object):
         rgb_for_display = rgb.astype('uint8')
         rgb_for_display = rgb_for_display.ravel()
         is_color = 1
-        res = vrep.simxSetVisionSensorImage(self.client_id, kcam_rgb_handle, rgb_for_display, is_color, vrep.simx_opmode_oneshot)
+        res = vrep.simxSetVisionSensorImage(self.client_id, kcam_rgb_handle, rgb_for_display, is_color, vrep.simx_opmode_oneshot_wait)
         print('simxSetVisionSensorImage rgb result: ', res, ' rgb shape: ', rgb.shape)
         res, kcam_depth_handle = vrep.simxGetObjectHandle(self.client_id, 'kcam_depth', vrep.simx_opmode_oneshot_wait)
         normalized_depth = depth_image_float_format * 255 / depth_image_float_format.max()
         normalized_depth = normalized_depth.astype('uint8')
         normalized_depth = normalized_depth.ravel()
         is_color = 0
-        res = vrep.simxSetVisionSensorImage(self.client_id, kcam_depth_handle, normalized_depth, is_color, vrep.simx_opmode_oneshot)
+        res = vrep.simxSetVisionSensorImage(self.client_id, kcam_depth_handle, normalized_depth, is_color, vrep.simx_opmode_oneshot_wait)
         print('simxSetVisionSensorImage depth result: ', res, ' depth shape: ', depth_image_float_format.shape)
 
     def __del__(self):
