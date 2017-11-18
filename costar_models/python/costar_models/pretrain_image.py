@@ -38,7 +38,10 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
         Create model to predict possible manipulation goals.
         '''
         (images, arm, gripper) = features
-        img_shape = images.shape[1:]
+        img_shape, image_size, arm_size, gripper_size = self._sizes(
+                images,
+                arm,
+                gripper)
 
         img0_in = Input(img_shape,name="predictor_img0_in")
         img_in = Input(img_shape,name="predictor_img_in")

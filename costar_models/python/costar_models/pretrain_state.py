@@ -46,7 +46,7 @@ class PretrainStateAutoencoder(RobotMultiPredictionSampler):
         arm_in = Input((arm_size,), name="predictor_arm_in")
         gripper_in = Input((gripper_size,), name="predictor_gripper_in")
         option_in = Input((1,), name="predictor_option_in")
-        ins = [arm_in, gripper_in, option_in]
+        ins = [arm_in, gripper_in]#, option_in]
 
         encoder = self._makeStateEncoder(arm_size, gripper_size, False)
         decoder = self._makeStateDecoder(arm_size, gripper_size)
@@ -54,13 +54,13 @@ class PretrainStateAutoencoder(RobotMultiPredictionSampler):
         encoder.summary()
         decoder.summary()
 
-        h = encoder([arm_in, gripper_in, option_in])
+        h = encoder([arm_in, gripper_in])#, option_in])
         out = decoder(h)
 
         ae = Model(ins, out)
         ae.compile(
-                loss=["mae","mae","categorical_crossentropy"],
-                loss_weights=[1.,0.2,0.1],
+                loss=["mae","mae"],#,"categorical_crossentropy"],
+                #loss_weights=[1.,0.2,0.1],
                 optimizer=self.getOptimizer())
         ae.summary()
     
@@ -70,4 +70,5 @@ class PretrainStateAutoencoder(RobotMultiPredictionSampler):
         features, targets = self._getAllData(*args, **kwargs)
         [I, q, g, oin, q_target, g_target,] = features
         oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
-        return [q, g, oin], [q, g, oin_1h]
+        #return [q, g, oin], [q, g, oin_1h]
+        return [q, g], [q, g]

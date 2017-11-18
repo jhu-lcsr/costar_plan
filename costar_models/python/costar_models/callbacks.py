@@ -193,15 +193,16 @@ class StateCb(keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs={}):
         self.epoch += 1
         res = self.predictor.predict(self.features)
-        arm, gripper, label = res
+        #arm, gripper, label = res
+        arm, gripper = res
         for j in range(self.num):
             print("%d: arm = %s"%(j,arm[j]))
             print("%d: gripper = %s"%(j,gripper[j]))
-            print("%d: label = %s"%(j,np.argmax(label[j])))
+            #print("%d: label = %s"%(j,np.argmax(label[j])))
             print("vs:")
             print("arm =", self.targets[0][j])
             print("gripper =", self.targets[1][j])
-            print("label =", np.argmax(self.targets[2][j]))
+            #print("label =", np.argmax(self.targets[2][j]))
 
 class ImageCb(keras.callbacks.Callback):
     '''
@@ -239,7 +240,7 @@ class ImageCb(keras.callbacks.Callback):
         self.epoch += 1
         res = self.predictor.predict(self.features)
         if isinstance(res, list):
-            img, arm, gripper, out = res
+            img, arm, gripper = res
         else:
             img = res
         for j in range(self.num):

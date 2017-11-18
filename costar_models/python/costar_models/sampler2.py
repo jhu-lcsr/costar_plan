@@ -100,22 +100,14 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         Create model to predict possible manipulation goals.
         '''
 
-        # Setup feature info
         (images, arm, gripper) = features
-        img_shape = images.shape[1:]
-        arm_size = arm.shape[-1]
-        if len(gripper.shape) > 1:
-            gripper_size = gripper.shape[-1]
-        else:
-            gripper_size = 1
-        image_size = 1
-        for dim in img_shape:
-            image_size *= dim
-        image_size = int(image_size)
-        
+        img_shape, image_size, arm_size, gripper_size = self._sizes(
+                images,
+                arm,
+                gripper)
+
         # =====================================================================
         # Load the image decoders
-        img0_in = Input(img_shape,name="predictor_img0_in")
         img_in = Input(img_shape,name="predictor_img_in")
         encoder = self._makeImageEncoder(img_shape)
         encoder.load_weights(self._makeName(
