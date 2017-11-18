@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 import rospy
 import tf
 
@@ -117,7 +119,6 @@ class TomSim(object):
         # and all that.
         rospy.wait_for_service('/get_planning_scene')
 
-
         primitive_table = SolidPrimitive(
                 type=SolidPrimitive.BOX, dimensions=[0.6,1.4,0.7])
         #pose_table = Pose(position=Point(0.85,0.,-0.06))
@@ -134,7 +135,7 @@ class TomSim(object):
         table.header.frame_id = "odom_combined"
 
         # Collision objects
-        self.obstacles = [] #table]
+        self.obstacles = [table]
 
     def start(self):
         '''
@@ -153,6 +154,10 @@ class TomSim(object):
         '''
         Callback to update the world. Listens to JointState messages so we can get
         the time.
+
+        Parameters:
+        ----------
+        msg: message received from callback -- should be a joint state
         '''
         if not isinstance(msg, JointState):
             raise RuntimeError('must send a joint state')

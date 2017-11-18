@@ -106,8 +106,8 @@ class PredictorShowImage(keras.callbacks.Callback):
                                'and not a normal image callback?')
         img = np.reshape(img, (self.num,64,64,3))
         if self.use_noise:
-            z= np.random.random((self.targets[0].shape[0], self.num_hypotheses, self.noise_dim))
-            data, arms, grippers, label, probs, v = self.predictor.predict(self.features + [z])
+            #z= np.random.random((self.targets[0].shape[0], self.num_hypotheses, self.noise_dim))
+            data, arms, grippers, label, probs, v = self.predictor.predict(self.features)
         else:
             data, arms, grippers, label, probs, v = self.predictor.predict(self.features)
         plt.ioff()
@@ -159,6 +159,62 @@ class PredictorShowImage(keras.callbacks.Callback):
                 print("Value target =", np.argmax(self.targets[2][j]))
             plt.close(fig)
 
+
+class ImageCb(keras.callbacks.Callback):
+    '''
+    Save an image showing what some number of frames and associated predictions
+    will look like at the end of an epoch. This will only show the input,
+    target, and predicted target image.
+    '''
+
+    def __init__(self, predictor, features, targets,
+            model_directory=DEFAULT_MODEL_DIRECTORY,
+            name="model",
+            min_idx=0, max_idx=66, step=11,
+            *args, **kwargs):
+        '''
+        Set up a data set we can use to output validation images.
+
+        Parameters:
+        -----------
+        predictor: model used to generate predictions (can be different from
+                   the model being trained)
+        targets: training target info, in compressed form
+        verbose: print out extra information
+        '''
+        self.predictor = predictor
+        self.idxs = range(min_idx, max_idx, step)
+        self.num = len(self.idxs)
+        #self.features = features[0][self.idxs]
+        self.features = [f[self.idxs] for f in features]
+        self.targets = [np.squeeze(t[self.idxs]) for t in targets]
+        self.epoch = 0
+        self.directory = os.path.join(model_directory,'debug')
+        if not os.path.exists(self.directory):
+            os.makedirs(self.directory)
+
+    def on_epoch_end(self, epoch, logs={}):
+        self.epoch += 1
+        res = self.predictor.predict(self.features)
+        if isinstance(res, list):
+            img, arm, gripper, out = res
+        else:
+            img = res
+        for j in range(self.num):
+            name = os.path.join(self.directory,
+                    "image_ae_epoch%d_result%d.png"%(self.epoch,j))
+            fig = plt.figure()
+            plt.subplot(1,3,1)
+            plt.title('Input Image')
+            plt.imshow(self.features[0][j])
+            plt.subplot(1,3,3)
+            plt.title('Observed Goal')
+            plt.imshow(self.targets[0][j])
+            plt.subplot(1,3,2)
+            plt.imshow(np.squeeze(img[j]))
+            plt.title('Output')
+            fig.savefig(name, bbox_inches="tight")
+            plt.close(fig)
 
 class PredictorShowImageOnly(keras.callbacks.Callback):
     '''
