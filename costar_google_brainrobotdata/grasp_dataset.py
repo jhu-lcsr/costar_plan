@@ -346,6 +346,7 @@ class GraspDataset(object):
             Also see the downloaded grasp_listing.txt and feature_*.csv files that the downloader puts
             into ~/.keras/datasets/grasping by default.
 
+            TODO(ahundt) This function is extremely inefficient, pre-sort by time then extract string matches once.
             TODO(ahundt) make default use 'all' for every param, and ensure that order is correct chronologically.
         # Arguments
 
@@ -467,6 +468,10 @@ class GraspDataset(object):
             exclude_substring = 'sequence'
         else:
             exclude_substring = None
+
+        # 'all' really just matches anything, so set to empty string
+        if feature_type is 'all':
+            feature_type = ''
 
         if step in ['camera', 'all', '']:
             # the r'^ in r'^camera/' makes sure the start of the string matches
