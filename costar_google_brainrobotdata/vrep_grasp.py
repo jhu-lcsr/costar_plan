@@ -53,7 +53,7 @@ tf.flags.DEFINE_integer('vrepVisualizeGraspAttempt_max', 1, 'max grasp attempt t
 tf.flags.DEFINE_string('vrepDebugMode', 'save_ply', """Options are: '', 'fixed_depth', 'save_ply'.""")
 tf.flags.DEFINE_boolean('vrepVisualizeRGBD', True, 'display the rgbd images and point cloud')
 tf.flags.DEFINE_integer('vrepVisualizeRGBD_min', 0, 'min time step on each grasp attempt to display, or -1 for no limit')
-tf.flags.DEFINE_integer('vrepVisualizeRGBD_max', 0, 'max time step on each grasp attempt to display, exclusive, or -1 for no limit')
+tf.flags.DEFINE_integer('vrepVisualizeRGBD_max', -1, 'max time step on each grasp attempt to display, exclusive, or -1 for no limit')
 tf.flags.DEFINE_boolean('vrepVisualizeSurfaceRelativeTransform', True, 'display the surface relative transform frames')
 tf.flags.DEFINE_boolean('vrepVisualizeSurfaceRelativeTransformLines', True, 'display lines from the camera to surface depth points')
 tf.flags.DEFINE_string('vrepParentName', 'LBR_iiwa_14_R820', 'The default parent frame name from which to base all visualized transforms.')
@@ -533,6 +533,12 @@ class VREPGraspSimulation(object):
                                                      rgb_sensor_display_name='kcam_rgb_clear_view',
                                                      depth_sensor_display_name='kcam_depth_clear_view')
 
+            close_gripper_rgb_image = features_dict_np['gripper/image/decoded']
+            # TODO(ahundt) make sure rot180 + fliplr is applied upstream in the dataset and to the depth images
+            # gripper/image/decoded is unusual because there is no depth image and the orientation is rotated 180 degrees from the others
+            cg_rgb = np.fliplr(close_gripper_rgb_image)
+            self.set_vision_sensor_image('kcam_rgb_close_gripper', cg_rgb)
+
         # loop through each time step
         for i, base_T_endeffector_vec_quat_feature_name, depth_name, rgb_name in zip(range(len(base_to_endeffector_transforms)),
                                                                                      base_to_endeffector_transforms,
@@ -655,7 +661,9 @@ class VREPGraspSimulation(object):
         # print rgb_name, rgb_image.shape, rgb_image
         if np.count_nonzero(depth_image_float_format) is 0:
             print('WARNING: DEPTH IMAGE IS ALL ZEROS')
-        print(depth_name, depth_image_float_format.shape)
+        status_string = 'displaying rgb: ' + rgb_name + ' depth: ' + depth_name + ' shape: ' + str(depth_image_float_format.shape)
+        print(status_string)
+        self.vrepPrint(status_string)
         if ((grasp_sequence_min_time_step is None or i >= grasp_sequence_min_time_step) and
                 (grasp_sequence_max_time_step is None or i <= grasp_sequence_max_time_step)):
             # only output one depth image while debugging
