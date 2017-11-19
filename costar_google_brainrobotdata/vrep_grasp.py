@@ -362,7 +362,7 @@ class VREPGraspSimulation(object):
             # clear_frame_rgb_image = np.array([red, blue, green])
             # clear_frame_rgb_image = data.transpose()
             # clear_frame_rgb_image = clear_frame_rgb_image.transpose()
-            # TODO(ahundt) make sure rot180 + fliplr is applied upstream in the dataset and to the depth images
+            # TODO(ahundt) make sure rot180 + fliplr is applied upstream in the dataset and to the depth images, ensure consistency with image intrinsics
             color_image = np.rot90(color_image, 2)
             color_image = np.fliplr(color_image)
             self.set_vision_sensor_image(rgb_sensor_display_name, color_image)
