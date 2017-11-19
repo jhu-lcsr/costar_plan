@@ -324,7 +324,22 @@ def endeffector_image_coordinate_and_cloud_point(depth_image,
                                            camera_intrinsics_matrix,
                                            pixel_coordinate_of_endeffector,
                                            augmentation_rectangle=augmentation_rectangle)
-    return XYZ, pixel_coordinate_of_endeffector
+
+    # begin Temporary debug code
+    import depth_image_encoding
+    # flip image on image x axis center line
+    # pixel_coordinate_of_endeffector[1] = depth_image.shape[1] - pixel_coordinate_of_endeffector[0]
+    # pixel_coordinate_of_endeffector[0] = depth_image.shape[0] - pixel_coordinate_of_endeffector[1]
+    XYZ_image = depth_image_encoding.depth_image_to_point_cloud(depth_image, camera_intrinsics_matrix).reshape(depth_image.shape[0], depth_image.shape[1], 3)
+    test_XYZ = XYZ_image[int(pixel_coordinate_of_endeffector[0]), int(pixel_coordinate_of_endeffector[1]), :]
+    # TODO(ahundt) make sure rot180 + fliplr is applied upstream in the dataset and to the depth images, ensure consistency with image intrinsics
+    # test_XYZ = np.rot90(test_XYZ, 2)
+    # test_XYZ = np.fliplr(test_XYZ)
+
+    print('XYZ: ', XYZ, ' test_XYZ:', test_XYZ, ' pixel_coordinate_of_endeffector: ', pixel_coordinate_of_endeffector, 'single_XYZ.shape: ', XYZ_image.shape)
+    # assert(np.allclose(test_XYZ, XYZ))
+    # end Temporary debug code
+    return test_XYZ, pixel_coordinate_of_endeffector
 
 
 def grasp_dataset_rotation_to_theta(rotation, verbose=0):
