@@ -170,9 +170,10 @@ setVisionSensorImage_function=function(inInts,inFloats,inStrings,inBuffer)
     -- inBuffer: the pixel colors
     if #inStrings>=1 and #inInts>=4 then
         sensorHandle=-1
+        objectName = inStrings[1]
         -- Get the existing point cloud's handle or create a new one
         if pcall(function()
-            sensorHandle=simGetObjectHandle(inStrings[1])
+            sensorHandle=simGetObjectHandle(objectName)
         end) == false then
             simAddStatusbarMessage('setVisionSensorImage_function could not find the following scene object: ' .. inStrings[1])
             return
@@ -198,8 +199,10 @@ setVisionSensorImage_function=function(inInts,inFloats,inStrings,inBuffer)
         end
 
         if #inFloats > 0 then
+            -- simAddStatusbarMessage('displaying ' .. objectName .. ' as float, grayscale:' .. is_greyscale)
             simSetVisionSensorImage(sensorHandle, inFloats)
         else
+            -- simAddStatusbarMessage('displaying ' .. objectName .. ' as colors, grayscale:' .. is_greyscale)
             simSetVisionSensorImage(sensorHandle, colors)
         end
         return {sensorHandle},{},{},'' -- return the handle of the created dummy
@@ -233,7 +236,7 @@ addDrawingObject_function=function(inInts, inFloats, inStrings, inBuffer)
         end) == false then
             -- simAddStatusbarMessage('adding drawing object')
             drawingHandle=simAddDrawingObject(sim_drawing_lines+sim_drawing_cyclic, linewidth, minTolerance, parent_handle, maxItemCount, nil, nil, nil, nil)
-            setObjectName(drawingHandle, inStrings[1])
+            -- setObjectName(drawingHandle, inStrings[1])
         end
         -- Set the dummy position
         -- setObjectRelativeToParentWithPoseArray(drawingHandle, parent_handle, inFloats)

@@ -254,3 +254,15 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix, flip_x=1.0, flip_y=-1.0
     Y = flip_y * (y - center_y) * depth / fy
     XYZ = np.column_stack((X.flatten(), Y.flatten(), depth.flatten()))
     return XYZ
+
+
+def FloatArrayToRawRGB(im, min_value=0.0, max_value=1.0):
+    """Convert a grayscale image to rgb, no encoding.
+
+    Please be aware that this does not incorporate a proper color transform.
+    http://pillow.readthedocs.io/en/3.4.x/reference/Image.html#PIL.Image.Image.convert
+    https://en.wikipedia.org/wiki/Rec._601
+    """
+    im = ClipFloatValues(im, min_value, max_value) - min_value
+    im *= 255.0 / (max_value - min_value)
+    return np.dstack([im.astype(np.uint8)] * 3)
