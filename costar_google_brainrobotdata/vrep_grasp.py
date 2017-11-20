@@ -101,7 +101,7 @@ class VREPGraspSimulation(object):
             print('Error connecting to remote API server')
         return
 
-    def create_dummy(self, display_name, transform, parent_handle=-1, debug=None):
+    def create_dummy(self, display_name, transform, parent_handle=-1, debug=FLAGS.vrepDebugMode):
         """Create a dummy object in the simulation
 
         # Arguments
@@ -132,7 +132,7 @@ class VREPGraspSimulation(object):
             return -1
         return ret_ints[0]
 
-    def drawLines(self, display_name, lines, parent_handle=-1, transform=None):
+    def drawLines(self, display_name, lines, parent_handle=-1, transform=None, debug=FLAGS.vrepDebugMode):
         """Create a line in the simulation.
 
         Note that there are currently some quirks with this function. Only one line is accepted,
@@ -162,7 +162,8 @@ class VREPGraspSimulation(object):
             vrep.simx_opmode_blocking)
         if res == vrep.simx_return_ok:
             # display the reply from V-REP (in this case, the handle of the created dummy)
-            print ('drawLines name:', display_name, ' handle: ', ret_ints[0], ' transform: ', transform)
+            if debug is not None and 'print_drawLines' in debug:
+                print ('drawLines name:', display_name, ' handle: ', ret_ints[0], ' transform: ', transform)
 
             if transform is not None:
                 # set the transform for the point cloud
