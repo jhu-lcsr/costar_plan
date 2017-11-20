@@ -219,7 +219,7 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix, flip_x=1.0, flip_y=1.0)
     centred at cx, cy with field of view fx, fy.
 
     Based on:
-    https://github.com/tensorflow/models/blob/master/cognitive_mapping_and_planning/src/depth_utils.py
+    https://github.com/tensorflow/models/blob/master/research/cognitive_mapping_and_planning/src/depth_utils.py
     https://codereview.stackexchange.com/a/84990/10101
 
     # TODO(ahundt) move depth image creation into tensorflow ops
@@ -229,7 +229,7 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix, flip_x=1.0, flip_y=1.0)
       depth: is a 2-D ndarray with shape (rows, cols) containing
       32bit floating point depths in meters. The result is a 3-D array with
       shape (rows, cols, 3). Pixels with invalid depth in the input have
-      NaN for the z-coordinate in the result.
+      NaN or 0 for the z-coordinate in the result.
       flip_x: 1.0 leaves data as-is, -1.0 flips the data across the x axis
       flip_y: -1.0 leaves data as-is, -1.0 flips the data across the y axis
 
