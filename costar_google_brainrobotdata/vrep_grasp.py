@@ -38,12 +38,15 @@ from depth_image_encoding import ClipFloatValues
 from depth_image_encoding import FloatArrayToRgbImage
 from depth_image_encoding import FloatArrayToRawRGB
 
-# https://github.com/jrl-umi3218/Eigen3ToPython/
-# alternatives to consider:
-# https://github.com/adamlwgriffiths/Pyrr
-# https://github.com/KieranWynn/pyquaternion
-import eigen  # https://github.com/jrl-umi3218/Eigen3ToPython
-import sva  # https://github.com/jrl-umi3218/SpaceVecAlg
+try:
+    import eigen  # https://github.com/jrl-umi3218/Eigen3ToPython
+    import sva  # https://github.com/jrl-umi3218/SpaceVecAlg
+except ImportError:
+    print('eigen and sva python modules not available. To install run the script at:'
+          'https://github.com/ahundt/robotics_setup/blob/master/robotics_tasks.sh'
+          'or follow the instructions at https://github.com/jrl-umi3218/Eigen3ToPython'
+          'and https://github.com/jrl-umi3218/SpaceVecAlg. When you build make sure'
+          'python bindings are enabled.')
 
 tf.flags.DEFINE_string('vrepConnectionAddress', '127.0.0.1', 'The IP address of the running V-REP simulation.')
 tf.flags.DEFINE_integer('vrepConnectionPort', 19999, 'ip port for connecting to V-REP')
