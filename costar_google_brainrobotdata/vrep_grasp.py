@@ -271,7 +271,7 @@ class VREPGraspSimulation(object):
                 # 3 indicates the cloud should be in the parent frame, and color is enabled
                 # bit 2 is 1 so each point is colored
                 simInsertPointsIntoPointCloudOptions = 3
-                color_buffer = bytearray(np.fliplr(np.rot90(color_image, 2)).flatten().tobytes())
+                color_buffer = bytearray(np.fliplr(np.rot90(color_image, 3)).flatten().tobytes())
                 color_size = color_image.size
             else:
                 simInsertPointsIntoPointCloudOptions = 1
