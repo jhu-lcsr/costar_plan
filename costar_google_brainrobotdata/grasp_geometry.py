@@ -333,8 +333,7 @@ def endeffector_image_coordinate_and_cloud_point(depth_image,
     XYZ_image = depth_image_encoding.depth_image_to_point_cloud(depth_image, camera_intrinsics_matrix).reshape(depth_image.shape[0], depth_image.shape[1], 3)
     # TODO(ahundt) make sure rot180 + fliplr is applied upstream in the dataset and to the depth images, ensure consistency with image intrinsic
     XYZ_image = np.fliplr(XYZ_image)
-    XYZ_image = np.rot90(XYZ_image, 3)
-    XYZ_image = np.rot90(XYZ_image, 2)
+    XYZ_image = np.rot90(XYZ_image, 1)
     test_XYZ = XYZ_image[int(pixel_coordinate_of_endeffector[0]), int(pixel_coordinate_of_endeffector[1]), :]
 
     print('XYZ: ', XYZ, ' test_XYZ:', test_XYZ, ' pixel_coordinate_of_endeffector: ', pixel_coordinate_of_endeffector, 'single_XYZ.shape: ', XYZ_image.shape)
