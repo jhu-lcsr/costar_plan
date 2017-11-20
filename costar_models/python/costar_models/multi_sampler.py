@@ -855,10 +855,16 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         else:
             activation = "relu"
         x = Concatenate()([arm, gripper])
-        x = AddDense(x, 512, activation, self.dropout_rate)
-        x = AddDense(x, 64, activation, self.dropout_rate)
+        x = AddDense(x, 256, activation, self.dropout_rate)
+        y = OneHot(self.num_options)(option)
+        y = Flatten()(y)
+        x = Concatenate()([x,y])
+        x = AddDense(x, 128, activation, self.dropout_rate)
+        #x = AddDense(x, 256, activation, self.dropout_rate)
+        #x = AddDense(x, 64, activation, self.dropout_rate)
         
-        action_encoder = Model([arm, gripper], x)
+        action_encoder = Model([arm, gripper, option], x)
+        #action_encoder = Model([arm, gripper], x)
         action_encoder.compile(loss="mae", optimizer=self.getOptimizer())
         if not disc:
             self.action_encoder = action_encoder
@@ -873,11 +879,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         arm_size: number of arm output variables to predict
         gripper_size: number of gripper output variables to predict
         '''
-        rep_in = Input((64,))
-        if self.hypothesis_dropout:
-            dr = self.decoder_dropout_rate
-        else:
-            dr = 0.
+        rep_in = Input((128,))
+        dr = self.decoder_dropout_rate
 
         x = rep_in
         x1 = AddDense(x, 256, "relu", dr)
@@ -885,8 +888,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x2 = AddDense(x, 256, "relu", dr)
         x2 = AddDense(x2, 512, "relu", dr)
         arm = AddDense(x1, arm_size, "linear", dr)
-        gripper = AddDense(x2, gripper_size, "linear", dr)
-        action_decoder = Model(rep_in, [arm, gripper])
+        gripper = AddDense(x2, gripper_size, "sigmoid", dr)
+        y = AddDense(x, 256, "relu", dr)
+        option = AddDense(y, self.num_options, "softmax", dr)
+        action_decoder = Model(rep_in, [arm, gripper, option])
         action_decoder.compile(loss="mae", optimizer=self.getOptimizer())
         self.action_decoder = action_decoder
         return action_decoder
@@ -957,9 +962,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.tform_filters = self.encoder_channels
         self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.tform_filters)
         #self.hidden_shape = (self.encoder_channels*2,)
-        x = Flatten()(x)
-        x = AddDense(x, 128, "relu", self.dropout_rate)
-        self.hidden_shape = (128,)
+        #x = Flatten()(x)
+        #x = AddDense(x, self.hidden_size, "relu", self.dropout_rate)
+        #self.hidden_shape = (self.hidden_size,)
 
         if self.skip_connections:
             image_encoder = Model([img0, img], [x, y], name="image_encoder")
@@ -986,12 +991,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             dr = self.decoder_dropout_rate
         else:
             dr = 0.
-        self.steps_up = 4
-        self.hidden_dim = int(img_shape[0]/(2**self.steps_up))
-        self.tform_filters = self.encoder_channels
-        (h,w,c) = (self.hidden_dim,self.hidden_dim,self.tform_filters)
-        x = AddDense(x, int(h*w*c), "linear", dr)
-        x = Reshape((h,w,c))(x)
+        #self.steps_up = 4
+        #self.hidden_dim = int(img_shape[0]/(2**self.steps_up))
+        #self.tform_filters = 256 #self.encoder_channels
+        #(h,w,c) = (self.hidden_dim,self.hidden_dim,self.tform_filters)
+        #x = AddDense(x, int(h*w*c), "linear", dr)
+        #x = Reshape((h,w,c))(x)
         x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
         x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
         x = AddConv2DTranspose(x, 32, [5,5], 2, dr)

@@ -193,8 +193,12 @@ class StateCb(keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs={}):
         self.epoch += 1
         res = self.predictor.predict(self.features)
-        #arm, gripper, label = res
-        arm, gripper = res
+        if not isinstance(res, list):
+            arm = res
+        elif len(res) == 3:
+            arm, gripper, label = res
+        elif len(res) == 2:
+            arm, gripper = res
         for j in range(self.num):
             print("%d: arm = %s"%(j,arm[j]))
             print("%d: gripper = %s"%(j,gripper[j]))

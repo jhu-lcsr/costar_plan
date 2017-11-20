@@ -977,7 +977,7 @@ def GetHypothesisProbability(x, num_hypotheses, num_options, labels,
     return x, x2
 
 def OneHot(size=64):
-    return Lambda(lambda x: tf.one_hot(tf.cast(x, tf.int32),size))#,name="label_to_one_hot")
+    return Lambda(lambda x: tf.one_hot(tf.cast(x, tf.int32),size))
 
 def AddOptionTiling(x, option_length, option_in, height, width):
     tile_shape = (1, width, height, 1)
