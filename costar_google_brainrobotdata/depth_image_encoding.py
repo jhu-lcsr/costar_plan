@@ -244,7 +244,7 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix, flip_x=1.0, flip_y=1.0)
     center_x = intrinsics_matrix[2, 0]
     # center of image y coordinate
     center_y = intrinsics_matrix[2, 1]
-    depth = np.fliplr(np.rot90(depth, 2))
+    depth = np.fliplr(np.rot90(depth, 3))
     # print(intrinsics_matrix)
     x, y = np.meshgrid(np.arange(depth.shape[0]),
                        np.arange(depth.shape[1]),
