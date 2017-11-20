@@ -369,7 +369,8 @@ class VREPGraspSimulation(object):
             strings,
             # byte buffer params
             color_buffer,
-            vrep.simx_opmode_blocking)
+            vrep.simx_opmode_oneshot_wait)
+            # vrep.simx_opmode_blocking)
         if res == vrep.simx_return_ok:
             print ('point cloud handle: ', ret_ints[0])  # display the reply from V-REP (in this case, the handle of the created dummy)
             # set the transform for the point cloud
