@@ -6,6 +6,7 @@ import errno
 import traceback
 
 import numpy as np
+# import matplotlib
 
 try:
     import vrep.vrep as vrep
@@ -60,12 +61,19 @@ tf.flags.DEFINE_boolean('vrepVisualizeSurfaceRelativeTransform', True, 'display 
 tf.flags.DEFINE_boolean('vrepVisualizeSurfaceRelativeTransformLines', True, 'display lines from the camera to surface depth points')
 tf.flags.DEFINE_string('vrepParentName', 'LBR_iiwa_14_R820', 'The default parent frame name from which to base all visualized transforms.')
 tf.flags.DEFINE_boolean('vrepVisualizeDilation', False, 'Visualize result of dilation performed on depth image used for point cloud.')
-tf.flags.DEFINE_string('vrepVisualizeDepthFormat', 'depth_encoded_rgb',
-                       """Controls how depth images are displayed. Options are:
-                              'rgb': for a straight 0-255 encoding of depths less than 3m
-                              'encoded_rgb': for the rgb encoding used by the grasp dataset's raw png data,
-                                  see https://sites.google.com/site/brainrobotdata/home/depth-image-encoding.
-                              None: do not modify the data and attempt to display it as-is (not working properly).
+tf.flags.DEFINE_string('vrepVisualizeDepthFormat', 'vrep_depth_encoded_rgb',
+                       """ Controls how Depth images are displayed. Options are:
+                           None: Do not modify the data and display it as-is for rgb input data (not working properly for float depth).
+                           'depth_rgb': convert a floating point depth image to a straight 0-255 encoding of depths less than 3m
+                           'depth_encoded_rgb': convert a floating point depth image to the rgb encoding used by
+                               the google brain robot data grasp dataset's raw png depth image encoding,
+                               see https://sites.google.com/site/brainrobotdata/home/depth-image-encoding.
+                           'vrep': add a vrep prefix to any of the above commands to
+                               rotate image by 180 degrees, flip left over right, then invert the color channels
+                               after the initial conversion step.
+                               This is due to a problem where V-REP seems to display images differently.
+                               Examples include 'vrep_depth_rgb' and 'vrep_depth_encoded_rgb',
+                               see http://www.forum.coppeliarobotics.com/viewtopic.php?f=9&t=737&p=27805#p27805.
                        """)
 
 flags.FLAGS._parse_flags()
@@ -299,25 +307,40 @@ class VREPGraspSimulation(object):
 
         display_name: the string display name of the sensor object in the v-rep scene
         image: an rgb char array containing an image
-        fmt: Controls how images are displayed. Options are:
+        convert: Controls how images are displayed. Options are:
                 None: Do not modify the data and display it as-is for rgb input data (not working properly for float depth).
                 'depth_rgb': convert a floating point depth image to a straight 0-255 encoding of depths less than 3m
                 'depth_encoded_rgb': convert a floating point depth image to the rgb encoding used by
                     the google brain robot data grasp dataset's raw png depth image encoding,
                     see https://sites.google.com/site/brainrobotdata/home/depth-image-encoding.
+                'vrep': add a vrep prefix to any of the above commands to
+                    rotate image by 180 degrees, flip left over right, then invert the color channels
+                    after the initial conversion step.
+                    This is due to a problem where V-REP seems to display images differently.
+                    Examples include 'vrep_depth_rgb' and 'vrep_depth_encoded_rgb',
+                    see http://www.forum.coppeliarobotics.com/viewtopic.php?f=9&t=737&p=27805#p27805.
         """
         strings = [display_name]
         parent_handle = -1
 
-        is_greyscale = 0
         # TODO(ahundt) support is_greyscale True again
-        if convert is 'depth_encoded_rgb':
-            image = np.array(FloatArrayToRgbImage(image, scale_factor=scale_factor, drop_blue=False),
-                             dtype=np.uint8)
-        elif convert is 'depth_rgb':
-            image = FloatArrayToRawRGB(image)
-        elif convert is not None:
-            raise ValueError('set_vision_sensor_image() convert parameter must be one of depth_encoded_rgb, depth_rgb or None')
+        is_greyscale = 0
+        vrep_conversion = False
+        if convert is not None:
+            vrep_conversion = 'vrep' in convert
+
+            if 'depth_encoded_rgb' in convert:
+                image = np.array(FloatArrayToRgbImage(image, scale_factor=scale_factor, drop_blue=False),
+                                dtype=np.uint8)
+            elif 'depth_rgb' in convert:
+                image = FloatArrayToRawRGB(image)
+            elif not vrep_conversion:
+                raise ValueError('set_vision_sensor_image() convert parameter must be one of `depth_encoded_rgb`, `depth_rgb`, or None'
+                                 'with the optional addition of the word `vrep` to rotate 180, flip left right, then invert colors.')
+
+        if vrep_conversion:
+            # rotate 180 degrees, flip left over right, then invert the colors
+            image = np.array(255 - np.fliplr(np.rot90(image, 2)), dtype=np.uint8)
 
         if np.issubdtype(image.dtype, np.integer):
             is_float = 0
@@ -387,37 +410,17 @@ class VREPGraspSimulation(object):
                                       point_size=point_size, options=options)
 
         if depth_sensor_display_name is not None:
-            # max_distance_meters = 3.0
-            # prev_max = str(depth_image.max())
-            # prev_min = str(depth_image.min())
-            # depth_image = np.dstack([(ClipFloatValues(depth_image, 0.0, 1.0) * (255.0 / max_distance_meters)).astype(np.uint8)] * 3)
-            # clipped_max = str(depth_image.max())
-            # clipped_min = str(depth_image.min())
-            # # depth_image = Image.fromarray(depth_image, mode='L').convert(mode='RGB')
-            # # depth_image = np.array(depth_image, dtype=np.uint8)
-            # rgb = np.dstack([depth_image] * 3)
-            # matplotlib.pyplot.imshow(rgb)
-            # print('>>>>>>>>>>>>> ' + depth_sensor_display_name + ' value initial max: ' + prev_max + ' initial min: ' + prev_min +
-            #       ' clipped max: ' + clipped_max + ' clipped min: ' + clipped_min +
-            #       ' final max: ' + str(rgb.max()) + ' final min: ' + str(rgb.min()) + ' shape :' + str(rgb.shape))
-            # cmap = matplotlib.pyplot.get_cmap('jet')
-            # rgba_img = cmap(depth_image)
-            # rgb_float_imamatplotlib.colors.to_rgb(depth_image)
-            # rgb_img = np.delete(rgba_img, 3, 2)
+            # matplotlib.image.imsave(display_name + depth_sensor_display_name + '_norotfliplr.png', depth_image)
+            # rotate 180, flip left over right then invert the image colors for display in V-REP
+            # depth_image = np.fliplr(np.rot90(depth_image, 2))
+            # matplotlib.image.imsave(display_name + depth_sensor_display_name + '_rot90fliplr.png', depth_image)
             self.set_vision_sensor_image(depth_sensor_display_name, depth_image, convert=convert_depth)
 
         if rgb_sensor_display_name is not None:
-            # rotate color ordering https://stackoverflow.com/a/4662326/99379
-            # red, green, blue = clear_frame_rgb_image.T
-            # clear_frame_rgb_image = np.array([red, blue, green])
-            # clear_frame_rgb_image = data.transpose()
-            # clear_frame_rgb_image = clear_frame_rgb_image.transpose()
-            # TODO(ahundt) make sure rot180 + fliplr is applied upstream in the dataset and to the depth images, ensure consistency with image intrinsics
-            color_image = np.rot90(color_image, 2)
-            color_image = np.fliplr(color_image)
-            self.set_vision_sensor_image(rgb_sensor_display_name, color_image)
-            # not yet working
-            # self.display_images(clear_frame_rgb_image, clear_frame_depth_image)
+            # matplotlib.image.imsave(display_name + rgb_sensor_display_name + '_norotfliplr.png', color_image)
+            # rotate 180, flip left over right then invert the image colors for display in V-REP
+            # matplotlib.image.imsave(display_name + rgb_sensor_display_name + '_rot90fliplr.png', color_image)
+            self.set_vision_sensor_image(rgb_sensor_display_name, color_image, convert='vrep_rgb')
         # Save out Point cloud
         if save_ply_path is not None:
             write_xyz_rgb_as_ply(point_cloud, color_image, save_ply_path)
@@ -588,8 +591,8 @@ class VREPGraspSimulation(object):
             # TODO(ahundt) make sure rot180 + fliplr is applied upstream in the dataset and to the depth images
             # gripper/image/decoded is unusual because there is no depth image and the orientation is rotated 180 degrees from the others
             # it might also only be available captured in some of the more recent datasets.
-            cg_rgb = np.fliplr(close_gripper_rgb_image)
-            self.set_vision_sensor_image('kcam_rgb_close_gripper', cg_rgb)
+            cg_rgb = 255 - np.fliplr(close_gripper_rgb_image)
+            self.set_vision_sensor_image('kcam_rgb_close_gripper', cg_rgb, convert=None)
 
         # loop through each time step
         for i, base_T_endeffector_vec_quat_feature_name, depth_name, rgb_name in zip(range(len(base_to_endeffector_transforms)),
