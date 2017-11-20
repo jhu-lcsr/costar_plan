@@ -165,7 +165,7 @@ def depth_image_pixel_to_cloud_point(depth_image,
                                      pixel_coordinate,
                                      augmentation_rectangle=None,
                                      flip_x=1.0,
-                                     flip_y=-1.0):
+                                     flip_y=1.0):
     """Convert a single specific depth image pixel coordinate into a point cloud point.
 
     # Params
@@ -330,10 +330,8 @@ def endeffector_image_coordinate_and_cloud_point(depth_image,
     # flip image on image x axis center line
     # pixel_coordinate_of_endeffector[1] = depth_image.shape[1] - pixel_coordinate_of_endeffector[0]
     # pixel_coordinate_of_endeffector[0] = depth_image.shape[0] - pixel_coordinate_of_endeffector[1]
-    XYZ_image = depth_image_encoding.depth_image_to_point_cloud(depth_image, camera_intrinsics_matrix).reshape(depth_image.shape[0], depth_image.shape[1], 3)
+    XYZ_image = depth_image_encoding.depth_image_to_point_cloud(depth_image, camera_intrinsics_matrix)
     # TODO(ahundt) make sure rot180 + fliplr is applied upstream in the dataset and to the depth images, ensure consistency with image intrinsic
-    XYZ_image = np.fliplr(XYZ_image)
-    XYZ_image = np.rot90(XYZ_image, 1)
     test_XYZ = XYZ_image[int(pixel_coordinate_of_endeffector[0]), int(pixel_coordinate_of_endeffector[1]), :]
 
     print('XYZ: ', XYZ, ' test_XYZ:', test_XYZ, ' pixel_coordinate_of_endeffector: ', pixel_coordinate_of_endeffector, 'single_XYZ.shape: ', XYZ_image.shape)

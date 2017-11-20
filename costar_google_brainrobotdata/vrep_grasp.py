@@ -42,7 +42,7 @@ try:
     import eigen  # https://github.com/jrl-umi3218/Eigen3ToPython
     import sva  # https://github.com/jrl-umi3218/SpaceVecAlg
 except ImportError:
-    print('eigen and sva python modules not available. To install run the script at:'
+    print('eigen and sva python not available. To install run the script at:'
           'https://github.com/ahundt/robotics_setup/blob/master/robotics_tasks.sh'
           'or follow the instructions at https://github.com/jrl-umi3218/Eigen3ToPython'
           'and https://github.com/jrl-umi3218/SpaceVecAlg. When you build make sure'
@@ -55,11 +55,11 @@ tf.flags.DEFINE_boolean('vrepDoNotReconnectOnceDisconnected', True, '')
 tf.flags.DEFINE_integer('vrepTimeOutInMs', 5000, 'Timeout in milliseconds upon which connection fails')
 tf.flags.DEFINE_integer('vrepCommThreadCycleInMs', 5, 'time between communication cycles')
 tf.flags.DEFINE_integer('vrepVisualizeGraspAttempt_min', 0, 'min grasp attempt to display from dataset, or -1 for no limit')
-tf.flags.DEFINE_integer('vrepVisualizeGraspAttempt_max', 1, 'max grasp attempt to display from dataset, exclusive, or -1 for no limit')
-tf.flags.DEFINE_string('vrepDebugMode', 'save_ply', """Options are: '', 'fixed_depth', 'save_ply', 'print_transform'. More than one can be specified at a time.""")
+tf.flags.DEFINE_integer('vrepVisualizeGraspAttempt_max', 4, 'max grasp attempt to display from dataset, exclusive, or -1 for no limit')
+tf.flags.DEFINE_string('vrepDebugMode', 'save_ply', """Options are: '', 'fixed_depth', 'save_ply', 'print_transform', 'print_drawLines'. More than one can be specified at a time.""")
 tf.flags.DEFINE_boolean('vrepVisualizeRGBD', True, 'display the rgbd images and point cloud')
 tf.flags.DEFINE_integer('vrepVisualizeRGBD_min', 0, 'min time step on each grasp attempt to display, or -1 for no limit')
-tf.flags.DEFINE_integer('vrepVisualizeRGBD_max', -1, 'max time step on each grasp attempt to display, exclusive, or -1 for no limit')
+tf.flags.DEFINE_integer('vrepVisualizeRGBD_max', 0, 'max time step on each grasp attempt to display, exclusive, or -1 for no limit')
 tf.flags.DEFINE_boolean('vrepVisualizeSurfaceRelativeTransform', True, 'display the surface relative transform frames')
 tf.flags.DEFINE_boolean('vrepVisualizeSurfaceRelativeTransformLines', True, 'display lines from the camera to surface depth points')
 tf.flags.DEFINE_string('vrepParentName', 'LBR_iiwa_14_R820', 'The default parent frame name from which to base all visualized transforms.')
@@ -271,7 +271,7 @@ class VREPGraspSimulation(object):
                 # 3 indicates the cloud should be in the parent frame, and color is enabled
                 # bit 2 is 1 so each point is colored
                 simInsertPointsIntoPointCloudOptions = 3
-                color_buffer = bytearray(color_image.flatten().tobytes())
+                color_buffer = bytearray(np.fliplr(np.rot90(color_image, 2)).flatten().tobytes())
                 color_size = color_image.size
             else:
                 simInsertPointsIntoPointCloudOptions = 1

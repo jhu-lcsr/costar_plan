@@ -213,7 +213,7 @@ def ImageToFloatArray(image, scale_factor=None):
 
 
 # , transform=None, color=None, min_depth=0, max_depth=255*255*255):
-def depth_image_to_point_cloud(depth, intrinsics_matrix, flip_x=1.0, flip_y=-1.0):
+def depth_image_to_point_cloud(depth, intrinsics_matrix, flip_x=1.0, flip_y=1.0):
     """Transform a depth image into a point cloud in the camera frame with one point for each
     pixel in the image, using the camera transform for a camera
     centred at cx, cy with field of view fx, fy.
@@ -244,15 +244,18 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix, flip_x=1.0, flip_y=-1.0
     center_x = intrinsics_matrix[2, 0]
     # center of image y coordinate
     center_y = intrinsics_matrix[2, 1]
+    depth = np.fliplr(np.rot90(depth, 2))
     # print(intrinsics_matrix)
-    x, y = np.meshgrid(np.arange(depth.shape[-1]),
-                       np.arange(depth.shape[-2]-1, -1, -1))
+    x, y = np.meshgrid(np.arange(depth.shape[0]),
+                       np.arange(depth.shape[1]),
+                       indexing='ij')
     for i in range(depth.ndim-2):
         x = np.expand_dims(x, axis=0)
         y = np.expand_dims(y, axis=0)
     X = flip_x * (x - center_x) * depth / fx
     Y = flip_y * (y - center_y) * depth / fy
-    XYZ = np.column_stack((X.flatten(), Y.flatten(), depth.flatten()))
+    XYZ = np.column_stack((X.flatten(), Y.flatten(), depth.flatten())).reshape(depth.shape + (3,))
+
     return XYZ
 
 
