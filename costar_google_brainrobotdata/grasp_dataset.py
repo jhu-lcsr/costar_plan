@@ -854,6 +854,7 @@ class GraspDataset(object):
         """
         if sensor_image_dimensions is None:
                 sensor_image_dimensions = [1, FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels]
+        batch, height, width, rgb_channels = sensor_image_dimensions
         features = [feature for (feature, tf_op) in iteritems(feature_op_dict)]
         image_features = GraspDataset.get_time_ordered_features(features, '/image/encoded')
         image_features.extend(GraspDataset.get_time_ordered_features(features, 'depth_image/encoded'))
@@ -864,13 +865,14 @@ class GraspDataset(object):
                 image = tf.image.decode_png(image_buffer, channels=sensor_image_dimensions[3])
                 # convert depth from the rgb depth image encoding to float32 depths
                 # https://sites.google.com/site/brainrobotdata/home/depth-image-encoding
+                # equivalent to depth_image_encoding.ImageToFloatArray
                 image = tf.cast(image, tf.float32)
                 image = tf.reduce_sum(image * [65536, 256, 1], axis=2)
                 RGB_SCALE_FACTOR = 256000.0
                 image = image / RGB_SCALE_FACTOR
-                image.set_shape([FLAGS.sensor_image_height, FLAGS.sensor_image_width])
-                image = tf.reshape(image, [1, FLAGS.sensor_image_height, FLAGS.sensor_image_width, 1])
-                # image = tf.py_func(depth_image_encoding.ImageToFloatArray, [image], tf.float32)
+                image.set_shape([height, width])
+                # depth images have one channel
+                image = tf.reshape(image, [batch, height, width, 1])
             else:
                 image = tf.image.decode_jpeg(image_buffer, channels=sensor_image_dimensions[3])
                 image.set_shape(sensor_image_dimensions[1:])
@@ -1113,9 +1115,10 @@ class GraspDataset(object):
             if self.verbose > 2:
                 print('\npose_op_params: ', pose_op_params, '\nrgb_move_to_grasp_steps: ', rgb_move_to_grasp_steps)
 
-            # each step in the grasp motion is also its own minibatch,
-            # iterate in reversed direction because if training data will be dropped
-            # it should be the first steps not the last steps.
+            # Allow the user to configure which time steps in a grasp attempt are used for training.
+            # Iterate along time steps in the reversed direction because if training data will be dropped
+            # it should be the first steps (furthest from final grap) not the last steps (closest to final grasp).
+            # Also it is worth noting that all the time step in a grasp motion essentially form a minibatch.
             for i, (grasp_step_rgb_feature_name, pose_op_param) in enumerate(zip(reversed(rgb_move_to_grasp_steps), reversed(pose_op_params))):
                 if ((grasp_sequence_min_time_step is None or i >= grasp_sequence_min_time_step) and
                         (grasp_sequence_max_time_step is None or i <= grasp_sequence_max_time_step)):
