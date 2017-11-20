@@ -883,14 +883,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         dr = self.decoder_dropout_rate
 
         x = rep_in
-        x1 = AddDense(x, 256, "relu", dr)
-        x1 = AddDense(x1, 512, "relu", dr)
+        x1 = AddDense(x, 512, "relu", dr)
+        x1 = AddDense(x1, 1024, "relu", dr)
         x2 = AddDense(x, 256, "relu", dr)
         x2 = AddDense(x2, 512, "relu", dr)
         arm = AddDense(x1, arm_size, "linear", dr)
-        gripper = AddDense(x2, gripper_size, "sigmoid", dr)
-        y = AddDense(x, 256, "relu", dr)
-        option = AddDense(y, self.num_options, "softmax", dr)
+        gripper = AddDense(x2, gripper_size, "sigmoid", dr, output=True)
+        y = AddDense(x, 256, "relu", dr, output=True)
+        option = AddDense(y, self.num_options, "softmax", dr, output=True)
         action_decoder = Model(rep_in, [arm, gripper, option])
         action_decoder.compile(loss="mae", optimizer=self.getOptimizer())
         self.action_decoder = action_decoder

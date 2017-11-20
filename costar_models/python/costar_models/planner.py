@@ -91,7 +91,7 @@ def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate, padding="same")
         x = Dropout(dropout_rate)(x)
     return x
 
-def AddDense(x, size, activation, dropout_rate):
+def AddDense(x, size, activation, dropout_rate, output=False):
     '''
     Add a single dense block with batchnorm and activation.
 
@@ -107,7 +107,8 @@ def AddDense(x, size, activation, dropout_rate):
     x: output tensor
     '''
     x = Dense(size)(x)
-    x = BatchNormalization()(x)
+    if not output:
+        x = BatchNormalization()(x)
     if activation == "lrelu":
         x = LeakyReLU(alpha=0.2)(x)
     else:
