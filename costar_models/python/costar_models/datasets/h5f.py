@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import h5fpy as h5f
+import h5py as h5f
 import numpy as np
 import os
 
