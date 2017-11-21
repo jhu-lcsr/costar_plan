@@ -49,6 +49,10 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         else:
             img_rep = self.image_encoder(img_in)
         state_rep = self.state_encoder([arm_in, gripper_in, label_in])
+        # Compress the size of the network
+        x = AddConv2D(img_rep, 32, [1,1], 1, self.dropout_rate, "same")
+        x = Flatten()(x)
+        x = Concatenate()([x, state_rep])
 
         if self.skip_connections:
             model = Model(ins, [x, skip_rep], name="encode_hidden_state")
