@@ -37,24 +37,19 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         self.skip_shape = (64,64,32)
 
     def _makeToHidden(self, img_shape, arm_size, gripper_size, rep_size):
-        img0_in = Input(img_shape,name="predictor_img0_in")
+        #img0_in = Input(img_shape,name="predictor_img0_in")
         img_in = Input(img_shape,name="predictor_img_in")
         arm_in = Input((arm_size,))
         gripper_in = Input((gripper_size,))
-        arm_gripper = Concatenate()([arm_in, gripper_in])
         label_in = Input((1,))
-        ins = [img0_in, img_in, arm_in, gripper_in, label_in]
+        ins = [img_in, arm_in, gripper_in, label_in]
 
         if self.skip_connections:
             img_rep, skip_rep = self.image_encoder([img0_in, img_in])
         else:
-            img_rep = self.image_encoder(img0_in, img_in)
-        dense_rep = AddDense(arm_gripper, 64, "sigmoid", self.dropout_rate)
-        img_rep = Flatten()(img_rep)
-        label_rep = OneHot(self.num_options)(label_in)
-        label_rep = Flatten()(label_rep)
-        all_rep = Concatenate()([dense_rep, img_rep, label_rep])
-        x = AddDense(all_rep, rep_size, "relu", self.dropout_rate)
+            img_rep = self.image_encoder(img_in)
+        state_rep = self.state_encoder([arm_in, gripper_in, label_in])
+
         if self.skip_connections:
             model = Model(ins, [x, skip_rep], name="encode_hidden_state")
         else:

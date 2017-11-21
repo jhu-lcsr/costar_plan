@@ -532,6 +532,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             if self.image_encoder is not None:
                 self.image_encoder.save_weights(self.name + 
                 "_image_encoder.h5f")
+            if self.state_encoder is not None:
+                self.state_encoder.save_weights(self.name +
+                "_state_encoder.h5f")
+            if self.state_decoder is not None:
+                self.state_decoder.save_weights(self.name + 
+                "_state_decoder.h5f")
             if self.hidden_encoder is not None:
                 self.hidden_encoder.save_weights(self.name + 
                 "_hidden_encoder.h5f")
@@ -556,11 +562,17 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 print("Could not load actor:", e)
             self.train_predictor.load_weights(self.name + "_train_predictor.h5f")
             if self.image_decoder is not None:
-                self.image_decoder.save_weights(self.name +
+                self.image_decoder.load_weights(self.name +
                 "_image_decoder.h5f")
             if self.image_encoder is not None:
-                self.image_encoder.save_weights(self.name +
+                self.image_encoder.load_weights(self.name +
                 "_image_encoder.h5f")
+            if self.state_decoder is not None:
+                self.state_decoder.load_weights(self.name +
+                "_state_decoder.h5f")
+            if self.state_encoder is not None:
+                self.state_encoder.load_weights(self.name +
+                "_state_encoder.h5f")
         else:
             raise RuntimeError('_loadWeights() failed: model not found.')
 
@@ -855,20 +867,19 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         else:
             activation = "relu"
         x = Concatenate()([arm, gripper])
-        x = AddDense(x, 256, activation, self.dropout_rate)
+        x = AddDense(x, 64, activation, self.dropout_rate)
         y = OneHot(self.num_options)(option)
         y = Flatten()(y)
         x = Concatenate()([x,y])
         x = AddDense(x, 128, activation, self.dropout_rate)
-        #x = AddDense(x, 256, activation, self.dropout_rate)
-        #x = AddDense(x, 64, activation, self.dropout_rate)
+        x = AddDense(x, 64, activation, self.dropout_rate)
         
-        action_encoder = Model([arm, gripper, option], x)
-        #action_encoder = Model([arm, gripper], x)
-        action_encoder.compile(loss="mae", optimizer=self.getOptimizer())
+        state_encoder = Model([arm, gripper, option], x)
+        #state_encoder = Model([arm, gripper], x)
+        state_encoder.compile(loss="mae", optimizer=self.getOptimizer())
         if not disc:
-            self.action_encoder = action_encoder
-        return action_encoder
+            self.state_encoder = state_encoder
+        return state_encoder
 
     def _makeStateDecoder(self, arm_size, gripper_size):
         '''
@@ -879,22 +890,22 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         arm_size: number of arm output variables to predict
         gripper_size: number of gripper output variables to predict
         '''
-        rep_in = Input((128,))
+        rep_in = Input((64,))
         dr = self.decoder_dropout_rate
 
         x = rep_in
-        x1 = AddDense(x, 512, "relu", dr)
-        x1 = AddDense(x1, 1024, "relu", dr)
-        x2 = AddDense(x, 256, "relu", dr)
-        x2 = AddDense(x2, 512, "relu", dr)
-        arm = AddDense(x1, arm_size, "linear", dr)
+        x1 = AddDense(x, 128, "relu", dr)
+        #x1 = AddDense(x1, 512, "relu", dr)
+        x2 = AddDense(x, 64, "relu", dr)
+        #x2 = AddDense(x2, 512, "relu", dr)
+        arm = AddDense(x1, arm_size, "linear", dr, output=True)
         gripper = AddDense(x2, gripper_size, "sigmoid", dr, output=True)
-        y = AddDense(x, 256, "relu", dr, output=True)
+        y = AddDense(x, 64, "relu", dr, output=True)
         option = AddDense(y, self.num_options, "softmax", dr, output=True)
-        action_decoder = Model(rep_in, [arm, gripper, option])
-        action_decoder.compile(loss="mae", optimizer=self.getOptimizer())
-        self.action_decoder = action_decoder
-        return action_decoder
+        state_decoder = Model(rep_in, [arm, gripper, option])
+        state_decoder.compile(loss="mae", optimizer=self.getOptimizer())
+        self.state_decoder = state_decoder
+        return state_decoder
 
     def _makeMergeEncoder(self, rep_size):
         '''
