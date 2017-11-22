@@ -164,7 +164,7 @@ class GraspTrain(object):
              simplified_grasp_command_op,
              example_batch_size,
              grasp_success_op,
-             num_samples) = data.single_pose_training_tensors(batch_size=proportional_batch_size,
+             num_samples) = data.get_training_tensors(batch_size=proportional_batch_size,
                                                               imagenet_mean_subtraction=imagenet_mean_subtraction,
                                                               random_crop=random_crop,
                                                               resize=resize,
@@ -333,12 +333,12 @@ class GraspTrain(object):
          simplified_grasp_command_op_batch,
          example_batch_size,
          grasp_success_op_batch,
-         num_samples) = data.single_pose_training_tensors(batch_size=batch_size,
-                                                          imagenet_mean_subtraction=imagenet_mean_subtraction,
-                                                          random_crop=False,
-                                                          resize=resize,
-                                                          grasp_sequence_min_time_step=grasp_sequence_min_time_step,
-                                                          grasp_sequence_max_time_step=grasp_sequence_max_time_step)
+         num_samples) = data.get_training_tensors(batch_size=batch_size,
+                                                  imagenet_mean_subtraction=imagenet_mean_subtraction,
+                                                  random_crop=False,
+                                                  resize=resize,
+                                                  grasp_sequence_min_time_step=grasp_sequence_min_time_step,
+                                                  grasp_sequence_max_time_step=grasp_sequence_max_time_step)
 
         if resize:
             input_image_shape = [resize_height, resize_width, 3]
