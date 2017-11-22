@@ -6,6 +6,7 @@ import errno
 import traceback
 
 import numpy as np
+from skimage.filters import median
 # import matplotlib
 
 try:
@@ -63,7 +64,7 @@ tf.flags.DEFINE_integer('vrepVisualizeRGBD_max', -1, 'max time step on each gras
 tf.flags.DEFINE_boolean('vrepVisualizeSurfaceRelativeTransform', True, 'display the surface relative transform frames')
 tf.flags.DEFINE_boolean('vrepVisualizeSurfaceRelativeTransformLines', True, 'display lines from the camera to surface depth points')
 tf.flags.DEFINE_string('vrepParentName', 'LBR_iiwa_14_R820', 'The default parent frame name from which to base all visualized transforms.')
-tf.flags.DEFINE_boolean('vrepVisualizeDilation', False, 'Visualize result of dilation performed on depth image used for point cloud.')
+tf.flags.DEFINE_boolean('vrepVisualizeDilation', True, 'Visualize result of dilation performed on depth image used for point cloud.')
 tf.flags.DEFINE_string('vrepVisualizeDepthFormat', 'vrep_depth_encoded_rgb',
                        """ Controls how Depth images are displayed. Options are:
                            None: Do not modify the data and display it as-is for rgb input data (not working properly for float depth).
@@ -488,11 +489,11 @@ class VREPGraspSimulation(object):
             # load data from the next grasp attempt
             if FLAGS.vrepVisualizeDilation:
                 depth_image_tensor = feature_op_dicts[0][0][clear_frame_depth_image_feature]
-                dilated_tensor = tf.nn.dilation2d(input=depth_image_tensor,
-                                                  filter=tf.zeros([50, 50, 1]),
-                                                  strides=[1, 1, 1, 1],
-                                                  rates=[1, 10, 10, 1],
-                                                  padding='VALID')
+                dilated_tensor = tf.nn.erosion2d(depth_image_tensor,
+                                                 filter=tf.zeros([5, 5, 1]),
+                                                 strides=[1, 1, 1, 1],
+                                                 rates=[1, 10, 10, 1],
+                                                 padding='VALID')
                 feature_op_dicts[0][0][clear_frame_depth_image_feature] = dilated_tensor
             output_features_dict = tf_session.run(feature_op_dicts)
             if ((attempt_num >= FLAGS.vrepVisualizeGraspAttempt_min or FLAGS.vrepVisualizeGraspAttempt_min == -1) and
