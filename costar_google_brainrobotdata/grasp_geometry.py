@@ -222,9 +222,10 @@ def depth_image_pixel_to_cloud_point(depth_image,
 def surface_relative_transform(depth_image,
                                camera_intrinsics_matrix,
                                camera_T_endeffector,
-                               augmentation_rectangle=None,
-                               return_depth_image_coordinate=False):
-    """Get the transform from a depth pixel to a gripper pose with optional data augmentation.
+                               augmentation_rectangle=None):
+    """Get (1) the transform from a depth pixel to a gripper pose, and (2) the corresponding image coordinate.
+
+    Includes optional data augmentation (Not yet implemented).
 
     # Params
 
@@ -239,19 +240,20 @@ def surface_relative_transform(depth_image,
        A random offset for the selected (dx, dy) pixel index.
        It will randomly select a pixel in a box around the endeffector coordinate.
        Default (1, 1) has no augmentation.
-    return_depth_image_coordinate:
-       changes the return to include the x, y coordinate used for the depth image.
 
     # Returns
 
-       [x, y, z, qx, qy, qz, qw] when return_depth_image_coordinate is False.
-       When return_depth_image_coordinate is True:
-           Numpy array [x, y, z, qx, qy, qz, qw, dx, dy], which contains:
-           - vector (x, y, z) for cartesian motion
-           - quaternion (qx, qy, qz, qw) for rotation
-           - The selected (dx, dy) pixel width, height coordinate in the depth image.
-             This coordinate is used to calculate the point cloud point used for the
-             surface relative transform.
+            [pose, image_coordinate]
+
+            Pose is a numpy array pose [x, y, z, qx, qy, qz, qw], which contains:
+               - vector (x, y, z) for cartesian motion
+               - quaternion (qx, qy, qz, qw) for rotation
+
+           The image_coordinate (dx, dy) is the pixel width, height
+           coordinate of the transform in the depth image.
+
+           image_coordinate is used to calculate the point cloud point used for the
+           surface relative transform and to generate 2D label weights.
     """
     # xyz coordinate of the endeffector in the camera frame
     XYZ, pixel_coordinate_of_endeffector = endeffector_image_coordinate_and_cloud_point(
@@ -264,13 +266,8 @@ def surface_relative_transform(depth_image,
     # convert the transform into the vector + quaternion format
     depth_relative_vec_quat_array = ptransform_to_vector_quaternion_array(depth_pixel_T_endeffector_ptrans)
 
-    if return_depth_image_coordinate:
-        # return the transform and the image coordinate used to generate the transform
-        image_x = pixel_coordinate_of_endeffector[0]
-        image_y = pixel_coordinate_of_endeffector[1]
-        return np.concatenate([depth_relative_vec_quat_array, image_x, image_y])
-    else:
-        return depth_relative_vec_quat_array
+    # return the transform and the image coordinate used to generate the transform
+    return [depth_relative_vec_quat_array, pixel_coordinate_of_endeffector]
 
 
 def endeffector_image_coordinate(camera_intrinsics_matrix, xyz, flip_x=1.0, flip_y=1.0):
@@ -476,7 +473,9 @@ def grasp_dataset_to_surface_relative_transform(depth_image,
                                                 camera_T_base,
                                                 base_T_endeffector,
                                                 augmentation_rectangle=None,
-                                                return_depth_image_coordinate=False):
+                                                return_depth_image_coordinate=False,
+                                                label=None,
+                                                ):
     """Get the transform from a depth pixel to a gripper pose from data in the brain robot data feature formats.
 
     This specific function exists because it accepts the raw feature types
@@ -509,14 +508,17 @@ def grasp_dataset_to_surface_relative_transform(depth_image,
 
     # Returns
 
-       [x, y, z, qx, qy, qz, qw] when return_depth_image_coordinate is False.
-       When return_depth_image_coordinate is True:
-           Numpy array [x, y, z, qx, qy, qz, qw, dx, dy], which contains:
-           - vector (x, y, z) for cartesian motion
-           - quaternion (qx, qy, qz, qw) for rotation
-           - The selected (dx, dy) pixel width, height coordinate in the depth image.
-             This coordinate is used to calculate the point cloud point used for the
-             surface relative transform.
+            [pose, image_coordinate]
+
+            Pose is a numpy array pose [x, y, z, qx, qy, qz, qw], which contains:
+               - vector (x, y, z) for cartesian motion
+               - quaternion (qx, qy, qz, qw) for rotation
+
+           The image_coordinate (dx, dy) is the pixel width, height
+           coordinate of the transform in the depth image.
+
+           image_coordinate is used to calculate the point cloud point used for the
+           surface relative transform and to generate 2D label weights.
     """
     camera_T_endeffector_ptrans, _, _ = grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector)
     return surface_relative_transform(depth_image,
@@ -575,7 +577,7 @@ def current_endeffector_to_final_endeffector_feature(current_base_T_endeffector,
 
 
 def vector_quaternion_arrays_allclose(vq1, vq2, rtol=1e-6, atol=1e-6, verbose=0):
-    """Check if all the entries are close for two vector quaternion nupy arrays.
+    """Check if all the entries are close for two vector quaternion numpy arrays.
 
     Quaterions are a way of representing rigid body 3D rotations that is more
     numerically stable and compact in memory than other methods such as a 3x3
@@ -610,3 +612,27 @@ def vector_quaternion_arrays_allclose(vq1, vq2, rtol=1e-6, atol=1e-6, verbose=0)
         print(vq3)
         print(comp12, comp13)
     return comp12 or comp13
+
+
+def gaussian_kernel_2D(size=(3, 3), center=(1, 1), sigma=1):
+    """Create a 2D gaussian kernel with specified size, center, and sigma.
+
+    Output with the default parameters:
+
+        [[ 0.36787944  0.60653066  0.36787944]
+         [ 0.60653066  1.          0.60653066]
+         [ 0.36787944  0.60653066  0.36787944]]
+
+    references:
+
+            https://stackoverflow.com/a/43346070/99379
+            https://stackoverflow.com/a/32279434/99379
+
+    To normalize:
+
+        g = gaussian_kernel_2d()
+        g /= np.sum(g)
+    """
+    xx, yy = np.meshgrid(np.arange(size[0]), np.arange(size[1]))
+    kernel = np.exp(-((xx - center[0]) ** 2 + (yy - center[1]) ** 2) / (2. * sigma ** 2))
+    return kernel

@@ -212,7 +212,6 @@ def ImageToFloatArray(image, scale_factor=None):
     return scaled_array
 
 
-# , transform=None, color=None, min_depth=0, max_depth=255*255*255):
 def depth_image_to_point_cloud(depth, intrinsics_matrix, flip_x=1.0, flip_y=1.0):
     """Transform a depth image into a point cloud in the camera frame with one point for each
     pixel in the image, using the camera transform for a camera
