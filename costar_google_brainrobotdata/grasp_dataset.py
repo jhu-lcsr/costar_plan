@@ -757,8 +757,8 @@ class GraspDataset(object):
                 from the measured surface, alongside a single rotation angle theta containing sin(theta), cos(theta).
                 This format does not allow for arbitrary commands to be defined, and the rotation component
                 is based on the paper and dataset:
-                            https://sites.google.com/site/brainrobotdata/home/grasping-dataset
-                            https://arxiv.org/abs/1603.02199
+                    https://sites.google.com/site/brainrobotdata/home/grasping-dataset
+                    https://arxiv.org/abs/1603.02199
             'delta_depth_quat_5' A numpy array with 5 total entries including depth offset and 4 entry quaternion.
 
 
