@@ -243,17 +243,16 @@ def surface_relative_transform(depth_image,
 
     # Returns
 
-            [pose, image_coordinate]
+        [depth_pixel_T_endeffector_ptrans, image_coordinate]
 
-            Pose is a numpy array pose [x, y, z, qx, qy, qz, qw], which contains:
-               - vector (x, y, z) for cartesian motion
-               - quaternion (qx, qy, qz, qw) for rotation
+        depth_pixel_T_endeffector_ptrans is an sva.PTransformd pose from a depth pixel coordinate
+        assigned the same orientation as the camera to the position and orientation of the gripper.
 
-           The image_coordinate (dx, dy) is the pixel width, height
-           coordinate of the transform in the depth image.
+        The image_coordinate (dx, dy) is the pixel width, height
+        coordinate of the transform in the depth image.
 
-           image_coordinate is used to calculate the point cloud point used for the
-           surface relative transform and to generate 2D label weights.
+        image_coordinate is used to calculate the point cloud point used for the
+        surface relative transform and to generate 2D label weights.
     """
     # xyz coordinate of the endeffector in the camera frame
     XYZ, pixel_coordinate_of_endeffector = endeffector_image_coordinate_and_cloud_point(
@@ -263,11 +262,9 @@ def surface_relative_transform(depth_image,
     camera_T_cloud_point_ptrans = vector_to_ptransform(XYZ)
     # get the depth pixel to endeffector transform, aka surface relative transform
     depth_pixel_T_endeffector_ptrans = camera_T_endeffector * camera_T_cloud_point_ptrans.inv()
-    # convert the transform into the vector + quaternion format
-    depth_relative_vec_quat_array = ptransform_to_vector_quaternion_array(depth_pixel_T_endeffector_ptrans)
 
     # return the transform and the image coordinate used to generate the transform
-    return [depth_relative_vec_quat_array, pixel_coordinate_of_endeffector]
+    return [depth_pixel_T_endeffector_ptrans, pixel_coordinate_of_endeffector]
 
 
 def endeffector_image_coordinate(camera_intrinsics_matrix, xyz, flip_x=1.0, flip_y=1.0):
@@ -468,14 +465,69 @@ def grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector):
     return camera_T_endeffector_ptrans, base_T_endeffector_ptrans, base_T_camera
 
 
-def grasp_dataset_to_surface_relative_transform(depth_image,
-                                                camera_intrinsics_matrix,
-                                                camera_T_base,
-                                                base_T_endeffector,
-                                                augmentation_rectangle=None,
-                                                return_depth_image_coordinate=False,
-                                                label=None,
-                                                ):
+def current_endeffector_to_final_endeffector_feature(current_base_T_endeffector,
+                                                     end_base_T_endeffector,
+                                                     feature_type='vec_sin_cos_5',
+                                                     dtype=np.float32):
+    """Calculate the ptransform between two poses in the same base frame.
+
+    A pose is a 6 degree of freedom rigid transform represented with 7 values:
+    vector (x, y, z) and quaternion (x, y, z, w).
+    A pose is always annotated with the target and source frames of reference.
+    For example, base_T_camera is a transform that takes a point in the camera
+    frame of reference and transforms it to the base frame of reference.
+
+    We will be dealing with, for example:
+    grasp/4/reached_pose/transforms/base_T_endeffector/vec_quat_7
+    grasp/10/commanded_pose/transforms/base_T_endeffector/vec_quat_7
+
+    # Params
+
+    current_base_T_endeffector: A vector quaternion array from a base frame to an end effector frame
+    end_base_T_endeffector: A vector quaternion array from a base frame to an end effector frame
+    feature_type: String identifying the feature type to return, which should contain one of the following options:
+       'vec_quat_7' A numpy array with 7 total entries including a 3 entry translation vector and 4 entry quaternion.
+       'vec_sin_cos_5'  A numpy array with 5 total entries [dx, dy, dz, sin(theta), cos(theta)]
+                        including a 3 entry translation vector and 2 entries for the angle of the rotation.
+                       for a single rotation angle theta containing sin(theta), cos(theta). This format
+                       does not allow for arbitrary commands to be defined, and originates from the paper and dataset:
+                       https://sites.google.com/site/brainrobotdata/home/grasping-dataset
+                       https://arxiv.org/abs/1603.02199
+
+                       see also: grasp_dataset_ptransform_to_vector_sin_theta_cos_theta()
+         'sin_cos_2' A numpy array with 2 total entries [sin(theta), cos(theta)]] for the angle of the rotation.
+
+    # Returns
+
+    A numpy array or object of the type specified in the feature_type parameter.
+
+    """
+    base_to_current = vector_quaternion_array_to_ptransform(current_base_T_endeffector)
+    base_to_end = vector_quaternion_array_to_ptransform(end_base_T_endeffector)
+    current_to_end = base_to_end * base_to_current.inv()
+
+    # we have ptransforms for both data, now get transform from current to commanded
+    if 'vec_quat_7' in feature_type:
+        current_to_end = ptransform_to_vector_quaternion_array(current_to_end)
+    elif 'vec_sin_cos_5' in feature_type:
+        current_to_end = grasp_dataset_ptransform_to_vector_sin_theta_cos_theta(current_to_end)
+    elif 'sin_cos_2' in feature_type:
+        current_to_end = grasp_dataset_ptransform_to_vector_sin_theta_cos_theta(current_to_end)[-2:]
+    else:
+        raise ValueError('current_endeffector_to_final_endeffector_feature() '
+                         'received unsupported feature type: ' + str(feature_type))
+    return current_to_end.astype(dtype)
+
+
+def grasp_dataset_to_surface_relative_transform_feature(
+        depth_image,
+        camera_intrinsics_matrix,
+        camera_T_base,
+        current_base_T_endeffector,
+        end_base_T_endeffector,
+        feature_type='delta_depth_sin_cos_3',
+        augmentation_rectangle=None,
+        dtype=np.float32):
     """Get the transform from a depth pixel to a gripper pose from data in the brain robot data feature formats.
 
     This specific function exists because it accepts the raw feature types
@@ -494,86 +546,91 @@ def grasp_dataset_to_surface_relative_transform(depth_image,
         4x4 transformation matrix from the camera center to the robot base.
         camera_T_base is a transform that takes a point in the base
         frame of reference and transforms it to the camera frame of reference.
-    base_T_endeffector:
-       vector (x, y, z) for cartesian motion and quaternion (qx, qy, qz, qw) for rotation.
-       base_T_endeffector is a transform that takes a point in the endeffector
-       frame of reference and transforms it to the base frame of reference.
+    current_base_T_endeffector: A vector quaternion array from a base frame to an end effector frame
+        vector (x, y, z) for cartesian motion and quaternion (qx, qy, qz, qw) for rotation.
+        base_T_endeffector is a transform that takes a point in the endeffector
+        frame of reference and transforms it to the base frame of reference at the current time step
+        of the grasp attempt move_to_grasp sequence.
+    end_base_T_endeffector: A vector quaternion array from a base frame to an end effector frame
+        containing the proposed destination of the robot at the final time step of the grasp attempt
+        move_to_grasp sequence.
+    feature_type: String identifying the feature type to return, which should contain one of the following options:
+        'delta_depth_sin_cos_3' [delta_depth, sin(theta), cos(theta)] where delta_depth depth offset for the gripper
+            from the measured surface, alongside a single rotation angle theta containing sin(theta), cos(theta).
+            This format does not allow for arbitrary commands to be defined, and the rotation component
+            is based on the paper and dataset:
+                        https://sites.google.com/site/brainrobotdata/home/grasping-dataset
+                        https://arxiv.org/abs/1603.02199
+        'delta_depth_quat_5' A numpy array with 5 total entries including depth offset and 4 entry quaternion.
+            (Not yet implemented)
+        'vec_quat_7' A numpy array with 7 total entries including a 3 entry translation vector and 4 entry quaternion.
+            (Not yet implemented)
+        'vec_sin_cos_5'  A numpy array with 5 total entries [dx, dy, dz, sin(theta), cos(theta)]
+                        including a 3 entry translation vector and 2 entries for the angle of the rotation.
+                        for a single rotation angle theta containing sin(theta), cos(theta). This format
+                        does not allow for arbitrary commands to be defined, and originates from the paper and dataset:
+                        https://sites.google.com/site/brainrobotdata/home/grasping-dataset
+                        https://arxiv.org/abs/1603.02199
+
+                        see also: grasp_dataset_ptransform_to_vector_sin_theta_cos_theta()
+            (Not yet implemented)
+
     augmentation_rectangle:
        A random offset for the selected (dx, dy) pixel index.
        It will randomly select a pixel in a box around the endeffector coordinate.
        Default (1, 1) has no augmentation.
 
-    return_depth_image_coordinate:
-       changes the return
-
     # Returns
 
-            [pose, image_coordinate]
+        [feature, pose, image_coordinate]
 
-            Pose is a numpy array pose [x, y, z, qx, qy, qz, qw], which contains:
-               - vector (x, y, z) for cartesian motion
-               - quaternion (qx, qy, qz, qw) for rotation
+        feature is a numpy array defined and described in the `feature_type` parameter.
 
-           The image_coordinate (dx, dy) is the pixel width, height
-           coordinate of the transform in the depth image.
+        Pose is a numpy array pose [x, y, z, qx, qy, qz, qw], which contains:
+           - vector (x, y, z) for cartesian motion
+           - quaternion (qx, qy, qz, qw) for rotation
 
-           image_coordinate is used to calculate the point cloud point used for the
-           surface relative transform and to generate 2D label weights.
+        The image_coordinate (dx, dy) is the pixel width, height
+        coordinate of the transform in the depth image.
+
+        image_coordinate is used to calculate the point cloud point used for the
+        surface relative transform and to generate 2D label weights.
     """
-    camera_T_endeffector_ptrans, _, _ = grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector)
-    return surface_relative_transform(depth_image,
-                                      camera_intrinsics_matrix,
-                                      camera_T_endeffector_ptrans,
-                                      augmentation_rectangle,
-                                      return_depth_image_coordinate)
+    camera_T_endeffector_ptrans, _, _ = grasp_dataset_to_ptransform(camera_T_base, current_base_T_endeffector)
 
+    # calculate the surface relative transform
+    depth_pixel_T_endeffector_ptrans, image_coordinate = surface_relative_transform(
+        depth_image,
+        camera_intrinsics_matrix,
+        camera_T_endeffector_ptrans,
+        augmentation_rectangle)
 
-def current_endeffector_to_final_endeffector_feature(current_base_T_endeffector,
-                                                     end_base_T_endeffector,
-                                                     feature_type='vec_sin_cos_5',
-                                                     dtype=np.float32):
-    """Calculate the ptransform between two poses in the same base frame.
+    # convert the transform into the vector + quaternion format
+    depth_relative_vec_quat_array = ptransform_to_vector_quaternion_array(depth_pixel_T_endeffector_ptrans)
 
-       A pose is a 6 degree of freedom rigid transform represented with 7 values:
-       vector (x, y, z) and quaternion (x, y, z, w).
-       A pose is always annotated with the target and source frames of reference.
-       For example, base_T_camera is a transform that takes a point in the camera
-       frame of reference and transforms it to the base frame of reference.
+    # get the delta theta parameter
+    sin_cos_theta = current_endeffector_to_final_endeffector_feature(
+        current_base_T_endeffector,
+        end_base_T_endeffector,
+        feature_type='sin_cos_2',
+        dtype=dtype)
 
-       We will be dealing with, for example:
-       grasp/4/reached_pose/transforms/base_T_endeffector/vec_quat_7
-       grasp/10/commanded_pose/transforms/base_T_endeffector/vec_quat_7
+    # get the delta depth offset
+    # TODO(ahundt): verify that z correctly reflects the depth offset
+    delta_depth = depth_pixel_T_endeffector_ptrans.translation().z()
 
-       # Params
-
-       current_base_T_endeffector: A vector quaternion array from a base frame to an end effector frame
-       end_base_T_endeffector: A vector quaternion array from a base frame to an end effector frame
-       feature_type: String identifying the feature type to return, which should contain one of the following options:
-          'vec_quat_7' A numpy array with 7 total entries including a 3 entry translation vector and 4 entry quaternion.
-          'vec_sin_cos_5'  A numpy array with 5 total entries [dx, dy, dz, sin(theta), cos(theta)]
-                           including a 3 entry translation vector and 2 entries for the angle of the rotation.
-                          for a single rotation angle theta containing sin(theta), cos(theta). This format
-                          does not allow for arbitrary commands to be defined, and originates from the paper and dataset:
-                          https://sites.google.com/site/brainrobotdata/home/grasping-dataset
-                          https://arxiv.org/abs/1603.02199
-
-                          see also: grasp_dataset_ptransform_to_vector_sin_theta_cos_theta()
-
-       # Returns
-
-       A numpy array or object of the type specified in the feature_type parameter.
-
-    """
-    base_to_current = vector_quaternion_array_to_ptransform(current_base_T_endeffector)
-    base_to_end = vector_quaternion_array_to_ptransform(end_base_T_endeffector)
-    current_to_end = base_to_end * base_to_current.inv()
-
-    # we have ptransforms for both data, now get transform from current to commanded
-    if 'vec_quat_7' in feature_type:
-        current_to_end = ptransform_to_vector_quaternion_array(current_to_end)
-    elif 'vec_sin_cos_5' in feature_type:
-        current_to_end = grasp_dataset_ptransform_to_vector_sin_theta_cos_theta(current_to_end)
-    return current_to_end.astype(dtype)
+    # create and return the user specified feature
+    if feature_type == 'delta_depth_sin_cos_3':
+        return [np.concatenate([delta_depth, sin_cos_theta]),
+                depth_relative_vec_quat_array,
+                image_coordinate]
+    if feature_type == 'delta_depth_quat_5':
+        return [np.concatenate([delta_depth, depth_relative_vec_quat_array[-4:]]),
+                depth_relative_vec_quat_array,
+                image_coordinate]
+    else:
+        raise TypeError('grasp_dataset_to_surface_relative_transform_feature()'
+                        ' feature_type not yet supported: ' + str(feature_type))
 
 
 def vector_quaternion_arrays_allclose(vq1, vq2, rtol=1e-6, atol=1e-6, verbose=0):
