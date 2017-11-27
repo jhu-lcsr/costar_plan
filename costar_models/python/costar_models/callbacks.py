@@ -18,7 +18,6 @@ class LogCallback(keras.callbacks.Callback):
         self.file = open(os.path.join(self.directory,"%s_log.csv"%name),'w')
 
     def on_epoch_end(self, epoch, logs={}):
-        print(epoch,logs)
         if epoch == 0:
             msg = ""
             for i, key in enumerate(logs.keys()):
@@ -252,7 +251,7 @@ class ImageCb(keras.callbacks.Callback):
             img = res
         for j in range(self.num):
             name = os.path.join(self.directory,
-                    "image_ae_epoch%d_result%d.png"%(self.epoch,j))
+                    "image_%s_epoch%d_result%d.png"%(self.name,self.epoch,j))
             fig = plt.figure()
             plt.subplot(1,3,1)
             plt.title('Input Image')

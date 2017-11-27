@@ -54,8 +54,8 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         x = TileOnto(img_rep, state_rep, 64, [4,4])
         x = AddConv2D(x, 64, [3,3], 1, self.dropout_rate, "same", False)
         x = Flatten()(x)
-        x = Concatenate()([x, state_rep])
-        x = AddDense(x, self.rep_size, "relu", self.dropout_rate)
+        self.rep_size = int(4 * 4 * 64)
+        #x = AddDense(x, self.rep_size, "relu", self.dropout_rate)
 
         if self.skip_connections:
             model = Model(ins, [x, skip_rep], name="encode_hidden_state")
@@ -72,8 +72,9 @@ class PredictionSampler2(RobotMultiPredictionSampler):
 
         # ---------------------------------
         x = h
-        x = AddDense(x,int(ih*iw*ic),"lrelu",self.decoder_dropout_rate)
-        x = Reshape((ih,iw,ic))(x)
+        x = AddDense(x,int(ih*iw*64),"lrelu",self.decoder_dropout_rate)
+        x = Reshape((ih,iw,64))(x)
+        x = AddConv2D(x, ic, [3,3], 1, self.decoder_dropout_rate, "same", False)
         if self.skip_connections:
             skip_in = Input(self.skip_shape)
             ins = [x, skip_in]
@@ -332,8 +333,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         losses = [MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
-                        #weights=[0.7,1.0,0.1,0.1],
-                        weights=[0.3, 0.4, 0.05, 0.3],
+                        weights=[0.5, 0.45, 0.05, 0.01],
                         loss=["mae","mae","mae","categorical_crossentropy"],
                         #stats=stats,
                         avg_weight=0.025),]
