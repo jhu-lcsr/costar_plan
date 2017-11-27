@@ -174,6 +174,7 @@ def GetEncoder3D(img_shape, arm_size, gripper_size, dropout_rate,
 
     return ins, x
 
+
 def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
         filters, discriminator=False, tile=False, dropout=True, leaky=True,
         pose_col_dim=None,

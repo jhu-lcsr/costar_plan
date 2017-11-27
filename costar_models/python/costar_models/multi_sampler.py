@@ -55,10 +55,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.use_spatial_softmax = True
         self.dense_representation = True
         if self.use_spatial_softmax and self.dense_representation:
-            self.steps_down = 0
+            self.steps_down = 1
             self.steps_down_no_skip = 0
             self.steps_up = 4
-            self.steps_up_no_skip = 4
+            self.steps_up_no_skip = self.steps_up - self.steps_down
             #self.encoder_stride1_steps = 2+1
             self.encoder_stride1_steps = 3
             self.padding="same"
@@ -845,6 +845,60 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         decoder.summary()
         return decoder
 
+
+    def _makeEncoder2(self, img_shape, arm_size, gripper_size, disc=False):
+        '''
+        Redefine the creation of the encoder here. This version has a couple
+        different options.
+        '''
+        img = Input(img_shape)
+        arm = Input((arm_size,))
+        gripper = Input((gripper_size,))
+        option = Input((1,))
+        if disc:
+            activation = "lrelu"
+        else:
+            activation = "relu"
+
+        skips = []
+
+        # First block
+        x = AddConv2D(x, 16, [5,5], 2, self.dropout_rate, "same", disc)
+        skips.append(x)
+
+        # Second block
+        x = AddConv2D(x, 32, [5,5], 2, self.dropout_rate, "same", disc)
+        skips.append(x)
+
+        # Third block
+        x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate, "same", disc)
+        skips.append(x)
+
+        # Fourth block
+        x = AddConv2D(x, 128, [5,5], 2, self.dropout_rate, "same", disc)
+        skips.append(x)
+
+        # Fifth block
+        # Add label information
+        # Add arm, gripper information
+        o = OneHot(self.num_options)(option)
+        o = Flatten()(o)
+        a = AddDense(a, self.pose_col_dim, activation, self.dropout_rate)
+        a = Concatenate()([a,o])
+        x = TileOnto(x, a, self.pose_col_dim, [4,4])
+        x = AddConv2D(x, 64, [3,3], 1, self.dropout_rate, "same", disc)
+        
+
+    def _makeDecoder2(self, img_shape, arm_size, gripper_size):
+
+        # Compute the correct skip connections to include
+        skip_sizes = [16, 32, 64, 128]
+        skips = self.steps_up - self.steps_up_no_skip
+        skip_sizes = skip_sizes[:skips]
+        skip_sizes.reverse()
+
+        pass
+
     def _makeStateEncoder(self, arm_size, gripper_size, disc=False):
         '''
         Encode arm state.
@@ -862,14 +916,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             activation = "lrelu"
         else:
             activation = "relu"
-        x = Concatenate()([arm, gripper])
-        x = AddDense(x, 64, activation, self.dropout_rate)
+        #x = Concatenate()([arm, gripper])
+        #x = AddDense(x, 5, activation, self.dropout_rate)
         y = OneHot(self.num_options)(option)
         y = Flatten()(y)
-        x = Concatenate()([x,y])
-        x = AddDense(x, 128, activation, self.dropout_rate)
+        x = Concatenate()([arm,gripper,y])
+        #x = AddDense(x, 128, activation, self.dropout_rate)
+        #x = AddDense(x, 64, activation, self.dropout_rate)
         x = AddDense(x, 64, activation, self.dropout_rate)
-        #x = AddDense(x, 5, activation, self.dropout_rate)
         
         state_encoder = Model([arm, gripper, option], x)
         #state_encoder = Model([arm, gripper], x)
@@ -891,10 +945,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         dr = self.decoder_dropout_rate
 
         x = rep_in
-        x1 = AddDense(x, 512, "relu", dr)
-        x1 = AddDense(x1, 512, "relu", dr)
-        x2 = AddDense(x, 512, "relu", dr)
-        x2 = AddDense(x2, 512, "relu", dr)
+        x1 = AddDense(x, 128, "relu", dr)
+        x1 = AddDense(x1, 256, "relu", dr)
+        x2 = AddDense(x, 128, "relu", dr)
+        x2 = AddDense(x2, 256, "relu", dr)
         arm = AddDense(x1, arm_size, "linear", dr, output=True)
         gripper = AddDense(x2, gripper_size, "sigmoid", dr, output=True)
         y = AddDense(x, 64, "relu", dr, output=True)
