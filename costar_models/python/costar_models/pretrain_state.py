@@ -59,8 +59,8 @@ class PretrainStateAutoencoder(RobotMultiPredictionSampler):
 
         ae = Model(ins, out)
         ae.compile(
-                loss=[self.loss,self.loss,"categorical_crossentropy"],
-                loss_weights=[1.,0.2,0.01],
+                loss=self.loss,#[self.loss,self.loss,"categorical_crossentropy"],
+                loss_weights=[1.,0.2],#,0.01],
                 optimizer=self.getOptimizer())
         ae.summary()
     
@@ -70,5 +70,5 @@ class PretrainStateAutoencoder(RobotMultiPredictionSampler):
         features, targets = self._getAllData(*args, **kwargs)
         [I, q, g, oin, q_target, g_target,] = features
         oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
-        return [q, g, oin], [q, g, oin_1h]
+        return [q, g, oin], [q, g]#, oin_1h]
         #return [q, g], [q, g]
