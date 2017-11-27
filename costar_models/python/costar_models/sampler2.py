@@ -51,7 +51,8 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             img_rep = self.image_encoder([img0_in, img_in])
         state_rep = self.state_encoder([arm_in, gripper_in, label_in])
         # Compress the size of the network
-        x = AddConv2D(img_rep, 32, [1,1], 1, self.dropout_rate, "same")
+        x = TileOnto(img_rep, state_rep, 64, [4,4])
+        x = AddConv2D(x, 64, [3,3], 1, self.dropout_rate, "same", False)
         x = Flatten()(x)
         x = Concatenate()([x, state_rep])
         x = AddDense(x, self.rep_size, "relu", self.dropout_rate)
@@ -61,6 +62,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         else:
             model = Model(ins, x, name="encode_hidden_state")
         model.compile(loss="mae", optimizer=self.getOptimizer())
+        model.summary()
         self.hidden_encoder = model
         return model
 
@@ -80,17 +82,8 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             ins = x
             hidden_decoder_ins = h
         img = self.image_decoder(ins)
-
-        # ---------------------------------
-        x = AddDense(h, 256, "lrelu", self.decoder_dropout_rate)
-        x = AddDense(x, 512, "lrelu", self.decoder_dropout_rate)
-        arm = AddDense(x, 6, "linear", 0.)
-        gripper = AddDense(x, 1, "sigmoid", 0.)
-        
-        # ---------------------------------
-        x = AddDense(h, 64, "lrelu", self.decoder_dropout_rate)
-        label = AddDense(x, self.num_options, "softmax", 0.)
-
+        x = AddDense(h, 64, "relu", self.decoder_dropout_rate)
+        arm, gripper, label = self.state_decoder(x)
         model = Model(hidden_decoder_ins, [img, arm, gripper, label])
         model.summary()
         self.hidden_decoder = model
@@ -115,7 +108,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         encoder.load_weights(self._makeName(
             "pretrain_image_encoder_model",
             "image_encoder.h5f"))
-        encoder.trainable = False
+        #encoder.trainable = False
         enc = encoder([img0_in, img_in])
         if self.skip_connections:
             decoder = self._makeImageDecoder(self.hidden_shape,self.skip_shape)
@@ -126,8 +119,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         decoder.load_weights(self._makeName(
             "pretrain_image_encoder_model",
             "image_decoder.h5f"))
-        decoder.trainable = False
-
+        #decoder.trainable = False
 
         sencoder = self._makeStateEncoder(arm_size, gripper_size, False)
         sencoder.load_weights(self._makeName(
@@ -164,7 +156,6 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         else:
             #img_x = hidden_decoder(x)
             img_x, arm_x, gripper_x, label_x = hidden_decoder(h)
-        #ae_outs = [img_x, arm_x, gripper_x, label_x, ] #value_out]
         ae_outs = [img_x, arm_x, gripper_x, label_x]
         ae2 = Model(ins, ae_outs)
         ae2.compile(
@@ -172,6 +163,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
                 "categorical_crossentropy",],
             loss_weights=[1.,1.,.2,0.1,],#0.25],
             optimizer=self.getOptimizer())
+        ae2.summary()
 
         #return predictor, train_predictor, None, ins, enc
         return ae2, ae2, None, ins, enc

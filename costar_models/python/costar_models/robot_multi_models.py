@@ -334,7 +334,6 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
                     None, None, time_distributed, pose_col_dim)
         elif config == "mobile":
             x, robot = TilePose(x, pose_in, tile_height, tile_width, None, None, time_distributed, pose_col_dim)
-        
 
     else:
         ins = [samples]
@@ -418,5 +417,5 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
     if discriminator:
         x = Dense(1,activation="sigmoid")(x)
 
-    return ins, x, skips, robot
+    return ins, x, skips
 

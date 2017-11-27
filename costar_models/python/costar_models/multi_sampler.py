@@ -153,7 +153,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Create the encoder and decoder networks -- these are sub-networks
         # that we may find useful in different situations.
         img_in = Input(img_shape,name="predictor_img_in")
-        ins, enc, skips, robot_skip = self._makeEncoder(img_shape, arm_size, gripper_size)
+        ins, enc, skips = self._makeEncoder(img_shape, arm_size, gripper_size)
         decoder = self._makeDecoder(img_shape, arm_size, gripper_size)
 
         # ===================================================================
@@ -223,12 +223,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
             # This maps from our latent world state back into observable images.
             if self.skip_connections:
-                decoder_inputs = [x] + skips #+ [robot_skip]
+                decoder_inputs = [x] + skips
             else:
                 decoder_inputs = [x]
 
-            decoder.summary()
-            print(decoder_inputs)
             img_x, arm_x, gripper_x, label_x = decoder(decoder_inputs)
 
             # Create the training outputs
@@ -769,13 +767,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
              the encoder block)
         enc: encoded state
         skips: list of skip connections
-        robot_skip: end effector state "skip"
         '''
         if self.use_prev_option:
             enc_options = self.num_options
         else:
             enc_options = None
-        ins, enc, skips, robot_skip = GetEncoder(img_shape,
+        ins, enc, skips = GetEncoder(img_shape,
                 [arm_size, gripper_size],
                 self.img_col_dim,
                 dropout_rate=self.dropout_rate,
@@ -798,7 +795,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 use_spatial_softmax=self.use_spatial_softmax,
                 output_filters=self.tform_filters,
                 )
-        self.encoder = Model(ins, [enc]+skips+[robot_skip], name="encoder")
+        self.encoder = Model(ins, [enc]+skips, name="encoder")
         self.encoder.compile(loss="mae",optimizer=self.getOptimizer())
         self.encoder.summary()
         new_ins = []
@@ -810,13 +807,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         outs = self.encoder(new_ins)
         new_enc = outs[0]
-        new_skips = outs[1:len(outs)-1]
-        new_robot_skip = outs[-1]
-        return new_ins, new_enc, new_skips, new_robot_skip
+        new_skips = outs[1:]
+        return new_ins, new_enc, new_skips
 
     def _makeDecoder(self, img_shape, arm_size, gripper_size,
-            skips=None,
-            robot_skip=None):
+            skips=None):
         '''
         Make the decoder network. This one takes in a hidden state (a set of
         keypoints in 2D image space) and from these keypoints computes:
@@ -844,7 +839,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         dense=self.dense_representation,
                         dense_rep_size=self.img_col_dim,
                         skips=self.skip_connections,
-                        robot_skip=robot_skip,
                         resnet_blocks=self.residual,
                         batchnorm=True,)
         decoder.compile(loss="mae",optimizer=self.getOptimizer())

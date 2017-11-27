@@ -46,7 +46,7 @@ do
     for skip in 0 1
     do
       # Noise: add extra ones with no noise at all
-      for noise_dim in 0 #1 8 32
+      for noise_dim in 0 1 8 32
       do
         hd=true
         for dr in 0.1 0.2 0.5
