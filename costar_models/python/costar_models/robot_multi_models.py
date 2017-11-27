@@ -299,7 +299,7 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
     # one with skip connections
     for i in range(pre_tiling_layers):
 
-        x = ApplyTD(Conv2D(int(filters / 2),
+        x = ApplyTD(Conv2D(int(filters),
                    kernel_size=kernel_size, 
                    strides=(1, 1),
                    padding="same"))(x)

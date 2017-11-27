@@ -106,8 +106,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.actor = None
         self.image_encoder = None
         self.image_decoder = None
-        self.arm_encoder = None
-        self.arm_decoder = None
+        self.state_encoder = None
+        self.state_decoder = None
         self.hidden_encoder = None
         self.hidden_decoder = None
 
@@ -227,6 +227,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             else:
                 decoder_inputs = [x]
 
+            decoder.summary()
+            print(decoder_inputs)
             img_x, arm_x, gripper_x, label_x = decoder(decoder_inputs)
 
             # Create the training outputs
@@ -276,7 +278,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
                         #weights=[0.7,1.0,0.1,0.1],
-                        weights=[0.3, 0.4, 0.05, 0.3],
+                        weights=[0.5, 0.45, 0.05, 0.01],
                         loss=["mae","mae","mae","categorical_crossentropy"],
                         stats=stats,
                         avg_weight=0.025),]
@@ -870,10 +872,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = AddDense(x, 64, activation, self.dropout_rate)
         y = OneHot(self.num_options)(option)
         y = Flatten()(y)
-        #x = Concatenate()([x,y])
-        #x = AddDense(x, 128, activation, self.dropout_rate)
-        #x = AddDense(x, 64, activation, self.dropout_rate)
-        x = AddDense(x, 5, activation, self.dropout_rate)
+        x = Concatenate()([x,y])
+        x = AddDense(x, 128, activation, self.dropout_rate)
+        x = AddDense(x, 64, activation, self.dropout_rate)
+        #x = AddDense(x, 5, activation, self.dropout_rate)
         
         state_encoder = Model([arm, gripper, option], x)
         #state_encoder = Model([arm, gripper], x)
@@ -891,17 +893,19 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         arm_size: number of arm output variables to predict
         gripper_size: number of gripper output variables to predict
         '''
-        rep_in = Input((5,))
+        rep_in = Input((64,))
         dr = self.decoder_dropout_rate
 
         x = rep_in
         x1 = AddDense(x, 512, "relu", dr)
         x1 = AddDense(x1, 512, "relu", dr)
+        x2 = AddDense(x, 512, "relu", dr)
+        x2 = AddDense(x2, 512, "relu", dr)
         arm = AddDense(x1, arm_size, "linear", dr, output=True)
-        gripper = AddDense(x1, gripper_size, "sigmoid", dr, output=True)
+        gripper = AddDense(x2, gripper_size, "sigmoid", dr, output=True)
         y = AddDense(x, 64, "relu", dr, output=True)
         option = AddDense(y, self.num_options, "softmax", dr, output=True)
-        state_decoder = Model(rep_in, [arm, gripper])#, option])
+        state_decoder = Model(rep_in, [arm, gripper, option])
         state_decoder.compile(loss="mae", optimizer=self.getOptimizer())
         self.state_decoder = state_decoder
         return state_decoder
