@@ -31,28 +31,30 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         command line and set things like our optimizer and learning rate.
         '''
         super(PredictionSampler2, self).__init__(taskdef, *args, **kwargs)
-        #self.rep_size = 128
+        self.rep_size = 128
         self.encoder_channels = 128
         self.PredictorCb = ImageCb
         self.skip_shape = (64,64,32)
 
     def _makeToHidden(self, img_shape, arm_size, gripper_size, rep_size):
-        #img0_in = Input(img_shape,name="predictor_img0_in")
+        img0_in = Input(img_shape,name="predictor_img0_in")
         img_in = Input(img_shape,name="predictor_img_in")
         arm_in = Input((arm_size,))
         gripper_in = Input((gripper_size,))
         label_in = Input((1,))
-        ins = [img_in, arm_in, gripper_in, label_in]
+        ins = [img0_in, img_in, arm_in, gripper_in, label_in]
 
         if self.skip_connections:
             img_rep, skip_rep = self.image_encoder([img0_in, img_in])
         else:
-            img_rep = self.image_encoder(img_in)
+            #img_rep = self.image_encoder(img_in)
+            img_rep = self.image_encoder([img0_in, img_in])
         state_rep = self.state_encoder([arm_in, gripper_in, label_in])
         # Compress the size of the network
         x = AddConv2D(img_rep, 32, [1,1], 1, self.dropout_rate, "same")
         x = Flatten()(x)
         x = Concatenate()([x, state_rep])
+        x = AddDense(x, self.rep_size, "relu", self.dropout_rate)
 
         if self.skip_connections:
             model = Model(ins, [x, skip_rep], name="encode_hidden_state")
@@ -108,6 +110,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         # =====================================================================
         # Load the image decoders
         img_in = Input(img_shape,name="predictor_img_in")
+        img0_in = Input(img_shape,name="predictor_img0_in")
         encoder = self._makeImageEncoder(img_shape)
         encoder.load_weights(self._makeName(
             "pretrain_image_encoder_model",
@@ -125,6 +128,14 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             "image_decoder.h5f"))
         decoder.trainable = False
 
+
+        sencoder = self._makeStateEncoder(arm_size, gripper_size, False)
+        sencoder.load_weights(self._makeName(
+            "pretrain_state_encoder_model", "state_encoder.h5f"))
+        sdecoder = self._makeStateDecoder(arm_size, gripper_size)
+        sdecoder.load_weights(self._makeName(
+            "pretrain_state_encoder_model", "state_decoder.h5f"))
+
         # =====================================================================
         # Load the arm and gripper representation
         arm_in = Input((arm_size,))
@@ -137,7 +148,10 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         # combine these models together with state information and label
         # information
         hidden_encoder = self._makeToHidden(img_shape, arm_size, gripper_size, self.rep_size)
-        h, skip_rep = hidden_encoder(ins)
+        if self.skip_connections:
+            h, skip_rep = hidden_encoder(ins)
+        else:
+            h = hidden_encoder(ins)
         value_out, next_option_out = GetNextOptionAndValue(h,
                                                            self.num_options,
                                                            self.rep_size,
