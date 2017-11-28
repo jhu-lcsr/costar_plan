@@ -181,8 +181,14 @@ if __name__ == '__main__':
         print args['launch']
         env = GazeboEnv(args['launch'])
 
-    #sim = CostarSimulation(args) # verify with chris, this looks depricated
+    rospy.sleep(3.)
 
+    #sim = CostarSimulation(args) # verify with chris, this looks depricated
+    rate = rospy.Rate(10)
+    while not rospy.is_shutdown():
+        rate.sleep()
+
+    self.shutdown()
    
     
 
