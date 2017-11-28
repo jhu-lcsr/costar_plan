@@ -31,7 +31,7 @@ class CostarSimulationManager(object):
     joint_positions = [0.30, -1.33, -1.80, -0.27, 1.50, 1.60]
 
     def __init__(self,launch="ur5", experiment="magnetic_assembly", seed=None,
-            gui=False, *args,**kwargs):
+            gui=False, case="double1", *args,**kwargs):
         self.procs = []
         self.rviz = gui
         self.gui = gui
@@ -41,12 +41,16 @@ class CostarSimulationManager(object):
         self.experiment = "%s.launch"%experiment
         self.launch = "%s.launch"%launch
         self.seed = seed
-        print("=========================================")
-        print("|      Gazebo Configuration Report      |")
+        self.case = case
+        print("=========================================================")
+        print("|                 Gazebo Configuration Report            ")
+        print("| -------------------------------------------------------")
         print("| launch file = %s"%self.launch)
         print("| experiment file = %s"%self.experiment)
         print("| seed = %s"%(str(self.seed)))
-        print("=========================================")
+        print("| case = %s"%self.case)
+        print("| gui = %s"%self.gui)
+        print("=========================================================")
 
     def sleep(self, t=1.0):
         time.sleep(t)
@@ -70,7 +74,7 @@ class CostarSimulationManager(object):
             "roslaunch",
             "costar_simulation",
             "magnetic_assembly.launch",
-            "experiment:=%s"%self.experiment])
+            "experiment:=%s"%self.case])
         res = subprocess.call(["rosservice","call","publish_planning_scene"])
 
     def pause(self):
