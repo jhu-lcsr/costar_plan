@@ -29,6 +29,6 @@ class H5fGeneratorDataset(NpzGeneratorDataset):
         '''
         Helper to load the file
         '''
-        f = h5f.file(filename, 'r')
+        f = h5f.File(filename, 'r')
         return f
 
