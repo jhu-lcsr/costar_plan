@@ -38,7 +38,14 @@ class CostarSimulationManager(object):
         return self.joint_positions
 
     def __init__(self,launch="ur5", experiment="magnetic_assembly", seed=None,
-            gui=False, case="double1", *args,**kwargs):
+            gui=False, case="double1", gzclient=False, *args,**kwargs):
+        '''
+        Define the manager and parameterize everything so that we can easily
+        reset between different tasks. This also loads the appropriate task
+        model and does all that other good stuff.
+
+        Parameters:
+        '''
 
         # =====================
         # SANITY CHECKS: if something is a placeholder, do not use it right
@@ -55,7 +62,7 @@ class CostarSimulationManager(object):
 
         self.procs = []
         self.rviz = gui
-        self.gui = gui
+        self.gui = gzclient
         self.reset_srv = None
         self.pause_srv = None
         self.unpause_srv = None
