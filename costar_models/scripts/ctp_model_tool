@@ -8,6 +8,7 @@ mpl.use("Agg")
 from costar_models import *
 from costar_models.datasets.npz import NpzDataset
 from costar_models.datasets.npy_generator import NpzGeneratorDataset
+from costar_models.datasets.h5f_generator import H5fGeneratorDataset
 
 '''
 Tool for running model training without the rest of the simulation/planning/ROS
@@ -20,13 +21,16 @@ def main(args):
 
     data_file_info = args['data_file'].split('.')
     data_type = data_file_info[-1]
+    root = ""
+    for i, tok in enumerate(data_file_info[:-1]):
+        if i < len(data_file_info)-1 and i > 0:
+            root += '.'
+        root += tok
     if data_type == "npz":
-        root = ""
-        for i, tok in enumerate(data_file_info[:-1]):
-            if i < len(data_file_info)-1 and i > 0:
-                root += '.'
-            root += tok
         dataset = NpzGeneratorDataset(root)
+        data = dataset.load(success_only = args['success_only'])
+    elif data_type == "h5f":
+        dataset = H5fGeneratorDataset(root)
         data = dataset.load(success_only = args['success_only'])
     else:
         raise NotImplementedError('data type not implemented: %s'%data_type)
