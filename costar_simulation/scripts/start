@@ -17,8 +17,6 @@ if __name__ == '__main__':
         sim.run()
 
     rospy.init_node('simulation_manager_node')
-    rospy.sleep(3.)
-
     rate = rospy.Rate(10)
     while not rospy.is_shutdown():
         rate.sleep()
