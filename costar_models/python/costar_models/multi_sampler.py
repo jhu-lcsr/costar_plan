@@ -478,7 +478,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         cbf, cbt = self._getData(**data)
         imageCb = self.PredictorCb(
             self.predictor,
-            name=self.name,
+            name=self.name_prefix,
             features=cbf,
             targets=cbt,
             model_directory=self.model_directory,
