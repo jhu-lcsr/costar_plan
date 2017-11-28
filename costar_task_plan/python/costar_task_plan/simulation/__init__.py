@@ -1,6 +1,6 @@
 
 from client import CostarBulletSimulation
-from parse import ParseBulletArgs, ParseGazeboArgs
+from parse import ParseBulletArgs, GetSimulationParser
 from util import GetTaskDefinition, GetRobotInterface, GetAvailableRobots, \
     GetAvailableTasks, GetAvailableRobots
 
@@ -13,7 +13,7 @@ from features import *
 from reward import *
 
 __all__ = ["CostarBulletSimulation",
-           "ParseBulletArgs",
+           "ParseBulletArgs", "GetSimulationParser",
            "ParseGazeboArgs",
            "GetTaskDefinition",
            "GetRobotInterface",

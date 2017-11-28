@@ -29,11 +29,12 @@ class CostarSimulationManager(object):
             "wrist_2_joint",
             "wrist_3_joint"]
     joint_positions = [0.30, -1.33, -1.80, -0.27, 1.50, 1.60]
-    gui = False
-    rviz = True
 
-    def __init__(self,launch="ur5",experiment="magnetic_assembly",seed=None,*args,**kwargs):
+    def __init__(self,launch="ur5", experiment="magnetic_assembly", seed=None,
+            gui=False, *args,**kwargs):
         self.procs = []
+        self.rviz = gui
+        self.gui = gui
         self.reset_srv = None
         self.pause_srv = None
         self.unpause_srv = None
@@ -106,7 +107,11 @@ class CostarSimulationManager(object):
         
         # ---------------------------------------------------------------------
         # Start gazebo
-        gazebo = subprocess.Popen(['roslaunch', 'costar_simulation', 'ur5.launch', 'gui:=%s'%str(self.gui)])
+        # This is the "launch" option -- it should dec
+        gazebo = subprocess.Popen(['roslaunch',
+            'costar_simulation',
+            self.launch,
+            'gui:=%s'%str(self.gui)])
         self.procs.append(gazebo)
         self.sleep(5.)
 

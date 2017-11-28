@@ -12,7 +12,6 @@ from costar_simulation import CostarSimulationManager, ParseGazeboArgs
 if __name__ == '__main__':
     args = ParseGazeboArgs()
     if 'launch' in args and args['launch'] is not None:
-        print(args['launch'])
         #env = GazeboEnv(args['launch'])
         sim = CostarSimulationManager(**args)
         sim.run()
