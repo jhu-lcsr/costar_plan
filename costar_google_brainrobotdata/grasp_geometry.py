@@ -440,7 +440,7 @@ def grasp_dataset_ptransform_to_vector_sin_theta_cos_theta(ptransform, dtype=np.
 
 
 def grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector):
-    """Convert brainrobotdata features camera_T_base and base_T_endeffector to base_T_endeffector and ptransforms.
+    """Convert brainrobotdata features camera_T_base and base_T_endeffector to camera_T_endeffector and ptransforms.
 
     This specific function exists because it accepts the raw feature types
     defined in the google brain robot grasping dataset.
@@ -582,11 +582,16 @@ def grasp_dataset_to_surface_relative_transform_feature(
 
     # Returns
 
-        [feature, pose, image_coordinate]
+        [feature_array, depth_relative_vec_quat_array, image_coordinate,
+            camera_T_endeffector_current_vec_quat_array,
+            camera_T_endeffector_end_vec_quat_array, current_to_end_vec_quat_array]
+        which will be in the following respective numpy formats (or their tf equivalents):
+        [nptf.float32, np.float32, np.int32, np.float32, np.float32, np.float32]
 
-        feature is a numpy array defined and described in the `feature_type` parameter.
+        feature_array is a numpy array defined and described in the `feature_type` parameter.
 
-        Pose is a numpy array pose [x, y, z, qx, qy, qz, qw], which contains:
+        end_surface_relative_transform_pose is a numpy array pose [x, y, z, qx, qy, qz, qw],
+        relative to the final time step  which contains:
            - vector (x, y, z) for cartesian motion
            - quaternion (qx, qy, qz, qw) for rotation
 
@@ -596,17 +601,25 @@ def grasp_dataset_to_surface_relative_transform_feature(
         image_coordinate is used to calculate the point cloud point used for the
         surface relative transform and to generate 2D label weights.
     """
-    camera_T_endeffector_ptrans, _, _ = grasp_dataset_to_ptransform(camera_T_base, current_base_T_endeffector)
+    camera_T_endeffector_current_ptrans, _, _ = grasp_dataset_to_ptransform(camera_T_base, current_base_T_endeffector)
+    camera_T_endeffector_end_ptrans, _, _ = grasp_dataset_to_ptransform(camera_T_base, end_base_T_endeffector)
+
+    base_to_current = vector_quaternion_array_to_ptransform(current_base_T_endeffector)
+    base_to_end = vector_quaternion_array_to_ptransform(end_base_T_endeffector)
+    current_to_end = base_to_end * base_to_current.inv()
+    current_to_end_vec_quat_array = ptransform_to_vector_quaternion_array(current_to_end)
 
     # calculate the surface relative transform
     depth_pixel_T_endeffector_ptrans, image_coordinate = surface_relative_transform(
         depth_image,
         camera_intrinsics_matrix,
-        camera_T_endeffector_ptrans,
+        camera_T_endeffector_end_ptrans,
         augmentation_rectangle)
 
     # convert the transform into the vector + quaternion format
     depth_relative_vec_quat_array = ptransform_to_vector_quaternion_array(depth_pixel_T_endeffector_ptrans)
+    camera_T_endeffector_current_vec_quat_array = ptransform_to_vector_quaternion_array(camera_T_endeffector_current_ptrans)
+    camera_T_endeffector_end_vec_quat_array = ptransform_to_vector_quaternion_array(camera_T_endeffector_end_ptrans)
 
     # get the delta theta parameter
     sin_cos_theta = current_endeffector_to_final_endeffector_feature(
@@ -621,16 +634,16 @@ def grasp_dataset_to_surface_relative_transform_feature(
 
     # create and return the user specified feature
     if feature_type == 'delta_depth_sin_cos_3':
-        return [np.concatenate([delta_depth, sin_cos_theta]),
-                depth_relative_vec_quat_array,
-                image_coordinate]
+        feature_array = np.concatenate([delta_depth, sin_cos_theta])
     if feature_type == 'delta_depth_quat_5':
-        return [np.concatenate([delta_depth, depth_relative_vec_quat_array[-4:]]),
-                depth_relative_vec_quat_array,
-                image_coordinate]
+        feature_array = np.concatenate([delta_depth, depth_relative_vec_quat_array[-4:]])
     else:
         raise TypeError('grasp_dataset_to_surface_relative_transform_feature()'
                         ' feature_type not yet supported: ' + str(feature_type))
+
+    return [feature_array, depth_relative_vec_quat_array, image_coordinate,
+            camera_T_endeffector_current_vec_quat_array,
+            camera_T_endeffector_end_vec_quat_array, current_to_end_vec_quat_array]
 
 
 def vector_quaternion_arrays_allclose(vq1, vq2, rtol=1e-6, atol=1e-6, verbose=0):
