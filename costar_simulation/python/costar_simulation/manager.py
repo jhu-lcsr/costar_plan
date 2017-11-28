@@ -11,7 +11,7 @@ from gazebo_msgs.srv import SetModelConfiguration
 from std_srvs.srv import Empty as EmptySrv
 from std_srvs.srv import EmptyResponse as EmptySrvResponse
 
-class CostarSimulation(object):
+class CostarSimulationManager(object):
     '''
     Creates and manages a gazebo simulation. Start this with:
 
@@ -33,7 +33,7 @@ class CostarSimulation(object):
     gui = False
     rviz = True
 
-    def __init__(self):
+    def __init__(self,*args,**kwargs):
         self.procs = []
         self.reset_srv = None
         self.pause_srv = None

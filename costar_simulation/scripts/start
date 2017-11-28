@@ -13,10 +13,12 @@ from costar_task_plan.simulation import ParseGazeboArgs
 if __name__ == '__main__':
     args = ParseGazeboArgs()
     if 'launch' in args and args['launch'] is not None:
-        print args['launch']
+        print(args['launch'])
         #env = GazeboEnv(args['launch'])
-        sim = CostarSimulation(args)
+        sim = CostarSimulationManager(**args)
+        sim.run()
 
+    rospy.init_node('simulation_manager_node')
     rospy.sleep(3.)
 
     rate = rospy.Rate(10)
