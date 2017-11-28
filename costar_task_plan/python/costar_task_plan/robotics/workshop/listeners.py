@@ -22,11 +22,10 @@ class ListenerManager(object):
     '''
     
     def __init__(self,
-          #camera_topic="camera/depth_registered/points",
-          camera_depth_info_topic="camera/depth/info",
-          camera_rgb_info_topic="camera/rgb/info",
+          camera_depth_info_topic="camera/depth_registered/camera_info",
+          camera_rgb_info_topic="camera/rgb/camera_info",
           camera_rgb_topic="camera/rgb/image",
-          camera_depth_topic="camera/depth_registered/disparity",
+          camera_depth_topic="camera/depth_registered/image",
           joints_topic="joint_states",
           messages_topic="/costar/messages",
           world_frame="/base_link",

@@ -16,7 +16,7 @@ def main(hz,**kwargs):
     Start up listeners for data collection, and run the main loop.
     '''
     rospy.init_node("ctp_data_collector")
-    manager = ListenerManager()
+    manager = ListenerManager(**kwargs)
     rate = rospy.Rate(hz)
     try:
         while not rospy.is_shutdown():
