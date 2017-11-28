@@ -382,7 +382,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
     def _getAllData(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             prev_label, goal_features, goal_arm, goal_gripper, value, *args, **kwargs):
-        I = features
+        I = features / 255. # normalize the images
         q = arm
         g = gripper * -1
         qa = arm_cmd
