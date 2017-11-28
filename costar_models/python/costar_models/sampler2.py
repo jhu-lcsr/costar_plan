@@ -72,7 +72,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
 
         # ---------------------------------
         x = h
-        x = AddDense(x,self.rep_size,"relu",self.decoder_dropout_rate)
+        #x = AddDense(x,self.rep_size,"relu",self.decoder_dropout_rate)
         x = Reshape((ih,iw,64))(x)
         x = AddConv2D(x, ic, [3,3], 1, self.decoder_dropout_rate, "same", False)
         if self.skip_connections:
@@ -84,7 +84,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             hidden_decoder_ins = h
         img = self.image_decoder(ins)
         self.state_decoder.summary()
-        arm, gripper, label = self.state_decoder(x)
+        arm, gripper, label = self.state_decoder(h)
         model = Model(hidden_decoder_ins, [img, arm, gripper, label])
         model.summary()
         self.hidden_decoder = model
