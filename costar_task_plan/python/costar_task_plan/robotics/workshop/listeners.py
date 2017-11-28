@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import numpy as np
 import rospy
+import sensor_msgs.point_cloud2 as pc2
 
 from sensor_msgs.msg import JointState
 from sensor_msgs.msg import PointCloud2
@@ -54,10 +55,10 @@ class ListenerManager(object):
         self.camera_depth_info = None
         self.camera_rgb_info = None
 
-        self._camera_sub = rospy.Subscriber(camera_topic, PointCloud2, self._cloudCb)
+        self._camera_sub = rospy.Subscriber(camera_topic, PointCloud2, self._cameraCb)
         self._camera_depth_info_sub = rospy.Subscriber(camera_depth_info_topic, CameraInfo, self._depthInfoCb)
         self._camera_rgb_info_sub = rospy.Subscriber(camera_rgb_info_topic, CameraInfo, self._rgbInfoCb)
-        self._camera_info_sub = rospy.Subscriber(camera_topic, PointCloud2, self._cloudCb)
+        self._camera_info_sub = rospy.Subscriber(camera_topic, PointCloud2, self._cameraCb)
         self._joints_sub = rospy.Subscriber(joints_topic, JointState, self._jointsCb)
         self._messages_sub = rospy.Subscriber(joints_topic, JointState, self._jointsCb)
         
@@ -78,7 +79,7 @@ class ListenerManager(object):
         # -------------------------
         # Camera info fields
 
-    def _jointCb(self, msg):
+    def _jointsCb(self, msg):
         self.q = msg.position
         self.dq = msg.velocity
 
@@ -91,7 +92,8 @@ class ListenerManager(object):
         -----------
         msg: ros sensor_msgs/PointCloud2 message
         '''
-        gen = PointCloud2.read_points(msg, skip_nans=True)
+        gen = pc2.read_points(msg, skip_nans=True)
+        print(gen)
         pass
 
     def _parseMessage(self, msg):

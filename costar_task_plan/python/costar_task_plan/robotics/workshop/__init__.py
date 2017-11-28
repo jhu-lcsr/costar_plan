@@ -2,7 +2,7 @@
 from config import UR5_C_MODEL_CONFIG
 
 from listeners import ListenerManager
-from parse import GetWorkspaceParser, ParseWorkspaceArgs
+from parse import GetWorkshopParser, ParseWorkshopArgs
 
 __all__ = [
     # Configuration files
@@ -12,5 +12,5 @@ __all__ = [
     "ListenerManager",
 
     # Parsing utils
-    "GetWorkspaceParser", "ParseWorkspaceArgs",
+    "GetWorkshopParser", "ParseWorkshopArgs",
 ]

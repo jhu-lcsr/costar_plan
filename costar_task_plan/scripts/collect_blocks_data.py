@@ -5,6 +5,8 @@ Tools to collect a single data set for the robot learning task. We assume data
 collection works via ros.
 '''
 
+import rospy
+
 # Import everything from the "costar workshop assistant" definition for CTP
 # robotics tasks
 from costar_task_plan.robotics.workshop import *
