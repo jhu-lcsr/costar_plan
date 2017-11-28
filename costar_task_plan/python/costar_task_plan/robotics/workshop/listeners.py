@@ -2,10 +2,12 @@ from __future__ import print_function
 
 import numpy as np
 import rospy
+import sensor_msgs.point_cloud2 as pc2
 
 from sensor_msgs.msg import JointState
 from sensor_msgs.msg import PointCloud2
 from sensor_msgs.msg import CameraInfo
+from sensor_msgs.msg import Image
 
 
 class ListenerManager(object):
@@ -20,9 +22,11 @@ class ListenerManager(object):
     '''
     
     def __init__(self,
-          camera_topic="camera/depth_registered/points",
+          #camera_topic="camera/depth_registered/points",
           camera_depth_info_topic="camera/depth/info",
           camera_rgb_info_topic="camera/rgb/info",
+          camera_rgb_topic="camera/rgb/image",
+          camera_depth_topic="camera/depth_registered/disparity",
           joints_topic="joint_states",
           messages_topic="/costar/messages",
           world_frame="/base_link",
@@ -34,7 +38,11 @@ class ListenerManager(object):
 
         Parameters:
         ----------
-        camera_topic: topic on which RGB-D data is published
+        [REMOVED] camera_topic: topic on which RGB-D data is published
+        camera_depth_info_topic:
+        camera_rgb_info_topic:
+        camera_rgb_topic:
+        camera_depth_topic:
         joints_topic: topic on which we receive joints information from the robot
         messages_topic: 
         world_frame: TF frame which we should save all other parameters
@@ -54,10 +62,10 @@ class ListenerManager(object):
         self.camera_depth_info = None
         self.camera_rgb_info = None
 
-        self._camera_sub = rospy.Subscriber(camera_topic, PointCloud2, self._cloudCb)
         self._camera_depth_info_sub = rospy.Subscriber(camera_depth_info_topic, CameraInfo, self._depthInfoCb)
         self._camera_rgb_info_sub = rospy.Subscriber(camera_rgb_info_topic, CameraInfo, self._rgbInfoCb)
-        self._camera_info_sub = rospy.Subscriber(camera_topic, PointCloud2, self._cloudCb)
+        self._rgb_sub = rospy.Subscriber(camera_rgb_topic, Image, self._rgbCb)
+        self._depth_sub = rospy.Subscriber(camera_depth_topic, Image, self._depthCb)
         self._joints_sub = rospy.Subscriber(joints_topic, JointState, self._jointsCb)
         self._messages_sub = rospy.Subscriber(joints_topic, JointState, self._jointsCb)
         
@@ -78,7 +86,7 @@ class ListenerManager(object):
         # -------------------------
         # Camera info fields
 
-    def _jointCb(self, msg):
+    def _jointsCb(self, msg):
         self.q = msg.position
         self.dq = msg.velocity
 
@@ -91,7 +99,15 @@ class ListenerManager(object):
         -----------
         msg: ros sensor_msgs/PointCloud2 message
         '''
-        gen = PointCloud2.read_points(msg, skip_nans=True)
+        gen = pc2.read_points(msg, skip_nans=True)
+        print(gen)
+        raise RuntimeError('deprecated')
+        pass
+
+    def _rgbCb(self, msg):
+        pass
+      
+    def _depthCb(self, msg):
         pass
 
     def _parseMessage(self, msg):

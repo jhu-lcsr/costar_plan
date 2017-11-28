@@ -232,6 +232,7 @@ class ImageCb(keras.callbacks.Callback):
         targets: training target info, in compressed form
         verbose: print out extra information
         '''
+        self.name = name
         self.predictor = predictor
         self.idxs = range(min_idx, max_idx, step)
         self.num = len(self.idxs)

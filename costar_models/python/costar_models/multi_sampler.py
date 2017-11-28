@@ -382,13 +382,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
     def _getAllData(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             prev_label, goal_features, goal_arm, goal_gripper, value, *args, **kwargs):
-        I = features
+        I = features / 255. # normalize the images
         q = arm
         g = gripper * -1
         qa = arm_cmd
         ga = gripper_cmd * -1
         oin = prev_label
-        I_target = goal_features
+        I_target = goal_features / 255.
         q_target = goal_arm
         g_target = goal_gripper * -1
         o_target = label
@@ -398,24 +398,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         q[:,3:] = q[:,3:] / np.pi
         q_target[:,3:] = q_target[:,3:] / np.pi
         qa /= np.pi
-
-        """
-        # Only include a limited number of examples from the value target. We
-        # do not want to include lots of bad training data here.
-        min_idx = max(0,q.shape[0]-100)
-        max_idx = q.shape[0]
-        if value_target[-1] == 0:
-            I = I[min_idx:max_idx,:]
-            q = q[min_idx:max_idx,:]
-            g = g[min_idx:max_idx,:]
-            qa = qa[min_idx:max_idx,:]
-            ga = ga[min_idx:max_idx,:]
-            oin = oin[min_idx:max_idx]
-            I_target = I_target[min_idx:max_idx]
-            q_target = q_target[min_idx:max_idx]
-            g_target = g_target[min_idx:max_idx]
-            o_target = o_target[min_idx:max_idx]
-        """
 
         o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
         train_target = self._makeTrainTarget(
@@ -496,7 +478,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         cbf, cbt = self._getData(**data)
         imageCb = self.PredictorCb(
             self.predictor,
-            name=self.name,
+            name=self.name_prefix,
             features=cbf,
             targets=cbt,
             model_directory=self.model_directory,
@@ -941,14 +923,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         arm_size: number of arm output variables to predict
         gripper_size: number of gripper output variables to predict
         '''
-        rep_in = Input((64,))
+        rep_in = Input((1024,))
         dr = self.decoder_dropout_rate
 
         x = rep_in
-        x1 = AddDense(x, 128, "relu", dr)
-        x1 = AddDense(x1, 256, "relu", dr)
-        x2 = AddDense(x, 128, "relu", dr)
-        x2 = AddDense(x2, 256, "relu", dr)
+        x1 = AddDense(x, 512, "relu", dr)
+        x1 = AddDense(x1, 512, "relu", dr)
+        x2 = AddDense(x, 512, "relu", dr)
+        x2 = AddDense(x2, 512, "relu", dr)
         arm = AddDense(x1, arm_size, "linear", dr, output=True)
         gripper = AddDense(x2, gripper_size, "sigmoid", dr, output=True)
         y = AddDense(x, 64, "relu", dr, output=True)
