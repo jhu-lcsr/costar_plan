@@ -399,24 +399,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         q_target[:,3:] = q_target[:,3:] / np.pi
         qa /= np.pi
 
-        """
-        # Only include a limited number of examples from the value target. We
-        # do not want to include lots of bad training data here.
-        min_idx = max(0,q.shape[0]-100)
-        max_idx = q.shape[0]
-        if value_target[-1] == 0:
-            I = I[min_idx:max_idx,:]
-            q = q[min_idx:max_idx,:]
-            g = g[min_idx:max_idx,:]
-            qa = qa[min_idx:max_idx,:]
-            ga = ga[min_idx:max_idx,:]
-            oin = oin[min_idx:max_idx]
-            I_target = I_target[min_idx:max_idx]
-            q_target = q_target[min_idx:max_idx]
-            g_target = g_target[min_idx:max_idx]
-            o_target = o_target[min_idx:max_idx]
-        """
-
         o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
         train_target = self._makeTrainTarget(
                 I_target,
