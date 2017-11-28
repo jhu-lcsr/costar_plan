@@ -55,6 +55,7 @@ class PretrainStateAutoencoder(RobotMultiPredictionSampler):
         decoder.summary()
 
         h = encoder(ins)
+        h = AddDense(h, 1024, "relu", self.dropout_rate)
         out = decoder(h)
 
         ae = Model(ins, out)

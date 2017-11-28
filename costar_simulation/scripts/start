@@ -38,7 +38,7 @@ class CostarSimulation(object):
             "wrist_2_joint",
             "wrist_3_joint"]
     joint_positions = [0.30, -1.33, -1.80, -0.27, 1.50, 1.60]
-    experiment = "assembly1"
+    experiments = ["assembly", "stack", "tables"]
     gui = False
     rviz = True
 
@@ -47,6 +47,7 @@ class CostarSimulation(object):
         self.reset_srv = None
         self.pause_srv = None
         self.unpause_srv = None
+        self.experiment = self.experiments[0]
 
     def sleep(self, t=1.0):
         time.sleep(t)

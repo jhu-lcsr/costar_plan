@@ -31,7 +31,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         command line and set things like our optimizer and learning rate.
         '''
         super(PredictionSampler2, self).__init__(taskdef, *args, **kwargs)
-        self.rep_size = 128
+        self.rep_size = None
         self.encoder_channels = 128
         self.PredictorCb = ImageCb
         self.skip_shape = (64,64,32)
@@ -72,7 +72,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
 
         # ---------------------------------
         x = h
-        x = AddDense(x,int(ih*iw*64),"lrelu",self.decoder_dropout_rate)
+        x = AddDense(x,self.rep_size,"relu",self.decoder_dropout_rate)
         x = Reshape((ih,iw,64))(x)
         x = AddConv2D(x, ic, [3,3], 1, self.decoder_dropout_rate, "same", False)
         if self.skip_connections:
@@ -83,7 +83,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             ins = x
             hidden_decoder_ins = h
         img = self.image_decoder(ins)
-        x = AddDense(h, 64, "relu", self.decoder_dropout_rate)
+        self.state_decoder.summary()
         arm, gripper, label = self.state_decoder(x)
         model = Model(hidden_decoder_ins, [img, arm, gripper, label])
         model.summary()
