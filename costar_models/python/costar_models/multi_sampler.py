@@ -927,8 +927,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         dr = self.decoder_dropout_rate
 
         x = rep_in
-        x1 = AddDense(x, 128, "relu", dr)
-        x1 = AddDense(x1, 256, "relu", dr)
+        x1 = AddDense(x, 256, "relu", dr)
+        x1 = AddDense(x1, 512, "relu", dr)
         x2 = AddDense(x, 128, "relu", dr)
         x2 = AddDense(x2, 256, "relu", dr)
         arm = AddDense(x1, arm_size, "linear", dr, output=True)
