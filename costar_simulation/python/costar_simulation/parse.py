@@ -6,9 +6,15 @@ import sys
 from costar_task_plan.simulation import GetSimulationParser
 
 def GetLaunchOptions():
-    return ["ur5"]
+    '''
+    These are the files that actually set up the environment
+    '''
+    return ["ur5","mobile"]
 
 def GetExperimentOptions():
+    '''
+    Each of these needs to be handled separately later on
+    '''
     return ["magnetic_assembly",
             "stack",
             "tables"]

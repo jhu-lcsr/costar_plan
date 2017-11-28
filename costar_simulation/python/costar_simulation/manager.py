@@ -32,21 +32,36 @@ class CostarSimulationManager(object):
 
     def __init__(self,launch="ur5", experiment="magnetic_assembly", seed=None,
             gui=False, case="double1", *args,**kwargs):
+
+        # =====================
+        # SANITY CHECKS: if something is a placeholder, do not use it right
+        # now.
+        if launch == "mobile":
+            raise NotImplementedError('mobile env not yet supported')
+
+        # Parse and set up some flags so we know how to randomize the
+        # environment and how to reset things between trials
+        if experiment == "magnetic_assembly":
+            self.uses_gbeam_soup = True
+        else:
+            self.uses_gbeam_soup = False
+
         self.procs = []
         self.rviz = gui
         self.gui = gui
         self.reset_srv = None
         self.pause_srv = None
         self.unpause_srv = None
-        self.experiment = "%s.launch"%experiment
-        self.launch = "%s.launch"%launch
+        self.experiment_file = "%s.launch"%experiment
+        self.launch_file = "%s.launch"%launch
+
         self.seed = seed
         self.case = case
         print("=========================================================")
         print("|                 Gazebo Configuration Report            ")
         print("| -------------------------------------------------------")
-        print("| launch file = %s"%self.launch)
-        print("| experiment file = %s"%self.experiment)
+        print("| launch file = %s"%self.launch_file)
+        print("| experiment file = %s"%self.experiment_file)
         print("| seed = %s"%(str(self.seed)))
         print("| case = %s"%self.case)
         print("| gui = %s"%self.gui)
@@ -68,12 +83,13 @@ class CostarSimulationManager(object):
                 joint_names=self.joint_names,
                 joint_positions=self.joint_positions)
         rospy.wait_for_service("gazebo/delete_model")
-        delete_model = rospy.ServiceProxy("gazebo/delete_model", DeleteModel)
-        delete_model("gbeam_soup")
+        if self.uses_gbeam_soup:
+            delete_model = rospy.ServiceProxy("gazebo/delete_model", DeleteModel)
+            delete_model("gbeam_soup")
         res = subprocess.call([
             "roslaunch",
             "costar_simulation",
-            "magnetic_assembly.launch",
+            self.experiment_file,
             "experiment:=%s"%self.case])
         res = subprocess.call(["rosservice","call","publish_planning_scene"])
 
@@ -114,7 +130,7 @@ class CostarSimulationManager(object):
         # This is the "launch" option -- it should dec
         gazebo = subprocess.Popen(['roslaunch',
             'costar_simulation',
-            self.launch,
+            self.launch_file,
             'gui:=%s'%str(self.gui)])
         self.procs.append(gazebo)
         self.sleep(5.)
