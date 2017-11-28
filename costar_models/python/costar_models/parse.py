@@ -148,6 +148,10 @@ def GetModelParser():
     parser.add_argument("--sampling",
                         help="sampling version",
                         action="store_true")
+    parser.add_argument("--loss",
+                        help="Loss for state variables: MSE or MAE.",
+                        choices=["mse","mae"],
+                        default="mae")
 
     return parser
 

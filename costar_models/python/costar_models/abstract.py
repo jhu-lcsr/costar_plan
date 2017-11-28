@@ -37,6 +37,8 @@ class AbstractAgentBasedModel(object):
             sampling=False,
             use_prev_option=True,
             success_only=False,
+            hidden_size=128,
+            loss="mae",
             num_generator_files=1, predict_value=False, upsampling=None,
             task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
@@ -51,7 +53,7 @@ class AbstractAgentBasedModel(object):
         # REMOVE THIS 
         self.compatibility = compatibility
         # ===================================
-
+        self.loss = loss
         self.success_only = success_only
         self.use_prev_option = use_prev_option
         self.lr = lr
@@ -88,6 +90,7 @@ class AbstractAgentBasedModel(object):
         self.skip_connections = skip_connections > 0
         self.dense_representation = dense_representation
         self.sampling = sampling
+        self.hidden_size = hidden_size
         
         if self.noise_dim < 1:
             self.use_noise = False
@@ -131,6 +134,7 @@ class AbstractAgentBasedModel(object):
         print("p(Generator sample first frame) = 1/%d"%(self.choose_initial))
         print("Number of generator files = %d"%self.num_generator_files)
         print("Successful examples only = ", self.success_only)
+        print("Loss = ", loss)
         print("-----------------------------------------------------------")
         print("------------------ Model Specific Options -----------------")
         print("residual =", self.residual)

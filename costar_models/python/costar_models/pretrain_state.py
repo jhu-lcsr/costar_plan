@@ -23,15 +23,15 @@ from .mhp_loss import *
 from .loss import *
 from .multi_sampler import *
 
-class PretrainImageAutoencoder(RobotMultiPredictionSampler):
+class PretrainStateAutoencoder(RobotMultiPredictionSampler):
 
     def __init__(self, taskdef, *args, **kwargs):
         '''
         As in the other models, we call super() to parse arguments from the
         command line and set things like our optimizer and learning rate.
         '''
-        super(PretrainImageAutoencoder, self).__init__(taskdef, *args, **kwargs)
-        self.PredictorCb = ImageCb
+        super(PretrainStateAutoencoder, self).__init__(taskdef, *args, **kwargs)
+        self.PredictorCb = StateCb
 
     def _makePredictor(self, features):
         '''
@@ -43,40 +43,32 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
                 arm,
                 gripper)
 
-        img0_in = Input(img_shape,name="predictor_img0_in")
-        img_in = Input(img_shape,name="predictor_img_in")
+        arm_in = Input((arm_size,), name="predictor_arm_in")
+        gripper_in = Input((gripper_size,), name="predictor_gripper_in")
         option_in = Input((1,), name="predictor_option_in")
-        encoder = self._makeImageEncoder(img_shape)
-        ins = [img0_in, img_in]
-        if self.skip_connections:
-            enc, skip = encoder(ins)
-            decoder = self._makeImageDecoder(
-                    self.hidden_shape,
-                    self.skip_shape, True)
-            out = decoder([enc, skip])
-        else:
-            enc = encoder(ins)
-            decoder = self._makeImageDecoder(
-                    self.hidden_shape,
-                    self.skip_shape, False)
-            out = decoder(enc)
+        ins = [arm_in, gripper_in, option_in]
+
+        encoder = self._makeStateEncoder(arm_size, gripper_size, False)
+        decoder = self._makeStateDecoder(arm_size, gripper_size)
 
         encoder.summary()
         decoder.summary()
 
+        h = encoder(ins)
+        out = decoder(h)
+
         ae = Model(ins, out)
         ae.compile(
-                loss="mae",
+                loss=[self.loss,self.loss,"categorical_crossentropy"],
+                loss_weights=[1.,0.2,0.01],
                 optimizer=self.getOptimizer())
         ae.summary()
     
-        return ae, ae, None, [img_in], enc
+        return ae, ae, None, ins, h
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
-        I = features[0]
-        I0 = I[0,:,:,:]
-        length = I.shape[0]
-        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
-        o1 = targets[1]
-        return [I0, I], [I]
+        [I, q, g, oin, q_target, g_target,] = features
+        oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
+        return [q, g, oin], [q, g, oin_1h]
+        #return [q, g], [q, g]

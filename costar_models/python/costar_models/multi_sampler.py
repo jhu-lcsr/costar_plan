@@ -45,17 +45,20 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_options = 48
         self.num_features = 4
         self.null_option = 37
-        self.encoder_channels = 16
+
+        # For the new model setup
+        self.encoder_channels = 128
+        self.skip_shape = (64,64,32)
 
         # Layer and model configuration
         self.extra_layers = 1
         self.use_spatial_softmax = True
         self.dense_representation = True
         if self.use_spatial_softmax and self.dense_representation:
-            self.steps_down = 0
+            self.steps_down = 1
             self.steps_down_no_skip = 0
             self.steps_up = 4
-            self.steps_up_no_skip = 4
+            self.steps_up_no_skip = self.steps_up - self.steps_down
             #self.encoder_stride1_steps = 2+1
             self.encoder_stride1_steps = 3
             self.padding="same"
@@ -103,8 +106,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.actor = None
         self.image_encoder = None
         self.image_decoder = None
-        self.arm_encoder = None
-        self.arm_decoder = None
+        self.state_encoder = None
+        self.state_decoder = None
         self.hidden_encoder = None
         self.hidden_decoder = None
 
@@ -122,11 +125,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Use the same transform for everything
         self.always_same_transform = False
 
-    def _makePredictor(self, features):
-        '''
-        Create model to predict possible manipulation goals.
-        '''
-        (images, arm, gripper) = features
+    def _sizes(self, images, arm, gripper):
         img_shape = images.shape[1:]
         arm_size = arm.shape[-1]
         if len(gripper.shape) > 1:
@@ -138,12 +137,23 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             image_size *= dim
         image_size = int(image_size)
 
+        return img_shape, image_size, arm_size, gripper_size
+
+    def _makePredictor(self, features):
+        '''
+        Create model to predict possible manipulation goals.
+        '''
+        (images, arm, gripper) = features
+        img_shape, image_size, arm_size, gripper_size = self._sizes(
+                images,
+                arm,
+                gripper)
         
         # =====================================================================
         # Create the encoder and decoder networks -- these are sub-networks
         # that we may find useful in different situations.
         img_in = Input(img_shape,name="predictor_img_in")
-        ins, enc, skips, robot_skip = self._makeEncoder(img_shape, arm_size, gripper_size)
+        ins, enc, skips = self._makeEncoder(img_shape, arm_size, gripper_size)
         decoder = self._makeDecoder(img_shape, arm_size, gripper_size)
 
         # ===================================================================
@@ -213,7 +223,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
             # This maps from our latent world state back into observable images.
             if self.skip_connections:
-                decoder_inputs = [x] + skips #+ [robot_skip]
+                decoder_inputs = [x] + skips
             else:
                 decoder_inputs = [x]
 
@@ -266,7 +276,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
                         #weights=[0.7,1.0,0.1,0.1],
-                        weights=[0.3, 0.4, 0.05, 0.3],
+                        weights=[0.5, 0.45, 0.05, 0.01],
                         loss=["mae","mae","mae","categorical_crossentropy"],
                         stats=stats,
                         avg_weight=0.025),]
@@ -522,6 +532,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             if self.image_encoder is not None:
                 self.image_encoder.save_weights(self.name + 
                 "_image_encoder.h5f")
+            if self.state_encoder is not None:
+                self.state_encoder.save_weights(self.name +
+                "_state_encoder.h5f")
+            if self.state_decoder is not None:
+                self.state_decoder.save_weights(self.name + 
+                "_state_decoder.h5f")
             if self.hidden_encoder is not None:
                 self.hidden_encoder.save_weights(self.name + 
                 "_hidden_encoder.h5f")
@@ -546,11 +562,17 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 print("Could not load actor:", e)
             self.train_predictor.load_weights(self.name + "_train_predictor.h5f")
             if self.image_decoder is not None:
-                self.image_decoder.save_weights(self.name +
+                self.image_decoder.load_weights(self.name +
                 "_image_decoder.h5f")
             if self.image_encoder is not None:
-                self.image_encoder.save_weights(self.name +
+                self.image_encoder.load_weights(self.name +
                 "_image_encoder.h5f")
+            if self.state_decoder is not None:
+                self.state_decoder.load_weights(self.name +
+                "_state_decoder.h5f")
+            if self.state_encoder is not None:
+                self.state_encoder.load_weights(self.name +
+                "_state_encoder.h5f")
         else:
             raise RuntimeError('_loadWeights() failed: model not found.')
 
@@ -745,13 +767,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
              the encoder block)
         enc: encoded state
         skips: list of skip connections
-        robot_skip: end effector state "skip"
         '''
         if self.use_prev_option:
             enc_options = self.num_options
         else:
             enc_options = None
-        ins, enc, skips, robot_skip = GetEncoder(img_shape,
+        ins, enc, skips = GetEncoder(img_shape,
                 [arm_size, gripper_size],
                 self.img_col_dim,
                 dropout_rate=self.dropout_rate,
@@ -774,7 +795,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 use_spatial_softmax=self.use_spatial_softmax,
                 output_filters=self.tform_filters,
                 )
-        self.encoder = Model(ins, [enc]+skips+[robot_skip], name="encoder")
+        self.encoder = Model(ins, [enc]+skips, name="encoder")
         self.encoder.compile(loss="mae",optimizer=self.getOptimizer())
         self.encoder.summary()
         new_ins = []
@@ -786,13 +807,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         outs = self.encoder(new_ins)
         new_enc = outs[0]
-        new_skips = outs[1:len(outs)-1]
-        new_robot_skip = outs[-1]
-        return new_ins, new_enc, new_skips, new_robot_skip
+        new_skips = outs[1:]
+        return new_ins, new_enc, new_skips
 
     def _makeDecoder(self, img_shape, arm_size, gripper_size,
-            skips=None,
-            robot_skip=None):
+            skips=None):
         '''
         Make the decoder network. This one takes in a hidden state (a set of
         keypoints in 2D image space) and from these keypoints computes:
@@ -820,68 +839,158 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         dense=self.dense_representation,
                         dense_rep_size=self.img_col_dim,
                         skips=self.skip_connections,
-                        robot_skip=robot_skip,
                         resnet_blocks=self.residual,
                         batchnorm=True,)
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         decoder.summary()
         return decoder
 
-    def _makeActionEncoder(self, arm_size, gripper_size, disc=False):
+
+    def _makeEncoder2(self, img_shape, arm_size, gripper_size, disc=False):
         '''
-        Encode arm state.
+        Redefine the creation of the encoder here. This version has a couple
+        different options.
         '''
+        img = Input(img_shape)
         arm = Input((arm_size,))
         gripper = Input((gripper_size,))
         option = Input((1,))
-        x = Concatenate()([arm, gripper])
         if disc:
             activation = "lrelu"
         else:
             activation = "relu"
-        x = AddDense(x, 64, activation, self.dropout_rate)
-        x = Concatenate()([x, option])
-        x = AddDense(x, 128, activation, self.dropout_rate)
-        
-        action_encoder = Model([arm, gripper, option], x)
-        action_encoder.compile(loss="mae", optimizer=self.getOptimizer())
-        if not disc:
-            self.action_encoder = action_encoder
-        return action_encoder
 
-    def _makeActionDecoder(self, arm_size, gripper_size):
+        skips = []
+
+        # First block
+        x = AddConv2D(x, 16, [5,5], 2, self.dropout_rate, "same", disc)
+        skips.append(x)
+
+        # Second block
+        x = AddConv2D(x, 32, [5,5], 2, self.dropout_rate, "same", disc)
+        skips.append(x)
+
+        # Third block
+        x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate, "same", disc)
+        skips.append(x)
+
+        # Fourth block
+        x = AddConv2D(x, 128, [5,5], 2, self.dropout_rate, "same", disc)
+        skips.append(x)
+
+        # Fifth block
+        # Add label information
+        # Add arm, gripper information
+        o = OneHot(self.num_options)(option)
+        o = Flatten()(o)
+        a = AddDense(a, self.pose_col_dim, activation, self.dropout_rate)
+        a = Concatenate()([a,o])
+        x = TileOnto(x, a, self.pose_col_dim, [4,4])
+        x = AddConv2D(x, 64, [3,3], 1, self.dropout_rate, "same", disc)
+        
+
+    def _makeDecoder2(self, img_shape, arm_size, gripper_size):
+
+        # Compute the correct skip connections to include
+        skip_sizes = [16, 32, 64, 128]
+        skips = self.steps_up - self.steps_up_no_skip
+        skip_sizes = skip_sizes[:skips]
+        skip_sizes.reverse()
+
+        pass
+
+    def _makeStateEncoder(self, arm_size, gripper_size, disc=False):
+        '''
+        Encode arm state.
+
+        Parameters:
+        -----------
+        arm_size: number of arm input variables
+        gripper_size: number of gripper input variables
+        disc: is this a discriminator? if so, use leaky relu
+        '''
+        arm = Input((arm_size,))
+        gripper = Input((gripper_size,))
+        option = Input((1,))
+        if disc:
+            activation = "lrelu"
+        else:
+            activation = "relu"
+        #x = Concatenate()([arm, gripper])
+        #x = AddDense(x, 5, activation, self.dropout_rate)
+        y = OneHot(self.num_options)(option)
+        y = Flatten()(y)
+        x = Concatenate()([arm,gripper,y])
+        #x = AddDense(x, 128, activation, self.dropout_rate)
+        #x = AddDense(x, 64, activation, self.dropout_rate)
+        x = AddDense(x, 64, activation, self.dropout_rate)
+        
+        state_encoder = Model([arm, gripper, option], x)
+        #state_encoder = Model([arm, gripper], x)
+        state_encoder.compile(loss="mae", optimizer=self.getOptimizer())
+        if not disc:
+            self.state_encoder = state_encoder
+        return state_encoder
+
+    def _makeStateDecoder(self, arm_size, gripper_size):
         '''
         Compute actions from hidden representation
+
+        Parameters:
+        -----------
+        arm_size: number of arm output variables to predict
+        gripper_size: number of gripper output variables to predict
         '''
-        rep_in = Input((128,))
-        if self.hypothesis_dropout:
-            dr = self.decoder_dropout_rate
-        else:
-            dr = 0.
+        rep_in = Input((64,))
+        dr = self.decoder_dropout_rate
 
         x = rep_in
-        option = AddDense(x, self.num_options, "softmax", dr)
-        x = AddDense(x, 64, "relu", dr)
-        arm = AddDense(x, arm_size, dr)
-        gripper = AddDense(x, gripper_size, dr)
-        action_decoder = Model(rep_in, [arm, gripper, option])
-        action_decoder.compile(loss="mae", optimizer=self.getOptimizer())
-        self.action_decoder = action_decoder
-        return action_decoder
+        x1 = AddDense(x, 128, "relu", dr)
+        x1 = AddDense(x1, 256, "relu", dr)
+        x2 = AddDense(x, 128, "relu", dr)
+        x2 = AddDense(x2, 256, "relu", dr)
+        arm = AddDense(x1, arm_size, "linear", dr, output=True)
+        gripper = AddDense(x2, gripper_size, "sigmoid", dr, output=True)
+        y = AddDense(x, 64, "relu", dr, output=True)
+        option = AddDense(y, self.num_options, "softmax", dr, output=True)
+        state_decoder = Model(rep_in, [arm, gripper, option])
+        state_decoder.compile(loss="mae", optimizer=self.getOptimizer())
+        self.state_decoder = state_decoder
+        return state_decoder
 
     def _makeMergeEncoder(self, rep_size):
+        '''
+        Take input image and state information and encode them into a single
+        hidden representation
+        '''
         image_input_shape = self.hidden_shape
         state_input_shape = (128,)
         rep_shape = (rep_size,)
 
     def _makeMergeDecoder(self, rep_size):
+        '''
+        Take input state and image information projected into a latent space
+        and decode them back into their appropriate output representations
+        '''
+
+        # ---------------------------------------------------------------------
+        # Compute the state information and image information sizes for the 
+        # decoders
         image_input_shape = self.hidden_shape
         state_input_shape = (128,)
+        state_ouput_dim = state_input_shape[0]
+        h, w, c = image_input_shape
+
+        # Compute the actual size of the input 
         rep_shape = (rep_size,)
         if self.hypothesis_dropout:
             dr = self.decoder_dropout_rate
         else:
             dr = 0.
+
+        # ---------------------------------------------------------------------
+        # Create the decoders
+        pass
 
     def _makeImageEncoder(self, img_shape, disc=False):
         '''
@@ -896,11 +1005,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         img = Input(img_shape,name="img_encoder_in")
         img0 = Input(img_shape,name="img0_encoder_in")
         x = img
-        x = AddConv2D(x, 32, [7,7], 1, self.dropout_rate, "same", disc)
+        x = AddConv2D(x, 16, [7,7], 1, self.dropout_rate, "same", disc)
         y = img0
-        y = AddConv2D(y, 32, [7,7], 1, self.dropout_rate, "same", disc)
+        y = AddConv2D(y, 16, [7,7], 1, self.dropout_rate, "same", disc)
         x = Concatenate()([x,y])
-        x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate, "same", disc)
+        x = AddConv2D(x, 32, [5,5], 2, self.dropout_rate, "same", disc)
         x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate, "same", disc)
         x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate, "same", disc)
         x = AddConv2D(x, self.encoder_channels, [5,5], 2, self.dropout_rate,
@@ -916,8 +1025,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.tform_filters)
         #self.hidden_shape = (self.encoder_channels*2,)
         #x = Flatten()(x)
-        #x = AddDense(x, 512, "relu", self.dropout_rate)
-        #self.hidden_shape = (512,)
+        #x = AddDense(x, self.hidden_size, "relu", self.dropout_rate)
+        #self.hidden_shape = (self.hidden_size,)
 
         if self.skip_connections:
             image_encoder = Model([img0, img], [x, y], name="image_encoder")
@@ -946,7 +1055,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             dr = 0.
         #self.steps_up = 4
         #self.hidden_dim = int(img_shape[0]/(2**self.steps_up))
-        #self.tform_filters = self.encoder_channels
+        #self.tform_filters = 256 #self.encoder_channels
         #(h,w,c) = (self.hidden_dim,self.hidden_dim,self.tform_filters)
         #x = AddDense(x, int(h*w*c), "linear", dr)
         #x = Reshape((h,w,c))(x)
