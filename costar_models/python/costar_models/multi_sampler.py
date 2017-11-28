@@ -388,7 +388,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         qa = arm_cmd
         ga = gripper_cmd * -1
         oin = prev_label
-        I_target = goal_features
+        I_target = goal_features / 255.
         q_target = goal_arm
         g_target = goal_gripper * -1
         o_target = label
