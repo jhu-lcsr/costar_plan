@@ -165,7 +165,7 @@ def depth_image_pixel_to_cloud_point(depth_image,
                                      pixel_coordinate,
                                      augmentation_rectangle=None,
                                      flip_x=1.0,
-                                     flip_y=-1.0):
+                                     flip_y=1.0):
     """Convert a single specific depth image pixel coordinate into a point cloud point.
 
     # Params
@@ -273,7 +273,7 @@ def surface_relative_transform(depth_image,
         return depth_relative_vec_quat_array
 
 
-def endeffector_image_coordinate(camera_intrinsics_matrix, xyz, flip_x=1.0, flip_y=-1.0):
+def endeffector_image_coordinate(camera_intrinsics_matrix, xyz, flip_x=1.0, flip_y=1.0):
 
     # get focal length and camera image center from the intrinsics matrix
     fx = camera_intrinsics_matrix[0, 0]
@@ -324,7 +324,20 @@ def endeffector_image_coordinate_and_cloud_point(depth_image,
                                            camera_intrinsics_matrix,
                                            pixel_coordinate_of_endeffector,
                                            augmentation_rectangle=augmentation_rectangle)
-    return XYZ, pixel_coordinate_of_endeffector
+
+    # begin Temporary debug code
+    import depth_image_encoding
+    # flip image on image x axis center line
+    # pixel_coordinate_of_endeffector[1] = depth_image.shape[1] - pixel_coordinate_of_endeffector[0]
+    # pixel_coordinate_of_endeffector[0] = depth_image.shape[0] - pixel_coordinate_of_endeffector[1]
+    XYZ_image = depth_image_encoding.depth_image_to_point_cloud(depth_image, camera_intrinsics_matrix)
+    # TODO(ahundt) make sure rot180 + fliplr is applied upstream in the dataset and to the depth images, ensure consistency with image intrinsic
+    test_XYZ = XYZ_image[int(pixel_coordinate_of_endeffector[0]), int(pixel_coordinate_of_endeffector[1]), :]
+
+    print('XYZ: ', XYZ, ' test_XYZ:', test_XYZ, ' pixel_coordinate_of_endeffector: ', pixel_coordinate_of_endeffector, 'single_XYZ.shape: ', XYZ_image.shape)
+    # assert(np.allclose(test_XYZ, XYZ))
+    # end Temporary debug code
+    return test_XYZ, pixel_coordinate_of_endeffector
 
 
 def grasp_dataset_rotation_to_theta(rotation, verbose=0):

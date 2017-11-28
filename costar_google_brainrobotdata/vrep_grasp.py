@@ -6,10 +6,11 @@ import errno
 import traceback
 
 import numpy as np
+# import matplotlib
 
 try:
     import vrep.vrep as vrep
-except:
+except Exception as e:
     print ('--------------------------------------------------------------')
     print ('"vrep.py" could not be imported. This means very probably that')
     print ('either "vrep.py" or the remoteApi library could not be found.')
@@ -18,6 +19,7 @@ except:
     print ('ReadMe.txt in the vrep remote API folder')
     print ('--------------------------------------------------------------')
     print ('')
+    raise e
 
 import tensorflow as tf
 
@@ -32,14 +34,19 @@ import moviepy.editor as mpy
 from grasp_dataset import GraspDataset
 import grasp_geometry
 from depth_image_encoding import depth_image_to_point_cloud
+from depth_image_encoding import ClipFloatValues
+from depth_image_encoding import FloatArrayToRgbImage
+from depth_image_encoding import FloatArrayToRawRGB
 
-# https://github.com/jrl-umi3218/Eigen3ToPython/
-# alternatives to consider:
-# https://github.com/adamlwgriffiths/Pyrr
-# https://github.com/KieranWynn/pyquaternion
-import eigen  # https://github.com/jrl-umi3218/Eigen3ToPython
-import sva  # https://github.com/jrl-umi3218/SpaceVecAlg
-# import matplotlib as mp
+try:
+    import eigen  # https://github.com/jrl-umi3218/Eigen3ToPython
+    import sva  # https://github.com/jrl-umi3218/SpaceVecAlg
+except ImportError:
+    print('eigen and sva python not available. To install run the script at:'
+          'https://github.com/ahundt/robotics_setup/blob/master/robotics_tasks.sh'
+          'or follow the instructions at https://github.com/jrl-umi3218/Eigen3ToPython'
+          'and https://github.com/jrl-umi3218/SpaceVecAlg. When you build make sure'
+          'python bindings are enabled.')
 
 tf.flags.DEFINE_string('vrepConnectionAddress', '127.0.0.1', 'The IP address of the running V-REP simulation.')
 tf.flags.DEFINE_integer('vrepConnectionPort', 19999, 'ip port for connecting to V-REP')
@@ -49,13 +56,28 @@ tf.flags.DEFINE_integer('vrepTimeOutInMs', 5000, 'Timeout in milliseconds upon w
 tf.flags.DEFINE_integer('vrepCommThreadCycleInMs', 5, 'time between communication cycles')
 tf.flags.DEFINE_integer('vrepVisualizeGraspAttempt_min', 0, 'min grasp attempt to display from dataset, or -1 for no limit')
 tf.flags.DEFINE_integer('vrepVisualizeGraspAttempt_max', 1, 'max grasp attempt to display from dataset, exclusive, or -1 for no limit')
-tf.flags.DEFINE_string('vrepDebugMode', 'save_ply', """Options are: '', 'fixed_depth', 'save_ply'.""")
+tf.flags.DEFINE_string('vrepDebugMode', 'save_ply', """Options are: '', 'fixed_depth', 'save_ply', 'print_transform', 'print_drawLines'. More than one can be specified at a time.""")
 tf.flags.DEFINE_boolean('vrepVisualizeRGBD', True, 'display the rgbd images and point cloud')
 tf.flags.DEFINE_integer('vrepVisualizeRGBD_min', 0, 'min time step on each grasp attempt to display, or -1 for no limit')
-tf.flags.DEFINE_integer('vrepVisualizeRGBD_max', 0, 'max time step on each grasp attempt to display, exclusive, or -1 for no limit')
+tf.flags.DEFINE_integer('vrepVisualizeRGBD_max', -1, 'max time step on each grasp attempt to display, exclusive, or -1 for no limit')
 tf.flags.DEFINE_boolean('vrepVisualizeSurfaceRelativeTransform', True, 'display the surface relative transform frames')
 tf.flags.DEFINE_boolean('vrepVisualizeSurfaceRelativeTransformLines', True, 'display lines from the camera to surface depth points')
 tf.flags.DEFINE_string('vrepParentName', 'LBR_iiwa_14_R820', 'The default parent frame name from which to base all visualized transforms.')
+tf.flags.DEFINE_boolean('vrepVisualizeDilation', False, 'Visualize result of dilation performed on depth image used for point cloud.')
+tf.flags.DEFINE_string('vrepVisualizeDepthFormat', 'vrep_depth_encoded_rgb',
+                       """ Controls how Depth images are displayed. Options are:
+                           None: Do not modify the data and display it as-is for rgb input data (not working properly for float depth).
+                           'depth_rgb': convert a floating point depth image to a straight 0-255 encoding of depths less than 3m
+                           'depth_encoded_rgb': convert a floating point depth image to the rgb encoding used by
+                               the google brain robot data grasp dataset's raw png depth image encoding,
+                               see https://sites.google.com/site/brainrobotdata/home/depth-image-encoding.
+                           'vrep': add a vrep prefix to any of the above commands to
+                               rotate image by 180 degrees, flip left over right, then invert the color channels
+                               after the initial conversion step.
+                               This is due to a problem where V-REP seems to display images differently.
+                               Examples include 'vrep_depth_rgb' and 'vrep_depth_encoded_rgb',
+                               see http://www.forum.coppeliarobotics.com/viewtopic.php?f=9&t=737&p=27805#p27805.
+                       """)
 
 flags.FLAGS._parse_flags()
 FLAGS = flags.FLAGS
@@ -82,7 +104,7 @@ class VREPGraspSimulation(object):
             print('Error connecting to remote API server')
         return
 
-    def create_dummy(self, display_name, transform, parent_handle=-1):
+    def create_dummy(self, display_name, transform, parent_handle=-1, debug=FLAGS.vrepDebugMode):
         """Create a dummy object in the simulation
 
         # Arguments
@@ -105,14 +127,15 @@ class VREPGraspSimulation(object):
             vrep.simx_opmode_blocking)
         if res == vrep.simx_return_ok:
             # display the reply from V-REP (in this case, the handle of the created dummy)
-            print ('Dummy name:', display_name, ' handle: ', ret_ints[0], ' transform: ', transform)
+            if debug is not None and 'print_transform' in debug:
+                print ('Dummy name:', display_name, ' handle: ', ret_ints[0], ' transform: ', transform)
         else:
             print('create_dummy remote function call failed.')
             print(''.join(traceback.format_stack()))
             return -1
         return ret_ints[0]
 
-    def drawLines(self, display_name, lines, parent_handle=-1, transform=None):
+    def drawLines(self, display_name, lines, parent_handle=-1, transform=None, debug=FLAGS.vrepDebugMode):
         """Create a line in the simulation.
 
         Note that there are currently some quirks with this function. Only one line is accepted,
@@ -142,7 +165,8 @@ class VREPGraspSimulation(object):
             vrep.simx_opmode_blocking)
         if res == vrep.simx_return_ok:
             # display the reply from V-REP (in this case, the handle of the created dummy)
-            print ('drawLines name:', display_name, ' handle: ', ret_ints[0], ' transform: ', transform)
+            if debug is not None and 'print_drawLines' in debug:
+                print ('drawLines name:', display_name, ' handle: ', ret_ints[0], ' transform: ', transform)
 
             if transform is not None:
                 # set the transform for the point cloud
@@ -184,7 +208,8 @@ class VREPGraspSimulation(object):
         return ret_ints[0]
 
     def create_point_cloud(self, display_name, points, transform, color_image=None, parent_handle=-1, clear=True,
-                           max_voxel_size=0.01, max_point_count_per_voxel=10, point_size=10, options=0):
+                           max_voxel_size=0.01, max_point_count_per_voxel=10, point_size=10, options=0,
+                           rgb_sensor_display_name=None):
         """Create a dummy object in the simulation
 
         # Arguments
@@ -203,10 +228,14 @@ class VREPGraspSimulation(object):
             bit4 set (16): color is emissive
             pointSize: the size of the points, in pixels
             reserved: reserved for future extensions. Set to NULL
+            rgb_sensor_display_name: an optional v-rep rgb sensor device on which to show the colors
         """
         # color_buffer is initially empty
         color_buffer = bytearray()
         strings = [display_name]
+        if rgb_sensor_display_name is not None:
+            strings = [display_name, rgb_sensor_display_name]
+
         transform_entries = 7
         if clear:
             clear = 1
@@ -230,27 +259,21 @@ class VREPGraspSimulation(object):
             color_buffer,
             vrep.simx_opmode_blocking)
 
+        self.setPose(display_name, transform, parent_handle)
+
         if res == vrep.simx_return_ok:
             cloud_handle = ret_ints[0]
 
             # convert the rgb values to a string
             color_size = 0
             if color_image is not None:
-                # strings = [unicode(color_image.flatten().tostring(), 'utf-8')]
-                # color_string = color_image.flatten().tostring().encode('utf-8')
-                # strings = [display_name, color_string]
-                strings = [display_name]
                 # see simInsertPointsIntoPointCloud() in vrep documentation
                 # 3 indicates the cloud should be in the parent frame, and color is enabled
                 # bit 2 is 1 so each point is colored
                 simInsertPointsIntoPointCloudOptions = 3
-                color_buffer = bytearray(color_image.flatten().tobytes())
+                color_buffer = bytearray(np.fliplr(np.rot90(color_image, 3)).flatten().tobytes())
                 color_size = color_image.size
             else:
-                strings = [display_name]
-                # see simInsertPointsIntoPointCloud() in vrep documentation
-                # 1 indicates the cloud should be in the parent frame, and color is disabled
-                # bit 1 is 1 so point clouds in cloud reference frame
                 simInsertPointsIntoPointCloudOptions = 1
 
             # Actually transfer the point cloud
@@ -264,10 +287,10 @@ class VREPGraspSimulation(object):
                 strings,
                 color_buffer,
                 vrep.simx_opmode_blocking)
+
             if res == vrep.simx_return_ok:
                 print ('point cloud handle: ', ret_ints[0])  # display the reply from V-REP (in this case, the handle of the created dummy)
                 # set the transform for the point cloud
-                self.setPose(display_name, transform, parent_handle)
                 return ret_ints[0]
             else:
                 print('insertPointCloud_function remote function call failed.')
@@ -278,9 +301,93 @@ class VREPGraspSimulation(object):
             print(''.join(traceback.format_stack()))
             return res
 
+    def set_vision_sensor_image(self, display_name, image, convert=None, scale_factor=256000.0):
+        """Display vision sensor image data in a V-REP simulation.
+
+        [V-REP Vision Sensors](http://www.coppeliarobotics.com/helpFiles/en/visionSensors.htm)
+        [simSetVisionSensorImage](http://www.coppeliarobotics.com/helpFiles/en/apiFunctions.htm#simSetVisionSensorImage)
+
+        # Arguments
+
+        display_name: the string display name of the sensor object in the v-rep scene
+        image: an rgb char array containing an image
+        convert: Controls how images are displayed. Options are:
+                None: Do not modify the data and display it as-is for rgb input data (not working properly for float depth).
+                'depth_rgb': convert a floating point depth image to a straight 0-255 encoding of depths less than 3m
+                'depth_encoded_rgb': convert a floating point depth image to the rgb encoding used by
+                    the google brain robot data grasp dataset's raw png depth image encoding,
+                    see https://sites.google.com/site/brainrobotdata/home/depth-image-encoding.
+                'vrep': add a vrep prefix to any of the above commands to
+                    rotate image by 180 degrees, flip left over right, then invert the color channels
+                    after the initial conversion step.
+                    This is due to a problem where V-REP seems to display images differently.
+                    Examples include 'vrep_depth_rgb' and 'vrep_depth_encoded_rgb',
+                    see http://www.forum.coppeliarobotics.com/viewtopic.php?f=9&t=737&p=27805#p27805.
+        """
+        strings = [display_name]
+        parent_handle = -1
+
+        # TODO(ahundt) support is_greyscale True again
+        is_greyscale = 0
+        vrep_conversion = False
+        if convert is not None:
+            vrep_conversion = 'vrep' in convert
+
+            if 'depth_encoded_rgb' in convert:
+                image = np.array(FloatArrayToRgbImage(image, scale_factor=scale_factor, drop_blue=False),
+                                dtype=np.uint8)
+            elif 'depth_rgb' in convert:
+                image = FloatArrayToRawRGB(image)
+            elif not vrep_conversion:
+                raise ValueError('set_vision_sensor_image() convert parameter must be one of `depth_encoded_rgb`, `depth_rgb`, or None'
+                                 'with the optional addition of the word `vrep` to rotate 180, flip left right, then invert colors.')
+
+        if vrep_conversion:
+            # rotate 180 degrees, flip left over right, then invert the colors
+            image = np.array(255 - np.fliplr(np.rot90(image, 2)), dtype=np.uint8)
+
+        if np.issubdtype(image.dtype, np.integer):
+            is_float = 0
+            floats = []
+            color_buffer = bytearray(image.flatten().tobytes())
+            color_size = image.size
+            num_floats = 0
+        else:
+            is_float = 1
+            floats = [image]
+            color_buffer = bytearray()
+            num_floats = image.size
+            color_size = 0
+
+        cloud_handle = -1
+        res, ret_ints, ret_floats, ret_strings, ret_buffer = vrep.simxCallScriptFunction(
+            self.client_id,
+            'remoteApiCommandServer',
+            vrep.sim_scripttype_childscript,
+            'setVisionSensorImage_function',
+            # int params
+            [parent_handle, num_floats, is_greyscale, color_size],
+            # float params
+            np.append(floats, []),
+            # string params
+            strings,
+            # byte buffer params
+            color_buffer,
+            vrep.simx_opmode_oneshot_wait)
+            # vrep.simx_opmode_blocking)
+        if res == vrep.simx_return_ok:
+            print ('point cloud handle: ', ret_ints[0])  # display the reply from V-REP (in this case, the handle of the created dummy)
+            # set the transform for the point cloud
+            return ret_ints[0]
+        else:
+            print('insertPointCloud_function remote function call failed.')
+            print(''.join(traceback.format_stack()))
+            return res
+
     def create_point_cloud_from_depth_image(self, display_name, depth_image, camera_intrinsics_matrix, transform,
                                             color_image=None, parent_handle=-1, clear=True,
-                                            max_voxel_size=0.01, max_point_count_per_voxel=10, point_size=10, options=0, save_ply_path=None):
+                                            max_voxel_size=0.01, max_point_count_per_voxel=10, point_size=10, options=0, save_ply_path=None,
+                                            rgb_sensor_display_name=None, depth_sensor_display_name=None, convert_depth=FLAGS.vrepVisualizeDepthFormat):
         """Create a dummy object in the simulation
 
         # Arguments
@@ -306,6 +413,19 @@ class VREPGraspSimulation(object):
         res = self.create_point_cloud(display_name, point_cloud, transform, color_image, parent_handle,
                                       clear=clear, max_voxel_size=max_voxel_size, max_point_count_per_voxel=max_point_count_per_voxel,
                                       point_size=point_size, options=options)
+
+        if depth_sensor_display_name is not None:
+            # matplotlib.image.imsave(display_name + depth_sensor_display_name + '_norotfliplr.png', depth_image)
+            # rotate 180, flip left over right then invert the image colors for display in V-REP
+            # depth_image = np.fliplr(np.rot90(depth_image, 2))
+            # matplotlib.image.imsave(display_name + depth_sensor_display_name + '_rot90fliplr.png', depth_image)
+            self.set_vision_sensor_image(depth_sensor_display_name, depth_image, convert=convert_depth)
+
+        if rgb_sensor_display_name is not None:
+            # matplotlib.image.imsave(display_name + rgb_sensor_display_name + '_norotfliplr.png', color_image)
+            # rotate 180, flip left over right then invert the image colors for display in V-REP
+            # matplotlib.image.imsave(display_name + rgb_sensor_display_name + '_rot90fliplr.png', color_image)
+            self.set_vision_sensor_image(rgb_sensor_display_name, color_image, convert='vrep_rgb')
         # Save out Point cloud
         if save_ply_path is not None:
             write_xyz_rgb_as_ply(point_cloud, color_image, save_ply_path)
@@ -335,37 +455,45 @@ class VREPGraspSimulation(object):
             parent_handle = -1
             print('could not find object with the specified name, so putting objects in world frame:', parent_name)
 
+        features_complete_list_time_ordered = grasp_dataset_object.get_time_ordered_features(features_complete_list)
+        print('fixed features time ordered: ', features_complete_list_time_ordered)
+
         clear_frame_depth_image_feature = grasp_dataset_object.get_time_ordered_features(
-            features_complete_list,
+            features_complete_list_time_ordered,
             feature_type='depth_image/decoded',
             step='view_clear_scene'
         )[0]
 
         clear_frame_rgb_image_feature = grasp_dataset_object.get_time_ordered_features(
-            features_complete_list,
+            features_complete_list_time_ordered,
             feature_type='/image/decoded',
             step='view_clear_scene'
         )[0]
 
         depth_image_features = grasp_dataset_object.get_time_ordered_features(
-            features_complete_list,
+            features_complete_list_time_ordered,
             feature_type='depth_image/decoded',
             step='move_to_grasp'
         )
 
         rgb_image_features = grasp_dataset_object.get_time_ordered_features(
-            features_complete_list,
+            features_complete_list_time_ordered,
             feature_type='/image/decoded',
             step='move_to_grasp'
         )
 
-        grasp_success_feature_name = grasp_dataset_object.get_time_ordered_features(
-            features_complete_list,
-            feature_type='grasp_success'
-        )[0]
+        grasp_success_feature_name = 'grasp_success'
 
         for attempt_num in range(num_samples / batch_size):
             # load data from the next grasp attempt
+            if FLAGS.vrepVisualizeDilation:
+                depth_image_tensor = feature_op_dicts[0][0][clear_frame_depth_image_feature]
+                dilated_tensor = tf.nn.dilation2d(input=depth_image_tensor,
+                                                  filter=tf.zeros([50, 50, 1]),
+                                                  strides=[1, 1, 1, 1],
+                                                  rates=[1, 10, 10, 1],
+                                                  padding='VALID')
+                feature_op_dicts[0][0][clear_frame_depth_image_feature] = dilated_tensor
             output_features_dict = tf_session.run(feature_op_dicts)
             if ((attempt_num >= FLAGS.vrepVisualizeGraspAttempt_min or FLAGS.vrepVisualizeGraspAttempt_min == -1) and
                     (attempt_num < FLAGS.vrepVisualizeGraspAttempt_max or FLAGS.vrepVisualizeGraspAttempt_max == -1)):
@@ -408,12 +536,12 @@ class VREPGraspSimulation(object):
         """
         # workaround for V-REP bug where handles may not be correctly deleted
         res, lines_handle = vrep.simxGetObjectHandle(self.client_id, 'camera_to_depth_lines', vrep.simx_opmode_oneshot_wait)
-        print(lines_handle)
-        if res == vrep.simx_return_ok and lines_handle is not -1:
-            vrep.simxRemoveObject(self.client_id, lines_handle, vrep.simx_opmode_oneshot)
+        print('lines handle:', lines_handle)
+        # if res == vrep.simx_return_ok and lines_handle is not -1:
+        #     vrep.simxRemoveObject(self.client_id, lines_handle, vrep.simx_opmode_oneshot)
         # grasp attempt string for showing status
         attempt_num_string = 'attempt_' + str(attempt_num).zfill(4) + '_'
-        self.vrepPrint(attempt_num_string + 'started')
+        self.vrepPrint(attempt_num_string + ' success: ' + str(int(features_dict_np[grasp_success_feature_name])) + ' has started')
         # get param strings for every single gripper position
         base_to_endeffector_transforms = grasp_dataset_object.get_time_ordered_features(
             features_complete_list,
@@ -433,7 +561,8 @@ class VREPGraspSimulation(object):
         # get the camera intrinsics matrix and camera extrinsics matrix
         camera_intrinsics_matrix = features_dict_np[camera_intrinsics_name]
         camera_to_base_4x4matrix = features_dict_np[camera_to_base_transform_name]
-        print('camera/transforms/camera_T_base/matrix44: \n', camera_to_base_4x4matrix)
+        if 'print_transform' in vrepDebugMode:
+            print('camera/transforms/camera_T_base/matrix44: \n', camera_to_base_4x4matrix)
         camera_to_base_vec_quat_7 = grasp_geometry.matrix_to_vector_quaternion_array(camera_to_base_4x4matrix)
         # verify that another transform path gets the same result
         camera_T_base_ptrans = grasp_geometry.matrix_to_ptransform(camera_to_base_4x4matrix)
@@ -459,7 +588,16 @@ class VREPGraspSimulation(object):
         if FLAGS.vrepVisualizeRGBD:
             self.create_point_cloud_from_depth_image('clear_view_cloud', clear_frame_depth_image,
                                                      camera_intrinsics_matrix, base_to_camera_vec_quat_7,
-                                                     clear_frame_rgb_image, parent_handle=parent_handle)
+                                                     clear_frame_rgb_image, parent_handle=parent_handle,
+                                                     rgb_sensor_display_name='kcam_rgb_clear_view',
+                                                     depth_sensor_display_name='kcam_depth_clear_view')
+
+            close_gripper_rgb_image = features_dict_np['gripper/image/decoded']
+            # TODO(ahundt) make sure rot180 + fliplr is applied upstream in the dataset and to the depth images
+            # gripper/image/decoded is unusual because there is no depth image and the orientation is rotated 180 degrees from the others
+            # it might also only be available captured in some of the more recent datasets.
+            cg_rgb = 255 - np.fliplr(close_gripper_rgb_image)
+            self.set_vision_sensor_image('kcam_rgb_close_gripper', cg_rgb, convert=None)
 
         # loop through each time step
         for i, base_T_endeffector_vec_quat_feature_name, depth_name, rgb_name in zip(range(len(base_to_endeffector_transforms)),
@@ -504,7 +642,8 @@ class VREPGraspSimulation(object):
             # format the dummy string nicely for display
             transform_display_name = time_step_name + base_T_endeffector_vec_quat_feature_name.replace(
                 '/transforms/base_T_endeffector/vec_quat_7', '').replace('/', '_')
-            print base_T_endeffector_vec_quat_feature_name, transform_display_name, base_T_endeffector_vec_quat_feature
+            if 'print_transform' in vrepDebugMode:
+                print(base_T_endeffector_vec_quat_feature_name, transform_display_name, base_T_endeffector_vec_quat_feature)
             # display the gripper pose
             self.create_dummy(transform_display_name, base_T_endeffector_vec_quat_feature, parent_handle)
             # Perform some consistency checks based on the above
@@ -517,11 +656,12 @@ class VREPGraspSimulation(object):
                 base_T_endeffector_vec_quat_feature, base_T_endeffector_final_close_gripper, feature_type='vec_quat_7')
             current_to_end_ptransform = grasp_geometry.vector_quaternion_array_to_ptransform(current_to_end)
             current_to_end_rotation = current_to_end_ptransform.rotation()
-            theta = grasp_geometry.grasp_dataset_rotation_to_theta(current_to_end_rotation, verbose=1)
+            theta = grasp_geometry.grasp_dataset_rotation_to_theta(current_to_end_rotation, verbose=0)
             # compare these printed theta values in the visualization to what is documented in
             # see grasp_dataset_rotation_to_theta() this printout will let you verify that
             # theta is estimated correctly for training.
-            print('current to end estimated theta ', transform_display_name, theta)
+            if 'print_transform' in vrepDebugMode:
+                print('current to end estimated theta ', transform_display_name, theta)
             self.create_dummy(transform_display_name, current_to_end, bTe_handle)
 
             # TODO(ahundt) check that transform from end step to itself should be identity, or very close to it
@@ -568,7 +708,7 @@ class VREPGraspSimulation(object):
             # time step is complete
             self.vrepPrint(attempt_num_string + 'time_step_' + time_step_name + 'complete')
         # grasp attempt is complete
-        self.vrepPrint(attempt_num_string + 'complete')
+        self.vrepPrint(attempt_num_string + 'complete, success: ' + str(int(features_dict_np[grasp_success_feature_name])))
 
     def visualize_rgbd(self, features_dict_np, rgb_name, depth_name, grasp_sequence_min_time_step, i,
                        grasp_sequence_max_time_step, camera_intrinsics_matrix, vrepDebugMode, dataset_name, attempt_num,
@@ -583,7 +723,9 @@ class VREPGraspSimulation(object):
         # print rgb_name, rgb_image.shape, rgb_image
         if np.count_nonzero(depth_image_float_format) is 0:
             print('WARNING: DEPTH IMAGE IS ALL ZEROS')
-        print(depth_name, depth_image_float_format.shape)
+        status_string = 'displaying rgb: ' + rgb_name + ' depth: ' + depth_name + ' shape: ' + str(depth_image_float_format.shape)
+        print(status_string)
+        self.vrepPrint(status_string)
         if ((grasp_sequence_min_time_step is None or i >= grasp_sequence_min_time_step) and
                 (grasp_sequence_max_time_step is None or i <= grasp_sequence_max_time_step)):
             # only output one depth image while debugging
@@ -607,10 +749,9 @@ class VREPGraspSimulation(object):
             # TODO(ahundt) should displaying all clouds be a configurable option?
             point_cloud_display_name = 'current_point_cloud'
             self.create_point_cloud_from_depth_image(point_cloud_display_name, depth_image_float_format, camera_intrinsics_matrix, base_to_camera_vec_quat_7,
-                                                     color_image=rgb_image, save_ply_path=path, parent_handle=parent_handle)
-
-            # display the rgb and depth image
-            self.display_images(rgb_image, depth_image_float_format)
+                                                     color_image=rgb_image, save_ply_path=path, parent_handle=parent_handle,
+                                                     rgb_sensor_display_name='kcam_rgb',
+                                                     depth_sensor_display_name='kcam_depth')
 
     def display_images(self, rgb, depth_image_float_format):
         """Display the rgb and depth image in V-REP (not yet working)
@@ -623,14 +764,14 @@ class VREPGraspSimulation(object):
         rgb_for_display = rgb.astype('uint8')
         rgb_for_display = rgb_for_display.ravel()
         is_color = 1
-        res = vrep.simxSetVisionSensorImage(self.client_id, kcam_rgb_handle, rgb_for_display, is_color, vrep.simx_opmode_oneshot)
+        res = vrep.simxSetVisionSensorImage(self.client_id, kcam_rgb_handle, rgb_for_display, is_color, vrep.simx_opmode_oneshot_wait)
         print('simxSetVisionSensorImage rgb result: ', res, ' rgb shape: ', rgb.shape)
         res, kcam_depth_handle = vrep.simxGetObjectHandle(self.client_id, 'kcam_depth', vrep.simx_opmode_oneshot_wait)
         normalized_depth = depth_image_float_format * 255 / depth_image_float_format.max()
         normalized_depth = normalized_depth.astype('uint8')
         normalized_depth = normalized_depth.ravel()
         is_color = 0
-        res = vrep.simxSetVisionSensorImage(self.client_id, kcam_depth_handle, normalized_depth, is_color, vrep.simx_opmode_oneshot)
+        res = vrep.simxSetVisionSensorImage(self.client_id, kcam_depth_handle, normalized_depth, is_color, vrep.simx_opmode_oneshot_wait)
         print('simxSetVisionSensorImage depth result: ', res, ' depth shape: ', depth_image_float_format.shape)
 
     def __del__(self):
