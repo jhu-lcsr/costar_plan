@@ -8,7 +8,7 @@ rosrun costar_bullet $1 \
   -i 5000 --features multi  --verbose \
   --seed 0 \
   --cpu \
-  --save --data_file test.npz \
+  --save --data_file test2.h5f \
   --collection_mode goal
 
 # NOTE: removing this flag now that we are predicting both successful and
