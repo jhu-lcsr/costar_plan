@@ -30,6 +30,13 @@ class CostarSimulationManager(object):
             "wrist_3_joint"]
     joint_positions = [0.30, -1.33, -1.80, -0.27, 1.50, 1.60]
 
+    def _sampleRobotJointPositions(self):
+        '''
+        Note: if we are using the UR5 as the arm, we can just use these default
+        position arguments and start from there.
+        '''
+        return self.joint_positions
+
     def __init__(self,launch="ur5", experiment="magnetic_assembly", seed=None,
             gui=False, case="double1", *args,**kwargs):
 
