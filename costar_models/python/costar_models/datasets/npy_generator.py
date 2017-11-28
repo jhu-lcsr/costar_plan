@@ -110,5 +110,5 @@ class NpzGeneratorDataset(object):
         return sample, filename
 
     def _load(self, filename):
-        return np._load(filename)
+        return np.load(filename)
 
