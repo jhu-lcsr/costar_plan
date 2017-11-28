@@ -18,7 +18,6 @@ class LogCallback(keras.callbacks.Callback):
         self.file = open(os.path.join(self.directory,"%s_log.csv"%name),'w')
 
     def on_epoch_end(self, epoch, logs={}):
-        print(epoch,logs)
         if epoch == 0:
             msg = ""
             for i, key in enumerate(logs.keys()):
@@ -159,12 +158,9 @@ class PredictorShowImage(keras.callbacks.Callback):
                 print("Value target =", np.argmax(self.targets[2][j]))
             plt.close(fig)
 
-
-class ImageCb(keras.callbacks.Callback):
+class StateCb(keras.callbacks.Callback):
     '''
-    Save an image showing what some number of frames and associated predictions
-    will look like at the end of an epoch. This will only show the input,
-    target, and predicted target image.
+    Just predict state information from our models
     '''
 
     def __init__(self, predictor, features, targets,
@@ -196,13 +192,66 @@ class ImageCb(keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs={}):
         self.epoch += 1
         res = self.predictor.predict(self.features)
+        show_label = False
+        if not isinstance(res, list):
+            arm = res
+        elif len(res) == 3:
+            show_label = True
+            arm, gripper, label = res
+        elif len(res) == 2:
+            arm, gripper = res
+        for j in range(self.num):
+            print("--------")
+            print("%d: arm = %s"%(j,arm[j]))
+            print("vs. arm =", self.targets[0][j])
+            print("%d: gripper = %s"%(j,gripper[j]))
+            print("vs. gripper =", self.targets[1][j])
+            if show_label:
+                print("%d: label = %s"%(j,np.argmax(label[j])))
+                print("vs. label =", np.argmax(self.targets[2][j]))
+
+class ImageCb(keras.callbacks.Callback):
+    '''
+    Save an image showing what some number of frames and associated predictions
+    will look like at the end of an epoch. This will only show the input,
+    target, and predicted target image.
+    '''
+
+    def __init__(self, predictor, features, targets,
+            model_directory=DEFAULT_MODEL_DIRECTORY,
+            name="model",
+            min_idx=0, max_idx=66, step=11,
+            *args, **kwargs):
+        '''
+        Set up a data set we can use to output validation images.
+
+        Parameters:
+        -----------
+        predictor: model used to generate predictions (can be different from
+                   the model being trained)
+        targets: training target info, in compressed form
+        verbose: print out extra information
+        '''
+        self.predictor = predictor
+        self.idxs = range(min_idx, max_idx, step)
+        self.num = len(self.idxs)
+        self.features = [f[self.idxs] for f in features]
+        self.targets = [np.squeeze(t[self.idxs]) for t in targets]
+        self.epoch = 0
+        self.directory = os.path.join(model_directory,'debug')
+        if not os.path.exists(self.directory):
+            os.makedirs(self.directory)
+
+    def on_epoch_end(self, epoch, logs={}):
+        self.epoch += 1
+        res = self.predictor.predict(self.features)
         if isinstance(res, list):
-            img, arm, gripper, out = res
+            img, arm, gripper, label = res
         else:
             img = res
         for j in range(self.num):
             name = os.path.join(self.directory,
-                    "image_ae_epoch%d_result%d.png"%(self.epoch,j))
+                    "image_%s_epoch%d_result%d.png"%(self.name,self.epoch,j))
             fig = plt.figure()
             plt.subplot(1,3,1)
             plt.title('Input Image')

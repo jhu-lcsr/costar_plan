@@ -94,6 +94,21 @@ class ListenerManager(object):
         gen = PointCloud2.read_points(msg, skip_nans=True)
         pass
 
+    def _parseMessage(self, msg):
+        '''
+        Split a string message up into multiple tokens for the action being
+        executed and an optional tag for the current task step.
+        '''
+        toks = msg.split(' ')
+        cmd = toks[0]
+        if len(toks) > 1:
+            name = toks[1]
+            if len(toks) > 2:
+                name += " %s"%name
+        else:
+            name = None
+        return cmd, name
+
     def _depthInfoCb(self, msg):
         self.camera_depth_info = msg
 
@@ -121,3 +136,4 @@ class ListenerManager(object):
         filename = self.filename_template%self.num_trials
         np.savez(filename, **self.data)
         self._resetData()
+

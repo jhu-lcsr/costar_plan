@@ -1,0 +1,62 @@
+#!/usr/bin/env python
+
+from __future__ import print_function
+
+#import matplotlib as mpl
+#mpl.use("Agg")
+
+from costar_models import *
+from costar_models.datasets.npz import NpzDataset
+from costar_models.datasets.npy_generator import NpzGeneratorDataset
+
+'''
+Tool for showing the goals of different actions given particular data.
+'''
+
+
+def main(args):
+    SetCPU(args)
+
+    data_file_info = args['data_file'].split('.')
+    data_type = data_file_info[-1]
+
+    if data_type == "npz":
+        root = ""
+        for i, tok in enumerate(data_file_info[:-1]):
+            if i < len(data_file_info)-1 and i > 0:
+                root += '.'
+            root += tok
+        dataset = NpzGeneratorDataset(root)
+        data = dataset.load(success_only = args['success_only'])
+    else:
+        raise NotImplementedError('data type not implemented: %s'%data_type)
+
+    model = MakeModel(taskdef=None, **args)
+    train_generator = model.trainGenerator(dataset)
+    test_generator = model.testGenerator(dataset)
+
+    if 'model' in args and args['model'] is not None:
+        model = args["model"]
+        if not model == "predictor":
+            raise RuntimeError('Unsupported model type "%s"'%model)
+        model = RobotMultiPredictionSampler(taskdef=None, **args)
+        model.load(world=None,**data)
+        model.load(world=None,**data)
+        loss_sums = None
+        train_sum = 0
+        total_count = 0
+        for i in range(dataset.numTest()):
+            data, success = dataset.loadTest(i)
+            if success or not model.success_only:
+                sums, tsum, count = model.validate(**data)
+                train_sum += tsum
+                total_count += count
+            print(i, "target s=",sums/total_count, "train =", train_sum/total_count)
+                
+    else:
+        raise RuntimeError('Must specify model type to visualize')
+
+
+if __name__ == '__main__':
+    args = ParseModelArgs()
+    main(args)

@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import hickle as hkl
 import numpy as np
 from keras import backend as K
@@ -10,9 +12,9 @@ class SequenceGenerator(Iterator):
                  output_mode='error', sequence_start_mode='all', N_seq=None,
                  data_format=K.image_data_format()):
         self.X = hkl.load(data_file)  # X will be like (n_images, nb_cols, nb_rows, nb_channels)
-        print self.X.shape
+        print (self.X.shape)
         self.X = np.expand_dims(self.X, axis=3)
-        print 'new shape', self.X.shape
+        print ('new shape', self.X.shape)
         self.sources = hkl.load(source_file) # source for each image so when creating sequences can assure that consecutive frames are from same video
         self.nt = nt
         self.batch_size = batch_size
