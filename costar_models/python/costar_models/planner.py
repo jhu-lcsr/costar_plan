@@ -32,7 +32,7 @@ Returns for all tools:
 out: an output tensor
 '''
 
-def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same"):
+def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same", discriminator=False):
     '''
     Helper for creating networks. This one will add a convolutional block.
 
@@ -53,7 +53,10 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same"):
             strides=(stride,stride),
             padding=padding)(x)
     x = BatchNormalization()(x)
-    x = LeakyReLU(alpha=0.2)(x)
+    if discriminator:
+        x = LeakyReLU(alpha=0.2)(x)
+    else:
+        x = Activation("relu")(x)
     if dropout_rate > 0:
         x = Dropout(dropout_rate)(x)
     return x
@@ -79,7 +82,11 @@ def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate, padding="same")
             strides=(stride,stride),
             padding=padding)(x)
     x = BatchNormalization()(x)
-    x = LeakyReLU(alpha=0.2)(x)
+    discriminator = False
+    if discriminator:
+        x = LeakyReLU(alpha=0.2)(x)
+    else:
+        x = Activation("relu")(x)
     if dropout_rate > 0:
         x = Dropout(dropout_rate)(x)
     return x
