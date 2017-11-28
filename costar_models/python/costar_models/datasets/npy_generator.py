@@ -10,7 +10,12 @@ class NpzGeneratorDataset(object):
 
     def __init__(self, name, split=0.1, ):
         '''
-        Set name of directory
+        Set name of directory to load files from
+
+        Parameters:
+        -----------
+        name: the directory
+        split: portion of the data files reserved for testing/validation
         '''
         self.name = name 
         self.split = split
@@ -39,7 +44,7 @@ class NpzGeneratorDataset(object):
                     if name[1] == 'failure':
                         continue
                 if i < 2:
-                    fsample = np.load(os.path.join(self.name,f))
+                    fsample = self._load(os.path.join(self.name,f))
                     for key, value in fsample.items():
                         if key not in sample:
                             sample[key] = value
@@ -89,17 +94,21 @@ class NpzGeneratorDataset(object):
             raise RuntimeError('index %d greater than number of files'%i)
         filename = self.test[i]
         success = 'success' in filename
-        return np.load(os.path.join(self.name,filename)), success
+        return self._load(os.path.join(self.name,filename)), success
 
     def sampleTrain(self):
         filename = self.sampleTrainFilename()
         try:
-            sample = np.load(filename)
+            sample = self._load(filename)
         except Exception as e:
             raise RuntimeError("Could not load file " + filename + ": " + str(e))
         return sample, filename
 
     def sampleTest(self):
         filename = self.sampleTestFilename()
-        sample = np.load(filename)
+        sample = self._load(filename)
         return sample, filename
+
+    def _load(self, filename):
+        return np._load(filename)
+
