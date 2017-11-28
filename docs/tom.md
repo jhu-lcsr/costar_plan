@@ -1,7 +1,16 @@
 
 # ROS, Planning, and TOM
 
-The TOM examples require the [TOM Robot package]() to execute.
+The TOM examples require the [TOM Robot package](https://github.com/cpaxton/tom_robot) to execute.
+
+## Downloading Dataset
+
+The first dataset we have consists of a set of demonstrations of TOM picking and moving an "orange" from one place to another. These files are all available on Dropbox:
+```
+https://www.dropbox.com/sh/jucd681430959t2/AACGdPQp3z24VineOrYJSK4na?dl=0
+```
+
+Just download them and unpack into whatever location makes sense for you. You'll be running the CTP tool from the directory root after unpacking these data files.
 
 ## Getting started
 

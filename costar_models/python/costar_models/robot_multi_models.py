@@ -174,6 +174,7 @@ def GetEncoder3D(img_shape, arm_size, gripper_size, dropout_rate,
 
     return ins, x
 
+
 def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
         filters, discriminator=False, tile=False, dropout=True, leaky=True,
         pose_col_dim=None,
@@ -299,7 +300,7 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
     # one with skip connections
     for i in range(pre_tiling_layers):
 
-        x = ApplyTD(Conv2D(int(filters / 2),
+        x = ApplyTD(Conv2D(int(filters),
                    kernel_size=kernel_size, 
                    strides=(1, 1),
                    padding="same"))(x)
@@ -334,7 +335,6 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
                     None, None, time_distributed, pose_col_dim)
         elif config == "mobile":
             x, robot = TilePose(x, pose_in, tile_height, tile_width, None, None, time_distributed, pose_col_dim)
-        
 
     else:
         ins = [samples]
@@ -418,5 +418,5 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
     if discriminator:
         x = Dense(1,activation="sigmoid")(x)
 
-    return ins, x, skips, robot
+    return ins, x, skips
 

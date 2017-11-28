@@ -136,3 +136,4 @@ class ListenerManager(object):
         filename = self.filename_template%self.num_trials
         np.savez(filename, **self.data)
         self._resetData()
+

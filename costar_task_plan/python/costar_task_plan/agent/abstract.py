@@ -3,34 +3,7 @@ By Chris Paxton
 Copyright (c) 2017, The Johns Hopkins University
 All rights reserved.
 
-This license is for non-commercial use only, and applies to the following
-people associated with schools, universities, and non-profit research institutions
-
-Redistribution and use in source and binary forms by the aforementioned
-people and institutions, with or without modification, are permitted
-provided that the following conditions are met:
-
-* Usage is non-commercial.
-
-* Redistribution should be to the listed entities only.
-
-* Redistributions of source code must retain the above copyright notice, this
-  list of conditions and the following disclaimer.
-
-* Redistributions in binary form must reproduce the above copyright notice,
-  this list of conditions and the following disclaimer in the documentation
-  and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+See License for more details.
 '''
 from __future__ import print_function
 
@@ -41,6 +14,7 @@ import signal
 
 from costar_models.datasets.tfrecord import TFRecordConverter
 from costar_models.datasets.npz import NpzDataset
+from costar_models.datasets.h5f import H5fDataset
 
 CM_NEXT = "next"
 CM_GOAL = "goal"
@@ -64,6 +38,8 @@ class AbstractAgent(object):
     NULL = ''
     NUMPY_ZIP = 'npz'
     TFRECORD = 'tfrecord'
+    MOVIE = 'npz+movie'
+    H5F = 'h5f'
 
     def __init__(self,
             env=None,
@@ -106,6 +82,8 @@ class AbstractAgent(object):
         if data_type is None:
             if '.npz' in data_file:
                 data_type = self.NUMPY_ZIP
+            elif '.h5f' in data_file:
+                data_type = self.H5F
             elif '.tfrecord' in data_file:
                 data_type = self.TFRECORD
             else:
@@ -134,13 +112,21 @@ class AbstractAgent(object):
             raise RuntimeError("collecting timestepped predictions over " + \
                                "trajectories not currently supported")
 
-        if self.data_type == self.NUMPY_ZIP:
+        if self.data_type == self.NUMPY_ZIP or self.data_type == self.H5F:
             root = ""
             for tok in data_file.split('.')[:-1]:
                 root += tok
-            self.npz_writer = NpzDataset(root)
-        else:
+            if self.data_type == self.NUMPY_ZIP:
+                self.npz_writer = NpzDataset(root)
+            elif self.data_type == self.H5F:
+                self.npz_writer = H5fDataset(root)
+            else:
+                raise RuntimeError('data type %s not recognized'
+                        % self.data_type)
+        elif self.data_type == self.TFRECORD:
             self.tf_writer = TFRecordConverter(data_file)
+        else:
+            raise RuntimeError('data type %s not recognized'%self.data_type)
 
         self.datafile_name = data_file
         self.datafile = os.path.join(directory, data_file)
@@ -149,7 +135,7 @@ class AbstractAgent(object):
             # =====================================================================
             # This is necessary for reading data in to the models.
             self.data = {}
-            if self.data_type == self.NUMPY_ZIP:
+            if self.data_type == self.NUMPY_ZIP or self.data_type == self.H5F:
                 self.data = self.npz_writer.load(success_only=self.success_only)
             elif self.load:
                 raise RuntimeError('Could not load data from %s!' %
