@@ -7,8 +7,7 @@ Use this script to launch the whole simulation, not the various launch files.
 import rospy
 
 from costar_task_plan.gym import GazeboEnv
-from costar_simulation import CostarSimulationManager
-from costar_task_plan.simulation import ParseGazeboArgs
+from costar_simulation import CostarSimulationManager, ParseGazeboArgs
 
 if __name__ == '__main__':
     args = ParseGazeboArgs()

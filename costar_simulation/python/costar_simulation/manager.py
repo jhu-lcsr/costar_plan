@@ -29,16 +29,23 @@ class CostarSimulationManager(object):
             "wrist_2_joint",
             "wrist_3_joint"]
     joint_positions = [0.30, -1.33, -1.80, -0.27, 1.50, 1.60]
-    experiments = ["assembly", "stack", "tables"]
     gui = False
     rviz = True
 
-    def __init__(self,*args,**kwargs):
+    def __init__(self,launch="ur5",experiment="magnetic_assembly",seed=None,*args,**kwargs):
         self.procs = []
         self.reset_srv = None
         self.pause_srv = None
         self.unpause_srv = None
-        self.experiment = self.experiments[0]
+        self.experiment = "%s.launch"%experiment
+        self.launch = "%s.launch"%launch
+        self.seed = seed
+        print("=========================================")
+        print("|      Gazebo Configuration Report      |")
+        print("| launch file = %s"%self.launch)
+        print("| experiment file = %s"%self.experiment)
+        print("| seed = %s"%(str(self.seed)))
+        print("=========================================")
 
     def sleep(self, t=1.0):
         time.sleep(t)
