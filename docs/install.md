@@ -66,18 +66,41 @@ sudo rosdep init
 rosdep update
 ```
 
+#### Nvidia CudaNN
+
+GPU setup for tensorflow is fairly easy, and you can find the instructions on the website. If it causes problems:
+
+```
+sudo pip uninstall tensorflow && sudo pip install tensorflow-gpu --upgrade
+```
+
+Then download the appropriate CudaNN libraries. For Ubuntu 14.04 and Tensforflow 1.4, these are easily installed with:
+```
+sudo dpkg -i libcudnn6_6.0.21-1+cuda8.0_amd64.deb 
+sudo dpkg -i libcudnn6-dev_6.0.21-1+cuda8.0_amd64.deb 
+```
+
 ### Step 1. Get CoSTAR Planning and Simulation Packages from Git
+
+After this, you can download our various prerequisites from git. These packages are not qutonamtically installed from the package manager.
 
 ```
 cd path/to/your/catkin_ws/src
-git clone https://github.com/cburbridge/python_pcd.git
+# Contains larger binary files -- meshes, etc.
 git clone gttps://github.com/jhu-lcsr/costar_objects.git
+
+# Utility associated with costar_objects repo
+git clone https://github.com/cburbridge/python_pcd.git
+
+# Simple DMP library
 git clone https://github.com/cpaxton/dmp.git --branch indigo
+
+# Robotiq 85 gripper library
 git clone https://github.com/cpaxton/robotiq_85_gripper.git
+
+# Used to install ROS dependences from archive.
 rosdep install -y --from-paths ./ --ignore-src --rosdistro $ROS_DISTRO
 ```
-
-Note the `lcsr_assembly` package is not strictly necesary.
 
 ### Step 2. Build catkin workspace
 
