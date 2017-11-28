@@ -45,6 +45,15 @@ class CostarSimulationManager(object):
         model and does all that other good stuff.
 
         Parameters:
+        -----------
+        launch: root name of the launch file; this determines which robot will
+                be loaded and how.
+        experiment: this creates the various objects that will populate the
+                    world, and is used to load the appropriate task model.
+        case: this is a sub-set for some of our experiments.
+        gui: start RViz
+        gzclient: start gazebo client
+        seed: used to initialize a random seed if necessary
         '''
 
         # =====================
