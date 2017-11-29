@@ -95,14 +95,24 @@ flags.DEFINE_string('grasp_sequence_motion_params', 'endeffector_current_T_endef
                        'next_timestep' input the params for the command saved in the dataset with translation,
                            sin theta, cos theta from the current time step to the next.
                        'endeffector_current_T_endeffector_final_vec_sin_cos_5' use
-                           the real reached gripperer pose of the end effector to calculate
+                           the real reached griper pose of the end effector to calculate
                            the transform from the current time step to the final time step
                            to generate the parameters defined in https://arxiv.org/abs/1603.02199,
                            consisting of [x,y,z, sin(theta), cos(theta)].
                        'endeffector_current_T_endeffector_final_vec_quat_7' use
-                           the real reached gripperer pose of the end effector to calculate
+                           the real reached gripper pose of the end effector to calculate
                            the transform from the current time step to the final time step
                            to generate the parameters [x, y, z, qx, qy, qz, qw].
+                    """)
+flags.DEFINE_string('grasp_success_label', 'binary_gaussian_2D',
+                    """Algorithm used to generate the grasp_success labels.
+
+                        grasp_success: binary scalar, 1 for success 0 for failure
+                        grasp_success_binary_2D: Apply a constant label at every input pixel.
+                            (Not yet implemented.)
+                        grasp_success_gaussian_2d: Apply a 0 to 1 label at every input pixel
+                            adjusted by a weight centered on the final gripper position in the image frame.
+                            (Not yet implemented.)
                     """)
 
 FLAGS = flags.FLAGS
@@ -137,7 +147,7 @@ class GraspDataset(object):
         *.tfrecord and *.tfrecord*-of-* is the actual data stored in the tfrecord.
 
         If you are using this for the first time simply select the dataset number you would like, such as
-        102 in the constructor, and then call `single_pose_training_tensors()`. This will give
+        102 in the constructor, and then call `get_training_tensors()`. This will give
         you tensorflow tensors for the original dataset configuration and parameterization. Then initialize
         your model with the tensors and train or predict.
 
@@ -383,6 +393,9 @@ class GraspDataset(object):
                     which is used to determine desired joint positions.
                 'reached_pose'
                     Pose calculated by forward kinematics from current robot state in status updates.
+                    Please note that this is the pose reached at the end of the time step indicated by
+                    the rest of the feature path, which makes it nearest to the image at the start of
+                    the next time step.
                 'joint/commanded_torques'
                     Commanded torques are the torque values calculated from the inverse kinematics
                     of the commanded pose and the robot driver.
@@ -424,6 +437,8 @@ class GraspDataset(object):
                     0 otherwise. This incorporates a combination of 'gripper/status', the open closed angle
                     of the gripper as the dominant indicator, with image differencing between the final
                     two object drop image features as a secondary indicator of grasp success.
+                'image_coordinate'
+                    An integer tuple (x, y) indicating an image coordinate.
 
             record_type:
                 'all' will match any feature type.
@@ -619,6 +634,7 @@ class GraspDataset(object):
         feature_type: The feature type to be used for this calculation.
             'vec_quat_7' Create the 7 entry vector quaternion feature [dx, dy, dz, qx, qy, qz, qw]
             'vec_sin_cos_5' Create the 5 entry vector quaternion feature [dx, dy, dz, sin(theta), cos(theta)]
+            '' don't get any specific param names
 
         # Returns
 
@@ -639,7 +655,9 @@ class GraspDataset(object):
         new_pose_op_param_names = []
         new_feature_op_dicts = []
 
+        # loop through all grasp attempts in this batch
         for i, (fixed_feature_op_dict, sequence_feature_op_dict) in enumerate(feature_op_dicts):
+            # loop through all time steps in this grasp attempt
             for j, base_to_endeffector_transform_name in enumerate(base_to_endeffector_transforms):
                 # Create the 7 entry vector quaternion feature [dx, dy, dz, qx, qy, qz, qw]
                 # generate the transform calculation op, might be able to set stateful=False for a performance boost
@@ -652,6 +670,7 @@ class GraspDataset(object):
                     stateful=False,
                     name='py_func/current_endeffector_to_final_endeffector_feature/vec_quat_7')
                 current_to_end_op.set_shape([7])
+                # TODO(ahundt) are assigned numbers off by 1 skipping /grasp/ without a number?
                 current_to_end_name = 'move_to_grasp/{:03}/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_quat_7'.format(j)
                 fixed_feature_op_dict[current_to_end_name] = current_to_end_op
                 if i == 0:
@@ -684,10 +703,13 @@ class GraspDataset(object):
 
         return new_feature_op_dicts, features_complete_list, new_pose_op_param_names
 
-    def _endeffector_final_clear_view_depth_pixel_T_endeffector_final(self,
-                                                                      feature_op_dicts,
-                                                                      features_complete_list,
-                                                                      feature_type='transforms/base_T_endeffector/vec_quat_7'):
+    def _get_surface_relative_transform_features(
+            self,
+            feature_op_dicts,
+            features_complete_list,
+            feature_type='delta_depth_sin_cos_3',
+            offset=None,
+            random_crop=FLAGS.random_crop):
         """This generates the surface relative transform features.
 
         The surface relative transform is from the clear view depth image
@@ -705,9 +727,30 @@ class GraspDataset(object):
         reached endeffector pose to the final time step's reached endeffector pose.
         'surface_relative_grasp/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/vec_quat_7'
 
-        See also: surface_relative_transform in grasp_geometry.py.
+        This function defines new features:
 
-        # TODO(ahundt) use tfquaternion.py, not tf.py_func() due to limitations in https://www.tensorflow.org/api_docs/python/tf/py_func
+        'surface_relative_grasp/reached_pose/transforms/depth_pixel_T_endeffector_final/vec_quat_7'
+            This is the transform from the depth pixel point to the end effector point at the final time step.
+            The depth value is taken from the clear view frame's depth image at the xy_2 coordinate described below.
+
+        'surface_relative_grasp/reached_pose/image_coordinates/depth_pixel_T_endeffector_final/xy_2'
+            This is the x,y coordinate of the relevant depth pixel in the depth image frame from the feature above.
+            This is expressed in a tensor as [x, y].
+
+        'surface_relative_grasp/move_to_grasp/###/depth_pixel_T_endeffector_final/delta_depth_sin_cos_3'
+            This is a surface relative transform based of the distance between
+            the clear view depth pixel and the gripper wrist coordinate,
+            as well as the change in angle theta from the current time step to the end.
+            This is expressed in a tensor as [delta_depth, sin(theta), cos(theta)].
+
+        'surface_relative_grasp/move_to_grasp/###/depth_pixel_T_endeffector_final/delta_depth_quat_5'
+            This is a surface relative transform based of the distance between
+            the clear view depth pixel and the gripper wrist coordinate,
+            as well as the change in orientation from the current time step to
+            the final move_to_grasp time step when the gripper was closed.
+            This is expressed in a tensor as [delta_depth, qx, qy, qz, qw].
+
+        See also: surface_relative_transform in grasp_geometry.py.
 
         # Parameters
 
@@ -715,16 +758,37 @@ class GraspDataset(object):
             See _get_simple_parallel_dataset_ops for details.
         features_complete_list: A list of all feature strings.
             See _get_simple_parallel_dataset_ops for details.
-        feature_type: The feature type to be used for this calculation.
+        feature_type: The feature type to be used for this calculation. Options include:
+            'delta_depth_sin_cos_3' [delta_depth, sin(theta), cos(theta)] where delta_depth depth offset for the gripper
+                from the measured surface, alongside a single rotation angle theta containing sin(theta), cos(theta).
+                This format does not allow for arbitrary commands to be defined, and the rotation component
+                is based on the paper and dataset:
+                    https://sites.google.com/site/brainrobotdata/home/grasping-dataset
+                    https://arxiv.org/abs/1603.02199
+            'delta_depth_quat_5' A numpy array with 5 total entries including depth offset and 4 entry quaternion.
+        offset: random crop offset for depth preprocessing.
 
         # Returns
 
-            new_feature_op_dicts, features_complete_list, new_pose_op_param_names
+            [new_feature_op_dicts, features_complete_list, new_pose_op_param_names, pixel_coordinate_param_names]
+
+            new_feature_op_dicts is an updated list of feature op dictionaries, fixed and sequence to replace the originally passed version.
+
+            features_complete_list is an updated list of all features.
+
+            new_pose_op_param_names is a list of ops with the type specified by the feature_type parameter.
+
+            pixel_coordinate_param_names is ['surface_relative_grasp/reached_pose/image_coordinates/depth_pixel_T_endeffector_final/xy_2'].
         """
+
+        base_to_endeffector_transforms = self.get_time_ordered_features(
+            features_complete_list,
+            feature_type='reached_pose',
+            step='move_to_grasp')
 
         pose_op_params = self.get_time_ordered_features(
             features_complete_list,
-            feature_type=feature_type,
+            feature_type='transforms/base_T_endeffector/vec_quat_7',
             step='move_to_grasp'
         )
 
@@ -734,32 +798,114 @@ class GraspDataset(object):
             step='view_clear_scene'
         )
 
-        final_pose_op = pose_op_params[-1]
+        final_pose_op_name = pose_op_params[-1]
         new_pose_op_param_names = []
+        current_to_end_names = []
+        pixel_coordinate_param_names = []
         new_feature_op_dicts = []
 
-        current_to_end_name = 'surface_relative_grasp/reached_pose/transforms/depth_pixel_T_endeffector_final/vec_quat_7'
+        # TODO(ahundt) make sure these feature names fit in nicely with get_time_ordered_features
+        # features that are needed for the final time step only
+        pixel_to_end_name = 'surface_relative_grasp/reached_pose/transforms/depth_pixel_T_endeffector_final/vec_quat_7'
+        pixel_coordinate_name = 'surface_relative_grasp/reached_pose/image_coordinates/depth_pixel_T_endeffector_final/xy_2'
 
-        for i, (fixed_feature_op_dict, sequence_feature_op_dict) in enumerate(feature_op_dicts):
+        # TODO(ahundt) GENERATE THE NAMES FOR ALL THE DEPTH RELATIVE FEATURES, ONE PER TIME STEP
+        # TODO(ahundt) CURRENTLY IN THE MIDST OF GENERATING THE FEATURES FOR EACH TIME STEP AND UPDATING ALL PY_FUNC PARAMETERS
+        # loop through all grasp attempts in this batch
+        for batch_i, (fixed_feature_op_dict, sequence_feature_op_dict) in enumerate(feature_op_dicts):
+            depth_clear_view_op = fixed_feature_op_dict[depth_clear_view]
+            final_pose_op = fixed_feature_op_dict[final_pose_op_name]
             camera_intrinsics_matrix = fixed_feature_op_dict['camera/intrinsics/matrix33']
+            fixed_feature_op_dict['camera/original/intrinsics/matrix33'] = camera_intrinsics_matrix
             camera_T_base = fixed_feature_op_dict['camera/transforms/camera_T_base/matrix44']
-            current_to_end_op = tf.py_func(
-                grasp_geometry.grasp_dataset_to_surface_relative_transform,
-                # parameters for call to surface_relative_transform function call
-                [depth_clear_view, camera_intrinsics_matrix, camera_T_base, fixed_feature_op_dict[final_pose_op]],
-                tf.float32, stateful=False, name='py_func/grasp_dataset_to_surface_relative_transform')
-            # vector quaternion array of size 7
-            current_to_end_op.set_shape([7])
-            fixed_feature_op_dict[current_to_end_name] = current_to_end_op
-            features_complete_list = np.append(features_complete_list, current_to_end_name)
-            new_pose_op_param_names = np.append(new_pose_op_param_names, current_to_end_name)
+
+            # crop the depth image if that option has been set
+            depth_clear_view_op, camera_intrinsics_matrix = self._depth_preprocessing(
+                depth_clear_view_op, offset=offset, intrinsics_matrix_op=camera_intrinsics_matrix, random_crop=random_crop)
+
+            # update the camera intrinsics matrix according to the crop
+            # note that at the time of writing the crop is kept the same for all minibatches in a single dataset,
+            # so the overwriting that occurs here should not affect the results
+            # TODO(ahundt) Should the matrix be updated with the cropped version directly, or should a new feature be created?
+            fixed_feature_op_dict['camera/intrinsics/matrix33'] = camera_intrinsics_matrix
+            fixed_feature_op_dict['camera/cropped/intrinsics/matrix33'] = camera_intrinsics_matrix
+
+            # loop through all time steps in this grasp attempt
+            for time_step_j, base_to_endeffector_transform_name in enumerate(base_to_endeffector_transforms):
+                base_to_endeffector_op = fixed_feature_op_dict[base_to_endeffector_transform_name]
+                # call the python function that extracts all features for the surface relative transforms
+                (feature_op, depth_relative_vec_quat_array, pixel_coordinate_op, camera_to_endeffector_current_op,
+                 camera_to_endeffector_end_op, current_to_end_op) = tf.py_func(
+                    grasp_geometry.grasp_dataset_to_surface_relative_transform_feature,
+                    # parameters for grasp_dataset_to_surface_relative_transform_feature() function call
+                    [depth_clear_view, camera_intrinsics_matrix, camera_T_base,
+                     base_to_endeffector_op, final_pose_op, feature_type],
+                     # return type data formats to expect
+                    [tf.float32, tf.float32, tf.int32, tf.float32, tf.float32, tf.float32],
+                    stateful=False, name='py_func/grasp_dataset_to_surface_relative_transform')
+
+                if time_step_j == 0:
+                    # create the final timestep surface relative transform feature
+                    # vector quaternion array of size 7
+                    depth_relative_vec_quat_array.set_shape([7])
+                    fixed_feature_op_dict[pixel_to_end_name] = depth_relative_vec_quat_array
+
+                    # create final timestep pixel coordinate tensor feature entry
+                    pixel_coordinate_op.set_shape([2])
+                    fixed_feature_op_dict[pixel_coordinate_name] = pixel_coordinate_op
+
+                    if batch_i == 0:
+                        # assume all batches have the same feature name
+                        features_complete_list = np.append(features_complete_list, pixel_to_end_name)
+                        # assume all batches have the same feature name
+                        features_complete_list = np.append(features_complete_list, pixel_coordinate_name)
+
+                # TODO(ahundt) are assigned numbers off by 1 skipping /grasp/ without a number?
+                current_to_end_name = 'move_to_grasp/{:03}/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_quat_7'.format(time_step_j)
+                current_to_end_op.set_shape([7])
+                fixed_feature_op_dict[current_to_end_name] = current_to_end_op
+                if batch_i == 0:
+                    # assume all batches have the same features
+                    features_complete_list = np.append(features_complete_list, current_to_end_name)
+                    current_to_end_names = np.append(current_to_end_names, current_to_end_name)
+
+                # delta_depth_sin_cos_3 format, aka ddsc3
+                # TODO(ahundt) USE THE CORRECT NAMES FOR THE DEPTH RELATIVE FEATURES, are assigned numbers off by 1 skipping /grasp/ without a number?
+                current_to_end_ddsc3 = 'surface_relative_grasp/move_to_grasp/{:03}/depth_pixel_T_endeffector_final/delta_depth_sin_cos_3'.format(time_step_j)
+                feature_op.set_shape([3])
+                fixed_feature_op_dict[current_to_end_ddsc3] = feature_op
+                if batch_i == 0:
+                    # assume all batches have the same feature name
+                    features_complete_list = np.append(features_complete_list, current_to_end_ddsc3)
+                    if 'delta_depth_sin_cos_3' in feature_type:
+                        new_pose_op_param_names = np.append(new_pose_op_param_names, current_to_end_ddsc3)
+
+                # delta_depth_sin_cos_3 format, aka ddsc3
+                # TODO(ahundt) USE THE CORRECT NAMES FOR THE DEPTH RELATIVE FEATURES, are assigned numbers off by 1 skipping /grasp/ without a number?
+                current_to_end_ddq5 = 'surface_relative_grasp/move_to_grasp/{:03}/depth_pixel_T_endeffector_final/delta_depth_quat_5'.format(time_step_j)
+                feature_op.set_shape([5])
+                fixed_feature_op_dict[current_to_end_ddq5] = feature_op
+                if batch_i == 0:
+                    # assume all batches have the same feature name
+                    features_complete_list = np.append(features_complete_list, current_to_end_ddq5)
+                    if 'delta_depth_quat_5' in feature_type:
+                        new_pose_op_param_names = np.append(new_pose_op_param_names, current_to_end_ddq5)
+
+                # TODO(ahundt) are assigned numbers off by 1 skipping /grasp/ without a number?
+                current_to_end_name = 'move_to_grasp/{:03}/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_quat_7'.format(time_step_j)
+
+                # pixel coordinate array of size 2 assume all batches have the same pixel coordinate feature for training
+                if batch_i == 0:
+                    pixel_coordinate_op.set_shape([2])
+                    fixed_feature_op_dict[pixel_coordinate_name] = pixel_coordinate_op
+                    features_complete_list = np.append(features_complete_list, pixel_coordinate_name)
+                    pixel_coordinate_param_names = np.append(pixel_coordinate_param_names, pixel_coordinate_name)
+
             # assemble the updated feature op dicts
             new_feature_op_dicts = np.append(new_feature_op_dicts, (fixed_feature_op_dict, sequence_feature_op_dict))
 
-        # same command for all ops, so duplicate it
-        new_pose_op_param_names = new_pose_op_param_names * len(pose_op_params)
-
-        return new_feature_op_dicts, features_complete_list, new_pose_op_param_names
+        # TODO(ahundt) new_pose_op_param_names should only contain COMMANDS, need a separate list for all new features and xy coordinates
+        return new_feature_op_dicts, features_complete_list, new_pose_op_param_names, pixel_coordinate_param_names
 
     def _get_simple_parallel_dataset_ops(self, dataset=None, batch_size=1, buffer_size=100, parallelism=10, shift_ratio=0.01):
         """Simple unordered & parallel TensorFlow ops that go through the whole dataset.
@@ -968,17 +1114,26 @@ class GraspDataset(object):
                 rgb_image_op = self._imagenet_mean_subtraction(rgb_image_op)
             return tf.cast(rgb_image_op, tf.float32)
 
-    def single_pose_training_tensors(self, batch_size=FLAGS.batch_size,
-                                     imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
-                                     random_crop=FLAGS.random_crop,
-                                     resize=FLAGS.resize,
-                                     motion_params=FLAGS.grasp_sequence_motion_params,
-                                     grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
-                                     grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step):
+    def get_training_tensors(self, batch_size=FLAGS.batch_size,
+                             imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
+                             random_crop=FLAGS.random_crop,
+                             resize=FLAGS.resize,
+                             motion_params=FLAGS.grasp_sequence_motion_params,
+                             grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
+                             grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step):
         """Get tensors configured for training on grasps at a single pose.
 
             motion_params: different ways of representing the motion vector parameter used as an input to predicting grasp success.
                 Options include
+                    'delta_depth_sin_cos_3' [delta_depth, sin(theta), cos(theta)] where delta_depth depth offset for the gripper
+                        from the measured surface, alongside a single rotation angle theta containing sin(theta), cos(theta).
+                        This format does not allow for arbitrary commands to be defined, and the rotation component
+                        is based on the paper and dataset:
+                                    https://sites.google.com/site/brainrobotdata/home/grasping-dataset
+                                    https://arxiv.org/abs/1603.02199
+                        This is a surface relative transform parameterization.
+                    'delta_depth_quat_5' A numpy array with 5 total entries including depth offset and 4 entry quaternion.
+                        This is a surface relative transform parameterization.
                     'final_pose_orientation_quaternion' directly input the final pose translation and orientation.
                         Vector and quaternion representing the absolute end effector position at the end of the grasp attempt,
                         the actual final value will vary based on the dataset being used. This is the same as the
@@ -1021,6 +1176,13 @@ class GraspDataset(object):
                (pregrasp_op_batch, grasp_step_op_batch, simplified_grasp_command_op_batch, example_batch_size, grasp_success_op_batch, num_samples)
         """
         feature_op_dicts, features_complete_list, num_samples = self._get_simple_parallel_dataset_ops(batch_size=batch_size)
+
+        # get random crop offset parameters so that cropping will be done consistently.
+        sensor_dim_tensor = tf.constant([FLAGS.sensor_image_height, FLAGS.sensor_image_width, 3], name='sensor_image_height_width')
+        crop_dim_tensor = tf.constant([FLAGS.random_crop_height, FLAGS.random_crop_width, 3], name='random_image_height_width')
+        # TODO(ahundt) should offset be calculated here or in the loop below? This affects how much variation there is in cropping per batch.
+        offset = rcp.random_crop_parameters(sensor_dim_tensor, crop_dim_tensor)
+
         # TODO(ahundt) https://www.tensorflow.org/performance/performance_models
         # make sure records are always ready to go
         # staging_area = tf.contrib.staging.StagingArea()
@@ -1039,6 +1201,11 @@ class GraspDataset(object):
             step='move_to_grasp'
         )
 
+        pose_op_params = []
+        # for current to endeffector calculations
+        cte_feature_type = ''
+        # for surface relative transform calculations
+        srt_feature_type = ''
         # verify_feature_index is just an extra data ordering check
         verify_feature_index = False
         if motion_params == 'next_timestep':
@@ -1061,34 +1228,33 @@ class GraspDataset(object):
         elif motion_params == 'endeffector_current_T_endeffector_final_vec_quat_7':
             # reprocess and update motion params with new transforms from
             # the current end effector pose to the final pose
-            feature_op_dicts, features_complete_list, pose_op_params = self._endeffector_current_T_endeffector_final(
-                feature_op_dicts, features_complete_list, feature_type='vec_quat_7')
+            cte_feature_type = 'vec_quat_7'
         elif motion_params == 'endeffector_current_T_endeffector_final_vec_sin_cos_5':
             # reprocess and update motion params with new transforms from
             # the current end effector pose to the final pose
-            feature_op_dicts, features_complete_list, pose_op_params = self._endeffector_current_T_endeffector_final(
-                feature_op_dicts, features_complete_list, feature_type='vec_sin_cos_5')
+            cte_feature_type = 'vec_sin_cos_5'
 
         elif(motion_params == 'surface_relative_grasp/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/vec_quat_7' or
-             motion_params == 'endeffector_final_clear_view_depth_pixel_T_endeffector_final'):
+             motion_params == 'endeffector_final_clear_view_depth_pixel_T_endeffector_final' or
+             motion_params == 'delta_depth_sin_cos_3' or
+             motion_params == 'delta_depth_quat_5'):
             # surface relative grasp algorithm
-            # TODO(ahundt) need to split pose op params from image index used for training
-            feature_op_dicts, features_complete_list, pose_op_params = self._endeffector_final_clear_view_depth_pixel_T_endeffector_final(
-                feature_op_dicts, features_complete_list)
+            # TODO(ahundt) need to split pose op params from image index used for training +
+            srt_feature_type = motion_params
         else:
             raise ValueError('ERROR: unknown grasp_sequence_motion_params selected: {}'.format(motion_params))
 
-        # get the tensor indicating if the grasp ultimately succeeded or not
-        grasp_success = self.get_time_ordered_features(
-            features_complete_list,
-            feature_type='grasp_success'
-        )
+        # get all features that map from the current end effector pose to the final pose
+        feature_op_dicts, features_complete_list, new_pose_op_params = self._endeffector_current_T_endeffector_final(
+            feature_op_dicts, features_complete_list, feature_type=cte_feature_type)
+        pose_op_params.extend(new_pose_op_params)
+        # get all features for surface relative transforms
+        (feature_op_dicts, features_complete_list, new_pose_op_params,
+            pixel_coordinate_param_names) = self._get_surface_relative_transform_features(
+            feature_op_dicts, features_complete_list, feature_type=srt_feature_type)
+        pose_op_params.extend(new_pose_op_params)
 
-        # get random crop offset parameters so that cropping will be done consistently.
-        sensor_dim_tensor = tf.constant([FLAGS.sensor_image_height, FLAGS.sensor_image_width, 3], name='sensor_image_height_width')
-        crop_dim_tensor = tf.constant([FLAGS.random_crop_height, FLAGS.random_crop_width, 3], name='random_image_height_width')
-        # TODO(ahundt) should offset be calculated here or in the loop below? This affects how much variation there is in cropping per batch.
-        offset = rcp.random_crop_parameters(sensor_dim_tensor, crop_dim_tensor)
+        # TODO(ahundt) MOVE THE CODE ABOVE INTO _get_simple_parallel_dataset_ops()
 
         # our training batch size will be batch_size * grasp_steps
         # because we will train all grasp step images w.r.t. final
@@ -1111,13 +1277,13 @@ class GraspDataset(object):
                                                             imagenet_mean_subtraction=imagenet_mean_subtraction,
                                                             random_crop=random_crop,
                                                             resize=resize)
-            grasp_success_op = tf.squeeze(fixed_feature_op_dict[grasp_success[0]])
+            grasp_success_op = tf.squeeze(fixed_feature_op_dict['grasp_success'])
             if self.verbose > 2:
                 print('\npose_op_params: ', pose_op_params, '\nrgb_move_to_grasp_steps: ', rgb_move_to_grasp_steps)
 
             # Allow the user to configure which time steps in a grasp attempt are used for training.
             # Iterate along time steps in the reversed direction because if training data will be dropped
-            # it should be the first steps (furthest from final grap) not the last steps (closest to final grasp).
+            # it should be the first steps (furthest from final grasp) not the last steps (closest to final grasp).
             # Also it is worth noting that all the time step in a grasp motion essentially form a minibatch.
             for i, (grasp_step_rgb_feature_name, pose_op_param) in enumerate(zip(reversed(rgb_move_to_grasp_steps), reversed(pose_op_params))):
                 if ((grasp_sequence_min_time_step is None or i >= grasp_sequence_min_time_step) and
