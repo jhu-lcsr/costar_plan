@@ -75,16 +75,16 @@ class CostarSimulationManager(object):
         self.reset_srv = None
         self.pause_srv = None
         self.unpause_srv = None
-        self.experiment_file = "%s.launch"%experiment
         self.launch_file = "%s.launch"%launch
-
         self.seed = seed
         self.case = case
+        self.experiment = GetExperiment(experiment, case=self.case)
+
         print("=========================================================")
         print("|                 Gazebo Configuration Report            ")
         print("| -------------------------------------------------------")
         print("| launch file = %s"%self.launch_file)
-        print("| experiment file = %s"%self.experiment_file)
+        print("| experiment = %s"%experiment)
         print("| seed = %s"%(str(self.seed)))
         print("| case = %s"%self.case)
         print("| gui = %s"%self.gui)
@@ -92,29 +92,6 @@ class CostarSimulationManager(object):
 
     def sleep(self, t=1.0):
         time.sleep(t)
-
-    def reset(self):
-        '''
-        Reset the robot's position to its start state. Create new objects to
-        manipulate based on experimental parameters.
-        '''
-
-        self.pause()
-        rospy.wait_for_service("gazebo/set_model_configuration")
-        configure = rospy.ServiceProxy("gazebo/set_model_configuration", SetModelConfiguration)
-        configure(model_name=self.model_name,
-                joint_names=self.joint_names,
-                joint_positions=self.joint_positions)
-        rospy.wait_for_service("gazebo/delete_model")
-        if self.uses_gbeam_soup:
-            delete_model = rospy.ServiceProxy("gazebo/delete_model", DeleteModel)
-            delete_model("gbeam_soup")
-        res = subprocess.call([
-            "roslaunch",
-            "costar_simulation",
-            self.experiment_file,
-            "experiment:=%s"%self.case])
-        res = subprocess.call(["rosservice","call","publish_planning_scene"])
 
     def pause(self):
         if self.pause_srv is None:
@@ -128,7 +105,12 @@ class CostarSimulationManager(object):
         self.unpause_srv()
 
     def reset_srv_cb(self, msg):
-        self.reset()
+        '''
+        Reset the robot's position to its start state. Create new objects to
+        manipulate based on experimental parameters.
+        '''
+        self.pause()
+        self.experiment.reset()
         self.resume()
         return EmptySrvResponse()
 
@@ -172,9 +154,10 @@ class CostarSimulationManager(object):
         # ---------------------------------------------------------------------
         # Reset the simulation. This puts the robot into its initial state, and
         # is also responsible for creating and updating positions of any objects.
-        self.reset()
-        self.sleep(1.)
-        self.reset()
+        self.pause()
+        #self.experiment.reset()
+        #self.sleep(1.)
+        self.experiment.reset()
 
         # ---------------------------------------------------------------------
         # Start controllers

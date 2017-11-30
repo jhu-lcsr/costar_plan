@@ -5,4 +5,10 @@
   <arg name="green_xyz" default="0 0 0"/>
   <arg name="obstacle_xyz" default="0 0 0"/>
 
+
+  <param name="red_urdf" command=""/>
+  <param name="blue_urdf" command=""/>
+  <param name="green_urdf" command=""/>
+  <param name="yellow_urdf" command=""/>
+  <param name="obs_urdf" command=""/>
 <launch>
