@@ -14,6 +14,15 @@ class Experiment(object):
     Clean objects
     '''
 
+    model_name = "robot"
+    joint_names = ["shoulder_pan_joint",
+            "shoulder_lift_joint",
+            "elbow_joint",
+            "wrist_1_joint",
+            "wrist_2_joint",
+            "wrist_3_joint"]
+    joint_positions = [0.30, -1.33, -1.80, -0.27, 1.50, 1.60]
+
     def __init__(self, *args, **kwargs):
         pass
 
