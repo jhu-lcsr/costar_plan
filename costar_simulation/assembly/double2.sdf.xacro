@@ -1,6 +1,6 @@
 <?xml version='1.0'?>
 <sdf version="1.4" xmlns:xacro="http://www.ros.org/wiki/xacro" >
-  <xacro:include filename="$(find grid_tasks)/assembly/double.sdf.xacro"/>
+  <xacro:include filename="$(find costar_simulation)/assembly/double.sdf.xacro"/>
   <xacro:training_gbeams
     node_pos1="0.5 0.8 0.4"
     link_pos1="0.65 0.75 0.5"
