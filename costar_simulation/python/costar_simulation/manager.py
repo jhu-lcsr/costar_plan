@@ -53,13 +53,6 @@ class CostarSimulationManager(object):
         if launch == "mobile":
             raise NotImplementedError('mobile env not yet supported')
 
-        # Parse and set up some flags so we know how to randomize the
-        # environment and how to reset things between trials
-        if experiment == "magnetic_assembly":
-            self.uses_gbeam_soup = True
-        else:
-            self.uses_gbeam_soup = False
-
         self.procs = []
         self.rviz = gui
         self.gui = gzclient

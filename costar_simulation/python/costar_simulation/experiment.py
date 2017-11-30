@@ -14,6 +14,8 @@ class Experiment(object):
     Clean objects
     '''
 
+    # This defines the default robot for simulating a UR5 in a particular
+    # environment
     model_name = "robot"
     joint_names = ["shoulder_pan_joint",
             "shoulder_lift_joint",
@@ -52,9 +54,8 @@ class MagneticAssemblyExperiment(Experiment):
                 joint_names=self.joint_names,
                 joint_positions=self.joint_positions)
         rospy.wait_for_service("gazebo/delete_model")
-        if self.uses_gbeam_soup:
-            delete_model = rospy.ServiceProxy("gazebo/delete_model", DeleteModel)
-            delete_model("gbeam_soup")
+        delete_model = rospy.ServiceProxy("gazebo/delete_model", DeleteModel)
+        delete_model("gbeam_soup")
         res = subprocess.call([
             "roslaunch",
             "costar_simulation",
@@ -70,4 +71,9 @@ class StackExperiment(Experiment):
     '''
 
     def reset(self):
+        rospy.wait_for_service("gazebo/set_model_configuration")
+        configure = rospy.ServiceProxy("gazebo/set_model_configuration", SetModelConfiguration)
+        configure(model_name=self.model_name,
+                joint_names=self.joint_names,
+                joint_positions=self.joint_positions)
         pass
