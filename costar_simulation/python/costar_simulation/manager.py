@@ -6,8 +6,6 @@ import subprocess
 import sys
 import time
 
-from gazebo_msgs.srv import DeleteModel
-from gazebo_msgs.srv import SetModelConfiguration
 from std_srvs.srv import Empty as EmptySrv
 from std_srvs.srv import EmptyResponse as EmptySrvResponse
 

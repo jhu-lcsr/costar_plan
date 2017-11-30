@@ -1,6 +1,12 @@
 
 import rospy
+
+from gazebo_msgs.srv import DeleteModel
+from gazebo_msgs.srv import SetModelConfiguration
 from gazebo_msgs.srv import SpawnModel
+
+from std_srvs.srv import Empty as EmptySrv
+from std_srvs.srv import EmptyResponse as EmptySrvResponse
 
 class Experiment(object):
     '''
