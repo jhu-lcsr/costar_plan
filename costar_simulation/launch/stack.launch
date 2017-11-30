@@ -1,0 +1,13 @@
+<launch>
+  <param name="red_xyz" default=""/>
+  <param name="blue_xyz" default=""/>
+  <param name="green_xyz" default=""/>
+  <param name="yellow_xyz" default=""/>
+  <param name="obs_xyz" default=""/>
+  <param name="red_rpy" default=""/>
+  <param name="blue_rpy" default=""/>
+  <param name="green_rpy" default=""/>
+  <param name="yellow_rpy" default=""/>
+
+
+</launch>
