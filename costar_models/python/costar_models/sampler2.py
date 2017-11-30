@@ -127,7 +127,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         encoder.load_weights(self._makeName(
             "pretrain_image_encoder_model",
             "image_encoder.h5f"))
-        #encoder.trainable = False
+        encoder.trainable = False
         enc = encoder([img0_in, img_in])
         if self.skip_connections:
             decoder = self._makeImageDecoder(self.hidden_shape,self.skip_shape)
@@ -138,7 +138,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         decoder.load_weights(self._makeName(
             "pretrain_image_encoder_model",
             "image_decoder.h5f"))
-        #decoder.trainable = False
+        decoder.trainable = False
 
         sencoder = self._makeStateEncoder(arm_size, gripper_size, False)
         sencoder.load_weights(self._makeName(
