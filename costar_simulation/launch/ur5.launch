@@ -14,6 +14,10 @@
     <arg name="limited" value="$(arg limited)"/>
   </include>
 
+  <include file="$(find ur5_moveit_config)/launch/planning_context.launch">
+    <arg name="load_robot_description" value="false"/>
+  </include>
+
   <!-- push robot_description to factory and spawn robot in gazebo -->
   <node name="spawn_gazebo_model"
     pkg="gazebo_ros"

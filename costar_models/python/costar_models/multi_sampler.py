@@ -47,7 +47,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.null_option = 37
 
         # For the new model setup
-        self.encoder_channels = 128
+        self.encoder_channels = 64
         self.skip_shape = (64,64,32)
 
         # Layer and model configuration
@@ -1000,7 +1000,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = AddConv2D(x, 32, [5,5], 2, self.dropout_rate, "same", disc)
         x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate, "same", disc)
         x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate, "same", disc)
-        x = AddConv2D(x, self.encoder_channels, [5,5], 2, self.dropout_rate,
+        x = AddConv2D(x, 128, [5,5], 2, self.dropout_rate, "same", disc)
+        x = AddConv2D(x, self.encoder_channels, [5,5], 1, self.dropout_rate,
                 "same", disc)
 
         #def _ssm(x):
