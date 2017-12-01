@@ -191,8 +191,8 @@ class OptionsExecutionManager(AbstractExecutionManager):
         while cmd is None and self.idx < len(self.options):
             # If we do not have a policy right now, we want to sample one to follow
             # for the time being.
+            option = self.options[self.idx]
             if self.policy is None:
-                option = self.options[self.idx]
                 self.policy, self.condition = option.samplePolicy(world)
 
             if self.condition(world, state, actor, actor.last_state):

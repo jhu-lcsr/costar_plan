@@ -59,6 +59,7 @@ class CostarSimulationManager(object):
         self.reset_srv = None
         self.pause_srv = None
         self.unpause_srv = None
+        self.publish_scene_srv = None
         self.launch_file = "%s.launch"%launch
         self.seed = seed
         self.case = case
@@ -122,11 +123,13 @@ class CostarSimulationManager(object):
             self.launch_file,
             'gui:=%s'%str(self.gui)])
         self.procs.append(gazebo)
-        self.sleep(5.)
+        self.sleep(1.)
 
         rospy.wait_for_service('gazebo/unpause_physics')
         self.pause_srv = rospy.ServiceProxy('gazebo/pause_physics',EmptySrv)
         self.unpause_srv = rospy.ServiceProxy('gazebo/unpause_physics',EmptySrv)
+        self.publish_scene_srv = rospy.ServiceProxy('/publish_planning_scene',
+                                                    EmptySrv)
 
         # ---------------------------------------------------------------------
         # Start rviz
@@ -139,9 +142,10 @@ class CostarSimulationManager(object):
         # Reset the simulation. This puts the robot into its initial state, and
         # is also responsible for creating and updating positions of any objects.
         self.pause()
-        #self.experiment.reset()
-        #self.sleep(1.)
         self.experiment.reset()
+        self.sleep(1.)
+        self.experiment.reset()
+        self.publish_scene_srv()
 
         # ---------------------------------------------------------------------
         # Start controllers
@@ -150,17 +154,14 @@ class CostarSimulationManager(object):
 
         # ---------------------------------------------------------------------
         # Start moveit
-
-        # resent the whole planning scene
-        self.sleep(1.)
-        subprocess.call(["rosservice","call","publish_planning_scene"])
+        self.publish_scene_srv()
 
         # ---------------------------------------------------------------------
         # Start reset service
         self.reset_srv = rospy.Service("costar_simulation/reset", EmptySrv, self.reset_srv_cb)
-        self.sleep(5.)
-        res = subprocess.call(["rosservice","call","publish_planning_scene"])
+        self.publish_scene_srv()
         self.resume()
+        self.publish_scene_srv()
 
     def shutdown(self):
         '''

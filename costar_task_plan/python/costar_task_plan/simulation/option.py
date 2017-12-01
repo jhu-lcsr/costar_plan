@@ -24,6 +24,8 @@ class GoalDirectedMotionOption(AbstractOption):
 
     def __init__(self, world, goal, pose, pose_tolerance=(1e-3, 1e-2),
             joint_velocity_tolerance=0.025, closed_loop=False, *args, **kwargs):
+        super(GoalDirectedMotionOption, self).__init__(
+                name="goal_directed_motion")
 
         self.goal = goal
         self.goal_id = world.getObjectId(goal)
@@ -92,6 +94,9 @@ class GeneralMotionOption(AbstractOption):
 
     def __init__(self, pose, pose_tolerance, joint_velocity_tolerance=0.025,
             *args, **kwargs):
+        super(GeneralMotionOption, self).__init__(
+                name="general_motion")
+
         if pose is not None:
             self.position, self.rotation = pose
             self.position_tolerance, self.rotation_tolerance = pose_tolerance
@@ -125,7 +130,7 @@ class OpenGripperOption(AbstractOption):
     '''
 
     def __init__(self, **kwargs):
-        pass
+        super(OpenGripperOption, self).__init__(name="open_gripper")
 
     def makePolicy(self, world):
         return OpenGripperPolicy(), TimeCondition(world.time() + 0.5)
@@ -147,6 +152,7 @@ class CloseGripperOption(AbstractOption):
         position: Position to send when closing the gripper. Defaults to
                   "none", which uses the position set per robot.
         '''
+        super(CloseGripperOption, self).__init__(name="close_gripper")
         self.position = position
 
     def makePolicy(self, world):

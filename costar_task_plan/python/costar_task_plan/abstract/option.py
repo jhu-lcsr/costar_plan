@@ -13,9 +13,7 @@ problems. The important functions here are:
 '''
 class AbstractOption(object):
 
-  def __init__(self, name="", goal_conditions=[], failure_conditions=[]):
-    self.goal_conditions = goal_conditions
-    self.failure_conditions = failure_conditions
+  def __init__(self, name=""):
     self.name = name
     self.preconditions = []
     self.postconditions = []
