@@ -86,7 +86,7 @@ class CostarSimulationManager(object):
     def resume(self):
         if self.unpause_srv is None:
             raise RuntimeError('Service Proxy not created! Is sim running?')
-        res = subprocess.call(["rosservice","call","publish_planning_scene"])
+        self.publish_scene_srv()
         self.unpause_srv()
 
     def reset_srv_cb(self, msg):
@@ -126,6 +126,7 @@ class CostarSimulationManager(object):
         self.sleep(1.)
 
         rospy.wait_for_service('gazebo/unpause_physics')
+        rospy.wait_for_service('/publish_planning_scene')
         self.pause_srv = rospy.ServiceProxy('gazebo/pause_physics',EmptySrv)
         self.unpause_srv = rospy.ServiceProxy('gazebo/unpause_physics',EmptySrv)
         self.publish_scene_srv = rospy.ServiceProxy('/publish_planning_scene',
@@ -160,6 +161,7 @@ class CostarSimulationManager(object):
         # Start reset service
         self.reset_srv = rospy.Service("costar_simulation/reset", EmptySrv, self.reset_srv_cb)
         self.publish_scene_srv()
+        rospy.sleep(3.)
         self.resume()
         self.publish_scene_srv()
 

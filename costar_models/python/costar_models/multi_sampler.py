@@ -55,7 +55,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.use_spatial_softmax = True
         self.dense_representation = True
         if self.use_spatial_softmax and self.dense_representation:
-            self.steps_down = 1
+            self.steps_down = 2
             self.steps_down_no_skip = 0
             self.steps_up = 4
             self.steps_up_no_skip = self.steps_up - self.steps_down
