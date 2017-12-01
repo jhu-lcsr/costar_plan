@@ -1,5 +1,7 @@
 # Design Philosophy
 
+This document describes the desing specifically of the CoSTAR Task Plan (CTP) python library.
+
 We have a modular architecture that describes a problem (a "world"), with its associated constraints ("conditions"), reward function, features, etc. Worlds are associated with Actors that behave according to different Policies. The key problem TTS tries to solve is to explore the space of possible Policies that may lead to successful results.
 
 Most of the high-level types are implemented in `costar_task_plan.abstract`. In general, we try to enforce typing as much as possible in python; this makes it easier to abstract out different functionality, among other things. For example, most Reward functions inherit from `AbstractReward`, and most conditions from `AbstractCondition`; in truth, these things are just classes with a provided `__call__()` operator.
