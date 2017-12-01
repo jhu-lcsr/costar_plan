@@ -3,15 +3,12 @@
 
   <property name="M_PI" value="3.14159"/>
 
-  <!-- common stuff -->
-  <xacro:include filename="$(find costar_simulation)/robot/ur5/ur5.gazebo.urdf.xacro" />
-
   <!-- ur5 -->
-  <xacro:include filename="$(find costar_simulation)/robot/ur5/ur5.urdf.xacro" />
+  <xacro:include filename="$(find costar_simulation)/robot/ur5/ur5_pybullet.urdf.xacro" />
   <xacro:include filename="$(find costar_simulation)/robot/ur5/ur5.transmission.xacro" />
 
   <!-- Robotiq gripper -->
-  <xacro:include filename="$(find costar_simulation)/robot/robotiq_85_gripper/urdf/robotiq_85_gripper.urdf.xacro" />
+  <xacro:include filename="$(find costar_simulation)/robot/robotiq_85_gripper/urdf/robotiq_85_gripper_pybullet.urdf.xacro" />
   <xacro:include filename="$(find costar_simulation)/robot/robotiq_85_gripper/urdf/robotiq_85_gripper.transmission.xacro" />
 
   <xacro:ur5_robot prefix="" joint_limited="true"/>
