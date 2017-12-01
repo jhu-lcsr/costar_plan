@@ -1,5 +1,6 @@
 
 import rospy
+import subprocess
 
 from gazebo_msgs.srv import DeleteModel
 from gazebo_msgs.srv import SetModelConfiguration
