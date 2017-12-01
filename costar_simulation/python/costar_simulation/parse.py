@@ -6,9 +6,15 @@ import sys
 from costar_task_plan.simulation import GetSimulationParser
 
 def GetLaunchOptions():
-    return ["ur5"]
+    '''
+    These are the files that actually set up the environment
+    '''
+    return ["ur5","mobile"]
 
 def GetExperimentOptions():
+    '''
+    Each of these needs to be handled separately later on
+    '''
     return ["magnetic_assembly",
             "stack",
             "tables"]
@@ -37,6 +43,9 @@ def ParseGazeboArgs():
                         help="Case for magnetic assembly experiment",
                         default="double1",
                         choices=_assemblyCases())
+    parser.add_argument("--gzclient",
+                        help="Bring up the gazebo client",
+                        action="store_true")
     return vars(parser.parse_args())
 
 

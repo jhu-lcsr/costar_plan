@@ -6,10 +6,10 @@ import subprocess
 import sys
 import time
 
-from gazebo_msgs.srv import DeleteModel
-from gazebo_msgs.srv import SetModelConfiguration
 from std_srvs.srv import Empty as EmptySrv
 from std_srvs.srv import EmptyResponse as EmptySrvResponse
+
+from .experiment import GetExperiment
 
 class CostarSimulationManager(object):
     '''
@@ -21,32 +21,54 @@ class CostarSimulationManager(object):
     hopefully manage that roscore for you.
     '''
 
-    model_name = "robot"
-    joint_names = ["shoulder_pan_joint",
-            "shoulder_lift_joint",
-            "elbow_joint",
-            "wrist_1_joint",
-            "wrist_2_joint",
-            "wrist_3_joint"]
-    joint_positions = [0.30, -1.33, -1.80, -0.27, 1.50, 1.60]
+    def _sampleRobotJointPositions(self):
+        '''
+        Note: if we are using the UR5 as the arm, we can just use these default
+        position arguments and start from there.
+        '''
+        return self.joint_positions
 
     def __init__(self,launch="ur5", experiment="magnetic_assembly", seed=None,
-            gui=False, case="double1", *args,**kwargs):
+            gui=False, case="double1", gzclient=False, *args,**kwargs):
+        '''
+        Define the manager and parameterize everything so that we can easily
+        reset between different tasks. This also loads the appropriate task
+        model and does all that other good stuff.
+
+        Parameters:
+        -----------
+        launch: root name of the launch file; this determines which robot will
+                be loaded and how.
+        experiment: this creates the various objects that will populate the
+                    world, and is used to load the appropriate task model.
+        case: this is a sub-set for some of our experiments.
+        gui: start RViz
+        gzclient: start gazebo client
+        seed: used to initialize a random seed if necessary
+        '''
+
+        # =====================
+        # SANITY CHECKS: if something is a placeholder, do not use it right
+        # now.
+        if launch == "mobile":
+            raise NotImplementedError('mobile env not yet supported')
+
         self.procs = []
         self.rviz = gui
-        self.gui = gui
+        self.gui = gzclient
         self.reset_srv = None
         self.pause_srv = None
         self.unpause_srv = None
-        self.experiment = "%s.launch"%experiment
-        self.launch = "%s.launch"%launch
+        self.launch_file = "%s.launch"%launch
         self.seed = seed
         self.case = case
+        self.experiment = GetExperiment(experiment, case=self.case)
+
         print("=========================================================")
         print("|                 Gazebo Configuration Report            ")
         print("| -------------------------------------------------------")
-        print("| launch file = %s"%self.launch)
-        print("| experiment file = %s"%self.experiment)
+        print("| launch file = %s"%self.launch_file)
+        print("| experiment = %s"%experiment)
         print("| seed = %s"%(str(self.seed)))
         print("| case = %s"%self.case)
         print("| gui = %s"%self.gui)
@@ -54,28 +76,6 @@ class CostarSimulationManager(object):
 
     def sleep(self, t=1.0):
         time.sleep(t)
-
-    def reset(self):
-        '''
-        Reset the robot's position to its start state. Create new objects to
-        manipulate based on experimental parameters.
-        '''
-
-        self.pause()
-        rospy.wait_for_service("gazebo/set_model_configuration")
-        configure = rospy.ServiceProxy("gazebo/set_model_configuration", SetModelConfiguration)
-        configure(model_name=self.model_name,
-                joint_names=self.joint_names,
-                joint_positions=self.joint_positions)
-        rospy.wait_for_service("gazebo/delete_model")
-        delete_model = rospy.ServiceProxy("gazebo/delete_model", DeleteModel)
-        delete_model("gbeam_soup")
-        res = subprocess.call([
-            "roslaunch",
-            "costar_simulation",
-            "magnetic_assembly.launch",
-            "experiment:=%s"%self.case])
-        res = subprocess.call(["rosservice","call","publish_planning_scene"])
 
     def pause(self):
         if self.pause_srv is None:
@@ -89,7 +89,12 @@ class CostarSimulationManager(object):
         self.unpause_srv()
 
     def reset_srv_cb(self, msg):
-        self.reset()
+        '''
+        Reset the robot's position to its start state. Create new objects to
+        manipulate based on experimental parameters.
+        '''
+        self.pause()
+        self.experiment.reset()
         self.resume()
         return EmptySrvResponse()
 
@@ -114,7 +119,7 @@ class CostarSimulationManager(object):
         # This is the "launch" option -- it should dec
         gazebo = subprocess.Popen(['roslaunch',
             'costar_simulation',
-            self.launch,
+            self.launch_file,
             'gui:=%s'%str(self.gui)])
         self.procs.append(gazebo)
         self.sleep(5.)
@@ -133,9 +138,10 @@ class CostarSimulationManager(object):
         # ---------------------------------------------------------------------
         # Reset the simulation. This puts the robot into its initial state, and
         # is also responsible for creating and updating positions of any objects.
-        self.reset()
-        self.sleep(1.)
-        self.reset()
+        self.pause()
+        #self.experiment.reset()
+        #self.sleep(1.)
+        self.experiment.reset()
 
         # ---------------------------------------------------------------------
         # Start controllers

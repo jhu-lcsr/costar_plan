@@ -2,7 +2,7 @@
 
 '''
 Tools to collect a single data set for the robot learning task. We assume data
-collection works via ros.
+collection works via ros topic.
 '''
 
 import rospy
@@ -25,6 +25,15 @@ def main(hz,**kwargs):
         pass
 
 if __name__ == '__main__':
-    args = ParseWorkshopArgs()
-    main(**args)
+    #args = ParseWorkshopArgs()
+    config = {
+        "camera_depth_info_topic": "camera/depth_registered/info",
+        "camera_rgb_info_topic": "camera/rgb/info",
+        "camera_rgb_topic": "camera/rgb/image_raw",
+        "camera_depth_topic": "camera/depth_registered/image_raw",
+        "joints_topic": "joint_states",
+        "world_frame": "base_link",
+        }
+    main(**config)
+
 

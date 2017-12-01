@@ -11,10 +11,14 @@ from costar_simulation import CostarSimulationManager, ParseGazeboArgs
 
 if __name__ == '__main__':
     args = ParseGazeboArgs()
-    if 'launch' in args and args['launch'] is not None:
-        #env = GazeboEnv(args['launch'])
-        sim = CostarSimulationManager(**args)
-        sim.run()
+
+    try:
+        if 'launch' in args and args['launch'] is not None:
+            sim = CostarSimulationManager(**args)
+            sim.run()
+    except Exception as e:
+        sim.shutdown()
+        raise e
 
     rospy.init_node('simulation_manager_node')
     rate = rospy.Rate(10)
