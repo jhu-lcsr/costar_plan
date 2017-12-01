@@ -17,6 +17,9 @@ Contents:
   - [Design Overview](docs/design.md): for some high-level design choices related to the planning code
   - [Machine Learning Models](docs/learning.md): Available models and using the command line tool to train them
   - [Creating and training a custom task](docs/task_learning.md): defining a task, training predictive models and other tools
+  - [CoSTAR Simulation](docs/simulation.md): simulation intro
+    - [Simulation Experiments](docs/simulation-experiments.md): information on experiment setup
+    - [PyBullet Sim](docs/pybullet.md)
 
 More specialized information:
   - [Adding a robot to the ROS code](docs/add_a_robot): NOT using Bullet sim
