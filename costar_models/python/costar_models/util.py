@@ -17,6 +17,7 @@ from .husky_sampler import HuskyRobotMultiPredictionSampler
 from .pretrain_image import PretrainImageAutoencoder
 from .pretrain_state import PretrainStateAutoencoder
 from .pretrain_sampler import PretrainSampler
+
 from .sampler2 import PredictionSampler2
 
 def MakeModel(features, model, taskdef, **kwargs):
