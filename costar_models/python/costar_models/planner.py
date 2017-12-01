@@ -418,8 +418,8 @@ def GetImageDecoder(dim, img_shape,
  
     if skips:
         skip_in = Input((img_shape[0],img_shape[1],filters))
-        #x = Concatenate(axis=-1)([x,skip_in])
-        x = Add()([x, skip_in])
+        x = Concatenate(axis=-1)([x,skip_in])
+        #x = Add()([x, skip_in])
         skip_inputs.append(skip_in)
 
     for i in range(stride1_layers):

@@ -276,7 +276,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
                         #weights=[0.7,1.0,0.1,0.1],
-                        weights=[0.5, 0.45, 0.05, 0.001],
+                        weights=[0.5, 0.40, 0.05, 0.5],
                         loss=["mae","mae","mae","categorical_crossentropy"],
                         stats=stats,
                         avg_weight=0.025),]
@@ -286,7 +286,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             loss_weights = [0.60, 0.40]
         else:
             outs = [train_out, next_option_out, value_out]
-            loss_weights = [0.90, 1., 0.0]
+            loss_weights = [0.90, 0.1, 0.0]
             losses += ["categorical_crossentropy", "binary_crossentropy"]
 
         train_predictor = Model(ins, outs)
