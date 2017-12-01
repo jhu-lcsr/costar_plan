@@ -191,7 +191,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         value_out, next_option_out = GetNextOptionAndValue(enc,
                                                            self.num_options,
                                                            self.value_dense_size,
-                                                           dropout_rate=0.5,
+                                                           dropout_rate=self.dropout_rate,
                                                            option_in=pv_option_in)
 
         # =====================================================================
@@ -845,7 +845,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         skips = []
 
         # First block
-        x = AddConv2D(x, 16, [5,5], 2, self.dropout_rate, "same", disc)
+        x = AddConv2D(x, 16, [5,5], 1, self.dropout_rate, "same", disc)
         skips.append(x)
 
         # Second block
@@ -857,7 +857,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         skips.append(x)
 
         # Fourth block
-        x = AddConv2D(x, 128, [5,5], 2, self.dropout_rate, "same", disc)
+        x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, "same", disc)
         skips.append(x)
 
         # Fifth block
@@ -868,13 +868,19 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         a = AddDense(a, self.pose_col_dim, activation, self.dropout_rate)
         a = Concatenate()([a,o])
         x = TileOnto(x, a, self.pose_col_dim, [4,4])
-        x = AddConv2D(x, 64, [3,3], 1, self.dropout_rate, "same", disc)
-        
+        x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, "valid", disc)
+        x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, "valid", disc)
+        if self.use_spatial_softmax:
+            def _ssm(x):
+                return spatial_softmax(x)
+            x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
+
+        return x
 
     def _makeDecoder2(self, img_shape, arm_size, gripper_size):
 
         # Compute the correct skip connections to include
-        skip_sizes = [16, 32, 64, 128]
+        skip_sizes = [32, 64]
         skips = self.steps_up - self.steps_up_no_skip
         skip_sizes = skip_sizes[:skips]
         skip_sizes.reverse()
