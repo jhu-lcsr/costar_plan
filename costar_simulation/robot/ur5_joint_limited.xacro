@@ -62,7 +62,7 @@
     <visual>
       <geometry>
         <box size = "${robot_table_width} ${robot_table_length} ${robot_table_height}"/>
-        <cylinder radius="0.0735" length="${robot_table_height}"/>
+        <!--<cylinder radius="0.0735" length="${robot_table_height}"/>-->
       </geometry>
       <material name="orange_transparent"/>
     </visual>
@@ -79,7 +79,7 @@
   <joint name="world_to_table" type="fixed">
     <parent link="world"/>
     <child link="table"/>
-    <origin xyz="0 ${robot_table_y} 0" rpy="0 0 0"/>
+    <origin xyz="0 ${robot_table_y} ${robot_table_height * 0.5}" rpy="0 0 0"/>
   </joint>
 
   <joint name="table_to_base" type="fixed">
