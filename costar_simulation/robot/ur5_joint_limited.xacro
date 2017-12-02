@@ -1,5 +1,5 @@
 <?xml version="1.0" ?>
-<robot name="ur5_robotiq_parallel" xmlns:xacro="http://ros.org/wiki/xacro">
+<robot name="ur5" xmlns:xacro="http://ros.org/wiki/xacro">
 
   <!-- common stuff -->
   <xacro:include filename="$(find costar_simulation)/robot/ur5/ur5.gazebo.urdf.xacro" />
@@ -16,6 +16,9 @@
   <xacro:include filename="$(find costar_simulation)/robot/kinect.xacro"/>
   <xacro:include filename="$(find costar_simulation)/robot/kinect_properties2.xacro"/>
   <xacro:include filename="$(find costar_simulation)/robot/kinect_gazebo2.urdf.xacro"/>
+
+  <!-- Table -->
+  <xacro:include filename="$(find costar_simulation)/urdf/table/table.xacro"/>
 
   <property name="M_PI" value="3.14159"/>
 
@@ -55,7 +58,7 @@
 
 
   <link name="world"/>
-  <link name="table">
+  <!--<link name="table">
     <visual>
       <geometry>
         <box size = "${robot_table_width} ${robot_table_length} ${robot_table_height}"/>
@@ -69,8 +72,8 @@
       </geometry>
       <material name="blue_transparent"/>
     </collision>
-  </link>
-
+  </link>-->
+  <xacro:table name="table"/>
   <xacro:sensor_kinect  parent="table"/>
 
   <!-- Hand attached to the arm -->
