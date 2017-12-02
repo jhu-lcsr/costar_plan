@@ -154,14 +154,8 @@ class CostarSimulationManager(object):
         self.procs.append(roscontrol)
 
         # ---------------------------------------------------------------------
-        # Start moveit
-        self.publish_scene_srv()
-
-        # ---------------------------------------------------------------------
         # Start reset service
         self.reset_srv = rospy.Service("costar_simulation/reset", EmptySrv, self.reset_srv_cb)
-        self.publish_scene_srv()
-        rospy.sleep(3.)
         self.resume()
         self.publish_scene_srv()
 

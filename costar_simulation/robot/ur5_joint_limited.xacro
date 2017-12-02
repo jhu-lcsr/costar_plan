@@ -95,7 +95,7 @@
       <topicName>/planning_scene</topicName>
       <sceneName>${robot_name}_scene</sceneName>
       <robotName>${robot_name}</robotName>
-      <updatePeriod>0.01</updatePeriod>
+      <updatePeriod>0.02</updatePeriod>
     </plugin>
   </gazebo>
 
