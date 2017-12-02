@@ -95,6 +95,7 @@
       <topicName>/planning_scene</topicName>
       <sceneName>${robot_name}_scene</sceneName>
       <robotName>${robot_name}</robotName>
+      <worldFrame>world</worldFrame>
       <updatePeriod>0.01</updatePeriod>
     </plugin>
   </gazebo>
