@@ -16,14 +16,14 @@ echo "Running $@ on $SLURMD_NODENAME ..."
 
 module load tensorflow/cuda-8.0/r1.3 
 
-export DATASET="ctp_rpy2"
+export DATASET="ctp_dec"
 export MODELDIR="$HOME/.costar/models_stack_Y$1$3$2$4$5$6"
 
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--features multi \
 	-e 100 \
 	--model predictor \
-	--data_file $HOME/work/$DATASET.npz \
+	--data_file $HOME/work/$DATASET.h5f \
 	--lr $1 \
 	--dropout_rate $2 \
 	--decoder_dropout_rate $2 \
