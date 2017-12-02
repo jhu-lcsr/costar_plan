@@ -60,7 +60,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             self.steps_up = 4
             self.steps_up_no_skip = self.steps_up - self.steps_down
             #self.encoder_stride1_steps = 2+1
-            self.encoder_stride1_steps = 3
+            self.encoder_stride1_steps = 2
             self.padding="same"
         else:
             self.steps_down = 4
@@ -421,10 +421,15 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-            #return features[:self.num_features] + [o1, z], [tt, o1, v]
-            return features[:self.num_features] + [z], [tt, o1, v]
+            if self.success_only:
+                return features[:self.num_features] + [z], [tt, o1]
+            else:
+                return features[:self.num_features] + [z], [tt, o1, v]
         else:
-            return features[:self.num_features], [tt, o1, v]
+            if self.success_only:
+                return features[:self.num_features], [tt, o1]
+            else:
+                return features[:self.num_features], [tt, o1, v]
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''
