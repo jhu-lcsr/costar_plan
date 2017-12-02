@@ -55,7 +55,7 @@ Visualization Manager:
       Enabled: true
       Move Group Namespace: ""
       Name: scene geometry
-      Planning Scene Topic: /planning_scene
+      Planning Scene Topic: /move_group/monitored_planning_scene
       Robot Description: robot_description
       Scene Geometry:
         Scene Alpha: 0.9
@@ -498,10 +498,10 @@ Visualization Manager:
         Z: -0.266634
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.604797
+      Pitch: 0.639797
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.125398
+      Yaw: 6.07858
     Saved: ~
 Window Geometry:
   Displays:

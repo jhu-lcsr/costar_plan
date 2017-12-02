@@ -3,6 +3,7 @@
   <arg name="limited" default="true"/>
   <arg name="paused" default="true"/>
   <arg name="gui" default="true"/>
+  <arg name="start_move_group" default="true"/>
 
   <!-- startup simulated world -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">   
