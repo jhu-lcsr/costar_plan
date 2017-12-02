@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2014 Open Source Robotics Foundation
+ * Copyright (C) 2012-2017 Open Source Robotics Foundation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -123,6 +123,7 @@ namespace gazebo
   private: std::string topic_name_;
            /// \brief The MoveIt scene name
   private: std::string scene_name_;
+  private: std::string world_frame_;
   private: std::string robot_name_;
   private: std::string model_name_;
 

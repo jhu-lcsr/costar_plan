@@ -92,6 +92,12 @@ namespace gazebo
       this->scene_name_ = _sdf->GetElement("sceneName")->Get<std::string>();
     }
 
+    if (!_sdf->HasElement("worldFrame")) {
+      this->world_frame_ = "world";
+    } else {
+      this->world_frame_ = _sdf->GetElement("worldFrame")->Get<std::string>();
+    }
+
     if (!_sdf->HasElement("updatePeriod")) {
       this->publish_period_ = ros::Duration(0.0);
     } else {
@@ -239,7 +245,7 @@ namespace gazebo
 
           moveit_msgs::CollisionObject new_object;
           new_object.id = id;
-          new_object.header.frame_id = "world";
+          new_object.header.frame_id = this->world_frame_;
           new_object.operation = moveit_msgs::CollisionObject::ADD;
 
           collision_object_map_[id] = new_object;
