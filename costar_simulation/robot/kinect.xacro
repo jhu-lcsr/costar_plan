@@ -5,8 +5,8 @@
 
 	<property name="pi" value="3.14159265" />
 	<property name="cam_px" value="0.0" />
-  <property name="cam_py" value="1.0"/>
-	<property name="cam_pz" value="1.0" />
+  <property name="cam_py" value="0.6"/>
+	<property name="cam_pz" value="0.8" />
   <property name="cam_or" value="0.0" />
 	<property name="cam_op" value="${pi*0.25}" />
 	<property name="cam_oy" value="${pi*-0.5}" />

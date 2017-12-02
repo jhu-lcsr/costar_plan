@@ -39,7 +39,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         self.num_frames = 1
         self.img_num_filters = 32
-        self.tform_filters = 16
+        self.tform_filters = 32
         self.num_hypotheses = 4
         self.validation_split = 0.05
         self.num_options = 48
@@ -280,7 +280,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         loss=["mae","mae","mae","categorical_crossentropy"],
                         stats=stats,
                         avg_weight=0.025),]
-        if self.success_only and False:
+        if self.success_only:
             outs = [train_out, next_option_out]
             losses += ["binary_crossentropy"]
             loss_weights = [0.60, 0.40]
