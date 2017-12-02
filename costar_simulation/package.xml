@@ -46,7 +46,9 @@
   <build_depend>robotiq_85_bringup</build_depend>
   <build_depend>robotiq_85_description</build_depend>
   <build_depend>ur_description</build_depend>
+  <build_depend>costar_gazebo_plugins</build_depend>
 
+  <run_depend>costar_gazebo_plugins</run_depend>
   <run_depend>costar_task_plan</run_depend>
   <run_depend>rgbd_launch</run_depend>
   <run_depend>roboticsgroup_gazebo_plugins</run_depend>
