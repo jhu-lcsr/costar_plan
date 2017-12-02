@@ -14,8 +14,12 @@
     <arg name="limited" value="$(arg limited)"/>
   </include>
 
-  <include file="$(find ur5_moveit_config)/launch/planning_context.launch">
+  <!--<include file="$(find ur5_moveit_config)/launch/planning_context.launch">
     <arg name="load_robot_description" value="false"/>
+  </include>-->
+  <include if="$(arg start_move_group)" file="$(find ur5_moveit_config)/launch/move_group.launch">
+    <param name="allow_trajectory_execution" value="true"/>
+    <param name="fake_execution" value="true"/>
   </include>
 
   <!-- push robot_description to factory and spawn robot in gazebo -->
