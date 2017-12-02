@@ -1001,6 +1001,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate, "same", disc)
         x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate, "same", disc)
         x = AddConv2D(x, 128, [5,5], 2, self.dropout_rate, "same", disc)
+        x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, "same", disc)
+        self.encoder_channels = 32
         x = AddConv2D(x, self.encoder_channels, [5,5], 1, self.dropout_rate,
                 "same", disc)
 
@@ -1048,7 +1050,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         #(h,w,c) = (self.hidden_dim,self.hidden_dim,self.tform_filters)
         #x = AddDense(x, int(h*w*c), "linear", dr)
         #x = Reshape((h,w,c))(x)
-        x = AddConv2DTranspose(x, 128, [5,5], 1, dr)
+        #x = AddConv2DTranspose(x, 64, [5,5], 1, dr)
+        #x = AddConv2DTranspose(x, 128, [5,5], 1, dr)
         x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
         x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
         x = AddConv2DTranspose(x, 32, [5,5], 2, dr)
