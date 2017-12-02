@@ -58,7 +58,7 @@
 
 
   <link name="world"/>
-  <!--<link name="table">
+  <link name="table">
     <visual>
       <geometry>
         <box size = "${robot_table_width} ${robot_table_length} ${robot_table_height}"/>
@@ -72,8 +72,7 @@
       </geometry>
       <material name="blue_transparent"/>
     </collision>
-  </link>-->
-  <xacro:table name="table"/>
+  </link>
   <xacro:sensor_kinect  parent="table"/>
 
   <!-- Hand attached to the arm -->
