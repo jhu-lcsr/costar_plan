@@ -1048,6 +1048,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         #(h,w,c) = (self.hidden_dim,self.hidden_dim,self.tform_filters)
         #x = AddDense(x, int(h*w*c), "linear", dr)
         #x = Reshape((h,w,c))(x)
+        x = AddConv2DTranspose(x, 128, [5,5], 1, dr)
         x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
         x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
         x = AddConv2DTranspose(x, 32, [5,5], 2, dr)
