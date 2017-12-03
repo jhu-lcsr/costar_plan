@@ -41,7 +41,7 @@ def ParseGazeboArgs():
                         choices=GetExperimentOptions())
     parser.add_argument("--case",
                         help="Case for magnetic assembly experiment",
-                        default="double1",
+                        default="assembly1",
                         choices=_assemblyCases())
     parser.add_argument("--gzclient",
                         help="Bring up the gazebo client",

@@ -155,7 +155,8 @@ class PredictorShowImage(keras.callbacks.Callback):
                 print("Label target =",
                         np.argmax(self.targets[0][j,(imglen+7):]))
                 print("Label target 2 =", np.argmax(self.targets[1][j]))
-                print("Value target =", np.argmax(self.targets[2][j]))
+                if len(self.targets) > 2:
+                    print("Value target =", np.argmax(self.targets[2][j]))
             plt.close(fig)
 
 class StateCb(keras.callbacks.Callback):

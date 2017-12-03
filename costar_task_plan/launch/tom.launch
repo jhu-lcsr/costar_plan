@@ -29,11 +29,11 @@
     type="static_transform_publisher"
     name="world_joint_broadcaster"
     args="0 0 0 0 0 0 base_link world 1000" />
+
   <!--<node pkg="tf"
     type="static_transform_publisher"
     name="base_joint_broadcaster"
     args="0 0 0 0 0 0 base_footprint base_link 1000" />-->
-
 
   <!-- If needed, broadcast static tf for robot root -->
   <!--node pkg="tf" type="static_transform_publisher" name="left_hand_desired" args="-0.01 0 0 0 0 0 l_hand_base_link left_hand_desired_ef 10" /-->

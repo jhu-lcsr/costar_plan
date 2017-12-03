@@ -1,5 +1,5 @@
 <?xml version="1.0" ?>
-<robot name="ur5_robotiq_parallel" xmlns:xacro="http://ros.org/wiki/xacro">
+<robot name="ur5" xmlns:xacro="http://ros.org/wiki/xacro">
 
   <property name="M_PI" value="3.14159"/>
 

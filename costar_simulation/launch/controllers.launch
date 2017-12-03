@@ -25,6 +25,6 @@
     output="screen" ns ="/" args="gripper_controller"/>
 
   <!-- Gripper action server -->
-  <node name="gripper_action" pkg="costar_simulation" type="gripper_action_server.py"/>
+  <!--<node name="gripper_action" pkg="costar_simulation" type="gripper_action_server.py"/>-->
 
 </launch>

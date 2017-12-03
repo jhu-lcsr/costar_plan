@@ -13,10 +13,10 @@ problems. The important functions here are:
 '''
 class AbstractOption(object):
 
-  def __init__(self, name="", goal_conditions=[], failure_conditions=[]):
-    self.goal_conditions = goal_conditions
-    self.failure_conditions = failure_conditions
+  def __init__(self, name=""):
     self.name = name
+    self.preconditions = []
+    self.postconditions = []
 
   @property
   def get_name(self):
@@ -46,6 +46,12 @@ class AbstractOption(object):
       '''
       return makePolicy(world, *args, **kwargs)
 
+  def addPrecondition(self, condition):
+      self.preconditions.append(condition)
+    
+  def addPostCondition(self, condition):
+      self.postconditions.append(condition)
+
   def checkPrecondition(self, world, state):
     '''
     Is it ok to begin this option?
@@ -54,7 +60,10 @@ class AbstractOption(object):
         raise RuntimeError('option.checkPrecondition() requires a valid world!')
     if not isinstance(state, AbstractState):
         raise RuntimeError('option.checkPrecondition() requires an initial state!')
-    raise NotImplementedError('option.checkPrecondition() not yet implemented!')
+    for c in self.preconditions:
+        if not c(world, state):
+            return False
+    return True
 
   def checkPostcondition(self, world, state):
     '''
@@ -64,7 +73,10 @@ class AbstractOption(object):
         raise RuntimeError('option.checkPostcondition() requires a valid world!')
     if not isinstance(state, AbstractState):
         raise RuntimeError('option.checkPostcondition() requires an initial state!')
-    raise NotImplementedError('option.checkPostcondition() not yet implemented!')
+    for c in self.postconditions:
+        if not c(world, state):
+            return False
+    return True
 
 class NullOption(AbstractOption):
   '''

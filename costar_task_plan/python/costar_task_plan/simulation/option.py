@@ -24,6 +24,8 @@ class GoalDirectedMotionOption(AbstractOption):
 
     def __init__(self, world, goal, pose, pose_tolerance=(1e-3, 1e-2),
             joint_velocity_tolerance=0.025, closed_loop=False, *args, **kwargs):
+        super(GoalDirectedMotionOption, self).__init__(
+                name="goal_directed_motion")
 
         self.goal = goal
         self.goal_id = world.getObjectId(goal)
@@ -82,26 +84,6 @@ class GoalDirectedMotionOption(AbstractOption):
                         self.position_tolerance,
                         self.rotation_tolerance,)
 
-    def checkPrecondition(self, world, state):
-        # Is it ok to begin this option?
-        if not isinstance(world, AbstractWorld):
-            raise RuntimeError(
-                'option.checkPrecondition() requires a valid world!')
-        if not isinstance(state, AbstractState):
-            raise RuntimeError(
-                'option.checkPrecondition() requires an initial state!')
-        return True
-
-    def checkPostcondition(self, world, state):
-        # Did we successfully complete this option?
-        if not isinstance(world, AbstractWorld):
-            raise RuntimeError(
-                'option.checkPostcondition() requires a valid world!')
-        if not isinstance(state, AbstractState):
-            raise RuntimeError(
-                'option.checkPostcondition() requires an initial state!')
-        return True
-
 
 class GeneralMotionOption(AbstractOption):
 
@@ -112,6 +94,9 @@ class GeneralMotionOption(AbstractOption):
 
     def __init__(self, pose, pose_tolerance, joint_velocity_tolerance=0.025,
             *args, **kwargs):
+        super(GeneralMotionOption, self).__init__(
+                name="general_motion")
+
         if pose is not None:
             self.position, self.rotation = pose
             self.position_tolerance, self.rotation_tolerance = pose_tolerance
@@ -133,27 +118,6 @@ class GeneralMotionOption(AbstractOption):
                 self.rotation_tolerance,
             )
 
-    def checkPrecondition(self, world, state):
-        # Is it ok to begin this option?
-        if not isinstance(world, AbstractWorld):
-            raise RuntimeError(
-                'option.checkPrecondition() requires a valid world!')
-        if not isinstance(state, AbstractState):
-            raise RuntimeError(
-                'option.checkPrecondition() requires an initial state!')
-        return True
-
-    def checkPostcondition(self, world, state):
-        # Did we successfully complete this option?
-        if not isinstance(world, AbstractWorld):
-            raise RuntimeError(
-                'option.checkPostcondition() requires a valid world!')
-        if not isinstance(state, AbstractState):
-            raise RuntimeError(
-                'option.checkPostcondition() requires an initial state!')
-        return True
-
-
 class OpenGripperOption(AbstractOption):
 
     '''
@@ -166,20 +130,13 @@ class OpenGripperOption(AbstractOption):
     '''
 
     def __init__(self, **kwargs):
-        pass
+        super(OpenGripperOption, self).__init__(name="open_gripper")
 
     def makePolicy(self, world):
         return OpenGripperPolicy(), TimeCondition(world.time() + 0.5)
 
     def samplePolicy(self, world):
         return OpenGripperPolicy(), TimeCondition(world.time() + 0.5)
-
-    def checkPrecondition(self, world, state):
-        return True
-
-    def checkPostcondition(self, world, state):
-        return True
-
 
 class CloseGripperOption(AbstractOption):
 
@@ -195,6 +152,7 @@ class CloseGripperOption(AbstractOption):
         position: Position to send when closing the gripper. Defaults to
                   "none", which uses the position set per robot.
         '''
+        super(CloseGripperOption, self).__init__(name="close_gripper")
         self.position = position
 
     def makePolicy(self, world):
@@ -204,13 +162,6 @@ class CloseGripperOption(AbstractOption):
     def samplePolicy(self, world):
         return CloseGripperPolicy(pos=self.position), \
                TimeCondition(world.time() + 0.8)
-
-    def checkPrecondition(self, world, state):
-        return True
-
-    def checkPostcondition(self, world, state):
-        return True
-
 
 class CartesianMotionPolicy(AbstractPolicy):
 
