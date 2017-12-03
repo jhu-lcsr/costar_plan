@@ -1254,7 +1254,7 @@ class GraspDataset(object):
             feature_op_dicts, features_complete_list, feature_type=srt_feature_type)
         pose_op_params.extend(new_pose_op_params)
 
-        # TODO(ahundt) MOVE THE CODE ABOVE INTO _get_simple_parallel_dataset_ops
+        # TODO(ahundt) MOVE THE CODE ABOVE INTO _get_simple_parallel_dataset_ops()
 
         # our training batch size will be batch_size * grasp_steps
         # because we will train all grasp step images w.r.t. final
