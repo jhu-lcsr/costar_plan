@@ -807,7 +807,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         - a robot gripper
         '''
         decoder = GetImageArmGripperDecoder(
-                        self.img_col_dim,
+                        self.img_num_filters,
                         img_shape,
                         dropout_rate=self.decoder_dropout_rate,
                         dense_size=self.combined_dense_size,
