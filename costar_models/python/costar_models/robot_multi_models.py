@@ -314,11 +314,31 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
     # Skip connections
     skips = [x]
 
+    # =================================================
+    # Decrease the size of the image
+    for i in range(post_tiling_layers):
+        if i == post_tiling_layers - 1:
+            nfilters = output_filters
+        else:
+            nfilters = filters
+        x = ApplyTD(Conv2D(nfilters,
+                   kernel_size=kernel_size, 
+                   strides=(2, 2),
+                   padding=padding))(x)
+        if batchnorm:
+            x = ApplyTD(BatchNormalization())(x)
+        x = relu()(x)
+        if dropout:
+            x = Dropout(dropout_rate)(x)
+        if i + 1 <=  (post_tiling_layers - post_tiling_layers_no_skip):
+            skips.append(x)
+
+    tile_height, tile_width = (height/(2**post_tiling_layers),
+            width/(2**post_tiling_layers))
+
     # ===============================================
     # ADD TILING
     if tile:
-        tile_width = width 
-        tile_height = height 
         if option is not None:
             if config == "arm":
                 ins = [samples, pose_in, gripper_in, option_in]
@@ -340,44 +360,13 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
         ins = [samples]
         robot = None
 
-    # =================================================
-    # Decrease the size of the image
-    for i in range(post_tiling_layers):
-        if i == post_tiling_layers - 1:
-            nfilters = output_filters
-        else:
-            nfilters = filters
-        x = ApplyTD(Conv2D(nfilters,
-                   kernel_size=kernel_size, 
-                   strides=(2, 2),
-                   padding=padding))(x)
-        if batchnorm:
-            x = ApplyTD(BatchNormalization())(x)
-        x = relu()(x)
-        if dropout:
-            x = Dropout(dropout_rate)(x)
-        if i + 1 <=  (post_tiling_layers - post_tiling_layers_no_skip):
-            skips.append(x)
-
     # ==================================================
     # Add previous option slightly earlier
     if option is not None:
         nfilters = output_filters
         option_x = OneHot(size=option)(option_in)
         option_x = Reshape((option,))(option_x)
-        x = TileOnto(x,option_x,option,
-                (height/(2**post_tiling_layers),
-                 width/(2**post_tiling_layers)))
-
-        x = ApplyTD(Conv2D(nfilters,
-                   kernel_size=kernel_size_stride1, 
-                   strides=(1, 1),
-                   padding=padding))(x)
-        if batchnorm:
-            x = ApplyTD(BatchNormalization())(x)
-        x = relu()(x)
-        if dropout:
-            x = Dropout(dropout_rate)(x)
+        x = TileOnto(x, option_x, option, (tile_height, tile_width))
 
     # =================================================
     # Perform additional operations

@@ -38,8 +38,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         super(RobotMultiPredictionSampler, self).__init__(taskdef, *args, **kwargs)
 
         self.num_frames = 1
-        self.img_num_filters = 32
-        self.tform_filters = 32
+        self.img_num_filters = 64
+        self.tform_filters = 64
         self.num_hypotheses = 4
         self.validation_split = 0.05
         self.num_options = 48
@@ -60,7 +60,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             self.steps_up = 4
             self.steps_up_no_skip = self.steps_up - self.steps_down
             #self.encoder_stride1_steps = 2+1
-            self.encoder_stride1_steps = 2
+            self.encoder_stride1_steps = 1
             self.padding="same"
         else:
             self.steps_down = 4
