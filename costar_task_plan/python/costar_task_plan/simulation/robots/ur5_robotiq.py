@@ -16,7 +16,8 @@ class Ur5RobotiqInterface(AbstractRobotInterface):
     standard "costar" robot used for many of our experiments.
     '''
 
-    xacro_filename = 'robot/ur5_joint_limited_robot.xacro'
+    # special xacro for compatibility with pybullet
+    xacro_filename = 'robot/ur5_joint_limited_robot_pybullet.xacro'
     urdf_filename = 'ur5_joint_limited_robot.urdf'
 
     arm_name = "ur5"

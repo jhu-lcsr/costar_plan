@@ -1,12 +1,14 @@
 
 #!/usr/bin/env bash
 
-rosrun costar_bullet start \
+# NOTE: may manually need to switch between start and gui_start for now
+echo "Starting data collection, must be either 'start' or 'gui_start'"
+rosrun costar_bullet $1 \
   --robot ur5 --task stack1 --agent task \
-  -i 5000 --features multi  --verbose \
-  --seed 0 \
+  -i 10000 --features multi  --verbose \
+  --seed 3158 \
   --cpu \
-  --save --data_file test.npz \
+  --save --data_file test2.h5f \
   --collection_mode goal
 
 # NOTE: removing this flag now that we are predicting both successful and

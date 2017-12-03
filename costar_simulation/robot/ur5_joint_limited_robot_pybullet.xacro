@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<robot name="ur5_robotiq_parallel" xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <property name="M_PI" value="3.14159"/>
+
+  <!-- ur5 -->
+  <xacro:include filename="$(find costar_simulation)/robot/ur5/ur5_pybullet.urdf.xacro" />
+  <xacro:include filename="$(find costar_simulation)/robot/ur5/ur5.transmission.xacro" />
+
+  <!-- Robotiq gripper -->
+  <xacro:include filename="$(find costar_simulation)/robot/robotiq_85_gripper/urdf/robotiq_85_gripper_pybullet.urdf.xacro" />
+  <xacro:include filename="$(find costar_simulation)/robot/robotiq_85_gripper/urdf/robotiq_85_gripper.transmission.xacro" />
+
+  <xacro:ur5_robot prefix="" joint_limited="true"/>
+  <xacro:robotiq_85_gripper prefix="" parent="ee_link">
+    <origin xyz="0.0 0.0 0.0" rpy="${M_PI / 2} 0 0"/>
+  </xacro:robotiq_85_gripper>
+
+  <!-- Create a grasp link to specify the end of the robot arm -->
+  <link name="grasp_link">
+    <xacro:cylinder_inertial radius="0.01" length="0.01" mass="0.0">
+      <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
+    </xacro:cylinder_inertial>
+  </link>
+  <joint name="ee_to_grasp_link" type="fixed">
+    <parent link="ee_link" />
+    <child link="grasp_link" />
+    <origin xyz="0.15 0.0 0.0" rpy="0 0 0"/>
+  </joint>
+
+</robot>

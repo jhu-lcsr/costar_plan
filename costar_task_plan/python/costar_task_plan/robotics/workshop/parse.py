@@ -1,4 +1,6 @@
-from argparse import *
+from __future__ import print_function
+
+import argparse
 import sys
 
 _desc = """Start the CTP data collection tool for workshop assistant tasks. This is meant to be used in conjunction with costar_stack."""

@@ -155,7 +155,8 @@ class PredictorShowImage(keras.callbacks.Callback):
                 print("Label target =",
                         np.argmax(self.targets[0][j,(imglen+7):]))
                 print("Label target 2 =", np.argmax(self.targets[1][j]))
-                print("Value target =", np.argmax(self.targets[2][j]))
+                if len(self.targets) > 2:
+                    print("Value target =", np.argmax(self.targets[2][j]))
             plt.close(fig)
 
 class StateCb(keras.callbacks.Callback):
@@ -232,6 +233,7 @@ class ImageCb(keras.callbacks.Callback):
         targets: training target info, in compressed form
         verbose: print out extra information
         '''
+        self.name = name
         self.predictor = predictor
         self.idxs = range(min_idx, max_idx, step)
         self.num = len(self.idxs)

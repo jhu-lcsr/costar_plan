@@ -1,5 +1,5 @@
 <?xml version="1.0" ?>
-<robot name="ur5_robotiq_parallel" xmlns:xacro="http://ros.org/wiki/xacro">
+<robot name="ur5" xmlns:xacro="http://ros.org/wiki/xacro">
 
   <!-- common stuff -->
   <xacro:include filename="$(find costar_simulation)/robot/ur5/ur5.gazebo.urdf.xacro" />
@@ -16,6 +16,9 @@
   <xacro:include filename="$(find costar_simulation)/robot/kinect.xacro"/>
   <xacro:include filename="$(find costar_simulation)/robot/kinect_properties2.xacro"/>
   <xacro:include filename="$(find costar_simulation)/robot/kinect_gazebo2.urdf.xacro"/>
+
+  <!-- Table -->
+  <xacro:include filename="$(find costar_simulation)/urdf/table/table.xacro"/>
 
   <property name="M_PI" value="3.14159"/>
 
@@ -59,7 +62,7 @@
     <visual>
       <geometry>
         <box size = "${robot_table_width} ${robot_table_length} ${robot_table_height}"/>
-        <cylinder radius="0.0735" length="${robot_table_height}"/>
+        <!--<cylinder radius="0.0735" length="${robot_table_height}"/>-->
       </geometry>
       <material name="orange_transparent"/>
     </visual>
@@ -70,14 +73,13 @@
       <material name="blue_transparent"/>
     </collision>
   </link>
-
   <xacro:sensor_kinect  parent="table"/>
 
   <!-- Hand attached to the arm -->
   <joint name="world_to_table" type="fixed">
     <parent link="world"/>
     <child link="table"/>
-    <origin xyz="0 ${robot_table_y} 0" rpy="0 0 0"/>
+    <origin xyz="0 ${robot_table_y} ${robot_table_height * 0.5}" rpy="0 0 0"/>
   </joint>
 
   <joint name="table_to_base" type="fixed">
@@ -93,6 +95,7 @@
       <topicName>/planning_scene</topicName>
       <sceneName>${robot_name}_scene</sceneName>
       <robotName>${robot_name}</robotName>
+      <worldFrame>world</worldFrame>
       <updatePeriod>0.01</updatePeriod>
     </plugin>
   </gazebo>

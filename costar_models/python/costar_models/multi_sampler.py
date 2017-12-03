@@ -38,8 +38,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         super(RobotMultiPredictionSampler, self).__init__(taskdef, *args, **kwargs)
 
         self.num_frames = 1
-        self.img_num_filters = 64
-        self.tform_filters = 64
+        self.img_num_filters = 32
+        self.tform_filters = 32
         self.num_hypotheses = 4
         self.validation_split = 0.05
         self.num_options = 48
@@ -47,7 +47,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.null_option = 37
 
         # For the new model setup
-        self.encoder_channels = 128
+        self.encoder_channels = 64
         self.skip_shape = (64,64,32)
 
         # Layer and model configuration
@@ -55,12 +55,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.use_spatial_softmax = True
         self.dense_representation = True
         if self.use_spatial_softmax and self.dense_representation:
-            self.steps_down = 1
+            self.steps_down = 2
             self.steps_down_no_skip = 0
             self.steps_up = 4
             self.steps_up_no_skip = self.steps_up - self.steps_down
             #self.encoder_stride1_steps = 2+1
-            self.encoder_stride1_steps = 3
+            self.encoder_stride1_steps = 2
             self.padding="same"
         else:
             self.steps_down = 4
@@ -191,7 +191,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         value_out, next_option_out = GetNextOptionAndValue(enc,
                                                            self.num_options,
                                                            self.value_dense_size,
-                                                           dropout_rate=0.5,
+                                                           dropout_rate=self.dropout_rate,
                                                            option_in=pv_option_in)
 
         # =====================================================================
@@ -276,17 +276,17 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
                         #weights=[0.7,1.0,0.1,0.1],
-                        weights=[0.5, 0.45, 0.05, 0.01],
+                        weights=[0.5, 0.40, 0.05, 0.5],
                         loss=["mae","mae","mae","categorical_crossentropy"],
                         stats=stats,
                         avg_weight=0.025),]
-        if self.success_only and False:
+        if self.success_only:
             outs = [train_out, next_option_out]
             losses += ["binary_crossentropy"]
             loss_weights = [0.60, 0.40]
         else:
             outs = [train_out, next_option_out, value_out]
-            loss_weights = [0.90, 0.05, 0.05]
+            loss_weights = [0.90, 0.1, 0.0]
             losses += ["categorical_crossentropy", "binary_crossentropy"]
 
         train_predictor = Model(ins, outs)
@@ -382,13 +382,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
     def _getAllData(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             prev_label, goal_features, goal_arm, goal_gripper, value, *args, **kwargs):
-        I = features
+        I = features / 255. # normalize the images
         q = arm
         g = gripper * -1
         qa = arm_cmd
         ga = gripper_cmd * -1
         oin = prev_label
-        I_target = goal_features
+        I_target = goal_features / 255.
         q_target = goal_arm
         g_target = goal_gripper * -1
         o_target = label
@@ -398,24 +398,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         q[:,3:] = q[:,3:] / np.pi
         q_target[:,3:] = q_target[:,3:] / np.pi
         qa /= np.pi
-
-        """
-        # Only include a limited number of examples from the value target. We
-        # do not want to include lots of bad training data here.
-        min_idx = max(0,q.shape[0]-100)
-        max_idx = q.shape[0]
-        if value_target[-1] == 0:
-            I = I[min_idx:max_idx,:]
-            q = q[min_idx:max_idx,:]
-            g = g[min_idx:max_idx,:]
-            qa = qa[min_idx:max_idx,:]
-            ga = ga[min_idx:max_idx,:]
-            oin = oin[min_idx:max_idx]
-            I_target = I_target[min_idx:max_idx]
-            q_target = q_target[min_idx:max_idx]
-            g_target = g_target[min_idx:max_idx]
-            o_target = o_target[min_idx:max_idx]
-        """
 
         o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
         train_target = self._makeTrainTarget(
@@ -439,10 +421,15 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-            #return features[:self.num_features] + [o1, z], [tt, o1, v]
-            return features[:self.num_features] + [z], [tt, o1, v]
+            if self.success_only:
+                return features[:self.num_features] + [z], [tt, o1]
+            else:
+                return features[:self.num_features] + [z], [tt, o1, v]
         else:
-            return features[:self.num_features], [tt, o1, v]
+            if self.success_only:
+                return features[:self.num_features], [tt, o1]
+            else:
+                return features[:self.num_features], [tt, o1, v]
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''
@@ -496,7 +483,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         cbf, cbt = self._getData(**data)
         imageCb = self.PredictorCb(
             self.predictor,
-            name=self.name,
+            name=self.name_prefix,
             features=cbf,
             targets=cbt,
             model_directory=self.model_directory,
@@ -863,7 +850,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         skips = []
 
         # First block
-        x = AddConv2D(x, 16, [5,5], 2, self.dropout_rate, "same", disc)
+        x = AddConv2D(x, 16, [5,5], 1, self.dropout_rate, "same", disc)
         skips.append(x)
 
         # Second block
@@ -875,7 +862,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         skips.append(x)
 
         # Fourth block
-        x = AddConv2D(x, 128, [5,5], 2, self.dropout_rate, "same", disc)
+        x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, "same", disc)
         skips.append(x)
 
         # Fifth block
@@ -886,13 +873,19 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         a = AddDense(a, self.pose_col_dim, activation, self.dropout_rate)
         a = Concatenate()([a,o])
         x = TileOnto(x, a, self.pose_col_dim, [4,4])
-        x = AddConv2D(x, 64, [3,3], 1, self.dropout_rate, "same", disc)
-        
+        x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, "valid", disc)
+        x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, "valid", disc)
+        if self.use_spatial_softmax:
+            def _ssm(x):
+                return spatial_softmax(x)
+            x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
+
+        return x
 
     def _makeDecoder2(self, img_shape, arm_size, gripper_size):
 
         # Compute the correct skip connections to include
-        skip_sizes = [16, 32, 64, 128]
+        skip_sizes = [32, 64]
         skips = self.steps_up - self.steps_up_no_skip
         skip_sizes = skip_sizes[:skips]
         skip_sizes.reverse()
@@ -941,14 +934,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         arm_size: number of arm output variables to predict
         gripper_size: number of gripper output variables to predict
         '''
-        rep_in = Input((64,))
+        rep_in = Input((1024,))
         dr = self.decoder_dropout_rate
 
         x = rep_in
-        x1 = AddDense(x, 128, "relu", dr)
-        x1 = AddDense(x1, 256, "relu", dr)
-        x2 = AddDense(x, 128, "relu", dr)
-        x2 = AddDense(x2, 256, "relu", dr)
+        x1 = AddDense(x, 512, "relu", dr)
+        x1 = AddDense(x1, 512, "relu", dr)
+        x2 = AddDense(x, 512, "relu", dr)
+        x2 = AddDense(x2, 512, "relu", dr)
         arm = AddDense(x1, arm_size, "linear", dr, output=True)
         gripper = AddDense(x2, gripper_size, "sigmoid", dr, output=True)
         y = AddDense(x, 64, "relu", dr, output=True)
@@ -1012,7 +1005,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = AddConv2D(x, 32, [5,5], 2, self.dropout_rate, "same", disc)
         x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate, "same", disc)
         x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate, "same", disc)
-        x = AddConv2D(x, self.encoder_channels, [5,5], 2, self.dropout_rate,
+        x = AddConv2D(x, 128, [5,5], 2, self.dropout_rate, "same", disc)
+        x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, "same", disc)
+        self.encoder_channels = 32
+        x = AddConv2D(x, self.encoder_channels, [5,5], 1, self.dropout_rate,
                 "same", disc)
 
         #def _ssm(x):
@@ -1059,6 +1055,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         #(h,w,c) = (self.hidden_dim,self.hidden_dim,self.tform_filters)
         #x = AddDense(x, int(h*w*c), "linear", dr)
         #x = Reshape((h,w,c))(x)
+        #x = AddConv2DTranspose(x, 64, [5,5], 1, dr)
+        #x = AddConv2DTranspose(x, 128, [5,5], 1, dr)
         x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
         x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
         x = AddConv2DTranspose(x, 32, [5,5], 2, dr)
