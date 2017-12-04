@@ -33,7 +33,13 @@ def main(args):
 
     data = dataset.load(success_only = args['success_only'])
 
-    print type(data['image'])
+    # print type(data['image'])
+
+    # dataset1 = NpzDataset(args['data_file'])
+    # data1 = dataset1.load()
+    # for i in range (1000):
+    #         print (data1['label'][i], " and pose ", data1['goal_robot_pose'][i])
+
 
     
 
