@@ -160,66 +160,56 @@ def vector_to_ptransform(XYZ):
     return ptransform
 
 
-def depth_image_pixel_to_cloud_point(depth_image,
-                                     camera_intrinsics_matrix,
-                                     pixel_coordinate,
-                                     augmentation_rectangle=None,
-                                     flip_x=1.0,
-                                     flip_y=1.0):
-    """Convert a single specific depth image pixel coordinate into a point cloud point.
+def depth_image_to_point_cloud(depth, intrinsics_matrix, flip_x=1.0, flip_y=1.0):
+    """Depth images become an XYZ point cloud in the camera frame with shape (depth.shape[0], depth.shape[1], 3).
 
-    # Params
+    Transform a depth image into a point cloud in the camera frame with one point for each
+    pixel in the image, using the camera transform for a camera
+    centred at cx, cy with field of view fx, fy.
 
-    depth_image:
-        width x height x depth image in floating point format
-    camera_intrinsics_matrix:
-        'camera/intrinsics/matrix33' The 3x3 camera intrinsics matrix
-        used to convert depth to point cloud points.
-    pixel_coordinate:
-        The x, y depth image pixel coordinate of the depth image pixel to convert.
-    augmentation_rectangle:
-       A random offset for the selected (dx, dy) pixel index.
-       It will randomly select a pixel in a box around the endeffector coordinate.
-       Default (1, 1) has no augmentation.
+    Based on:
+    https://github.com/tensorflow/models/blob/master/research/cognitive_mapping_and_planning/src/depth_utils.py
+    https://codereview.stackexchange.com/a/84990/10101
+
+    also see grasp_geometry_tf.depth_image_to_point_cloud().
+
+    # Arguments
+
+      depth: is a 2-D ndarray with shape (rows, cols) containing
+      32bit floating point depths in meters. The result is a 3-D array with
+      shape (rows, cols, 3). Pixels with invalid depth in the input have
+      NaN or 0 for the z-coordinate in the result.
+      flip_x: 1.0 leaves data as-is, -1.0 flips the data across the x axis
+      flip_y: -1.0 leaves data as-is, -1.0 flips the data across the y axis
+
+      intrinsics_matrix: 3x3 matrix for projecting depth values to z values
+      in the point cloud frame. http://ksimek.github.io/2013/08/13/intrinsic/
+
+      transform: 4x4 Rt matrix for rotating and translating the point cloud
     """
-    # get the point index in the depth image
-    # TODO(ahundt) is this the correct indexing scheme, are any axes flipped?
-    x = int(pixel_coordinate[0])
-    y = int(pixel_coordinate[1])
+    fx = intrinsics_matrix[0, 0]
+    fy = intrinsics_matrix[1, 1]
+    # center of image x coordinate
+    center_x = intrinsics_matrix[2, 0]
+    # center of image y coordinate
+    center_y = intrinsics_matrix[2, 1]
+    # TODO(ahundt) make sure rot90 + fliplr is applied upstream in the dataset and to the depth images, ensure consistency with image intrinsics
+    depth = np.fliplr(np.rot90(depth, 3))
+    # print(intrinsics_matrix)
+    x, y = np.meshgrid(np.arange(depth.shape[0]),
+                       np.arange(depth.shape[1]),
+                       indexing='ij')
+    for i in range(depth.ndim-2):
+        x = np.expand_dims(x, axis=0)
+        y = np.expand_dims(y, axis=0)
+    X = flip_x * (x - center_x) * depth / fx
+    Y = flip_y * (y - center_y) * depth / fy
+    XYZ = np.column_stack((X.flatten(), Y.flatten(), depth.flatten())).reshape(depth.shape + (3,))
 
-    # choose a random pixel in the specified box
-    if(augmentation_rectangle is not None and
-       augmentation_rectangle is not (1, 1)):
-        # Add a random coordinate offset for the depth data
-        # to augment the surface relative transforms
-        x_max = np.ceil((augmentation_rectangle[0]-1)/2)
-        y_max = np.ceil((augmentation_rectangle[1]-1)/2)
-        x += np.randint(-x_max, x_max)
-        y += np.randint(-y_max, y_max)
-
-    # get focal length and camera image center from the intrinsics matrix
-    fx = camera_intrinsics_matrix[0, 0]
-    fy = camera_intrinsics_matrix[1, 1]
-    center_x = camera_intrinsics_matrix[2, 0]
-    center_y = camera_intrinsics_matrix[2, 1]
-
-    if x < 0 or x >= depth_image.shape[0] or y < 0 or y >= depth_image.shape[1]:
-        print('warning: attempting to access pixel outside of image dimensions, '
-              'choosing center pixel instead.')
-        x = depth_image.shape[0]/2
-        y = depth_image.shape[1]/2
-
-    # Capital Z is depth in camera frame
-    Z = depth_image[x, y]
-    # Capital X is horizontal point, right in camera image frame
-    X = flip_x * (x - center_x) * Z / fx
-    # Capital Y is vertical point, up in camera image frame
-    Y = flip_y * (y - center_y) * Z / fy
-    XYZ = np.array([X, Y, Z])
     return XYZ
 
 
-def surface_relative_transform(depth_image,
+def surface_relative_transform(xyz_image,
                                camera_intrinsics_matrix,
                                camera_T_endeffector,
                                augmentation_rectangle=None):
@@ -243,9 +233,9 @@ def surface_relative_transform(depth_image,
 
     # Returns
 
-        [depth_pixel_T_endeffector_ptrans, image_coordinate]
+        [depth_pixel_T_endeffector_final_ptrans, image_coordinate]
 
-        depth_pixel_T_endeffector_ptrans is an sva.PTransformd pose from a depth pixel coordinate
+        depth_pixel_T_endeffector_final_ptrans is an sva.PTransformd pose from a depth pixel coordinate
         assigned the same orientation as the camera to the position and orientation of the gripper.
 
         The image_coordinate (dx, dy) is the pixel width, height
@@ -256,15 +246,15 @@ def surface_relative_transform(depth_image,
     """
     # xyz coordinate of the endeffector in the camera frame
     XYZ, pixel_coordinate_of_endeffector = endeffector_image_coordinate_and_cloud_point(
-        depth_image, camera_intrinsics_matrix, camera_T_endeffector, augmentation_rectangle)
+        xyz_image, camera_intrinsics_matrix, camera_T_endeffector, augmentation_rectangle)
 
     # Convert the point cloud point to a transform with identity rotation
     camera_T_cloud_point_ptrans = vector_to_ptransform(XYZ)
     # get the depth pixel to endeffector transform, aka surface relative transform
-    depth_pixel_T_endeffector_ptrans = camera_T_endeffector * camera_T_cloud_point_ptrans.inv()
+    depth_pixel_T_endeffector_final_ptrans = camera_T_endeffector * camera_T_cloud_point_ptrans.inv()
 
     # return the transform and the image coordinate used to generate the transform
-    return [depth_pixel_T_endeffector_ptrans, pixel_coordinate_of_endeffector]
+    return [depth_pixel_T_endeffector_final_ptrans, pixel_coordinate_of_endeffector]
 
 
 def endeffector_image_coordinate(camera_intrinsics_matrix, xyz, flip_x=1.0, flip_y=1.0):
@@ -290,7 +280,7 @@ def endeffector_image_coordinate(camera_intrinsics_matrix, xyz, flip_x=1.0, flip
     return np.array([x, y])
 
 
-def endeffector_image_coordinate_and_cloud_point(depth_image,
+def endeffector_image_coordinate_and_cloud_point(xyz_image,
                                                  camera_intrinsics_matrix,
                                                  camera_T_endeffector,
                                                  augmentation_rectangle=None):
@@ -314,24 +304,8 @@ def endeffector_image_coordinate_and_cloud_point(depth_image,
     # - X is right in the image frame
     # - Y is up in the image frame
     # - Z is depth
-    XYZ = depth_image_pixel_to_cloud_point(depth_image,
-                                           camera_intrinsics_matrix,
-                                           pixel_coordinate_of_endeffector,
-                                           augmentation_rectangle=augmentation_rectangle)
-
-    # begin Temporary debug code
-    import depth_image_encoding
-    # flip image on image x axis center line
-    # pixel_coordinate_of_endeffector[1] = depth_image.shape[1] - pixel_coordinate_of_endeffector[0]
-    # pixel_coordinate_of_endeffector[0] = depth_image.shape[0] - pixel_coordinate_of_endeffector[1]
-    XYZ_image = depth_image_encoding.depth_image_to_point_cloud(depth_image, camera_intrinsics_matrix)
-    # TODO(ahundt) make sure rot180 + fliplr is applied upstream in the dataset and to the depth images, ensure consistency with image intrinsic
-    test_XYZ = XYZ_image[int(pixel_coordinate_of_endeffector[0]), int(pixel_coordinate_of_endeffector[1]), :]
-
-    print('XYZ: ', XYZ, ' test_XYZ:', test_XYZ, ' pixel_coordinate_of_endeffector: ', pixel_coordinate_of_endeffector, 'single_XYZ.shape: ', XYZ_image.shape)
-    # assert(np.allclose(test_XYZ, XYZ))
-    # end Temporary debug code
-    return test_XYZ, pixel_coordinate_of_endeffector
+    XYZ = xyz_image[int(pixel_coordinate_of_endeffector[0]), int(pixel_coordinate_of_endeffector[1]), :]
+    return XYZ, pixel_coordinate_of_endeffector
 
 
 def grasp_dataset_rotation_to_theta(rotation, verbose=0):
@@ -386,10 +360,14 @@ def grasp_dataset_rotation_to_theta(rotation, verbose=0):
 
 def grasp_dataset_ptransform_to_vector_sin_theta_cos_theta(ptransform, dtype=np.float32):
     """Plucker transform to [dx, dy, dz, sin(theta), cos(theta)]
+
     Convert a PTransform 3D Rigid body transform into a numpy array with 5 total entries,
     including a 3 entry translation vector and 2 entries for
-    a single rotation angle theta containing sin(theta), cos(theta). This format
-    does not allow for arbitrary rotation commands to be defined,
+    a single rotation angle theta containing sin(theta), cos(theta).
+    These are the x and y coordinates on the unit circle defining the change in
+    gripper angle theta, see https://en.wikipedia.org/wiki/Unit_circle.
+
+    This format does not allow for arbitrary rotation commands to be defined,
     and originates from the paper and dataset:
     https://sites.google.com/site/brainrobotdata/home/grasping-dataset
     https://arxiv.org/abs/1603.02199
@@ -429,7 +407,7 @@ def grasp_dataset_ptransform_to_vector_sin_theta_cos_theta(ptransform, dtype=np.
 
     # Returns
 
-    vector_sin_theta_cos_theta
+    vector_sin_theta_cos_theta in format [dx, dy, dz, sin(theta), cos(theta)]
     """
     translation = np.squeeze(ptransform.translation())
     theta = grasp_dataset_rotation_to_theta(ptransform.rotation())
@@ -465,8 +443,8 @@ def grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector):
     return camera_T_endeffector_ptrans, base_T_endeffector_ptrans, base_T_camera
 
 
-def current_endeffector_to_final_endeffector_feature(current_base_T_endeffector,
-                                                     end_base_T_endeffector,
+def current_endeffector_to_final_endeffector_feature(base_T_endeffector_current,
+                                                     base_T_endeffector_final,
                                                      feature_type='vec_sin_cos_5',
                                                      dtype=np.float32):
     """Calculate the ptransform between two poses in the same base frame.
@@ -483,8 +461,8 @@ def current_endeffector_to_final_endeffector_feature(current_base_T_endeffector,
 
     # Params
 
-    current_base_T_endeffector: A vector quaternion array from a base frame to an end effector frame
-    end_base_T_endeffector: A vector quaternion array from a base frame to an end effector frame
+    base_T_endeffector_current: A vector quaternion array from a base frame to an end effector frame at the current time step.
+    base_T_endeffector_final: A vector quaternion array from a base frame to an end effector frame at the final time step.
     feature_type: String identifying the feature type to return, which should contain one of the following options:
        'vec_quat_7' A numpy array with 7 total entries including a 3 entry translation vector and 4 entry quaternion.
        'vec_sin_cos_5'  A numpy array with 5 total entries [dx, dy, dz, sin(theta), cos(theta)]
@@ -502,38 +480,40 @@ def current_endeffector_to_final_endeffector_feature(current_base_T_endeffector,
     A numpy array or object of the type specified in the feature_type parameter.
 
     """
-    base_to_current = vector_quaternion_array_to_ptransform(current_base_T_endeffector)
-    base_to_end = vector_quaternion_array_to_ptransform(end_base_T_endeffector)
-    current_to_end = base_to_end * base_to_current.inv()
+    base_to_current = vector_quaternion_array_to_ptransform(base_T_endeffector_current)
+    base_to_end = vector_quaternion_array_to_ptransform(base_T_endeffector_final)
+    # endeffector_current_to_endeffector_final is abbreviated eectf
+    eectf = base_to_end * base_to_current.inv()
 
     # we have ptransforms for both data, now get transform from current to commanded
     if 'vec_quat_7' in feature_type:
-        current_to_end = ptransform_to_vector_quaternion_array(current_to_end)
+        eectf = ptransform_to_vector_quaternion_array(eectf)
     elif 'vec_sin_cos_5' in feature_type:
-        current_to_end = grasp_dataset_ptransform_to_vector_sin_theta_cos_theta(current_to_end)
+        eectf, _ = grasp_dataset_ptransform_to_vector_sin_theta_cos_theta(eectf)
     elif 'sin_cos_2' in feature_type:
-        current_to_end = grasp_dataset_ptransform_to_vector_sin_theta_cos_theta(current_to_end)[-2:]
+        eectf, _ = grasp_dataset_ptransform_to_vector_sin_theta_cos_theta(eectf)[-2:]
     else:
         raise ValueError('current_endeffector_to_final_endeffector_feature() '
                          'received unsupported feature type: ' + str(feature_type))
-    return current_to_end.astype(dtype)
+    return eectf.astype(dtype)
 
 
-def grasp_dataset_to_surface_relative_transform_feature(
-        depth_image,
+def grasp_dataset_to_transforms_and_features(
+        xyz_image,
         camera_intrinsics_matrix,
         camera_T_base,
-        current_base_T_endeffector,
-        end_base_T_endeffector,
-        feature_type='delta_depth_sin_cos_3',
+        base_T_endeffector_current,
+        base_T_endeffector_final,
         augmentation_rectangle=None,
         dtype=np.float32):
-    """Get the transform from a depth pixel to a gripper pose from data in the brain robot data feature formats.
+    """Extract transforms and features necessary to train from the grasping dataset.
 
     This specific function exists because it accepts the raw feature types
     defined in the google brain robot grasping dataset.
 
-    Includes optional data augmentation.
+    Includes optional data augmentation. TODO(ahundt) augmentation not implemented
+    Also gets the surface relative transform from a depth pixel to a
+    gripper pose from data in the brain robot data feature formats
 
     # Params
 
@@ -546,15 +526,50 @@ def grasp_dataset_to_surface_relative_transform_feature(
         4x4 transformation matrix from the camera center to the robot base.
         camera_T_base is a transform that takes a point in the base
         frame of reference and transforms it to the camera frame of reference.
-    current_base_T_endeffector: A vector quaternion array from a base frame to an end effector frame
+    base_T_endeffector_current: A vector quaternion array from a base frame to an end effector frame
         vector (x, y, z) for cartesian motion and quaternion (qx, qy, qz, qw) for rotation.
         base_T_endeffector is a transform that takes a point in the endeffector
         frame of reference and transforms it to the base frame of reference at the current time step
         of the grasp attempt move_to_grasp sequence.
-    end_base_T_endeffector: A vector quaternion array from a base frame to an end effector frame
+    base_T_endeffector_final: A vector quaternion array from a base frame to an end effector frame
         containing the proposed destination of the robot at the final time step of the grasp attempt
         move_to_grasp sequence.
-    feature_type: String identifying the feature type to return, which should contain one of the following options:
+
+    augmentation_rectangle:
+       A random offset for the selected (dx, dy) pixel index.
+       It will randomly select a pixel in a box around the endeffector coordinate.
+       Default (1, 1) has no augmentation.
+
+    # Returns
+
+        [current_base_T_camera_vec_quat_7_array,
+            eectf_vec_quat_7_array,
+            camera_T_endeffector_current_vec_quat_7_array,
+            camera_T_endeffector_final_vec_quat_7_array,
+            depth_pixel_T_endeffector_current_vec_quat_7_array,
+            image_coordinate_current,
+            depth_pixel_T_endeffector_final_vec_quat_7_array,
+            image_coordinate_final,
+            sin_cos_2,
+            vec_sin_cos_5,
+            delta_depth_sin_cos_3,
+            delta_depth_quat_5]
+
+        Which will be in the np.float32 numpy format (or their tf equivalents).
+        Note: endeffector_current_to_endeffector_final is abbreviated eectf.
+
+        end_surface_relative_transform_pose is a numpy array pose [x, y, z, qx, qy, qz, qw],
+        relative to the final time step  which contains:
+           - vector (x, y, z) for cartesian motion
+           - quaternion (qx, qy, qz, qw) for rotation
+
+        The image_coordinate (dx, dy) is the pixel width, height
+        coordinate of the transform in the depth image.
+
+        image_coordinate is used to calculate the point cloud point used for the
+        surface relative transform and to generate 2D label weights.
+
+
         'delta_depth_sin_cos_3' [delta_depth, sin(theta), cos(theta)] where delta_depth depth offset for the gripper
             from the measured surface, alongside a single rotation angle theta containing sin(theta), cos(theta).
             This format does not allow for arbitrary commands to be defined, and the rotation component
@@ -573,77 +588,89 @@ def grasp_dataset_to_surface_relative_transform_feature(
                         https://arxiv.org/abs/1603.02199
 
                         see also: grasp_dataset_ptransform_to_vector_sin_theta_cos_theta()
-            (Not yet implemented)
-
-    augmentation_rectangle:
-       A random offset for the selected (dx, dy) pixel index.
-       It will randomly select a pixel in a box around the endeffector coordinate.
-       Default (1, 1) has no augmentation.
-
-    # Returns
-
-        [feature_array, depth_relative_vec_quat_array, image_coordinate,
-            camera_T_endeffector_current_vec_quat_array,
-            camera_T_endeffector_end_vec_quat_array, current_to_end_vec_quat_array]
-        which will be in the following respective numpy formats (or their tf equivalents):
-        [nptf.float32, np.float32, np.int32, np.float32, np.float32, np.float32]
-
-        feature_array is a numpy array defined and described in the `feature_type` parameter.
-
-        end_surface_relative_transform_pose is a numpy array pose [x, y, z, qx, qy, qz, qw],
-        relative to the final time step  which contains:
-           - vector (x, y, z) for cartesian motion
-           - quaternion (qx, qy, qz, qw) for rotation
-
-        The image_coordinate (dx, dy) is the pixel width, height
-        coordinate of the transform in the depth image.
-
-        image_coordinate is used to calculate the point cloud point used for the
-        surface relative transform and to generate 2D label weights.
     """
-    camera_T_endeffector_current_ptrans, _, _ = grasp_dataset_to_ptransform(camera_T_base, current_base_T_endeffector)
-    camera_T_endeffector_end_ptrans, _, _ = grasp_dataset_to_ptransform(camera_T_base, end_base_T_endeffector)
+    # Get input transforms relative to the current time step
+    (camera_T_endeffector_current_ptrans, base_T_endeffector_current_ptrans,
+     current_base_T_camera_ptrans) = grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector_current)
+    # get input transforms relative to the final time step when the gripper closes
+    (camera_T_endeffector_final_ptrans, base_T_endeffector_final_ptrans,
+     final_base_T_camera_ptrans) = grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector_final)
 
-    base_to_current = vector_quaternion_array_to_ptransform(current_base_T_endeffector)
-    base_to_end = vector_quaternion_array_to_ptransform(end_base_T_endeffector)
-    current_to_end = base_to_end * base_to_current.inv()
-    current_to_end_vec_quat_array = ptransform_to_vector_quaternion_array(current_to_end)
+    # endeffector_current_to_endeffector_final is abbreviated eectf.
+    # Get current time to end time gripper position.
+    # This is the pose transform defined by the gripper position at the following time frames:
+    #     current time -> end time
+    #
+    # This is the same operation as current_endeffector_to_final_endeffector_feature().
+    eectf_ptrans = base_T_endeffector_final_ptrans * base_T_endeffector_current_ptrans.inv()
 
-    # calculate the surface relative transform
-    depth_pixel_T_endeffector_ptrans, image_coordinate = surface_relative_transform(
-        depth_image,
+    # TODO(ahundt) would need to np.fliplr(np.rot90(depth, 3)), see depth_image_to_point_cloud for details, ensure consistency with image intrinsics
+    # TODO(ahundt) make xyz_image into a parameter of this class and pass tensorflow generated version
+    # get the point cloud xyz image
+    xyz_image = depth_image_to_point_cloud(depth_image, camera_intrinsics_matrix)
+
+    # calculate the surface relative transform from the clear view depth to endeffector final position
+    depth_pixel_T_endeffector_current_ptrans, image_coordinate_current = surface_relative_transform(
+        xyz_image,
         camera_intrinsics_matrix,
-        camera_T_endeffector_end_ptrans,
+        camera_T_endeffector_current_ptrans,
         augmentation_rectangle)
 
-    # convert the transform into the vector + quaternion format
-    depth_relative_vec_quat_array = ptransform_to_vector_quaternion_array(depth_pixel_T_endeffector_ptrans)
-    camera_T_endeffector_current_vec_quat_array = ptransform_to_vector_quaternion_array(camera_T_endeffector_current_ptrans)
-    camera_T_endeffector_end_vec_quat_array = ptransform_to_vector_quaternion_array(camera_T_endeffector_end_ptrans)
+    # get the delta depth offset
+    # TODO(ahundt) verify that z correctly reflects the depth offset
+    delta_depth_current = depth_pixel_T_endeffector_current_ptrans.translation().z()
 
-    # get the delta theta parameter
-    sin_cos_theta = current_endeffector_to_final_endeffector_feature(
-        current_base_T_endeffector,
-        end_base_T_endeffector,
-        feature_type='sin_cos_2',
-        dtype=dtype)
+    # calculate the surface relative transform from the clear view depth to endeffector final position
+    depth_pixel_T_endeffector_final_ptrans, image_coordinate_final = surface_relative_transform(
+        xyz_image,
+        camera_intrinsics_matrix,
+        camera_T_endeffector_final_ptrans,
+        augmentation_rectangle)
 
     # get the delta depth offset
-    # TODO(ahundt): verify that z correctly reflects the depth offset
-    delta_depth = depth_pixel_T_endeffector_ptrans.translation().z()
+    # TODO(ahundt) verify that z correctly reflects the depth offset
+    delta_depth_final = depth_pixel_T_endeffector_final_ptrans.translation().z()
 
-    # create and return the user specified feature
-    if feature_type == 'delta_depth_sin_cos_3':
-        feature_array = np.concatenate([delta_depth, sin_cos_theta])
-    if feature_type == 'delta_depth_quat_5':
-        feature_array = np.concatenate([delta_depth, depth_relative_vec_quat_array[-4:]])
-    else:
-        raise TypeError('grasp_dataset_to_surface_relative_transform_feature()'
-                        ' feature_type not yet supported: ' + str(feature_type))
+    # Get the delta theta parameter, converting Plucker transform to [dx, dy, dz, sin(theta), cos(theta)]
+    # Also see grasp_dataset_ptransform_to_vector_sin_theta_cos_theta()
+    eectf_translation = np.squeeze(ptransform.translation())
+    eectf_theta = grasp_dataset_rotation_to_theta(ptransform.rotation())
+    eectf_sin_theta = np.sin(theta)
+    eectf_cos_theta = np.cos(theta)
 
-    return [feature_array, depth_relative_vec_quat_array, image_coordinate,
-            camera_T_endeffector_current_vec_quat_array,
-            camera_T_endeffector_end_vec_quat_array, current_to_end_vec_quat_array]
+    # Convert each transform into vector + quaternion format
+    # [x, y, z, qx, qy, qz, qw], which is identical to the 'vec_quat_7' feature type
+    current_base_T_camera_vec_quat_7_array = ptransform_to_vector_quaternion_array(current_base_T_camera_ptrans, dtype=dtype)
+    eectf_vec_quat_7_array = ptransform_to_vector_quaternion_array(eectf_ptrans, dtype=dtype)
+    camera_T_endeffector_current_vec_quat_7_array = ptransform_to_vector_quaternion_array(camera_T_endeffector_current_ptrans, dtype=dtype)
+    camera_T_endeffector_final_vec_quat_7_array = ptransform_to_vector_quaternion_array(camera_T_endeffector_final_ptrans, dtype=dtype)
+    depth_pixel_T_endeffector_final_vec_quat_7_array = ptransform_to_vector_quaternion_array(depth_pixel_T_endeffector_final_ptrans, dtype=dtype)
+
+    # [x, y] image coordinate of the final gripper position gripper in the camera image
+    image_coordinate_current = image_coordinate_current.astype(dtype)
+    image_coordinate_final = image_coordinate_final.astype(dtype)
+
+    # [cte_sin_theta, cte_cos_theta]
+    sin_cos_2 = np.concatenate([eectf_sin_theta, eectf_cos_theta])
+    # [cte_dx, cte_dy, cte_dz, eectf_sin_theta, eectf_cos_theta] vec_sin_cos_5, the levine 2016 'params' feature format.
+    vec_sin_cos_5 = np.concatenate([eectf_translation, sin_cos_2])
+    # [delta_depth_final, sin_theta, cos_theta]
+    delta_depth_sin_cos_3 = np.concatenate([delta_depth_final, sin_cos_2])
+    # [delta_depth_final, qx, qy, qz, qw]
+    delta_depth_quat_5 = np.concatenate([delta_depth_final, depth_pixel_T_endeffector_final_vec_quat_7_array[-4:]])
+
+    return [current_base_T_camera_vec_quat_7_array,
+            eectf_vec_quat_7_array,
+            camera_T_endeffector_current_vec_quat_7_array,
+            camera_T_endeffector_final_vec_quat_7_array,
+            depth_pixel_T_endeffector_current_vec_quat_7_array,
+            image_coordinate_current,
+            depth_pixel_T_endeffector_final_vec_quat_7_array,
+            image_coordinate_final,
+            sin_cos_2,
+            vec_sin_cos_5,
+            delta_depth_sin_cos_3,
+            delta_depth_quat_5]
 
 
 def vector_quaternion_arrays_allclose(vq1, vq2, rtol=1e-6, atol=1e-6, verbose=0):

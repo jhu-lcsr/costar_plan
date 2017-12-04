@@ -212,52 +212,6 @@ def ImageToFloatArray(image, scale_factor=None):
     return scaled_array
 
 
-def depth_image_to_point_cloud(depth, intrinsics_matrix, flip_x=1.0, flip_y=1.0):
-    """Transform a depth image into a point cloud in the camera frame with one point for each
-    pixel in the image, using the camera transform for a camera
-    centred at cx, cy with field of view fx, fy.
-
-    Based on:
-    https://github.com/tensorflow/models/blob/master/research/cognitive_mapping_and_planning/src/depth_utils.py
-    https://codereview.stackexchange.com/a/84990/10101
-
-    # TODO(ahundt) move depth image creation into tensorflow ops
-
-    # Arguments
-
-      depth: is a 2-D ndarray with shape (rows, cols) containing
-      32bit floating point depths in meters. The result is a 3-D array with
-      shape (rows, cols, 3). Pixels with invalid depth in the input have
-      NaN or 0 for the z-coordinate in the result.
-      flip_x: 1.0 leaves data as-is, -1.0 flips the data across the x axis
-      flip_y: -1.0 leaves data as-is, -1.0 flips the data across the y axis
-
-      intrinsics_matrix: 3x3 matrix for projecting depth values to z values
-      in the point cloud frame. http://ksimek.github.io/2013/08/13/intrinsic/
-
-      transform: 4x4 Rt matrix for rotating and translating the point cloud
-    """
-    fx = intrinsics_matrix[0, 0]
-    fy = intrinsics_matrix[1, 1]
-    # center of image x coordinate
-    center_x = intrinsics_matrix[2, 0]
-    # center of image y coordinate
-    center_y = intrinsics_matrix[2, 1]
-    depth = np.fliplr(np.rot90(depth, 3))
-    # print(intrinsics_matrix)
-    x, y = np.meshgrid(np.arange(depth.shape[0]),
-                       np.arange(depth.shape[1]),
-                       indexing='ij')
-    for i in range(depth.ndim-2):
-        x = np.expand_dims(x, axis=0)
-        y = np.expand_dims(y, axis=0)
-    X = flip_x * (x - center_x) * depth / fx
-    Y = flip_y * (y - center_y) * depth / fy
-    XYZ = np.column_stack((X.flatten(), Y.flatten(), depth.flatten())).reshape(depth.shape + (3,))
-
-    return XYZ
-
-
 def FloatArrayToRawRGB(im, min_value=0.0, max_value=1.0):
     """Convert a grayscale image to rgb, no encoding.
 
