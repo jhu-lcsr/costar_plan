@@ -18,7 +18,6 @@ import random
 gazeboModelsTopic = "/gazebo/model_states"
 overheadImageTopic = "/overhead/camera/image_raw"
 huskyGoalTopic = "/move_base_simple/goal"
-huskyOdomTopic = "/husky_velocity_controller/odom"
 huskyCmdVelTopic = "/husky_velocity_controller/cmd_vel"
 
 dumpsterPose = Pose()
@@ -111,11 +110,7 @@ def imageCallback(data):
     img_np = imresize(img_np_bk, (64, 64))
    
     #print img_np.shape
-    
-def odomCallback(data):
-    global robot_pose
-    robot_pose = data
-    
+  
     
 def cmdVelCallback(data):
     global robot_action
@@ -130,7 +125,6 @@ def listener():
     # setup subscribers
     rospy.init_node('costar_simulator_husky', anonymous=True)
     rospy.Subscriber(overheadImageTopic, Image, imageCallback)
-    rospy.Subscriber(huskyOdomTopic, Odometry, odomCallback)
     rospy.Subscriber(huskyCmdVelTopic, Twist, cmdVelCallback)
 
 
@@ -271,12 +265,12 @@ if __name__ == '__main__':
     listener()
     global gazeboModels
     global robot_action
-    global robot_pose
     global img_np
     goalPub = rospy.Publisher(huskyGoalTopic, PoseStamped, queue_size=1)
     seqNumber = 0
     npz_writer = NpzDataset('/home/katyakd1/projects/costar_ws/src/costar_plan/husky/costar_simulator/python/data/')
     prev_label = -1
+    listener = tf.TransformListener()
     while not rospy.is_shutdown():
         
         rate = rospy.Rate(10) # 10hz
@@ -322,13 +316,19 @@ if __name__ == '__main__':
                 current_example['example'].append(seqNumber)
                 
                 current_example['image'].append(img_np)
-                quaternion = (robot_pose.pose.pose.orientation.x, robot_pose.pose.pose.orientation.y,robot_pose.pose.pose.orientation.z, robot_pose.pose.pose.orientation.w)
+                try:
+                    (trans,rot) = listener.lookupTransform('/map', '/base_link', rospy.Time(0))
+                except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+                    continue
+
+                print trans, rot
+
+                quaternion = (rot[0], rot[1], rot[2], rot[3])
                 euler = tf.transformations.euler_from_quaternion(quaternion)
                 roll = euler[0]
                 pitch = euler[1]
                 yaw = euler[2]
-                current_example['robot_pose'].append([robot_pose.pose.pose.position.x, \
-                robot_pose.pose.pose.position.y, robot_pose.pose.pose.position.z, roll, pitch, yaw])
+                current_example['robot_pose'].append([trans[0], trans[1], trans[2], roll, pitch, yaw])
                 
                 
                 current_example['robot_action'].append([robot_action.linear.x, robot_action.linear.y, \
