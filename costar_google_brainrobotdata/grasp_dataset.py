@@ -772,8 +772,8 @@ class GraspDataset(object):
                 fixed_feature_op_dict[name] = new_op
                 if batch_i == 0:
                     # assume all batches have the same features
-                    features_complete_list = np.append(features_complete_list, current_to_end_name)
-                    this_feature_list = np.append(this_feature_list, current_to_end_name)
+                    features_complete_list = np.append(features_complete_list, name)
+                    this_feature_list = np.append(this_feature_list, name)
 
         final_pose_op_name = pose_op_params[-1]
         current_to_end_names = []
