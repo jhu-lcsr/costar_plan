@@ -50,8 +50,8 @@ class CostarSimulationManager(object):
         # =====================
         # SANITY CHECKS: if something is a placeholder, do not use it right
         # now.
-        if launch == "mobile":
-            raise NotImplementedError('mobile env not yet supported')
+        #if launch == "mobile":
+        #    raise NotImplementedError('mobile env not yet supported')
 
         self.procs = []
         self.rviz = gui

@@ -9,7 +9,7 @@ def GetLaunchOptions():
     '''
     These are the files that actually set up the environment
     '''
-    return ["ur5","mobile"]
+    return ["ur5","husky"]
 
 def GetExperimentOptions():
     '''
@@ -17,7 +17,8 @@ def GetExperimentOptions():
     '''
     return ["magnetic_assembly",
             "stack",
-            "tables"]
+            "tables",
+            "navigation"]
 
 def _assemblyCases():
     cases = ["double","training","finished_assembly"]

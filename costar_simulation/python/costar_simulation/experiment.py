@@ -37,6 +37,7 @@ def GetExperiment(experiment, *args, **kwargs):
     return {
             "magnetic_assembly": MagneticAssemblyExperiment,
             "stack": StackExperiment,
+            "navigation" : NavigationExperiment
             }[experiment](*args, **kwargs)
 
 class MagneticAssemblyExperiment(Experiment):
@@ -78,3 +79,14 @@ class StackExperiment(Experiment):
                 joint_names=self.joint_names,
                 joint_positions=self.joint_positions)
         pass
+
+
+class NavigationExperiment(Experiment):
+    '''
+    Initialize a navigation experiment
+    '''
+
+    def reset(self):
+        #TODO
+        pass
+
