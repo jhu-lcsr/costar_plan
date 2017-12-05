@@ -11,7 +11,11 @@ There is a prototype installation script, `install_tom.sh`, which should install
 
 ### Disabled Packages
 
-  - `costar_gazebo_plugins` does not support kinetic
+  - `costar_gazebo_plugins` does not support kinetic/Gazebo 7
+  - `roboticsgroup_gazebo_plugins` does not support Gazebo 7
+  - `robotiq_s_model_articulated_gazebo_plugins` does not support Gazebo 7
+
+## One-Arm Orange Tests
 
 ## Downloading Dataset
 
