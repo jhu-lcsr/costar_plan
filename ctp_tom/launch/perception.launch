@@ -6,6 +6,7 @@
   <arg name="start_alvar" default="true" />
   <arg name="max_new_marker_error" default="0.02" />
   <arg name="max_track_error" default="0.05" />
+  <arg name="start_static_handeye" default="true" />
 
   <!-- bring up the cameras -->
   <include if="$(arg real)" file="$(find openni2_launch)/launch/openni2.launch">
@@ -23,5 +24,9 @@
       type="individualMarkers"
       respawn="true" output="log" args="$(arg marker_size) $(arg max_new_marker_error) $(arg max_track_error) $(arg cam_image_topic2) $(arg cam_info_topic2) $(arg output_frame2)" />
   </group>
+
+  <include
+    if="$(arg start_static_handeye)"
+    file="$(find ctp_tom)/launch/handeye.launch"/>
 
 </launch>

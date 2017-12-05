@@ -6,11 +6,10 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /TF1/Status1
         - /TF1/Frames1
         - /MarkerArray1
-        - /PoseArray1
         - /PlanningScene1/Scene Robot1
-        - /PointCloud21
       Splitter Ratio: 0.5
     Tree Height: 339
   - Class: rviz/Selection
@@ -70,19 +69,266 @@ Visualization Manager:
       Value: false
       Visual Enabled: true
     - Class: rviz/TF
-      Enabled: false
+      Enabled: true
       Frame Timeout: 15
       Frames:
         All Enabled: false
+        ICS_logo_blue_link:
+          Value: true
+        ICS_logo_grey_link:
+          Value: true
+        ar_marker_0:
+          Value: true
+        ar_marker_1:
+          Value: true
+        ar_marker_2:
+          Value: true
+        ar_marker_3:
+          Value: true
+        ar_marker_4:
+          Value: true
+        ar_marker_5:
+          Value: true
+        ar_marker_6:
+          Value: true
+        ar_marker_7:
+          Value: true
+        ar_marker_8:
+          Value: true
+        base_footprint:
+          Value: true
+        base_link:
+          Value: true
+        box1:
+          Value: true
+        box_tom_link:
+          Value: true
+        camera_depth_frame:
+          Value: true
+        camera_depth_optical_frame:
+          Value: true
+        camera_link:
+          Value: true
+        camera_rgb_frame:
+          Value: true
+        camera_rgb_optical_frame:
+          Value: true
+        front_laser_scanner_link:
+          Value: true
+        l_base_link:
+          Value: true
+        l_ee_link:
+          Value: true
+        l_forearm_link:
+          Value: true
+        l_front_wheel_link:
+          Value: true
+        l_gripper_base_link:
+          Value: true
+        l_gripper_left_finger_base_link:
+          Value: true
+        l_gripper_left_finger_link:
+          Value: true
+        l_gripper_mid_finger_base_link:
+          Value: true
+        l_gripper_mid_finger_link:
+          Value: true
+        l_gripper_palm_link:
+          Value: true
+        l_gripper_right_finger_base_link:
+          Value: true
+        l_gripper_right_finger_link:
+          Value: true
+        l_hand_base_adapter_link:
+          Value: true
+        l_rear_wheel_link:
+          Value: true
+        l_shoulder_link:
+          Value: true
+        l_upper_arm_link:
+          Value: true
+        l_wrist_1_link:
+          Value: true
+        l_wrist_2_link:
+          Value: true
+        l_wrist_3_link:
+          Value: true
+        odom_combined:
+          Value: true
+        orange1:
+          Value: true
+        orange2:
+          Value: true
+        orange3:
+          Value: true
+        r_base_link:
+          Value: true
+        r_ee_link:
+          Value: true
+        r_forearm_link:
+          Value: true
+        r_front_wheel_link:
+          Value: true
+        r_gripper_base_link:
+          Value: true
+        r_gripper_left_finger_base_link:
+          Value: true
+        r_gripper_left_finger_link:
+          Value: true
+        r_gripper_mid_finger_base_link:
+          Value: true
+        r_gripper_mid_finger_link:
+          Value: true
+        r_gripper_palm_link:
+          Value: true
+        r_gripper_right_finger_base_link:
+          Value: true
+        r_gripper_right_finger_link:
+          Value: true
+        r_hand_base_adapter_link:
+          Value: true
+        r_rear_wheel_link:
+          Value: true
+        r_shoulder_link:
+          Value: true
+        r_upper_arm_link:
+          Value: true
+        r_wrist_1_link:
+          Value: true
+        r_wrist_2_link:
+          Value: true
+        r_wrist_3_link:
+          Value: true
+        rear_laser_scanner_link:
+          Value: true
+        squeeze_area1:
+          Value: true
+        table_tom_link:
+          Value: true
+        tom_head_link:
+          Value: true
+        tom_left_camera_link:
+          Value: true
+        torso_link:
+          Value: true
+        trash1:
+          Value: true
+        world:
+          Value: true
       Marker Scale: 0.200000003
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
-        {}
+        base_footprint:
+          base_link:
+            ICS_logo_blue_link:
+              {}
+            ICS_logo_grey_link:
+              {}
+            front_laser_scanner_link:
+              {}
+            l_front_wheel_link:
+              {}
+            l_rear_wheel_link:
+              {}
+            r_front_wheel_link:
+              {}
+            r_rear_wheel_link:
+              {}
+            rear_laser_scanner_link:
+              {}
+            torso_link:
+              box1:
+                {}
+              camera_link:
+                camera_depth_frame:
+                  camera_depth_optical_frame:
+                    {}
+                camera_rgb_frame:
+                  camera_rgb_optical_frame:
+                    ar_marker_0:
+                      {}
+                    ar_marker_1:
+                      {}
+                    ar_marker_2:
+                      {}
+                    ar_marker_3:
+                      {}
+                    ar_marker_4:
+                      {}
+                    ar_marker_5:
+                      {}
+                    ar_marker_7:
+                      {}
+                    ar_marker_8:
+                      {}
+              l_base_link:
+                l_shoulder_link:
+                  l_upper_arm_link:
+                    l_forearm_link:
+                      l_wrist_1_link:
+                        l_wrist_2_link:
+                          l_wrist_3_link:
+                            l_ee_link:
+                              l_hand_base_adapter_link:
+                                l_gripper_base_link:
+                                  l_gripper_left_finger_base_link:
+                                    l_gripper_left_finger_link:
+                                      {}
+                                  l_gripper_mid_finger_base_link:
+                                    l_gripper_mid_finger_link:
+                                      {}
+                                  l_gripper_palm_link:
+                                    {}
+                                  l_gripper_right_finger_base_link:
+                                    l_gripper_right_finger_link:
+                                      {}
+              orange1:
+                {}
+              orange2:
+                {}
+              orange3:
+                {}
+              r_base_link:
+                r_shoulder_link:
+                  r_upper_arm_link:
+                    r_forearm_link:
+                      r_wrist_1_link:
+                        r_wrist_2_link:
+                          r_wrist_3_link:
+                            r_ee_link:
+                              r_hand_base_adapter_link:
+                                r_gripper_base_link:
+                                  r_gripper_left_finger_base_link:
+                                    r_gripper_left_finger_link:
+                                      {}
+                                  r_gripper_mid_finger_base_link:
+                                    r_gripper_mid_finger_link:
+                                      {}
+                                  r_gripper_palm_link:
+                                    {}
+                                  r_gripper_right_finger_base_link:
+                                    r_gripper_right_finger_link:
+                                      {}
+              squeeze_area1:
+                {}
+              tom_head_link:
+                {}
+              tom_left_camera_link:
+                {}
+              trash1:
+                {}
+            world:
+              odom_combined:
+                {}
+          box_tom_link:
+            {}
+          table_tom_link:
+            {}
       Update Interval: 0
-      Value: false
+      Value: true
     - Class: rviz/MarkerArray
       Enabled: false
       Marker Topic: visualization_marker_array
@@ -769,7 +1015,7 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-        Robot Alpha: 1
+        Robot Alpha: 0.5
         Show Robot Collision: false
         Show Robot Visual: true
       Value: true
@@ -873,10 +1119,255 @@ Visualization Manager:
           Expand Joint Details: false
           Expand Link Details: false
           Expand Tree: false
+          ICS_logo_blue_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          ICS_logo_grey_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
           Link Tree Style: Links in Alphabetic Order
-        Robot Alpha: 1
+          base_footprint:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          base_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          box_tom_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          front_laser_scanner_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          l_base_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          l_ee_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          l_forearm_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          l_front_wheel_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          l_gripper_base_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          l_gripper_left_finger_base_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          l_gripper_left_finger_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          l_gripper_mid_finger_base_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          l_gripper_mid_finger_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          l_gripper_palm_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          l_gripper_right_finger_base_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          l_gripper_right_finger_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          l_hand_base_adapter_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          l_rear_wheel_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          l_shoulder_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          l_upper_arm_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          l_wrist_1_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          l_wrist_2_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          l_wrist_3_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          r_base_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          r_ee_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          r_forearm_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          r_front_wheel_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          r_gripper_base_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          r_gripper_left_finger_base_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          r_gripper_left_finger_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          r_gripper_mid_finger_base_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          r_gripper_mid_finger_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          r_gripper_palm_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          r_gripper_right_finger_base_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          r_gripper_right_finger_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          r_hand_base_adapter_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          r_rear_wheel_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          r_shoulder_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          r_upper_arm_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          r_wrist_1_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          r_wrist_2_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          r_wrist_3_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          rear_laser_scanner_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          table_tom_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          tom_head_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          tom_left_camera_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          torso_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+        Robot Alpha: 0.5
         Show Robot Collision: false
-        Show Robot Visual: false
+        Show Robot Visual: true
       Value: false
     - Class: rviz/Image
       Enabled: true
@@ -956,7 +1447,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 3.66948795
+      Distance: 3.1830411
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
@@ -970,10 +1461,10 @@ Visualization Manager:
       Focal Shape Size: 0.0500000007
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.475203723
+      Pitch: 0.179796532
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.31220984
+      Yaw: 1.91721058
     Saved: ~
 Window Geometry:
   Depth:
@@ -987,7 +1478,7 @@ Window Geometry:
     collapsed: false
   MotionPlanning - Slider:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd00000004000000000000021600000396fc020000000dfb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006400fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000002800000194000000dd00fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e006700000001e7000001d70000000000000000fb0000002e004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d00200053006c00690064006500720000000000ffffffff0000004a00fffffffb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e006700000001e3000001db000001cc00fffffffb0000000a0044006500700074006801000001c2000000f40000001600fffffffb0000000600520047004201000002bc000001020000001600ffffff000000010000010f0000040efc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a0056006900650077007300000000280000040e000000b000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000073f0000003efc0100000002fb0000000800540069006d006501000000000000073f0000030000fffffffb0000000800540069006d00650100000000000004500000000000000000000005230000039600000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000004000000000000021600000396fc020000000dfb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006400fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000002800000194000000dd00fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e006700000001e7000001d70000000000000000fb0000002e004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d00200053006c00690064006500720000000000ffffffff0000001600000016fb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e006700000001e3000001db000001cc00fffffffb0000000a0044006500700074006801000001c2000000f40000001600fffffffb0000000600520047004201000002bc000001020000001600ffffff000000010000010f0000040efc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a0056006900650077007300000000280000040e000000b000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000073f0000003efc0100000002fb0000000800540069006d006501000000000000073f0000030000fffffffb0000000800540069006d00650100000000000004500000000000000000000005230000039600000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   RGB:
     collapsed: false
   Selection:
