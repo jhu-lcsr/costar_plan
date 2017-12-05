@@ -9,13 +9,13 @@ wget https://raw.githubusercontent.com/cpaxton/costar_stack/master/install_indig
 chmod +x install_indigo.sh
 source ./install_indigo.sh
 
-export CATKIN_WS="$HOME/costar_ws"
+export COSTAR_WS="$HOME/costar_ws"
 export COSTAR_PLAN_DIR="$HOME/costar_ws/src/costar_plan"
 
 git clone git@github.com:cpaxton/costar_plan.git
 
 # Disable things that won't work
-touch $CATKIN_WS/ur_modern_driver/CATKIN_IGNORE
+touch $COSTAR_WS/src/ur_modern_driver/CATKIN_IGNORE
 touch $COSTAR_PLAN_DIR/costar_gazebo_plugins/CATKIN_IGNORE
-touch $CATKIN_WS/robotiq/robotiq_s_model_articulated_gazebo_plugins/CATKIN_IGNORE
-
+touch $COSTAR_WS/src/robotiq/robotiq_s_model_articulated_gazebo_plugins/CATKIN_IGNORE
+touch $COSTAR_WS/src/costar_stack/costar_perception/sp_segmenter `
