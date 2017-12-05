@@ -3,6 +3,16 @@
 
 The TOM examples require the [TOM Robot package](https://github.com/cpaxton/tom_robot) to execute.
 
+## Installing Dependencies
+
+When using the real robot, we assume that you have access to a working version of the full [CoSTAR stack](https://github.com/cpaxton/costar_stack/). This contains perception code, data collection tools, et cetera, for running a robot and using our custom UI and other tools. You will not need all of this for TOM, so certain features can be freely disabled.
+
+There is a prototype installation script, `install_tom.sh`, which should install parts of the CoSTAR stack and also CoSTAR plan.
+
+### Disabled Packages
+
+  - `costar_gazebo_plugins` does not support kinetic
+
 ## Downloading Dataset
 
 The first dataset we have consists of a set of demonstrations of TOM picking and moving an "orange" from one place to another. These files are all available on Dropbox:

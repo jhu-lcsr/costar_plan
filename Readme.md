@@ -10,22 +10,20 @@ To run these examples, you will need TensorFlow and Keras, plus a number of Pyth
 
 For some more information on the structure of the task planner package, check out the [design overview](docs/design.md).
 
-Contents:
+Outline of contents:
   - [Installation Guide](docs/install.md)
     - [Docker Instructions](docs/docker_instructions.md)
   - [Design Overview](docs/design.md): for some high-level design choices related to the planning code
   - [Machine Learning Models](docs/learning.md): Available models and using the command line tool to train them
+    - [MARCC instructions](docs/marcc.md): learning models using the MARCC cluster (JHU students only)
   - [Creating and training a custom task](docs/task_learning.md): defining a task, training predictive models and other tools
   - [CoSTAR Simulation](docs/simulation.md): simulation intro
     - [Simulation Experiments](docs/simulation-experiments.md): information on experiment setup
     - [PyBullet Sim](docs/pybullet.md)
     - [costar_bullet quick start](docs/costar_bullet.md): How to run tasks, generate datasets, train models, and extend costar_bullet with your own components.
-
-More specialized information:
-  - [Adding a robot to the ROS code](docs/add_a_robot): NOT using Bullet sim
-  - [TOM robot](docs/tom.md): use the TOM robot from TUM
+    - [Adding a robot to the ROS code](docs/add_a_robot): NOT using Bullet sim
   - [Husky robot](husky/Readme.md): Start the APL Husky sim
-  - [MARCC instructions](docs/marcc.md): some notes on learning models using the MARCC cluster (JHU students only)
+  - [TOM robot](docs/tom.md): use the TOM robot from TUM
 
 ## Getting started
 
