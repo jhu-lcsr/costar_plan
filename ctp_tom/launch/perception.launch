@@ -7,7 +7,7 @@
   <arg name="max_new_marker_error" default="0.02" />
   <arg name="max_track_error" default="0.05" />
   <arg name="start_static_handeye" default="true" />
-  <arg name="auto_white_balance" default="false" />
+  <arg name="auto_white_balance" default="true" />
   <arg name="auto_exposure" default="true" />
 
   <!-- bring up the cameras -->

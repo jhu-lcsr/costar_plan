@@ -8,7 +8,8 @@
   <arg name="max_new_marker_error" default="0.02" />
   <arg name="max_track_error" default="0.05" />
   <arg name="start_static_handeye" default="true" />
-  <arg name="auto_white_balance" default="false" />
+  <arg name="auto_white_balance" default="true" />
+  <arg name="auto_exposure" default="true" />
 
   <!-- Visualization bringup -->
   <arg name="rviz" default="true"/>
@@ -28,6 +29,7 @@
     <arg name="real" value="$(arg real)"/>
     <arg name="depth_registration" value="$(arg depth_registration)"/>
     <arg name="auto_white_balance" value="$(arg auto_white_balance)"/>
+    <arg name="auto_exposure" value="$(arg auto_exposure)"/>
     <arg name="camera_name" value="$(arg camera_name)"/>
     <arg name="marker_size" value="$(arg marker_size)"/>
     <arg name="start_alvar" value="$(arg start_alvar)"/>
