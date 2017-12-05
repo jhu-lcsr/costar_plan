@@ -96,6 +96,10 @@ And then learn a model with:
 ```
 rosrun costar_bullet start --robot ur5  --features multi --load --model ff_regression
 ```
+Or the model tool:
+```
+rosrun costar_models ctp_model_tool --model ff_regression
+```
 
 Different agents allow you to directly make the robot act in different ways.
 
