@@ -1,7 +1,12 @@
 import rospy
 
+def GetExperiments():
+    return ["fake_oranges"]
+
 def MakeExperiment(experiment):
-    pass
+    return {
+        "fake_oranges": FakeOrangesExperiment(*args,**kwargs)
+    }[experiment]
 
 class TomExperiment(object):
 
@@ -18,5 +23,11 @@ class TomExperiment(object):
         '''
         Placeholder for updating data from the world I guess
         '''
+        raise NotImplementedError('update not implemented')
+
+class FakeOrangesExperiment(TomExperiment):
+    def reset(self):
+        pass
+    def update(self):
         pass
 
