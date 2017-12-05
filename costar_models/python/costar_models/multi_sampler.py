@@ -60,7 +60,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             self.steps_up = 4
             self.steps_up_no_skip = self.steps_up - self.steps_down
             #self.encoder_stride1_steps = 2+1
-            self.encoder_stride1_steps = 1
+            self.encoder_stride1_steps = 2
             self.padding="same"
         else:
             self.steps_down = 4
@@ -275,11 +275,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         losses = [MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
-                        #weights=[0.7,1.0,0.1,0.1],
-                        weights=[0.5, 0.40, 0.05, 0.5],
+                        weights=[0.5, 0.40, 0.05, 0.01],
                         loss=["mae","mae","mae","categorical_crossentropy"],
                         stats=stats,
-                        avg_weight=0.025),]
+                        avg_weight=0.05),]
         if self.success_only:
             outs = [train_out, next_option_out]
             losses += ["binary_crossentropy"]
