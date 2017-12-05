@@ -15,6 +15,7 @@ import numpy as np
 import tensorflow as tf
 import re
 from tqdm import tqdm # progress bars https://github.com/tqdm/tqdm
+from pylru import lrudecorator # function cache https://github.com/jlhutch/pylru
 
 from tensorflow.python.platform import flags
 from tensorflow.python.platform import gfile
@@ -348,6 +349,7 @@ class GraspDataset(object):
         return features, tfrecord_paths, feature_count, attempt_count
 
     @staticmethod
+    @lrudecorator(500)
     def get_time_ordered_features(features, feature_type='all', step='all', record_type='fixed'):
         """Get list of all image features ordered by time, features are identified by a string path.
             See https://docs.google.com/spreadsheets/d/1GiPt57nCCbA_2EVkFTtf49Q9qeDWgmgEQ6DhxxAIIao/edit#gid=0
