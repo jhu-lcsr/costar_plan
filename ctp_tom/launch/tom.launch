@@ -42,7 +42,7 @@
   <rosparam command="load" file="$(find tom_description)/config/tom_zeros.yaml"/>
 
   <!-- We do not have a robot connected, so publish fake joint states -->
-  <node name="tom_sim" type="tom_sim.py" pkg="costar_task_plan"/>
+  <node name="tom_sim" type="tom_sim.py" pkg="ctp_tom"/>
 
   <!-- start up the DMP server -->
   <include file="$(find dmp)/launch/dmp.launch"/>
@@ -58,7 +58,7 @@
     if="$(arg rviz)"
     pkg="rviz"
     type="rviz"
-    args="-d $(find costar_task_plan)/launch/rviz_conf/tom_robot.rviz" />
+    args="-d $(find ctp_tom)/launch/rviz_conf/tom_robot.rviz" />
 
   <!-- Run the main MoveIt executable without trajectory execution (we do not have controllers configured by default) -->
   <include file="$(find tom_full_moveit_config)/launch/move_group.launch">

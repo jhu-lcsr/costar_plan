@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
 
-  <node name="publish_oranges" type="publish_oranges.py" pkg="costar_task_plan"/> 
+  <node name="publish_oranges" type="publish_oranges.py" pkg="ctp_tom"/> 
 
 </launch>
