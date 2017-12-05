@@ -30,7 +30,7 @@
     <arg name="marker_size" value="$(arg marker_size)"/>
     <arg name="start_alvar" value="$(arg start_alvar)"/>
     <arg name="max_new_marker_error" value="$(arg max_new_marker_error)"/>
-    <arg name="max_tracker_error" value="$(arg max_tracker_error)"/>
+    <arg name="max_track_error" value="$(arg max_track_error)"/>
     <arg name="start_static_handeye" value="$(arg start_static_handeye)"/>
   </include>
 
