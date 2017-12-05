@@ -13,17 +13,22 @@ For some more information on the structure of the task planner package, check ou
 Outline of contents:
   - [Installation Guide](docs/install.md)
     - [Docker Instructions](docs/docker_instructions.md)
-  - [Design Overview](docs/design.md): for some high-level design choices related to the planning code
+    - [Application domains](docs/domains.md)
+  - [Approach](docs/approach.md): overall planner approach
+    - [Software Design](docs/design.md): for some high-level design choices related to the planning code
   - [Machine Learning Models](docs/learning.md): Available models and using the command line tool to train them
+    - [Data collection](docs/collect_data.md): Data collection with a real or simulated robot
     - [MARCC instructions](docs/marcc.md): learning models using the MARCC cluster (JHU students only)
   - [Creating and training a custom task](docs/task_learning.md): defining a task, training predictive models and other tools
   - [CoSTAR Simulation](docs/simulation.md): simulation intro
     - [Simulation Experiments](docs/simulation-experiments.md): information on experiment setup
-    - [PyBullet Sim](docs/pybullet.md)
+    - [PyBullet Sim](docs/pybullet.md): an alternative to Gazebo that may be preferrable in some situations
     - [costar_bullet quick start](docs/costar_bullet.md): How to run tasks, generate datasets, train models, and extend costar_bullet with your own components.
-    - [Adding a robot to the ROS code](docs/add_a_robot): NOT using Bullet sim
+    - [Adding a robot to the ROS code](docs/add_a_robot.md): NOT using Bullet sim
   - [Husky robot](husky/Readme.md): Start the APL Husky sim
   - [TOM robot](docs/tom.md): use the TOM robot from TUM
+
+Many of these sections are a work in progress; if you have any questions shoot me an email (`cpaxton@jhu.edu`).
 
 ## Getting started
 
