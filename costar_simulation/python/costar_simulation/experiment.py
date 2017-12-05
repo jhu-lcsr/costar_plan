@@ -32,7 +32,6 @@ class Experiment(object):
     def reset(self):
         raise NotImplementedError('Experiment not defined')
 
-
 def GetExperiment(experiment, *args, **kwargs):
     return {
             "magnetic_assembly": MagneticAssemblyExperiment,
