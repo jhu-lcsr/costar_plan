@@ -41,9 +41,6 @@
   <!-- If needed, broadcast static tf for robot root -->
   <!--node pkg="tf" type="static_transform_publisher" name="left_hand_desired" args="-0.01 0 0 0 0 0 l_hand_base_link left_hand_desired_ef 10" /-->
 
-  <!-- loading the Park position as TOM zero position -->
-  <rosparam command="load" file="$(find tom_description)/config/tom_zeros.yaml"/>
-
   <!-- We do not have a robot connected, so publish fake joint states -->
   <node name="tom_sim" type="tom_sim.py" pkg="ctp_tom"/>
 
