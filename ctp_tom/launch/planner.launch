@@ -17,6 +17,8 @@
   <!-- Planner settings -->
   <arg name="scene" default="lacquey"/>
   <arg name="debug" default="false"/>
+  <arg name="slave" default="false"/>
+  <arg name="joint_state_gui" default="false"/>
 
   <!-- Start time in simulation mode -->
   <param name="use_sim_time" value="false"/>
@@ -53,6 +55,11 @@
 
   <!-- loading the Park position as TOM zero position -->
   <rosparam command="load" file="$(find tom_description)/config/tom_zeros.yaml"/>
+
+  <node name="joint_state_publishervis" pkg="joint_state_publisher" type="joint_state_publisher" unless="$(arg slave)">
+    <param name="/use_gui" value="$(arg joint_state_gui)"/> 
+   	<rosparam param="source_list">[right_arm_joint_states, left_arm_joint_states, right_fingers_joint_states, left_fingers_joint_states, base_group_joint_states]</rosparam>
+  </node>
 
   <!-- Load the URDF, SRDF and other .yaml configuration files on the param server -->
   <include file="$(find tom_full_moveit_config)/launch/planning_context.launch">
