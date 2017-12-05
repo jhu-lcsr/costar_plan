@@ -11,7 +11,7 @@
   <arg name="rviz" default="false"/>
 
   <!-- If slave, then we are connecting to a remote simulation -->
-  <arg name="slave" default="false"/>
+  <arg name="slave" default="true"/>
 
   <!-- simulation mode -->
   <param name="use_sim_time" value="false"/>

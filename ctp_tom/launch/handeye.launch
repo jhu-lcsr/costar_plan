@@ -1,10 +1,17 @@
 <launch>
 
-  <!--node pkg="tf" name="camera_to_torso" type="static_transform_publisher" args="0.1083  0.0343 -0.02 0.6778274116617002 -0.6572100690172943  0.2390357740221721 -0.22693829926838838 A
-    -->
-  <node pkg="tf"
+  <node
+    pkg="tf"
     name="camera_to_torso"
     type="static_transform_publisher"
-    args="0.0324128 0.0734406 -0.0828281 0.6778274116617002 -0.6572100690172943 0.2390357740221721 0.22693829926838838 /torso_link /camera_rgb_optical_frame 100" />
+    args="0.1083  0.0343 -0.02 0 0 0 1 /torso_link /camera_link 10"
+  />
+
+  <!-- node pkg="tf"
+    name="camera_to_torso"
+    type="static_transform_publisher"
+    args="0.0324128 0.0734406 -0.0828281 0.6778274116617002 -0.6572100690172943 0.2390357740221721 0.22693829926838838 /torso_link /camera_rgb_optical_frame 100" 
+    args="0.1083  0.0343 -0.02 0.6778274116617002 -0.6572100690172943  0.2390357740221721 -0.22693829926838838 /torso_link /camera_link 10" -->
+
 </launch>
 

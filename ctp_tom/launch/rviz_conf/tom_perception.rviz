@@ -873,252 +873,7 @@ Visualization Manager:
           Expand Joint Details: false
           Expand Link Details: false
           Expand Tree: false
-          ICS_logo_blue_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          ICS_logo_grey_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
           Link Tree Style: Links in Alphabetic Order
-          base_footprint:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          base_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          box_tom_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          front_laser_scanner_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          l_base_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          l_ee_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          l_forearm_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          l_front_wheel_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          l_gripper_base_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          l_gripper_left_finger_base_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          l_gripper_left_finger_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          l_gripper_mid_finger_base_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          l_gripper_mid_finger_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          l_gripper_palm_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          l_gripper_right_finger_base_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          l_gripper_right_finger_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          l_hand_base_adapter_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          l_rear_wheel_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          l_shoulder_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          l_upper_arm_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          l_wrist_1_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          l_wrist_2_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          l_wrist_3_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          r_base_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          r_ee_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          r_forearm_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          r_front_wheel_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          r_gripper_base_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          r_gripper_left_finger_base_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          r_gripper_left_finger_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          r_gripper_mid_finger_base_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          r_gripper_mid_finger_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          r_gripper_palm_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          r_gripper_right_finger_base_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          r_gripper_right_finger_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          r_hand_base_adapter_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          r_rear_wheel_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          r_shoulder_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          r_upper_arm_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          r_wrist_1_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          r_wrist_2_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          r_wrist_3_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          rear_laser_scanner_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          table_tom_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          tom_head_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          tom_left_camera_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          torso_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
         Robot Alpha: 1
         Show Robot Collision: false
         Show Robot Visual: false
@@ -1180,7 +935,7 @@ Visualization Manager:
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
-    Fixed Frame: camera_depth_frame
+    Fixed Frame: base_link
     Frame Rate: 30
   Name: root
   Tools:
@@ -1201,7 +956,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 4.22019386
+      Distance: 3.66948795
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
@@ -1215,10 +970,10 @@ Visualization Manager:
       Focal Shape Size: 0.0500000007
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.0347954854
+      Pitch: 0.475203723
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.35402417
+      Yaw: 2.31220984
     Saved: ~
 Window Geometry:
   Depth:
