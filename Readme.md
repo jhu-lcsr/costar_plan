@@ -28,12 +28,17 @@ Outline of contents:
   - [Husky robot](husky/Readme.md): Start the APL Husky sim
   - [TOM robot](docs/tom.md): use the TOM robot from TUM
 
-Package layout:
+Package/folder layout:
   - [CoSTAR Simulation](costar_simulation/Readme.md): Gazebo simulation and ROS execution
   - [CoSTAR Task Plan](costar_task_plan/Readme.md): the high-level python planning library
   - [CoSTAR Gazebo Plugins](costar_gazebo_plugins/Readme.md): assorted plugins for integration
   - [CoSTAR Models](costar_models/Readme.md): tools for learning deep neural networks
   - [Costar Task Plan - Tom](ctp_tom/Readme.md): specific bringup and scenarios for the TOM robot from TU Munich
+  - `setup`: contains setup scripts
+  - `slurm`: contains SLURM scripts for running on MARCC
+  - `command`: contains scripts with example CTP command-line calls
+  - `docs`: markdown files for information that is not specific to a particular ROS package but to all of CTP
+  - `photos`: example images
   - Others are temporary packages for various projects
 
 Many of these sections are a work in progress; if you have any questions shoot me an email (`cpaxton@jhu.edu`).
