@@ -38,8 +38,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         super(RobotMultiPredictionSampler, self).__init__(taskdef, *args, **kwargs)
 
         self.num_frames = 1
-        self.img_num_filters = 64
-        self.tform_filters = 64
+        self.img_num_filters = 32
+        self.tform_filters = 32
         self.num_hypotheses = 4
         self.validation_split = 0.05
         self.num_options = 48
