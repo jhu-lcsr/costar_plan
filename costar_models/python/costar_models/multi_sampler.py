@@ -60,7 +60,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             self.steps_up = 4
             self.steps_up_no_skip = self.steps_up - self.steps_down
             #self.encoder_stride1_steps = 2+1
-            self.encoder_stride1_steps = 1
+            self.encoder_stride1_steps = 2
             self.padding="same"
         else:
             self.steps_down = 4
