@@ -54,7 +54,10 @@
     respawn="false"
     output="screen" />
 
-  <node name="rvizvis"
+  <!-- Bring up a separate rviz node from the controllers if this is being run
+       as a part of a single distributed system (with TOM the real robot,
+       for example) -->
+  <node name="rvizvis_slave"
     if="$(arg rviz)"
     pkg="rviz"
     type="rviz"
