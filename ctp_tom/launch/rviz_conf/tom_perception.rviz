@@ -74,9 +74,9 @@ Visualization Manager:
       Frames:
         All Enabled: false
         ICS_logo_blue_link:
-          Value: true
+          Value: false
         ICS_logo_grey_link:
-          Value: true
+          Value: false
         ar_marker_0:
           Value: true
         ar_marker_1:
@@ -96,125 +96,125 @@ Visualization Manager:
         ar_marker_8:
           Value: true
         base_footprint:
-          Value: true
+          Value: false
         base_link:
-          Value: true
+          Value: false
         box1:
-          Value: true
+          Value: false
         box_tom_link:
-          Value: true
+          Value: false
         camera_depth_frame:
-          Value: true
+          Value: false
         camera_depth_optical_frame:
-          Value: true
+          Value: false
         camera_link:
-          Value: true
+          Value: false
         camera_rgb_frame:
-          Value: true
+          Value: false
         camera_rgb_optical_frame:
-          Value: true
+          Value: false
         front_laser_scanner_link:
-          Value: true
+          Value: false
         l_base_link:
-          Value: true
+          Value: false
         l_ee_link:
-          Value: true
+          Value: false
         l_forearm_link:
-          Value: true
+          Value: false
         l_front_wheel_link:
-          Value: true
+          Value: false
         l_gripper_base_link:
-          Value: true
+          Value: false
         l_gripper_left_finger_base_link:
-          Value: true
+          Value: false
         l_gripper_left_finger_link:
-          Value: true
+          Value: false
         l_gripper_mid_finger_base_link:
-          Value: true
+          Value: false
         l_gripper_mid_finger_link:
-          Value: true
+          Value: false
         l_gripper_palm_link:
-          Value: true
+          Value: false
         l_gripper_right_finger_base_link:
-          Value: true
+          Value: false
         l_gripper_right_finger_link:
-          Value: true
+          Value: false
         l_hand_base_adapter_link:
-          Value: true
+          Value: false
         l_rear_wheel_link:
-          Value: true
+          Value: false
         l_shoulder_link:
-          Value: true
+          Value: false
         l_upper_arm_link:
-          Value: true
+          Value: false
         l_wrist_1_link:
-          Value: true
+          Value: false
         l_wrist_2_link:
-          Value: true
+          Value: false
         l_wrist_3_link:
-          Value: true
+          Value: false
         odom_combined:
-          Value: true
+          Value: false
         orange1:
-          Value: true
+          Value: false
         orange2:
-          Value: true
+          Value: false
         orange3:
-          Value: true
+          Value: false
         r_base_link:
-          Value: true
+          Value: false
         r_ee_link:
-          Value: true
+          Value: false
         r_forearm_link:
-          Value: true
+          Value: false
         r_front_wheel_link:
-          Value: true
+          Value: false
         r_gripper_base_link:
-          Value: true
+          Value: false
         r_gripper_left_finger_base_link:
-          Value: true
+          Value: false
         r_gripper_left_finger_link:
-          Value: true
+          Value: false
         r_gripper_mid_finger_base_link:
-          Value: true
+          Value: false
         r_gripper_mid_finger_link:
-          Value: true
+          Value: false
         r_gripper_palm_link:
-          Value: true
+          Value: false
         r_gripper_right_finger_base_link:
-          Value: true
+          Value: false
         r_gripper_right_finger_link:
-          Value: true
+          Value: false
         r_hand_base_adapter_link:
-          Value: true
+          Value: false
         r_rear_wheel_link:
-          Value: true
+          Value: false
         r_shoulder_link:
-          Value: true
+          Value: false
         r_upper_arm_link:
-          Value: true
+          Value: false
         r_wrist_1_link:
-          Value: true
+          Value: false
         r_wrist_2_link:
-          Value: true
+          Value: false
         r_wrist_3_link:
-          Value: true
+          Value: false
         rear_laser_scanner_link:
-          Value: true
+          Value: false
         squeeze_area1:
-          Value: true
+          Value: false
         table_tom_link:
-          Value: true
+          Value: false
         tom_head_link:
-          Value: true
+          Value: false
         tom_left_camera_link:
-          Value: true
+          Value: false
         torso_link:
-          Value: true
+          Value: false
         trash1:
-          Value: true
+          Value: false
         world:
-          Value: true
+          Value: false
       Marker Scale: 0.200000003
       Name: TF
       Show Arrows: true
@@ -259,6 +259,8 @@ Visualization Manager:
                     ar_marker_4:
                       {}
                     ar_marker_5:
+                      {}
+                    ar_marker_6:
                       {}
                     ar_marker_7:
                       {}
@@ -1447,7 +1449,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 3.1830411
+      Distance: 3.30123472
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
@@ -1461,10 +1463,10 @@ Visualization Manager:
       Focal Shape Size: 0.0500000007
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.179796532
+      Pitch: 0.399796903
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.91721058
+      Yaw: 1.56721103
     Saved: ~
 Window Geometry:
   Depth:
