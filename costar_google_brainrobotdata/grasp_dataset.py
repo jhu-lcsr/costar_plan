@@ -1318,9 +1318,25 @@ class GraspDataset(object):
         if feature_op_dicts is None:
             # Get tensors that load the dataset from disk plus features calculated from the raw data, including transforms and point clouds
             feature_op_dicts, features_complete_list, time_ordered_feature_name_dict, num_samples = self._get_transform_tensors(
-                batch_size=batch_size, random_crop=random_crop, offset=offset)
+                batch_size=batch_size, random_crop=random_crop)
 
-        camera_intrinsics_name = 'camera/intrinsics/matrix33'
+        preprocessed_image_feature_type = '/image/decoded'
+        if random_crop:
+            preprocessed_image_feature_type = '/image/cropped'
+
+        preprocessed_rgb_clear_view_name = self.get_time_ordered_features(
+            features_complete_list,
+            feature_type=preprocessed_image_feature_type,
+            step='view_clear_scene'
+        )[0]
+
+        # get the feature names for the sequence of rgb images
+        # in which movement towards the close gripper step is made
+        preprocessed_rgb_move_to_grasp_steps = self.get_time_ordered_features(
+            features_complete_list,
+            feature_type=preprocessed_image_feature_type,
+            step='move_to_grasp'
+        )
 
         rgb_clear_view_name = self.get_time_ordered_features(
             features_complete_list,
@@ -1373,38 +1389,43 @@ class GraspDataset(object):
         )
 
         preprocessed_rgb_move_to_grasp_steps_names = []
+        new_feature_op_dicts = []
 
         # go through every element in the batch
         for batch_i, (fixed_feature_op_dict, sequence_feature_op_dict) in enumerate(feature_op_dicts):
             # print('fixed_feature_op_dict: ', fixed_feature_op_dict)
             # get the pregrasp image, and squeeze out the extra batch dimension from the tfrecord
             # TODO(ahundt) move squeeze steps into dataset api if possible
-            pregrasp_image_rgb_op = fixed_feature_op_dict[rgb_clear_view_name]
+            pregrasp_image_rgb_op = fixed_feature_op_dict[preprocessed_rgb_clear_view_name]
 
             pregrasp_image_rgb_op = self._rgb_preprocessing(pregrasp_image_rgb_op,
                                                             imagenet_mean_subtraction=imagenet_mean_subtraction,
                                                             resize=resize)
-            preprocessed_rgb_clear_view_name = rgb_clear_view_name.replace(image_feature_type, 'image/preprocessed')
+            fully_preprocessed_rgb_clear_view_name = preprocessed_rgb_clear_view_name.replace(
+                preprocessed_image_feature_type, 'image/preprocessed')
+            fixed_feature_op_dict[fully_preprocessed_rgb_clear_view_name] = pregrasp_image_rgb_op
 
             grasp_success_op = tf.squeeze(fixed_feature_op_dict['grasp_success'])
             if self.verbose > 2:
-                print('\npose_op_params: ', pose_op_params, '\nrgb_move_to_grasp_steps: ', rgb_move_to_grasp_steps)
+                print('\nrgb_move_to_grasp_steps: ', rgb_move_to_grasp_steps)
 
-            for time_step_j, (grasp_step_rgb_feature_name, pose_op_param) in enumerate(zip(rgb_move_to_grasp_steps, pose_op_params)):
+            for time_step_j, (grasp_step_rgb_feature_name) in enumerate(preprocessed_rgb_move_to_grasp_steps):
                 # do preprocessing and add new image to fixed_feature_op_dict
-                grasp_step_rgb_feature_op = self._rgb_preprocessing(fixed_feature_op_dict[grasp_step_rgb_feature_name])
-                grasp_step_rgb_feature_name = grasp_step_rgb_feature_name.replace(image_feature_type, 'image/preprocessed')
+                grasp_step_rgb_feature_op = self._rgb_preprocessing(fixed_feature_op_dict[grasp_step_rgb_feature_name],
+                                                                    imagenet_mean_subtraction=imagenet_mean_subtraction,
+                                                                    resize=resize)
+                grasp_step_rgb_feature_name = grasp_step_rgb_feature_name.replace(preprocessed_image_feature_type, 'image/preprocessed')
                 fixed_feature_op_dict[grasp_step_rgb_feature_name] = grasp_step_rgb_feature_op
                 if batch_i == 0:
                     # add to list of names, assume all batches have the same steps so only need to append names on batch 0
-                    preprocessed_rgb_move_to_grasp_names.append(grasp_step_rgb_feature_name)
+                    preprocessed_rgb_move_to_grasp_steps_names.append(grasp_step_rgb_feature_name)
 
             # assemble the updated feature op dicts
             new_feature_op_dicts = np.append(new_feature_op_dicts, (fixed_feature_op_dict, sequence_feature_op_dict))
 
         new_time_ordered_feature_name_dict = {
             'move_to_grasp/time_ordered/clear_view/rgb_image/decoded': [rgb_clear_view_name] * len(rgb_move_to_grasp_steps),
-            'move_to_grasp/time_ordered/clear_view/rgb_image/preprocessed': [preprocessed_rgb_clear_view_name] * len(rgb_move_to_grasp_steps),
+            'move_to_grasp/time_ordered/clear_view/rgb_image/preprocessed': [fully_preprocessed_rgb_clear_view_name] * len(rgb_move_to_grasp_steps),
             'move_to_grasp/time_ordered/rgb_image/decoded': rgb_move_to_grasp_steps,
             'move_to_grasp/time_ordered/rgb_image/preprocessed': preprocessed_rgb_move_to_grasp_steps_names,
             'move_to_grasp/time_ordered/xyz_image/decoded': xyz_move_to_grasp_steps,
