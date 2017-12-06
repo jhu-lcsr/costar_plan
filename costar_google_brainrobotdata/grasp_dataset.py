@@ -1283,7 +1283,7 @@ class GraspDataset(object):
             self,
             feature_op_dicts=None,
             features_complete_list=None,
-            time_ordered_feature_name_dict=None
+            time_ordered_feature_name_dict=None,
             num_samples=None,
             batch_size=FLAGS.batch_size,
             image_augmentation=FLAGS.image_augmentation,
