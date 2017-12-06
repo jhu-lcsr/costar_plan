@@ -155,6 +155,10 @@ def mkdir_p(path):
 
 
 def is_sequence(arg):
+    """Returns true if arg is a list or another Python Sequence, and false otherwise.
+
+        source: https://stackoverflow.com/a/17148334/99379
+    """
     return (not hasattr(arg, "strip") and
             hasattr(arg, "__getitem__") or
             hasattr(arg, "__iter__"))
@@ -176,6 +180,10 @@ class GraspDataset(object):
         102 in the constructor, and then call `get_training_tensors()`. This will give
         you tensorflow tensors for the original dataset configuration and parameterization. Then initialize
         your model with the tensors and train or predict.
+
+        For analysis and visualization of the dataset use `get_training_dictionaries()`,
+        this contains both the raw features stored on disk and preprocessed features needed to visualize
+        the dataset in detail. Also see `vrep_grasp.py` to visualize the dataset.
 
         This interface only supports one dataset at a time (aka 102 feature version or 057).
 
@@ -1405,7 +1413,9 @@ class GraspDataset(object):
                              grasp_success_label=FLAGS.grasp_success_label
                              grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
                              grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step):
-        """Get tensors configured for training on grasps at a single pose.
+        """Get tensors configured for training on grasps.
+
+            TODO(ahundt) 2017-12-05 update get_training_tensors docstring, now expects 'move_to_grasp/time_ordered/' feature strings.
 
             motion_params: different ways of representing the motion vector parameter used as an input to predicting grasp success.
                 Options include
