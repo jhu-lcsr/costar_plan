@@ -62,7 +62,18 @@ class TransformIntegator(object):
 
             if self.history_length > 0:
                 # use history to smooth predictions
-                pass
+                if len(self.history) >= self.history_length:
+                    self.history.pop()
+                self.history.appendleft((avg_p, avg_q))
+                avg_p = np.zeros(3)
+                avg_q = np.zeros(4)
+                for p, q in self.history:
+                    avg_p += p
+                    avg_q += q
+
+                avg_p /= len(self.history)
+                avg_q /= len(self.history)
+                avg_q /= np.linalg.norm(avg_q)
 
             if self.offset is not None:
                 # apply some offset after we act
