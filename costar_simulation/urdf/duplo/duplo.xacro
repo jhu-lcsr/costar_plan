@@ -1,0 +1,20 @@
+<?xml version="0.0" ?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:macro name="duplo" params="name">
+    <link name="${name}">
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <geometry>
+          <mesh filename="package://costar_simulation/urdf/duplo/duplo.dae" scale="1. 1. 1."/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <geometry>
+          <box size="0.127 0.087 0.063"/>
+        </geometry>
+      </collision>
+    </link>
+  </xacro:macro>
+</robot>

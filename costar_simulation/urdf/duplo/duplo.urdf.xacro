@@ -1,0 +1,6 @@
+<?xml version="0.0" ?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:macro name="duplo" params="name rgba">
+
+  </xacro:macro>
