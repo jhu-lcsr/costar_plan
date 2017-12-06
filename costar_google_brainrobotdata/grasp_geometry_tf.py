@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import tensorflow as tf
+import tensorflow.python.keras.backend as K
 
 
 def depth_image_to_point_cloud(depth, intrinsics_matrix):
@@ -52,14 +53,15 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix):
         center_y = intrinsics_matrix[2, 1]
         # TODO(ahundt) make sure rot90 + fliplr is applied upstream in the dataset and to the depth images, ensure consistency with image intrinsics
         depth = tf.image.flip_left_right(tf.image.rot90(depth, 3))
-        x, y = tf.meshgrid(tf.arange(depth.shape[0]),
-                           tf.arange(depth.shape[1]),
+        depth_shape = K.int_shape(depth)
+        x, y = tf.meshgrid(tf.arange(depth_shape[0]),
+                           tf.arange(depth_shape[1]),
                            indexing='ij')
         X = (x - center_x) * depth / fx
         Y = (y - center_y) * depth / fy
         XYZ = tf.stack((tf.keras.backend.flatten(X),
                         tf.keras.backend.flatten(Y),
                         tf.keras.backend.flatten(depth))
-                       ).reshape(depth.shape + (3,))
+                       ).reshape(depth_shape + (3,))
 
         return XYZ
