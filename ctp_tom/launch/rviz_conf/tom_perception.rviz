@@ -77,6 +77,12 @@ Visualization Manager:
           Value: true
         ICS_logo_grey_link:
           Value: true
+        ar_marker_0:
+          Value: true
+        ar_marker_1:
+          Value: true
+        ar_marker_6:
+          Value: true
         base_footprint:
           Value: true
         base_link:
@@ -175,6 +181,8 @@ Visualization Manager:
           Value: true
         tom_left_camera_link:
           Value: true
+        tom_table:
+          Value: true
         torso_link:
           Value: true
       Marker Scale: 0.200000003
@@ -208,7 +216,14 @@ Visualization Manager:
                     {}
                 camera_rgb_frame:
                   camera_rgb_optical_frame:
-                    {}
+                    ar_marker_0:
+                      {}
+                    ar_marker_1:
+                      {}
+                    ar_marker_6:
+                      {}
+                    tom_table:
+                      {}
               l_base_link:
                 l_shoulder_link:
                   l_upper_arm_link:
@@ -1086,6 +1101,22 @@ Visualization Manager:
       Transport Hint: raw
       Unreliable: false
       Value: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+      Name: table model
+      Robot Description: table_description
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -1110,7 +1141,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 2.29866552
+      Distance: 2.11054802
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
@@ -1124,10 +1155,10 @@ Visualization Manager:
       Focal Shape Size: 0.0500000007
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.33979696
+      Pitch: 0.334796935
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.69221151
+      Yaw: 1.94221175
     Saved: ~
 Window Geometry:
   Depth:

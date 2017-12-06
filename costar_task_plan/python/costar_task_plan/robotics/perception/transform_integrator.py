@@ -6,7 +6,7 @@ import tf_conversions.posemath as pm
 
 class TransformIntegator(object):
 
-    def __init__(self, name, root, transforms={}, listener=None):
+    def __init__(self, name, root, transforms={}, listener=None, broadcaster=None):
         self.name = name
         self.transforms = transforms
         self.root = root
@@ -15,6 +15,10 @@ class TransformIntegator(object):
             self.listener = listener
         else:
             self.listener = tf.TransformListener()
+        if broadcaster is not None:
+            self.broadcaster = broadcaster
+        else:
+            self.broadcaster = tf.TransformBroadcaster()
 
     def addTransform(self, name, pose):
         self.transforms[name] = pose
@@ -44,5 +48,5 @@ class TransformIntegator(object):
             avg_p /= count
             avg_q /= count
             avg_q /= np.linalg.norm(avg_q)
-            print avg_p, avg_q
+            self.broadcaster.sendTransform(avg_p, avg_q, rospy.Time.now(), self.name, self.root)
 
