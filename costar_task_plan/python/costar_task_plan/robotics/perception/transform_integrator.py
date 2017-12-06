@@ -37,10 +37,12 @@ class TransformIntegator(object):
                 F = pm.fromTf((p, q))
                 F = F * pose
                 p, q = pm.toTf(F)
-                print name, p, q
                 avg_p += np.array(p)
                 avg_q += np.array(q)
                 count += 1
         if count > 0:
-            pass
+            avg_p /= count
+            avg_q /= count
+            avg_q /= np.linalg.norm(avg_q)
+            print avg_p, avg_q
 
