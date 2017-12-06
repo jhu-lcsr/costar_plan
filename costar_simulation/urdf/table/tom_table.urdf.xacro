@@ -1,0 +1,51 @@
+<?xml version="0.0" ?>
+<robot name="table.urdf">
+
+  <xacro:macro name="top_panel">
+    <geometry>
+      <box size="1 0.6 0.017"/>
+    </geometry>
+    <material name="dark"/>
+  </xacro:macro>
+
+  <xacro:macro name="top_base">
+    <geometry>
+      <box size="1 0.6 0.04"/>
+    </geometry>
+    <material name="light"/>
+  </xacro:macro>
+
+
+  <xacro:macro name="leg">
+    <geometry>
+      <box size="0.04 0.04 0.823"/>
+    </geometry>
+    <material name="light"/>
+  </xacro:macro>
+
+  <material name="dark">
+    <color rgba="0.2 0.2 0.2 1."/>
+  </material>
+  <material name="light">
+    <color rgba="0.8 0.8 0.8 1."/>
+  </material>
+
+  <link name="baseLink">
+    <contact>
+      <lateral_friction value="1.0"/>
+    </contact>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value=".0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0.3 -0.0085"/>
+      <xacro:top_panel/>
+    </visual>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0.3 -0.00285"/>
+      <xacro:top_base/>
+    </visual>
+  </link>
+</robot>

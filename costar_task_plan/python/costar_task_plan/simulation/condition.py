@@ -259,7 +259,13 @@ class ObjectMovedCondition(AbstractCondition):
         
         return dist < self.pos_tol
         
+class GripperNotFullyClosedCondition(AbstractCondition):
+    def __init__(self, threshold):
+        self.threshold = threshold
 
+    def _check(self, world, state, *args, **kwargs):
+        # check gripper state
+        pass
 
 class GraspingObjectCondition(AbstractCondition):
     '''
