@@ -1382,12 +1382,6 @@ class GraspDataset(object):
             step='move_to_grasp'
         )
 
-        base_to_endeffector_final_vec_quat_7_names = self.get_time_ordered_features(
-            features_complete_list,
-            feature_type='transforms/base_T_endeffector/vec_quat_7',
-            step='move_to_grasp'
-        )
-
         preprocessed_rgb_move_to_grasp_steps_names = []
         new_feature_op_dicts = []
 
