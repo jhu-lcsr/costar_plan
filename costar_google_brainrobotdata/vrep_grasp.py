@@ -357,7 +357,7 @@ class VREPGraspSimulation(object):
 
             if 'depth_encoded_rgb' in convert:
                 image = np.array(FloatArrayToRgbImage(image, scale_factor=scale_factor, drop_blue=False),
-                                dtype=np.uint8)
+                                 dtype=np.uint8)
             elif 'depth_rgb' in convert:
                 image = FloatArrayToRawRGB(image)
             elif not vrep_conversion:
