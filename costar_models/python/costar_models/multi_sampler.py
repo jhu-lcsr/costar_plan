@@ -997,17 +997,18 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         img = Input(img_shape,name="img_encoder_in")
         img0 = Input(img_shape,name="img0_encoder_in")
         x = img
-        x = AddConv2D(x, 16, [7,7], 1, self.dropout_rate, "same", disc)
+        x = AddConv2D(x, 32, [7,7], 2, self.dropout_rate, "same", disc)
         y = img0
-        y = AddConv2D(y, 16, [7,7], 1, self.dropout_rate, "same", disc)
-        x = Concatenate()([x,y])
-        x = AddConv2D(x, 32, [5,5], 2, self.dropout_rate, "same", disc)
+        #y = AddConv2D(y, 16, [7,7], 1, self.dropout_rate, "same", disc)
+        #x = Concatenate()([x,y])
+        x = AddConv2D(x, 32, [5,5], 1, self.dropout_rate, "same", disc)
+        x = AddConv2D(x, 32, [5,5], 1, self.dropout_rate, "same", disc)
         x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate, "same", disc)
+        x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, "same", disc)
         #x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate, "same", disc)
         x = AddConv2D(x, 128, [5,5], 2, self.dropout_rate, "same", disc)
-        #x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, "same", disc)
-        self.encoder_channels = 64
-        x = AddConv2D(x, self.encoder_channels, [1,1], 1, self.dropout_rate,
+        self.encoder_channels = 32
+        x = AddConv2D(x, self.encoder_channels, [1,1], 1, 0.*self.dropout_rate,
                 "same", disc)
 
         #def _ssm(x):
@@ -1055,11 +1056,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         #x = AddDense(x, int(h*w*c), "linear", dr)
         #x = Reshape((h,w,c))(x)
         #x = AddConv2DTranspose(x, 64, [5,5], 1, dr)
-        #x = AddConv2DTranspose(x, 128, [5,5], 1, dr)
+        x = AddConv2DTranspose(x, 128, [1,1], 1, 0.*dr)
         #x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
         x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
+        x = AddConv2DTranspose(x, 64, [5,5], 1, dr)
         x = AddConv2DTranspose(x, 32, [5,5], 2, dr)
-        x = AddConv2DTranspose(x, 16, [5,5], 2, dr)
+        x = AddConv2DTranspose(x, 32, [5,5], 1, dr)
+        x = AddConv2DTranspose(x, 32, [5,5], 2, dr)
+        x = AddConv2DTranspose(x, 32, [5,5], 1, dr)
         if self.skip_connections and img_shape is not None:
             x = Concatenate(axis=-1)([x, skip])
             ins = [rep, skip]
