@@ -3,33 +3,25 @@
 
   <xacro:property name="M_PI" value="3.14159"/>
 
-  <material name="dark">
-    <color rgba="0.3 0.3 0.3 1."/>
+  <material name="tt_metal">
+    <color rgba="0.75 0.75 0.75 1."/>
   </material>
-  <material name="light">
-    <color rgba="0.3 0.3 0.3 1."/>
+  <material name="tt_top">
+    <color rgba="0.2 0.2 0.2 1."/>
   </material>
-
-  <xacro:macro name="top_panel">
-    <geometry>
-      <box size="1 0.595 0.017"/>
-    </geometry>
-    <material name="dark"/>
-  </xacro:macro>
 
   <xacro:macro name="top_base">
     <geometry>
       <box size="1 0.595 0.04"/>
     </geometry>
-    <material name="light"/>
+    <material name="tt_metal"/>
   </xacro:macro>
-
 
   <xacro:macro name="leg">
     <geometry>
       <box size="0.04 0.04 0.823"/>
     </geometry>
-    <material name="light"/>
+    <material name="tt_metal"/>
   </xacro:macro>
 
   <xacro:macro name="leg_at" params="xyz">
@@ -41,6 +33,13 @@
       <origin rpy="0 0 0" xyz="${xyz}"/>
       <xacro:leg/>
     </collision>
+  </xacro:macro>
+
+  <xacro:macro name="top_panel">
+    <geometry>
+      <box size="1 0.595 0.017"/>
+    </geometry>
+    <material name="tt_metal"/>
   </xacro:macro>
 
   <xacro:macro name="tom_table" params="name">

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import numpy as np
 import PyKDL as kdl
 import rospy
 
@@ -16,7 +17,11 @@ if __name__ == '__main__':
 
     integrator = TransformIntegator(
             "tom_table",
-            "/camera_rgb_optical_frame")
+            "/camera_rgb_optical_frame",
+            history_length=50,
+            offset=kdl.Frame(
+                kdl.Rotation.RotZ(np.pi/2),
+                kdl.Vector(0.0225,0,0)))
     integrator.addTransform("/ar_marker_0", kdl.Frame())
     integrator.addTransform("/ar_marker_1", kdl.Frame(R01,t01).Inverse())
     integrator.addTransform("/ar_marker_6", kdl.Frame(R06,t06).Inverse())
