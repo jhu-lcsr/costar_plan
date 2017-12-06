@@ -464,9 +464,52 @@ class VREPGraspSimulation(object):
 
     def visualize_tensorflow(self, tf_session, dataset=FLAGS.grasp_dataset, batch_size=1, parent_name=FLAGS.vrepParentName):
         """Visualize one dataset in V-REP from performing all preprocessing in tensorflow.
+
+            tensorflow loads the raw data from the dataset and also calculates all
+            features before they are rendered with vrep via python,
         """
         grasp_dataset_object = GraspDataset(dataset=dataset)
         batch_size = 1
+
+        (feature_op_dicts, features_complete_list,
+         time_ordered_feature_name_dict, num_samples) = grasp_dataset_object.get_training_dictionaries(batch_size=batch_size)
+
+        tf_session.run(tf.global_variables_initializer())
+
+        error_code, parent_handle = vrep.simxGetObjectHandle(self.client_id, parent_name, vrep.simx_opmode_blocking)
+        if error_code is -1:
+            parent_handle = -1
+            print('could not find object with the specified name, so putting objects in world frame:', parent_name)
+
+        for attempt_num in range(num_samples / batch_size):
+            output_features_dict = tf_session.run(feature_op_dicts)
+            # reorganize is grasp attempt so it is easy to walk through
+            time_ordered_feature_data_dict = grasp_dataset_object._to_tensors(output_features_dict, time_ordered_feature_name_dict)
+
+            # check if this attempt is one the user requested, if not get the next one
+            if not ((attempt_num >= FLAGS.vrepVisualizeGraspAttempt_min or FLAGS.vrepVisualizeGraspAttempt_min == -1) and
+                    (attempt_num < FLAGS.vrepVisualizeGraspAttempt_max or FLAGS.vrepVisualizeGraspAttempt_max == -1)):
+                continue
+
+            if (attempt_num > FLAGS.vrepVisualizeGraspAttempt_max and not FLAGS.vrepVisualizeGraspAttempt_max == -1):
+                # stop running if we've gone through all the relevant attempts.
+                break
+
+            # Add the camera frame transform and all transforms that start at the base
+            for name, value in time_ordered_feature_data_dict:
+                if 'base_T_camera/vec_quat_7' in name:
+                    base_T_camera_handle = self.create_dummy('base_T_camera', value[0], parent_handle)
+                elif 'base_T' in name and 'vec_quat_7' in name:
+                    for i, base_transform in enumerate(value):
+                        self.create_dummy(name.replace('/', '_') + str(i), base_transform, parent_handle)
+
+            # Add all transforms that start at the camera frame
+            for name, value in time_ordered_feature_data_dict:
+                if 'camera_T' in name and 'vec_quat_7' in name:
+                    for i, transform in enumerate(value):
+                        self.create_dummy(name.replace('/', '_') + str(i), transform, base_T_camera_handle)
+
+            # TODO(ahundt) 2017-12-05 extract text for destination from each transform, show rgb images, update point clouds, add option to show preprocessed images
 
     def visualize_python(self, tf_session, dataset=FLAGS.grasp_dataset, batch_size=1, parent_name=FLAGS.vrepParentName):
         """Visualize one dataset in V-REP from raw dataset features, performing all preprocessing manually in this function.
