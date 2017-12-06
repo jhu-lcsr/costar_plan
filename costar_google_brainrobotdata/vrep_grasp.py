@@ -126,7 +126,7 @@ class VREPGraspSimulation(object):
         else:
             raise ValueError('VREPGraspSimulation.visualize(): unsupported vrepVisualizationPipeline: ' + str(FLAGS.vrepVisualizationPipeline))
 
-    def create_dummy(self, display_name, transform, parent_handle=-1, debug=FLAGS.vrepDebugMode):
+    def create_dummy(self, display_name, transform, parent_handle=-1, debug=FLAGS.vrepDebugMode, operation_mode=vrep.simx_opmode_blocking):
         """Create a dummy object in the simulation
 
         # Arguments
@@ -146,7 +146,7 @@ class VREPGraspSimulation(object):
             transform,
             [display_name],
             empty_buffer,
-            vrep.simx_opmode_blocking)
+            operation_mode)
         if res == vrep.simx_return_ok:
             # display the reply from V-REP (in this case, the handle of the created dummy)
             if debug is not None and 'print_transform' in debug:
@@ -157,7 +157,7 @@ class VREPGraspSimulation(object):
             return -1
         return ret_ints[0]
 
-    def drawLines(self, display_name, lines, parent_handle=-1, transform=None, debug=FLAGS.vrepDebugMode):
+    def drawLines(self, display_name, lines, parent_handle=-1, transform=None, debug=FLAGS.vrepDebugMode, operation_mode=vrep.simx_opmode_blocking):
         """Create a line in the simulation.
 
         Note that there are currently some quirks with this function. Only one line is accepted,
@@ -184,7 +184,7 @@ class VREPGraspSimulation(object):
             lines,
             [display_name],
             empty_buffer,
-            vrep.simx_opmode_blocking)
+            operation_mode)
         if res == vrep.simx_return_ok:
             # display the reply from V-REP (in this case, the handle of the created dummy)
             if debug is not None and 'print_drawLines' in debug:
