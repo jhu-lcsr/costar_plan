@@ -17,10 +17,18 @@
     <arg name="auto_exposure" value="$(arg auto_exposure)"/>
   </include>
 
+  <!-- Load the table URDF to the rosparam server -->
+  <param name="table_description"
+         command="$(find xacro)/xacro.py '$(find costar_simulation)/urdf/table/default_tom_table.urdf.xacro'"/>
 
-  <param name="table_description" command="$(find xacro(/xacro.py "/>
+  <!-- If we are testing with the real robot, use AR markers to localize the
+       table and add it to the visualization and planning scenes. -->
+  <node if="$(arg real)"
+    pkg="ctp_tom"
+    name="table_integrator_node"
+    type="table_integrator"-->
 
-  <!-- Launching ar tag program #2-->
+  <!-- Launching ar tag program -->
   <group ns="$(arg camera_name)">
     <arg name="cam_image_topic2" value="/$(arg camera_name)/depth_registered/points" />
     <arg name="cam_info_topic2" value="/$(arg camera_name)/rgb/camera_info" /> 
