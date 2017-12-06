@@ -490,6 +490,7 @@ class VREPGraspSimulation(object):
             output_features_dict = tf_session.run(feature_op_dicts)
             # reorganize is grasp attempt so it is easy to walk through
             time_ordered_feature_data_dict = grasp_dataset_object._to_tensors(output_features_dict, time_ordered_feature_name_dict)
+            features_dict_np, sequence_dict_np = output_features_dict
 
             # check if this attempt is one the user requested, if not get the next one
             if not ((attempt_num >= FLAGS.vrepVisualizeGraspAttempt_min or FLAGS.vrepVisualizeGraspAttempt_min == -1) and
@@ -503,18 +504,78 @@ class VREPGraspSimulation(object):
             # Add the camera frame transform and all transforms that start at the base
             for name, value in time_ordered_feature_data_dict:
                 if 'base_T_camera/vec_quat_7' in name:
-                    base_T_camera_handle = self.create_dummy('base_T_camera', value[0], parent_handle)
+                    base_to_camera_vec_quat_7 = value[0]
+                    base_T_camera_handle = self.create_dummy('base_T_camera', base_to_camera_vec_quat_7, parent_handle, vrep.simx_opmode_blocking)
                 elif 'base_T' in name and 'vec_quat_7' in name:
                     for i, base_transform in enumerate(value):
-                        self.create_dummy(name.replace('/', '_') + str(i), base_transform, parent_handle)
+                        self.create_dummy(str(i).zfill(2) + '_' + name.replace('/', '_'), base_transform, parent_handle, vrep.simx_opmode_oneshot)
 
             # Add all transforms that start at the camera frame
+            camera_to_depth_name = None
+            depth_to_ee_name = None
             for name, value in time_ordered_feature_data_dict:
-                if 'camera_T' in name and 'vec_quat_7' in name:
+                if 'camera_T_depth_pixel/vec_quat_7' in name:
+                    # save name to draw separately
+                    camera_to_depth_name = name
+                elif 'endeffector_clear_view_depth_pixel_T_endeffector/vec_quat_7' in name:
+                    depth_to_ee_name = name
+                elif 'camera_T' in name and 'vec_quat_7' in name:
                     for i, transform in enumerate(value):
-                        self.create_dummy(name.replace('/', '_') + str(i), transform, base_T_camera_handle)
+                        self.create_dummy(str(i).zfill(2) + '_' + name.replace('/', '_'), transform, base_T_camera_handle, vrep.simx_opmode_oneshot)
 
-            # TODO(ahundt) 2017-12-05 extract text for destination from each transform, show rgb images, update point clouds, add option to show preprocessed images
+            if camera_to_depth_name is not None and depth_to_ee_name is not None:
+                if FLAGS.vrepVisualizeSurfaceRelativeTransformLines:
+                    # if visualizing lines, get camera position in world frame
+                    ret, camera_world_position = vrep.simxGetObjectPosition(self.client_id, base_T_camera_handle, -1, vrep.simx_opmode_oneshot_wait)
+                # display all camera to depth and depth to end effector transforms
+                for i, (ctd_vq7, dtee_vq7) in enumerate(zip(features_dict_np[camera_to_depth_name], features_dict_np[depth_to_ee_name])):
+                    time_name = str(i).zfill(2) + '_'
+                    depth_point_dummy_handle = self.create_dummy(time_name + camera_to_depth_name, ctd_vq7, base_T_camera_handle)
+                    surface_relative_transform_dummy_handle = self.create_dummy(time_step_name + 'depth_point_T_endeffector',
+                                                                                dtee_vq7, depth_point_dummy_handle)
+                    if FLAGS.vrepVisualizeSurfaceRelativeTransformLines:
+                        # Draw lines from the camera through the gripper pose to the depth pixel in the clear view frame used for surface transforms
+                        ret, depth_world_position = vrep.simxGetObjectPosition(self.client_id, depth_point_dummy_handle, -1, vrep.simx_opmode_oneshot_wait)
+                        ret, surface_relative_gripper_world_position = vrep.simxGetObjectPosition(
+                            self.client_id, surface_relative_transform_dummy_handle, -1, vrep.simx_opmode_oneshot_wait)
+                        self.drawLines('camera_to_depth_lines', np.append(camera_world_position, depth_world_position),
+                                       base_T_camera_handle, vrep.simx_opmode_oneshot)
+                        self.drawLines('camera_to_depth_lines', np.append(depth_world_position, surface_relative_gripper_world_position),
+                                       base_T_camera_handle, vrep.simx_opmode_oneshot)
+
+            # Visualize point clouds
+            if FLAGS.vrepVisualizeRGBD:
+                # display clear view point cloud
+                rgb_images = time_ordered_feature_data_dict['move_to_grasp/time_ordered/rgb_image/decoded']
+                depth_images = time_ordered_feature_data_dict['move_to_grasp/time_ordered/depth_image/decoded']
+                xyz_images = time_ordered_feature_data_dict['move_to_grasp/time_ordered/xyz_image/decoded']
+                self.create_point_cloud_from_depth_image('clear_view_cloud', depth_images[0],
+                                                         base_to_camera_vec_quat_7,
+                                                         rgb_images[0],
+                                                         parent_handle=parent_handle,
+                                                         rgb_sensor_display_name='kcam_rgb_clear_view',
+                                                         depth_sensor_display_name='kcam_depth_clear_view',
+                                                         point_cloud=xyz_images[0])
+
+                close_gripper_rgb_image = features_dict_np['gripper/image/decoded']
+                # TODO(ahundt) make sure rot180 + fliplr is applied upstream in the dataset and to the depth images
+                # gripper/image/decoded is unusual because there is no depth image and the orientation is rotated 180 degrees from the others
+                # it might also only be available captured in some of the more recent datasets.
+                cg_rgb = 255 - np.fliplr(close_gripper_rgb_image)
+                self.set_vision_sensor_image('kcam_rgb_close_gripper', cg_rgb, convert=None)
+
+                rgb_images = time_ordered_feature_data_dict['move_to_grasp/time_ordered/rgb_image/decoded']
+                depth_images = time_ordered_feature_data_dict['move_to_grasp/time_ordered/depth_image/decoded']
+                xyz_images = time_ordered_feature_data_dict['move_to_grasp/time_ordered/xyz_image/decoded']
+
+                for img_num, (rgb, depth, xyz) in enumerate(zip(rgb_images, depth_images, xyz_images)):
+
+                    self.create_point_cloud_from_depth_image(
+                        'current_point_cloud', depth, base_to_camera_vec_quat_7,
+                        color_image=rgb, save_ply_path=path, parent_handle=parent_handle,
+                        rgb_sensor_display_name='kcam_rgb',
+                        depth_sensor_display_name='kcam_depth',
+                        point_cloud=xyz)
 
     def visualize_python(self, tf_session, dataset=FLAGS.grasp_dataset, batch_size=1, parent_name=FLAGS.vrepParentName):
         """Visualize one dataset in V-REP from raw dataset features, performing all preprocessing manually in this function.
