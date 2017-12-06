@@ -3,14 +3,14 @@
 
   <xacro:macro name="top_panel">
     <geometry>
-      <box size="1 0.6 0.017"/>
+      <box size="1 0.595 0.017"/>
     </geometry>
     <material name="dark"/>
   </xacro:macro>
 
   <xacro:macro name="top_base">
     <geometry>
-      <box size="1 0.6 0.04"/>
+      <box size="1 0.595 0.04"/>
     </geometry>
     <material name="light"/>
   </xacro:macro>
@@ -21,6 +21,17 @@
       <box size="0.04 0.04 0.823"/>
     </geometry>
     <material name="light"/>
+  </xacro:macro>
+
+  <xacro:macro name="leg_at" params="xyz">
+    <visual>
+      <origin rpy="0 0 0" xyz="${xyz}"/>
+      <xacro:leg/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="${xyz}"/>
+      <xacro:leg/>
+    </collision>
   </xacro:macro>
 
   <material name="dark">
@@ -41,21 +52,25 @@
         <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
       </inertial>
       <visual>
-        <origin rpy="0 0 0" xyz="0 0.3 -0.0085"/>
+        <origin rpy="0 0 0" xyz="0 ${0.595 / 2} -0.0085"/>
         <xacro:top_panel/>
       </visual>
       <collision>
-        <origin rpy="0 0 0" xyz="0 0.3 -0.0085"/>
+        <origin rpy="0 0 0" xyz="0 ${0.595 / 2} -0.0085"/>
         <xacro:top_panel/>
       </collision>
       <visual>
-        <origin rpy="0 0 0" xyz="0 0.3 -0.00285"/>
+        <origin rpy="0 0 0" xyz="0 ${0.595 / 2} -0.00285"/>
         <xacro:top_base/>
       </visual>
       <collision>
-        <origin rpy="0 0 0" xyz="0 0.3 -0.00285"/>
+        <origin rpy="0 0 0" xyz="0 ${0.595 / 2} -0.00285"/>
         <xacro:top_base/>
       </collision>
+      <xacro:leg_at xyz="-0.5 0.02 ${-0.00285 + (0.823 / 2)}"/>
+      <xacro:leg_at xyz="0.5 0.02 ${-0.00285 + (0.823 / 2)}"/>
+      <xacro:leg_at xyz="-0.5 ${0.595 - 0.02} ${-0.00285 + (0.823 / 2)}"/>
+      <xacro:leg_at xyz="0.5 ${0.595 - 0.02} ${-0.00285 + (0.823 / 2)}"/>
     </link>
   </xacro:macro>
 </robot>
