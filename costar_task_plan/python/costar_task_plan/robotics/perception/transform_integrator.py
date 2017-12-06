@@ -1,5 +1,15 @@
 from collections import deque
 
+# Import a ton of ROS messages
+from geometry_msgs.msg import Pose, Point
+from moveit_msgs.msg import PlanningScene
+from moveit_msgs.msg import CollisionObject
+from sensor_msgs.msg import JointState
+from shape_msgs.msg import SolidPrimitive
+from std_srvs.srv import Empty as EmptySrv
+from std_srvs.srv import EmptyResponse
+
+
 import numpy as np
 import PyKDL as kdl
 import rospy
