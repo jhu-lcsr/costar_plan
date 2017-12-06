@@ -42,11 +42,11 @@ try:
     import eigen  # https://github.com/jrl-umi3218/Eigen3ToPython
     import sva  # https://github.com/jrl-umi3218/SpaceVecAlg
 except ImportError:
-    print('eigen and sva python not available. To install run the script at:'
+    print('eigen and sva python modules are not available. To install run the script at:'
           'https://github.com/ahundt/robotics_setup/blob/master/robotics_tasks.sh'
           'or follow the instructions at https://github.com/jrl-umi3218/Eigen3ToPython'
-          'and https://github.com/jrl-umi3218/SpaceVecAlg. When you build make sure'
-          'python bindings are enabled.')
+          'and https://github.com/jrl-umi3218/SpaceVecAlg. '
+          'When you build the modules make sure python bindings are enabled.')
 
 tf.flags.DEFINE_string('vrepConnectionAddress', '127.0.0.1', 'The IP address of the running V-REP simulation.')
 tf.flags.DEFINE_integer('vrepConnectionPort', 19999, 'ip port for connecting to V-REP')
@@ -56,7 +56,9 @@ tf.flags.DEFINE_integer('vrepTimeOutInMs', 5000, 'Timeout in milliseconds upon w
 tf.flags.DEFINE_integer('vrepCommThreadCycleInMs', 5, 'time between communication cycles')
 tf.flags.DEFINE_integer('vrepVisualizeGraspAttempt_min', 0, 'min grasp attempt to display from dataset, or -1 for no limit')
 tf.flags.DEFINE_integer('vrepVisualizeGraspAttempt_max', 1, 'max grasp attempt to display from dataset, exclusive, or -1 for no limit')
-tf.flags.DEFINE_string('vrepDebugMode', 'save_ply', """Options are: '', 'fixed_depth', 'save_ply', 'print_transform', 'print_drawLines'. More than one can be specified at a time.""")
+tf.flags.DEFINE_string('vrepDebugMode', 'save_ply',
+                       """Options are: '', 'fixed_depth', 'save_ply', 'print_transform', 'print_drawLines'.
+                       More than one option can be specified at a time with comma or space separation.""")
 tf.flags.DEFINE_boolean('vrepVisualizeRGBD', True, 'display the rgbd images and point cloud')
 tf.flags.DEFINE_integer('vrepVisualizeRGBD_min', 0, 'min time step on each grasp attempt to display, or -1 for no limit')
 tf.flags.DEFINE_integer('vrepVisualizeRGBD_max', -1, 'max time step on each grasp attempt to display, exclusive, or -1 for no limit')
@@ -78,6 +80,14 @@ tf.flags.DEFINE_string('vrepVisualizeDepthFormat', 'vrep_depth_encoded_rgb',
                                Examples include 'vrep_depth_rgb' and 'vrep_depth_encoded_rgb',
                                see http://www.forum.coppeliarobotics.com/viewtopic.php?f=9&t=737&p=27805#p27805.
                        """)
+tf.flags.DEFINE_string('vrepVisualizationPipeline', 'tensorflow',
+                       """Options are: python, tensorflow.
+                           'tensorflow' tensorflow loads the raw data from the dataset and
+                               calculates all features before they are rendered with vrep via python,
+                           'python' loads the raw data from tensorflow,
+                               then the visualize_python function calculates the features
+                               before they are rendered with vrep.
+                       """)
 
 flags.FLAGS._parse_flags()
 FLAGS = flags.FLAGS
@@ -87,6 +97,8 @@ class VREPGraspSimulation(object):
 
     def __init__(self):
         """Start the connection to the remote V-REP simulation
+
+           Once initialized, call visualize().
         """
         print('Program started')
         # just in case, close all opened connections
@@ -103,6 +115,16 @@ class VREPGraspSimulation(object):
         else:
             print('Error connecting to remote API server')
         return
+
+    def visualize(self, tf_session, dataset=FLAGS.grasp_dataset, batch_size=1, parent_name=FLAGS.vrepParentName,
+                  visualization_pipeline=FLAGS.vrepVisualizationPipeline):
+
+        if visualization_pipeline == 'python':
+            self.visualize_python(tf_session, dataset, batch_size, parent_name)
+        elif visualization_pipeline == 'tensorflow':
+            self.visualize_tensorflow(tf_session, dataset, batch_size, parent_name)
+        else:
+            raise ValueError('VREPGraspSimulation.visualize(): unsupported vrepVisualizationPipeline: ' + str(FLAGS.vrepVisualizationPipeline))
 
     def create_dummy(self, display_name, transform, parent_handle=-1, debug=FLAGS.vrepDebugMode):
         """Create a dummy object in the simulation
@@ -440,8 +462,14 @@ class VREPGraspSimulation(object):
         vrep.simxAddStatusbarMessage(self.client_id, message, vrep.simx_opmode_oneshot)
         print(message)
 
-    def visualize(self, tf_session, dataset=FLAGS.grasp_dataset, batch_size=1, parent_name=FLAGS.vrepParentName):
-        """Visualize one dataset in V-REP
+    def visualize_tensorflow(self, tf_session, dataset=FLAGS.grasp_dataset, batch_size=1, parent_name=FLAGS.vrepParentName):
+        """Visualize one dataset in V-REP from performing all preprocessing in tensorflow.
+        """
+        grasp_dataset_object = GraspDataset(dataset=dataset)
+        batch_size = 1
+
+    def visualize_python(self, tf_session, dataset=FLAGS.grasp_dataset, batch_size=1, parent_name=FLAGS.vrepParentName):
+        """Visualize one dataset in V-REP from raw dataset features, performing all preprocessing manually in this function.
         """
         grasp_dataset_object = GraspDataset(dataset=dataset)
         batch_size = 1
