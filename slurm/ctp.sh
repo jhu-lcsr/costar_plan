@@ -42,7 +42,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--features multi \
 	-e 100 \
 	--model pretrain_image_encoder \
-	--data_file $HOME/work/$DATASET.npz \
+	--data_file $HOME/work/$DATASET.h5f \
 	--lr $1 \
 	--dropout_rate $2 \
 	--decoder_dropout_rate $2 \
@@ -60,7 +60,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--features multi \
 	-e 100 \
 	--model pretrain_state_encoder \
-	--data_file $HOME/work/$DATASET.npz \
+	--data_file $HOME/work/$DATASET.h5f \
 	--lr $1 \
 	--dropout_rate $2 \
 	--decoder_dropout_rate $2 \
@@ -78,7 +78,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--features multi \
 	-e 100 \
 	--model predictor2 \
-	--data_file $HOME/work/$DATASET.npz \
+	--data_file $HOME/work/$DATASET.h5f \
 	--lr $1 \
 	--dropout_rate $2 \
 	--decoder_dropout_rate $2 \
