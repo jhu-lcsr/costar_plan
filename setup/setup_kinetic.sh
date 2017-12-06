@@ -67,6 +67,7 @@ git clone https://github.com/cpaxton/dmp.git --branch indigo
 git clone git@github.com:ccny-ros-pkg/imu_tools.git 
 git clone https://github.com/cpaxton/robotiq_85_gripper.git
 git clone https://github.com/cpaxton/tom_robot.git
+git clone git@github.com:cpaxton/urdf_parser_py.git --branch indigo-devel
 #git clone https://github.com/cpaxton/costar_plan.git
 rosdep install -y --from-paths ./ --ignore-src --rosdistro $ROS_DISTRO
 cd $CATKIN_WS/src
