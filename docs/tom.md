@@ -34,6 +34,8 @@ roslaunch ctp_tom planning.launch
 
 By default, the `real:=true` option is set. We also plan on supporting a fake version which creates a scene based on fixed TF poses. This does not simulate object interactions or anything fancy like that.
 
+For more information, see the [real TOM guide](tom_real_robot.md).
+
 ## One-Arm Orange Tests
 
 These are the "old" experiments, and may not work all that well any more.

@@ -11,22 +11,23 @@ To run these examples, you will need TensorFlow and Keras, plus a number of Pyth
 For some more information on the structure of the task planner package, check out the [design overview](docs/design.md).
 
 Outline of contents:
-  - [Installation Guide](docs/install.md)
-    - [Docker Instructions](docs/docker_instructions.md)
-    - [Application domains](docs/domains.md)
-  - [Approach](docs/approach.md): overall planner approach
-    - [Software Design](docs/design.md): for some high-level design choices related to the planning code
-  - [Machine Learning Models](docs/learning.md): Available models and using the command line tool to train them
-    - [Data collection](docs/collect_data.md): Data collection with a real or simulated robot
-    - [MARCC instructions](docs/marcc.md): learning models using the MARCC cluster (JHU students only)
-  - [Creating and training a custom task](docs/task_learning.md): defining a task, training predictive models and other tools
-  - [CoSTAR Simulation](docs/simulation.md): simulation intro
-    - [Simulation Experiments](docs/simulation-experiments.md): information on experiment setup
-    - [PyBullet Sim](docs/pybullet.md): an alternative to Gazebo that may be preferrable in some situations
-    - [costar_bullet quick start](docs/costar_bullet.md): How to run tasks, generate datasets, train models, and extend costar_bullet with your own components.
-    - [Adding a robot to the ROS code](docs/add_a_robot.md): NOT using Bullet sim
-  - [Husky robot](husky/Readme.md): Start the APL Husky sim
-  - [TOM robot](docs/tom.md): use the TOM robot from TUM
+  - [1. Installation Guide](docs/install.md)
+    - [1.1 Docker Instructions](docs/docker_instructions.md)
+    - [1.2 Application domains](docs/domains.md)
+  - [2. Approach](docs/approach.md): overall planner approach
+    - [2.1 Software Design](docs/design.md): for some high-level design choices related to the planning code
+  - [3. Machine Learning Models](docs/learning.md): Available models and using the command line tool to train them
+    - [3.1 Data collection](docs/collect_data.md): Data collection with a real or simulated robot
+    - [3.2 MARCC instructions](docs/marcc.md): learning models using the MARCC cluster (JHU students only)
+  - [4. Creating and training a custom task](docs/task_learning.md): defining a task, training predictive models and other tools
+  - [5. CoSTAR Simulation](docs/simulation.md): simulation intro
+    - [5.1 Simulation Experiments](docs/simulation-experiments.md): information on experiment setup
+    - [5.2 PyBullet Sim](docs/pybullet.md): an alternative to Gazebo that may be preferrable in some situations
+    - [5.3 costar_bullet quick start](docs/costar_bullet.md): How to run tasks, generate datasets, train models, and extend costar_bullet with your own components.
+    - [5.4 Adding a robot to the ROS code](docs/add_a_robot.md): NOT using Bullet sim
+  - [6. Husky robot](husky/Readme.md): Start the APL Husky sim
+  - [7. TOM robot](docs/tom.md): use the TOM robot from TUM
+    - [7.1 The Real TOM](docs/tom_real_robot.md): details about parts of the system for running on the real TOM
 
 Package/folder layout:
   - [CoSTAR Simulation](costar_simulation/Readme.md): Gazebo simulation and ROS execution
@@ -39,6 +40,7 @@ Package/folder layout:
   - `command`: contains scripts with example CTP command-line calls
   - `docs`: markdown files for information that is not specific to a particular ROS package but to all of CTP
   - `photos`: example images
+  - `learning_planning_msgs`: ROS messages for data collection when doing learning from demonstration in ROS
   - Others are temporary packages for various projects
 
 Many of these sections are a work in progress; if you have any questions shoot me an email (`cpaxton@jhu.edu`).
