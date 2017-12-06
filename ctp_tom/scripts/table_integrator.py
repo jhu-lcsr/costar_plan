@@ -28,7 +28,8 @@ if __name__ == '__main__':
 
     block_offset = kdl.Frame(
             kdl.Rotation.RotZ(-1.*np.pi/2) * kdl.Rotation.RotX(np.pi/2))
-    block_offset *= kdl.Frame(kdl.Rotation(),kdl.Vector(-0.127/4,-0.087/2,-0.063/2+0.045/2))
+    block_offset 
+    block_offset *= kdl.Frame(kdl.Rotation(),kdl.Vector(-0.127/4,-0.063/2,-0.063/2+0.045/2+0.01))
 
     block_1_integrator = TransformIntegator(
             "block_1",
