@@ -26,7 +26,22 @@ if __name__ == '__main__':
     integrator.addTransform("/ar_marker_1", kdl.Frame(R01,t01).Inverse())
     integrator.addTransform("/ar_marker_6", kdl.Frame(R06,t06).Inverse())
 
-    rate = rospy.Rate(10)
+    block_1_integrator = TransformIntegator(
+            "block_1",
+            "/camera_rgb_optical_frame",
+            history_length=3,
+            offset=kdl.Frame())
+    block_1_integrator.addTransform("/ar_marker_5", kdl.Frame())
+
+    block_2_integrator = TransformIntegator(
+            "block_2",
+            "/camera_rgb_optical_frame",
+            history_length=3,
+            offset=kdl.Frame())
+    block_2_integrator.addTransform("/ar_marker_4", kdl.Frame())
+            
+
+    rate = rospy.Rate(60)
     while not rospy.is_shutdown():
         integrator.tick()
         rate.sleep()
