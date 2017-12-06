@@ -254,7 +254,7 @@ def surface_relative_transform(xyz_image,
     depth_pixel_T_endeffector_final_ptrans = camera_T_endeffector * camera_T_cloud_point_ptrans.inv()
 
     # return the transform and the image coordinate used to generate the transform
-    return depth_pixel_T_endeffector_final_ptrans, pixel_coordinate_of_endeffector
+    return depth_pixel_T_endeffector_final_ptrans, pixel_coordinate_of_endeffector, camera_T_cloud_point_ptrans
 
 
 def endeffector_image_coordinate(camera_intrinsics_matrix, xyz, flip_x=1.0, flip_y=1.0):
@@ -610,7 +610,7 @@ def grasp_dataset_to_transforms_and_features(
     # xyz_image = depth_image_to_point_cloud(depth_image, camera_intrinsics_matrix)
 
     # calculate the surface relative transform from the clear view depth to endeffector final position
-    depth_pixel_T_endeffector_current_ptrans, image_coordinate_current = surface_relative_transform(
+    depth_pixel_T_endeffector_current_ptrans, image_coordinate_current, camera_T_depth_pixel_current_ptrans = surface_relative_transform(
         xyz_image,
         camera_intrinsics_matrix,
         camera_T_endeffector_current_ptrans,
@@ -621,7 +621,7 @@ def grasp_dataset_to_transforms_and_features(
     delta_depth_current = depth_pixel_T_endeffector_current_ptrans.translation().z()
 
     # calculate the surface relative transform from the clear view depth to endeffector final position
-    depth_pixel_T_endeffector_final_ptrans, image_coordinate_final = surface_relative_transform(
+    depth_pixel_T_endeffector_final_ptrans, image_coordinate_final, camera_T_depth_pixel_final_ptrans = surface_relative_transform(
         xyz_image,
         camera_intrinsics_matrix,
         camera_T_endeffector_final_ptrans,
@@ -643,7 +643,10 @@ def grasp_dataset_to_transforms_and_features(
     current_base_T_camera_vec_quat_7_array = ptransform_to_vector_quaternion_array(current_base_T_camera_ptrans, dtype=dtype)
     eectf_vec_quat_7_array = ptransform_to_vector_quaternion_array(eectf_ptrans, dtype=dtype)
     camera_T_endeffector_current_vec_quat_7_array = ptransform_to_vector_quaternion_array(camera_T_endeffector_current_ptrans, dtype=dtype)
+    camera_T_depth_pixel_current_vec_quat_7_array = ptransform_to_vector_quaternion_array(camera_T_depth_pixel_current_ptrans, dtype=dtype)
     camera_T_endeffector_final_vec_quat_7_array = ptransform_to_vector_quaternion_array(camera_T_endeffector_final_ptrans, dtype=dtype)
+    camera_T_depth_pixel_final_vec_quat_7_array = ptransform_to_vector_quaternion_array(camera_T_depth_pixel_final_ptrans, dtype=dtype)
+    depth_pixel_T_endeffector_current_vec_quat_7_array = ptransform_to_vector_quaternion_array(depth_pixel_T_endeffector_current_ptrans, dtype=dtype)
     depth_pixel_T_endeffector_final_vec_quat_7_array = ptransform_to_vector_quaternion_array(depth_pixel_T_endeffector_final_ptrans, dtype=dtype)
 
     # [x, y] image coordinate of the final gripper position gripper in the camera image
@@ -662,7 +665,9 @@ def grasp_dataset_to_transforms_and_features(
     return [current_base_T_camera_vec_quat_7_array,
             eectf_vec_quat_7_array,
             camera_T_endeffector_current_vec_quat_7_array,
+            camera_T_depth_pixel_current_vec_quat_7_array,
             camera_T_endeffector_final_vec_quat_7_array,
+            camera_T_depth_pixel_final_vec_quat_7_array,
             depth_pixel_T_endeffector_current_vec_quat_7_array,
             image_coordinate_current,
             depth_pixel_T_endeffector_final_vec_quat_7_array,

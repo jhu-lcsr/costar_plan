@@ -863,7 +863,9 @@ class GraspDataset(object):
                 [current_base_T_camera_vec_quat_7_array,
                  eectf_vec_quat_7_array,
                  camera_T_endeffector_current_vec_quat_7_array,
+                 camera_T_depth_pixel_current_vec_quat_7_array,
                  camera_T_endeffector_final_vec_quat_7_array,
+                 camera_T_depth_pixel_final_vec_quat_7_array,
                  depth_pixel_T_endeffector_current_vec_quat_7_array,
                  image_coordinate_current,
                  depth_pixel_T_endeffector_final_vec_quat_7_array,
@@ -889,6 +891,13 @@ class GraspDataset(object):
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
                     camera_T_endeffector_current_vec_quat_7_array, [7],
                     'camera_T_endeffector/vec_quat_7',
+                    batch_i, time_step_j)
+
+                # camera_T_depth_pixel_current_vec_quat_7_array,
+                add_feature_op(
+                    fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
+                    camera_T_depth_pixel_current_vec_quat_7_array, [7],
+                    'camera_T_depth_pixel/vec_quat_7',
                     batch_i, time_step_j)
 
                 # depth_pixel_T_endeffector_current_vec_quat_7_array,
@@ -917,6 +926,13 @@ class GraspDataset(object):
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
                     camera_T_endeffector_final_vec_quat_7_array, [7],
                     'camera_T_endeffector_final/vec_quat_7',
+                    batch_i, time_step_j)
+
+                # camera_T_depth_pixel_final_vec_quat_7_array,
+                add_feature_op(
+                    fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
+                    camera_T_depth_pixel_final_vec_quat_7_array, [7],
+                    'camera_T_depth_pixel_final/vec_quat_7',
                     batch_i, time_step_j)
 
                 # image_coordinate_final,
