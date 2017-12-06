@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
-"""Code for visualizing the grasp attempt examples."""
-# from __future__ import unicode_literals
+"""Code for visualizing grasp attempt examples from the google brain robotics grasping dataset.
+
+https://sites.google.com/site/brainrobotdata/home/grasping-dataset
+
+Author: Andrew Hundt <ATHundt@gmail.com>
+
+License: Apache v2 https://www.apache.org/licenses/LICENSE-2.0
+"""
 import os
 import errno
 import traceback
