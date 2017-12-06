@@ -23,12 +23,11 @@ class TransformIntegator(object):
         '''
 
         if not self.listener.frameExists(self.root):
-            raise RuntimeError('failed to find root frame')
+            return
 
-        for name, pose in self.transforms:
+        for name, pose in self.transforms.items():
             if self.listener.frameExists(name):
                 t = self.listener.getLatestCommonTime(self.root, name)
-                print name, t, root
+                print name, t, self.root
                 p, q = self.listener.lookupTransform(self.root, name, t)
-
 
