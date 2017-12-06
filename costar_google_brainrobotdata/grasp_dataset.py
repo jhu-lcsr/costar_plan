@@ -1306,9 +1306,10 @@ class GraspDataset(object):
             imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
             random_crop=FLAGS.random_crop,
             resize=FLAGS.resize):
-        """Get feature dictionaries containing ops, feature lists, and time ordered feature lists configured for training on grasps.
+        """Get feature dictionaries containing ops and time ordered feature lists.
 
-        This function aims to make it easy to perform custom training, evaluation, or visualization with the loaded dataset.
+        This function aims to make it easy to perform custom training,
+        evaluation, or visualization with the loaded dataset.
 
            # Returns
 
@@ -1316,19 +1317,47 @@ class GraspDataset(object):
         """
 
         if feature_op_dicts is None:
-            # Get tensors that load the dataset from disk plus features calculated from the raw data, including transforms and point clouds
-            feature_op_dicts, features_complete_list, time_ordered_feature_name_dict, num_samples = self._get_transform_tensors(
+            # Get tensors that load the dataset from disk plus features
+            # calculated from the raw data, including transforms and point clouds
+            (feature_op_dicts, features_complete_list,
+             time_ordered_feature_name_dict, num_samples) = self._get_transform_tensors(
                 batch_size=batch_size, random_crop=random_crop)
 
-        preprocessed_image_feature_type = '/image/decoded'
-        if random_crop:
-            preprocessed_image_feature_type = '/image/cropped'
-
-        preprocessed_rgb_clear_view_name = self.get_time_ordered_features(
+        # get the clear view rgb, depth, and xyz image names
+        rgb_clear_view_name = self.get_time_ordered_features(
             features_complete_list,
-            feature_type=preprocessed_image_feature_type,
+            feature_type='/image/decoded',
             step='view_clear_scene'
         )[0]
+
+        depth_clear_view_name = self.get_time_ordered_features(
+            features_complete_list,
+            feature_type='depth_image/decoded',
+            step='view_clear_scene'
+        )[0]
+
+        xyz_clear_view_name = self.get_time_ordered_features(
+            features_complete_list,
+            feature_type='xyz_image/decoded',
+            step='view_clear_scene'
+        )[0]
+
+        # change the feature string for the preprocessed
+        # feature version based on whether random_crop
+        # is enabled or not
+        preprocessed_suffix = 'decoded'
+        if random_crop:
+            preprocessed_suffix = 'cropped'
+        preprocessed_image_feature_type = '/image/' + preprocessed_suffix
+
+        preprocessed_rgb_clear_view_name = rgb_clear_view_name.replace(
+            '/image/decoded', preprocessed_image_feature_type)
+
+        preprocessed_depth_clear_view_name = depth_clear_view_name.replace(
+            'depth_image/decoded', 'depth_image/' + preprocessed_suffix)
+
+        preprocessed_xyz_clear_view_name = xyz_clear_view_name.replace(
+            'xyz_image/decoded', 'xyz_image/' + preprocessed_suffix)
 
         # get the feature names for the sequence of rgb images
         # in which movement towards the close gripper step is made
@@ -1337,12 +1366,6 @@ class GraspDataset(object):
             feature_type=preprocessed_image_feature_type,
             step='move_to_grasp'
         )
-
-        rgb_clear_view_name = self.get_time_ordered_features(
-            features_complete_list,
-            feature_type='/image/decoded',
-            step='view_clear_scene'
-        )[0]
 
         # get the feature names for the sequence of rgb images
         # in which movement towards the close gripper step is made
@@ -1396,7 +1419,7 @@ class GraspDataset(object):
                                                             imagenet_mean_subtraction=imagenet_mean_subtraction,
                                                             resize=resize)
             fully_preprocessed_rgb_clear_view_name = preprocessed_rgb_clear_view_name.replace(
-                preprocessed_image_feature_type, 'image/preprocessed')
+                preprocessed_image_feature_type, '/image/preprocessed')
             fixed_feature_op_dict[fully_preprocessed_rgb_clear_view_name] = pregrasp_image_rgb_op
 
             grasp_success_op = tf.squeeze(fixed_feature_op_dict['grasp_success'])
@@ -1408,7 +1431,8 @@ class GraspDataset(object):
                 grasp_step_rgb_feature_op = self._rgb_preprocessing(fixed_feature_op_dict[grasp_step_rgb_feature_name],
                                                                     imagenet_mean_subtraction=imagenet_mean_subtraction,
                                                                     resize=resize)
-                grasp_step_rgb_feature_name = grasp_step_rgb_feature_name.replace(preprocessed_image_feature_type, 'image/preprocessed')
+                grasp_step_rgb_feature_name = grasp_step_rgb_feature_name.replace(
+                    preprocessed_image_feature_type, '/image/preprocessed')
                 fixed_feature_op_dict[grasp_step_rgb_feature_name] = grasp_step_rgb_feature_op
                 if batch_i == 0:
                     # add to list of names, assume all batches have the same steps so only need to append names on batch 0
@@ -1420,6 +1444,10 @@ class GraspDataset(object):
         new_time_ordered_feature_name_dict = {
             'move_to_grasp/time_ordered/clear_view/rgb_image/decoded': [rgb_clear_view_name] * len(rgb_move_to_grasp_steps),
             'move_to_grasp/time_ordered/clear_view/rgb_image/preprocessed': [fully_preprocessed_rgb_clear_view_name] * len(rgb_move_to_grasp_steps),
+            'move_to_grasp/time_ordered/clear_view/depth_image/decoded': [depth_clear_view_name] * len(rgb_move_to_grasp_steps),
+            'move_to_grasp/time_ordered/clear_view/depth_image/preprocessed': [preprocessed_depth_clear_view_name] * len(rgb_move_to_grasp_steps),
+            'move_to_grasp/time_ordered/clear_view/xyz_image/decoded': [xyz_clear_view_name] * len(rgb_move_to_grasp_steps),
+            'move_to_grasp/time_ordered/clear_view/xyz_image/preprocessed': [xyz_clear_view_name] * len(rgb_move_to_grasp_steps),
             'move_to_grasp/time_ordered/rgb_image/decoded': rgb_move_to_grasp_steps,
             'move_to_grasp/time_ordered/rgb_image/preprocessed': preprocessed_rgb_move_to_grasp_steps_names,
             'move_to_grasp/time_ordered/xyz_image/decoded': xyz_move_to_grasp_steps,
