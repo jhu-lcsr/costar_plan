@@ -1,6 +1,8 @@
+import numpy as np
 import PyKDL as kdl
 import rospy
 import tf
+import tf_conversions.posemath as pm
 
 class TransformIntegator(object):
 
@@ -25,9 +27,20 @@ class TransformIntegator(object):
         if not self.listener.frameExists(self.root):
             return
 
+        count = 0
+        avg_p = np.zeros(3)
+        avg_q = np.zeros(4)
         for name, pose in self.transforms.items():
             if self.listener.frameExists(name):
                 t = self.listener.getLatestCommonTime(self.root, name)
-                print name, t, self.root
                 p, q = self.listener.lookupTransform(self.root, name, t)
+                F = pm.fromTf((p, q))
+                F = F * pose
+                p, q = pm.toTf(F)
+                print name, p, q
+                avg_p += np.array(p)
+                avg_q += np.array(q)
+                count += 1
+        if count > 0:
+            pass
 

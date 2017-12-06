@@ -18,8 +18,8 @@ if __name__ == '__main__':
             "tom_table",
             "/camera_rgb_optical_frame")
     integrator.addTransform("/ar_marker_0", kdl.Frame())
-    integrator.addTransform("/ar_marker_1", kdl.Frame(R01,t01))
-    integrator.addTransform("/ar_marker_6", kdl.Frame(R06,t06))
+    integrator.addTransform("/ar_marker_1", kdl.Frame(R01,t01).Inverse())
+    integrator.addTransform("/ar_marker_6", kdl.Frame(R06,t06).Inverse())
 
     rate = rospy.Rate(10)
     while not rospy.is_shutdown():
