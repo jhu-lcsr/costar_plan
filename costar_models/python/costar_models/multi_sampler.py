@@ -1005,9 +1005,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate, "same", disc)
         #x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate, "same", disc)
         x = AddConv2D(x, 128, [5,5], 2, self.dropout_rate, "same", disc)
-        x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, "same", disc)
-        self.encoder_channels = 32
-        x = AddConv2D(x, self.encoder_channels, [5,5], 1, self.dropout_rate,
+        #x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, "same", disc)
+        self.encoder_channels = 64
+        x = AddConv2D(x, self.encoder_channels, [1,1], 1, self.dropout_rate,
                 "same", disc)
 
         #def _ssm(x):
