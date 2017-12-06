@@ -1,0 +1,81 @@
+<launch>
+  <!-- Perception parameter defaults -->
+  <arg name="real" default="true" doc="(boolean) is this a real robot or will gazebo provide simulated data?"/>
+  <arg name="depth_registration" default="true" />
+  <arg name="camera_name" default="camera" />
+  <arg name="marker_size" default="4.5" />
+  <arg name="start_alvar" default="true" />
+  <arg name="max_new_marker_error" default="0.02" />
+  <arg name="max_track_error" default="0.05" />
+  <arg name="start_static_handeye" default="true" />
+  <arg name="auto_white_balance" default="true" />
+  <arg name="auto_exposure" default="true" />
+
+  <!-- Visualization bringup -->
+  <arg name="rviz" default="true"/>
+  <arg name="rviz_config" default="$(find ctp_tom)/launch/rviz_conf/tom_perception.rviz"/>
+
+  <!-- Planner settings -->
+  <arg name="scene" default="lacquey"/>
+  <arg name="debug" default="false"/>
+  <arg name="slave" default="false"/>
+  <arg name="joint_state_gui" default="false"/>
+
+  <!-- Start time in simulation mode -->
+  <param name="use_sim_time" value="false"/>
+
+  <!-- Start the perception pipeline -->
+  <include file="$(find ctp_tom)/launch/perception.launch">
+    <arg name="real" value="$(arg real)"/>
+    <arg name="depth_registration" value="$(arg depth_registration)"/>
+    <arg name="auto_white_balance" value="$(arg auto_white_balance)"/>
+    <arg name="auto_exposure" value="$(arg auto_exposure)"/>
+    <arg name="camera_name" value="$(arg camera_name)"/>
+    <arg name="marker_size" value="$(arg marker_size)"/>
+    <arg name="start_alvar" value="$(arg start_alvar)"/>
+    <arg name="max_new_marker_error" value="$(arg max_new_marker_error)"/>
+    <arg name="max_track_error" value="$(arg max_track_error)"/>
+    <arg name="start_static_handeye" value="$(arg start_static_handeye)"/>
+  </include>
+
+  <!-- Rviz node launch -->
+  <node name="rvizvis_sim"
+    if="$(arg rviz)"
+    pkg="rviz"
+    type="rviz"
+    args="-d $(arg rviz_config)" />
+
+  <!-- start up the DMP server -->
+  <include file="$(find dmp)/launch/dmp.launch"/>
+  
+  <!-- Given the published joint states, publish tf for the robot links -->
+  <node name="robot_state_publishervis"
+    pkg="robot_state_publisher"
+    type="robot_state_publisher"
+    respawn="false"
+    output="screen" />
+
+  <!-- loading the Park position as TOM zero position -->
+  <rosparam command="load" file="$(find tom_description)/config/tom_zeros.yaml"/>
+
+  <node name="joint_state_publishervis" pkg="joint_state_publisher" type="joint_state_publisher" unless="$(arg slave)">
+    <param name="/use_gui" value="$(arg joint_state_gui)"/> 
+   	<rosparam param="source_list">[right_arm_joint_states, left_arm_joint_states, right_fingers_joint_states, left_fingers_joint_states, base_group_joint_states]</rosparam>
+  </node>
+
+  <!-- Load the URDF, SRDF and other .yaml configuration files on the param server -->
+  <include file="$(find tom_full_moveit_config)/launch/planning_context.launch">
+    <arg name="load_robot_description" value="true"/>
+    <arg name="robot" default="$(arg scene)"/>
+  </include>
+
+  <!-- Run the main MoveIt executable without trajectory execution (we do not have controllers configured by default) -->
+  <include file="$(find tom_full_moveit_config)/launch/move_group.launch">
+    <arg name="allow_trajectory_execution" value="false"/>  
+    <arg name="fake_execution" value="false"/>
+    <arg name="info" value="true"/>
+    <arg name="debug" value="$(arg debug)"/>
+  </include>
+
+
+</launch>

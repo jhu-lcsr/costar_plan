@@ -64,6 +64,7 @@ git clone https://github.com/jhu-lcsr/costar_objects.git
 git clone https://github.com/cpaxton/dmp.git --branch indigo
 git clone git@github.com:ccny-ros-pkg/imu_tools.git 
 git clone https://github.com/cpaxton/robotiq_85_gripper.git
+git clone https://github.com/cpaxton/tom_robot.git
 #git clone https://github.com/cpaxton/costar_plan.git
 rosdep install -y --from-paths ./ --ignore-src --rosdistro $ROS_DISTRO
 cd $CATKIN_WS/src
