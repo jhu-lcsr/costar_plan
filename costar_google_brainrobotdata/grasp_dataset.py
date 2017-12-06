@@ -1218,7 +1218,7 @@ class GraspDataset(object):
     def _rgb_preprocessing(
             self, rgb_image_op,
             image_augmentation=FLAGS.image_augmentation,
-            imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction
+            imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
             resize=FLAGS.resize):
         """Preprocess an rgb image into a float image, applying image augmentation and imagenet mean subtraction if desired.
 
