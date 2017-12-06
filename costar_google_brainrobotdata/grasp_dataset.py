@@ -1426,7 +1426,7 @@ class GraspDataset(object):
                              motion_command_feature=FLAGS.grasp_sequence_motion_command_feature,
                              grasp_sequence_image_feature=FLAGS.grasp_sequence_image_feature,
                              clear_view_image_feature=FLAGS.grasp_sequence_image_feature,
-                             grasp_success_label=FLAGS.grasp_success_label
+                             grasp_success_label=FLAGS.grasp_success_label,
                              grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
                              grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step):
         """Get tensors configured for training on grasps.
