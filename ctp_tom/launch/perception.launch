@@ -1,0 +1,36 @@
+<launch>
+  <arg name="real" default="true" doc="(boolean) is this a real robot or will gazebo provide simulated data?"/>
+  <arg name="depth_registration" default="true" />
+  <arg name="camera_name" default="camera" />
+  <arg name="marker_size" default="4.5" />
+  <arg name="start_alvar" default="true" />
+  <arg name="max_new_marker_error" default="0.02" />
+  <arg name="max_track_error" default="0.05" />
+  <arg name="start_static_handeye" default="true" />
+  <arg name="auto_white_balance" default="true" />
+  <arg name="auto_exposure" default="true" />
+
+  <!-- bring up the cameras -->
+  <include if="$(arg real)" file="$(find openni2_launch)/launch/openni2.launch">
+    <arg name="depth_registration" value="$(arg depth_registration)"/>
+    <arg name="auto_white_balance" value="$(arg auto_white_balance)"/>
+    <arg name="auto_exposure" value="$(arg auto_exposure)"/>
+  </include>
+
+
+  <!-- Launching ar tag program #2-->
+  <group ns="$(arg camera_name)">
+    <arg name="cam_image_topic2" value="/$(arg camera_name)/depth_registered/points" />
+    <arg name="cam_info_topic2" value="/$(arg camera_name)/rgb/camera_info" /> 
+    <arg name="output_frame2" value="/$(arg camera_name)_rgb_optical_frame" />
+    <node if="$(arg start_alvar)" name="ar_track_alvar_$(arg camera_name)"
+      pkg="ar_track_alvar"
+      type="individualMarkers"
+      respawn="true" output="log" args="$(arg marker_size) $(arg max_new_marker_error) $(arg max_track_error) $(arg cam_image_topic2) $(arg cam_info_topic2) $(arg output_frame2)" />
+  </group>
+
+  <include
+    if="$(arg start_static_handeye)"
+    file="$(find ctp_tom)/launch/handeye.launch"/>
+
+</launch>

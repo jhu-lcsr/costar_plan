@@ -10,22 +10,38 @@ To run these examples, you will need TensorFlow and Keras, plus a number of Pyth
 
 For some more information on the structure of the task planner package, check out the [design overview](docs/design.md).
 
-Contents:
+Outline of contents:
   - [Installation Guide](docs/install.md)
     - [Docker Instructions](docs/docker_instructions.md)
-  - [Design Overview](docs/design.md): for some high-level design choices related to the planning code
+    - [Application domains](docs/domains.md)
+  - [Approach](docs/approach.md): overall planner approach
+    - [Software Design](docs/design.md): for some high-level design choices related to the planning code
   - [Machine Learning Models](docs/learning.md): Available models and using the command line tool to train them
+    - [Data collection](docs/collect_data.md): Data collection with a real or simulated robot
+    - [MARCC instructions](docs/marcc.md): learning models using the MARCC cluster (JHU students only)
   - [Creating and training a custom task](docs/task_learning.md): defining a task, training predictive models and other tools
   - [CoSTAR Simulation](docs/simulation.md): simulation intro
     - [Simulation Experiments](docs/simulation-experiments.md): information on experiment setup
-    - [PyBullet Sim](docs/pybullet.md)
+    - [PyBullet Sim](docs/pybullet.md): an alternative to Gazebo that may be preferrable in some situations
     - [costar_bullet quick start](docs/costar_bullet.md): How to run tasks, generate datasets, train models, and extend costar_bullet with your own components.
-
-More specialized information:
-  - [Adding a robot to the ROS code](docs/add_a_robot): NOT using Bullet sim
-  - [TOM robot](docs/tom.md): use the TOM robot from TUM
+    - [Adding a robot to the ROS code](docs/add_a_robot.md): NOT using Bullet sim
   - [Husky robot](husky/Readme.md): Start the APL Husky sim
-  - [MARCC instructions](docs/marcc.md): some notes on learning models using the MARCC cluster (JHU students only)
+  - [TOM robot](docs/tom.md): use the TOM robot from TUM
+
+Package/folder layout:
+  - [CoSTAR Simulation](costar_simulation/Readme.md): Gazebo simulation and ROS execution
+  - [CoSTAR Task Plan](costar_task_plan/Readme.md): the high-level python planning library
+  - [CoSTAR Gazebo Plugins](costar_gazebo_plugins/Readme.md): assorted plugins for integration
+  - [CoSTAR Models](costar_models/Readme.md): tools for learning deep neural networks
+  - [Costar Task Plan - Tom](ctp_tom/Readme.md): specific bringup and scenarios for the TOM robot from TU Munich
+  - `setup`: contains setup scripts
+  - `slurm`: contains SLURM scripts for running on MARCC
+  - `command`: contains scripts with example CTP command-line calls
+  - `docs`: markdown files for information that is not specific to a particular ROS package but to all of CTP
+  - `photos`: example images
+  - Others are temporary packages for various projects
+
+Many of these sections are a work in progress; if you have any questions shoot me an email (`cpaxton@jhu.edu`).
 
 ## Getting started
 
@@ -79,6 +95,10 @@ rosrun costar_bullet start --robot ur5 --task blocks --agent task --features mul
 And then learn a model with:
 ```
 rosrun costar_bullet start --robot ur5  --features multi --load --model ff_regression
+```
+Or the model tool:
+```
+rosrun costar_models ctp_model_tool --model ff_regression
 ```
 
 Different agents allow you to directly make the robot act in different ways.
