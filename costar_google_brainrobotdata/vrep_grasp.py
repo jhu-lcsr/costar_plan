@@ -406,16 +406,19 @@ class VREPGraspSimulation(object):
             print(''.join(traceback.format_stack()))
             return res
 
-    def create_point_cloud_from_depth_image(self, display_name, depth_image, camera_intrinsics_matrix, transform,
+    def create_point_cloud_from_depth_image(self, display_name, depth_image, transform, camera_intrinsics_matrix=None,
                                             color_image=None, parent_handle=-1, clear=True,
                                             max_voxel_size=0.01, max_point_count_per_voxel=10, point_size=10, options=0, save_ply_path=None,
-                                            rgb_sensor_display_name=None, depth_sensor_display_name=None, convert_depth=FLAGS.vrepVisualizeDepthFormat):
+                                            rgb_sensor_display_name=None, depth_sensor_display_name=None, convert_depth=FLAGS.vrepVisualizeDepthFormat,
+                                            point_cloud=None):
         """Create a dummy object in the simulation
 
         # Arguments
 
             display_name: name string to use for the object in the vrep scene
+            depth_image: A depth image of size [width, height, 3]
             transform: [x, y, z, qw, qx, qy, qz] with 3 cartesian (x, y, z) and 4 quaternion (qx, qy, qz, qw) elements, same as vrep
+                This transform is from the parent handle to the point cloud base
             parent_handle: -1 is the world frame, any other int should be a vrep object handle
             clear: clear the point cloud if it already exists with the provided display name
             maxVoxelSize: the maximum size of the octree voxels containing points
@@ -429,9 +432,11 @@ class VREPGraspSimulation(object):
             pointSize: the size of the points, in pixels
             reserved: reserved for future extensions. Set to NULL
             save_ply_path: save out a ply file with the point cloud data
+            point_cloud: optional XYZ point cloud of size [width, height, 3], will be generated if not provided.
         """
-        point_cloud = depth_image_to_point_cloud(depth_image, camera_intrinsics_matrix)
-        point_cloud = point_cloud.reshape([point_cloud.size/3, 3])
+        if point_cloud is None:
+            point_cloud = depth_image_to_point_cloud(depth_image, camera_intrinsics_matrix)
+            point_cloud = point_cloud.reshape([point_cloud.size/3, 3])
         res = self.create_point_cloud(display_name, point_cloud, transform, color_image, parent_handle,
                                       clear=clear, max_voxel_size=max_voxel_size, max_point_count_per_voxel=max_point_count_per_voxel,
                                       point_size=point_size, options=options)
