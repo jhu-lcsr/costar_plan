@@ -1003,7 +1003,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = Concatenate()([x,y])
         x = AddConv2D(x, 32, [5,5], 2, self.dropout_rate, "same", disc)
         x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate, "same", disc)
-        x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate, "same", disc)
+        #x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate, "same", disc)
         x = AddConv2D(x, 128, [5,5], 2, self.dropout_rate, "same", disc)
         x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, "same", disc)
         self.encoder_channels = 32
@@ -1014,7 +1014,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         #    return spatial_softmax(x)
         #x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
         
-        self.steps_down = 4
+        self.steps_down = 3
         self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
         self.tform_filters = self.encoder_channels
         self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.tform_filters)
@@ -1056,7 +1056,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         #x = Reshape((h,w,c))(x)
         #x = AddConv2DTranspose(x, 64, [5,5], 1, dr)
         #x = AddConv2DTranspose(x, 128, [5,5], 1, dr)
-        x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
+        #x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
         x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
         x = AddConv2DTranspose(x, 32, [5,5], 2, dr)
         x = AddConv2DTranspose(x, 16, [5,5], 2, dr)
