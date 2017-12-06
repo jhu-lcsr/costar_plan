@@ -26,7 +26,8 @@
   <node if="$(arg real)"
     pkg="ctp_tom"
     name="table_integrator_node"
-    type="table_integrator"-->
+    type="table_integrator"
+    output="screen" />
 
   <!-- Launching ar tag program -->
   <group ns="$(arg camera_name)">
