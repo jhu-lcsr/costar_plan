@@ -1,6 +1,15 @@
 <?xml version="0.0" ?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
+  <xacro:property name="M_PI" value="3.14159"/>
+
+  <material name="dark">
+    <color rgba="0.3 0.3 0.3 1."/>
+  </material>
+  <material name="light">
+    <color rgba="0.3 0.3 0.3 1."/>
+  </material>
+
   <xacro:macro name="top_panel">
     <geometry>
       <box size="1 0.595 0.017"/>
@@ -34,13 +43,6 @@
     </collision>
   </xacro:macro>
 
-  <material name="dark">
-    <color rgba="0.2 0.2 0.2 1."/>
-  </material>
-  <material name="light">
-    <color rgba="0.8 0.8 0.8 1."/>
-  </material>
-
   <xacro:macro name="tom_table" params="name">
     <link name="${name}">
       <contact>
@@ -60,17 +62,17 @@
         <xacro:top_panel/>
       </collision>
       <visual>
-        <origin rpy="0 0 0" xyz="0 ${0.595 / 2} -0.00285"/>
+        <origin rpy="0 0 0" xyz="0 ${0.595 / 2} ${-0.017 - 0.02}"/>
         <xacro:top_base/>
       </visual>
       <collision>
-        <origin rpy="0 0 0" xyz="0 ${0.595 / 2} -0.00285"/>
+        <origin rpy="0 0 0" xyz="0 ${0.595 / 2} ${-0.017 - 0.02}"/>
         <xacro:top_base/>
       </collision>
-      <xacro:leg_at xyz="-0.5 0.02 ${-0.00285 + (0.823 / 2)}"/>
-      <xacro:leg_at xyz="0.5 0.02 ${-0.00285 + (0.823 / 2)}"/>
-      <xacro:leg_at xyz="-0.5 ${0.595 - 0.02} ${-0.00285 + (0.823 / 2)}"/>
-      <xacro:leg_at xyz="0.5 ${0.595 - 0.02} ${-0.00285 + (0.823 / 2)}"/>
+      <xacro:leg_at xyz="${-0.5+0.02} 0.02 ${-0.017 - 0.02 - (0.823 / 2)}"/>
+      <xacro:leg_at xyz="${0.5-0.02} 0.02 ${-0.017 -0.02 - (0.823 / 2)}"/>
+      <xacro:leg_at xyz="${-0.5+0.02} ${0.595 - 0.02} ${-0.017 - 0.02 - (0.823 / 2)}"/>
+      <xacro:leg_at xyz="${0.5-0.02} ${0.595 - 0.02} ${-0.017 -0.02 - (0.823 / 2)}"/>
     </link>
   </xacro:macro>
 </robot>
