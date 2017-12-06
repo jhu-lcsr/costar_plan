@@ -254,7 +254,7 @@ def surface_relative_transform(xyz_image,
     depth_pixel_T_endeffector_final_ptrans = camera_T_endeffector * camera_T_cloud_point_ptrans.inv()
 
     # return the transform and the image coordinate used to generate the transform
-    return [depth_pixel_T_endeffector_final_ptrans, pixel_coordinate_of_endeffector]
+    return depth_pixel_T_endeffector_final_ptrans, pixel_coordinate_of_endeffector
 
 
 def endeffector_image_coordinate(camera_intrinsics_matrix, xyz, flip_x=1.0, flip_y=1.0):
@@ -607,7 +607,7 @@ def grasp_dataset_to_transforms_and_features(
     # TODO(ahundt) would need to np.fliplr(np.rot90(depth, 3)), see depth_image_to_point_cloud for details, ensure consistency with image intrinsics
     # TODO(ahundt) make xyz_image into a parameter of this class and pass tensorflow generated version
     # get the point cloud xyz image
-    xyz_image = depth_image_to_point_cloud(depth_image, camera_intrinsics_matrix)
+    # xyz_image = depth_image_to_point_cloud(depth_image, camera_intrinsics_matrix)
 
     # calculate the surface relative transform from the clear view depth to endeffector final position
     depth_pixel_T_endeffector_current_ptrans, image_coordinate_current = surface_relative_transform(
@@ -633,10 +633,10 @@ def grasp_dataset_to_transforms_and_features(
 
     # Get the delta theta parameter, converting Plucker transform to [dx, dy, dz, sin(theta), cos(theta)]
     # Also see grasp_dataset_ptransform_to_vector_sin_theta_cos_theta()
-    eectf_translation = np.squeeze(ptransform.translation())
-    eectf_theta = grasp_dataset_rotation_to_theta(ptransform.rotation())
-    eectf_sin_theta = np.sin(theta)
-    eectf_cos_theta = np.cos(theta)
+    eectf_translation = np.squeeze(eectf_ptrans.translation())
+    eectf_theta = grasp_dataset_rotation_to_theta(eectf_ptrans.rotation())
+    eectf_sin_theta = np.sin(eectf_theta)
+    eectf_cos_theta = np.cos(eectf_theta)
 
     # Convert each transform into vector + quaternion format
     # [x, y, z, qx, qy, qz, qw], which is identical to the 'vec_quat_7' feature type
