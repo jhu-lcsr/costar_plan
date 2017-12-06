@@ -18,6 +18,8 @@
   </include>
 
 
+  <param name="table_description" command="$(find xacro(/xacro.py "/>
+
   <!-- Launching ar tag program #2-->
   <group ns="$(arg camera_name)">
     <arg name="cam_image_topic2" value="/$(arg camera_name)/depth_registered/points" />
