@@ -14,4 +14,4 @@ int8 GRIPPER_FREE=2
 int8 gripper_state
 
 # pose of end effector in the world frame
-geometry_mgs/Pose pose
+geometry_msgs/Pose pose
