@@ -933,18 +933,16 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         arm_size: number of arm output variables to predict
         gripper_size: number of gripper output variables to predict
         '''
-        rep_in = Input((1024,))
-        dr = self.decoder_dropout_rate
+        rep_in = Input((8,8,16,))
+        dr = self.decoder_dropout_rate * 0.5
 
-        x = rep_in
+        x = Flatten()(rep_in)
         x1 = AddDense(x, 512, "relu", dr)
-        x1 = AddDense(x1, 512, "relu", dr)
-        x2 = AddDense(x, 512, "relu", dr)
-        x2 = AddDense(x2, 512, "relu", dr)
+        #x2 = AddDense(x2, 512, "relu", dr)
         arm = AddDense(x1, arm_size, "linear", dr, output=True)
-        gripper = AddDense(x2, gripper_size, "sigmoid", dr, output=True)
-        y = AddDense(x, 64, "relu", dr, output=True)
-        option = AddDense(y, self.num_options, "softmax", dr, output=True)
+        gripper = AddDense(x1, gripper_size, "sigmoid", dr, output=True)
+        #y = AddDense(x, 512, "relu", dr, output=True)
+        option = AddDense(x, self.num_options, "softmax", dr, output=True)
         state_decoder = Model(rep_in, [arm, gripper, option])
         state_decoder.compile(loss="mae", optimizer=self.getOptimizer())
         self.state_decoder = state_decoder
@@ -1007,7 +1005,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, "same", disc)
         #x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate, "same", disc)
         x = AddConv2D(x, 128, [5,5], 2, self.dropout_rate, "same", disc)
-        self.encoder_channels = 32
+        self.encoder_channels = 16
         x = AddConv2D(x, self.encoder_channels, [1,1], 1, 0.*self.dropout_rate,
                 "same", disc)
 
