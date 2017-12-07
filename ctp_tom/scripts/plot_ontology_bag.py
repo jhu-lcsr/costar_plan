@@ -19,14 +19,20 @@ def _parse_args():
     parser.add_argument("--filename","-f",
                         type=str,
                         default="data.bag")
+    parser.add_argument("--ignore_inputs",
+                        help="Do not plot controllers and head.",
+                        action="store_true")
+    parser.add_argument("--display_object",
+                        help="Print out all info about this object.",
+                        default=None)
     return vars(parser.parse_args())
 
-def _main(args):
+def _main(filename, ignore_inputs, display_object, **kwargs):
     obj_history = {}
     left_v = []
     right_v = []
     ontology_msg_topic = "/vr/learning/debugingLearning"
-    bag = rosbag.Bag(args['filename'])
+    bag = rosbag.Bag(filename)
     for topic, msg, t in bag:
         if not topic == ontology_msg_topic:
             continue
@@ -35,7 +41,7 @@ def _main(args):
                 obj_history[obj.name] = []
             obj_history[obj.name].append(
                     [obj.position.x, obj.position.y, obj.position.z])
-            if obj.name == "orange":
+            if obj.name == display_object:
                 print t, obj.position.x, obj.position.y, obj.position.z
         left_v.append([msg.velocity_L.x,
                        msg.velocity_L.y,
@@ -47,9 +53,6 @@ def _main(args):
     lv = np.array(left_v)
     rv = np.array(right_v)
 
-    print lv.shape
-    print rv.shape
-
     fig = plt.figure()
     ax = fig.gca(projection='3d')
     ax.plot(lv[:,0], lv[:,1], lv[:,2], label='left')
@@ -60,13 +63,11 @@ def _main(args):
     fig = plt.figure()
     ax = fig.gca(projection='3d')
     for obj, data in obj_history.items():
-        if "Controller" in obj:
-            continue
-        if "Head" in obj:
-            continue
-        print "----"
-        print obj
-        print data[0]
+        if ignore_inputs:
+            if "Controller" in obj:
+                continue
+            if "Head" in obj:
+                continue
         data = np.array(data)
         ax.plot(data[:,0], data[:,1], data[:,2], label=obj)   
     plt.title('Object Positions')
@@ -75,4 +76,4 @@ def _main(args):
 
 if __name__ == "__main__":
     args = _parse_args()
-    _main(args)
+    _main(**args)
