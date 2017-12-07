@@ -54,8 +54,15 @@ def _main(args):
     ax.plot(rv[:,0], rv[:,1], rv[:,2], label='right')
     plt.title('Velocities')
     ax.legend()
-    plt.show()
 
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    for obj, data in obj_history.items():
+        data = np.array(data)
+        ax.plot(data[:,0], data[:,1], data[:,2], label=obj)   
+    plt.title('Object Positions')
+    ax.legend()
+    plt.show()
 
 if __name__ == "__main__":
     args = _parse_args()
