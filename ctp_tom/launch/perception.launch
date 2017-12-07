@@ -8,7 +8,7 @@
   <arg name="max_track_error" default="0.05" />
   <arg name="start_static_handeye" default="true" />
   <arg name="auto_white_balance" default="true" />
-  <arg name="auto_exposure" default="true" />
+  <arg name="auto_exposure" default="false" />
 
   <!-- bring up the cameras -->
   <include if="$(arg real)" file="$(find openni2_launch)/launch/openni2.launch">

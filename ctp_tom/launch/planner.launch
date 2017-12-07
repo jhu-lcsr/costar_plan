@@ -9,7 +9,7 @@
   <arg name="max_track_error" default="0.05" />
   <arg name="start_static_handeye" default="true" />
   <arg name="auto_white_balance" default="true" />
-  <arg name="auto_exposure" default="true" />
+  <arg name="auto_exposure" default="false" />
   <arg name="stationary" default="true" />
 
   <!-- Visualization bringup -->
