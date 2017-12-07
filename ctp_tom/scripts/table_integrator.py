@@ -77,6 +77,7 @@ if __name__ == '__main__':
     manager.addUrdf("block_2", "/block1_description", "block_2")
     manager.addUrdf("block_3", "/block1_description", "block_3")
     manager.addUrdf("tom_table", "/table_description", "tom_table")
+    manager.addUrdf("box", "/box_description", "box")
 
     # Add in a short delay to let TF buffer
     rospy.sleep(1.0)
