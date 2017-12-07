@@ -44,7 +44,6 @@ class TransformIntegator(object):
 
         if not self.listener.frameExists(self.root):
             rospy.logwarn("%s was missing"%self.root)
-            print(self.listener.allFramesAsString())
             return
 
         count = 0

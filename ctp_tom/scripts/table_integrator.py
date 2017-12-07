@@ -20,7 +20,7 @@ if __name__ == '__main__':
     # Create transform integrator for the table frame.
     integrator = TransformIntegator(
             "tom_table",
-            "/camera_rgb_optical_frame",
+            "camera_rgb_optical_frame",
             history_length=50,
             offset=kdl.Frame(
                 kdl.Rotation.RotZ(np.pi/2),
@@ -48,7 +48,7 @@ if __name__ == '__main__':
     # frame based on observations of the particular marker.
     block_2_integrator = TransformIntegator(
             "block_2",
-            "/camera_rgb_optical_frame",
+            "camera_rgb_optical_frame",
             history_length=3,
             listener=integrator.listener,
             broadcaster=integrator.broadcaster,
@@ -57,8 +57,7 @@ if __name__ == '__main__':
 
     # Publish collision objects for all things in the scene.
     manager = CollisionObjectManager(
-            #root="/camera_rgb_optical_frame",
-            root="/odom_combined",
+            root="odom_combined",
             listener=integrator.listener)
     manager.addUrdf("block_1", "/block1_description", "block_1")
     manager.addUrdf("block_2", "/block1_description", "block_2")
