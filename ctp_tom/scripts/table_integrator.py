@@ -4,7 +4,9 @@ import numpy as np
 import PyKDL as kdl
 import rospy
 
+# Load transform and collision object tools
 from costar_task_plan.robotics.perception import TransformIntegator
+from costar_task_plan.robotics.perception import CollisionObjectManager
 
 if __name__ == '__main__':
 
@@ -15,6 +17,7 @@ if __name__ == '__main__':
     t01 = kdl.Vector(0.001, 0.192, 0.001)
     R01 = kdl.Rotation.Quaternion(-0.002, 0.006, -0.012, 1.000)
 
+    # Create transform integrator for the table frame.
     integrator = TransformIntegator(
             "tom_table",
             "/camera_rgb_optical_frame",
@@ -31,6 +34,7 @@ if __name__ == '__main__':
     block_offset 
     block_offset *= kdl.Frame(kdl.Rotation(),kdl.Vector(-0.127/4,-0.063/2,-0.063/2+0.045/2+0.01))
 
+    # Create block 1 integrator.
     block_1_integrator = TransformIntegator(
             "block_1",
             "/camera_rgb_optical_frame",
@@ -40,6 +44,8 @@ if __name__ == '__main__':
             offset=kdl.Frame())
     block_1_integrator.addTransform("/ar_marker_5", block_offset)
 
+    # Create block integrator. This just generates a transform for the block 2
+    # frame based on observations of the particular marker.
     block_2_integrator = TransformIntegator(
             "block_2",
             "/camera_rgb_optical_frame",
@@ -49,9 +55,20 @@ if __name__ == '__main__':
             offset=kdl.Frame())
     block_2_integrator.addTransform("/ar_marker_4", block_offset)
 
+    # Publish collision objects for all things in the scene.
+    manager = CollisionObjectManager(
+            root="/odom_combined",
+            listener=integrator.listener)
+    manager.addUrdf("block_1", "/block1_description", "block_1")
+    manager.addUrdf("block_2", "/block1_description", "block_2")
+    manager.addUrdf("block_3", "/block1_description", "block_3")
+    manager.addUrdf("tom_table", "/table_description", "tom_table")
+
     rate = rospy.Rate(60)
     while not rospy.is_shutdown():
         integrator.tick()
         block_1_integrator.tick()
         block_2_integrator.tick()
+        manager.tick()
         rate.sleep()
+

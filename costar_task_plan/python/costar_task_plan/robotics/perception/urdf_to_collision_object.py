@@ -1,6 +1,6 @@
 
 # URDF parser to load visual and collision elements
-from urdf_parser_py import URDF
+from urdf_parser_py.urdf import URDF
 
 from geometry_msgs.msg import Pose, Point
 from moveit_msgs.msg import PlanningScene
@@ -12,8 +12,9 @@ from std_srvs.srv import EmptyResponse
 
 import pyassimp
 import rospy
+import tf
 
-def GetUrdfCollisionObject(name, rosparam):
+def _getUrdf(name, rosparam):
     '''
     This function loads a collision object specified as an URDF for integration
     with perception and MoveIt.
@@ -123,15 +124,16 @@ class CollisionObjectManager(object):
     to a planning scene based on TF positions of these objects.
     '''
 
-    def __init__(self, root="/world", tf_listener=None):
+    def __init__(self, root="/world", listener=None, max_dt=1.):
         self.objs = {}
         self.urdfs = {}
         self.frames = {}
-        if tf_listener is None:
+        if listener is None:
             self.listener = tf.TransformListener()
         else:
-            self.listener = tf_listener
+            self.listener = listener
         self.root = root
+        self.max_dt = max_dt
 
         rospy.wait_for_service('/get_planning_scene')
 
@@ -148,11 +150,21 @@ class CollisionObjectManager(object):
         self.frames[name] = tf_frame
 
     def tick(self):
+
+        if not self.listener.frameExists(self.root):
+            return
+        self.t = rospy.Time.now()
+
         for name, urdf in self.urdfs.items():
             if self.objs[name] == None:
                 operation = CollisionObject.ADD
             else:
                 operation = CollisionObject.MOVE
+            t = self.listener.getLatestCommonTime(self.root, name)
+            print self.t - t
+            if self.t - t > self.max_dt:
+                continue
+            pose = self.listener.lookupTransform(self.root, name, t)
             co = _getCollisionObject(name, urdf, pose, operation)
             self.co_pub.publish(co)
 
