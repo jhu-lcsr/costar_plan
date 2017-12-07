@@ -176,12 +176,13 @@ class CollisionObjectManager(object):
             except tf.Exception as e:
                 rospy.logerr(str(e))
                 continue
-            print self.t - t
             if (self.t - t).to_sec() > self.max_dt:
+                rospy.logwarn("object %s has not been observed in the last %f seconds"%(name, t))
                 continue
             pose = self.listener.lookupTransform(self.root, name, t)
             pose = pm.fromTf(pose)
             co = _getCollisionObject(name, urdf, pose, operation)
+            co.header.frame_id = self.root
             self.objs[name] = co
             self.co_pub.publish(co)
 
