@@ -133,6 +133,12 @@ class CollisionObjectManager(object):
             self.listener = tf_listener
         self.root = root
 
+        rospy.wait_for_service('/get_planning_scene')
+
+        self.co_pub = rospy.Publisher('collision_object',
+                CollisionObject,
+                queue_size=1000)
+
     def addUrdf(self, name, rosparam, tf_frame=None):
         urdf = _getUrdf(name, rosparam)
         self.objs[name] = None
@@ -148,5 +154,6 @@ class CollisionObjectManager(object):
             else:
                 operation = CollisionObject.MOVE
             co = _getCollisionObject(name, urdf, pose, operation)
+            self.co_pub.publish(co)
 
 
