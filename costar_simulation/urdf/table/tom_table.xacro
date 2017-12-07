@@ -1,0 +1,77 @@
+<?xml version="0.0" ?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:property name="M_PI" value="3.14159"/>
+
+  <material name="tt_metal">
+    <color rgba="0.75 0.75 0.75 1."/>
+  </material>
+  <material name="tt_top">
+    <color rgba="0.2 0.2 0.2 1."/>
+  </material>
+
+  <xacro:macro name="top_base">
+    <geometry>
+      <box size="1 0.595 0.04"/>
+    </geometry>
+    <material name="tt_metal"/>
+  </xacro:macro>
+
+  <xacro:macro name="leg">
+    <geometry>
+      <box size="0.04 0.04 0.823"/>
+    </geometry>
+    <material name="tt_metal"/>
+  </xacro:macro>
+
+  <xacro:macro name="leg_at" params="xyz">
+    <visual>
+      <origin rpy="0 0 0" xyz="${xyz}"/>
+      <xacro:leg/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="${xyz}"/>
+      <xacro:leg/>
+    </collision>
+  </xacro:macro>
+
+  <xacro:macro name="top_panel">
+    <geometry>
+      <box size="1 0.595 0.017"/>
+    </geometry>
+    <material name="tt_metal"/>
+  </xacro:macro>
+
+  <xacro:macro name="tom_table" params="name">
+    <link name="${name}">
+      <contact>
+        <lateral_friction value="1.0"/>
+      </contact>
+      <inertial>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <mass value=".0"/>
+        <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+      </inertial>
+      <visual>
+        <origin rpy="0 0 0" xyz="0 ${0.595 / 2} -0.0085"/>
+        <xacro:top_panel/>
+      </visual>
+      <collision>
+        <origin rpy="0 0 0" xyz="0 ${0.595 / 2} -0.0085"/>
+        <xacro:top_panel/>
+      </collision>
+      <visual>
+        <origin rpy="0 0 0" xyz="0 ${0.595 / 2} ${-0.017 - 0.02}"/>
+        <xacro:top_base/>
+      </visual>
+      <collision>
+        <origin rpy="0 0 0" xyz="0 ${0.595 / 2} ${-0.017 - 0.02}"/>
+        <xacro:top_base/>
+      </collision>
+      <xacro:leg_at xyz="${-0.5+0.02} 0.02 ${-0.017 - 0.04 - (0.823 / 2)}"/>
+      <xacro:leg_at xyz="${0.5-0.02} 0.02 ${-0.017 -0.04 - (0.823 / 2)}"/>
+      <xacro:leg_at xyz="${-0.5+0.02} ${0.595 - 0.02} ${-0.017 - 0.04 - (0.823 / 2)}"/>
+      <xacro:leg_at xyz="${0.5-0.02} ${0.595 - 0.02} ${-0.017 -0.04 - (0.823 / 2)}"/>
+    </link>
+  </xacro:macro>
+</robot>

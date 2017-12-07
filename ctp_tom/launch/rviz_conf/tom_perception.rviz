@@ -6,9 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-        - /TF1
         - /TF1/Frames1
-        - /MarkerArray1
         - /PlanningScene1/Scene Robot1
       Splitter Ratio: 0.5
     Tree Height: 339
@@ -76,6 +74,12 @@ Visualization Manager:
         ICS_logo_blue_link:
           Value: true
         ICS_logo_grey_link:
+          Value: true
+        ar_marker_0:
+          Value: true
+        ar_marker_1:
+          Value: true
+        ar_marker_6:
           Value: true
         base_footprint:
           Value: true
@@ -208,7 +212,12 @@ Visualization Manager:
                     {}
                 camera_rgb_frame:
                   camera_rgb_optical_frame:
-                    {}
+                    ar_marker_0:
+                      {}
+                    ar_marker_1:
+                      {}
+                    ar_marker_6:
+                      {}
               l_base_link:
                 l_shoulder_link:
                   l_upper_arm_link:
@@ -257,14 +266,6 @@ Visualization Manager:
                 {}
       Update Interval: 0
       Value: true
-    - Class: rviz/MarkerArray
-      Enabled: false
-      Marker Topic: visualization_marker_array
-      Name: MarkerArray
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: false
     - Alpha: 1
       Arrow Width: 0.5
       Class: rviz/WrenchStamped
@@ -1086,6 +1087,27 @@ Visualization Manager:
       Transport Hint: raw
       Unreliable: false
       Value: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        tom_table:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Name: table model
+      Robot Description: table_description
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -1110,7 +1132,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 2.29866552
+      Distance: 2.965168
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
@@ -1124,10 +1146,10 @@ Visualization Manager:
       Focal Shape Size: 0.0500000007
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.33979696
+      Pitch: 0.544796884
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.69221151
+      Yaw: 2.00721192
     Saved: ~
 Window Geometry:
   Depth:
