@@ -31,7 +31,7 @@ def _main(args):
         if not topic == ontology_msg_topic:
             continue
         for obj in msg.object:
-            if not obj in obj_history:
+            if not obj.name in obj_history:
                 obj_history[obj.name] = []
             obj_history[obj.name].append(
                     [obj.position.x, obj.position.y, obj.position.z])
