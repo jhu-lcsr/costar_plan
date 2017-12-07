@@ -9,13 +9,14 @@
     default="$(find ctp_tom)/data/table" />
 
 
-  <include filename="$(find object_on_table_segmenter)/launch/object_on_table_segmenter.launch">
+  <include file="$(find object_on_table_segmenter)/launch/object_on_table_segmenter.launch">
     <arg name="table_tf" value="tom_table"/>
     <arg name="use_tf_surface" value="false"/>
     <arg name="object" value="table"/>
     <arg name="save_directory" value="$(arg save_directory"/>
     <arg name="above_table_min" value="0.0025"/>
     <arg name="plane_seg_viewer" value="false"/>
+    <arg name="auto_capture" value="false"/>
   </include>
 
 </launch>
