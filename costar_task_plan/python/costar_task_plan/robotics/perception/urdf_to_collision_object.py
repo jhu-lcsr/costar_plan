@@ -99,6 +99,7 @@ def _getCollisionObject(name, urdf, pose, operation):
                 primitive = True
                 if co.operation == CollisionObject.ADD:
                     size = c.geometry.size
+                    print  "add element", size
                     element = SolidPrimitive
                     element.type = SolidPrimitive.BOX
                     element.dimensions = list(c.geometry.size)
@@ -159,6 +160,7 @@ class CollisionObjectManager(object):
 
     def tick(self):
 
+        #TODO: figure out why this is bad
         #if not self.listener.frameExists(self.root):
         #    rospy.logerr("missing root: %s"%self.root)
         #    return
@@ -170,7 +172,7 @@ class CollisionObjectManager(object):
             else:
                 operation = CollisionObject.MOVE
             if not self.listener.frameExists(name):
-                rospy.logwarn("Frame %s does not exist"%name)
+                #rospy.logwarn("Frame %s does not exist"%name)
                 continue
             try:
                 t = self.listener.getLatestCommonTime(self.root, name)
