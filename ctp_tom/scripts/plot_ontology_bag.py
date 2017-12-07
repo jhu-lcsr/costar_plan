@@ -35,6 +35,8 @@ def _main(args):
                 obj_history[obj.name] = []
             obj_history[obj.name].append(
                     [obj.position.x, obj.position.y, obj.position.z])
+            if obj.name == "orange":
+                print t, obj.position.x, obj.position.y, obj.position.z
         left_v.append([msg.velocity_L.x,
                        msg.velocity_L.y,
                        msg.velocity_L.z])
@@ -58,6 +60,13 @@ def _main(args):
     fig = plt.figure()
     ax = fig.gca(projection='3d')
     for obj, data in obj_history.items():
+        if "Controller" in obj:
+            continue
+        if "Head" in obj:
+            continue
+        print "----"
+        print obj
+        print data[0]
         data = np.array(data)
         ax.plot(data[:,0], data[:,1], data[:,2], label=obj)   
     plt.title('Object Positions')
