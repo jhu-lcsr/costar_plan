@@ -6,8 +6,12 @@ them to generate a few plots. We want to ensure that these work nicely.
 '''
 
 import argparse
+import numpy as np
 import rosbag
 import rospy
+
+
+from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
 
 def _parse_args():
@@ -37,7 +41,20 @@ def _main(args):
         right_v.append([msg.velocity_R.x,
                        msg.velocity_R.y,
                        msg.velocity_R.z])
-        print msg
+
+    lv = np.array(left_v)
+    rv = np.array(right_v)
+
+    print lv.shape
+    print rv.shape
+
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    ax.plot(lv[:,0], lv[:,1], lv[:,2], label='left')
+    ax.plot(rv[:,0], rv[:,1], rv[:,2], label='right')
+    plt.title('Velocities')
+    ax.legend()
+    plt.show()
 
 
 if __name__ == "__main__":
