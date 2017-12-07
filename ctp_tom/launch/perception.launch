@@ -24,6 +24,10 @@
     command="$(find xacro)/xacro.py '$(find costar_simulation)/urdf/duplo/duplo1.urdf.xacro'"/>
   <param name="block2_description"
     command="$(find xacro)/xacro.py '$(find costar_simulation)/urdf/duplo/duplo2.urdf.xacro'"/>
+  <param name="orange_description"
+    command="$(find xacro)/xacro.py '$(find costar_simulation)/urdf/orange/orange.urdf.xacro'"/>
+  <param name="box_description"
+    command="$(find xacro)/xacro.py '$(find costar_simulation)/urdf/box/box.urdf.xacro'"/>
 
   <!-- If we are testing with the real robot, use AR markers to localize the
        table and add it to the visualization and planning scenes. -->

@@ -55,6 +55,20 @@ if __name__ == '__main__':
             offset=kdl.Frame())
     block_2_integrator.addTransform("ar_marker_4", block_offset)
 
+    # Create box integrator.
+    box_integrator = TransformIntegator(
+            "box",
+            "camera_rgb_optical_frame",
+            history_length=3,
+            listener=integrator.listener,
+            broadcaster=integrator.broadcaster,
+            offset=kdl.Frame())
+    center = (0.205 / 2) - (0.045/2 + 0.005)
+    offset8 = kdl.Frame(
+            kdl.Rotation.RotY(-np.pi/2),
+            kdl.Vector(center, center, -0.205/2))
+    box_integrator.addTransform("ar_marker_8", offset8)
+
     # Publish collision objects for all things in the scene.
     manager = CollisionObjectManager(
             root="odom_combined",
@@ -73,6 +87,7 @@ if __name__ == '__main__':
         integrator.tick()
         block_1_integrator.tick()
         block_2_integrator.tick()
+        box_integrator.tick()
         manager.tick()
         rate.sleep()
 
