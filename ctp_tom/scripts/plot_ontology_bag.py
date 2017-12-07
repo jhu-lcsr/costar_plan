@@ -18,9 +18,26 @@ def _parse_args():
     return vars(parser.parse_args())
 
 def _main(args):
-    objs = {}
-    topic = 
-    #for topic, msg, t
+    obj_history = {}
+    left_v = []
+    right_v = []
+    ontology_msg_topic = "/vr/learning/debugingLearning"
+    bag = rosbag.Bag(args['filename'])
+    for topic, msg, t in bag:
+        if not topic == ontology_msg_topic:
+            continue
+        for obj in msg.object:
+            if not obj in obj_history:
+                obj_history[obj.name] = []
+            obj_history[obj.name].append(
+                    [obj.position.x, obj.position.y, obj.position.z])
+        left_v.append([msg.velocity_L.x,
+                       msg.velocity_L.y,
+                       msg.velocity_L.z])
+        right_v.append([msg.velocity_R.x,
+                       msg.velocity_R.y,
+                       msg.velocity_R.z])
+        print msg
 
 
 if __name__ == "__main__":
