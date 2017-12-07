@@ -99,8 +99,7 @@ def _getCollisionObject(name, urdf, pose, operation):
                 primitive = True
                 if co.operation == CollisionObject.ADD:
                     size = c.geometry.size
-                    print  "add element", size
-                    element = SolidPrimitive
+                    element = SolidPrimitive()
                     element.type = SolidPrimitive.BOX
                     element.dimensions = list(c.geometry.size)
                     co.primitives.append(element)

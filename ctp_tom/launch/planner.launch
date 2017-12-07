@@ -51,7 +51,7 @@
     pkg="tf"
     type="static_transform_publisher"
     name="virtual_joint_broadcaster_0vis"
-    args="0 0 0 0 0 0 odom_combined base_footprint 1000" />
+    args="0 0 0 0 0 0 odom_combined base_footprint 50" />
 
   <!-- start up the DMP server -->
   <include file="$(find dmp)/launch/dmp.launch" />
