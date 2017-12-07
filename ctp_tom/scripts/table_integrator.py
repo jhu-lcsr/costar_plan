@@ -37,7 +37,7 @@ if __name__ == '__main__':
     # Create block 1 integrator.
     block_1_integrator = TransformIntegator(
             "block_1",
-            "/camera_rgb_optical_frame",
+            "camera_rgb_optical_frame",
             history_length=3,
             listener=integrator.listener,
             broadcaster=integrator.broadcaster,

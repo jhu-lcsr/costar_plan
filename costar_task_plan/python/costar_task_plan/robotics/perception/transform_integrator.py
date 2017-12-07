@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from collections import deque
 
 # Import a ton of ROS messages
@@ -41,6 +43,8 @@ class TransformIntegator(object):
         '''
 
         if not self.listener.frameExists(self.root):
+            rospy.logwarn("%s was missing"%self.root)
+            print(self.listener.allFramesAsString())
             return
 
         count = 0
