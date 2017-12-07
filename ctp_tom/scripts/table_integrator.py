@@ -57,7 +57,7 @@ if __name__ == '__main__':
 
     # Publish collision objects for all things in the scene.
     manager = CollisionObjectManager(
-            root="/odom_combined",
+            root="/camera_rgb_optical_frame",
             listener=integrator.listener)
     manager.addUrdf("block_1", "/block1_description", "block_1")
     manager.addUrdf("block_2", "/block1_description", "block_2")

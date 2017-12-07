@@ -11,8 +11,11 @@ from std_srvs.srv import Empty as EmptySrv
 from std_srvs.srv import EmptyResponse
 
 import pyassimp
+import PyKDL as kdl
 import rospy
 import tf
+import tf_conversions.posemath as pm
+import urdf_parser_py
 
 def _getUrdf(name, rosparam):
     '''
@@ -89,32 +92,37 @@ def _getCollisionObject(name, urdf, pose, operation):
                     kdl.Rotation.RPY(*l.origin.rpy),
                     kdl.Vector(*l.origin.xyz))
         for c in l.collisions:
-            # check type
-            if co.operation == CollisionObject.ADD:
-                # Only update the geometry if we actually need to add the
-                # object to the collision scene.
-                if isinstance(c, urdf_parser_py.urdf.Box):
-                    size = c.size
+            # Only update the geometry if we actually need to add the
+            # object to the collision scene.
+            # check type of each collision tag.
+            if isinstance(c.geometry, urdf_parser_py.urdf.Box):
+                primitive = True
+                if co.operation == CollisionObject.ADD:
+                    size = c.geometry.size
                     element = SolidPrimitive
                     element.type = SolidPrimitive.BOX
                     element.dimensions = list(c.geometry.size)
                     co.primitives.append(element)
-                elif isinstance(c, urdf_parser_py.urdf.Mesh):
+            elif isinstance(c.geometry, urdf_parser_py.urdf.Mesh):
+                primitive = False
+                if co.operation == CollisionObject.ADD:
                     scale = (1,1,1)
-                    if c.scale is not None:
+                    if c.geometry.scale is not None:
                         scale = c.scale
-                    element = _loadMesh(c, scale)
+                    element = _loadMesh(c.geometry, scale)
                     co.meshes.append(element)
+            else:
+                raise NotImplementedError("we do not currently support geometry of type %s"%(str(type(c.geometry))))
 
             pose = kdl.Frame(
-                    kdl.Rotation(*c.origin.rpy),
+                    kdl.Rotation.RPY(*c.origin.rpy),
                     kdl.Vector(*c.origin.xyz))
             pose = link_pose * pose
             if primitive:
-                co.primitive_poses.append(pose)
+                co.primitive_poses.append(pm.toMsg(pose))
             else:
                 # was a mesh
-                co.mesh_poses.append(pose)
+                co.mesh_poses.append(pm.toMsg(pose))
 
     return co
 
@@ -160,12 +168,21 @@ class CollisionObjectManager(object):
                 operation = CollisionObject.ADD
             else:
                 operation = CollisionObject.MOVE
-            t = self.listener.getLatestCommonTime(self.root, name)
+            if not self.listener.frameExists(name):
+                rospy.logwarn("Frame %s does not exist"%name)
+                continue
+            try:
+                t = self.listener.getLatestCommonTime(self.root, name)
+            except tf.Exception as e:
+                rospy.logerr(str(e))
+                continue
             print self.t - t
-            if self.t - t > self.max_dt:
+            if (self.t - t).to_sec() > self.max_dt:
                 continue
             pose = self.listener.lookupTransform(self.root, name, t)
+            pose = pm.fromTf(pose)
             co = _getCollisionObject(name, urdf, pose, operation)
+            self.objs[name] = co
             self.co_pub.publish(co)
 
 
