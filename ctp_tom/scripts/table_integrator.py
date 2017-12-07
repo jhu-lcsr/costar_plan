@@ -25,9 +25,9 @@ if __name__ == '__main__':
             offset=kdl.Frame(
                 kdl.Rotation.RotZ(np.pi/2),
                 kdl.Vector(0.0225,0,0)))
-    integrator.addTransform("/ar_marker_0", kdl.Frame())
-    integrator.addTransform("/ar_marker_1", kdl.Frame(R01,t01).Inverse())
-    integrator.addTransform("/ar_marker_6", kdl.Frame(R06,t06).Inverse())
+    integrator.addTransform("ar_marker_0", kdl.Frame())
+    integrator.addTransform("ar_marker_1", kdl.Frame(R01,t01).Inverse())
+    integrator.addTransform("ar_marker_6", kdl.Frame(R06,t06).Inverse())
 
     block_offset = kdl.Frame(
             kdl.Rotation.RotZ(-1.*np.pi/2) * kdl.Rotation.RotX(np.pi/2))
@@ -42,7 +42,7 @@ if __name__ == '__main__':
             listener=integrator.listener,
             broadcaster=integrator.broadcaster,
             offset=kdl.Frame())
-    block_1_integrator.addTransform("/ar_marker_5", block_offset)
+    block_1_integrator.addTransform("ar_marker_5", block_offset)
 
     # Create block integrator. This just generates a transform for the block 2
     # frame based on observations of the particular marker.
@@ -53,7 +53,7 @@ if __name__ == '__main__':
             listener=integrator.listener,
             broadcaster=integrator.broadcaster,
             offset=kdl.Frame())
-    block_2_integrator.addTransform("/ar_marker_4", block_offset)
+    block_2_integrator.addTransform("ar_marker_4", block_offset)
 
     # Publish collision objects for all things in the scene.
     manager = CollisionObjectManager(
