@@ -1,0 +1,1 @@
+OntoProperty[] properties
