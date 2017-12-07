@@ -248,7 +248,9 @@ class ImageCb(keras.callbacks.Callback):
         self.epoch += 1
         res = self.predictor.predict(self.features)
         if isinstance(res, list):
-            img, arm, gripper, label = res
+            img = res[0]
+            if len(res) == 4:
+                img, arm, gripper, label = res
         else:
             img = res
         for j in range(self.num):
