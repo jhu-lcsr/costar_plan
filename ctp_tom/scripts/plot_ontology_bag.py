@@ -1,16 +1,26 @@
 #!/usr/bin/env python
 
+'''
+Read through ontology messages from the virtual reality environment and use 
+them to generate a few plots. We want to ensure that these work nicely.
+'''
+
+import argparse
 import rosbag
 import rospy
 from matplotlib import pyplot as plt
 
 def _parse_args():
-    return {'filename': "learning_2017-12-06-22-05-30.bag"}
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--filename","-f",
+                        type=str,
+                        default="data.bag")
+    return vars(parser.parse_args())
 
 def _main(args):
     objs = {}
-    topic = "/br/learning/"
-    #for topic, msg, 
+    topic = 
+    #for topic, msg, t
 
 
 if __name__ == "__main__":
