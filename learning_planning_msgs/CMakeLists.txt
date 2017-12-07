@@ -53,6 +53,9 @@ add_message_files(
   DemonstrationInfo.msg
   HandInfo.msg
   ObjectInfo.msg
+  TaskInfo.msg
+  Transition.msg
+  TransitionParameters.msg
 )
 
 ## Generate services in the 'srv' folder

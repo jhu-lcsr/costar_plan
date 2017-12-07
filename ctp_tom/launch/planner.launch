@@ -1,4 +1,13 @@
 <launch>
+  <!-- Core bringup script for TOM/CTP.
+
+       Starts:
+       - perception
+       - planning scene
+       - CTP planner
+
+       -->
+
   <!-- Perception parameter defaults -->
   <arg name="real" default="true" doc="(boolean) is this a real robot or will gazebo provide simulated data?"/>
   <arg name="depth_registration" default="true" />
@@ -9,6 +18,9 @@
   <arg name="max_track_error" default="0.05" />
   <arg name="start_static_handeye" default="true" />
   <arg name="auto_white_balance" default="true" />
+
+  <!-- Note: auto exposure on results in very ugly point clouds; it tends to 
+       white out many surfaces. Disable this for best results. -->
   <arg name="auto_exposure" default="false" />
   <arg name="stationary" default="true" />
 
