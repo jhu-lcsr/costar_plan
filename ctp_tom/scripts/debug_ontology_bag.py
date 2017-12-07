@@ -9,6 +9,7 @@ We want to use the data from the VR and analyze the produced trajectories.
 
 import argparse
 import numpy as np
+from numpy import linalg as LA
 import rosbag
 import rospy
 
@@ -35,6 +36,8 @@ def _main(filename, ignore_inputs, display_object, **kwargs):
     right_v = []
     left_p = []
     right_p = []
+    left_vn = []
+    right_vn =[]
     ontology_msg_topic = "/vr/learning/debugingLearning"
     bag = rosbag.Bag(filename)
     for topic, msg, t in bag:
@@ -49,9 +52,13 @@ def _main(filename, ignore_inputs, display_object, **kwargs):
                 print t, obj.position.x, obj.position.y, obj.position.z
             if obj.name == "Controller (left)":
                 left_p.append([obj.position.x, obj.position.y, obj.position.z])
+            if obj.name == "Controller (right)":
+                right_p.append([obj.position.x, obj.position.y, obj.position.z])
         left_v.append([msg.velocity_L.x,
                        msg.velocity_L.y,
                        msg.velocity_L.z])
+        Lvel_norm = LA.norm([msg.velocity_L.x, msg.velocity_L.y, msg.velocity_L.z])
+        left_vn.append(Lvel_norm)
         right_v.append([msg.velocity_R.x,
                        msg.velocity_R.y,
                        msg.velocity_R.z])
@@ -60,6 +67,7 @@ def _main(filename, ignore_inputs, display_object, **kwargs):
     rv = np.array(right_v)
 
     lp = np.array(left_p)
+    rp = np.array(right_p)
 
     fig = plt.figure()
     ax = fig.gca(projection='3d')
@@ -72,6 +80,7 @@ def _main(filename, ignore_inputs, display_object, **kwargs):
     ax = fig.gca(projection='3d')
     print lp
     ax.plot(lp[:,0], lp[:,1], lp[:,2], label= 'left position')
+    ax.plot(rp[:,0], rp[:,1], rp[:,2], label= 'right position')
     plt.title('Hand positions')
     ax.legend()
 
