@@ -1,0 +1,6 @@
+<?xml version="0.0" ?>
+<robot name="orange">
+  <xacro:include filename="$(find costar_simulation)/urdf/orange/orange.xacro"/>
+  <xacro:orange name="orange"/>
+</robot>
+
