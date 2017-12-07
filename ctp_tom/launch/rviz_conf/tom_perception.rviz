@@ -8,6 +8,7 @@ Panels:
         - /Status1
         - /TF1/Frames1
         - /PlanningScene1/Scene Robot1
+        - /table model1
       Splitter Ratio: 0.5
     Tree Height: 339
   - Class: rviz/Selection
@@ -76,6 +77,8 @@ Visualization Manager:
         ICS_logo_grey_link:
           Value: true
         ar_marker_0:
+          Value: true
+        ar_marker_1:
           Value: true
         ar_marker_4:
           Value: true
@@ -224,6 +227,8 @@ Visualization Manager:
                   camera_rgb_frame:
                     camera_rgb_optical_frame:
                       ar_marker_0:
+                        {}
+                      ar_marker_1:
                         {}
                       ar_marker_4:
                         {}
@@ -1109,18 +1114,23 @@ Visualization Manager:
     - Alpha: 1
       Class: rviz/RobotModel
       Collision Enabled: false
-      Enabled: false
+      Enabled: true
       Links:
         All Links Enabled: true
         Expand Joint Details: false
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
+        tom_table:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
       Name: table model
       Robot Description: table_description
       TF Prefix: ""
       Update Interval: 0
-      Value: false
+      Value: true
       Visual Enabled: true
     - Alpha: 1
       Class: rviz/RobotModel
@@ -1188,7 +1198,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 2.51110697
+      Distance: 2.22591448
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
@@ -1203,10 +1213,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.224796548
+      Pitch: 0.344796449
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.85721362
+      Yaw: 1.93221569
     Saved: ~
 Window Geometry:
   Depth:
