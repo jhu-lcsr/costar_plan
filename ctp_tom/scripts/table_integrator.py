@@ -64,6 +64,10 @@ if __name__ == '__main__':
     manager.addUrdf("block_3", "/block1_description", "block_3")
     manager.addUrdf("tom_table", "/table_description", "tom_table")
 
+    # Add in a short delay to let TF buffer
+    rospy.sleep(1.0)
+
+    # Main execution loop:
     rate = rospy.Rate(60)
     while not rospy.is_shutdown():
         integrator.tick()

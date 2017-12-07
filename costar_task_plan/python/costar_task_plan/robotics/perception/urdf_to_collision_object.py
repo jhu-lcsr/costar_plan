@@ -159,8 +159,9 @@ class CollisionObjectManager(object):
 
     def tick(self):
 
-        if not self.listener.frameExists(self.root):
-            return
+        #if not self.listener.frameExists(self.root):
+        #    rospy.logerr("missing root: %s"%self.root)
+        #    return
         self.t = rospy.Time.now()
 
         for name, urdf in self.urdfs.items():
