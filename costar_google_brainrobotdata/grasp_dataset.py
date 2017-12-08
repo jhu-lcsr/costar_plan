@@ -1413,9 +1413,11 @@ class GraspDataset(object):
             # TODO(ahundt) move squeeze steps into dataset api if possible
             pregrasp_image_rgb_op = fixed_feature_op_dict[preprocessed_rgb_clear_view_name]
 
-            pregrasp_image_rgb_op = self._rgb_preprocessing(pregrasp_image_rgb_op,
-                                                            imagenet_mean_subtraction=imagenet_mean_subtraction,
-                                                            resize=resize)
+            pregrasp_image_rgb_op = self._rgb_preprocessing(
+                pregrasp_image_rgb_op,
+                image_augmentation=image_augmentation,
+                imagenet_mean_subtraction=imagenet_mean_subtraction,
+                resize=resize)
             fully_preprocessed_rgb_clear_view_name = preprocessed_rgb_clear_view_name.replace(
                 preprocessed_image_feature_type, '/image/preprocessed')
             fixed_feature_op_dict[fully_preprocessed_rgb_clear_view_name] = pregrasp_image_rgb_op
@@ -1426,9 +1428,11 @@ class GraspDataset(object):
 
             for time_step_j, (grasp_step_rgb_feature_name) in enumerate(preprocessed_rgb_move_to_grasp_steps):
                 # do preprocessing and add new image to fixed_feature_op_dict
-                grasp_step_rgb_feature_op = self._rgb_preprocessing(fixed_feature_op_dict[grasp_step_rgb_feature_name],
-                                                                    imagenet_mean_subtraction=imagenet_mean_subtraction,
-                                                                    resize=resize)
+                grasp_step_rgb_feature_op = self._rgb_preprocessing(
+                    fixed_feature_op_dict[grasp_step_rgb_feature_name],
+                    image_augmentation=image_augmentation,
+                    imagenet_mean_subtraction=imagenet_mean_subtraction,
+                    resize=resize)
                 grasp_step_rgb_feature_name = grasp_step_rgb_feature_name.replace(
                     preprocessed_image_feature_type, '/image/preprocessed')
                 fixed_feature_op_dict[grasp_step_rgb_feature_name] = grasp_step_rgb_feature_op
