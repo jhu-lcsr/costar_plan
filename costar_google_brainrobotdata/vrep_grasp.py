@@ -39,7 +39,7 @@ from PIL import Image
 import moviepy.editor as mpy
 from grasp_dataset import GraspDataset
 import grasp_geometry
-from depth_image_encoding import depth_image_to_point_cloud
+import grasp_geometry_tf
 from depth_image_encoding import ClipFloatValues
 from depth_image_encoding import FloatArrayToRgbImage
 from depth_image_encoding import FloatArrayToRawRGB
@@ -441,7 +441,7 @@ class VREPGraspSimulation(object):
             point_cloud: optional XYZ point cloud of size [width, height, 3], will be generated if not provided.
         """
         if point_cloud is None:
-            point_cloud = depth_image_to_point_cloud(depth_image, camera_intrinsics_matrix)
+            point_cloud = grasp_geometry.depth_image_to_point_cloud(depth_image, camera_intrinsics_matrix)
             point_cloud = point_cloud.reshape([point_cloud.size/3, 3])
         res = self.create_point_cloud(display_name, point_cloud, transform, color_image, parent_handle,
                                       clear=clear, max_voxel_size=max_voxel_size, max_point_count_per_voxel=max_point_count_per_voxel,
@@ -876,7 +876,7 @@ class VREPGraspSimulation(object):
             # print 'plot done'
             if 'fixed_depth' in vrepDebugMode:
                 # fixed depth is to help if you're having problems getting your point cloud to display properly
-                point_cloud = depth_image_to_point_cloud(np.ones(depth_image_float_format.shape), camera_intrinsics_matrix)
+                point_cloud = grasp_geometry.depth_image_to_point_cloud(np.ones(depth_image_float_format.shape), camera_intrinsics_matrix)
             point_cloud_detailed_name = ('point_cloud_' + str(dataset_name) + '_' + str(attempt_num) + '_' + time_step_name +
                                          'rgbd_' + depth_name.replace('/depth_image/decoded', '').replace('/', '_') +
                                          '_success_' + str(int(features_dict_np[grasp_success_feature_name])))
