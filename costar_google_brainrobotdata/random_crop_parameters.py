@@ -10,12 +10,14 @@ from tensorflow.python.ops import math_ops
 
 
 def random_crop_parameters(input_shape, output_shape, seed=None, name=None):
-    """ Generate crop parameter by random.
-        # Params
-        input_shape: shape of input image need to crop.
+    """ Generate parameters to randomly crop an image.
+
+        # Arguments
+
+        input_shape: shape of input image to crop.
         output_shape: shape of image after cropping.
         seed: Python integer. Used to create a random seed.
-        See tf.set_random_seed for behavior.
+            See tf.set_random_seed for behavior.
         name: A name for this operation.
     """
     with tf.name_scope(name, "random_crop_parameters",
@@ -40,13 +42,13 @@ def random_crop_parameters(input_shape, output_shape, seed=None, name=None):
 
 
 def crop_images(image_list, offset, size, name=None):
-    """ Crop color image and depth image by random.
-        # Params
+    """ Crop color image and depth image to specified offset and size.
+
+        # Arguments
+
         image_list: input images need to crop.
-        image_intrinsics: 3*3 matirx with focal lengthes, and principle points,
-        size: output size of image after cropping.
-        seed: Python integer. Used to create a random seed.
-        See tf.set_random_seed for behavior.
+        image_intrinsics: 3*3 matrix with focal lengths, and principle points,
+        size: output size of image after cropping, must be less than or equal to the image size.
         name: A name for this operation.
     """
     with tf.name_scope(name, "crop_images", [image_list, size]) as name:
@@ -67,8 +69,10 @@ def crop_images(image_list, offset, size, name=None):
 
 
 def crop_image_intrinsics(camera_intrinsics_matrix, offset, name=None):
-    """ Calculate the intrinsic after crop.
-        # Params
+    """ Calculate an updated image intrinsics matrix after a cropping with the specified offset.
+
+        # Arguments
+
         camera_intrinsics_matrix: intrinsic matrix before cropping.
         offset: offset used in cropping.
     """
