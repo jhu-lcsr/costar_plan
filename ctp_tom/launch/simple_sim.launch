@@ -10,6 +10,9 @@
   <!-- By default do not bring up rviz -->
   <arg name="rviz" default="false"/>
 
+  <!-- If slave, then we are connecting to a remote simulation -->
+  <arg name="slave" default="true"/>
+
   <!-- simulation mode -->
   <param name="use_sim_time" value="false"/>
 
@@ -38,11 +41,8 @@
   <!-- If needed, broadcast static tf for robot root -->
   <!--node pkg="tf" type="static_transform_publisher" name="left_hand_desired" args="-0.01 0 0 0 0 0 l_hand_base_link left_hand_desired_ef 10" /-->
 
-  <!-- loading the Park position as TOM zero position -->
-  <rosparam command="load" file="$(find tom_description)/config/tom_zeros.yaml"/>
-
   <!-- We do not have a robot connected, so publish fake joint states -->
-  <node name="tom_sim" type="tom_sim.py" pkg="costar_task_plan"/>
+  <node name="tom_sim" type="tom_sim.py" pkg="ctp_tom"/>
 
   <!-- start up the DMP server -->
   <include file="$(find dmp)/launch/dmp.launch"/>
@@ -54,11 +54,22 @@
     respawn="false"
     output="screen" />
 
-  <node name="rvizvis"
+  <!-- Bring up a separate rviz node from the controllers if this is being run
+       as a part of a single distributed system (with TOM the real robot,
+       for example) -->
+  <node name="rvizvis_sim"
     if="$(arg rviz)"
     pkg="rviz"
     type="rviz"
-    args="-d $(find costar_task_plan)/launch/rviz_conf/tom_robot.rviz" />
+    args="-d $(find ctp_tom)/launch/rviz_conf/tom_robot.rviz" />
+
+  <!-- we do not have a robot connected, so publish fake joint states -->
+  <node name="joint_state_publishervis" pkg="joint_state_publisher" type="joint_state_publisher" unless="$(arg slave)">
+    <param name="/use_gui" value="false"/> 
+   	<rosparam param="source_list">[right_arm_joint_states, left_arm_joint_states, right_fingers_joint_states, left_fingers_joint_states, base_group_joint_states]</rosparam>
+  </node>
+
+
 
   <!-- Run the main MoveIt executable without trajectory execution (we do not have controllers configured by default) -->
   <include file="$(find tom_full_moveit_config)/launch/move_group.launch">
