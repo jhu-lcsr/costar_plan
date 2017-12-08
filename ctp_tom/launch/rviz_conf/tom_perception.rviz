@@ -9,7 +9,6 @@ Panels:
         - /TF1/Frames1
         - /PlanningScene1/Scene Robot1
         - /table model1
-        - /box model1/Status1
       Splitter Ratio: 0.5
     Tree Height: 339
   - Class: rviz/Selection
@@ -81,6 +80,8 @@ Visualization Manager:
           Value: true
         ar_marker_1:
           Value: true
+        ar_marker_2:
+          Value: true
         ar_marker_4:
           Value: true
         ar_marker_5:
@@ -96,6 +97,8 @@ Visualization Manager:
         block_1:
           Value: true
         block_2:
+          Value: true
+        box:
           Value: true
         camera_depth_frame:
           Value: true
@@ -233,6 +236,8 @@ Visualization Manager:
                         {}
                       ar_marker_1:
                         {}
+                      ar_marker_2:
+                        {}
                       ar_marker_4:
                         {}
                       ar_marker_5:
@@ -244,6 +249,8 @@ Visualization Manager:
                       block_1:
                         {}
                       block_2:
+                        {}
+                      box:
                         {}
                       tom_table:
                         {}
@@ -1224,7 +1231,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.57255971
+      Distance: 1.4510622
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
@@ -1239,10 +1246,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.509796321
+      Pitch: 0.544796109
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.7872144
+      Yaw: 1.04721689
     Saved: ~
 Window Geometry:
   Depth:
