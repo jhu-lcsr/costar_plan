@@ -15,10 +15,10 @@
 # limitations under the License.
 
 import tensorflow as tf
-import tensorflow.python.keras.backend as K
+from keras import backend as K
 
 
-def depth_image_to_point_cloud(depth, intrinsics_matrix):
+def depth_image_to_point_cloud(depth, intrinsics_matrix, dtype=tf.float32):
     """Depth images become an XYZ point cloud in the camera frame with shape (depth.shape[0], depth.shape[1], 3).
 
     Transform a depth image into a point cloud in the camera frame with one point for each
@@ -28,8 +28,6 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix):
     Based on:
     https://github.com/tensorflow/models/blob/master/research/cognitive_mapping_and_planning/src/depth_utils.py
     https://codereview.stackexchange.com/a/84990/10101
-
-    # TODO(ahundt) move depth image creation into tensorflow ops
 
     # Arguments
 
@@ -43,7 +41,7 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix):
 
       transform: 4x4 Rt matrix for rotating and translating the point cloud
     """
-    with tf.name_scope('depth_image_to_point_cloud'):
+    with K.name_scope('depth_image_to_point_cloud'):
         # may need the following for indexing https://github.com/tensorflow/tensorflow/issues/206#issuecomment-338103956
         fx = intrinsics_matrix[0, 0]
         fy = intrinsics_matrix[1, 1]
@@ -53,15 +51,16 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix):
         center_y = intrinsics_matrix[2, 1]
         # TODO(ahundt) make sure rot90 + fliplr is applied upstream in the dataset and to the depth images, ensure consistency with image intrinsics
         depth = tf.image.flip_left_right(tf.image.rot90(depth, 3))
-        depth_shape = K.int_shape(depth)
-        x, y = tf.meshgrid(tf.arange(depth_shape[0]),
-                           tf.arange(depth_shape[1]),
+        depth_shape_tensor = K.shape(depth)
+        x, y = tf.meshgrid(tf.range(0, depth_shape_tensor[0]),
+                           tf.range(0, depth_shape_tensor[1]),
                            indexing='ij')
+        x = tf.to_float(x)
+        y = tf.to_float(y)
         X = (x - center_x) * depth / fx
         Y = (y - center_y) * depth / fy
-        XYZ = tf.stack((tf.keras.backend.flatten(X),
-                        tf.keras.backend.flatten(Y),
-                        tf.keras.backend.flatten(depth))
-                       ).reshape(depth_shape + (3,))
+
+        XYZ = tf.stack([K.flatten(X), K.flatten(Y), K.flatten(depth)])
+        XYZ = K.reshape(XYZ, [depth_shape_tensor[0], depth_shape_tensor[1], 3])
 
         return XYZ
