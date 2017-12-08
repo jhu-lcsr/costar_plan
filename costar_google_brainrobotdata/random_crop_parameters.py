@@ -9,8 +9,10 @@ from tensorflow.python.ops import gen_random_ops
 from tensorflow.python.ops import math_ops
 
 
-def random_crop_parameters(input_shape, output_shape, seed=None, name=None):
-    """ Generate parameters to randomly crop an image.
+def random_crop_offset(input_shape, output_shape, seed=None, name=None):
+    """ Generate a random image corner offset to randomly crop an image.
+
+        The return value should be supplied to crop_images().
 
         # Arguments
 
@@ -43,6 +45,9 @@ def random_crop_parameters(input_shape, output_shape, seed=None, name=None):
 
 def crop_images(image_list, offset, size, name=None):
     """ Crop color image and depth image to specified offset and size.
+
+        random_crop_offset() can be utilized to generate the offset parameter.
+        Any associated image intrinsics matrix, can be updated with crop_image_intrinsics().
 
         # Arguments
 

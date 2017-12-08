@@ -819,7 +819,7 @@ class GraspDataset(object):
             features_complete_list,
             feature_type=xyz_image_feature_type,
             step='view_clear_scene'
-        )
+        )[0]
 
         def add_feature_op(fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict, new_op, shape, name, batch_i, time_step_j):
             """Helper function to extend the dict containing feature ops
@@ -1112,8 +1112,7 @@ class GraspDataset(object):
                     if 'camera/intrinsics/matrix33' in feature_op_dict:
                         # generate xyz point cloud image feature
                         xyz_image = grasp_geometry_tf.depth_image_to_point_cloud(image, feature_op_dict['camera/intrinsics/matrix33'])
-                        xyz_feature = image_feature
-                        xyz_feature.replace('depth_image/encoded', 'xyz_image/decoded')
+                        xyz_feature = image_feature.replace('depth_image/encoded', 'xyz_image/decoded')
                         feature_op_dict[xyz_feature] = xyz_image
                         new_feature_list = np.append(new_feature_list, xyz_feature)
                 else:
@@ -1127,10 +1126,15 @@ class GraspDataset(object):
             return feature_op_dict, new_feature_list
 
     @staticmethod
-    def _image_crop(feature_op_dict, sensor_image_dimensions=None,
-                    random_crop=FLAGS.random_crop, random_crop_offset=None,
-                    random_crop_dimensions=None, seed=None):
-        """Crop all images and update parameters accordingly.
+    def _image_random_crop(feature_op_dict, sensor_image_dimensions=None,
+                           random_crop_dimensions=None,
+                           random_crop_offset=None, seed=None):
+        """ Crop all images and update parameters in accordance with a single random_crop.
+
+        All images will be cropped in an identical fashion for the entire feature_op_dict,
+        thus defining one crop size and offset for a single example because data is used
+        across time and must thus be generated consistently. Across separate grasp attempts examples,
+        crop dimensions will vary including across multiple iterations of a single grasp attempt.
 
         Adds 'image/cropped', 'depth_image/cropped', 'xyz_image/cropped'.
 
@@ -1143,6 +1147,9 @@ class GraspDataset(object):
             feature_op_dict: dictionary of strings to fixed feature tensors.
             sensor_image_dimensions: [batch, height, width, channels], defaults to
                 [1, FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels]
+            random_crop_dimensions: [height, width, sensor_color_channels], defaults to
+                [FLAGS.random_crop_height, FLAGS.random_crop_width, rgb_channels], and for depth
+                images the number of channels is automatically set to 1.
 
         # Returns
 
@@ -1160,13 +1167,14 @@ class GraspDataset(object):
             batch, height, width, rgb_channels = sensor_image_dimensions
 
             # get dimensions of random crop if enabled
-            rgb_crop_dim_tensor = tf.constant([FLAGS.random_crop_height, FLAGS.random_crop_width, rgb_channels], name='rgb_random_crop_dimensions')
-            feature_op_dict['rgb_random_crop_dimensions'] = rgb_crop_dim_tensor
-            depth_crop_dim_tensor = tf.constant([FLAGS.random_crop_height, FLAGS.random_crop_width, 1], name='depth_random_crop_dimensions')
+            if random_crop_dimensions is None:
+                random_crop_dimensions = tf.constant([FLAGS.random_crop_height, FLAGS.random_crop_width, rgb_channels], name='rgb_random_crop_dimensions')
+            feature_op_dict['rgb_random_crop_dimensions'] = random_crop_dimensions
+            depth_crop_dim_tensor = tf.constant([random_crop_dimensions[0], random_crop_dimensions[1], 1], name='depth_random_crop_dimensions')
             feature_op_dict['depth_random_crop_dimensions'] = depth_crop_dim_tensor
             if random_crop_offset is None:
                 # get random crop offset parameters so that cropping will be done consistently.
-                random_crop_offset = rcp.random_crop_parameters(rgb_sensor_image_dimensions, rgb_crop_dim_tensor, seed=seed)
+                random_crop_offset = rcp.random_crop_offset(rgb_sensor_image_dimensions, random_crop_dimensions, seed=seed)
             feature_op_dict['random_crop_offset'] = random_crop_offset
             # add the modified image intrinsics, applying the changes that occur when a crop is performed
             if 'camera/intrinsics/matrix33' in feature_op_dict:
@@ -1184,7 +1192,7 @@ class GraspDataset(object):
                     image = rcp.crop_images(image_list=image, offset=random_crop_offset, size=depth_crop_dim_tensor)
                 else:
                     # crop rgb and xyz tensor, which each have 3 channels
-                    image = rcp.crop_images(image_list=image, offset=random_crop_offset, size=rgb_crop_dim_tensor)
+                    image = rcp.crop_images(image_list=image, offset=random_crop_offset, size=random_crop_dimensions)
                 decoded_image_feature = image_feature.replace('decoded', 'cropped')
                 feature_op_dict[decoded_image_feature] = image
                 new_feature_list = np.append(new_feature_list, decoded_image_feature)
@@ -1303,7 +1311,10 @@ class GraspDataset(object):
             image_augmentation=FLAGS.image_augmentation,
             imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
             random_crop=FLAGS.random_crop,
-            resize=FLAGS.resize):
+            random_crop_dimensions=None,
+            random_crop_offset=None,
+            resize=FLAGS.resize,
+            seed=None):
         """Get feature dictionaries containing ops and time ordered feature lists.
 
         This function aims to make it easy to perform custom training,
@@ -1345,7 +1356,18 @@ class GraspDataset(object):
         # is enabled or not
         preprocessed_suffix = 'decoded'
         if random_crop:
+            # Do the random crop preprocessing
             preprocessed_suffix = 'cropped'
+            dict_and_feature_tuple_list = []
+            for feature_op_dict, sequence_op_dict in feature_op_dicts:
+                features_op_dict, new_feature_list = GraspDataset._image_random_crop(
+                    feature_op_dict, sensor_image_dimensions,
+                    random_crop_offset, seed)
+                dict_and_feature_tuple_list.append((features_op_dict, sequence_op_dict))
+            # the new_feature_list should be the same for all the ops
+            features_complete_list = np.append(features_complete_list, new_feature_list)
+            feature_op_dicts = dict_and_feature_tuple_list
+
         preprocessed_image_feature_type = '/image/' + preprocessed_suffix
 
         preprocessed_rgb_clear_view_name = rgb_clear_view_name.replace(

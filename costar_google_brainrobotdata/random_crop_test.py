@@ -10,7 +10,7 @@ class random_crop_test(tf.test.TestCase):
             input_size = tf.convert_to_tensor([10, 10])
             cropped_size = tf.convert_to_tensor([2, 4])
             test_input = tf.reshape(tf.range(input_size[0] * input_size[1]), input_size)
-            offset = rcp.random_crop_parameters(input_size, cropped_size)
+            offset = rcp.random_crop_offset(input_size, cropped_size)
             rcp_crop = rcp.crop_images(test_input, offset, cropped_size)
             tf_crop = tf.slice(test_input, offset, cropped_size)
             rcp_crop, tf_crop = sess.run([rcp_crop, tf_crop])
