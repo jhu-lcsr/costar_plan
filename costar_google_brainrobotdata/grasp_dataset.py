@@ -1108,7 +1108,7 @@ class GraspDataset(object):
                     image = image / RGB_SCALE_FACTOR
                     image.set_shape([height, width])
                     # depth images have one channel
-                    image = tf.reshape(image, [batch, height, width, 1])
+                    image = tf.reshape(image, [height, width, 1])
                     if 'camera/intrinsics/matrix33' in feature_op_dict:
                         # generate xyz point cloud image feature
                         xyz_image = grasp_geometry_tf.depth_image_to_point_cloud(image, feature_op_dict['camera/intrinsics/matrix33'])
