@@ -14,6 +14,34 @@ Sometimes we would like to create a task model that operates purely based on dem
 
 The Task Info message describes the transitions between high level actions, and is important when creating the graph of actions to execute.
 
+Here is what the message looks like:
+```
+std_msgs/Header header
+  uint32 seq
+  time stamp
+  string frame_id
+learning_planning_msgs/Transition[] transition
+  string from
+  string to
+  int32 frequency
+  learning_planning_msgs/TransitionParameters[] parameters
+    std_msgs/Time start_time
+      time data
+    std_msgs/Time end_time
+      time data
+    string[] from_parameters
+    string[] to_parameters
+```
+
+Each transition represents a transition in the CoSTAR "task" graph. The basis of this graph is the `Task` class, defined as:
+
+```
+from costar_task_plan.abstract import Task
+task = Task() # Empty task
+args = {} # for constructing option representation
+task.add(to, from, args)
+```
+
 ### Demonstration Info
 
 Of the two different types of data, one contains all the information about a particular task. This is the Demonstration Info class.
