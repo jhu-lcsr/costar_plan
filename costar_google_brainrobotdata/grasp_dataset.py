@@ -1145,8 +1145,8 @@ class GraspDataset(object):
         # Params
 
             feature_op_dict: dictionary of strings to fixed feature tensors.
-            sensor_image_dimensions: [batch, height, width, channels], defaults to
-                [1, FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels]
+            sensor_image_dimensions: [height, width, channels], defaults to
+                [FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels]
             random_crop_dimensions: [height, width, sensor_color_channels], defaults to
                 [FLAGS.random_crop_height, FLAGS.random_crop_width, rgb_channels], and for depth
                 images the number of channels is automatically set to 1.
@@ -1155,7 +1155,7 @@ class GraspDataset(object):
 
             updated feature_op_dict, new_feature_list
         """
-        with tf.name_scope('image_crop'):
+        with tf.name_scope('image_random_crop'):
             new_feature_list = []
             if sensor_image_dimensions is None:
                 if 'rgb_sensor_image_dimensions' in feature_op_dict:
@@ -1163,18 +1163,20 @@ class GraspDataset(object):
                 if 'depth_sensor_image_dimensions' in feature_op_dict:
                     depth_sensor_image_dimensions = feature_op_dict['depth_sensor_image_dimensions']
             if sensor_image_dimensions is None:
-                    sensor_image_dimensions = [1, FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels]
-            batch, height, width, rgb_channels = sensor_image_dimensions
+                    sensor_image_dimensions = [FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels]
+            height, width, rgb_channels = sensor_image_dimensions
 
             # get dimensions of random crop if enabled
             if random_crop_dimensions is None:
                 random_crop_dimensions = tf.constant([FLAGS.random_crop_height, FLAGS.random_crop_width, rgb_channels], name='rgb_random_crop_dimensions')
+                depth_crop_dim_tensor = tf.constant([FLAGS.random_crop_height, FLAGS.random_crop_width, 1], name='depth_random_crop_dimensions')
+            else:
+                depth_crop_dim_tensor = tf.concat([random_crop_dimensions[:-1], 1])
             feature_op_dict['rgb_random_crop_dimensions'] = random_crop_dimensions
-            depth_crop_dim_tensor = tf.constant([random_crop_dimensions[0], random_crop_dimensions[1], 1], name='depth_random_crop_dimensions')
             feature_op_dict['depth_random_crop_dimensions'] = depth_crop_dim_tensor
             if random_crop_offset is None:
                 # get random crop offset parameters so that cropping will be done consistently.
-                random_crop_offset = rcp.random_crop_offset(rgb_sensor_image_dimensions, random_crop_dimensions, seed=seed)
+                random_crop_offset = rcp.random_crop_offset(sensor_image_dimensions, random_crop_dimensions, seed=seed)
             feature_op_dict['random_crop_offset'] = random_crop_offset
             # add the modified image intrinsics, applying the changes that occur when a crop is performed
             if 'camera/intrinsics/matrix33' in feature_op_dict:
@@ -1272,7 +1274,7 @@ class GraspDataset(object):
 
     @staticmethod
     def _to_tensors(feature_op_dicts, features):
-        """Convert a list or dict of feature strings to tensors
+        """Convert a list or dict of feature strings to tensors.
 
         # Arguments
 
@@ -1311,6 +1313,7 @@ class GraspDataset(object):
             image_augmentation=FLAGS.image_augmentation,
             imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
             random_crop=FLAGS.random_crop,
+            sensor_image_dimensions=None,
             random_crop_dimensions=None,
             random_crop_offset=None,
             resize=FLAGS.resize,
@@ -1324,13 +1327,41 @@ class GraspDataset(object):
 
                [new_feature_op_dicts, features_complete_list, time_ordered_feature_name_dict, num_samples]
         """
-
+        if sensor_image_dimensions is None:
+            sensor_image_dimensions = [FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels]
         if feature_op_dicts is None:
-            # Get tensors that load the dataset from disk plus features
-            # calculated from the raw data, including transforms and point clouds
-            (feature_op_dicts, features_complete_list,
-             time_ordered_feature_name_dict, num_samples) = self._get_transform_tensors(
-                batch_size=batch_size, random_crop=random_crop)
+            feature_op_dicts, features_complete_list, num_samples = self._get_simple_parallel_dataset_ops(batch_size=batch_size)
+        if time_ordered_feature_name_dict is None:
+            time_ordered_feature_name_dict = {}
+
+        # image type to load
+        preprocessed_suffix = 'decoded'
+
+        # do cropping if enabled
+        if random_crop:
+            # Do the random crop preprocessing
+            # The preprocessed suffix is cropped if cropping is enabled.
+            preprocessed_suffix = 'cropped'
+            dict_and_feature_tuple_list = []
+            # loop through each grasp attempt in a batch
+            for feature_op_dict, sequence_op_dict in feature_op_dicts:
+                features_op_dict, new_feature_list = GraspDataset._image_random_crop(
+                    feature_op_dict, sensor_image_dimensions,
+                    random_crop_offset, seed)
+                dict_and_feature_tuple_list.append((features_op_dict, sequence_op_dict))
+            # the new_feature_list should be the same for all the ops
+            features_complete_list = np.append(features_complete_list, new_feature_list)
+            feature_op_dicts = dict_and_feature_tuple_list
+
+        # Get the surface relative transform tensors
+        #
+        # Get tensors that load the dataset from disk plus features
+        # calculated from the raw data, including transforms and point clouds
+        (feature_op_dicts, features_complete_list,
+            time_ordered_feature_name_dict, num_samples) = self._get_transform_tensors(
+            feature_op_dicts=feature_op_dicts, features_complete_list=features_complete_list,
+            time_ordered_feature_name_dict=time_ordered_feature_name_dict,
+            batch_size=batch_size, random_crop=random_crop)
 
         # get the clear view rgb, depth, and xyz image names
         rgb_clear_view_name = self.get_time_ordered_features(
@@ -1350,23 +1381,6 @@ class GraspDataset(object):
             feature_type='xyz_image/decoded',
             step='view_clear_scene'
         )[0]
-
-        # change the feature string for the preprocessed
-        # feature version based on whether random_crop
-        # is enabled or not
-        preprocessed_suffix = 'decoded'
-        if random_crop:
-            # Do the random crop preprocessing
-            preprocessed_suffix = 'cropped'
-            dict_and_feature_tuple_list = []
-            for feature_op_dict, sequence_op_dict in feature_op_dicts:
-                features_op_dict, new_feature_list = GraspDataset._image_random_crop(
-                    feature_op_dict, sensor_image_dimensions,
-                    random_crop_offset, seed)
-                dict_and_feature_tuple_list.append((features_op_dict, sequence_op_dict))
-            # the new_feature_list should be the same for all the ops
-            features_complete_list = np.append(features_complete_list, new_feature_list)
-            feature_op_dicts = dict_and_feature_tuple_list
 
         preprocessed_image_feature_type = '/image/' + preprocessed_suffix
 
@@ -1489,13 +1503,17 @@ class GraspDataset(object):
     def get_training_tensors(self, batch_size=FLAGS.batch_size,
                              imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
                              random_crop=FLAGS.random_crop,
+                             sensor_image_dimensions=None,
+                             random_crop_dimensions=None,
+                             random_crop_offset=None,
                              resize=FLAGS.resize,
                              motion_command_feature=FLAGS.grasp_sequence_motion_command_feature,
                              grasp_sequence_image_feature=FLAGS.grasp_sequence_image_feature,
                              clear_view_image_feature=FLAGS.grasp_sequence_image_feature,
                              grasp_success_label=FLAGS.grasp_success_label,
                              grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
-                             grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step):
+                             grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
+                             seed=None):
         """Get tensors configured for training on grasps.
 
             TODO(ahundt) 2017-12-05 update get_training_tensors docstring, now expects 'move_to_grasp/time_ordered/' feature strings.
@@ -1554,7 +1572,8 @@ class GraspDataset(object):
         """
         # Get tensors that load the dataset from disk plus features calculated from the raw data, including transforms and point clouds
         feature_op_dicts, features_complete_list, time_ordered_feature_name_dict, num_samples = self.get_training_dictionaries(
-            batch_size=batch_size, random_crop=random_crop, offset=offset)
+            batch_size=batch_size, random_crop=random_crop, offset=offset, sensor_image_dimensions=sensor_image_dimensions,
+            random_crop_dimensions=random_crop_dimensions, random_crop_offset=random_crop_offset)
 
         time_ordered_feature_tensor_dict = GraspDataset._to_tensors(feature_op_dicts, time_ordered_feature_name_dict)
 
