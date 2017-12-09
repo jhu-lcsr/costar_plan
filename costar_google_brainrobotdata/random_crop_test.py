@@ -21,7 +21,7 @@ class random_crop_test(tf.test.TestCase):
 
     def testIntrinsics(self):
         with self.test_session() as sess:
-            intrinsics_np = np.array([[225, 0, 0], [0, 225, 0], [125, 127, 1]])
+            intrinsics_np = np.array([[225., 0., 0.], [0., 225., 0.], [125., 127., 1.]])
             intrinsics_tf = tf.convert_to_tensor(intrinsics_np)
             offset_np = np.array([20, 23, 0])
             offset_tf = tf.convert_to_tensor(offset_np)
