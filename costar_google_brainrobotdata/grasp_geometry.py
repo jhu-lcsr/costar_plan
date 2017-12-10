@@ -590,6 +590,7 @@ def grasp_dataset_to_transforms_and_features(
 
                         see also: grasp_dataset_ptransform_to_vector_sin_theta_cos_theta()
     """
+    print('in grasp_dataset_to_transforms_and_features 0')
     # Get input transforms relative to the current time step
     (camera_T_endeffector_current_ptrans, base_T_endeffector_current_ptrans,
      current_base_T_camera_ptrans) = grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector_current)
@@ -604,6 +605,7 @@ def grasp_dataset_to_transforms_and_features(
     #
     # This is the same operation as current_endeffector_to_final_endeffector_feature().
     eectf_ptrans = base_T_endeffector_final_ptrans * base_T_endeffector_current_ptrans.inv()
+    print('in grasp_dataset_to_transforms_and_features 1')
 
     # TODO(ahundt) would need to np.fliplr(np.rot90(depth, 3)), see depth_image_to_point_cloud for details, ensure consistency with image intrinsics
     # TODO(ahundt) make xyz_image into a parameter of this class and pass tensorflow generated version
@@ -616,10 +618,12 @@ def grasp_dataset_to_transforms_and_features(
         camera_intrinsics_matrix,
         camera_T_endeffector_current_ptrans,
         augmentation_rectangle)
+    print('in grasp_dataset_to_transforms_and_features 2')
 
     # get the delta depth offset
     # TODO(ahundt) verify that z correctly reflects the depth offset
     delta_depth_current = depth_pixel_T_endeffector_current_ptrans.translation().z()
+    print('in grasp_dataset_to_transforms_and_features 3, delta_depth_current: ', delta_depth_current)
 
     # calculate the surface relative transform from the clear view depth to endeffector final position
     depth_pixel_T_endeffector_final_ptrans, image_coordinate_final, camera_T_depth_pixel_final_ptrans = surface_relative_transform(
@@ -630,14 +634,17 @@ def grasp_dataset_to_transforms_and_features(
 
     # get the delta depth offset
     # TODO(ahundt) verify that z correctly reflects the depth offset
-    delta_depth_final = depth_pixel_T_endeffector_final_ptrans.translation().z()
+    delta_depth_final = np.array(depth_pixel_T_endeffector_final_ptrans.translation().z(), dtype=dtype)
+    print('in grasp_dataset_to_transforms_and_features 4, delta_depth_final: ', delta_depth_final)
 
     # Get the delta theta parameter, converting Plucker transform to [dx, dy, dz, sin(theta), cos(theta)]
     # Also see grasp_dataset_ptransform_to_vector_sin_theta_cos_theta()
     eectf_translation = np.squeeze(eectf_ptrans.translation())
     eectf_theta = grasp_dataset_rotation_to_theta(eectf_ptrans.rotation())
+    print('in grasp_dataset_to_transforms_and_features 5, eectf_theta', eectf_theta)
     eectf_sin_theta = np.sin(eectf_theta)
     eectf_cos_theta = np.cos(eectf_theta)
+    print('in grasp_dataset_to_transforms_and_features 5 eectf_sin_theta:', eectf_sin_theta, ' eectf_cos_theta', eectf_cos_theta)
 
     # Convert each transform into vector + quaternion format
     # [x, y, z, qx, qy, qz, qw], which is identical to the 'vec_quat_7' feature type
@@ -649,19 +656,25 @@ def grasp_dataset_to_transforms_and_features(
     camera_T_depth_pixel_final_vec_quat_7_array = ptransform_to_vector_quaternion_array(camera_T_depth_pixel_final_ptrans, dtype=dtype)
     depth_pixel_T_endeffector_current_vec_quat_7_array = ptransform_to_vector_quaternion_array(depth_pixel_T_endeffector_current_ptrans, dtype=dtype)
     depth_pixel_T_endeffector_final_vec_quat_7_array = ptransform_to_vector_quaternion_array(depth_pixel_T_endeffector_final_ptrans, dtype=dtype)
+    print('in grasp_dataset_to_transforms_and_features 6')
 
     # [x, y] image coordinate of the final gripper position gripper in the camera image
     image_coordinate_current = image_coordinate_current.astype(dtype)
     image_coordinate_final = image_coordinate_final.astype(dtype)
+    print('in grasp_dataset_to_transforms_and_features 7:')
 
     # [cte_sin_theta, cte_cos_theta]
-    sin_cos_2 = np.concatenate([eectf_sin_theta, eectf_cos_theta])
+    sin_cos_2 = np.array([eectf_sin_theta, eectf_cos_theta], dtype=dtype)
+    print('in grasp_dataset_to_transforms_and_features 8 sin_cos_2:', sin_cos_2)
     # [cte_dx, cte_dy, cte_dz, eectf_sin_theta, eectf_cos_theta] vec_sin_cos_5, the levine 2016 'params' feature format.
-    vec_sin_cos_5 = np.concatenate([eectf_translation, sin_cos_2])
+    vec_sin_cos_5 = np.concatenate([eectf_translation, sin_cos_2]).astype(dtype)
+    print('in grasp_dataset_to_transforms_and_features 9')
     # [delta_depth_final, sin_theta, cos_theta]
-    delta_depth_sin_cos_3 = np.concatenate([delta_depth_final, sin_cos_2])
+    delta_depth_sin_cos_3 = np.concatenate([[delta_depth_final], sin_cos_2]).astype(dtype)
+    print('in grasp_dataset_to_transforms_and_features 10')
     # [delta_depth_final, qx, qy, qz, qw]
-    delta_depth_quat_5 = np.concatenate([delta_depth_final, depth_pixel_T_endeffector_final_vec_quat_7_array[-4:]])
+    delta_depth_quat_5 = np.concatenate([[delta_depth_final], depth_pixel_T_endeffector_final_vec_quat_7_array[-4:]]).astype(dtype)
+    print('in grasp_dataset_to_transforms_and_features 11')
 
     return [current_base_T_camera_vec_quat_7_array,
             eectf_vec_quat_7_array,

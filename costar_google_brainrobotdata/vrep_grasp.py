@@ -495,9 +495,9 @@ class VREPGraspSimulation(object):
 
         for attempt_num in range(num_samples / batch_size):
             output_features_dict = tf_session.run(feature_op_dicts)
-            # reorganize is grasp attempt so it is easy to walk through
-            time_ordered_feature_data_dict = grasp_dataset_object._to_tensors(output_features_dict, time_ordered_feature_name_dict)
             features_dict_np, sequence_dict_np = output_features_dict
+            # reorganize is grasp attempt so it is easy to walk through
+            time_ordered_feature_data_dict = grasp_dataset_object._to_tensors(features_dict_np, time_ordered_feature_name_dict)
 
             # check if this attempt is one the user requested, if not get the next one
             if not ((attempt_num >= FLAGS.vrepVisualizeGraspAttempt_min or FLAGS.vrepVisualizeGraspAttempt_min == -1) and
