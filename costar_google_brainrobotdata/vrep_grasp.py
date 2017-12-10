@@ -12,6 +12,7 @@ import errno
 import traceback
 
 import numpy as np
+import six  # compatibility between python 2 + 3 = six
 # import matplotlib
 
 try:
@@ -35,6 +36,7 @@ from tensorflow.python.ops import data_flow_ops
 from keras.utils import get_file
 from ply import write_xyz_rgb_as_ply
 from PIL import Image
+from tqdm import tqdm  # progress bars https://github.com/tqdm/tqdm
 
 import moviepy.editor as mpy
 from grasp_dataset import GraspDataset
@@ -493,11 +495,14 @@ class VREPGraspSimulation(object):
             parent_handle = -1
             print('could not find object with the specified name, so putting objects in world frame:', parent_name)
 
-        for attempt_num in range(num_samples / batch_size):
-            output_features_dict = tf_session.run(feature_op_dicts)
-            features_dict_np, sequence_dict_np = output_features_dict
+        for attempt_num in tqdm(range(num_samples / batch_size), desc='dataset'):
+            # batch shize should actually always be 1 for this visualization
+            output_features_dicts = tf_session.run(feature_op_dicts)
             # reorganize is grasp attempt so it is easy to walk through
-            time_ordered_feature_data_dict = grasp_dataset_object._to_tensors(features_dict_np, time_ordered_feature_name_dict)
+            [time_ordered_feature_data_dict] = grasp_dataset_object._to_tensors(output_features_dicts, time_ordered_feature_name_dict)
+            # features_dict_np contains fixed dimension features, sequence_dict_np contains variable length sequences of data
+            # We're assuming the batch size is 1, which is why there are only two elements in the list.
+            [(features_dict_np, sequence_dict_np)] = output_features_dicts
 
             # check if this attempt is one the user requested, if not get the next one
             if not ((attempt_num >= FLAGS.vrepVisualizeGraspAttempt_min or FLAGS.vrepVisualizeGraspAttempt_min == -1) and
@@ -509,18 +514,18 @@ class VREPGraspSimulation(object):
                 break
 
             # Add the camera frame transform and all transforms that start at the base
-            for name, value in time_ordered_feature_data_dict:
+            for name, value in six.iteritems(time_ordered_feature_data_dict):
                 if 'base_T_camera/vec_quat_7' in name:
                     base_to_camera_vec_quat_7 = value[0]
-                    base_T_camera_handle = self.create_dummy('base_T_camera', base_to_camera_vec_quat_7, parent_handle, vrep.simx_opmode_blocking)
+                    base_T_camera_handle = self.create_dummy('base_T_camera', base_to_camera_vec_quat_7, parent_handle, operation_mode=vrep.simx_opmode_blocking)
                 elif 'base_T' in name and 'vec_quat_7' in name:
                     for i, base_transform in enumerate(value):
-                        self.create_dummy(str(i).zfill(2) + '_' + name.replace('/', '_'), base_transform, parent_handle, vrep.simx_opmode_oneshot)
+                        self.create_dummy(str(i).zfill(2) + '_' + name.replace('/', '_'), base_transform, parent_handle, operation_mode=vrep.simx_opmode_oneshot)
 
             # Add all transforms that start at the camera frame
             camera_to_depth_name = None
             depth_to_ee_name = None
-            for name, value in time_ordered_feature_data_dict:
+            for name, value in six.iteritems(time_ordered_feature_data_dict):
                 if 'camera_T_depth_pixel/vec_quat_7' in name:
                     # save name to draw separately
                     camera_to_depth_name = name
@@ -528,16 +533,16 @@ class VREPGraspSimulation(object):
                     depth_to_ee_name = name
                 elif 'camera_T' in name and 'vec_quat_7' in name:
                     for i, transform in enumerate(value):
-                        self.create_dummy(str(i).zfill(2) + '_' + name.replace('/', '_'), transform, base_T_camera_handle, vrep.simx_opmode_oneshot)
+                        self.create_dummy(str(i).zfill(2) + '_' + name.replace('/', '_'), transform, base_T_camera_handle, operation_mode=vrep.simx_opmode_oneshot)
 
             if camera_to_depth_name is not None and depth_to_ee_name is not None:
                 if FLAGS.vrepVisualizeSurfaceRelativeTransformLines:
                     # if visualizing lines, get camera position in world frame
                     ret, camera_world_position = vrep.simxGetObjectPosition(self.client_id, base_T_camera_handle, -1, vrep.simx_opmode_oneshot_wait)
                 # display all camera to depth and depth to end effector transforms
-                for i, (ctd_vq7, dtee_vq7) in enumerate(zip(features_dict_np[camera_to_depth_name], features_dict_np[depth_to_ee_name])):
-                    time_name = str(i).zfill(2) + '_'
-                    depth_point_dummy_handle = self.create_dummy(time_name + camera_to_depth_name, ctd_vq7, base_T_camera_handle)
+                for i, (ctd_vq7, dtee_vq7) in enumerate(zip(time_ordered_feature_data_dict[camera_to_depth_name], time_ordered_feature_data_dict[depth_to_ee_name])):
+                    time_step_name = str(i).zfill(2) + '_'
+                    depth_point_dummy_handle = self.create_dummy(time_step_name + camera_to_depth_name, ctd_vq7, base_T_camera_handle)
                     surface_relative_transform_dummy_handle = self.create_dummy(time_step_name + 'depth_point_T_endeffector',
                                                                                 dtee_vq7, depth_point_dummy_handle)
                     if FLAGS.vrepVisualizeSurfaceRelativeTransformLines:
@@ -546,9 +551,9 @@ class VREPGraspSimulation(object):
                         ret, surface_relative_gripper_world_position = vrep.simxGetObjectPosition(
                             self.client_id, surface_relative_transform_dummy_handle, -1, vrep.simx_opmode_oneshot_wait)
                         self.drawLines('camera_to_depth_lines', np.append(camera_world_position, depth_world_position),
-                                       base_T_camera_handle, vrep.simx_opmode_oneshot)
+                                       base_T_camera_handle, operation_mode=vrep.simx_opmode_oneshot)
                         self.drawLines('camera_to_depth_lines', np.append(depth_world_position, surface_relative_gripper_world_position),
-                                       base_T_camera_handle, vrep.simx_opmode_oneshot)
+                                       base_T_camera_handle, operation_mode=vrep.simx_opmode_oneshot)
 
             # Visualize point clouds
             if FLAGS.vrepVisualizeRGBD:
