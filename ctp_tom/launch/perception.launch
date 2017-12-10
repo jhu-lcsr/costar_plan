@@ -8,7 +8,7 @@
   <arg name="max_track_error" default="0.05" />
   <arg name="start_static_handeye" default="true" />
   <arg name="auto_white_balance" default="true" />
-  <arg name="auto_exposure" default="true" />
+  <arg name="auto_exposure" default="false" />
 
   <!-- bring up the cameras -->
   <include if="$(arg real)" file="$(find openni2_launch)/launch/openni2.launch">
@@ -19,7 +19,15 @@
 
   <!-- Load the table URDF to the rosparam server -->
   <param name="table_description"
-         command="$(find xacro)/xacro.py '$(find costar_simulation)/urdf/table/default_tom_table.urdf.xacro'"/>
+    command="$(find xacro)/xacro.py '$(find costar_simulation)/urdf/table/default_tom_table.urdf.xacro'"/>
+  <param name="block1_description"
+    command="$(find xacro)/xacro.py '$(find costar_simulation)/urdf/duplo/duplo1.urdf.xacro'"/>
+  <param name="block2_description"
+    command="$(find xacro)/xacro.py '$(find costar_simulation)/urdf/duplo/duplo2.urdf.xacro'"/>
+  <param name="orange_description"
+    command="$(find xacro)/xacro.py '$(find costar_simulation)/urdf/orange/orange.urdf.xacro'"/>
+  <param name="box_description"
+    command="$(find xacro)/xacro.py '$(find costar_simulation)/urdf/box/box.urdf.xacro'"/>
 
   <!-- If we are testing with the real robot, use AR markers to localize the
        table and add it to the visualization and planning scenes. -->
