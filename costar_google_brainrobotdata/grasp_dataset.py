@@ -1373,7 +1373,9 @@ class GraspDataset(object):
             dict_and_feature_tuple_list = []
             # list of all *decoded* image features available
             # note that new features become available later in this function
-            image_features = GraspDataset.get_time_ordered_features(features_complete_list, 'image/decoded')
+            image_features = GraspDataset.get_time_ordered_features(features_complete_list, '/image/decoded')
+            image_features.extend(GraspDataset.get_time_ordered_features(features_complete_list, 'depth_image/decoded'))
+            image_features.extend(GraspDataset.get_time_ordered_features(features_complete_list, 'xyz_image/decoded'))
             # loop through each grasp attempt in a batch
             for feature_op_dict, sequence_op_dict in tqdm(feature_op_dicts, desc='get_training_dictionaries.image_random_crop'):
                 feature_op_dict, new_feature_list = GraspDataset._image_random_crop(
