@@ -824,7 +824,7 @@ class GraspDataset(object):
             feature_type=xyz_image_feature_type,
             step='view_clear_scene'
         )
-        xyz_image_clear_view_name = self._confirm_expected_feature(xyz_image_clear_view_name)
+        xyz_image_clear_view_name = self._confirm_expected_feature(xyz_image_clear_view_name, 'xyz_image_clear_view')
 
         def add_feature_op(fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict, new_op, shape, name, batch_i, time_step_j):
             """Helper function to extend the dict containing feature ops
@@ -1339,7 +1339,7 @@ class GraspDataset(object):
             raise ValueError('There should be at least one xyz view_clear_scene image feature such as grasp/xyz_image/decoded, but it is missing!')
         selected = features[select]
         if len(features) != expected:
-            print('Warning: unexpected number of data sources for feature type:' + feature_name + ' found: ' + features +
+            print('Warning: unexpected number of data sources for feature type:' + feature_name + ' found: ' + str(features) +
                   'confirm you have the correct one. Selected default: ' + selected)
             print(''.join(traceback.format_stack()))
         return selected
@@ -1423,21 +1423,21 @@ class GraspDataset(object):
             feature_type='/image/decoded',
             step='view_clear_scene'
         )
-        rgb_clear_view_name = self._confirm_expected_feature(rgb_clear_view_name)
+        rgb_clear_view_name = self._confirm_expected_feature(rgb_clear_view_name, 'rgb_image_clear_view')
 
         depth_clear_view_name = self.get_time_ordered_features(
             features_complete_list,
             feature_type='depth_image/decoded',
             step='view_clear_scene'
         )
-        depth_clear_view_name = self._confirm_expected_feature(depth_clear_view_name)
+        depth_clear_view_name = self._confirm_expected_feature(depth_clear_view_name, 'depth_image_clear_view')
 
         xyz_clear_view_name = self.get_time_ordered_features(
             features_complete_list,
             feature_type='xyz_image/decoded',
             step='view_clear_scene'
         )
-        xyz_clear_view_name = self._confirm_expected_feature(xyz_clear_view_name)
+        xyz_clear_view_name = self._confirm_expected_feature(xyz_clear_view_name, 'xyz_image_clear_view')
 
         # the feature names vary depending on the user configuration,
         # the random_crop boolean flag in particular
