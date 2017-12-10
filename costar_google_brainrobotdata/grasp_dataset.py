@@ -9,6 +9,7 @@ License: Apache v2 https://www.apache.org/licenses/LICENSE-2.0
 
 import os
 import errno
+import traceback
 from six import iteritems
 
 import numpy as np
@@ -823,9 +824,7 @@ class GraspDataset(object):
             feature_type=xyz_image_feature_type,
             step='view_clear_scene'
         )
-        if len(xyz_image_clear_view_name) != 1:
-            raise ValueError('There should be exactly one xyz view_clear_scene image feature is required, but missing!')
-        xyz_image_clear_view_name = xyz_image_clear_view_name[0]
+        xyz_image_clear_view_name = self._confirm_expected_feature(xyz_image_clear_view_name)
 
         def add_feature_op(fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict, new_op, shape, name, batch_i, time_step_j):
             """Helper function to extend the dict containing feature ops
@@ -1330,6 +1329,21 @@ class GraspDataset(object):
             # assume features is a list, go through and get the list of lists that contain tensors
             return [[fixed_dict[feature] for feature in features] for (fixed_dict, seq_dict) in feature_op_dicts]
 
+    @staticmethod
+    def _confirm_expected_feature(features, feature_name, select=-1, expected=1):
+        """ Returns a single feature out of a list for when one is supposed to be selected out of many.
+
+            If the expected number of features isn't present a warning is printed.
+        """
+        if len(features) == 0:
+            raise ValueError('There should be at least one xyz view_clear_scene image feature such as grasp/xyz_image/decoded, but it is missing!')
+        selected = features[select]
+        if len(features) != expected:
+            print('Warning: unexpected number of data sources for feature type:' + feature_name + ' found: ' + features +
+                  'confirm you have the correct one. Selected default: ' + selected)
+            print(''.join(traceback.format_stack()))
+        return selected
+
     def get_training_dictionaries(
             self,
             feature_op_dicts=None,
@@ -1408,19 +1422,22 @@ class GraspDataset(object):
             features_complete_list,
             feature_type='/image/decoded',
             step='view_clear_scene'
-        )[0]
+        )
+        rgb_clear_view_name = self._confirm_expected_feature(rgb_clear_view_name)
 
         depth_clear_view_name = self.get_time_ordered_features(
             features_complete_list,
             feature_type='depth_image/decoded',
             step='view_clear_scene'
-        )[0]
+        )
+        depth_clear_view_name = self._confirm_expected_feature(depth_clear_view_name)
 
         xyz_clear_view_name = self.get_time_ordered_features(
             features_complete_list,
             feature_type='xyz_image/decoded',
             step='view_clear_scene'
-        )[0]
+        )
+        xyz_clear_view_name = self._confirm_expected_feature(xyz_clear_view_name)
 
         # the feature names vary depending on the user configuration,
         # the random_crop boolean flag in particular
