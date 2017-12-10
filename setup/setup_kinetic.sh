@@ -23,6 +23,9 @@ sudo -H pip install --no-binary numpy
 sudo -H pip install h5py keras keras-rl sympy matplotlib pygame gmr networkx \
   dtw pypr gym PyPNG pybullet numba
 
+# Need the newer version of pyassimp - 3.3+
+pip install pyassimp --user --upgrade
+
 # TODO(cpaxton): come up with a better way to install tensorflow here. We want
 # to ensure that everything is configured properly for tests.
 if [ nvidia-smi ]
@@ -64,6 +67,7 @@ git clone https://github.com/cpaxton/dmp.git --branch indigo
 git clone git@github.com:ccny-ros-pkg/imu_tools.git 
 git clone https://github.com/cpaxton/robotiq_85_gripper.git
 git clone https://github.com/cpaxton/tom_robot.git
+git clone git@github.com:cpaxton/urdf_parser_py.git --branch indigo-devel
 #git clone https://github.com/cpaxton/costar_plan.git
 rosdep install -y --from-paths ./ --ignore-src --rosdistro $ROS_DISTRO
 cd $CATKIN_WS/src

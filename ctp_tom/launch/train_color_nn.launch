@@ -1,0 +1,8 @@
+<launch>
+
+  <!-- start up the color segmenter -->
+  <include file="$(find color_nn_segmenter)/launch/segmenter.launch">
+
+  </include>
+
+</launch>

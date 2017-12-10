@@ -19,6 +19,7 @@ Outline of contents:
     - [3.1 Data collection](docs/collect_data.md): Data collection with a real or simulated robot
     - [3.2 MARCC instructions](docs/marcc.md): learning models using the MARCC cluster (JHU students only)
   - [4. Creating and training a custom task](docs/task_learning.md): defining a task, training predictive models and other tools
+    - [4.1 Generating a task from data](docs/generate_task_model.md): use ROS messages and VR demonstrations to generate from data
   - [5. CoSTAR Simulation](docs/simulation.md): simulation intro
     - [5.1 Simulation Experiments](docs/simulation-experiments.md): information on experiment setup
     - [5.2 PyBullet Sim](docs/pybullet.md): an alternative to Gazebo that may be preferrable in some situations

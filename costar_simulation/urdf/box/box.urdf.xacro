@@ -1,0 +1,6 @@
+<?xml version="0.0" ?>
+<robot name="box" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:include
+    filename="$(find costar_simulation)/urdf/box/box.xacro"/>
+  <xacro:tom_box name="box"/>
+</robot>

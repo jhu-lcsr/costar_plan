@@ -1,4 +1,8 @@
+from __future__ import print_function
+
 from collections import deque
+
+# Import a ton of ROS messages
 
 import numpy as np
 import PyKDL as kdl
@@ -9,13 +13,12 @@ import tf_conversions.posemath as pm
 class TransformIntegator(object):
 
     def __init__(self, name, root,
-            transforms={},
             listener=None,
             broadcaster=None,
             history_length=0,
             offset=None):
         self.name = name
-        self.transforms = transforms
+        self.transforms = {}
         self.root = root
         self.history = deque()
         self.history_length = history_length
@@ -40,6 +43,7 @@ class TransformIntegator(object):
         '''
 
         if not self.listener.frameExists(self.root):
+            rospy.logwarn("%s was missing"%self.root)
             return
 
         count = 0
