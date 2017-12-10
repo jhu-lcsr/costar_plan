@@ -32,12 +32,13 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix, dtype=tf.float32):
     # Arguments
 
       depth: is a 2-D ndarray with shape (rows, cols) containing
-      32bit floating point depths in meters. The result is a 3-D array with
-      shape (rows, cols, 3). Pixels with invalid depth in the input have
+        32bit floating point depths in meters. The result is a 3-D array with
+        shape (rows, cols, 3). Pixels with invalid depth in the input have
       NaN or 0 for the z-coordinate in the result.
 
       intrinsics_matrix: 3x3 matrix for projecting depth values to z values
       in the point cloud frame. http://ksimek.github.io/2013/08/13/intrinsic/
+      In this case x0, y0 are at index [2, 0] and [2, 1], respectively.
 
       transform: 4x4 Rt matrix for rotating and translating the point cloud
     """
@@ -55,12 +56,12 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix, dtype=tf.float32):
         x, y = tf.meshgrid(tf.range(0, depth_shape_tensor[0]),
                            tf.range(0, depth_shape_tensor[1]),
                            indexing='ij')
-        x = tf.to_float(x)
-        y = tf.to_float(y)
+        x = tf.to_float(tf.expand_dims(x, axis=-1))
+        y = tf.to_float(tf.expand_dims(y, axis=-1))
         X = (x - center_x) * depth / fx
         Y = (y - center_y) * depth / fy
 
         XYZ = tf.stack([K.flatten(X), K.flatten(Y), K.flatten(depth)])
         XYZ = K.reshape(XYZ, [depth_shape_tensor[0], depth_shape_tensor[1], 3])
-
+        print('XYZ:', XYZ, 'depth_shape_tensor:', depth_shape_tensor)
         return XYZ

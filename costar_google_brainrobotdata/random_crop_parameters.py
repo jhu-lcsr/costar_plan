@@ -67,6 +67,9 @@ def crop_images(image_list, offset, size, name=None):
         else:
             size = ops.convert_to_tensor(size, dtype=dtypes.int32, name="size")
             image_list = ops.convert_to_tensor(image_list, name="image")
+            offset = ops.convert_to_tensor(offset, dtype=dtypes.int32, name="offset")
+            print("crop_images offset:", offset, 'size', size, 'img_list_shape', image_list.shape)
+            offset = tf.Print(offset, [offset, size, image_list.shape])
             cropped_image_list = array_ops.slice(
                 image_list, offset, size, name=name)
 

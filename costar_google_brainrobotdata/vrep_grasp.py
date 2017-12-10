@@ -485,6 +485,7 @@ class VREPGraspSimulation(object):
         (feature_op_dicts, features_complete_list,
          time_ordered_feature_name_dict, num_samples) = grasp_dataset_object.get_training_dictionaries(batch_size=batch_size)
 
+        print('visualize_tensorflow.time_ordered_feature_name_dict', time_ordered_feature_name_dict, 'feature_op_dicts:', feature_op_dicts)
         tf_session.run(tf.global_variables_initializer())
 
         error_code, parent_handle = vrep.simxGetObjectHandle(self.client_id, parent_name, vrep.simx_opmode_blocking)

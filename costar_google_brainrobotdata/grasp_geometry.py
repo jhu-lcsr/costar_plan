@@ -176,14 +176,15 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix, flip_x=1.0, flip_y=1.0)
     # Arguments
 
       depth: is a 2-D ndarray with shape (rows, cols) containing
-      32bit floating point depths in meters. The result is a 3-D array with
-      shape (rows, cols, 3). Pixels with invalid depth in the input have
-      NaN or 0 for the z-coordinate in the result.
+          32bit floating point depths in meters. The result is a 3-D array with
+          shape (rows, cols, 3). Pixels with invalid depth in the input have
+          NaN or 0 for the z-coordinate in the result.
       flip_x: 1.0 leaves data as-is, -1.0 flips the data across the x axis
       flip_y: -1.0 leaves data as-is, -1.0 flips the data across the y axis
 
       intrinsics_matrix: 3x3 matrix for projecting depth values to z values
       in the point cloud frame. http://ksimek.github.io/2013/08/13/intrinsic/
+      In this case x0, y0 are at index [2, 0] and [2, 1], respectively.
 
       transform: 4x4 Rt matrix for rotating and translating the point cloud
     """
