@@ -90,6 +90,7 @@ def FloatArrayToRgbImage(float_array,
     Returns:
       24-bit RGB PIL Image object representing depth values.
     """
+    float_array = np.squeeze(float_array)
     # Scale the floating point array.
     scaled_array = np.floor(float_array * scale_factor + 0.5)
     # Convert the array to integer type and clip to representable range.
