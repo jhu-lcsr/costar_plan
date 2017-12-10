@@ -500,7 +500,7 @@ def current_endeffector_to_final_endeffector_feature(base_T_endeffector_current,
 
 
 def grasp_dataset_to_transforms_and_features(
-        xyz_image,
+        cartesian_image,
         camera_intrinsics_matrix,
         camera_T_base,
         base_T_endeffector_current,
@@ -518,8 +518,11 @@ def grasp_dataset_to_transforms_and_features(
 
     # Params
 
-    depth_image:
-        width x height x depth image in floating point format
+    cartesian_image: input depth image (Z only) or an XYZ image.
+        XYZ images should be a numpy ndarray of size [height, width, 3] containing
+        floating point cartesian distance values.
+        Depth images should be a numpy ndarray of size [height, width, 1] where each floating point value is a Z distance,
+        depth images will automatically be converted to an xyz image using the numpy API.
     camera_intrinsics_matrix:
         'camera/intrinsics/matrix33' The 3x3 camera intrinsics matrix.
     camera_T_base:
@@ -607,14 +610,13 @@ def grasp_dataset_to_transforms_and_features(
     eectf_ptrans = base_T_endeffector_final_ptrans * base_T_endeffector_current_ptrans.inv()
     print('in grasp_dataset_to_transforms_and_features 1')
 
-    # TODO(ahundt) would need to np.fliplr(np.rot90(depth, 3)), see depth_image_to_point_cloud for details, ensure consistency with image intrinsics
-    # TODO(ahundt) make xyz_image into a parameter of this class and pass tensorflow generated version
-    # get the point cloud xyz image
-    # xyz_image = depth_image_to_point_cloud(depth_image, camera_intrinsics_matrix)
+    if cartesian_image.shape[-1] == 1:
+        # cartesian_image is a depth image, convert it to a point cloud xyz image
+        cartesian_image = depth_image_to_point_cloud(cartesian_image, camera_intrinsics_matrix)
 
     # calculate the surface relative transform from the clear view depth to endeffector final position
     depth_pixel_T_endeffector_current_ptrans, image_coordinate_current, camera_T_depth_pixel_current_ptrans = surface_relative_transform(
-        xyz_image,
+        cartesian_image,
         camera_intrinsics_matrix,
         camera_T_endeffector_current_ptrans,
         augmentation_rectangle)
@@ -627,7 +629,7 @@ def grasp_dataset_to_transforms_and_features(
 
     # calculate the surface relative transform from the clear view depth to endeffector final position
     depth_pixel_T_endeffector_final_ptrans, image_coordinate_final, camera_T_depth_pixel_final_ptrans = surface_relative_transform(
-        xyz_image,
+        cartesian_image,
         camera_intrinsics_matrix,
         camera_T_endeffector_final_ptrans,
         augmentation_rectangle)
