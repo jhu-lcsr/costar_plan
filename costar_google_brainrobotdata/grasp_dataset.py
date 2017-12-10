@@ -10,7 +10,7 @@ License: Apache v2 https://www.apache.org/licenses/LICENSE-2.0
 import os
 import errno
 import traceback
-from six import iteritems
+import six
 
 import numpy as np
 import tensorflow as tf
@@ -886,7 +886,8 @@ class GraspDataset(object):
                      base_to_endeffector_op, final_base_to_endeffector_transform_op],
                      # return type data formats to expect
                     [tf.float32] * 14,
-                    stateful=False, name='py_func/grasp_dataset_to_transforms_and_features')
+                    # TODO(ahundt) set stateful=False once bugs are fixed
+                    stateful=True, name='py_func/grasp_dataset_to_transforms_and_features')
 
                 # define pixel image coordinate as an integer type
                 image_coordinate_current = tf.cast(image_coordinate_current, tf.int32)
@@ -1106,9 +1107,9 @@ class GraspDataset(object):
             feature_op_dict['depth_sensor_image_dimensions'] = depth_sensor_image_dimensions
             new_feature_list = np.append(new_feature_list, 'depth_sensor_image_dimensions')
 
-            # the list of feature strings isn't supplied by the user generate them here
             if image_features is None:
-                features = [feature for (feature, tf_op) in iteritems(feature_op_dict)]
+                # the list of feature strings isn't supplied by the user so generate them here
+                features = [feature for (feature, tf_op) in six.iteritems(feature_op_dict)]
                 image_features = GraspDataset.get_time_ordered_features(features, '/image/encoded')
                 image_features.extend(GraspDataset.get_time_ordered_features(features, 'depth_image/encoded'))
 
@@ -1307,6 +1308,7 @@ class GraspDataset(object):
         # Arguments
 
         feature_op_dicts: list of (fixed_op_dict, sequence_op_dict) pairs, where each dict is from strings to tensors.
+            feature_op_dicts expects data in the following format [({\'feature_name\': tensor},{\'feature_name\': sequence_tensor}).
         features: list of strings, or dict where keys are strings and values are lists of strings
 
         # Returns
@@ -1318,13 +1320,17 @@ class GraspDataset(object):
         """
         if isinstance(features, dict):
             list_of_tensor_dicts = []
-            for (fixed_op_dict, seq_op_dict) in feature_op_dicts:
-                tensor_dict = {}
-                for time_ordered_key, feature_value_list in features.items():
-                    tensor_list = [fixed_op_dict[feature_name] for feature_name in feature_value_list]
-                    tensor_dict[time_ordered_key] = tensor_list
-                list_of_tensor_dicts.append(tensor_dict)
-            return list_of_tensor_dicts
+
+            if isinstance(feature_op_dicts, list):
+                for fixed_op_dict, seq_op_dict in feature_op_dicts:
+                    tensor_dict = {}
+                    for time_ordered_key, feature_value_list in features.items():
+                        tensor_list = [fixed_op_dict[feature_name] for feature_name in feature_value_list]
+                        tensor_dict[time_ordered_key] = tensor_list
+                    list_of_tensor_dicts.append(tensor_dict)
+                return list_of_tensor_dicts
+            else:
+                raise ValueError('feature_op_dicts expects data in the following format: [({\'feature_name\': tensor},{\'feature_name\': sequence_tensor})')
         else:
             # assume features is a list, go through and get the list of lists that contain tensors
             return [[fixed_dict[feature] for feature in features] for (fixed_dict, seq_dict) in feature_op_dicts]
@@ -1361,7 +1367,7 @@ class GraspDataset(object):
             seed=None):
         """Get feature dictionaries containing ops and time ordered feature lists.
 
-        This function aims to make it easy to perform custom training,
+        This function is for advanced use cases and aims to make it easy to perform custom training,
         evaluation, or visualization with the loaded dataset.
 
            # Returns
