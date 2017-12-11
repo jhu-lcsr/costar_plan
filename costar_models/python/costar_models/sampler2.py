@@ -36,9 +36,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         '''
         super(PredictionSampler2, self).__init__(taskdef, *args, **kwargs)
         self.rep_size = None
-        self.encoder_channels = 128
         self.PredictorCb = ImageCb
-        self.skip_shape = (64,64,32)
 
     def _makeToHidden(self, img_shape, arm_size, gripper_size, rep_size):
         '''
