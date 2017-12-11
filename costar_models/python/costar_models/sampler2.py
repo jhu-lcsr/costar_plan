@@ -63,10 +63,11 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             img_rep = self.image_encoder([img0_in, img_in])
         state_rep = self.state_encoder([arm_in, gripper_in, label_in])
         # Compress the size of the network
-        x = TileOnto(img_rep, state_rep, 64, [4,4])
+        x = TileOnto(img_rep, state_rep, 64, [8,8])
         x = AddConv2D(x, 64, [3,3], 1, self.dropout_rate, "same", False)
         x = Flatten()(x)
-        self.rep_size = int(4 * 4 * 64)
+        self.rep_size = int(8 * 8 * 64)
+        self.hidden_size = (8,8,16)
         #x = AddDense(x, self.rep_size, "relu", self.dropout_rate)
 
         if self.skip_connections:
@@ -74,7 +75,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         else:
             model = Model(ins, x, name="encode_hidden_state")
         model.compile(loss="mae", optimizer=self.getOptimizer())
-        model.summary()
+        #model.summary()
         self.hidden_encoder = model
         return model
 
@@ -89,20 +90,21 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         # ---------------------------------
         x = h
         #x = AddDense(x,self.rep_size,"relu",self.decoder_dropout_rate)
+        print(h)
         x = Reshape((ih,iw,64))(x)
         x = AddConv2D(x, ic, [3,3], 1, self.decoder_dropout_rate, "same", False)
         if self.skip_connections:
-            skip_in = Input(self.skip_shape)
+            skip_in = Input(self.skip_shape, name="skip_input_hd")
             ins = [x, skip_in]
             hidden_decoder_ins = [h, skip_in]
         else:
             ins = x
             hidden_decoder_ins = h
         img = self.image_decoder(ins)
-        self.state_decoder.summary()
+        #self.state_decoder.summary()
         arm, gripper, label = self.state_decoder(h)
         model = Model(hidden_decoder_ins, [img, arm, gripper, label])
-        model.summary()
+        #model.summary()
         self.hidden_decoder = model
         return model
 
@@ -131,8 +133,8 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             decoder = self._makeImageDecoder(self.hidden_shape,self.skip_shape)
         else:
             decoder = self._makeImageDecoder(self.hidden_shape)
-        encoder.summary()
-        decoder.summary()
+        #encoder.summary()
+        #decoder.summary()
         decoder.load_weights(self._makeName(
             "pretrain_image_encoder_model",
             "image_decoder.h5f"))

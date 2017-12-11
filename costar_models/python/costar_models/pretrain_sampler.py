@@ -59,11 +59,11 @@ class PretrainSampler(PredictionSampler2):
         decoder.trainable = False
 
         sencoder = self._makeStateEncoder(arm_size, gripper_size, False)
-        sencoder.load_weights(self._makeName(
-            "pretrain_state_encoder_model", "state_encoder.h5f"))
+        #sencoder.load_weights(self._makeName(
+        #    "pretrain_state_encoder_model", "state_encoder.h5f"))
         sdecoder = self._makeStateDecoder(arm_size, gripper_size)
-        sdecoder.load_weights(self._makeName(
-            "pretrain_state_encoder_model", "state_decoder.h5f"))
+        #sdecoder.load_weights(self._makeName(
+        #    "pretrain_state_encoder_model", "state_decoder.h5f"))
 
         # =====================================================================
         # Load the arm and gripper representation
@@ -92,6 +92,8 @@ class PretrainSampler(PredictionSampler2):
             img_x, arm_x, gripper_x, label_x = hidden_decoder([h, skip_rep])
         else:
             #img_x = hidden_decoder(x)
+            print(h)
+            hidden_decoder.summary()
             img_x, arm_x, gripper_x, label_x = hidden_decoder(h)
         ae_outs = [img_x, arm_x, gripper_x, label_x]
         ae2 = Model(ins, ae_outs)
