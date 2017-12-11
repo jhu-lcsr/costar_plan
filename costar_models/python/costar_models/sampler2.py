@@ -103,7 +103,6 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         print(x, self.state_decoder.inputs,self.image_decoder.inputs)
         img = self.image_decoder(ins)
         #self.state_decoder.summary()
-        asdf
         arm, gripper, label = self.state_decoder(x)
         model = Model(hidden_decoder_ins, [img, arm, gripper, label])
         #model.summary()
