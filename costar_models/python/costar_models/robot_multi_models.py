@@ -334,7 +334,7 @@ def GetEncoder(img_shape, state_sizes, dim, dropout_rate,
             skips.append(x)
 
     tile_height, tile_width = (int(height/(2**post_tiling_layers)),
-            int(width/(2**post_tiling_layers))
+            int(width/(2**post_tiling_layers)))
 
     # ===============================================
     # ADD TILING
