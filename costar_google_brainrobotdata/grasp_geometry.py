@@ -160,7 +160,7 @@ def vector_to_ptransform(XYZ):
     return ptransform
 
 
-def depth_image_to_point_cloud(depth, intrinsics_matrix, flip_x=1.0, flip_y=1.0):
+def depth_image_to_point_cloud(depth, intrinsics_matrix, flip_x=1.0, flip_y=1.0, dtype=np.float32):
     """Depth images become an XYZ point cloud in the camera frame with shape (depth.shape[0], depth.shape[1], 3).
 
     Transform a depth image into a point cloud in the camera frame with one point for each
@@ -207,7 +207,7 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix, flip_x=1.0, flip_y=1.0)
     Y = flip_y * (y - center_y) * depth / fy
     XYZ = np.column_stack((X.flatten(), Y.flatten(), depth.flatten())).reshape(depth.shape + (3,))
 
-    return XYZ
+    return XYZ.astype(dtype)
 
 
 def surface_relative_transform(xyz_image,
