@@ -1010,13 +1010,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = AddConv2D(x, self.encoder_channels, [1,1], 1, 0.*self.dropout_rate,
                 "same", disc)
 
-        if self.use_spatial_softmax:
+        if self.use_spatial_softmax and not disc:
             def _ssm(x):
                 return spatial_softmax(x)
             x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
             self.hidden_shape = (self.encoder_channels*2,)
-            x = Flatten()(x)
-            x = AddDense(x, self.hidden_size, "relu", self.dropout_rate)
+            #x = AddDense(x, self.hidden_size, "relu", self.dropout_rate)
+            self.hidden_size = 2*self.encoder_channels
             self.hidden_shape = (self.hidden_size,)
         else:
             self.steps_down = 3
@@ -1048,11 +1048,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         -----------
         img_shape: shape of the image, e.g. (64,64,3)
         '''
-        rep = Input(hidden_shape,name="decoder_hidden_in")
+        if self.use_spatial_softmax:
+            rep = Input((self.hidden_size,),name="decoder_hidden_in")
+        else:
+            rep = Input(hidden_shape,name="decoder_hidden_in")
         if skip:
             skip1 = Input((32,32,32),name="decoder_skip_in_1")
-            skip2 = Input((16,16,32),name="decoder_skip_in_2")
-            skip3 = Input((8,8,32),name="decoder_skip_in_3")
+            #skip2 = Input((16,16,32),name="decoder_skip_in_2")
+            #skip3 = Input((8,8,32),name="decoder_skip_in_3")
         x = rep
         if self.hypothesis_dropout:
             dr = self.decoder_dropout_rate
@@ -1060,10 +1063,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             dr = 0.
         
         if self.use_spatial_softmax:
-            self.steps_up = 4
-            self.hidden_dim = int(img_shape[0]/(2**self.steps_up))
-            self.tform_filters = 128 #self.encoder_channels
-            (h,w,c) = (self.hidden_dim,self.hidden_dim,self.tform_filters)
+            self.steps_up = 3
+            hidden_dim = int(img_shape[0]/(2**self.steps_up))
+            self.tform_filters = 16 #self.encoder_channels
+            (h,w,c) = (hidden_dim,
+                       hidden_dim,
+                       self.tform_filters)
             x = AddDense(x, int(h*w*c), "linear", dr)
             x = Reshape((h,w,c))(x)
 
