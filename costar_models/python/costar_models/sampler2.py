@@ -65,7 +65,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         state_rep = self.state_encoder([arm_in, gripper_in, label_in])
         # Compress the size of the network
         x = TileOnto(img_rep, state_rep, 64, [8,8])
-        x = AddConv2D(x, 64, [3,3], 1, self.dropout_rate, "same", False)
+        x = AddConv2D(x, 128, [3,3], 1, self.dropout_rate, "same", False)
         x = AddConv2D(x, 16, [1,1], 1, self.dropout_rate, "same", False)
         x = Flatten()(x)
         self.rep_size = int(8 * 8 * 16)
@@ -100,7 +100,6 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             ins = x
             hidden_decoder_ins = h
 
-        print(x, self.state_decoder.inputs,self.image_decoder.inputs)
         img = self.image_decoder(ins)
         #self.state_decoder.summary()
         arm, gripper, label = self.state_decoder(x)
