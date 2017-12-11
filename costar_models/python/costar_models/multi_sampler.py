@@ -988,7 +988,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate, "same", disc)
         x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, "same", disc)
         x = AddConv2D(x, 128, [5,5], 2, self.dropout_rate, "same", disc)
-        self.encoder_channels = 32 #16
+        self.encoder_channels = 16
         x = AddConv2D(x, self.encoder_channels, [1,1], 1, 0.*self.dropout_rate,
                 "same", disc)
 
@@ -1004,7 +1004,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             self.steps_down = 3
             self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
             self.tform_filters = self.encoder_channels
-            self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.tform_filters)
+            self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.encoder_channels)
 
         if not disc:
             if self.skip_connections:
