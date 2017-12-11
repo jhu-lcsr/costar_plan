@@ -1026,7 +1026,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         if not disc:
             if self.skip_connections:
-                image_encoder = Model([img0, img], [x, y1, y2, y3], name="image_encoder")
+                image_encoder = Model([img0, img], [x, y], name="image_encoder")
             else:
                 image_encoder = Model([img0, img], x, name="image_encoder")
             image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
