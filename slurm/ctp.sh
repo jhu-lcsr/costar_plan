@@ -77,7 +77,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--features multi \
 	-e 100 \
-	--model predictor2 \
+	--model pretrain_sampler \
 	--data_file $HOME/work/$DATASET.h5f \
 	--lr $1 \
 	--dropout_rate $2 \
