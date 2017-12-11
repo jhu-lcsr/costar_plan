@@ -998,7 +998,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = img
         x = AddConv2D(x, 32, [5,5], 2, self.dropout_rate, "same", disc)
         y = img0
-        if self.skip_connections:
+        if self.skip_connections or True:
             y = AddConv2D(y, 32, [5,5], 2, self.dropout_rate, "same", disc)
             x = Concatenate()([x,y])
         x = AddConv2D(x, 32, [5,5], 1, self.dropout_rate, "same", disc)
