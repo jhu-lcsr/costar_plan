@@ -21,11 +21,14 @@ from keras import backend as K
 def depth_image_to_point_cloud(depth, intrinsics_matrix, dtype=tf.float32):
     """Depth images become an XYZ point cloud in the camera frame with shape (depth.shape[0], depth.shape[1], 3).
 
+    TODO(ahundt) Currently this version is broken and does not calculate a point cloud correctly.
+
     Transform a depth image into a point cloud in the camera frame with one point for each
     pixel in the image, using the camera transform for a camera
     centred at cx, cy with field of view fx, fy.
 
     Based on:
+    numpy version of depth_image_to_point_cloud() in grasp_geometry.py
     https://github.com/tensorflow/models/blob/master/research/cognitive_mapping_and_planning/src/depth_utils.py
     https://codereview.stackexchange.com/a/84990/10101
 
