@@ -5,7 +5,7 @@ export MODELDIR="$HOME/.costar/models_stack_Y$1$3$2$4$5$6"
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
 	--features multi \
 	-e 100 \
-	--model predictor2 \
+	--model pretrain_sampler \
 	--data_file $HOME/work/$DATASET.h5f \
 	--lr 0.001 \
 	--dropout_rate 0.2 \
