@@ -36,6 +36,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         '''
         super(PredictionSampler2, self).__init__(taskdef, *args, **kwargs)
         self.rep_size = None
+        self.hidden_shape = (8,8,16)
         self.PredictorCb = ImageCb
 
     def _makeToHidden(self, img_shape, arm_size, gripper_size, rep_size):
@@ -65,10 +66,10 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         # Compress the size of the network
         x = TileOnto(img_rep, state_rep, 64, [8,8])
         x = AddConv2D(x, 64, [3,3], 1, self.dropout_rate, "same", False)
+        x = AddConv2D(x, 16, [1,1], 1, self.dropout_rate, "same", False)
         x = Flatten()(x)
-        self.rep_size = int(8 * 8 * 64)
+        self.rep_size = int(8 * 8 * 16)
         self.hidden_size = (8,8,16)
-        #x = AddDense(x, self.rep_size, "relu", self.dropout_rate)
 
         if self.skip_connections:
             model = Model(ins, [x, skip_rep], name="encode_hidden_state")
@@ -90,9 +91,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         # ---------------------------------
         x = h
         #x = AddDense(x,self.rep_size,"relu",self.decoder_dropout_rate)
-        print(h)
-        x = Reshape((ih,iw,64))(x)
-        x = AddConv2D(x, ic, [3,3], 1, self.decoder_dropout_rate, "same", False)
+        x = Reshape((ih,iw,16))(x)
         if self.skip_connections:
             skip_in = Input(self.skip_shape, name="skip_input_hd")
             ins = [x, skip_in]
@@ -100,9 +99,12 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         else:
             ins = x
             hidden_decoder_ins = h
+
+        print(x, self.state_decoder.inputs,self.image_decoder.inputs)
         img = self.image_decoder(ins)
         #self.state_decoder.summary()
-        arm, gripper, label = self.state_decoder(h)
+        asdf
+        arm, gripper, label = self.state_decoder(x)
         model = Model(hidden_decoder_ins, [img, arm, gripper, label])
         #model.summary()
         self.hidden_decoder = model
