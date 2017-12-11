@@ -88,7 +88,7 @@ tf.flags.DEFINE_string('vrepVisualizeDepthFormat', 'vrep_depth_encoded_rgb',
                                Examples include 'vrep_depth_rgb' and 'vrep_depth_encoded_rgb',
                                see http://www.forum.coppeliarobotics.com/viewtopic.php?f=9&t=737&p=27805#p27805.
                        """)
-tf.flags.DEFINE_string('vrepVisualizeRGBFormat', None,
+tf.flags.DEFINE_string('vrepVisualizeRGBFormat', 'vrep_rgb',
                        """  Controls how images are displayed. Options are:
                         None: Do not modify the data and display it as-is for rgb input data (not working properly for float depth).
                         'depth_rgb': convert a floating point depth image to a straight 0-255 encoding of depths less than 3m
@@ -274,7 +274,7 @@ def create_point_cloud(client_id, display_name, transform=None, point_cloud=None
                        camera_intrinsics_matrix=None, parent_handle=-1, clear=True,
                        max_voxel_size=0.01, max_point_count_per_voxel=10, point_size=10, options=0,
                        rgb_sensor_display_name=None, depth_sensor_display_name=None, convert_depth=FLAGS.vrepVisualizeDepthFormat,
-                       convert_rgb=None, save_ply_path=None):
+                       convert_rgb=FLAGS.vrepVisualizeRGBFormat, save_ply_path=None, rgb_display_mode='vision_sensor'):
     """Create a point cloud object in the simulation, plus optionally render the depth and rgb images.
 
     # Arguments
@@ -309,6 +309,9 @@ def create_point_cloud(client_id, display_name, transform=None, point_cloud=None
                 This is due to a problem where V-REP seems to display images differently.
                 Examples include 'vrep_depth_rgb' and 'vrep_depth_encoded_rgb',
                 see http://www.forum.coppeliarobotics.com/viewtopic.php?f=9&t=737&p=27805#p27805.
+        rgb_display_mode: Options help with working around quirks in input image data's layout.
+            'point_cloud' to display the image when the point cloud is being generated.
+            'vision_sensor' to make a separate call go the vison sensor display function.
     """
     if transform is None:
         transform = np.array([0., 0., 0., 0., 0., 0., 1.])
@@ -320,8 +323,9 @@ def create_point_cloud(client_id, display_name, transform=None, point_cloud=None
         # matplotlib.image.imsave(display_name + depth_sensor_display_name + '_rot90fliplr.png', depth_image)
         set_vision_sensor_image(client_id, depth_sensor_display_name, depth_image, convert=convert_depth)
 
-    # show the rgb sensor image
-    if rgb_sensor_display_name is not None and color_image is not None:
+    # show the rgb sensor image, this overwrites the rgb display
+    # done in insertPointCloud_function, which is buggy
+    if rgb_sensor_display_name is not None and color_image is not None and rgb_display_mode == 'vision_sensor':
         # matplotlib.image.imsave(display_name + rgb_sensor_display_name + '_norotfliplr.png', color_image)
         # rotate 180, flip left over right then invert the image colors for display in V-REP
         # matplotlib.image.imsave(display_name + rgb_sensor_display_name + '_rot90fliplr.png', color_image)
@@ -338,7 +342,7 @@ def create_point_cloud(client_id, display_name, transform=None, point_cloud=None
     # color_buffer is initially empty
     color_buffer = bytearray()
     strings = [display_name]
-    if rgb_sensor_display_name is not None:
+    if rgb_sensor_display_name is not None and rgb_display_mode == 'point_cloud':
         strings = [display_name, rgb_sensor_display_name]
 
     transform_entries = 7
@@ -401,6 +405,7 @@ def create_point_cloud(client_id, display_name, transform=None, point_cloud=None
             print('insertPointCloud_function remote function call failed.')
             print(''.join(traceback.format_stack()))
             return res
+
     else:
         print('createPointCloud_function remote function call failed')
         print(''.join(traceback.format_stack()))
