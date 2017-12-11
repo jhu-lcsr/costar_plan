@@ -374,3 +374,4 @@ class PredictionSampler2(RobotMultiPredictionSampler):
                 loss=["mae", "mae", "mae", "mae", "categorical_crossentropy",
                       "mae"],
                 optimizer=self.getOptimizer())
+
