@@ -52,7 +52,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Layer and model configuration
         self.extra_layers = 1
-        self.use_spatial_softmax = True
+        self.use_spatial_softmax = False
         self.dense_representation = True
         if self.use_spatial_softmax and self.dense_representation:
             self.steps_down = 2
@@ -949,39 +949,21 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.state_decoder = state_decoder
         return state_decoder
 
-    def _makeMergeEncoder(self, rep_size):
+    def _makeMergeEncoder(self, img_shape, arm_shape, gripper_shape):
         '''
         Take input image and state information and encode them into a single
         hidden representation
         '''
-        image_input_shape = self.hidden_shape
-        state_input_shape = (128,)
-        rep_shape = (rep_size,)
+        img0_in = Input(img_shape,name="predictor_img0_in")
+        img_in = Input(img_shape,name="predictor_img_in")
+        option_in = Input((1,), name="predictor_option_in")
+ 
 
     def _makeMergeDecoder(self, rep_size):
         '''
         Take input state and image information projected into a latent space
         and decode them back into their appropriate output representations
         '''
-
-        # ---------------------------------------------------------------------
-        # Compute the state information and image information sizes for the 
-        # decoders
-        image_input_shape = self.hidden_shape
-        state_input_shape = (128,)
-        state_ouput_dim = state_input_shape[0]
-        h, w, c = image_input_shape
-
-        # Compute the actual size of the input 
-        rep_shape = (rep_size,)
-        if self.hypothesis_dropout:
-            dr = self.decoder_dropout_rate
-        else:
-            dr = 0.
-
-        # ---------------------------------------------------------------------
-        # Create the decoders
-        pass
 
     def _makeImageEncoder(self, img_shape, disc=False):
         '''
