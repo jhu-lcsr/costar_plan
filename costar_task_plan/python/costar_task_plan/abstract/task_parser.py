@@ -1,12 +1,33 @@
 
+from collections import named_tuple
 from learning_planning_msgs.msg import TaskInfo
 from learning_planning_msgs.msg import DemonstrationInfo
 
 
-class TaskModelParser(object):
+NAME_STYLE_UNIQUE = 0
+NAME_STYLE_SAME = 1
 
-    def __init__(self):
-        transitions = {}
+ObjectInfo = named_tuple('pose','obj_class', 'id', 'name')
+
+class TaskParser(object):
+
+    def __init__(self,
+            action_naming_style=NAME_STYLE_UNIQUE,
+            *args, **kwargs):
+        '''
+        Create a task parser. This lets you load one demonstration in at a
+        time, and will parse all the necessary information to create a 
+        particular object.
+        '''
+        self.transitions = {}
+        self.object_classes = set()
+        self.action_naming_style = action_naming_style
+
+    def addObjectClass(self, object_class):
+        self.object_classes.add(object_class)
+
+    def addObject(self, object, object_class):
+        self.object_classes.add(ob
 
     def addDemonstration(self, ):
 
