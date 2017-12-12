@@ -160,7 +160,7 @@ def vector_to_ptransform(XYZ):
     return ptransform
 
 
-def depth_image_to_point_cloud(depth, intrinsics_matrix, flip_x=1.0, flip_y=1.0):
+def depth_image_to_point_cloud(depth, intrinsics_matrix, flip_x=1.0, flip_y=1.0, dtype=np.float32):
     """Depth images become an XYZ point cloud in the camera frame with shape (depth.shape[0], depth.shape[1], 3).
 
     Transform a depth image into a point cloud in the camera frame with one point for each
@@ -195,7 +195,7 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix, flip_x=1.0, flip_y=1.0)
     # center of image y coordinate
     center_y = intrinsics_matrix[2, 1]
     # TODO(ahundt) make sure rot90 + fliplr is applied upstream in the dataset and to the depth images, ensure consistency with image intrinsics
-    depth = np.fliplr(np.rot90(depth, 3))
+    depth = np.fliplr(np.rot90(np.squeeze(depth), 3))
     # print(intrinsics_matrix)
     x, y = np.meshgrid(np.arange(depth.shape[0]),
                        np.arange(depth.shape[1]),
@@ -207,7 +207,7 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix, flip_x=1.0, flip_y=1.0)
     Y = flip_y * (y - center_y) * depth / fy
     XYZ = np.column_stack((X.flatten(), Y.flatten(), depth.flatten())).reshape(depth.shape + (3,))
 
-    return XYZ
+    return XYZ.astype(dtype)
 
 
 def surface_relative_transform(xyz_image,
@@ -298,8 +298,11 @@ def endeffector_image_coordinate_and_cloud_point(xyz_image,
     cte_xyz = camera_T_endeffector.translation()
     # transform the end effector coordinate into the depth image coordinate
     pixel_coordinate_of_endeffector = endeffector_image_coordinate(
-        camera_intrinsics_matrix, cte_xyz)
+        camera_intrinsics_matrix, cte_xyz).astype(np.int32)
 
+    # TODO(ahundt) Should we go with a different coordinate or skip training on this data when out of bounds?
+    pixel_coordinate_of_endeffector[0] = np.clip(pixel_coordinate_of_endeffector[0], 0, xyz_image.shape[0]-1)
+    pixel_coordinate_of_endeffector[1] = np.clip(pixel_coordinate_of_endeffector[1], 0, xyz_image.shape[1]-1)
     # The calculation of the gripper pose in the
     # image frame is done with the convention:
     # - X is right in the image frame
