@@ -195,7 +195,7 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix, flip_x=1.0, flip_y=1.0,
     # center of image y coordinate
     center_y = intrinsics_matrix[2, 1]
     # TODO(ahundt) make sure rot90 + fliplr is applied upstream in the dataset and to the depth images, ensure consistency with image intrinsics
-    depth = np.fliplr(np.rot90(depth, 3))
+    depth = np.fliplr(np.rot90(np.squeeze(depth), 3))
     # print(intrinsics_matrix)
     x, y = np.meshgrid(np.arange(depth.shape[0]),
                        np.arange(depth.shape[1]),
@@ -298,8 +298,11 @@ def endeffector_image_coordinate_and_cloud_point(xyz_image,
     cte_xyz = camera_T_endeffector.translation()
     # transform the end effector coordinate into the depth image coordinate
     pixel_coordinate_of_endeffector = endeffector_image_coordinate(
-        camera_intrinsics_matrix, cte_xyz)
+        camera_intrinsics_matrix, cte_xyz).astype(np.int32)
 
+    # TODO(ahundt) clip to feasible values, but should this affect any training or weights we use?
+    pixel_coordinate_of_endeffector[0] = np.clip(pixel_coordinate_of_endeffector[0], 0, xyz_image.shape[0])
+    pixel_coordinate_of_endeffector[1] = np.clip(pixel_coordinate_of_endeffector[1], 0, xyz_image.shape[1])
     # The calculation of the gripper pose in the
     # image frame is done with the convention:
     # - X is right in the image frame
