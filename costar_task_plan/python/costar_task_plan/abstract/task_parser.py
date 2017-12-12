@@ -11,7 +11,10 @@ NAME_STYLE_SAME = 1
 ObjectInfo
 Describe world observations of objects
 '''
-ObjectInfo = namedtuple('pose','obj_class', 'id', 'name')
+ObjectInfo = namedtuple(
+        'ObjectInfo',
+        field_names=['pose','obj_class', 'id', 'name'],
+        verbose=False)
 
 class ActionInfo(object):
     '''

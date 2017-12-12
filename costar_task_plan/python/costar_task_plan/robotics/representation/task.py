@@ -10,9 +10,11 @@ import rosbag
 
 class RosTaskParser(TaskParser):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, filename=None, *args, **kwargs):
         super(RosTaskParser, self).__init__(*args,**kwargs)
         self.ignore = ["NONE"]
+        if self.filename is not None:
+            self.fromFile(filename)
 
     def fromFile(self, filename):
         bag = rosbag.Bag(filename)
