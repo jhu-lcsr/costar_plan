@@ -300,9 +300,9 @@ def endeffector_image_coordinate_and_cloud_point(xyz_image,
     pixel_coordinate_of_endeffector = endeffector_image_coordinate(
         camera_intrinsics_matrix, cte_xyz).astype(np.int32)
 
-    # TODO(ahundt) clip to feasible values, but should this affect any training or weights we use?
-    pixel_coordinate_of_endeffector[0] = np.clip(pixel_coordinate_of_endeffector[0], 0, xyz_image.shape[0])
-    pixel_coordinate_of_endeffector[1] = np.clip(pixel_coordinate_of_endeffector[1], 0, xyz_image.shape[1])
+    # TODO(ahundt) Should we go with a different coordinate or skip training on this data when out of bounds?
+    pixel_coordinate_of_endeffector[0] = np.clip(pixel_coordinate_of_endeffector[0], 0, xyz_image.shape[0]-1)
+    pixel_coordinate_of_endeffector[1] = np.clip(pixel_coordinate_of_endeffector[1], 0, xyz_image.shape[1]-1)
     # The calculation of the gripper pose in the
     # image frame is done with the convention:
     # - X is right in the image frame
