@@ -3,6 +3,10 @@
 
   <xacro:macro name="drill" params="name">
 
+    <material name="darkblue">
+      <color rgba="0.2 0.2 0.4 1"/>
+    </material>
+
     <link name="${name}">
       <contact>
         <rolling_friction value="0.005"/>
@@ -22,6 +26,7 @@
       </collision>
       <visual>
         <origin rpy="0 0 0" xyz="0 0 0"/>
+        <material name="darkblue"/>
         <geometry>
           <mesh filename="package://costar_simulation/urdf/drill/drill.stl" scale="1 1 1"/>
         </geometry>

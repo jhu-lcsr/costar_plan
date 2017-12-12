@@ -3,6 +3,10 @@
 
   <xacro:macro name="drill_receptacle" params="name">
 
+    <material name="offwhite">
+      <color rgba="0.9 0.9 0.7 1"/>
+    </material>
+
     <link name="${name}">
       <contact>
         <rolling_friction value="0.005"/>
@@ -17,7 +21,7 @@
       <collision>
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <geometry>
-          <mesh filename="package://costar_simulation/urdf/drill/drill_receptacle.dae" scale="1 1 1"/>
+          <mesh filename="package://costar_simulation/urdf/drill/drill_receptacle.stl" scale="1 1 1"/>
         </geometry>
       </collision>
       <visual>
@@ -25,6 +29,7 @@
         <geometry>
           <mesh filename="package://costar_simulation/urdf/drill/drill)drill_receptacle.stl" scale="1 1 1"/>
         </geometry>
+        <material name="offwhite"/>
       </visual>
     </link>
   </xacro:macro>
