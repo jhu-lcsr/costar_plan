@@ -52,7 +52,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Layer and model configuration
         self.extra_layers = 1
-        self.use_spatial_softmax = True
+        self.use_spatial_softmax = False
         self.dense_representation = True
         if self.use_spatial_softmax and self.dense_representation:
             self.steps_down = 2
@@ -949,39 +949,21 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.state_decoder = state_decoder
         return state_decoder
 
-    def _makeMergeEncoder(self, rep_size):
+    def _makeMergeEncoder(self, img_shape, arm_shape, gripper_shape):
         '''
         Take input image and state information and encode them into a single
         hidden representation
         '''
-        image_input_shape = self.hidden_shape
-        state_input_shape = (128,)
-        rep_shape = (rep_size,)
+        img0_in = Input(img_shape,name="predictor_img0_in")
+        img_in = Input(img_shape,name="predictor_img_in")
+        option_in = Input((1,), name="predictor_option_in")
+ 
 
     def _makeMergeDecoder(self, rep_size):
         '''
         Take input state and image information projected into a latent space
         and decode them back into their appropriate output representations
         '''
-
-        # ---------------------------------------------------------------------
-        # Compute the state information and image information sizes for the 
-        # decoders
-        image_input_shape = self.hidden_shape
-        state_input_shape = (128,)
-        state_ouput_dim = state_input_shape[0]
-        h, w, c = image_input_shape
-
-        # Compute the actual size of the input 
-        rep_shape = (rep_size,)
-        if self.hypothesis_dropout:
-            dr = self.decoder_dropout_rate
-        else:
-            dr = 0.
-
-        # ---------------------------------------------------------------------
-        # Create the decoders
-        pass
 
     def _makeImageEncoder(self, img_shape, disc=False):
         '''
@@ -1005,24 +987,24 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = AddConv2D(x, 32, [5,5], 1, self.dropout_rate, "same", disc)
         x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate, "same", disc)
         x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, "same", disc)
-        #x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate, "same", disc)
         x = AddConv2D(x, 128, [5,5], 2, self.dropout_rate, "same", disc)
         self.encoder_channels = 16
         x = AddConv2D(x, self.encoder_channels, [1,1], 1, 0.*self.dropout_rate,
                 "same", disc)
 
-        #def _ssm(x):
-        #    return spatial_softmax(x)
-        #x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
-        
-        self.steps_down = 3
-        self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
-        self.tform_filters = self.encoder_channels
-        self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.tform_filters)
-        #self.hidden_shape = (self.encoder_channels*2,)
-        #x = Flatten()(x)
-        #x = AddDense(x, self.hidden_size, "relu", self.dropout_rate)
-        #self.hidden_shape = (self.hidden_size,)
+        if self.use_spatial_softmax and not disc:
+            def _ssm(x):
+                return spatial_softmax(x)
+            x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
+            self.hidden_shape = (self.encoder_channels*2,)
+            #x = AddDense(x, self.hidden_size, "relu", self.dropout_rate)
+            self.hidden_size = 2*self.encoder_channels
+            self.hidden_shape = (self.hidden_size,)
+        else:
+            self.steps_down = 3
+            self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
+            self.tform_filters = self.encoder_channels
+            self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.encoder_channels)
 
         if not disc:
             if self.skip_connections:
@@ -1048,22 +1030,30 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         -----------
         img_shape: shape of the image, e.g. (64,64,3)
         '''
-        rep = Input(hidden_shape,name="decoder_hidden_in")
+        if self.use_spatial_softmax:
+            rep = Input((self.hidden_size,),name="decoder_hidden_in")
+        else:
+            rep = Input(hidden_shape,name="decoder_hidden_in")
         if skip:
             skip1 = Input((32,32,32),name="decoder_skip_in_1")
-            skip2 = Input((16,16,32),name="decoder_skip_in_2")
-            skip3 = Input((8,8,32),name="decoder_skip_in_3")
+            #skip2 = Input((16,16,32),name="decoder_skip_in_2")
+            #skip3 = Input((8,8,32),name="decoder_skip_in_3")
         x = rep
         if self.hypothesis_dropout:
             dr = self.decoder_dropout_rate
         else:
             dr = 0.
-        #self.steps_up = 4
-        #self.hidden_dim = int(img_shape[0]/(2**self.steps_up))
-        #self.tform_filters = 256 #self.encoder_channels
-        #(h,w,c) = (self.hidden_dim,self.hidden_dim,self.tform_filters)
-        #x = AddDense(x, int(h*w*c), "linear", dr)
-        #x = Reshape((h,w,c))(x)
+        
+        if self.use_spatial_softmax:
+            self.steps_up = 3
+            hidden_dim = int(img_shape[0]/(2**self.steps_up))
+            self.tform_filters = 16 #self.encoder_channels
+            (h,w,c) = (hidden_dim,
+                       hidden_dim,
+                       self.tform_filters)
+            x = AddDense(x, int(h*w*c), "linear", dr)
+            x = Reshape((h,w,c))(x)
+
         #x = AddConv2DTranspose(x, 64, [5,5], 1, dr)
         x = AddConv2DTranspose(x, 128, [1,1], 1, 0.*dr)
         #x = AddConv2DTranspose(x, 64, [5,5], 2, dr)

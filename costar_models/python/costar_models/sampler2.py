@@ -36,9 +36,8 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         '''
         super(PredictionSampler2, self).__init__(taskdef, *args, **kwargs)
         self.rep_size = None
-        self.encoder_channels = 128
+        self.hidden_shape = (8,8,16)
         self.PredictorCb = ImageCb
-        self.skip_shape = (64,64,32)
 
     def _makeToHidden(self, img_shape, arm_size, gripper_size, rep_size):
         '''
@@ -65,18 +64,19 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             img_rep = self.image_encoder([img0_in, img_in])
         state_rep = self.state_encoder([arm_in, gripper_in, label_in])
         # Compress the size of the network
-        x = TileOnto(img_rep, state_rep, 64, [4,4])
-        x = AddConv2D(x, 64, [3,3], 1, self.dropout_rate, "same", False)
+        x = TileOnto(img_rep, state_rep, 64, [8,8])
+        x = AddConv2D(x, 128, [3,3], 1, self.dropout_rate, "same", False)
+        x = AddConv2D(x, 16, [1,1], 1, self.dropout_rate, "same", False)
         x = Flatten()(x)
-        self.rep_size = int(4 * 4 * 64)
-        #x = AddDense(x, self.rep_size, "relu", self.dropout_rate)
+        self.rep_size = int(8 * 8 * 16)
+        self.hidden_size = (8,8,16)
 
         if self.skip_connections:
             model = Model(ins, [x, skip_rep], name="encode_hidden_state")
         else:
             model = Model(ins, x, name="encode_hidden_state")
         model.compile(loss="mae", optimizer=self.getOptimizer())
-        model.summary()
+        #model.summary()
         self.hidden_encoder = model
         return model
 
@@ -91,20 +91,20 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         # ---------------------------------
         x = h
         #x = AddDense(x,self.rep_size,"relu",self.decoder_dropout_rate)
-        x = Reshape((ih,iw,64))(x)
-        x = AddConv2D(x, ic, [3,3], 1, self.decoder_dropout_rate, "same", False)
+        x = Reshape((ih,iw,16))(x)
         if self.skip_connections:
-            skip_in = Input(self.skip_shape)
+            skip_in = Input(self.skip_shape, name="skip_input_hd")
             ins = [x, skip_in]
             hidden_decoder_ins = [h, skip_in]
         else:
             ins = x
             hidden_decoder_ins = h
+
         img = self.image_decoder(ins)
-        self.state_decoder.summary()
-        arm, gripper, label = self.state_decoder(h)
+        #self.state_decoder.summary()
+        arm, gripper, label = self.state_decoder(x)
         model = Model(hidden_decoder_ins, [img, arm, gripper, label])
-        model.summary()
+        #model.summary()
         self.hidden_decoder = model
         return model
 
@@ -133,8 +133,8 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             decoder = self._makeImageDecoder(self.hidden_shape,self.skip_shape)
         else:
             decoder = self._makeImageDecoder(self.hidden_shape)
-        encoder.summary()
-        decoder.summary()
+        #encoder.summary()
+        #decoder.summary()
         decoder.load_weights(self._makeName(
             "pretrain_image_encoder_model",
             "image_decoder.h5f"))
@@ -376,3 +376,4 @@ class PredictionSampler2(RobotMultiPredictionSampler):
                 loss=["mae", "mae", "mae", "mae", "categorical_crossentropy",
                       "mae"],
                 optimizer=self.getOptimizer())
+
