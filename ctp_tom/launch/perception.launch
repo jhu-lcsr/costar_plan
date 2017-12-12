@@ -4,8 +4,8 @@
   <arg name="camera_name" default="camera" />
   <arg name="marker_size" default="4.5" />
   <arg name="start_alvar" default="true" />
-  <arg name="max_new_marker_error" default="0.02" />
-  <arg name="max_track_error" default="0.05" />
+  <arg name="max_new_marker_error" default="0.01" />
+  <arg name="max_track_error" default="0.02" />
   <arg name="start_static_handeye" default="true" />
   <arg name="auto_white_balance" default="true" />
   <arg name="auto_exposure" default="false" />

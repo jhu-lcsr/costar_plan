@@ -17,11 +17,11 @@ class RosTaskParser(TaskParser):
             self.fromFile(filename)
 
     def fromFile(self, filename):
-        bag = rosbag.Bag(filename)
+        bag = rosbag.Bag(filename, 'r')
         self.fromBag(bag)
 
-    def fromBag(self, filename):
-        for demo in self.demonstrations:
+    def fromBag(self, bag):
+        for topic, msg, t in bag:
             t = self._getTime(demo)
             objs = self._getObjects(demo)
             print(objs)
