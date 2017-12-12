@@ -105,6 +105,17 @@ class RosTaskParser(TaskParser):
         t = t.to_sec()
         return t
 
+    def finish(self):
+        '''
+        Create the task by:
+          - calling self.lfd.train() with the appropriate data
+          - constructing a task model based on transitions
+          - populating those transitions with the _getDmpArgs function
+
+        Resulting task plan can be compiled and visualized as normal.
+        '''
+        pass
+
     def _getObjects(self, demo):
         '''
         Read in the demonstration and update object knowledge for this specific
