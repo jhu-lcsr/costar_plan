@@ -39,7 +39,7 @@ class ActionInfo(object):
                 arm = ARM_BOTH
             else:
                 raise RuntimeError('activity parse failed: arm %s not understood'%arm)
-        if not arm in [ARM_LEFT, ARM_RIGHT, ARM_BOTH]:
+        elif not arm in [self.ARM_LEFT, self.ARM_RIGHT, self.ARM_BOTH]:
             raise RuntimeError('options are limited to LEFT, RIGHT, and BOTH.')
         self.arm = arm
         self.name = name

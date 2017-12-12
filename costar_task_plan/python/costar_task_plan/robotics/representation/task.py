@@ -4,6 +4,8 @@ from costar_task_plan.abstract.task_parser import TaskParser
 from costar_task_plan.abstract.task_parser import ObjectInfo
 from costar_task_plan.abstract.task_parser import ActionInfo
 
+from learning_planning_msgs.msg import HandInfo
+
 import tf_conversions.posemath as pm
 
 import rosbag
@@ -47,20 +49,24 @@ class RosTaskParser(TaskParser):
                 objs = self._getObjects(msg)
                 left = self._getHand(msg.left, ActionInfo.ARM_LEFT)
                 right = self._getHand(msg.right, ActionInfo.ARM_RIGHT)
+                print(left.name, right.name)
 
 
     def _getHand(self, msg, id):
         '''
         Get the robot hand and create all appropiate fields here
         '''
-        action_name = 
+        action_name = msg.activity
         obj_acted_on = msg.object_acted_on
         obj_in_gripper = msg.object_in_hand
         if obj_acted_on == HandInfo.NO_OBJECT:
             obj_acted_on = None
         if obj_in_gripper == HandInfo.NO_OBJECT:
             obj_in_gripper = None
-        # ---
+        pose = pm.fromMsg(msg.pose)
+        gripper_state = msg.gripper_state
+        return ActionInfo(id, action_name, obj_acted_on, obj_in_gripper, pose,
+                gripper_state)
 
     def _getTime(self, demo):
         t = demo.header.stamp
