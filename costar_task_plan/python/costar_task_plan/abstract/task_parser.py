@@ -7,7 +7,22 @@ from learning_planning_msgs.msg import DemonstrationInfo
 NAME_STYLE_UNIQUE = 0
 NAME_STYLE_SAME = 1
 
+'''
+ObjectInfo
+Describe world observations of objects
+'''
 ObjectInfo = named_tuple('pose','obj_class', 'id', 'name')
+
+'''
+ActionInfo
+Store information about what action was being performed.
+'''
+ARM_LEFT = 0
+ARM_RIGHT = 1
+ARM_BOTH = 2
+ARM_POSES = [1, 1, 2]
+ActionInfo = named_tuple('arm', 'name', 'object_acted_on', 'object_in_hand', 'poses')
+
 
 class TaskParser(object):
 
@@ -29,7 +44,7 @@ class TaskParser(object):
     def addObject(self, object, object_class):
         self.object_classes.add(ob
 
-    def addDemonstration(self, ):
+    def addDemonstration(self, t, objs, actions):
 
 def GenerateTaskModelFromMessages(task_info, demonstrations, OptionType):
     '''

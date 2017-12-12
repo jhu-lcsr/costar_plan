@@ -2,6 +2,7 @@ from __future__ import print_function
 
 from costar_task_plan.abstract.task_parser import TaskParser
 from costar_task_plan.abstract.task_parser import ObjectInfo
+from costar_task_plan.abstract.task_parser import ActionInfo
 
 import tf_conversions.posemath as pm
 
