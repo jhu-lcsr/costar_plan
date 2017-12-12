@@ -9,6 +9,7 @@ Panels:
         - /TF1/Frames1
         - /PlanningScene1/Scene Robot1
         - /table model1
+        - /drill receptacle model1/Status1
       Splitter Ratio: 0.5
     Tree Height: 339
   - Class: rviz/Selection
@@ -82,9 +83,9 @@ Visualization Manager:
           Value: true
         ar_marker_2:
           Value: true
-        ar_marker_4:
+        ar_marker_3:
           Value: true
-        ar_marker_5:
+        ar_marker_4:
           Value: true
         ar_marker_6:
           Value: true
@@ -93,8 +94,6 @@ Visualization Manager:
         base_footprint:
           Value: true
         base_link:
-          Value: true
-        block_1:
           Value: true
         block_2:
           Value: true
@@ -238,15 +237,13 @@ Visualization Manager:
                         {}
                       ar_marker_2:
                         {}
-                      ar_marker_4:
+                      ar_marker_3:
                         {}
-                      ar_marker_5:
+                      ar_marker_4:
                         {}
                       ar_marker_6:
                         {}
                       ar_marker_8:
-                        {}
-                      block_1:
                         {}
                       block_2:
                         {}
@@ -1207,6 +1204,38 @@ Visualization Manager:
       Update Interval: 0
       Value: true
       Visual Enabled: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+      Name: drill model
+      Robot Description: drill_description
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+      Name: drill receptacle model
+      Robot Description: drill_receptacle_description
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -1231,7 +1260,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.4510622
+      Distance: 2.06282759
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
@@ -1246,10 +1275,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.544796109
+      Pitch: 0.554795742
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.04721689
+      Yaw: 1.71721649
     Saved: ~
 Window Geometry:
   Depth:

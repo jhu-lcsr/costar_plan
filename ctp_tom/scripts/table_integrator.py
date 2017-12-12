@@ -69,6 +69,21 @@ if __name__ == '__main__':
             kdl.Vector(center, center, -0.205/2))
     box_integrator.addTransform("ar_marker_8", offset8)
 
+
+    # Create drill integrator.
+    drill_integrator = TransformIntegator(
+            "drill",
+            "camera_rgb_optical_frame",
+                history_length=3,
+                listener=integrator.listener,
+            broadcaster=integrator.broadcaster,
+            offset=kdl.Frame())
+    offset_drill = (kdl.Frame(
+            kdl.Rotation.RotY(-np.pi),
+            kdl.Vector(0, 0, -0.155)) *
+            kdl.Frame(kdl.Rotation.RotZ(-np.pi/2)))
+    drill_integrator.addTransform("ar_marker_2", offset_drill)
+
     # Publish collision objects for all things in the scene.
     manager = CollisionObjectManager(
             root="odom_combined",
@@ -89,6 +104,7 @@ if __name__ == '__main__':
         block_1_integrator.tick()
         block_2_integrator.tick()
         box_integrator.tick()
+        drill_integrator.tick()
         manager.tick()
         rate.sleep()
 
