@@ -6,10 +6,9 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-        - /TF1
         - /TF1/Frames1
-        - /MarkerArray1
         - /PlanningScene1/Scene Robot1
+        - /table model1
       Splitter Ratio: 0.5
     Tree Height: 339
   - Class: rviz/Selection
@@ -77,9 +76,29 @@ Visualization Manager:
           Value: true
         ICS_logo_grey_link:
           Value: true
+        ar_marker_0:
+          Value: true
+        ar_marker_1:
+          Value: true
+        ar_marker_2:
+          Value: true
+        ar_marker_4:
+          Value: true
+        ar_marker_5:
+          Value: true
+        ar_marker_6:
+          Value: true
+        ar_marker_8:
+          Value: true
         base_footprint:
           Value: true
         base_link:
+          Value: true
+        block_1:
+          Value: true
+        block_2:
+          Value: true
+        box:
           Value: true
         camera_depth_frame:
           Value: true
@@ -131,6 +150,8 @@ Visualization Manager:
           Value: true
         l_wrist_3_link:
           Value: true
+        odom_combined:
+          Value: true
         r_base_link:
           Value: true
         r_ee_link:
@@ -175,6 +196,8 @@ Visualization Manager:
           Value: true
         tom_left_camera_link:
           Value: true
+        tom_table:
+          Value: true
         torso_link:
           Value: true
       Marker Scale: 0.200000003
@@ -183,88 +206,102 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        base_footprint:
-          base_link:
-            ICS_logo_blue_link:
-              {}
-            ICS_logo_grey_link:
-              {}
-            front_laser_scanner_link:
-              {}
-            l_front_wheel_link:
-              {}
-            l_rear_wheel_link:
-              {}
-            r_front_wheel_link:
-              {}
-            r_rear_wheel_link:
-              {}
-            rear_laser_scanner_link:
-              {}
-            torso_link:
-              camera_link:
-                camera_depth_frame:
-                  camera_depth_optical_frame:
-                    {}
-                camera_rgb_frame:
-                  camera_rgb_optical_frame:
-                    {}
-              l_base_link:
-                l_shoulder_link:
-                  l_upper_arm_link:
-                    l_forearm_link:
-                      l_wrist_1_link:
-                        l_wrist_2_link:
-                          l_wrist_3_link:
-                            l_ee_link:
-                              l_hand_base_adapter_link:
-                                l_gripper_base_link:
-                                  l_gripper_left_finger_base_link:
-                                    l_gripper_left_finger_link:
-                                      {}
-                                  l_gripper_mid_finger_base_link:
-                                    l_gripper_mid_finger_link:
-                                      {}
-                                  l_gripper_palm_link:
-                                    {}
-                                  l_gripper_right_finger_base_link:
-                                    l_gripper_right_finger_link:
-                                      {}
-              r_base_link:
-                r_shoulder_link:
-                  r_upper_arm_link:
-                    r_forearm_link:
-                      r_wrist_1_link:
-                        r_wrist_2_link:
-                          r_wrist_3_link:
-                            r_ee_link:
-                              r_hand_base_adapter_link:
-                                r_gripper_base_link:
-                                  r_gripper_left_finger_base_link:
-                                    r_gripper_left_finger_link:
-                                      {}
-                                  r_gripper_mid_finger_base_link:
-                                    r_gripper_mid_finger_link:
-                                      {}
-                                  r_gripper_palm_link:
-                                    {}
-                                  r_gripper_right_finger_base_link:
-                                    r_gripper_right_finger_link:
-                                      {}
-              tom_head_link:
+        odom_combined:
+          base_footprint:
+            base_link:
+              ICS_logo_blue_link:
                 {}
-              tom_left_camera_link:
+              ICS_logo_grey_link:
                 {}
+              front_laser_scanner_link:
+                {}
+              l_front_wheel_link:
+                {}
+              l_rear_wheel_link:
+                {}
+              r_front_wheel_link:
+                {}
+              r_rear_wheel_link:
+                {}
+              rear_laser_scanner_link:
+                {}
+              torso_link:
+                camera_link:
+                  camera_depth_frame:
+                    camera_depth_optical_frame:
+                      {}
+                  camera_rgb_frame:
+                    camera_rgb_optical_frame:
+                      ar_marker_0:
+                        {}
+                      ar_marker_1:
+                        {}
+                      ar_marker_2:
+                        {}
+                      ar_marker_4:
+                        {}
+                      ar_marker_5:
+                        {}
+                      ar_marker_6:
+                        {}
+                      ar_marker_8:
+                        {}
+                      block_1:
+                        {}
+                      block_2:
+                        {}
+                      box:
+                        {}
+                      tom_table:
+                        {}
+                l_base_link:
+                  l_shoulder_link:
+                    l_upper_arm_link:
+                      l_forearm_link:
+                        l_wrist_1_link:
+                          l_wrist_2_link:
+                            l_wrist_3_link:
+                              l_ee_link:
+                                l_hand_base_adapter_link:
+                                  l_gripper_base_link:
+                                    l_gripper_left_finger_base_link:
+                                      l_gripper_left_finger_link:
+                                        {}
+                                    l_gripper_mid_finger_base_link:
+                                      l_gripper_mid_finger_link:
+                                        {}
+                                    l_gripper_palm_link:
+                                      {}
+                                    l_gripper_right_finger_base_link:
+                                      l_gripper_right_finger_link:
+                                        {}
+                r_base_link:
+                  r_shoulder_link:
+                    r_upper_arm_link:
+                      r_forearm_link:
+                        r_wrist_1_link:
+                          r_wrist_2_link:
+                            r_wrist_3_link:
+                              r_ee_link:
+                                r_hand_base_adapter_link:
+                                  r_gripper_base_link:
+                                    r_gripper_left_finger_base_link:
+                                      r_gripper_left_finger_link:
+                                        {}
+                                    r_gripper_mid_finger_base_link:
+                                      r_gripper_mid_finger_link:
+                                        {}
+                                    r_gripper_palm_link:
+                                      {}
+                                    r_gripper_right_finger_base_link:
+                                      r_gripper_right_finger_link:
+                                        {}
+                tom_head_link:
+                  {}
+                tom_left_camera_link:
+                  {}
       Update Interval: 0
       Value: true
-    - Class: rviz/MarkerArray
-      Enabled: false
-      Marker Topic: visualization_marker_array
-      Name: MarkerArray
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: false
     - Alpha: 1
       Arrow Width: 0.5
       Class: rviz/WrenchStamped
@@ -661,21 +698,21 @@ Visualization Manager:
         TextHeight: 0.0799999982
       Planning Request:
         Colliding Link Color: 255; 0; 0
-        Goal State Alpha: 1
+        Goal State Alpha: 0.25
         Goal State Color: 250; 128; 0
         Interactive Marker Size: 0
         Joint Violation Color: 255; 0; 255
         Planning Group: base_group
-        Query Goal State: true
+        Query Goal State: false
         Query Start State: false
         Show Workspace: false
-        Start State Alpha: 1
+        Start State Alpha: 0.25
         Start State Color: 0; 255; 0
       Planning Scene Topic: move_group/monitored_planning_scene
       Robot Description: robot_description
       Scene Geometry:
-        Scene Alpha: 0.899999976
-        Scene Color: 50; 230; 50
+        Scene Alpha: 0.5
+        Scene Color: 170; 85; 0
         Scene Display Time: 0.200000003
         Show Scene Geometry: true
         Voxel Coloring: Z-Axis
@@ -1086,6 +1123,90 @@ Visualization Manager:
       Transport Hint: raw
       Unreliable: false
       Value: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        tom_table:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Name: table model
+      Robot Description: table_description
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        block_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Name: block 1 model
+      Robot Description: block1_description
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        block_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Name: block 2 model
+      Robot Description: block2_description
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        box:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Name: box model
+      Robot Description: box_description
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -1110,7 +1231,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 2.29866552
+      Distance: 1.4510622
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
@@ -1122,12 +1243,13 @@ Visualization Manager:
         Z: 0.336553991
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.0500000007
+      Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.33979696
+      Pitch: 0.544796109
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.69221151
+      Yaw: 1.04721689
     Saved: ~
 Window Geometry:
   Depth:

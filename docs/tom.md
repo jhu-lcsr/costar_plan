@@ -3,6 +3,10 @@
 
 The TOM examples require the [TOM Robot package](https://github.com/cpaxton/tom_robot) to execute.
 
+  - Installing Dependencies
+  - Real Robot Setup
+  - One-Arm Orange Tests
+
 ## Installing Dependencies
 
 When using the real robot, we assume that you have access to a working version of the full [CoSTAR stack](https://github.com/cpaxton/costar_stack/). This contains perception code, data collection tools, et cetera, for running a robot and using our custom UI and other tools. You will not need all of this for TOM, so certain features can be freely disabled.
@@ -16,9 +20,27 @@ There is a prototype installation script, `install_tom.sh`, which should install
   - `robotiq_s_model_articulated_gazebo_plugins` does not support Gazebo 7
   - `sp_segmenter` requires opencv 2
 
+## Real Robot Setup
+
+There are a few different pieces that need to start up:
+  - the planning context
+  - the perception backend, including the Alvar AR tracker
+  - the planner itself
+
+You can start up the context and perception systems with the command:
+```
+roslaunch ctp_tom planning.launch
+```
+
+By default, the `real:=true` option is set. We also plan on supporting a fake version which creates a scene based on fixed TF poses. This does not simulate object interactions or anything fancy like that.
+
+For more information, see the [real TOM guide](tom_real_robot.md).
+
 ## One-Arm Orange Tests
 
-## Downloading Dataset
+These are the "old" experiments, and may not work all that well any more.
+
+### Downloading Dataset
 
 The first dataset we have consists of a set of demonstrations of TOM picking and moving an "orange" from one place to another. These files are all available on Dropbox:
 ```
@@ -27,12 +49,12 @@ https://www.dropbox.com/sh/jucd681430959t2/AACGdPQp3z24VineOrYJSK4na?dl=0
 
 Just download them and unpack into whatever location makes sense for you. You'll be running the CTP tool from the directory root after unpacking these data files.
 
-## Getting started
+### Getting started
 
-Run the TOM simulator and server. This takes in joint positions and will move the arm to those positions:
+Run the simple TOM simulator and server. This takes in joint positions and will move the arm to those positions:
 
 ```
-roslaunch costar_task_plan tom.launch
+roslaunch costar_task_plan simple_sim.launch
 ```
 
 Then move into your data directory:
@@ -73,7 +95,7 @@ We should see a trajectory appear, and output like:
 === open ===
 ```
 
-## Execution
+### Execution
 
 You can then execute with the command:
 

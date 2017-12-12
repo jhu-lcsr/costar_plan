@@ -1,4 +1,13 @@
 <launch>
+  <!-- Core bringup script for TOM/CTP.
+
+       Starts:
+       - perception
+       - planning scene
+       - CTP planner
+
+       -->
+
   <!-- Perception parameter defaults -->
   <arg name="real" default="true" doc="(boolean) is this a real robot or will gazebo provide simulated data?"/>
   <arg name="depth_registration" default="true" />
@@ -9,7 +18,11 @@
   <arg name="max_track_error" default="0.05" />
   <arg name="start_static_handeye" default="true" />
   <arg name="auto_white_balance" default="true" />
-  <arg name="auto_exposure" default="true" />
+
+  <!-- Note: auto exposure on results in very ugly point clouds; it tends to 
+       white out many surfaces. Disable this for best results. -->
+  <arg name="auto_exposure" default="false" />
+  <arg name="stationary" default="true" />
 
   <!-- Visualization bringup -->
   <arg name="rviz" default="true"/>
@@ -45,9 +58,16 @@
     type="rviz"
     args="-d $(arg rviz_config)" />
 
+  <!-- Stationary robot or not -->
+  <node if="$(arg stationary)"
+    pkg="tf"
+    type="static_transform_publisher"
+    name="virtual_joint_broadcaster_0vis"
+    args="0 0 0 0 0 0 odom_combined base_footprint 50" />
+
   <!-- start up the DMP server -->
-  <include file="$(find dmp)/launch/dmp.launch"/>
-  
+  <include file="$(find dmp)/launch/dmp.launch" />
+
   <!-- Given the published joint states, publish tf for the robot links -->
   <node name="robot_state_publishervis"
     pkg="robot_state_publisher"
@@ -60,7 +80,7 @@
 
   <node name="joint_state_publishervis" pkg="joint_state_publisher" type="joint_state_publisher" unless="$(arg slave)">
     <param name="/use_gui" value="$(arg joint_state_gui)"/> 
-   	<rosparam param="source_list">[right_arm_joint_states, left_arm_joint_states, right_fingers_joint_states, left_fingers_joint_states, base_group_joint_states]</rosparam>
+    <rosparam param="source_list">[right_arm_joint_states, left_arm_joint_states, right_fingers_joint_states, left_fingers_joint_states, base_group_joint_states]</rosparam>
   </node>
 
   <!-- Load the URDF, SRDF and other .yaml configuration files on the param server -->

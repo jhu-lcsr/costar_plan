@@ -1,0 +1,6 @@
+<?xml version="0.0" ?>
+<robot name="drill" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:include filename="$(find costar_simulation)/urdf/drill/drill.xacro"/>
+  <xacro:drill name="drill"/>
+</robot>
+

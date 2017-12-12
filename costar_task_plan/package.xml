@@ -60,6 +60,8 @@
   <build_depend>sensor_msgs</build_depend>
   <build_depend>orocos_kdl</build_depend>
   <build_depend>kdl_parser</build_depend>
+  <build_depend>learning_planning_msgs</build_depend>
+  <build_depend>urdfdom_py</build_depend>
 
   <run_depend>costar_models</run_depend>
   <run_depend>costar_plan_msgs</run_depend>
@@ -77,11 +79,12 @@
   <run_depend>sensor_msgs</run_depend>
   <run_depend>orocos_kdl</run_depend>
   <run_depend>kdl_parser</run_depend>
+  <run_depend>learning_planning_msgs</run_depend>
+  <run_depend>urdfdom_py</run_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <!-- Other tools can request additional information be placed here -->
-
   </export>
 </package>
