@@ -97,8 +97,6 @@ if __name__ == '__main__':
             kdl.Vector(0.08, 0, -0.045)) *
             kdl.Frame(kdl.Rotation.RotZ(np.pi)))
     drill_receptacle_integrator.addTransform("ar_marker_3", offset_dr)
-    
-
 
     # Publish collision objects for all things in the scene.
     manager = CollisionObjectManager(
@@ -109,6 +107,8 @@ if __name__ == '__main__':
     manager.addUrdf("block_3", "/block1_description", "block_3")
     manager.addUrdf("tom_table", "/table_description", "tom_table")
     manager.addUrdf("box", "/box_description", "box")
+    manager.addUrdf("drill", "/drill_description", "drill")
+    manager.addUrdf("drill_receptacle", "/drill_receptacle_description", "drill_receptacle")
 
     # Add in a short delay to let TF buffer
     rospy.sleep(1.0)
