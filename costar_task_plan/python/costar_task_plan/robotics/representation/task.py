@@ -10,7 +10,7 @@ import rosbag
 class RosTaskParser(TaskParser):
 
     def __init__(self, *args, **kwargs):
-        super(RosTaskParser, self).__init__(*args,**kwargs):
+        super(RosTaskParser, self).__init__(*args,**kwargs)
         self.ignore = ["NONE"]
 
     def fromFile(self, filename):
@@ -21,7 +21,7 @@ class RosTaskParser(TaskParser):
         for demo in self.demonstrations:
             t = self._getTime(demo)
             objs = self._getObjects(demo)
-            action = demo.
+            print(objs)
 
     def _getTime(self, time):
         t = demo.header.stamp
