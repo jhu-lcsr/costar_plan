@@ -2,6 +2,14 @@
 from learning_planning_msgs.msg import TaskInfo
 from learning_planning_msgs.msg import DemonstrationInfo
 
+
+class TaskModelParser(object):
+
+    def __init__(self):
+        transitions = {}
+
+    def addDemonstration(self, ):
+
 def GenerateTaskModelFromMessages(task_info, demonstrations, OptionType):
     '''
     Read through message data and use it to generate a task model.
