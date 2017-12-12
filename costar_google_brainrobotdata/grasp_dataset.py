@@ -1224,7 +1224,7 @@ class GraspDataset(object):
 
             # if features aren't supplied by the user (for performance reasons) generate them here
             if image_features is None:
-                features = [feature for (feature, tf_op) in iteritems(feature_op_dict)]
+                features = [feature for (feature, tf_op) in six.iteritems(feature_op_dict)]
                 image_features = GraspDataset.get_time_ordered_features(features, '/image/decoded')
                 image_features.extend(GraspDataset.get_time_ordered_features(features, 'depth_image/decoded'))
                 image_features.extend(GraspDataset.get_time_ordered_features(features, 'xyz_image/decoded'))
