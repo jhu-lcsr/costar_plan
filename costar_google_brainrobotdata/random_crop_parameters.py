@@ -43,7 +43,7 @@ def random_crop_offset(input_shape, output_shape, seed=None, name=None):
     return offset
 
 
-def crop_images(image_list, offset, size, name=None):
+def crop_images(image_list, offset, size, name=None, verbose=0):
     """ Crop color image and depth image to specified offset and size.
 
         random_crop_offset() can be utilized to generate the offset parameter.
@@ -68,8 +68,9 @@ def crop_images(image_list, offset, size, name=None):
             size = ops.convert_to_tensor(size, dtype=dtypes.int32, name="size")
             image_list = ops.convert_to_tensor(image_list, name="image")
             offset = ops.convert_to_tensor(offset, dtype=dtypes.int32, name="offset")
-            print("crop_images offset:", offset, 'size', size, 'img_list_shape', image_list.shape)
-            offset = tf.Print(offset, [offset, size, image_list.shape])
+            if verbose > 0:
+                print("crop_images offset:", offset, 'size', size, 'img_list_shape', image_list.shape)
+                offset = tf.Print(offset, [offset, size, image_list.shape])
             cropped_image_list = array_ops.slice(
                 image_list, offset, size, name=name)
 
