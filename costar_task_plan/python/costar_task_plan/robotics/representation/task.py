@@ -45,6 +45,22 @@ class RosTaskParser(TaskParser):
                 # Demo topic: read object information and add
                 t = self._getTime(msg)
                 objs = self._getObjects(msg)
+                left = self._getHand(msg.left, ActionInfo.ARM_LEFT)
+                right = self._getHand(msg.right, ActionInfo.ARM_RIGHT)
+
+
+    def _getHand(self, msg, id):
+        '''
+        Get the robot hand and create all appropiate fields here
+        '''
+        action_name = 
+        obj_acted_on = msg.object_acted_on
+        obj_in_gripper = msg.object_in_hand
+        if obj_acted_on == HandInfo.NO_OBJECT:
+            obj_acted_on = None
+        if obj_in_gripper == HandInfo.NO_OBJECT:
+            obj_in_gripper = None
+        # ---
 
     def _getTime(self, demo):
         t = demo.header.stamp

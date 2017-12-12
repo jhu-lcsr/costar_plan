@@ -28,7 +28,8 @@ class ActionInfo(object):
     ARM_RIGHT = 1
     ARM_BOTH = 2
     ARM_POSES = [1, 1, 2]
-    def __init__(self, arm, name, object_acted_on, object_in_hand, poses):
+    def __init__(self, arm, name, object_acted_on, object_in_hand, pose,
+            gripper_state):
         if isinstance(arm, str):
             if arm.lower() == "left":
                 arm = ARM_LEFT
@@ -45,7 +46,7 @@ class ActionInfo(object):
         self.full_name = None
         self.object_acted_on = object_acted_on
         self.object_in_hand = object_in_hand
-        self.poses = poses
+        self.pose = pose
 
 
     def computeName(self, name_style):
