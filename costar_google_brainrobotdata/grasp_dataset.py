@@ -887,7 +887,7 @@ class GraspDataset(object):
                      # return type data formats to expect
                     [tf.float32] * 14,
                     # TODO(ahundt) set stateful=False once bugs are fixed
-                    stateful=True, name='py_func/grasp_dataset_to_transforms_and_features')
+                    stateful=False, name='py_func/grasp_dataset_to_transforms_and_features')
 
                 # define pixel image coordinate as an integer type
                 image_coordinate_current = tf.cast(image_coordinate_current, tf.int32)
@@ -1076,18 +1076,21 @@ class GraspDataset(object):
         return dict_and_feature_tuple_list, features_complete_list, feature_count, attempt_count
 
     @staticmethod
-    def _image_decode(feature_op_dict, sensor_image_dimensions=None, image_features=None):
+    def _image_decode(feature_op_dict, sensor_image_dimensions=None, image_features=None, point_cloud_fn='numpy'):
         """Add features to dict that supply decoded png and jpeg images for any encoded images present.
         Any feature path that is 'image/encoded' will also now have 'image/decoded', and 'image/xyz' when
         both 'depthimage/endoced' and 'camera/intrinsics/matrix33' are in the dictionary.
 
-        # Params
+        # Arguments
 
             feature_op_dict: dictionary of strings to fixed feature tensors.
             sensor_image_dimensions: [batch, height, width, channels], defaults to
                 [1, FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels]
             image_features: list of image feature strings to modify, generated automatically if not supplied,
                 improves performance.
+            point_cloud_fn: Choose the function to convert depth images to point clouds. 'numpy' calls
+                grasp_geometry.depth_image_to_point_cloud(). 'tensorflow' calls
+                grasp_geometry_tf.depth_image_to_point_cloud().
 
         # Returns
 
@@ -1127,18 +1130,28 @@ class GraspDataset(object):
                         image = image / RGB_SCALE_FACTOR
                         image.set_shape([height, width])
                         # depth images have one channel
-                        image = tf.reshape(image, [height, width, 1])
                         print('depth image:', image)
                         if 'camera/intrinsics/matrix33' in feature_op_dict:
                             with tf.name_scope('xyz'):
                                 # generate xyz point cloud image feature
-                                xyz_image = grasp_geometry_tf.depth_image_to_point_cloud(image, feature_op_dict['camera/intrinsics/matrix33'])
+                                if point_cloud_fn == 'tensorflow':
+                                    # should be more efficient than the numpy version
+                                    xyz_image = grasp_geometry_tf.depth_image_to_point_cloud(image, feature_op_dict['camera/intrinsics/matrix33'])
+                                else:
+                                    [xyz_image] = tf.py_func(
+                                        grasp_geometry.depth_image_to_point_cloud,
+                                        # parameters for function call
+                                        [image, feature_op_dict['camera/intrinsics/matrix33']],
+                                        [tf.float32],
+                                        stateful=False, name='py_func/depth_image_to_point_cloud'
+                                    )
                                 xyz_image.set_shape([height, width, 3])
                                 xyz_image = tf.reshape(xyz_image, [height, width, 3])
                                 xyz_feature = image_feature.replace('depth_image/encoded', 'xyz_image/decoded')
                                 feature_op_dict[xyz_feature] = xyz_image
                                 new_feature_list = np.append(new_feature_list, xyz_feature)
                                 print('xyz_image:', xyz_image)
+                        image = tf.reshape(image, [height, width, 1])
                 else:
                     with tf.name_scope('rgb'):
                         image = tf.image.decode_jpeg(image_buffer, channels=sensor_image_dimensions[-1])
