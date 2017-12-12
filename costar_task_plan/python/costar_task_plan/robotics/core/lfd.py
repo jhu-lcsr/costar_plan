@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 # By Chris Paxton
 # (c) 2017 The Johns Hopkins University
 # See License for more details
@@ -77,10 +79,10 @@ class LfD(object):
         Generate DMPs and GMMs associated with different labeled actions.
         '''
 
-        print "Training:"
+        print("Training:")
         for name, trajs in self.world.trajectories.items():
 
-            print "training skill", name
+            print(" > Training skill", name)
 
             self.pubs[name] = rospy.Publisher(
                 join('costar', 'lfd', name), PoseArray, queue_size=1000)
@@ -120,9 +122,9 @@ class LfD(object):
             if name in self.skill_features:
                 self.skill_models[name] = GMM(
                     self.config['gmm_k'], self.skill_features[name])
-                print "> Skill", name, "extracted with dataset of shape", self.skill_features[name].shape, "k = ", self.config['gmm_k']
+                print( "> Skill", name, "extracted with dataset of shape", self.skill_features[name].shape, "k = ", self.config['gmm_k'])
             else:
-                print " ... skipping skill", name, "(no data)"
+                print(" ... skipping skill", name, "(no data)")
 
         return self.skill_models
 
@@ -238,7 +240,7 @@ class LfD(object):
         skill_filename = os.path.join(project_name, "skills.yml")
         skills = yaml_load(skill_filename)
         for name, count in skills.items():
-            print "Loading skill %s/%s - %d examples"%(project_name, name, count)
+            print("Loading skill %s/%s - %d examples"%(project_name, name, count))
 
             # For debugging only
             if name not in self.pubs:

@@ -10,10 +10,25 @@ import rosbag
 
 class RosTaskParser(TaskParser):
 
-    def __init__(self, filename=None, *args, **kwargs):
+    def __init__(self,
+            filename=None,
+            demo_topic="demonstration",
+            *args, **kwargs):
+        '''
+        Create the ROS version of the task parser -- represents a given task
+        as a set of DMPs of various sorts.
+
+        There are a couple frames that we ignore by default: the "NONE" object,
+        the "surveillance camera" that represents a view of the scene, and
+        possibly others in the future.
+
+        Parameters:
+        -----------
+        filename: name of the bag file to load when parsing messages
+        '''
         super(RosTaskParser, self).__init__(*args,**kwargs)
-        self.ignore = ["NONE"]
-        self.demo_topic = "/vr/learning/getDemonstrationInfo"
+        self.ignore = ["NONE","none","surveillance_camera"]
+        self.demo_topic = demo_topic
         if filename is not None:
             self.fromFile(filename)
 
@@ -22,14 +37,17 @@ class RosTaskParser(TaskParser):
         self.fromBag(bag)
 
     def fromBag(self, bag):
-        for topic, msg, t in bag:
-            t = self._getTime(demo)
-            objs = self._getObjects(demo)
-            print(objs)
+        for topic, msg, _ in bag:
+            # We do not trust the timestamps associated with the bag since
+            # these may be written separately from when the data was actually
+            # collected.
+            if topic == self.demo_topic:
+                # Demo topic: read object information and add
+                t = self._getTime(msg)
+                objs = self._getObjects(msg)
 
-    def _getTime(self, time):
+    def _getTime(self, demo):
         t = demo.header.stamp
-        print(t)
         t = t.to_sec()
         return t
 
@@ -44,6 +62,9 @@ class RosTaskParser(TaskParser):
         '''
         objs = []
         for obj in demo.object:
+
+            if obj.object_class in self.ignore:
+                continue
 
             pose = pm.fromMsg(obj.pose)
             objs.append(
