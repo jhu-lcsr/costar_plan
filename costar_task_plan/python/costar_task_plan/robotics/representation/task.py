@@ -55,6 +55,8 @@ class RosTaskParser(TaskParser):
                 left = self._getHand(msg.left, ActionInfo.ARM_LEFT)
                 right = self._getHand(msg.right, ActionInfo.ARM_RIGHT)
                 self.addDemonstration(t, objs, [left, right])
+        print(self.transitions)
+        print(self.transition_counts)
 
 
     def _getHand(self, msg, id):

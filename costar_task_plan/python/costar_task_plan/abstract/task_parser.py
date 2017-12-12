@@ -66,6 +66,7 @@ class TaskParser(object):
         time, and will parse all the necessary information to create a 
         particular object.
         '''
+        self.transition_counts = {}
         self.transitions = {}
         self.object_classes = set()
         self.objects_by_class = {}
@@ -99,15 +100,49 @@ class TaskParser(object):
 
     def resetDemonstration(self):
         self.prev = None
+        self.prev_t = None
         self.action_start_t = None
 
+    def _addTransition(self, from_action, to_action):
+        '''
+        Helper function to populate helper data structures storing transition
+        information.
+
+        Parameters:
+        ----------
+        from_action: action/activity that we just executed/finished
+        to_action: action/activity that we just began
+        '''
+        key = (from_action, to_action)
+        if not from_action in self.transitions:
+            self.transitions[from_action] = set()
+        self.transitions[from_action].add(to_action)
+        if key not in self.transition_counts:
+            self.transition_counts[key] = 0
+        self.transition_counts[key] += 1
+
     def addDemonstration(self, t, objs, actions):
+
+        '''
+        Call this to parse a single time step. This assumes you have properly
+        called resetDemonstration() above.
+        '''
+
+        if self.prev_t is not None:
+            # Trigger a sanity check to make sure we do not have any weird jumps in our file.
+            dt = abs(self.prev_t - t)
+            if dt > 1:
+                print("WARNING: large time jump from %f to %f; did you reset between demonstrations?"%(self.action_start_t,t))
+
         # in order - all actions specified
         for action in actions:
             name = self._getActionName(action)
             if not self.prev == name:
                 self.action_start_t = t
+                if self.prev is not None and name is not None:
+                    self._addTransition(self.prev, name)
             if name is not None:
                 print(name, self.prev, t - self.action_start_t, action.arm)
             self.prev = name
+            self.prev_t = t
             
