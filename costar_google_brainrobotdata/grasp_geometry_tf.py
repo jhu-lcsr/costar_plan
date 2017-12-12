@@ -59,10 +59,12 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix, dtype=tf.float32):
         x, y = tf.meshgrid(tf.range(0, depth_shape_tensor[0]),
                            tf.range(0, depth_shape_tensor[1]),
                            indexing='ij')
-        x = tf.to_float(tf.expand_dims(x, axis=-1))
-        y = tf.to_float(tf.expand_dims(y, axis=-1))
-        X = (x - center_x) * depth / fx
-        Y = (y - center_y) * depth / fy
+
+        x = tf.to_float(K.flatten(x))
+        y = tf.to_float(K.flatten(y))
+        depth = K.flatten(depth)
+        X = tf.multiply((x - center_x), depth) / fx
+        Y = tf.multiply((y - center_y), depth) / fy
 
         XYZ = tf.stack([K.flatten(X), K.flatten(Y), K.flatten(depth)])
         XYZ = K.reshape(XYZ, [depth_shape_tensor[0], depth_shape_tensor[1], 3])
