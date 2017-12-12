@@ -94,9 +94,9 @@ class TaskParser(object):
             return action.base_name
         elif self.action_naming_style == NAME_STYLE_UNIQUE:
             if action.object_acted_on is not None:
-                return "%s(%s)"%(action.base_name, action.object_acted_on)
+                return "%s_%s"%(action.base_name, action.object_acted_on)
             else:
-                return "%s()"%(action.base_name)
+                return "%s"%(action.base_name)
 
     def resetDemonstration(self):
         self.prev = None

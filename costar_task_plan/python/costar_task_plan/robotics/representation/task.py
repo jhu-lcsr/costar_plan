@@ -58,6 +58,29 @@ class RosTaskParser(TaskParser):
         print(self.transitions)
         print(self.transition_counts)
 
+    def _getDmpArgs(self, lfd, obj):
+        '''
+        Get the args for a DMP option for creating a task graph
+        
+        Parameters:
+        -----------
+        lfd: "learning from demonstration" manager containing learned actions
+        obj: object class for manipulation goal (or None for relative)
+        '''
+        dmp_maker = lambda goal: DmpOption(
+                goal=goal,
+                config=TOM_RIGHT_CONFIG,
+                skill_name=skill_name,
+                feature_model=lfd.skill_models[skill_name],
+                kinematics=lfd.kdl_kin,
+                traj_dist=lfd.getParamDistribution(skill_name),
+                policy_type=CartesianDmpPolicy)
+
+        return {
+                "constructor": dmp_maker,
+                "args": [obj],
+                "remap": {obj: "goal"},
+                }
 
     def _getHand(self, msg, id):
         '''
@@ -67,10 +90,10 @@ class RosTaskParser(TaskParser):
         obj_acted_on = msg.object_acted_on
         obj_in_gripper = msg.object_in_hand
         if (obj_acted_on == HandInfo.NO_OBJECT
-            or obj_in_gripper in self.ignore):
+                or obj_in_gripper in self.ignore):
             obj_acted_on = None
         if (obj_in_gripper == HandInfo.NO_OBJECT
-            or obj_in_gripper in self.ignore):
+                or obj_in_gripper in self.ignore):
             obj_in_gripper = None
         pose = pm.fromMsg(msg.pose)
         gripper_state = msg.gripper_state
@@ -100,7 +123,7 @@ class RosTaskParser(TaskParser):
             pose = pm.fromMsg(obj.pose)
             objs.append(
                     ObjectInfo(pose=pose,
-                               obj_class=obj.object_class,
-                               id=obj.id,
-                               name=obj.name))
-        return objs
+                        obj_class=obj.object_class,
+                        id=obj.id,
+                        name=obj.name))
+            return objs
