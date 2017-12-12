@@ -41,6 +41,9 @@ class RosTaskParser(TaskParser):
 
     def fromBag(self, bag):
 
+        # call whenever adding a new rosbag or data source for a particular
+        # trial.
+        self.resetDemonstration()
         for topic, msg, _ in bag:
             # We do not trust the timestamps associated with the bag since
             # these may be written separately from when the data was actually

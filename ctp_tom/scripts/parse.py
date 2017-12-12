@@ -17,7 +17,7 @@ def getArgs():
 
 def main():
     args = getArgs()
-    rospy.init_node('parse_task_model')
+    #rospy.init_node('parse_task_model')
 
     rtp = RosTaskParser(
             filename=args.bagfile,

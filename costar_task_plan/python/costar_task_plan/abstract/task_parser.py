@@ -42,12 +42,11 @@ class ActionInfo(object):
         elif not arm in [self.ARM_LEFT, self.ARM_RIGHT, self.ARM_BOTH]:
             raise RuntimeError('options are limited to LEFT, RIGHT, and BOTH.')
         self.arm = arm
-        self.name = name
-        self.full_name = None
+        self.base_name = name
+        self.name = None
         self.object_acted_on = object_acted_on
         self.object_in_hand = object_in_hand
         self.pose = pose
-
 
     def computeName(self, name_style):
         if self.name_style == NAME_STYLE_SAME:
@@ -73,6 +72,7 @@ class TaskParser(object):
         self.classes_by_object = {}
         self.action_naming_style = action_naming_style
         self.ignore_actions = []
+        self.resetDemonstration()
 
     def addObjectClass(self, object_class):
         self.object_classes.add(object_class)
@@ -87,18 +87,27 @@ class TaskParser(object):
         self.classes_by_object[obj] = obj_class
 
     def _getActionName(self, action):
-        if self.action_naming_style == NAME_STYLE_SAME:
-            return action.name
+        if action.base_name in self.ignore_actions:
+            return None
+        elif self.action_naming_style == NAME_STYLE_SAME:
+            return action.base_name
         elif self.action_naming_style == NAME_STYLE_UNIQUE:
             if action.object_acted_on is not None:
-                return "%s(%s)"%(action.name, action.object_acted_on)
+                return "%s(%s)"%(action.base_name, action.object_acted_on)
             else:
-                return "%s()"%(action.name)
+                return "%s()"%(action.base_name)
+
+    def resetDemonstration(self):
+        self.prev = None
+        self.action_start_t = None
 
     def addDemonstration(self, t, objs, actions):
+        # in order - all actions specified
         for action in actions:
-            if action.name in self.ignore_actions:
-                continue
             name = self._getActionName(action)
-            print(name, action.arm)
-
+            if not self.prev == name:
+                self.action_start_t = t
+            if name is not None:
+                print(name, self.prev, t - self.action_start_t, action.arm)
+            self.prev = name
+            
