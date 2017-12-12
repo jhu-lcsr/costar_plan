@@ -13,7 +13,8 @@ class RosTaskParser(TaskParser):
     def __init__(self, filename=None, *args, **kwargs):
         super(RosTaskParser, self).__init__(*args,**kwargs)
         self.ignore = ["NONE"]
-        if self.filename is not None:
+        self.demo_topic = "/vr/learning/getDemonstrationInfo"
+        if filename is not None:
             self.fromFile(filename)
 
     def fromFile(self, filename):
