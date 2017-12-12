@@ -30,6 +30,7 @@ class RosTaskParser(TaskParser):
         '''
         super(RosTaskParser, self).__init__(*args,**kwargs)
         self.ignore = ["NONE","none","surveillance_camera"]
+        self.ignore_actions = ["UnknownActivity","IdleMotion"]
         self.demo_topic = demo_topic
         if filename is not None:
             self.fromFile(filename)
@@ -39,6 +40,7 @@ class RosTaskParser(TaskParser):
         self.fromBag(bag)
 
     def fromBag(self, bag):
+
         for topic, msg, _ in bag:
             # We do not trust the timestamps associated with the bag since
             # these may be written separately from when the data was actually
@@ -49,7 +51,7 @@ class RosTaskParser(TaskParser):
                 objs = self._getObjects(msg)
                 left = self._getHand(msg.left, ActionInfo.ARM_LEFT)
                 right = self._getHand(msg.right, ActionInfo.ARM_RIGHT)
-                print(left.name, right.name)
+                self.addDemonstration(t, objs, [left, right])
 
 
     def _getHand(self, msg, id):
@@ -59,9 +61,11 @@ class RosTaskParser(TaskParser):
         action_name = msg.activity
         obj_acted_on = msg.object_acted_on
         obj_in_gripper = msg.object_in_hand
-        if obj_acted_on == HandInfo.NO_OBJECT:
+        if (obj_acted_on == HandInfo.NO_OBJECT
+            or obj_in_gripper in self.ignore):
             obj_acted_on = None
-        if obj_in_gripper == HandInfo.NO_OBJECT:
+        if (obj_in_gripper == HandInfo.NO_OBJECT
+            or obj_in_gripper in self.ignore):
             obj_in_gripper = None
         pose = pm.fromMsg(msg.pose)
         gripper_state = msg.gripper_state

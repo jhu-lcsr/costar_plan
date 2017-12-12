@@ -60,6 +60,7 @@ class TaskParser(object):
 
     def __init__(self,
             action_naming_style=NAME_STYLE_UNIQUE,
+            min_action_length=5, # ignore anything below this length
             *args, **kwargs):
         '''
         Create a task parser. This lets you load one demonstration in at a
@@ -71,6 +72,7 @@ class TaskParser(object):
         self.objects_by_class = {}
         self.classes_by_object = {}
         self.action_naming_style = action_naming_style
+        self.ignore_actions = []
 
     def addObjectClass(self, object_class):
         self.object_classes.add(object_class)
@@ -84,29 +86,19 @@ class TaskParser(object):
             raise RuntimeError("object %s has inconsistent class in data: %s vs %s"%(obj, obj_class, self.classes_by_object[obj]))
         self.classes_by_object[obj] = obj_class
 
+    def _getActionName(self, action):
+        if self.action_naming_style == NAME_STYLE_SAME:
+            return action.name
+        elif self.action_naming_style == NAME_STYLE_UNIQUE:
+            if action.object_acted_on is not None:
+                return "%s(%s)"%(action.name, action.object_acted_on)
+            else:
+                return "%s()"%(action.name)
+
     def addDemonstration(self, t, objs, actions):
         for action in actions:
-            pass
-
-def GenerateTaskModelFromMessages(task_info, demonstrations, OptionType):
-    '''
-    Read through message data and use it to generate a task model.
-
-    Parameters:
-    -----------
-    task_info: TaskInfo message containing data about the high-level transitions
-    demonstrations: set of observations representing the world state at
-                    different times
-    OptionType: class, used to instantiate all of the different actions we
-                need to represent the task.
-    '''
-    transitions = {}
-    for transition in task_info.transition:
-        pass   
-
-    actions = {}
-    for demo in demonstrations:
-        '''
-        Look up the start and end times of the demonstrated actions
-        '''
+            if action.name in self.ignore_actions:
+                continue
+            name = self._getActionName(action)
+            print(name, action.arm)
 
