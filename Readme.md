@@ -9,7 +9,7 @@ Specifically it is a project for creating task and motion planning algorithms th
 To run deep learning examples, you will need TensorFlow and Keras, plus a number of Python packages. To run robot experiments, you'll need a simulator (Gazebo or PyBullet), and ROS Indigo or Kinetic. Other versions of ROS may work but have not been tested. If you want to stick to the toy examples, you do not need to use this as a ROS package.
 
 Outline of contents:
-  - [0. Introduction](docs/introduction)
+  - [0. Introduction](docs/introduction.md)
   - [1. Installation Guide](docs/install.md)
     - [1.1 Docker Instructions](docs/docker_instructions.md)
     - [1.2 Application domains](docs/domains.md)
@@ -26,7 +26,7 @@ Outline of contents:
     - [5.3 costar_bullet quick start](docs/costar_bullet.md): How to run tasks, generate datasets, train models, and extend costar_bullet with your own components.
     - [5.4 Adding a robot to the ROS code](docs/add_a_robot.md): NOT using Bullet sim
   - [6. Husky robot](husky/Readme.md): Start the APL Husky sim
-  - [7. TOM robot](docs/tom.md): use the TOM robot from TUM
+  - [7. TOM robot](docs/tom.md): introducing the TOM robot from TUM
     - [7.1 TOM Data](docs/tom_data.md): data necessary for TOM
     - [7.2 The Real TOM](docs/tom_real_robot.md): details about parts of the system for running on the real TOM
 
