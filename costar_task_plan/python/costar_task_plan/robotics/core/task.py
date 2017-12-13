@@ -58,17 +58,6 @@ class RosTaskParser(TaskParser):
                 right = self._getHand(msg.right, ActionInfo.ARM_RIGHT)
                 self.addDemonstration(t, objs, [left, right])
         self.processDemonstration()
-        print('-----------------------')
-        print('Observed transitions:')
-        print('-----------------------')
-        for key, value in self.transitions.items():
-            print (key, list(value))
-        print('-----------------------')
-        print('Observed transition counts:')
-        print('-----------------------')
-        for (a, b), value in self.transition_counts.items():
-            print (a, b, "seen", value, "times")
-
         self.makeModel()
 
     def _getArgs(self, lfd, obj):
@@ -154,9 +143,21 @@ class RosTaskParser(TaskParser):
         return objs
 
     def makeModel(self):
+        print("===============================")
+        print("-------------------------------")
+        print('Observed transitions:')
+        print("-------------------------------")
+        for key, value in self.transitions.items():
+            print (key, list(value))
+        print("-------------------------------")
+        print('Observed transition counts:')
+        print("-------------------------------")
+        for (a, b), value in self.transition_counts.items():
+            print (a, b, "seen", value, "times")
         print("-------------------------------")
         print("Number of example trajectories:")
         print("-------------------------------")
         for key, traj in self.trajectories.items():
             print("%s:"%key, len(traj), "with", self.trajectory_features[key])
+        print("===============================")
         lfd = LfD(self.configs[0])
