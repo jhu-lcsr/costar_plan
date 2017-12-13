@@ -44,8 +44,6 @@ class CartesianSkillInstance(yaml.YAMLObject):
 
     traj_length = len(ee_frames)
     for k, v in worlds.items():
-        print len(v), v
-        print traj_length
         assert len(v) == traj_length
 
     k_gain = self.config['dmp_k']

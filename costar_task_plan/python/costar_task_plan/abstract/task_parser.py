@@ -240,7 +240,7 @@ class TaskParser(object):
                             if name is not None:
                                 self._addTransition(prev[j], name)
                         else:
-                            print("WARNING: trajectory of length %d was too short"%len(examples[j].traj))
+                            print("WARNING: trajectory %s of length %d was too short"%(prev[j],len(examples[j].traj)))
 
                     # Update feature list
                     # TODO: enable this if we need to

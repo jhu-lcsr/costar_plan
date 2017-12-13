@@ -87,7 +87,7 @@ class LfD(object):
 
             data = trajectory_data[name]
             features = RobotFeatures(self.config, self.kdl_kin)
-            objs = objs[name]
+            skill_objs = objs[name]
 
             self.skill_instances[name] = []
 
@@ -106,10 +106,10 @@ class LfD(object):
 
                 # compute features?
                 #f, g = features.GetFeaturesForTrajectory(ee, world[0], objs)
-                f, g = features.GetFeaturesForTrajectory(ee, world, objs)
+                f, g = features.GetFeaturesForTrajectory(ee, world, skill_objs)
                 instance = CartesianSkillInstance(self.config,
                                                   dt=dt,
-                                                  objs=objs)
+                                                  objs=skill_objs)
                 instance.fit(ee_frames=ee, worlds=world)
 
                 self.skill_instances[name].append(instance)
@@ -123,7 +123,7 @@ class LfD(object):
             if name in self.skill_features:
                 self.skill_models[name] = GMM(
                     self.config['gmm_k'], self.skill_features[name])
-                print( "> Skill", name, "extracted with dataset of shape", self.skill_features[name].shape, "k = ", self.config['gmm_k'])
+                print( "> Skill", name, "extracted with dataset of shape", self.skill_features[name].shape, "k =", self.config['gmm_k'])
             else:
                 print(" ... skipping skill", name, "(no data)")
 

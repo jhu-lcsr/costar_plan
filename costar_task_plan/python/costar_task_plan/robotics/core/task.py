@@ -159,3 +159,4 @@ class RosTaskParser(TaskParser):
             print("%s:"%key, len(traj), "with", self.trajectory_features[key])
         print("===============================")
         self.lfd.train(self.trajectories, self.trajectory_data, self.trajectory_features)
+
