@@ -1037,8 +1037,10 @@ class GraspDataset(object):
         """Get a dataset reading op from tfrecordreader.
         You will have to call tf.train.batch and tf.train.start_queue_runners(sess), see create_gif.
 
-            decode_depth_as: The default 'depth' turns png encoded depth images into 1 channel depth images, the format for training.
-               'rgb' keeps the png encoded format so it can be visualized. If you are unsure, keep the default.
+            decode_depth_as:
+               The default 'depth' turns png encoded depth images into 1 channel depth images, the format for training.
+               'rgb' keeps the png encoded format so it can be visualized, particularly in create_gif().
+                     If you are unsure, keep the default 'depth'.
         # Returns
 
             A list of tuples [(fixedLengthFeatureDict, sequenceFeatureDict, features_complete_list)].
@@ -1088,8 +1090,10 @@ class GraspDataset(object):
             point_cloud_fn: Choose the function to convert depth images to point clouds. 'numpy' calls
                 grasp_geometry.depth_image_to_point_cloud(). 'tensorflow' calls
                 grasp_geometry_tf.depth_image_to_point_cloud().
-            decode_depth_as: The default 'depth' turns png encoded depth images into 1 channel depth images, the format for training.
-               'rgb' keeps the png encoded format so it can be visualized. If you are unsure, keep the default.
+            decode_depth_as:
+               The default 'depth' turns png encoded depth images into 1 channel depth images, the format for training.
+               'rgb' keeps the png encoded format so it can be visualized, particularly in create_gif().
+                     If you are unsure, keep the default 'depth'.
 
         # Returns
 
@@ -1121,7 +1125,7 @@ class GraspDataset(object):
                     with tf.name_scope('depth'):
                         image = tf.image.decode_png(image_buffer, channels=sensor_image_dimensions[-1])
                         if decode_depth_as == 'rgb':
-                            # extract as rgb for creating gifs
+                            # extract as rgb without any additional processing for creating gifs
                             image.set_shape(sensor_image_dimensions)
                             image = tf.reshape(image, sensor_image_dimensions)
                         else:
@@ -1697,13 +1701,19 @@ class GraspDataset(object):
         clip = mpy.ImageSequenceClip(list(npy), fps)
         clip.write_gif(filename)
 
-    def create_gif(self, sess=tf.Session(), visualization_dir=FLAGS.visualization_dir, rgb=True, depth=True):
+    def create_gif(self, sess=tf.Session(),
+                   visualization_dir=FLAGS.visualization_dir, rgb=True, depth=True,
+                   pipeline=None):
         """Create gifs of the loaded dataset and write them to visualization_dir
 
         # Arguments
 
             sess: the TensorFlow Session to use
             visualization_dir: where to save the gif files
+            rgb: save rgb gif files
+            depth: save depth gif files
+            load_pipeline: None saves gifs containing the raw dataset data,
+                'training' will save the images after preprocessing with the training pipeline.
         """
         mkdir_p(FLAGS.visualization_dir)
         feature_csv_files = self._get_feature_csv_file_paths()
