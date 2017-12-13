@@ -72,7 +72,8 @@ class TaskParser(object):
         self.objects_by_class = {}
         self.classes_by_object = {}
         self.action_naming_style = action_naming_style
-        self.ignore_actions = []
+        self.idle_tags = []
+        self.unknown_tags = []
         self.resetDemonstration()
 
     def addObjectClass(self, object_class):
@@ -102,6 +103,12 @@ class TaskParser(object):
         self.prev = None
         self.prev_t = None
         self.action_start_t = None
+
+    def addIdle(self, *args):
+        self.idle_tags += list(args)
+
+    def addUnknwon(self, *args):
+        self.unknown_tags += list(args)
 
     def _addTransition(self, from_action, to_action):
         '''

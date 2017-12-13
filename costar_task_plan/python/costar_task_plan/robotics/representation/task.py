@@ -30,7 +30,8 @@ class RosTaskParser(TaskParser):
         '''
         super(RosTaskParser, self).__init__(*args,**kwargs)
         self.ignore = ["NONE","none","surveillance_camera"]
-        self.ignore_actions = ["UnknownActivity","IdleMotion"]
+        self.addIdle("IdleMotion")
+        self.addUnknown("UnknownActivity")
         self.demo_topic = demo_topic
         if filename is not None:
             self.fromFile(filename)
