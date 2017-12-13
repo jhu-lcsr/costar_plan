@@ -199,22 +199,25 @@ class TaskParser(object):
                 traj.append(action.pose)
 
                 if not prev[j] == name:
-                    action_start_t[j] = t
+                    # Finish up by adding this trajectory to the data set
+                    if prev[j] is not None:
+                        if len(traj) > self.min_action_length:
+                            self.addTrajectory(prev[j], traj, data, ["time"] + traj_obj_classes)
+                            if prev[j] is not None and name is not None:
+                                self._addTransition(prev[j], name)
+                        elif len(traj) < self.min_action_length:
+                            print("WARNING: trajectory of length %d was too short"%len(traj))
+
                     # Update feature list
                     # TODO: enable this if we need to
                     #if action.object_in_hand is not None:
                     #    objs.append(action.object_in_hand)
+                    traj, data, traj_obj_classes = [], {}, []
+                    action_start_t[j] = t
                     if action.object_acted_on is not None:
                         traj_obj_classes.append(obj_class)
+                        print (name, traj_obj_classes)
                         data[obj_class] = []
-                    if prev[j] is not None:
-                        if len(traj) > self.min_action_length:
-                            self.addTrajectory(prev[j], traj, data, ["time"] + traj_obj_classes)
-                        elif len(traj) < self.min_action_length:
-                            print("WARNING: trajectory of length %d was too short"%len(traj))
-                    if prev[j] is not None and name is not None:
-                        self._addTransition(prev[j], name)
-                    traj, data, traj_obj_classes = [], {}, []
                 elif prev_t[j] is not None:
                     # Trigger a sanity check to make sure we do not have any weird jumps in our file.
                     dt = abs(prev_t[j] - t)
