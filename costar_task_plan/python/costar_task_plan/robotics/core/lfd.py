@@ -44,10 +44,8 @@ class LfD(object):
     not.
     '''
 
-    def __init__(self, world):
-        self.world = world
+    def __init__(self, config):
 
-        config = world.actors[0].config
         base_link = config['base_link']
         end_link = config['end_link']
 
@@ -74,25 +72,26 @@ class LfD(object):
 
         self.pubs = {}
 
-    def train(self):
+    def train(self, trajectories, trajectory_data, objs, obj_classes={}):
         '''
         Generate DMPs and GMMs associated with different labeled actions.
         '''
 
         print("Training:")
-        for name, trajs in self.world.trajectories.items():
+        for name, trajs in trajectories.items():
 
             print(" > Training skill", name)
 
             self.pubs[name] = rospy.Publisher(
                 join('costar', 'lfd', name), PoseArray, queue_size=1000)
 
-            data = self.world.trajectory_data[name]
+            data = trajectory_data[name]
             features = RobotFeatures(self.config, self.kdl_kin)
-            objs = self.world.objs[name]
+            objs = objs[name]
 
             self.skill_instances[name] = []
 
+            # Each world here is an observation of a particular frame in this scene
             for traj, world in zip(trajs, data):
 
                 ts = [t for t, _, _, _ in traj]

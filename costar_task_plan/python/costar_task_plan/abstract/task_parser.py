@@ -81,6 +81,10 @@ class TaskParser(object):
         self.num_arms = len(self.configs)
         self.unknown_apply_before = unknown_apply_before
 
+        self.trajectories = {}
+        self.trajectory_data = {}
+        self.trajectory_features = {}
+
     def addObjectClass(self, object_class):
         self.object_classes.add(object_class)
 
@@ -163,15 +167,16 @@ class TaskParser(object):
                                 a.base_name = next_name
                                 reset_name = True
                                 break
-                    if not reset_name:
-                        a.base_name = prev[j]
+                    #if not reset_name:
+                    #    a.base_name = prev[j]
                 else:
                     prev[j] = a.base_name
                 if a.base_name is None or a.base_name in self.unknown_tags:
-                    print('[WARNING] was not able to preprocess unknown tag at %d'%i)
+                    print('WARNING: was not able to preprocess unknown tag at %d'%i)
 
         # Reset previous tags again
         prev = [None] * self.num_arms
+        counts = [0] * self.num_arms
 
         # Loop over all time steps
         for i, (t, objs, actions) in enumerate(self.data):
@@ -181,20 +186,26 @@ class TaskParser(object):
 
             # in order - all actions specified
             for j, action in enumerate(actions):
-                if prev_t[j] is not None:
-                    # Trigger a sanity check to make sure we do not have any weird jumps in our file.
-                    dt = abs(prev_t[j] - t)
-                    if dt > 1:
-                        print("WARNING: large time jump from %f to %f; did you reset between demonstrations?"%(self.prev_t[j],t))
 
                 name = self._getActionName(action)
+                if name is None:
+                    continue
+
                 if not prev[j] == name:
                     action_start_t[j] = t
                     if prev[j] is not None and name is not None:
                         self._addTransition(prev[j], name)
-                if name is not None:
-                    print(name, prev[j], t - action_start_t[j], action.arm)
+                elif prev_t[j] is not None:
+                    # Trigger a sanity check to make sure we do not have any weird jumps in our file.
+                    dt = abs(prev_t[j] - t)
+                    if dt > 1:
+                        print("WARNING: large time jump from %f to %f; did you reset between demonstrations?"%(prev_t[j],t))
+
+                #print(name, prev[j], t - action_start_t[j], action.arm)
                 prev[j] = name
                 prev_t[j] = t
                 
         self.resetDemonstration()
+
+    def makeModel(self):
+        pass

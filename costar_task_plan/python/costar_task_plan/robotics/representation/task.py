@@ -60,6 +60,8 @@ class RosTaskParser(TaskParser):
         print(self.transitions)
         print(self.transition_counts)
 
+        self.makeModel()
+
     def _getArgs(self, lfd, obj):
         '''
         Get the args for a DMP option for creating a task graph

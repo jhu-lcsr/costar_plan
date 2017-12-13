@@ -23,11 +23,7 @@ class TomWorld(CostarWorld):
   bin. 
   '''
 
-  def __init__(self,
-          data_root='',
-          fake=True,
-          load_dataset=False, *args, **kwargs):
-
+  def __init__(self, data_root='', fake=True, load_dataset=False, *args, **kwargs):
     if not fake:
       raise NotImplementedError('Not quite set up yet')
     else:

@@ -133,7 +133,7 @@ class CostarWorld(AbstractWorld):
         # The base link for the scene as a whole
         self.base_link = self.actors[0].base_link
 
-        self.lfd = LfD(self)
+        self.lfd = LfD(self.cself.configg)
 
     # This is the standard update performed at every tick. If we're actually
     # observing the world somehow, then this needs to update object
@@ -146,8 +146,15 @@ class CostarWorld(AbstractWorld):
 
     def addTrajectories(self, name, trajectories, data, objs):
         '''
-        [LEARNING HELPER FUNCTION ONLY]
-        Add a bunch of trajectory for use in learning.
+        Learning helper function; add a bunch of trajectory info for use in
+        creating action models. We need examples both of object positions and
+        of trajectories for the associated gripper.
+
+        Parameters:
+        -----------
+        name: name of the high-level action being performed
+        trajectories: list of trajs associated with this action
+        objs: list of objects associated with this action
         '''
         self.trajectories[name] = trajectories
         self.objs[name] = objs
@@ -327,7 +334,10 @@ class CostarWorld(AbstractWorld):
         return CostarAction(q=self.actors[actor_id].state.q, dq=dq)
 
     def fitTrajectories(self):
-        self.models = self.lfd.train()
+        '''
+        Wrapper to call lfd object and get a list of skill models
+        '''
+        self.models = self.lfd.train(self.trajectories, self.trajectory_data, self.objs)
 
     def getArgs(self):
         '''
