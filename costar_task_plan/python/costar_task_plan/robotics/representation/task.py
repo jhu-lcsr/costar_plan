@@ -131,7 +131,9 @@ class RosTaskParser(TaskParser):
         '''
         objs = {}
         for obj in demo.object:
-
+            
+            obj.name = obj.name.rstrip()
+            obj.object_class = obj.object_class.rstrip()
             if obj.object_class in self.ignore:
                 continue
 

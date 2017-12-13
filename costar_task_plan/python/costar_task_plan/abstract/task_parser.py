@@ -49,12 +49,6 @@ class ActionInfo(object):
         self.object_in_hand = object_in_hand
         self.pose = pose
 
-    def computeName(self, name_style):
-        if self.name_style == NAME_STYLE_SAME:
-            self.full_name = self.name
-        elif self.name_style == NAME_STYLE_UNIQUE:
-            self.full_name = "%s(%s)"%(self.name, self.object_acted_on)
-
 
 class TaskParser(object):
 
