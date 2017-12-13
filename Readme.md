@@ -27,7 +27,8 @@ Outline of contents:
     - [5.4 Adding a robot to the ROS code](docs/add_a_robot.md): NOT using Bullet sim
   - [6. Husky robot](husky/Readme.md): Start the APL Husky sim
   - [7. TOM robot](docs/tom.md): use the TOM robot from TUM
-    - [7.1 The Real TOM](docs/tom_real_robot.md): details about parts of the system for running on the real TOM
+    - [7.1 TOM Data](docs/tom_data.md): data necessary for TOM
+    - [7.2 The Real TOM](docs/tom_real_robot.md): details about parts of the system for running on the real TOM
 
 Package/folder layout:
   - [CoSTAR Simulation](costar_simulation/Readme.md): Gazebo simulation and ROS execution

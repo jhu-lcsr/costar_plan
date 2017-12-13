@@ -139,4 +139,4 @@ class RosTaskParser(TaskParser):
                         obj_class=obj.object_class,
                         id=obj.id,
                         name=obj.name))
-            return objs
+        return objs
