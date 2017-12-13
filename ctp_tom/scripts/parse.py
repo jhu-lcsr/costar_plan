@@ -23,6 +23,7 @@ def main():
     rtp = RosTaskParser(
             filename=args.bagfile,
             configs=[TOM_RIGHT_CONFIG, TOM_LEFT_CONFIG],
+            unknown_apply_before=4,
             demo_topic=args.demo_topic)
 
 if __name__ == "__main__":

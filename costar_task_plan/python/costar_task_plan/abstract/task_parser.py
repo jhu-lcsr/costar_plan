@@ -152,19 +152,22 @@ class TaskParser(object):
         ACTION_IDX = 2
         for i, (t, objs, actions) in enumerate(self.data):
             for j, a in enumerate(actions):
-                if a.name in self.unknown_tags:
+                if a.base_name in self.unknown_tags:
                     reset_name = False
-                    for k in range(4):
+                    for k in range(self.unknown_apply_before):
                         if i+k < len(self.data):
-                            next_name = self.data[i+k][ACTION_IDX][j].name
+                            next_name = self.data[i+k][ACTION_IDX][j].base_name
                             if next_name not in self.unknown_tags:
-                                a.name = next_name
+                                a.base_name = next_name
                                 reset_name = True
                                 break
                     if not reset_name:
-                        a.name = prev[j]
+                        a.base_name = prev[j]
                 else:
-                    prev[j] = a.name
+                    prev[j] = a.base_name
+                print a.base_name
+                if a.base_name is None or a.base_name in self.unknown_tags:
+                    print('[WARNING] was not able to preprocess unknown tag at %d'%i)
 
         # Reset previous tags again
         prev = [None] * self.num_arms
@@ -180,8 +183,10 @@ class TaskParser(object):
                         print("WARNING: large time jump from %f to %f; did you reset between demonstrations?"%(self.prev_t[j],t))
 
                 name = self._getActionName(action)
+                print (prev[j], name)
                 if not prev[j] == name:
                     action_start_t[j] = t
+                    print (prev[j], name, action_start_t[j])
                     if prev[j] is not None and name is not None:
                         self._addTransition(prev[j], name)
                 if name is not None:
