@@ -4,6 +4,8 @@ from costar_task_plan.abstract.task_parser import TaskParser
 from costar_task_plan.abstract.task_parser import ObjectInfo
 from costar_task_plan.abstract.task_parser import ActionInfo
 from .lfd import LfD
+from .dmp_option import DmpOption
+from .dmp_policy import CartesianDmpPolicy
 
 from learning_planning_msgs.msg import HandInfo
 
@@ -59,7 +61,6 @@ class RosTaskParser(TaskParser):
                 right = self._getHand(msg.right, ActionInfo.ARM_RIGHT)
                 self.addDemonstration(t, objs, [left, right])
         self.processDemonstration()
-        self.makeModel()
 
     def _getArgs(self, skill_name):
         '''
@@ -76,12 +77,12 @@ class RosTaskParser(TaskParser):
 
         # Create a function that will make a Cartesian skill instance.
         dmp_maker = lambda goal: DmpOption(
-                goal=goal,
-                config=TOM_RIGHT_CONFIG,
+                goal_object=goal,
+                config=self.configs[0],
                 skill_name=skill_name,
-                feature_model=lfd.skill_models[skill_name],
-                kinematics=lfd.kdl_kin,
-                traj_dist=lfd.getParamDistribution(skill_name),
+                feature_model=self.lfd.skill_models[skill_name],
+                kinematics=self.lfd.kdl_kin,
+                traj_dist=self.lfd.getParamDistribution(skill_name),
                 policy_type=CartesianDmpPolicy)
 
         return {

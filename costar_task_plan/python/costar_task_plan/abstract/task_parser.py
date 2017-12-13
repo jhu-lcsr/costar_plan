@@ -301,8 +301,12 @@ class TaskParser(object):
         '''
         raise NotImplementedError('train() not implemented for this application')
 
-    def makeModel(self):
+    def makeTask(self):
         self.train()
         task = Task()
+        print(self.trajectory_features)
         for node, parents in self.transitions.items():
+            if not node in self.trajectory_features:
+                continue
             task.add(node, list(parents), self._getArgs(node))
+        return task

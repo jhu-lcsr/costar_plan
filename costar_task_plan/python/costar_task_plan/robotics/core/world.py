@@ -44,7 +44,7 @@ class CostarWorld(AbstractWorld):
                  namespace='/costar',
                  observe=None,
                  robot_config=None,
-
+                 lfd=None,
                  *args, **kwargs):
         super(CostarWorld, self).__init__(reward, *args, **kwargs)
 
@@ -133,7 +133,10 @@ class CostarWorld(AbstractWorld):
         # The base link for the scene as a whole
         self.base_link = self.actors[0].base_link
 
-        self.lfd = LfD(self.cself.configg)
+        if not lfd:
+            self.lfd = LfD(self.self.configg)
+        else:
+            self.lfd = lfd
 
     # This is the standard update performed at every tick. If we're actually
     # observing the world somehow, then this needs to update object
