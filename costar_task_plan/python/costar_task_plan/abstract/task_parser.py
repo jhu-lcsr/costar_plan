@@ -203,7 +203,7 @@ class TaskParser(object):
                     if prev[j] is not None:
                         if len(traj) > self.min_action_length:
                             self.addTrajectory(prev[j], traj, data, ["time"] + traj_obj_classes)
-                            if prev[j] is not None and name is not None:
+                            if name is not None:
                                 self._addTransition(prev[j], name)
                         elif len(traj) < self.min_action_length:
                             print("WARNING: trajectory of length %d was too short"%len(traj))
@@ -250,5 +250,15 @@ class TaskParser(object):
         self.trajectories[name].append(traj)
         self.trajectory_data[name].append(data)
 
+    def _getArgs(self, action_name, features):
+        raise NotImplementedError('Create arguments for graph node')
+    
+    def train(self):
+        '''
+        Implement application-specific logic for training here.
+        '''
+        raise NotImplementedError('train() not implemented for this application')
+
     def makeModel(self):
-        raise NotImplementedError('depends on the particular implementation')
+        self.train()
+        

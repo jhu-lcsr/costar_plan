@@ -34,6 +34,7 @@ class RosTaskParser(TaskParser):
         self.addIdle("IdleMotion")
         self.addUnknown("UnknownActivity")
         self.demo_topic = demo_topic
+        self.lfd = LfD(self.configs[0])
         if filename is not None:
             self.fromFile(filename)
 
@@ -60,7 +61,7 @@ class RosTaskParser(TaskParser):
         self.processDemonstration()
         self.makeModel()
 
-    def _getArgs(self, lfd, obj):
+    def _getArgs(self, skill_name, obj):
         '''
         Get the args for a DMP option for creating a task graph
         
@@ -107,17 +108,6 @@ class RosTaskParser(TaskParser):
         t = t.to_sec()
         return t
 
-    def finish(self):
-        '''
-        Create the task by:
-          - calling self.lfd.train() with the appropriate data
-          - constructing a task model based on transitions
-          - populating those transitions with the _getDmpArgs function
-
-        Resulting task plan can be compiled and visualized as normal.
-        '''
-        pass
-
     def _getObjects(self, demo):
         '''
         Read in the demonstration and update object knowledge for this specific
@@ -142,7 +132,15 @@ class RosTaskParser(TaskParser):
                         name=obj.name)
         return objs
 
-    def makeModel(self):
+    def train(self):
+        '''
+        Create the task by:
+          - calling self.lfd.train() with the appropriate data
+          - constructing a task model based on transitions
+          - populating those transitions with the _getDmpArgs function
+
+        Resulting task plan can be compiled and visualized as normal.
+        '''
         print("===============================")
         print("-------------------------------")
         print('Observed transitions:')
@@ -160,4 +158,4 @@ class RosTaskParser(TaskParser):
         for key, traj in self.trajectories.items():
             print("%s:"%key, len(traj), "with", self.trajectory_features[key])
         print("===============================")
-        lfd = LfD(self.configs[0])
+        self.lfd.train(self.trajectories, self.trajectory_data, self.trajectory_features)
