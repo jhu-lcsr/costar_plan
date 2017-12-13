@@ -58,8 +58,16 @@ class RosTaskParser(TaskParser):
                 right = self._getHand(msg.right, ActionInfo.ARM_RIGHT)
                 self.addDemonstration(t, objs, [left, right])
         self.processDemonstration()
-        print(self.transitions)
-        print(self.transition_counts)
+        print('-----------------------')
+        print('Observed transitions:')
+        print('-----------------------')
+        for key, value in self.transitions.items():
+            print (key, list(value))
+        print('-----------------------')
+        print('Observed transition counts:')
+        print('-----------------------')
+        for (a, b), value in self.transition_counts.items():
+            print (a, b, "seen", value, "times")
 
         self.makeModel()
 
