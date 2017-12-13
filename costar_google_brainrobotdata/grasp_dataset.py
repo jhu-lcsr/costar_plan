@@ -555,6 +555,7 @@ class GraspDataset(object):
             matching_features.extend(_match_feature(features, r'^initial/', feature_type))
             matching_features.extend(_match_feature(features, r'^approach/', feature_type, exclude_substring))
             matching_features.extend(_match_feature(features, r'^approach_sequence/', feature_type, exclude_substring))
+            # TODO(ahundt) pregrasp is not in the right place here, the depth image at least should be way further down, see the gifs
             matching_features.extend(_match_feature(features, r'^pregrasp/', feature_type, 'post', r'/\d+/'))
             matching_features.extend(_match_feature(features, r'^grasp/', feature_type, 'post', r'/\d+/'))
 
@@ -628,11 +629,11 @@ class GraspDataset(object):
             }
 
             # load all the images
-            ordered_image_feature_names = GraspDataset.get_time_ordered_features(
+            ordered_rgb_image_feature_names = GraspDataset.get_time_ordered_features(
                 features_complete_list,
                 feature_type='/image/encoded')
             features_dict.update({image_name: tf.FixedLenFeature([1], tf.string)
-                                  for image_name in ordered_image_feature_names})
+                                  for image_name in ordered_rgb_image_feature_names})
 
             # load all the depth images
             ordered_depth_feature_names = GraspDataset.get_time_ordered_features(
@@ -819,12 +820,7 @@ class GraspDataset(object):
             xyz_image_feature_type = 'xyz_image/cropped'
             camera_intrinsics_name = 'camera/cropped/intrinsics/matrix33'
 
-        xyz_image_clear_view_name = self.get_time_ordered_features(
-            features_complete_list,
-            feature_type=xyz_image_feature_type,
-            step='view_clear_scene'
-        )
-        xyz_image_clear_view_name = self._confirm_expected_feature(xyz_image_clear_view_name, 'xyz_image_clear_view')
+        xyz_image_clear_view_name = 'grasp/' + xyz_image_feature_type
 
         def add_feature_op(fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict, new_op, shape, name, batch_i, time_step_j):
             """Helper function to extend the dict containing feature ops
@@ -848,7 +844,7 @@ class GraspDataset(object):
             if batch_i == 0:
                 # assume all batches have the same features
                 features_complete_list = np.append(features_complete_list, feature_name)
-                if name in time_ordered_feature_name_dict:
+                if time_ordered_name in time_ordered_feature_name_dict:
                     time_ordered_feature_name_dict[time_ordered_name] = np.append(time_ordered_feature_name_dict[time_ordered_name], feature_name)
                 else:
                     time_ordered_feature_name_dict[time_ordered_name] = np.array([feature_name])
@@ -1037,11 +1033,12 @@ class GraspDataset(object):
 
         return dict_and_feature_tuple_list, features_complete_list, num_samples
 
-    def get_simple_tfrecordreader_dataset_ops(self, batch_size=1):
+    def get_simple_tfrecordreader_dataset_ops(self, batch_size=1, decode_depth_as='depth'):
         """Get a dataset reading op from tfrecordreader.
         You will have to call tf.train.batch and tf.train.start_queue_runners(sess), see create_gif.
-        TODO(ahundt) this is deprecated, update with Dataset API https://github.com/tensorflow/tensorflow/tree/master/tensorflow/contrib/data
 
+            decode_depth_as: The default 'depth' turns png encoded depth images into 1 channel depth images, the format for training.
+               'rgb' keeps the png encoded format so it can be visualized. If you are unsure, keep the default.
         # Returns
 
             A list of tuples [(fixedLengthFeatureDict, sequenceFeatureDict, features_complete_list)].
@@ -1068,7 +1065,7 @@ class GraspDataset(object):
         # staging_area = tf.contrib.staging.StagingArea()
         dict_and_feature_tuple_list = []
         for feature_op_dict, sequence_op_dict in feature_op_dicts:
-            features_op_dict, new_feature_list = GraspDataset._image_decode(feature_op_dict)
+            features_op_dict, new_feature_list = GraspDataset._image_decode(feature_op_dict, decode_depth_as=decode_depth_as)
             dict_and_feature_tuple_list.append((features_op_dict, sequence_op_dict))
         # the new_feature_list should be the same for all the ops
         features_complete_list = np.append(features_complete_list, new_feature_list)
@@ -1076,7 +1073,7 @@ class GraspDataset(object):
         return dict_and_feature_tuple_list, features_complete_list, feature_count, attempt_count
 
     @staticmethod
-    def _image_decode(feature_op_dict, sensor_image_dimensions=None, image_features=None, point_cloud_fn='numpy'):
+    def _image_decode(feature_op_dict, sensor_image_dimensions=None, image_features=None, point_cloud_fn='numpy', decode_depth_as='depth'):
         """Add features to dict that supply decoded png and jpeg images for any encoded images present.
         Any feature path that is 'image/encoded' will also now have 'image/decoded', and 'image/xyz' when
         both 'depthimage/endoced' and 'camera/intrinsics/matrix33' are in the dictionary.
@@ -1091,6 +1088,8 @@ class GraspDataset(object):
             point_cloud_fn: Choose the function to convert depth images to point clouds. 'numpy' calls
                 grasp_geometry.depth_image_to_point_cloud(). 'tensorflow' calls
                 grasp_geometry_tf.depth_image_to_point_cloud().
+            decode_depth_as: The default 'depth' turns png encoded depth images into 1 channel depth images, the format for training.
+               'rgb' keeps the png encoded format so it can be visualized. If you are unsure, keep the default.
 
         # Returns
 
@@ -1121,37 +1120,43 @@ class GraspDataset(object):
                 if 'depth_image' in image_feature:
                     with tf.name_scope('depth'):
                         image = tf.image.decode_png(image_buffer, channels=sensor_image_dimensions[-1])
-                        # convert depth from the rgb depth image encoding to float32 depths
-                        # https://sites.google.com/site/brainrobotdata/home/depth-image-encoding
-                        # equivalent to depth_image_encoding.ImageToFloatArray
-                        image = tf.cast(image, tf.float32)
-                        image = tf.reduce_sum(image * [65536, 256, 1], axis=2)
-                        RGB_SCALE_FACTOR = 256000.0
-                        image = image / RGB_SCALE_FACTOR
-                        image.set_shape([height, width])
-                        # depth images have one channel
-                        print('depth image:', image)
-                        if 'camera/intrinsics/matrix33' in feature_op_dict:
-                            with tf.name_scope('xyz'):
-                                # generate xyz point cloud image feature
-                                if point_cloud_fn == 'tensorflow':
-                                    # should be more efficient than the numpy version
-                                    xyz_image = grasp_geometry_tf.depth_image_to_point_cloud(image, feature_op_dict['camera/intrinsics/matrix33'])
-                                else:
-                                    [xyz_image] = tf.py_func(
-                                        grasp_geometry.depth_image_to_point_cloud,
-                                        # parameters for function call
-                                        [image, feature_op_dict['camera/intrinsics/matrix33']],
-                                        [tf.float32],
-                                        stateful=False, name='py_func/depth_image_to_point_cloud'
-                                    )
-                                xyz_image.set_shape([height, width, 3])
-                                xyz_image = tf.reshape(xyz_image, [height, width, 3])
-                                xyz_feature = image_feature.replace('depth_image/encoded', 'xyz_image/decoded')
-                                feature_op_dict[xyz_feature] = xyz_image
-                                new_feature_list = np.append(new_feature_list, xyz_feature)
-                                print('xyz_image:', xyz_image)
-                        image = tf.reshape(image, [height, width, 1])
+                        if decode_depth_as == 'rgb':
+                            # extract as rgb for creating gifs
+                            image.set_shape(sensor_image_dimensions)
+                            image = tf.reshape(image, sensor_image_dimensions)
+                        else:
+                            # convert depth from the rgb depth image encoding to float32 depths
+                            # https://sites.google.com/site/brainrobotdata/home/depth-image-encoding
+                            # equivalent to depth_image_encoding.ImageToFloatArray
+                            image = tf.cast(image, tf.float32)
+                            image = tf.reduce_sum(image * [65536, 256, 1], axis=2)
+                            RGB_SCALE_FACTOR = 256000.0
+                            image = image / RGB_SCALE_FACTOR
+                            image.set_shape([height, width])
+                            # depth images have one channel
+                            print('depth image:', image)
+                            if 'camera/intrinsics/matrix33' in feature_op_dict:
+                                with tf.name_scope('xyz'):
+                                    # generate xyz point cloud image feature
+                                    if point_cloud_fn == 'tensorflow':
+                                        # should be more efficient than the numpy version
+                                        xyz_image = grasp_geometry_tf.depth_image_to_point_cloud(
+                                            image, feature_op_dict['camera/intrinsics/matrix33'])
+                                    else:
+                                        [xyz_image] = tf.py_func(
+                                            grasp_geometry.depth_image_to_point_cloud,
+                                            # parameters for function call
+                                            [image, feature_op_dict['camera/intrinsics/matrix33']],
+                                            [tf.float32],
+                                            stateful=False, name='py_func/depth_image_to_point_cloud'
+                                        )
+                                    xyz_image.set_shape([height, width, 3])
+                                    xyz_image = tf.reshape(xyz_image, [height, width, 3])
+                                    xyz_feature = image_feature.replace('depth_image/encoded', 'xyz_image/decoded')
+                                    feature_op_dict[xyz_feature] = xyz_image
+                                    new_feature_list = np.append(new_feature_list, xyz_feature)
+                                    print('xyz_image:', xyz_image)
+                            image = tf.reshape(image, [height, width, 1])
                 else:
                     with tf.name_scope('rgb'):
                         image = tf.image.decode_jpeg(image_buffer, channels=sensor_image_dimensions[-1])
@@ -1349,10 +1354,11 @@ class GraspDataset(object):
             return [[fixed_dict[feature] for feature in features] for (fixed_dict, seq_dict) in feature_op_dicts]
 
     @staticmethod
-    def _confirm_expected_feature(features, feature_name, select=-1, expected=1):
+    def _confirm_expected_feature(features, feature_name, select=0, expected=1):
         """ Returns a single feature out of a list for when one is supposed to be selected out of many.
 
-            If the expected number of features isn't present a warning is printed.
+            The purpose of this function is to help detect and handle inconsistencies in the dataset.
+            If the expected number of features isn't present, a warning and stack trace is printed.
         """
         if len(features) == 0:
             raise ValueError('There should be at least one xyz view_clear_scene image feature such as grasp/xyz_image/decoded, but it is missing!')
@@ -1437,26 +1443,9 @@ class GraspDataset(object):
         print('END DICTS AFTER TRANSFORMS')
 
         # get the clear view rgb, depth, and xyz image names
-        rgb_clear_view_name = self.get_time_ordered_features(
-            features_complete_list,
-            feature_type='/image/decoded',
-            step='view_clear_scene'
-        )
-        rgb_clear_view_name = self._confirm_expected_feature(rgb_clear_view_name, 'rgb_image_clear_view')
-
-        depth_clear_view_name = self.get_time_ordered_features(
-            features_complete_list,
-            feature_type='depth_image/decoded',
-            step='view_clear_scene'
-        )
-        depth_clear_view_name = self._confirm_expected_feature(depth_clear_view_name, 'depth_image_clear_view')
-
-        xyz_clear_view_name = self.get_time_ordered_features(
-            features_complete_list,
-            feature_type='xyz_image/decoded',
-            step='view_clear_scene'
-        )
-        xyz_clear_view_name = self._confirm_expected_feature(xyz_clear_view_name, 'xyz_image_clear_view')
+        rgb_clear_view_name = 'grasp/image/decoded'
+        depth_clear_view_name = 'grasp/depth_image/decoded'
+        xyz_clear_view_name = 'grasp/xyz_image/decoded'
 
         # the feature names vary depending on the user configuration,
         # the random_crop boolean flag in particular
@@ -1708,7 +1697,7 @@ class GraspDataset(object):
         clip = mpy.ImageSequenceClip(list(npy), fps)
         clip.write_gif(filename)
 
-    def create_gif(self, sess=tf.Session(), visualization_dir=FLAGS.visualization_dir):
+    def create_gif(self, sess=tf.Session(), visualization_dir=FLAGS.visualization_dir, rgb=True, depth=True):
         """Create gifs of the loaded dataset and write them to visualization_dir
 
         # Arguments
@@ -1730,25 +1719,23 @@ class GraspDataset(object):
             RuntimeError: if no files found.
             """
             # decode all the image ops and other features
-            [(features_op_dict, _)], features_complete_list, _, attempt_count = self.get_simple_tfrecordreader_dataset_ops()
+            [(features_op_dict, _)], features_complete_list, _, attempt_count = self.get_simple_tfrecordreader_dataset_ops(decode_depth_as='rgb')
             if self.verbose > 0:
                 print(features_complete_list)
-            ordered_image_feature_names = GraspDataset.get_time_ordered_features(features_complete_list, '/image/decoded')
+            ordered_rgb_image_feature_names = GraspDataset.get_time_ordered_features(features_complete_list, '/image/decoded')
+            ordered_depth_image_feature_names = GraspDataset.get_time_ordered_features(features_complete_list, '/depth_image/decoded')
+            print('rgb image feature order: ' + str(ordered_rgb_image_feature_names))
+            print('depth image feature order: ' + str(ordered_depth_image_feature_names))
 
-            grasp_success_feature_name = GraspDataset.get_time_ordered_features(
-                features_complete_list,
-                feature_type='grasp_success'
-            )
-            # should only be a list of length 1, just make into a single string
-            grasp_success_feature_name = grasp_success_feature_name[0]
+            grasp_success_feature_name = 'grasp_success'
 
-            image_seq = [features_op_dict[image_name] for image_name in ordered_image_feature_names]
-            image_seq = tf.concat(image_seq, 0)
-            # output won't be correct now if batch size is anything but 1
+            rgb_image_seq = [features_op_dict[image_name] for image_name in ordered_rgb_image_feature_names]
+            depth_image_seq = [features_op_dict[image_name] for image_name in ordered_depth_image_feature_names]
             batch_size = 1
 
             train_image_dict = tf.train.batch(
-                {'image_seq': image_seq,
+                {'rgb_image_seq': rgb_image_seq,
+                 'depth_image_seq': depth_image_seq,
                  grasp_success_feature_name: features_op_dict[grasp_success_feature_name]},
                 batch_size,
                 num_threads=1,
@@ -1760,11 +1747,18 @@ class GraspDataset(object):
             for attempt_num in range(attempt_count / batch_size):
                 numpy_data_dict = sess.run(train_image_dict)
                 for i in range(batch_size):
-                    video = numpy_data_dict['image_seq'][i]
-                    gif_filename = (os.path.basename(feature_csv_file)[:-4] + '_grasp_' + str(int(attempt_num)) +
-                                    '_success_' + str(int(numpy_data_dict[grasp_success_feature_name])) + '.gif')
-                    gif_path = os.path.join(visualization_dir, gif_filename)
-                    self.npy_to_gif(video, gif_path)
+                    if rgb:
+                        video = numpy_data_dict['rgb_image_seq'][i]
+                        gif_filename = (os.path.basename(feature_csv_file)[:-4] + '_rgb_grasp_' + str(int(attempt_num)) +
+                                        '_success_' + str(int(numpy_data_dict[grasp_success_feature_name])) + '.gif')
+                        gif_path = os.path.join(visualization_dir, gif_filename)
+                        self.npy_to_gif(video, gif_path)
+                    if depth:
+                        video = numpy_data_dict['depth_image_seq'][i]
+                        gif_filename = (os.path.basename(feature_csv_file)[:-4] + '_grasp_' + str(int(attempt_num)) +
+                                        '_depth_success_' + str(int(numpy_data_dict[grasp_success_feature_name])) + '.gif')
+                        gif_path = os.path.join(visualization_dir, gif_filename)
+                        self.npy_to_gif(video, gif_path)
 
 
 if __name__ == '__main__':
