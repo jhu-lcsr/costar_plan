@@ -27,7 +27,7 @@
       <visual>
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <geometry>
-          <mesh filename="package://costar_simulation/urdf/drill/drill)drill_receptacle.stl" scale="1 1 1"/>
+          <mesh filename="package://costar_simulation/urdf/drill/drill_receptacle.stl" scale="1 1 1"/>
         </geometry>
         <material name="offwhite"/>
       </visual>

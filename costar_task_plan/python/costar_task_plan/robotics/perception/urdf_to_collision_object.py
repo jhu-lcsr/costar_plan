@@ -178,7 +178,7 @@ class CollisionObjectManager(object):
             except tf.Exception as e:
                 rospy.logerr(str(e))
                 continue
-            dt = (self.t - t).to_sec(
+            dt = (self.t - t).to_sec()
             if dt > self.max_dt:
                 rospy.logwarn("object %s has not been observed in the last %f seconds"%(name, dt))
                 continue
