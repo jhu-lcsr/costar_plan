@@ -102,7 +102,7 @@ tf.flags.DEFINE_string('vrepVisualizeRGBFormat', 'vrep_rgb',
                             Examples include 'vrep_depth_rgb' and 'vrep_depth_encoded_rgb',
                             see http://www.forum.coppeliarobotics.com/viewtopic.php?f=9&t=737&p=27805#p27805.
                        """)
-tf.flags.DEFINE_string('vrepVisualizationPipeline', 'tensorflow',
+tf.flags.DEFINE_string('vrepVisualizationPipeline', 'python',
                        """Options are: python, tensorflow.
                            'tensorflow' tensorflow loads the raw data from the dataset and
                                calculates all features before they are rendered with vrep via python,
@@ -761,8 +761,10 @@ class VREPGraspVisualization(object):
         # Visualize clear view point cloud
         if FLAGS.vrepVisualizeRGBD:
             create_point_cloud(
-                self.client_id, 'clear_view_cloud', depth_image=clear_frame_depth_image,
-                camera_intrinsics_matrix=camera_intrinsics_matrix, transform=base_to_camera_vec_quat_7,
+                self.client_id, 'clear_view_cloud',
+                depth_image=clear_frame_depth_image,
+                camera_intrinsics_matrix=camera_intrinsics_matrix,
+                transform=base_to_camera_vec_quat_7,
                 color_image=clear_frame_rgb_image, parent_handle=parent_handle,
                 rgb_sensor_display_name='kcam_rgb_clear_view',
                 depth_sensor_display_name='kcam_depth_clear_view')
@@ -860,11 +862,12 @@ class VREPGraspVisualization(object):
 
                 # Get the transform for the gripper relative to the key depth point and display it.
                 # Dummy should coincide with the gripper pose if done correctly
-                surface_relative_transform_vec_quat = grasp_geometry.surface_relative_transform(
+                depth_pixel_T_endeffector_final_ptrans, pixel_coordinate_of_endeffector, camera_T_cloud_point_ptrans = grasp_geometry.surface_relative_transform(
                     clear_frame_depth_image, camera_intrinsics_matrix, camera_T_endeffector_ptrans)
+                surface_relative_transform_vq7 = grasp_geometry.ptransform_to_vector_quaternion_array(depth_pixel_T_endeffector_final_ptrans)
                 surface_relative_transform_dummy_handle = create_dummy(self.client_id, time_step_name + 'depth_point_T_endeffector',
-                                                                            surface_relative_transform_vec_quat,
-                                                                            depth_point_dummy_handle)
+                                                                       surface_relative_transform_vq7,
+                                                                       depth_point_dummy_handle)
                 if FLAGS.vrepVisualizeSurfaceRelativeTransformLines:
                     # Draw lines from the camera through the gripper pose to the depth pixel in the clear view frame used for surface transforms
                     ret, camera_world_position = vrep.simxGetObjectPosition(self.client_id, base_T_camera_handle, -1, vrep.simx_opmode_oneshot_wait)
@@ -924,9 +927,13 @@ class VREPGraspVisualization(object):
             # TODO(ahundt) should displaying all clouds be a configurable option?
             point_cloud_display_name = 'current_point_cloud'
             create_point_cloud(
-                point_cloud_display_name, depth_image=depth_image_float_format,
-                camera_intrinsics_matrix=camera_intrinsics_matrix, transform=base_to_camera_vec_quat_7,
-                color_image=rgb_image, save_ply_path=path, parent_handle=parent_handle,
+                self.client_id,
+                point_cloud_display_name,
+                depth_image=depth_image_float_format,
+                camera_intrinsics_matrix=camera_intrinsics_matrix,
+                transform=base_to_camera_vec_quat_7,
+                color_image=rgb_image, save_ply_path=path,
+                parent_handle=parent_handle,
                 rgb_sensor_display_name='kcam_rgb',
                 depth_sensor_display_name='kcam_depth')
 

@@ -259,6 +259,12 @@ def surface_relative_transform(xyz_image,
 
 
 def endeffector_image_coordinate(camera_intrinsics_matrix, xyz, flip_x=1.0, flip_y=1.0):
+    """ Get the image coordinate of a point in the camera frame
+
+    This is used to find the x,y image coordinate of the
+    end effector given an xyz coordinate in the camera frame.
+
+    """
 
     # get focal length and camera image center from the intrinsics matrix
     fx = camera_intrinsics_matrix[0, 0]
@@ -281,11 +287,17 @@ def endeffector_image_coordinate(camera_intrinsics_matrix, xyz, flip_x=1.0, flip
     return np.array([x, y])
 
 
-def endeffector_image_coordinate_and_cloud_point(xyz_image,
+def endeffector_image_coordinate_and_cloud_point(cartesian_image,
                                                  camera_intrinsics_matrix,
                                                  camera_T_endeffector,
                                                  augmentation_rectangle=None):
     """Get the xyz coordinate of the endeffector in the camera frame as well as its image coordinate.
+
+    cartesian_image: input depth image (Z only) or an XYZ image.
+        XYZ images should be a numpy ndarray of size [height, width, 3] containing
+        floating point cartesian distance values.
+        Depth images should be a numpy ndarray of size [height, width, 1] where each floating point value is a Z distance,
+        depth images will automatically be converted to an xyz image using the numpy API.
 
     # Returns
 
@@ -300,15 +312,19 @@ def endeffector_image_coordinate_and_cloud_point(xyz_image,
     pixel_coordinate_of_endeffector = endeffector_image_coordinate(
         camera_intrinsics_matrix, cte_xyz).astype(np.int32)
 
+    if cartesian_image.shape[-1] == 1 or len(cartesian_image.shape) == 2:
+        # cartesian_image is a depth image, convert it to a point cloud xyz image
+        cartesian_image = depth_image_to_point_cloud(cartesian_image, camera_intrinsics_matrix)
+
     # TODO(ahundt) Should we go with a different coordinate or skip training on this data when out of bounds?
-    pixel_coordinate_of_endeffector[0] = np.clip(pixel_coordinate_of_endeffector[0], 0, xyz_image.shape[0]-1)
-    pixel_coordinate_of_endeffector[1] = np.clip(pixel_coordinate_of_endeffector[1], 0, xyz_image.shape[1]-1)
+    pixel_coordinate_of_endeffector[0] = np.clip(pixel_coordinate_of_endeffector[0], 0, cartesian_image.shape[0]-1)
+    pixel_coordinate_of_endeffector[1] = np.clip(pixel_coordinate_of_endeffector[1], 0, cartesian_image.shape[1]-1)
     # The calculation of the gripper pose in the
     # image frame is done with the convention:
     # - X is right in the image frame
     # - Y is up in the image frame
     # - Z is depth
-    XYZ = xyz_image[int(pixel_coordinate_of_endeffector[0]), int(pixel_coordinate_of_endeffector[1]), :]
+    XYZ = cartesian_image[int(pixel_coordinate_of_endeffector[0]), int(pixel_coordinate_of_endeffector[1]), :]
     return XYZ, pixel_coordinate_of_endeffector
 
 
@@ -519,7 +535,7 @@ def grasp_dataset_to_transforms_and_features(
     Also gets the surface relative transform from a depth pixel to a
     gripper pose from data in the brain robot data feature formats
 
-    # Params
+    # Arguments
 
     cartesian_image: input depth image (Z only) or an XYZ image.
         XYZ images should be a numpy ndarray of size [height, width, 3] containing
