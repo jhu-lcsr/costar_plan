@@ -67,6 +67,7 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
         #state_outs = state_decoder(enc)
 
         o1 = image_discriminator(ins)
+        #image_discriminator.trainable = False
         o2 = image_discriminator([out, img0_in])
 
         encoder.summary()
@@ -76,7 +77,7 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
         ae = Model(ins, [out, o1, o2])
         ae.compile(
                 loss=["mae"] + ["categorical_crossentropy"]*2,
-                loss_weights=[1.,1.,0.0001],
+                loss_weights=[1.,1.,0.001],
                 optimizer=self.getOptimizer())
         ae.summary()
     
