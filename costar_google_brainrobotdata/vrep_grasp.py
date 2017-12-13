@@ -522,14 +522,14 @@ class VREPGraspVisualization(object):
             # We're assuming the batch size is 1, which is why there are only two elements in the list.
             [(features_dict_np, sequence_dict_np)] = output_features_dicts
 
+            if (attempt_num > FLAGS.vrepVisualizeGraspAttempt_max and not FLAGS.vrepVisualizeGraspAttempt_max == -1):
+                # stop running if we've gone through all the relevant attempts.
+                break
+
             # check if this attempt is one the user requested, if not get the next one
             if not ((attempt_num >= FLAGS.vrepVisualizeGraspAttempt_min or FLAGS.vrepVisualizeGraspAttempt_min == -1) and
                     (attempt_num < FLAGS.vrepVisualizeGraspAttempt_max or FLAGS.vrepVisualizeGraspAttempt_max == -1)):
                 continue
-
-            if (attempt_num > FLAGS.vrepVisualizeGraspAttempt_max and not FLAGS.vrepVisualizeGraspAttempt_max == -1):
-                # stop running if we've gone through all the relevant attempts.
-                break
 
             # Add the camera frame transform and all transforms that start at the base
             for name, value in six.iteritems(time_ordered_feature_data_dict):
@@ -539,7 +539,7 @@ class VREPGraspVisualization(object):
                     base_T_camera_handle = create_dummy(self.client_id, 'base_T_camera', base_to_camera_vec_quat_7, parent_handle, operation_mode=vrep.simx_opmode_blocking)
                 elif 'base_T' in name and 'vec_quat_7' in name:
                     for i, base_transform in enumerate(value):
-                        create_dummy(self.client_id, str(i).zfill(2) + '_' + name.replace('/', '_'), base_transform, parent_handle, operation_mode=vrep.simx_opmode_blocking)
+                        create_dummy(self.client_id, str(i).zfill(2) + '_' + '_'.join(name.split('/')[-2:]), base_transform, parent_handle, operation_mode=vrep.simx_opmode_blocking)
 
             # Add all transforms that start at the camera frame
             camera_to_depth_name = None
@@ -552,7 +552,7 @@ class VREPGraspVisualization(object):
                     depth_to_ee_name = name
                 elif 'camera_T' in name and 'vec_quat_7' in name:
                     for i, transform in enumerate(value):
-                        create_dummy(self.client_id, str(i).zfill(2) + '_' + name.replace('/', '_'), transform, base_T_camera_handle, operation_mode=vrep.simx_opmode_blocking)
+                        create_dummy(self.client_id, str(i).zfill(2) + '_' + '_'.join(name.split('/')[-2:]), transform, base_T_camera_handle, operation_mode=vrep.simx_opmode_blocking)
 
             if camera_to_depth_name is not None and depth_to_ee_name is not None:
                 if FLAGS.vrepVisualizeSurfaceRelativeTransformLines:
@@ -574,7 +574,7 @@ class VREPGraspVisualization(object):
                         drawLines(self.client_id, 'camera_to_depth_lines', np.append(depth_world_position, surface_relative_gripper_world_position),
                                   base_T_camera_handle, operation_mode=vrep.simx_opmode_blocking)
             # grasp attempt is complete
-            vrepPrint(self.client_id, attempt_num_string + 'complete, success: ' + str(int(features_dict_np[grasp_success_feature_name])))
+            vrepPrint(self.client_id, attempt_num_string + 'complete, success: ' + str(int(features_dict_np['grasp_success'])))
 
             # Visualize point clouds
             if FLAGS.vrepVisualizeRGBD:
