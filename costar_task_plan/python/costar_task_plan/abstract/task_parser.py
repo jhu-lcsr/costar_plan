@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 from collections import namedtuple
 from learning_planning_msgs.msg import TaskInfo
@@ -80,6 +81,7 @@ class TaskParser(object):
         self.configs = configs
         self.num_arms = len(self.configs)
         self.unknown_apply_before = unknown_apply_before
+        self.min_action_length = min_action_length
 
         self.trajectories = {}
         self.trajectory_data = {}
@@ -178,10 +180,14 @@ class TaskParser(object):
         prev = [None] * self.num_arms
         counts = [0] * self.num_arms
 
+        traj = []
+        data = {}
+        traj_obj_classes = []
+
         # Loop over all time steps
         for i, (t, objs, actions) in enumerate(self.data):
 
-            for obj in objs:
+            for name, obj in objs.items():
                 self.addObject(obj.name, obj.obj_class)
 
             # in order - all actions specified
@@ -191,10 +197,30 @@ class TaskParser(object):
                 if name is None:
                     continue
 
+                if action.object_acted_on is not None:
+                    obj_class = self.classes_by_object[action.object_acted_on]
+                    if not obj_class in data:
+                        data[obj_class] = []
+                    data[obj_class].append(objs[action.object_acted_on].pose)
+                traj.append(action.pose)
+
                 if not prev[j] == name:
                     action_start_t[j] = t
+                    # Update feature list
+                    # TODO: enable this if we need to
+                    #if action.object_in_hand is not None:
+                    #    objs.append(action.object_in_hand)
+                    if action.object_acted_on is not None:
+                        traj_obj_classes.append(obj_class)
+                        data[obj_class] = []
+                    if prev[j] is not None:
+                        if len(traj) > self.min_action_length:
+                            self.addTrajectory(prev[j], traj, data, ["time"] + traj_obj_classes)
+                        elif len(traj) < self.min_action_length:
+                            print("WARNING: trajectory of length %d was too short"%len(traj))
                     if prev[j] is not None and name is not None:
                         self._addTransition(prev[j], name)
+                    traj, data, traj_obj_classes = [], {}, []
                 elif prev_t[j] is not None:
                     # Trigger a sanity check to make sure we do not have any weird jumps in our file.
                     dt = abs(prev_t[j] - t)
@@ -207,5 +233,30 @@ class TaskParser(object):
                 
         self.resetDemonstration()
 
+    def addTrajectory(self, name, traj, data, objs):
+        '''
+        Helper function that adds a list of end effector poses, object
+        positions, and associated relevant feature objects to the current
+        collected data set.
+
+        Parameters:
+        -----------
+        name: name of the action
+        traj: end effector pose trajectory
+        data: dict of object poses relevant to this action
+        objs: list of object/feature names for this action
+        '''
+        if not name in self.trajectories:
+            self.trajectories[name] = []
+            self.trajectory_data[name] = []
+            self.trajectory_features[name] = objs
+
+        self.trajectories[name].append(traj)
+        self.trajectory_data[name].append(data)
+
     def makeModel(self):
-        pass
+        print("Number of example trajectories:")
+        print("-------------------------------")
+        for key, traj in self.trajectories.items():
+            print("%s:"%key, len(traj), "with", self.trajectory_features[key])
+

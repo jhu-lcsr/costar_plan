@@ -129,16 +129,15 @@ class RosTaskParser(TaskParser):
         -----------
         demo: a DemonstrationInfo message
         '''
-        objs = []
+        objs = {}
         for obj in demo.object:
 
             if obj.object_class in self.ignore:
                 continue
 
             pose = pm.fromMsg(obj.pose)
-            objs.append(
-                    ObjectInfo(pose=pose,
+            objs[obj.name] = ObjectInfo(pose=pose,
                         obj_class=obj.object_class,
                         id=obj.id,
-                        name=obj.name))
+                        name=obj.name)
         return objs
