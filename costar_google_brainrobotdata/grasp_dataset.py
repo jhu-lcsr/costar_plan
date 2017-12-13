@@ -555,8 +555,6 @@ class GraspDataset(object):
             matching_features.extend(_match_feature(features, r'^initial/', feature_type))
             matching_features.extend(_match_feature(features, r'^approach/', feature_type, exclude_substring))
             matching_features.extend(_match_feature(features, r'^approach_sequence/', feature_type, exclude_substring))
-            # TODO(ahundt) pregrasp is not in the right place here, the depth image at least should be way further down, see the gifs
-            matching_features.extend(_match_feature(features, r'^pregrasp/', feature_type, 'post', r'/\d+/'))
             matching_features.extend(_match_feature(features, r'^grasp/', feature_type, 'post', r'/\d+/'))
 
         # up to 11 grasp steps in the datasets
@@ -571,6 +569,8 @@ class GraspDataset(object):
 
         # closing the gripper
         if step in ['close_gripper', 'all', '']:
+            # TODO(ahundt) determine if pregrasp is in the right place here, see the gifs
+            matching_features.extend(_match_feature(features, r'^pregrasp/', feature_type, 'post', r'/\d+/'))
             matching_features.extend(_match_feature(features, r'^gripper/', feature_type, exclude_substring))
             # Not totally sure, but probably the transforms and angles from as the gripper is closing (might shift a bit)
             matching_features.extend(_match_feature(features, r'^gripper_sequence/', feature_type, exclude_substring))
