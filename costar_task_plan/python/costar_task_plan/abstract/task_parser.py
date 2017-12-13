@@ -48,9 +48,32 @@ class ActionInfo(object):
         self.object_acted_on = object_acted_on
         self.object_in_hand = object_in_hand
         self.pose = pose
+        self.gripper_state = gripper_state
 
 
 class TaskParser(object):
+
+
+    class Example:
+        '''
+        Lightweight class to track observed trajectories for one hand or
+        another.
+        '''
+        def __init__(self):
+            self.reset()
+
+        def reset(self, *args):
+            self.traj = []
+            self.data = {}
+            self.obj_classes = list(args)
+
+        def addData(self, obj_class, pose):
+            if obj_class not in self.data:
+                self.data[obj_class] = []
+            self.data[obj_class].append(pose)
+
+        def addPoint(self, t, pose, gripper):
+            self.traj.append((t,pose,gripper))
 
     def __init__(self,
             action_naming_style=NAME_STYLE_UNIQUE,
@@ -174,9 +197,9 @@ class TaskParser(object):
         prev = [None] * self.num_arms
         counts = [0] * self.num_arms
 
-        traj = []
-        data = {}
-        traj_obj_classes = []
+        examples = []
+        for _ in range(self.num_arms):
+            examples.append(TaskParser.Example())
 
         # Loop over all time steps
         for i, (t, objs, actions) in enumerate(self.data):
@@ -187,43 +210,50 @@ class TaskParser(object):
             # in order - all actions specified
             for j, action in enumerate(actions):
 
+                if action.object_acted_on is not None:
+                    obj_class = self.classes_by_object[action.object_acted_on]
+                else:
+                    obj_class = None
+
                 name = self._getActionName(action)
                 if name is None:
                     continue
-
-                if action.object_acted_on is not None:
-                    obj_class = self.classes_by_object[action.object_acted_on]
-                    if not obj_class in data:
-                        data[obj_class] = []
-                    data[obj_class].append(objs[action.object_acted_on].pose)
-                traj.append(action.pose)
-
-                if not prev[j] == name:
+                elif not prev[j] == name:
                     # Finish up by adding this trajectory to the data set
                     if prev[j] is not None:
-                        if len(traj) > self.min_action_length:
-                            self.addTrajectory(prev[j], traj, data, ["time"] + traj_obj_classes)
+                        if len(examples[j].traj) > self.min_action_length:
+                            self.addTrajectory(
+                                    prev[j],
+                                    examples[j].traj,
+                                    examples[j].data,
+                                    ["time"] + examples[j].obj_classes)
                             if name is not None:
                                 self._addTransition(prev[j], name)
-                        elif len(traj) < self.min_action_length:
-                            print("WARNING: trajectory of length %d was too short"%len(traj))
+                        else:
+                            print("WARNING: trajectory of length %d was too short"%len(examples[j].traj))
 
                     # Update feature list
                     # TODO: enable this if we need to
                     #if action.object_in_hand is not None:
                     #    objs.append(action.object_in_hand)
-                    traj, data, traj_obj_classes = [], {}, []
                     action_start_t[j] = t
                     if action.object_acted_on is not None:
-                        traj_obj_classes.append(obj_class)
-                        data[obj_class] = []
+                        examples[j].reset(obj_class)
+                    else:
+                        examples[j].reset()
                 elif prev_t[j] is not None:
                     # Trigger a sanity check to make sure we do not have any weird jumps in our file.
                     dt = abs(prev_t[j] - t)
                     if dt > 1:
                         print("WARNING: large time jump from %f to %f; did you reset between demonstrations?"%(prev_t[j],t))
 
-                #print(name, prev[j], t - action_start_t[j], action.arm)
+                if obj_class is None and len(examples[j].obj_classes) > 0:
+                    print (action.name, action.base_name, action.object_in_hand, action.object_acted_on)
+                    raise RuntimeError('dropped obj: %s'%str(traj_obj_classes))
+                if obj_class is not None:
+                    examples[j].addData(obj_class, objs[action.object_acted_on].pose)
+                examples[j].addPoint(t - action_start_t[j], action.pose, action.gripper_state)
+
                 prev[j] = name
                 prev_t[j] = t
                 

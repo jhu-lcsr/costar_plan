@@ -42,7 +42,11 @@ class CartesianSkillInstance(yaml.YAMLObject):
     call to create the dmp based on this observation
     '''
 
-    assert len(worlds) == len(ee_frames)
+    traj_length = len(ee_frames)
+    for k, v in worlds.items():
+        print len(v), v
+        print traj_length
+        assert len(v) == traj_length
 
     k_gain = self.config['dmp_k']
     d_gain = self.config['dmp_d']
@@ -51,12 +55,12 @@ class CartesianSkillInstance(yaml.YAMLObject):
     if len(self.objs) > 1:
       raise RuntimeError('CartesianSkillInstance does not handle multiple object goals!')
     elif len(self.objs) is 0:
-      # goal
-      pass
-      goal_frame = [pm.fromMatrix(np.eye(4))] * len(worlds)
+      # goal is missing -- just relative
+      goal_frame = [pm.fromMatrix(np.eye(4))] * traj_length
     else:
       print "creating goal w.r.t. ", self.objs[0]
-      goal_frame = [world[self.objs[0]] for world in worlds]
+      #goal_frame = [world[self.objs[0]] for world in worlds]
+      goal_frame = worlds[self.objs[0]]
 
     u = np.zeros((len(goal_frame),6))
     last_rpy = None

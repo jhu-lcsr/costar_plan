@@ -94,17 +94,19 @@ class LfD(object):
             # Each world here is an observation of a particular frame in this scene
             for traj, world in zip(trajs, data):
 
-                ts = [t for t, _, _, _ in traj]
+                ts = [t for t, _, _ in traj]
                 dt = np.mean(np.diff(ts))
 
-                ee = [pm.fromMsg(pose) for _, pose, _, _ in traj]
-                gripper = [gopen for _, _, gopen, _ in traj]
+                #ee = [pm.fromMsg(pose) for _, pose, _ in traj]
+                ee = [pose for _, pose, _ in traj]
+                gripper = [gopen for _, _, gopen in traj]
 
                 if not len(ee) == len(gripper) and len(gripper) == len(world):
                     raise RuntimeError('counting error')
 
                 # compute features?
-                f, g = features.GetFeaturesForTrajectory(ee, world[0], objs)
+                #f, g = features.GetFeaturesForTrajectory(ee, world[0], objs)
+                f, g = features.GetFeaturesForTrajectory(ee, world, objs)
                 instance = CartesianSkillInstance(self.config,
                                                   dt=dt,
                                                   objs=objs)
