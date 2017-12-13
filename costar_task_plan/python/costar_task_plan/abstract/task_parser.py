@@ -75,6 +75,16 @@ class TaskParser(object):
         def addPoint(self, t, pose, gripper):
             self.traj.append((t,pose,gripper))
 
+        def resetEndpointRelative(self, pose):
+            self.reset('endpoint')
+            self.data['endpoint'] = []
+
+        def addEndpointRelative(self, pose):
+            if len(self.data['endpoint']) == 0:
+                self.addData('endpoint', pose)
+            else:
+                self.addData('endpoint', self.data['endpoint'][0])
+
     def __init__(self,
             action_naming_style=NAME_STYLE_UNIQUE,
             min_action_length=5, # ignore anything below this length
@@ -240,18 +250,18 @@ class TaskParser(object):
                     if action.object_acted_on is not None:
                         examples[j].reset(obj_class)
                     else:
-                        examples[j].reset()
+                        examples[j].resetEndpointRelative(action.pose)
                 elif prev_t[j] is not None:
                     # Trigger a sanity check to make sure we do not have any weird jumps in our file.
                     dt = abs(prev_t[j] - t)
                     if dt > 1:
                         print("WARNING: large time jump from %f to %f; did you reset between demonstrations?"%(prev_t[j],t))
 
-                if obj_class is None and len(examples[j].obj_classes) > 0:
-                    print (action.name, action.base_name, action.object_in_hand, action.object_acted_on)
-                    raise RuntimeError('dropped obj: %s'%str(traj_obj_classes))
                 if obj_class is not None:
                     examples[j].addData(obj_class, objs[action.object_acted_on].pose)
+                else:
+                    # add position of EE at beginning of the action
+                    examples[j].addEndpointRelative(action.pose)
                 examples[j].addPoint(t - action_start_t[j], action.pose, action.gripper_state)
 
                 prev[j] = name
