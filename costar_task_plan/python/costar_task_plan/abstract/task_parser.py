@@ -252,6 +252,7 @@ class TaskParser(object):
         self.trajectory_data[name].append(data)
 
     def makeModel(self):
+        print("-------------------------------")
         print("Number of example trajectories:")
         print("-------------------------------")
         for key, traj in self.trajectories.items():
