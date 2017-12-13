@@ -216,7 +216,6 @@ class TaskParser(object):
                     action_start_t[j] = t
                     if action.object_acted_on is not None:
                         traj_obj_classes.append(obj_class)
-                        print (name, traj_obj_classes)
                         data[obj_class] = []
                 elif prev_t[j] is not None:
                     # Trigger a sanity check to make sure we do not have any weird jumps in our file.
@@ -252,9 +251,4 @@ class TaskParser(object):
         self.trajectory_data[name].append(data)
 
     def makeModel(self):
-        print("-------------------------------")
-        print("Number of example trajectories:")
-        print("-------------------------------")
-        for key, traj in self.trajectories.items():
-            print("%s:"%key, len(traj), "with", self.trajectory_features[key])
-
+        raise NotImplementedError('depends on the particular implementation')

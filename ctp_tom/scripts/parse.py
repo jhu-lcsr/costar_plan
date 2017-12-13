@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from costar_task_plan.robotics.representation import RosTaskParser
+from costar_task_plan.robotics.core import RosTaskParser
 from costar_task_plan.robotics.tom import *
 
 import argparse

@@ -3,6 +3,7 @@ from __future__ import print_function
 from costar_task_plan.abstract.task_parser import TaskParser
 from costar_task_plan.abstract.task_parser import ObjectInfo
 from costar_task_plan.abstract.task_parser import ActionInfo
+from .lfd import LfD
 
 from learning_planning_msgs.msg import HandInfo
 
@@ -143,3 +144,11 @@ class RosTaskParser(TaskParser):
                         id=obj.id,
                         name=obj.name)
         return objs
+
+    def makeModel(self):
+        print("-------------------------------")
+        print("Number of example trajectories:")
+        print("-------------------------------")
+        for key, traj in self.trajectories.items():
+            print("%s:"%key, len(traj), "with", self.trajectory_features[key])
+        lfd = LfD(self.configs[0])

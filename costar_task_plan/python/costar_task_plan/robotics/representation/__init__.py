@@ -41,7 +41,6 @@ from gmm import GMM
 from cartesian import CartesianSkillInstance
 
 # =============================================================================
-from .task import RosTaskParser
 
 __all__ = ["CartesianSkillInstance",
            "RosTaskParser",
