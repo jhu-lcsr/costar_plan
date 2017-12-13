@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from costar_task_plan.robotics.representation import RosTaskParser
+from costar_task_plan.robotics.tom import *
 
 import argparse
 import rospy
@@ -21,6 +22,7 @@ def main():
 
     rtp = RosTaskParser(
             filename=args.bagfile,
+            configs=[TOM_RIGHT_CONFIG, TOM_LEFT_CONFIG],
             demo_topic=args.demo_topic)
 
 if __name__ == "__main__":

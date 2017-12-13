@@ -99,9 +99,9 @@ class TaskParser(object):
         elif self.action_naming_style == NAME_STYLE_SAME:
             return action.base_name
         elif self.action_naming_style == NAME_STYLE_UNIQUE:
-            if action.arm == ARM_LEFT:
+            if action.arm == ActionInfo.ARM_LEFT:
                 arm = "left"
-            elif action.arm == ARM_RIGHT:
+            elif action.arm == ActionInfo.ARM_RIGHT:
                 arm = "right"
             if action.object_acted_on is not None:
                 return "%s_%s"%(action.base_name, action.object_acted_on)
@@ -161,25 +161,32 @@ class TaskParser(object):
                                 a.name = next_name
                                 reset_name = True
                                 break
+                    if not reset_name:
+                        a.name = prev[j]
+                else:
+                    prev[j] = a.name
 
-
+        # Reset previous tags again
+        prev = [None] * self.num_arms
 
         # Loop over all time steps
-        if self.prev_t is not None:
-            # Trigger a sanity check to make sure we do not have any weird jumps in our file.
-            dt = abs(self.prev_t - t)
-            if dt > 1:
-                print("WARNING: large time jump from %f to %f; did you reset between demonstrations?"%(self.action_start_t,t))
+        for i, (t, objs, actions) in enumerate(self.data):
+            # in order - all actions specified
+            for j, action in enumerate(actions):
+                if prev_t[j] is not None:
+                    # Trigger a sanity check to make sure we do not have any weird jumps in our file.
+                    dt = abs(prev_t[j] - t)
+                    if dt > 1:
+                        print("WARNING: large time jump from %f to %f; did you reset between demonstrations?"%(self.prev_t[j],t))
 
-        # in order - all actions specified
-        for action in actions:
-            name = self._getActionName(action)
-            if not self.prev == name:
-                self.action_start_t = t
-                if self.prev is not None and name is not None:
-                    self._addTransition(self.prev, name)
-            if name is not None:
-                print(name, self.prev, t - self.action_start_t, action.arm)
-            self.prev = name
-            self.prev_t = t
-            
+                name = self._getActionName(action)
+                if not prev[j] == name:
+                    action_start_t[j] = t
+                    if prev[j] is not None and name is not None:
+                        self._addTransition(prev[j], name)
+                if name is not None:
+                    print(name, prev[j], t - action_start_t[j], action.arm)
+                prev[j] = name
+                prev_t[j] = t
+                
+        self.resetDemonstration()
