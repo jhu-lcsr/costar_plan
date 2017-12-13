@@ -579,26 +579,25 @@ class VREPGraspVisualization(object):
             # Visualize point clouds
             if FLAGS.vrepVisualizeRGBD:
                 # display clear view point cloud
-                rgb_images = time_ordered_feature_data_dict['move_to_grasp/time_ordered/rgb_image/decoded']
-                depth_images = time_ordered_feature_data_dict['move_to_grasp/time_ordered/depth_image/decoded']
-                xyz_images = time_ordered_feature_data_dict['move_to_grasp/time_ordered/xyz_image/decoded']
                 create_point_cloud(
                     self.client_id, 'clear_view_cloud',
                     transform=base_to_camera_vec_quat_7,
-                    depth_image=depth_images[0],
-                    color_image=rgb_images[0],
+                    depth_image=time_ordered_feature_data_dict['move_to_grasp/time_ordered/clear_view/depth_image/decoded'][0],
+                    color_image=time_ordered_feature_data_dict['move_to_grasp/time_ordered/clear_view/rgb_image/decoded'][0],
                     parent_handle=parent_handle,
                     rgb_sensor_display_name='kcam_rgb_clear_view',
                     depth_sensor_display_name='kcam_depth_clear_view',
-                    point_cloud=xyz_images[0])
+                    point_cloud=time_ordered_feature_data_dict['move_to_grasp/time_ordered/clear_view/xyz_image/decoded'][0])
 
+                # display the close gripper step rgb image
                 close_gripper_rgb_image = features_dict_np['gripper/image/decoded']
                 # TODO(ahundt) make sure rot180 + fliplr is applied upstream in the dataset and to the depth images
                 # gripper/image/decoded is unusual because there is no depth image and the orientation is rotated 180 degrees from the others
                 # it might also only be available captured in some of the more recent datasets.
-                cg_rgb = 255 - np.fliplr(close_gripper_rgb_image)
+                cg_rgb = 255 - np.rot90(np.fliplr(close_gripper_rgb_image), 2)
                 set_vision_sensor_image(self.client_id, 'kcam_rgb_close_gripper', cg_rgb, convert=None)
 
+                # Walk through all the other images from initial time step to final time step
                 rgb_images = time_ordered_feature_data_dict['move_to_grasp/time_ordered/rgb_image/decoded']
                 depth_images = time_ordered_feature_data_dict['move_to_grasp/time_ordered/depth_image/decoded']
                 xyz_images = time_ordered_feature_data_dict['move_to_grasp/time_ordered/xyz_image/decoded']
