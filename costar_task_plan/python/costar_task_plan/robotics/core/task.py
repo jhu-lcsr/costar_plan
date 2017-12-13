@@ -61,15 +61,20 @@ class RosTaskParser(TaskParser):
         self.processDemonstration()
         self.makeModel()
 
-    def _getArgs(self, skill_name, obj):
+    def _getArgs(self, skill_name):
         '''
         Get the args for a DMP option for creating a task graph
         
         Parameters:
         -----------
-        lfd: "learning from demonstration" manager containing learned actions
-        obj: object class for manipulation goal (or None for relative)
+        skill_name: name of the action/skill to insert into graph
         '''
+
+        # NOTE: hard coded for now; take the last skill. This should be either
+        # a real object or the trajectory endpoint.
+        obj = self.trajectory_features[skill_name][-1]
+
+        # Create a function that will make a Cartesian skill instance.
         dmp_maker = lambda goal: DmpOption(
                 goal=goal,
                 config=TOM_RIGHT_CONFIG,
@@ -146,7 +151,7 @@ class RosTaskParser(TaskParser):
         print('Observed transitions:')
         print("-------------------------------")
         for key, value in self.transitions.items():
-            print (key, list(value))
+            print (key, "has parents", list(value))
         print("-------------------------------")
         print('Observed transition counts:')
         print("-------------------------------")

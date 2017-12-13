@@ -4,6 +4,8 @@ from collections import namedtuple
 from learning_planning_msgs.msg import TaskInfo
 from learning_planning_msgs.msg import DemonstrationInfo
 
+from .task import Task
+
 
 NAME_STYLE_UNIQUE = 0
 NAME_STYLE_SAME = 1
@@ -163,9 +165,9 @@ class TaskParser(object):
         to_action: action/activity that we just began
         '''
         key = (from_action, to_action)
-        if not from_action in self.transitions:
-            self.transitions[from_action] = set()
-        self.transitions[from_action].add(to_action)
+        if not to_action in self.transitions:
+            self.transitions[to_action] = set()
+        self.transitions[to_action].add(from_action)
         if key not in self.transition_counts:
             self.transition_counts[key] = 0
         self.transition_counts[key] += 1
@@ -290,7 +292,7 @@ class TaskParser(object):
         self.trajectories[name].append(traj)
         self.trajectory_data[name].append(data)
 
-    def _getArgs(self, action_name, features):
+    def _getArgs(self, action_name):
         raise NotImplementedError('Create arguments for graph node')
     
     def train(self):
@@ -301,4 +303,6 @@ class TaskParser(object):
 
     def makeModel(self):
         self.train()
-        
+        task = Task()
+        for node, parents in self.transitions.items():
+            task.add(node, list(parents), self._getArgs(node))
