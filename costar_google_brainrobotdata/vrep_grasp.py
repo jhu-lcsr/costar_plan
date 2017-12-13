@@ -760,11 +760,12 @@ class VREPGraspVisualization(object):
         clear_frame_rgb_image = np.squeeze(features_dict_np[clear_frame_rgb_image_feature])
         # Visualize clear view point cloud
         if FLAGS.vrepVisualizeRGBD:
-            self.create_point_cloud(self.client_id, 'clear_view_cloud', clear_frame_depth_image,
-                                    camera_intrinsics_matrix, base_to_camera_vec_quat_7,
-                                    clear_frame_rgb_image, parent_handle=parent_handle,
-                                    rgb_sensor_display_name='kcam_rgb_clear_view',
-                                    depth_sensor_display_name='kcam_depth_clear_view')
+            create_point_cloud(
+                self.client_id, 'clear_view_cloud', depth_image=clear_frame_depth_image,
+                camera_intrinsics_matrix=camera_intrinsics_matrix, transform=base_to_camera_vec_quat_7,
+                color_image=clear_frame_rgb_image, parent_handle=parent_handle,
+                rgb_sensor_display_name='kcam_rgb_clear_view',
+                depth_sensor_display_name='kcam_depth_clear_view')
 
             close_gripper_rgb_image = features_dict_np['gripper/image/decoded']
             # TODO(ahundt) make sure rot180 + fliplr is applied upstream in the dataset and to the depth images
@@ -922,10 +923,12 @@ class VREPGraspVisualization(object):
                 point_cloud_detailed_name = None
             # TODO(ahundt) should displaying all clouds be a configurable option?
             point_cloud_display_name = 'current_point_cloud'
-            self.create_point_cloud_from_depth_image(point_cloud_display_name, depth_image_float_format, camera_intrinsics_matrix, base_to_camera_vec_quat_7,
-                                                     color_image=rgb_image, save_ply_path=path, parent_handle=parent_handle,
-                                                     rgb_sensor_display_name='kcam_rgb',
-                                                     depth_sensor_display_name='kcam_depth')
+            create_point_cloud(
+                point_cloud_display_name, depth_image=depth_image_float_format,
+                camera_intrinsics_matrix=camera_intrinsics_matrix, transform=base_to_camera_vec_quat_7,
+                color_image=rgb_image, save_ply_path=path, parent_handle=parent_handle,
+                rgb_sensor_display_name='kcam_rgb',
+                depth_sensor_display_name='kcam_depth')
 
     def display_images(self, rgb, depth_image_float_format):
         """Display the rgb and depth image in V-REP (not yet working)
