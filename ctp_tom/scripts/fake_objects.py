@@ -21,13 +21,13 @@ class FakeObjectsPublisher(object):
         self.tf_pub = tf.TransformBroadcaster()
         self.orange1 = (0.641782207489,
                   -0.224464386702,
-                  -0.423829042912)
+                  -0.383829042912)
         self.orange2 = (0.69,
                   -0.31,
-                  -0.423829042912)
+                  -0.383829042912)
         self.orange3 = (0.68,
                   -0.10,
-                  -0.423829042912)
+                  -0.383829042912)
 
     def tick(self):
         self.tf_pub.sendTransform(self.orange1,

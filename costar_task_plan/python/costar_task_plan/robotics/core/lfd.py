@@ -103,8 +103,7 @@ class LfD(object):
                     raise RuntimeError('counting error')
 
                 # compute features?
-                #f, g = features.GetFeaturesForTrajectory(ee, world[0], objs)
-                f = features.GetFeaturesForTrajectory(ee, world, skill_objs)
+                f, g = features.GetFeaturesForTrajectory(ee, world, skill_objs)
                 instance = CartesianSkillInstance(self.config,
                                                   dt=dt,
                                                   objs=skill_objs)

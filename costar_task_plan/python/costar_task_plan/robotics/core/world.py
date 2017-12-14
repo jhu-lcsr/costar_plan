@@ -266,8 +266,8 @@ class CostarWorld(AbstractWorld):
                 msg.poses.append(pm.toMsg(pm.fromMatrix(T)))
         self.plan_pub.publish(msg)
 
-    def debugLfD(self):
-        self.lfd.debug(self)
+    def debugLfD(self, *args, **kwargs):
+        self.lfd.debug(self, *args, **kwargs)
 
     def updateObservation(self,maxt=0.01):
         '''

@@ -430,7 +430,7 @@ class RobotFeatures:
         weights = [0.0]*len(traj)
 
         ee_frame = [self.base_tform * self.GetForward(q[:self.dof]) for q in traj]
-        features,goal_features = self.GetFeaturesForTrajectory(ee_frame,world,objs)
+        features, goal_features = self.GetFeaturesForTrajectory(ee_frame,world,objs)
 
         features = self.NormalizeActionNG(features)
         if not self.goal_model is None:
@@ -449,7 +449,7 @@ class RobotFeatures:
             goal_prob = 0;
             print "a=%g //"%(avg)
 
-        return np.exp(avg + goal_prob - denom),np.exp(avg + goal_prob)
+        return np.exp(avg + goal_prob - denom), np.exp(avg + goal_prob)
 
     def GetTrajectoryLikelihood(self,traj,world,objs,step=1.,sigma=0.000):
         '''
@@ -484,14 +484,14 @@ class RobotFeatures:
             for i in range(npts):
                 t = float(i+1) / npts
                 features[i] = self.GetFeatures(ee_frame[i],t,world,objs,i,gripper[i]) #+ diffs[i]
-            #goal_features = self.GetFeatures(ee_frame[-1],0.0,world,objs,i,gripper[i-1])
+            goal_features = self.GetFeatures(ee_frame[-1],0.0,world,objs,i,gripper[i-1])
         else:
             for i in range(npts):
                 t = float(i+1) / npts
                 features[i] = self.GetFeatures(ee_frame[i],t,world,objs,i)
-            #goal_features = self.GetFeatures(ee_frame[-1],0.0,world,objs,i)
+            goal_features = self.GetFeatures(ee_frame[-1],0.0,world,objs,i)
 
-        return np.array(features) #,np.array([goal_features])
+        return np.array(features), np.array([goal_features])
 
     def GetFeatures(self,ee_frame,t,world,objs,idx,gripper=[0]*NUM_GRIPPER_VARS):
         '''
