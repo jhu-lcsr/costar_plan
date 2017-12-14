@@ -506,7 +506,6 @@ class RobotFeatures:
         for obj in objs:
 
             if obj == TIME:
-                print ("!!!!!! WITH TIME = ", t)
                 features += [t]
             elif obj == GRIPPER:
                 features += gripper

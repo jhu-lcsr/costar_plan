@@ -119,18 +119,20 @@ class LfD(object):
                 else:
                     self.skill_features[name] = np.concatenate((self.skill_features[name], f), axis=0)
 
-            print(f.shape)
-            print(f)
             # only fit models if we have an example of that skill
             if name in self.skill_features:
-                print(self.skill_features[name])
                 try:
                     self.skill_models[name] = GMM(
                         self.config['gmm_k'], self.skill_features[name])
                 except np.linalg.LinAlgError as e:
-                    self.skill_models[name] = GMM(
-                        self.config['gmm_k'], self.skill_features[name])
-                    pass
+                    simple_conf = {
+                        'mu': np.mean(self.skill_features[name], axis=-1),
+                        'k': 1,
+                        'pi': np.ones((1,1)),
+                        'sigma': np.expand_dims(np.diag(np.std(self.skill_features[name], axis=-1)),axis=0),
+                    }
+                    print (simple_conf)
+                    self.skill_models[name] = GMM(config=simple_conf)
                 print( "> Skill", name, "extracted with dataset of shape", self.skill_features[name].shape, "k =", self.config['gmm_k'])
             else:
                 print(" ... skipping skill", name, "(no data)")
