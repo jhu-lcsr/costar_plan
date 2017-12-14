@@ -114,9 +114,10 @@ def main():
 
             try:
                 rate = rospy.Rate(30)
+                rospy.sleep(0.5)
+                r_js_pub.publish(r_msg)
+                l_js_pub.publish(l_msg)
                 while not rospy.is_shutdown():
-                    r_js_pub.publish(r_msg)
-                    l_js_pub.publish(l_msg)
                     world.updateObservation()
                     world.debugLfD(verbose=args.verbose)
                     rate.sleep()

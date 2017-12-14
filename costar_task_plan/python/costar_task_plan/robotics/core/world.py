@@ -47,6 +47,7 @@ class CostarWorld(AbstractWorld):
                  robot_config=None,
                  lfd=None,
                  tf_listener=None,
+                 use_default_pose=False,
                  *args, **kwargs):
         super(CostarWorld, self).__init__(reward, *args, **kwargs)
 
@@ -107,7 +108,7 @@ class CostarWorld(AbstractWorld):
 
         # Create and add all the robots we want in this world.
         for i, robot in enumerate(robot_config):
-            if robot['q0'] is not None:
+            if use_default_pose and robot['q0'] is not None:
                 s0 = CostarState(self, i, q=robot['q0'])
             else:
                 js_listener = JointStateListener(robot)
