@@ -270,6 +270,16 @@ class CostarWorld(AbstractWorld):
         "objs" should be a list of all possible objects that we might want to
         aggregate. They'll be saved in the "objs" dictionary. It's the role of the
         various options/policies to choose and use them intelligently.
+
+        Parameters:
+        -----------
+        n/a
+
+        Returns:
+        --------
+        n/a
+
+        Access via the self.observation member.
         '''
         self.observation = {}
         if self.tf_listener is None:
@@ -284,22 +294,46 @@ class CostarWorld(AbstractWorld):
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             pass
 
+    def addObjects(self, objects):
+        '''
+        Wrapper for addObject that will read through the whole dictionary to
+        get different objects and add them with the addObject function.
+
+        Parameters:
+        -----------
+        objs: dictionary of object lists by class
+
+        Returns:
+        --------
+        n/a
+
+        '''
+        for obj_class, objs in objects.items():
+            for obj_name in objs:
+                self.addObject(obj_name, obj_class)
+
     def addObject(self, obj_name, obj_class, *args):
         '''
         Wraps add actor function for objects. Make sure they have the right
         policy and are added so we can easily look them up later on.
         TODO(cpaxton): update this when we have a more unified way of thinking
         about objects.
+
+        Parameters:
+        -----------
+        obj_class: type associated with a particular object
+        obj_name: name (unique identifier) of a particular object associated with TF
+
+        Returns:
+        --------
+        n/a
         '''
 
-        #self.class_by_object[obj_id] = obj_class
         if obj_class not in self.object_by_class:
             self.object_by_class[obj_class] = [obj_name]
         else:
             self.object_by_class[obj_class].append(obj_name)
         self.objects_to_track.append(obj_name)
-
-        return -1
 
     def getObjects(self, obj_class):
         '''
