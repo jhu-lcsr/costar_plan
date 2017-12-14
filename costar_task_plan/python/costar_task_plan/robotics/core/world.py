@@ -269,7 +269,7 @@ class CostarWorld(AbstractWorld):
     def debugLfD(self):
         self.lfd.debug(self)
 
-    def updateObservation(self):
+    def updateObservation(self,maxt=0.01):
         '''
         Look up what the world should look like, based on the provided arguments.
         "objs" should be a list of all possible objects that we might want to
@@ -278,7 +278,7 @@ class CostarWorld(AbstractWorld):
 
         Parameters:
         -----------
-        n/a
+        maxt: max duration used when waiting for transforms
 
         Returns:
         --------
@@ -289,7 +289,7 @@ class CostarWorld(AbstractWorld):
         self.observation = {}
         for obj in self.objects_to_track:
             try:
-                self.tf_listener.waitForTransform(self.base_link, obj, rospy.Time.now(), rospy.Duration(0.1))
+                self.tf_listener.waitForTransform(self.base_link, obj, rospy.Time.now(), rospy.Duration(maxt))
                 (trans, rot) = self.tf_listener.lookupTransform(
                     self.base_link, obj, rospy.Time(0.))
                 self.observation[obj] = pm.fromTf((trans, rot))
@@ -301,7 +301,6 @@ class CostarWorld(AbstractWorld):
                 self.observation[obj] = None
 
     def getPose(self, obj):
-        print (self.observation)
         return self.observation[obj]
 
     def addObjects(self, objects):

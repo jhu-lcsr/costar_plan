@@ -136,7 +136,7 @@ class LfD(object):
 
         return self.skill_models
 
-    def debug(self, world):
+    def debug(self, world, verbose=False):
         '''
         Publish a bunch of ROS messages showing trajectories. This is a helpful
         tool for debugging problems with training data, DMP learning, and DMP
@@ -152,7 +152,8 @@ class LfD(object):
             goal_type = instances[0].objs[-1]
             goal = world.getObjects(goal_type)[0]
             goal_pose = world.getPose(goal)
-            print(name,"goal is",goal_type,"and chose",goal)
+            if verbose:
+                print(name,"goal is",goal_type,"and chose",goal)
             if goal_pose is None:
                 continue
 
@@ -173,8 +174,9 @@ class LfD(object):
             RequestActiveDMP(instances[0].dmp_list)
 
             q = state.q
-            q = [-0.73408591, -1.30249417,  1.53612047,
-                 -2.0823833,   2.29921898,  1.42712378]
+            if q is None:
+                q = [-0.73408591, -1.30249417,  1.53612047,
+                     -2.0823833,   2.29921898,  1.42712378]
             T = pm.fromMatrix(self.kdl_kin.forward(q))
             ee_rpy = T.M.GetRPY()
             relative_goal = goal_pose * instances[0].goal_pose

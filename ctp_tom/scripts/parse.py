@@ -81,8 +81,14 @@ def main():
             showTask(task)
 
         if args.debug:
-            world.updateObservation()
-            world.debugLfD()
+            try:
+                rate = rospy.Rate(30)
+                while not rospy.is_shutdown():
+                    world.updateObservation()
+                    world.debugLfD()
+                    rate.sleep()
+            except rospy.ROSInterruptException as e:
+                pass
 
     if args.project:
         world.saveModels(args.project)
