@@ -304,8 +304,6 @@ class TaskParser(object):
 
                 prev[j] = name
                 prev_t[j] = t
-                
-        self.resetDemonstration()
 
     def addTrajectory(self, name, traj, data, objs):
         '''
@@ -340,7 +338,6 @@ class TaskParser(object):
     def makeTask(self):
         self.train()
         task = Task()
-        print(self.trajectory_features)
         for node, parents in self.transitions.items():
             if not node in self.trajectory_features:
                 continue

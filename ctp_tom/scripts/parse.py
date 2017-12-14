@@ -83,12 +83,17 @@ def main():
 
         if args.debug:
 
-            q = [-0.73408591, -1.30249417,  1.53612047,
+            q1 = [-0.73408591, -1.30249417,  1.53612047,
+                 -2.0823833,   2.29921898,  1.42712378]
+            q2 = [0.73408591, -1.30249417,  -1.53612047,
                  -2.0823833,   2.29921898,  1.42712378]
             r_js_pub = rospy.Publisher('/right_arm_joint_states',
                     JointState,
-                    queue_size=10)
-            r_msg = JointState(position=q,
+                    queue_size=1)
+            l_js_pub = rospy.Publisher('/left_arm_joint_states',
+                    JointState,
+                    queue_size=1)
+            r_msg = JointState(position=q1,
                               name=[
                                   "r_shoulder_pan_joint",
                                   "r_shoulder_lift_joint",
@@ -96,11 +101,22 @@ def main():
                                   "r_wrist_1_joint",
                                   "r_wrist_2_joint",
                                   "r_wrist_3_joint"])
+            l_msg = JointState(position=q2,
+                              name=[
+                                  "l_shoulder_pan_joint",
+                                  "l_shoulder_lift_joint",
+                                  "l_elbow_joint",
+                                  "l_wrist_1_joint",
+                                  "l_wrist_2_joint",
+                                  "l_wrist_3_joint"])
+
+
 
             try:
                 rate = rospy.Rate(30)
                 while not rospy.is_shutdown():
                     r_js_pub.publish(r_msg)
+                    l_js_pub.publish(l_msg)
                     world.updateObservation()
                     world.debugLfD(verbose=args.verbose)
                     rate.sleep()
