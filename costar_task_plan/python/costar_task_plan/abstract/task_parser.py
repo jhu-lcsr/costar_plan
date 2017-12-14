@@ -183,11 +183,10 @@ class TaskParser(object):
         if not to_action in self.transitions:
             self.transitions[to_action] = set()
         self.transitions[to_action].add(from_action)
-        if not to_action in self.transition_counts:
-            self.transition_counts[to_action] = {}
-        if not to_action in self.transition_counts[to_action]:
-            self.transition_counts[to_action][from_action] = 0
-        self.transition_counts[to_action][from_action] += 1
+        key = (from_action, to_action)
+        if not key in self.transition_counts:
+            self.transition_counts[key] = 0
+        self.transition_counts[key] += 1
 
     def addExample(self, t, objs, actions, seq):
 
@@ -343,6 +342,7 @@ class TaskParser(object):
             if not node in self.trajectory_features:
                 continue
             args = self._getArgs(node)
-            counts = [self.transition_counts[node][parent] for parent in parents]
+            counts = [self.transition_counts[(parent,node)] for parent in parents]
+            print (counts)
             task.add(node, list(parents), args, counts)
         return task

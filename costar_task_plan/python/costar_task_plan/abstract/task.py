@@ -45,6 +45,7 @@ class Task(object):
     self.compiled = False
     self.nodes = {}
     self.children = {}
+    self.weights = {}
 
     # Dictionary from the action string names to the
     # unique integer id (label) of each action
@@ -218,18 +219,30 @@ class Task(object):
         else:
             self._addInstantiatedNode(name, iname, option, inodes)
 
-      # connect nodes and their children
+      # Connect nodes and their children, plus update the list of weights
+      # associated with each parent-child pair.
       for name, template in self.option_templates.items():
         if template.task is not None:
           # This subtask has been removed -- we no longer need it
           # Its associated options have been merged into the graph as a whole
           continue
         for iname in inodes[name]:
+            print ("CONNECTING ", iname)
             self.generic_names[iname] = name
-            for child in template.children:
+            self.weights[iname] = []
+            # loop over all templated (abstract) actions
+            for child, frequency in zip(template.children, template.frequencies):
+              # If this child is in the set of instantiated nodes...
               if child in inodes:
+                # Count the instantiated children and scale down weight
+                # accordingly
+                num_ichildren = len(inodes[child])
                 for ichild in inodes[child]:
+                  # For every instantiated child in this high-level option set,
+                  # add it to the children of this node. Then update weights.
+                  print("instantiated child", ichild)
                   self.children[iname].add(ichild)
+                  self.weights[iname].append(float(frequency) / num_ichildren)
 
     if self.subtask_name == None:
         # WARNING: this is kind of terrible and might be sort of inefficient.
@@ -341,8 +354,6 @@ class OptionTemplate(object):
     self.children = []
     self.postconditions = postconditions
     self.frequencies = []
-    self.num_transitions = 0 # stores the total number of transitions here
-    self.weights = None # stores the total transition weights
 
   def instantiate(self, name, arg_dict):
     '''
@@ -356,11 +367,6 @@ class OptionTemplate(object):
 
     filled_args = {}
     name_args = {}
-
-    self.weights = np.array(self.frequencies)
-    self.num_transitions = np.sum(self.weights)
-    self.weights /= self.num_transitions
-    print (self.weights)
 
     # ==================================================================
     for arg in self.args:
