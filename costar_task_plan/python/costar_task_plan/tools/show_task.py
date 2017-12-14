@@ -29,6 +29,8 @@ def showTask(task, root="ROOT()", filename="task.dot"):
             width=1.0, alpha=1., arrows=True, with_labels=True,)
     labels = nx.get_edge_attributes(g,'weight')
     nx.draw_networkx_edge_labels(g,pos,edge_labels=labels)
+    #a = nx.nx_agraph.to_agraph(g)
+    #a.draw('ex.png', prog='dot')
     plt.axis('off')
     plt.show()
 

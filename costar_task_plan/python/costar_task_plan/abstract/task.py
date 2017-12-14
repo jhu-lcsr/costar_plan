@@ -366,8 +366,6 @@ class OptionTemplate(object):
     filled_args = {}
     name_args = {}
 
-    self.frequencies = np.array(self.frequencies) / np.sum(self.frequencies)
-
     # ==================================================================
     for arg in self.args:
       if self.remap is not None and arg in self.remap:
