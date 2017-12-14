@@ -1,10 +1,9 @@
 from __future__ import print_function
 
-import matplotlib.pyplot as plt
 import networkx as nx
 
-
 def showTask(task, root="ROOT()", filename="task.dot"):
+    import matplotlib.pyplot as plt
 
     g = nx.DiGraph()
 

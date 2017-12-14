@@ -16,7 +16,6 @@ from keras.layers.merge import Concatenate
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 from keras.optimizers import Adam
-from matplotlib import pyplot as plt
 
 from .abstract import *
 from .callbacks import *
@@ -221,6 +220,7 @@ class RobotMultiSequencePredictor(RobotMultiHierarchical):
 
     def _fitPredictor(self, features, targets,):
         if self.show_iter > 0:
+            from matplotlib import pyplot as plt
             fig, axes = plt.subplots(6, 6,)
             plt.tight_layout()
 
