@@ -912,6 +912,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         y = OneHot(self.num_options)(option)
         y = Flatten()(y)
         x = Concatenate()([arm,gripper,y])
+
+        dr = self.dropout_rate * 0.
         x = AddDense(x, 64, activation, dr)
         
         state_encoder = Model([arm, gripper, option], x)
