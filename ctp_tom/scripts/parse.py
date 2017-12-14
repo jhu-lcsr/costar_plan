@@ -25,10 +25,11 @@ def fakeTaskArgs():
   where we expect to only have one object to grasp at a time.
   '''
   args = {
-    'orange': ['orange1'],
-    'squeeze_area': ['squeeze_area1'],
-    'box': ['box1'],
-    'trash': ['trash1'],
+    'orange': ['orange_1', 'orange_2', 'orange_3'],
+    'box': ['box'],
+    'drill': ['drill'],
+    'drill_receptacle': ['drill_receptacle'],
+    'block': ['block_1', 'block_2'],
     'endpoint': ['l_ee_link', 'r_ee_link'],
   }
   return args

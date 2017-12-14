@@ -249,6 +249,9 @@ class TaskParser(object):
 
                 name = self._getActionName(action)
                 if name is None:
+                    # "None" is only acceptable as the root of a tree -- not
+                    # anywhere as an action node. Whenever we see it, we are
+                    # observing junk data and should ignore it.
                     continue
                 elif not prev[j] == name:
                     # Finish up by adding this trajectory to the data set
