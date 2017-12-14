@@ -89,6 +89,8 @@ class CostarWorld(AbstractWorld):
 
         if robot_config is None:
             raise RuntimeError('Must provide a robot config!')
+        elif not isinstance(robot_config, list):
+            robot_config = [robot_config]
 
         # -------------------------- ROBOT INFORMATION ----------------------------
         # Base link, end effector, etc. for easy reference
@@ -134,7 +136,7 @@ class CostarWorld(AbstractWorld):
         self.base_link = self.actors[0].base_link
 
         if not lfd:
-            self.lfd = LfD(self.self.configg)
+            self.lfd = LfD(self.actors[0].config)
         else:
             self.lfd = lfd
 
