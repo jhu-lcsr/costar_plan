@@ -77,11 +77,9 @@ class LfD(object):
         Generate DMPs and GMMs associated with different labeled actions.
         '''
 
-        print("Training:")
         for name, trajs in trajectories.items():
 
-            print(" > Training skill", name)
-
+            # Create publisher for debugging purposes
             self.pubs[name] = rospy.Publisher(
                 join('costar', 'lfd', name), PoseArray, queue_size=1000)
 
@@ -131,7 +129,6 @@ class LfD(object):
                         'pi': np.ones((1,1)),
                         'sigma': np.expand_dims(np.diag(np.std(self.skill_features[name], axis=-1)),axis=0),
                     }
-                    print (simple_conf)
                     self.skill_models[name] = GMM(config=simple_conf)
                 print( "> Skill", name, "extracted with dataset of shape", self.skill_features[name].shape, "k =", self.config['gmm_k'])
             else:
@@ -139,11 +136,15 @@ class LfD(object):
 
         return self.skill_models
 
-    def debug(self, world, args):
+    def debug(self, world):
         '''
         Publish a bunch of ROS messages showing trajectories. This is a helpful
         tool for debugging problems with training data, DMP learning, and DMP
         segmentation.
+
+        Parameters:
+        -----------
+        world:  
         '''
 
         for name, instances in self.skill_instances.items():
@@ -155,7 +156,7 @@ class LfD(object):
                 policy_type=CartesianDmpPolicy,
                 config=self.config,
                 kinematics=self.kdl_kin,
-                goal_object=args[goal_type],
+                goal_object=world.getObjects()[goal_type],
                 skill_name=name,
                 feature_model=model,
                 traj_dist=self.getParamDistribution(name))
@@ -167,7 +168,6 @@ class LfD(object):
 
             goal = args[goal_type]
             RequestActiveDMP(instances[0].dmp_list)
-            goal = world.observation[goal]
 
             q = state.q
             q = [-0.73408591, -1.30249417,  1.53612047,

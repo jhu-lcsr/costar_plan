@@ -86,6 +86,7 @@ class CostarWorld(AbstractWorld):
         # TODO(cpaxton): this is a duplicate, remove it after state has been
         # fixed a little
         self.object_by_class = {}
+        self.objects_to_track = []
 
         if robot_config is None:
             raise RuntimeError('Must provide a robot config!')
@@ -263,11 +264,11 @@ class CostarWorld(AbstractWorld):
     def debugLfD(self, args):
         self.lfd.debug(self, args)
 
-    def updateObservation(self, objs):
+    def updateObservation(self):
         '''
         Look up what the world should look like, based on the provided arguments.
         "objs" should be a list of all possible objects that we might want to
-        aggregate. They'll be saved in the "obs" dictionary. It's the role of the
+        aggregate. They'll be saved in the "objs" dictionary. It's the role of the
         various options/policies to choose and use them intelligently.
         '''
         self.observation = {}
@@ -296,10 +297,11 @@ class CostarWorld(AbstractWorld):
             self.object_by_class[obj_class] = [obj_name]
         else:
             self.object_by_class[obj_class].append(obj_name)
+        self.objects_to_track.append(obj_name)
 
         return -1
 
-    def getObjects(self):
+    def getObjects(self, obj_class):
         '''
         Return information about specific objects in the world. This should tell us
         for some semantic identifier which entities in the world correspond to that.
@@ -309,8 +311,16 @@ class CostarWorld(AbstractWorld):
             }
         Would be a reasonable response, saying that there are two goals called
         goal1 and goal2.
+
+        Parameters:
+        -----------
+        obj_class: class of objects that we are interested in
+
+        Returns:
+        --------
+        obj_list: a list of object identifiers (unique names)
         '''
-        return self.object_by_class
+        return self.object_by_class[obj_class]
 
     def _dataToPose(self, data):
         '''
