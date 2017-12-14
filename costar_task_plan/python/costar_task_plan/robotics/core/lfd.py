@@ -121,6 +121,7 @@ class LfD(object):
 
             # only fit models if we have an example of that skill
             if name in self.skill_features:
+                print(self.skill_features[name])
                 self.skill_models[name] = GMM(
                     self.config['gmm_k'], self.skill_features[name])
                 print( "> Skill", name, "extracted with dataset of shape", self.skill_features[name].shape, "k =", self.config['gmm_k'])

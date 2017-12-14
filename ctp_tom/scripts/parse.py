@@ -35,6 +35,7 @@ def fakeTaskArgs():
     'drill_receptacle': ['drill_receptacle'],
     'block': ['block_1', 'block_2'],
     'endpoint': ['l_ee_link', 'r_ee_link'],
+    'high_table': ['tom_table'],
   }
   return args
 
@@ -50,6 +51,7 @@ def main():
             unknown_apply_before=4,
             min_action_length=3,
             demo_topic=args.demo_topic)
+    rtp.process() # run through the data and create models
     task = rtp.makeTask()
     world = TomWorld(lfd=rtp.lfd)
     if args.fake:

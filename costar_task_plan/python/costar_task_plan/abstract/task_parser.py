@@ -188,22 +188,25 @@ class TaskParser(object):
             self.transition_counts[key] = 0
         self.transition_counts[key] += 1
 
-    def addDemonstration(self, t, objs, actions):
+    def addExample(self, t, objs, actions, seq):
 
         '''
         Call this to parse a single time step. This assumes you have properly
         called resetDemonstration() above.
         '''
-        self.data.append((t, objs, actions))
+        self.data.append((t, objs, actions, seq))
 
-    def processDemonstration(self):
+    def process(self):
+        '''
+        This
+        '''
         prev_t = [None] * self.num_arms
         prev = [None] * self.num_arms
         action_start_t = [None] * self.num_arms
         
         # Preprocess to remove "Unknown" symbols
         ACTION_IDX = 2
-        for i, (t, objs, actions) in enumerate(self.data):
+        for i, (t, objs, actions, seq) in enumerate(self.data):
             for j, a in enumerate(actions):
                 if a.base_name in self.alias:
                     a.base_name = self.alias[a.base_name]
@@ -232,8 +235,19 @@ class TaskParser(object):
         for _ in range(self.num_arms):
             examples.append(TaskParser.Example())
 
+        prev_seq = None
+
         # Loop over all time steps
-        for i, (t, objs, actions) in enumerate(self.data):
+        for i, (t, objs, actions, seq) in enumerate(self.data):
+
+            # Reset everything when parsing from multiple bags
+            if seq is not prev_seq:
+                prev = [None] * self.num_arms
+                prev_added = [None] * self.num_arms
+                counts = [0] * self.num_arms
+                for ex in examples:
+                    ex.reset()
+            prev_seq = seq
 
             for name, obj in objs.items():
                 self.addObject(obj.name, obj.obj_class)

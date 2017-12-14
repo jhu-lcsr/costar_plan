@@ -40,19 +40,21 @@ class RosTaskParser(TaskParser):
         self.alias_topic = alias_topic
         self.lfd = LfD(self.configs[0])
         if filename is not None:
-            self.fromFile(filename)
+            self.loadFromFile(filename)
 
-    def fromFile(self, filename):
+    def loadFromFile(self, filename):
         filenames = filename.split(',')
-        for f in filenames:
+        for i, f in enumerate(filenames):
             bag = rosbag.Bag(f, 'r')
-        self.fromBag(bag)
+            self.loadFromBag(bag, seq=i)
 
-    def fromBag(self, bag):
+    def loadFromBag(self, bag, seq=0):
+        '''
+        Parse an individual bag.
+        '''
 
         # call whenever adding a new rosbag or data source for a particular
         # trial.
-        self.resetDemonstration()
         for topic, msg, _ in bag:
             # We do not trust the timestamps associated with the bag since
             # these may be written separately from when the data was actually
@@ -63,10 +65,9 @@ class RosTaskParser(TaskParser):
                 objs = self._getObjects(msg)
                 left = self._getHand(msg.left, ActionInfo.ARM_LEFT)
                 right = self._getHand(msg.right, ActionInfo.ARM_RIGHT)
-                self.addDemonstration(t, objs, [left, right])
+                self.addExample(t, objs, [left, right], seq)
             elif topic == self.alias_topic:
                 self.addAlias(msg.old_name, msg.new_name)
-        self.processDemonstration()
 
     def _getArgs(self, skill_name):
         '''
