@@ -227,7 +227,6 @@ class Task(object):
           # Its associated options have been merged into the graph as a whole
           continue
         for iname in inodes[name]:
-            print ("CONNECTING ", iname)
             self.generic_names[iname] = name
             self.weights[iname] = []
             # loop over all templated (abstract) actions
@@ -240,7 +239,6 @@ class Task(object):
                 for ichild in inodes[child]:
                   # For every instantiated child in this high-level option set,
                   # add it to the children of this node. Then update weights.
-                  print("instantiated child", ichild)
                   self.children[iname].add(ichild)
                   self.weights[iname].append(float(frequency) / num_ichildren)
 
@@ -368,6 +366,8 @@ class OptionTemplate(object):
     filled_args = {}
     name_args = {}
 
+    self.frequencies = np.array(self.frequencies) / np.sum(self.frequencies)
+
     # ==================================================================
     for arg in self.args:
       if self.remap is not None and arg in self.remap:
@@ -414,7 +414,7 @@ class OptionTemplate(object):
     '''
     if child not in self.children:
         self.children.append(child)
-        self.frequencies.append(count)
+        self.frequencies.append(float(count))
 
 class NullOptionTemplate(OptionTemplate):
   '''

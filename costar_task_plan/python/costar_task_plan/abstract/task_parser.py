@@ -343,6 +343,5 @@ class TaskParser(object):
                 continue
             args = self._getArgs(node)
             counts = [self.transition_counts[(parent,node)] for parent in parents]
-            print (counts)
             task.add(node, list(parents), args, counts)
         return task
