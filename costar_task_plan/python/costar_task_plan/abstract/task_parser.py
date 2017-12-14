@@ -180,6 +180,7 @@ class TaskParser(object):
         from_action: action/activity that we just executed/finished
         to_action: action/activity that we just began
         '''
+        print(from_action, "--->", to_action)
         key = (from_action, to_action)
         if not to_action in self.transitions:
             self.transitions[to_action] = set()
@@ -225,6 +226,7 @@ class TaskParser(object):
 
         # Reset previous tags again
         prev = [None] * self.num_arms
+        prev_added = [None] * self.num_arms
         counts = [0] * self.num_arms
 
         examples = []
@@ -256,8 +258,8 @@ class TaskParser(object):
                                 examples[j].traj,
                                 examples[j].data,
                                 ["time"] + examples[j].obj_classes)
-                        if name is not None:
-                            self._addTransition(prev[j], name)
+                        self._addTransition(prev_added[j], name)
+                        prev_added[j] = name
                     else:
                         print("WARNING: trajectory %s of length %d was too short"%(prev[j],len(examples[j].traj)))
 
