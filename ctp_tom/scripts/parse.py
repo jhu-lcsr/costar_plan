@@ -10,6 +10,7 @@ from costar_task_plan.robotics.core import RosTaskParser
 from costar_task_plan.robotics.tom import *
 from sensor_msgs.msg import JointState
 
+from tom_test import do_search
 
 def getArgs():
     parser = argparse.ArgumentParser(add_help=True, description="Parse rosbag into graph.")
