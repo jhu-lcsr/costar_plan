@@ -59,8 +59,8 @@ def main():
         print(task.nodeSummary())
         print(task.children['ROOT()'])
 
-        #from costar_task_plan.tools import showTask
-        #showTask(task)
+        from costar_task_plan.tools import showTask
+        showTask(task)
 
     if args.project:
         world.saveModels(args.project)
