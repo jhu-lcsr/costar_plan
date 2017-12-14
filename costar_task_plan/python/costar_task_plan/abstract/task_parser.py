@@ -112,9 +112,25 @@ class TaskParser(object):
         self.unknown_apply_before = unknown_apply_before
         self.min_action_length = min_action_length
 
+        # Store alias information for converting unknown activities into
+        # others partway through a parse
+        self.alias = {}
+
         self.trajectories = {}
         self.trajectory_data = {}
         self.trajectory_features = {}
+
+    def addAlias(self, old_name, new_name):
+        '''
+        This adds a mapping from old_name to a new action name. Note that 
+        these are all going to be processed in a single "pass", so if something
+        is listed twice you will get weird behavior.
+
+        Parameters:
+        -----------
+        old_name: previous name in dataset that should be removed
+        new_name: newer name in dataset
+        '''
 
     def addObjectClass(self, object_class):
         self.object_classes.add(object_class)
@@ -189,6 +205,8 @@ class TaskParser(object):
         ACTION_IDX = 2
         for i, (t, objs, actions) in enumerate(self.data):
             for j, a in enumerate(actions):
+                if a.base_name in self.alias:
+                    a.base_name = self.alias[a.base_name]
                 if a.base_name in self.unknown_tags:
                     reset_name = False
                     for k in range(self.unknown_apply_before):
@@ -219,7 +237,7 @@ class TaskParser(object):
             for name, obj in objs.items():
                 self.addObject(obj.name, obj.obj_class)
 
-            # in order - all actions specified
+            # In order - all actions specified
             for j, action in enumerate(actions):
 
                 if action.object_acted_on is not None:
@@ -232,17 +250,16 @@ class TaskParser(object):
                     continue
                 elif not prev[j] == name:
                     # Finish up by adding this trajectory to the data set
-                    if prev[j] is not None:
-                        if len(examples[j].traj) > self.min_action_length:
-                            self.addTrajectory(
-                                    prev[j],
-                                    examples[j].traj,
-                                    examples[j].data,
-                                    ["time"] + examples[j].obj_classes)
-                            if name is not None:
-                                self._addTransition(prev[j], name)
-                        else:
-                            print("WARNING: trajectory %s of length %d was too short"%(prev[j],len(examples[j].traj)))
+                    if len(examples[j].traj) > self.min_action_length:
+                        self.addTrajectory(
+                                prev[j],
+                                examples[j].traj,
+                                examples[j].data,
+                                ["time"] + examples[j].obj_classes)
+                        if name is not None:
+                            self._addTransition(prev[j], name)
+                    else:
+                        print("WARNING: trajectory %s of length %d was too short"%(prev[j],len(examples[j].traj)))
 
                     # Update feature list
                     # TODO: enable this if we need to
