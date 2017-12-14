@@ -23,7 +23,8 @@ sudo apt-get -y install -y libx11-dev libpq-dev python-dev libxml2-dev libxslt1-
 echo "Installing smaller libraries from pip..."
 sudo -H pip install --no-binary numpy
 sudo -H pip install h5py keras keras-rl sympy matplotlib pygame gmr networkx \
-  dtw pypr gym PyPNG pybullet numba pygraphviz
+  dtw pypr gym PyPNG pybullet numba
+sudo -H pip install pygraphviz --install-option="--include-path=/usr/include/graphviz" --install-option="--library-path=/usr/lib/graphviz/"
 sudo -H pip install -U numpy
 
 # TODO(cpaxton): come up with a better way to install tensorflow here. We want
