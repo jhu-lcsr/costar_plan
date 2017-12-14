@@ -104,9 +104,9 @@ class Task(object):
           self.option_templates[name] = template
 
       # add connections in
-      for parent, child in task.template_connections:
+      for parent, child, frequency in task.template_connections:
           if parent in self.option_templates:
-              self.option_templates[parent].connect(child)
+              self.option_templates[parent].connect(child, frequency)
 
       for iname, option in task.nodes.items():
           name = task.generic_names[iname]
@@ -124,7 +124,7 @@ class Task(object):
 
       return inodes
 
-  def add(self, name, parents, option_args):
+  def add(self, name, parents, option_args, frequencies=[]):
     '''
     Note: we assume that each name uniquely identifies an action, and each
     action has a unique name.
@@ -146,8 +146,12 @@ class Task(object):
     elif not isinstance(parents, list):
       parents = [parents]
 
-    for parent in parents:
-      self.template_connections.append((parent, name))
+    # By default, weight everything equally
+    if len(frequencies) == 0:
+        frequencies = [1] * len(parents)
+
+    for parent, frequency in zip(parents, frequencies):
+      self.template_connections.append((parent, name, frequency))
 
   def getChildren(self, node):
     if node in self.children:
@@ -181,9 +185,9 @@ class Task(object):
     arg_sets = get_arg_sets(arg_dict)
 
     # First: connect templates (parent -> child)
-    for parent, child in self.template_connections:
+    for parent, child, frequency in self.template_connections:
         if parent in self.option_templates:
-            self.option_templates[parent].connect(child)
+            self.option_templates[parent].connect(child, frequency)
 
     # Possible assignments to arguments. Add children here, not outside.
     for arg_set in arg_sets:
@@ -325,7 +329,6 @@ class OptionTemplate(object):
   '''
   def __init__(self, args=[], constructor=None, remap=None, task=None,
           subtask_name=None, semantic_remap=None, postconditions=[], semantic_args=[],
-          transition_frequency=None,
           name_template="%s(%s)"):
     self.constructor = constructor
     self.subtask_name = subtask_name
@@ -337,11 +340,9 @@ class OptionTemplate(object):
     self.name_template = name_template
     self.children = []
     self.postconditions = postconditions
-    self.transition_frequency = transition_frequency
-    if self.transition_frequency is not None:
-        self.frequencies = []
-    else:
-        self.frequencies = None
+    self.frequencies = []
+    self.num_transitions = 0 # stores the total number of transitions here
+    self.weights = None # stores the total transition weights
 
   def instantiate(self, name, arg_dict):
     '''
@@ -355,6 +356,11 @@ class OptionTemplate(object):
 
     filled_args = {}
     name_args = {}
+
+    self.weights = np.array(self.frequencies)
+    self.num_transitions = np.sum(self.weights)
+    self.weights /= self.num_transitions
+    print (self.weights)
 
     # ==================================================================
     for arg in self.args:
@@ -395,18 +401,14 @@ class OptionTemplate(object):
 
     return iname, option
 
-  def connect(self, child):
+  def connect(self, child, count=0):
     '''
     Add a connection from this node to the child, but only if we have not
     already done so (limit 1 connection per parent-child pair).
     '''
     if child not in self.children:
         self.children.append(child)
-        if self.transition_frequencies is not None:
-            if child in self.transition_frequency:
-                self.frequencies.append(self.transition_frequency[child])
-            else:
-                self.frequencies.append(0)
+        self.frequencies.append(count)
 
 class NullOptionTemplate(OptionTemplate):
   '''

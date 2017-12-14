@@ -163,8 +163,9 @@ class RosTaskParser(TaskParser):
         print("-------------------------------")
         print('Observed transition counts:')
         print("-------------------------------")
-        for (a, b), value in self.transition_counts.items():
-            print (a, b, "seen", value, "times")
+        for k, value in self.transition_counts.items():
+            for k2, count in value.items():
+                print (k, k2, "seen", count, "times")
         print("-------------------------------")
         print("Number of example trajectories:")
         print("-------------------------------")
