@@ -988,10 +988,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate, "same", disc)
         x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, "same", disc)
         x = AddConv2D(x, 128, [5,5], 2, self.dropout_rate, "same", disc)
-        self.encoder_channels = 16
+        self.encoder_channels = 8
         x = AddConv2D(x, self.encoder_channels, [1,1], 1, 0.*self.dropout_rate,
                 "same", disc)
 
+        """
         if self.use_spatial_softmax and not disc:
             def _ssm(x):
                 return spatial_softmax(x)
@@ -1005,8 +1006,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
             self.tform_filters = self.encoder_channels
             self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.encoder_channels)
+        """
 
         if not disc:
+            x = Flatten()(x)
+            x = AddDense(x, 128, "relu", self.dropout_rate, output=False)
+            self.hidden_size = 128
+
             if self.skip_connections:
                 image_encoder = Model([img0, img], [x, y], name="image_encoder")
             else:
@@ -1030,10 +1036,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         -----------
         img_shape: shape of the image, e.g. (64,64,3)
         '''
-        if self.use_spatial_softmax:
+        if self.use_spatial_softmax or True:
             rep = Input((self.hidden_size,),name="decoder_hidden_in")
         else:
             rep = Input(hidden_shape,name="decoder_hidden_in")
+
         if skip:
             skip1 = Input((32,32,32),name="decoder_skip_in_1")
             #skip2 = Input((16,16,32),name="decoder_skip_in_2")
@@ -1044,10 +1051,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         else:
             dr = 0.
         
-        if self.use_spatial_softmax:
+        if self.use_spatial_softmax or True:
             self.steps_up = 3
             hidden_dim = int(img_shape[0]/(2**self.steps_up))
-            self.tform_filters = 16 #self.encoder_channels
+            self.tform_filters = self.encoder_channels
             (h,w,c) = (hidden_dim,
                        hidden_dim,
                        self.tform_filters)
