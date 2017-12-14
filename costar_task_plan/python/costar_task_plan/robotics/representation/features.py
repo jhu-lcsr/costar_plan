@@ -482,16 +482,16 @@ class RobotFeatures:
 
         if not gripper is None:
             for i in range(npts):
-                t = float(i+1) / (npts+1)
+                t = float(i+1) / npts
                 features[i] = self.GetFeatures(ee_frame[i],t,world,objs,i,gripper[i]) #+ diffs[i]
-            goal_features = self.GetFeatures(ee_frame[-1],0.0,world,objs,i,gripper[i-1])
+            #goal_features = self.GetFeatures(ee_frame[-1],0.0,world,objs,i,gripper[i-1])
         else:
             for i in range(npts):
-                t = float(i+1) / (npts+1)
+                t = float(i+1) / npts
                 features[i] = self.GetFeatures(ee_frame[i],t,world,objs,i)
-            goal_features = self.GetFeatures(ee_frame[-1],0.0,world,objs,i)
+            #goal_features = self.GetFeatures(ee_frame[-1],0.0,world,objs,i)
 
-        return np.array(features),np.array([goal_features])
+        return np.array(features) #,np.array([goal_features])
 
     def GetFeatures(self,ee_frame,t,world,objs,idx,gripper=[0]*NUM_GRIPPER_VARS):
         '''
@@ -506,6 +506,7 @@ class RobotFeatures:
         for obj in objs:
 
             if obj == TIME:
+                print ("!!!!!! WITH TIME = ", t)
                 features += [t]
             elif obj == GRIPPER:
                 features += gripper

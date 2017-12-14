@@ -51,6 +51,8 @@ class DmpOption(AbstractOption):
         if not isinstance(policy_type, type):
             raise RuntimeError('invalid data type for DMP policy')
 
+        self.frequency = None
+        self.weight = 0.
         self.config = config
         self.goal = goal_object
         self.policy_type = policy_type

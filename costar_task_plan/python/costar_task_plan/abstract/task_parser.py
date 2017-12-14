@@ -268,7 +268,8 @@ class TaskParser(object):
                     continue
                 elif not prev[j] == name:
                     # Finish up by adding this trajectory to the data set
-                    if len(examples[j].traj) > self.min_action_length:
+                    if (len(examples[j].traj) > self.min_action_length
+                            and not prev_added[j] == name):
                         self.addTrajectory(
                                 prev[j],
                                 examples[j].traj,

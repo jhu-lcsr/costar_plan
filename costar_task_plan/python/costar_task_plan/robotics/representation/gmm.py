@@ -8,7 +8,6 @@ try:
 except ImportError:
     from yaml import Loader, Dumper
 
-
 class GMM(yaml.YAMLObject):
     '''
     Wraps some PyPr functions for easy grouping of different GMMs.
@@ -42,18 +41,19 @@ class GMM(yaml.YAMLObject):
 
     def updateInvSigma(self):
         for i in range(self.k):
-            try:
-                self.invsigma[i] = np.linalg.inv(self.sigma[i])
-            except np.linalg.linalg.LinAlgError, e:
-                print("ERROR: Inverse failed for cluster %d!" % i)
-                print(self.sigma[i])
-                raise e
+            self.invsigma[i] = np.linalg.inv(self.sigma[i])
+            #try:
+            #    self.invsigma[i] = np.linalg.inv(self.sigma[i])
+            #except np.linalg.linalg.LinAlgError, e:
+            #    #print("ERROR: Inverse failed for cluster %d!" % i)
+            #    #print(self.sigma[i])
+            #    raise e
 
-    '''
-  fit gmm from data
-  '''
 
     def fit(self, data):
+        '''
+        fit gmm from data
+        '''
         if self.k > 1:
             self.mu, self.sigma, self.pi, ll = gmm.em_gm(
                 np.array(data), K=self.k)
@@ -66,11 +66,11 @@ class GMM(yaml.YAMLObject):
 
         return self
 
-    '''
-  return log likelihoods
-  '''
 
     def score(self, data):
+        '''
+        return log likelihoods
+        '''
         return gmm.gm_log_likelihood(data, self.mu, self.sigma, self.pi)
 
     def loglikelihood(self, data):
@@ -80,18 +80,17 @@ class GMM(yaml.YAMLObject):
         ex = -0.5 * np.dot((data.T - self.mu[i]).T, ex1)
         return ex  # self.mu[0].transpose() * self.invsigma[0] * self.mu[0]
 
-    '''
-  produce samples
-  '''
 
     def sample(self, nsamples=1):
+        '''
+        produce samples
+        '''
         return gmm.sample_gaussian_mixture(self.mu, self.sigma, self.pi, nsamples)
 
-    '''
-  predict results by filling in NaNs
-  '''
-
     def predict(self, data):
+        '''
+        predict results by filling in NaNs
+        '''
         p = gmm.predict(data, self.mu, self.sigma, self.pi)
         return data
 

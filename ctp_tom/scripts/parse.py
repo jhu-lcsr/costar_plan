@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 
+import matplotlib.pyplot as plt
+import networkx as nx
+import numpy as np
+import argparse
+import rospy
+
 from costar_task_plan.robotics.core import RosTaskParser
 from costar_task_plan.robotics.tom import *
 
-import argparse
-import rospy
 
 def getArgs():
     parser = argparse.ArgumentParser(add_help=True, description="Parse rosbag into graph.")
@@ -34,7 +38,8 @@ def fakeTaskArgs():
     'drill': ['drill'],
     'drill_receptacle': ['drill_receptacle'],
     'block': ['block_1', 'block_2'],
-    'endpoint': ['l_ee_link', 'r_ee_link'],
+    #'endpoint': ['l_ee_link', 'r_ee_link'],
+    'endpoint': ['r_ee_link'],
     'high_table': ['tom_table'],
   }
   return args
@@ -49,7 +54,7 @@ def main():
             filename=args.bagfile,
             configs=[TOM_RIGHT_CONFIG, TOM_LEFT_CONFIG],
             unknown_apply_before=4,
-            min_action_length=3,
+            min_action_length=2,
             demo_topic=args.demo_topic)
     rtp.process() # run through the data and create models
     task = rtp.makeTask()

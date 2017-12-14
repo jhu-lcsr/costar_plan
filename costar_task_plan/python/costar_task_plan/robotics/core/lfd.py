@@ -106,7 +106,7 @@ class LfD(object):
 
                 # compute features?
                 #f, g = features.GetFeaturesForTrajectory(ee, world[0], objs)
-                f, g = features.GetFeaturesForTrajectory(ee, world, skill_objs)
+                f = features.GetFeaturesForTrajectory(ee, world, skill_objs)
                 instance = CartesianSkillInstance(self.config,
                                                   dt=dt,
                                                   objs=skill_objs)
@@ -114,16 +114,23 @@ class LfD(object):
 
                 self.skill_instances[name].append(instance)
 
-                if name not in self.skill_features:
+                if not name in self.skill_features:
                     self.skill_features[name] = f
                 else:
-                    np.concatenate((self.skill_features[name], f), axis=0)
+                    self.skill_features[name] = np.concatenate((self.skill_features[name], f), axis=0)
 
+            print(f.shape)
+            print(f)
             # only fit models if we have an example of that skill
             if name in self.skill_features:
                 print(self.skill_features[name])
-                self.skill_models[name] = GMM(
-                    self.config['gmm_k'], self.skill_features[name])
+                try:
+                    self.skill_models[name] = GMM(
+                        self.config['gmm_k'], self.skill_features[name])
+                except np.linalg.LinAlgError as e:
+                    self.skill_models[name] = GMM(
+                        self.config['gmm_k'], self.skill_features[name])
+                    pass
                 print( "> Skill", name, "extracted with dataset of shape", self.skill_features[name].shape, "k =", self.config['gmm_k'])
             else:
                 print(" ... skipping skill", name, "(no data)")
