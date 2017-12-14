@@ -5,19 +5,36 @@ from dmp_policy import JointDmpPolicy, CartesianDmpPolicy
 
 import numpy as np
 
+SAMPLING_MODE_NORMAL = 0
+SAMPLING_MODE_LIST = 1
 
 class DmpOption(AbstractOption):
     '''
     '''
 
     def __init__(self,
-            policy_type, # what kind of DMP are we creating
             config, # robot config file
             kinematics, # kinematics of the robot 
-            goal, # type of object to arrive at 
+            goal_object, # type of object to arrive at 
             skill_name, # name of this skill
             feature_model, # feature model
+            policy_type=CartesianDmpPolicy, # what kind of DMP are we creating
+            in_hand_object=None,
+            sampling_mode=SAMPLING_MODE_NORMAL,
             traj_dist=None,):
+
+        '''
+        Represent information about the robot to create DMP trajectories. This
+        class allows us to sample reasonable trajectories from a set of provided
+        demonstrations, represented as a Cartesian skill model.
+
+        Parameters:
+        -----------
+        config: dict of robot configuration options
+        kinematics: one or two armed kinematics models for the robot
+        policy_type;
+        '''
+
         if isinstance(policy_type, str):
             # parse into appropriate constructor
             if policy_type == 'joint':
@@ -33,12 +50,13 @@ class DmpOption(AbstractOption):
             raise RuntimeError('invalid data type for DMP policy')
 
         self.config = config
-        self.goal = goal
+        self.goal = goal_object
         self.policy_type = policy_type
         self.kinematics = kinematics
         self.feature_model = feature_model
         self.skill_name = skill_name
         self.traj_dist = traj_dist
+        self.in_hand = in_hand_object
         self.skill_instance = CartesianSkillInstance(self.config, self.traj_dist.mu)
 
     def makePolicy(self, *args, **kwargs):
@@ -61,10 +79,13 @@ class DmpOption(AbstractOption):
         if self.traj_dist is None:
             raise RuntimeError('Attempted to sample from a mis-specified'
                     ' action!')
-        params = np.random.multivariate_normal(
-                self.traj_dist.mu,
-                self.traj_dist.sigma)
-        skill_instance = CartesianSkillInstance(config=self.config, params=params)
+        if self.sampling_mode = SAMPLING_MODE_NORMAL:
+            params = np.random.multivariate_normal(
+                    self.traj_dist.mu,
+                    self.traj_dist.sigma)
+            skill_instance = CartesianSkillInstance(config=self.config, params=params)
+        elif self.sampling_mode = SAMPLING_MODE_LIST:
+            
         return self.policy_type(
             skill=self,
             goal=self.goal,
