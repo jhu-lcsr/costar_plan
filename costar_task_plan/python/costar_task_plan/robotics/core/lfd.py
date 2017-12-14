@@ -144,19 +144,21 @@ class LfD(object):
 
         Parameters:
         -----------
-        world:  
         '''
 
         for name, instances in self.skill_instances.items():
 
             model = self.skill_models[name]
-            goal_type = instances[0].objs[0]
+            goal_type = instances[0].objs[-1]
+            goal = world.getObjects(goal_type)[0]
+            goal_pose = world.getPose(goal)
+            print(name,"goal is",goal_type,"and chose",goal)
 
             option = DmpOption(
                 policy_type=CartesianDmpPolicy,
                 config=self.config,
                 kinematics=self.kdl_kin,
-                goal_object=world.getObjects()[goal_type],
+                goal_object=goal,
                 skill_name=name,
                 feature_model=model,
                 traj_dist=self.getParamDistribution(name))
@@ -166,7 +168,6 @@ class LfD(object):
 
             state = world.actors[0].state
 
-            goal = args[goal_type]
             RequestActiveDMP(instances[0].dmp_list)
 
             q = state.q
@@ -174,7 +175,7 @@ class LfD(object):
                  -2.0823833,   2.29921898,  1.42712378]
             T = pm.fromMatrix(self.kdl_kin.forward(q))
             ee_rpy = T.M.GetRPY()
-            relative_goal = goal * instances[0].goal_pose
+            relative_goal = goal_pose * instances[0].goal_pose
             rpy = relative_goal.M.GetRPY()
             adj_rpy = [0, 0, 0]
 

@@ -45,6 +45,7 @@ class CostarWorld(AbstractWorld):
                  observe=None,
                  robot_config=None,
                  lfd=None,
+                 tf_listener=None,
                  *args, **kwargs):
         super(CostarWorld, self).__init__(reward, *args, **kwargs)
 
@@ -70,7 +71,10 @@ class CostarWorld(AbstractWorld):
         self.traj_pubs = {}
         self.traj_data_pubs = {}
         self.skill_pubs = {}
-        self.tf_listener = None
+        self.tf_listener = tf_listener
+        if self.tf_listener is None:
+            self.tf_listener = tf.TransformListener()
+
 
         # Other things
         self.observe = observe
@@ -261,8 +265,8 @@ class CostarWorld(AbstractWorld):
                 msg.poses.append(pm.toMsg(pm.fromMatrix(T)))
         self.plan_pub.publish(msg)
 
-    def debugLfD(self, args):
-        self.lfd.debug(self, args)
+    def debugLfD(self):
+        self.lfd.debug(self)
 
     def updateObservation(self):
         '''
@@ -282,17 +286,19 @@ class CostarWorld(AbstractWorld):
         Access via the self.observation member.
         '''
         self.observation = {}
-        if self.tf_listener is None:
-            self.tf_listener = tf.TransformListener()
-
         try:
-            for obj in objs:
+            for obj in self.objects_to_track:
                 (trans, rot) = self.tf_listener.lookupTransform(
                     self.base_link, obj, rospy.Time(0.))
                 self.observation[obj] = pm.fromTf((trans, rot))
 
-        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
+            print(e)
             pass
+
+    def getPose(self, obj):
+        print (self.observation)
+        return self.observation[obj]
 
     def addObjects(self, objects):
         '''

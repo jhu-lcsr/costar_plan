@@ -25,6 +25,15 @@ def getArgs():
     parser.add_argument("--project",
                         default=None,
                         help="Project directory to save to",)
+    parser.add_argument("--show",
+                        action="store_true",
+                        help="show a graph of the compiled task")
+    parser.add_argument("--debug",
+                        action="store_true",
+                        help="publish debugging messages")
+    parser.add_argument("--verbose",
+                        action="store_true",
+                        help="print out a ton of information")
     return parser.parse_args()
 
 def fakeTaskArgs():
@@ -60,12 +69,20 @@ def main():
     task = rtp.makeTask()
     world = TomWorld(lfd=rtp.lfd)
     if args.fake:
+        world.addObjects(fakeTaskArgs())
         filled_args = task.compile(fakeTaskArgs())
-        print(task.nodeSummary())
-        print(task.children['ROOT()'])
 
-        from costar_task_plan.tools import showTask
-        showTask(task)
+        if args.verbose:
+            print(task.nodeSummary())
+            print(task.children['ROOT()'])
+
+        if args.show:
+            from costar_task_plan.tools import showTask
+            showTask(task)
+
+        if args.debug:
+            world.updateObservation()
+            world.debugLfD()
 
     if args.project:
         world.saveModels(args.project)
