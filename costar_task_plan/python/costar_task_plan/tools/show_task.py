@@ -29,7 +29,7 @@ def showTask(task, root="ROOT()", filename="task.dot"):
     pos = nx.nx_agraph.graphviz_layout(g, prog="dot")
     #nx.draw_networkx_edges(g, pos, width=1.0, alpha=1., arrows=False)
     nx.draw(g, pos, prog='dot', node_size=1000, nodelist=nodelist,
-            width=1.0, alpha=1., arrows=False, with_labels=True,)
+            width=1.0, alpha=1., arrows=True, with_labels=True,)
     plt.axis('off')
     plt.show()
 

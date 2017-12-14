@@ -54,7 +54,7 @@ def main():
             filename=args.bagfile,
             configs=[TOM_RIGHT_CONFIG, TOM_LEFT_CONFIG],
             unknown_apply_before=4,
-            min_action_length=2,
+            min_action_length=1,
             demo_topic=args.demo_topic)
     rtp.process() # run through the data and create models
     task = rtp.makeTask()
