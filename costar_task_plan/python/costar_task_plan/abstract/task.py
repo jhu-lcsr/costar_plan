@@ -325,6 +325,7 @@ class OptionTemplate(object):
   '''
   def __init__(self, args=[], constructor=None, remap=None, task=None,
           subtask_name=None, semantic_remap=None, postconditions=[], semantic_args=[],
+          transition_frequency=None,
           name_template="%s(%s)"):
     self.constructor = constructor
     self.subtask_name = subtask_name
@@ -336,6 +337,11 @@ class OptionTemplate(object):
     self.name_template = name_template
     self.children = []
     self.postconditions = postconditions
+    self.transition_frequency = transition_frequency
+    if self.transition_frequency is not None:
+        self.frequencies = []
+    else:
+        self.frequencies = None
 
   def instantiate(self, name, arg_dict):
     '''
@@ -396,6 +402,11 @@ class OptionTemplate(object):
     '''
     if child not in self.children:
         self.children.append(child)
+        if self.transition_frequencies is not None:
+            if child in self.transition_frequency:
+                self.frequencies.append(self.transition_frequency[child])
+            else:
+                self.frequencies.append(0)
 
 class NullOptionTemplate(OptionTemplate):
   '''
