@@ -1,6 +1,5 @@
 from costar_task_plan.abstract import *
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 '''
@@ -35,6 +34,7 @@ class NeedleTrajectory(StateTrajectory):
     self.s = np.array(tmp)
 
   def show(self):
+    import matplotlib.pyplot as plt
     plt.plot(self.s[:, 0], self.s[:, 1])
 
 '''

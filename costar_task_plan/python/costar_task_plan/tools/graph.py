@@ -1,5 +1,4 @@
 
-import matplotlib.pyplot as plt
 import networkx as nx
 
 
@@ -57,6 +56,7 @@ def add_to_graph(g, parent_name, node, good, bad, mid, nid):
 
 
 def showGraph(root, filename='test.dot'):
+    import matplotlib.pyplot as plt
     g, good, bad, mid = makeGraph(root)
     plt.figure(figsize=(10, 10), dpi=80)
     nx.write_dot(g, filename)

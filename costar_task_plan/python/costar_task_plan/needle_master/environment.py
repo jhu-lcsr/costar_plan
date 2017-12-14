@@ -6,7 +6,6 @@ Created on Thu Oct 08 11:30:52 2015
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Polygon
 try:
@@ -46,6 +45,7 @@ class Environment:
             handle.close()
 
     def Draw(self, gamecolor=True):
+        import matplotlib.pyplot as plt
         axes = plt.gca()
         plt.ylim(self.height)
         plt.xlim(self.width)
