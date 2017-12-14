@@ -18,6 +18,7 @@ class RosTaskParser(TaskParser):
     def __init__(self,
             filename=None,
             demo_topic="demonstration",
+            alias_topic="alias",
             *args, **kwargs):
         '''
         Create the ROS version of the task parser -- represents a given task
@@ -36,6 +37,7 @@ class RosTaskParser(TaskParser):
         self.addIdle("IdleMotion")
         self.addUnknown("UnknownActivity")
         self.demo_topic = demo_topic
+        self.alias_topic = alias_topic
         self.lfd = LfD(self.configs[0])
         if filename is not None:
             self.fromFile(filename)
@@ -60,6 +62,8 @@ class RosTaskParser(TaskParser):
                 left = self._getHand(msg.left, ActionInfo.ARM_LEFT)
                 right = self._getHand(msg.right, ActionInfo.ARM_RIGHT)
                 self.addDemonstration(t, objs, [left, right])
+            elif topic == self.alias_topic:
+                self.addAlias(msg.old_name, msg.new_name)
         self.processDemonstration()
 
     def _getArgs(self, skill_name):
