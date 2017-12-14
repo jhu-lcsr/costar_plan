@@ -4,8 +4,6 @@ import keras.backend as K
 import keras.losses as losses
 import numpy as np
 
-from matplotlib import pyplot as plt
-
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
 from keras.layers import UpSampling2D, Conv2DTranspose
@@ -68,6 +66,7 @@ class GAN(AbstractAgentBasedModel):
         self.discriminator.summary()
 
     def fit(self, x, y, num_iter=3001, batch_size=50, save_interval=0):
+        from matplotlib import pyplot as plt
         for i in xrange(num_iter):
 
             # Sample one batch, including random noise
