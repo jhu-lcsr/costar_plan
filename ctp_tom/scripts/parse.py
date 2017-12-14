@@ -8,7 +8,8 @@ import rospy
 
 def getArgs():
     parser = argparse.ArgumentParser(add_help=True, description="Parse rosbag into graph.")
-    parser.add_argument("bagfile", help="name of file")
+    parser.add_argument("bagfile",
+            help="name of file or comma-separated list of files")
     parser.add_argument("--demo_topic",
                         help="topic on which demonstration info was published",
                         default="/vr/learning/getDemonstrationInfo")
@@ -17,6 +18,9 @@ def getArgs():
     parser.add_argument("--fake",
                         action="store_true",
                         help="create some fake options for stuff")
+    parser.add_argument("--project",
+                        default=None,
+                        help="Project directory to save to",)
     return parser.parse_args()
 
 def fakeTaskArgs():
@@ -55,6 +59,9 @@ def main():
 
         #from costar_task_plan.tools import showTask
         #showTask(task)
+
+    if args.project:
+        world.saveModels(args.project)
 
 if __name__ == "__main__":
     main()

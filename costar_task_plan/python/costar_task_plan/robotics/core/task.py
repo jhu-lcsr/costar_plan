@@ -43,7 +43,9 @@ class RosTaskParser(TaskParser):
             self.fromFile(filename)
 
     def fromFile(self, filename):
-        bag = rosbag.Bag(filename, 'r')
+        filenames = filename.split(',')
+        for f in filenames:
+            bag = rosbag.Bag(f, 'r')
         self.fromBag(bag)
 
     def fromBag(self, bag):
@@ -170,3 +172,5 @@ class RosTaskParser(TaskParser):
         print("===============================")
         self.lfd.train(self.trajectories, self.trajectory_data, self.trajectory_features)
 
+    def debug(self, world):
+        self.lfd.debug(world)

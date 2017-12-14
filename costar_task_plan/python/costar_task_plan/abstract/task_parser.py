@@ -180,7 +180,6 @@ class TaskParser(object):
         from_action: action/activity that we just executed/finished
         to_action: action/activity that we just began
         '''
-        print(from_action, "--->", to_action)
         key = (from_action, to_action)
         if not to_action in self.transitions:
             self.transitions[to_action] = set()
