@@ -153,6 +153,8 @@ class LfD(object):
             goal = world.getObjects(goal_type)[0]
             goal_pose = world.getPose(goal)
             print(name,"goal is",goal_type,"and chose",goal)
+            if goal_pose is None:
+                continue
 
             option = DmpOption(
                 policy_type=CartesianDmpPolicy,

@@ -17,6 +17,7 @@ import logging
 from os.path import join
 from geometry_msgs.msg import PoseArray
 import tf
+import tf2_ros as tf2
 from tf_conversions import posemath as pm
 
 # use this for now -- because it's simple and works pretty well
@@ -283,18 +284,21 @@ class CostarWorld(AbstractWorld):
         --------
         n/a
 
-        Access via the self.observation member.
+        Access via the self.observation member or the getPose() function.
         '''
         self.observation = {}
-        try:
-            for obj in self.objects_to_track:
+        for obj in self.objects_to_track:
+            try:
+                self.tf_listener.waitForTransform(self.base_link, obj, rospy.Time.now(), rospy.Duration(0.1))
                 (trans, rot) = self.tf_listener.lookupTransform(
                     self.base_link, obj, rospy.Time(0.))
                 self.observation[obj] = pm.fromTf((trans, rot))
 
-        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
-            print(e)
-            pass
+            except (tf.LookupException,
+                    tf.ConnectivityException,
+                    tf.ExtrapolationException,
+                    tf2.TransformException) as e:
+                self.observation[obj] = None
 
     def getPose(self, obj):
         print (self.observation)
