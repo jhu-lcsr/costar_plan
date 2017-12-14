@@ -9,14 +9,16 @@ def showTask(task, root="ROOT()", filename="task.dot"):
     g = nx.DiGraph()
 
     nodes = [root]
+    visited = set()
 
     while len(nodes) > 0:
-        print node
         node = nodes.pop()
+        visited.add(node)
         children = task.children[node]
         for child in children:
             g.add_edge(node, child)
-        nodes += children
+            if child not in visited:
+                nodes.append(child)
 
     pos = graphviz_layout(g)
     nx.draw(g, pos, prog='dot', node_size=1000,
