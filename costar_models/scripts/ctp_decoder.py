@@ -5,8 +5,8 @@ from __future__ import print_function
 # ----------------------------------------
 # Before importing anything else -- make sure we load the right library to save
 # images to disk for saving images.
-#import matplotlib as mpl
-#mpl.use("Agg")
+import matplotlib as mpl
+mpl.use("Agg")
 
 from costar_models import *
 from costar_models.datasets.npz import NpzDataset
