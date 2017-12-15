@@ -11,6 +11,20 @@ class Node(AbstractState):
     next_idx = 0
 
     def __init__(self, world=None, action=None, prior=1., root=False):
+
+        '''
+        You only need one of world or action. Ways to use this:
+         - provide a world and set root to true: ROOT node
+         - provide no world, but an action: non-instantiated child node
+
+        Parameters:
+        -----------
+        world: world state including all current actors
+        action: the current MCTS action (wraps a policy)
+        prior: weight for how good this is going to be
+        root: is this the root of a tree?
+        '''
+
         if world is None and action is None:
             raise RuntimeError('must provide either a world or an action!')
 
