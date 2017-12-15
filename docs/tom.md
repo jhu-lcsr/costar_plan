@@ -5,6 +5,7 @@ The TOM examples require the [TOM Robot package](https://github.com/cpaxton/tom_
 
   - Installing Dependencies
   - Real Robot Setup
+  - Task Parser
   - One-Arm Orange Tests
 
 ## Installing Dependencies
@@ -29,14 +30,18 @@ There are a few different pieces that need to start up:
 
 You can start up the context and perception systems with the command:
 ```
-roslaunch ctp_tom planning.launch
+roslaunch ctp_tom planner.launch
 ```
 
-By default, the `real:=true` option is set. We also plan on supporting a fake version which creates a scene based on fixed TF poses. This does not simulate object interactions or anything fancy like that.
+By default, the `real:=true` option is set, meaning it will start up a perception pipeline. We also plan on supporting a fake version which creates a scene based on fixed TF poses. This does not simulate object interactions or anything fancy like that.
+
+Important other launch files (included by default):
+  - `scene.launch`: loads object descriptions used to create MoveIt planning scene
+  - `perception.launch`: used to start real robot or Gazebo perception
 
 For more information, see the [real TOM guide](tom_real_robot.md).
 
-## The Parser
+## The Task Parser
 
 The `ctp_tom` parser is a version of the task plan parsing tool that takes in messages and produces an executable task graph. You can feed the parser one or more rosbags:
 
@@ -58,6 +63,16 @@ You can specify the project directory to which the resulting models should be sa
 ```
 rosrun ctp_tom parse.py --bagfile oranges_2017-12-13-19-01-15.bag --fake --project oranges
 ```
+
+### Running With Fake Objects
+
+The `fake_objects.py` script will create some extra TF frames for additional object detections. This can be useful if, say, you don't want the robot to actually see and pick up oranges. Run it very easily with:
+
+```
+rosrun ctp_tom fake_objects.py 
+```
+
+If you set the `fake:=true` option when bringing up `planner.launch`, the perception system will not start but everything else will. This lets us manually publish extra objects and data.
 
 ## One-Arm Orange Tests (Old Version)
 

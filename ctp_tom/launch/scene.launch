@@ -1,0 +1,19 @@
+<launch>
+
+  <!-- Load the table URDF to the rosparam server -->
+  <param name="table_description"
+    command="$(find xacro)/xacro.py '$(find costar_simulation)/urdf/table/default_tom_table.urdf.xacro'"/>
+  <param name="block1_description"
+    command="$(find xacro)/xacro.py '$(find costar_simulation)/urdf/duplo/duplo1.urdf.xacro'"/>
+  <param name="block2_description"
+    command="$(find xacro)/xacro.py '$(find costar_simulation)/urdf/duplo/duplo2.urdf.xacro'"/>
+  <param name="orange_description"
+    command="$(find xacro)/xacro.py '$(find costar_simulation)/urdf/orange/orange.urdf.xacro'"/>
+  <param name="box_description"
+    command="$(find xacro)/xacro.py '$(find costar_simulation)/urdf/box/box.urdf.xacro'"/>
+  <param name="drill_description"
+    command="$(find xacro)/xacro.py '$(find costar_simulation)/urdf/drill/drill.urdf.xacro'"/>
+  <param name="drill_receptacle_description"
+    command="$(find xacro)/xacro.py '$(find costar_simulation)/urdf/drill/drill_receptacle.urdf.xacro'"/>
+
+</launch>
