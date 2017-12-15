@@ -89,6 +89,7 @@ class CostarActor(AbstractActor):
     def __init__(self, config, *args, **kwargs):
         super(CostarActor, self).__init__(*args, **kwargs)
         self.config = config
+        self.name = config['name']
         self.joints = config['joints']
         self.dof = self.config['dof']
         self.base_link = self.config['base_link']

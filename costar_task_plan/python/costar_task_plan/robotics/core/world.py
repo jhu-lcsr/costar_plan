@@ -108,15 +108,18 @@ class CostarWorld(AbstractWorld):
 
         # Create and add all the robots we want in this world.
         for i, robot in enumerate(robot_config):
-            if use_default_pose and robot['q0'] is not None:
+
+            js_listener = JointStateListener(robot)
+            name = robot['name']
+            if name in self.js_listeners:
+                raise RuntimeError('duplicate name %s in list of robots'%name)
+            self.js_listeners[name] = js_listener
+
+            if robot['q0'] is not None:
                 s0 = CostarState(self, i, q=robot['q0'])
-            else:
-                js_listener = JointStateListener(robot)
-                self.js_listeners[robot['name']] = js_listener
-                rospy.sleep(0.1)
-                if js_listener.q0 is not None:
-                    s0 = CostarState(
-                        self, i, q=js_listener.q0, dq=js_listener.dq)
+            if js_listener.q0 is not None:
+                s0 = CostarState(
+                    self, i, q=js_listener.q0, dq=js_listener.dq)
                 else:
                     s0 = CostarState(
                         self, i, q=np.zeros((robot['dof'],)), dq=np.zeros((robot['dof'],)))
@@ -270,7 +273,7 @@ class CostarWorld(AbstractWorld):
     def debugLfD(self, *args, **kwargs):
         self.lfd.debug(self, *args, **kwargs)
 
-    def updateObservation(self,maxt=0.01):
+    def update(self,maxt=0.01):
         '''
         Look up what the world should look like, based on the provided arguments.
         "objs" should be a list of all possible objects that we might want to
@@ -300,6 +303,11 @@ class CostarWorld(AbstractWorld):
                     tf.ExtrapolationException,
                     tf2.TransformException) as e:
                 self.observation[obj] = None
+
+        # Update 
+        for actor in self.actors:
+            actor.state = actor.getState()
+            actor.state.t = rospy.Time.now()
 
     def getPose(self, obj):
         return self.observation[obj]
