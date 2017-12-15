@@ -937,7 +937,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         x = Flatten()(rep_in)
         x1 = AddDense(x, 512, "relu", dr)
-        #x2 = AddDense(x2, 512, "relu", dr)
+        x1 = AddDense(x1, 512, "relu", dr)
         arm = AddDense(x1, arm_size, "linear", dr, output=True)
         gripper = AddDense(x1, gripper_size, "sigmoid", dr, output=True)
         #y = AddDense(x, 512, "relu", dr, output=True)
