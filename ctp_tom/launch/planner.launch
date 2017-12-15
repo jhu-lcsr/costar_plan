@@ -18,7 +18,7 @@
   <arg name="start_static_handeye" default="true" />
   <arg name="auto_white_balance" default="true" />
   <arg name="real" default="true" doc="(boolean) is this a real robot or will gazebo provide simulated data?"/>
-  <arg name="fake" default="false" doc="(bool) do not even bother with a full simulation; just publish fake perception and test in RVIZ."/>
+  <arg name="fake" default="false" doc="(boolean) do not even bother with a full simulation; just publish fake perception and test in RVIZ."/>
 
   <!-- Note: auto exposure on results in very ugly point clouds; it tends to 
        white out many surfaces. Disable this for best results. -->
@@ -39,7 +39,7 @@
   <param name="use_sim_time" value="false"/>
 
   <!-- Start the perception pipeline -->
-  <include file="$(find ctp_tom)/launch/scene.launch">
+  <include file="$(find ctp_tom)/launch/scene.launch"/>
   <include unless="$(arg fake)" file="$(find ctp_tom)/launch/perception.launch">
     <arg name="real" value="true"/>
     <arg name="depth_registration" value="$(arg depth_registration)"/>
