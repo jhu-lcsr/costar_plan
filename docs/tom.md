@@ -53,6 +53,12 @@ Adding the `--fake` flag will add some fake objects and compile the model:
 rosrun ctp_tom parse.py oranges_2017-12-13-19-01-15.bag,blocks_2017-12-13-20-07-27.bag --fake
 ```
 
+You can specify the project directory to which the resulting models should be saved with the `--project $NAME` flags:
+
+```
+rosrun ctp_tom parse.py --bagfile oranges_2017-12-13-19-01-15.bag --fake --project oranges
+```
+
 ## One-Arm Orange Tests (Old Version)
 
 These are the "old" experiments, and may not work all that well any more.

@@ -14,8 +14,7 @@ from tom_test import do_search
 
 def getArgs():
     parser = argparse.ArgumentParser(add_help=True, description="Parse rosbag into graph.")
-    parser.add_argument("--bagfile",
-            default=None,
+    parser.add_argument("bagfile",
             help="name of file or comma-separated list of files to parse")
     parser.add_argument("--demo_topic",
                         help="topic on which demonstration info was published",
@@ -56,8 +55,6 @@ def fakeTaskArgs():
   }
   return args
 
-
-
 def main():
     args = getArgs()
     rospy.init_node('parse_task_model')
@@ -72,9 +69,6 @@ def main():
         rtp.process() # run through the data and create models
         task = rtp.makeTask()
         world = TomWorld(lfd=rtp.lfd)
-    elif args.project:
-        # load from file
-        pass
     else:
         raise RuntimeError('no project or bag files specified')
 
