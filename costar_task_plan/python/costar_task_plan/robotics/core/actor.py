@@ -3,17 +3,22 @@ import numpy as np
 
 from costar_task_plan.abstract import *
 
-# State of a particular actor. It's the joint state, nice and simple.
-
+from .js_listener import JointStateListener
 
 class CostarState(AbstractState):
 
-    def __init__(self, world, actor_id, q, dq,
+    '''
+    State of a particular actor. It's the joint state, nice and simple, but
+    it also includes some other information.
+    '''
+
+    def __init__(self, actor_id, q, dq,
                  finished_last_sequence=False,
                  reference=None,
                  traj=None,
                  seq=0,
                  gripper_closed=False,
+                 t=0.,
                  code=None):
 
         # Set up list of predicates
@@ -23,6 +28,7 @@ class CostarState(AbstractState):
         self.q = q
         self.dq = dq
         self.code = code
+        self.t = t
 
         # These are used to tell us which high-level action the robot was
         # performing, and how far along it was.
@@ -34,11 +40,7 @@ class CostarState(AbstractState):
         # Is the gripper open or closed?
         self.gripper_closed = gripper_closed
 
-        # This should (hopefully) be a reference the world. it hardly matters
-        # for something like this, though -- our states hold very little
-        # information. The actor ID is important for looking up config information
-        # for the actor when updating their state or computing motion plans.
-        self.world = world
+        # Identity of the particular actor
         self.actor_id = actor_id
 
     def toArray(self):
@@ -89,12 +91,21 @@ class CostarActor(AbstractActor):
     def __init__(self, config, *args, **kwargs):
         super(CostarActor, self).__init__(*args, **kwargs)
         self.config = config
+        self.js_listener = JointStateListener(self.config)
         self.name = config['name']
         self.joints = config['joints']
         self.dof = self.config['dof']
         self.base_link = self.config['base_link']
         if not self.dof == len(self.joints):
             raise RuntimeError('You configured the robot joints wrong')
+
+    def getState(self):
+        '''
+        Get and update the actor's state
+        '''
+        q = self.js_listener.q0
+        dq = self.js_listener.dq
+        return CostarState(self.id, q, dq)
 
 
 # Simple policy for these actors

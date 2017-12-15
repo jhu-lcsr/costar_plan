@@ -121,7 +121,7 @@ def main():
                 r_js_pub.publish(r_msg)
                 l_js_pub.publish(l_msg)
                 while not rospy.is_shutdown():
-                    world.updateObservation()
+                    world.update()
                     world.debugLfD(verbose=args.verbose)
                     rate.sleep()
             except rospy.ROSInterruptException as e:

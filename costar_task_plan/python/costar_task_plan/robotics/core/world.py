@@ -7,7 +7,6 @@ from frame import *
 from detected_object import *
 from actor import *
 from dynamics import *
-from js_listener import JointStateListener
 
 from costar_task_plan.abstract import *
 from costar_task_plan.robotics.representation import GMM
@@ -102,28 +101,18 @@ class CostarWorld(AbstractWorld):
         # -------------------------- ROBOT INFORMATION ----------------------------
         # Base link, end effector, etc. for easy reference
         # set up actors and things
-        self.js_listeners = {}
         self.tf_pub = tf.TransformBroadcaster()
 
 
         # Create and add all the robots we want in this world.
         for i, robot in enumerate(robot_config):
 
-            js_listener = JointStateListener(robot)
             name = robot['name']
-            if name in self.js_listeners:
-                raise RuntimeError('duplicate name %s in list of robots'%name)
-            self.js_listeners[name] = js_listener
 
             if robot['q0'] is not None:
-                s0 = CostarState(self, i, q=robot['q0'])
-            if js_listener.q0 is not None:
-                s0 = CostarState(
-                    self, i, q=js_listener.q0, dq=js_listener.dq)
-                else:
-                    s0 = CostarState(
-                        self, i, q=np.zeros((robot['dof'],)), dq=np.zeros((robot['dof'],)))
-
+                s0 = CostarState(self, i, q=robot['q0'], dq=np.zeros_like(robot['q0']))
+            else:
+                s0 = CostarState(self, i, None, None)
             self.addActor(
                 CostarActor(robot,
                             state=s0,
@@ -307,7 +296,7 @@ class CostarWorld(AbstractWorld):
         # Update 
         for actor in self.actors:
             actor.state = actor.getState()
-            actor.state.t = rospy.Time.now()
+            actor.state.t = rospy.Time.now().to_sec()
 
     def getPose(self, obj):
         return self.observation[obj]
