@@ -126,6 +126,17 @@ class RosTaskParser(TaskParser):
                 gripper_state)
 
     def _getTime(self, demo):
+        '''
+        Compute time in seconds from header of a ROS message.
+
+        Parameters:
+        -----------
+        demo: ros message of a demonstration
+
+        Returns:
+        --------
+        t: float time in seconds
+        '''
         t = demo.header.stamp
         t = t.to_sec()
         return t
@@ -155,6 +166,21 @@ class RosTaskParser(TaskParser):
         return objs
 
     def _makePose(self, pose_msg):
+        '''
+        Read in a pose message and convert it to a standard data format. We
+        use KDL Frames for fast operations down the line.
+
+        If we previously set the `from_unity` flag to true, then we need to
+        adjust our frames so that they make sense as well.
+
+        Parameters:
+        -----------
+        pose_msg: a ROS pose message
+
+        Returns:
+        --------
+        a KDL pose in right hand, z-up notation
+        '''
         pose = pm.fromMsg(pose_msg)
         if self.from_unity:
             H = np.array([
@@ -165,10 +191,7 @@ class RosTaskParser(TaskParser):
             x = pm.toMatrix(pose)
             x = H.dot(x)
             pose = pm.fromMatrix(x)
-            
-            #z = pose.p[1]
-            #pose.p[1] = pose.p[2]
-            #pose.p[2] = z
+
         return pose
 
     def train(self):
