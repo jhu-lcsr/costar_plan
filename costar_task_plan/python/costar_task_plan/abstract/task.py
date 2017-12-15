@@ -162,7 +162,7 @@ class Task(object):
 
     def getChildren(self, node):
         if node in self.children:
-            return self.children[node]
+            return self.children[node], self.weights[node]
         else:
             return []
 
