@@ -109,7 +109,6 @@ class TaskModelInitialize(AbstractInitialize):
 
     def __call__(self, node):
         children, weights = self.task.getChildren(node.tag)
-        print (children)
         for child, weight in zip(children, weights):
             print (child, node.tag, weight)
             option = self.task.getOption(child)

@@ -171,7 +171,6 @@ class Task(object):
             return self.nodes[node]
         else:
             raise RuntimeError('node %s does not exist' % node)
-
     def compile(self, arg_dict, unroll_depth=None):
         '''
         Instantiate this task for a particular world. This takes the task model and
