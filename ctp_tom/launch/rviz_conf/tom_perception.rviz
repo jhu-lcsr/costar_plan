@@ -90,8 +90,6 @@ Visualization Manager:
           Value: false
         ar_marker_6:
           Value: false
-        ar_marker_7:
-          Value: false
         ar_marker_8:
           Value: false
         base_footprint:
@@ -254,8 +252,6 @@ Visualization Manager:
                         {}
                       ar_marker_6:
                         {}
-                      ar_marker_7:
-                        {}
                       ar_marker_8:
                         {}
                       block_1:
@@ -359,80 +355,80 @@ Visualization Manager:
       Axes Radius: 0.00999999978
       Class: rviz/PoseArray
       Color: 170; 85; 255
-      Enabled: false
+      Enabled: true
       Head Length: 0.0700000003
       Head Radius: 0.0299999993
-      Name: TEST
+      Name: IDLE MOTION
       Shaft Length: 0.230000004
       Shaft Radius: 0.00999999978
       Shape: Arrow (Flat)
-      Topic: /tom/trajectories/test
+      Topic: /costar/lfd/IdleMotion
       Unreliable: false
-      Value: false
+      Value: true
     - Alpha: 1
       Arrow Length: 0.0500000007
       Axes Length: 0.300000012
       Axes Radius: 0.00999999978
       Class: rviz/PoseArray
       Color: 255; 25; 0
-      Enabled: false
+      Enabled: true
       Head Length: 0.0700000003
       Head Radius: 0.0299999993
-      Name: BOX
+      Name: PUT BLOCK SOMEWHERE
       Shaft Length: 0.230000004
       Shaft Radius: 0.00999999978
       Shape: Arrow (Flat)
-      Topic: /tom/trajectories/box
+      Topic: /costar/lfd/PutSomethingSomewhere_with_block
       Unreliable: false
-      Value: false
+      Value: true
     - Alpha: 1
       Arrow Length: 0.0500000007
       Axes Length: 0.300000012
       Axes Radius: 0.00999999978
       Class: rviz/PoseArray
       Color: 85; 255; 255
-      Enabled: false
+      Enabled: true
       Head Length: 0.0700000003
       Head Radius: 0.0299999993
-      Name: MOVE
+      Name: REACH ORANGE
       Shaft Length: 0.230000004
       Shaft Radius: 0.00999999978
       Shape: Arrow (Flat)
-      Topic: /tom/trajectories/move
+      Topic: /costar/lfd/Reach_to_orange
       Unreliable: false
-      Value: false
+      Value: true
     - Alpha: 1
       Arrow Length: 0.0500000007
       Axes Length: 0.300000012
       Axes Radius: 0.00999999978
       Class: rviz/PoseArray
       Color: 85; 255; 0
-      Enabled: false
+      Enabled: true
       Head Length: 0.0700000003
       Head Radius: 0.0299999993
-      Name: PICKUP
+      Name: REACH BLOCK
       Shaft Length: 0.230000004
       Shaft Radius: 0.00999999978
       Shape: Arrow (Flat)
-      Topic: /tom/trajectories/pickup
+      Topic: /costar/lfd/PutSomethingSomewhere_with_block
       Unreliable: false
-      Value: false
+      Value: true
     - Alpha: 1
       Arrow Length: 0.0500000007
       Axes Length: 0.300000012
       Axes Radius: 0.00999999978
       Class: rviz/PoseArray
-      Color: 255; 25; 0
-      Enabled: false
+      Color: 170; 170; 127
+      Enabled: true
       Head Length: 0.0700000003
       Head Radius: 0.0299999993
-      Name: TRASH
+      Name: REACH TABLE
       Shaft Length: 0.230000004
       Shaft Radius: 0.00999999978
       Shape: Arrow (Flat)
-      Topic: /tom/trajectories/trash
+      Topic: /costar/lfd/Reach_to_high_table
       Unreliable: false
-      Value: false
+      Value: true
     - Class: moveit_rviz_plugin/MotionPlanning
       Enabled: true
       Move Group Namespace: ""
@@ -1289,7 +1285,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 2.42838907
+      Distance: 1.91026258
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
@@ -1304,10 +1300,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.50479579
+      Pitch: 0.354795456
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.88222241
+      Yaw: 1.59222186
     Saved: ~
 Window Geometry:
   Depth:
