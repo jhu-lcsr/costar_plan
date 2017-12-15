@@ -33,4 +33,5 @@ class ValidStateCondition(AbstractCondition):
         res = self.srv(robot_state=rs)
         if not res.valid:
             print "[ValidStateCondition] Invalid state!"
+            print res
         return res.valid
