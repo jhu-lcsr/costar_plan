@@ -43,6 +43,15 @@ def getArgs():
     parser.add_argument("--execute",
                         action="store_true",
                         help="print out a ton of information")
+    parser.add_argument("--iter","-i",
+                        default=10,
+                        type=int,
+                        help="number of samples to draw")
+    parser.add_argument("--max_depth","-m",
+                        default=5,
+                        type=int,
+                        help="maximum search depth")
+    
     return parser.parse_args()
 
 def fakeTaskArgs():
@@ -140,7 +149,7 @@ def main():
     if args.plan:
         if not args.fake:
             raise RuntimeError('currently only fake scene is supported')
-        path = do_search(world, task)
+        path = do_search(world, task, max_depth=args.max_depth, iter=args.iter)
         plan = PlanExecutionManager(path, OpenLoopTomExecute(world, 0))
     
     if args.execute:

@@ -109,13 +109,14 @@ def load_tom_data_and_run():
     except rospy.ROSInterruptException, e:
         pass
 
-def do_search(world, task):
+def do_search(world, task, max_depth=5, iter=10):
     '''
     Run through a single experiment, generating a trajectory that will satisfy
     all of our conditions and producing a list of policies to execute.
     '''
 
     policies = DefaultTaskMctsPolicies(task)
+    policies.max_depth = max_depth
     search = MonteCarloTreeSearch(policies)
 
     world.update()
@@ -132,7 +133,7 @@ def do_search(world, task):
     print "================================================"
     print "Performing MCTS over options:"
     root = Node(world=world,root=True)
-    elapsed, path = search(root,iter=10)
+    elapsed, path = search(root,iter=iter)
     print "-- ", elapsed, len(path)
     return path
 
