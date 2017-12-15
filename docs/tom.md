@@ -36,7 +36,24 @@ By default, the `real:=true` option is set. We also plan on supporting a fake ve
 
 For more information, see the [real TOM guide](tom_real_robot.md).
 
-## One-Arm Orange Tests
+## The Parser
+
+The `ctp_tom` parser is a version of the task plan parsing tool that takes in messages and produces an executable task graph. You can feed the parser one or more rosbags:
+
+```
+# One bag only
+rosrun ctp_tom parse.py oranges_2017-12-13-19-01-15.bag
+# Multiple bags
+rosrun ctp_tom parse.py oranges_2017-12-13-19-01-15.bag,blocks_2017-12-13-20-07-27.bag
+```
+
+Adding the `--fake` flag will add some fake objects and compile the model:
+
+```
+rosrun ctp_tom parse.py oranges_2017-12-13-19-01-15.bag,blocks_2017-12-13-20-07-27.bag --fake
+```
+
+## One-Arm Orange Tests (Old Version)
 
 These are the "old" experiments, and may not work all that well any more.
 

@@ -17,6 +17,7 @@ import logging
 from os.path import join
 from geometry_msgs.msg import PoseArray
 import tf
+import tf2_ros as tf2
 from tf_conversions import posemath as pm
 
 # use this for now -- because it's simple and works pretty well
@@ -44,7 +45,9 @@ class CostarWorld(AbstractWorld):
                  namespace='/costar',
                  observe=None,
                  robot_config=None,
-
+                 lfd=None,
+                 tf_listener=None,
+                 use_default_pose=False,
                  *args, **kwargs):
         super(CostarWorld, self).__init__(reward, *args, **kwargs)
 
@@ -70,7 +73,10 @@ class CostarWorld(AbstractWorld):
         self.traj_pubs = {}
         self.traj_data_pubs = {}
         self.skill_pubs = {}
-        self.tf_listener = None
+        self.tf_listener = tf_listener
+        if self.tf_listener is None:
+            self.tf_listener = tf.TransformListener()
+
 
         # Other things
         self.observe = observe
@@ -86,9 +92,12 @@ class CostarWorld(AbstractWorld):
         # TODO(cpaxton): this is a duplicate, remove it after state has been
         # fixed a little
         self.object_by_class = {}
+        self.objects_to_track = []
 
         if robot_config is None:
             raise RuntimeError('Must provide a robot config!')
+        elif not isinstance(robot_config, list):
+            robot_config = [robot_config]
 
         # -------------------------- ROBOT INFORMATION ----------------------------
         # Base link, end effector, etc. for easy reference
@@ -99,7 +108,7 @@ class CostarWorld(AbstractWorld):
 
         # Create and add all the robots we want in this world.
         for i, robot in enumerate(robot_config):
-            if robot['q0'] is not None:
+            if use_default_pose and robot['q0'] is not None:
                 s0 = CostarState(self, i, q=robot['q0'])
             else:
                 js_listener = JointStateListener(robot)
@@ -133,7 +142,10 @@ class CostarWorld(AbstractWorld):
         # The base link for the scene as a whole
         self.base_link = self.actors[0].base_link
 
-        self.lfd = LfD(self)
+        if not lfd:
+            self.lfd = LfD(self.actors[0].config)
+        else:
+            self.lfd = lfd
 
     # This is the standard update performed at every tick. If we're actually
     # observing the world somehow, then this needs to update object
@@ -146,8 +158,15 @@ class CostarWorld(AbstractWorld):
 
     def addTrajectories(self, name, trajectories, data, objs):
         '''
-        [LEARNING HELPER FUNCTION ONLY]
-        Add a bunch of trajectory for use in learning.
+        Learning helper function; add a bunch of trajectory info for use in
+        creating action models. We need examples both of object positions and
+        of trajectories for the associated gripper.
+
+        Parameters:
+        -----------
+        name: name of the high-level action being performed
+        trajectories: list of trajs associated with this action
+        objs: list of objects associated with this action
         '''
         self.trajectories[name] = trajectories
         self.objs[name] = objs
@@ -248,28 +267,60 @@ class CostarWorld(AbstractWorld):
                 msg.poses.append(pm.toMsg(pm.fromMatrix(T)))
         self.plan_pub.publish(msg)
 
-    def debugLfD(self, args):
-        self.lfd.debug(self, args)
+    def debugLfD(self, *args, **kwargs):
+        self.lfd.debug(self, *args, **kwargs)
 
-    def updateObservation(self, objs):
+    def updateObservation(self,maxt=0.01):
         '''
         Look up what the world should look like, based on the provided arguments.
         "objs" should be a list of all possible objects that we might want to
-        aggregate. They'll be saved in the "obs" dictionary. It's the role of the
+        aggregate. They'll be saved in the "objs" dictionary. It's the role of the
         various options/policies to choose and use them intelligently.
+
+        Parameters:
+        -----------
+        maxt: max duration used when waiting for transforms
+
+        Returns:
+        --------
+        n/a
+
+        Access via the self.observation member or the getPose() function.
         '''
         self.observation = {}
-        if self.tf_listener is None:
-            self.tf_listener = tf.TransformListener()
-
-        try:
-            for obj in objs:
+        for obj in self.objects_to_track:
+            try:
+                self.tf_listener.waitForTransform(self.base_link, obj, rospy.Time.now(), rospy.Duration(maxt))
                 (trans, rot) = self.tf_listener.lookupTransform(
                     self.base_link, obj, rospy.Time(0.))
                 self.observation[obj] = pm.fromTf((trans, rot))
 
-        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-            pass
+            except (tf.LookupException,
+                    tf.ConnectivityException,
+                    tf.ExtrapolationException,
+                    tf2.TransformException) as e:
+                self.observation[obj] = None
+
+    def getPose(self, obj):
+        return self.observation[obj]
+
+    def addObjects(self, objects):
+        '''
+        Wrapper for addObject that will read through the whole dictionary to
+        get different objects and add them with the addObject function.
+
+        Parameters:
+        -----------
+        objs: dictionary of object lists by class
+
+        Returns:
+        --------
+        n/a
+
+        '''
+        for obj_class, objs in objects.items():
+            for obj_name in objs:
+                self.addObject(obj_name, obj_class)
 
     def addObject(self, obj_name, obj_class, *args):
         '''
@@ -277,17 +328,24 @@ class CostarWorld(AbstractWorld):
         policy and are added so we can easily look them up later on.
         TODO(cpaxton): update this when we have a more unified way of thinking
         about objects.
+
+        Parameters:
+        -----------
+        obj_class: type associated with a particular object
+        obj_name: name (unique identifier) of a particular object associated with TF
+
+        Returns:
+        --------
+        n/a
         '''
 
-        #self.class_by_object[obj_id] = obj_class
         if obj_class not in self.object_by_class:
             self.object_by_class[obj_class] = [obj_name]
         else:
             self.object_by_class[obj_class].append(obj_name)
+        self.objects_to_track.append(obj_name)
 
-        return -1
-
-    def getObjects(self):
+    def getObjects(self, obj_class):
         '''
         Return information about specific objects in the world. This should tell us
         for some semantic identifier which entities in the world correspond to that.
@@ -297,8 +355,16 @@ class CostarWorld(AbstractWorld):
             }
         Would be a reasonable response, saying that there are two goals called
         goal1 and goal2.
+
+        Parameters:
+        -----------
+        obj_class: class of objects that we are interested in
+
+        Returns:
+        --------
+        obj_list: a list of object identifiers (unique names)
         '''
-        return self.object_by_class
+        return self.object_by_class[obj_class]
 
     def _dataToPose(self, data):
         '''
@@ -327,7 +393,10 @@ class CostarWorld(AbstractWorld):
         return CostarAction(q=self.actors[actor_id].state.q, dq=dq)
 
     def fitTrajectories(self):
-        self.models = self.lfd.train()
+        '''
+        Wrapper to call lfd object and get a list of skill models
+        '''
+        self.models = self.lfd.train(self.trajectories, self.trajectory_data, self.objs)
 
     def getArgs(self):
         '''

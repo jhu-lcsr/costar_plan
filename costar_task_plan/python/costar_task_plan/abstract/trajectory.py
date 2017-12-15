@@ -1,6 +1,5 @@
 from dynamics import *
 import numpy as np
-import matplotlib.pyplot as plt
 
 class AbstractTrajectoryAction(AbstractAction):
 

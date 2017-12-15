@@ -61,6 +61,7 @@ def load_tom_data_and_run():
     # Set up the task model
     task = MakeTomTaskModel(world.lfd)
     args = OrangesTaskArgs()
+    world.addObjects(args)
     filled_args = task.compile(args)
     execute = True
 
@@ -91,9 +92,7 @@ def load_tom_data_and_run():
     try:
         while True:
           # Update observations about the world
-          objects = ['box1', 'orange1', 'orange2', 'orange3', 'trash1',
-                  'squeeze_area1']
-          world.updateObservation(objects)
+          world.updateObservation()
 
           # Print out visualization information about the world.
           world.visualize()
@@ -110,8 +109,8 @@ def load_tom_data_and_run():
 
           if res and test_args.loop:
             reset()
-            world.updateObservation(objects)
-            path = do_search(world, task, objects)
+            world.updateObservation()
+            path = do_search(world, task)
             plan = PlanExecutionManager(path, OpenLoopTomExecute(world, 0))
 
           rate.sleep()
@@ -128,8 +127,7 @@ def do_search(world, task, objects):
     policies = DefaultTaskMctsPolicies(task)
     search = MonteCarloTreeSearch(policies)
 
-    objects = ['box1', 'orange1', 'orange2', 'orange3', 'trash1', 'squeeze_area1']
-    world.updateObservation(objects)
+    world.updateObservation()
     world = world.fork(world.zeroAction(0))
 
     for actor in world.actors:
@@ -138,7 +136,7 @@ def do_search(world, task, objects):
 
     while len(world.observation) == 0:
         rospy.sleep(0.1)
-        world.updateObservation(objects)
+        world.updateObservation()
 
     print "================================================"
     print "Performing MCTS over options:"

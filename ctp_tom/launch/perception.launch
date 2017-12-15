@@ -4,8 +4,8 @@
   <arg name="camera_name" default="camera" />
   <arg name="marker_size" default="4.5" />
   <arg name="start_alvar" default="true" />
-  <arg name="max_new_marker_error" default="0.02" />
-  <arg name="max_track_error" default="0.05" />
+  <arg name="max_new_marker_error" default="0.01" />
+  <arg name="max_track_error" default="0.02" />
   <arg name="start_static_handeye" default="true" />
   <arg name="auto_white_balance" default="true" />
   <arg name="auto_exposure" default="false" />
@@ -28,6 +28,10 @@
     command="$(find xacro)/xacro.py '$(find costar_simulation)/urdf/orange/orange.urdf.xacro'"/>
   <param name="box_description"
     command="$(find xacro)/xacro.py '$(find costar_simulation)/urdf/box/box.urdf.xacro'"/>
+  <param name="drill_description"
+    command="$(find xacro)/xacro.py '$(find costar_simulation)/urdf/drill/drill.urdf.xacro'"/>
+  <param name="drill_receptacle_description"
+    command="$(find xacro)/xacro.py '$(find costar_simulation)/urdf/drill/drill_receptacle.urdf.xacro'"/>
 
   <!-- If we are testing with the real robot, use AR markers to localize the
        table and add it to the visualization and planning scenes. -->
