@@ -9,6 +9,7 @@ from .dmp_policy import CartesianDmpPolicy
 
 from learning_planning_msgs.msg import HandInfo
 
+import numpy as np
 import tf_conversions.posemath as pm
 
 import rosbag
@@ -156,11 +157,18 @@ class RosTaskParser(TaskParser):
     def _makePose(self, pose_msg):
         pose = pm.fromMsg(pose_msg)
         if self.from_unity:
-            print(pose, pose.M)
+            H = np.array([
+                [0,0,1,0],
+                [-1,0,0,0],
+                [0,1,0,0],
+                [0,0,0,1]])
+            x = pm.toMatrix(pose)
+            x = H.dot(x)
+            pose = pm.fromMatrix(x)
             
-            z = pose.p[1]
-            pose.p[1] = pose.p[2]
-            pose.p[2] = z
+            #z = pose.p[1]
+            #pose.p[1] = pose.p[2]
+            #pose.p[2] = z
         return pose
 
     def train(self):
