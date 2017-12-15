@@ -32,6 +32,8 @@ class Node(AbstractState):
             self.tag = self.action.tag
         elif root:
             self.tag = 'ROOT()'
+            if self.world.done:
+                raise RuntimeError('cannot create tree from terminal node')
         else:
             self.tag = 'NODE'
         if self.world is not None:
