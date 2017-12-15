@@ -6,6 +6,7 @@ import numpy as np
 import argparse
 import rospy
 
+from costar_task_plan.mcts import PlanExecutionManager, DefaultExecute
 from costar_task_plan.robotics.core import RosTaskParser
 from costar_task_plan.robotics.tom import *
 from sensor_msgs.msg import JointState
@@ -34,6 +35,12 @@ def getArgs():
                         action="store_true",
                         help="publish debugging messages")
     parser.add_argument("--verbose",
+                        action="store_true",
+                        help="print out a ton of information")
+    parser.add_argument("--plan",
+                        action="store_true",
+                        help="set if you want the robot to generate a task plan")
+    parser.add_argument("--execute",
                         action="store_true",
                         help="print out a ton of information")
     return parser.parse_args()
@@ -71,6 +78,9 @@ def main():
         world = TomWorld(lfd=rtp.lfd)
     else:
         raise RuntimeError('no project or bag files specified')
+
+    if args.project and args.bagfile is not None:
+        world.saveModels(args.project)
 
     if args.fake:
         world.addObjects(fakeTaskArgs())
@@ -125,10 +135,26 @@ def main():
                     world.debugLfD(verbose=args.verbose)
                     rate.sleep()
             except rospy.ROSInterruptException as e:
-                pass
+                return
 
-    if args.project and args.bagfile:
-        world.saveModels(args.project)
+    if args.plan:
+        if not args.fake:
+            raise RuntimeError('currently only fake scene is supported')
+        path = do_search(world, task)
+        plan = PlanExecutionManager(path, OpenLoopTomExecute(world, 0))
+    
+    if args.execute:
+        if not args.plan:
+            raise RuntimeError('cannot execute without a corresponding plan, did you forget to add the --plan flag?')
+        if args.fake:
+            raise RuntimeError('executing with a fake scene is dangerous')
+        
+        try:
+            rate = rospy.Rate(10)
+            while not rospy.is_shutdown():
+                plan.step(world)
+        except rospy.ROSInterruptException as e:
+            return
 
 if __name__ == "__main__":
     main()
