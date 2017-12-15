@@ -42,9 +42,9 @@ The `ctp_tom` parser is a version of the task plan parsing tool that takes in me
 
 ```
 # One bag only
-rosrun ctp_tom parse.py oranges_2017-12-13-19-01-15.bag
+rosrun ctp_tom parse.py --bagfile oranges_2017-12-13-19-01-15.bag
 # Multiple bags
-rosrun ctp_tom parse.py oranges_2017-12-13-19-01-15.bag,blocks_2017-12-13-20-07-27.bag
+rosrun ctp_tom parse.py --bagfile oranges_2017-12-13-19-01-15.bag,blocks_2017-12-13-20-07-27.bag
 ```
 
 Adding the `--fake` flag will add some fake objects and compile the model:

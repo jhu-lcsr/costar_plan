@@ -14,8 +14,9 @@ from tom_test import do_search
 
 def getArgs():
     parser = argparse.ArgumentParser(add_help=True, description="Parse rosbag into graph.")
-    parser.add_argument("bagfile",
-            help="name of file or comma-separated list of files")
+    parser.add_argument("--bagfile",
+            default=None,
+            help="name of file or comma-separated list of files to parse")
     parser.add_argument("--demo_topic",
                         help="topic on which demonstration info was published",
                         default="/vr/learning/getDemonstrationInfo")
@@ -26,7 +27,7 @@ def getArgs():
                         help="create some fake options for stuff")
     parser.add_argument("--project",
                         default=None,
-                        help="Project directory to save to",)
+                        help="Project directory storing skill files",)
     parser.add_argument("--show",
                         action="store_true",
                         help="show a graph of the compiled task")
@@ -61,15 +62,22 @@ def main():
     args = getArgs()
     rospy.init_node('parse_task_model')
 
-    rtp = RosTaskParser(
-            filename=args.bagfile,
-            configs=[TOM_RIGHT_CONFIG, TOM_LEFT_CONFIG],
-            unknown_apply_before=4,
-            min_action_length=1,
-            demo_topic=args.demo_topic)
-    rtp.process() # run through the data and create models
-    task = rtp.makeTask()
-    world = TomWorld(lfd=rtp.lfd)
+    if args.bagfile is not None:
+        rtp = RosTaskParser(
+                filename=args.bagfile,
+                configs=[TOM_RIGHT_CONFIG, TOM_LEFT_CONFIG],
+                unknown_apply_before=4,
+                min_action_length=1,
+                demo_topic=args.demo_topic)
+        rtp.process() # run through the data and create models
+        task = rtp.makeTask()
+        world = TomWorld(lfd=rtp.lfd)
+    elif args.project:
+        # load from file
+        pass
+    else:
+        raise RuntimeError('no project or bag files specified')
+
     if args.fake:
         world.addObjects(fakeTaskArgs())
         filled_args = task.compile(fakeTaskArgs())
@@ -125,7 +133,7 @@ def main():
             except rospy.ROSInterruptException as e:
                 pass
 
-    if args.project:
+    if args.project and args.bagfile:
         world.saveModels(args.project)
 
 if __name__ == "__main__":
