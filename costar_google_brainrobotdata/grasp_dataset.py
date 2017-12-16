@@ -1776,12 +1776,16 @@ class GraspDataset(object):
                     circle_vid = []
                     for i, frame in enumerate(zip(video)):
                         frame = np.array(frame, dtype=np.uint8)
+                        # TODO(ahundt) fix hard coded range
                         if i > 1 and i < len(coordinates) + 2:
-                            # TODO(ahundt) fix hard coded range
                             frame = np.squeeze(frame)
-                            coordinate = np.array(coordinates[i-2], dtype=np.int32)
-
-                            rr, cc, aa = circle_perimeter_aa(coordinate[0], coordinate[1], 10, shape=frame.shape)
+                            x, y = np.array(coordinates[i-2], dtype=np.int32)
+                            # please note that skimage uses a funky coordinate system:
+                            # origin in the top left with coordinates ordered
+                            # (y, x) where
+                            # +y is down from the top left corner and
+                            # +x is right from the top left corner
+                            rr, cc, aa = circle_perimeter_aa(y, x, 10, shape=frame.shape)
                             set_color(frame, (rr, cc), [0, 255, 255], alpha=aa)
                             # axs.imshow(np.squeeze(frame))
                             frame = np.expand_dims(frame, axis=0)
