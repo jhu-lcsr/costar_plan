@@ -7,7 +7,6 @@ from frame import *
 from detected_object import *
 from actor import *
 from dynamics import *
-from js_listener import JointStateListener
 
 from costar_task_plan.abstract import *
 from costar_task_plan.robotics.representation import GMM
@@ -102,25 +101,18 @@ class CostarWorld(AbstractWorld):
         # -------------------------- ROBOT INFORMATION ----------------------------
         # Base link, end effector, etc. for easy reference
         # set up actors and things
-        self.js_listeners = {}
         self.tf_pub = tf.TransformBroadcaster()
 
 
         # Create and add all the robots we want in this world.
         for i, robot in enumerate(robot_config):
-            if use_default_pose and robot['q0'] is not None:
-                s0 = CostarState(self, i, q=robot['q0'])
-            else:
-                js_listener = JointStateListener(robot)
-                self.js_listeners[robot['name']] = js_listener
-                rospy.sleep(0.1)
-                if js_listener.q0 is not None:
-                    s0 = CostarState(
-                        self, i, q=js_listener.q0, dq=js_listener.dq)
-                else:
-                    s0 = CostarState(
-                        self, i, q=np.zeros((robot['dof'],)), dq=np.zeros((robot['dof'],)))
 
+            name = robot['name']
+
+            if robot['q0'] is not None:
+                s0 = CostarState(self, i, q=robot['q0'], dq=np.zeros_like(robot['q0']))
+            else:
+                s0 = CostarState(self, i, None, None)
             self.addActor(
                 CostarActor(robot,
                             state=s0,
@@ -270,7 +262,7 @@ class CostarWorld(AbstractWorld):
     def debugLfD(self, *args, **kwargs):
         self.lfd.debug(self, *args, **kwargs)
 
-    def updateObservation(self,maxt=0.01):
+    def update(self,maxt=0.01):
         '''
         Look up what the world should look like, based on the provided arguments.
         "objs" should be a list of all possible objects that we might want to
@@ -300,6 +292,11 @@ class CostarWorld(AbstractWorld):
                     tf.ExtrapolationException,
                     tf2.TransformException) as e:
                 self.observation[obj] = None
+
+        # Update 
+        for actor in self.actors:
+            actor.state = actor.getState()
+            actor.state.t = rospy.Time.now().to_sec()
 
     def getPose(self, obj):
         return self.observation[obj]

@@ -174,8 +174,7 @@ class LfD(object):
 
             q = state.q
             if q is None:
-                q = [-0.73408591, -1.30249417,  1.53612047,
-                     -2.0823833,   2.29921898,  1.42712378]
+                continue
             T = pm.fromMatrix(self.kdl_kin.forward(q))
             ee_rpy = T.M.GetRPY()
             relative_goal = goal_pose * instances[0].goal_pose

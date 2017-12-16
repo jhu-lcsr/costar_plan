@@ -25,7 +25,9 @@ class SubscriberDynamics(AbstractDynamics):
         '''
         raise NotImplementedError('no subscriber dynamics yet!')
 
-        return CostarState(state.world, state.actor_id, q=self.listener.q0)
+        return CostarState(state.actor_id,
+                q=self.listener.q0,
+                dq=self.listener.dq)
 
 
 class SimulatedDynamics(AbstractDynamics):
@@ -80,8 +82,7 @@ class SimulatedDynamics(AbstractDynamics):
 
         # Costar states also include some state information for the sake of our
         # dynamic movement primitives.
-        return CostarState(state.world,
-                           state.actor_id,
+        return CostarState(state.actor_id,
                            q=q,
                            dq=action.dq,
                            seq=seq,

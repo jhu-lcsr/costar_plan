@@ -6,6 +6,7 @@ import numpy as np
 import argparse
 import rospy
 
+from costar_task_plan.mcts import PlanExecutionManager, DefaultExecute
 from costar_task_plan.robotics.core import RosTaskParser
 from costar_task_plan.robotics.tom import *
 from sensor_msgs.msg import JointState
@@ -15,7 +16,7 @@ from tom_test import do_search
 def getArgs():
     parser = argparse.ArgumentParser(add_help=True, description="Parse rosbag into graph.")
     parser.add_argument("bagfile",
-            help="name of file or comma-separated list of files")
+            help="name of file or comma-separated list of files to parse")
     parser.add_argument("--demo_topic",
                         help="topic on which demonstration info was published",
                         default="/vr/learning/getDemonstrationInfo")
@@ -26,7 +27,7 @@ def getArgs():
                         help="create some fake options for stuff")
     parser.add_argument("--project",
                         default=None,
-                        help="Project directory to save to",)
+                        help="Project directory storing skill files",)
     parser.add_argument("--show",
                         action="store_true",
                         help="show a graph of the compiled task")
@@ -36,6 +37,21 @@ def getArgs():
     parser.add_argument("--verbose",
                         action="store_true",
                         help="print out a ton of information")
+    parser.add_argument("--plan",
+                        action="store_true",
+                        help="set if you want the robot to generate a task plan")
+    parser.add_argument("--execute",
+                        action="store_true",
+                        help="print out a ton of information")
+    parser.add_argument("--iter","-i",
+                        default=10,
+                        type=int,
+                        help="number of samples to draw")
+    parser.add_argument("--max_depth","-m",
+                        default=5,
+                        type=int,
+                        help="maximum search depth")
+    
     return parser.parse_args()
 
 def fakeTaskArgs():
@@ -55,21 +71,26 @@ def fakeTaskArgs():
   }
   return args
 
-
-
 def main():
     args = getArgs()
     rospy.init_node('parse_task_model')
 
-    rtp = RosTaskParser(
-            filename=args.bagfile,
-            configs=[TOM_RIGHT_CONFIG, TOM_LEFT_CONFIG],
-            unknown_apply_before=4,
-            min_action_length=1,
-            demo_topic=args.demo_topic)
-    rtp.process() # run through the data and create models
-    task = rtp.makeTask()
-    world = TomWorld(lfd=rtp.lfd)
+    if args.bagfile is not None:
+        rtp = RosTaskParser(
+                filename=args.bagfile,
+                configs=[TOM_RIGHT_CONFIG, TOM_LEFT_CONFIG],
+                unknown_apply_before=4,
+                min_action_length=1,
+                demo_topic=args.demo_topic)
+        rtp.process() # run through the data and create models
+        task = rtp.makeTask()
+        world = TomWorld(lfd=rtp.lfd)
+    else:
+        raise RuntimeError('no project or bag files specified')
+
+    if args.project and args.bagfile is not None:
+        world.saveModels(args.project)
+
     if args.fake:
         world.addObjects(fakeTaskArgs())
         filled_args = task.compile(fakeTaskArgs())
@@ -84,7 +105,7 @@ def main():
 
         if args.debug:
 
-            q1 = [-0.73408591, -1.30249417,  1.53612047,
+            q1 = [-0.70408591, -1.10249417,  1.53612047,
                  -2.0823833,   2.29921898,  1.42712378]
             q2 = [0.73408591, -1.30249417,  -1.53612047,
                  -2.0823833,   2.29921898,  1.42712378]
@@ -119,14 +140,30 @@ def main():
                 r_js_pub.publish(r_msg)
                 l_js_pub.publish(l_msg)
                 while not rospy.is_shutdown():
-                    world.updateObservation()
+                    world.update()
                     world.debugLfD(verbose=args.verbose)
                     rate.sleep()
             except rospy.ROSInterruptException as e:
-                pass
+                return
 
-    if args.project:
-        world.saveModels(args.project)
+    if args.plan:
+        if not args.fake:
+            raise RuntimeError('currently only fake scene is supported')
+        path = do_search(world, task, max_depth=args.max_depth, iter=args.iter)
+        plan = PlanExecutionManager(path, OpenLoopTomExecute(world, 0))
+    
+    if args.execute:
+        if not args.plan:
+            raise RuntimeError('cannot execute without a corresponding plan, did you forget to add the --plan flag?')
+        if args.fake:
+            raise RuntimeError('executing with a fake scene is dangerous')
+        
+        try:
+            rate = rospy.Rate(10)
+            while not rospy.is_shutdown():
+                plan.step(world)
+        except rospy.ROSInterruptException as e:
+            return
 
 if __name__ == "__main__":
     main()

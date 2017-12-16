@@ -9,6 +9,7 @@ from .dmp_policy import CartesianDmpPolicy
 
 from learning_planning_msgs.msg import HandInfo
 
+import numpy as np
 import tf_conversions.posemath as pm
 
 import rosbag
@@ -19,6 +20,7 @@ class RosTaskParser(TaskParser):
             filename=None,
             demo_topic="demonstration",
             alias_topic="alias",
+            from_unity=True,
             *args, **kwargs):
         '''
         Create the ROS version of the task parser -- represents a given task
@@ -31,6 +33,12 @@ class RosTaskParser(TaskParser):
         Parameters:
         -----------
         filename: name of the bag file to load when parsing messages
+        demo_topic: topic on which messages were published
+        alias_topic: topic on which messages renaming granular actions were
+                     published.
+        from_unity: true if messages were published with poses specified by
+                    the Unity VR system, which uses left-hand y-up notation for
+                    rotations and poses.
         '''
         super(RosTaskParser, self).__init__(*args,**kwargs)
         self.ignore = ["NONE","none","surveillance_camera"]
@@ -38,6 +46,7 @@ class RosTaskParser(TaskParser):
         self.addUnknown("UnknownActivity")
         self.demo_topic = demo_topic
         self.alias_topic = alias_topic
+        self.from_unity = from_unity
         self.lfd = LfD(self.configs[0])
         if filename is not None:
             self.loadFromFile(filename)
@@ -111,12 +120,23 @@ class RosTaskParser(TaskParser):
         if (obj_in_gripper == HandInfo.NO_OBJECT
                 or obj_in_gripper in self.ignore):
             obj_in_gripper = None
-        pose = pm.fromMsg(msg.pose)
+        pose = self._makePose(msg.pose)
         gripper_state = msg.gripper_state
         return ActionInfo(id, action_name, obj_acted_on, obj_in_gripper, pose,
                 gripper_state)
 
     def _getTime(self, demo):
+        '''
+        Compute time in seconds from header of a ROS message.
+
+        Parameters:
+        -----------
+        demo: ros message of a demonstration
+
+        Returns:
+        --------
+        t: float time in seconds
+        '''
         t = demo.header.stamp
         t = t.to_sec()
         return t
@@ -138,12 +158,41 @@ class RosTaskParser(TaskParser):
             if obj.object_class in self.ignore:
                 continue
 
-            pose = pm.fromMsg(obj.pose)
+            pose = self._makePose(obj.pose)
             objs[obj.name] = ObjectInfo(pose=pose,
                         obj_class=obj.object_class,
                         id=obj.id,
                         name=obj.name)
         return objs
+
+    def _makePose(self, pose_msg):
+        '''
+        Read in a pose message and convert it to a standard data format. We
+        use KDL Frames for fast operations down the line.
+
+        If we previously set the `from_unity` flag to true, then we need to
+        adjust our frames so that they make sense as well.
+
+        Parameters:
+        -----------
+        pose_msg: a ROS pose message
+
+        Returns:
+        --------
+        a KDL pose in right hand, z-up notation
+        '''
+        pose = pm.fromMsg(pose_msg)
+        if self.from_unity:
+            H = np.array([
+                [0,0,1,0],
+                [-1,0,0,0],
+                [0,1,0,0],
+                [0,0,0,1]])
+            x = pm.toMatrix(pose)
+            x = H.dot(x)
+            pose = pm.fromMatrix(x)
+
+        return pose
 
     def train(self):
         '''
