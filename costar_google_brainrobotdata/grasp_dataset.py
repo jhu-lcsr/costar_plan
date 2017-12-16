@@ -560,6 +560,8 @@ class GraspDataset(object):
             matching_features.extend(_match_feature(features, r'^initial/', feature_type))
             matching_features.extend(_match_feature(features, r'^approach/', feature_type, exclude_substring))
             matching_features.extend(_match_feature(features, r'^approach_sequence/', feature_type, exclude_substring))
+            # TODO(ahundt) determine if pregrasp is in the right place here, see the gifs
+            matching_features.extend(_match_feature(features, r'^pregrasp/', feature_type, 'post', r'/\d+/'))
             matching_features.extend(_match_feature(features, r'^grasp/', feature_type, 'post', r'/\d+/'))
 
         # up to 11 grasp steps in the datasets
@@ -574,8 +576,6 @@ class GraspDataset(object):
 
         # closing the gripper
         if step in ['close_gripper', 'all', '']:
-            # TODO(ahundt) determine if pregrasp is in the right place here, see the gifs
-            matching_features.extend(_match_feature(features, r'^pregrasp/', feature_type, 'post', r'/\d+/'))
             matching_features.extend(_match_feature(features, r'^gripper/', feature_type, exclude_substring))
             # Not totally sure, but probably the transforms and angles from as the gripper is closing (might shift a bit)
             matching_features.extend(_match_feature(features, r'^gripper_sequence/', feature_type, exclude_substring))
@@ -1816,7 +1816,7 @@ class GraspDataset(object):
                     features_complete_list,
                     feature_type=depth_feature_type)
                 if attempt_num == 0:
-                    print("Saving depth features to a gif in the following order: " + str(ordered_rgb_image_features))
+                    print("Saving depth features to a gif in the following order: " + str(ordered_depth_image_features))
                 video = np.concatenate(self._to_tensors(output_features_dicts, ordered_depth_image_features), axis=0)
                 gif_filename = (os.path.basename(str(self.dataset) + '_grasp_' + str(int(attempt_num)) +
                                 '_depth_success_' + str(int(features_dict_np['grasp_success'])) + '.gif'))
