@@ -4,7 +4,34 @@
 ## Starting
 
 ```
-roslaunch ctp_tom planning.launch
+roslaunch ctp_tom planner.launch
+```
+
+### Fake (Debugging) Setup
+
+```
+roslaunch ctp_tom planner.launch
+rosrun ctp_tom fake_objects.py # add some extra oranges to the scene
+rosrun ctp_tom parse.py a.bag,b.bag,c.bag --fake --show
+```
+
+You can run the `parse.py` script with many different arguments and rosbags. Some examples:
+
+```
+parse.py $BAGS --fake # provide fake object detections and compile task
+parse.py $BAGS --fake --show # show a graph
+parse.py $BAGS --fake --plan # compute a plan
+parse.py $BAGS --fake --plan --max_depth $X --iter $Y # change planning params
+```
+
+Using these without the `--fake` flag is currently a WIP.
+
+### Execution Setup (Work in progress)
+
+```
+export BAGS=a.bag,b.bag,c.bag,d.bag,e.bag
+roslaunch ctp_tom planner.launch slave:=true
+rosrun ctp_tom parse.py $BAGS --plan --execute
 ```
 
 ## Components
