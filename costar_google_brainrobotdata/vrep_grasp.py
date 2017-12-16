@@ -102,7 +102,7 @@ tf.flags.DEFINE_string('vrepVisualizeRGBFormat', 'vrep_rgb',
                             Examples include 'vrep_depth_rgb' and 'vrep_depth_encoded_rgb',
                             see http://www.forum.coppeliarobotics.com/viewtopic.php?f=9&t=737&p=27805#p27805.
                        """)
-tf.flags.DEFINE_string('vrepVisualizationPipeline', 'tensorflow',
+tf.flags.DEFINE_string('vrepVisualizationPipeline', 'python',
                        """Options are: python, tensorflow.
                            'tensorflow' tensorflow loads the raw data from the dataset and
                                calculates all features before they are rendered with vrep via python,
@@ -861,6 +861,27 @@ class VREPGraspVisualization(object):
             #     identity = sva.PTransformd.Identity()
             #     assert(identity == current_to_end)
 
+            # Use the function that gets all the features at once for comparison to manusal computation
+            [gdtf_current_base_T_camera_vec_quat_7_array,
+             gdtf_eectf_vec_quat_7_array,
+             gdtf_camera_T_endeffector_current_vec_quat_7_array,
+             gdtf_camera_T_depth_pixel_current_vec_quat_7_array,
+             gdtf_camera_T_endeffector_final_vec_quat_7_array,
+             gdtf_camera_T_depth_pixel_final_vec_quat_7_array,
+             gdtf_depth_pixel_T_endeffector_current_vec_quat_7_array,
+             gdtf_image_coordinate_current,
+             gdtf_depth_pixel_T_endeffector_final_vec_quat_7_array,
+             gdtf_image_coordinate_final,
+             gdtf_sin_cos_2,
+             gdtf_vec_sin_cos_5,
+             gdtf_delta_depth_sin_cos_3,
+             gdtf_delta_depth_quat_5] = grasp_geometry.grasp_dataset_to_transforms_and_features(
+                    clear_frame_depth_image,
+                    camera_intrinsics_matrix,
+                    camera_to_base_4x4matrix,
+                    base_T_endeffector_vec_quat_feature,
+                    base_T_endeffector_final_close_gripper)
+
             #############################
             # visualize surface relative transform
             if vrepVisualizeSurfaceRelativeTransform:
@@ -873,6 +894,7 @@ class VREPGraspVisualization(object):
                 print(depth_point_display_name + ': ' + str(ee_cloud_point) + ' end_effector image coordinate: ' + str(ee_image_coordinate))
                 depth_point_vec_quat = grasp_geometry.ptransform_to_vector_quaternion_array(depth_point_dummy_ptrans)
                 depth_point_dummy_handle = create_dummy(self.client_id, depth_point_display_name, depth_point_vec_quat, base_T_camera_handle)
+                depth_point_dummy_handle = create_dummy(self.client_id, depth_point_display_name + '_gdtf', gdtf_camera_T_depth_pixel_current_vec_quat_7_array, base_T_camera_handle)
 
                 # Get the transform for the gripper relative to the key depth point and display it.
                 # Dummy should coincide with the gripper pose if done correctly
