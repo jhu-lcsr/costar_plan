@@ -16,6 +16,8 @@ import numpy as np
 import tensorflow as tf
 import re
 from tqdm import tqdm  # progress bars https://github.com/tqdm/tqdm
+from skimage.draw import circle_perimeter_aa  # Image drawing algorithms http://scikit-image.org
+from skimage.draw import set_color  # Image drawing algorithms http://scikit-image.org
 
 from tensorflow.python.platform import flags
 from tensorflow.python.platform import gfile
@@ -64,7 +66,7 @@ flags.DEFINE_integer('random_crop_width', 560,
                      """Width to randomly crop images, if enabled""")
 flags.DEFINE_integer('random_crop_height', 448,
                      """Height to randomly crop images, if enabled""")
-flags.DEFINE_boolean('random_crop', True,
+flags.DEFINE_boolean('random_crop', False,
                      """random_crop will apply the tf random crop function with
                         the parameters specified by random_crop_width and random_crop_height
                      """)
@@ -72,7 +74,7 @@ flags.DEFINE_integer('resize_width', 80,
                      """Width to resize images before prediction, if enabled.""")
 flags.DEFINE_integer('resize_height', 64,
                      """Height to resize images before prediction, if enabled.""")
-flags.DEFINE_boolean('resize', True,
+flags.DEFINE_boolean('resize', False,
                      """resize will resize the input images to the desired dimensions specified but the
                         resize_width and resize_height flags. It is suggested that an exact factor of 2 be used
                         relative to the input image directions if random_crop is disabled or the crop dimensions otherwise.
@@ -1712,7 +1714,8 @@ class GraspDataset(object):
     def create_gif(self, tf_session=tf.Session(),
                    visualization_dir=FLAGS.visualization_dir,
                    rgb_feature_type='/image/decoded',
-                   depth_feature_type='depth_image/rgb_encoded'):
+                   depth_feature_type='depth_image/rgb_encoded',
+                   draw='circle_on_gripper'):
         """Create gifs of the loaded dataset and write them to visualization_dir
 
         # Arguments
@@ -1724,6 +1727,9 @@ class GraspDataset(object):
             pipeline: Determines what preprocessing you will see when the images are saved.
                 None saves gifs containing the raw dataset data,
                 'training' will save the images after preprocessing with the training pipeline.
+            draw: visualize data and feature calculations. Options include:
+                None to disable this option and simply output the image sequences as a gif.
+                'circle_on_gripper' to draw a circle at the gripper position.
         """
         """Create input tfrecord tensors.
 
@@ -1761,6 +1767,27 @@ class GraspDataset(object):
                 if attempt_num == 0:
                     print("Saving rgb features to a gif in the following order: " + str(ordered_rgb_image_features))
                 video = np.concatenate(self._to_tensors(output_features_dicts, ordered_rgb_image_features), axis=0)
+                if draw == 'circle_on_gripper':
+                    coordinates = time_ordered_feature_data_dict[
+                        'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/xy_2']
+
+                    num = len(video)
+                    # fig, axs = plt.subplots(ncols=1, nrows=1, figsize=(10, 6))
+                    circle_vid = []
+                    for i, frame in enumerate(zip(video)):
+                        frame = np.array(frame, dtype=np.uint8)
+                        if i > 1 and i < len(coordinates) + 2:
+                            # TODO(ahundt) fix hard coded range
+                            frame = np.squeeze(frame)
+                            coordinate = np.array(coordinates[i-2], dtype=np.int32)
+
+                            rr, cc, aa = circle_perimeter_aa(coordinate[0], coordinate[1], 10, shape=frame.shape)
+                            set_color(frame, (rr, cc), [0, 255, 255], alpha=aa)
+                            # axs.imshow(np.squeeze(frame))
+                            frame = np.expand_dims(frame, axis=0)
+                        circle_vid.append(frame)
+                            # plt.show()
+                    video = np.concatenate(circle_vid)
                 gif_filename = (os.path.basename(str(self.dataset) + '_grasp_' + str(int(attempt_num)) +
                                 '_rgb_success_' + str(int(features_dict_np['grasp_success'])) + '.gif'))
                 gif_path = os.path.join(visualization_dir, gif_filename)
