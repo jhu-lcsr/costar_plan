@@ -900,10 +900,13 @@ class VREPGraspVisualization(object):
                 # Dummy should coincide with the gripper pose if done correctly
                 depth_pixel_T_endeffector_final_ptrans, pixel_coordinate_of_endeffector, camera_T_cloud_point_ptrans = grasp_geometry.surface_relative_transform(
                     clear_frame_depth_image, camera_intrinsics_matrix, camera_T_endeffector_ptrans)
+                assert np.allclose(pixel_coordinate_of_endeffector, gdtf_image_coordinate_current)
                 surface_relative_transform_vq7 = grasp_geometry.ptransform_to_vector_quaternion_array(depth_pixel_T_endeffector_final_ptrans)
                 surface_relative_transform_dummy_handle = create_dummy(self.client_id, time_step_name + 'depth_point_T_endeffector',
                                                                        surface_relative_transform_vq7,
                                                                        depth_point_dummy_handle)
+                assert np.allclose(surface_relative_transform_vq7, gdtf_depth_pixel_T_endeffector_current_vec_quat_7_array)
+
                 if FLAGS.vrepVisualizeSurfaceRelativeTransformLines:
                     # Draw lines from the camera through the gripper pose to the depth pixel in the clear view frame used for surface transforms
                     ret, camera_world_position = vrep.simxGetObjectPosition(self.client_id, base_T_camera_handle, -1, vrep.simx_opmode_oneshot_wait)
