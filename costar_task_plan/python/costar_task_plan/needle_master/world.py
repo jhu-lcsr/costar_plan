@@ -4,7 +4,6 @@ from environment import *
 from demo import *
 from actor import *
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 class NeedleMasterWorld(AbstractWorld):
@@ -19,6 +18,7 @@ class NeedleMasterWorld(AbstractWorld):
       self.trials.append(Demo(env_height=self.env.height, env_width=self.env.width, filename=trial))
 
   def show(self, show_plot=False):
+    import matplotlib.pyplot as plt
     self.env.Draw()
     for trial in self.trials:
       trial.Draw()

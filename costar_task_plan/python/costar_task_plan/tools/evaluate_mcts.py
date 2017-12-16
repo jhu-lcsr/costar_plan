@@ -10,6 +10,8 @@ loop over all MCTS scenarios
 - generate the scenarios you need to collect the data
 - create 
 '''
+
+
 def mctsLoop(env, policies, seed, save, animate, **kwargs):
 
     if seed is not None:
@@ -36,7 +38,7 @@ def mctsLoop(env, policies, seed, save, animate, **kwargs):
     else:
         sample = "none"
 
-    dirname = "world%d_%s_%s%s"%(world_id,sample,rollout,dfs)
+    dirname = "world%d_%s_%s%s" % (world_id, sample, rollout, dfs)
 
     if save or animate:
         window = world._getScreen()
@@ -52,7 +54,7 @@ def mctsLoop(env, policies, seed, save, animate, **kwargs):
 
         # execute loop: follow these policies for however long we are supposed
         # to follow them according to their conditions
-        
+
         while current_root.state.t < 1.0:
             # compute the next action according to the current policy
             # if a policy is finished, pop it off of the stack
@@ -61,7 +63,7 @@ def mctsLoop(env, policies, seed, save, animate, **kwargs):
             if animate:
                 # show the current window
                 pass
-            #if save:
+            # if save:
             #    # Save pygame image to disk
             #    pg.image.save(window, "%s/iter%d.png"%(dirname,iter))
             if done:

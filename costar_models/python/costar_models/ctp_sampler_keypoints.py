@@ -1,11 +1,5 @@
 from __future__ import print_function
 
-# ----------------------------------------
-# Before importing anything else -- make sure we load the right library to save
-# images to disk.
-import matplotlib as mpl
-mpl.use("Agg")
-
 # ---------------------------------------
 # Keras tools for creating networks
 import keras.backend as K

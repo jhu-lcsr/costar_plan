@@ -61,25 +61,17 @@ def load_tom_data_and_run():
     # Set up the task model
     task = MakeTomTaskModel(world.lfd)
     args = OrangesTaskArgs()
+    world.addObjects(args)
     filled_args = task.compile(args)
     execute = True
-
-    # Perform the search
-    objects = ['box1', 'orange1', 'orange2', 'orange3', 'trash1',
-            'squeeze_area1']
-    debug_objects = {"box":"box1",
-                     "orange":"orange1",
-                     "trash":"trash1",
-                     "squeeze_area":"squeeze_area1"}
 
     if test_args.profile:
         import cProfile
         global pWorld, pTask, pObjects
         pWorld = world
         pTask = task
-        pObjects = objects
         cProfile.run("profile_do_search()")
-    path = do_search(world, task, objects)
+    path = do_search(world, task)
 
     # Tom execution works by sending a joint state message with just the robot
     # joints for the arm we want to move. The idea is that we can treat the two
@@ -91,9 +83,7 @@ def load_tom_data_and_run():
     try:
         while True:
           # Update observations about the world
-          objects = ['box1', 'orange1', 'orange2', 'orange3', 'trash1',
-                  'squeeze_area1']
-          world.updateObservation(objects)
+          world.updateObservation()
 
           # Print out visualization information about the world.
           world.visualize()
@@ -110,8 +100,8 @@ def load_tom_data_and_run():
 
           if res and test_args.loop:
             reset()
-            world.updateObservation(objects)
-            path = do_search(world, task, objects)
+            world.update()
+            path = do_search(world, task)
             plan = PlanExecutionManager(path, OpenLoopTomExecute(world, 0))
 
           rate.sleep()
@@ -119,17 +109,17 @@ def load_tom_data_and_run():
     except rospy.ROSInterruptException, e:
         pass
 
-def do_search(world, task, objects):
+def do_search(world, task, max_depth=5, iter=10):
     '''
     Run through a single experiment, generating a trajectory that will satisfy
     all of our conditions and producing a list of policies to execute.
     '''
 
     policies = DefaultTaskMctsPolicies(task)
+    policies.max_depth = max_depth
     search = MonteCarloTreeSearch(policies)
 
-    objects = ['box1', 'orange1', 'orange2', 'orange3', 'trash1', 'squeeze_area1']
-    world.updateObservation(objects)
+    world.update()
     world = world.fork(world.zeroAction(0))
 
     for actor in world.actors:
@@ -138,12 +128,12 @@ def do_search(world, task, objects):
 
     while len(world.observation) == 0:
         rospy.sleep(0.1)
-        world.updateObservation(objects)
+        world.updateObservation()
 
     print "================================================"
     print "Performing MCTS over options:"
     root = Node(world=world,root=True)
-    elapsed, path = search(root,iter=10)
+    elapsed, path = search(root,iter=iter)
     print "-- ", elapsed, len(path)
     return path
 

@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 # By Chris Paxton
 # (c) 2017 The Johns Hopkins University
 # See License for more details
@@ -42,10 +44,8 @@ class LfD(object):
     not.
     '''
 
-    def __init__(self, world):
-        self.world = world
+    def __init__(self, config):
 
-        config = world.actors[0].config
         base_link = config['base_link']
         end_link = config['end_link']
 
@@ -72,77 +72,95 @@ class LfD(object):
 
         self.pubs = {}
 
-    def train(self):
+    def train(self, trajectories, trajectory_data, objs, obj_classes={}):
         '''
         Generate DMPs and GMMs associated with different labeled actions.
         '''
 
-        print "Training:"
-        for name, trajs in self.world.trajectories.items():
+        for name, trajs in trajectories.items():
 
-            print "training skill", name
-
+            # Create publisher for debugging purposes
             self.pubs[name] = rospy.Publisher(
                 join('costar', 'lfd', name), PoseArray, queue_size=1000)
 
-            data = self.world.trajectory_data[name]
+            data = trajectory_data[name]
             features = RobotFeatures(self.config, self.kdl_kin)
-            objs = self.world.objs[name]
+            skill_objs = objs[name]
 
             self.skill_instances[name] = []
 
+            # Each world here is an observation of a particular frame in this scene
             for traj, world in zip(trajs, data):
 
-                ts = [t for t, _, _, _ in traj]
+                ts = [t for t, _, _ in traj]
                 dt = np.mean(np.diff(ts))
 
-                ee = [pm.fromMsg(pose) for _, pose, _, _ in traj]
-                gripper = [gopen for _, _, gopen, _ in traj]
+                #ee = [pm.fromMsg(pose) for _, pose, _ in traj]
+                ee = [pose for _, pose, _ in traj]
+                gripper = [gopen for _, _, gopen in traj]
 
                 if not len(ee) == len(gripper) and len(gripper) == len(world):
                     raise RuntimeError('counting error')
 
                 # compute features?
-                f, g = features.GetFeaturesForTrajectory(ee, world[0], objs)
+                f, g = features.GetFeaturesForTrajectory(ee, world, skill_objs)
                 instance = CartesianSkillInstance(self.config,
                                                   dt=dt,
-                                                  objs=objs)
+                                                  objs=skill_objs)
                 instance.fit(ee_frames=ee, worlds=world)
 
                 self.skill_instances[name].append(instance)
 
-                if name not in self.skill_features:
+                if not name in self.skill_features:
                     self.skill_features[name] = f
                 else:
-                    np.concatenate((self.skill_features[name], f), axis=0)
+                    self.skill_features[name] = np.concatenate((self.skill_features[name], f), axis=0)
 
             # only fit models if we have an example of that skill
             if name in self.skill_features:
-                self.skill_models[name] = GMM(
-                    self.config['gmm_k'], self.skill_features[name])
-                print "> Skill", name, "extracted with dataset of shape", self.skill_features[name].shape, "k = ", self.config['gmm_k']
+                try:
+                    self.skill_models[name] = GMM(
+                        self.config['gmm_k'], self.skill_features[name])
+                except np.linalg.LinAlgError as e:
+                    simple_conf = {
+                        'mu': np.mean(self.skill_features[name], axis=-1),
+                        'k': 1,
+                        'pi': np.ones((1,1)),
+                        'sigma': np.expand_dims(np.diag(np.std(self.skill_features[name], axis=-1)),axis=0),
+                    }
+                    self.skill_models[name] = GMM(config=simple_conf)
+                print( "> Skill", name, "extracted with dataset of shape", self.skill_features[name].shape, "k =", self.config['gmm_k'])
             else:
-                print " ... skipping skill", name, "(no data)"
+                print(" ... skipping skill", name, "(no data)")
 
         return self.skill_models
 
-    def debug(self, world, args):
+    def debug(self, world, verbose=False):
         '''
         Publish a bunch of ROS messages showing trajectories. This is a helpful
         tool for debugging problems with training data, DMP learning, and DMP
         segmentation.
+
+        Parameters:
+        -----------
         '''
 
         for name, instances in self.skill_instances.items():
 
             model = self.skill_models[name]
-            goal_type = instances[0].objs[0]
+            goal_type = instances[0].objs[-1]
+            goal = world.getObjects(goal_type)[0]
+            goal_pose = world.getPose(goal)
+            if verbose:
+                print(name,"goal is",goal_type,"and chose",goal)
+            if goal_pose is None:
+                continue
 
             option = DmpOption(
                 policy_type=CartesianDmpPolicy,
                 config=self.config,
                 kinematics=self.kdl_kin,
-                goal=args[goal_type],
+                goal_object=goal,
                 skill_name=name,
                 feature_model=model,
                 traj_dist=self.getParamDistribution(name))
@@ -152,16 +170,14 @@ class LfD(object):
 
             state = world.actors[0].state
 
-            goal = args[goal_type]
             RequestActiveDMP(instances[0].dmp_list)
-            goal = world.observation[goal]
 
             q = state.q
-            q = [-0.73408591, -1.30249417,  1.53612047,
-                 -2.0823833,   2.29921898,  1.42712378]
+            if q is None:
+                continue
             T = pm.fromMatrix(self.kdl_kin.forward(q))
             ee_rpy = T.M.GetRPY()
-            relative_goal = goal * instances[0].goal_pose
+            relative_goal = goal_pose * instances[0].goal_pose
             rpy = relative_goal.M.GetRPY()
             adj_rpy = [0, 0, 0]
 
@@ -238,7 +254,7 @@ class LfD(object):
         skill_filename = os.path.join(project_name, "skills.yml")
         skills = yaml_load(skill_filename)
         for name, count in skills.items():
-            print "Loading skill %s/%s - %d examples"%(project_name, name, count)
+            print("Loading skill %s/%s - %d examples"%(project_name, name, count))
 
             # For debugging only
             if name not in self.pubs:

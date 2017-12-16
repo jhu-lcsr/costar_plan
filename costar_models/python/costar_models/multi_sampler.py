@@ -909,14 +909,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             activation = "lrelu"
         else:
             activation = "relu"
-        #x = Concatenate()([arm, gripper])
-        #x = AddDense(x, 5, activation, self.dropout_rate)
         y = OneHot(self.num_options)(option)
         y = Flatten()(y)
         x = Concatenate()([arm,gripper,y])
-        #x = AddDense(x, 128, activation, self.dropout_rate)
-        #x = AddDense(x, 64, activation, self.dropout_rate)
-        x = AddDense(x, 64, activation, self.dropout_rate)
+
+        dr = self.dropout_rate * 0.
+        x = AddDense(x, 64, activation, dr)
         
         state_encoder = Model([arm, gripper, option], x)
         #state_encoder = Model([arm, gripper], x)
@@ -934,8 +932,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         arm_size: number of arm output variables to predict
         gripper_size: number of gripper output variables to predict
         '''
-        rep_in = Input((8 * 8 * self.rep_channels,))
-        dr = self.decoder_dropout_rate * 0.5
+        rep_in = Input((8,8,16,))
+        dr = self.decoder_dropout_rate * 0.
 
         #x = Flatten()(rep_in)
         x = rep_in
@@ -989,7 +987,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate, "same", disc)
         x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, "same", disc)
         x = AddConv2D(x, 128, [5,5], 2, self.dropout_rate, "same", disc)
-        self.encoder_channels = 16
+        self.encoder_channels = 8
         x = AddConv2D(x, self.encoder_channels, [1,1], 1, 0.*self.dropout_rate,
                 "same", disc)
 

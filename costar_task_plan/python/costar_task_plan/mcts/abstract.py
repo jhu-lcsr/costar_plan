@@ -61,17 +61,16 @@ class AbstractMctsPolicies(object):
 
         self._can_widen = self.sample is not None and self._widen is not None
 
-    '''
-  Choose a possible future to expand. Grow the tree if it is appropriate.
-
-  To implement the functionality in this correctly, update:
-  - _widen(): determine if we should add an action to this node
-  - _score(): rank children in the order you want to explore them
-  - _rollout(): called by rollout(). simulate play forward in time, or
-                otherwise predict the expected future value of a state.
-  '''
-
     def select(self, node, max_depth=10, can_widen=True):
+        '''
+        Choose a possible future to expand. Grow the tree if it is appropriate.
+
+        To implement the functionality in this correctly, update:
+        - _widen(): determine if we should add an action to this node
+        - _score(): rank children in the order you want to explore them
+        - _rollout(): called by rollout(). simulate play forward in time, or
+                    otherwise predict the expected future value of a state.
+        '''
 
         visited = []
 
@@ -79,9 +78,9 @@ class AbstractMctsPolicies(object):
         steps = 0
 
         '''
-    Main loop: continue until we reach the end of the tree or abort for one
-    reason or another.
-    '''
+        Main loop: continue until we reach the end of the tree or abort for one
+        reason or another.
+        '''
         while steps < max_depth:
             assert node.initialized
 
