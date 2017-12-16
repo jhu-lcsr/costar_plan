@@ -102,7 +102,7 @@ tf.flags.DEFINE_string('vrepVisualizeRGBFormat', 'vrep_rgb',
                             Examples include 'vrep_depth_rgb' and 'vrep_depth_encoded_rgb',
                             see http://www.forum.coppeliarobotics.com/viewtopic.php?f=9&t=737&p=27805#p27805.
                        """)
-tf.flags.DEFINE_string('vrepVisualizationPipeline', 'python',
+tf.flags.DEFINE_string('vrepVisualizationPipeline', 'tensorflow',
                        """Options are: python, tensorflow.
                            'tensorflow' tensorflow loads the raw data from the dataset and
                                calculates all features before they are rendered with vrep via python,
@@ -272,7 +272,7 @@ def set_vision_sensor_image(client_id, display_name, image, convert=None, scale_
 
 def create_point_cloud(client_id, display_name, transform=None, point_cloud=None, depth_image=None, color_image=None,
                        camera_intrinsics_matrix=None, parent_handle=-1, clear=True,
-                       max_voxel_size=0.01, max_point_count_per_voxel=10, point_size=10, options=0,
+                       max_voxel_size=0.01, max_point_count_per_voxel=10, point_size=10, options=8,
                        rgb_sensor_display_name=None, depth_sensor_display_name=None, convert_depth=FLAGS.vrepVisualizeDepthFormat,
                        convert_rgb=FLAGS.vrepVisualizeRGBFormat, save_ply_path=None, rgb_display_mode='vision_sensor'):
     """Create a point cloud object in the simulation, plus optionally render the depth and rgb images.
@@ -559,6 +559,10 @@ class VREPGraspVisualization(object):
                     for i, transform in enumerate(value):
                         create_dummy(self.client_id, str(i).zfill(2) + '_' + '_'.join(name.split('/')[-2:]),
                                      transform, base_T_camera_handle, operation_mode=vrep.simx_opmode_blocking)
+                elif 'depth_pixel_T_endeffector_final/image_coordinate/xy_2' in name:
+                    final_coordinate_name = name
+                elif 'endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/xy_2' in name:
+                    current_coordinate_name = name
 
             if camera_to_depth_name is not None and depth_to_ee_name is not None:
                 if FLAGS.vrepVisualizeSurfaceRelativeTransformLines:
@@ -615,8 +619,16 @@ class VREPGraspVisualization(object):
                 rgb_images = time_ordered_feature_data_dict['move_to_grasp/time_ordered/rgb_image/decoded']
                 depth_images = time_ordered_feature_data_dict['move_to_grasp/time_ordered/depth_image/decoded']
                 xyz_images = time_ordered_feature_data_dict['move_to_grasp/time_ordered/xyz_image/decoded']
+                current_coordinates = time_ordered_feature_data_dict[current_coordinate_name]
+                final_coordinates = time_ordered_feature_data_dict[final_coordinate_name]
 
-                for img_num, (rgb, depth, xyz) in enumerate(zip(rgb_images, depth_images, xyz_images)):
+                for img_num, (rgb, depth, xyz, current_coordinate, final_coordinate) in enumerate(zip(rgb_images,
+                                                                                                      depth_images,
+                                                                                                      xyz_images,
+                                                                                                      current_coordinates,
+                                                                                                      final_coordinates)):
+                    # depth = grasp_geometry.draw_circle(grasp_geometry.draw_circle(depth, current_coordinate), final_coordinate)
+                    rgb = grasp_geometry.draw_circle(grasp_geometry.draw_circle(rgb, current_coordinate, color=(0, 255, 255)), final_coordinate, color=(255, 255, 0))
                     create_point_cloud(
                         self.client_id, 'current_point_cloud',
                         transform=base_to_camera_vec_quat_7,
@@ -776,7 +788,7 @@ class VREPGraspVisualization(object):
         if FLAGS.vrepVisualizeRGBD:
             create_point_cloud(
                 self.client_id, 'clear_view_cloud',
-                depth_image=clear_frame_depth_image,
+                depth_image=np.copy(clear_frame_depth_image),
                 camera_intrinsics_matrix=camera_intrinsics_matrix,
                 transform=base_to_camera_vec_quat_7,
                 color_image=clear_frame_rgb_image, parent_handle=parent_handle,

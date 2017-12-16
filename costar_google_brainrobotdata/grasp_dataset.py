@@ -16,8 +16,6 @@ import numpy as np
 import tensorflow as tf
 import re
 from tqdm import tqdm  # progress bars https://github.com/tqdm/tqdm
-from skimage.draw import circle_perimeter_aa  # Image drawing algorithms http://scikit-image.org
-from skimage.draw import set_color  # Image drawing algorithms http://scikit-image.org
 
 from tensorflow.python.platform import flags
 from tensorflow.python.platform import gfile
@@ -1792,17 +1790,10 @@ class GraspDataset(object):
                         frame = np.array(frame, dtype=np.uint8)
                         # TODO(ahundt) fix hard coded range
                         if i > 1 and i < len(coordinates) + 2:
-                            frame = np.squeeze(frame)
-                            x, y = np.array(coordinates[i-2], dtype=np.int32)
-                            # please note that skimage uses a funky coordinate system:
-                            # origin in the top left with coordinates ordered
-                            # (y, x) where
-                            # +y is down from the top left corner and
-                            # +x is right from the top left corner
-                            rr, cc, aa = circle_perimeter_aa(y, x, 10, shape=frame.shape)
-                            set_color(frame, (rr, cc), [0, 255, 255], alpha=aa)
-                            # axs.imshow(np.squeeze(frame))
-                            frame = np.expand_dims(frame, axis=0)
+                            grasp_geometry.draw_circle(
+                                frame,
+                                np.array(coordinates[i-2], dtype=np.int32),
+                                color=[0, 255, 255])
                         circle_vid.append(frame)
                             # plt.show()
                     video = np.concatenate(circle_vid)
