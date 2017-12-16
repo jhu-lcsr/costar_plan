@@ -7,6 +7,10 @@
 roslaunch ctp_tom planner.launch
 ```
 
+After startup, you should see something like this:
+
+![TOM with blocks, box, and drill in RVIZ](tom_high_table_workspace.png)
+
 ### Fake (Debugging) Setup
 
 ```
