@@ -5,11 +5,13 @@ from dmp_policy import JointDmpPolicy, CartesianDmpPolicy
 
 import numpy as np
 
+
 SAMPLING_MODE_NORMAL = 0
 SAMPLING_MODE_LIST = 1
 
 class DmpOption(AbstractOption):
     '''
+    Represent a task-graph node as a distribution over DMPs + features.
     '''
 
     def __init__(self,
@@ -49,6 +51,8 @@ class DmpOption(AbstractOption):
         if not isinstance(policy_type, type):
             raise RuntimeError('invalid data type for DMP policy')
 
+        self.frequency = None
+        self.weight = 0.
         self.config = config
         self.goal = goal_object
         self.policy_type = policy_type
@@ -79,12 +83,13 @@ class DmpOption(AbstractOption):
         if self.traj_dist is None:
             raise RuntimeError('Attempted to sample from a mis-specified'
                     ' action!')
-        if self.sampling_mode = SAMPLING_MODE_NORMAL:
+        if self.sampling_mode == SAMPLING_MODE_NORMAL:
             params = np.random.multivariate_normal(
                     self.traj_dist.mu,
                     self.traj_dist.sigma)
             skill_instance = CartesianSkillInstance(config=self.config, params=params)
-        elif self.sampling_mode = SAMPLING_MODE_LIST:
+        elif self.sampling_mode == SAMPLING_MODE_LIST:
+            raise NotImplementedError('sampling mode = list')
             
         return self.policy_type(
             skill=self,

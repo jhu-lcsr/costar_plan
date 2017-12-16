@@ -83,7 +83,7 @@ More information on the [other domains](docs/domains.md) is available.
 
 These examples are designed to work with ROS and a simulation of the Universal Robots UR5, KUKA LBR iiwa, or other robot. ***NOTE THAT THIS FUNCTIONALITY IS STILL IN DEVELOPMENT.***
 
-![UR5 Simulation](docs/grabbing_block.png)
+![UR5 Simulation](grabbing_block.png)
 
 Our examples are based around the `costar_bullet` package, which uses the open-source Bullet simulator. To start, simply run:
 ```

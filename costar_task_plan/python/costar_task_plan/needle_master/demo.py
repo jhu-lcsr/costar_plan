@@ -7,7 +7,6 @@ Created on Thu Oct 08 11:31:19 2015
 
 import numpy as np
 from nm_file import *
-import matplotlib.pyplot as plt
 
 '''
 Stores data for a single performance of a task.
@@ -33,6 +32,7 @@ class Demo:
             self.env = env
 
     def Draw(self):
+        import matplotlib.pyplot as plt
         plt.plot(self.s[:, 0], self.s[:, 1])
 
     '''

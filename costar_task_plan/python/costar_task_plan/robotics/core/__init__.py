@@ -1,6 +1,6 @@
 __all__ = [
     # =====================================================================
-    "CostarWorld",
+    "CostarWorld", "LfD", "RosTaskParser",
     # =====================================================================
     "CostarActor",
     "CostarState", "CostarAction",
@@ -19,24 +19,26 @@ __all__ = [
     "ValidStateCondition",
 ]
 
-from world import *
-from actor import *
-from features import *
-from dynamics import *
+from .world import *
+from .actor import *
+from .features import *
+from .dynamics import *
 
 # conditions
-from condition import *
+from .condition import *
 
 # Policies
-from dmp_policy import DmpPolicy, JointDmpPolicy, CartesianDmpPolicy
+from .dmp_policy import DmpPolicy, JointDmpPolicy, CartesianDmpPolicy
 
 # Options
-from dmp_option import DmpOption
+from .dmp_option import DmpOption
 
 # LfD stuff
-from demo_reward import *
-from demo_features import *
+from .demo_reward import *
+from .demo_features import *
 
 # Generic ROS interface
-from gripper_status_listener import *
+from .gripper_status_listener import *
 
+# Task stuff
+from .task import RosTaskParser

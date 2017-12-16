@@ -75,7 +75,7 @@ def __trash_args(lfd):
 def __get_dmp_maker(skill_name,lfd):
 
   dmp_maker = lambda goal: DmpOption(
-      goal=goal,
+      goal_object=goal,
       config=TOM_RIGHT_CONFIG,
       skill_name=skill_name,
       feature_model=lfd.skill_models[skill_name],
