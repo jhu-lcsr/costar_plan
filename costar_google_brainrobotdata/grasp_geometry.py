@@ -26,6 +26,8 @@ except ImportError:
           'and https://github.com/jrl-umi3218/SpaceVecAlg and make sure python bindings'
           'are enabled.')
 
+from skimage.draw import circle_perimeter_aa  # Image drawing algorithms http://scikit-image.org
+from skimage.draw import set_color  # Image drawing algorithms http://scikit-image.org
 
 def vector_quaternion_array_to_ptransform(vector_quaternion_array, q_inverse=True, t_inverse=False, pt_inverse=False):
     """Convert a vector and quaternion pose array to a plucker transform.
@@ -773,3 +775,26 @@ def gaussian_kernel_2D(size=(3, 3), center=(1, 1), sigma=1):
     xx, yy = np.meshgrid(np.arange(size[0]), np.arange(size[1]))
     kernel = np.exp(-((xx - center[0]) ** 2 + (yy - center[1]) ** 2) / (2. * sigma ** 2))
     return kernel
+
+
+def draw_circle(image, coordinate, color=None, radius=10):
+    image_shape_len = len(image.shape)
+    if color is None:
+        if image.shape[-1] == 1:
+            color = [255]
+        else:
+            color = [0, 255, 255]
+    image = np.squeeze(image)
+    x, y = np.array(coordinate, dtype=np.int32)
+    # please note that skimage uses a funky coordinate system:
+    # origin in the top left with coordinates ordered
+    # (y, x) where
+    # +y is down from the top left corner and
+    # +x is right from the top left corner
+    rr, cc, aa = circle_perimeter_aa(y, x, radius, shape=image.shape)
+    set_color(image, (rr, cc), color, alpha=aa)
+    # axs.imshow(np.squeeze(frame))
+    if image_shape_len > len(image.shape):
+        # return the image to the shape that was provided
+        image = np.expand_dims(image, axis=0)
+    return image
