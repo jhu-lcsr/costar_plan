@@ -840,7 +840,7 @@ class GraspDataset(object):
             xyz_image_feature_type = 'xyz_image/cropped'
             camera_intrinsics_name = 'camera/cropped/intrinsics/matrix33'
 
-        xyz_image_clear_view_name = 'grasp/' + xyz_image_feature_type
+        xyz_image_clear_view_name = 'pregrasp/' + xyz_image_feature_type
 
         def add_feature_op(fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict, new_op, shape, name, batch_i, time_step_j):
             """Helper function to extend the dict containing feature ops
