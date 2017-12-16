@@ -1471,8 +1471,8 @@ class GraspDataset(object):
 
         # get the clear view rgb, depth, and xyz image names
         rgb_clear_view_name = 'grasp/image/decoded'
-        depth_clear_view_name = 'grasp/depth_image/decoded'
-        xyz_clear_view_name = 'grasp/xyz_image/decoded'
+        depth_clear_view_name = 'pregrasp/depth_image/decoded'
+        xyz_clear_view_name = 'pregrasp/xyz_image/decoded'
 
         # the feature names vary depending on the user configuration,
         # the random_crop boolean flag in particular
