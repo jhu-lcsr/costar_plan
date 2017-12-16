@@ -832,6 +832,8 @@ class GraspDataset(object):
         first_timed_index = all_base_to_endeffector_transforms.index(timed_base_to_endeffector_transforms[0])
         base_to_endeffector_transforms = ['approach/transforms/base_T_endeffector/vec_quat_7'] + timed_base_to_endeffector_transforms[:-1]
 
+        final_base_to_endeffector_transform_name = all_base_to_endeffector_transforms[-1]
+
         # Get different image features depending on if
         # cropping is enabled or not.
         xyz_image_feature_type = 'xyz_image/decoded'
@@ -868,8 +870,6 @@ class GraspDataset(object):
                     time_ordered_feature_name_dict[time_ordered_name] = np.append(time_ordered_feature_name_dict[time_ordered_name], feature_name)
                 else:
                     time_ordered_feature_name_dict[time_ordered_name] = np.array([feature_name])
-
-        final_base_to_endeffector_transform_name = 'approach/reached_pose/transforms/base_T_endeffector/vec_quat_7'
 
         # loop through all grasp attempts in this batch
         for batch_i, (fixed_feature_op_dict, sequence_feature_op_dict) in enumerate(tqdm(feature_op_dicts, desc='get_transform_tensors')):
