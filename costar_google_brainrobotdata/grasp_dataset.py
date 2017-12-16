@@ -436,7 +436,8 @@ class GraspDataset(object):
                     Pose calculated by forward kinematics from current robot state in status updates.
                     Please note that this is the pose reached at the end of the time step indicated by
                     the rest of the feature path, which makes it nearest to the image at the start of
-                    the next time step.
+                    the next time step. In other words, if you'd like to use this data as an input,
+                    you must use the result from the previous time step for an accurate option.
                 'joint/commanded_torques'
                     Commanded torques are the torque values calculated from the inverse kinematics
                     of the commanded pose and the robot driver.
