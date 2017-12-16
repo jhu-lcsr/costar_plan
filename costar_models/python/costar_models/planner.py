@@ -6,8 +6,6 @@ import keras.optimizers as optimizers
 import numpy as np
 import tensorflow as tf
 
-from matplotlib import pyplot as plt
-
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
 from keras.layers import UpSampling2D, Conv2DTranspose

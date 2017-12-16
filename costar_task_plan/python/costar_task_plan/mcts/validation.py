@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 
 '''
 Descends through the tree, collecting valuable metrics. These metrics can then
@@ -47,11 +46,19 @@ class Validator(object):
     def process(self, node, paths=[]):
         pass
 
-    '''
-  Get all the relevant data from a particular MCTS path.
-  '''
 
     def process_path(self, path):
+        '''
+        Get all the relevant data from a particular MCTS path.
+
+        Parameters:
+        -----------
+        path: set of nodes followed during MCTS
+        '''
+
+        # included here to allow different backends
+        import matplotlib.pyplot as plt
+
         data = []
         for node in path:
             for (s, a) in node.traj:

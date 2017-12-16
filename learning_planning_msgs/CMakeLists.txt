@@ -56,6 +56,8 @@ add_message_files(
   TaskInfo.msg
   Transition.msg
   TransitionParameters.msg
+  Alias.msg
+  Status.msg
 )
 
 ## Generate services in the 'srv' folder

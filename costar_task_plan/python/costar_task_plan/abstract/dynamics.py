@@ -48,6 +48,9 @@ class AbstractActor(object):
   def getFeatures(self):
     return self.policy.features
 
+  def getState(self):
+      raise NotImplementedError('state')
+
 '''
 Dynamics class governs how entities evolve over time
 '''

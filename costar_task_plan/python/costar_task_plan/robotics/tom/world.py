@@ -23,7 +23,7 @@ class TomWorld(CostarWorld):
   bin. 
   '''
 
-  def __init__(self, data_root='', fake=True, load_dataset=False, *args, **kwargs):
+  def __init__(self, data_root='', fake=True, load_dataset=False, lfd=None, *args, **kwargs):
     if not fake:
       raise NotImplementedError('Not quite set up yet')
     else:
@@ -31,6 +31,7 @@ class TomWorld(CostarWorld):
     super(TomWorld,self).__init__(None,
         namespace='/tom',
         observe=observe,
+        lfd=lfd,
         robot_config=[TOM_RIGHT_CONFIG, TOM_LEFT_CONFIG],
         *args, **kwargs)
 
@@ -41,41 +42,42 @@ class TomWorld(CostarWorld):
     # Remove this logic in the future. This is where we load the data set,
     # and then use this data to create and save a bunch of DMPs corresponding
     # to the different actions we might want to take.
-    if load_dataset:
-      self.dataset = TomDataset()
-      self.dataset.load(root_filepath=data_root)
+    if lfd is None:
+        if load_dataset:
+          self.dataset = TomDataset()
+          self.dataset.load(root_filepath=data_root)
 
-      self.addTrajectories("move",
-          self.dataset.move_trajs,
-          self.dataset.move_data,
-          ['time','squeeze_area'])
-      self.addTrajectories("pickup",
-          self.dataset.pickup_trajs,
-          self.dataset.pickup_data,
-          ['time', 'orange'])
-      self.addTrajectories("test",
-          self.dataset.test_trajs,
-          self.dataset.test_data,
-          ['time', 'squeeze_area'])
-      self.addTrajectories("box",
-          self.dataset.box,
-          self.dataset.box_data,
-          ['time', 'box'])
-      self.addTrajectories("trash",
-          self.dataset.trash,
-          self.dataset.trash_data,
-          ['time', 'trash'])
+          self.addTrajectories("move",
+              self.dataset.move_trajs,
+              self.dataset.move_data,
+              ['time','squeeze_area'])
+          self.addTrajectories("pickup",
+              self.dataset.pickup_trajs,
+              self.dataset.pickup_data,
+              ['time', 'orange'])
+          self.addTrajectories("test",
+              self.dataset.test_trajs,
+              self.dataset.test_data,
+              ['time', 'squeeze_area'])
+          self.addTrajectories("box",
+              self.dataset.box,
+              self.dataset.box_data,
+              ['time', 'box'])
+          self.addTrajectories("trash",
+              self.dataset.trash,
+              self.dataset.trash_data,
+              ['time', 'trash'])
 
-      self.ref_data = self.dataset.move_data + \
-                         self.dataset.pickup_data + \
-                         self.dataset.test_data + \
-                         self.dataset.box_data + \
-                         self.dataset.trash_data
+          self.ref_data = self.dataset.move_data + \
+                             self.dataset.pickup_data + \
+                             self.dataset.test_data + \
+                             self.dataset.box_data + \
+                             self.dataset.trash_data
 
-      # Call the learning after we've loaded our data
-      self.fitTrajectories()
-    else:
-      self.loadModels('tom')
+          # Call the learning after we've loaded our data
+          self.fitTrajectories()
+        else:
+          self.loadModels('tom')
 
     self.features = DemoFeatures(self.lfd.kdl_kin, TOM_RIGHT_CONFIG)
     self.reward = DemoReward(self.lfd.skill_models)
