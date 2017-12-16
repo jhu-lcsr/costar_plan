@@ -909,14 +909,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             activation = "lrelu"
         else:
             activation = "relu"
-        #x = Concatenate()([arm, gripper])
-        #x = AddDense(x, 5, activation, self.dropout_rate)
         y = OneHot(self.num_options)(option)
         y = Flatten()(y)
         x = Concatenate()([arm,gripper,y])
-        #x = AddDense(x, 128, activation, self.dropout_rate)
-        #x = AddDense(x, 64, activation, self.dropout_rate)
-        x = AddDense(x, 64, activation, self.dropout_rate)
+
+        dr = self.dropout_rate * 0.
+        x = AddDense(x, 64, activation, dr)
         
         state_encoder = Model([arm, gripper, option], x)
         #state_encoder = Model([arm, gripper], x)
@@ -935,11 +933,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         gripper_size: number of gripper output variables to predict
         '''
         rep_in = Input((8,8,16,))
-        dr = self.decoder_dropout_rate * 0.5
+        dr = self.decoder_dropout_rate * 0.
 
         x = Flatten()(rep_in)
         x1 = AddDense(x, 512, "relu", dr)
-        #x2 = AddDense(x2, 512, "relu", dr)
+        x1 = AddDense(x1, 512, "relu", dr)
         arm = AddDense(x1, arm_size, "linear", dr, output=True)
         gripper = AddDense(x1, gripper_size, "sigmoid", dr, output=True)
         #y = AddDense(x, 512, "relu", dr, output=True)
