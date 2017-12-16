@@ -23,7 +23,7 @@ There is a prototype installation script, `install_tom.sh`, which should install
 
 ## Real Robot Setup
 
-[See the guide to getting started with the real TOM robot](real_tom_robot.md)
+[See the guide to getting started with the real TOM robot](tom_real_robot.md)
 
 There are a few different pieces that need to start up:
   - the planning context
