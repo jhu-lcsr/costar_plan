@@ -816,11 +816,23 @@ class GraspDataset(object):
         new_feature_op_dicts = []
 
         # TODO(ahundt) make sure pose_op_params matches the right thing, particularly the time step
-        base_to_endeffector_transforms = self.get_time_ordered_features(
+        # The reached poses are the end of each time step and the start of the next,
+        # we need to shift everything over by one!
+        all_base_to_endeffector_transforms = self.get_time_ordered_features(
             features_complete_list,
+            feature_type='reached_pose/transforms/base_T_endeffector/vec_quat_7')
+
+        timed_base_to_endeffector_transforms = self.get_time_ordered_features(
+            all_base_to_endeffector_transforms,
             feature_type='reached_pose/transforms/base_T_endeffector/vec_quat_7',
             step='move_to_grasp')
 
+        print('all_base_to_endeffector_transforms: ', all_base_to_endeffector_transforms)
+        first_timed_index = all_base_to_endeffector_transforms.index(timed_base_to_endeffector_transforms[0])
+        base_to_endeffector_transforms = ['approach/transforms/base_T_endeffector/vec_quat_7'] + timed_base_to_endeffector_transforms[:-1]
+
+        # Get different image features depending on if
+        # cropping is enabled or not.
         xyz_image_feature_type = 'xyz_image/decoded'
         camera_intrinsics_name = 'camera/intrinsics/matrix33'
         if random_crop:
@@ -856,7 +868,7 @@ class GraspDataset(object):
                 else:
                     time_ordered_feature_name_dict[time_ordered_name] = np.array([feature_name])
 
-        final_base_to_endeffector_transform_name = base_to_endeffector_transforms[-1]
+        final_base_to_endeffector_transform_name = 'approach/reached_pose/transforms/base_T_endeffector/vec_quat_7'
 
         # loop through all grasp attempts in this batch
         for batch_i, (fixed_feature_op_dict, sequence_feature_op_dict) in enumerate(tqdm(feature_op_dicts, desc='get_transform_tensors')):
@@ -1769,7 +1781,8 @@ class GraspDataset(object):
                 video = np.concatenate(self._to_tensors(output_features_dicts, ordered_rgb_image_features), axis=0)
                 if draw == 'circle_on_gripper':
                     coordinates = time_ordered_feature_data_dict[
-                        'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/xy_2']
+                        'move_to_grasp/time_ordered/reached_pose/transforms/'
+                        'endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/xy_2']
 
                     num = len(video)
                     # fig, axs = plt.subplots(ncols=1, nrows=1, figsize=(10, 6))
