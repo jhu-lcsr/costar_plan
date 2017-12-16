@@ -36,6 +36,9 @@ rosrun ctp_tom parse.py $BAGS --plan --execute
 
 ## ROS Topics
 
+![RQT Graph from planner.launch](ctp_tom_basics.png)
+
+Key topics:
   - /camera/depth_registered/points
   - /joint_states
   - /collison_object 
