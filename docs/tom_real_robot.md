@@ -34,6 +34,15 @@ roslaunch ctp_tom planner.launch slave:=true
 rosrun ctp_tom parse.py $BAGS --plan --execute
 ```
 
+## ROS Topics
+
+  - /camera/depth_registered/points
+  - /joint_states
+  - /collison_object 
+  - /tf
+  - /camera/depth/camera_info
+  - /tf_static
+
 ## Components
 
 ### The Table Integrator
