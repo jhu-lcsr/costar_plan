@@ -925,7 +925,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             self.state_encoder = state_encoder
         return state_encoder
 
-    def _makeStateDecoder(self, arm_size, gripper_size):
+    def _makeStateDecoder(self, arm_size, gripper_size, rep_channels):
         '''
         Compute actions from hidden representation
 
@@ -934,12 +934,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         arm_size: number of arm output variables to predict
         gripper_size: number of gripper output variables to predict
         '''
-        rep_in = Input((8,8,16,))
+        rep_in = Input((8 * 8 * self.rep_channels,))
         dr = self.decoder_dropout_rate * 0.5
 
-        x = Flatten()(rep_in)
+        #x = Flatten()(rep_in)
+        x = rep_in
         x1 = AddDense(x, 512, "relu", dr)
-        #x2 = AddDense(x2, 512, "relu", dr)
+        x1 = AddDense(x1, 512, "relu", dr)
         arm = AddDense(x1, arm_size, "linear", dr, output=True)
         gripper = AddDense(x1, gripper_size, "sigmoid", dr, output=True)
         #y = AddDense(x, 512, "relu", dr, output=True)
@@ -988,7 +989,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate, "same", disc)
         x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, "same", disc)
         x = AddConv2D(x, 128, [5,5], 2, self.dropout_rate, "same", disc)
-        self.encoder_channels = 8
+        self.encoder_channels = 16
         x = AddConv2D(x, self.encoder_channels, [1,1], 1, 0.*self.dropout_rate,
                 "same", disc)
 

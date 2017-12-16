@@ -61,7 +61,8 @@ class PretrainSampler(PredictionSampler2):
         sencoder = self._makeStateEncoder(arm_size, gripper_size, False)
         #sencoder.load_weights(self._makeName(
         #    "pretrain_state_encoder_model", "state_encoder.h5f"))
-        sdecoder = self._makeStateDecoder(arm_size, gripper_size)
+        sdecoder = self._makeStateDecoder(arm_size, gripper_size,
+                self.rep_channels)
         #sdecoder.load_weights(self._makeName(
         #    "pretrain_state_encoder_model", "state_decoder.h5f"))
 
