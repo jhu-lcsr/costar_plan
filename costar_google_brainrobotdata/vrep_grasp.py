@@ -233,7 +233,7 @@ def set_vision_sensor_image(client_id, display_name, image, convert=None, scale_
 
     if vrep_conversion:
         # rotate 180 degrees, flip left over right, then invert the colors
-        image = np.array(255 - np.fliplr(np.rot90(image, 2)), dtype=np.uint8)
+        image = np.array(256 - np.fliplr(np.rot90(image, 2)), dtype=np.uint8)
 
     if np.issubdtype(image.dtype, np.integer):
         is_float = 0
@@ -614,8 +614,7 @@ class VREPGraspVisualization(object):
                 # TODO(ahundt) make sure rot180 + fliplr is applied upstream in the dataset and to the depth images
                 # gripper/image/decoded is unusual because there is no depth image and the orientation is rotated 180 degrees from the others
                 # it might also only be available captured in some of the more recent datasets.
-                cg_rgb = 255 - np.rot90(np.fliplr(close_gripper_rgb_image), 2)
-                set_vision_sensor_image(self.client_id, 'kcam_rgb_close_gripper', cg_rgb, convert=None)
+                set_vision_sensor_image(self.client_id, 'kcam_rgb_close_gripper', close_gripper_rgb_image, convert=FLAGS.vrepVisualizeRGBFormat)
 
                 # Walk through all the other images from initial time step to final time step
                 rgb_images = time_ordered_feature_data_dict['move_to_grasp/time_ordered/rgb_image/decoded']
@@ -801,7 +800,7 @@ class VREPGraspVisualization(object):
             # TODO(ahundt) make sure rot180 + fliplr is applied upstream in the dataset and to the depth images
             # gripper/image/decoded is unusual because there is no depth image and the orientation is rotated 180 degrees from the others
             # it might also only be available captured in some of the more recent datasets.
-            cg_rgb = 255 - np.fliplr(close_gripper_rgb_image)
+            cg_rgb = 256 - np.fliplr(close_gripper_rgb_image)
             set_vision_sensor_image(self.client_id, 'kcam_rgb_close_gripper', cg_rgb, convert=None)
 
         # loop through each time step
