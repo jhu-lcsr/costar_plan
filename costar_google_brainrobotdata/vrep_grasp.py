@@ -315,6 +315,11 @@ def create_point_cloud(client_id, display_name, transform=None, point_cloud=None
     """
     if transform is None:
         transform = np.array([0., 0., 0., 0., 0., 0., 1.])
+
+    if point_cloud is None:
+        point_cloud = grasp_geometry.depth_image_to_point_cloud(depth_image, camera_intrinsics_matrix)
+        point_cloud = point_cloud.reshape([point_cloud.size/3, 3])
+
     # show the depth sensor image
     if depth_sensor_display_name is not None and depth_image is not None:
         # matplotlib.image.imsave(display_name + depth_sensor_display_name + '_norotfliplr.png', depth_image)
@@ -330,10 +335,6 @@ def create_point_cloud(client_id, display_name, transform=None, point_cloud=None
         # rotate 180, flip left over right then invert the image colors for display in V-REP
         # matplotlib.image.imsave(display_name + rgb_sensor_display_name + '_rot90fliplr.png', color_image)
         set_vision_sensor_image(client_id, rgb_sensor_display_name, color_image, convert=convert_rgb)
-
-    if point_cloud is None:
-        point_cloud = grasp_geometry.depth_image_to_point_cloud(depth_image, camera_intrinsics_matrix)
-        point_cloud = point_cloud.reshape([point_cloud.size/3, 3])
 
     # Save out Point cloud
     if save_ply_path is not None:
@@ -380,7 +381,8 @@ def create_point_cloud(client_id, display_name, transform=None, point_cloud=None
             # 3 indicates the cloud should be in the parent frame, and color is enabled
             # bit 2 is 1 so each point is colored
             simInsertPointsIntoPointCloudOptions = 3
-            color_buffer = bytearray(np.fliplr(np.rot90(color_image, 3)).flatten().tobytes())
+            # color_buffer = bytearray(np.fliplr(np.rot90(color_image, 3)).flatten().tobytes())
+            color_buffer = bytearray(color_image.flatten().tobytes())
             color_size = color_image.size
         else:
             simInsertPointsIntoPointCloudOptions = 1
