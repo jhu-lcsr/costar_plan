@@ -202,8 +202,6 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix, dtype=np.float32):
           32bit floating point depths in meters. The result is a 3-D array with
           shape (rows, cols, 3). Pixels with invalid depth in the input have
           NaN or 0 for the z-coordinate in the result.
-      flip_x: 1.0 leaves data as-is, -1.0 flips the data across the x axis
-      flip_y: -1.0 leaves data as-is, -1.0 flips the data across the y axis
 
       intrinsics_matrix: 3x3 matrix for projecting depth values to z values
       in the point cloud frame. http://ksimek.github.io/2013/08/13/intrinsic/
@@ -212,15 +210,9 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix, dtype=np.float32):
       transform: 4x4 Rt matrix for rotating and translating the point cloud
     """
 
-    # TODO(ahundt) make sure rot90 + fliplr is applied upstream in the dataset and to the depth images, ensure consistency with image intrinsics
     depth = np.squeeze(depth)
-    x_range = depth.shape[1]
-    y_range = depth.shape[0]
     XYZ = np.zeros(depth.shape + (3,))
     XYZ = depth_image_to_point_cloud_numba(depth, depth.shape, intrinsics_matrix, XYZ)
-    depth2 = np.squeeze(XYZ[:, :, 2])
-    print('depth shape: ' + str(depth.shape) + ' XYZ shape: ' + str(XYZ.shape), ' depth2 shape: ', str(depth2.shape))
-    assert np.allclose(depth, depth2)
 
     return XYZ.astype(dtype)
 
