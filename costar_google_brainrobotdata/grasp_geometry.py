@@ -28,6 +28,7 @@ except ImportError:
 
 from skimage.draw import circle_perimeter_aa  # Image drawing algorithms http://scikit-image.org
 from skimage.draw import set_color  # Image drawing algorithms http://scikit-image.org
+from numba import jit
 
 def vector_quaternion_array_to_ptransform(vector_quaternion_array, q_inverse=True, t_inverse=False, pt_inverse=False):
     """Convert a vector and quaternion pose array to a plucker transform.
@@ -162,7 +163,69 @@ def vector_to_ptransform(XYZ):
     return ptransform
 
 
-def depth_image_to_point_cloud(depth, intrinsics_matrix, flip_x=1.0, flip_y=1.0, dtype=np.float32):
+@jit(nopython=True)
+def depth_image_to_point_cloud_numba(depth, depth_shape, intrinsics_matrix, XYZ):
+    fx = intrinsics_matrix[0, 0]
+    fy = intrinsics_matrix[1, 1]
+    # center of image x coordinate
+    center_x = intrinsics_matrix[2, 0]
+    # center of image y coordinate
+    center_y = intrinsics_matrix[2, 1]
+    y_range, x_range = depth_shape
+
+    for y in range(y_range):
+        for x in range(x_range):
+            Z = depth[y, x]
+            X = (x - center_x) * Z / fx
+            Y = (y - center_y) * Z / fy
+            XYZ[y, x] = [X, Y, Z]
+
+    return XYZ
+
+
+def depth_image_to_point_cloud(depth, intrinsics_matrix, dtype=np.float32):
+    """Depth images become an XYZ point cloud in the camera frame with shape (depth.shape[0], depth.shape[1], 3).
+
+    Transform a depth image into a point cloud in the camera frame with one point for each
+    pixel in the image, using the camera transform for a camera
+    centred at cx, cy with field of view fx, fy.
+
+    Based on:
+    https://github.com/tensorflow/models/blob/master/research/cognitive_mapping_and_planning/src/depth_utils.py
+    https://codereview.stackexchange.com/a/84990/10101
+
+    also see grasp_geometry_tf.depth_image_to_point_cloud().
+
+    # Arguments
+
+      depth: is a 2-D ndarray with shape (rows, cols) containing
+          32bit floating point depths in meters. The result is a 3-D array with
+          shape (rows, cols, 3). Pixels with invalid depth in the input have
+          NaN or 0 for the z-coordinate in the result.
+      flip_x: 1.0 leaves data as-is, -1.0 flips the data across the x axis
+      flip_y: -1.0 leaves data as-is, -1.0 flips the data across the y axis
+
+      intrinsics_matrix: 3x3 matrix for projecting depth values to z values
+      in the point cloud frame. http://ksimek.github.io/2013/08/13/intrinsic/
+      In this case x0, y0 are at index [2, 0] and [2, 1], respectively.
+
+      transform: 4x4 Rt matrix for rotating and translating the point cloud
+    """
+
+    # TODO(ahundt) make sure rot90 + fliplr is applied upstream in the dataset and to the depth images, ensure consistency with image intrinsics
+    depth = np.squeeze(depth)
+    x_range = depth.shape[1]
+    y_range = depth.shape[0]
+    XYZ = np.zeros(depth.shape + (3,))
+    XYZ = depth_image_to_point_cloud_numba(depth, depth.shape, intrinsics_matrix, XYZ)
+    depth2 = np.squeeze(XYZ[:, :, 2])
+    print('depth shape: ' + str(depth.shape) + ' XYZ shape: ' + str(XYZ.shape), ' depth2 shape: ', str(depth2.shape))
+    assert np.allclose(depth, depth2)
+
+    return XYZ.astype(dtype)
+
+
+def depth_image_to_point_cloud_np(depth, intrinsics_matrix, flip_x=1.0, flip_y=1.0, dtype=np.float32):
     """Depth images become an XYZ point cloud in the camera frame with shape (depth.shape[0], depth.shape[1], 3).
 
     Transform a depth image into a point cloud in the camera frame with one point for each
@@ -260,10 +323,10 @@ def surface_relative_transform(xyz_image,
     return depth_pixel_T_endeffector_final_ptrans, pixel_coordinate_of_endeffector, camera_T_cloud_point_ptrans
 
 
-def endeffector_image_coordinate(camera_intrinsics_matrix, xyz, flip_x=1.0, flip_y=1.0):
+def endeffector_image_coordinate(camera_intrinsics_matrix, xyz):
     """ Get the image coordinate of a point in the camera frame
 
-    This is used to find the x,y image coordinate of the
+    This is used to find the [y_height, x_width] image coordinate of the
     end effector given an xyz coordinate in the camera frame.
 
     """
@@ -277,16 +340,14 @@ def endeffector_image_coordinate(camera_intrinsics_matrix, xyz, flip_x=1.0, flip
     center_y = camera_intrinsics_matrix[2, 1]
 
     # Capital X is horizontal point, right in camera image frame
-    X = xyz[0]
     # Capital Y is vertical point, up in camera image frame
-    Y = xyz[1]
     # Capital Z is depth in camera frame
-    Z = xyz[2]
+    X, Y, Z = xyz
     # x is the image coordinate horizontal axis
-    x = flip_x * (X * fx / Z) + center_x
+    x = (X * fx / Z) + center_x
     # y is the image coordinate vertical axis
-    y = flip_y * (Y * fy / Z) + center_y
-    return np.array([x, y])
+    y = (Y * fy / Z) + center_y
+    return np.array([y, x])
 
 
 def endeffector_image_coordinate_and_cloud_point(cartesian_image,
@@ -306,7 +367,7 @@ def endeffector_image_coordinate_and_cloud_point(cartesian_image,
     [XYZ, pixel_coordinate_of_endeffector]
 
     xyz: the xyz coordinate of the end effector's point cloud point.
-    pixel_coordinate_of_endeffector: the x, y coordinate in the depth image frame of the xyz point cloud point.
+    pixel_coordinate_of_endeffector: the [y_width, x_height] coordinate in the depth image frame of the xyz point cloud point.
     """
     # xyz coordinate of the endeffector in the camera frame
     cte_xyz = camera_T_endeffector.translation()
@@ -631,7 +692,7 @@ def grasp_dataset_to_transforms_and_features(
     eectf_ptrans = base_T_endeffector_final_ptrans * base_T_endeffector_current_ptrans.inv()
     # print('in grasp_dataset_to_transforms_and_features 1')
 
-    if cartesian_image.shape[-1] == 1:
+    if cartesian_image.shape[-1] == 1 or len(cartesian_image.shape) == 2:
         # cartesian_image is a depth image, convert it to a point cloud xyz image
         cartesian_image = depth_image_to_point_cloud(cartesian_image, camera_intrinsics_matrix)
 
@@ -778,14 +839,29 @@ def gaussian_kernel_2D(size=(3, 3), center=(1, 1), sigma=1):
 
 
 def draw_circle(image, coordinate, color=None, radius=10):
+    """ Draw a circle at the [y_height, x_width] coordinate of an image.
+    """
     image_shape_len = len(image.shape)
+    if image_shape_len == 4:
+        batch, y_height, x_width, channels = image.shape
+    elif image_shape_len == 3 and image.shape[0] == 1:
+        batch, y_height, x_width = image.shape
+        channels = 1
+    elif image_shape_len == 3 and image.shape[2] == 1:
+        y_height, x_width, channels = image.shape
+        batch = 1
+    elif image_shape_len == 2:
+        y_height, x_width = image.shape
+        batch = 1
+        channels = 1
+
     if color is None:
-        if image.shape[-1] == 1:
+        if channels == 1:
             color = [255]
         else:
             color = [0, 255, 255]
     image = np.squeeze(image)
-    x, y = np.array(coordinate, dtype=np.int32)
+    y, x = np.array(coordinate, dtype=np.int32)
     # please note that skimage uses a funky coordinate system:
     # origin in the top left with coordinates ordered
     # (y, x) where
