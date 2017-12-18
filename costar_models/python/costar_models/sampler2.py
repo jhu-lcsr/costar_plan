@@ -36,7 +36,8 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         '''
         super(PredictionSampler2, self).__init__(taskdef, *args, **kwargs)
         self.rep_size = None
-        self.hidden_shape = (8,8,16)
+        self.rep_channels = 16
+        self.hidden_shape = (8,8,self.rep_channels)
         self.PredictorCb = ImageCb
 
     def _makeToHidden(self, img_shape, arm_size, gripper_size, rep_size):
@@ -66,10 +67,10 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         # Compress the size of the network
         x = TileOnto(img_rep, state_rep, 64, [8,8])
         x = AddConv2D(x, 128, [3,3], 1, self.dropout_rate, "same", False)
-        x = AddConv2D(x, 16, [1,1], 1, self.dropout_rate, "same", False)
+        x = AddConv2D(x, self.rep_channels, [1,1], 1, self.dropout_rate*0., "same", False)
         x = Flatten()(x)
-        self.rep_size = int(8 * 8 * 16)
-        self.hidden_size = (8,8,16)
+        self.rep_size = int(8 * 8 * self.rep_channels)
+        self.hidden_size = (8, 8, self.rep_channels)
 
         if self.skip_connections:
             model = Model(ins, [x, skip_rep], name="encode_hidden_state")
@@ -80,10 +81,14 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         self.hidden_encoder = model
         return model
 
-    def _makeFromHidden(self, size):
+    def _makeFromHidden(self, size, disc=False):
         '''
         Create the "Decoder" half of the AE
-        This part 
+
+        Parameters:
+        -----------
+        size: number of dimensions in the hidden representation
+        disc: whether or not this should be set up as a new discriminator.
         '''
         h = Input((size,))
         ih, iw, ic = self.hidden_shape
@@ -91,7 +96,8 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         # ---------------------------------
         x = h
         #x = AddDense(x,self.rep_size,"relu",self.decoder_dropout_rate)
-        x = Reshape((ih,iw,16))(x)
+        x = Reshape((ih,iw,self.rep_channels))(x)
+        x = AddConv2D(x, self.encoder_channels, [1,1], 1, self.dropout_rate*0., "same", False)
         if self.skip_connections:
             skip_in = Input(self.skip_shape, name="skip_input_hd")
             ins = [x, skip_in]
@@ -101,10 +107,8 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             hidden_decoder_ins = h
 
         img = self.image_decoder(ins)
-        #self.state_decoder.summary()
-        arm, gripper, label = self.state_decoder(x)
+        arm, gripper, label = self.state_decoder(h)
         model = Model(hidden_decoder_ins, [img, arm, gripper, label])
-        #model.summary()
         self.hidden_decoder = model
         return model
 
