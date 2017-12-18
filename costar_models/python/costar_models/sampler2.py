@@ -67,7 +67,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         # Compress the size of the network
         x = TileOnto(img_rep, state_rep, 64, [8,8])
         x = AddConv2D(x, 128, [3,3], 1, self.dropout_rate, "same", False)
-        x = AddConv2D(x, self.rep_channels, [1,1], 1, self.dropout_rate, "same", False)
+        x = AddConv2D(x, self.rep_channels, [1,1], 1, self.dropout_rate*0., "same", False)
         x = Flatten()(x)
         self.rep_size = int(8 * 8 * self.rep_channels)
         self.hidden_size = (8, 8, self.rep_channels)
@@ -97,7 +97,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         x = h
         #x = AddDense(x,self.rep_size,"relu",self.decoder_dropout_rate)
         x = Reshape((ih,iw,self.rep_channels))(x)
-        #x = AddConv2D(x, self.encoder_channels, [1,1], 1, self.dropout_rate, "same", False)
+        x = AddConv2D(x, self.encoder_channels, [1,1], 1, self.dropout_rate*0., "same", False)
         if self.skip_connections:
             skip_in = Input(self.skip_shape, name="skip_input_hd")
             ins = [x, skip_in]
