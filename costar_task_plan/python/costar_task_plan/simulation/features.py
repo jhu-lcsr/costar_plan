@@ -102,7 +102,7 @@ class ImagePlusFeatures(AbstractFeatures):
     def __init__(self, *args, **kwargs):
         super(ImagePlusFeatures, self).__init__(*args, **kwargs)
         self.last_rpy = None
-        self.use_rpy = True
+        self.use_rpy = False
 
     def compute(self, world, state):
         '''
@@ -141,11 +141,11 @@ class ImagePlusFeatures(AbstractFeatures):
             arm = [T.p.x(), T.p.y(), T.p.z(),] + rpy
         else:
             arm = [T.p.x(), T.p.y(), T.p.z(),] + list(T.M.GetQuaternion())
-        return [img[:, :, :3], np.array(arm), state.gripper]
+        return [img[:, :, :3], np.array(arm), state.q, state.gripper]
 
     @property
     def description(self):
-        return ["features", "arm", "gripper"]
+        return ["features", "arm", "joints", "gripper"]
 
 class PoseFeatures(AbstractFeatures):
     '''
