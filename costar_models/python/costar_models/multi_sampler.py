@@ -976,10 +976,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         '''
         img = Input(img_shape,name="img_encoder_in")
         img0 = Input(img_shape,name="img0_encoder_in")
-        if not disc:
-            dr = self.dropout_rate
-        else:
-            dr = 0.5
+        dr = self.dropout_rate
         x = img
         x = AddConv2D(x, 32, [5,5], 2, dr, "same", disc)
         y = img0
