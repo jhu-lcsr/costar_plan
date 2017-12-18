@@ -4,7 +4,7 @@ __all__ = [
     "makeGraph", "showGraph",
     "showTask",
     "mctsLoop",
-    ]
+]
 
 # NOTE: removing pygame dependencies for now, because they're terrible
 #from animate import *

@@ -39,3 +39,10 @@ from gmm import GMM
 # =============================================================================
 # Skill models used in updated version of the planning system
 from cartesian import CartesianSkillInstance
+
+# =============================================================================
+
+__all__ = ["CartesianSkillInstance",
+           "RosTaskParser",
+           "RobotSkill",
+           "GMM",]

@@ -12,8 +12,6 @@ from keras.layers.embeddings import Embedding
 from keras.layers.merge import Concatenate, Multiply
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
-from keras.optimizers import Adam
-from matplotlib import pyplot as plt
 
 from .abstract import *
 from .callbacks import *

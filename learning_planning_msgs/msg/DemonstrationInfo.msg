@@ -8,3 +8,4 @@ HandInfo left
 
 # Contain information on right hand pose and activity
 HandInfo right
+

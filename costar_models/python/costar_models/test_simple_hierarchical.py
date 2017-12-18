@@ -7,7 +7,6 @@ import keras.losses as losses
 import keras.optimizers as optimizers
 import numpy as np
 
-from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 from keras.layers.advanced_activations import LeakyReLU
@@ -158,6 +157,7 @@ class TestSimpleHierarchical(AbstractAgentBasedModel):
         self.model.fit([features, action], [label, next_features, next_ok], epochs=self.epochs)
 
     def plot(self,features,action,reward,label,example,*args,**kwargs):
+        from matplotlib import pyplot as plt
         plt.figure()
 
         # process the data

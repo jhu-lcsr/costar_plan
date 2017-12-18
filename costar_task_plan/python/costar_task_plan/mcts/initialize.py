@@ -108,12 +108,14 @@ class TaskModelInitialize(AbstractInitialize):
         self.task = task
 
     def __call__(self, node):
-        children = self.task.getChildren(node.tag)
-        for child in children:
+        children, weights = self.task.getChildren(node.tag)
+        for child, weight in zip(children, weights):
+            print (child, node.tag, weight)
             option = self.task.getOption(child)
             policy, condition = option.makePolicy(node.world)
             node.children.append(Node(action=MctsAction(
                                       tag=child,
                                       policy=policy,
                                       condition=condition,),
-                                      prior=1.0,))
+                                      prior=weight,))
+

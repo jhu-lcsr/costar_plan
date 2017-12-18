@@ -17,6 +17,8 @@ class AbstractOption(object):
     self.name = name
     self.preconditions = []
     self.postconditions = []
+    self.frequency = None
+    self.weight = 0.
 
   @property
   def get_name(self):

@@ -9,7 +9,6 @@
        -->
 
   <!-- Perception parameter defaults -->
-  <arg name="real" default="true" doc="(boolean) is this a real robot or will gazebo provide simulated data?"/>
   <arg name="depth_registration" default="true" />
   <arg name="camera_name" default="camera" />
   <arg name="marker_size" default="4.5" />
@@ -18,10 +17,12 @@
   <arg name="max_track_error" default="0.05" />
   <arg name="start_static_handeye" default="true" />
   <arg name="auto_white_balance" default="true" />
+  <arg name="real" default="true" doc="(boolean) is this a real robot or will gazebo provide simulated data?"/>
+  <arg name="fake" default="false" doc="(boolean) do not even bother with a full simulation; just publish fake perception and test in RVIZ."/>
 
   <!-- Note: auto exposure on results in very ugly point clouds; it tends to 
        white out many surfaces. Disable this for best results. -->
-  <arg name="auto_exposure" default="false" />
+  <arg name="auto_exposure" default="true" />
   <arg name="stationary" default="true" />
 
   <!-- Visualization bringup -->
@@ -38,8 +39,9 @@
   <param name="use_sim_time" value="false"/>
 
   <!-- Start the perception pipeline -->
-  <include file="$(find ctp_tom)/launch/perception.launch">
-    <arg name="real" value="$(arg real)"/>
+  <include file="$(find ctp_tom)/launch/scene.launch"/>
+  <include unless="$(arg fake)" file="$(find ctp_tom)/launch/perception.launch">
+    <arg name="real" value="true"/>
     <arg name="depth_registration" value="$(arg depth_registration)"/>
     <arg name="auto_white_balance" value="$(arg auto_white_balance)"/>
     <arg name="auto_exposure" value="$(arg auto_exposure)"/>
