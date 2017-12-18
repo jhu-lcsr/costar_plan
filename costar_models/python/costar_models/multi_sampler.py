@@ -932,11 +932,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         arm_size: number of arm output variables to predict
         gripper_size: number of gripper output variables to predict
         '''
-        rep_in = Input((8,8,16,))
+        rep_in = Input((8,8,rep_channels,))
         dr = self.decoder_dropout_rate * 0.
 
-        #x = Flatten()(rep_in)
         x = rep_in
+        x = AddConv2D(x, 64, [3,3], 1, self.dropout_rate*0., "same", False)
+        x = AddConv2D(x, 128, [3,3], 2, self.dropout_rate*0., "same", False)
+        x = Flatten()(rep_in)
         x1 = AddDense(x, 512, "relu", dr)
         x1 = AddDense(x1, 512, "relu", dr)
         arm = AddDense(x1, arm_size, "linear", dr, output=True)
