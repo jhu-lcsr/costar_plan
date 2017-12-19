@@ -37,6 +37,8 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         super(PredictionSampler2, self).__init__(taskdef, *args, **kwargs)
         self.rep_size = None
         self.rep_channels = 16
+        self.dense_representation = False
+        self.num_blocks = 3
         self.hidden_shape = (8,8,self.rep_channels)
         self.PredictorCb = ImageCb
 
@@ -141,7 +143,6 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         except Exception as e:
             pass
 
-        enc = encoder([img0_in, img_in])
         if self.skip_connections:
             decoder = self._makeImageDecoder(self.hidden_shape,self.skip_shape)
         else:
@@ -158,12 +159,8 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         decoder.summary()
 
         sencoder = self._makeStateEncoder(arm_size, gripper_size, False)
-        #sencoder.load_weights(self._makeName(
-        #    "pretrain_state_encoder_model", "state_encoder.h5f"))
         sdecoder = self._makeStateDecoder(arm_size, gripper_size,
                 self.rep_channels)
-        #sdecoder.load_weights(self._makeName(
-        #    "pretrain_state_encoder_model", "state_decoder.h5f"))
 
         # =====================================================================
         # Load the arm and gripper representation
@@ -181,25 +178,18 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             h, skip_rep = hidden_encoder(ins)
         else:
             h = hidden_encoder(ins)
+
+        hidden_decoder = self._makeFromHidden(self.rep_size)
         value_out, next_option_out = GetNextOptionAndValue(h,
                                                            self.num_options,
                                                            self.rep_size,
                                                            dropout_rate=0.5,
                                                            option_in=None)
-        hidden_decoder = self._makeFromHidden(self.rep_size)
-        if self.skip_connections:
-            #img_x = hidden_decoder([x, skip_rep])
-            img_x, arm_x, gripper_x, label_x = hidden_decoder([h, skip_rep])
-        else:
-            #img_x = hidden_decoder(x)
-            hidden_decoder.summary()
-            img_x, arm_x, gripper_x, label_x = hidden_decoder(h)
         hidden_decoder.trainable = False
         hidden_encoder.trainable = False
 
         if self.use_noise:
             z = Input((self.num_hypotheses, self.noise_dim))
-
         if self.always_same_transform:
             transform = self._getTransform(0)
         for i in range(self.num_hypotheses):
@@ -210,11 +200,20 @@ class PredictionSampler2(RobotMultiPredictionSampler):
                 transform.summary()
             if self.use_noise:
                 zi = Lambda(lambda x: x[:,i], name="slice_z%d"%i)(z)
-                x = transform([enc, zi])
+                ih, iw = 8, 8
+                h = Reshape((ih,iw,self.rep_channels))(h)
+                x = transform([h, zi])
             else:
-                x = transform([enc])
+                ih, iw = 8, 8
+                h = Reshape((ih,iw,self.rep_channels))(h)
+                x = transform([h])
 
-            img_x, arm_x, gripper_x, label_x = hidden_decoder(x)
+            if self.skip_connections:
+                img_x, arm_x, gripper_x, label_x = hidden_decoder([h, skip_rep])
+            else:
+                hidden_decoder.summary()
+                img_x, arm_x, gripper_x, label_x = hidden_decoder(h)
+ 
 
             # Create the training outputs
             train_x = Concatenate(axis=-1,name="combine_train_%d"%i)([
@@ -275,91 +274,6 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             outs = [train_out, next_option_out, value_out]
             loss_weights = [0.90, 0.05, 0.05]
             losses += ["categorical_crossentropy", "binary_crossentropy"]
-        # =====================================================================
-        # Create many different image decoders
-        image_outs = []
-        arm_outs = []
-        gripper_outs = []
-        train_outs = []
-        label_outs = []
-        enc = x
-        if self.always_same_transform:
-            transform = self._getTransform(0)
-        for i in range(self.num_hypotheses):
-            if not self.always_same_transform:
-                transform = self._getTransform(i)
-
-            if i == 0:
-                transform.summary()
-            if self.use_noise:
-                zi = Lambda(lambda x: x[:,i], name="slice_z%d"%i)(z)
-                x = transform([enc, zi])
-            else:
-                x = transform([enc])
-
-            img_x, arm_x, gripper_x, label_x = hidden_decoder(x)
-
-            # Create the training outputs
-            train_x = Concatenate(axis=-1,name="combine_train_%d"%i)([
-                            Flatten(name="flatten_img_%d"%i)(img_x),
-                            arm_x,
-                            gripper_x,
-                            label_x])
-            img_x = Lambda(
-                    lambda x: K.expand_dims(x, 1),
-                    name="img_hypothesis_%d"%i)(img_x)
-            arm_x = Lambda(
-                    lambda x: K.expand_dims(x, 1),
-                    name="arm_hypothesis_%d"%i)(arm_x)
-            gripper_x = Lambda(
-                    lambda x: K.expand_dims(x, 1),
-                    name="gripper_hypothesis_%d"%i)(gripper_x)
-            label_x = Lambda(
-                    lambda x: K.expand_dims(x, 1),
-                    name="label_hypothesis_%d"%i)(label_x)
-            train_x = Lambda(
-                    lambda x: K.expand_dims(x, 1),
-                    name="flattened_hypothesis_%d"%i)(train_x)
-
-            image_outs.append(img_x)
-            arm_outs.append(arm_x)
-            gripper_outs.append(gripper_x)
-            label_outs.append(label_x)
-            train_outs.append(train_x)
-
-
-        image_out = Concatenate(axis=1)(image_outs)
-        arm_out = Concatenate(axis=1)(arm_outs)
-        gripper_out = Concatenate(axis=1)(gripper_outs)
-        label_out = Concatenate(axis=1)(label_outs)
-        train_out = Concatenate(axis=1,name="all_train_outs")(train_outs)
-
-        # =====================================================================
-        # Create models to train
-        if self.use_noise:
-            ins += [z]
-        predictor = Model(ins,
-                [image_out, arm_out, gripper_out, label_out, next_option_out,
-                    value_out])
-        actor = None
-        losses = [MhpLossWithShape(
-                        num_hypotheses=self.num_hypotheses,
-                        outputs=[image_size, arm_size, gripper_size, self.num_options],
-                        weights=[0.5, 0.45, 0.05, 0.01],
-                        loss=["mae","mae","mae","categorical_crossentropy"],
-                        #stats=stats,
-                        avg_weight=0.025),]
-        if self.success_only and False:
-            outs = [train_out, next_option_out]
-            losses += ["binary_crossentropy"]
-            loss_weights = [0.60, 0.40]
-        else:
-            outs = [train_out, next_option_out, value_out]
-            loss_weights = [0.90, 0.05, 0.05]
-            losses += ["categorical_crossentropy", "binary_crossentropy"]
-
-        z = Input((self.num_hypotheses, self.noise_dim))
-
         train_predictor = Model(ins, outs)
         train_predictor.compile(
                 loss=losses,
@@ -370,4 +284,23 @@ class PredictionSampler2(RobotMultiPredictionSampler):
                 loss=["mae", "mae", "mae", "mae", "categorical_crossentropy",
                       "mae"],
                 optimizer=self.getOptimizer())
+
+        return predictor, train_predictor, actor, ins, h
+
+    def _getData(self, *args, **kwargs):
+        features, targets = self._getAllData(*args, **kwargs)
+        [I, q, g, oin, q_target, g_target,] = features
+        tt, o1, v, qa, ga, I = targets
+        I0 = I[0,:,:,:]
+        length = I.shape[0]
+        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
+        [tt, o1, v, qa, ga, I] = targets
+        oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
+        if self.use_noise:
+            noise_len = features[0].shape[0]
+            z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
+            return [I0, I, q, g, oin, z], [tt, o1, v]
+        else:
+            return [I0, I, q, g, oin], [tt, o1, v]
+
 

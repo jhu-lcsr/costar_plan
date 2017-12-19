@@ -332,13 +332,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     use_sampling=self.sampling,
                     relu=transform_relu,
                     option=options,
-                    resnet_blocks=self.residual,
                     use_noise=self.use_noise,
                     noise_dim=self.noise_dim,)
         else:
             transform_kernel_size = [5, 5]
             transform = GetTransform(
-                    rep_size=(self.hidden_dim, self.hidden_dim),
+                    rep_size=(self.hidden_dim, self.hidden_dim,
+                        self.rep_channels),
                     filters=self.tform_filters,
                     kernel_size=transform_kernel_size,
                     idx=i,
@@ -349,7 +349,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     num_blocks=self.num_transforms,
                     relu=True,
                     option=options,
-                    resnet_blocks=self.residual,
                     use_noise=self.use_noise,
                     noise_dim=self.noise_dim,)
         return transform
