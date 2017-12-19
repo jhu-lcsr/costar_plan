@@ -40,6 +40,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_frames = 1
         self.img_num_filters = 32
         self.tform_filters = 32
+        self.tform_kernel_size  = [5,5]
         self.num_hypotheses = 4
         self.validation_split = 0.05
         self.num_options = 48
@@ -335,7 +336,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     use_noise=self.use_noise,
                     noise_dim=self.noise_dim,)
         else:
-            transform_kernel_size = [5, 5]
+            transform_kernel_size = self.tform_kernel_size
             transform = GetTransform(
                     rep_size=(self.hidden_dim, self.hidden_dim,
                         self.rep_channels),
@@ -1004,7 +1005,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         else:
             self.steps_down = 3
             self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
-            self.tform_filters = self.encoder_channels
+            #self.tform_filters = self.encoder_channels
             self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.encoder_channels)
 
         if not disc:
@@ -1050,10 +1051,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.use_spatial_softmax:
             self.steps_up = 3
             hidden_dim = int(img_shape[0]/(2**self.steps_up))
-            self.tform_filters = self.encoder_channels
+            #self.tform_filters = self.encoder_channels
             (h,w,c) = (hidden_dim,
                        hidden_dim,
-                       self.tform_filters)
+                       self.encoder_channels)
             x = AddDense(x, int(h*w*c), "relu", dr)
             x = Reshape((h,w,c))(x)
 

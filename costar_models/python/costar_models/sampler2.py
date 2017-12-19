@@ -37,10 +37,12 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         super(PredictionSampler2, self).__init__(taskdef, *args, **kwargs)
         self.rep_size = None
         self.rep_channels = 16
+        self.tform_filters = self.rep_channels
         self.dense_representation = False
-        self.num_blocks = 3
+        self.num_transforms = 3
+        self.tform_kernel_size  = [7,7]
         self.hidden_shape = (8,8,self.rep_channels)
-        self.PredictorCb = ImageCb
+        #self.PredictorCb = ImageCb
 
     def _makeToHidden(self, img_shape, arm_size, gripper_size, rep_size):
         '''
@@ -155,9 +157,6 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         except Exception as e:
             pass
 
-        encoder.summary()
-        decoder.summary()
-
         sencoder = self._makeStateEncoder(arm_size, gripper_size, False)
         sdecoder = self._makeStateDecoder(arm_size, gripper_size,
                 self.rep_channels)
@@ -211,7 +210,6 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             if self.skip_connections:
                 img_x, arm_x, gripper_x, label_x = hidden_decoder([h, skip_rep])
             else:
-                hidden_decoder.summary()
                 img_x, arm_x, gripper_x, label_x = hidden_decoder(h)
  
 
