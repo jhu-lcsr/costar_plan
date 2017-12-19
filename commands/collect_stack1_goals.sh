@@ -6,7 +6,7 @@ echo "Starting data collection, must be either 'start' or 'gui_start'"
 rosrun costar_bullet $1 \
   --robot ur5 --task stack1 --agent task \
   -i 10000 --features multi  --verbose \
-  --seed 0 \
+  --seed 493 \
   --cpu \
   --save --data_file newdata.h5f \
   --collection_mode goal
