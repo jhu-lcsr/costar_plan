@@ -84,6 +84,8 @@ class CartesianDmpPolicy(DmpPolicy):
             T = pm.fromMatrix(self.kinematics.forward(q))
             self.activate(self.dmp.dmp_list)
             goal = world.observation[self.goal]
+            if goal is None:
+                return None
             ee_rpy = T.M.GetRPY()
             relative_goal = goal * self.dmp.goal_pose
             rpy = relative_goal.M.GetRPY()

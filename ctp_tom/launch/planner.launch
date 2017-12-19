@@ -52,6 +52,9 @@
     <arg name="max_track_error" value="$(arg max_track_error)"/>
     <arg name="start_static_handeye" value="$(arg start_static_handeye)"/>
   </include>
+  <!-- Launch a node that will publish object positions and information but not
+       based on either real or simulated data, just TF poses in RVIZ -->
+  <include if="$(arg fake)" file="$(find ctp_tom)/launch/fake_perception.launch"/>
 
   <!-- Rviz node launch -->
   <node name="rvizvis_sim"
