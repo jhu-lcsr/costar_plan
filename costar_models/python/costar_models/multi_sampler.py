@@ -40,6 +40,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_frames = 1
         self.img_num_filters = 32
         self.tform_filters = 32
+        self.tform_kernel_size  = [5,5]
         self.num_hypotheses = 4
         self.validation_split = 0.05
         self.num_options = 48
@@ -332,13 +333,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     use_sampling=self.sampling,
                     relu=transform_relu,
                     option=options,
-                    resnet_blocks=self.residual,
                     use_noise=self.use_noise,
                     noise_dim=self.noise_dim,)
         else:
-            transform_kernel_size = [5, 5]
+            transform_kernel_size = self.tform_kernel_size
             transform = GetTransform(
-                    rep_size=(self.hidden_dim, self.hidden_dim),
+                    rep_size=(self.hidden_dim, self.hidden_dim,
+                        self.rep_channels),
                     filters=self.tform_filters,
                     kernel_size=transform_kernel_size,
                     idx=i,
@@ -349,7 +350,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     num_blocks=self.num_transforms,
                     relu=True,
                     option=options,
-                    resnet_blocks=self.residual,
                     use_noise=self.use_noise,
                     noise_dim=self.noise_dim,)
         return transform
@@ -932,11 +932,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         arm_size: number of arm output variables to predict
         gripper_size: number of gripper output variables to predict
         '''
-        rep_in = Input((8,8,16,))
+        rep_in = Input((8,8,rep_channels,))
         dr = self.decoder_dropout_rate * 0.
 
-        #x = Flatten()(rep_in)
         x = rep_in
+        x = AddConv2D(x, 64, [3,3], 1, self.dropout_rate*0., "same", False)
+        x = AddConv2D(x, 128, [3,3], 2, self.dropout_rate*0., "same", False)
+        x = Flatten()(rep_in)
         x1 = AddDense(x, 512, "relu", dr)
         x1 = AddDense(x1, 512, "relu", dr)
         arm = AddDense(x1, arm_size, "linear", dr, output=True)
@@ -1003,7 +1005,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         else:
             self.steps_down = 3
             self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
-            self.tform_filters = self.encoder_channels
+            #self.tform_filters = self.encoder_channels
             self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.encoder_channels)
 
         if not disc:
@@ -1049,10 +1051,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.use_spatial_softmax:
             self.steps_up = 3
             hidden_dim = int(img_shape[0]/(2**self.steps_up))
-            self.tform_filters = self.encoder_channels
+            #self.tform_filters = self.encoder_channels
             (h,w,c) = (hidden_dim,
                        hidden_dim,
-                       self.tform_filters)
+                       self.encoder_channels)
             x = AddDense(x, int(h*w*c), "relu", dr)
             x = Reshape((h,w,c))(x)
 
@@ -1171,4 +1173,5 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 sums = np.array(losses)
             else:
                 sums += np.array(losses)
+
         return sums, train_sum, length

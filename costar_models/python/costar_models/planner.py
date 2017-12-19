@@ -655,9 +655,9 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
         relu=True,
         dropout_rate=0.,
         dropout=False,
-        resnet_blocks=False,
         use_noise=False,
         pred_option_in=None,
+        option=None,
         noise_dim=32):
     '''
     Old version of the "transform" block. It assumes the hidden representation
@@ -672,8 +672,9 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
     This is the middle part, where we compute the new hidden world state.
     '''
 
-    dim = filters
-    xin = Input((rep_size) + (dim,),"features_input")
+    #dim = filters
+    #xin = Input((rep_size) + (dim,),"features_input")
+    xin = Input(rep_size)
     if pred_option_in is not None:
         dim += pred_option_in
     if use_noise:
@@ -682,23 +683,20 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
     else:
         x = xin
     for j in range(num_blocks):
-        if not resnet_blocks:
-            x = Conv2D(filters,
-                    kernel_size=kernel_size, 
-                    strides=(1, 1),
-                    padding='same',
-                    name="transform_%d_%d"%(idx,j))(x)
-            if batchnorm:
-                x = BatchNormalization(name="normalize_%d_%d"%(idx,j))(x)
-            if relu:
-                if leaky:
-                    x = LeakyReLU(0.2,name="lrelu_%d_%d"%(idx,j))(x)
-                else:
-                    x = Activation("relu",name="relu_%d_%d"%(idx,j))(x)
-            if dropout:
-                x = Dropout(dropout_rate)(x)
-        else:
-            raise RuntimeError('resnet not supported for transform')
+        x = Conv2D(filters,
+                kernel_size=kernel_size, 
+                strides=(1, 1),
+                padding='same',
+                name="transform_%d_%d"%(idx,j))(x)
+        if batchnorm:
+            x = BatchNormalization(name="normalize_%d_%d"%(idx,j))(x)
+        if relu:
+            if leaky:
+                x = LeakyReLU(0.2,name="lrelu_%d_%d"%(idx,j))(x)
+            else:
+                x = Activation("relu",name="relu_%d_%d"%(idx,j))(x)
+        if dropout:
+            x = Dropout(dropout_rate)(x)
     ins = [xin]
     if use_noise:
         ins += [zin]
@@ -712,7 +710,6 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
         relu=True,
         dropout_rate=0.,
         dropout=False,
-        resnet_blocks=False,
         use_noise=False,
         option=None,
         use_sampling=False,
