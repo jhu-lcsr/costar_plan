@@ -136,7 +136,7 @@ def main():
 
             try:
                 rate = rospy.Rate(30)
-                rospy.sleep(0.5)
+                rospy.sleep(0.1)
                 r_js_pub.publish(r_msg)
                 l_js_pub.publish(l_msg)
                 while not rospy.is_shutdown():
@@ -147,6 +147,9 @@ def main():
                 return
 
     if args.plan:
+        world.update()
+        rospy.sleep(0.1)
+        world.update()
         if not args.fake:
             raise RuntimeError('currently only fake scene is supported')
         path = do_search(world, task, max_depth=args.max_depth, iter=args.iter)

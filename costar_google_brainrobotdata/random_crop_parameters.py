@@ -9,13 +9,17 @@ from tensorflow.python.ops import gen_random_ops
 from tensorflow.python.ops import math_ops
 
 
-def random_crop_parameters(input_shape, output_shape, seed=None, name=None):
-    """ Generate crop parameter by random.
-        # Params
-        input_shape: shape of input image need to crop.
+def random_crop_offset(input_shape, output_shape, seed=None, name=None):
+    """ Generate a random image corner offset to randomly crop an image.
+
+        The return value should be supplied to crop_images().
+
+        # Arguments
+
+        input_shape: shape of input image to crop.
         output_shape: shape of image after cropping.
         seed: Python integer. Used to create a random seed.
-        See tf.set_random_seed for behavior.
+            See tf.set_random_seed for behavior.
         name: A name for this operation.
     """
     with tf.name_scope(name, "random_crop_parameters",
@@ -39,14 +43,17 @@ def random_crop_parameters(input_shape, output_shape, seed=None, name=None):
     return offset
 
 
-def crop_images(image_list, offset, size, name=None):
-    """ Crop color image and depth image by random.
-        # Params
+def crop_images(image_list, offset, size, name=None, verbose=0):
+    """ Crop color image and depth image to specified offset and size.
+
+        random_crop_offset() can be utilized to generate the offset parameter.
+        Any associated image intrinsics matrix, can be updated with crop_image_intrinsics().
+
+        # Arguments
+
         image_list: input images need to crop.
-        image_intrinsics: 3*3 matirx with focal lengthes, and principle points,
-        size: output size of image after cropping.
-        seed: Python integer. Used to create a random seed.
-        See tf.set_random_seed for behavior.
+        image_intrinsics: 3*3 matrix with focal lengths, and principle points,
+        size: output size of image after cropping, must be less than or equal to the image size.
         name: A name for this operation.
     """
     with tf.name_scope(name, "crop_images", [image_list, size]) as name:
@@ -60,6 +67,10 @@ def crop_images(image_list, offset, size, name=None):
         else:
             size = ops.convert_to_tensor(size, dtype=dtypes.int32, name="size")
             image_list = ops.convert_to_tensor(image_list, name="image")
+            offset = ops.convert_to_tensor(offset, dtype=dtypes.int32, name="offset")
+            if verbose > 0:
+                print("crop_images offset:", offset, 'size', size, 'img_list_shape', image_list.shape)
+                offset = tf.Print(offset, [offset, size, image_list.shape])
             cropped_image_list = array_ops.slice(
                 image_list, offset, size, name=name)
 
@@ -67,19 +78,18 @@ def crop_images(image_list, offset, size, name=None):
 
 
 def crop_image_intrinsics(camera_intrinsics_matrix, offset, name=None):
-    """ Calculate the intrinsic after crop.
-        # Params
+    """ Calculate an updated image intrinsics matrix after a cropping with the specified offset.
+
+        # Arguments
+
         camera_intrinsics_matrix: intrinsic matrix before cropping.
         offset: offset used in cropping.
     """
     # offset should be array can be access by index
-    with tf.name_scope(name, "crop_image_intrinsics",
-                       [camera_intrinsics_matrix, offset]) as name:
-        offset_x = tf.gather(offset, tf.constant([0]))
-        offset_x = tf.pad(offset_x, tf.constant([[2, 0], [0, 2]]))
-        offset_y = tf.gather(offset, tf.constant([1]))
-        offset_y = tf.pad(offset_x, tf.constant([[2, 0], [1, 1]]))
-        camera_intrinsics_matrix = camera_intrinsics_matrix - offset_x
-        - offset_y
-
-    return camera_intrinsics_matrix
+    with tf.name_scope(name, "crop_image_intrinsics", [camera_intrinsics_matrix, offset]) as name:
+        offset = tf.cast(offset, camera_intrinsics_matrix.dtype)
+        offset_matrix = tf.convert_to_tensor(
+            [[0., 0., 0.],
+             [0., 0., 0.],
+             [offset[0], offset[1], 0.]])
+        return camera_intrinsics_matrix - offset_matrix
