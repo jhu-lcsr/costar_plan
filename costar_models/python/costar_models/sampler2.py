@@ -187,6 +187,8 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             hidden_decoder.load_weights(self._makeName(
                 "pretrain_sampler_model",
                 "hidden_decoder.h5f"))
+            hidden_encoder.trainable = False
+            hidden_decoder.trainable = False
         except Exception as e:
             raise RuntimeError("Could not load hidden encoder/decoder weights:"
                     " %s"%str(e))
@@ -198,8 +200,6 @@ class PredictionSampler2(RobotMultiPredictionSampler):
                                                            self.rep_size,
                                                            dropout_rate=0.5,
                                                            option_in=None)
-        hidden_decoder.trainable = False
-        hidden_encoder.trainable = False
 
         if self.use_noise:
             z = Input((self.num_hypotheses, self.noise_dim))
@@ -211,6 +211,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
 
             if i == 0:
                 transform.summary()
+
             if self.use_noise:
                 zi = Lambda(lambda x: x[:,i], name="slice_z%d"%i)(z)
                 ih, iw = 8, 8
@@ -222,9 +223,9 @@ class PredictionSampler2(RobotMultiPredictionSampler):
                 x = transform([h])
 
             if self.skip_connections:
-                img_x, arm_x, gripper_x, label_x = hidden_decoder([h, skip_rep])
+                img_x, arm_x, gripper_x, label_x = hidden_decoder([x, skip_rep])
             else:
-                img_x, arm_x, gripper_x, label_x = hidden_decoder(h)
+                img_x, arm_x, gripper_x, label_x = hidden_decoder(x)
  
 
             # Create the training outputs
