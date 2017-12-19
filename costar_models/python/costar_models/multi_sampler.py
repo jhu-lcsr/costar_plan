@@ -1173,4 +1173,5 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 sums = np.array(losses)
             else:
                 sums += np.array(losses)
+
         return sums, train_sum, length
