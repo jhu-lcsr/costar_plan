@@ -179,6 +179,19 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             h = hidden_encoder(ins)
 
         hidden_decoder = self._makeFromHidden(self.rep_size)
+        try:
+            hidden_encoder.load_weights(self._makeName(
+                "pretrain_sampler_model",
+                "hidden_encoder.h5f"))
+            hidden_decoder.load_weights(self._makeName(
+                "pretrain_sampler_model",
+                "hidden_decoder.h5f"))
+        except Exception as e:
+            raise RuntimeError("Could not load hidden encoder/decoder weights:"
+                    " %s"%str(e))
+
+
+
         value_out, next_option_out = GetNextOptionAndValue(h,
                                                            self.num_options,
                                                            self.rep_size,
