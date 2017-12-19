@@ -303,7 +303,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
         [I, q, g, oin, q_target, g_target,] = features
-        tt, o1, v, qa, ga, I = targets
+        tt, o1, v, qa, ga, I_target = targets
         I0 = I[0,:,:,:]
         length = I.shape[0]
         I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
