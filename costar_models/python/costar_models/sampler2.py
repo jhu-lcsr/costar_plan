@@ -267,10 +267,10 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         if self.success_only and False:
             outs = [train_out, next_option_out]
             losses += ["binary_crossentropy"]
-            loss_weights = [0.60, 0.40]
+            loss_weights = [1.0, 0.]
         else:
             outs = [train_out, next_option_out, value_out]
-            loss_weights = [0.90, 0.05, 0.05]
+            loss_weights = [1.0, 0., 0.]
             losses += ["categorical_crossentropy", "binary_crossentropy"]
         train_predictor = Model(ins, outs)
         train_predictor.compile(
