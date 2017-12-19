@@ -26,6 +26,16 @@ from .sampler2 import *
 
 class PretrainSampler(PredictionSampler2):
 
+    def _getData(self, *args, **kwargs):
+        features, targets = self._getAllData(*args, **kwargs)
+        [I, q, g, oin, q_target, g_target,] = features
+        I0 = I[0,:,:,:]
+        length = I.shape[0]
+        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
+        [tt, o1, v, qa, ga, I] = targets
+        oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
+        return [I0, I, q, g, oin], [I, q, g, oin_1h]
+
     def _makePredictor(self, features):
         '''
         Create model to predict possible manipulation goals.
