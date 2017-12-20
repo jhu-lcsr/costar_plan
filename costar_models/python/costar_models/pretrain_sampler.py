@@ -26,6 +26,20 @@ from .sampler2 import *
 
 class PretrainSampler(PredictionSampler2):
 
+    def __init__(self, taskdef, *args, **kwargs):
+        super(PretrainSampler, self).__init__(taskdef, *args, **kwargs)
+        self.PredictorCb = ImageCb
+
+    def _getData(self, *args, **kwargs):
+        features, targets = self._getAllData(*args, **kwargs)
+        [I, q, g, oin, q_target, g_target,] = features
+        I0 = I[0,:,:,:]
+        length = I.shape[0]
+        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
+        [tt, o1, v, qa, ga, I] = targets
+        oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
+        return [I0, I, q, g, oin], [I, q, g, oin_1h]
+
     def _makePredictor(self, features):
         '''
         Create model to predict possible manipulation goals.
@@ -42,6 +56,7 @@ class PretrainSampler(PredictionSampler2):
         img_in = Input(img_shape,name="predictor_img_in")
         img0_in = Input(img_shape,name="predictor_img0_in")
         encoder = self._makeImageEncoder(img_shape)
+
         try:
             encoder.load_weights(self._makeName(
                 "pretrain_image_encoder_model",
@@ -49,6 +64,7 @@ class PretrainSampler(PredictionSampler2):
             encoder.trainable = False
         except Exception as e:
             pass
+
         enc = encoder([img0_in, img_in])
         if self.skip_connections:
             decoder = self._makeImageDecoder(self.hidden_shape,self.skip_shape)
@@ -68,7 +84,8 @@ class PretrainSampler(PredictionSampler2):
         sencoder = self._makeStateEncoder(arm_size, gripper_size, False)
         #sencoder.load_weights(self._makeName(
         #    "pretrain_state_encoder_model", "state_encoder.h5f"))
-        sdecoder = self._makeStateDecoder(arm_size, gripper_size)
+        sdecoder = self._makeStateDecoder(arm_size, gripper_size,
+                self.rep_channels)
         #sdecoder.load_weights(self._makeName(
         #    "pretrain_state_encoder_model", "state_decoder.h5f"))
 
@@ -99,7 +116,6 @@ class PretrainSampler(PredictionSampler2):
             img_x, arm_x, gripper_x, label_x = hidden_decoder([h, skip_rep])
         else:
             #img_x = hidden_decoder(x)
-            print(h)
             hidden_decoder.summary()
             img_x, arm_x, gripper_x, label_x = hidden_decoder(h)
         ae_outs = [img_x, arm_x, gripper_x, label_x]
