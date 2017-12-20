@@ -36,7 +36,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         '''
         super(PredictionSampler2, self).__init__(taskdef, *args, **kwargs)
         self.rep_size = None
-        self.rep_channels = 16
+        self.rep_channels = 8
         self.tform_filters = self.rep_channels
         self.dense_representation = False
         self.num_transforms = 3
@@ -142,7 +142,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             encoder.load_weights(self._makeName(
                 "pretrain_image_encoder_model",
                 "image_encoder.h5f"))
-            encoder.trainable = False
+            encoder.trainable = self.retrain
         except Exception as e:
             pass
 
@@ -154,7 +154,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             decoder.load_weights(self._makeName(
                 "pretrain_image_encoder_model",
                 "image_decoder.h5f"))
-            decoder.trainable = False
+            decoder.trainable = self.retrain
         except Exception as e:
             pass
 
@@ -187,8 +187,8 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             hidden_decoder.load_weights(self._makeName(
                 "pretrain_sampler_model",
                 "hidden_decoder.h5f"))
-            hidden_encoder.trainable = False
-            hidden_decoder.trainable = False
+            hidden_encoder.trainable = self.retrain
+            hidden_decoder.trainable = self.retrain
         except Exception as e:
             raise RuntimeError("Could not load hidden encoder/decoder weights:"
                     " %s"%str(e))
