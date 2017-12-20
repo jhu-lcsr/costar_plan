@@ -18,6 +18,7 @@ from .pretrain_image import PretrainImageAutoencoder
 from .pretrain_state import PretrainStateAutoencoder
 from .pretrain_sampler import PretrainSampler
 from .pretrain_minimal import PretrainMinimal
+from .pretrain_image_gan import PretrainImageGan
 
 from .sampler2 import PredictionSampler2
 
@@ -122,8 +123,10 @@ def MakeModel(features, model, taskdef, **kwargs):
             model_instance = PretrainSampler(taskdef, model=model, **kwargs)
         elif model == "predictor2":
             model_instance = PredictionSampler2(taskdef, model=model, **kwargs)
-        elif model == "minimal":
+        elif model == "pretrain_minimal":
             model_instance = PretrainMinimal(taskdef, model=model, **kwargs)
+        elif model == "pretrain_image_gan":
+            model_instance = PretrainImageGan(taskdef, model=model, **kwargs)
     
     # If we did not create a model then die.
     if model_instance is None:
@@ -152,5 +155,6 @@ def GetModels():
             "pretrain_state_encoder", # tool for pretraining states
             "pretrain_sampler", # tool for pretraining the sampler
             "predictor2", # second version of the prediction-sampler code
-            "minimal",
+            "pretrain_minimal",
+            "pretrain_image_gan",
             ]

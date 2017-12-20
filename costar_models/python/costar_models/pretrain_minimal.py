@@ -38,7 +38,7 @@ class PretrainMinimal(PredictionSampler2):
         I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
         [tt, o1, v, qa, ga, I] = targets
         oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
-        return [I0, I, q, g, oin], [I, q, g, oin_1h]
+        return [I0, I], [I]
 
     def _makePredictor(self, features):
         '''
@@ -81,63 +81,49 @@ class PretrainMinimal(PredictionSampler2):
         encoder.summary()
         decoder.summary()
 
-        sencoder = self._makeStateEncoder(arm_size, gripper_size, False)
+        #sencoder = self._makeStateEncoder(arm_size, gripper_size, False)
         #sencoder.load_weights(self._makeName(
         #    "pretrain_state_encoder_model", "state_encoder.h5f"))
-        sdecoder = self._makeStateDecoder(arm_size, gripper_size,
-                self.rep_channels)
+        #sdecoder = self._makeStateDecoder(arm_size, gripper_size,
+        #        self.rep_channels)
         #sdecoder.load_weights(self._makeName(
         #    "pretrain_state_encoder_model", "state_decoder.h5f"))
 
         # =====================================================================
         # Load the arm and gripper representation
-        arm_in = Input((arm_size,))
-        gripper_in = Input((gripper_size,))
-        arm_gripper = Concatenate()([arm_in, gripper_in])
-        label_in = Input((1,))
-        ins = [img0_in, img_in, arm_in, gripper_in, label_in]
+        #arm_in = Input((arm_size,))
+        #gripper_in = Input((gripper_size,))
+        #arm_gripper = Concatenate()([arm_in, gripper_in])
+        #label_in = Input((1,))
+        ins = [img0_in, img_in]
 
         # =====================================================================
         # combine these models together with state information and label
-        # information
-        hidden_encoder = self._makeToHidden(img_shape, arm_size, gripper_size, self.rep_size)
-        if self.skip_connections:
-            h, skip_rep = hidden_encoder(ins)
-        else:
-            h = hidden_encoder(ins)
-        value_out, next_option_out = GetNextOptionAndValue(h,
-                                                           self.num_options,
-                                                           self.rep_size,
-                                                           dropout_rate=0.5,
-                                                           option_in=None)
-        hidden_decoder = self._makeFromHidden(self.rep_size)
-        try:
-            hidden_encoder.load_weights(self._makeName(
-                "pretrain_sampler_model",
-                "hidden_encoder.h5f"))
-            hidden_decoder.load_weights(self._makeName(
-                "pretrain_sampler_model",
-                "hidden_decoder.h5f"))
-            hidden_encoder.trainable = False
-            hidden_decoder.trainable = False
-        except Exception as e:
-            raise RuntimeError("Could not load hidden encoder/decoder weights:"
-                    " %s"%str(e))
-        if self.skip_connections:
-            #img_x = hidden_decoder([x, skip_rep])
-            img_x, arm_x, gripper_x, label_x = hidden_decoder([h, skip_rep])
-        else:
-            #img_x = hidden_decoder(x)
-            hidden_decoder.summary()
-            x = AddDense(h, 256, "sigmoid", 0.)
-            x = AddDense(x, 8*8*8, "relu", 0.)
-            img_x, arm_x, gripper_x, label_x = hidden_decoder(x)
-        ae_outs = [img_x, arm_x, gripper_x, label_x]
+        #img_x = hidden_decoder(x)
+        x = encoder(ins)
+        x = Conv2D(16, (5,5), strides=(2,2), padding='same')(x)
+        x = Activation('relu')(x)
+        x = Conv2D(32, (3,3), strides=(2,2), padding='same')(x)
+        x = Activation('relu')(x)
+        #x = Conv2D(128, (3,3), strides=(1,1), padding='same')(x)
+        #x = Activation('relu')(x)
+        print(x)
+        x = Conv2DTranspose(32, (3,3), strides=(2,2), padding='same')(x)
+        x = Activation('relu')(x)
+        x = Conv2DTranspose(16, (5,5), strides=(2,2), padding='same')(x)
+        x = Activation('relu')(x)
+        x = Conv2DTranspose(8, (5,5), strides=(2,2), padding='same')(x)
+        x = Activation('relu')(x)
+
+        #x = Flatten()(h)
+        #x = AddDense(x, 256, "relu", 0.)
+        #x = AddDense(x, 8*8*8, "relu", 0.)
+        #x = Reshape((8,8,8))(x)
+        img_x = decoder(x)
+        ae_outs = [img_x]
         ae2 = Model(ins, ae_outs)
         ae2.compile(
-            loss=["mae","mae", "mae",
-                "categorical_crossentropy",],
-            loss_weights=[1.,1.,.2,0.1,],#0.25],
+            loss=["mae",],
             optimizer=self.getOptimizer())
         ae2.summary()
 

@@ -494,13 +494,18 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             min_idx=0,
             max_idx=70,
             step=10,)
+        callbacks=[modelCheckpointCb, logCb, imageCb]
+        self._fit(train_generator, test_generator, callbacks)
+
+    def _fit(self, train_generator, test_generator, callbacks):
         self.train_predictor.fit_generator(
-                train_generator,
-                self.steps_per_epoch,
-                epochs=self.epochs,
-                validation_steps=self.validation_steps,
-                validation_data=test_generator,
-                callbacks=[modelCheckpointCb, logCb, imageCb])
+            train_generator,
+            self.steps_per_epoch,
+            epochs=self.epochs,
+            validation_steps=self.validation_steps,
+            validation_data=test_generator,
+            callbacks=callbacks)
+
 
     def save(self):
         '''
