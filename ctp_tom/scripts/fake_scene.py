@@ -35,6 +35,10 @@ class FakeScenePublisher(object):
         self.table_pos, self.table_rot = pm.toTf(kdl.Frame(
             kdl.Rotation.RotZ(-np.pi/2.),
             kdl.Vector(*table_pos)))
+        box_pos = (0.82, -0.4, 0.863-0.5+0.1025)
+        self.box_pos, self.box_rot = pm.toTf(kdl.Frame(
+            kdl.Rotation.RotZ(1.5),
+            kdl.Vector(*box_pos)))
 
     def tick(self):
         self.tf_pub.sendTransform(self.orange1,
@@ -56,6 +60,11 @@ class FakeScenePublisher(object):
                 self.table_rot,
                 rospy.Time.now(),
                 "/tom_table",
+                "/base_link")
+        self.tf_pub.sendTransform(self.box_pos,
+                self.box_rot,
+                rospy.Time.now(),
+                "/box",
                 "/base_link")
 
 if __name__ == '__main__':
