@@ -36,7 +36,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         '''
         super(PredictionSampler2, self).__init__(taskdef, *args, **kwargs)
         self.rep_size = None
-        self.rep_channels = 16
+        self.rep_channels = 8
         self.tform_filters = self.rep_channels
         self.dense_representation = False
         self.num_transforms = 3
