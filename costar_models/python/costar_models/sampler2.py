@@ -61,14 +61,14 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         arm_in = Input((arm_size,))
         gripper_in = Input((gripper_size,))
         label_in = Input((1,))
-        ins = [img0_in, img_in, arm_in, gripper_in, label_in]
+        ins = [img0_in, img_in, arm_in, gripper_in]
 
         if self.skip_connections:
             img_rep, skip_rep = self.image_encoder([img0_in, img_in])
         else:
             #img_rep = self.image_encoder(img_in)
             img_rep = self.image_encoder([img0_in, img_in])
-        state_rep = self.state_encoder([arm_in, gripper_in, label_in])
+        state_rep = self.state_encoder([arm_in, gripper_in])
         # Compress the size of the network
         x = TileOnto(img_rep, state_rep, 64, [8,8])
         x = AddConv2D(x, 128, [3,3], 1, self.dropout_rate, "same", False)
@@ -112,8 +112,8 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             hidden_decoder_ins = h
 
         img = self.image_decoder(ins)
-        arm, gripper, label = self.state_decoder(x0)
-        model = Model(hidden_decoder_ins, [img, arm, gripper, label])
+        arm, gripper = self.state_decoder(x0)
+        model = Model(hidden_decoder_ins, [img, arm, gripper])
         self.hidden_decoder = model
         return model
 
@@ -167,11 +167,10 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         arm_in = Input((arm_size,))
         gripper_in = Input((gripper_size,))
         arm_gripper = Concatenate()([arm_in, gripper_in])
-        label_in = Input((1,))
-        ins = [img0_in, img_in, arm_in, gripper_in, label_in]
+        ins = [img0_in, img_in, arm_in, gripper_in]
 
         # =====================================================================
-        # combine these models together with state information and label
+        # combine these models together with state information
         # information
         hidden_encoder = self._makeToHidden(img_shape, arm_size, gripper_size, self.rep_size)
         if self.skip_connections:
@@ -223,17 +222,16 @@ class PredictionSampler2(RobotMultiPredictionSampler):
                 x = transform([h])
 
             if self.skip_connections:
-                img_x, arm_x, gripper_x, label_x = hidden_decoder([x, skip_rep])
+                img_x, arm_x, gripper_x = hidden_decoder([x, skip_rep])
             else:
-                img_x, arm_x, gripper_x, label_x = hidden_decoder(x)
+                img_x, arm_x, gripper_x = hidden_decoder(x)
  
 
             # Create the training outputs
             train_x = Concatenate(axis=-1,name="combine_train_%d"%i)([
                             Flatten(name="flatten_img_%d"%i)(img_x),
                             arm_x,
-                            gripper_x,
-                            label_x])
+                            gripper_x])
             img_x = Lambda(
                     lambda x: K.expand_dims(x, 1),
                     name="img_hypothesis_%d"%i)(img_x)

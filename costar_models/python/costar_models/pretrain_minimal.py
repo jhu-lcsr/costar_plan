@@ -23,22 +23,14 @@ from .mhp_loss import *
 from .loss import *
 from .multi_sampler import *
 from .sampler2 import *
+from .pretrain_sampler import *
 
-class PretrainMinimal(PredictionSampler2):
+class PretrainMinimal(PretrainSampler):
 
     def __init__(self, taskdef, *args, **kwargs):
         super(PretrainMinimal, self).__init__(taskdef, *args, **kwargs)
         self.PredictorCb = ImageCb
 
-    def _getData(self, *args, **kwargs):
-        features, targets = self._getAllData(*args, **kwargs)
-        [I, q, g, oin, q_target, g_target,] = features
-        I0 = I[0,:,:,:]
-        length = I.shape[0]
-        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
-        [tt, o1, v, qa, ga, I] = targets
-        oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
-        return [I0, I, q, g, oin], [I, q, g, oin_1h]
 
     def _makePredictor(self, features):
         '''
@@ -94,11 +86,10 @@ class PretrainMinimal(PredictionSampler2):
         arm_in = Input((arm_size,))
         gripper_in = Input((gripper_size,))
         arm_gripper = Concatenate()([arm_in, gripper_in])
-        label_in = Input((1,))
-        ins = [img0_in, img_in, arm_in, gripper_in, label_in]
+        ins = [img0_in, img_in, arm_in, gripper_in]
 
         # =====================================================================
-        # combine these models together with state information and label
+        # combine these models together with state information 
         # information
         hidden_encoder = self._makeToHidden(img_shape, arm_size, gripper_size, self.rep_size)
         if self.skip_connections:
@@ -125,14 +116,14 @@ class PretrainMinimal(PredictionSampler2):
                     " %s"%str(e))
         if self.skip_connections:
             #img_x = hidden_decoder([x, skip_rep])
-            img_x, arm_x, gripper_x, label_x = hidden_decoder([h, skip_rep])
+            img_x, arm_x, gripper_x = hidden_decoder([h, skip_rep])
         else:
             #img_x = hidden_decoder(x)
             hidden_decoder.summary()
             x = AddDense(h, 256, "sigmoid", 0.)
             x = AddDense(x, 8*8*8, "relu", 0.)
-            img_x, arm_x, gripper_x, label_x = hidden_decoder(x)
-        ae_outs = [img_x, arm_x, gripper_x, label_x]
+            img_x, arm_x, gripper_x = hidden_decoder(x)
+        ae_outs = [img_x, arm_x, gripper_x ]
         ae2 = Model(ins, ae_outs)
         ae2.compile(
             loss=["mae","mae", "mae",
