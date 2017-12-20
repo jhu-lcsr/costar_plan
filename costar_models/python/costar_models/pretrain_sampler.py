@@ -26,6 +26,10 @@ from .sampler2 import *
 
 class PretrainSampler(PredictionSampler2):
 
+    def __init__(self, taskdef, *args, **kwargs):
+        super(PretrainSampler, self).__init__(taskdef, *args, **kwargs)
+        self.PredictorCb = ImageCb
+
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
         [I, q, g, oin, q_target, g_target,] = features
