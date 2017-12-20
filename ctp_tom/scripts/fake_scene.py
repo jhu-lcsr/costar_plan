@@ -39,6 +39,18 @@ class FakeScenePublisher(object):
         self.box_pos, self.box_rot = pm.toTf(kdl.Frame(
             kdl.Rotation.RotZ(1.5),
             kdl.Vector(*box_pos)))
+        box_pos = (0.82, -0.4, 0.863-0.5+0.1025)
+        self.box_pos, self.box_rot = pm.toTf(kdl.Frame(
+            kdl.Rotation.RotZ(1.5),
+            kdl.Vector(*box_pos)))
+        b1_pos = (0.78, -0.03, 0.863-0.5+0.0435)
+        self.block1_pos, self.block1_rot = pm.toTf(kdl.Frame(
+            kdl.Rotation.RotZ(-np.pi/2.),
+            kdl.Vector(*b1_pos)))
+        b1_pos = (0.73, 0.12, 0.863-0.5+0.0435)
+        self.block2_pos, self.block2_rot = pm.toTf(kdl.Frame(
+            kdl.Rotation.RotZ(-np.pi/2.+0.07),
+            kdl.Vector(*b1_pos)))
 
     def tick(self):
         self.tf_pub.sendTransform(self.orange1,
@@ -65,6 +77,16 @@ class FakeScenePublisher(object):
                 self.box_rot,
                 rospy.Time.now(),
                 "/box",
+                "/base_link")
+        self.tf_pub.sendTransform(self.block1_pos,
+                self.block1_rot,
+                rospy.Time.now(),
+                "/block_1",
+                "/base_link")
+        self.tf_pub.sendTransform(self.block2_pos,
+                self.block2_rot,
+                rospy.Time.now(),
+                "/block_2",
                 "/base_link")
 
 if __name__ == '__main__':
