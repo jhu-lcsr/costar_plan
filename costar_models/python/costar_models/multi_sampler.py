@@ -989,10 +989,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = AddConv2D(x, 32, [5,5], 1, dr, "same", disc)
         x = AddConv2D(x, 64, [5,5], 2, dr, "same", disc)
         x = AddConv2D(x, 64, [5,5], 1, dr, "same", disc)
-        x = AddConv2D(x, 64, [5,5], 2, dr, "same", disc)
-        x = AddConv2D(x, 64, [5,5], 1, dr, "same", disc)
         x = AddConv2D(x, 128, [5,5], 2, dr, "same", disc)
-        self.encoder_channels = 16
+        self.encoder_channels = 8
         x = AddConv2D(x, self.encoder_channels, [1,1], 1, 0.*dr,
                 "same", disc)
 
@@ -1063,8 +1061,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         #x = AddConv2DTranspose(x, 64, [5,5], 1, dr)
         x = AddConv2DTranspose(x, 128, [1,1], 1, 0.*dr)
         #x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
-        x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
-        x = AddConv2DTranspose(x, 64, [5,5], 1, dr)
         x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
         x = AddConv2DTranspose(x, 64, [5,5], 1, dr)
         x = AddConv2DTranspose(x, 32, [5,5], 2, dr)
