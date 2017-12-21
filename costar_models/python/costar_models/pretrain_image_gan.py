@@ -203,8 +203,8 @@ class PretrainImageGan(RobotMultiPredictionSampler):
             res2 = self.discriminator.train_on_batch(
                     [img, fake], is_fake)
             self.discriminator.trainable = False
-            print("\rPretraining: Real loss {}, Fake loss {}".format(
-                res1, res2))
+            print("\rPretraining {}/{}: Real loss {}, Fake loss {}".format(
+                i, self.pretrain_iter, res1, res2))
 
         for i in range(self.iter):
 
@@ -227,6 +227,6 @@ class PretrainImageGan(RobotMultiPredictionSampler):
             res = self.model.train_on_batch(
                     [img], [img, is_not_fake]
             )
-            print("\rGen loss {}, Real loss {}, Fake loss {}".format(
-                res[0], res1, res2))
+            print("\r{}/{}: Gen loss {}, Real loss {}, Fake loss {}".format(
+                i, self.iter, res[0], res1, res2))
 
