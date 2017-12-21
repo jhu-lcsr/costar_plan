@@ -93,7 +93,9 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         img = Input(img_shape,name="img_encoder_in")
         dr = self.dropout_rate
         x = img
+        self.encoder_channels = 8
         if disc:
+            ec = self.encoder_channels
             m = 0.5
             img0 = Input(img_shape,name="img0_encoder_in")
             y = img0
@@ -102,6 +104,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
             x = Concatenate(axis=-1)([x,y])
             ins = [img0, img]
         else:
+            ec = self.encoder_channels
             m = 0.9
             ins = img
             x = AddConv2D(x, 32, [5,5], 2, dr, "same", disc, momentum=m)
@@ -111,8 +114,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         x = AddConv2D(x, 64, [5,5], 2, dr, "same", disc, momentum=m)
         x = AddConv2D(x, 64, [5,5], 1, dr, "same", disc, momentum=m)
         x = AddConv2D(x, 128, [5,5], 2, dr, "same", disc, momentum=m)
-        self.encoder_channels = 8
-        x = AddConv2D(x, self.encoder_channels, [1,1], 1, 0.*dr,
+        x = AddConv2D(x, ec, [1,1], 1, 0.*dr,
                 "same", disc, momentum=m)
 
         self.steps_down = 3
@@ -135,7 +137,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
             #y = AddConv2D(y, self.encoder_channels, [1,1], 1, 0.*dr,
             #        "same", disc)
             #x = Concatenate(axis=-1)([x, y])
-            x = AddDense(x, 512, "lrelu", dr, output=True)
+            #x = AddDense(x, 512, "lrelu", dr, output=True)
             x = AddDense(x, 1, "sigmoid", 0, output=True)
             image_encoder = Model(ins, x, name="image_discriminator")
             image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
