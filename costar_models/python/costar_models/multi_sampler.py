@@ -933,18 +933,20 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         gripper_size: number of gripper output variables to predict
         '''
         rep_in = Input((8,8,rep_channels,))
-        dr = self.decoder_dropout_rate * 0.
+        dr = self.decoder_dropout_rate
 
         x = rep_in
-        x = AddConv2D(x, 64, [3,3], 1, self.dropout_rate*0., "same", False)
-        x = AddConv2D(x, 128, [3,3], 2, self.dropout_rate*0., "same", False)
+        x = AddConv2D(x, 32, [3,3], 1, dr, "same", False)
+        x = AddConv2D(x, 64, [3,3], 2, dr, "same", False)
+        x = AddConv2D(x, 64, [3,3], 1, dr, "same", False)
         x = Flatten()(rep_in)
         x1 = AddDense(x, 512, "relu", dr)
-        x1 = AddDense(x1, 512, "relu", dr)
-        arm = AddDense(x1, arm_size, "linear", dr, output=True)
-        gripper = AddDense(x1, gripper_size, "sigmoid", dr, output=True)
+        x2 = AddDense(x, 512, "relu", dr)
+        #x1 = AddDense(x1, 512, "relu", dr)
+        arm = AddDense(x1, arm_size, "linear", 0., output=True)
+        gripper = AddDense(x1, gripper_size, "sigmoid", 0., output=True)
         #y = AddDense(x, 512, "relu", dr, output=True)
-        option = AddDense(x, self.num_options, "softmax", dr, output=True)
+        option = AddDense(x2, self.num_options, "softmax", 0., output=True)
         state_decoder = Model(rep_in, [arm, gripper, option])
         state_decoder.compile(loss="mae", optimizer=self.getOptimizer())
         self.state_decoder = state_decoder
@@ -1005,7 +1007,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         else:
             self.steps_down = 3
             self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
-            #self.tform_filters = self.encoder_channels
             self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.encoder_channels)
 
         if not disc:
@@ -1051,7 +1052,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.use_spatial_softmax:
             self.steps_up = 3
             hidden_dim = int(img_shape[0]/(2**self.steps_up))
-            #self.tform_filters = self.encoder_channels
             (h,w,c) = (hidden_dim,
                        hidden_dim,
                        self.encoder_channels)
