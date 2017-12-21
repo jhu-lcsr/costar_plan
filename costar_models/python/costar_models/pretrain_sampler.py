@@ -57,37 +57,31 @@ class PretrainSampler(PredictionSampler2):
         img0_in = Input(img_shape,name="predictor_img0_in")
         encoder = self._makeImageEncoder(img_shape)
 
-        try:
-            encoder.load_weights(self._makeName(
-                "pretrain_image_encoder_model",
-                "image_encoder.h5f"))
-            encoder.trainable = False
-        except Exception as e:
-            pass
 
-        enc = encoder([img0_in, img_in])
         if self.skip_connections:
             decoder = self._makeImageDecoder(self.hidden_shape,self.skip_shape)
         else:
             decoder = self._makeImageDecoder(self.hidden_shape)
+
         try:
             decoder.load_weights(self._makeName(
                 "pretrain_image_encoder_model",
                 "image_decoder.h5f"))
-            decoder.trainable = False
+            encoder.load_weights(self._makeName(
+                "pretrain_image_encoder_model",
+                "image_encoder.h5f"))
+            #decoder.trainable = False
+            #encoder.trainable = False
         except Exception as e:
             pass
 
         encoder.summary()
         decoder.summary()
 
+        enc = encoder([img0_in, img_in])
         sencoder = self._makeStateEncoder(arm_size, gripper_size, False)
-        #sencoder.load_weights(self._makeName(
-        #    "pretrain_state_encoder_model", "state_encoder.h5f"))
         sdecoder = self._makeStateDecoder(arm_size, gripper_size,
                 self.rep_channels)
-        #sdecoder.load_weights(self._makeName(
-        #    "pretrain_state_encoder_model", "state_decoder.h5f"))
 
         # =====================================================================
         # Load the arm and gripper representation

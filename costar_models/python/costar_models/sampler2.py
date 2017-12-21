@@ -39,7 +39,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         self.rep_channels = 8
         self.tform_filters = self.rep_channels
         self.dense_representation = False
-        self.num_transforms = 3
+        self.num_transforms = 1
         self.tform_kernel_size  = [7,7]
         self.hidden_shape = (8,8,self.rep_channels)
         self.always_same_transform = False
@@ -72,7 +72,9 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         # Compress the size of the network
         x = TileOnto(img_rep, state_rep, 64, [8,8])
         x = AddConv2D(x, 128, [3,3], 1, self.dropout_rate, "same", False)
-        x = AddConv2D(x, self.rep_channels, [1,1], 1, self.dropout_rate*0., "same", False)
+        # Projection down to the right size
+        x = AddConv2D(x, self.rep_channels, [1,1], 1, self.dropout_rate*0.,
+                "same", False)
         x = Flatten()(x)
         self.rep_size = int(8 * 8 * self.rep_channels)
         self.hidden_size = (8, 8, self.rep_channels)
@@ -102,17 +104,22 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         x = h
         #x = AddDense(x,self.rep_size,"relu",self.decoder_dropout_rate)
         x0 = Reshape((ih,iw,self.rep_channels))(x)
-        x = AddConv2D(x0, self.encoder_channels, [1,1], 1, self.dropout_rate*0., "same", False)
+        x = AddConv2D(x0, 128, [1,1], 1,
+                self.dropout_rate*0., "same", False)
+        x_img = AddConv2D(x, self.rep_channels, [5,5], 1,
+                self.decoder_dropout_rate, "same", False)
+        x_arm = AddConv2D(x, self.rep_channels, [5,5], 1,
+                self.decoder_dropout_rate, "same", False)
         if self.skip_connections:
             skip_in = Input(self.skip_shape, name="skip_input_hd")
-            ins = [x, skip_in]
+            ins = [x_img, skip_in]
             hidden_decoder_ins = [h, skip_in]
         else:
-            ins = x
+            ins = x_img
             hidden_decoder_ins = h
 
         img = self.image_decoder(ins)
-        arm, gripper, label = self.state_decoder(x0)
+        arm, gripper, label = self.state_decoder(x_arm)
         model = Model(hidden_decoder_ins, [img, arm, gripper, label])
         self.hidden_decoder = model
         return model
@@ -190,8 +197,9 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             hidden_encoder.trainable = self.retrain
             hidden_decoder.trainable = self.retrain
         except Exception as e:
-            raise RuntimeError("Could not load hidden encoder/decoder weights:"
-                    " %s"%str(e))
+            pass
+            #raise RuntimeError("Could not load hidden encoder/decoder weights:"
+            #        " %s"%str(e))
 
 
 
