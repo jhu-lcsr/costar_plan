@@ -916,7 +916,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         dr = self.dropout_rate * 0.
         x = AddDense(x, 64, activation, dr)
         
-        state_encoder = Model([arm, gripper, option], x)
+        state_encoder = Model([arm, gripper, option], x,
+                name="state_encoder")
         #state_encoder = Model([arm, gripper], x)
         state_encoder.compile(loss="mae", optimizer=self.getOptimizer())
         if not disc:
@@ -939,18 +940,18 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = AddConv2D(x, 32, [3,3], 1, dr, "same", False)
         x = AddConv2D(x, 64, [3,3], 2, dr, "same", False)
         x = AddConv2D(x, 64, [3,3], 1, dr, "same", False)
-        x = Flatten()(rep_in)
+        x = Flatten()(x)
         x1 = AddDense(x, 512, "relu", 0.)
-        x1 = AddDense(x1, 512, "relu", 0.)
         x2 = AddDense(x, 512, "relu", 0.)
-        #x1 = AddDense(x1, 512, "relu", dr)
         arm = AddDense(x1, arm_size, "linear", 0., output=True)
         gripper = AddDense(x1, gripper_size, "sigmoid", 0., output=True)
         #y = AddDense(x, 512, "relu", dr, output=True)
         option = AddDense(x2, self.num_options, "softmax", 0., output=True)
-        state_decoder = Model(rep_in, [arm, gripper, option])
+        state_decoder = Model(rep_in, [arm, gripper, option],
+                name="state_decoder")
         state_decoder.compile(loss="mae", optimizer=self.getOptimizer())
         self.state_decoder = state_decoder
+        state_decoder.summary()
         return state_decoder
 
     def _makeMergeEncoder(self, img_shape, arm_shape, gripper_shape):
