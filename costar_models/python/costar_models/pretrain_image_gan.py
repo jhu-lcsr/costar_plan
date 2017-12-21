@@ -92,47 +92,56 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         '''
         img = Input(img_shape,name="img_encoder_in")
         dr = self.dropout_rate
+        m = 0.5
         x = img
-        x = AddConv2D(x, 32, [5,5], 2, dr, "same", disc)
-        x = AddConv2D(x, 32, [5,5], 1, dr, "same", disc)
-        x = AddConv2D(x, 32, [5,5], 1, dr, "same", disc)
-        x = AddConv2D(x, 64, [5,5], 2, dr, "same", disc)
-        x = AddConv2D(x, 64, [5,5], 1, dr, "same", disc)
-        x = AddConv2D(x, 128, [5,5], 2, dr, "same", disc)
+        x = AddConv2D(x, 32, [5,5], 2, dr, "same", disc, momentum=m)
+        if disc:
+            img0 = Input(img_shape,name="img0_encoder_in")
+            y = img0
+            y = AddConv2D(y, 32, [5,5], 2, dr, "same", disc, momentum=m)
+            x = Concatenate(axis=-1)([x,y])
+            ins = [img0, img]
+        else:
+            ins = img
+
+        x = AddConv2D(x, 32, [5,5], 1, dr, "same", disc, momentum=m)
+        x = AddConv2D(x, 32, [5,5], 1, dr, "same", disc, momentum=m)
+        x = AddConv2D(x, 64, [5,5], 2, dr, "same", disc, momentum=m)
+        x = AddConv2D(x, 64, [5,5], 1, dr, "same", disc, momentum=m)
+        x = AddConv2D(x, 128, [5,5], 2, dr, "same", disc, momentum=m)
         self.encoder_channels = 8
         x = AddConv2D(x, self.encoder_channels, [1,1], 1, 0.*dr,
-                "same", disc)
+                "same", disc, momentum=m)
 
         self.steps_down = 3
         self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
         #self.tform_filters = self.encoder_channels
         self.hidden_shape = (128,)
+        x = Flatten()(x)
         #self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.encoder_channels)
 
         if disc:
-            img0 = Input(img_shape,name="img0_encoder_in")
-            y = img0
-            y = AddConv2D(y, 32, [5,5], 2, dr, "same", disc)
-            y = AddConv2D(y, 32, [5,5], 1, dr, "same", disc)
-            y = AddConv2D(y, 32, [5,5], 1, dr, "same", disc)
-            y = AddConv2D(y, 64, [5,5], 2, dr, "same", disc)
-            y = AddConv2D(y, 64, [5,5], 1, dr, "same", disc)
-            y = AddConv2D(y, 128, [5,5], 2, dr, "same", disc)
-            self.encoder_cyannels = 8
-            y = AddConv2D(y, self.encoder_channels, [1,1], 1, 0.*dr,
-                    "same", disc)
-            x = Concatenate(axis=-1)([x, y])
-            x = Flatten()(x)
+            #img0 = Input(img_shape,name="img0_encoder_in")
+            #y = img0
+            #y = AddConv2D(y, 32, [5,5], 2, dr, "same", disc)
+            #y = AddConv2D(y, 32, [5,5], 1, dr, "same", disc)
+            #y = AddConv2D(y, 32, [5,5], 1, dr, "same", disc)
+            #y = AddConv2D(y, 64, [5,5], 2, dr, "same", disc)
+            #y = AddConv2D(y, 64, [5,5], 1, dr, "same", disc)
+            #y = AddConv2D(y, 128, [5,5], 2, dr, "same", disc)
+            #self.encoder_cyannels = 8
+            #y = AddConv2D(y, self.encoder_channels, [1,1], 1, 0.*dr,
+            #        "same", disc)
+            #x = Concatenate(axis=-1)([x, y])
             x = AddDense(x, 512, "lrelu", dr, output=True)
             x = AddDense(x, 1, "sigmoid", 0, output=True)
-            image_encoder = Model([img0, img], x, name="image_discriminator")
+            image_encoder = Model(ins, x, name="image_discriminator")
             image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
             self.image_discriminator = image_encoder
         else:
-            x = Flatten()(x)
             # dense representation
             x = AddDense(x, self.hidden_shape[0], "relu", dr)
-            image_encoder = Model(img, x, name="image_encoder")
+            image_encoder = Model(ins, x, name="image_encoder")
             image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
             self.image_encoder = image_encoder
         return image_encoder
@@ -160,7 +169,6 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                     hidden_dim,
                     self.encoder_channels)
         x = AddDense(x, int(h*w*c), "relu", dr)
-        print(x, h, w, c)
         x = Reshape((h,w,c))(x)
 
         #x = AddConv2DTranspose(x, 64, [5,5], 1, dr)
@@ -181,6 +189,23 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         return decoder
 
     def _fit(self, train_generator, test_generator, callbacks):
+
+        for i in range(self.pretrain_iter):
+            # Descriminator pass
+            img, _ = train_generator.next()
+            img = img[0]
+            fake = self.generator.predict(img)
+            self.discriminator.trainable = True
+            is_fake = np.ones((self.batch_size, 1))
+            is_not_fake = np.zeros((self.batch_size, 1))
+            res1 = self.discriminator.train_on_batch(
+                    [img, img], is_not_fake)
+            res2 = self.discriminator.train_on_batch(
+                    [img, fake], is_fake)
+            self.discriminator.trainable = False
+            print("\rPretraining: Real loss {}, Fake loss {}".format(
+                res1, res2))
+
         for i in range(self.iter):
 
             # Descriminator pass
