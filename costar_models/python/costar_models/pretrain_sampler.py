@@ -54,7 +54,6 @@ class PretrainSampler(PredictionSampler2):
         # =====================================================================
         # Load the image decoders
         img_in = Input(img_shape,name="predictor_img_in")
-        img0_in = Input(img_shape,name="predictor_img0_in")
         encoder = self._makeImageEncoder(img_shape)
 
 
@@ -78,7 +77,7 @@ class PretrainSampler(PredictionSampler2):
         encoder.summary()
         decoder.summary()
 
-        enc = encoder([img0_in, img_in])
+        enc = encoder([img_in])
         sencoder = self._makeStateEncoder(arm_size, gripper_size, False)
         sdecoder = self._makeStateDecoder(arm_size, gripper_size,
                 self.rep_channels)
@@ -89,7 +88,7 @@ class PretrainSampler(PredictionSampler2):
         gripper_in = Input((gripper_size,))
         arm_gripper = Concatenate()([arm_in, gripper_in])
         label_in = Input((1,))
-        ins = [img0_in, img_in, arm_in, gripper_in, label_in]
+        ins = [img_in, arm_in, gripper_in, label_in]
 
         # =====================================================================
         # combine these models together with state information and label

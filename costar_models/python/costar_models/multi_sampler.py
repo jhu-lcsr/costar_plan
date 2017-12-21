@@ -958,7 +958,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         Take input image and state information and encode them into a single
         hidden representation
         '''
-        img0_in = Input(img_shape,name="predictor_img0_in")
         img_in = Input(img_shape,name="predictor_img_in")
         option_in = Input((1,), name="predictor_option_in")
  
@@ -980,14 +979,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
               we handle things slightly differently.
         '''
         img = Input(img_shape,name="img_encoder_in")
-        img0 = Input(img_shape,name="img0_encoder_in")
         dr = self.dropout_rate
         x = img
         x = AddConv2D(x, 32, [5,5], 2, dr, "same", disc)
-        y = img0
-        if self.skip_connections or True:
-            y = AddConv2D(y, 32, [5,5], 2, dr, "same", disc)
-            x = Concatenate()([x,y])
         x = AddConv2D(x, 32, [5,5], 1, dr, "same", disc)
         x = AddConv2D(x, 32, [5,5], 1, dr, "same", disc)
         x = AddConv2D(x, 64, [5,5], 2, dr, "same", disc)
@@ -1013,16 +1007,16 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if not disc:
 
             if self.skip_connections:
-                image_encoder = Model([img0, img], [x, y], name="image_encoder")
+                image_encoder = Model([img], [x, y], name="image_encoder")
             else:
-                image_encoder = Model([img0, img], x, name="image_encoder")
+                image_encoder = Model([img], x, name="image_encoder")
             image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
             self.image_encoder = image_encoder
         else:
             x = Flatten()(x)
             x = AddDense(x, 512, "lrelu", dr, output=True)
             x = AddDense(x, self.num_options, "softmax", 0., output=True)
-            image_encoder = Model([img0, img], x, name="image_discriminator")
+            image_encoder = Model([img], x, name="image_discriminator")
             image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
             self.image_discriminator = image_encoder
         return image_encoder
