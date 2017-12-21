@@ -104,6 +104,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         x0 = h
         #x = AddDense(x,self.rep_size,"relu",self.decoder_dropout_rate)
         #x0 = Reshape((ih,iw,self.tform_filters))(x)
+
         x = AddConv2D(x0, 64, [1,1], 1,
                 self.decoder_dropout_rate, "same", False)
         x_img = AddConv2D(x, self.encoder_channels, [5,5], 1,
