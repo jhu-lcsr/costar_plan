@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="ctp_tom"
+    name="ctp_tom_fake_scene_ publisher"
+    type="fake_scene.py"/>
+</launch>
