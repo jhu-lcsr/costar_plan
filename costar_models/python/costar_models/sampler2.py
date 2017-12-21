@@ -309,14 +309,11 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         features, targets = self._getAllData(*args, **kwargs)
         [I, q, g, oin, q_target, g_target,] = features
         tt, o1, v, qa, ga, I_target = targets
-        I0 = I[0,:,:,:]
-        length = I.shape[0]
-        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-            return [I0, I, q, g, oin, z], [tt, o1, v]
+            return [I, q, g, oin, z], [tt, o1, v]
         else:
-            return [I0, I, q, g, oin], [tt, o1, v]
+            return [I, q, g, oin], [tt, o1, v]
 
 
