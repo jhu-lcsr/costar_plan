@@ -682,11 +682,11 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
         x = TileOnto(xin,zin,noise_dim,rep_size)
 
     x = xin
-    AddConv2D(x, 64, [1,1], 1, 0.)
-    AddConv2D(x, 128, kernel_size, 1, 0.)
-    AddConv2D(x, 128, kernel_size, 1, 0.)
-    AddConv2DTranspose(x, 64, kernel_size, 1, 0.)
-    AddConv2DTranspose(x, filters, [1,1], 1, 0.)
+    x = AddConv2D(x, 64, [1,1], 1, 0.)
+    x = AddConv2D(x, 128, kernel_size, 1, 0.)
+    x = AddConv2D(x, 128, kernel_size, 1, 0.)
+    x = AddConv2DTranspose(x, 64, kernel_size, 1, 0.)
+    x = AddConv2DTranspose(x, filters, [1,1], 1, 0.)
 
     ins = [xin]
     if use_noise:

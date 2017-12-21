@@ -306,8 +306,6 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         I0 = I[0,:,:,:]
         length = I.shape[0]
         I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
-        [tt, o1, v, qa, ga, I] = targets
-        oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
