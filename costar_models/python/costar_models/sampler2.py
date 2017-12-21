@@ -57,18 +57,17 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         arm_size: shape of the arm data, e.g. 6
         gripper_size: shape of gripper data, e.g. 1
         '''
-        img0_in = Input(img_shape,name="predictor_img0_in")
         img_in = Input(img_shape,name="predictor_img_in")
         arm_in = Input((arm_size,))
         gripper_in = Input((gripper_size,))
         label_in = Input((1,))
-        ins = [img0_in, img_in, arm_in, gripper_in, label_in]
+        ins = [img_in, arm_in, gripper_in, label_in]
 
         if self.skip_connections:
-            img_rep, skip_rep = self.image_encoder([img0_in, img_in])
+            img_rep, skip_rep = self.image_encoder(img_in)
         else:
             #img_rep = self.image_encoder(img_in)
-            img_rep = self.image_encoder([img0_in, img_in])
+            img_rep = self.image_encoder(img_in)
         state_rep = self.state_encoder([arm_in, gripper_in, label_in])
         # Compress the size of the network
         x = TileOnto(img_rep, state_rep, 64, [8,8])
@@ -143,7 +142,6 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         # =====================================================================
         # Load the image decoders
         img_in = Input(img_shape,name="predictor_img_in")
-        img0_in = Input(img_shape,name="predictor_img0_in")
         encoder = self._makeImageEncoder(img_shape)
 
         try:
@@ -176,7 +174,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         gripper_in = Input((gripper_size,))
         arm_gripper = Concatenate()([arm_in, gripper_in])
         label_in = Input((1,))
-        ins = [img0_in, img_in, arm_in, gripper_in, label_in]
+        ins = [img_in, arm_in, gripper_in, label_in]
 
         # =====================================================================
         # combine these models together with state information and label
