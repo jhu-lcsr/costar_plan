@@ -680,23 +680,14 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
     if use_noise:
         zin = Input((noise_dim,))
         x = TileOnto(xin,zin,noise_dim,rep_size)
-    else:
-        x = xin
-    for j in range(num_blocks):
-        x = Conv2D(filters,
-                kernel_size=kernel_size, 
-                strides=(1, 1),
-                padding='same',
-                name="transform_%d_%d"%(idx,j))(x)
-        if batchnorm:
-            x = BatchNormalization(name="normalize_%d_%d"%(idx,j))(x)
-        if relu:
-            if leaky:
-                x = LeakyReLU(0.2,name="lrelu_%d_%d"%(idx,j))(x)
-            else:
-                x = Activation("relu",name="relu_%d_%d"%(idx,j))(x)
-        if dropout:
-            x = Dropout(dropout_rate)(x)
+
+    x = xin
+    AddConv2D(x, 64, [1,1], 1, 0.)
+    AddConv2D(x, 128, kernel_size, 1, 0.)
+    AddConv2D(x, 128, kernel_size, 1, 0.)
+    AddConv2DTranspose(x, 64, kernel_size, 1, 0.)
+    AddConv2DTranspose(x, filters, [1,1], 1, 0.)
+
     ins = [xin]
     if use_noise:
         ins += [zin]
