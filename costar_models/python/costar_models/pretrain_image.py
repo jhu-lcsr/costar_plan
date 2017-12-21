@@ -60,9 +60,6 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
             out = decoder(enc)
 
         image_discriminator = self._makeImageEncoder(img_shape, disc=True)
-        #state_decoder = self._makeStateDecoder(arm_size, gripper_size)
-        #state_decoder.summary()
-        #state_outs = state_decoder(enc)
 
         o1 = image_discriminator(ins)
         #image_discriminator.trainable = False

@@ -37,11 +37,11 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         super(PredictionSampler2, self).__init__(taskdef, *args, **kwargs)
         self.rep_size = None
         self.rep_channels = 8
-        self.tform_filters = self.rep_channels
+        self.tform_filters = 32
         self.dense_representation = False
         self.num_transforms = 1
         self.tform_kernel_size  = [7,7]
-        self.hidden_shape = (8,8,self.rep_channels)
+        self.hidden_shape = (8,8,self.tform_filters)
         self.always_same_transform = False
         #self.PredictorCb = ImageCb
 
@@ -73,11 +73,11 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         x = TileOnto(img_rep, state_rep, 64, [8,8])
         x = AddConv2D(x, 128, [3,3], 1, self.dropout_rate, "same", False)
         # Projection down to the right size
-        x = AddConv2D(x, self.rep_channels, [1,1], 1, self.dropout_rate*0.,
+        x = AddConv2D(x, self.tform_filters, [1,1], 1, self.dropout_rate*0.,
                 "same", False)
         x = Flatten()(x)
-        self.rep_size = int(8 * 8 * self.rep_channels)
-        self.hidden_size = (8, 8, self.rep_channels)
+        self.rep_size = int(8 * 8 * self.tform_filters)
+        self.hidden_size = (8, 8, self.tform_filters)
 
         if self.skip_connections:
             model = Model(ins, [x, skip_rep], name="encode_hidden_state")
@@ -103,12 +103,12 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         # ---------------------------------
         x = h
         #x = AddDense(x,self.rep_size,"relu",self.decoder_dropout_rate)
-        x0 = Reshape((ih,iw,self.rep_channels))(x)
+        x0 = Reshape((ih,iw,self.tform_filters))(x)
         x = AddConv2D(x0, 128, [1,1], 1,
                 self.dropout_rate*0., "same", False)
-        x_img = AddConv2D(x, self.rep_channels, [5,5], 1,
+        x_img = AddConv2D(x, self.encoder_channels, [5,5], 1,
                 self.decoder_dropout_rate, "same", False)
-        x_arm = AddConv2D(x, self.rep_channels, [5,5], 1,
+        x_arm = AddConv2D(x, self.encoder_channels, [5,5], 1,
                 self.decoder_dropout_rate, "same", False)
         if self.skip_connections:
             skip_in = Input(self.skip_shape, name="skip_input_hd")
@@ -167,7 +167,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
 
         sencoder = self._makeStateEncoder(arm_size, gripper_size, False)
         sdecoder = self._makeStateDecoder(arm_size, gripper_size,
-                self.rep_channels)
+                self.tform_filters)
 
         # =====================================================================
         # Load the arm and gripper representation
@@ -223,11 +223,11 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             if self.use_noise:
                 zi = Lambda(lambda x: x[:,i], name="slice_z%d"%i)(z)
                 ih, iw = 8, 8
-                h = Reshape((ih,iw,self.rep_channels))(h)
+                h = Reshape((ih,iw,self.tform_filters))(h)
                 x = transform([h, zi])
             else:
                 ih, iw = 8, 8
-                h = Reshape((ih,iw,self.rep_channels))(h)
+                h = Reshape((ih,iw,self.tform_filters))(h)
                 x = transform([h])
 
             if self.skip_connections:

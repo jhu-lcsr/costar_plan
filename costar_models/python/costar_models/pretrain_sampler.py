@@ -70,8 +70,8 @@ class PretrainSampler(PredictionSampler2):
             encoder.load_weights(self._makeName(
                 "pretrain_image_encoder_model",
                 "image_encoder.h5f"))
-            #decoder.trainable = False
-            #encoder.trainable = False
+            decoder.trainable = self.retrain
+            encoder.trainable = self.retrain
         except Exception as e:
             pass
 
@@ -117,7 +117,7 @@ class PretrainSampler(PredictionSampler2):
         ae2.compile(
             loss=["mae","mae", "mae",
                 "categorical_crossentropy",],
-            loss_weights=[1.,1.,.2,0.1,],#0.25],
+            loss_weights=[1.,0.5,0.1,0.025,],#0.25],
             optimizer=self.getOptimizer())
         ae2.summary()
 
