@@ -99,12 +99,7 @@ class PretrainSampler(PredictionSampler2):
             h, skip_rep = hidden_encoder(ins)
         else:
             h = hidden_encoder(ins)
-        value_out, next_option_out = GetNextOptionAndValue(h,
-                                                           self.num_options,
-                                                           self.rep_size,
-                                                           dropout_rate=0.5,
-                                                           option_in=None)
-        hidden_decoder = self._makeFromHidden(self.rep_size)
+        hidden_decoder = self._makeFromHidden()
         if self.skip_connections:
             #img_x = hidden_decoder([x, skip_rep])
             img_x, arm_x, gripper_x, label_x = hidden_decoder([h, skip_rep])

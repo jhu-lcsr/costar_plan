@@ -38,8 +38,9 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         self.rep_size = None
         self.rep_channels = 8
         self.tform_filters = 32
+        self.num_hypotheses = 2
         self.dense_representation = False
-        self.num_transforms = 1
+        self.num_transforms = 3
         self.tform_kernel_size  = [7,7]
         self.hidden_shape = (8,8,self.tform_filters)
         self.always_same_transform = False
@@ -75,7 +76,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         # Projection down to the right size
         x = AddConv2D(x, self.tform_filters, [1,1], 1, self.dropout_rate*0.,
                 "same", False)
-        x = Flatten()(x)
+        #x = Flatten()(x)
         self.rep_size = int(8 * 8 * self.tform_filters)
         self.hidden_size = (8, 8, self.tform_filters)
 
@@ -88,7 +89,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         self.hidden_encoder = model
         return model
 
-    def _makeFromHidden(self, size, disc=False):
+    def _makeFromHidden(self):
         '''
         Create the "Decoder" half of the AE
 
@@ -97,13 +98,13 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         size: number of dimensions in the hidden representation
         disc: whether or not this should be set up as a new discriminator.
         '''
-        h = Input((size,))
-        ih, iw, ic = self.hidden_shape
+        ih, iw, ic = self.hidden_size
+        h = Input((ih, iw, self.tform_filters),name="from_hidden_input")
 
         # ---------------------------------
-        x = h
+        x0 = h
         #x = AddDense(x,self.rep_size,"relu",self.decoder_dropout_rate)
-        x0 = Reshape((ih,iw,self.tform_filters))(x)
+        #x0 = Reshape((ih,iw,self.tform_filters))(x)
         x = AddConv2D(x0, 128, [1,1], 1,
                 self.dropout_rate*0., "same", False)
         x_img = AddConv2D(x, self.encoder_channels, [5,5], 1,
@@ -186,7 +187,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         else:
             h = hidden_encoder(ins)
 
-        hidden_decoder = self._makeFromHidden(self.rep_size)
+        hidden_decoder = self._makeFromHidden()
         try:
             hidden_encoder.load_weights(self._makeName(
                 "pretrain_sampler_model",
@@ -233,8 +234,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             if self.skip_connections:
                 img_x, arm_x, gripper_x, label_x = hidden_decoder([x, skip_rep])
             else:
-                img_x, arm_x, gripper_x, label_x = hidden_decoder(x)
- 
+                img_x, arm_x, gripper_x, label_x = hidden_decoder(h)
 
             # Create the training outputs
             train_x = Concatenate(axis=-1,name="combine_train_%d"%i)([

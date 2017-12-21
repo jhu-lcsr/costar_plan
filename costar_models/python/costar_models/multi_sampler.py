@@ -339,7 +339,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             transform_kernel_size = self.tform_kernel_size
             transform = GetTransform(
                     rep_size=(self.hidden_dim, self.hidden_dim,
-                        self.rep_channels),
+                        self.tform_filters),
                     filters=self.tform_filters,
                     kernel_size=transform_kernel_size,
                     idx=i,
