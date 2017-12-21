@@ -37,7 +37,7 @@ module load tensorflow/cuda-8.0/r1.3
 #             prediction
 # sequence W: adjust weights and retrain
 # sequence X: back to using SSM
-for lr in 0.001 #0.01
+for lr in 0.001 0.0001
 do
   # just use the adam optimizer
   for opt in adam
@@ -49,7 +49,7 @@ do
       for noise_dim in 0 # 1 8 32
       do
         hd=true
-        for dr in 0.1 0.2 0.5
+        for dr in 0.1 0.2 0.3 0.5
         do
           echo "starting LR=$lr, Dropout=$dr, optimizer=$opt, use dropout in hypotheses: $hd noise=$noise_dim, skip connections = $skip"
           sbatch ctp.sh $lr $dr $opt $hd $noise_dim $skip
