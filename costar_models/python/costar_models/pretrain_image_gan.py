@@ -92,17 +92,19 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         '''
         img = Input(img_shape,name="img_encoder_in")
         dr = self.dropout_rate
-        m = 0.5
         x = img
-        x = AddConv2D(x, 32, [5,5], 2, dr, "same", disc, momentum=m)
         if disc:
+            m = 0.5
             img0 = Input(img_shape,name="img0_encoder_in")
             y = img0
+            x = AddConv2D(x, 32, [5,5], 2, dr, "same", disc, momentum=m)
             y = AddConv2D(y, 32, [5,5], 2, dr, "same", disc, momentum=m)
             x = Concatenate(axis=-1)([x,y])
             ins = [img0, img]
         else:
+            m = 0.9
             ins = img
+            x = AddConv2D(x, 32, [5,5], 2, dr, "same", disc, momentum=m)
 
         x = AddConv2D(x, 32, [5,5], 1, dr, "same", disc, momentum=m)
         x = AddConv2D(x, 32, [5,5], 1, dr, "same", disc, momentum=m)
@@ -161,7 +163,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
             dr = self.decoder_dropout_rate
         else:
             dr = 0.
-        
+        m = 0.9
         self.steps_up = 3
         hidden_dim = int(img_shape[0]/(2**self.steps_up))
         #self.tform_filters = self.encoder_channels
@@ -171,15 +173,13 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         x = AddDense(x, int(h*w*c), "relu", dr)
         x = Reshape((h,w,c))(x)
 
-        #x = AddConv2DTranspose(x, 64, [5,5], 1, dr)
-        x = AddConv2DTranspose(x, 128, [1,1], 1, 0.*dr)
-        #x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
-        x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
-        x = AddConv2DTranspose(x, 64, [5,5], 1, dr)
-        x = AddConv2DTranspose(x, 32, [5,5], 2, dr)
-        x = AddConv2DTranspose(x, 32, [5,5], 1, dr)
-        x = AddConv2DTranspose(x, 32, [5,5], 2, dr)
-        x = AddConv2DTranspose(x, 32, [5,5], 1, dr)
+        x = AddConv2DTranspose(x, 128, [1,1], 1, 0.*dr, momentum=m)
+        x = AddConv2DTranspose(x, 64, [5,5], 2, dr, momentum=m)
+        x = AddConv2DTranspose(x, 64, [5,5], 1, dr, momentum=m)
+        x = AddConv2DTranspose(x, 32, [5,5], 2, dr, momentum=m)
+        x = AddConv2DTranspose(x, 32, [5,5], 1, dr, momentum=m)
+        x = AddConv2DTranspose(x, 32, [5,5], 2, dr, momentum=m)
+        x = AddConv2DTranspose(x, 32, [5,5], 1, dr, momentum=m)
         ins = rep
         x = Conv2D(3, kernel_size=[1,1], strides=(1,1),name="convert_to_rgb")(x)
         x = Activation("sigmoid")(x)

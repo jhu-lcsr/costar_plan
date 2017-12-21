@@ -60,7 +60,8 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
         x = Dropout(dropout_rate)(x)
     return x
 
-def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate, padding="same"):
+def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate,
+        padding="same", momentum=0.9):
     '''
     Helper for creating networks. This one will add a convolutional block.
 
@@ -80,7 +81,7 @@ def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate, padding="same")
             kernel_size=kernel,
             strides=(stride,stride),
             padding=padding)(x)
-    x = BatchNormalization()(x)
+    x = BatchNormalization(momentum=momentum)(x)
     discriminator = False
     if discriminator:
         x = LeakyReLU(alpha=0.2)(x)
