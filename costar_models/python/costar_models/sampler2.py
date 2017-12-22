@@ -274,7 +274,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
                         weights=[1., 0.5, 0.1, 0.025],
                         loss=["mae","mae","mae","categorical_crossentropy"],
                         #stats=stats,
-                        avg_weight=0.05),]
+                        avg_weight=0.1),]
         if self.success_only and False:
             outs = [train_out, next_option_out]
             losses += ["binary_crossentropy"]
