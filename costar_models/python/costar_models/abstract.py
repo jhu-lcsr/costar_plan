@@ -29,9 +29,10 @@ class AbstractAgentBasedModel(object):
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
             steps_per_epoch=500, validation_steps=25, choose_initial=50,
             dropout_rate=0.5, decoder_dropout_rate=0.5,
+            tform_dropout_rate=0.,
             hypothesis_dropout=False,
             dense_representation=True,
-            skip_connections=1,
+            skip_connections=0,
             compatibility=1,
             use_noise=False,
             sampling=False,
@@ -83,6 +84,7 @@ class AbstractAgentBasedModel(object):
         self.residual = False
         self.predict_value = predict_value
         self.dropout_rate = dropout_rate
+        self.tform_dropout_rate = tform_dropout_rate
         self.hypothesis_dropout = hypothesis_dropout
         self.use_noise = use_noise
         if self.hypothesis_dropout:

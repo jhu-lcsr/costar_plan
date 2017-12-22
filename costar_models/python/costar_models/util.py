@@ -149,4 +149,5 @@ def GetModels():
             "pretrain_state_encoder", # tool for pretraining states
             "pretrain_sampler", # tool for pretraining the sampler
             "predictor2", # second version of the prediction-sampler code
+            "conditional_sampler2", # just give the condition
             ]
