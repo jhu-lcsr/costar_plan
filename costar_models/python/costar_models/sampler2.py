@@ -82,7 +82,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         if self.skip_connections:
             model = Model(ins, [x, skip_rep], name="encode_hidden_state")
         else:
-            model = Model(ins, x, name="encode_hidden_state")
+            model = Model(ins, x, name="encoder")
         model.compile(loss="mae", optimizer=self.getOptimizer())
         #model.summary()
         self.hidden_encoder = model
@@ -122,7 +122,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         img = self.image_decoder(ins)
         arm, gripper, label = self.state_decoder(x_arm)
         model = Model(hidden_decoder_ins, [img, arm, gripper, label],
-                name="hidden_decoder")
+                name="decoder")
         self.hidden_decoder = model
         return model
 
