@@ -71,9 +71,9 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         state_rep = self.state_encoder([arm_in, gripper_in, label_in])
         # Compress the size of the network
         x = TileOnto(img_rep, state_rep, 64, [8,8])
-        x = AddConv2D(x, 64, [3,3], 1, self.dropout_rate, "same", False)
+        x = AddConv2D(x, 128, [3,3], 1, self.dropout_rate, "same", False)
         # Projection down to the right size
-        x = AddConv2D(x, self.tform_filters, [1,1], 1, self.dropout_rate,
+        x = AddConv2D(x, self.tform_filters, [1,1], 1, 0.,
                 "same", False)
         #x = Flatten()(x)
         self.rep_size = int(8 * 8 * self.tform_filters)
@@ -101,16 +101,14 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         h = Input((ih, iw, self.tform_filters),name="from_hidden_input")
 
         # ---------------------------------
-        x0 = h
-        #x = AddDense(x,self.rep_size,"relu",self.decoder_dropout_rate)
-        #x0 = Reshape((ih,iw,self.tform_filters))(x)
-
-        x = AddConv2D(x0, 64, [1,1], 1,
-                self.decoder_dropout_rate, "same", False)
+        x = h
+        dr = 0.
+        x = AddConv2D(x, 128, [1,1], 1,
+                0., "same", False)
         x_img = AddConv2D(x, self.encoder_channels, [5,5], 1,
-                self.decoder_dropout_rate, "same", False)
+                dr, "same", False)
         x_arm = AddConv2D(x, self.tform_filters, [5,5], 1,
-                self.decoder_dropout_rate, "same", False)
+                dr, "same", False)
         if self.skip_connections:
             skip_in = Input(self.skip_shape, name="skip_input_hd")
             ins = [x_img, skip_in]

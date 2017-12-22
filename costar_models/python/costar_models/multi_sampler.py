@@ -942,9 +942,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         dr = self.decoder_dropout_rate
 
         x = rep_in
-        x = AddConv2D(x, 32, [3,3], 1, dr, "same", False)
-        x = AddConv2D(x, 64, [3,3], 2, dr, "same", False)
-        x = AddConv2D(x, 64, [3,3], 1, dr, "same", False)
+        #x = AddConv2D(x, 32, [3,3], 1, dr, "same", False)
+        #x = AddConv2D(x, 64, [3,3], 2, dr, "same", False)
+        #x = AddConv2D(x, 64, [3,3], 1, dr, "same", False)
         x = Flatten()(x)
         x1 = AddDense(x, 512, "relu", 0.)
         x1 = AddDense(x1, 512, "relu", 0.)
