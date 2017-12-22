@@ -35,7 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from costar_task_plan.tools import showTask
 
-from config import *
 from features import GetFeatures
 from util import GetTaskDefinition, GetRobotInterface
 from world import *
