@@ -146,6 +146,7 @@ class AbstractAgentBasedModel(object):
         print("predict values =", self.predict_value)
         print("dropout in hypothesis decoder =", self.hypothesis_dropout)
         print("dropout rate =", self.dropout_rate)
+        print("tform dropout rate =", self.tform_dropout_rate)
         print("decoder dropout rate =", self.decoder_dropout_rate)
         print("use noise in model =", self.use_noise)
         print("dimensionality of noise =", self.noise_dim)
