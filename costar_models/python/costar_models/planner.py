@@ -30,7 +30,8 @@ Returns for all tools:
 out: an output tensor
 '''
 
-def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same", discriminator=False):
+def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
+        discriminator=False, momentum=0.9):
     '''
     Helper for creating networks. This one will add a convolutional block.
 
@@ -50,7 +51,7 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same", discrimi
             kernel_size=kernel,
             strides=(stride,stride),
             padding=padding)(x)
-    x = BatchNormalization()(x)
+    x = BatchNormalization(momentum=momentum)(x)
     if discriminator:
         x = LeakyReLU(alpha=0.2)(x)
     else:
@@ -59,7 +60,8 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same", discrimi
         x = Dropout(dropout_rate)(x)
     return x
 
-def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate, padding="same"):
+def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate,
+        padding="same", momentum=0.9):
     '''
     Helper for creating networks. This one will add a convolutional block.
 
@@ -79,7 +81,7 @@ def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate, padding="same")
             kernel_size=kernel,
             strides=(stride,stride),
             padding=padding)(x)
-    x = BatchNormalization()(x)
+    x = BatchNormalization(momentum=momentum)(x)
     discriminator = False
     if discriminator:
         x = LeakyReLU(alpha=0.2)(x)
@@ -89,7 +91,7 @@ def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate, padding="same")
         x = Dropout(dropout_rate)(x)
     return x
 
-def AddDense(x, size, activation, dropout_rate, output=False):
+def AddDense(x, size, activation, dropout_rate, output=False, momentum=0.9):
     '''
     Add a single dense block with batchnorm and activation.
 
@@ -106,7 +108,7 @@ def AddDense(x, size, activation, dropout_rate, output=False):
     '''
     x = Dense(size)(x)
     if not output:
-        x = BatchNormalization()(x)
+        x = BatchNormalization(momentum=momentum)(x)
     if activation == "lrelu":
         x = LeakyReLU(alpha=0.2)(x)
     else:
@@ -680,23 +682,21 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
     if use_noise:
         zin = Input((noise_dim,))
         x = TileOnto(xin,zin,noise_dim,rep_size)
+
+    if dropout:
+        dr = dropout_rate
     else:
-        x = xin
-    for j in range(num_blocks):
-        x = Conv2D(filters,
-                kernel_size=kernel_size, 
-                strides=(1, 1),
-                padding='same',
-                name="transform_%d_%d"%(idx,j))(x)
-        if batchnorm:
-            x = BatchNormalization(name="normalize_%d_%d"%(idx,j))(x)
-        if relu:
-            if leaky:
-                x = LeakyReLU(0.2,name="lrelu_%d_%d"%(idx,j))(x)
-            else:
-                x = Activation("relu",name="relu_%d_%d"%(idx,j))(x)
-        if dropout:
-            x = Dropout(dropout_rate)(x)
+        dr = 0.
+
+    x = xin
+    for i in range(num_blocks):
+        x = AddConv2D(x, filters, kernel_size, 1, dr)
+    #x = AddConv2D(x, 64, [1,1], 1, 0.)
+    #x = AddConv2D(x, 128, kernel_size, 1, 0.)
+    #x = AddConv2D(x, 128, kernel_size, 1, 0.)
+    #x = AddConv2DTranspose(x, 64, kernel_size, 1, 0.)
+    #x = AddConv2DTranspose(x, filters, [1,1], 1, 0.)
+
     ins = [xin]
     if use_noise:
         ins += [zin]

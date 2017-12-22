@@ -152,6 +152,9 @@ def GetModelParser():
                         help="Loss for state variables: MSE or MAE.",
                         choices=["mse","mae"],
                         default="mae")
+    parser.add_argument("--retrain",
+                        help="Retrain sub-models",
+                        action="store_true")
 
     return parser
 
