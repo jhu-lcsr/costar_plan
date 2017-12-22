@@ -41,6 +41,7 @@ class ConditionalSampler2(PredictionSampler2):
         taskdef: definition of the problem used to create a task model
         '''
         super(ConditionalSampler2, self).__init__(*args, **kwargs)
+        self.PredictorCb = ImageCb
 
     def _makePredictor(self, features):
         # =====================================================================
@@ -168,5 +169,6 @@ class ConditionalSampler2(PredictionSampler2):
             return [I, q, g, oin, z, o1], [o1, v, I_target, q_target, g_target,
                     o1]
         else:
-            return [I, q, g, oin, o1], [o1, v, I_target, q_target, g_target, o1]
+            return [I, q, g, oin, o1], [I_target, q_target, g_target, o1, o1,
+                    v,]
 
