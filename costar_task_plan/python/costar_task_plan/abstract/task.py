@@ -329,7 +329,7 @@ class Task(object):
         sequence = []
         tag = ROOT_TAG
         while True:
-            children = self.getChildren(tag)
+            children, weights = self.getChildren(tag)
             if children is None or len(children) == 0:
                 break
             else:
