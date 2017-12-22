@@ -30,7 +30,8 @@ Returns for all tools:
 out: an output tensor
 '''
 
-def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same", discriminator=False):
+def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
+        discriminator=False, momentum=0.9):
     '''
     Helper for creating networks. This one will add a convolutional block.
 
@@ -50,7 +51,7 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same", discrimi
             kernel_size=kernel,
             strides=(stride,stride),
             padding=padding)(x)
-    x = BatchNormalization()(x)
+    x = BatchNormalization(momentum=momentum)(x)
     if discriminator:
         x = LeakyReLU(alpha=0.2)(x)
     else:
@@ -59,7 +60,8 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same", discrimi
         x = Dropout(dropout_rate)(x)
     return x
 
-def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate, padding="same"):
+def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate,
+        padding="same", momentum=0.9):
     '''
     Helper for creating networks. This one will add a convolutional block.
 
@@ -79,7 +81,7 @@ def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate, padding="same")
             kernel_size=kernel,
             strides=(stride,stride),
             padding=padding)(x)
-    x = BatchNormalization()(x)
+    x = BatchNormalization(momentum=momentum)(x)
     discriminator = False
     if discriminator:
         x = LeakyReLU(alpha=0.2)(x)
@@ -89,7 +91,7 @@ def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate, padding="same")
         x = Dropout(dropout_rate)(x)
     return x
 
-def AddDense(x, size, activation, dropout_rate, output=False):
+def AddDense(x, size, activation, dropout_rate, output=False, momentum=0.9):
     '''
     Add a single dense block with batchnorm and activation.
 
@@ -106,7 +108,7 @@ def AddDense(x, size, activation, dropout_rate, output=False):
     '''
     x = Dense(size)(x)
     if not output:
-        x = BatchNormalization()(x)
+        x = BatchNormalization(momentum=momentum)(x)
     if activation == "lrelu":
         x = LeakyReLU(alpha=0.2)(x)
     else:
