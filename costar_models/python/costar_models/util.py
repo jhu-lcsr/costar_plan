@@ -158,11 +158,8 @@ def GetModels():
             "pretrain_state_encoder", # tool for pretraining states
             "pretrain_sampler", # tool for pretraining the sampler
             "predictor2", # second version of the prediction-sampler code
-<<<<<<< HEAD
             "sampler2", # -----------------------------   (same as above)
             "conditional_sampler2", # just give the condition
-=======
             "pretrain_minimal",
             "pretrain_image_gan",
->>>>>>> a017b1cc7481ad0fe1b5d55c8b25cc8d8f3991c2
             ]
