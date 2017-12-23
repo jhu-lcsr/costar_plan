@@ -883,7 +883,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         x = rep_in
         x = AddConv2D(x, 64, [3,3], 2, 0., "same", False)
-        x = AddConv2D(x, 64, [3,3], 1, 0., "same", False)
+        x = AddConv2D(x, 64, [3,3], 1, dr, "same", False)
         x = Flatten()(x)
         x1 = AddDense(x, 512, "relu", dr)
         x1 = AddDense(x1, 512, "relu", 0.)
