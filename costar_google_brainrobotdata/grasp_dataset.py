@@ -33,7 +33,6 @@ from tensorflow.python.platform import gfile
 from tensorflow.python.ops import data_flow_ops
 from tensorflow.python.keras.utils import get_file
 from tensorflow.python.keras._impl.keras.utils.data_utils import _hash_file
-from tensorflow.python.keras.utils import Progbar
 
 # TODO(ahundt) importing moviepy prevented python from exiting, uncomment lines when fixed.
 # try:
@@ -309,17 +308,15 @@ class GraspDataset(object):
             grasp_listing_path = get_file('grasp_listing.txt', listing_url, cache_subdir=data_dir)
             grasp_files = np.genfromtxt(grasp_listing_path, dtype=str)
             files = [get_file(fpath.split('/')[-1], url_prefix + fpath, cache_subdir=data_dir)
-                     for fpath in grasp_files
+                     for fpath in tqdm(grasp_files)
                      if '_' + dataset in fpath]
 
             # If all files are downloaded, generate a hashed listing.
             if dataset is 'all' or dataset is '':
                 print('Hashing all dataset files to prevent corruption...')
-                progress = Progbar(len(files))
                 hashes = []
-                for i, f in enumerate(files):
+                for i, f in enumerate(tqdm(files)):
                     hashes.append(_hash_file(f))
-                    progress.update(i)
                 file_hash_np = np.column_stack([grasp_files, hashes])
                 with open(listing_hash, 'wb') as hash_file:
                     np.savetxt(hash_file, file_hash_np, fmt='%s', delimiter=' ', header='file_path sha256')
