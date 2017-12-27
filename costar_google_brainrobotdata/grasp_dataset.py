@@ -1988,7 +1988,7 @@ def get_multi_dataset_training_tensors(
         This means that not all datasets will be covered at a perfectly equal pace.
 
     """
-    if (grasp_datasets_batch_algorithm != 'constant' and grasp_datasets_batch_algorithm != 'proportional'):
+    if grasp_datasets_batch_algorithm != 'constant' and grasp_datasets_batch_algorithm != 'proportional':
         raise ValueError('grasp_datasets_batch_algorithm string value must be either constant or proportional.')
 
     if isinstance(datasets, str):
