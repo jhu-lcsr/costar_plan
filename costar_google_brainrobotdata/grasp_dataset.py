@@ -722,7 +722,7 @@ class GraspDataset(object):
             time_ordered_feature_name_dict=None,
             num_samples=None,
             batch_size=FLAGS.batch_size,
-            random_crop=FLAGS.random_crop,
+            # random_crop=FLAGS.random_crop,
             verbose=0):
         """Get runtime generated 3D transform feature tensors as a dictionary, including depth surface relative transforms.
 
@@ -878,10 +878,10 @@ class GraspDataset(object):
         xyz_image_feature_type = 'xyz_image/decoded'
         depth_image_feature_type = 'depth_image/decoded'
         camera_intrinsics_name = 'camera/intrinsics/matrix33'
-        if random_crop:
-            xyz_image_feature_type = 'xyz_image/cropped'
-            depth_image_feature_type = 'depth_image/cropped'
-            camera_intrinsics_name = 'camera/cropped/intrinsics/matrix33'
+        # if random_crop:
+        #     xyz_image_feature_type = 'xyz_image/cropped'
+        #     depth_image_feature_type = 'depth_image/cropped'
+        #     camera_intrinsics_name = 'camera/cropped/intrinsics/matrix33'
 
         xyz_image_clear_view_name = 'pregrasp/' + xyz_image_feature_type
         depth_image_clear_view_name = 'pregrasp/' + depth_image_feature_type
@@ -1510,6 +1510,33 @@ class GraspDataset(object):
         if verbose:
             print('feature_complete_list before crop len:', len(features_complete_list), 'list:', features_complete_list)
 
+        if verbose:
+            # print('feature_op_dicts_after_crop len:', len(feature_op_dicts), 'dicts:', feature_op_dicts)
+            print('feature_complete_list after crop len:', len(features_complete_list), 'list:', features_complete_list)
+            print('END DICTS AFTER CROP')
+
+        # Get the surface relative transform tensors
+        #
+        # Get tensors that load the dataset from disk plus features
+        # calculated from the raw data, including transforms and point clouds
+        (feature_op_dicts, features_complete_list,
+            time_ordered_feature_name_dict, num_samples) = self._get_transform_tensors(
+            feature_op_dicts=feature_op_dicts, features_complete_list=features_complete_list,
+            time_ordered_feature_name_dict=time_ordered_feature_name_dict,
+            num_samples=num_samples, batch_size=batch_size
+            # , random_crop=random_crop
+            )
+
+        if verbose:
+            # print('feature_op_dicts_after_transform_tensors, len', len(feature_op_dicts), 'dicts:', feature_op_dicts)
+            print('feature_complete_list after transforms len:', len(features_complete_list), 'list:', features_complete_list)
+            print('END DICTS AFTER TRANSFORMS')
+
+        # get the clear view rgb, depth, and xyz image names
+        rgb_clear_view_name = 'grasp/image/decoded'
+        depth_clear_view_name = 'pregrasp/depth_image/decoded'
+        xyz_clear_view_name = 'pregrasp/xyz_image/decoded'
+
         # do cropping if enabled
         if random_crop:
             # Do the random crop preprocessing
@@ -1530,30 +1557,13 @@ class GraspDataset(object):
             features_complete_list = np.append(features_complete_list, new_feature_list)
             feature_op_dicts = dict_and_feature_tuple_list
 
-        if verbose:
-            # print('feature_op_dicts_after_crop len:', len(feature_op_dicts), 'dicts:', feature_op_dicts)
-            print('feature_complete_list after crop len:', len(features_complete_list), 'list:', features_complete_list)
-            print('END DICTS AFTER CROP')
-
-        # Get the surface relative transform tensors
-        #
-        # Get tensors that load the dataset from disk plus features
-        # calculated from the raw data, including transforms and point clouds
-        (feature_op_dicts, features_complete_list,
-            time_ordered_feature_name_dict, num_samples) = self._get_transform_tensors(
-            feature_op_dicts=feature_op_dicts, features_complete_list=features_complete_list,
-            time_ordered_feature_name_dict=time_ordered_feature_name_dict,
-            num_samples=num_samples, batch_size=batch_size, random_crop=random_crop)
-
-        if verbose:
-            # print('feature_op_dicts_after_transform_tensors, len', len(feature_op_dicts), 'dicts:', feature_op_dicts)
-            print('feature_complete_list after transforms len:', len(features_complete_list), 'list:', features_complete_list)
-            print('END DICTS AFTER TRANSFORMS')
-
-        # get the clear view rgb, depth, and xyz image names
-        rgb_clear_view_name = 'grasp/image/decoded'
-        depth_clear_view_name = 'pregrasp/depth_image/decoded'
-        xyz_clear_view_name = 'pregrasp/xyz_image/decoded'
+        # get the feature names for the sequence of xyz images
+        # in which movement towards the close gripper step is made
+        xyz_move_to_grasp_steps_cropped = self.get_time_ordered_features(
+            features_complete_list,
+            feature_type='xyz_image/cropped',
+            step='move_to_grasp'
+        )
 
         # the feature names vary depending on the user configuration,
         # the random_crop boolean flag in particular
@@ -1589,14 +1599,6 @@ class GraspDataset(object):
         xyz_move_to_grasp_steps = self.get_time_ordered_features(
             features_complete_list,
             feature_type='xyz_image/decoded',
-            step='move_to_grasp'
-        )
-
-        # get the feature names for the sequence of xyz images
-        # in which movement towards the close gripper step is made
-        xyz_move_to_grasp_steps_cropped = self.get_time_ordered_features(
-            features_complete_list,
-            feature_type='xyz_image/cropped',
             step='move_to_grasp'
         )
 
@@ -1791,14 +1793,15 @@ class GraspDataset(object):
 
     def create_gif(self, tf_session=tf.Session(),
                    visualization_dir=FLAGS.visualization_dir,
-                   rgb_feature_type='/image/decoded',
+                   rgb_feature_type='move_to_grasp/time_ordered/rgb_image/preprocessed',
                    depth_feature_type='depth_image/rgb_encoded',
-                   draw='circle_on_gripper'):
-        """Create gifs of the loaded dataset and write them to visualization_dir
+                   draw='circle_on_gripper',
+                   coordinate_feature='move_to_grasp/time_ordered/reached_pose/transforms/endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/xy_2'):
+        """Create gif images of each grasp attempt and write them to visualization_dir
 
         # Arguments
 
-            sess: the TensorFlow Session to use
+            tf_session: the TensorFlow Session to use
             visualization_dir: where to save the gif files
             rgb_feature_type: save rgb gif files with the feature type provided, see get_time_ordered_features().
             depth_feature type: save depth gif files with the feature type provided, see get_time_ordered_features().
@@ -1839,16 +1842,25 @@ class GraspDataset(object):
             [(features_dict_np, sequence_dict_np)] = output_features_dicts
 
             if rgb_feature_type:
-                ordered_rgb_image_features = GraspDataset.get_time_ordered_features(
-                    features_complete_list,
-                    feature_type=rgb_feature_type)
-                if attempt_num == 0:
-                    print("Saving rgb features to a gif in the following order: " + str(ordered_rgb_image_features))
-                video = np.concatenate(self.to_tensors(output_features_dicts, ordered_rgb_image_features), axis=0)
+                if rgb_feature_type in time_ordered_feature_name_dict:
+                    video = time_ordered_feature_data_dict[rgb_feature_type]
+                    if attempt_num == 0:
+                        print("Saving rgb features to a gif in the following order: " +
+                              str(time_ordered_feature_name_dict[rgb_feature_type]))
+                else:
+                    ordered_rgb_image_features = GraspDataset.get_time_ordered_features(
+                        features_complete_list,
+                        feature_type=rgb_feature_type)
+                    if attempt_num == 0:
+                        print("Saving rgb features to a gif in the following order: " +
+                              str(ordered_rgb_image_features))
+                    video = np.concatenate(self.to_tensors(output_features_dicts, ordered_rgb_image_features), axis=0)
                 if draw == 'circle_on_gripper':
-                    coordinates = time_ordered_feature_data_dict[
-                        'move_to_grasp/time_ordered/reached_pose/transforms/'
-                        'endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/xy_2']
+                    coordinates = time_ordered_feature_data_dict[coordinate_feature]
+                    if 'random_crop_offset' in features_dict_np:
+                        offset = features_dict_np['random_crop_offset']
+                    else:
+                        offset = np.array([0, 0])
 
                     num = len(video)
                     # fig, axs = plt.subplots(ncols=1, nrows=1, figsize=(10, 6))
@@ -1857,12 +1869,14 @@ class GraspDataset(object):
                         frame = np.array(frame, dtype=np.uint8)
                         # TODO(ahundt) fix hard coded range
                         if i > 1 and i < len(coordinates) + 2:
+                            coordinate = coordinates[i-2]
+                            offset_coordinate = coordinate - offset[:2]
                             grasp_geometry.draw_circle(
                                 frame,
-                                np.array(coordinates[i-2], dtype=np.int32),
+                                np.array(offset_coordinate, dtype=np.int32),
                                 color=[0, 255, 255])
                         circle_vid.append(frame)
-                            # plt.show()
+                        # plt.show()
                     video = np.concatenate(circle_vid)
                 gif_filename = (os.path.basename(str(self.dataset) + '_grasp_' + str(int(attempt_num)) +
                                 '_rgb_success_' + str(int(features_dict_np['grasp_success'])) + '.gif'))
