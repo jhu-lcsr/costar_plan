@@ -962,97 +962,97 @@ class GraspDataset(object):
                 image_coordinate_final = tf.cast(image_coordinate_final, tf.int32)
 
                 # camera_T_endeffector_current_vec_quat_7_array,
-                add_feature_op(
+                (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
                     camera_T_endeffector_current_vec_quat_7_array, [7],
                     'camera_T_endeffector/vec_quat_7',
                     batch_i, time_step_j)
 
                 # camera_T_depth_pixel_current_vec_quat_7_array,
-                add_feature_op(
+                (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
                     camera_T_depth_pixel_current_vec_quat_7_array, [7],
                     'camera_T_depth_pixel/vec_quat_7',
                     batch_i, time_step_j)
 
                 # depth_pixel_T_endeffector_current_vec_quat_7_array,
-                add_feature_op(
+                (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict, depth_pixel_T_endeffector_current_vec_quat_7_array, [7],
                     'endeffector_clear_view_depth_pixel_T_endeffector/vec_quat_7',
                     batch_i, time_step_j)
 
                 # image_coordinate_current,
-                add_feature_op(
+                (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
                     image_coordinate_current, [2],
                     'endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/xy_2',
                     batch_i, time_step_j)
 
                 # depth_pixel_T_endeffector_final_vec_quat_7_array,
-                add_feature_op(
+                (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
                     depth_pixel_T_endeffector_final_vec_quat_7_array, [7],
                     'endeffector_final_clear_view_depth_pixel_T_endeffector_final/vec_quat_7',
                     batch_i, time_step_j)
 
                 # camera_T_endeffector_final_vec_quat_7_array,
-                add_feature_op(
+                (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
                     camera_T_endeffector_final_vec_quat_7_array, [7],
                     'camera_T_endeffector_final/vec_quat_7',
                     batch_i, time_step_j)
 
                 # camera_T_depth_pixel_final_vec_quat_7_array,
-                add_feature_op(
+                (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
                     camera_T_depth_pixel_final_vec_quat_7_array, [7],
                     'camera_T_depth_pixel_final/vec_quat_7',
                     batch_i, time_step_j)
 
                 # image_coordinate_final,
-                add_feature_op(
+                (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
                     image_coordinate_final, [2],
                     'endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/xy_2',
                     batch_i, time_step_j)
 
                 # current_base_T_camera_vec_quat_7_array,
-                add_feature_op(
+                (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
                     current_base_T_camera_vec_quat_7_array, [7],
                     'camera/transforms/base_T_camera/vec_quat_7',
                     batch_i, time_step_j)
 
                 # eectf_vec_quat_7_array, aka endeffector_current_T_endeffector_final
-                add_feature_op(
+                (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
                     eectf_vec_quat_7_array, [7],
                     'endeffector_current_T_endeffector_final/vec_quat_7',
                     batch_i, time_step_j)
 
                 # sin_cos_2,
-                add_feature_op(
+                (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
                     sin_cos_2, [2],
                     'endeffector_final_clear_view_depth_pixel_T_endeffector_final/sin_cos_2',
                     batch_i, time_step_j)
 
                 #  eectf_vec_quat_7_array, aka endeffector_current_T_endeffector_final
-                add_feature_op(
+                (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
                     vec_sin_cos_5, [5],
                     'endeffector_current_T_endeffector_final/vec_sin_cos_5',
                     batch_i, time_step_j)
 
                 # delta_depth_sin_cos_3,
-                add_feature_op(
+                (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
                     delta_depth_sin_cos_3, [3],
                     'endeffector_final_clear_view_depth_pixel_T_endeffector_final/delta_depth_sin_cos_3',
                     batch_i, time_step_j)
 
                 # delta_depth_quat_5
-                add_feature_op(
+                (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
                     delta_depth_quat_5, [5],
                     'endeffector_final_clear_view_depth_pixel_T_endeffector_final/delta_depth_quat_5',
