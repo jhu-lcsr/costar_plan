@@ -912,6 +912,7 @@ class GraspDataset(object):
                     time_ordered_feature_name_dict[time_ordered_name] = np.append(time_ordered_feature_name_dict[time_ordered_name], feature_name)
                 else:
                     time_ordered_feature_name_dict[time_ordered_name] = np.array([feature_name])
+            return fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict
 
         # loop through all grasp attempts in this batch
         for batch_i, (fixed_feature_op_dict, sequence_feature_op_dict) in enumerate(tqdm(feature_op_dicts, desc='get_transform_tensors')):
