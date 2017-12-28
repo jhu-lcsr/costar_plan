@@ -139,6 +139,7 @@ class ConditionalSampler2(PredictionSampler2):
                     self.tform_kernel_size,
                     stride=1,
                     dropout_rate=self.tform_dropout_rate)
+        x =  Concatenate(axis=-1)([x,h])
         x = AddConv2D(x, self.tform_filters,
                 self.tform_kernel_size,
                 stride=1,
