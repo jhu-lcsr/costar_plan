@@ -1339,8 +1339,10 @@ class GraspDataset(object):
                 feature_op_dict[cropped_image_feature] = image
                 new_feature_list = np.append(new_feature_list, cropped_image_feature)
 
+            # get all image coordinate features so they can be adjusted by the crop offset
             if coordinate_features is None:
-                coordinate_feature_names = [feature for (feature, tf_op) in six.iteritems(feature_op_dict) if 'image_coordinate/xy_2' in feature]
+                coordinate_feature_names = [feature for (feature, tf_op) in six.iteritems(feature_op_dict)
+                                            if 'image_coordinate/xy_2' in feature]
 
             # apply the cropping offsets to any image coordinates stored in the feature maps
             for coordinate_feature in coordinate_feature_names:
@@ -1350,6 +1352,47 @@ class GraspDataset(object):
                 new_feature_list = np.append(new_feature_list, offset_coordinate_name)
 
             return feature_op_dict, new_feature_list
+
+    def _image_random_crop_grasp_attempt(
+            self, features_complete_list, feature_op_dicts, sensor_image_dimensions,
+            random_crop_offset, seed, time_ordered_feature_name_dict):
+        """ Performs the crops for a given grasp attempt.
+
+            Helper for get_training_dictionaries() which extracts image cropping features.
+        """
+        # Do the random crop preprocessing
+        dict_and_feature_tuple_list = []
+        # list of all *decoded* image features available
+        # note that new features become available later in this function
+        image_features = GraspDataset.get_time_ordered_features(features_complete_list, '/image/decoded')
+        image_features.extend(GraspDataset.get_time_ordered_features(features_complete_list, 'depth_image/decoded'))
+        image_features.extend(GraspDataset.get_time_ordered_features(features_complete_list, 'xyz_image/decoded'))
+        # loop through each grasp attempt in a batch
+        for feature_op_dict, sequence_op_dict in tqdm(feature_op_dicts, desc='get_training_dictionaries.image_random_crop'):
+            feature_op_dict, new_feature_list = GraspDataset._image_random_crop(
+                feature_op_dict, sensor_image_dimensions, random_crop_offset, seed, image_features=image_features)
+            dict_and_feature_tuple_list.append((feature_op_dict, sequence_op_dict))
+        # the new_feature_list should be the same for all the ops
+        features_complete_list = np.append(features_complete_list, new_feature_list)
+        feature_op_dicts = dict_and_feature_tuple_list
+
+        # update the time ordered features with the cropped versions
+        time_ordered_cropped_feature_names = {}
+        for feature_key, features in six.iteritems(time_ordered_feature_name_dict):
+            if 'image_coordinate/xy_2' in feature_key:
+                cropped_features = []
+                cropped_feature_key = feature_key.replace('image_coordinate/xy_2', 'image_coordinate/preprocessed/xy_2')
+                for feature in features:
+                    feature = feature.replace('image_coordinate/xy_2', 'image_coordinate/cropped/xy_2')
+                    if feature in features_complete_list:
+                        cropped_features.append(feature)
+                    else:
+                        print('warning, expected cropped feature missing:' + str(feature))
+                time_ordered_cropped_feature_names[cropped_feature_key] = cropped_features
+
+        # combine the new dictionary with the provided dictionary
+        time_ordered_feature_name_dict.update(time_ordered_cropped_feature_names)
+        return feature_op_dicts, features_complete_list, time_ordered_feature_name_dict
 
     @staticmethod
     def _image_augmentation(image, num_channels=None):
