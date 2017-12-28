@@ -1262,6 +1262,7 @@ class GraspDataset(object):
     def _image_random_crop(feature_op_dict, sensor_image_dimensions=None,
                            random_crop_dimensions=None,
                            random_crop_offset=None, seed=None, image_features=None,
+                           coordinate_features=None,
                            verbose=0):
         """ Crop all images and update parameters in accordance with a single random_crop.
 
@@ -1337,6 +1338,16 @@ class GraspDataset(object):
                 cropped_image_feature = image_feature.replace('decoded', 'cropped')
                 feature_op_dict[cropped_image_feature] = image
                 new_feature_list = np.append(new_feature_list, cropped_image_feature)
+
+            if coordinate_features is None:
+                coordinate_feature_names = [feature for (feature, tf_op) in six.iteritems(feature_op_dict) if 'image_coordinate/xy_2' in feature]
+
+            # apply the cropping offsets to any image coordinates stored in the feature maps
+            for coordinate_feature in coordinate_feature_names:
+                offset_coordinate_op = feature_op_dict[coordinate_feature] - random_crop_offset[:2]
+                offset_coordinate_name = coordinate_feature.replace('image_coordinate/xy_2', 'image_coordinate/cropped/xy_2')
+                feature_op_dict[offset_coordinate_name] = offset_coordinate_op
+                new_feature_list = np.append(new_feature_list, offset_coordinate_name)
 
             return feature_op_dict, new_feature_list
 
@@ -1521,7 +1532,7 @@ class GraspDataset(object):
         # Get tensors that load the dataset from disk plus features
         # calculated from the raw data, including transforms and point clouds
         (feature_op_dicts, features_complete_list,
-            time_ordered_feature_name_dict, num_samples) = self._get_transform_tensors(
+         time_ordered_feature_name_dict, num_samples) = self._get_transform_tensors(
             feature_op_dicts=feature_op_dicts, features_complete_list=features_complete_list,
             time_ordered_feature_name_dict=time_ordered_feature_name_dict,
             num_samples=num_samples, batch_size=batch_size
@@ -1557,6 +1568,24 @@ class GraspDataset(object):
             # the new_feature_list should be the same for all the ops
             features_complete_list = np.append(features_complete_list, new_feature_list)
             feature_op_dicts = dict_and_feature_tuple_list
+
+            # update the time ordered features with the cropped versions
+            time_ordered_cropped_feature_names = {}
+            for feature_key, features in six.iteritems(time_ordered_feature_name_dict):
+                if 'image_coordinate/xy_2' in feature_key:
+                    cropped_features = []
+                    cropped_feature_key = feature_key.replace('image_coordinate/xy_2', 'image_coordinate/preprocessed/xy_2')
+                    for feature in features:
+                        feature = feature.replace('image_coordinate/xy_2', 'image_coordinate/cropped/xy_2')
+                        print('cropped_feature:' + str(feature))
+                        if feature in features_complete_list:
+                            cropped_features.append(feature)
+                        else:
+                            print('warning, expected cropped feature missing:' + str(feature))
+                    time_ordered_cropped_feature_names[cropped_feature_key] = cropped_features
+
+            # combine the new dictionary with the provided dictionary
+            time_ordered_feature_name_dict.update(time_ordered_cropped_feature_names)
 
         # get the feature names for the sequence of xyz images
         # in which movement towards the close gripper step is made
@@ -1659,20 +1688,22 @@ class GraspDataset(object):
             # assemble the updated feature op dicts
             new_feature_op_dicts.append((fixed_feature_op_dict, sequence_feature_op_dict))
 
+        num_time_steps = len(rgb_move_to_grasp_steps)
+
         new_time_ordered_feature_name_dict = {
-            'move_to_grasp/time_ordered/clear_view/rgb_image/decoded': [rgb_clear_view_name] * len(rgb_move_to_grasp_steps),
-            'move_to_grasp/time_ordered/clear_view/rgb_image/preprocessed': [fully_preprocessed_rgb_clear_view_name] * len(rgb_move_to_grasp_steps),
-            'move_to_grasp/time_ordered/clear_view/depth_image/decoded': [depth_clear_view_name] * len(rgb_move_to_grasp_steps),
-            'move_to_grasp/time_ordered/clear_view/depth_image/preprocessed': [preprocessed_depth_clear_view_name] * len(rgb_move_to_grasp_steps),
-            'move_to_grasp/time_ordered/clear_view/xyz_image/decoded': [xyz_clear_view_name] * len(rgb_move_to_grasp_steps),
-            'move_to_grasp/time_ordered/clear_view/xyz_image/preprocessed': [xyz_clear_view_name] * len(rgb_move_to_grasp_steps),
+            'move_to_grasp/time_ordered/clear_view/rgb_image/decoded': [rgb_clear_view_name] * num_time_steps,
+            'move_to_grasp/time_ordered/clear_view/rgb_image/preprocessed': [fully_preprocessed_rgb_clear_view_name] * num_time_steps,
+            'move_to_grasp/time_ordered/clear_view/depth_image/decoded': [depth_clear_view_name] * num_time_steps,
+            'move_to_grasp/time_ordered/clear_view/depth_image/preprocessed': [preprocessed_depth_clear_view_name] * num_time_steps,
+            'move_to_grasp/time_ordered/clear_view/xyz_image/decoded': [xyz_clear_view_name] * num_time_steps,
+            'move_to_grasp/time_ordered/clear_view/xyz_image/preprocessed': [xyz_clear_view_name] * num_time_steps,
             'move_to_grasp/time_ordered/rgb_image/decoded': rgb_move_to_grasp_steps,
             'move_to_grasp/time_ordered/rgb_image/preprocessed': preprocessed_rgb_move_to_grasp_steps_names,
             'move_to_grasp/time_ordered/xyz_image/decoded': xyz_move_to_grasp_steps,
             # note: at the time of writing preprocessing of xyz images only includes cropping
             'move_to_grasp/time_ordered/xyz_image/preprocessed': xyz_move_to_grasp_steps_cropped,
             'move_to_grasp/time_ordered/depth_image/decoded': depth_move_to_grasp_steps,
-            'move_to_grasp/time_ordered/grasp_success': ['grasp_success'] * len(rgb_move_to_grasp_steps)
+            'move_to_grasp/time_ordered/grasp_success': ['grasp_success'] * num_time_steps
         }
 
         # combine the new dictionary with the provided dictionary
@@ -1797,7 +1828,7 @@ class GraspDataset(object):
                    rgb_feature_type='move_to_grasp/time_ordered/rgb_image/preprocessed',
                    depth_feature_type='depth_image/rgb_encoded',
                    draw='circle_on_gripper',
-                   coordinate_feature='move_to_grasp/time_ordered/reached_pose/transforms/endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/xy_2'):
+                   coordinate_feature='move_to_grasp/time_ordered/reached_pose/transforms/endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/preprocessed/xy_2'):
         """Create gif images of each grasp attempt and write them to visualization_dir
 
         # Arguments
@@ -1871,10 +1902,10 @@ class GraspDataset(object):
                         # TODO(ahundt) fix hard coded range
                         if i > 1 and i < len(coordinates) + 2:
                             coordinate = coordinates[i-2]
-                            offset_coordinate = coordinate - offset[:2]
+                            # offset_coordinate = coordinate - offset[:2]
                             grasp_geometry.draw_circle(
                                 frame,
-                                np.array(offset_coordinate, dtype=np.int32),
+                                np.array(coordinate, dtype=np.int32),
                                 color=[0, 255, 255])
                         circle_vid.append(frame)
                         # plt.show()
