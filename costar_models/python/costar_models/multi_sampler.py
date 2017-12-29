@@ -854,17 +854,15 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             activation = "lrelu"
         else:
             activation = "relu"
-        #y = OneHot(self.num_options)(option)
-        #y = Flatten()(y)
-        x = Concatenate()([arm,gripper])#,y])
+        y = OneHot(self.num_options)(option)
+        y = Flatten()(y)
+        x = Concatenate()([arm,gripper,y])
 
         dr = self.dropout_rate * 0.
         x = AddDense(x, 64, activation, dr)
         
-        #state_encoder = Model([arm, gripper, option], x,
-        state_encoder = Model([arm, gripper], x,
+        state_encoder = Model([arm, gripper, option], x,
                 name="state_encoder")
-        #state_encoder = Model([arm, gripper], x)
         state_encoder.compile(loss="mae", optimizer=self.getOptimizer())
         if not disc:
             self.state_encoder = state_encoder
