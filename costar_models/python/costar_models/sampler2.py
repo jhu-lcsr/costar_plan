@@ -103,8 +103,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         # ---------------------------------
         x = h
         dr = 0.
-        x = AddConv2D(x, 64, [5,5], 1,
-                0., "same", False)
+        x = AddConv2D(x, 64, [5,5], 1, 0., "same", False)
         x_img = AddConv2D(x, self.encoder_channels, [5,5], 1,
                 dr, "same", False)
         x_arm = AddConv2D(x, self.encoder_channels, [5,5], 1,
