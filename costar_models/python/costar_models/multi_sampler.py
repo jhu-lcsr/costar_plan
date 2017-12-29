@@ -888,13 +888,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = Flatten()(x)
         x1 = AddDense(x, 512, "relu", dr)
         x1 = AddDense(x1, 512, "relu", 0.)
-        x2 = AddDense(x, 256, "relu", 0.)
+        x2 = AddDense(x, 256, "relu", dr)
         arm = AddDense(x1, arm_size, "linear", 0., output=True)
         gripper = AddDense(x1, gripper_size, "sigmoid", 0., output=True)
-        #y = AddDense(x, 512, "relu", dr, output=True)
-        #option = AddDense(x2, self.num_options, "softmax", 0., output=True)
-        #state_decoder = Model(rep_in, [arm, gripper, option],
-        state_decoder = Model(rep_in, [arm, gripper],
+        option = AddDense(x2, self.num_options, "softmax", 0., output=True)
+        state_decoder = Model(rep_in, [arm, gripper, option],
                 name="state_decoder")
         state_decoder.compile(loss="mae", optimizer=self.getOptimizer())
         self.state_decoder = state_decoder

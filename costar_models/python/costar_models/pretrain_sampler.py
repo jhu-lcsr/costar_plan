@@ -33,10 +33,10 @@ class PretrainSampler(PredictionSampler2):
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
         [I, q, g, oin, q_target, g_target,] = features
-        #[tt, o1, v, qa, ga, I] = targets
-        #oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
+        [tt, o1, v, qa, ga, I] = targets
+        oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
         #return [I, q, g, oin], [I, q, g, oin_1h]
-        return [I, q, g], [I, q, g]
+        return [I, q, g], [I, q, g, oin_1h]
 
     def _makePredictor(self, features):
         '''
@@ -104,12 +104,12 @@ class PretrainSampler(PredictionSampler2):
         else:
             #img_x = hidden_decoder(x)
             hidden_decoder.summary()
-            img_x, arm_x, gripper_x = hidden_decoder(h)
-        ae_outs = [img_x, arm_x, gripper_x] #, label_x]
+            img_x, arm_x, gripper_x, label_x = hidden_decoder(h)
+        ae_outs = [img_x, arm_x, gripper_x, label_x]
         ae2 = Model(ins, ae_outs)
         ae2.compile(
-            loss=["mae","mae", "mae"],
-            loss_weights=[1.,0.1,0.02],
+            loss=["mae","mae", "mae", "categorical_crossentropy"],
+            loss_weights=[1.,0.5,0.1,0.025,],
             optimizer=self.getOptimizer())
         ae2.summary()
 

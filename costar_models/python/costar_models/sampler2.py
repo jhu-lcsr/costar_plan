@@ -117,9 +117,9 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             hidden_decoder_ins = h
 
         img = self.image_decoder(ins)
-        #arm, gripper, label = self.state_decoder(x_arm)
-        arm, gripper = self.state_decoder(x_arm)
-        model = Model(hidden_decoder_ins, [img, arm, gripper],
+        arm, gripper, label = self.state_decoder(x_arm)
+        #arm, gripper = self.state_decoder(x_arm)
+        model = Model(hidden_decoder_ins, [img, arm, gripper, label],
                 name="decoder")
         self.hidden_decoder = model
         return model
