@@ -88,9 +88,10 @@ class ConditionalSampler2(PredictionSampler2):
         except Exception as e:
             pass
 
+        rep_channels = self.encoder_channels
         sencoder = self._makeStateEncoder(arm_size, gripper_size, False)
         sdecoder = self._makeStateDecoder(arm_size, gripper_size,
-                self.tform_filters)
+                rep_channels)
 
         # =====================================================================
         # Load the arm and gripper representation
@@ -98,8 +99,9 @@ class ConditionalSampler2(PredictionSampler2):
         # =====================================================================
         # combine these models together with state information and label
         # information
-        hidden_encoder = self._makeToHidden(img_shape, arm_size, gripper_size, self.rep_size)
-        hidden_decoder = self._makeFromHidden()
+        hidden_encoder = self._makeToHidden(img_shape, arm_size, gripper_size,
+                rep_channels)
+        hidden_decoder = self._makeFromHidden(rep_channels)
 
         try:
             hidden_encoder.load_weights(self._makeName(
@@ -140,7 +142,7 @@ class ConditionalSampler2(PredictionSampler2):
                     stride=1,
                     dropout_rate=self.tform_dropout_rate)
         x =  Concatenate(axis=-1)([x,h])
-        x = AddConv2D(x, self.tform_filters,
+        x = AddConv2D(x, rep_channels,
                 self.tform_kernel_size,
                 stride=1,
                 dropout_rate=self.tform_dropout_rate)

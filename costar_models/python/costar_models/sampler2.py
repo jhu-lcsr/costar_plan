@@ -60,15 +60,15 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         img_in = Input(img_shape,name="predictor_img_in")
         arm_in = Input((arm_size,))
         gripper_in = Input((gripper_size,))
-        #label_in = Input((1,))
-        ins = [img_in, arm_in, gripper_in] #, label_in]
+        label_in = Input((1,))
+        ins = [img_in, arm_in, gripper_in, label_in]
 
         if self.skip_connections:
             img_rep, skip_rep = self.image_encoder(img_in)
         else:
             #img_rep = self.image_encoder(img_in)
             img_rep = self.image_encoder(img_in)
-        state_rep = self.state_encoder([arm_in, gripper_in]) #, label_in])
+        state_rep = self.state_encoder([arm_in, gripper_in, label_in])
         # Compress the size of the network
         x = TileOnto(img_rep, state_rep, 64, [8,8])
         x = AddConv2D(x, 128, [3,3], 1, self.dropout_rate, "same", False)

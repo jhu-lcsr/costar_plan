@@ -35,8 +35,7 @@ class PretrainSampler(PredictionSampler2):
         [I, q, g, oin, q_target, g_target,] = features
         [tt, o1, v, qa, ga, I_target] = targets
         oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
-        #return [I, q, g, oin], [I, q, g, oin_1h]
-        return [I, q, g], [I, q, g, oin_1h]
+        return [I, q, g, oin], [I, q, g, oin_1h]
 
     def _makePredictor(self, features):
         '''
@@ -76,7 +75,7 @@ class PretrainSampler(PredictionSampler2):
         decoder.summary()
 
         enc = encoder([img_in])
-        rep_channels = self.tform_filters
+        rep_channels = self.encoder_channels
         sencoder = self._makeStateEncoder(arm_size, gripper_size, False)
         sdecoder = self._makeStateDecoder(arm_size, gripper_size,
                 rep_channels)
@@ -86,8 +85,8 @@ class PretrainSampler(PredictionSampler2):
         arm_in = Input((arm_size,))
         gripper_in = Input((gripper_size,))
         arm_gripper = Concatenate()([arm_in, gripper_in])
-        #label_in = Input((1,))
-        ins = [img_in, arm_in, gripper_in]#, label_in]
+        label_in = Input((1,))
+        ins = [img_in, arm_in, gripper_in, label_in]
 
         # =====================================================================
         # combine these models together with state information and label
