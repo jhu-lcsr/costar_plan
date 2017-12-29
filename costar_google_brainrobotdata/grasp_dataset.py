@@ -2101,11 +2101,14 @@ class GraspDataset(object):
                     num = len(video)
                     # fig, axs = plt.subplots(ncols=1, nrows=1, figsize=(10, 6))
                     circle_vid = []
+                    # the coordinates aren't available for every time step
+                    # so this offset ensures they are drawn on the correct time step
+                    coordinate_time_offset = 1
                     for i, frame in enumerate(zip(video)):
                         frame = np.array(frame, dtype=np.uint8)
                         # TODO(ahundt) fix hard coded range
-                        if i > 1 and i < len(coordinates) + 2:
-                            coordinate = coordinates[i-2]
+                        if i > 1 and i < len(coordinates) + coordinate_time_offset:
+                            coordinate = coordinates[i - coordinate_time_offset]
                             # offset_coordinate = coordinate - offset[:2]
                             grasp_geometry.draw_circle(
                                 frame,
