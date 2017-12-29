@@ -33,7 +33,7 @@ class PretrainSampler(PredictionSampler2):
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
         [I, q, g, oin, q_target, g_target,] = features
-        [tt, o1, v, qa, ga, I] = targets
+        [tt, o1, v, qa, ga, I_target] = targets
         oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
         #return [I, q, g, oin], [I, q, g, oin_1h]
         return [I, q, g], [I, q, g, oin_1h]
