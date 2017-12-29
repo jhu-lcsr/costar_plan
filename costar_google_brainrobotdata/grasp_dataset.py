@@ -159,7 +159,7 @@ flags.DEFINE_string(
     """)
 flags.DEFINE_string(
     'coordinate_feature',
-    'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/preprocessed/xy_2',
+    'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/preprocessed/yx_2',
     """Algorithm used to generate the image coordinate labels.
 
     TODO(ahundt) add in resizing. The tricky design decision is that feature names can change a lot, and each coordinate feature might correspond to a different image
@@ -169,13 +169,13 @@ flags.DEFINE_string(
 
     Options include:
 
-    'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/preprocessed/xy_2':
+    'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/preprocessed/yx_2':
         the coordinate of the end effector at the final time step, after all preprocessing has been run.
-    'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/preprocessed/preprocessed/xy_2':
+    'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/preprocessed/preprocessed/yx_2':
         the coordinate at the current time step, after all preprocessing has been run.
-    'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/xy_2':
+    'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/yx_2':
         the coordinate of the end effector at the final time step.
-    'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/preprocessed/xy_2':
+    'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/preprocessed/yx_2':
         the coordinate at the current time step.
     """)
 
@@ -785,9 +785,9 @@ class GraspDataset(object):
 
         'move_to_grasp/###/reached_pose/transforms/depth_pixel_T_endeffector_final/vec_quat_7'
             This is the transform from the depth pixel point to the end effector point at the final time step.
-            The depth value is taken from the clear view frame's depth image at the xy_2 coordinate described below.
+            The depth value is taken from the clear view frame's depth image at the yx_2 coordinate described below.
 
-        'move_to_grasp/###/reached_pose/image_coordinates/depth_pixel_T_endeffector_final/xy_2'
+        'move_to_grasp/###/reached_pose/image_coordinates/depth_pixel_T_endeffector_final/yx_2'
             This is the x,y coordinate of the relevant depth pixel in the depth image frame from the feature above.
             This is expressed in a tensor as [x, y].
 
@@ -804,7 +804,7 @@ class GraspDataset(object):
             the final move_to_grasp time step when the gripper was closed.
             This is expressed in a tensor as [delta_depth, qx, qy, qz, qw].
 
-        'move_to_grasp/###/reached_pose/depth_pixel_T_endeffector_final/image_coordinate/xy_2'
+        'move_to_grasp/###/reached_pose/depth_pixel_T_endeffector_final/image_coordinate/yx_2'
             The camera image coordinate of the final pose of the gripper.
 
         'camera/transforms/base_T_camera/vec_quat_7'
@@ -824,7 +824,7 @@ class GraspDataset(object):
                  delta_depth_sin_cos_3,
                  delta_depth_quat_5]
 
-        pixel_coordinate_param_names is ['surface_relative_grasp/reached_pose/image_coordinates/depth_pixel_T_endeffector_final/xy_2'].
+        pixel_coordinate_param_names is ['surface_relative_grasp/reached_pose/image_coordinates/depth_pixel_T_endeffector_final/yx_2'].
 
         See also: grasp_dataset_to_transforms_and_features() and surface_relative_transform() in grasp_geometry.py.
 
@@ -1014,7 +1014,7 @@ class GraspDataset(object):
                 (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
                     image_coordinate_current, [2],
-                    'endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/xy_2',
+                    'endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/yx_2',
                     batch_i, time_step_j)
 
                 # depth_pixel_T_endeffector_final_vec_quat_7_array,
@@ -1042,7 +1042,7 @@ class GraspDataset(object):
                 (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
                     image_coordinate_final, [2],
-                    'endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/xy_2',
+                    'endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/yx_2',
                     batch_i, time_step_j)
 
                 # current_base_T_camera_vec_quat_7_array,
@@ -1377,19 +1377,19 @@ class GraspDataset(object):
             # get all image coordinate features so they can be adjusted by the crop offset
             if coordinate_features is None:
                 coordinate_feature_names = [feature for (feature, tf_op) in six.iteritems(feature_op_dict)
-                                            if 'image_coordinate/xy_2' in feature]
+                                            if 'image_coordinate/yx_2' in feature]
 
             # apply the cropping offsets to any image coordinates stored in the feature maps
             for coordinate_feature in coordinate_feature_names:
                 offset_coordinate_op = feature_op_dict[coordinate_feature] - random_crop_offset[:2]
                 # add the cropped feature
-                offset_coordinate_cropped_name = coordinate_feature.replace('image_coordinate/xy_2', 'image_coordinate/cropped/xy_2')
+                offset_coordinate_cropped_name = coordinate_feature.replace('image_coordinate/yx_2', 'image_coordinate/cropped/yx_2')
                 feature_op_dict[offset_coordinate_cropped_name] = offset_coordinate_op
                 new_feature_list = np.append(new_feature_list, offset_coordinate_cropped_name)
                 # add the preprocessed feature, this is redundant but makes
                 # code further down the pipeline more convenient
                 # TODO(ahundt) clean this up because reordering the algorithms might become painful otherwise
-                offset_coordinate_cropped_name = coordinate_feature.replace('image_coordinate/xy_2', 'image_coordinate/preprocessed/xy_2')
+                offset_coordinate_cropped_name = coordinate_feature.replace('image_coordinate/yx_2', 'image_coordinate/preprocessed/yx_2')
                 feature_op_dict[offset_coordinate_cropped_name] = offset_coordinate_op
                 new_feature_list = np.append(new_feature_list, offset_coordinate_cropped_name)
 
@@ -1423,15 +1423,15 @@ class GraspDataset(object):
         # TODO(ahundt) clean this up because reordering the algorithms might become painful otherwise
         self._remap_time_ordered_feature_names(
             time_ordered_feature_name_dict, features_complete_list,
-            input_key_substring='image_coordinate/cropped/xy_2', output_key_substring='image_coordinate/preprocessed/xy_2',
-            input_feature_substring='image_coordinate/cropped/xy_2', output_feature_substring='image_coordinate/preprocessed/xy_2')
+            input_key_substring='image_coordinate/cropped/yx_2', output_key_substring='image_coordinate/preprocessed/yx_2',
+            input_feature_substring='image_coordinate/cropped/yx_2', output_feature_substring='image_coordinate/preprocessed/yx_2')
         return feature_op_dicts, features_complete_list, time_ordered_feature_name_dict
 
     @staticmethod
     def _remap_time_ordered_feature_names(
             time_ordered_feature_name_dict, features_complete_list,
-            input_key_substring='image_coordinate/xy_2', output_key_substring='image_coordinate/cropped/xy_2',
-            input_feature_substring='image_coordinate/xy_2', output_feature_substring='image_coordinate/cropped/xy_2'):
+            input_key_substring='image_coordinate/yx_2', output_key_substring='image_coordinate/cropped/yx_2',
+            input_feature_substring='image_coordinate/yx_2', output_feature_substring='image_coordinate/cropped/yx_2'):
         """ Take a dictionary from a string key to a list of string features, and create a new list with the specified replancements.
         """
         # update the time ordered features with the cropped versions
@@ -1552,7 +1552,7 @@ class GraspDataset(object):
 
     # def _resize_coordinate_grasp_attempt(
     #         self, features_complete_list, feature_op_dicts, sensor_image_dimensions,
-    #         time_ordered_feature_name_dict, input_coordinate_feature_substring='image_coordinate/xy_2'):
+    #         time_ordered_feature_name_dict, input_coordinate_feature_substring='image_coordinate/yx_2'):
     #     """ Performs the crops for a given grasp attempt.
 
     #         Helper for get_training_dictionaries() which extracts image cropping features.
@@ -1569,13 +1569,13 @@ class GraspDataset(object):
     #         # get all image coordinate features so they can be adjusted by the crop offset
     #         if coordinate_features is None:
     #         coordinate_feature_names = [feature for (feature, tf_op) in six.iteritems(feature_op_dict)
-    #                                     if 'image_coordinate/xy_2' in feature]
+    #                                     if 'image_coordinate/yx_2' in feature]
 
     #         # apply the cropping offsets to any image coordinates stored in the feature maps
     #         for coordinate_feature in coordinate_feature_names:
     #             offset_coordinate_op = feature_op_dict[coordinate_feature]
     #             self._resize_coordinate(offset_coordinate_op, )
-    #             offset_coordinate_name = coordinate_feature.replace('image_coordinate/xy_2', 'image_coordinate/cropped/xy_2')
+    #             offset_coordinate_name = coordinate_feature.replace('image_coordinate/yx_2', 'image_coordinate/cropped/yx_2')
     #             feature_op_dict[offset_coordinate_name] = offset_coordinate_op
     #             new_feature_list = np.append(new_feature_list, offset_coordinate_name)
     #         feature_op_dict, new_feature_list = GraspDataset._resize_coordinate(
@@ -1669,7 +1669,7 @@ class GraspDataset(object):
             resize_height=FLAGS.resize_height,
             resize_width=FLAGS.resize_width,
             seed=None,
-            verbose=0):
+            verbose=1):
         """Get feature dictionaries containing ops and time ordered feature lists.
 
         This function is for advanced use cases and aims to make it easy to perform custom training,
@@ -1798,25 +1798,30 @@ class GraspDataset(object):
             # get the pregrasp image, and squeeze out the extra batch dimension from the tfrecord
             # TODO(ahundt) move squeeze steps into dataset api if possible
             pregrasp_image_rgb_op = fixed_feature_op_dict[preprocessed_rgb_clear_view_name]
+            raw_image_rgb_op = fixed_feature_op_dict[rgb_move_to_grasp_steps[0]]
 
             # Coordinate updates that correspond to image resizing
             img_shape = K.int_shape(pregrasp_image_rgb_op)
+            raw_img_shape = K.int_shape(raw_image_rgb_op)
             output_shape = np.array([resize_height, resize_width])
 
             resized_coordinate_dict = {}
             for feature_key, feature in six.iteritems(fixed_feature_op_dict):
-                if 'xy_2' in feature_key and 'image_coordinate' in feature_key:
+                if 'yx_2' in feature_key and 'image_coordinate' in feature_key:
                     # TODO(ahundt) Two sizes of image features present, resize needs to be done based on the image size, not just the pregrasp_image_rgb_op's size.
-                    coordinate = self._resize_coordinate(feature, img_shape, output_shape)
                     if 'preprocessed' in feature_key:
+                        coordinate = self._resize_coordinate(feature, img_shape, output_shape)
                         if resize:
                             # update the 'preprocessed' feature key with the resized coordinate
+                            # name of feature does not change, but the contents does
                             resized_coordinate_dict[feature_key] = coordinate
-                    elif preprocessed_suffix in feature_key:
-                        coordinate_name = feature_key.replace(preprocessed_suffix, 'resized')
+                    elif preprocessed_suffix in feature_key or 'cropped' in feature_key:
+                        coordinate = self._resize_coordinate(feature, img_shape, output_shape)
+                        coordinate_name = feature_key.replace(preprocessed_suffix, 'cropped_resized')
                         resized_coordinate_dict[coordinate_name] = coordinate
-                    elif 'image_coordinate/xy_2' in feature_key:
-                        coordinate_name = feature_key.replace('image_coordinate/xy_2', 'image_coordinate/resized/xy_2')
+                    elif 'image_coordinate/yx_2' in feature_key:
+                        coordinate = self._resize_coordinate(feature, img_shape, output_shape)
+                        coordinate_name = feature_key.replace('image_coordinate/yx_2', 'image_coordinate/original_resized/yx_2')
                         resized_coordinate_dict[coordinate_name] = coordinate
                         features_complete_list = np.append(features_complete_list, coordinate_name)
                     else:
@@ -1996,7 +2001,7 @@ class GraspDataset(object):
                    rgb_feature_type='move_to_grasp/time_ordered/rgb_image/preprocessed',
                    depth_feature_type='depth_image/rgb_encoded',
                    draw='circle_on_gripper',
-                   coordinate_feature='move_to_grasp/time_ordered/reached_pose/transforms/endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/preprocessed/xy_2'):
+                   coordinate_feature='move_to_grasp/time_ordered/reached_pose/transforms/endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/preprocessed/yx_2'):
         """Create gif images of each grasp attempt and write them to visualization_dir
 
         # Arguments
@@ -2194,7 +2199,8 @@ def get_multi_dataset_training_tensors(
     if isinstance(datasets, str):
         datasets = dataset.split(',')
     elif not isinstance(datasets, list):
-        raise ValueError('datasets parameter must be a list or a comma separated string such as 062_b,063,072_a,082_b,102.')
+        raise ValueError('datasets parameter must be a list of strings or '
+                         'a comma separated string such as 062_b,063,072_a,082_b,102')
     max_num_samples = 0
     grasp_datasets = []
     pregrasp_op_batch = []
