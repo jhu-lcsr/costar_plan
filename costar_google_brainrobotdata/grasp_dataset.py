@@ -1542,57 +1542,6 @@ class GraspDataset(object):
         coordinate = coordinate * output_shape / input_shape[:2]
         return coordinate
 
-    # @staticmethod
-    # def _resize_image(image_op, coordinate=None, output_shape=None):
-    #     """ Update a coordinate based on the current input shape and a new updated output shape.
-    #     """
-    #     img_shape = K.int_shape(image_op)
-
-    #     if coordinate is not None and output_shape is not None:
-    #         coordinate = self._resize_coordinate(coordinate, img_shape, output_shape)
-    #         return image_op, coordinate
-    #     else:
-    #         return image_op
-
-    # def _resize_coordinate_grasp_attempt(
-    #         self, features_complete_list, feature_op_dicts, sensor_image_dimensions,
-    #         time_ordered_feature_name_dict, input_coordinate_feature_substring='image_coordinate/yx_2'):
-    #     """ Performs the crops for a given grasp attempt.
-
-    #         Helper for get_training_dictionaries() which extracts image cropping features.
-    #     """
-    #     # Do the random crop preprocessing
-    #     dict_and_feature_tuple_list = []
-    #     # list of all *decoded* image features available
-    #     # note that new features become available later in this function
-    #     image_features = GraspDataset.get_time_ordered_features(features_complete_list, '/image/decoded')
-    #     image_features.extend(GraspDataset.get_time_ordered_features(features_complete_list, 'depth_image/decoded'))
-    #     image_features.extend(GraspDataset.get_time_ordered_features(features_complete_list, 'xyz_image/decoded'))
-    #     # loop through each grasp attempt in a batch
-    #     for feature_op_dict, sequence_op_dict in tqdm(feature_op_dicts, desc='get_training_dictionaries._resize_coordinate_grasp_attempt()'):
-    #         # get all image coordinate features so they can be adjusted by the crop offset
-    #         if coordinate_features is None:
-    #         coordinate_feature_names = [feature for (feature, tf_op) in six.iteritems(feature_op_dict)
-    #                                     if 'image_coordinate/yx_2' in feature]
-
-    #         # apply the cropping offsets to any image coordinates stored in the feature maps
-    #         for coordinate_feature in coordinate_feature_names:
-    #             offset_coordinate_op = feature_op_dict[coordinate_feature]
-    #             self._resize_coordinate(offset_coordinate_op, )
-    #             offset_coordinate_name = coordinate_feature.replace('image_coordinate/yx_2', 'image_coordinate/cropped/yx_2')
-    #             feature_op_dict[offset_coordinate_name] = offset_coordinate_op
-    #             new_feature_list = np.append(new_feature_list, offset_coordinate_name)
-    #         feature_op_dict, new_feature_list = GraspDataset._resize_coordinate(
-    #             feature_op_dict, sensor_image_dimensions, random_crop_offset, seed, image_features=image_features)
-    #         dict_and_feature_tuple_list.append((feature_op_dict, sequence_op_dict))
-    #     # the new_feature_list should be the same for all the ops
-    #     features_complete_list = np.append(features_complete_list, new_feature_list)
-    #     feature_op_dicts = dict_and_feature_tuple_list
-
-    #     # update the time ordered features with the cropped versions
-    #     self._remap_time_ordered_feature_names(time_ordered_feature_name_dict, features_complete_list)
-    #     return feature_op_dicts, features_complete_list, time_ordered_feature_name_dict
-
     @staticmethod
     def to_tensors(feature_op_dicts, features):
         """Convert a list or dict of feature strings to tensors.
@@ -1929,61 +1878,100 @@ class GraspDataset(object):
                              grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
                              grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
                              seed=None):
-        """Get tensors configured for training on grasps from a single dataset.
+    """Get tensors configured for training on grasps from a single dataset.
 
-            TODO(ahundt) 2017-12-05 update get_training_tensors docstring, now expects 'move_to_grasp/time_ordered/' feature strings.
+     TODO(ahundt) 2017-12-05 update get_training_tensors docstring, now expects 'move_to_grasp/time_ordered/' feature strings.
 
-            motion_params: different ways of representing the motion vector parameter used as an input to predicting grasp success.
-                Options include
-                    'delta_depth_sin_cos_3' [delta_depth, sin(theta), cos(theta)] where delta_depth depth offset for the gripper
-                        from the measured surface, alongside a single rotation angle theta containing sin(theta), cos(theta).
-                        This format does not allow for arbitrary commands to be defined, and the rotation component
-                        is based on the paper and dataset:
-                                    https://sites.google.com/site/brainrobotdata/home/grasping-dataset
-                                    https://arxiv.org/abs/1603.02199
-                        This is a surface relative transform parameterization.
-                    'delta_depth_quat_5' A numpy array with 5 total entries including depth offset and 4 entry quaternion.
-                        This is a surface relative transform parameterization.
-                    'final_pose_orientation_quaternion' directly input the final pose translation and orientation.
-                        Vector and quaternion representing the absolute end effector position at the end of the grasp attempt,
-                        the actual final value will vary based on the dataset being used. This is the same as the
-                        'grasp/final/reached_pose/transforms/base_T_endeffector/vec_quat_7' feature.
-                    'next_timestep' input the params for the command saved in the dataset with translation,
-                        sin theta, cos theta from the current time step to the next. This is the same as the 'params' feature.
-                    'endeffector_final_clear_view_depth_pixel_T_endeffector_final'
-                        Surface relative transform from the final gripper pixel depth position
-                        This is fairly complex, so please inquire if additional details are needed.
-                        Determine the 'final_pose_orientation_quaternion', the specific feature will vary based on the dataset,
-                        for example in dataset 102 it is `grasp/10/reached_pose/transforms/base_T_endeffector/vec_quat_7`.
-                        Using this pose, we determine the x,y pixel coordinate of the gripper's reached pose at the final time step
-                        in the camera frame, and use this to look up the depth value in the initial clear view image.
-                        'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/vec_quat_7'.
-                    'endeffector_current_T_endeffector_final_vec_sin_cos_5' use
-                        the real reached gripper pose of the end effector to calculate
-                        the transform from the current time step to the final time step
-                        to generate the parameters defined in https://arxiv.org/abs/1603.02199,
-                        consisting of [x,y,z, sin(theta), cos(theta)].
-                    'endeffector_current_T_endeffector_final_vec_quat_7'
-                        vector and quaternion representing the transform from the current time step's pose
-                        to the pose at the final time step in the current time step's end effector frame.
-                        This also generates the new feature
-                        'move_to_grasp/###/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_quat_7',
-                        where ### is a number for each step from 000 to the number of time steps in the example.
-                        use the real reached gripper pose of the end effector to calculate
-                        the transform from the current time step to the final time step
-                        to generate the parameters [x, y, z, qx, qy, qz, qw].
+     # Features
 
-            grasp_sequence_max_time_step: Grasp examples consist of time steps from 0 to up to a max of 11.
-                To train on specific range of data set this value to the maximum desired time step.
-                A value of None gives unlimited range.
-            grasp_sequence_min_time_step: Grasp examples consist of time steps from 0 to up to a max of 11.
-                To train on specific range of data set this value to the minimum desired time step.
-                A value of None gives unlimited range.
-            grasp_command: The grasp command parameter to be supplied during training.
+     The arguments motion_command_feature, grasp_sequence_image_feature, clear_view_image_feature, and grasp_success_label
+     each accept a feature name string as their parameter. The available feature types are outlined below:
+             'delta_depth_sin_cos_3' [delta_depth, sin(theta), cos(theta)] where delta_depth depth offset for the gripper
+                 from the measured surface, alongside a single rotation angle theta containing sin(theta), cos(theta).
+                 This format does not allow for arbitrary commands to be defined, and the rotation component
+                 is based on the paper and dataset:
+                             https://sites.google.com/site/brainrobotdata/home/grasping-dataset
+                             https://arxiv.org/abs/1603.02199
+                 This is a surface relative transform parameterization.
+             'delta_depth_quat_5' A numpy array with 5 total entries including depth offset and 4 entry quaternion.
+                 This is a surface relative transform parameterization.
+             'final_pose_orientation_quaternion' directly input the final pose translation and orientation.
+                 Vector and quaternion representing the absolute end effector position at the end of the grasp attempt,
+                 the actual final value will vary based on the dataset being used. This is the same as the
+                 'grasp/final/reached_pose/transforms/base_T_endeffector/vec_quat_7' feature.
+             'next_timestep' input the params for the command saved in the dataset with translation,
+                 sin theta, cos theta from the current time step to the next. This is the same as the 'params' feature.
+             'endeffector_final_clear_view_depth_pixel_T_endeffector_final'
+                 Surface relative transform from the final gripper pixel depth position
+                 This is fairly complex, so please inquire if additional details are needed.
+                 Determine the 'final_pose_orientation_quaternion', the specific feature will vary based on the dataset,
+                 for example in dataset 102 it is `grasp/10/reached_pose/transforms/base_T_endeffector/vec_quat_7`.
+                 Using this pose, we determine the x,y pixel coordinate of the gripper's reached pose at the final time step
+                 in the camera frame, and use this to look up the depth value in the initial clear view image.
+                 'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/vec_quat_7'.
+             'endeffector_current_T_endeffector_final_vec_sin_cos_5' use
+                 the real reached gripper pose of the end effector to calculate
+                 the transform from the current time step to the final time step
+                 to generate the parameters defined in https://arxiv.org/abs/1603.02199,
+                 consisting of [x,y,z, sin(theta), cos(theta)].
+             'endeffector_current_T_endeffector_final_vec_quat_7'
+                 vector and quaternion representing the transform from the current time step's pose
+                 to the pose at the final time step in the current time step's end effector frame.
+                 This also generates the new feature
+                 'move_to_grasp/###/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_quat_7',
+                 where ### is a number for each step from 000 to the number of time steps in the example.
+                 use the real reached gripper pose of the end effector to calculate
+                 the transform from the current time step to the final time step
+                 to generate the parameters [x, y, z, qx, qy, qz, qw].
 
-           # Returns
+     ## Feature Names
 
-               (pregrasp_op_batch, grasp_step_op_batch, simplified_grasp_command_op_batch, grasp_success_op_batch, num_samples)
+         feature: move_to_grasp/time_ordered/clear_view/depth_image/decoded
+         feature: move_to_grasp/time_ordered/clear_view/xyz_image/preprocessed
+         feature: move_to_grasp/time_ordered/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/delta_depth_sin_cos_3
+         feature: move_to_grasp/time_ordered/clear_view/rgb_image/decoded
+         feature: move_to_grasp/time_ordered/reached_pose/transforms/camera_T_endeffector/vec_quat_7
+         feature: move_to_grasp/time_ordered/xyz_image/decoded
+         feature: move_to_grasp/time_ordered/reached_pose/transforms/camera_T_depth_pixel/vec_quat_7
+         feature: move_to_grasp/time_ordered/clear_view/xyz_image/decoded
+         feature: move_to_grasp/time_ordered/grasp_success
+         feature: move_to_grasp/time_ordered/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/cropped/yx_2
+         feature: move_to_grasp/time_ordered/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_quat_7
+         feature: move_to_grasp/time_ordered/reached_pose/transforms/endeffector_clear_view_depth_pixel_T_endeffector/vec_quat_7
+         feature: move_to_grasp/time_ordered/xyz_image/preprocessed
+         feature: move_to_grasp/time_ordered/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/yx_2
+         feature: move_to_grasp/time_ordered/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_sin_cos_5
+         feature: move_to_grasp/time_ordered/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/preprocessed/yx_2
+         feature: move_to_grasp/time_ordered/rgb_image/preprocessed
+         feature: move_to_grasp/time_ordered/reached_pose/transforms/camera_T_depth_pixel_final/vec_quat_7
+         feature: move_to_grasp/time_ordered/endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/preprocessed/grasp_success_yx_3
+         feature: move_to_grasp/time_ordered/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/vec_quat_7
+         feature: move_to_grasp/time_ordered/reached_pose/transforms/endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/cropped/yx_2
+         feature: move_to_grasp/time_ordered/reached_pose/transforms/camera/transforms/base_T_camera/vec_quat_7
+         feature: move_to_grasp/time_ordered/endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/preprocessed/yx_2
+         feature: move_to_grasp/time_ordered/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/sin_cos_2
+         feature: move_to_grasp/time_ordered/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/delta_depth_quat_5
+         feature: move_to_grasp/time_ordered/clear_view/rgb_image/preprocessed
+         feature: move_to_grasp/time_ordered/depth_image/decoded
+         feature: move_to_grasp/time_ordered/rgb_image/decoded
+         feature: move_to_grasp/time_ordered/clear_view/depth_image/preprocessed
+         feature: move_to_grasp/time_ordered/reached_pose/transforms/endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/preprocessed/yx_2
+         feature: move_to_grasp/time_ordered/reached_pose/transforms/camera_T_endeffector_final/vec_quat_7
+         feature: move_to_grasp/time_ordered/reached_pose/transforms/endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/yx_2
+
+     # Arguments
+
+     grasp_sequence_max_time_step: Grasp examples consist of time steps from 0 to up to a max of 11.
+         To train on specific range of data set this value to the maximum desired time step.
+         A value of None gives unlimited range.
+     grasp_sequence_min_time_step: Grasp examples consist of time steps from 0 to up to a max of 11.
+         To train on specific range of data set this value to the minimum desired time step.
+         A value of None gives unlimited range.
+     grasp_command: The grasp command parameter to be supplied during training.
+
+    # Returns
+
+        (pregrasp_op_batch, grasp_step_op_batch, simplified_grasp_command_op_batch, grasp_success_op_batch, num_samples)
         """
         # Get tensors that load the dataset from disk plus features calculated from the raw data, including transforms and point clouds
         feature_op_dicts, features_complete_list, time_ordered_feature_name_dict, num_samples = self.get_training_dictionaries(
