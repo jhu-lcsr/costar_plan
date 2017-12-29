@@ -42,7 +42,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         self.dense_representation = False
         self.num_transforms = 3
         self.tform_kernel_size  = [7,7]
-        self.hidden_shape = (8,8,self.tform_filters)
+        self.hidden_shape = (8,8,self.encoder_channels)
         self.always_same_transform = False
         #self.PredictorCb = ImageCb
 
@@ -60,24 +60,24 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         img_in = Input(img_shape,name="predictor_img_in")
         arm_in = Input((arm_size,))
         gripper_in = Input((gripper_size,))
-        label_in = Input((1,))
-        ins = [img_in, arm_in, gripper_in, label_in]
+        #label_in = Input((1,))
+        ins = [img_in, arm_in, gripper_in] #, label_in]
 
         if self.skip_connections:
             img_rep, skip_rep = self.image_encoder(img_in)
         else:
             #img_rep = self.image_encoder(img_in)
             img_rep = self.image_encoder(img_in)
-        state_rep = self.state_encoder([arm_in, gripper_in, label_in])
+        state_rep = self.state_encoder([arm_in, gripper_in]) #, label_in])
         # Compress the size of the network
         x = TileOnto(img_rep, state_rep, 64, [8,8])
-        x = AddConv2D(x, 128, [3,3], 1, self.dropout_rate, "same", False)
+        x = AddConv2D(x, 64, [3,3], 1, self.dropout_rate, "same", False)
         # Projection down to the right size
-        x = AddConv2D(x, self.tform_filters, [1,1], 1, 0.,
+        x = AddConv2D(x, self.encoder_channels, [1,1], 1, 0.,
                 "same", False)
         #x = Flatten()(x)
-        self.rep_size = int(8 * 8 * self.tform_filters)
-        self.hidden_size = (8, 8, self.tform_filters)
+        self.rep_size = int(8 * 8 * self.encoder_channels)
+        self.hidden_size = (8, 8, self.encoder_channels)
 
         if self.skip_connections:
             model = Model(ins, [x, skip_rep], name="encode_hidden_state")
@@ -98,16 +98,16 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         disc: whether or not this should be set up as a new discriminator.
         '''
         ih, iw, ic = self.hidden_size
-        h = Input((ih, iw, self.tform_filters),name="from_hidden_input")
+        h = Input((ih, iw, self.encoder_channels),name="from_hidden_input")
 
         # ---------------------------------
         x = h
         dr = 0.
-        x = AddConv2D(x, 128, [1,1], 1,
+        x = AddConv2D(x, 64, [1,1], 1,
                 0., "same", False)
         x_img = AddConv2D(x, self.encoder_channels, [5,5], 1,
                 dr, "same", False)
-        x_arm = AddConv2D(x, self.tform_filters, [5,5], 1,
+        x_arm = AddConv2D(x, self.encoder_channels, [5,5], 1,
                 dr, "same", False)
         if self.skip_connections:
             skip_in = Input(self.skip_shape, name="skip_input_hd")
@@ -118,8 +118,9 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             hidden_decoder_ins = h
 
         img = self.image_decoder(ins)
-        arm, gripper, label = self.state_decoder(x_arm)
-        model = Model(hidden_decoder_ins, [img, arm, gripper, label],
+        #arm, gripper, label = self.state_decoder(x_arm)
+        arm, gripper = self.state_decoder(x_arm)
+        model = Model(hidden_decoder_ins, [img, arm, gripper],
                 name="decoder")
         self.hidden_decoder = model
         return model
@@ -171,7 +172,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
 
         sencoder = self._makeStateEncoder(arm_size, gripper_size, False)
         sdecoder = self._makeStateDecoder(arm_size, gripper_size,
-                self.tform_filters)
+                self.encoder_channels)
 
         # =====================================================================
         # Load the arm and gripper representation

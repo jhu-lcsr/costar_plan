@@ -854,14 +854,15 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             activation = "lrelu"
         else:
             activation = "relu"
-        y = OneHot(self.num_options)(option)
-        y = Flatten()(y)
-        x = Concatenate()([arm,gripper,y])
+        #y = OneHot(self.num_options)(option)
+        #y = Flatten()(y)
+        x = Concatenate()([arm,gripper])#,y])
 
         dr = self.dropout_rate * 0.
         x = AddDense(x, 64, activation, dr)
         
-        state_encoder = Model([arm, gripper, option], x,
+        #state_encoder = Model([arm, gripper, option], x,
+        state_encoder = Model([arm, gripper], x,
                 name="state_encoder")
         #state_encoder = Model([arm, gripper], x)
         state_encoder.compile(loss="mae", optimizer=self.getOptimizer())
@@ -891,8 +892,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         arm = AddDense(x1, arm_size, "linear", 0., output=True)
         gripper = AddDense(x1, gripper_size, "sigmoid", 0., output=True)
         #y = AddDense(x, 512, "relu", dr, output=True)
-        option = AddDense(x2, self.num_options, "softmax", 0., output=True)
-        state_decoder = Model(rep_in, [arm, gripper, option],
+        #option = AddDense(x2, self.num_options, "softmax", 0., output=True)
+        #state_decoder = Model(rep_in, [arm, gripper, option],
+        state_decoder = Model(rep_in, [arm, gripper],
                 name="state_decoder")
         state_decoder.compile(loss="mae", optimizer=self.getOptimizer())
         self.state_decoder = state_decoder

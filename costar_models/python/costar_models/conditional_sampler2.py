@@ -155,7 +155,7 @@ class ConditionalSampler2(PredictionSampler2):
         predictor.compile(
                 loss=["mae", "mae", "mae", "mae", "categorical_crossentropy",
                       "mae"],
-                loss_weights=[1., 1., 0.2, 0.025, 0.1, 0.1],
+                loss_weights=[1., 1., 0.2, 0.025, 0.1, 0.],
                 optimizer=self.getOptimizer())
         predictor.summary()
         return predictor, predictor, actor, ins, h
