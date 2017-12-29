@@ -73,22 +73,19 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         x = TileOnto(img_rep, state_rep, 64, [8,8])
         x = AddConv2D(x, 64, [3,3], 1, self.dropout_rate, "same", False)
         # Projection down to the right size
-        x = AddConv2D(x, self.encoder_channels, [5,5], 1, 0.,
+        x = AddConv2D(x, rep_size, [5,5], 1, 0.,
                 "same", False)
         #x = Flatten()(x)
-        self.rep_size = int(8 * 8 * self.encoder_channels)
-        self.hidden_size = (8, 8, self.encoder_channels)
+        self.rep_size = int(8 * 8 * rep_size)
+        self.hidden_size = (8, 8, rep_size)
 
-        if self.skip_connections:
-            model = Model(ins, [x, skip_rep], name="encode_hidden_state")
-        else:
-            model = Model(ins, x, name="encoder")
+        model = Model(ins, x, name="encoder")
         model.compile(loss="mae", optimizer=self.getOptimizer())
         #model.summary()
         self.hidden_encoder = model
         return model
 
-    def _makeFromHidden(self):
+    def _makeFromHidden(self, rep_size):
         '''
         Create the "Decoder" half of the AE
 
@@ -98,7 +95,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         disc: whether or not this should be set up as a new discriminator.
         '''
         ih, iw, ic = self.hidden_size
-        h = Input((ih, iw, self.encoder_channels),name="from_hidden_input")
+        h = Input((ih, iw, rep_size),name="from_hidden_input")
 
         # ---------------------------------
         x = h
@@ -106,7 +103,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         x = AddConv2D(x, 64, [5,5], 1, 0., "same", False)
         x_img = AddConv2D(x, self.encoder_channels, [5,5], 1,
                 dr, "same", False)
-        x_arm = AddConv2D(x, self.encoder_channels, [5,5], 1,
+        x_arm = AddConv2D(x, rep_size, [5,5], 1,
                 dr, "same", False)
         if self.skip_connections:
             skip_in = Input(self.skip_shape, name="skip_input_hd")

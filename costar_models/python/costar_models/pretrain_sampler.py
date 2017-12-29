@@ -76,9 +76,10 @@ class PretrainSampler(PredictionSampler2):
         decoder.summary()
 
         enc = encoder([img_in])
+        rep_channels = self.tform_filters
         sencoder = self._makeStateEncoder(arm_size, gripper_size, False)
         sdecoder = self._makeStateDecoder(arm_size, gripper_size,
-                self.encoder_channels)
+                rep_channels)
 
         # =====================================================================
         # Load the arm and gripper representation
@@ -91,12 +92,13 @@ class PretrainSampler(PredictionSampler2):
         # =====================================================================
         # combine these models together with state information and label
         # information
-        hidden_encoder = self._makeToHidden(img_shape, arm_size, gripper_size, self.rep_size)
+        hidden_encoder = self._makeToHidden(img_shape, arm_size, gripper_size,
+                rep_channels)
         if self.skip_connections:
             h, skip_rep = hidden_encoder(ins)
         else:
             h = hidden_encoder(ins)
-        hidden_decoder = self._makeFromHidden()
+        hidden_decoder = self._makeFromHidden(rep_channels)
 
         if self.skip_connections:
             #img_x = hidden_decoder([x, skip_rep])
