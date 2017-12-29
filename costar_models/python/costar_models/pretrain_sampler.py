@@ -109,7 +109,7 @@ class PretrainSampler(PredictionSampler2):
         ae2 = Model(ins, ae_outs)
         ae2.compile(
             loss=["mae","mae", "mae"],
-            loss_weights=[1.,0.5,0.1],
+            loss_weights=[1.,0.1,0.02],
             optimizer=self.getOptimizer())
         ae2.summary()
 

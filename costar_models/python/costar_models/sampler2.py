@@ -73,7 +73,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         x = TileOnto(img_rep, state_rep, 64, [8,8])
         x = AddConv2D(x, 64, [3,3], 1, self.dropout_rate, "same", False)
         # Projection down to the right size
-        x = AddConv2D(x, self.encoder_channels, [1,1], 1, 0.,
+        x = AddConv2D(x, self.encoder_channels, [5,5], 1, 0.,
                 "same", False)
         #x = Flatten()(x)
         self.rep_size = int(8 * 8 * self.encoder_channels)
@@ -103,7 +103,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         # ---------------------------------
         x = h
         dr = 0.
-        x = AddConv2D(x, 64, [1,1], 1,
+        x = AddConv2D(x, 64, [5,5], 1,
                 0., "same", False)
         x_img = AddConv2D(x, self.encoder_channels, [5,5], 1,
                 dr, "same", False)
