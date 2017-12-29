@@ -34,10 +34,9 @@ flags.DEFINE_integer('epochs', 100,
                      """Epochs of training""")
 flags.DEFINE_string('grasp_dataset_eval', '097',
                     """Filter the subset of 1TB Grasp datasets to evaluate.
-                    None by default. 'all' will run all datasets in data_dir.
-                    '052' and '057' will download the small starter datasets.
-                    '102' will download the main dataset with 102 features,
-                    around 110 GB and 38k grasp attempts.
+                    097 by default. It is important to ensure that this selection
+                    is completely different from the selected training datasets
+                    with no overlap, otherwise your results won't be valid!
                     See https://sites.google.com/site/brainrobotdata/home
                     for a full listing.""")
 flags.DEFINE_string('pipeline_stage', 'train_eval',
@@ -226,8 +225,7 @@ class GraspTrain(object):
         # 2017-08-27 Tried NADAM for a while with the settings below, only improved for first 2 epochs.
         # optimizer = keras.optimizers.Nadam(lr=0.004, beta_1=0.825, beta_2=0.99685)
 
-        # 2017-12-18
-        # Try ADAM with AMSGrad
+        # 2017-12-18 Tried ADAM with AMSGrad, great progress initially, but stopped making progress very quickly
         if FLAGS.optimizer is 'Adam':
             optimizer = keras.optimizers.Adam(amsgrad=True)
 
@@ -374,6 +372,8 @@ class GraspTrain(object):
 
 def main():
     config = tf.ConfigProto()
+    config.inter_op_parallelism_threads = 40
+    config.intra_op_parallelism_threads = 40
     config.gpu_options.allow_growth = True
     session = tf.Session(config=config)
     K.set_session(session)
