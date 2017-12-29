@@ -168,9 +168,10 @@ class GraspTrain(object):
                          mode=learning_rate_decay_algorithm,
                          epochs=epochs,
                          learning_power_decay_rate=learning_power_decay_rate):
-            '''if lr_dict.has_key(epoch):
+            """if lr_dict.has_key(epoch):
                 lr = lr_dict[epoch]
-                print 'lr: %f' % lr'''
+                print 'lr: %f' % lr
+            """
 
             if mode is 'power_decay':
                 # original lr scheduler
