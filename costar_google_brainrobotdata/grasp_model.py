@@ -122,6 +122,7 @@ def grasp_model_resnet(clear_view_image_op,
                        dropout_rate=0.0,
                        initial_filters=96,
                        initial_kernel_size=(3, 3),
+                       activation='sigmoid',
                        repetitions=None):
     if repetitions is None:
         repetitions = [1, 1, 1, 1]
@@ -138,10 +139,11 @@ def grasp_model_resnet(clear_view_image_op,
                    repetitions=repetitions,
                    include_top=include_top,
                    input_tensor=combined_input_data,
-                   activation='sigmoid',
+                   activation=activation,
                    initial_filters=initial_filters,
                    initial_kernel_size=initial_kernel_size,
-                   pooling=None,
+                   initial_pooling=None,
+                   final_pooling=None,
                    dropout=dropout_rate)
     return model
 

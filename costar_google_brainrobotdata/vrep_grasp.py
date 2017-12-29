@@ -36,9 +36,18 @@ from tensorflow.python.ops import data_flow_ops
 from keras.utils import get_file
 from ply import write_xyz_rgb_as_ply
 from PIL import Image
-from tqdm import tqdm  # progress bars https://github.com/tqdm/tqdm
 
-import moviepy.editor as mpy
+# progress bars https://github.com/tqdm/tqdm
+# import tqdm without enforcing it as a dependency
+try:
+    from tqdm import tqdm
+except ImportError:
+
+    def tqdm(*args, **kwargs):
+        if args:
+            return args[0]
+        return kwargs.get('iterable', None)
+
 from grasp_dataset import GraspDataset
 import grasp_geometry
 import grasp_geometry_tf
@@ -522,7 +531,7 @@ class VREPGraspVisualization(object):
             # batch shize should actually always be 1 for this visualization
             output_features_dicts = tf_session.run(feature_op_dicts)
             # reorganize is grasp attempt so it is easy to walk through
-            [time_ordered_feature_data_dict] = grasp_dataset_object._to_tensors(output_features_dicts, time_ordered_feature_name_dict)
+            [time_ordered_feature_data_dict] = grasp_dataset_object.to_tensors(output_features_dicts, time_ordered_feature_name_dict)
             # features_dict_np contains fixed dimension features, sequence_dict_np contains variable length sequences of data
             # We're assuming the batch size is 1, which is why there are only two elements in the list.
             [(features_dict_np, sequence_dict_np)] = output_features_dicts
