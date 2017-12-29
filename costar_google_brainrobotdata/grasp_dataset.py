@@ -33,6 +33,7 @@ from tensorflow.python.platform import gfile
 from tensorflow.python.ops import data_flow_ops
 from tensorflow.python.keras.utils import get_file
 from tensorflow.python.keras._impl.keras.utils.data_utils import _hash_file
+from keras import backend as K
 
 # TODO(ahundt) importing moviepy prevented python from exiting, uncomment lines when fixed.
 # try:
@@ -75,7 +76,7 @@ flags.DEFINE_integer('random_crop_width', 560,
                      """Width to randomly crop images, if enabled""")
 flags.DEFINE_integer('random_crop_height', 448,
                      """Height to randomly crop images, if enabled""")
-flags.DEFINE_boolean('random_crop', False,
+flags.DEFINE_boolean('random_crop', True,
                      """random_crop will apply the tf random crop function with
                         the parameters specified by random_crop_width and random_crop_height
                      """)
@@ -83,7 +84,7 @@ flags.DEFINE_integer('resize_width', 80,
                      """Width to resize images before prediction, if enabled.""")
 flags.DEFINE_integer('resize_height', 64,
                      """Height to resize images before prediction, if enabled.""")
-flags.DEFINE_boolean('resize', False,
+flags.DEFINE_boolean('resize', True,
                      """resize will resize the input images to the desired dimensions specified but the
                         resize_width and resize_height flags. It is suggested that an exact factor of 2 be used
                         relative to the input image directions if random_crop is disabled or the crop dimensions otherwise.
@@ -121,35 +122,62 @@ flags.DEFINE_string(
            the transform from the current time step to the final time step
            to generate the parameters [x, y, z, qx, qy, qz, qw].
     """)
-flags.DEFINE_string('clear_view_image_feature', 'move_to_grasp/time_ordered/clear_view/rgb_image/preprocessed',
-                    """RGB image input feature for the clear scene view, typically an image from before the robot enters the scene.
+flags.DEFINE_string(
+    'clear_view_image_feature', 'move_to_grasp/time_ordered/clear_view/rgb_image/preprocessed',
+    """RGB image input feature for the clear scene view, typically an image from before the robot enters the scene.
 
-                        Options include:
+        Options include:
 
-                        'move_to_grasp/time_ordered/clear_view/rgb_image/preprocessed'
-                            rgb image after all preprocessing as defined by the other parameters have been applied.
+        'move_to_grasp/time_ordered/clear_view/rgb_image/preprocessed'
+            rgb image after all preprocessing as defined by the other parameters have been applied.
 
-                    """)
-flags.DEFINE_string('grasp_sequence_image_feature', 'move_to_grasp/time_ordered/rgb_image/preprocessed',
-                    """RGB image input feature at each time step.
+    """)
+flags.DEFINE_string(
+    'grasp_sequence_image_feature', 'move_to_grasp/time_ordered/rgb_image/preprocessed',
+    """RGB image input feature at each time step.
 
-                        Options include:
+        Options include:
 
-                        'move_to_grasp/time_ordered/rgb_image/preprocessed'
-                            rgb image after all preprocessing as defined by the other parameters have been applied.
+        'move_to_grasp/time_ordered/rgb_image/preprocessed'
+            rgb image after all preprocessing as defined by the other parameters have been applied.
 
-                    """)
-flags.DEFINE_string('grasp_success_label', 'move_to_grasp/time_ordered/grasp_success',
-                    """Algorithm used to generate the grasp_success labels.
-                        'move_to_grasp/time_ordered/grasp_success'
-                            binary scalar, 1 for success 0 for failure
-                        'grasp_success': binary scalar, 1 for success 0 for failure
-                        grasp_success_binary_2D: Apply a constant label at every input pixel.
-                            (Not yet implemented.)
-                        grasp_success_gaussian_2d: Apply a 0 to 1 label at every input pixel
-                            adjusted by a weight centered on the final gripper position in the image frame.
-                            (Not yet implemented.)
-                    """)
+    """)
+flags.DEFINE_string(
+    'grasp_success_label', 'move_to_grasp/time_ordered/grasp_success',
+    """Algorithm used to generate the grasp_success labels.
+
+    Options include:
+
+        'move_to_grasp/time_ordered/grasp_success':
+            binary scalar, 1 for success 0 for failure
+        'grasp_success': binary scalar, 1 for success 0 for failure
+        grasp_success_binary_2D: Apply a constant label at every input pixel.
+            (Not yet implemented.)
+        grasp_success_gaussian_2d: Apply a 0 to 1 label at every input pixel
+            adjusted by a weight centered on the final gripper position in the image frame.
+            (Not yet implemented.)
+    """)
+flags.DEFINE_string(
+    'coordinate_feature',
+    'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/preprocessed/xy_2',
+    """Algorithm used to generate the image coordinate labels.
+
+    TODO(ahundt) add in resizing. The tricky design decision is that feature names can change a lot, and each coordinate feature might correspond to a different image
+    and dimensions. One option (a) is to choose a single pipeline that resizes that alone, but this means switching up or printing out more than one choice isn't easy in a single run.
+    Another option (b) is to take all possible preprocessing configurations and apply the resize, but here it will be hard to associate every feature with the appropriate
+    input image and input image size. Will probably go with a single pipeline, with separate features created for each stage in the pipeline.
+
+    Options include:
+
+    'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/preprocessed/xy_2':
+        the coordinate of the end effector at the final time step, after all preprocessing has been run.
+    'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/preprocessed/preprocessed/xy_2':
+        the coordinate at the current time step, after all preprocessing has been run.
+    'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/xy_2':
+        the coordinate of the end effector at the final time step.
+    'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/preprocessed/xy_2':
+        the coordinate at the current time step.
+    """)
 
 # MULTI DATASET AGGREGATION PARAMETERS, see get_multi_dataset_training_tensors()
 flags.DEFINE_string('grasp_datasets_train', '062_b,063,072_a,082_b,102',
@@ -1259,11 +1287,14 @@ class GraspDataset(object):
             return feature_op_dict, new_feature_list
 
     @staticmethod
-    def _image_random_crop(feature_op_dict, sensor_image_dimensions=None,
-                           random_crop_dimensions=None,
-                           random_crop_offset=None, seed=None, image_features=None,
-                           coordinate_features=None,
-                           verbose=0):
+    def _image_random_crop(
+            feature_op_dict, sensor_image_dimensions=None,
+            random_crop_dimensions=None,
+            random_crop_offset=None,
+            image_features=None,
+            coordinate_features=None,
+            seed=None,
+            verbose=0):
         """ Crop all images and update parameters in accordance with a single random_crop.
 
         All images will be cropped in an identical fashion for the entire feature_op_dict,
@@ -1272,6 +1303,9 @@ class GraspDataset(object):
         crop dimensions will vary including across multiple iterations of a single grasp attempt.
 
         Adds 'image/cropped', 'depth_image/cropped', 'xyz_image/cropped'.
+
+        This function also updates the intrinsics matrix based
+        on the new coordinate system of the cropped images.
 
         # Prerequisites
 
@@ -1339,6 +1373,7 @@ class GraspDataset(object):
                 feature_op_dict[cropped_image_feature] = image
                 new_feature_list = np.append(new_feature_list, cropped_image_feature)
 
+            coordinate_feature_names = []
             # get all image coordinate features so they can be adjusted by the crop offset
             if coordinate_features is None:
                 coordinate_feature_names = [feature for (feature, tf_op) in six.iteritems(feature_op_dict)
@@ -1347,9 +1382,16 @@ class GraspDataset(object):
             # apply the cropping offsets to any image coordinates stored in the feature maps
             for coordinate_feature in coordinate_feature_names:
                 offset_coordinate_op = feature_op_dict[coordinate_feature] - random_crop_offset[:2]
-                offset_coordinate_name = coordinate_feature.replace('image_coordinate/xy_2', 'image_coordinate/cropped/xy_2')
-                feature_op_dict[offset_coordinate_name] = offset_coordinate_op
-                new_feature_list = np.append(new_feature_list, offset_coordinate_name)
+                # add the cropped feature
+                offset_coordinate_cropped_name = coordinate_feature.replace('image_coordinate/xy_2', 'image_coordinate/cropped/xy_2')
+                feature_op_dict[offset_coordinate_cropped_name] = offset_coordinate_op
+                new_feature_list = np.append(new_feature_list, offset_coordinate_cropped_name)
+                # add the preprocessed feature, this is redundant but makes
+                # code further down the pipeline more convenient
+                # TODO(ahundt) clean this up because reordering the algorithms might become painful otherwise
+                offset_coordinate_cropped_name = coordinate_feature.replace('image_coordinate/xy_2', 'image_coordinate/preprocessed/xy_2')
+                feature_op_dict[offset_coordinate_cropped_name] = offset_coordinate_op
+                new_feature_list = np.append(new_feature_list, offset_coordinate_cropped_name)
 
             return feature_op_dict, new_feature_list
 
@@ -1368,7 +1410,7 @@ class GraspDataset(object):
         image_features.extend(GraspDataset.get_time_ordered_features(features_complete_list, 'depth_image/decoded'))
         image_features.extend(GraspDataset.get_time_ordered_features(features_complete_list, 'xyz_image/decoded'))
         # loop through each grasp attempt in a batch
-        for feature_op_dict, sequence_op_dict in tqdm(feature_op_dicts, desc='get_training_dictionaries.image_random_crop'):
+        for feature_op_dict, sequence_op_dict in tqdm(feature_op_dicts, desc='get_training_dictionaries._image_random_crop()'):
             feature_op_dict, new_feature_list = GraspDataset._image_random_crop(
                 feature_op_dict, sensor_image_dimensions, random_crop_offset, seed, image_features=image_features)
             dict_and_feature_tuple_list.append((feature_op_dict, sequence_op_dict))
@@ -1377,22 +1419,37 @@ class GraspDataset(object):
         feature_op_dicts = dict_and_feature_tuple_list
 
         # update the time ordered features with the cropped versions
+        self._remap_time_ordered_feature_names(time_ordered_feature_name_dict, features_complete_list)
+        # TODO(ahundt) clean this up because reordering the algorithms might become painful otherwise
+        self._remap_time_ordered_feature_names(
+            time_ordered_feature_name_dict, features_complete_list,
+            input_key_substring='image_coordinate/cropped/xy_2', output_key_substring='image_coordinate/preprocessed/xy_2',
+            input_feature_substring='image_coordinate/cropped/xy_2', output_feature_substring='image_coordinate/preprocessed/xy_2')
+        return feature_op_dicts, features_complete_list, time_ordered_feature_name_dict
+
+    @staticmethod
+    def _remap_time_ordered_feature_names(
+            time_ordered_feature_name_dict, features_complete_list,
+            input_key_substring='image_coordinate/xy_2', output_key_substring='image_coordinate/cropped/xy_2',
+            input_feature_substring='image_coordinate/xy_2', output_feature_substring='image_coordinate/cropped/xy_2'):
+        """ Take a dictionary from a string key to a list of string features, and create a new list with the specified replancements.
+        """
+        # update the time ordered features with the cropped versions
         time_ordered_cropped_feature_names = {}
         for feature_key, features in six.iteritems(time_ordered_feature_name_dict):
-            if 'image_coordinate/xy_2' in feature_key:
+            if input_key_substring in feature_key:
                 cropped_features = []
-                cropped_feature_key = feature_key.replace('image_coordinate/xy_2', 'image_coordinate/preprocessed/xy_2')
+                cropped_feature_key = feature_key.replace(input_key_substring, output_key_substring)
                 for feature in features:
-                    feature = feature.replace('image_coordinate/xy_2', 'image_coordinate/cropped/xy_2')
+                    feature = feature.replace(input_feature_substring, output_feature_substring)
                     if feature in features_complete_list:
                         cropped_features.append(feature)
                     else:
-                        print('warning, expected cropped feature missing:' + str(feature))
+                        print('warning, expected feature missing:' + str(feature))
                 time_ordered_cropped_feature_names[cropped_feature_key] = cropped_features
 
         # combine the new dictionary with the provided dictionary
         time_ordered_feature_name_dict.update(time_ordered_cropped_feature_names)
-        return feature_op_dicts, features_complete_list, time_ordered_feature_name_dict
 
     @staticmethod
     def _image_augmentation(image, num_channels=None):
@@ -1442,9 +1499,12 @@ class GraspDataset(object):
 
     def _rgb_preprocessing(
             self, rgb_image_op,
+            coordinate=None,
             image_augmentation=FLAGS.image_augmentation,
             imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
-            resize=FLAGS.resize):
+            resize=FLAGS.resize,
+            resize_height=FLAGS.resize_height,
+            resize_width=FLAGS.resize_width):
         """Preprocess an rgb image into a float image, applying image augmentation and imagenet mean subtraction if desired.
 
         Please note that cropped images are generated in `_image_decode()` and given separate feature names.
@@ -1456,14 +1516,78 @@ class GraspDataset(object):
             # apply image augmentation and imagenet preprocessing steps adapted from keras
             if resize:
                 rgb_image_op = tf.image.resize_images(rgb_image_op,
-                                                      tf.constant([FLAGS.resize_height, FLAGS.resize_width],
+                                                      tf.constant([resize_height, resize_width],
                                                                   name='resize_height_width'))
             if image_augmentation:
                 rgb_image_op = self._image_augmentation(rgb_image_op, num_channels=3)
             rgb_image_op = tf.cast(rgb_image_op, tf.float32)
             if imagenet_mean_subtraction:
                 rgb_image_op = self._imagenet_mean_subtraction(rgb_image_op)
-            return tf.cast(rgb_image_op, tf.float32)
+
+            rgb_image_op = tf.cast(rgb_image_op, tf.float32)
+
+            if coordinate is not None:
+                return rgb_image_op, coordinate
+            else:
+                return rgb_image_op
+
+    @staticmethod
+    def _resize_coordinate(coordinate, input_shape, output_shape):
+        """ Update a coordinate based on the current input shape and a new updated output shape.
+        """
+        coordinate = coordinate * output_shape / input_shape[:2]
+        return coordinate
+
+    # @staticmethod
+    # def _resize_image(image_op, coordinate=None, output_shape=None):
+    #     """ Update a coordinate based on the current input shape and a new updated output shape.
+    #     """
+    #     img_shape = K.int_shape(image_op)
+
+    #     if coordinate is not None and output_shape is not None:
+    #         coordinate = self._resize_coordinate(coordinate, img_shape, output_shape)
+    #         return image_op, coordinate
+    #     else:
+    #         return image_op
+
+    # def _resize_coordinate_grasp_attempt(
+    #         self, features_complete_list, feature_op_dicts, sensor_image_dimensions,
+    #         time_ordered_feature_name_dict, input_coordinate_feature_substring='image_coordinate/xy_2'):
+    #     """ Performs the crops for a given grasp attempt.
+
+    #         Helper for get_training_dictionaries() which extracts image cropping features.
+    #     """
+    #     # Do the random crop preprocessing
+    #     dict_and_feature_tuple_list = []
+    #     # list of all *decoded* image features available
+    #     # note that new features become available later in this function
+    #     image_features = GraspDataset.get_time_ordered_features(features_complete_list, '/image/decoded')
+    #     image_features.extend(GraspDataset.get_time_ordered_features(features_complete_list, 'depth_image/decoded'))
+    #     image_features.extend(GraspDataset.get_time_ordered_features(features_complete_list, 'xyz_image/decoded'))
+    #     # loop through each grasp attempt in a batch
+    #     for feature_op_dict, sequence_op_dict in tqdm(feature_op_dicts, desc='get_training_dictionaries._resize_coordinate_grasp_attempt()'):
+    #         # get all image coordinate features so they can be adjusted by the crop offset
+    #         if coordinate_features is None:
+    #         coordinate_feature_names = [feature for (feature, tf_op) in six.iteritems(feature_op_dict)
+    #                                     if 'image_coordinate/xy_2' in feature]
+
+    #         # apply the cropping offsets to any image coordinates stored in the feature maps
+    #         for coordinate_feature in coordinate_feature_names:
+    #             offset_coordinate_op = feature_op_dict[coordinate_feature]
+    #             self._resize_coordinate(offset_coordinate_op, )
+    #             offset_coordinate_name = coordinate_feature.replace('image_coordinate/xy_2', 'image_coordinate/cropped/xy_2')
+    #             feature_op_dict[offset_coordinate_name] = offset_coordinate_op
+    #             new_feature_list = np.append(new_feature_list, offset_coordinate_name)
+    #         feature_op_dict, new_feature_list = GraspDataset._resize_coordinate(
+    #             feature_op_dict, sensor_image_dimensions, random_crop_offset, seed, image_features=image_features)
+    #         dict_and_feature_tuple_list.append((feature_op_dict, sequence_op_dict))
+    #     # the new_feature_list should be the same for all the ops
+    #     features_complete_list = np.append(features_complete_list, new_feature_list)
+    #     feature_op_dicts = dict_and_feature_tuple_list
+
+    #     # update the time ordered features with the cropped versions
+    #     self._remap_time_ordered_feature_names(time_ordered_feature_name_dict, features_complete_list)
+    #     return feature_op_dicts, features_complete_list, time_ordered_feature_name_dict
 
     @staticmethod
     def to_tensors(feature_op_dicts, features):
@@ -1542,6 +1666,8 @@ class GraspDataset(object):
             random_crop_dimensions=None,
             random_crop_offset=None,
             resize=FLAGS.resize,
+            resize_height=FLAGS.resize_height,
+            resize_width=FLAGS.resize_width,
             seed=None,
             verbose=0):
         """Get feature dictionaries containing ops and time ordered feature lists.
@@ -1673,11 +1799,38 @@ class GraspDataset(object):
             # TODO(ahundt) move squeeze steps into dataset api if possible
             pregrasp_image_rgb_op = fixed_feature_op_dict[preprocessed_rgb_clear_view_name]
 
+            # Coordinate updates that correspond to image resizing
+            img_shape = K.int_shape(pregrasp_image_rgb_op)
+            output_shape = np.array([resize_height, resize_width])
+
+            resized_coordinate_dict = {}
+            for feature_key, feature in six.iteritems(fixed_feature_op_dict):
+                if 'xy_2' in feature_key and 'image_coordinate' in feature_key:
+                    # TODO(ahundt) Two sizes of image features present, resize needs to be done based on the image size, not just the pregrasp_image_rgb_op's size.
+                    coordinate = self._resize_coordinate(feature, img_shape, output_shape)
+                    if 'preprocessed' in feature_key:
+                        if resize:
+                            # update the 'preprocessed' feature key with the resized coordinate
+                            resized_coordinate_dict[feature_key] = coordinate
+                    elif preprocessed_suffix in feature_key:
+                        coordinate_name = feature_key.replace(preprocessed_suffix, 'resized')
+                        resized_coordinate_dict[coordinate_name] = coordinate
+                    elif 'image_coordinate/xy_2' in feature_key:
+                        coordinate_name = feature_key.replace('image_coordinate/xy_2', 'image_coordinate/resized/xy_2')
+                        resized_coordinate_dict[coordinate_name] = coordinate
+                        features_complete_list = np.append(features_complete_list, coordinate_name)
+                    else:
+                        print('Warning: unsupported feature_key detected in resize: ' + str(feature_key))
+            fixed_feature_op_dict.update(resized_coordinate_dict)
+
+            # Image resizing and other rgb preprocessing
             pregrasp_image_rgb_op = self._rgb_preprocessing(
                 pregrasp_image_rgb_op,
                 image_augmentation=image_augmentation,
                 imagenet_mean_subtraction=imagenet_mean_subtraction,
-                resize=resize)
+                resize=resize,
+                resize_height=resize_height,
+                resize_width=resize_width)
             fully_preprocessed_rgb_clear_view_name = preprocessed_rgb_clear_view_name.replace(
                 preprocessed_image_feature_type, '/image/preprocessed')
             fixed_feature_op_dict[fully_preprocessed_rgb_clear_view_name] = pregrasp_image_rgb_op
