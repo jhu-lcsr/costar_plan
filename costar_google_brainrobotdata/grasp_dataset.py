@@ -150,6 +150,10 @@ flags.DEFINE_string(
 
         'move_to_grasp/time_ordered/grasp_success':
             binary scalar, 1 for success 0 for failure
+        'move_to_grasp/time_ordered/endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/preprocessed/grasp_success_yx_3':
+            [grasp_success, y_coordinate, x_coordinate], grasp_success is 1 for success, 0 for failure,
+            y_coordinate, x_coordinate is the gripper coordinate in the image at the time step when the gripper closed.
+            This is useful for pixel-wise labeling of grasp attempts.
         'grasp_success': binary scalar, 1 for success 0 for failure
         grasp_success_binary_2D: Apply a constant label at every input pixel.
             (Not yet implemented.)
@@ -1793,7 +1797,8 @@ class GraspDataset(object):
         new_feature_op_dicts = []
 
         # go through every element in the batch
-        for batch_i, (fixed_feature_op_dict, sequence_feature_op_dict) in enumerate(tqdm(feature_op_dicts, desc='get_training_dictionaries.preprocess_images')):
+        for batch_i, (fixed_feature_op_dict, sequence_feature_op_dict) in enumerate(tqdm(feature_op_dicts,
+                                                                                         desc='get_training_dictionaries.preprocess_images')):
             # print('fixed_feature_op_dict: ', fixed_feature_op_dict)
             # get the pregrasp image, and squeeze out the extra batch dimension from the tfrecord
             # TODO(ahundt) move squeeze steps into dataset api if possible
@@ -1828,7 +1833,8 @@ class GraspDataset(object):
                         print('Warning: unsupported feature_key detected in resize: ' + str(feature_key))
             fixed_feature_op_dict.update(resized_coordinate_dict)
 
-            # Image resizing and other rgb preprocessing
+            # Image resizing and other rgb preprocessing,
+            # such as changes in brightness and saturation
             pregrasp_image_rgb_op = self._rgb_preprocessing(
                 pregrasp_image_rgb_op,
                 image_augmentation=image_augmentation,
@@ -1845,7 +1851,7 @@ class GraspDataset(object):
                 print('\nrgb_move_to_grasp_steps: ', rgb_move_to_grasp_steps)
 
             for time_step_j, (grasp_step_rgb_feature_name) in enumerate(preprocessed_rgb_move_to_grasp_steps):
-                # do preprocessing and add new image to fixed_feature_op_dict
+                # do preprocessing and add new preprocessed version of image to fixed_feature_op_dict
                 grasp_step_rgb_feature_op = self._rgb_preprocessing(
                     fixed_feature_op_dict[grasp_step_rgb_feature_name],
                     image_augmentation=image_augmentation,
@@ -1861,7 +1867,28 @@ class GraspDataset(object):
             # assemble the updated feature op dicts
             new_feature_op_dicts.append((fixed_feature_op_dict, sequence_feature_op_dict))
 
+        # get the sequence of preprocessed coordinates
+        preprocessed_final_coordinate_names = self.get_time_ordered_features(
+            features_complete_list,
+            feature_type='endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/preprocessed/yx_2',
+            step='move_to_grasp'
+        )
         num_time_steps = len(rgb_move_to_grasp_steps)
+        grasp_success_names = ['grasp_success'] * num_time_steps
+
+        grasp_success_yx_3_names = []
+        # create grasp_success_yx_3 tensors for pixel-wise training loss and accuracy labels
+        for batch_i, (fixed_feature_op_dict, sequence_feature_op_dict) in enumerate(tqdm(new_feature_op_dicts,
+                                                                                         desc='get_training_dictionaries.grasp_success_yx_3')):
+            grasp_success_coordinate_dict = {}
+            for time_step_j, (grasp_success_name, coordinate_name) in enumerate(zip(grasp_success_names, preprocessed_final_coordinate_names)):
+                grasp_success_op = tf.cast(fixed_feature_op_dict[grasp_success_name], tf.int32)
+                grasp_success_final_coordinate_op = tf.cast(fixed_feature_op_dict[coordinate_name], tf.int32)
+                grasp_success_yx_3_op = K.concatenate([grasp_success_op, grasp_success_final_coordinate_op])
+                grasp_success_yx_3_name = coordinate_name.replace('yx_2', 'grasp_success_yx_3')
+                fixed_feature_op_dict[grasp_success_yx_3_name] = grasp_success_yx_3_op
+                if batch_i == 0:
+                    grasp_success_yx_3_names.append(grasp_success_yx_3_name)
 
         new_time_ordered_feature_name_dict = {
             'move_to_grasp/time_ordered/clear_view/rgb_image/decoded': [rgb_clear_view_name] * num_time_steps,
@@ -1876,7 +1903,11 @@ class GraspDataset(object):
             # note: at the time of writing preprocessing of xyz images only includes cropping
             'move_to_grasp/time_ordered/xyz_image/preprocessed': xyz_move_to_grasp_steps_cropped,
             'move_to_grasp/time_ordered/depth_image/decoded': depth_move_to_grasp_steps,
-            'move_to_grasp/time_ordered/grasp_success': ['grasp_success'] * num_time_steps
+            'move_to_grasp/time_ordered/grasp_success': grasp_success_names,
+            'move_to_grasp/time_ordered/endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/preprocessed/yx_2':
+                preprocessed_final_coordinate_names,
+            'move_to_grasp/time_ordered/endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/preprocessed/grasp_success_yx_3':
+                grasp_success_yx_3_names
         }
 
         # combine the new dictionary with the provided dictionary
