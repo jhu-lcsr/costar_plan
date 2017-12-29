@@ -10,19 +10,29 @@ License: Apache v2 https://www.apache.org/licenses/LICENSE-2.0
 import os
 import errno
 import traceback
+import itertools
 import six
 
 import numpy as np
 import tensorflow as tf
 import re
-from tqdm import tqdm  # progress bars https://github.com/tqdm/tqdm
+
+# progress bars https://github.com/tqdm/tqdm
+# import tqdm without enforcing it as a dependency
+try:
+    from tqdm import tqdm
+except ImportError:
+
+    def tqdm(*args, **kwargs):
+        if args:
+            return args[0]
+        return kwargs.get('iterable', None)
 
 from tensorflow.python.platform import flags
 from tensorflow.python.platform import gfile
 from tensorflow.python.ops import data_flow_ops
 from tensorflow.python.keras.utils import get_file
 from tensorflow.python.keras._impl.keras.utils.data_utils import _hash_file
-from tensorflow.python.keras.utils import Progbar
 
 # TODO(ahundt) importing moviepy prevented python from exiting, uncomment lines when fixed.
 # try:
@@ -34,8 +44,9 @@ from tensorflow.python.keras.utils import Progbar
 import grasp_geometry
 import grasp_geometry_tf
 import depth_image_encoding
-import random_crop_parameters as rcp
+import random_crop as rcp
 
+# DATASET LOADING CONFIGURATION COMMAND LINE PARAMETERS, see GraspDataset()
 flags.DEFINE_string('data_dir',
                     os.path.join(os.path.expanduser("~"),
                                  '.keras', 'datasets', 'grasping'),
@@ -91,21 +102,25 @@ flags.DEFINE_integer('grasp_sequence_min_time_step', None,
                         that will be used in training and evaluation. This may be needed
                         to reduce memory utilization or check performance at different
                         stages of a grasping motion.""")
-flags.DEFINE_string('grasp_sequence_motion_command_feature', 'endeffector_current_T_endeffector_final_vec_sin_cos_5',
-                    """Different ways of representing the motion vector parameter.
-                       'final_pose_orientation_quaternion' directly input the final pose translation and orientation.
-                       'next_timestep' input the params for the command saved in the dataset with translation,
-                           sin theta, cos theta from the current time step to the next.
-                       'endeffector_current_T_endeffector_final_vec_sin_cos_5' use
-                           the real reached gripper pose of the end effector to calculate
-                           the transform from the current time step to the final time step
-                           to generate the parameters defined in https://arxiv.org/abs/1603.02199,
-                           consisting of [x,y,z, sin(theta), cos(theta)].
-                       'endeffector_current_T_endeffector_final_vec_quat_7' use
-                           the real reached gripper pose of the end effector to calculate
-                           the transform from the current time step to the final time step
-                           to generate the parameters [x, y, z, qx, qy, qz, qw].
-                    """)
+flags.DEFINE_string(
+    'grasp_sequence_motion_command_feature',
+    'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_sin_cos_5',
+    """Different ways of representing the motion vector parameter.
+       'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_sin_cos_5'
+           the real reached gripper pose of the end effector to calculate
+           the transform from the current time step to the final time step
+           to generate the parameters defined in https://arxiv.org/abs/1603.02199,
+           consisting of [x,y,z, sin(theta), cos(theta)].
+       'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_quat_7'
+           transform from the current endeffector pose to the final endeffector pose.
+       'final_pose_orientation_quaternion' directly input the final pose translation and orientation.
+       'next_timestep' input the params for the command saved in the dataset with translation,
+           sin theta, cos theta from the current time step to the next
+       'endeffector_current_T_endeffector_final_vec_quat_7' use
+           the real reached gripper pose of the end effector to calculate
+           the transform from the current time step to the final time step
+           to generate the parameters [x, y, z, qx, qy, qz, qw].
+    """)
 flags.DEFINE_string('clear_view_image_feature', 'move_to_grasp/time_ordered/clear_view/rgb_image/preprocessed',
                     """RGB image input feature for the clear scene view, typically an image from before the robot enters the scene.
 
@@ -124,16 +139,40 @@ flags.DEFINE_string('grasp_sequence_image_feature', 'move_to_grasp/time_ordered/
                             rgb image after all preprocessing as defined by the other parameters have been applied.
 
                     """)
-flags.DEFINE_string('grasp_success_label', 'binary_gaussian_2D',
+flags.DEFINE_string('grasp_success_label', 'move_to_grasp/time_ordered/grasp_success',
                     """Algorithm used to generate the grasp_success labels.
-
-                        grasp_success: binary scalar, 1 for success 0 for failure
+                        'move_to_grasp/time_ordered/grasp_success'
+                            binary scalar, 1 for success 0 for failure
+                        'grasp_success': binary scalar, 1 for success 0 for failure
                         grasp_success_binary_2D: Apply a constant label at every input pixel.
                             (Not yet implemented.)
                         grasp_success_gaussian_2d: Apply a 0 to 1 label at every input pixel
                             adjusted by a weight centered on the final gripper position in the image frame.
                             (Not yet implemented.)
                     """)
+
+# MULTI DATASET AGGREGATION PARAMETERS, see get_multi_dataset_training_tensors()
+flags.DEFINE_string('grasp_datasets_train', '062_b,063,072_a,082_b,102',
+                    """Filter multiple subsets of 1TB Grasp datasets to train.
+
+                    For use with get_multi_dataset_training_tensors() when training
+                    multiple datasets simultaneously.
+
+                    Comma separated list 062_b,063,072_a,082_b,102 by default,
+                    totaling 513,491 grasp attempts.
+                    See https://sites.google.com/site/brainrobotdata/home
+                    for a full listing.""")
+flags.DEFINE_string('grasp_datasets_batch_algorithm', 'proportional',
+                    """Use default batch size for each dataset if constant.
+
+                    For use with get_multi_dataset_training_tensors() when training
+                    multiple datasets simultaneously.
+
+                    'constant' training on multiple datasets reads `batch_size`
+                        elements from each dataset at each training step when this parameter.
+                    'proportional' each dataset's batch size will be individually
+                        set to int(batch_size*single_batch/max_batch_size)
+                        so smaller datasets are run more slowly than larger datasets.""")
 
 FLAGS = flags.FLAGS
 
@@ -269,17 +308,15 @@ class GraspDataset(object):
             grasp_listing_path = get_file('grasp_listing.txt', listing_url, cache_subdir=data_dir)
             grasp_files = np.genfromtxt(grasp_listing_path, dtype=str)
             files = [get_file(fpath.split('/')[-1], url_prefix + fpath, cache_subdir=data_dir)
-                     for fpath in grasp_files
+                     for fpath in tqdm(grasp_files)
                      if '_' + dataset in fpath]
 
             # If all files are downloaded, generate a hashed listing.
             if dataset is 'all' or dataset is '':
                 print('Hashing all dataset files to prevent corruption...')
-                progress = Progbar(len(files))
                 hashes = []
-                for i, f in enumerate(files):
+                for i, f in enumerate(tqdm(files)):
                     hashes.append(_hash_file(f))
-                    progress.update(i)
                 file_hash_np = np.column_stack([grasp_files, hashes])
                 with open(listing_hash, 'wb') as hash_file:
                     np.savetxt(hash_file, file_hash_np, fmt='%s', delimiter=' ', header='file_path sha256')
@@ -685,7 +722,8 @@ class GraspDataset(object):
             time_ordered_feature_name_dict=None,
             num_samples=None,
             batch_size=FLAGS.batch_size,
-            random_crop=FLAGS.random_crop):
+            # random_crop=FLAGS.random_crop,
+            verbose=0):
         """Get runtime generated 3D transform feature tensors as a dictionary, including depth surface relative transforms.
 
         @TODO(ahundt) update this documentation.
@@ -826,7 +864,8 @@ class GraspDataset(object):
             feature_type='reached_pose/transforms/base_T_endeffector/vec_quat_7',
             step='move_to_grasp')
 
-        print('all_base_to_endeffector_transforms: ', all_base_to_endeffector_transforms)
+        if verbose:
+            print('all_base_to_endeffector_transforms: ', all_base_to_endeffector_transforms)
         first_timed_index = all_base_to_endeffector_transforms.index(timed_base_to_endeffector_transforms[0])
         base_to_endeffector_transforms = ['approach/transforms/base_T_endeffector/vec_quat_7'] + timed_base_to_endeffector_transforms[:-1]
 
@@ -834,13 +873,18 @@ class GraspDataset(object):
 
         # Get different image features depending on if
         # cropping is enabled or not.
+        # Note that depth images can be converted to xyz images
+        # when the camera/intrinsics/matrix33 is available.
         xyz_image_feature_type = 'xyz_image/decoded'
+        depth_image_feature_type = 'depth_image/decoded'
         camera_intrinsics_name = 'camera/intrinsics/matrix33'
-        if random_crop:
-            xyz_image_feature_type = 'xyz_image/cropped'
-            camera_intrinsics_name = 'camera/cropped/intrinsics/matrix33'
+        # if random_crop:
+        #     xyz_image_feature_type = 'xyz_image/cropped'
+        #     depth_image_feature_type = 'depth_image/cropped'
+        #     camera_intrinsics_name = 'camera/cropped/intrinsics/matrix33'
 
         xyz_image_clear_view_name = 'pregrasp/' + xyz_image_feature_type
+        depth_image_clear_view_name = 'pregrasp/' + depth_image_feature_type
 
         def add_feature_op(fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict, new_op, shape, name, batch_i, time_step_j):
             """Helper function to extend the dict containing feature ops
@@ -868,10 +912,22 @@ class GraspDataset(object):
                     time_ordered_feature_name_dict[time_ordered_name] = np.append(time_ordered_feature_name_dict[time_ordered_name], feature_name)
                 else:
                     time_ordered_feature_name_dict[time_ordered_name] = np.array([feature_name])
+            return fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict
 
         # loop through all grasp attempts in this batch
         for batch_i, (fixed_feature_op_dict, sequence_feature_op_dict) in enumerate(tqdm(feature_op_dicts, desc='get_transform_tensors')):
-            xyz_clear_view_op = fixed_feature_op_dict[xyz_image_clear_view_name]
+
+            # Note that the XYZ image computation can be enabled/disabled,
+            # so if no XYZ image is available supply the depth image.
+            # Performance may actually be better with the xyz image
+            # computed on the fly in
+            # grasp_geometry.grasp_dataset_to_transforms_and_features()
+            # due to the python global interpreter lock.
+            # see image_decode() for more details.
+            if xyz_image_clear_view_name in fixed_feature_op_dict:
+                cartesian_clear_view_op = fixed_feature_op_dict[xyz_image_clear_view_name]
+            else:
+                cartesian_clear_view_op = fixed_feature_op_dict[depth_image_clear_view_name]
             final_base_to_endeffector_transform_op = fixed_feature_op_dict[final_base_to_endeffector_transform_name]
             camera_intrinsics_matrix = fixed_feature_op_dict[camera_intrinsics_name]
             camera_T_base = fixed_feature_op_dict['camera/transforms/camera_T_base/matrix44']
@@ -896,11 +952,10 @@ class GraspDataset(object):
                  delta_depth_quat_5] = tf.py_func(
                     grasp_geometry.grasp_dataset_to_transforms_and_features,
                     # parameters for grasp_dataset_to_transforms_and_features() function call
-                    [xyz_clear_view_op, camera_intrinsics_matrix, camera_T_base,
+                    [cartesian_clear_view_op, camera_intrinsics_matrix, camera_T_base,
                      base_to_endeffector_op, final_base_to_endeffector_transform_op],
                      # return type data formats to expect
                     [tf.float32] * 14,
-                    # TODO(ahundt) set stateful=False once bugs are fixed
                     stateful=False, name='py_func/grasp_dataset_to_transforms_and_features')
 
                 # define pixel image coordinate as an integer type
@@ -908,98 +963,97 @@ class GraspDataset(object):
                 image_coordinate_final = tf.cast(image_coordinate_final, tf.int32)
 
                 # camera_T_endeffector_current_vec_quat_7_array,
-                add_feature_op(
+                (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
                     camera_T_endeffector_current_vec_quat_7_array, [7],
                     'camera_T_endeffector/vec_quat_7',
                     batch_i, time_step_j)
 
                 # camera_T_depth_pixel_current_vec_quat_7_array,
-                add_feature_op(
+                (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
                     camera_T_depth_pixel_current_vec_quat_7_array, [7],
                     'camera_T_depth_pixel/vec_quat_7',
                     batch_i, time_step_j)
 
                 # depth_pixel_T_endeffector_current_vec_quat_7_array,
-                add_feature_op(
+                (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict, depth_pixel_T_endeffector_current_vec_quat_7_array, [7],
                     'endeffector_clear_view_depth_pixel_T_endeffector/vec_quat_7',
                     batch_i, time_step_j)
 
                 # image_coordinate_current,
-                add_feature_op(
+                (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
                     image_coordinate_current, [2],
                     'endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/xy_2',
                     batch_i, time_step_j)
 
-                # TODO(ahundt) make sure these feature names fit in nicely with get_time_ordered_features
                 # depth_pixel_T_endeffector_final_vec_quat_7_array,
-                add_feature_op(
+                (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
                     depth_pixel_T_endeffector_final_vec_quat_7_array, [7],
                     'endeffector_final_clear_view_depth_pixel_T_endeffector_final/vec_quat_7',
                     batch_i, time_step_j)
 
                 # camera_T_endeffector_final_vec_quat_7_array,
-                add_feature_op(
+                (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
                     camera_T_endeffector_final_vec_quat_7_array, [7],
                     'camera_T_endeffector_final/vec_quat_7',
                     batch_i, time_step_j)
 
                 # camera_T_depth_pixel_final_vec_quat_7_array,
-                add_feature_op(
+                (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
                     camera_T_depth_pixel_final_vec_quat_7_array, [7],
                     'camera_T_depth_pixel_final/vec_quat_7',
                     batch_i, time_step_j)
 
                 # image_coordinate_final,
-                add_feature_op(
+                (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
                     image_coordinate_final, [2],
                     'endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/xy_2',
                     batch_i, time_step_j)
 
                 # current_base_T_camera_vec_quat_7_array,
-                add_feature_op(
+                (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
                     current_base_T_camera_vec_quat_7_array, [7],
                     'camera/transforms/base_T_camera/vec_quat_7',
                     batch_i, time_step_j)
 
                 # eectf_vec_quat_7_array, aka endeffector_current_T_endeffector_final
-                add_feature_op(
+                (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
                     eectf_vec_quat_7_array, [7],
                     'endeffector_current_T_endeffector_final/vec_quat_7',
                     batch_i, time_step_j)
 
                 # sin_cos_2,
-                add_feature_op(
+                (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
                     sin_cos_2, [2],
                     'endeffector_final_clear_view_depth_pixel_T_endeffector_final/sin_cos_2',
                     batch_i, time_step_j)
 
-                # vec_sin_cos_5,
-                add_feature_op(
+                #  eectf_vec_quat_7_array, aka endeffector_current_T_endeffector_final
+                (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
                     vec_sin_cos_5, [5],
-                    'endeffector_final_clear_view_depth_pixel_T_endeffector_final/vec_sin_cos_5',
+                    'endeffector_current_T_endeffector_final/vec_sin_cos_5',
                     batch_i, time_step_j)
 
                 # delta_depth_sin_cos_3,
-                add_feature_op(
+                (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
                     delta_depth_sin_cos_3, [3],
                     'endeffector_final_clear_view_depth_pixel_T_endeffector_final/delta_depth_sin_cos_3',
                     batch_i, time_step_j)
 
                 # delta_depth_quat_5
-                add_feature_op(
+                (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
                     fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
                     delta_depth_quat_5, [5],
                     'endeffector_final_clear_view_depth_pixel_T_endeffector_final/delta_depth_quat_5',
@@ -1010,7 +1064,7 @@ class GraspDataset(object):
 
         return new_feature_op_dicts, features_complete_list, time_ordered_feature_name_dict, num_samples
 
-    def _get_simple_parallel_dataset_ops(self, dataset=None, batch_size=1, buffer_size=100, parallelism=10, shift_ratio=0.01):
+    def _get_simple_parallel_dataset_ops(self, dataset=None, batch_size=1, buffer_size=300, parallelism=20, shift_ratio=0.01):
         """ Simple unordered & parallel TensorFlow ops that go through the whole dataset.
 
         # Returns
@@ -1094,7 +1148,7 @@ class GraspDataset(object):
         return dict_and_feature_tuple_list, features_complete_list, feature_count, attempt_count
 
     @staticmethod
-    def _image_decode(feature_op_dict, sensor_image_dimensions=None, image_features=None, point_cloud_fn='numpy', decode_depth_as='depth'):
+    def _image_decode(feature_op_dict, sensor_image_dimensions=None, image_features=None, decode_depth_as='depth', point_cloud_fn='tensorflow'):
         """ Add features to dict that supply decoded png and jpeg images for any encoded images present.
 
         Any feature path that is 'image/encoded' will also now have 'image/decoded', and 'image/xyz' when
@@ -1107,9 +1161,20 @@ class GraspDataset(object):
                 [1, FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels]
             image_features: list of image feature strings to modify, generated automatically if not supplied,
                 improves performance.
-            point_cloud_fn: Choose the function to convert depth images to point clouds. 'numpy' calls
-                grasp_geometry.depth_image_to_point_cloud(). 'tensorflow' calls
-                grasp_geometry_tf.depth_image_to_point_cloud().
+            point_cloud_fn: Choose the function to convert depth images to point clouds.
+
+                    Performance may actually be better with the xyz image computed on the fly in
+                    grasp_geometry.grasp_dataset_to_transforms_and_features()
+                    due massive slowdowns encountered due to the python global interpreter lock.
+                    Note that the XYZ image computation can be enabled/disabled,
+                    so if no XYZ image is available supply the depth image.
+
+                None: Do not generate XYZ point clouds from the depth image during a call to image_decode,
+                    and the feature is not created. (the default)
+                'numpy': calls grasp_geometry.depth_image_to_point_cloud().
+                'tensorflow' calls grasp_geometry_tf.depth_image_to_point_cloud().
+                    The tensorflow option has bugs at the time of writing, but may be the ideal choice
+                    once the bugs are resolved.
             decode_depth_as:
                The default 'depth' turns png encoded depth images into 1 channel depth images, the format for training.
                'rgb' keeps the png encoded format so it can be visualized, particularly in create_gif().
@@ -1159,15 +1224,14 @@ class GraspDataset(object):
                         image = image / RGB_SCALE_FACTOR
                         image.set_shape([height, width])
                         # depth images have one channel
-                        print('depth image:', image)
-                        if 'camera/intrinsics/matrix33' in feature_op_dict:
+                        if 'camera/intrinsics/matrix33' in feature_op_dict and point_cloud_fn is not None:
                             with tf.name_scope('xyz'):
                                 # generate xyz point cloud image feature
                                 if point_cloud_fn == 'tensorflow':
                                     # should be more efficient than the numpy version
                                     xyz_image = grasp_geometry_tf.depth_image_to_point_cloud(
                                         image, feature_op_dict['camera/intrinsics/matrix33'])
-                                else:
+                                elif point_cloud_fn == 'numpy':
                                     [xyz_image] = tf.py_func(
                                         grasp_geometry.depth_image_to_point_cloud,
                                         # parameters for function call
@@ -1175,12 +1239,13 @@ class GraspDataset(object):
                                         [tf.float32],
                                         stateful=False, name='py_func/depth_image_to_point_cloud'
                                     )
+                                else:
+                                    raise ValueError('point_cloud_fn must be one of tensorflow, numpy, or None')
                                 xyz_image.set_shape([height, width, 3])
                                 xyz_image = tf.reshape(xyz_image, [height, width, 3])
                                 xyz_feature = image_feature.replace('depth_image/encoded', 'xyz_image/decoded')
                                 feature_op_dict[xyz_feature] = xyz_image
                                 new_feature_list = np.append(new_feature_list, xyz_feature)
-                                print('xyz_image:', xyz_image)
                         image = tf.reshape(image, [height, width, 1])
                 else:
                     with tf.name_scope('rgb'):
@@ -1196,7 +1261,9 @@ class GraspDataset(object):
     @staticmethod
     def _image_random_crop(feature_op_dict, sensor_image_dimensions=None,
                            random_crop_dimensions=None,
-                           random_crop_offset=None, seed=None, image_features=None):
+                           random_crop_offset=None, seed=None, image_features=None,
+                           coordinate_features=None,
+                           verbose=0):
         """ Crop all images and update parameters in accordance with a single random_crop.
 
         All images will be cropped in an identical fashion for the entire feature_op_dict,
@@ -1261,7 +1328,8 @@ class GraspDataset(object):
 
             for image_feature in image_features:
                 image = feature_op_dict[image_feature]
-                print('_image_random_crop image:', image, 'random_crop_offset:', random_crop_offset)
+                if verbose:
+                    print('_image_random_crop image:', image, 'random_crop_offset:', random_crop_offset)
                 if 'depth_image' in image_feature and 'xyz' not in image_feature:
                     image = rcp.crop_images(image_list=image, offset=random_crop_offset, size=depth_crop_dim_tensor)
                 else:
@@ -1271,7 +1339,60 @@ class GraspDataset(object):
                 feature_op_dict[cropped_image_feature] = image
                 new_feature_list = np.append(new_feature_list, cropped_image_feature)
 
+            # get all image coordinate features so they can be adjusted by the crop offset
+            if coordinate_features is None:
+                coordinate_feature_names = [feature for (feature, tf_op) in six.iteritems(feature_op_dict)
+                                            if 'image_coordinate/xy_2' in feature]
+
+            # apply the cropping offsets to any image coordinates stored in the feature maps
+            for coordinate_feature in coordinate_feature_names:
+                offset_coordinate_op = feature_op_dict[coordinate_feature] - random_crop_offset[:2]
+                offset_coordinate_name = coordinate_feature.replace('image_coordinate/xy_2', 'image_coordinate/cropped/xy_2')
+                feature_op_dict[offset_coordinate_name] = offset_coordinate_op
+                new_feature_list = np.append(new_feature_list, offset_coordinate_name)
+
             return feature_op_dict, new_feature_list
+
+    def _image_random_crop_grasp_attempt(
+            self, features_complete_list, feature_op_dicts, sensor_image_dimensions,
+            random_crop_offset, seed, time_ordered_feature_name_dict):
+        """ Performs the crops for a given grasp attempt.
+
+            Helper for get_training_dictionaries() which extracts image cropping features.
+        """
+        # Do the random crop preprocessing
+        dict_and_feature_tuple_list = []
+        # list of all *decoded* image features available
+        # note that new features become available later in this function
+        image_features = GraspDataset.get_time_ordered_features(features_complete_list, '/image/decoded')
+        image_features.extend(GraspDataset.get_time_ordered_features(features_complete_list, 'depth_image/decoded'))
+        image_features.extend(GraspDataset.get_time_ordered_features(features_complete_list, 'xyz_image/decoded'))
+        # loop through each grasp attempt in a batch
+        for feature_op_dict, sequence_op_dict in tqdm(feature_op_dicts, desc='get_training_dictionaries.image_random_crop'):
+            feature_op_dict, new_feature_list = GraspDataset._image_random_crop(
+                feature_op_dict, sensor_image_dimensions, random_crop_offset, seed, image_features=image_features)
+            dict_and_feature_tuple_list.append((feature_op_dict, sequence_op_dict))
+        # the new_feature_list should be the same for all the ops
+        features_complete_list = np.append(features_complete_list, new_feature_list)
+        feature_op_dicts = dict_and_feature_tuple_list
+
+        # update the time ordered features with the cropped versions
+        time_ordered_cropped_feature_names = {}
+        for feature_key, features in six.iteritems(time_ordered_feature_name_dict):
+            if 'image_coordinate/xy_2' in feature_key:
+                cropped_features = []
+                cropped_feature_key = feature_key.replace('image_coordinate/xy_2', 'image_coordinate/preprocessed/xy_2')
+                for feature in features:
+                    feature = feature.replace('image_coordinate/xy_2', 'image_coordinate/cropped/xy_2')
+                    if feature in features_complete_list:
+                        cropped_features.append(feature)
+                    else:
+                        print('warning, expected cropped feature missing:' + str(feature))
+                time_ordered_cropped_feature_names[cropped_feature_key] = cropped_features
+
+        # combine the new dictionary with the provided dictionary
+        time_ordered_feature_name_dict.update(time_ordered_cropped_feature_names)
+        return feature_op_dicts, features_complete_list, time_ordered_feature_name_dict
 
     @staticmethod
     def _image_augmentation(image, num_channels=None):
@@ -1345,7 +1466,7 @@ class GraspDataset(object):
             return tf.cast(rgb_image_op, tf.float32)
 
     @staticmethod
-    def _to_tensors(feature_op_dicts, features):
+    def to_tensors(feature_op_dicts, features):
         """Convert a list or dict of feature strings to tensors.
 
         # Arguments
@@ -1355,13 +1476,24 @@ class GraspDataset(object):
         features: list of strings, or dict where keys are strings and values are lists of strings
 
         # Returns
-
+        If 'features' is a str:
+            list of list of tensors, one for each dictionary in 'feature_op_dicts'.
         If 'features' is a list:
             list of list of tensors, one for each dictionary in 'feature_op_dicts'.
         If 'features' is a dict:
             list of dicts from strings to tensors, one for each dictionary in 'feature_op_dicts'.
         """
-        if isinstance(features, dict):
+        if isinstance(features, str):
+            # motion commands, such as pose or transform features
+            if features not in feature_op_dicts[0]:
+                available_features = [k for k, v in six.iteritems(feature_op_dicts[0])]
+                raise ValueError(
+                    'Unknown feature selected: {}'.format(features) +
+                    ' Available features include: ' + str(available_features))
+            # TODO(ahundt): follow the time step range limits again [grasp_sequence_min_time_step:grasp_sequence_max_time_step]
+            simplified_op_list = [t_o_dict[features] for t_o_dict in feature_op_dicts]
+            return simplified_op_list
+        elif isinstance(features, dict):
             list_of_tensor_dicts = []
 
             if isinstance(feature_op_dicts, list):
@@ -1373,7 +1505,9 @@ class GraspDataset(object):
                     list_of_tensor_dicts.append(tensor_dict)
                 return list_of_tensor_dicts
             else:
-                raise ValueError('feature_op_dicts expects data in the following format: [({\'feature_name\': tensor},{\'feature_name\': sequence_tensor})')
+                raise ValueError(
+                    'feature_op_dicts expects data in the following format: '
+                    '[({\'feature_name\': tensor},{\'feature_name\': sequence_tensor})')
         else:
             # assume features is a list, go through and get the list of lists that contain tensors
             return [[fixed_dict[feature] for feature in features] for (fixed_dict, seq_dict) in feature_op_dicts]
@@ -1408,7 +1542,8 @@ class GraspDataset(object):
             random_crop_dimensions=None,
             random_crop_offset=None,
             resize=FLAGS.resize,
-            seed=None):
+            seed=None,
+            verbose=0):
         """Get feature dictionaries containing ops and time ordered feature lists.
 
         This function is for advanced use cases and aims to make it easy to perform custom training,
@@ -1427,50 +1562,53 @@ class GraspDataset(object):
 
         # image type to load
         preprocessed_suffix = 'decoded'
-        print('feature_complete_list before crop len:', len(features_complete_list), 'list:', features_complete_list)
+        if verbose:
+            print('feature_complete_list before crop len:', len(features_complete_list), 'list:', features_complete_list)
 
-        # do cropping if enabled
-        if random_crop:
-            # Do the random crop preprocessing
-            # The preprocessed suffix is cropped if cropping is enabled.
-            preprocessed_suffix = 'cropped'
-            dict_and_feature_tuple_list = []
-            # list of all *decoded* image features available
-            # note that new features become available later in this function
-            image_features = GraspDataset.get_time_ordered_features(features_complete_list, '/image/decoded')
-            image_features.extend(GraspDataset.get_time_ordered_features(features_complete_list, 'depth_image/decoded'))
-            image_features.extend(GraspDataset.get_time_ordered_features(features_complete_list, 'xyz_image/decoded'))
-            # loop through each grasp attempt in a batch
-            for feature_op_dict, sequence_op_dict in tqdm(feature_op_dicts, desc='get_training_dictionaries.image_random_crop'):
-                feature_op_dict, new_feature_list = GraspDataset._image_random_crop(
-                    feature_op_dict, sensor_image_dimensions, random_crop_offset, seed, image_features=image_features)
-                dict_and_feature_tuple_list.append((feature_op_dict, sequence_op_dict))
-            # the new_feature_list should be the same for all the ops
-            features_complete_list = np.append(features_complete_list, new_feature_list)
-            feature_op_dicts = dict_and_feature_tuple_list
-
-        # print('feature_op_dicts_after_crop len:', len(feature_op_dicts), 'dicts:', feature_op_dicts)
-        print('feature_complete_list after crop len:', len(features_complete_list), 'list:', features_complete_list)
-        print('END DICTS AFTER CROP')
+        if verbose:
+            # print('feature_op_dicts_after_crop len:', len(feature_op_dicts), 'dicts:', feature_op_dicts)
+            print('feature_complete_list after crop len:', len(features_complete_list), 'list:', features_complete_list)
+            print('END DICTS AFTER CROP')
 
         # Get the surface relative transform tensors
         #
         # Get tensors that load the dataset from disk plus features
         # calculated from the raw data, including transforms and point clouds
         (feature_op_dicts, features_complete_list,
-            time_ordered_feature_name_dict, num_samples) = self._get_transform_tensors(
+         time_ordered_feature_name_dict, num_samples) = self._get_transform_tensors(
             feature_op_dicts=feature_op_dicts, features_complete_list=features_complete_list,
             time_ordered_feature_name_dict=time_ordered_feature_name_dict,
-            num_samples=num_samples, batch_size=batch_size, random_crop=random_crop)
+            num_samples=num_samples, batch_size=batch_size
+            # , random_crop=random_crop
+            )
 
-        # print('feature_op_dicts_after_transform_tensors, len', len(feature_op_dicts), 'dicts:', feature_op_dicts)
-        print('feature_complete_list after transforms len:', len(features_complete_list), 'list:', features_complete_list)
-        print('END DICTS AFTER TRANSFORMS')
+        if verbose:
+            # print('feature_op_dicts_after_transform_tensors, len', len(feature_op_dicts), 'dicts:', feature_op_dicts)
+            print('feature_complete_list after transforms len:', len(features_complete_list), 'list:', features_complete_list)
+            print('END DICTS AFTER TRANSFORMS')
 
         # get the clear view rgb, depth, and xyz image names
         rgb_clear_view_name = 'grasp/image/decoded'
         depth_clear_view_name = 'pregrasp/depth_image/decoded'
         xyz_clear_view_name = 'pregrasp/xyz_image/decoded'
+
+        # do cropping if enabled
+        if random_crop:
+            # The preprocessed suffix is cropped if cropping is enabled.
+            preprocessed_suffix = 'cropped'
+            # Do the random crop preprocessing
+            # The preprocessed suffix is cropped if cropping is enabled.
+            feature_op_dicts, features_complete_list, time_ordered_feature_name_dict = self._image_random_crop_grasp_attempt(
+                features_complete_list, feature_op_dicts, sensor_image_dimensions,
+                random_crop_offset, seed, time_ordered_feature_name_dict)
+
+        # get the feature names for the sequence of xyz images
+        # in which movement towards the close gripper step is made
+        xyz_move_to_grasp_steps_cropped = self.get_time_ordered_features(
+            features_complete_list,
+            feature_type='xyz_image/cropped',
+            step='move_to_grasp'
+        )
 
         # the feature names vary depending on the user configuration,
         # the random_crop boolean flag in particular
@@ -1506,14 +1644,6 @@ class GraspDataset(object):
         xyz_move_to_grasp_steps = self.get_time_ordered_features(
             features_complete_list,
             feature_type='xyz_image/decoded',
-            step='move_to_grasp'
-        )
-
-        # get the feature names for the sequence of xyz images
-        # in which movement towards the close gripper step is made
-        xyz_move_to_grasp_steps_cropped = self.get_time_ordered_features(
-            features_complete_list,
-            feature_type='xyz_image/cropped',
             step='move_to_grasp'
         )
 
@@ -1573,20 +1703,22 @@ class GraspDataset(object):
             # assemble the updated feature op dicts
             new_feature_op_dicts.append((fixed_feature_op_dict, sequence_feature_op_dict))
 
+        num_time_steps = len(rgb_move_to_grasp_steps)
+
         new_time_ordered_feature_name_dict = {
-            'move_to_grasp/time_ordered/clear_view/rgb_image/decoded': [rgb_clear_view_name] * len(rgb_move_to_grasp_steps),
-            'move_to_grasp/time_ordered/clear_view/rgb_image/preprocessed': [fully_preprocessed_rgb_clear_view_name] * len(rgb_move_to_grasp_steps),
-            'move_to_grasp/time_ordered/clear_view/depth_image/decoded': [depth_clear_view_name] * len(rgb_move_to_grasp_steps),
-            'move_to_grasp/time_ordered/clear_view/depth_image/preprocessed': [preprocessed_depth_clear_view_name] * len(rgb_move_to_grasp_steps),
-            'move_to_grasp/time_ordered/clear_view/xyz_image/decoded': [xyz_clear_view_name] * len(rgb_move_to_grasp_steps),
-            'move_to_grasp/time_ordered/clear_view/xyz_image/preprocessed': [xyz_clear_view_name] * len(rgb_move_to_grasp_steps),
+            'move_to_grasp/time_ordered/clear_view/rgb_image/decoded': [rgb_clear_view_name] * num_time_steps,
+            'move_to_grasp/time_ordered/clear_view/rgb_image/preprocessed': [fully_preprocessed_rgb_clear_view_name] * num_time_steps,
+            'move_to_grasp/time_ordered/clear_view/depth_image/decoded': [depth_clear_view_name] * num_time_steps,
+            'move_to_grasp/time_ordered/clear_view/depth_image/preprocessed': [preprocessed_depth_clear_view_name] * num_time_steps,
+            'move_to_grasp/time_ordered/clear_view/xyz_image/decoded': [xyz_clear_view_name] * num_time_steps,
+            'move_to_grasp/time_ordered/clear_view/xyz_image/preprocessed': [xyz_clear_view_name] * num_time_steps,
             'move_to_grasp/time_ordered/rgb_image/decoded': rgb_move_to_grasp_steps,
             'move_to_grasp/time_ordered/rgb_image/preprocessed': preprocessed_rgb_move_to_grasp_steps_names,
             'move_to_grasp/time_ordered/xyz_image/decoded': xyz_move_to_grasp_steps,
             # note: at the time of writing preprocessing of xyz images only includes cropping
             'move_to_grasp/time_ordered/xyz_image/preprocessed': xyz_move_to_grasp_steps_cropped,
             'move_to_grasp/time_ordered/depth_image/decoded': depth_move_to_grasp_steps,
-            'move_to_grasp/time_ordered/grasp_success': ['grasp_success'] * len(rgb_move_to_grasp_steps)
+            'move_to_grasp/time_ordered/grasp_success': ['grasp_success'] * num_time_steps
         }
 
         # combine the new dictionary with the provided dictionary
@@ -1608,7 +1740,7 @@ class GraspDataset(object):
                              grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
                              grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
                              seed=None):
-        """Get tensors configured for training on grasps.
+        """Get tensors configured for training on grasps from a single dataset.
 
             TODO(ahundt) 2017-12-05 update get_training_tensors docstring, now expects 'move_to_grasp/time_ordered/' feature strings.
 
@@ -1662,57 +1794,41 @@ class GraspDataset(object):
 
            # Returns
 
-               (pregrasp_op_batch, grasp_step_op_batch, simplified_grasp_command_op_batch, example_batch_size, grasp_success_op_batch, num_samples)
+               (pregrasp_op_batch, grasp_step_op_batch, simplified_grasp_command_op_batch, grasp_success_op_batch, num_samples)
         """
         # Get tensors that load the dataset from disk plus features calculated from the raw data, including transforms and point clouds
         feature_op_dicts, features_complete_list, time_ordered_feature_name_dict, num_samples = self.get_training_dictionaries(
-            batch_size=batch_size, random_crop=random_crop, offset=offset, sensor_image_dimensions=sensor_image_dimensions,
+            batch_size=batch_size, random_crop=random_crop, sensor_image_dimensions=sensor_image_dimensions,
             random_crop_dimensions=random_crop_dimensions, random_crop_offset=random_crop_offset)
 
-        time_ordered_feature_tensor_dict = GraspDataset._to_tensors(feature_op_dicts, time_ordered_feature_name_dict)
+        time_ordered_feature_tensor_dicts = GraspDataset.to_tensors(feature_op_dicts, time_ordered_feature_name_dict)
 
         # motion commands, such as pose or transform features
-        if motion_command_feature not in time_ordered_feature_tensor_dict:
-            features = [k for k, v in time_ordered_feature_tensor_dict]
-            raise ValueError('get_training_tensors(): unknown grasp_sequence_motion_command_feature selected: {}'.format(motion_command_feature) +
-                             ' Available features include: ' + str(features))
-        simplified_grasp_command_op_batch = time_ordered_feature_tensor_dict[motion_command_feature][grasp_sequence_min_time_step:grasp_sequence_max_time_step]
+        simplified_grasp_command_op_batch = self.to_tensors(time_ordered_feature_tensor_dicts, motion_command_feature)
 
         # image of a clear scene view, originally from 'view_clear_scene' step,
         # There is also a move_to_grasp versions copied from view_clear_scene then repeated once for each time step.
-        if clear_view_image_feature not in time_ordered_feature_tensor_dict:
-            features = [k for k, v in time_ordered_feature_tensor_dict]
-            raise ValueError('get_training_tensors(): unknown clear_view_image_feature selected: {}'.format(image_feature) +
-                             ' Available features include: ' + str(features))
-        pregrasp_op_batch = time_ordered_feature_tensor_dict[clear_view_image_feature][grasp_sequence_min_time_step:grasp_sequence_max_time_step]
+        pregrasp_op_batch = self.to_tensors(time_ordered_feature_tensor_dicts, clear_view_image_feature)
 
         # image from the current time step
-        if grasp_sequence_image_feature not in time_ordered_feature_tensor_dict:
-            features = [k for k, v in time_ordered_feature_tensor_dict]
-            raise ValueError('get_training_tensors(): unknown grasp_sequence_image_feature selected: {}'.format(image_feature) +
-                             ' Available features include: ' + str(features))
-        grasp_step_op_batch = time_ordered_feature_tensor_dict[grasp_sequence_image_feature][grasp_sequence_min_time_step:grasp_sequence_max_time_step]
+        grasp_step_op_batch = self.to_tensors(time_ordered_feature_tensor_dicts, grasp_sequence_image_feature)
 
         # grasp success labels from the motion
-        if grasp_success_label not in time_ordered_feature_tensor_dict:
-            features = [k for k, v in time_ordered_feature_tensor_dict]
-            raise ValueError('get_training_tensors(): unknown grasp_success_label feature selected: {}'.format(motion_command_feature) +
-                             ' Available features include: ' + str(features))
+        grasp_success_op_batch = self.to_tensors(time_ordered_feature_tensor_dicts, grasp_success_label)
 
-        grasp_success_op_batch = time_ordered_feature_tensor_dict[grasp_success_label][grasp_sequence_min_time_step:grasp_sequence_max_time_step]
+        # make one long list from each list of lists
+        simplified_grasp_command_op_batch = list(itertools.chain.from_iterable(simplified_grasp_command_op_batch))
+        pregrasp_op_batch = list(itertools.chain.from_iterable(pregrasp_op_batch))
+        grasp_success_op_batch = list(itertools.chain.from_iterable(grasp_success_op_batch))
+        grasp_step_op_batch = list(itertools.chain.from_iterable(grasp_step_op_batch))
 
+        # stack all the data in a way that will let it run in parallel
         pregrasp_op_batch = tf.parallel_stack(pregrasp_op_batch)
         grasp_step_op_batch = tf.parallel_stack(grasp_step_op_batch)
         simplified_grasp_command_op_batch = tf.parallel_stack(simplified_grasp_command_op_batch)
         grasp_success_op_batch = tf.parallel_stack(grasp_success_op_batch)
 
-        pregrasp_op_batch = tf.concat(pregrasp_op_batch, 0)
-        grasp_step_op_batch = tf.concat(grasp_step_op_batch, 0)
-        simplified_grasp_command_op_batch = tf.concat(simplified_grasp_command_op_batch, 0)
-        grasp_success_op_batch = tf.concat(grasp_success_op_batch, 0)
-        # add one extra dimension so they match
-        grasp_success_op_batch = tf.expand_dims(grasp_success_op_batch, -1)
-        return pregrasp_op_batch, grasp_step_op_batch, simplified_grasp_command_op_batch, example_batch_size, grasp_success_op_batch, num_samples
+        return pregrasp_op_batch, grasp_step_op_batch, simplified_grasp_command_op_batch, grasp_success_op_batch, num_samples
 
     def npy_to_gif(self, npy, filename, fps=2):
         """Convert a numpy array into a gif file at the location specified by filename.
@@ -1724,14 +1840,15 @@ class GraspDataset(object):
 
     def create_gif(self, tf_session=tf.Session(),
                    visualization_dir=FLAGS.visualization_dir,
-                   rgb_feature_type='/image/decoded',
+                   rgb_feature_type='move_to_grasp/time_ordered/rgb_image/preprocessed',
                    depth_feature_type='depth_image/rgb_encoded',
-                   draw='circle_on_gripper'):
-        """Create gifs of the loaded dataset and write them to visualization_dir
+                   draw='circle_on_gripper',
+                   coordinate_feature='move_to_grasp/time_ordered/reached_pose/transforms/endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/preprocessed/xy_2'):
+        """Create gif images of each grasp attempt and write them to visualization_dir
 
         # Arguments
 
-            sess: the TensorFlow Session to use
+            tf_session: the TensorFlow Session to use
             visualization_dir: where to save the gif files
             rgb_feature_type: save rgb gif files with the feature type provided, see get_time_ordered_features().
             depth_feature type: save depth gif files with the feature type provided, see get_time_ordered_features().
@@ -1766,22 +1883,31 @@ class GraspDataset(object):
             # batch shize should actually always be 1 for this visualization
             output_features_dicts = tf_session.run(feature_op_dicts)
             # reorganize is grasp attempt so it is easy to walk through
-            [time_ordered_feature_data_dict] = self._to_tensors(output_features_dicts, time_ordered_feature_name_dict)
+            [time_ordered_feature_data_dict] = self.to_tensors(output_features_dicts, time_ordered_feature_name_dict)
             # features_dict_np contains fixed dimension features, sequence_dict_np contains variable length sequences of data
             # We're assuming the batch size is 1, which is why there are only two elements in the list.
             [(features_dict_np, sequence_dict_np)] = output_features_dicts
 
             if rgb_feature_type:
-                ordered_rgb_image_features = GraspDataset.get_time_ordered_features(
-                    features_complete_list,
-                    feature_type=rgb_feature_type)
-                if attempt_num == 0:
-                    print("Saving rgb features to a gif in the following order: " + str(ordered_rgb_image_features))
-                video = np.concatenate(self._to_tensors(output_features_dicts, ordered_rgb_image_features), axis=0)
+                if rgb_feature_type in time_ordered_feature_name_dict:
+                    video = time_ordered_feature_data_dict[rgb_feature_type]
+                    if attempt_num == 0:
+                        print("Saving rgb features to a gif in the following order: " +
+                              str(time_ordered_feature_name_dict[rgb_feature_type]))
+                else:
+                    ordered_rgb_image_features = GraspDataset.get_time_ordered_features(
+                        features_complete_list,
+                        feature_type=rgb_feature_type)
+                    if attempt_num == 0:
+                        print("Saving rgb features to a gif in the following order: " +
+                              str(ordered_rgb_image_features))
+                    video = np.concatenate(self.to_tensors(output_features_dicts, ordered_rgb_image_features), axis=0)
                 if draw == 'circle_on_gripper':
-                    coordinates = time_ordered_feature_data_dict[
-                        'move_to_grasp/time_ordered/reached_pose/transforms/'
-                        'endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/xy_2']
+                    coordinates = time_ordered_feature_data_dict[coordinate_feature]
+                    if 'random_crop_offset' in features_dict_np:
+                        offset = features_dict_np['random_crop_offset']
+                    else:
+                        offset = np.array([0, 0])
 
                     num = len(video)
                     # fig, axs = plt.subplots(ncols=1, nrows=1, figsize=(10, 6))
@@ -1790,12 +1916,14 @@ class GraspDataset(object):
                         frame = np.array(frame, dtype=np.uint8)
                         # TODO(ahundt) fix hard coded range
                         if i > 1 and i < len(coordinates) + 2:
+                            coordinate = coordinates[i-2]
+                            # offset_coordinate = coordinate - offset[:2]
                             grasp_geometry.draw_circle(
                                 frame,
-                                np.array(coordinates[i-2], dtype=np.int32),
+                                np.array(coordinate, dtype=np.int32),
                                 color=[0, 255, 255])
                         circle_vid.append(frame)
-                            # plt.show()
+                        # plt.show()
                     video = np.concatenate(circle_vid)
                 gif_filename = (os.path.basename(str(self.dataset) + '_grasp_' + str(int(attempt_num)) +
                                 '_rgb_success_' + str(int(features_dict_np['grasp_success'])) + '.gif'))
@@ -1808,12 +1936,169 @@ class GraspDataset(object):
                     feature_type=depth_feature_type)
                 if attempt_num == 0:
                     print("Saving depth features to a gif in the following order: " + str(ordered_depth_image_features))
-                video = np.concatenate(self._to_tensors(output_features_dicts, ordered_depth_image_features), axis=0)
+                video = np.concatenate(self.to_tensors(output_features_dicts, ordered_depth_image_features), axis=0)
                 gif_filename = (os.path.basename(str(self.dataset) + '_grasp_' + str(int(attempt_num)) +
                                 '_depth_success_' + str(int(features_dict_np['grasp_success'])) + '.gif'))
                 gif_path = os.path.join(visualization_dir, gif_filename)
                 self.npy_to_gif(video, gif_path)
 
+
+def get_multi_dataset_training_tensors(
+        datasets=FLAGS.grasp_datasets_train,
+        batch_size=FLAGS.batch_size,
+        imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
+        grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
+        grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
+        random_crop=FLAGS.random_crop,
+        resize=FLAGS.resize,
+        resize_height=FLAGS.resize_height,
+        resize_width=FLAGS.resize_width,
+        grasp_datasets_batch_algorithm='constant'):
+    """Aggregate multiple datasets into combined training tensors.
+
+    # TODO(ahundt) parameterize this function properly, don't just use FLAGS defaults in get_training_tensors
+
+    The Grasping data is divided into multiple datasets with varying numbers
+    of features. In particular, individually each dataset has a fixed number
+    of time steps, but the number of time steps varies between datasets.
+    Each dataset is named based on the number of features it contains.
+
+    This function aggregates these datasets such that a 'batch' is number
+    of grasp examples, and a 'minibatch' is the number of time steps
+    in one grasp example.
+
+    The number of training samples per step for a single dataset will be:
+
+    samples_per_step_for_one_dataset = (minibatch size * batch size)
+
+    The total number of training samples per step for multiple datsets is
+    the sum of the samples per step in each dataset:
+
+    samples_per_step_for_all_datasets = sum(list_of_samples_per_step_for_one_dataset)
+
+    Dataset 102 has 10 time steps, for example,
+    and dataset 097 (used for eval) has 9 time steps. This means
+    a batch size of 5 with the 'constant' training algorithm
+    will mean dataset 102 has  10 * batch size
+    5 = 50 individual training time step samples per step,
+    and 097 will have 9  * 5 = 45
+
+    # Arguments
+
+    datasets:
+        datasets parameter must be a list of strings or a
+        comma separated string identifying the datasets to load
+        such as 062_b,063,072_a,082_b,102.
+        see FLAGS.grasp_datasets_train
+    grasp_datasets_batch_algorithm: Use default batch if constant.
+        'constant' training on multiple datasets reads `batch_size`
+            elements from each dataset at each training step when this parameter.
+        'proportional' each dataset's batch size will be individually
+            set to int(batch_size*single_batch/max_batch_size)
+            so smaller datasets are run more slowly than larger datasets.
+
+    Note that one limitation of this setup is that we will
+    iterate over samples according to the largest dataset,
+    which means we see smaller datasets more than once in
+    a single epoch. Try not to aggregate a very small dataset
+    with a very large one with 'constant' batch algorithm or a small
+    batch size and the 'proportional' algorithm!
+
+    # Returns
+
+    Time-aligned list of data tensors of equal batch size for training on multiple datasets simultaneously.
+
+    [pregrasp_op_batch,
+     grasp_step_op_batch,
+     simplified_grasp_command_op_batch,
+     grasp_success_op_batch,
+     steps_per_epoch]
+
+    pregrasp_op_batch:
+        4d [batch, height, width, channels]
+        rgb image feature tensor containing the clear view scene.
+    grasp_step_op_batch:
+        4d [batch, height, width, channels] rgb image feature tensor
+        containing the current time step's scene (gripper visible).
+    simplified_grasp_command_op_batch:
+        2d [batch, channels] feature tensor containing the
+        "proposed" command which the network should evaluate.
+        this parameter is configurable based on the
+        FLAGS.grasp_sequence_motion_command_feature command line parameter
+    grasp_success_op_batch:
+        2d [batch, 1] tensor containing labels,
+        including a 1 if the grasp attempt succeeded
+        and a 0 if the grasp attempt failed.
+    steps_per_epoch:
+        A python integer with the number of steps to traverse
+        the largest of the aggregated datasets once.
+        This means that not all datasets will be covered at a perfectly equal pace.
+
+    """
+    if grasp_datasets_batch_algorithm != 'constant' and grasp_datasets_batch_algorithm != 'proportional':
+        raise ValueError('grasp_datasets_batch_algorithm string value must be either constant or proportional.')
+
+    if isinstance(datasets, str):
+        datasets = dataset.split(',')
+    elif not isinstance(datasets, list):
+        raise ValueError('datasets parameter must be a list or a comma separated string such as 062_b,063,072_a,082_b,102.')
+    max_num_samples = 0
+    grasp_datasets = []
+    pregrasp_op_batch = []
+    grasp_step_op_batch = []
+    # simplified_network_grasp_command_op
+    simplified_grasp_command_op_batch = []
+    grasp_success_op_batch = []
+
+    dataset_batch_sizes = []
+    grasp_dataset_list = []
+
+    # initialize all datasets
+    for single_dataset in datasets:
+        data = GraspDataset(dataset=single_dataset)
+        grasp_dataset_list.append(data)
+        dataset_batch_sizes.append(data.get_features()[1])
+
+    max_batch_size = max(dataset_batch_sizes)
+    # Not sure why any thing assigned to max_batch_size, it can pass
+    for single_dataset, single_batch in zip(grasp_dataset_list, tqdm(dataset_batch_sizes, desc='load_selected_datasets')):
+        proportional_batch_size = batch_size
+        if(grasp_datasets_batch_algorithm == 'proportional'):
+            proportional_batch_size = int(batch_size * single_batch / max_batch_size)
+        data = single_dataset
+        # list of dictionaries the length of batch_size
+        (pregrasp_op,
+         grasp_step_op,
+         simplified_grasp_command_op,
+         grasp_success_op,
+         num_samples) = data.get_training_tensors(
+             batch_size=proportional_batch_size,
+             imagenet_mean_subtraction=imagenet_mean_subtraction,
+             random_crop=random_crop,
+             resize=resize,
+             grasp_sequence_min_time_step=grasp_sequence_min_time_step,
+             grasp_sequence_max_time_step=grasp_sequence_max_time_step)
+
+        max_num_samples = max(num_samples, max_num_samples)
+        pregrasp_op_batch.append(pregrasp_op)
+        grasp_step_op_batch.append(grasp_step_op)
+        simplified_grasp_command_op_batch.append(simplified_grasp_command_op)
+        grasp_success_op_batch.append(grasp_success_op)
+        # make sure we visit every image once
+
+    steps_per_epoch = int(np.ceil(float(max_num_samples)/float(batch_size)))
+
+    pregrasp_op_batch = tf.concat(pregrasp_op_batch, 0)
+    grasp_step_op_batch = tf.concat(grasp_step_op_batch, 0)
+    simplified_grasp_command_op_batch = tf.concat(simplified_grasp_command_op_batch, 0)
+    print('grasp_success_op_batch before concat: ', grasp_success_op_batch)
+    grasp_success_op_batch = tf.concat(grasp_success_op_batch, 0)
+    print('pregrasp_op_batch:', pregrasp_op_batch,
+          'grasp_step_op_batch:', grasp_step_op_batch,
+          'simplified_grasp_command_op_batch:', simplified_grasp_command_op_batch,
+          'grasp_success_op_batch:', grasp_success_op_batch)
+
+    return pregrasp_op_batch, grasp_step_op_batch, simplified_grasp_command_op_batch, grasp_success_op_batch, steps_per_epoch
 
 if __name__ == '__main__':
     with tf.Session() as sess:
@@ -1821,4 +2106,3 @@ if __name__ == '__main__':
         if FLAGS.grasp_download:
             gd.download(dataset=FLAGS.grasp_dataset)
         gd.create_gif(sess)
-
