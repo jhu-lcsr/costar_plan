@@ -982,13 +982,13 @@ class GraspDataset(object):
                  vec_sin_cos_5,
                  delta_depth_sin_cos_3,
                  delta_depth_quat_5] = tf.py_func(
-                    grasp_geometry.grasp_dataset_to_transforms_and_features,
-                    # parameters for grasp_dataset_to_transforms_and_features() function call
-                    [cartesian_clear_view_op, camera_intrinsics_matrix, camera_T_base,
-                     base_to_endeffector_op, final_base_to_endeffector_transform_op],
+                     grasp_geometry.grasp_dataset_to_transforms_and_features,
+                     # parameters for grasp_dataset_to_transforms_and_features() function call
+                     [cartesian_clear_view_op, camera_intrinsics_matrix, camera_T_base,
+                      base_to_endeffector_op, final_base_to_endeffector_transform_op],
                      # return type data formats to expect
-                    [tf.float32] * 14,
-                    stateful=False, name='py_func/grasp_dataset_to_transforms_and_features')
+                     [tf.float32] * 14,
+                     stateful=False, name='py_func/grasp_dataset_to_transforms_and_features')
 
                 # define pixel image coordinate as an integer type
                 image_coordinate_current = tf.cast(image_coordinate_current, tf.int32)
