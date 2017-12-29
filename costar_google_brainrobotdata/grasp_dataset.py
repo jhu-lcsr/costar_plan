@@ -2145,7 +2145,7 @@ def get_multi_dataset_training_tensors(
         resize=FLAGS.resize,
         resize_height=FLAGS.resize_height,
         resize_width=FLAGS.resize_width,
-        grasp_datasets_batch_algorithm='constant'):
+        grasp_datasets_batch_algorithm=FLAGS.grasp_datasets_batch_algorithm):
     """Aggregate multiple datasets into combined training tensors.
 
     # TODO(ahundt) parameterize this function properly, don't just use FLAGS defaults in get_training_tensors
@@ -2257,7 +2257,9 @@ def get_multi_dataset_training_tensors(
     for single_dataset, single_batch in zip(grasp_dataset_list, tqdm(dataset_batch_sizes, desc='load_selected_datasets')):
         proportional_batch_size = batch_size
         if(grasp_datasets_batch_algorithm == 'proportional'):
-            proportional_batch_size = int(batch_size * single_batch / max_batch_size)
+            # scale batch size of each dataset according to the number of samples,
+            # while ensuring there is a minimum batch size of 1.
+            proportional_batch_size = max(int(batch_size * single_batch / max_batch_size), 1)
         data = single_dataset
         # list of dictionaries the length of batch_size
         (pregrasp_op,
