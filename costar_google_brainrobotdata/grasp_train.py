@@ -263,8 +263,9 @@ class GraspTrain(object):
                 # the first five epochs. See https://arxiv.org/abs/1706.02677 for details.
                 hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=5, verbose=1),
 
-                # Reduce the learning rate if training plateaues.
-                keras.callbacks.ReduceLROnPlateau(patience=8, verbose=1),
+                # Reduce the learning rate if training plateaus.
+                # TODO(ahundt) add validation checks and update monitor parameter to use them
+                keras.callbacks.ReduceLROnPlateau(patience=8, verbose=1, monitor='loss'),
             ]
 
         # 2017-08-27 Tried NADAM for a while with the settings below, only improved for first 2 epochs.
@@ -388,7 +389,7 @@ class GraspTrain(object):
 
         model.summary()
 
-        steps = float(num_samples)/float(batch_size)
+        steps = float(num_samples) / float(batch_size)
 
         if not steps.is_integer():
             raise ValueError('The number of samples was not exactly divisible by the batch size!'
