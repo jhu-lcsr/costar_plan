@@ -219,7 +219,7 @@ class GraspTrain(object):
 
         callbacks = []
         scheduler = keras.callbacks.LearningRateScheduler(lr_scheduler)
-        early_stopper = EarlyStopping(monitor='acc', min_delta=0.001, patience=10)
+        early_stopper = EarlyStopping(monitor='acc', min_delta=0.001, patience=16)
         csv_logger = CSVLogger(weights_name + '.csv')
         checkpoint = keras.callbacks.ModelCheckpoint(weights_name + '-epoch-{epoch:03d}-loss-{loss:.3f}-acc-{acc:.3f}.h5',
                                                      save_best_only=True, verbose=1, monitor='acc')
@@ -264,7 +264,7 @@ class GraspTrain(object):
                 hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=5, verbose=1),
 
                 # Reduce the learning rate if training plateaues.
-                keras.callbacks.ReduceLROnPlateau(patience=10, verbose=1),
+                keras.callbacks.ReduceLROnPlateau(patience=8, verbose=1),
             ]
 
         # 2017-08-27 Tried NADAM for a while with the settings below, only improved for first 2 epochs.
