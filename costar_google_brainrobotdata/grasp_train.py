@@ -29,6 +29,8 @@ import grasp_model
 
 from tqdm import tqdm  # progress bars https://github.com/tqdm/tqdm
 
+import horovod.keras as hvd
+
 flags.DEFINE_string('learning_rate_decay_algorithm', 'power_decay',
                     """Determines the algorithm by which learning rate decays,
                        options are power_decay, exp_decay, adam and progressive_drops.
@@ -138,6 +140,16 @@ class GraspTrain(object):
                 this affects the memory consumption of the system when training, but if it fits into memory
                 you almost certainly want the value to be None, which includes every image.
         """
+
+        # Initialize Horovod.
+        hvd.init()
+
+        # Pin GPU to be used to process local rank (one GPU per process)
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        config.gpu_options.visible_device_list = str(hvd.local_rank())
+        K.set_session(tf.Session(config=config))
+
         datasets = dataset.split(',')
         (pregrasp_op_batch,
          grasp_step_op_batch,
@@ -228,8 +240,32 @@ class GraspTrain(object):
         # 2017-08-28 trying SGD
         # 2017-12-18 SGD worked very well and has been the primary training optimizer from 2017-09 to 2017-12
         if FLAGS.optimizer is 'SGD':
-            optimizer = keras.optimizers.SGD(lr=learning_rate)
-            callbacks = callbacks + [scheduler]
+
+            # Adjust learning rate based on number of GPUs.
+            optimizer = keras.optimizers.SGD(learning_rate * hvd.size())
+
+            # Add Horovod Distributed Optimizer.
+            optimizer = hvd.DistributedOptimizer(optimizer)
+            callbacks = callbacks + [
+                # Broadcast initial variable states from rank 0 to all other processes.
+                # This is necessary to ensure consistent initialization of all workers when
+                # training is started with random weights or restored from a checkpoint.
+                hvd.callbacks.BroadcastGlobalVariablesCallback(0),
+
+                # Average metrics among workers at the end of every epoch.
+                #
+                # Note: This callback must be in the list before the ReduceLROnPlateau,
+                # TensorBoard or other metrics-based callbacks.
+                hvd.callbacks.MetricAverageCallback(),
+
+                # Using `lr = 1.0 * hvd.size()` from the very beginning leads to worse final
+                # accuracy. Scale the learning rate `lr = 1.0` ---> `lr = 1.0 * hvd.size()` during
+                # the first five epochs. See https://arxiv.org/abs/1706.02677 for details.
+                hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=5, verbose=1),
+
+                # Reduce the learning rate if training plateaues.
+                keras.callbacks.ReduceLROnPlateau(patience=10, verbose=1),
+            ]
 
         # 2017-08-27 Tried NADAM for a while with the settings below, only improved for first 2 epochs.
         # optimizer = keras.optimizers.Nadam(lr=0.004, beta_1=0.825, beta_2=0.99685)
