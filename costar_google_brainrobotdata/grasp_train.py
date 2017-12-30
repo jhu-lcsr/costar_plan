@@ -9,6 +9,7 @@ License: Apache v2 https://www.apache.org/licenses/LICENSE-2.0
 import os
 import sys
 import datetime
+import traceback
 import numpy as np
 import tensorflow as tf
 import keras
@@ -269,6 +270,7 @@ class GraspTrain(object):
             # always try to save weights
             final_weights_name = weights_name + '-autosaved-on-exception.h5'
             model.save_weights(final_weights_name)
+            traceback.print_exc()
             raise e
         return final_weights_name
 
