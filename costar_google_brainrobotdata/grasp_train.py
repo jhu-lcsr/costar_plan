@@ -87,7 +87,7 @@ flags.DEFINE_string('learning_rate_scheduler', 'learning_rate_scheduler',
                        a power decay path for the learning rate over time.
                        This is most useful with SGD, currently disabled with Adam.""")
 flags.DEFINE_string('optimizer', 'SGD', """Options are Adam and SGD.""")
-flags.DEFINE_string('progress_tracker', 'tensorboard',
+flags.DEFINE_string('progress_tracker', None,
                     """Utility to follow training progress, options are tensorboard and None.""")
 
 flags.FLAGS._parse_flags()
@@ -216,8 +216,7 @@ class GraspTrain(object):
 
         if FLAGS.progress_tracker is 'tensorboard':
             progress_tracker = TensorBoard(log_dir='./' + weights_name, write_graph=True,
-                                           write_grads=True, write_images=True,
-                                           embeddings_freq=10, embeddings_layer_names=None, embeddings_metadata=None)
+                                           write_grads=True, write_images=True)
             callbacks = callbacks + [progress_tracker]
         # Will need to try more things later.
         # Nadam parameter choice reference:
