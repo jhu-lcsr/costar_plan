@@ -80,7 +80,7 @@ flags.DEFINE_bool('tf_allow_memory_growth', True,
                   """False if memory usage will be allocated all in advance
                      or True if it should grow as needed. Allocating all in
                      advance may reduce fragmentation.""")
-flags.DEFINE_string('learning_rate_scheduler', None,
+flags.DEFINE_string('learning_rate_scheduler', 'learning_rate_scheduler',
                     """Options are None and learning_rate_scheduler,
                        turning this on activates the scheduler which follows
                        a power decay path for the learning rate over time.
