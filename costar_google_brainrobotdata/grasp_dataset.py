@@ -168,11 +168,6 @@ flags.DEFINE_string(
     'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/preprocessed/yx_2',
     """Algorithm used to generate the image coordinate labels.
 
-    TODO(ahundt) add in resizing. The tricky design decision is that feature names can change a lot, and each coordinate feature might correspond to a different image
-    and dimensions. One option (a) is to choose a single pipeline that resizes that alone, but this means switching up or printing out more than one choice isn't easy in a single run.
-    Another option (b) is to take all possible preprocessing configurations and apply the resize, but here it will be hard to associate every feature with the appropriate
-    input image and input image size. Will probably go with a single pipeline, with separate features created for each stage in the pipeline.
-
     Options include:
 
     'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/preprocessed/yx_2':
