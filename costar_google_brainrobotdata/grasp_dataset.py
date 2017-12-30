@@ -1564,7 +1564,7 @@ class GraspDataset(object):
             resize_height=FLAGS.resize_height,
             resize_width=FLAGS.resize_width,
             seed=None,
-            verbose=1):
+            verbose=0):
         """Get feature dictionaries containing ops and time ordered feature lists.
 
         This function is for advanced use cases and aims to make it easy to perform custom training,
