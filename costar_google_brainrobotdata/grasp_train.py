@@ -303,9 +303,9 @@ class GraspTrain(object):
             model.save_weights(final_weights_name)
         except (Exception, KeyboardInterrupt) as e:
             # always try to save weights
+            traceback.print_exc()
             final_weights_name = weights_name + '-autosaved-on-exception.h5'
             model.save_weights(final_weights_name)
-            traceback.print_exc()
             raise e
         return final_weights_name
 
