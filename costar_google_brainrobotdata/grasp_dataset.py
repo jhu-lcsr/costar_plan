@@ -45,7 +45,7 @@ import grasp_geometry
 import grasp_geometry_tf
 import depth_image_encoding
 import random_crop as rcp
-
+from grasp_median_filter import median_filter_tf
 # DATASET LOADING CONFIGURATION COMMAND LINE PARAMETERS, see GraspDataset()
 flags.DEFINE_string('data_dir',
                     os.path.join(os.path.expanduser("~"),
@@ -87,6 +87,15 @@ flags.DEFINE_boolean('resize', False,
                      """resize will resize the input images to the desired dimensions specified but the
                         resize_width and resize_height flags. It is suggested that an exact factor of 2 be used
                         relative to the input image directions if random_crop is disabled or the crop dimensions otherwise.
+                     """)
+flags.DEFINE_boolean('median_filter', False,
+                     """median filter apply on depth image to remove zero and invalid depth.
+                     """)
+flags.DEFINE_integer('median_filter_width', 3,
+                     """Width of median filter kernel.
+                     """)                    
+flags.DEFINE_integer('median_filter_height', 3,
+                     """Height of median filter kernel.
                      """)
 flags.DEFINE_boolean('image_augmentation', False,
                      'image augmentation applies random brightness, saturation, hue, contrast')
@@ -1223,10 +1232,17 @@ class GraspDataset(object):
                         RGB_SCALE_FACTOR = 256000.0
                         image = image / RGB_SCALE_FACTOR
                         image.set_shape([height, width])
+                        # apply median filter to depth image
+                        if FLAGS.median_filter:
+                            median_filter_image = median_filter_tf(image, 
+                            (FLAGS.median_filter_height, FLAGS.median_filter_width))
+                            feature_op_dict['depth_image/median_filtered'] = median_filter_image
                         # depth images have one channel
                         if 'camera/intrinsics/matrix33' in feature_op_dict and point_cloud_fn is not None:
                             with tf.name_scope('xyz'):
                                 # generate xyz point cloud image feature
+                                if FLAGS.median_filter:
+                                    image = feature_op_dict['depth_image/median_filtered']
                                 if point_cloud_fn == 'tensorflow':
                                     # should be more efficient than the numpy version
                                     xyz_image = grasp_geometry_tf.depth_image_to_point_cloud(
