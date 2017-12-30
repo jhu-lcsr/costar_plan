@@ -1814,15 +1814,14 @@ class GraspDataset(object):
             random_crop_dimensions=None,
             random_crop_offset=None,
             resize=FLAGS.resize,
+            resize_height=FLAGS.resize_height,
+            resize_width=FLAGS.resize_width,
             motion_command_feature=FLAGS.grasp_sequence_motion_command_feature,
             grasp_sequence_image_feature=FLAGS.grasp_sequence_image_feature,
             clear_view_image_feature=FLAGS.grasp_sequence_image_feature,
             grasp_success_label=FLAGS.grasp_success_label,
             grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
             grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
-            resize=FLAGS.resize,
-            resize_height=FLAGS.resize_height,
-            resize_width=FLAGS.resize_width,
             seed=None):
         """Get tensors configured for training on grasps from a single dataset.
 
