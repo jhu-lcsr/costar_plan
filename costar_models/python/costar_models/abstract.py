@@ -27,7 +27,7 @@ class AbstractAgentBasedModel(object):
     def __init__(self, taskdef=None, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
             clipnorm=100., show_iter=0, pretrain_iter=5,
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
-            steps_per_epoch=500, validation_steps=25, choose_initial=5,
+            steps_per_epoch=500, validation_steps=25, choose_initial=10,
             dropout_rate=0.5, decoder_dropout_rate=0.5,
             tform_dropout_rate=0.,
             hypothesis_dropout=False,

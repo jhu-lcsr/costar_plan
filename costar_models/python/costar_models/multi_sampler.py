@@ -856,9 +856,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             activation = "relu"
         y = OneHot(self.num_options)(option)
         y = Flatten()(y)
-        x = Concatenate()([arm,gripper,y])
+        x = Concatenate()([arm,gripper])#,y])
 
         dr = self.dropout_rate * 0.
+        x = AddDense(x, 128, activation, dr)
         x = AddDense(x, 64, activation, dr)
         
         state_encoder = Model([arm, gripper, option], x,

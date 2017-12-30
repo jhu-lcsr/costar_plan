@@ -110,7 +110,7 @@ class PretrainSampler(PredictionSampler2):
         ae2 = Model(ins, ae_outs)
         ae2.compile(
             loss=["mae","mae", "mae", "categorical_crossentropy"],
-            loss_weights=[1.,0.5,0.1,0.025,],
+            loss_weights=[1.,0.5,0.1,0.0,],
             optimizer=self.getOptimizer())
         ae2.summary()
 

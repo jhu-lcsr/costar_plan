@@ -135,6 +135,7 @@ class ConditionalSampler2(PredictionSampler2):
         #y = Flatten()(y)
         y = next_option_in
         x = h
+        x = AddConv2D(x, self.tform_filters*2, [1,1], 1, 0.)
         for i in range(self.num_transforms):
             x = TileOnto(x, y, self.num_options, (8,8))
             x = AddConv2D(x, self.tform_filters*2,
@@ -142,10 +143,8 @@ class ConditionalSampler2(PredictionSampler2):
                     stride=1,
                     dropout_rate=self.tform_dropout_rate)
         x =  Concatenate(axis=-1)([x,h])
-        x = AddConv2D(x, rep_channels,
-                self.tform_kernel_size,
-                stride=1,
-                dropout_rate=self.tform_dropout_rate)
+        x = AddConv2D(x, rep_channels, [1, 1], stride=1,
+                dropout_rate=0.)
         image_out, arm_out, gripper_out, label_out = hidden_decoder(x)
 
         # =====================================================================
@@ -157,7 +156,7 @@ class ConditionalSampler2(PredictionSampler2):
         predictor.compile(
                 loss=["mae", "mae", "mae", "mae", "categorical_crossentropy",
                       "mae"],
-                loss_weights=[1., 1., 0.2, 0.025, 0.1, 0.],
+                loss_weights=[1., 0.5, 0.1, 0.025, 0.1, 0.],
                 optimizer=self.getOptimizer())
         predictor.summary()
         return predictor, predictor, actor, ins, h
