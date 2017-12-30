@@ -1,3 +1,11 @@
+"""Code for training models on the google brain robotics grasping dataset.
+
+https://sites.google.com/site/brainrobotdata/home/grasping-dataset
+
+Author: Andrew Hundt <ATHundt@gmail.com>
+
+License: Apache v2 https://www.apache.org/licenses/LICENSE-2.0
+"""
 import os
 import sys
 import datetime
@@ -99,7 +107,7 @@ class GraspTrain(object):
               load_weights=FLAGS.load_weights,
               save_weights=FLAGS.save_weights,
               make_model_fn=grasp_model.grasp_model,
-              imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
+              imagenet_preprocessing=FLAGS.imagenet_preprocessing,
               grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
               grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
               random_crop=FLAGS.random_crop,
@@ -138,7 +146,7 @@ class GraspTrain(object):
              datasets,
              batch_size,
              grasp_datasets_batch_algorithm,
-             imagenet_mean_subtraction,
+             imagenet_preprocessing,
              random_crop,
              resize,
              grasp_sequence_min_time_step,
@@ -268,7 +276,7 @@ class GraspTrain(object):
              load_weights=FLAGS.load_weights,
              save_weights=FLAGS.save_weights,
              make_model_fn=grasp_model.grasp_model,
-             imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
+             imagenet_preprocessing=FLAGS.imagenet_preprocessing,
              grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
              grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
              resize=FLAGS.resize,
@@ -304,8 +312,9 @@ class GraspTrain(object):
          simplified_grasp_command_op_batch,
          grasp_success_op_batch,
          num_samples) = data.get_training_tensors(batch_size=batch_size,
-                                                  imagenet_mean_subtraction=imagenet_mean_subtraction,
+                                                  imagenet_preprocessing=imagenet_preprocessing,
                                                   random_crop=False,
+                                                  image_augmentation=False,
                                                   resize=resize,
                                                   grasp_sequence_min_time_step=grasp_sequence_min_time_step,
                                                   grasp_sequence_max_time_step=grasp_sequence_max_time_step)

@@ -33,6 +33,7 @@ from tensorflow.python.platform import gfile
 from tensorflow.python.ops import data_flow_ops
 from tensorflow.python.keras.utils import get_file
 from tensorflow.python.keras._impl.keras.utils.data_utils import _hash_file
+import keras
 from keras import backend as K
 
 # TODO(ahundt) importing moviepy prevented python from exiting, uncomment lines when fixed.
@@ -46,6 +47,7 @@ import grasp_geometry
 import grasp_geometry_tf
 import depth_image_encoding
 import random_crop as rcp
+import inception_preprocessing
 
 # DATASET LOADING CONFIGURATION COMMAND LINE PARAMETERS, see GraspDataset()
 flags.DEFINE_string('data_dir',
@@ -89,9 +91,9 @@ flags.DEFINE_boolean('resize', True,
                         resize_width and resize_height flags. It is suggested that an exact factor of 2 be used
                         relative to the input image directions if random_crop is disabled or the crop dimensions otherwise.
                      """)
-flags.DEFINE_boolean('image_augmentation', False,
-                     'image augmentation applies random brightness, saturation, hue, contrast')
-flags.DEFINE_boolean('imagenet_mean_subtraction', True,
+flags.DEFINE_boolean('image_augmentation', True,
+                     'image augmentation applies random brightness, saturation, hue, contrast. imagenet_preprocessing must be True.')
+flags.DEFINE_boolean('imagenet_preprocessing', True,
                      'subtract the imagenet mean pixel values from the rgb images')
 flags.DEFINE_integer('grasp_sequence_max_time_step', None,
                      """The grasp motion time sequence consists of up to 11 time steps.
@@ -1449,57 +1451,10 @@ class GraspDataset(object):
         # combine the new dictionary with the provided dictionary
         time_ordered_feature_name_dict.update(time_ordered_cropped_feature_names)
 
-    @staticmethod
-    def _image_augmentation(image, num_channels=None):
-        """Performs data augmentation by randomly permuting the inputs.
-
-        TODO(ahundt) should normalization be applied first, or make sure values are 0-255 here, even in float mode?
-
-        Source: https://github.com/tensorflow/models/blob/aed6922fe2da5325bda760650b5dc3933b10a3a2/domain_adaptation/pixel_domain_adaptation/pixelda_preprocess.py#L81
-
-        Args:
-            image: A float `Tensor` of size [height, width, channels] with values
-            in range[0,1].
-        Returns:
-            The mutated batch of images
-        """
-        with tf.name_scope('image_augmentation'):
-            # Apply photometric data augmentation (contrast etc.)
-            if num_channels is None:
-                num_channels = image.shape()[-1]
-            if num_channels == 4:
-                # Only augment image part
-                image, depth = image[:, :, 0:3], image[:, :, 3:4]
-            elif num_channels == 1:
-                image = tf.image.grayscale_to_rgb(image)
-            image = tf.image.random_brightness(image, max_delta=0.1)
-            image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
-            image = tf.image.random_hue(image, max_delta=0.032)
-            image = tf.image.random_contrast(image, lower=0.5, upper=1.5)
-            image = tf.clip_by_value(image, 0, 1.0)
-            if num_channels == 4:
-                image = tf.concat(2, [image, depth])
-            elif num_channels == 1:
-                image = tf.image.rgb_to_grayscale(image)
-            return image
-
-    @staticmethod
-    def _imagenet_mean_subtraction(tensor):
-        """Do imagenet preprocessing, but make sure the network you are using needs it!
-
-           zero centers by the mean pixel value found in the imagenet dataset.
-        """
-        # TODO(ahundt) do we need to divide by 255 to make it floats from 0 to 1? It seems no based on https://keras.io/applications/
-        # TODO(ahundt) use keras tensor imagenet preprocessing when https://github.com/fchollet/keras/pull/7705 is closed
-        # TODO(ahundt) also apply per image standardization?
-        pixel_value_offset = tf.constant([103.939, 116.779, 123.68])
-        return tf.subtract(tensor, pixel_value_offset)
-
     def _rgb_preprocessing(
             self, rgb_image_op,
-            coordinate=None,
             image_augmentation=FLAGS.image_augmentation,
-            imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
+            imagenet_preprocessing=FLAGS.imagenet_preprocessing,
             resize=FLAGS.resize,
             resize_height=FLAGS.resize_height,
             resize_width=FLAGS.resize_width):
@@ -1516,18 +1471,16 @@ class GraspDataset(object):
                 rgb_image_op = tf.image.resize_images(rgb_image_op,
                                                       tf.constant([resize_height, resize_width],
                                                                   name='resize_height_width'))
-            if image_augmentation:
-                rgb_image_op = self._image_augmentation(rgb_image_op, num_channels=3)
-            rgb_image_op = tf.cast(rgb_image_op, tf.float32)
-            if imagenet_mean_subtraction:
-                rgb_image_op = self._imagenet_mean_subtraction(rgb_image_op)
-
-            rgb_image_op = tf.cast(rgb_image_op, tf.float32)
-
-            if coordinate is not None:
-                return rgb_image_op, coordinate
+            if imagenet_preprocessing:
+                rgb_image_op = tf.image.per_image_standardization(rgb_image_op)
+                rgb_image_op = inception_preprocessing.preprocess_image(
+                    rgb_image_op,
+                    is_training=image_augmentation,
+                    fast_mode=False)
             else:
-                return rgb_image_op
+                rgb_image_op = tf.cast(rgb_image_op, tf.float32)
+
+            return rgb_image_op
 
     @staticmethod
     def _resize_coordinate(coordinate, input_shape, output_shape):
@@ -1607,7 +1560,7 @@ class GraspDataset(object):
             num_samples=None,
             batch_size=FLAGS.batch_size,
             image_augmentation=FLAGS.image_augmentation,
-            imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
+            imagenet_preprocessing=FLAGS.imagenet_preprocessing,
             random_crop=FLAGS.random_crop,
             sensor_image_dimensions=None,
             random_crop_dimensions=None,
@@ -1779,7 +1732,7 @@ class GraspDataset(object):
             pregrasp_image_rgb_op = self._rgb_preprocessing(
                 pregrasp_image_rgb_op,
                 image_augmentation=image_augmentation,
-                imagenet_mean_subtraction=imagenet_mean_subtraction,
+                imagenet_preprocessing=imagenet_preprocessing,
                 resize=resize,
                 resize_height=resize_height,
                 resize_width=resize_width)
@@ -1796,8 +1749,10 @@ class GraspDataset(object):
                 grasp_step_rgb_feature_op = self._rgb_preprocessing(
                     fixed_feature_op_dict[grasp_step_rgb_feature_name],
                     image_augmentation=image_augmentation,
-                    imagenet_mean_subtraction=imagenet_mean_subtraction,
-                    resize=resize)
+                    imagenet_preprocessing=imagenet_preprocessing,
+                    resize=resize,
+                    resize_height=resize_height,
+                    resize_width=resize_width)
                 grasp_step_rgb_feature_name = grasp_step_rgb_feature_name.replace(
                     preprocessed_image_feature_type, '/image/preprocessed')
                 fixed_feature_op_dict[grasp_step_rgb_feature_name] = grasp_step_rgb_feature_op
@@ -1855,20 +1810,25 @@ class GraspDataset(object):
 
         return new_feature_op_dicts, features_complete_list, time_ordered_feature_name_dict, num_samples
 
-    def get_training_tensors(self, batch_size=FLAGS.batch_size,
-                             imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
-                             random_crop=FLAGS.random_crop,
-                             sensor_image_dimensions=None,
-                             random_crop_dimensions=None,
-                             random_crop_offset=None,
-                             resize=FLAGS.resize,
-                             motion_command_feature=FLAGS.grasp_sequence_motion_command_feature,
-                             grasp_sequence_image_feature=FLAGS.grasp_sequence_image_feature,
-                             clear_view_image_feature=FLAGS.grasp_sequence_image_feature,
-                             grasp_success_label=FLAGS.grasp_success_label,
-                             grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
-                             grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
-                             seed=None):
+    def get_training_tensors(
+            self, batch_size=FLAGS.batch_size,
+            imagenet_preprocessing=FLAGS.imagenet_preprocessing,
+            image_augmentation=FLAGS.image_augmentation,
+            random_crop=FLAGS.random_crop,
+            sensor_image_dimensions=None,
+            random_crop_dimensions=None,
+            random_crop_offset=None,
+            resize=FLAGS.resize,
+            motion_command_feature=FLAGS.grasp_sequence_motion_command_feature,
+            grasp_sequence_image_feature=FLAGS.grasp_sequence_image_feature,
+            clear_view_image_feature=FLAGS.grasp_sequence_image_feature,
+            grasp_success_label=FLAGS.grasp_success_label,
+            grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
+            grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
+            resize=FLAGS.resize,
+            resize_height=FLAGS.resize_height,
+            resize_width=FLAGS.resize_width,
+            seed=None):
         """Get tensors configured for training on grasps from a single dataset.
 
          TODO(ahundt) 2017-12-05 update get_training_tensors docstring, now expects 'move_to_grasp/time_ordered/' feature strings.
@@ -1967,6 +1927,7 @@ class GraspDataset(object):
         # Get tensors that load the dataset from disk plus features calculated from the raw data, including transforms and point clouds
         feature_op_dicts, features_complete_list, time_ordered_feature_name_dict, num_samples = self.get_training_dictionaries(
             batch_size=batch_size, random_crop=random_crop, sensor_image_dimensions=sensor_image_dimensions,
+            imagenet_preprocessing=imagenet_preprocessing, image_augmentation=image_augmentation,
             random_crop_dimensions=random_crop_dimensions, random_crop_offset=random_crop_offset)
 
         time_ordered_feature_tensor_dicts = GraspDataset.to_tensors(feature_op_dicts, time_ordered_feature_name_dict)
@@ -2070,6 +2031,16 @@ class GraspDataset(object):
                         print("Saving rgb features to a gif in the following order: " +
                               str(ordered_rgb_image_features))
                     video = np.concatenate(self.to_tensors(output_features_dicts, ordered_rgb_image_features), axis=0)
+
+                video_min = np.min(video)
+                video_max = np.max(video)
+                if video_min < 0 or video_max < 10:
+                    # video_max = 1.0
+                    # normalize the values for display if they aren't in 0 to 255 range
+                    video = (video - video_min) / (video_max - video_min) * 254
+                    print('Warning: normalizing video image channels for gif with min: ' +
+                          str(video_min) + ' and max: ' + str(video_max))
+
                 if draw == 'circle_on_gripper':
                     coordinates = time_ordered_feature_data_dict[coordinate_feature]
                     if 'random_crop_offset' in features_dict_np:
@@ -2117,7 +2088,7 @@ class GraspDataset(object):
 def get_multi_dataset_training_tensors(
         datasets=FLAGS.grasp_datasets_train,
         batch_size=FLAGS.batch_size,
-        imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
+        imagenet_preprocessing=FLAGS.imagenet_preprocessing,
         grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
         grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
         random_crop=FLAGS.random_crop,
@@ -2247,7 +2218,7 @@ def get_multi_dataset_training_tensors(
          grasp_success_op,
          num_samples) = data.get_training_tensors(
              batch_size=proportional_batch_size,
-             imagenet_mean_subtraction=imagenet_mean_subtraction,
+             imagenet_preprocessing=imagenet_preprocessing,
              random_crop=random_crop,
              resize=resize,
              grasp_sequence_min_time_step=grasp_sequence_min_time_step,
