@@ -854,15 +854,18 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             activation = "lrelu"
         else:
             activation = "relu"
-        y = OneHot(self.num_options)(option)
-        y = Flatten()(y)
-        if self.disable_option_in_encoder:
-            x = Concatenate()([arm,gripper])#,y])
-        else:
-            x = Concatenate()([arm,gripper,y])
 
         dr = self.dropout_rate * 0.
-        x = AddDense(x, 128, activation, dr)
+        x = Concatenate()([arm,gripper])
+        x = AddDense(x, 64, activation, dr)
+
+        y = OneHot(self.num_options)(option)
+        y = Flatten()(y)
+        y = AddDense(y, 32, activation, dr)
+
+        if not self.disable_option_in_encoder:
+            x = Concatenate()([x,y])
+
         x = AddDense(x, 64, activation, dr)
         
         state_encoder = Model([arm, gripper, option], x,

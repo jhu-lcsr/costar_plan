@@ -71,7 +71,7 @@ class ConditionalImage(PredictionSampler2):
         gripper_in = Input((gripper_size,))
         arm_gripper = Concatenate()([arm_in, gripper_in])
         label_in = Input((1,))
-        ins = [img_in, arm_in, gripper_in, label_in]
+        ins = img_in
 
         encoder = self._makeImageEncoder(img_shape)
         try:
@@ -95,38 +95,16 @@ class ConditionalImage(PredictionSampler2):
             pass
 
         rep_channels = self.encoder_channels
-        sencoder = self._makeStateEncoder(arm_size, gripper_size, False)
-        sdecoder = self._makeStateDecoder(arm_size, gripper_size,
-                rep_channels)
 
         # =====================================================================
         # Load the arm and gripper representation
 
-        # =====================================================================
-        # combine these models together with state information and label
-        # information
-        hidden_encoder = self._makeToHidden(img_shape, arm_size, gripper_size,
-                rep_channels)
-        hidden_decoder = self._makeFromHidden(rep_channels)
-
-        try:
-            hidden_encoder.load_weights(self._makeName(
-                "pretrain_sampler_model",
-                "hidden_encoder.h5f"))
-            hidden_decoder.load_weights(self._makeName(
-                "pretrain_sampler_model",
-                "hidden_decoder.h5f"))
-            hidden_encoder.trainable = self.retrain
-            hidden_decoder.trainable = self.retrain
-        except Exception as e:
-            pass
-
-        h = hidden_encoder(ins)
+        h = encoder(ins)
         value_out, next_option_out = GetNextOptionAndValue(h,
                                                            self.num_options,
                                                            self.rep_size,
                                                            dropout_rate=0.5,
-                                                           option_in=None)
+                                                           option_in=label_in)
 
         # create input for controlling noise output if that's what we decide
         # that we want to do
@@ -151,18 +129,16 @@ class ConditionalImage(PredictionSampler2):
         x =  Concatenate(axis=-1)([x,h])
         x = AddConv2D(x, rep_channels, [1, 1], stride=1,
                 dropout_rate=0.)
-        image_out, arm_out, gripper_out, label_out = hidden_decoder(x)
+        image_out = decoder(x)
 
         # =====================================================================
         # Create models to train
-        predictor = Model(ins,
-                [image_out, arm_out, gripper_out, label_out, next_option_out,
-                    value_out])
+        predictor = Model(ins + [label_in],
+                [image_out, next_option_out, value_out])
         actor = None
         predictor.compile(
-                loss=["mae", "mae", "mae", "mae", "categorical_crossentropy",
-                      "mae"],
-                loss_weights=[1., 0.5, 0.1, 0.025, 0.1, 0.],
+                loss=["mae", "categorical_crossentropy", "mae"],
+                loss_weights=[1., 0.1, 0.],
                 optimizer=self.getOptimizer())
         predictor.summary()
         return predictor, predictor, actor, ins, h
