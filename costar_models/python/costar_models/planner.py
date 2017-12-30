@@ -696,6 +696,7 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
     #x = AddConv2D(x, 128, kernel_size, 1, 0.)
     #x = AddConv2DTranspose(x, 64, kernel_size, 1, 0.)
     #x = AddConv2DTranspose(x, filters, [1,1], 1, 0.)
+    x = AddConv2D(x, rep_size[-1], kernel_size, 1, dr)
 
     ins = [xin]
     if use_noise:

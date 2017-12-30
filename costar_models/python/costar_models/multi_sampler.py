@@ -310,7 +310,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         return predictor, train_predictor, actor, ins, enc
 
-    def _getTransform(self,i=0):
+    def _getTransform(self,i=0,rep_channels=32):
         transform_dropout = False
         use_options_again = self.use_next_option
         transform_batchnorm = True
@@ -339,7 +339,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             transform_kernel_size = self.tform_kernel_size
             transform = GetTransform(
                     rep_size=(self.hidden_dim, self.hidden_dim,
-                        self.tform_filters),
+                        rep_channels),
                     filters=self.tform_filters,
                     kernel_size=transform_kernel_size,
                     idx=i,

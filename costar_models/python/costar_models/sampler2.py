@@ -166,9 +166,10 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         except Exception as e:
             pass
 
+        rep_channels = self.encoder_channels
         sencoder = self._makeStateEncoder(arm_size, gripper_size, False)
         sdecoder = self._makeStateDecoder(arm_size, gripper_size,
-                self.encoder_channels)
+                rep_channels)
 
         # =====================================================================
         # Load the arm and gripper representation
@@ -176,8 +177,9 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         # =====================================================================
         # combine these models together with state information and label
         # information
-        hidden_encoder = self._makeToHidden(img_shape, arm_size, gripper_size, self.rep_size)
-        hidden_decoder = self._makeFromHidden()
+        hidden_encoder = self._makeToHidden(img_shape, arm_size, gripper_size,
+                rep_channels)
+        hidden_decoder = self._makeFromHidden(rep_channels)
 
         try:
             hidden_encoder.load_weights(self._makeName(
@@ -202,10 +204,10 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             z = Input((self.num_hypotheses, self.noise_dim))
 
         if self.always_same_transform:
-            transform = self._getTransform(0)
+            transform = self._getTransform(0,rep_channels)
         for i in range(self.num_hypotheses):
             if not self.always_same_transform:
-                transform = self._getTransform(i)
+                transform = self._getTransform(i,rep_channels)
 
             if i == 0:
                 transform.summary()
