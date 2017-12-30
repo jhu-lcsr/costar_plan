@@ -217,6 +217,7 @@ class GraspTrain(object):
             progress_tracker = TensorBoard(log_dir='./' + weights_name, write_graph=True,
                                            write_grads=True, write_images=True,
                                            embeddings_freq=10, embeddings_layer_names=None, embeddings_metadata=None)
+            callbacks = callbacks + [progress_tracker]
         # Will need to try more things later.
         # Nadam parameter choice reference:
         # https://github.com/tensorflow/tensorflow/pull/9175#issuecomment-295395355
