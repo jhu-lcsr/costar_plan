@@ -16,6 +16,7 @@ import six
 import numpy as np
 import tensorflow as tf
 import re
+from scipy.ndimage.filters import median_filter
 
 # progress bars https://github.com/tqdm/tqdm
 # import tqdm without enforcing it as a dependency
@@ -75,7 +76,7 @@ flags.DEFINE_integer('random_crop_width', 560,
                      """Width to randomly crop images, if enabled""")
 flags.DEFINE_integer('random_crop_height', 448,
                      """Height to randomly crop images, if enabled""")
-flags.DEFINE_boolean('random_crop', False,
+flags.DEFINE_boolean('random_crop', True,
                      """random_crop will apply the tf random crop function with
                         the parameters specified by random_crop_width and random_crop_height
                      """)
@@ -88,7 +89,7 @@ flags.DEFINE_boolean('resize', False,
                         resize_width and resize_height flags. It is suggested that an exact factor of 2 be used
                         relative to the input image directions if random_crop is disabled or the crop dimensions otherwise.
                      """)
-flags.DEFINE_boolean('median_filter', False,
+flags.DEFINE_boolean('median_filter', True,
                      """median filter apply on depth image to remove zero and invalid depth.
                      """)
 flags.DEFINE_integer('median_filter_width', 3,
@@ -1947,12 +1948,19 @@ class GraspDataset(object):
                 self.npy_to_gif(video, gif_path)
 
             if depth_feature_type:
+                # depth_feature_type = 'depth_image/decoded'
                 ordered_depth_image_features = GraspDataset.get_time_ordered_features(
                     features_complete_list,
                     feature_type=depth_feature_type)
                 if attempt_num == 0:
                     print("Saving depth features to a gif in the following order: " + str(ordered_depth_image_features))
-                video = np.concatenate(self.to_tensors(output_features_dicts, ordered_depth_image_features), axis=0)
+                frame_list = self.to_tensors(output_features_dicts, ordered_depth_image_features)
+                if FLAGS.median_filter:
+                    for single_frame in frame_list[0]:
+                            median_filter(single_frame, size=(FLAGS.median_filter_height,
+                                                              FLAGS.median_filter_width, 1), 
+                                          output=single_frame)
+                video = np.concatenate(frame_list, axis=0)
                 gif_filename = (os.path.basename(str(self.dataset) + '_grasp_' + str(int(attempt_num)) +
                                 '_depth_success_' + str(int(features_dict_np['grasp_success'])) + '.gif'))
                 gif_path = os.path.join(visualization_dir, gif_filename)
