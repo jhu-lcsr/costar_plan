@@ -76,7 +76,7 @@ flags.DEFINE_integer('random_crop_width', 560,
                      """Width to randomly crop images, if enabled""")
 flags.DEFINE_integer('random_crop_height', 448,
                      """Height to randomly crop images, if enabled""")
-flags.DEFINE_boolean('random_crop', True,
+flags.DEFINE_boolean('random_crop', False,
                      """random_crop will apply the tf random crop function with
                         the parameters specified by random_crop_width and random_crop_height
                      """)
@@ -89,7 +89,7 @@ flags.DEFINE_boolean('resize', False,
                         resize_width and resize_height flags. It is suggested that an exact factor of 2 be used
                         relative to the input image directions if random_crop is disabled or the crop dimensions otherwise.
                      """)
-flags.DEFINE_boolean('median_filter', True,
+flags.DEFINE_boolean('median_filter', False,
                      """median filter apply on depth image to remove zero and invalid depth.
                      """)
 flags.DEFINE_integer('median_filter_width', 3,
@@ -1966,6 +1966,28 @@ class GraspDataset(object):
                 gif_path = os.path.join(visualization_dir, gif_filename)
                 self.npy_to_gif(video, gif_path)
 
+    def count_success_number(self, tf_session=tf.Session()):
+        batch_size = 1
+        (feature_op_dicts, _, _, num_samples) = self.get_training_dictionaries(batch_size=batch_size) 
+        tf_session.run(tf.global_variables_initializer())
+        
+        success_num = 0
+        failure_num = 0
+        for attempt_num in range(num_samples):
+            output_features_dicts = tf_session.run(feature_op_dicts)
+            [(features_dict_np, _)] = output_features_dicts
+            if int(features_dict_np['grasp_success']) == 1:
+                success_num += 1
+            else:
+                failure_num += 1
+
+        print('here')
+        print(num_samples)
+        print(success_num)
+        print(failure_num)
+        
+        return num_samples, success_num, failure_num
+
 
 def get_multi_dataset_training_tensors(
         datasets=FLAGS.grasp_datasets_train,
@@ -2129,4 +2151,5 @@ if __name__ == '__main__':
         gd = GraspDataset()
         if FLAGS.grasp_download:
             gd.download(dataset=FLAGS.grasp_dataset)
-        gd.create_gif(sess)
+        # gd.create_gif(sess)
+        gd.count_success_number(sess)
