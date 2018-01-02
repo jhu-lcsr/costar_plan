@@ -216,6 +216,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
 
     def _fit(self, train_generator, test_generator, callbacks):
 
+        '''
         for i in range(self.pretrain_iter):
             # Descriminator pass
             img, _ = train_generator.next()
@@ -231,6 +232,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
             self.discriminator.trainable = False
             print("\rPretraining {}/{}: Real loss {}, Fake loss {}".format(
                 i, self.pretrain_iter, res1, res2))
+        '''
 
 
         for i in range(self.epochs):
