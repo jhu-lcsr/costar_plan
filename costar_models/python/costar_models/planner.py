@@ -813,9 +813,9 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
 
     if len(x.shape) > 2:
         # Project
-        x = AddConv2D(x, 128, [1,1], 1, 0., "same", False)
+        x = AddConv2D(x, 64, [1,1], 1, 0., "same", False)
         # conv down
-        x = AddConv2D(x, 64, [3,3], 2, 0., "same", False)
+        x = AddConv2D(x, 128, [3,3], 2, 0., "same", False)
         # conv across
         x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same", False)
         # This is the hidden representation of the world, but it should be flat
@@ -845,6 +845,13 @@ def GetNextOptionAndValue(x, num_options, dense_size, dropout_rate=0.5, option_i
     num_options: number of possible actions to predict
     '''
     if len(x.shape) > 2:
+        # Project
+        x = AddConv2D(x, 64, [1,1], 1, 0., "same", False)
+        # conv down
+        x = AddConv2D(x, 128, [3,3], 2, 0., "same", False)
+        # conv across
+        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same", False)
+        # Get vector
         x = Flatten()(x)
 
     x1 = AddDense(x, dense_size*2, "relu", 0.)
