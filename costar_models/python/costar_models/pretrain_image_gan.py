@@ -51,7 +51,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                 self.skip_shape, False)
         out = decoder(enc)
 
-        image_discriminator = self._makeImageEncoder(img_shape, disc=True)
+        image_discriminator = self._makeImageDiscriminator(img_shape)
         self.discriminator = image_discriminator
 
         image_discriminator.trainable = False
@@ -81,44 +81,31 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         [img, q, g, oin, q_target, g_target,] = features
         return [img], [img]
 
-    def _makeImageEncoder(self, img_shape, disc=False):
+    def _makeImageEncoder(self, img_shape):
         '''
-        create image-only decoder to extract keypoints from the scene.
+        create image-only encoder to extract keypoints from the scene.
         
         Params:
         -------
         img_shape: shape of the image to encode
-        disc: is this being created as part of a discriminator network? If so,
-              we handle things slightly differently.
         '''
         img = Input(img_shape,name="img_encoder_in")
         dr = self.dropout_rate
         x = img
         self.encoder_channels = 8
         m = 0.5
-        if disc:
-            dr = 0.5
-            ec = self.encoder_channels
-            img0 = Input(img_shape,name="img0_encoder_in")
-            y = img0
-            x = AddConv2D(x, 32, [5,5], 2, dr, "same", disc)
-            y = AddConv2D(y, 32, [5,5], 2, dr, "same", disc)
-            x = Concatenate(axis=-1)([x,y])
-            ins = [img0, img]
-        else:
-            ec = self.encoder_channels
-            ins = img
-            x = AddConv2D(x, 32, [5,5], 2, dr, "same", disc, momentum=m)
+        ec = self.encoder_channels
+        ins = img
+        x = AddConv2D(x, 32, [5,5], 2, dr, "same", discriminator=False, momentum=m)
 
-        x = AddConv2D(x, 32, [5,5], 1, dr, "same", disc, momentum=m)
-        x = AddConv2D(x, 32, [5,5], 1, dr, "same", disc, momentum=m)
-        x = AddConv2D(x, 64, [5,5], 2, dr, "same", disc, momentum=m)
-        x = AddConv2D(x, 64, [5,5], 1, dr, "same", disc, momentum=m)
-        x = AddConv2D(x, 128, [5,5], 2, dr, "same", disc, momentum=m)
-        if not disc:
-            # compressing to encoded format
-            x = AddConv2D(x, ec, [1,1], 1, 0.*dr,
-                    "same", disc, momentum=m)
+        x = AddConv2D(x, 32, [5,5], 1, dr, "same", discriminator=False, momentum=m)
+        x = AddConv2D(x, 32, [5,5], 1, dr, "same", discriminator=False, momentum=m)
+        x = AddConv2D(x, 64, [5,5], 2, dr, "same", discriminator=False, momentum=m)
+        x = AddConv2D(x, 64, [5,5], 1, dr, "same", discriminator=False, momentum=m)
+        x = AddConv2D(x, 128, [5,5], 2, dr, "same", discriminator=False, momentum=m)
+        # compressing to encoded format
+        x = AddConv2D(x, ec, [1,1], 1, 0.*dr,
+                "same", discriminator=False, momentum=m)
 
         self.steps_down = 3
         self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
@@ -127,31 +114,66 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         x = Flatten()(x)
         #self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.encoder_channels)
 
-        if disc:
-            #img0 = Input(img_shape,name="img0_encoder_in")
-            #y = img0
-            #y = AddConv2D(y, 32, [5,5], 2, dr, "same", disc)
-            #y = AddConv2D(y, 32, [5,5], 1, dr, "same", disc)
-            #y = AddConv2D(y, 32, [5,5], 1, dr, "same", disc)
-            #y = AddConv2D(y, 64, [5,5], 2, dr, "same", disc)
-            #y = AddConv2D(y, 64, [5,5], 1, dr, "same", disc)
-            #y = AddConv2D(y, 128, [5,5], 2, dr, "same", disc)
-            #self.encoder_cyannels = 8
-            #y = AddConv2D(y, self.encoder_channels, [1,1], 1, 0.*dr,
-            #        "same", disc)
-            #x = Concatenate(axis=-1)([x, y])
-            #x = AddDense(x, 512, "lrelu", dr, output=True)
-            x = AddDense(x, 1, "sigmoid", 0, output=True)
-            image_encoder = Model(ins, x, name="image_discriminator")
-            image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
-            self.image_discriminator = image_encoder
-        else:
-            # dense representation
-            x = AddDense(x, self.hidden_shape[0], "relu", dr)
-            image_encoder = Model(ins, x, name="image_encoder")
-            image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
-            self.image_encoder = image_encoder
+        # dense representation
+        x = AddDense(x, self.hidden_shape[0], "relu", dr)
+        image_encoder = Model(ins, x, name="image_encoder")
+        image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
+        self.image_encoder = image_encoder
         return image_encoder
+
+    def _makeImageDiscriminator(self, img_shape):
+        '''
+        create image-only encoder to extract keypoints from the scene.
+        
+        Params:
+        -------
+        img_shape: shape of the image to encode
+        '''
+        img = Input(img_shape,name="img_encoder_in")
+        dr = self.dropout_rate
+        x = img
+        self.encoder_channels = 8
+        m = 0.5
+        dr = 0.5
+        ec = self.encoder_channels
+        img0 = Input(img_shape,name="img0_encoder_in")
+        y = img0
+        x = AddConv2D(x, 32, [5,5], 2, dr, "same", discriminator=True)
+        y = AddConv2D(y, 32, [5,5], 2, dr, "same", discriminator=True)
+        x = Concatenate(axis=-1)([x,y])
+        ins = [img0, img]
+
+        x = AddConv2D(x, 32, [5,5], 1, dr, "same", discriminator=True, momentum=m)
+        x = AddConv2D(x, 32, [5,5], 1, dr, "same", discriminator=True, momentum=m)
+        x = AddConv2D(x, 64, [5,5], 2, dr, "same", discriminator=True, momentum=m)
+        x = AddConv2D(x, 64, [5,5], 1, dr, "same", discriminator=True, momentum=m)
+        x = AddConv2D(x, 128, [5,5], 2, dr, "same", discriminator=True, momentum=m)
+
+        self.steps_down = 3
+        self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
+        #self.tform_filters = self.encoder_channels
+        self.hidden_shape = (128,)
+        x = Flatten()(x)
+        #self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.encoder_channels)
+
+        #img0 = Input(img_shape,name="img0_encoder_in")
+        #y = img0
+        #y = AddConv2D(y, 32, [5,5], 2, dr, "same", discriminator=True)
+        #y = AddConv2D(y, 32, [5,5], 1, dr, "same", discriminator=True)
+        #y = AddConv2D(y, 32, [5,5], 1, dr, "same", discriminator=True)
+        #y = AddConv2D(y, 64, [5,5], 2, dr, "same", discriminator=True)
+        #y = AddConv2D(y, 64, [5,5], 1, dr, "same", discriminator=True)
+        #y = AddConv2D(y, 128, [5,5], 2, dr, "same", discriminator=True)
+        #self.encoder_cyannels = 8
+        #y = AddConv2D(y, self.encoder_channels, [1,1], 1, 0.*dr,
+        #        "same", discriminator=True)
+        #x = Concatenate(axis=-1)([x, y])
+        #x = AddDense(x, 512, "lrelu", dr, output=True)
+        x = AddDense(x, 1, "sigmoid", 0, output=True)
+        discrim = Model(ins, x, name="image_discriminator")
+        discrim.compile(loss="mae", optimizer=self.getOptimizer())
+        self.image_discriminator = discrim
+        return discrim
 
     def _makeImageDecoder(self, hidden_shape, img_shape=None, skip=False):
         '''
