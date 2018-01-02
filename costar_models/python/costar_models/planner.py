@@ -800,21 +800,29 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
         return Model([xin] + extra, [x, mu, sigma], name="transform%d"%idx)
 
 
-def GetActor(x, num_options, arm_size, gripper_size,
+def GetActorModel(x, num_options, arm_size, gripper_size,
         dropout_rate=0.5):
     '''
     Make an "actor" network that takes in an encoded image and an "option"
     label and produces the next command to execute.
     '''
     x_obs = x
-    xin = Input([int(d) for d in x.shape], name="actor_h_in")
+    xin = Input([int(d) for d in x.shape[1:]], name="actor_h_in")
     option_in = Input((1,), name="actor_o_in")
     x = xin
+
     if len(x.shape) > 2:
+        # Project
+        x = AddConv2D(x, 128, [1,1], 1, 0., "same", False)
+        # conv down
+        x = AddConv2D(x, 64, [3,3], 2, 0., "same", False)
+        # conv across
+        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same", False)
         # This is the hidden representation of the world, but it should be flat
         # for our classifier to work.
         x = Flatten()(x)
 
+    # Same setup as the state decoders
     x1 = AddDense(x, 512, "relu", dropout_rate)
     option_x = OneHot(num_options)(option_in)
     option_x = Flatten()(option_x)

@@ -961,16 +961,16 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if not disc:
 
             if self.skip_connections:
-                image_encoder = Model([img], [x, y], name="image_encoder")
+                image_encoder = Model([img], [x, y], name="Ienc")
             else:
-                image_encoder = Model([img], x, name="image_encoder")
+                image_encoder = Model([img], x, name="Ienc")
             image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
             self.image_encoder = image_encoder
         else:
             x = Flatten()(x)
             x = AddDense(x, 512, "lrelu", dr, output=True)
             x = AddDense(x, self.num_options, "softmax", 0., output=True)
-            image_encoder = Model([img], x, name="image_discriminator")
+            image_encoder = Model([img], x, name="Idisc")
             image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
             self.image_discriminator = image_encoder
         return image_encoder
@@ -1022,7 +1022,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             ins = rep
         x = Conv2D(3, kernel_size=[1,1], strides=(1,1),name="convert_to_rgb")(x)
         x = Activation("sigmoid")(x)
-        decoder = Model(ins, x, name="image_decoder")
+        decoder = Model(ins, x, name="Idec")
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         self.image_decoder = decoder
         return decoder
