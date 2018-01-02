@@ -49,31 +49,31 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         decoder = self._makeImageDecoder(
                 self.hidden_shape,
                 self.skip_shape, False)
-        out = decoder(enc)
+        gen_out = decoder(enc)
 
         image_discriminator = self._makeImageDiscriminator(img_shape)
         self.discriminator = image_discriminator
 
         image_discriminator.trainable = False
-        o1 = image_discriminator([img_in, out])
+        o1 = image_discriminator([img_in, gen_out])
 
         encoder.summary()
         decoder.summary()
         image_discriminator.summary()
 
-        self.model = Model([img_in], [out, o1])
+        self.model = Model([img_in], [gen_out, o1])
         self.model.compile(
                 loss=["mae"] + ["binary_crossentropy"],
-                loss_weights=[1.,1.],
+                loss_weights=[0., 0.001],
                 optimizer=self.getOptimizer())
         self.model.summary()
 
-        self.generator = Model([img_in], [out])
+        self.generator = Model([img_in], [gen_out])
         self.generator.compile(
                 loss=["mae"],
                 optimizer=self.getOptimizer())
         self.generator.summary()
-    
+
         return self.model, self.model, None, [img_in], enc
 
     def _getData(self, *args, **kwargs):
@@ -93,18 +93,17 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         dr = self.dropout_rate
         x = img
         self.encoder_channels = 8
-        m = 0.5
         ec = self.encoder_channels
         ins = img
-        x = AddConv2D(x, 32, [5,5], 2, dr, "same", momentum=m)
+        x = AddConv2D(x, 32, [5,5], 2, dr, "same")
 
-        x = AddConv2D(x, 32, [5,5], 1, dr, "same", momentum=m)
-        x = AddConv2D(x, 32, [5,5], 1, dr, "same", momentum=m)
-        x = AddConv2D(x, 64, [5,5], 2, dr, "same", momentum=m)
-        x = AddConv2D(x, 64, [5,5], 1, dr, "same", momentum=m)
-        x = AddConv2D(x, 128, [5,5], 2, dr, "same", momentum=m)
+        x = AddConv2D(x, 32, [5,5], 1, dr, "same")
+        x = AddConv2D(x, 32, [5,5], 1, dr, "same")
+        x = AddConv2D(x, 64, [5,5], 2, dr, "same")
+        x = AddConv2D(x, 64, [5,5], 1, dr, "same")
+        x = AddConv2D(x, 128, [5,5], 2, dr, "same")
         # compressing to encoded format
-        x = AddConv2D(x, ec, [1,1], 1, 0.*dr, "same", momentum=m)
+        x = AddConv2D(x, ec, [1,1], 1, 0, "same")
 
         self.steps_down = 3
         self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
@@ -129,48 +128,25 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         img_shape: shape of the image to encode
         '''
         img = Input(img_shape,name="img_encoder_in")
-        dr = self.dropout_rate
-        x = img
-        self.encoder_channels = 8
-        m = 0.5
-        dr = 0.5
-        ec = self.encoder_channels
         img0 = Input(img_shape,name="img0_encoder_in")
-        y = img0
-        x = AddConv2D(x, 32, [5,5], 2, dr, "same", discriminator=True)
-        y = AddConv2D(y, 32, [5,5], 2, dr, "same", discriminator=True)
-        x = Concatenate(axis=-1)([x,y])
-        ins = [img0, img]
+        ins = [img, img0]
+        dr = self.dropout_rate
+        dr = 0 # 0.5
+        x = Concatenate(axis=-1)([img, img0])
+        x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=True)
+#        x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
+#        x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
+        x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=True)
+#        x = AddConv2D(x, 128, [5,5], 1, dr, "same", lrelu=True)
+        x = AddConv2D(x, 256, [5,5], 2, dr, "same", lrelu=True)
 
-        x = AddConv2D(x, 32, [5,5], 1, dr, "same", discriminator=True)
-        x = AddConv2D(x, 32, [5,5], 1, dr, "same", discriminator=True)
-        x = AddConv2D(x, 64, [5,5], 2, dr, "same", discriminator=True)
-        x = AddConv2D(x, 64, [5,5], 1, dr, "same", discriminator=True)
-        x = AddConv2D(x, 128, [5,5], 2, dr, "same", discriminator=True)
-
-        self.steps_down = 3
-        self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
-        #self.tform_filters = self.encoder_channels
-        self.hidden_shape = (128,)
         x = Flatten()(x)
-        #self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.encoder_channels)
 
-        #img0 = Input(img_shape,name="img0_encoder_in")
-        #y = img0
-        #y = AddConv2D(y, 32, [5,5], 2, dr, "same", discriminator=True)
-        #y = AddConv2D(y, 32, [5,5], 1, dr, "same", discriminator=True)
-        #y = AddConv2D(y, 32, [5,5], 1, dr, "same", discriminator=True)
-        #y = AddConv2D(y, 64, [5,5], 2, dr, "same", discriminator=True)
-        #y = AddConv2D(y, 64, [5,5], 1, dr, "same", discriminator=True)
-        #y = AddConv2D(y, 128, [5,5], 2, dr, "same", discriminator=True)
-        #self.encoder_cyannels = 8
-        #y = AddConv2D(y, self.encoder_channels, [1,1], 1, 0.*dr,
-        #        "same", discriminator=True)
-        #x = Concatenate(axis=-1)([x, y])
         #x = AddDense(x, 512, "lrelu", dr, output=True)
         x = AddDense(x, 1, "sigmoid", 0, output=True)
         discrim = Model(ins, x, name="image_discriminator")
-        discrim.compile(loss="mae", optimizer=self.getOptimizer())
+        discrim.compile(loss="mae", loss_weights=[0.001],
+                optimizer=self.getOptimizer())
         self.image_discriminator = discrim
         return discrim
 
@@ -180,9 +156,9 @@ class PretrainImageGan(RobotMultiPredictionSampler):
 
         parameters:
         -----------
-        img_shape: shape of the image, e.g. (64,64,3)
+        img_shape: shape of the image, e.g. (64, 64, 3)
         '''
-        rep = Input(hidden_shape,name="decoder_hidden_in")
+        rep = Input(hidden_shape, name="decoder_hidden_in")
 
         x = rep
         if self.hypothesis_dropout:
@@ -216,15 +192,15 @@ class PretrainImageGan(RobotMultiPredictionSampler):
 
     def _fit(self, train_generator, test_generator, callbacks):
 
-        '''
+        """
         for i in range(self.pretrain_iter):
             # Descriminator pass
             img, _ = train_generator.next()
             img = img[0]
             fake = self.generator.predict(img)
             self.discriminator.trainable = True
-            is_fake = np.ones((self.batch_size, 1))
-            is_not_fake = np.zeros((self.batch_size, 1))
+            is_fake = np.random.random((self.batch_size, 1)) * 0.1 + 0.9
+            is_not_fake = np.random.random((self.batch_size, 1)) * 0.1
             res1 = self.discriminator.train_on_batch(
                     [img, img], is_not_fake)
             res2 = self.discriminator.train_on_batch(
@@ -232,45 +208,65 @@ class PretrainImageGan(RobotMultiPredictionSampler):
             self.discriminator.trainable = False
             print("\rPretraining {}/{}: Real loss {}, Fake loss {}".format(
                 i, self.pretrain_iter, res1, res2))
-        '''
+        """
 
+        if self.gan_method != 'gan':
+            # MAE
+            for i in range(self.epochs):
+                for j in range(self.steps_per_epoch):
+                    img, _ = train_generator.next()
+                    img = img[0]
+                    res = self.generator.train_on_batch(img, img)
+                    fake = self.generator.predict(img)
+                    self.discriminator.trainable = True
+                    is_fake = np.random.random((self.batch_size, 1)) * 0.1 + 0.9
+                    is_not_fake = np.random.random((self.batch_size, 1)) * 0.1
+                    res1 = self.discriminator.train_on_batch(
+                            [img, img], is_not_fake)
+                    res2 = self.discriminator.train_on_batch(
+                            [img, fake], is_fake)
+                    self.discriminator.trainable = False
+                    print("Epoch {}, {}/{}: MAE loss {}, Real {}, Fake {}".format(i, j,
+                        self.steps_per_epoch, res, res1, res2))
+                for c in callbacks:
+                    c.on_epoch_end(i)
+        else:
+            for i in range(self.epochs):
+                for j in range(self.steps_per_epoch):
 
-        for i in range(self.epochs):
-            for j in range(self.steps_per_epoch):
+                    # Descriminator pass
+                    img, _ = train_generator.next()
+                    img = img[0]
+                    fake = self.generator.predict(img)
+                    self.discriminator.trainable = True
+                    is_fake = np.random.random((self.batch_size, 1)) * 0.1 + 0.9
+                    is_not_fake = np.random.random((self.batch_size, 1)) * 0.1
+                    res1 = self.discriminator.train_on_batch(
+                            [img, img], is_not_fake)
+                    res2 = self.discriminator.train_on_batch(
+                            [img, fake], is_fake)
+                    self.discriminator.trainable = False
 
-                # Descriminator pass
+                    # Generator pass
+                    img, _ = train_generator.next()
+                    img = img[0]
+                    res = self.model.train_on_batch(
+                            [img], [img, is_not_fake]
+                    )
+                    print("Epoch {}, {}/{}: Gen loss {}, Real loss {}, Fake loss {}".format(
+                        i, j, self.steps_per_epoch, res[0], res1, res2))
+
+                # Accuracy tests
                 img, _ = train_generator.next()
                 img = img[0]
                 fake = self.generator.predict(img)
-                self.discriminator.trainable = True
-                is_fake = np.random.random((self.batch_size, 1)) * 0.1 + 0.9
-                is_not_fake = np.random.random((self.batch_size, 1)) * 0.1
-                res1 = self.discriminator.train_on_batch(
-                        [img, img], is_not_fake)
-                res2 = self.discriminator.train_on_batch(
-                        [img, fake], is_fake)
-                self.discriminator.trainable = False
+                results = self.discriminator.predict([img, fake])
+                results2 = self.discriminator.predict([img, img])
+                correct = np.count_nonzero(results >= 0.5)
+                correct2 = np.count_nonzero(results2 < 0.5)
+                for c in callbacks:
+                    c.on_epoch_end(i)
 
-                # Generator pass
-                img, _ = train_generator.next()
-                img = img[0]
-                res = self.model.train_on_batch(
-                        [img], [img, is_not_fake]
-                )
-                print("{}/{}: Gen loss {}, Real loss {}, Fake loss {}".format(
-                    j, self.steps_per_epoch, res[0], res1, res2))
-
-            # Accuracy tests
-            img, _ = train_generator.next()
-            img = img[0]
-            fake = self.generator.predict(img)
-            results = self.discriminator.predict([img, fake])
-            results2 = self.discriminator.predict([img, img])
-            correct = np.count_nonzero(results >= 0.5)
-            correct2 = np.count_nonzero(results2 < 0.5)
-            for c in callbacks:
-                c.on_epoch_end(i)
-
-            print("Epoch {}, real acc {}, fake acc {}".format(
-                i, correct/float(len(results)), correct2/float(len(results2))))
+                print("Epoch {}, real acc {}, fake acc {}".format(
+                    i, correct/float(len(results)), correct2/float(len(results2))))
 

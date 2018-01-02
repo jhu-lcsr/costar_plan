@@ -152,6 +152,11 @@ def GetModelParser():
                         help="Loss for state variables: MSE or MAE.",
                         choices=["mse","mae"],
                         default="mae")
+    parser.add_argument("--gan-method",
+                        help="Whether to train with GAN or no GAN",
+                        dest='gan_method',
+                        choices=["gan", "nogan"],
+                        default="gan")
 
     return parser
 

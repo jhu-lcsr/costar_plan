@@ -31,7 +31,7 @@ out: an output tensor
 '''
 
 def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
-        discriminator=False, momentum=0.9):
+        lrelu=False, bn=True, momentum=0.9):
     '''
     Helper for creating networks. This one will add a convolutional block.
 
@@ -51,10 +51,11 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
             kernel_size=kernel,
             strides=(stride,stride),
             padding=padding)(x)
-    if discriminator:
+    if bn:
+        x = BatchNormalization(momentum=momentum)(x)
+    if lrelu:
         x = LeakyReLU(alpha=0.2)(x)
     else:
-        x = BatchNormalization(momentum=momentum)(x)
         x = Activation("relu")(x)
     if dropout_rate > 0:
         x = Dropout(dropout_rate)(x)

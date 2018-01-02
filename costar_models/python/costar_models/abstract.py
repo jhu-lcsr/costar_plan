@@ -37,6 +37,7 @@ class AbstractAgentBasedModel(object):
             sampling=False,
             use_prev_option=True,
             success_only=False,
+            gan_method="gan",
             hidden_size=128,
             loss="mae",
             num_generator_files=1, predict_value=False, upsampling=None,
@@ -90,6 +91,7 @@ class AbstractAgentBasedModel(object):
         self.skip_connections = skip_connections > 0
         self.dense_representation = dense_representation
         self.sampling = sampling
+        self.gan_method = gan_method
         self.hidden_size = hidden_size
         
         if self.noise_dim < 1:
@@ -146,6 +148,7 @@ class AbstractAgentBasedModel(object):
         print("dimensionality of noise =", self.noise_dim)
         print("skip connections =", self.skip_connections)
         print("sampling =", self.sampling)
+        print("gan_method =", self.gan_method)
         print("-----------------------------------------------------------")
         print("Optimizer =", self.optimizer)
         print("Learning Rate = ", self.lr)
