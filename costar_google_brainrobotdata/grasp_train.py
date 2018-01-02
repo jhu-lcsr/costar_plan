@@ -1,6 +1,15 @@
+"""Code for training models on the google brain robotics grasping dataset.
+
+https://sites.google.com/site/brainrobotdata/home/grasping-dataset
+
+Author: Andrew Hundt <ATHundt@gmail.com>
+
+License: Apache v2 https://www.apache.org/licenses/LICENSE-2.0
+"""
 import os
 import sys
 import datetime
+import traceback
 import numpy as np
 import tensorflow as tf
 import keras
@@ -11,15 +20,19 @@ from keras.callbacks import ReduceLROnPlateau
 from keras.callbacks import CSVLogger
 from keras.callbacks import EarlyStopping
 from keras.callbacks import ModelCheckpoint
+from keras.callbacks import TensorBoard
 
 from tensorflow.python.platform import flags
 
 import grasp_dataset
 import grasp_model
 
+from tqdm import tqdm  # progress bars https://github.com/tqdm/tqdm
+
 flags.DEFINE_string('learning_rate_decay_algorithm', 'power_decay',
                     """Determines the algorithm by which learning rate decays,
-                       options are power_decay, exp_decay, adam and progressive_drops""")
+                       options are power_decay, exp_decay, adam and progressive_drops.
+                       Only applies with optimizer flag is SGD""")
 flags.DEFINE_string('grasp_model', 'grasp_model_single',
                     """Choose the model definition to run, options are grasp_model and grasp_model_segmentation""")
 flags.DEFINE_string('save_weights', 'grasp_model_weights',
@@ -28,22 +41,11 @@ flags.DEFINE_string('load_weights', 'grasp_model_weights.h5',
                     """Load and continue training the specified file containing model weights.""")
 flags.DEFINE_integer('epochs', 100,
                      """Epochs of training""")
-flags.DEFINE_string('grasp_datasets_train', '062_b,063,072_a,082_b,102',
-                    """Filter multiple subsets of 1TB Grasp datasets to train.
-                    Comma separated list 062_b,063,072_a,082_b,102 by default,
-                    totaling 513,491 grasp attempts.
-                    See https://sites.google.com/site/brainrobotdata/home
-                    for a full listing.""")
-flags.DEFINE_string('grasp_datasets_batch_algorithm','constant',
-                    """Use default batch if constant,
-                    'constant' training on multiple datasets reads `batch_size` elements from each dataset at each training step when this parameter.
-                    'proportional' each dataset's batch size will be individually set to int(batch_size*single_batch/max_batch_size) so smaller datasets are run more slowly than larger datasets.""")
 flags.DEFINE_string('grasp_dataset_eval', '097',
                     """Filter the subset of 1TB Grasp datasets to evaluate.
-                    None by default. 'all' will run all datasets in data_dir.
-                    '052' and '057' will download the small starter datasets.
-                    '102' will download the main dataset with 102 features,
-                    around 110 GB and 38k grasp attempts.
+                    097 by default. It is important to ensure that this selection
+                    is completely different from the selected training datasets
+                    with no overlap, otherwise your results won't be valid!
                     See https://sites.google.com/site/brainrobotdata/home
                     for a full listing.""")
 flags.DEFINE_string('pipeline_stage', 'train_eval',
@@ -55,7 +57,7 @@ flags.DEFINE_float('learning_rate_scheduler_power_decay_rate', 1.5,
                       Training from scratch within an initial learning rate of 0.1 might find a
                          power decay value of 2 to be useful.
                       Fine tuning with an initial learning rate of 0.001 may consder 1.5 power decay.""")
-flags.DEFINE_float('grasp_learning_rate', 0.001,
+flags.DEFINE_float('grasp_learning_rate', 0.1,
                    """Determines the initial learning rate""")
 flags.DEFINE_integer('eval_batch_size', 1, 'batch size per compute device')
 flags.DEFINE_integer('densenet_growth_rate', 12,
@@ -79,6 +81,14 @@ flags.DEFINE_bool('tf_allow_memory_growth', True,
                   """False if memory usage will be allocated all in advance
                      or True if it should grow as needed. Allocating all in
                      advance may reduce fragmentation.""")
+flags.DEFINE_string('learning_rate_scheduler', 'learning_rate_scheduler',
+                    """Options are None and learning_rate_scheduler,
+                       turning this on activates the scheduler which follows
+                       a power decay path for the learning rate over time.
+                       This is most useful with SGD, currently disabled with Adam.""")
+flags.DEFINE_string('optimizer', 'SGD', """Options are Adam and SGD.""")
+flags.DEFINE_string('progress_tracker', None,
+                    """Utility to follow training progress, options are tensorboard and None.""")
 
 flags.FLAGS._parse_flags()
 FLAGS = flags.FLAGS
@@ -98,7 +108,7 @@ class GraspTrain(object):
               load_weights=FLAGS.load_weights,
               save_weights=FLAGS.save_weights,
               make_model_fn=grasp_model.grasp_model,
-              imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
+              imagenet_preprocessing=FLAGS.imagenet_preprocessing,
               grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
               grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
               random_crop=FLAGS.random_crop,
@@ -128,60 +138,20 @@ class GraspTrain(object):
                 this affects the memory consumption of the system when training, but if it fits into memory
                 you almost certainly want the value to be None, which includes every image.
         """
-        if (grasp_datasets_batch_algorithm != 'constant' and grasp_datasets_batch_algorithm != 'proportional'):
-            raise ValueError('grasp_datasets_batch_algorithm string value must be either constant or proportional.')
         datasets = dataset.split(',')
-        max_num_samples = 0
-        grasp_datasets = []
-        pregrasp_op_batch = []
-        grasp_step_op_batch = []
-        # simplified_network_grasp_command_op
-        simplified_grasp_command_op_batch = []
-        grasp_success_op_batch = []
-
-        # Aggregate multiple datasets into training tensors
-        # Note that one limitation of this setup is that we will
-        # iterate over samples according to the largest dataset,
-        # which means we see smaller datasets more than once in
-        # a single epoch. Try not to aggregate a very small dataset
-        # with a very large one!
-        dataset_batch_sizes = []
-        grasp_dataset_list = []
-        for single_dataset in datasets:
-            data = grasp_dataset.GraspDataset(dataset=single_dataset)
-            grasp_dataset_list.append(data)
-            dataset_batch_sizes.append(data.get_features()[1])
-
-        max_batch_size = max(dataset_batch_sizes)
-        # Not sure why any thing assigned to max_batch_size, it can pass
-        for single_dataset, single_batch in zip(grasp_dataset_list, dataset_batch_sizes):
-            proportional_batch_size = batch_size
-            if(grasp_datasets_batch_algorithm == 'proportional'):
-                proportional_batch_size = int(batch_size * single_batch / max_batch_size)
-            data = single_dataset
-            # list of dictionaries the length of batch_size
-            (pregrasp_op, grasp_step_op,
-             simplified_grasp_command_op,
-             example_batch_size,
-             grasp_success_op,
-             num_samples) = data.get_training_tensors(batch_size=proportional_batch_size,
-                                                      imagenet_mean_subtraction=imagenet_mean_subtraction,
-                                                      random_crop=random_crop,
-                                                      resize=resize,
-                                                      grasp_sequence_min_time_step=grasp_sequence_min_time_step,
-                                                      grasp_sequence_max_time_step=grasp_sequence_max_time_step)
-            max_num_samples = max(num_samples, max_num_samples)
-            pregrasp_op_batch.append(pregrasp_op)
-            grasp_step_op_batch.append(grasp_step_op)
-            simplified_grasp_command_op_batch.append(simplified_grasp_command_op)
-            grasp_success_op_batch.append(grasp_success_op)
-
-        pregrasp_op_batch = tf.concat(pregrasp_op_batch, 0)
-        grasp_step_op_batch = tf.concat(grasp_step_op_batch, 0)
-        simplified_grasp_command_op_batch = tf.concat(simplified_grasp_command_op_batch, 0)
-        print('grasp_success_op_batch before concat: ', grasp_success_op_batch)
-        grasp_success_op_batch = tf.concat(grasp_success_op_batch, 0)
-        print('grasp_success_op_batch after concat: ', grasp_success_op_batch)
+        (pregrasp_op_batch,
+         grasp_step_op_batch,
+         simplified_grasp_command_op_batch,
+         grasp_success_op_batch,
+         steps_per_epoch) = grasp_dataset.get_multi_dataset_training_tensors(
+             datasets,
+             batch_size,
+             grasp_datasets_batch_algorithm,
+             imagenet_preprocessing,
+             random_crop,
+             resize,
+             grasp_sequence_min_time_step,
+             grasp_sequence_max_time_step)
 
         if resize:
             input_image_shape = [resize_height, resize_width, 3]
@@ -201,13 +171,15 @@ class GraspTrain(object):
         # learning_rate = 0.1
         # learning_power_decay_rate = 2
         # print([learning_rate * ((1 - float(epoch)/epochs) ** learning_power_decay_rate) for epoch in np.arange(epochs)])
+
         def lr_scheduler(epoch, learning_rate=learning_rate,
                          mode=learning_rate_decay_algorithm,
                          epochs=epochs,
                          learning_power_decay_rate=learning_power_decay_rate):
-            '''if lr_dict.has_key(epoch):
+            """if lr_dict.has_key(epoch):
                 lr = lr_dict[epoch]
-                print 'lr: %f' % lr'''
+                print 'lr: %f' % lr
+            """
 
             if mode is 'power_decay':
                 # original lr scheduler
@@ -232,14 +204,20 @@ class GraspTrain(object):
 
             print('lr: %f' % lr)
             return lr
+
+        callbacks = []
         scheduler = keras.callbacks.LearningRateScheduler(lr_scheduler)
         early_stopper = EarlyStopping(monitor='acc', min_delta=0.001, patience=10)
         csv_logger = CSVLogger(weights_name + '.csv')
         checkpoint = keras.callbacks.ModelCheckpoint(weights_name + '-epoch-{epoch:03d}-loss-{loss:.3f}-acc-{acc:.3f}.h5',
                                                      save_best_only=True, verbose=1, monitor='acc')
 
-        callbacks = [scheduler, early_stopper, csv_logger, checkpoint]
+        callbacks = callbacks + [early_stopper, csv_logger, checkpoint]
 
+        if FLAGS.progress_tracker is 'tensorboard':
+            progress_tracker = TensorBoard(log_dir='./' + weights_name, write_graph=True,
+                                           write_grads=True, write_images=True)
+            callbacks = callbacks + [progress_tracker]
         # Will need to try more things later.
         # Nadam parameter choice reference:
         # https://github.com/tensorflow/tensorflow/pull/9175#issuecomment-295395355
@@ -248,11 +226,17 @@ class GraspTrain(object):
         # optimizer = keras.optimizers.Nadam(lr=0.03, beta_1=0.825, beta_2=0.99685)
 
         # 2017-08-28 trying SGD
-        optimizer = keras.optimizers.SGD(lr=learning_rate)
+        # 2017-12-18 SGD worked very well and has been the primary training optimizer from 2017-09 to 2017-12
+        if FLAGS.optimizer is 'SGD':
+            optimizer = keras.optimizers.SGD(lr=learning_rate)
+            callbacks = callbacks + [scheduler]
 
-        # 2017-08-27
-        # Tried NADAM for a while with the settings below, only improved for first 2 epochs.
+        # 2017-08-27 Tried NADAM for a while with the settings below, only improved for first 2 epochs.
         # optimizer = keras.optimizers.Nadam(lr=0.004, beta_1=0.825, beta_2=0.99685)
+
+        # 2017-12-18 Tried ADAM with AMSGrad, great progress initially, but stopped making progress very quickly
+        if FLAGS.optimizer is 'Adam':
+            optimizer = keras.optimizers.Adam(amsgrad=True)
 
         # create the model
         model = make_model_fn(
@@ -277,18 +261,15 @@ class GraspTrain(object):
 
         model.summary()
 
-        # make sure we visit every image once
-        steps_per_epoch = int(np.ceil(float(max_num_samples)/float(batch_size)))
-
-        model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=callbacks)
-        final_weights_name = weights_name + '-final.h5'
-        model.save_weights(final_weights_name)
         try:
             model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=callbacks)
-        except Exception as e:
+            final_weights_name = weights_name + '-final.h5'
+            model.save_weights(final_weights_name)
+        except (Exception, KeyboardInterrupt) as e:
             # always try to save weights
             final_weights_name = weights_name + '-autosaved-on-exception.h5'
             model.save_weights(final_weights_name)
+            traceback.print_exc()
             raise e
         return final_weights_name
 
@@ -297,7 +278,7 @@ class GraspTrain(object):
              load_weights=FLAGS.load_weights,
              save_weights=FLAGS.save_weights,
              make_model_fn=grasp_model.grasp_model,
-             imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
+             imagenet_preprocessing=FLAGS.imagenet_preprocessing,
              grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
              grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
              resize=FLAGS.resize,
@@ -331,11 +312,11 @@ class GraspTrain(object):
         # list of dictionaries the length of batch_size
         (pregrasp_op_batch, grasp_step_op_batch,
          simplified_grasp_command_op_batch,
-         example_batch_size,
          grasp_success_op_batch,
          num_samples) = data.get_training_tensors(batch_size=batch_size,
-                                                  imagenet_mean_subtraction=imagenet_mean_subtraction,
+                                                  imagenet_preprocessing=imagenet_preprocessing,
                                                   random_crop=False,
+                                                  image_augmentation=False,
                                                   resize=resize,
                                                   grasp_sequence_min_time_step=grasp_sequence_min_time_step,
                                                   grasp_sequence_max_time_step=grasp_sequence_max_time_step)
@@ -402,6 +383,8 @@ class GraspTrain(object):
 
 def main():
     config = tf.ConfigProto()
+    config.inter_op_parallelism_threads = 40
+    config.intra_op_parallelism_threads = 40
     config.gpu_options.allow_growth = True
     session = tf.Session(config=config)
     K.set_session(session)
