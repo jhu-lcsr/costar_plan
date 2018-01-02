@@ -164,8 +164,9 @@ class ConditionalImage(PredictionSampler2):
                 self.decoder_dropout_rate)
         actor.compile(loss="mae",optimizer=self.getOptimizer())
         arm_cmd, gripper_cmd = actor([h, next_option_in])
+        lfn = "logcosh"
         predictor.compile(
-                loss=["mae", "categorical_crossentropy", "mae"],
+                loss=[lfn, "categorical_crossentropy", lfn],
                 loss_weights=[1., 0.1, 0.1,],
                 optimizer=self.getOptimizer())
         if self.do_all:
@@ -183,7 +184,7 @@ class ConditionalImage(PredictionSampler2):
             train_predictor = Model(ins + [label_in],
                     [image_out, o1, o2,])
             train_predictor.compile(
-                    loss=["mae", 
+                    loss=[lfn, 
                         "categorical_crossentropy", "categorical_crossentropy",],
                     loss_weights=[1., 1., 1e-3],
                     optimizer=self.getOptimizer())
