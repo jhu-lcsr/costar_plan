@@ -811,13 +811,20 @@ def GetNextOptionAndValue(x, num_options, dense_size, dropout_rate=0.5, option_i
     '''
     if len(x.shape) > 2:
         x = Flatten()(x)
+
+    x1 = AddDense(x, dense_size*2, "relu", 0.)
+    x2 = AddDense(x, dense_size*2, "relu", 0.)
+
     if option_in is not None:
         option_x = OneHot(num_options)(option_in)
         option_x = Flatten()(option_x)
-        x = Concatenate()([x, option_x])
-
-    x1 = DenseHelper(x, int(2*dense_size), dropout_rate, 1)
-    x2 = DenseHelper(x, dense_size, dropout_rate, 1)
+        option_x = AddDense(option_x, dense_size, "relu", 0.)
+        x1 = Concatenate()([x1, option_x])
+        x2 = Concatenate()([x2, option_x])
+    
+    x1 = AddDense(x1, dense_size*2, "relu", 0.)
+    x1 = AddDense(x1, dense_size, "relu", dropout_rate)
+    x2 = AddDense(x2, dense_size, "relu", dropout_rate)
 
     next_option_out = Dense(num_options,
             activation="softmax", name="lnext",)(x1)

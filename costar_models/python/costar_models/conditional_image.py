@@ -121,7 +121,7 @@ class ConditionalImage(PredictionSampler2):
         #y = Flatten()(y)
         y = next_option_in
         x = h
-        """
+
         x = TileOnto(x, y, self.num_options, (8,8))
         x = AddConv2D(x, self.tform_filters*2, [1,1], 2, 0.)
         # Process
@@ -148,30 +148,46 @@ class ConditionalImage(PredictionSampler2):
             x = AddConv2D(x, 2*self.tform_filters, self.tform_kernel_size, stride=1,
                     dropout_rate=0.)
         x =  Concatenate(axis=-1)([x,h])
+        """
+
         x = AddConv2D(x, rep_channels, [1, 1], stride=1,
                 dropout_rate=0.)
         image_out = decoder(x)
+
+
+        image_discriminator = self._makeImageEncoder(img_shape, disc=True)
+        o1 = image_discriminator(ins[0])
+        o2 = image_discriminator(image_out)
+        o2.trainable = False
 
         # =====================================================================
         # Create models to train
         predictor = Model(ins + [label_in],
                 [image_out, next_option_out, value_out])
+        train_predictor = Model(ins + [label_in],
+                [image_out, next_option_out, value_out, o1, o2])
         actor = None
         predictor.compile(
                 loss=["mae", "categorical_crossentropy", "mae"],
-                loss_weights=[1., 0.1, 0.],
+                loss_weights=[1., 0.1, 0.1,],
                 optimizer=self.getOptimizer())
-        predictor.summary()
-        return predictor, predictor, actor, ins, h
+        train_predictor.compile(
+                loss=["mae", "categorical_crossentropy", "mae",
+                    "categorical_crossentropy", "categorical_crossentropy"],
+                loss_weights=[1., 0.1, 0.1, 1., 0.001],
+                optimizer=self.getOptimizer())
+        train_predictor.summary()
+        return predictor, train_predictor, actor, ins, h
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
         [I, q, g, oin, q_target, g_target,] = features
         tt, o1, v, qa, ga, I_target = targets
+        oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-            return [I, z, o1, oin], [ I_target, o1, v]
+            return [I, z, o1, oin], [ I_target, o1, v, oin_1h, o1]
         else:
-            return [I, o1, oin], [ I_target, o1, v]
+            return [I, o1, oin], [ I_target, o1, v, oin_1h, o1]
 
