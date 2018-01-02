@@ -162,7 +162,7 @@ class ConditionalImage(PredictionSampler2):
         train_predictor.compile(
                 loss=["mae", "categorical_crossentropy", "mae",
                     "categorical_crossentropy", "categorical_crossentropy"],
-                loss_weights=[1., 0.1, 0.1, 1., 0.001],
+                loss_weights=[1., 0.1, 0.1, 1., 0.0001],
                 optimizer=self.getOptimizer())
         train_predictor.summary()
         return predictor, train_predictor, actor, ins, h
