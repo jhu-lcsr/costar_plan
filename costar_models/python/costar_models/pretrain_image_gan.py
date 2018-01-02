@@ -96,16 +96,15 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         m = 0.5
         ec = self.encoder_channels
         ins = img
-        x = AddConv2D(x, 32, [5,5], 2, dr, "same", discriminator=False, momentum=m)
+        x = AddConv2D(x, 32, [5,5], 2, dr, "same", momentum=m)
 
-        x = AddConv2D(x, 32, [5,5], 1, dr, "same", discriminator=False, momentum=m)
-        x = AddConv2D(x, 32, [5,5], 1, dr, "same", discriminator=False, momentum=m)
-        x = AddConv2D(x, 64, [5,5], 2, dr, "same", discriminator=False, momentum=m)
-        x = AddConv2D(x, 64, [5,5], 1, dr, "same", discriminator=False, momentum=m)
-        x = AddConv2D(x, 128, [5,5], 2, dr, "same", discriminator=False, momentum=m)
+        x = AddConv2D(x, 32, [5,5], 1, dr, "same", momentum=m)
+        x = AddConv2D(x, 32, [5,5], 1, dr, "same", momentum=m)
+        x = AddConv2D(x, 64, [5,5], 2, dr, "same", momentum=m)
+        x = AddConv2D(x, 64, [5,5], 1, dr, "same", momentum=m)
+        x = AddConv2D(x, 128, [5,5], 2, dr, "same", momentum=m)
         # compressing to encoded format
-        x = AddConv2D(x, ec, [1,1], 1, 0.*dr,
-                "same", discriminator=False, momentum=m)
+        x = AddConv2D(x, ec, [1,1], 1, 0.*dr, "same", momentum=m)
 
         self.steps_down = 3
         self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
@@ -143,11 +142,11 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         x = Concatenate(axis=-1)([x,y])
         ins = [img0, img]
 
-        x = AddConv2D(x, 32, [5,5], 1, dr, "same", discriminator=True, momentum=m)
-        x = AddConv2D(x, 32, [5,5], 1, dr, "same", discriminator=True, momentum=m)
-        x = AddConv2D(x, 64, [5,5], 2, dr, "same", discriminator=True, momentum=m)
-        x = AddConv2D(x, 64, [5,5], 1, dr, "same", discriminator=True, momentum=m)
-        x = AddConv2D(x, 128, [5,5], 2, dr, "same", discriminator=True, momentum=m)
+        x = AddConv2D(x, 32, [5,5], 1, dr, "same", discriminator=True)
+        x = AddConv2D(x, 32, [5,5], 1, dr, "same", discriminator=True)
+        x = AddConv2D(x, 64, [5,5], 2, dr, "same", discriminator=True)
+        x = AddConv2D(x, 64, [5,5], 1, dr, "same", discriminator=True)
+        x = AddConv2D(x, 128, [5,5], 2, dr, "same", discriminator=True)
 
         self.steps_down = 3
         self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
