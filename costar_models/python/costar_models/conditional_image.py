@@ -48,6 +48,8 @@ class ConditionalImage(PredictionSampler2):
         '''
         super(ConditionalImage, self).__init__(*args, **kwargs)
         self.PredictorCb = ImageCb
+        self.rep_size = 128
+        self.num_transforms = 2
 
     def _makePredictor(self, features):
         # =====================================================================
@@ -71,7 +73,7 @@ class ConditionalImage(PredictionSampler2):
         gripper_in = Input((gripper_size,))
         arm_gripper = Concatenate()([arm_in, gripper_in])
         label_in = Input((1,))
-        ins = img_in
+        ins = [img_in]
 
         encoder = self._makeImageEncoder(img_shape)
         try:
@@ -103,7 +105,7 @@ class ConditionalImage(PredictionSampler2):
         value_out, next_option_out = GetNextOptionAndValue(h,
                                                            self.num_options,
                                                            self.rep_size,
-                                                           dropout_rate=0.5,
+                                                           dropout_rate=self.dropout_rate,
                                                            option_in=label_in)
 
         # create input for controlling noise output if that's what we decide
@@ -119,13 +121,32 @@ class ConditionalImage(PredictionSampler2):
         #y = Flatten()(y)
         y = next_option_in
         x = h
-        x = AddConv2D(x, self.tform_filters*2, [1,1], 1, 0.)
+        """
+        x = TileOnto(x, y, self.num_options, (8,8))
+        x = AddConv2D(x, self.tform_filters*2, [1,1], 2, 0.)
+        # Process
         for i in range(self.num_transforms):
-            x = TileOnto(x, y, self.num_options, (8,8))
+            x = TileOnto(x, y, self.num_options, (4,4))
             x = AddConv2D(x, self.tform_filters*2,
                     self.tform_kernel_size,
                     stride=1,
                     dropout_rate=self.tform_dropout_rate)
+
+        x = AddConv2DTranspose(x,
+                self.tform_filters*2,
+                self.tform_kernel_size,
+                stride=2,
+                dropout_rate=0.)
+        """
+        x = Flatten()(x)
+        x = Concatenate()([x,y])
+        x = AddDense(x, 512, "relu", 0.)
+        #x = Concatenate()([x,y])
+        #x = AddDense(x, 512, "relu", 0.)
+        x = Reshape([8,8,8])(x)
+        for i in range(self.num_transforms):
+            x = AddConv2D(x, 2*self.tform_filters, self.tform_kernel_size, stride=1,
+                    dropout_rate=0.)
         x =  Concatenate(axis=-1)([x,h])
         x = AddConv2D(x, rep_channels, [1, 1], stride=1,
                 dropout_rate=0.)
@@ -150,9 +171,7 @@ class ConditionalImage(PredictionSampler2):
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-            return [I, q, g, oin, z, o1], [o1, v, I_target, q_target, g_target,
-                    o1]
+            return [I, z, o1, oin], [ I_target, o1, v]
         else:
-            return [I, q, g, oin, o1], [I_target, q_target, g_target, o1, o1,
-                    v,]
+            return [I, o1, oin], [ I_target, o1, v]
 

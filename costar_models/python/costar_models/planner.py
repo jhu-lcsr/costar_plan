@@ -525,8 +525,12 @@ def DenseHelper(x, dense_size, dropout_rate, repeat):
     '''
     Add a repeated number of dense layers of the same size.
     '''
-    for _ in range(repeat):
-        AddDense(x, dense_size, "relu", dropout_rate)
+    for i in range(repeat):
+        if i < repeat - 1:
+            dr = 0.
+        else:
+            dr = dropout_rate
+        AddDense(x, dense_size, "relu", dr)
     return x
 
 def GetArmGripperDecoder(dim, img_shape,
@@ -689,12 +693,14 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
         dr = 0.
 
     x = xin
+    x0 = x
+    x = AddConv2D(x, filters, kernel_size, 2, 0.)
     for i in range(num_blocks):
         x = AddConv2D(x, filters, kernel_size, 1, dr)
-    #x = AddConv2D(x, 64, [1,1], 1, 0.)
     #x = AddConv2D(x, 128, kernel_size, 1, 0.)
     #x = AddConv2D(x, 128, kernel_size, 1, 0.)
-    #x = AddConv2DTranspose(x, 64, kernel_size, 1, 0.)
+    x = AddConv2DTranspose(x, filters, kernel_size, 1, 0.)
+    x = Concatenate()[x,x0]
     #x = AddConv2DTranspose(x, filters, [1,1], 1, 0.)
     x = AddConv2D(x, rep_size[-1], kernel_size, 1, dr)
 

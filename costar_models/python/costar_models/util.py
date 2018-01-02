@@ -22,6 +22,7 @@ from .pretrain_image_gan import PretrainImageGan
 
 from .sampler2 import PredictionSampler2
 from .conditional_sampler2 import ConditionalSampler2
+from .conditional_image import ConditionalImage
 
 def MakeModel(features, model, taskdef, **kwargs):
     '''
@@ -126,6 +127,8 @@ def MakeModel(features, model, taskdef, **kwargs):
             model_instance = PredictionSampler2(taskdef, model=model, **kwargs)
         elif model == "conditional_sampler2":
             model_instance = ConditionalSampler2(taskdef, model=model, **kwargs)
+        elif model == "conditional_image":
+            model_instance = ConditionalImage(taskdef, model=model, **kwargs)
         elif model == "pretrain_minimal":
             model_instance = PretrainMinimal(taskdef, model=model, **kwargs)
         elif model == "pretrain_image_gan":
@@ -160,6 +163,7 @@ def GetModels():
             "predictor2", # second version of the prediction-sampler code
             "sampler2", # -----------------------------   (same as above)
             "conditional_sampler2", # just give the condition
+            "conditional_image", # just give label and predict image
             "pretrain_minimal",
             "pretrain_image_gan",
             ]

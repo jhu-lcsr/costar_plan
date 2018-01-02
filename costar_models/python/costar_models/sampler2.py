@@ -41,7 +41,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         self.num_hypotheses = 4
         self.dense_representation = False
         self.num_transforms = 3
-        self.tform_kernel_size  = [7,7]
+        self.tform_kernel_size  = [5,5]
         self.hidden_shape = (8,8,self.encoder_channels)
         self.always_same_transform = False
         self.disable_option_in_encoder = False
