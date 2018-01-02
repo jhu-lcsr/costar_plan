@@ -55,7 +55,8 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
         x = LeakyReLU(alpha=0.2)(x)
     else:
         x = BatchNormalization(momentum=momentum)(x)
-        x = Activation("relu")(x)
+        #x = Activation("relu")(x)
+        x = LeakyReLU(alpha=0.2)(x)
     if dropout_rate > 0:
         x = Dropout(dropout_rate)(x)
     return x

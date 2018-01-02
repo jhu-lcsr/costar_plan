@@ -253,6 +253,7 @@ class ImageCb(keras.callbacks.Callback):
                 img, arm, gripper, label = res
         else:
             img = res
+        img = np.clip(img, 0, 1)
         for j in range(self.num):
             name = os.path.join(self.directory,
                     "image_%s_epoch%d_result%d.png"%(self.name,self.epoch,j))
