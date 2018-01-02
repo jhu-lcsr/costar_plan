@@ -137,18 +137,6 @@ class ConditionalImage(PredictionSampler2):
                 self.tform_kernel_size,
                 stride=2,
                 dropout_rate=0.)
-        """
-        x = Flatten()(x)
-        x = Concatenate()([x,y])
-        x = AddDense(x, 512, "relu", 0.)
-        #x = Concatenate()([x,y])
-        #x = AddDense(x, 512, "relu", 0.)
-        x = Reshape([8,8,8])(x)
-        for i in range(self.num_transforms):
-            x = AddConv2D(x, 2*self.tform_filters, self.tform_kernel_size, stride=1,
-                    dropout_rate=0.)
-        x =  Concatenate(axis=-1)([x,h])
-        """
 
         x = AddConv2D(x, rep_channels, [1, 1], stride=1,
                 dropout_rate=0.)

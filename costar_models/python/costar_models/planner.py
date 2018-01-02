@@ -800,6 +800,33 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
         return Model([xin] + extra, [x, mu, sigma], name="transform%d"%idx)
 
 
+def GetActor(x, num_options, arm_size, gripper_size,
+        dropout_rate=0.5):
+    '''
+    Make an "actor" network that takes in an encoded image and an "option"
+    label and produces the next command to execute.
+    '''
+    x_obs = x
+    xin = Input([int(d) for d in x.shape], name="actor_h_in")
+    option_in = Input((1,), name="actor_o_in")
+    x = xin
+    if len(x.shape) > 2:
+        # This is the hidden representation of the world, but it should be flat
+        # for our classifier to work.
+        x = Flatten()(x)
+
+    x1 = AddDense(x, 512, "relu", dropout_rate)
+    option_x = OneHot(num_options)(option_in)
+    option_x = Flatten()(option_x)
+    option_x = AddDense(option_x, 128, "relu", 0.)
+    x1 = Concatenate()([x1, option_x])
+
+    x1 = AddDense(x, 512, "relu", 0.)
+    arm = AddDense(x1, arm_size, "linear", 0., output=True)
+    gripper = AddDense(x1, gripper_size, "sigmoid", 0., output=True)
+    actor = Model([xin, option_in], [arm, gripper], name="actor")
+    return actor
+
 def GetNextOptionAndValue(x, num_options, dense_size, dropout_rate=0.5, option_in=None):
     '''
     Predict some information about an observed/encoded world state
