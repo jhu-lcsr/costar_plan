@@ -220,8 +220,10 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                     res = self.generator.train_on_batch(img, img)
                     print("\rEpoch {}, {}/{}: MAE loss {:.5}".format(
                         i, j, self.steps_per_epoch, res), end="")
+
                 for c in callbacks:
                     c.on_epoch_end(i)
+
         elif self.gan_method == 'desc':
             for i in range(self.epochs):
                 for j in range(self.steps_per_epoch):
@@ -239,9 +241,8 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                     self.discriminator.trainable = False
                     print("Epoch {}, {}/{}: Descrim Real loss {}, Fake loss {}".format(
                         i, j, self.steps_per_epoch, res1, res2))
-                if self.save:
-                    for c in callbacks:
-                        c.on_epoch_end(i)
+                for c in callbacks:
+                    c.on_epoch_end(i)
         else:
             for i in range(self.epochs):
                 for j in range(self.steps_per_epoch):
@@ -276,9 +277,9 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                 results2 = self.discriminator.predict([img, img])
                 correct = np.count_nonzero(results >= 0.5)
                 correct2 = np.count_nonzero(results2 < 0.5)
-                if self.save:
-                    for c in callbacks:
-                        c.on_epoch_end(i)
+
+                for c in callbacks:
+                    c.on_epoch_end(i)
 
                 print("Epoch {}, real acc {}, fake acc {}".format(
                     i, correct/float(len(results)), correct2/float(len(results2))))

@@ -157,7 +157,7 @@ def GetModelParser():
                         dest='gan_method',
                         choices=["gan", "mae", "desc"],
                         default="gan")
-    parser.add_argument("--save",
+    parser.add_argument("--save_model",
                         help="Should we save to the model file",
                         type=bool,
                         default=True)
