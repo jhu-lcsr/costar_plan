@@ -58,8 +58,10 @@ class ConditionalImage(PredictionSampler2):
         h0 = Input((8,8,self.encoder_channels),name="h0_in")
         option = Input((48,),name="t_opt_in")
         x, y = h, option
+        x = Concatenate()([h, h0])
         x = TileOnto(x, y, self.num_options, (8,8))
-        x = AddConv2D(x, 128, [1,1], 1, 0.)
+        x = AddConv2D(x, 64, [1,1], 1, 0.)
+        x0 = x
         x = AddConv2D(x, 64, self.tform_kernel_size, 2, 0.)
         # Process
         for i in range(self.num_transforms):
@@ -75,7 +77,7 @@ class ConditionalImage(PredictionSampler2):
                 stride=2,
                 dropout_rate=0.)
 
-        x = Concatenate()([x,h,h0])
+        x = Concatenate()([x,x0])
         x = AddConv2D(x, 64,
                 self.tform_kernel_size,
                 stride=1,
