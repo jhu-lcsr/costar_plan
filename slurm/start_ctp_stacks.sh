@@ -67,6 +67,7 @@ do
         sbatch ctp.sh $lr $dr $opt $hd $noise_dim $skip $loss
       done
     done
+    done
   done
 done
 
