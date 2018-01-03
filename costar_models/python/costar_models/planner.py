@@ -860,9 +860,10 @@ def GetNextOptionAndValue(x, num_options, dense_size, dropout_rate=0.5, option_i
     num_options: number of possible actions to predict
     '''
     if len(x.shape) > 2:
-        option_x = OneHot(num_options)(option_in)
-        option_x = Flatten()(option_x)
-        x = TileOnto(x, option_x, num_options, x.shape[1:3])
+        if option_in is not None:
+		option_x = OneHot(num_options)(option_in)
+		option_x = Flatten()(option_x)
+		x = TileOnto(x, option_x, num_options, x.shape[1:3])
 
         # Project
         x = AddConv2D(x, 64, [1,1], 1, dropout_rate, "same", False,
