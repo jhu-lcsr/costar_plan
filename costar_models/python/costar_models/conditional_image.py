@@ -70,11 +70,12 @@ class ConditionalImage(PredictionSampler2):
         # =====================================================================
         # Load the image decoders
         img_in = Input(img_shape,name="predictor_img_in")
+        img0_in = Input(img_shape,name="predictor_img0_in")
         arm_in = Input((arm_size,))
         gripper_in = Input((gripper_size,))
         arm_gripper = Concatenate()([arm_in, gripper_in])
         label_in = Input((1,))
-        ins = [img_in]
+        ins = [img0_in, img_in]
 
         encoder = self._makeImageEncoder(img_shape)
         try:
@@ -102,7 +103,8 @@ class ConditionalImage(PredictionSampler2):
         # =====================================================================
         # Load the arm and gripper representation
 
-        h = encoder(ins)
+        h = encoder(img_in)
+        h0 = encoder(img0_in)
         value_out, next_option_out = GetNextOptionAndValue(h,
                                                            self.num_options,
                                                            self.rep_size,
@@ -140,7 +142,7 @@ class ConditionalImage(PredictionSampler2):
                 stride=2,
                 dropout_rate=0.)
 
-        x = Concatenate()([x,h])
+        x = Concatenate()([x,h,h0])
         x = AddConv2D(x, 64,
                 self.tform_kernel_size,
                 stride=1,
@@ -164,7 +166,8 @@ class ConditionalImage(PredictionSampler2):
                 self.decoder_dropout_rate)
         actor.compile(loss="mae",optimizer=self.getOptimizer())
         arm_cmd, gripper_cmd = actor([h, next_option_in])
-        lfn = "logcosh"
+        #lfn = "logcosh"
+        lfn = "mae"
         predictor.compile(
                 loss=[lfn, "categorical_crossentropy", lfn],
                 loss_weights=[1., 0.1, 0.1,],
@@ -196,6 +199,9 @@ class ConditionalImage(PredictionSampler2):
         features, targets = self._getAllData(*args, **kwargs)
         [I, q, g, oin, q_target, g_target,] = features
         tt, o1, v, qa, ga, I_target = targets
+        I0 = I[0,:,:,:]
+        length = I.shape[0]
+        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
         oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
         qa = np.squeeze(qa)
         ga = np.squeeze(ga)
@@ -203,15 +209,15 @@ class ConditionalImage(PredictionSampler2):
             if self.use_noise:
                 noise_len = features[0].shape[0]
                 z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-                return [I, z, o1, oin], [ I_target, o1, v, oin_1h, o1, qa, ga]
+                return [I0, I, z, o1, oin], [ I_target, o1, v, oin_1h, o1, qa, ga]
             else:
-                return [I, o1, oin], [ I_target, o1, v, oin_1h, o1, qa, ga]
+                return [I0, I, o1, oin], [ I_target, o1, v, oin_1h, o1, qa, ga]
         else:
             if self.use_noise:
                 noise_len = features[0].shape[0]
                 z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-                return [I, z, o1, oin], [ I_target, oin_1h, o1]
+                return [I0, I, z, o1, oin], [ I_target, oin_1h, o1]
             else:
-                return [I, o1, oin], [ I_target, oin_1h, o1]
+                return [I0, I, o1, oin], [ I_target, oin_1h, o1]
 
 
