@@ -168,15 +168,15 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         m = 0.99
         self.steps_up = 3
         hidden_dim = int(img_shape[0]/(2**self.steps_up))
-        #self.tform_filters = self.encoder_channels
-        extra_dim = hidden_shape[0] / (hidden_dim * hidden_dim)
+        extra_dim = 2 * hidden_shape[0] / (hidden_dim * hidden_dim)
         (h,w,c) = (hidden_dim,
                     hidden_dim,
                     extra_dim)
         x = AddDense(x, int(h*w*c), "relu", dr)
         x = Reshape((h,w,c))(x)
 
-        x = AddConv2DTranspose(x, 128, [1,1], 1, 0.*dr, momentum=m)
+#        x = AddConv2DTranspose(x, 128, [1,1], 1, 0.*dr, momentum=m)
+        x = AddConv2DTranspose(x, 128, [5,5], 1, dr, momentum=m)
         x = AddConv2DTranspose(x, 64, [5,5], 2, dr, momentum=m)
         x = AddConv2DTranspose(x, 64, [5,5], 1, dr, momentum=m)
         x = AddConv2DTranspose(x, 32, [5,5], 2, dr, momentum=m)
@@ -218,8 +218,8 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                     img, _ = train_generator.next()
                     img = img[0]
                     res = self.generator.train_on_batch(img, img)
-                    print("Epoch {}, {}/{}: MAE loss {}".format(
-                        i, j, self.steps_per_epoch, res))
+                    print("\rEpoch {}, {}/{}: MAE loss {:.5}".format(
+                        i, j, self.steps_per_epoch, res), end="")
                 for c in callbacks:
                     c.on_epoch_end(i)
         elif self.gan_method == 'desc':
