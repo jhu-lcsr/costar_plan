@@ -42,8 +42,9 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         self.dense_representation = False
         self.num_transforms = 3
         self.tform_kernel_size  = [7,7]
-        self.hidden_shape = (8,8,self.tform_filters)
+        self.hidden_shape = (8,8,self.encoder_channels)
         self.always_same_transform = False
+        self.disable_option_in_encoder = False
         #self.PredictorCb = ImageCb
 
     def _makeToHidden(self, img_shape, arm_size, gripper_size, rep_size):
@@ -71,24 +72,22 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         state_rep = self.state_encoder([arm_in, gripper_in, label_in])
         # Compress the size of the network
         x = TileOnto(img_rep, state_rep, 64, [8,8])
-        x = AddConv2D(x, 64, [3,3], 1, self.dropout_rate, "same", False)
+        x = AddConv2D(x, 128, [3,3], 1, self.dropout_rate, "same",
+                False, True)
         # Projection down to the right size
-        x = AddConv2D(x, self.tform_filters, [1,1], 1, self.dropout_rate,
-                "same", False)
+        x = AddConv2D(x, rep_size, [1,1], 1, 0.,
+                "same", False, True)
         #x = Flatten()(x)
-        self.rep_size = int(8 * 8 * self.tform_filters)
-        self.hidden_size = (8, 8, self.tform_filters)
+        self.rep_size = int(8 * 8 * rep_size)
+        self.hidden_size = (8, 8, rep_size)
 
-        if self.skip_connections:
-            model = Model(ins, [x, skip_rep], name="encode_hidden_state")
-        else:
-            model = Model(ins, x, name="encode_hidden_state")
+        model = Model(ins, x, name="encoder")
         model.compile(loss="mae", optimizer=self.getOptimizer())
         #model.summary()
         self.hidden_encoder = model
         return model
 
-    def _makeFromHidden(self):
+    def _makeFromHidden(self, rep_size):
         '''
         Create the "Decoder" half of the AE
 
@@ -98,19 +97,16 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         disc: whether or not this should be set up as a new discriminator.
         '''
         ih, iw, ic = self.hidden_size
-        h = Input((ih, iw, self.tform_filters),name="from_hidden_input")
+        h = Input((ih, iw, rep_size),name="from_hidden_input")
 
         # ---------------------------------
-        x0 = h
-        #x = AddDense(x,self.rep_size,"relu",self.decoder_dropout_rate)
-        #x0 = Reshape((ih,iw,self.tform_filters))(x)
-
-        x = AddConv2D(x0, 64, [1,1], 1,
-                self.decoder_dropout_rate, "same", False)
+        x = h
+        dr = 0.
+        x = AddConv2D(x, 128, [1,1], 1, 0., "same", False)
         x_img = AddConv2D(x, self.encoder_channels, [5,5], 1,
-                self.decoder_dropout_rate, "same", False)
-        x_arm = AddConv2D(x, self.tform_filters, [5,5], 1,
-                self.decoder_dropout_rate, "same", False)
+                dr, "same", False, True)
+        x_arm = AddConv2D(x, rep_size, [5,5], 1,
+                dr, "same", False, True)
         if self.skip_connections:
             skip_in = Input(self.skip_shape, name="skip_input_hd")
             ins = [x_img, skip_in]
@@ -121,8 +117,9 @@ class PredictionSampler2(RobotMultiPredictionSampler):
 
         img = self.image_decoder(ins)
         arm, gripper, label = self.state_decoder(x_arm)
+        #arm, gripper = self.state_decoder(x_arm)
         model = Model(hidden_decoder_ins, [img, arm, gripper, label],
-                name="hidden_decoder")
+                name="decoder")
         self.hidden_decoder = model
         return model
 
@@ -171,9 +168,10 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         except Exception as e:
             pass
 
+        rep_channels = self.encoder_channels
         sencoder = self._makeStateEncoder(arm_size, gripper_size, False)
         sdecoder = self._makeStateDecoder(arm_size, gripper_size,
-                self.tform_filters)
+                rep_channels)
 
         # =====================================================================
         # Load the arm and gripper representation
@@ -181,8 +179,9 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         # =====================================================================
         # combine these models together with state information and label
         # information
-        hidden_encoder = self._makeToHidden(img_shape, arm_size, gripper_size, self.rep_size)
-        hidden_decoder = self._makeFromHidden()
+        hidden_encoder = self._makeToHidden(img_shape, arm_size, gripper_size,
+                rep_channels)
+        hidden_decoder = self._makeFromHidden(rep_channels)
 
         try:
             hidden_encoder.load_weights(self._makeName(
@@ -207,10 +206,10 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             z = Input((self.num_hypotheses, self.noise_dim))
 
         if self.always_same_transform:
-            transform = self._getTransform(0)
+            transform = self._getTransform(0,rep_channels)
         for i in range(self.num_hypotheses):
             if not self.always_same_transform:
-                transform = self._getTransform(i)
+                transform = self._getTransform(i,rep_channels)
 
             if i == 0:
                 transform.summary()
@@ -274,14 +273,14 @@ class PredictionSampler2(RobotMultiPredictionSampler):
                         weights=[1., 0.5, 0.1, 0.025],
                         loss=["mae","mae","mae","categorical_crossentropy"],
                         #stats=stats,
-                        avg_weight=0.05),]
+                        avg_weight=0.1),]
         if self.success_only and False:
             outs = [train_out, next_option_out]
             losses += ["binary_crossentropy"]
             loss_weights = [1.0, 0.]
         else:
             outs = [train_out, next_option_out, value_out]
-            loss_weights = [1.0, 0., 0.]
+            loss_weights = [1.0, 0.01, 0.01]
             losses += ["categorical_crossentropy", "binary_crossentropy"]
         train_predictor = Model(ins, outs)
         train_predictor.compile(
