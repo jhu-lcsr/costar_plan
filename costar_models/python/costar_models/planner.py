@@ -6,6 +6,7 @@ import keras.optimizers as optimizers
 import numpy as np
 import tensorflow as tf
 
+from keras.constraints import maxnorm
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
 from keras.layers import UpSampling2D, Conv2DTranspose
@@ -31,7 +32,7 @@ out: an output tensor
 '''
 
 def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
-        discriminator=False, momentum=0.9):
+        discriminator=False, momentum=0.9, name=None):
     '''
     Helper for creating networks. This one will add a convolutional block.
 
@@ -47,17 +48,28 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
     --------
     x: output tensor
     '''
+    kwargs = {}
+    if name is not None:
+        kwargs['name'] = "%s_conv"%name
     x = Conv2D(filters,
             kernel_size=kernel,
             strides=(stride,stride),
-            padding=padding)(x)
-    x = BatchNormalization(momentum=momentum)(x)
+            padding=padding, **kwargs)(x)
+    if name is not None:
+        kwargs['name'] = "%s_bn"%name
+    x = BatchNormalization(momentum=momentum, **kwargs)(x)
     if discriminator:
-        x = LeakyReLU(alpha=0.2)(x)
+        if name is not None:
+            kwargs['name'] = "%s_lrelu"%name
+        x = LeakyReLU(alpha=0.2, **kwargs)(x)
     else:
+        if name is not None:
+            kwargs['name'] = "%s_relu"%name
         x = Activation("relu")(x)
     if dropout_rate > 0:
-        x = Dropout(dropout_rate)(x)
+        if name is not None:
+            kwargs['name'] = "%s_dropout%f"%(name, dropout_rate)
+        x = Dropout(dropout_rate, **kwargs)(x)
     return x
 
 def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate,
@@ -106,7 +118,7 @@ def AddDense(x, size, activation, dropout_rate, output=False, momentum=0.9):
     --------
     x: output tensor
     '''
-    x = Dense(size)(x)
+    x = Dense(size, kernel_constraint=maxnorm(3))(x)
     if not output:
         x = BatchNormalization(momentum=momentum)(x)
     if activation == "lrelu":
@@ -846,18 +858,21 @@ def GetNextOptionAndValue(x, num_options, dense_size, dropout_rate=0.5, option_i
         x = TileOnto(x, option_x, num_options, x.shape[1:3])
 
         # Project
-        x = AddConv2D(x, 64, [1,1], 1, dropout_rate, "same", False)
+        x = AddConv2D(x, 64, [1,1], 1, dropout_rate, "same", False,
+                name="VC1_project64")
         # conv down
-        x = AddConv2D(x, 128, [5,5], 2, dropout_rate, "same", False)
+        x = AddConv2D(x, 128, [5,5], 2, dropout_rate, "same", False,
+                name="VC2_down128")
         # conv across
-        x = AddConv2D(x, 64, [5,5], 1, dropout_rate, "same", False)
+        x = AddConv2D(x, 128, [5,5], 1, dropout_rate, "same", False,
+                name="VC2_64")
         # Get vector
         x = Flatten()(x)
 
-    x1 = AddDense(x, dense_size*2, "relu", 0.)
-    x1 = AddDense(x1, dense_size, "relu", 0.)
-    x2 = AddDense(x, dense_size, "relu", dropout_rate)
-    x2 = AddDense(x2, int(dense_size/2), "relu", 0.)
+    x1 = AddDense(x, dense_size*2, "relu", 0)
+    x1 = AddDense(x1, dense_size, "relu", 0)
+    x2 = AddDense(x, dense_size, "relu", 0)
+    x2 = AddDense(x2, int(dense_size/2), "relu", 0)
 
     next_option_out = Dense(num_options,
             activation="softmax", name="lnext",)(x1)
