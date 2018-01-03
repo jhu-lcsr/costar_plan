@@ -17,6 +17,7 @@ from keras.layers.merge import Concatenate
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 from keras.optimizers import Adam
+from keras.constraints import max_norm
 
 '''
 PLANNER MODEL TOOLS
@@ -107,7 +108,7 @@ def AddDense(x, size, activation, dropout_rate, output=False, momentum=0.9):
     --------
     x: output tensor
     '''
-    x = Dense(size)(x)
+    x = Dense(size, kernel_constraint=max_norm(3.))(x)
     if not output:
         x = BatchNormalization(momentum=momentum)(x)
     if activation == "lrelu":
