@@ -878,21 +878,24 @@ def GetNextOptionAndValue(x, num_options, dense_size, dropout_rate=0.5, option_i
         x = Dropout(dropout_rate)(x)
 
         # Project
-        x = AddConv2D(x, 64, [1,1], 1, dropout_rate, "same", False,
-                name="VC1_project64", constraint=3)
+        x = AddConv2D(x, 128, [1,1], 1, dropout_rate, "same", False,
+                name="VC1_project", constraint=3)
         # conv down
-        x = AddConv2D(x, 128, [5,5], 2, dropout_rate, "same", False,
-                name="VC2_down128", constraint=3)
-        # conv across
-        x = AddConv2D(x, 64, [5,5], 1, dropout_rate, "same", False,
+        x = AddConv2D(x, 64, [3,3], 2, dropout_rate, "same", False,
                 name="VC2_64", constraint=3)
+        # conv across
+        x = AddConv2D(x, 64, [3,3], 2, dropout_rate, "same", False,
+                name="VC3_64", constraint=3)
+
+        x = AddConv2D(x, 64, [3,3], 2, dropout_rate, "same", False,
+                name="VC4_64", constraint=3)
         # Get vector
         x = Flatten()(x)
 
     x1 = AddDense(x, dense_size, "relu", 0)
-    x1 = AddDense(x1, int(dense_size), "relu", 0)
-    x2 = AddDense(x, dense_size, "relu", 0)
-    x2 = AddDense(x2, int(dense_size/2), "relu", 0)
+    x1 = AddDense(x1, int(dense_size/2), "relu", 0)
+    x2 = AddDense(x, int(dense_size/4), "relu", 0)
+    x2 = AddDense(x2, int(dense_size/4), "relu", 0)
 
     next_option_out = Dense(num_options,
             activation="softmax", name="lnext",)(x1)
