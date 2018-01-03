@@ -155,8 +155,14 @@ def GetModelParser():
     parser.add_argument("--retrain",
                         help="Retrain sub-models",
                         action="store_true")
-
+    parser.add_argument("--submodel",
+                        help="Specific part of the planing model to train",
+                        choices=GetSubmodelOptions(),
+                        default="all")
     return parser
+
+def GetSubmodelOptions():
+    return ["all", "tform", "actor", "next"]
 
 def UpsamplingOptions():
     return [None,"upsampling","conv_transpose","bilinear"]
