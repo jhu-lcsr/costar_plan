@@ -1,17 +1,30 @@
 import tensorflow as tf
 import os.path
 from grasp_dataset import GraspDataset
+from grasp_dataset import FLAGS
+from grasp_dataset import mkdir_p
 
-""" Counting success, failure, success ratio to total.
-    Write to ~/.keras/dataset/num/grasping'.
+""" Counts the grasp successes, failures, and ratio of succsesses vs the total number of attempts.
+
+    Writes to the following location by default:
+
+    ~/.keras/datasets/grasping/grasp_dataset_<dataset number>_statistics.txt'
+
+    To run:
+
+    python2 success_fail_statistic.py --grasp_dataset 102
+
+    Output:
+
+    grasp_dataset_<dataset number>_statistics.txt
+
 """
 if __name__ == '__main__':
     with tf.Session() as sess:
         gd = GraspDataset()
-        default_save_path = os.path.join(
-            os.path.expanduser('~'), '.keras', 'datasets', gd.dataset, 'grasping')
-        os.makedirs(default_save_path)
-        filename = 'grasp_dataset_success_statistics.txt'
+        default_save_path = FLAGS.data_dir
+        mkdir_p(default_save_path)
+        filename = 'grasp_dataset_' + gd.dataset + '_statistics.txt'
         complete_path = os.path.join(default_save_path, filename)
         success_num, fail_num, success_ratio = gd.count_success_failure_number(sess)
         file_object = open(complete_path, 'w')
