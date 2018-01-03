@@ -34,6 +34,10 @@ class AbstractRobotInterface(object):
         self.kinematics = None
         self.action_space = self.getActionSpace()
 
+        self.arm_cmd = None
+        self.gripper_cmd = None
+        self.arm_v_goal = None
+
     def load(self):
         '''
         This function should take the robot, load it from file somehow, and put
@@ -161,6 +165,9 @@ class AbstractRobotInterface(object):
                                     base_rot=rot,
                                     base_linear_v = 0,
                                     base_angular_v = 0,
+                                    arm_goal_v=self.arm_v_goal,
+                                    arm_cmd=self.arm_cmd,
+                                    gripper_cmd=self.gripper_cmd,
                                     arm=q,
                                     arm_v=dq,
                                     gripper=self._getGripper(),
@@ -181,8 +188,10 @@ class AbstractRobotInterface(object):
         if action.mobile_base_cmd is not None:
             self.base(action.mobile_base_cmd)
 
-        #else:
-        #    self.gripper(self._getGripper())
+        self.arm_cmd = action.arm_cmd
+        self.gripper_cmd = action.gripper_cmd
+        self.arm_v_goal = action.arm_v
+
 
     def toParams(self, action):
         '''

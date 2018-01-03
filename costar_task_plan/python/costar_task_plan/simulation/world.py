@@ -155,6 +155,9 @@ class SimulationRobotState(AbstractState):
                  base_rot=(0, 0, 0, 1),
                  arm=[],
                  arm_v=[],
+                 arm_goal_v=None,
+                 arm_cmd=[],
+                 gripper_cmd=None,
                  gripper=0.,
                  base_angular_v=0.,
                  base_linear_v=0.,
@@ -165,6 +168,9 @@ class SimulationRobotState(AbstractState):
         self.predicates = []
         self.arm = arm
         self.arm_v = arm_v
+        self.arm_goal_v = arm_goal_v
+        self.arm_cmd = arm_cmd
+        self.gripper_cmd = gripper_cmd
         self.gripper = gripper
         self.base_pos = base_pos
         self.base_rot = base_rot
@@ -189,11 +195,12 @@ class SimulationRobotAction(AbstractAction):
     holds the tuple for arm_cmd, gripper_cmd, etc.
     '''
 
-    def __init__(self, arm_cmd=None, gripper_cmd=None,
+    def __init__(self, arm_cmd=None, gripper_cmd=None, arm_v=None,
             mobile_base_cmd=None,code=None,error=False,):
         self.arm_cmd = arm_cmd
         self.gripper_cmd = gripper_cmd
         self.mobile_base_cmd = mobile_base_cmd
+        self.arm_v = arm_v
 
         # Used to determine if there was a problem
         self.error = error

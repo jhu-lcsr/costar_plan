@@ -205,6 +205,9 @@ class CartesianMotionPolicy(AbstractPolicy):
 
         # Interpolate in position alone
         dist = T_r_goal.p.Norm()
+        vel = self.cartesian_vel
+        if dist <= 0.2:
+            vel = max(0.05, vel*dist/0.2)
         step = min(self.cartesian_vel*world.dt, dist)
         p = T_r_goal.p / dist * step
 
@@ -231,6 +234,7 @@ class CartesianMotionPolicy(AbstractPolicy):
         # =====================================================================
         # Compute motion goak and send
         q_goal = actor.robot.ik(T_step, state.arm)
+
         #print q_goal, state.arm
         if q_goal is None:
             error = True

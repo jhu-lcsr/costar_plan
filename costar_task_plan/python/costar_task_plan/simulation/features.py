@@ -42,7 +42,6 @@ class EmptyFeatures(AbstractFeatures):
     def getBounds(self):
         return np.array([0]), np.array([0])
 
-
 class DepthImageFeatures(AbstractFeatures):
 
     '''
