@@ -27,11 +27,12 @@ class AbstractAgentBasedModel(object):
     def __init__(self, taskdef=None, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
             clipnorm=100., show_iter=0, pretrain_iter=5,
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
-            steps_per_epoch=500, validation_steps=25, choose_initial=50,
+            steps_per_epoch=500, validation_steps=25, choose_initial=10,
             dropout_rate=0.5, decoder_dropout_rate=0.5,
+            tform_dropout_rate=0.,
             hypothesis_dropout=False,
             dense_representation=True,
-            skip_connections=1,
+            skip_connections=0,
             compatibility=1,
             use_noise=False,
             sampling=False,
@@ -85,6 +86,7 @@ class AbstractAgentBasedModel(object):
         self.residual = False
         self.predict_value = predict_value
         self.dropout_rate = dropout_rate
+        self.tform_dropout_rate = tform_dropout_rate
         self.hypothesis_dropout = hypothesis_dropout
         self.use_noise = use_noise
         if self.hypothesis_dropout:
@@ -148,6 +150,7 @@ class AbstractAgentBasedModel(object):
         print("predict values =", self.predict_value)
         print("dropout in hypothesis decoder =", self.hypothesis_dropout)
         print("dropout rate =", self.dropout_rate)
+        print("tform dropout rate =", self.tform_dropout_rate)
         print("decoder dropout rate =", self.decoder_dropout_rate)
         print("use noise in model =", self.use_noise)
         print("dimensionality of noise =", self.noise_dim)

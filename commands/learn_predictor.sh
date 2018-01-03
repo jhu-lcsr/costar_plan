@@ -5,39 +5,88 @@
 #	--si 0 --lr 0.001 --optimizer nadam \
 #        --batch_size 64 
 
-rosrun costar_models ctp_model_tool --data_file rpy.npz \
-  --model pretrain_image_encoder \
-  -e 150 \
+export MODELDIR=$HOME/.costar/models
+export LR=0.001
+export DR=0.2
+export OPT=adam
+export ND=0
+export HDR=0.2
+
+
+if [ 0 -gt 1 ]
+then
+  rosrun costar_models ctp_model_tool \
+    --features multi \
+    -e 100 \
+    --model pretrain_image_encoder \
+    --data_file $DATASET\
+    --lr $LR \
+    --dropout_rate $DR \
+    --decoder_dropout_rate $DR \
+    --model_directory $MODELDIR/ \
+    --optimizer $OPT \
+    --use_noise true \
+    --steps_per_epoch 500 \
+    --noise_dim $ND \
+    --hypothesis_dropout $HDR \
+    --upsampling conv_transpose \
+    --batch_size 64
+fi
+
+if [ 2 -gt 1 ]
+then
+  rosrun costar_models ctp_model_tool \
+    --features multi \
+    -e 100 \
+    --model pretrain_sampler \
+    --data_file $HOME/work/$DATASET.h5f \
+    --lr $LR \
+    --dropout_rate $DR \
+    --decoder_dropout_rate $DR \
+    --model_directory $MODELDIR/ \
+    --optimizer $OPT \
+    --use_noise true \
+    --steps_per_epoch 500 \
+    --noise_dim $ND \
+    --hypothesis_dropout $HDR \
+    --upsampling conv_transpose \
+    --batch_size 64
+fi
+
+
+rosrun costar_models ctp_model_tool \
   --features multi \
-  --batch_size 64 \
-  --optimizer adam \
-  --lr 0.01 \
-  --upsampling conv_transpose \
+  -e 100 \
+  --model conditional_sampler2 \
+  --data_file $HOME/work/$DATASET.h5f \
+  --lr $LR \
+  --dropout_rate $DR \
+  --decoder_dropout_rate $DR \
+  --model_directory $MODELDIR/ \
+  --optimizer $OPT \
   --use_noise true \
-  --noise_dim 32 \
   --steps_per_epoch 500 \
-  --dropout_rate 0. \
-  --skip_connections 0 \
-  --loss mae \
-  --load_model \
-  --decoder_dropout_rate 0. --hypothesis_dropout 0
+  --noise_dim $ND \
+  --hypothesis_dropout $HDR \
+  --upsampling conv_transpose \
+  --batch_size 64
 
-rosrun costar_models ctp_model_tool --data_file rpy.npz \
-  --model pretrain_state_encoder \
-  -e 150 \
+
+rosrun costar_models ctp_model_tool \
   --features multi \
-  --batch_size 128  \
-  --optimizer adam \
-  --lr 0.01 \
-  --upsampling conv_transpose \
+  -e 100 \
+  --model predictor2 \
+  --data_file $HOME/work/$DATASET.h5f \
+  --lr $LR \
+  --dropout_rate $DR \
+  --decoder_dropout_rate $DR \
+  --model_directory $MODELDIR/ \
+  --optimizer $OPT \
   --use_noise true \
-  --noise_dim 32 \
   --steps_per_epoch 500 \
-  --dropout_rate 0. \
-  --skip_connections 0 \
-  --loss mae \
-  --load_model \
-  --decoder_dropout_rate 0. --hypothesis_dropout 0
-
-
+  --noise_dim $ND \
+  --hypothesis_dropout $HDR \
+  --upsampling conv_transpose \
+  --batch_size 32 # --retrain 
+  #--success_only \
 
