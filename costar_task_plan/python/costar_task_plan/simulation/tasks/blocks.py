@@ -58,8 +58,8 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
     ]
 
     offset = 0.0
-    over_final_stack_pos = np.array([-0.5, 0., 0.5])
-    over_final_stack_pos = np.array([-0.5 + offset, 0., 0.5])
+    over_final_stack_pos = np.array([-0.5, 0., 0.3])
+    over_final_stack_pos = np.array([-0.5 + offset, 0., 0.3])
     #final_stack_pos = np.array([-0.5, 0., 0.05])
     #final_stack_pos = np.array([-0.5 + offset, 0., 0.05])
     final_stack_pos = np.array([-0.5 + offset, 0., 0.035])
@@ -300,10 +300,10 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                                 "joints must stay in limits")
         self.world.addCondition(TimeCondition(15.), -100, "time limit reached")
         self.world.addCondition(AndCondition(
-                                    ObjectIsBelowCondition("red_block", 0.55),
-                                    ObjectIsBelowCondition("green_block", 0.55),
-                                    ObjectIsBelowCondition("blue_block", 0.55),
-                                    ObjectIsBelowCondition("yellow_block", 0.55),
+                                    ObjectIsBelowCondition("red_block", 0.35),
+                                    ObjectIsBelowCondition("green_block", 0.35),
+                                    ObjectIsBelowCondition("blue_block", 0.35),
+                                    ObjectIsBelowCondition("yellow_block", 0.35),
                                 ), -100, "block_too_high")
         if self.stage >= 1:
             for i, obs in enumerate(self.obstacles):
