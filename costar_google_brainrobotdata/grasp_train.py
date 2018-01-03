@@ -94,7 +94,7 @@ flags.DEFINE_string('learning_rate_scheduler', 'learning_rate_scheduler',
                        turning this on activates the scheduler which follows
                        a power decay path for the learning rate over time.
                        This is most useful with SGD, currently disabled with Adam.""")
-flags.DEFINE_string('optimizer', 'SGD', """Options are Adam and SGD.""")
+flags.DEFINE_string('optimizer', 'Adam', """Options are Adam and SGD.""")
 flags.DEFINE_string('progress_tracker', None,
                     """Utility to follow training progress, options are tensorboard and None.""")
 
@@ -262,16 +262,19 @@ class GraspTrain(object):
 
         # 2017-08-28 afternoon trying NADAM with higher learning rate
         # optimizer = keras.optimizers.Nadam(lr=0.03, beta_1=0.825, beta_2=0.99685)
+        print('flags.optimizer', FLAGS.optimizer)
 
         # 2017-08-28 trying SGD
         # 2017-12-18 SGD worked very well and has been the primary training optimizer from 2017-09 to 2017-12
-        if FLAGS.optimizer is 'SGD':
+        if FLAGS.optimizer == 'SGD':
 
-            # Adjust learning rate based on number of GPUs.
-            optimizer = keras.optimizers.SGD(learning_rate * hvd.size())
+            if hvd is not None:
+                # Adjust learning rate based on number of GPUs.
+                multiplier = hvd.size()
+            else:
+                multiplier = 1.0
 
-            # Add Horovod Distributed Optimizer.
-            optimizer = hvd.DistributedOptimizer(optimizer)
+            optimizer = keras.optimizers.SGD(learning_rate * multiplier)
 
             callbacks = callbacks + [
                 # Reduce the learning rate if training plateaus.
@@ -283,8 +286,12 @@ class GraspTrain(object):
         # optimizer = keras.optimizers.Nadam(lr=0.004, beta_1=0.825, beta_2=0.99685)
 
         # 2017-12-18 Tried ADAM with AMSGrad, great progress initially, but stopped making progress very quickly
-        if FLAGS.optimizer is 'Adam':
+        if FLAGS.optimizer == 'Adam':
             optimizer = keras.optimizers.Adam(amsgrad=True)
+
+        if hvd is not None:
+            # Add Horovod Distributed Optimizer.
+            optimizer = hvd.DistributedOptimizer(optimizer)
 
         # create the model
         model = make_model_fn(
