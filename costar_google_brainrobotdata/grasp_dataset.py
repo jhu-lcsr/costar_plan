@@ -1236,7 +1236,7 @@ class GraspDataset(object):
                         # apply median filter to depth image
                         if FLAGS.median_filter:
                             median_filter_image = grasp_dataset_median_filter(image, 
-                            (FLAGS.median_filter_height, FLAGS.median_filter_width))
+                            FLAGS.median_filter_height, FLAGS.median_filter_width)
                             feature_op_dict['depth_image/median_filtered'] = median_filter_image
                         # depth images have one channel
                         if 'camera/intrinsics/matrix33' in feature_op_dict and point_cloud_fn is not None:
