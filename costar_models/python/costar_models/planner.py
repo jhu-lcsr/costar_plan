@@ -847,7 +847,8 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
     x1 = AddDense(x1, 512, "relu", 0.)
     arm = AddDense(x1, arm_size, "linear", 0., output=True)
     gripper = AddDense(x1, gripper_size, "sigmoid", 0., output=True)
-    actor = Model([xin, option_in], [arm, gripper], name="actor")
+    value = Dense(1, activation="sigmoid", name="V",)(x1)
+    actor = Model([xin, option_in], [arm, gripper, value], name="actor")
     return actor
 
 def GetNextOptionAndValue(x, num_options, dense_size, dropout_rate=0.5, option_in=None):

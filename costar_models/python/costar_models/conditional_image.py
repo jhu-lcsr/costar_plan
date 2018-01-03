@@ -140,11 +140,10 @@ class ConditionalImage(PredictionSampler2):
 
         h = encoder(img_in)
         h0 = encoder(img0_in)
-        value_out, next_option_out = GetNextOptionAndValue(h,
-                                                           self.num_options,
-                                                           self.rep_size,
-                                                           dropout_rate=self.dropout_rate,
-                                                           option_in=label_in)
+        _, next_option_out = GetNextOptionAndValue(h, self.num_options,
+                                                   self.rep_size,
+                                                   dropout_rate=self.dropout_rate,
+                                                   option_in=None)
 
         # create input for controlling noise output if that's what we decide
         # that we want to do
@@ -175,7 +174,7 @@ class ConditionalImage(PredictionSampler2):
         actor = GetActorModel(h, self.num_options, arm_size, gripper_size,
                 self.decoder_dropout_rate)
         actor.compile(loss="mae",optimizer=self.getOptimizer())
-        arm_cmd, gripper_cmd = actor([h, next_option_in])
+        arm_cmd, gripper_cmd, value_out = actor([h, next_option_in])
         #lfn = "logcosh"
         lfn = self.loss
         predictor.compile(
