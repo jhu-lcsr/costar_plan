@@ -103,9 +103,9 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         dr = 0.
         x = AddConv2D(x, 128, [1,1], 1, 0., "same", False)
         x_img = AddConv2D(x, self.encoder_channels, [5,5], 1,
-                dr, "same", False)
+                dr, "same", False, True)
         x_arm = AddConv2D(x, rep_size, [5,5], 1,
-                dr, "same", False)
+                dr, "same", False, True)
         if self.skip_connections:
             skip_in = Input(self.skip_shape, name="skip_input_hd")
             ins = [x_img, skip_in]

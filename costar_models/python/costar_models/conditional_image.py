@@ -162,11 +162,6 @@ class ConditionalImage(PredictionSampler2):
         x = tform([h0,h,y])
         image_out = decoder(x)
 
-        #image_discriminator = self._makeImageEncoder(img_shape, disc=True)
-        #o1 = image_discriminator(ins[0])
-        #o2 = image_discriminator(image_out)
-        #o2.trainable = False
-
         # =====================================================================
         actor = GetActorModel(h, self.num_options, arm_size, gripper_size,
                 self.decoder_dropout_rate)

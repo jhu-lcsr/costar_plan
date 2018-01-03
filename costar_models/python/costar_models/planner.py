@@ -18,6 +18,7 @@ from keras.layers.merge import Concatenate
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 from keras.optimizers import Adam
+from keras.constraints import max_norm
 
 '''
 PLANNER MODEL TOOLS
@@ -32,7 +33,7 @@ out: an output tensor
 '''
 
 def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
-        discriminator=False, momentum=0.9, name=None, constraint=None):
+        lrelu=False, bn=True, momentum=0.9, name=None, constraint=None):
     '''
     Helper for creating networks. This one will add a convolutional block.
 
@@ -61,7 +62,9 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
     if name is not None:
         kwargs['name'] = "%s_bn"%name
     x = BatchNormalization(momentum=momentum, **kwargs)(x)
-    if discriminator:
+    if bn:
+        x = BatchNormalization(momentum=momentum)(x)
+    if lrelu:
         if name is not None:
             kwargs['name'] = "%s_lrelu"%name
         x = LeakyReLU(alpha=0.2, **kwargs)(x)

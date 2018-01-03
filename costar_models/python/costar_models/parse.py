@@ -152,6 +152,15 @@ def GetModelParser():
                         help="Loss for state variables: MSE, MAE, or log(cosh).",
                         choices=["mse","mae","logcosh"],
                         default="mae")
+    parser.add_argument("--gan-method",
+                        help="Whether to train with GAN or no GAN",
+                        dest='gan_method',
+                        choices=["gan", "mae", "desc"],
+                        default="gan")
+    parser.add_argument("--save_model",
+                        help="Should we save to the model file",
+                        type=bool,
+                        default=True)
     parser.add_argument("--retrain",
                         help="Retrain sub-models",
                         action="store_true")

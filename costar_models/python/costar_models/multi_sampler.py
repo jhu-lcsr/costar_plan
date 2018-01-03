@@ -935,19 +935,19 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         img = Input(img_shape,name="img_encoder_in")
         dr = self.dropout_rate
         x = img
-        x = AddConv2D(x, 32, [5,5], 2, dr, "same", disc)
-        x = AddConv2D(x, 32, [5,5], 1, 0., "same", disc)
-        x = AddConv2D(x, 32, [5,5], 1, 0., "same", disc)
-        x = AddConv2D(x, 64, [5,5], 2, dr, "same", disc)
-        x = AddConv2D(x, 64, [5,5], 1, 0., "same", disc)
-        x = AddConv2D(x, 128, [5,5], 2, dr, "same", disc)
+        x = AddConv2D(x, 32, [5,5], 2, dr, "same", bn=disc)
+        x = AddConv2D(x, 32, [5,5], 1, 0., "same", bn=disc)
+        x = AddConv2D(x, 32, [5,5], 1, 0., "same", bn=disc)
+        x = AddConv2D(x, 64, [5,5], 2, dr, "same", bn=disc)
+        x = AddConv2D(x, 64, [5,5], 1, 0., "same", bn=disc)
+        x = AddConv2D(x, 128, [5,5], 2, dr, "same", bn=disc)
 
         if self.use_spatial_softmax and not disc:
             def _ssm(x):
                 return spatial_softmax(x)
             self.encoder_channels = 32
             x = AddConv2D(x, self.encoder_channels, [1,1], 1, 0.*dr,
-                    "same", disc)
+                    "same", bn=disc)
             x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
             self.hidden_shape = (self.encoder_channels*2,)
             self.hidden_size = 2*self.encoder_channels
@@ -955,7 +955,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         else:
             self.encoder_channels = 8
             x = AddConv2D(x, self.encoder_channels, [1,1], 1, 0.*dr,
-                    "same", disc)
+                    "same", bn=disc)
             self.steps_down = 3
             self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
             self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.encoder_channels)
