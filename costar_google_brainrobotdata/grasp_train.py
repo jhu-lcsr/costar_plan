@@ -29,7 +29,13 @@ import grasp_model
 
 from tqdm import tqdm  # progress bars https://github.com/tqdm/tqdm
 
-import horovod.keras as hvd
+try:
+    import horovod.keras as hvd
+except ImportError:
+    print('Horovod is not installed, see https://github.com/uber/horovod.'
+          'Distributed training is disabled but single machine training '
+          'should continue to work but without learning rate warmup.')
+    hvd = None
 
 flags.DEFINE_string('learning_rate_decay_algorithm', 'power_decay',
                     """Determines the algorithm by which learning rate decays,
@@ -141,8 +147,9 @@ class GraspTrain(object):
                 you almost certainly want the value to be None, which includes every image.
         """
 
-        # Initialize Horovod.
-        hvd.init()
+        if hvd is not None:
+            # Initialize Horovod.
+            hvd.init()
 
         # Pin GPU to be used to process local rank (one GPU per process)
         config = tf.ConfigProto()
@@ -218,8 +225,27 @@ class GraspTrain(object):
             return lr
 
         callbacks = []
+        if hvd is not None:
+            callbacks = callbacks + [
+                # Broadcast initial variable states from rank 0 to all other processes.
+                # This is necessary to ensure consistent initialization of all workers when
+                # training is started with random weights or restored from a checkpoint.
+                hvd.callbacks.BroadcastGlobalVariablesCallback(0),
+
+                # Average metrics among workers at the end of every epoch.
+                #
+                # Note: This callback must be in the list before the ReduceLROnPlateau,
+                # TensorBoard or other metrics-based callbacks.
+                hvd.callbacks.MetricAverageCallback(),
+
+                # Using `lr = 1.0 * hvd.size()` from the very beginning leads to worse final
+                # accuracy. Scale the learning rate `lr = 1.0` ---> `lr = 1.0 * hvd.size()` during
+                # the first five epochs. See https://arxiv.org/abs/1706.02677 for details.
+                hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=5, verbose=1),
+            ]
+
         scheduler = keras.callbacks.LearningRateScheduler(lr_scheduler)
-        early_stopper = EarlyStopping(monitor='acc', min_delta=0.001, patience=16)
+        early_stopper = EarlyStopping(monitor='acc', min_delta=0.001, patience=32)
         csv_logger = CSVLogger(weights_name + '.csv')
         checkpoint = keras.callbacks.ModelCheckpoint(weights_name + '-epoch-{epoch:03d}-loss-{loss:.3f}-acc-{acc:.3f}.h5',
                                                      save_best_only=True, verbose=1, monitor='acc')
@@ -246,26 +272,11 @@ class GraspTrain(object):
 
             # Add Horovod Distributed Optimizer.
             optimizer = hvd.DistributedOptimizer(optimizer)
+
             callbacks = callbacks + [
-                # Broadcast initial variable states from rank 0 to all other processes.
-                # This is necessary to ensure consistent initialization of all workers when
-                # training is started with random weights or restored from a checkpoint.
-                hvd.callbacks.BroadcastGlobalVariablesCallback(0),
-
-                # Average metrics among workers at the end of every epoch.
-                #
-                # Note: This callback must be in the list before the ReduceLROnPlateau,
-                # TensorBoard or other metrics-based callbacks.
-                hvd.callbacks.MetricAverageCallback(),
-
-                # Using `lr = 1.0 * hvd.size()` from the very beginning leads to worse final
-                # accuracy. Scale the learning rate `lr = 1.0` ---> `lr = 1.0 * hvd.size()` during
-                # the first five epochs. See https://arxiv.org/abs/1706.02677 for details.
-                hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=5, verbose=1),
-
                 # Reduce the learning rate if training plateaus.
                 # TODO(ahundt) add validation checks and update monitor parameter to use them
-                keras.callbacks.ReduceLROnPlateau(patience=8, verbose=1, monitor='loss'),
+                keras.callbacks.ReduceLROnPlateau(patience=8, verbose=1, monitor='loss')
             ]
 
         # 2017-08-27 Tried NADAM for a while with the settings below, only improved for first 2 epochs.
