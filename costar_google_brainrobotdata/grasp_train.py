@@ -94,7 +94,7 @@ flags.DEFINE_string('learning_rate_scheduler', 'learning_rate_scheduler',
                        turning this on activates the scheduler which follows
                        a power decay path for the learning rate over time.
                        This is most useful with SGD, currently disabled with Adam.""")
-flags.DEFINE_string('optimizer', 'Adam', """Options are Adam and SGD.""")
+flags.DEFINE_string('optimizer', 'SGD', """Options are Adam and SGD.""")
 flags.DEFINE_string('progress_tracker', None,
                     """Utility to follow training progress, options are tensorboard and None.""")
 
