@@ -828,8 +828,7 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
     option_x = Flatten()(option_x)
     option_x = AddDense(option_x, 128, "relu", 0.)
     x1 = Concatenate()([x1, option_x])
-
-    x1 = AddDense(x, 512, "relu", 0.)
+    x1 = AddDense(x1, 512, "relu", 0.)
     arm = AddDense(x1, arm_size, "linear", 0., output=True)
     gripper = AddDense(x1, gripper_size, "sigmoid", 0., output=True)
     actor = Model([xin, option_in], [arm, gripper], name="actor")

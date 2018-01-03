@@ -153,10 +153,10 @@ class ConditionalImage(PredictionSampler2):
         image_out = decoder(x)
 
 
-        image_discriminator = self._makeImageEncoder(img_shape, disc=True)
-        o1 = image_discriminator(ins[0])
-        o2 = image_discriminator(image_out)
-        o2.trainable = False
+        #image_discriminator = self._makeImageEncoder(img_shape, disc=True)
+        #o1 = image_discriminator(ins[0])
+        #o2 = image_discriminator(image_out)
+        #o2.trainable = False
 
         # =====================================================================
         # Create models to train
@@ -166,30 +166,29 @@ class ConditionalImage(PredictionSampler2):
                 self.decoder_dropout_rate)
         actor.compile(loss="mae",optimizer=self.getOptimizer())
         arm_cmd, gripper_cmd = actor([h, next_option_in])
-        #lfn = "logcosh"
-        lfn = "mae"
+        lfn = "logcosh"
+        #lfn = "mae"
         predictor.compile(
                 loss=[lfn, "categorical_crossentropy", lfn],
                 loss_weights=[1., 0.1, 0.1,],
                 optimizer=self.getOptimizer())
         if self.do_all:
             train_predictor = Model(ins + [label_in],
-                    [image_out, next_option_out, value_out, o1, o2,
+                    [image_out, next_option_out, value_out, #o1, o2,
                         arm_cmd,
                         gripper_cmd])
             train_predictor.compile(
                     loss=["mae", "categorical_crossentropy", "mae",
-                        "categorical_crossentropy", "categorical_crossentropy",
+                        #"categorical_crossentropy", "categorical_crossentropy",
                         "mae", "mae"],
-                    loss_weights=[1., 0.1, 0.1, 1., 1e-4, 0.1, 0.02],
+                    loss_weights=[1., 0.1, 0.1, 0.1, 0.02],
                     optimizer=self.getOptimizer())
         else:
             train_predictor = Model(ins + [label_in],
-                    [image_out, o1, o2,])
+                    [image_out, #o1, o2,
+                        ])
             train_predictor.compile(
-                    loss=[lfn, 
-                        "categorical_crossentropy", "categorical_crossentropy",],
-                    loss_weights=[1., 1., 1e-3],
+                    loss=[lfn], 
                     optimizer=self.getOptimizer())
         actor.summary()
         train_predictor.summary()
@@ -216,8 +215,8 @@ class ConditionalImage(PredictionSampler2):
             if self.use_noise:
                 noise_len = features[0].shape[0]
                 z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-                return [I0, I, z, o1, oin], [ I_target, oin_1h, o1]
+                return [I0, I, z, o1, oin], [ I_target]
             else:
-                return [I0, I, o1, oin], [ I_target, oin_1h, o1]
+                return [I0, I, o1, oin], [ I_target]
 
 
