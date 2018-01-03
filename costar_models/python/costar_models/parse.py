@@ -161,6 +161,9 @@ def GetModelParser():
                         help="Should we save to the model file",
                         type=bool,
                         default=True)
+    parser.add_argument("--retrain",
+                        help="Retrain sub-models",
+                        action="store_true")
 
     return parser
 

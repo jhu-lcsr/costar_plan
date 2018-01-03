@@ -33,12 +33,9 @@ class PretrainSampler(PredictionSampler2):
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
         [I, q, g, oin, q_target, g_target,] = features
-        I0 = I[0,:,:,:]
-        length = I.shape[0]
-        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
         [tt, o1, v, qa, ga, I] = targets
         oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
-        return [I0, I, q, g, oin], [I, q, g, oin_1h]
+        return [I, q, g, oin], [I, q, g, oin_1h]
 
     def _makePredictor(self, features):
         '''
@@ -54,40 +51,33 @@ class PretrainSampler(PredictionSampler2):
         # =====================================================================
         # Load the image decoders
         img_in = Input(img_shape,name="predictor_img_in")
-        img0_in = Input(img_shape,name="predictor_img0_in")
         encoder = self._makeImageEncoder(img_shape)
 
-        try:
-            encoder.load_weights(self._makeName(
-                "pretrain_image_encoder_model",
-                "image_encoder.h5f"))
-            encoder.trainable = False
-        except Exception as e:
-            pass
 
-        enc = encoder([img0_in, img_in])
         if self.skip_connections:
             decoder = self._makeImageDecoder(self.hidden_shape,self.skip_shape)
         else:
             decoder = self._makeImageDecoder(self.hidden_shape)
+
         try:
             decoder.load_weights(self._makeName(
                 "pretrain_image_encoder_model",
                 "image_decoder.h5f"))
-            decoder.trainable = False
+            encoder.load_weights(self._makeName(
+                "pretrain_image_encoder_model",
+                "image_encoder.h5f"))
+            decoder.trainable = self.retrain
+            encoder.trainable = self.retrain
         except Exception as e:
             pass
 
         encoder.summary()
         decoder.summary()
 
+        enc = encoder([img_in])
         sencoder = self._makeStateEncoder(arm_size, gripper_size, False)
-        #sencoder.load_weights(self._makeName(
-        #    "pretrain_state_encoder_model", "state_encoder.h5f"))
         sdecoder = self._makeStateDecoder(arm_size, gripper_size,
-                self.rep_channels)
-        #sdecoder.load_weights(self._makeName(
-        #    "pretrain_state_encoder_model", "state_decoder.h5f"))
+                self.tform_filters)
 
         # =====================================================================
         # Load the arm and gripper representation
@@ -95,7 +85,7 @@ class PretrainSampler(PredictionSampler2):
         gripper_in = Input((gripper_size,))
         arm_gripper = Concatenate()([arm_in, gripper_in])
         label_in = Input((1,))
-        ins = [img0_in, img_in, arm_in, gripper_in, label_in]
+        ins = [img_in, arm_in, gripper_in, label_in]
 
         # =====================================================================
         # combine these models together with state information and label
@@ -105,12 +95,8 @@ class PretrainSampler(PredictionSampler2):
             h, skip_rep = hidden_encoder(ins)
         else:
             h = hidden_encoder(ins)
-        value_out, next_option_out = GetNextOptionAndValue(h,
-                                                           self.num_options,
-                                                           self.rep_size,
-                                                           dropout_rate=0.5,
-                                                           option_in=None)
-        hidden_decoder = self._makeFromHidden(self.rep_size)
+        hidden_decoder = self._makeFromHidden()
+
         if self.skip_connections:
             #img_x = hidden_decoder([x, skip_rep])
             img_x, arm_x, gripper_x, label_x = hidden_decoder([h, skip_rep])
@@ -122,12 +108,11 @@ class PretrainSampler(PredictionSampler2):
         ae2 = Model(ins, ae_outs)
         ae2.compile(
             loss=["mae","mae", "mae",
-                "mae",],
-            loss_weights=[1.,1.,.2,0.,],#0.25],
+                "categorical_crossentropy",],
+            loss_weights=[1.,0.5,0.1,0.025,],
             optimizer=self.getOptimizer())
         ae2.summary()
 
         #return predictor, train_predictor, None, ins, enc
         return ae2, ae2, None, ins, enc
-
 

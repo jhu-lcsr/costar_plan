@@ -35,6 +35,7 @@ class AbstractAgentBasedModel(object):
             compatibility=1,
             use_noise=False,
             sampling=False,
+            retrain=True,
             use_prev_option=True,
             success_only=False,
             gan_method="gan",
@@ -56,6 +57,7 @@ class AbstractAgentBasedModel(object):
         self.compatibility = compatibility
         # ===================================
         self.loss = loss
+        self.retrain = retrain
         self.success_only = success_only
         self.use_prev_option = use_prev_option
         self.lr = lr
@@ -137,8 +139,9 @@ class AbstractAgentBasedModel(object):
         print("Pretrain for %d iter"%self.pretrain_iter)
         print("p(Generator sample first frame) = 1/%d"%(self.choose_initial))
         print("Number of generator files = %d"%self.num_generator_files)
-        print("Successful examples only = ", self.success_only)
-        print("Loss = ", loss)
+        print("Successful examples only =", self.success_only)
+        print("Loss =", loss)
+        print("Retrain sub-models =", self.retrain)
         print("-----------------------------------------------------------")
         print("------------------ Model Specific Options -----------------")
         print("residual =", self.residual)

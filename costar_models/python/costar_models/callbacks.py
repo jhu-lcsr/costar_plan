@@ -126,7 +126,7 @@ class PredictorShowImage(keras.callbacks.Callback):
             fig = plt.figure(figsize=(3+int(1.5*self.num_hypotheses),2))
             plt.subplot(1,2+self.num_hypotheses,1)
             plt.title('Input Image')
-            plt.imshow(self.features[1][j])
+            plt.imshow(self.features[0][j])
             plt.subplot(1,2+self.num_hypotheses,2+self.num_hypotheses)
             plt.title('Observed Goal')
             plt.imshow(img[j])
