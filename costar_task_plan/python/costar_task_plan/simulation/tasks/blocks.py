@@ -156,7 +156,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             StackOption = lambda goal: GoalDirectedMotionOption(
                 self.world,
                 goal,
-                pose=((0.0+self.offset, 0.01, 0.06), self.grasp_q),
+                pose=((0.0+self.offset, 0.01, 0.051), self.grasp_q),
                 pose_tolerance=tol,
                 joint_velocity_tolerance=vtol,
                 closed_loop=True,)
