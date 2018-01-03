@@ -52,7 +52,8 @@ class random_crop_test(tf.test.TestCase):
             intrinsics_np[2, 1] -= offset_np[1]
 
             self.assertAllEqual(intrinsics_np, intrinsics_tf)
-	def test_crop_pointcloud(self):
+
+    def test_crop_pointcloud(self):
         """ Test pointcloud use random crop of tensor
         """
         with self.test_session() as sess:
