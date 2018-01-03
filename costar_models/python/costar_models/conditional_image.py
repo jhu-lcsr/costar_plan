@@ -67,7 +67,7 @@ class ConditionalImage(PredictionSampler2):
             x = AddConv2D(x, 64,
                     self.tform_kernel_size,
                     stride=1,
-                    dropout_rate=self.tform_dropout_rate)
+                    dropout_rate=0.)
 
         x = AddConv2DTranspose(x,
                 64,
@@ -79,10 +79,11 @@ class ConditionalImage(PredictionSampler2):
         x = AddConv2D(x, 64,
                 self.tform_kernel_size,
                 stride=1,
-                dropout_rate=self.tform_dropout_rate)
+                dropout_rate=self.decoder_dropout_rate)
 
         x = AddConv2D(x, self.encoder_channels, [1, 1], stride=1,
                 dropout_rate=0.)
+
         self.transform_model = Model([h0,h,option], x, name="tform")
         self.transform_model.compile(loss="mae", optimizer=self.getOptimizer())
         self.transform_model.summary()
