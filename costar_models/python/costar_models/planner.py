@@ -32,7 +32,7 @@ out: an output tensor
 '''
 
 def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
-        discriminator=False, momentum=0.9, name=None):
+        discriminator=False, momentum=0.9, name=None, constraint=None):
     '''
     Helper for creating networks. This one will add a convolutional block.
 
@@ -51,6 +51,8 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
     kwargs = {}
     if name is not None:
         kwargs['name'] = "%s_conv"%name
+    if constraint is not None:
+        kwargs['kernel_constraint'] = maxnorm(constraint)
     x = Conv2D(filters,
             kernel_size=kernel,
             strides=(stride,stride),
@@ -859,24 +861,24 @@ def GetNextOptionAndValue(x, num_options, dense_size, dropout_rate=0.5, option_i
 
         # Project
         x = AddConv2D(x, 64, [1,1], 1, dropout_rate, "same", False,
-                name="VC1_project64")
+                name="VC1_project64", constraint=3)
         # conv down
         x = AddConv2D(x, 128, [5,5], 2, dropout_rate, "same", False,
-                name="VC2_down128")
+                name="VC2_down128", constraint=3)
         # conv across
-        x = AddConv2D(x, 128, [5,5], 1, dropout_rate, "same", False,
-                name="VC2_64")
+        x = AddConv2D(x, 64, [5,5], 1, dropout_rate, "same", False,
+                name="VC2_64", constraint=3)
         # Get vector
         x = Flatten()(x)
 
-    x1 = AddDense(x, dense_size*2, "relu", 0)
-    x1 = AddDense(x1, dense_size, "relu", 0)
-    x2 = AddDense(x, dense_size, "relu", 0)
-    x2 = AddDense(x2, int(dense_size/2), "relu", 0)
+    x1 = AddDense(x, dense_size, "relu", 0)
+    x1 = AddDense(x1, int(dense_size), "relu", 0)
+    #x2 = AddDense(x, dense_size, "relu", 0)
+    #x2 = AddDense(x2, int(dense_size/2), "relu", 0)
 
     next_option_out = Dense(num_options,
             activation="softmax", name="lnext",)(x1)
-    value_out = Dense(1, activation="sigmoid", name="V",)(x2)
+    value_out = Dense(1, activation="sigmoid", name="V",)(x1)
     return value_out, next_option_out
 
 

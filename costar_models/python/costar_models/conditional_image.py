@@ -179,7 +179,7 @@ class ConditionalImage(PredictionSampler2):
         #lfn = "logcosh"
         lfn = self.loss
         predictor.compile(
-                loss=[lfn, "categorical_crossentropy", lfn],
+                loss=[lfn, "categorical_crossentropy", "mae"],
                 loss_weights=[1., 0.1, 0.1,],
                 optimizer=self.getOptimizer())
         if self.do_all:
@@ -188,7 +188,7 @@ class ConditionalImage(PredictionSampler2):
                         arm_cmd,
                         gripper_cmd])
             train_predictor.compile(
-                    loss=[lfn, "categorical_crossentropy", "mse",
+                    loss=[lfn, "categorical_crossentropy", "mae",
                         lfn, lfn],
                     loss_weights=[1., 0.1, 0.1, 0.1, 0.02],
                     optimizer=self.getOptimizer())
