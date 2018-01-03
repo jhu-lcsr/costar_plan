@@ -1,23 +1,28 @@
 import tensorflow as tf
-import grasp_dataset
+import os.path
+from grasp_dataset import GraspDataset
 
-
-def count_success_failure_number(grasp, tf_session=tf.Session()):
-    """ Counting number of success and failure in all attempts.
-        Return: success_num, failure_num, success/failure ratio
-    """
-    batch_size = 1
-    (feature_op_dicts, _, _, num_samples) = self.get_training_dictionaries(batch_size=batch_size)
-    tf_session.run(tf.global_variables_initializer())
-
-    success_num = 0
-    failure_num = 0
-    for attempt_num in range(num_samples):
-        output_features_dicts = tf_session.run(feature_op_dicts)
-        [(features_dict_np, _)] = output_features_dicts
-        if int(features_dict_np['grasp_success']) == 1:
-            success_num += 1
-        else:
-            failure_num += 1
-
-    return success_num, failure_num, succes
+""" Counting success, failure, success ratio to total.
+    Write to ~/.keras/dataset/num/grasping'.
+"""
+if __name__ == '__main__':
+    with tf.Session() as sess:
+        gd = GraspDataset()
+        default_save_path = os.path.join(
+            os.path.expanduser('~'), '.keras', 'datasets', gd.dataset, 'grasping')
+        os.makedirs(default_save_path)
+        filename = 'grasp_dataset_success_statistics.txt'
+        complete_path = os.path.join(default_save_path, filename)
+        success_num, fail_num, success_ratio = gd.count_success_failure_number(sess)
+        file_object = open(complete_path, 'w')
+        text_lines = ['Statistics for grasp_dataset_', gd.dataset+'\n',
+                      'total attempts: ', str(success_num+fail_num)+'\n',
+                      'number of success: ', str(success_num)+'\n',
+                      'number of failure: ', str(fail_num)+'\n',
+                      'success ratio to total: ', str(success_ratio)+'\n']
+        file_object.writelines(text_lines)
+        file_object.close()
+        print('number of attempts', success_num+fail_num)
+        print('number of success', success_num)
+        print('number of failure', fail_num)
+        print('success ratio to total', success_ratio)
