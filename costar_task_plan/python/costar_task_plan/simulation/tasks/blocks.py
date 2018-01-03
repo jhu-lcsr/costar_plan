@@ -88,7 +88,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         AlignOption = lambda goal: GoalDirectedMotionOption(
             self.world,
             goal,
-            pose=((0.05, 0, 0.05), self.grasp_q),
+            pose=((0.05, 0.01, 0.05), self.grasp_q),
             pose_tolerance=tol,
             joint_velocity_tolerance=vtol,)
         align_args = {
@@ -99,7 +99,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         GraspOption = lambda goal: GoalDirectedMotionOption(
             self.world,
             goal,
-            pose=((0.0 + self.offset, 0, -0.005), self.grasp_q),
+            pose=((0.0 + self.offset, 0.01, -0.005), self.grasp_q),
             pose_tolerance=tol,
             joint_velocity_tolerance=vtol,)
         grasp_args = {
@@ -129,7 +129,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             "semantic_args": ["block1"]
         }
         close_gripper_args = {
-            "constructor": lambda: CloseGripperOption(position=np.array([-0.6])),
+            "constructor": lambda: CloseGripperOption(position=np.array([-0.5])),
             "semantic_args": ["block1"]
         }
         open_gripper_args = {
@@ -145,7 +145,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             AlignStackOption = lambda goal: GoalDirectedMotionOption(
                 self.world,
                 goal,
-                pose=((0.01+self.offset, 0, 0.10), self.grasp_q),
+                pose=((0.01+self.offset, 0.01, 0.10), self.grasp_q),
                 pose_tolerance=tol,
                 joint_velocity_tolerance=vtol,)
             align_stack_args = {
@@ -156,7 +156,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             StackOption = lambda goal: GoalDirectedMotionOption(
                 self.world,
                 goal,
-                pose=((0.0+self.offset, 0, 0.06), self.grasp_q),
+                pose=((0.0+self.offset, 0.01, 0.06), self.grasp_q),
                 pose_tolerance=tol,
                 joint_velocity_tolerance=vtol,
                 closed_loop=True,)
