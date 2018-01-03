@@ -188,7 +188,7 @@ class ConditionalImage(PredictionSampler2):
                         arm_cmd,
                         gripper_cmd])
             train_predictor.compile(
-                    loss=[lfn, "categorical_crossentropy", "binary_crossentropy",
+                    loss=[lfn, "categorical_crossentropy", "mse",
                         lfn, lfn],
                     loss_weights=[1., 0.1, 0.1, 0.1, 0.02],
                     optimizer=self.getOptimizer())

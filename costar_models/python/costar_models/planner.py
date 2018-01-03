@@ -846,18 +846,18 @@ def GetNextOptionAndValue(x, num_options, dense_size, dropout_rate=0.5, option_i
         x = TileOnto(x, option_x, num_options, x.shape[1:3])
 
         # Project
-        x = AddConv2D(x, 64, [1,1], 1, 0., "same", False)
+        x = AddConv2D(x, 64, [1,1], 1, dropout_rate, "same", False)
         # conv down
-        x = AddConv2D(x, 128, [5,5], 2, 0., "same", False)
+        x = AddConv2D(x, 128, [5,5], 2, dropout_rate, "same", False)
         # conv across
         x = AddConv2D(x, 64, [5,5], 1, dropout_rate, "same", False)
         # Get vector
         x = Flatten()(x)
 
     x1 = AddDense(x, dense_size*2, "relu", 0.)
-    x1 = AddDense(x1, dense_size*2, "relu", 0.)
-    x2 = AddDense(x, dense_size, "relu", 0.)
-    x2 = AddDense(x2, dense_size, "relu", 0.)
+    x1 = AddDense(x1, dense_size, "relu", 0.)
+    x2 = AddDense(x, dense_size, "relu", dropout_rate)
+    x2 = AddDense(x2, int(dense_size/2), "relu", 0.)
 
     next_option_out = Dense(num_options,
             activation="softmax", name="lnext",)(x1)
