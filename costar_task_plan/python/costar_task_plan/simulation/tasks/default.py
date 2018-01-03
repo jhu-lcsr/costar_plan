@@ -31,8 +31,8 @@ class DefaultTaskDefinition(AbstractTaskDefinition):
         self.addCamera(
             #Camera("right", [-0.5, 0., 0.15], distance=0.8, roll=0.0,
             Camera("right", [-0.45, 0., 0.25], distance=0.7, roll=0.0,
-                image_width=64,
-                image_height=64,
+                image_width=256,
+                image_height=256,
                 pitch=-45,
                 yaw=-90,
                 #yaw=-60,

@@ -12,6 +12,7 @@ import os
 import pybullet as pb
 import rospkg
 
+YOFF = 0.
 
 class BlocksTaskDefinition(DefaultTaskDefinition):
 
@@ -88,7 +89,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         AlignOption = lambda goal: GoalDirectedMotionOption(
             self.world,
             goal,
-            pose=((0.05, 0.01, 0.05), self.grasp_q),
+            pose=((0.05, YOFF, 0.05), self.grasp_q),
             pose_tolerance=tol,
             joint_velocity_tolerance=vtol,)
         align_args = {
@@ -99,7 +100,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         GraspOption = lambda goal: GoalDirectedMotionOption(
             self.world,
             goal,
-            pose=((0.0 + self.offset, 0.01, -0.005), self.grasp_q),
+            pose=((0.0 + self.offset, YOFF, -0.005), self.grasp_q),
             pose_tolerance=tol,
             joint_velocity_tolerance=vtol,)
         grasp_args = {
@@ -145,7 +146,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             AlignStackOption = lambda goal: GoalDirectedMotionOption(
                 self.world,
                 goal,
-                pose=((0.01+self.offset, 0.01, 0.10), self.grasp_q),
+                pose=((0.01+self.offset, YOFF, 0.10), self.grasp_q),
                 pose_tolerance=tol,
                 joint_velocity_tolerance=vtol,)
             align_stack_args = {
@@ -156,7 +157,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             StackOption = lambda goal: GoalDirectedMotionOption(
                 self.world,
                 goal,
-                pose=((0.0+self.offset, 0.01, 0.051), self.grasp_q),
+                pose=((self.offset, YOFF, 0.051), self.grasp_q),
                 pose_tolerance=tol,
                 joint_velocity_tolerance=vtol,
                 closed_loop=True,)
@@ -197,6 +198,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             task = Task()
             task.add("pickup", None, pickup_args)
             task.add("place", None, place_args)
+
         elif self.stage == 0:
             task = Task()
             task.add("align", None, align_args)
