@@ -148,8 +148,6 @@ def TileOnto(x,z,zlen,xsize):
     x = Concatenate(axis=-1)([x,z])
     return x
 
-
-
 def TileArmAndGripper(x, arm_in, gripper_in, tile_width, tile_height,
         option=None, option_in=None,
         time_distributed=None, dim=64):
@@ -806,12 +804,13 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
     Make an "actor" network that takes in an encoded image and an "option"
     label and produces the next command to execute.
     '''
-    x_obs = x
     xin = Input([int(d) for d in x.shape[1:]], name="actor_h_in")
-    option_in = Input((1,), name="actor_o_in")
+    option_in = Input((48,), name="actor_o_in")
     x = xin
 
     if len(x.shape) > 2:
+        x = TileOnto(x, option_in, num_options, x.shape[1:3])
+
         # Project
         x = AddConv2D(x, 64, [1,1], 1, 0., "same", False)
         # conv down
@@ -822,12 +821,10 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
         # for our classifier to work.
         x = Flatten()(x)
 
+    x = Concatenate()([x, option_in])
+
     # Same setup as the state decoders
-    x1 = AddDense(x, 512, "relu", dropout_rate)
-    option_x = OneHot(num_options)(option_in)
-    option_x = Flatten()(option_x)
-    option_x = AddDense(option_x, 128, "relu", 0.)
-    x1 = Concatenate()([x1, option_x])
+    x1 = AddDense(x, 512, "relu", 0.)
     x1 = AddDense(x1, 512, "relu", 0.)
     arm = AddDense(x1, arm_size, "linear", 0., output=True)
     gripper = AddDense(x1, gripper_size, "sigmoid", 0., output=True)
@@ -844,28 +841,23 @@ def GetNextOptionAndValue(x, num_options, dense_size, dropout_rate=0.5, option_i
     num_options: number of possible actions to predict
     '''
     if len(x.shape) > 2:
+        option_x = OneHot(num_options)(option_in)
+        option_x = Flatten()(option_x)
+        x = TileOnto(x, option_x, num_options, x.shape[1:3])
+
         # Project
         x = AddConv2D(x, 64, [1,1], 1, 0., "same", False)
         # conv down
-        x = AddConv2D(x, 128, [3,3], 2, 0., "same", False)
+        x = AddConv2D(x, 128, [5,5], 2, 0., "same", False)
         # conv across
-        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same", False)
+        x = AddConv2D(x, 64, [5,5], 1, dropout_rate, "same", False)
         # Get vector
         x = Flatten()(x)
 
     x1 = AddDense(x, dense_size*2, "relu", 0.)
-    x2 = AddDense(x, dense_size*2, "relu", 0.)
-
-    if option_in is not None:
-        option_x = OneHot(num_options)(option_in)
-        option_x = Flatten()(option_x)
-        option_x = AddDense(option_x, dense_size, "relu", 0.)
-        x1 = Concatenate()([x1, option_x])
-        x2 = Concatenate()([x2, option_x])
-    
     x1 = AddDense(x1, dense_size*2, "relu", 0.)
-    x1 = AddDense(x1, dense_size, "relu", dropout_rate)
-    x2 = AddDense(x2, dense_size, "relu", dropout_rate)
+    x2 = AddDense(x, dense_size, "relu", 0.)
+    x2 = AddDense(x2, dense_size, "relu", 0.)
 
     next_option_out = Dense(num_options,
             activation="softmax", name="lnext",)(x1)

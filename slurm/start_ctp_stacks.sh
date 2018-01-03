@@ -42,6 +42,7 @@ do
   # just use the adam optimizer
   for opt in adam
   do
+    for loss in mae logcosh
     # what do we do about skip connections?
     for skip in 0 # 1
     do
@@ -52,7 +53,7 @@ do
         for dr in 0.1 0.2 0.3 0.5
         do
           echo "starting LR=$lr, Dropout=$dr, optimizer=$opt, use dropout in hypotheses: $hd noise=$noise_dim, skip connections = $skip"
-          sbatch ctp.sh $lr $dr $opt $hd $noise_dim $skip
+          sbatch ctp.sh $lr $dr $opt $hd $noise_dim $skip $loss
         done
         #hd=false
         #for dr in 0.1 0.2 0.5
@@ -62,7 +63,7 @@ do
         #done
         dr=0.0
         echo "starting LR=$lr, Dropout=$dr, optimizer=$opt, use dropout in hypotheses: $hd noise=$noise_dim, skip connections = $skip"
-        sbatch ctp.sh $lr $dr $opt $hd $noise_dim $skip
+        sbatch ctp.sh $lr $dr $opt $hd $noise_dim $skip $loss
       done
     done
   done

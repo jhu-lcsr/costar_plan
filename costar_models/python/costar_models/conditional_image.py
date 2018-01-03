@@ -48,9 +48,45 @@ class ConditionalImage(PredictionSampler2):
         '''
         super(ConditionalImage, self).__init__(*args, **kwargs)
         self.PredictorCb = ImageCb
-        self.rep_size = 128
+        self.rep_size = 256
         self.num_transforms = 2
-        self.do_all = False
+        self.do_all = True
+        self.transform_model = None
+
+    def _makeTransform(self):
+        h = Input((8,8,self.encoder_channels),name="h_in")
+        h0 = Input((8,8,self.encoder_channels),name="h0_in")
+        option = Input((48,),name="t_opt_in")
+        x, y = h, option
+        x = TileOnto(x, y, self.num_options, (8,8))
+        x = AddConv2D(x, 128, [1,1], 1, 0.)
+        x = AddConv2D(x, 64, self.tform_kernel_size, 2, 0.)
+        # Process
+        for i in range(self.num_transforms):
+            x = TileOnto(x, y, self.num_options, (4,4))
+            x = AddConv2D(x, 64,
+                    self.tform_kernel_size,
+                    stride=1,
+                    dropout_rate=self.tform_dropout_rate)
+
+        x = AddConv2DTranspose(x,
+                64,
+                self.tform_kernel_size,
+                stride=2,
+                dropout_rate=0.)
+
+        x = Concatenate()([x,h,h0])
+        x = AddConv2D(x, 64,
+                self.tform_kernel_size,
+                stride=1,
+                dropout_rate=self.tform_dropout_rate)
+
+        x = AddConv2D(x, self.encoder_channels, [1, 1], stride=1,
+                dropout_rate=0.)
+        self.transform_model = Model([h0,h,option], x, name="tform")
+        self.transform_model.compile(loss="mae", optimizer=self.getOptimizer())
+        self.transform_model.summary()
+        return self.transform_model
 
     def _makePredictor(self, features):
         # =====================================================================
@@ -98,8 +134,6 @@ class ConditionalImage(PredictionSampler2):
         except Exception as e:
             pass
 
-        rep_channels = self.encoder_channels
-
         # =====================================================================
         # Load the arm and gripper representation
 
@@ -124,34 +158,9 @@ class ConditionalImage(PredictionSampler2):
         #y = Flatten()(y)
         y = next_option_in
         x = h
-
-        x = TileOnto(x, y, self.num_options, (8,8))
-        x = AddConv2D(x, 128, [1,1], 1, 0.)
-        x = AddConv2D(x, 64, self.tform_kernel_size, 2, 0.)
-        # Process
-        for i in range(self.num_transforms):
-            x = TileOnto(x, y, self.num_options, (4,4))
-            x = AddConv2D(x, 64,
-                    self.tform_kernel_size,
-                    stride=1,
-                    dropout_rate=self.tform_dropout_rate)
-
-        x = AddConv2DTranspose(x,
-                64,
-                self.tform_kernel_size,
-                stride=2,
-                dropout_rate=0.)
-
-        x = Concatenate()([x,h,h0])
-        x = AddConv2D(x, 64,
-                self.tform_kernel_size,
-                stride=1,
-                dropout_rate=self.tform_dropout_rate)
-
-        x = AddConv2D(x, rep_channels, [1, 1], stride=1,
-                dropout_rate=0.)
+        tform = self._makeTransform()
+        x = tform([h0,h,y])
         image_out = decoder(x)
-
 
         #image_discriminator = self._makeImageEncoder(img_shape, disc=True)
         #o1 = image_discriminator(ins[0])
@@ -166,8 +175,8 @@ class ConditionalImage(PredictionSampler2):
                 self.decoder_dropout_rate)
         actor.compile(loss="mae",optimizer=self.getOptimizer())
         arm_cmd, gripper_cmd = actor([h, next_option_in])
-        lfn = "logcosh"
-        #lfn = "mae"
+        #lfn = "logcosh"
+        lfn = self.loss
         predictor.compile(
                 loss=[lfn, "categorical_crossentropy", lfn],
                 loss_weights=[1., 0.1, 0.1,],
@@ -178,9 +187,8 @@ class ConditionalImage(PredictionSampler2):
                         arm_cmd,
                         gripper_cmd])
             train_predictor.compile(
-                    loss=["mae", "categorical_crossentropy", "mae",
-                        #"categorical_crossentropy", "categorical_crossentropy",
-                        "mae", "mae"],
+                    loss=[lfn, "categorical_crossentropy", "binary_crossentropy",
+                        lfn, lfn],
                     loss_weights=[1., 0.1, 0.1, 0.1, 0.02],
                     optimizer=self.getOptimizer())
         else:
@@ -208,9 +216,9 @@ class ConditionalImage(PredictionSampler2):
             if self.use_noise:
                 noise_len = features[0].shape[0]
                 z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-                return [I0, I, z, o1, oin], [ I_target, o1, v, oin_1h, o1, qa, ga]
+                return [I0, I, z, o1, oin], [ I_target, o1, v, qa, ga]
             else:
-                return [I0, I, o1, oin], [ I_target, o1, v, oin_1h, o1, qa, ga]
+                return [I0, I, o1, oin], [ I_target, o1, v, qa, ga]
         else:
             if self.use_noise:
                 noise_len = features[0].shape[0]
