@@ -57,6 +57,7 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
             kernel_size=kernel,
             strides=(stride,stride),
             padding=padding, **kwargs)(x)
+    kwargs = {}
     if name is not None:
         kwargs['name'] = "%s_bn"%name
     x = BatchNormalization(momentum=momentum, **kwargs)(x)
@@ -826,11 +827,15 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
         x = TileOnto(x, option_in, num_options, x.shape[1:3])
 
         # Project
-        x = AddConv2D(x, 64, [1,1], 1, 0., "same", False)
+        x = AddConv2D(x, 64, [1,1], 1, 0., "same", False, name="A_project64",
+                constraint=3)
         # conv down
-        x = AddConv2D(x, 128, [3,3], 2, 0., "same", False)
+        x = AddConv2D(x, 128, [3,3], 2, 0., "same", False, name="A_down128",
+                constraint=3)
         # conv across
-        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same", False)
+        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same", False,
+                name="A_C64",
+                constraint=3)
         # This is the hidden representation of the world, but it should be flat
         # for our classifier to work.
         x = Flatten()(x)
@@ -873,12 +878,12 @@ def GetNextOptionAndValue(x, num_options, dense_size, dropout_rate=0.5, option_i
 
     x1 = AddDense(x, dense_size, "relu", 0)
     x1 = AddDense(x1, int(dense_size), "relu", 0)
-    #x2 = AddDense(x, dense_size, "relu", 0)
-    #x2 = AddDense(x2, int(dense_size/2), "relu", 0)
+    x2 = AddDense(x, dense_size, "relu", 0)
+    x2 = AddDense(x2, int(dense_size/2), "relu", 0)
 
     next_option_out = Dense(num_options,
             activation="softmax", name="lnext",)(x1)
-    value_out = Dense(1, activation="sigmoid", name="V",)(x1)
+    value_out = Dense(1, activation="sigmoid", name="V",)(x2)
     return value_out, next_option_out
 
 
