@@ -885,12 +885,11 @@ def GetNextOptionAndValue(x, num_options, dense_size, dropout_rate=0.5, option_i
         # conv down
         x = AddConv2D(x, 64, [3,3], 2, dropout_rate, "same",
                 name="VC2_64", constraint=3)
-        # conv across
-        x = AddConv2D(x, 64, [3,3], 2, dropout_rate, "same",
-                name="VC3_64", constraint=3)
-
-        x = AddConv2D(x, 64, [3,3], 2, dropout_rate, "same",
-                name="VC4_64", constraint=3)
+        ## conv across
+        #x = AddConv2D(x, 64, [3,3], 2, dropout_rate, "same",
+        #        name="VC3_64", constraint=3)
+        #x = AddConv2D(x, 64, [3,3], 2, dropout_rate, "same",
+        #        name="VC4_64", constraint=3)
         # Get vector
         x = Flatten()(x)
 
