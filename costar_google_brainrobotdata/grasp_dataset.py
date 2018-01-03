@@ -2149,5 +2149,5 @@ if __name__ == '__main__':
         gd = GraspDataset()
         if FLAGS.grasp_download:
             gd.download(dataset=FLAGS.grasp_dataset)
-        # gd.create_gif(sess)
-        gd.count_success_number(sess)
+        gd.create_gif(sess)
+        #gd.count_success_number(sess)
