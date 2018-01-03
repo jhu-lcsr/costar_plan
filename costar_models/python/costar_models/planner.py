@@ -901,7 +901,7 @@ def GetNextOptionAndValue(x, num_options, dense_size, dropout_rate=0.5, option_i
     # Current value
     x2 = AddDense(x, int(dense_size/4), "relu", 0)
     x2 = AddDense(x2, int(dense_size/4), "relu", 0)
-    value_out = Dense(1, activation="sigmoid", name="V",)(x2)
+    value_out = Dense(1, activation="linear", name="V",)(x2)
 
     return value_out, next_option_out
 
