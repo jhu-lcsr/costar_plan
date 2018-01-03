@@ -820,17 +820,19 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
     label and produces the next command to execute.
     '''
     xin = Input([int(d) for d in x.shape[1:]], name="actor_h_in")
-    x0in = Input([int(d) for d in x.shape[1:]], name="actor_h0_in")
+    #x0in = Input([int(d) for d in x.shape[1:]], name="actor_h0_in")
     option_in = Input((48,), name="actor_o_in")
-    x = Concatenate(axis=-1)([xin,x0in])
+    #x = Concatenate(axis=-1)([xin,x0in])
+    x = xin
     if len(x.shape) > 2:
         x = TileOnto(x, option_in, num_options, x.shape[1:3])
+        x = Dropout(dropout_rate)(x)
 
         # Project
-        x = AddConv2D(x, 64, [1,1], 1, 0., "same", False, name="A_project64",
+        x = AddConv2D(x, 64, [1,1], 1, dropout_rate, "same", False, name="A_project64",
                 constraint=3)
         # conv down
-        x = AddConv2D(x, 128, [3,3], 2, 0., "same", False, name="A_down128",
+        x = AddConv2D(x, 128, [3,3], 2, dropout_rate, "same", False, name="A_down128",
                 constraint=3)
         # conv across
         x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same", False,
@@ -848,7 +850,7 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
     arm = AddDense(x1, arm_size, "linear", 0., output=True)
     gripper = AddDense(x1, gripper_size, "sigmoid", 0., output=True)
     #value = Dense(1, activation="sigmoid", name="V",)(x1)
-    actor = Model([xin, x0in, option_in], [arm, gripper], name="actor")
+    actor = Model([xin, option_in], [arm, gripper], name="actor")
     return actor
 
 def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, option_in=None):
@@ -871,6 +873,9 @@ def GetNextOptionAndValue(x, num_options, dense_size, dropout_rate=0.5, option_i
             option_x = OneHot(num_options)(option_in)
             option_x = Flatten()(option_x)
             x = TileOnto(x, option_x, num_options, x.shape[1:3])
+
+        # Initial dropout -- noisy state
+        x = Dropout(dropout_rate)(x)
 
         # Project
         x = AddConv2D(x, 64, [1,1], 1, dropout_rate, "same", False,

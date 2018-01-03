@@ -171,7 +171,7 @@ class ConditionalImage(PredictionSampler2):
         actor = GetActorModel(h, self.num_options, arm_size, gripper_size,
                 self.decoder_dropout_rate)
         actor.compile(loss="mae",optimizer=self.getOptimizer())
-        arm_cmd, gripper_cmd = actor([h, h0, next_option_in])
+        arm_cmd, gripper_cmd = actor([h, next_option_in])
         lfn = self.loss
 
         # =====================================================================
@@ -179,7 +179,7 @@ class ConditionalImage(PredictionSampler2):
         predictor = Model(ins + [label_in],
                 [image_out, next_option_out, value_out])
         predictor.compile(
-                loss=[lfn, "categorical_crossentropy", "mae"],
+                loss=[lfn, "categorical_crossentropy", "binary_crossentropy"],
                 loss_weights=[1., 0.1, 0.1,],
                 optimizer=self.getOptimizer())
         if self.do_all:
@@ -188,9 +188,9 @@ class ConditionalImage(PredictionSampler2):
                         arm_cmd,
                         gripper_cmd])
             train_predictor.compile(
-                    loss=[lfn, "categorical_crossentropy", "mae",
+                    loss=[lfn, "categorical_crossentropy", "binary_crossentropy",
                         lfn, lfn],
-                    loss_weights=[1., 0.1, 0.1, 1., 0.2],
+                    loss_weights=[1., 0.1, 1., 1., 0.2],
                     optimizer=self.getOptimizer())
         else:
             train_predictor = Model(ins + [label_in],
