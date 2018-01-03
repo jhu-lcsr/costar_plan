@@ -59,11 +59,10 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
             strides=(stride,stride),
             padding=padding, **kwargs)(x)
     kwargs = {}
-    if name is not None:
-        kwargs['name'] = "%s_bn"%name
-    x = BatchNormalization(momentum=momentum, **kwargs)(x)
     if bn:
-        x = BatchNormalization(momentum=momentum)(x)
+        if name is not None:
+            kwargs['name'] = "%s_bn"%name
+        x = BatchNormalization(momentum=momentum, **kwargs)(x)
     if lrelu:
         if name is not None:
             kwargs['name'] = "%s_lrelu"%name
