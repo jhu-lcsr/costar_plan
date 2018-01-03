@@ -74,7 +74,7 @@ class ConditionalSampler2(PredictionSampler2):
                 "image_encoder.h5f"))
             encoder.trainable = self.retrain
         except Exception as e:
-            pass
+            raise e
 
         if self.skip_connections:
             decoder = self._makeImageDecoder(self.hidden_shape,self.skip_shape)
@@ -86,7 +86,7 @@ class ConditionalSampler2(PredictionSampler2):
                 "image_decoder.h5f"))
             decoder.trainable = self.retrain
         except Exception as e:
-            pass
+            raise e
 
         rep_channels = self.encoder_channels
         sencoder = self._makeStateEncoder(arm_size, gripper_size, False)

@@ -121,7 +121,7 @@ class ConditionalImage(PredictionSampler2):
                 "image_encoder.h5f"))
             encoder.trainable = self.retrain
         except Exception as e:
-            pass
+            raise e
 
         if self.skip_connections:
             decoder = self._makeImageDecoder(self.hidden_shape,self.skip_shape)
@@ -133,7 +133,7 @@ class ConditionalImage(PredictionSampler2):
                 "image_decoder.h5f"))
             decoder.trainable = self.retrain
         except Exception as e:
-            pass
+            raise e
 
         # =====================================================================
         # Load the arm and gripper representation
