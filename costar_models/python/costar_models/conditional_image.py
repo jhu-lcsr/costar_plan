@@ -140,10 +140,10 @@ class ConditionalImage(PredictionSampler2):
 
         h = encoder(img_in)
         h0 = encoder(img0_in)
-        _, next_option_out = GetNextOptionAndValue(h, self.num_options,
+        value_out, next_option_out = GetNextOptionAndValue(h, self.num_options,
                                                    self.rep_size,
                                                    dropout_rate=self.dropout_rate,
-                                                   option_in=None)
+                                                   option_in=label_in)
 
         # create input for controlling noise output if that's what we decide
         # that we want to do
@@ -168,15 +168,16 @@ class ConditionalImage(PredictionSampler2):
         #o2.trainable = False
 
         # =====================================================================
-        # Create models to train
-        predictor = Model(ins + [label_in],
-                [image_out, next_option_out, value_out])
         actor = GetActorModel(h, self.num_options, arm_size, gripper_size,
                 self.decoder_dropout_rate)
         actor.compile(loss="mae",optimizer=self.getOptimizer())
-        arm_cmd, gripper_cmd, value_out = actor([h, next_option_in])
-        #lfn = "logcosh"
+        arm_cmd, gripper_cmd = actor([h, h0, next_option_in])
         lfn = self.loss
+
+        # =====================================================================
+        # Create models to train
+        predictor = Model(ins + [label_in],
+                [image_out, next_option_out, value_out])
         predictor.compile(
                 loss=[lfn, "categorical_crossentropy", "mae"],
                 loss_weights=[1., 0.1, 0.1,],
@@ -189,7 +190,7 @@ class ConditionalImage(PredictionSampler2):
             train_predictor.compile(
                     loss=[lfn, "categorical_crossentropy", "mae",
                         lfn, lfn],
-                    loss_weights=[1., 0.1, 0.1, 0.1, 0.02],
+                    loss_weights=[1., 0.1, 0.1, 1., 0.2],
                     optimizer=self.getOptimizer())
         else:
             train_predictor = Model(ins + [label_in],

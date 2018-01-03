@@ -820,9 +820,9 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
     label and produces the next command to execute.
     '''
     xin = Input([int(d) for d in x.shape[1:]], name="actor_h_in")
+    x0in = Input([int(d) for d in x.shape[1:]], name="actor_h0_in")
     option_in = Input((48,), name="actor_o_in")
-    x = xin
-
+    x = Concatenate(axis=-1)([xin,x0in])
     if len(x.shape) > 2:
         x = TileOnto(x, option_in, num_options, x.shape[1:3])
 
@@ -847,9 +847,15 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
     x1 = AddDense(x1, 512, "relu", 0.)
     arm = AddDense(x1, arm_size, "linear", 0., output=True)
     gripper = AddDense(x1, gripper_size, "sigmoid", 0., output=True)
-    value = Dense(1, activation="sigmoid", name="V",)(x1)
-    actor = Model([xin, option_in], [arm, gripper, value], name="actor")
+    #value = Dense(1, activation="sigmoid", name="V",)(x1)
+    actor = Model([xin, x0in, option_in], [arm, gripper], name="actor")
     return actor
+
+def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, option_in=None):
+    '''
+    Next value and action
+    '''
+    pass
 
 def GetNextOptionAndValue(x, num_options, dense_size, dropout_rate=0.5, option_in=None):
     '''
@@ -887,7 +893,6 @@ def GetNextOptionAndValue(x, num_options, dense_size, dropout_rate=0.5, option_i
             activation="softmax", name="lnext",)(x1)
     value_out = Dense(1, activation="sigmoid", name="V",)(x2)
     return value_out, next_option_out
-
 
 def GetHypothesisProbability(x, num_hypotheses, num_options, labels,
         filters, kernel_size,
