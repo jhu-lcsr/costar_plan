@@ -83,7 +83,7 @@ class GoalPositionCondition(AbstractCondition):
     position is here defined as being within a certain distance of a point.
     '''
 
-    def __init__(self, goal, pos, rot, pos_tol, rot_tol, v_tol=0.1):
+    def __init__(self, goal, pos, rot, pos_tol, rot_tol, v_tol=0.10):
         self.pos_tol = pos_tol
         self.rot_tol = rot_tol
         self.v_tol = v_tol
@@ -117,7 +117,11 @@ class GoalPositionCondition(AbstractCondition):
                 state.T.M.GetQuaternion(),
                 T.M.GetQuaternion())
 
-        #print ("> cond", dist, still_moving, state.arm_v, arm_v)
+
+        # print (self.T.p.Norm())
+        # print (obj.state.T.p - T.p).Norm()
+        # print T_robot.p, T.p, dist
+        # print "> cond", dist, still_moving, state.arm_v, arm_v
 
         ###########Albert temporary code###########
         points = pb.getContactPoints(actor.robot.handle, obj.handle)

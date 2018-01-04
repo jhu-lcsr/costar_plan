@@ -12,7 +12,6 @@ import os
 import pybullet as pb
 import rospkg
 
-YOFF = 0.
 
 class BlocksTaskDefinition(DefaultTaskDefinition):
 
@@ -59,8 +58,8 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
     ]
 
     offset = 0.0
-    over_final_stack_pos = np.array([-0.5, 0., 0.3])
-    over_final_stack_pos = np.array([-0.5 + offset, 0., 0.3])
+    over_final_stack_pos = np.array([-0.5, 0., 0.5])
+    over_final_stack_pos = np.array([-0.5 + offset, 0., 0.5])
     #final_stack_pos = np.array([-0.5, 0., 0.05])
     #final_stack_pos = np.array([-0.5 + offset, 0., 0.05])
     final_stack_pos = np.array([-0.5 + offset, 0., 0.035])
@@ -89,7 +88,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         AlignOption = lambda goal: GoalDirectedMotionOption(
             self.world,
             goal,
-            pose=((0.05, YOFF, 0.05), self.grasp_q),
+            pose=((0.05, 0, 0.05), self.grasp_q),
             pose_tolerance=tol,
             joint_velocity_tolerance=vtol,)
         align_args = {
@@ -100,7 +99,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
         GraspOption = lambda goal: GoalDirectedMotionOption(
             self.world,
             goal,
-            pose=((0.0 + self.offset, YOFF, -0.005), self.grasp_q),
+            pose=((0.0 + self.offset, 0, -0.005), self.grasp_q),
             pose_tolerance=tol,
             joint_velocity_tolerance=vtol,)
         grasp_args = {
@@ -130,7 +129,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             "semantic_args": ["block1"]
         }
         close_gripper_args = {
-            "constructor": lambda: CloseGripperOption(position=np.array([-0.5])),
+            "constructor": lambda: CloseGripperOption(position=np.array([-0.6])),
             "semantic_args": ["block1"]
         }
         open_gripper_args = {
@@ -146,7 +145,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             AlignStackOption = lambda goal: GoalDirectedMotionOption(
                 self.world,
                 goal,
-                pose=((0.01+self.offset, YOFF, 0.10), self.grasp_q),
+                pose=((0.01+self.offset, 0, 0.10), self.grasp_q),
                 pose_tolerance=tol,
                 joint_velocity_tolerance=vtol,)
             align_stack_args = {
@@ -157,7 +156,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             StackOption = lambda goal: GoalDirectedMotionOption(
                 self.world,
                 goal,
-                pose=((self.offset, YOFF, 0.055), self.grasp_q),
+                pose=((0.0+self.offset, 0, 0.06), self.grasp_q),
                 pose_tolerance=tol,
                 joint_velocity_tolerance=vtol,
                 closed_loop=True,)
@@ -173,7 +172,6 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             pickup.add("align", None, align_args)
             pickup.add("grasp", "align", grasp_args)
             pickup.add("close_gripper", "grasp", close_gripper_args)
-            #pickup.add("align_again", "grasp", align_args)
             pickup.add("lift", "close_gripper", lift_args)
             #task.add("place", "lift", place_args)
 
@@ -199,7 +197,6 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             task = Task()
             task.add("pickup", None, pickup_args)
             task.add("place", None, place_args)
-
         elif self.stage == 0:
             task = Task()
             task.add("align", None, align_args)
@@ -303,10 +300,10 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
                                 "joints must stay in limits")
         self.world.addCondition(TimeCondition(15.), -100, "time limit reached")
         self.world.addCondition(AndCondition(
-                                    ObjectIsBelowCondition("red_block", 0.35),
-                                    ObjectIsBelowCondition("green_block", 0.35),
-                                    ObjectIsBelowCondition("blue_block", 0.35),
-                                    ObjectIsBelowCondition("yellow_block", 0.35),
+                                    ObjectIsBelowCondition("red_block", 0.55),
+                                    ObjectIsBelowCondition("green_block", 0.55),
+                                    ObjectIsBelowCondition("blue_block", 0.55),
+                                    ObjectIsBelowCondition("yellow_block", 0.55),
                                 ), -100, "block_too_high")
         if self.stage >= 1:
             for i, obs in enumerate(self.obstacles):

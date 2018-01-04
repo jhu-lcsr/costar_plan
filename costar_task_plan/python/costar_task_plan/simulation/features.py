@@ -42,6 +42,7 @@ class EmptyFeatures(AbstractFeatures):
     def getBounds(self):
         return np.array([0]), np.array([0])
 
+
 class DepthImageFeatures(AbstractFeatures):
 
     '''
@@ -101,7 +102,7 @@ class ImagePlusFeatures(AbstractFeatures):
     def __init__(self, *args, **kwargs):
         super(ImagePlusFeatures, self).__init__(*args, **kwargs)
         self.last_rpy = None
-        self.use_rpy = True
+        self.use_rpy = False
 
     def compute(self, world, state):
         '''
