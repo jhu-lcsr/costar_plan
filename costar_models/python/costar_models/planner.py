@@ -831,19 +831,19 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
     #x = Concatenate(axis=-1)([xin,x0in])
     x = xin
     if len(x.shape) > 2:
-        x = TileOnto(x, option_in, num_options, x.shape[1:3])
-        #x = Dropout(dropout_rate)(x)
-
         # Project
-        x = AddConv2D(x, 128, [1,1], 1, 0., "same", False,
+        x = AddConv2D(x, 32, [5,5], 1, 0., "same", False,
                 name="A_project",
                 constraint=None)
+
+        x = TileOnto(x, option_in, num_options, x.shape[1:3])
+
         # conv down
-        x = AddConv2D(x, 64, [3,3], 2, dropout_rate, "same", False,
+        x = AddConv2D(x, 64, [5,5], 2, dropout_rate, "same", False,
                 name="A_down",
                 constraint=None)
         # conv across
-        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same", False,
+        x = AddConv2D(x, 64, [5,5], 1, dropout_rate, "same", False,
                 name="A_C64",
                 constraint=None)
         # This is the hidden representation of the world, but it should be flat
@@ -871,19 +871,18 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5):
     option_in = Input((1,), name="Nx_prev_o_in")
     x = Concatenate()([x0in, xin])
     if len(x.shape) > 2:
+
+        # Project out to a larger space for math
+        x = AddConv2D(x, 32, [5,5], 1, 0., "same",
+                name="NxC1_project", constraint=None)
+
         if num_options > 0:
             option_x = OneHot(num_options)(option_in)
             option_x = Flatten()(option_x)
             x = TileOnto(x, option_x, num_options, x.shape[1:3])
 
-        # Initial dropout -- noisy state
-        x = Dropout(dropout_rate)(x)
-
-        # Project out to a larger space for math
-        x = AddConv2D(x, 128, [1,1], 1, dropout_rate, "same",
-                name="NxC1_project", constraint=None)
         # conv down
-        x = AddConv2D(x, 64, [5,5], 2, dropout_rate, "same",
+        x = AddConv2D(x, 64, [5,5], 2, 0., "same",
                 name="NxC2_64", constraint=None)
         ## conv across
         x = AddConv2D(x, 64, [5,5], 1, dropout_rate, "same",
@@ -910,16 +909,18 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5):
     option_in = Input((1,), name="V_prev_o_in")
     x = Concatenate()([x0in, xin])
     if len(x.shape) > 2:
+
+        # Initial dropout -- noisy state
+        x = AddConv2D(x, 32, [5,5], 1, 0., "same",
+                name="VC1_32", constraint=None)
+
         if num_options > 0:
             option_x = OneHot(num_options)(option_in)
             option_x = Flatten()(option_x)
             x = TileOnto(x, option_x, num_options, x.shape[1:3])
 
-        # Initial dropout -- noisy state
-        x = Dropout(dropout_rate)(x)
-
         # conv down
-        x = AddConv2D(x, 64, [5,5], 2, dropout_rate, "same",
+        x = AddConv2D(x, 64, [5,5], 2, 0., "same",
                 name="VC2_64", constraint=None)
         ## conv across
         x = AddConv2D(x, 64, [5,5], 1, dropout_rate, "same",

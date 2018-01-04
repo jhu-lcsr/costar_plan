@@ -34,7 +34,6 @@ class ConditionalImage(PredictionSampler2):
       - image
       - arm command
       - gripper command
-
     '''
 
     def __init__(self, *args, **kwargs):
@@ -60,28 +59,26 @@ class ConditionalImage(PredictionSampler2):
         x, y = h, option
         x = Concatenate()([h, h0])
         x = TileOnto(x, y, self.num_options, (8,8))
-        x = AddConv2D(x, 128, [1,1], 1, 0.)
+        x = AddConv2D(x, 64, [1,1], 1, 0.)
         x0 = x
-        x = AddConv2D(x, 64, self.tform_kernel_size, 2, 0.)
+        x = AddConv2D(x, 128, [7,7], 2, 0.)
         # Process
         for i in range(self.num_transforms):
-            x = TileOnto(x, y, self.num_options, (4,4))
-            x = AddConv2D(x, 64,
-                    self.tform_kernel_size,
+            #x = TileOnto(x, y, self.num_options, (4,4))
+            x = AddConv2D(x, 64, [7,7],
                     stride=1,
                     dropout_rate=0.)
 
         x = AddConv2DTranspose(x,
-                64,
-                self.tform_kernel_size,
+                32,
+                [5,5],
                 stride=2,
                 dropout_rate=0.)
 
         x = Concatenate()([x,x0])
-        x = AddConv2D(x, 64,
-                self.tform_kernel_size,
+        x = AddConv2D(x, 64, [5,5],
                 stride=1,
-                dropout_rate=self.decoder_dropout_rate)
+                dropout_rate=0.)
 
         x = AddConv2D(x, self.encoder_channels, [1, 1], stride=1,
                 dropout_rate=0.)
