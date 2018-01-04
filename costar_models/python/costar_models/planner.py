@@ -171,7 +171,8 @@ def TileOnto(x,z,zlen,xsize):
 
 def TileArmAndGripper(x, arm_in, gripper_in, tile_width, tile_height,
         option=None, option_in=None,
-        time_distributed=None, dim=64):
+        time_distributed=None, dim=64,
+        concatenate=False):
     arm_size = int(arm_in.shape[-1])
     gripper_size = int(gripper_in.shape[-1])
 
@@ -204,13 +205,16 @@ def TileArmAndGripper(x, arm_in, gripper_in, tile_width, tile_height,
 
     # finally perform the actual tiling
     robot = Lambda(lambda x: K.tile(x, tile_shape))(robot)
-    x = Concatenate(axis=-1)([x,robot])
+    if concatenate:
+        x = Concatenate(axis=-1)([x,robot])
+    else:
+        x = Add()([x, robot])
 
     return x, robot0
 
 def TilePose(x, pose_in, tile_width, tile_height,
         option=None, option_in=None,
-        time_distributed=None, dim=64):
+        time_distributed=None, dim=64, concatenate=False):
     pose_size = int(pose_in.shape[-1])
     
 
@@ -240,7 +244,10 @@ def TilePose(x, pose_in, tile_width, tile_height,
     # finally perform the actual tiling
     robot0 = robot
     robot = Lambda(lambda x: K.tile(x, tile_shape))(robot)
-    x = Concatenate(axis=-1)([x,robot])
+    if concatenate:
+        x = Concatenate(axis=-1)([x,robot])
+    else:
+        x = Add(axis=-1)([x, robot])
 
     return x, robot
 
