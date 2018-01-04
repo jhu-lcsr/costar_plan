@@ -137,7 +137,7 @@ def GetModelParser():
     parser.add_argument("--skip_connections", "--sc",
                         help="use skip connections to generate better outputs",
                         type=int,
-                        default=1)
+                        default=0)
     parser.add_argument("--decoder_dropout_rate", "--ddr",
                         help="specify a separate dropout for the model decoder",
                         type=float,
@@ -149,14 +149,29 @@ def GetModelParser():
                         help="sampling version",
                         action="store_true")
     parser.add_argument("--loss",
-                        help="Loss for state variables: MSE or MAE.",
-                        choices=["mse","mae"],
+                        help="Loss for state variables: MSE, MAE, or log(cosh).",
+                        choices=["mse","mae","logcosh"],
                         default="mae")
+    parser.add_argument("--gan-method",
+                        help="Whether to train with GAN or no GAN",
+                        dest='gan_method',
+                        choices=["gan", "mae", "desc"],
+                        default="gan")
+    parser.add_argument("--save_model",
+                        help="Should we save to the model file",
+                        type=bool,
+                        default=True)
     parser.add_argument("--retrain",
                         help="Retrain sub-models",
                         action="store_true")
-
+    parser.add_argument("--submodel",
+                        help="Specific part of the planing model to train",
+                        choices=GetSubmodelOptions(),
+                        default="all")
     return parser
+
+def GetSubmodelOptions():
+    return ["all", "tform", "actor", "next"]
 
 def UpsamplingOptions():
     return [None,"upsampling","conv_transpose","bilinear"]
