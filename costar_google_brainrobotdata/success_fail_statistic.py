@@ -28,14 +28,11 @@ if __name__ == '__main__':
         complete_path = os.path.join(default_save_path, filename)
         success_num, fail_num, success_ratio = gd.count_success_failure_number(sess)
         file_object = open(complete_path, 'w')
-        text_lines = ['Statistics for grasp_dataset_', gd.dataset+'\n',
-                      'total attempts: ', str(success_num+fail_num)+'\n',
-                      'number of success: ', str(success_num)+'\n',
-                      'number of failure: ', str(fail_num)+'\n',
-                      'success ratio to total: ', str(success_ratio)+'\n']
+        text_lines = ['Statistics for grasp_dataset_', gd.dataset + '\n',
+                      'Total grasp attempts: ', str(success_num+fail_num) + '\n',
+                      'successes: ', str(success_num) + '\n',
+                      'failures: ', str(fail_num) + '\n',
+                      'ratio of successes to total atte,[ts: ', str(success_ratio) + '\n']
         file_object.writelines(text_lines)
         file_object.close()
-        print('number of attempts', success_num+fail_num)
-        print('number of success', success_num)
-        print('number of failure', fail_num)
-        print('success ratio to total', success_ratio)
+        print(str(text_lines))
