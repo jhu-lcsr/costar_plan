@@ -28,7 +28,7 @@ class AbstractAgentBasedModel(object):
             clipnorm=100., show_iter=0, pretrain_iter=5,
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
             steps_per_epoch=500, validation_steps=25, choose_initial=10,
-            dropout_rate=0.5, decoder_dropout_rate=0.5,
+            dropout_rate=0.5, decoder_dropout_rate=None,
             tform_dropout_rate=0.,
             hypothesis_dropout=False,
             dense_representation=True,
@@ -90,7 +90,10 @@ class AbstractAgentBasedModel(object):
         self.hypothesis_dropout = hypothesis_dropout
         self.use_noise = use_noise
         if self.hypothesis_dropout:
-            self.decoder_dropout_rate = decoder_dropout_rate
+            if decoder_dropout_rate is None:
+                self.decoder_dropout_rate = self.dropout_rate
+            else:
+                self.decoder_dropout_rate = float(decoder_dropout_rate)
         else:
             self.decoder_dropout_rate = 0.
         self.skip_connections = skip_connections > 0

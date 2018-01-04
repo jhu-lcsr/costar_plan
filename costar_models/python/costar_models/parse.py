@@ -140,8 +140,8 @@ def GetModelParser():
                         default=0)
     parser.add_argument("--decoder_dropout_rate", "--ddr",
                         help="specify a separate dropout for the model decoder",
-                        type=float,
-                        default=0.5)
+                        #type=float,
+                        default=None)
     parser.add_argument("--success_only",
                         help="only train on positive examples",
                         action="store_true")
