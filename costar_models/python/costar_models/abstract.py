@@ -30,7 +30,7 @@ class AbstractAgentBasedModel(object):
             steps_per_epoch=500, validation_steps=25, choose_initial=10,
             dropout_rate=0.5, decoder_dropout_rate=None,
             tform_dropout_rate=0.,
-            use_batchnorm=False,
+            use_batchnorm=1,
             hypothesis_dropout=False,
             dense_representation=True,
             skip_connections=0,
@@ -71,7 +71,7 @@ class AbstractAgentBasedModel(object):
         self.pretrain_iter = pretrain_iter
         self.noise_dim = zdim
         self.epochs = epochs
-        self.use_batchnorm = use_batchnorm
+        self.use_batchnorm = use_batchnorm > 0
         self.batch_size = batch_size
         self.optimizer = optimizer
         self.validation_steps = validation_steps

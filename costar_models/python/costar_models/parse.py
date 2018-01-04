@@ -65,7 +65,7 @@ def GetModelParser():
     parser.add_argument("-z", "--zdim", "--noise_dim",
                         help="size of action parameterization",
                         type=int,
-                        default=16)
+                        default=0)
     parser.add_argument("-D", "--debug_model", "--dm", "--debug",
                         help="Run a short script to debug the current model.",
                         action="store_true")
@@ -124,7 +124,7 @@ def GetModelParser():
                         default=None,)
     parser.add_argument("--hypothesis_dropout",
                         help="dropout in hypothesis decoder",
-                        default=False,
+                        default=True,
                         type=bool)
     parser.add_argument("--dropout_rate", "--dr",
                         help="Dropout rate to use",
@@ -169,9 +169,10 @@ def GetModelParser():
                         choices=GetSubmodelOptions(),
                         default="all")
     parser.add_argument("--use_batchnorm",
-                        help="Use batchnorm (defaults to false; many models do
-                              not use this parameter.",
-                        action="store_true")
+                        help="Use batchnorm (defaults to false; many models"
+                              "do not use this parameter.",
+                        type=int,
+                        default=0)
     return parser
 
 def GetSubmodelOptions():

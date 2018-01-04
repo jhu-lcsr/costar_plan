@@ -121,19 +121,10 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 kernel_size=[3,3],
                 tile=True,
                 batchnorm=self.use_batchnorm,
-                #dense=False, flatten=False,
                 option=self.num_options,
                 pre_tiling_layers=1,
                 post_tiling_layers=3,
                 stride1_post_tiling_layers=1)
-
-        #y = AddDense(option_in, self.img_num_filters, "lrelu", 0,
-        #        output=False, constraint=None)
-        #x = TileOnto(x,y,self.img_num_filters,(8,8))
-        #x = AddConv2D(x, self.img_num_filters, [3,3], 1, self.dropout_rate)
-        #x = Flatten()(x)
-        #x = AddDense(x, self.img_col_dim, "lrelu", 0,
-        #        output=False, constraint=None)
 
         arm_out = Dense(arm_cmd_size, name="arm")(x)
         gripper_out = Dense(gripper_size, name="gripper")(x)
