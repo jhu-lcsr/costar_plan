@@ -165,7 +165,7 @@ class CloseGripperOption(AbstractOption):
 
 class CartesianMotionPolicy(AbstractPolicy):
 
-    def __init__(self, pos, rot, goal=None, cartesian_vel=0.25, angular_vel=0.65):
+    def __init__(self, pos, rot, goal=None, cartesian_vel=0.25, angular_vel=0.45):
         self.pos = pos
         self.rot = rot
         self.goal = goal
@@ -206,10 +206,14 @@ class CartesianMotionPolicy(AbstractPolicy):
         # Interpolate in position alone
         dist = T_r_goal.p.Norm()
         vel = self.cartesian_vel
-        if self.arm_v_goal
-        if dist <= 0.2:
-            vel = max(0.05, vel*dist/0.2)
-        step = min(self.cartesian_vel*world.dt, dist)
+        v_step = 0.1
+        v_to_stop = np.sqrt(dist*2*v_step)
+        vel = min(vel, v_to_stop)
+        if state.arm_goal_v is None:
+            vel = 0. + v_step
+        else:
+            vel = min(vel, state.arm_goal_v + v_step)
+        step = min(vel*world.dt, dist)
         p = T_r_goal.p / dist * step
 
         # Interpolate in rotation alone
@@ -237,14 +241,14 @@ class CartesianMotionPolicy(AbstractPolicy):
         q_goal = actor.robot.ik(T_step, state.arm)
 
         if state.arm_cmd is not None:
-            print (state.arm - state.arm_cmd, state.arm_v_goal)
+            print (state.arm - state.arm_cmd, state.arm_goal_v)
         #print q_goal, state.arm
         if q_goal is None:
             error = True
         else:
             error = False
         # print q_goal, state.arm, state.arm_v
-        return SimulationRobotAction(arm_cmd=q_goal, error=error)
+        return SimulationRobotAction(arm_cmd=q_goal, error=error, arm_v=vel)
 
 
 class OpenGripperPolicy(AbstractPolicy):

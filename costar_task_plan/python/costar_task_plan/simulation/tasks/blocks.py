@@ -157,7 +157,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             StackOption = lambda goal: GoalDirectedMotionOption(
                 self.world,
                 goal,
-                pose=((self.offset, YOFF, 0.051), self.grasp_q),
+                pose=((self.offset, YOFF, 0.055), self.grasp_q),
                 pose_tolerance=tol,
                 joint_velocity_tolerance=vtol,
                 closed_loop=True,)
@@ -173,6 +173,7 @@ class BlocksTaskDefinition(DefaultTaskDefinition):
             pickup.add("align", None, align_args)
             pickup.add("grasp", "align", grasp_args)
             pickup.add("close_gripper", "grasp", close_gripper_args)
+            #pickup.add("align_again", "grasp", align_args)
             pickup.add("lift", "close_gripper", lift_args)
             #task.add("place", "lift", place_args)
 
