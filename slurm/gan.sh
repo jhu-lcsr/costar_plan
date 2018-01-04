@@ -6,7 +6,7 @@
 #SBATCH --nodes=1
 #SBATCH --mem=8G
 #SBATCH --mail-type=end
-#SBATCH --mail-user=cpaxton3@jhu.edu
+#SBATCH --mail-user=ybarnoy1@jhu.edu
 
 set -e
 set -x
@@ -14,13 +14,13 @@ set -u
 
 echo "Running $@ on $SLURMD_NODENAME ..."
 
-module load tensorflow/cuda-8.0/r1.3 
+module load tensorflow/cuda-8.0/r1.3
 
 export NUM_ARGS=3
 
 if [[ "$#" < $NUM_ARGS ]]; then
-	echo "Usage: $0 lr gan_method epochs"
-	exit 1
+        echo "Usage: $0 lr gan_method epochs"
+        exit 1
 fi
 
 export DATASET="dev_yb/test2"
@@ -56,6 +56,6 @@ then
     --skip_connections 0 \
     --loss $LOSS \
     --batch_size 64 \
-		--clipnorm 10
+                --clipnorm 10
 fi
 

@@ -4,7 +4,10 @@ set -e
 set -x
 set -u
 
-module load tensorflow/cuda-8.0/r1.3 
+# compile and install the current code
+cd $HOME/costar_plan/costar_models/python
+python setup.py install --user
+cd -
 
 for lr in 0.001 0.0001; do
   export gan_method=mae
