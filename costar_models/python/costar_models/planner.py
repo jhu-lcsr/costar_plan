@@ -108,7 +108,8 @@ def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate,
         x = Dropout(dropout_rate)(x)
     return x
 
-def AddDense(x, size, activation, dropout_rate, output=False, momentum=0.9):
+def AddDense(x, size, activation, dropout_rate, output=False, momentum=0.9,
+    constraint=3):
     '''
     Add a single dense block with batchnorm and activation.
 
@@ -123,7 +124,10 @@ def AddDense(x, size, activation, dropout_rate, output=False, momentum=0.9):
     --------
     x: output tensor
     '''
-    x = Dense(size, kernel_constraint=maxnorm(3))(x)
+    if constraint is not None:
+        x = Dense(size, kernel_constraint=maxnorm(constraint))(x)
+    else:
+        x = Dense(size)(x)
     if not output:
         x = BatchNormalization(momentum=momentum)(x)
     if activation == "lrelu":
@@ -828,10 +832,10 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
     x = xin
     if len(x.shape) > 2:
         x = TileOnto(x, option_in, num_options, x.shape[1:3])
-        x = Dropout(dropout_rate)(x)
+        #x = Dropout(dropout_rate)(x)
 
         # Project
-        x = AddConv2D(x, 128, [1,1], 1, dropout_rate, "same", False,
+        x = AddConv2D(x, 128, [1,1], 1, 0., "same", False,
                 name="A_project",
                 constraint=None)
         # conv down
@@ -849,8 +853,8 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
     x = Concatenate()([x, option_in])
 
     # Same setup as the state decoders
-    x1 = AddDense(x, 512, "relu", 0.)
-    x1 = AddDense(x1, 512, "relu", 0.)
+    x1 = AddDense(x, 512, "relu", 0., constraint=None)
+    x1 = AddDense(x1, 512, "relu", 0., constraint=None)
     arm = AddDense(x1, arm_size, "linear", 0., output=True)
     gripper = AddDense(x1, gripper_size, "sigmoid", 0., output=True)
     #value = Dense(1, activation="sigmoid", name="V",)(x1)
