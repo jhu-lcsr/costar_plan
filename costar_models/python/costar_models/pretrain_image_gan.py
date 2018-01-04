@@ -113,9 +113,10 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         #self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.encoder_channels)
 
         # dense representation
-        x = AddDense(x, self.hidden_shape[0], "relu", dr)
+        x = AddDense(x, self.hidden_shape[0], "relu", 0)
         image_encoder = Model(ins, x, name="image_encoder")
         image_encoder.compile(loss="logcosh", optimizer=self.getOptimizer())
+        image_encoder.summary()
         self.image_encoder = image_encoder
         return image_encoder
 
@@ -172,11 +173,11 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         (h,w,c) = (hidden_dim,
                     hidden_dim,
                     extra_dim)
-        x = AddDense(x, int(h*w*c), "relu", dr)
+        x = AddDense(x, int(h*w*c), "relu", 0)
         x = Reshape((h,w,c))(x)
 
 #        x = AddConv2DTranspose(x, 128, [1,1], 1, 0.*dr, momentum=m)
-        x = AddConv2DTranspose(x, 128, [5,5], 1, dr, momentum=m)
+        x = AddConv2DTranspose(x, 128, [5,5], 1, 0, momentum=m)
         x = AddConv2DTranspose(x, 64, [5,5], 2, dr, momentum=m)
         x = AddConv2DTranspose(x, 64, [5,5], 1, dr, momentum=m)
         x = AddConv2DTranspose(x, 32, [5,5], 2, dr, momentum=m)
@@ -239,8 +240,21 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                     res2 = self.discriminator.train_on_batch(
                             [img, fake], is_fake)
                     self.discriminator.trainable = False
-                    print("Epoch {}, {}/{}: Descrim Real loss {}, Fake loss {}".format(
-                        i, j, self.steps_per_epoch, res1, res2))
+                    print("\rEpoch {}, {}/{}: Descrim Real loss {}, Fake loss {}".format(
+                        i, j, self.steps_per_epoch, res1, res2), end="")
+
+                # Accuracy tests
+                img, _ = train_generator.next()
+                img = img[0]
+                fake = self.generator.predict(img)
+                results = self.discriminator.predict([img, fake])
+                results2 = self.discriminator.predict([img, img])
+                correct = np.count_nonzero(results >= 0.5)
+                correct2 = np.count_nonzero(results2 < 0.5)
+
+                print("\nAccuracy Epoch {}, real acc {}, fake acc {}".format(
+                    i, correct/float(len(results)), correct2/float(len(results2))))
+
                 for c in callbacks:
                     c.on_epoch_end(i)
         else:
@@ -278,9 +292,9 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                 correct = np.count_nonzero(results >= 0.5)
                 correct2 = np.count_nonzero(results2 < 0.5)
 
-                for c in callbacks:
-                    c.on_epoch_end(i)
-
                 print("Epoch {}, real acc {}, fake acc {}".format(
                     i, correct/float(len(results)), correct2/float(len(results2))))
+
+                for c in callbacks:
+                    c.on_epoch_end(i)
 
