@@ -240,8 +240,8 @@ class CartesianMotionPolicy(AbstractPolicy):
         # Compute motion goak and send
         q_goal = actor.robot.ik(T_step, state.arm)
 
-        if state.arm_cmd is not None:
-            print (state.arm - state.arm_cmd, state.arm_goal_v)
+        #if state.arm_cmd is not None:
+        #    print (state.arm - state.arm_cmd, state.arm_goal_v)
         #print q_goal, state.arm
         if q_goal is None:
             error = True
