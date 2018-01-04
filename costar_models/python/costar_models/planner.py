@@ -162,11 +162,14 @@ def GetArmGripperEncoder(arm_size, gripper_size, dim=64):
     gripper_in = Input((gripper_size,))
     
 
-def TileOnto(x,z,zlen,xsize):
+def TileOnto(x,z,zlen,xsize,add=False):
     z = Reshape([1,1,zlen])(z)
     tile_shape = (int(1), int(xsize[0]), int(xsize[1]), 1)
     z = Lambda(lambda x: K.tile(x, tile_shape))(z)
-    x = Concatenate(axis=-1)([x,z])
+    if not add:
+        x = Concatenate(axis=-1)([x,z])
+    else:
+        x = Add([x,z])
     return x
 
 def TileArmAndGripper(x, arm_in, gripper_in, tile_width, tile_height,
@@ -719,15 +722,16 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
         dr = 0.
 
     x = xin
-    x0 = x
-    x = AddConv2D(x, filters, kernel_size, 2, 0.)
+    x0 = AddConv2D(x, filters*2, [1,1], 1, 0.)
+    x = x0
     for i in range(num_blocks):
-        x = AddConv2D(x, filters, kernel_size, 1, dr)
-    #x = AddConv2D(x, 128, kernel_size, 1, 0.)
-    #x = AddConv2D(x, 128, kernel_size, 1, 0.)
-    x = AddConv2DTranspose(x, filters, kernel_size, 1, 0.)
-    x = Concatenate()[x,x0]
-    #x = AddConv2DTranspose(x, filters, [1,1], 1, 0.)
+        x = TileOnto(x, y, self.num_options, (8,8))
+        x = AddConv2D(x, filters*2,
+                kernel_size,
+                stride=1,
+                dropout_rate=0)
+    x =  Concatenate(axis=-1)([x,x0])
+
     x = AddConv2D(x, rep_size[-1], kernel_size, 1, dr)
 
     ins = [xin]
