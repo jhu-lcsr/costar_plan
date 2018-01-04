@@ -142,10 +142,17 @@ class ConditionalImage(PredictionSampler2):
 
         h = encoder(img_in)
         h0 = encoder(img0_in)
-        value_out, next_option_out = GetNextOptionAndValue(h, self.num_options,
-                                                   self.rep_size,
-                                                   dropout_rate=self.dropout_rate,
-                                                   option_in=label_in)
+
+        next_model = GetNextModel(h, self.num_options, 128,
+                self.decoder_dropout_rate)
+        value_model = GetValueModel(h, self.num_options, 64,
+                self.decoder_dropout_rate)
+        next_model.compile(loss="mae", optimizer=self.getOptimizer())
+        value_model.compile(loss="mae", optimizer=self.getOptimizer())
+        value_out = value_model([h0,h,label_in])
+        next_option_out = next_model([h0,h,label_in])
+        self.next_model = next_model
+        self.value_model = value_model
 
         # create input for controlling noise output if that's what we decide
         # that we want to do
