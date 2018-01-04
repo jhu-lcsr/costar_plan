@@ -497,6 +497,10 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
                 policy.save_weights(self.name + "_policy%02d.h5f"%i)
         elif self.model is not None:
             self.model.save_weights(self.name + ".h5f")
+            if self.supervisor is not None:
+                self.supervisor.save_weights(self.name + "_supervisor.h5f")
+            if self.actor is not None:
+                self.actor.save_weights(self.name + "_actor.h5f")
         else:
             raise RuntimeError('save() failed: model not found.')
 
@@ -526,6 +530,14 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
             print("----------------------------")
             print("using " + self.name + " to load")
             self.model.load_weights(self.name + ".h5f")
+            try:
+                self.supervisor.load_weights(self.name + "_supervisor.h5f")
+            except Exception as e:
+                print(e)
+            try:
+                self.actor.load_weights(self.name + "_actor.h5f")
+            except Exception as e:
+                print(e)
         else:
             raise RuntimeError('_loadWeights() failed: model not found.')
 

@@ -50,16 +50,91 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         self.img_num_filters = 64
         self.robot_col_dense_size = 128
         self.robot_col_dim = 64
-        self.combined_dense_size = 64
+        self.combined_dense_size = self.img_col_dim
         self.pose_col_dim = 64
         self.num_options = 48
         self.null_option = 37
+        self.supervisor = None
+        self.actor = None
 
-    def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, label, *args, **kwargs):
-        self._makeHierarchicalModel(
-                (features, arm, gripper),
-                (arm_cmd, gripper_cmd),
-                label)
+    def _makeModel(self, *args, **kwargs):
+        self.supervisor = self._makeSupervisor(*args, **kwargs)
+        self.actor = self._makeConditionalSupervisor(*args, **kwargs)
+
+    def _makeSimpleActor(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
+        '''
+        This creates a "dumb" actor model based on a set of features.
+        '''
+        img_shape = features.shape[1:]
+        arm_size = arm.shape[1]
+        arm_cmd_size = arm_cmd.shape[1]
+        if len(gripper.shape) > 1:
+            gripper_size = gripper.shape[1]
+        else:
+            gripper_size = 1
+
+        ins, x, skips = GetEncoder(
+                img_shape,
+                [arm_size, gripper_size],
+                self.img_col_dim,
+                self.dropout_rate,
+                self.img_num_filters,
+                pose_col_dim=self.pose_col_dim,
+                discriminator=False,
+                kernel_size=[3,3],
+                tile=True,
+                pre_tiling_layers=1,
+                post_tiling_layers=3,
+                stride1_post_tiling_layers=1)
+
+        arm_out = Dense(arm_cmd_size, name="arm")(x)
+        gripper_out = Dense(gripper_size, name="gripper")(x)
+
+        if self.model is not None:
+            raise RuntimeError('overwriting old model!')
+
+        model = Model(ins, [arm_out, gripper_out])
+        optimizer = self.getOptimizer()
+        model.compile(loss="mae", optimizer=optimizer)
+        return model
+
+    def _makeConditionalActor(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
+        '''
+        This creates a "dumb" actor model 
+        '''
+        img_shape = features.shape[1:]
+        arm_size = arm.shape[1]
+        arm_cmd_size = arm_cmd.shape[1]
+        if len(gripper.shape) > 1:
+            gripper_size = gripper.shape[1]
+        else:
+            gripper_size = 1
+
+        ins, x, skips = GetEncoder(
+                img_shape,
+                [arm_size, gripper_size],
+                self.img_col_dim,
+                self.dropout_rate,
+                self.img_num_filters,
+                pose_col_dim=self.pose_col_dim,
+                discriminator=False,
+                kernel_size=[3,3],
+                tile=True,
+                option=self.num_options,
+                pre_tiling_layers=1,
+                post_tiling_layers=3,
+                stride1_post_tiling_layers=1)
+
+        arm_out = Dense(arm_cmd_size, name="arm")(x)
+        gripper_out = Dense(gripper_size, name="gripper")(x)
+
+        if self.model is not None:
+            raise RuntimeError('overwriting old model!')
+
+        model = Model(ins, [arm_out, gripper_out])
+        optimizer = self.getOptimizer()
+        model.compile(loss="mae", optimizer=optimizer)
+        return model
 
     def _makeSupervisor(self, features):
         (images, arm, gripper) = features
@@ -84,11 +159,9 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 stride1_post_tiling_layers=1,
                 discriminator=False,
                 dense=False,
-                tile=True,
                 option=self.num_options,
                 flatten=False,
                 )
-        print(">>>>>>>>>>",x)
 
         # =====================================================================
         # SUPERVISOR
@@ -106,9 +179,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         x = Dense(self.combined_dense_size)(x)
         x = Dropout(self.dropout_rate)(x)
         x = LeakyReLU(0.2)(x)
-        label_out = Dense(64, activation="sigmoid",name="next_option")(x)
-        decoder = Model(rep, dec, name="image_decoder")
-        decoder2 = Model(rep2, dec2, name="next_frame_image_decoder")
+        label_out = Dense(self.num_options, activation="softmax",name="next_option")(x)
 
         # =====================================================================
         # Add in the chosen option
@@ -166,33 +237,6 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         predict_next = Model(ins + [prev_option_in], features_out[3])
 
         return enc, supervisor, predictor, predict_goal, predict_next
-
-    def _fitPredictor(self, features, targets):
-        if self.show_iter > 0:
-            fig, axes = plt.subplots(5, 5,)
-
-        self._unfixWeights()
-        self.predictor.compile(
-                loss=(["mse"]*4+["binary_crossentropy"]),
-                optimizer=self.getOptimizer())
-        self.predictor.summary()
-
-        for i in range(self.iter):
-            idx = np.random.randint(0, features[0].shape[0], size=self.batch_size)
-            x = []
-            y = []
-            for f in features:
-                x.append(f[idx])
-            for f in targets:
-                y.append(f[idx])
-
-            losses = self.predictor.train_on_batch(x, y)
-
-            print("Iter %d: loss ="%(i),losses)
-            if self.show_iter > 0 and (i+1) % self.show_iter == 0:
-                self.plotInfo(features, targets, axes)
-
-        self._fixWeights()
 
     def plotInfo(self, features, targets, axes):
         # debugging: plot every 5th image from the dataset
@@ -292,5 +336,40 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
             length = q_target.shape[0]
             return np.concatenate([q_target,g_target,o_target],axis=-1)
 
+
+    def _loadWeights(self, *args, **kwargs):
+        '''
+        Load model weights. This is the default load weights function; you may
+        need to overload this for specific models.
+        '''
+        if self.model is not None:
+            print("using " + self.name + ".h5f")
+            self.model.load_weights(self.name + ".h5f")
+            if self.supervisor is not None:
+                try:
+                    self.supervisor.load_weights(self.name + "_supervisor.h5f")
+                except Exception as e:
+                    print(e)
+            if self.actor is not None:
+                try:
+                    self.actor.load_weights(self.name + "_actor.h5f")
+                except Exception as e:
+                    print(e)
+        else:
+            raise RuntimeError('_loadWeights() failed: model not found.')
+
+    def save(self):
+        '''
+        Save to a filename determined by the "self.name" field.
+        '''
+        if self.model is not None:
+            print("saving to " + self.name)
+            self.model.save_weights(self.name + ".h5f")
+            if self.supervisor is not None:
+                self.supervisor.save_weights(self.name + "_supervisor.h5f")
+            if self.actor is not None:
+                self.actor.save_weights(self.name + "_actor.h5f")
+        else:
+            raise RuntimeError('save() failed: model not found.')
 
 

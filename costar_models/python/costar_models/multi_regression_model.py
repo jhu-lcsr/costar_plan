@@ -35,38 +35,8 @@ class RobotMultiFFRegression(RobotMultiHierarchical):
         super(RobotMultiFFRegression, self).__init__(taskdef, *args, **kwargs)
         self.model = None
         
-    def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
-        img_shape = features.shape[1:]
-        arm_size = arm.shape[1]
-        arm_cmd_size = arm_cmd.shape[1]
-        if len(gripper.shape) > 1:
-            gripper_size = gripper.shape[1]
-        else:
-            gripper_size = 1
-
-        ins, x, skips = GetEncoder(
-                img_shape,
-                [arm_size, gripper_size],
-                self.img_col_dim,
-                self.dropout_rate,
-                self.img_num_filters,
-                pose_col_dim=self.pose_col_dim,
-                discriminator=False,
-                kernel_size=[3,3],
-                tile=True,
-                pre_tiling_layers=1,
-                post_tiling_layers=3,
-                stride1_post_tiling_layers=1)
-
-        arm_out = Dense(arm_cmd_size, name="arm")(x)
-        gripper_out = Dense(gripper_size, name="gripper")(x)
-
-        if self.model is not None:
-            raise RuntimeError('overwriting old model!')
-
-        model = Model(ins, [arm_out, gripper_out])
-        optimizer = self.getOptimizer()
-        model.compile(loss="mae", optimizer=optimizer)
+    def _makeModel(self, *args, **kwargs):
+        model = self._makeSimpleActor(*args, **kwargs)
         self.model = model
 
     def _getData(self, *args, **kwargs):
@@ -101,26 +71,4 @@ class RobotMultiFFRegression(RobotMultiHierarchical):
             plt.show()
 
         return res
-
-    def _loadWeights(self, *args, **kwargs):
-        '''
-        Load model weights. This is the default load weights function; you may
-        need to overload this for specific models.
-        '''
-        if self.model is not None:
-            print("using " + self.name + ".h5f")
-            self.model.load_weights(self.name + ".h5f")
-        else:
-            raise RuntimeError('_loadWeights() failed: model not found.')
-
-    def save(self):
-        '''
-        Save to a filename determined by the "self.name" field.
-        '''
-        if self.model is not None:
-            print("saving to " + self.name)
-            self.model.save_weights(self.name + ".h5f")
-        else:
-            raise RuntimeError('save() failed: model not found.')
-
 
