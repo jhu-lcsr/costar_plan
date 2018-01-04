@@ -46,13 +46,12 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         super(RobotMultiHierarchical, self).__init__(taskdef, *args, **kwargs)
 
         self.num_frames = 1
-
-        self.dropout_rate = 0.5
-        self.img_dense_size = 1024
-        self.img_col_dim = 512
-        self.img_num_filters = 128
-        self.combined_dense_size = 128
-        self.partition_step_size = 2
+        self.img_col_dim = 256
+        self.img_num_filters = 64
+        self.robot_col_dense_size = 128
+        self.robot_col_dim = 64
+        self.combined_dense_size = 64
+        self.pose_col_dim = 64
         self.num_options = 48
         self.null_option = 37
 

@@ -33,20 +33,8 @@ class RobotMultiFFRegression(RobotMultiHierarchical):
         '''
 
         super(RobotMultiFFRegression, self).__init__(taskdef, *args, **kwargs)
-
-        self.taskdef = taskdef
         self.model = None
         
-        self.dropout_rate = 0.5
-        
-        self.img_dense_size = 512
-        self.img_col_dim = 256
-        self.img_num_filters = 64
-        self.robot_col_dense_size = 128
-        self.robot_col_dim = 64
-        self.combined_dense_size = 64
-        self.pose_col_dim = 64
-
     def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
         img_shape = features.shape[1:]
         arm_size = arm.shape[1]
