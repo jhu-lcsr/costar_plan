@@ -68,6 +68,7 @@ def fakeTaskArgs():
     #'endpoint': ['l_ee_link', 'r_ee_link'],
     'endpoint': ['r_ee_link'],
     'high_table': ['tom_table'],
+    'screw': ['screw_1', 'screw_2'],
   }
   return args
 

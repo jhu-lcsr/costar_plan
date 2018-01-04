@@ -16,5 +16,34 @@
   <param name="obstacle_description" file="$(find costar_simulation)/urdf/block/obstacle.urdf"/>
 
 
+  <node name="$(anon urdf_spawner)"
+    pkg="gazebo_ros"
+    type="spawn_model"
+    respawn="false" output="screen"
+    args="-b -sdf -model red_block -param red_block_description"/>
+
+  <node name="$(anon urdf_spawner)"
+    pkg="gazebo_ros"
+    type="spawn_model"
+    respawn="false" output="screen"
+    args="-b -sdf -model blue_block -param blue_block_description"/>
+
+  <node name="$(anon urdf_spawner)"
+    pkg="gazebo_ros"
+    type="spawn_model"
+    respawn="false" output="screen"
+    args="-b -sdf -model green_block -param green_block_description"/>
+
+  <node name="$(anon urdf_spawner)"
+    pkg="gazebo_ros"
+    type="spawn_model"
+    respawn="false" output="screen"
+    args="-b -sdf -model yellow_block -param yellow_block_description"/>
+
+  <node name="$(anon urdf_spawner)"
+    pkg="gazebo_ros"
+    type="spawn_model"
+    respawn="false" output="screen"
+    args="-b -sdf -model obstacle -param obstacle_description"/>
 
 </launch>
