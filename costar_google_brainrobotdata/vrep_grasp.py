@@ -570,9 +570,9 @@ class VREPGraspVisualization(object):
                     for i, transform in enumerate(value):
                         create_dummy(self.client_id, str(i).zfill(2) + '_' + '_'.join(name.split('/')[-2:]),
                                      transform, base_T_camera_handle, operation_mode=vrep.simx_opmode_blocking)
-                elif 'depth_pixel_T_endeffector_final/image_coordinate/xy_2' in name:
+                elif 'depth_pixel_T_endeffector_final/image_coordinate/yx_2' in name:
                     final_coordinate_name = name
-                elif 'endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/xy_2' in name:
+                elif 'endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/yx_2' in name:
                     current_coordinate_name = name
 
             if camera_to_depth_name is not None and depth_to_ee_name is not None:
