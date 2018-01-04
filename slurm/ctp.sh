@@ -20,7 +20,7 @@ export DATASET="ctp_dec"
 export MODELDIR="$HOME/.costar/models_stack_Z2$1$3$2$4$5$6$7"
 export LOSS=$7
 
-if [ 0 -gt 1 ]
+if [ 2 -gt 1 ]
 then
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
     --features multi \
@@ -42,7 +42,7 @@ then
     --batch_size 64
 fi
 
-if [ 0 -gt 1 ]
+if [ 2 -gt 1 ]
 then
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
     --features multi \
