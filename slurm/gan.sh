@@ -23,8 +23,6 @@ if [[ "$#" < $NUM_ARGS ]]; then
 	exit 1
 fi
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
 export DATASET="dev_yb/test2"
 export LR=$1
 export GAN_METHOD=$2
@@ -40,7 +38,7 @@ export MODELDIR="$HOME/.costar/models_gan_$1$2_${SLURM_JOB_ID}"
 
 if true
 then
-  $SCRIPT_DIR/../costar_models/scripts/ctp_model_tool \
+  $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
     --features multi \
     -e 100 \
     --model pretrain_image_gan \
