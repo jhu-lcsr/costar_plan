@@ -17,7 +17,8 @@ echo "Running $@ on $SLURMD_NODENAME ..."
 module load tensorflow/cuda-8.0/r1.3 
 
 export DATASET="ctp_dec"
-export MODELDIR="$HOME/.costar/models_stack_Z2$1$3$2$4$5$6"
+export MODELDIR="$HOME/.costar/models_stack_Z2$1$3$2$4$5$6$7"
+export LOSS=$7
 
 if [ 2 -gt 1 ]
 then
@@ -37,6 +38,7 @@ then
     --hypothesis_dropout $4 \
     --upsampling conv_transpose \
     --skip_connections $6 \
+    --loss $LOSS \
     --batch_size 64
 fi
 
@@ -58,9 +60,49 @@ then
     --hypothesis_dropout $4 \
     --upsampling conv_transpose \
     --skip_connections $6 \
-    --batch_size 32
+    --loss $LOSS \
+    --batch_size 64
     #--success_only \
 fi
+
+
+$HOME/costar_plan/costar_models/scripts/ctp_model_tool \
+  --features multi \
+  -e 100 \
+  --model conditional_sampler2 \
+  --data_file $HOME/work/$DATASET.h5f \
+  --lr $1 \
+  --dropout_rate $2 \
+  --decoder_dropout_rate $2 \
+  --model_directory $MODELDIR/ \
+  --optimizer $3 \
+  --use_noise true \
+  --steps_per_epoch 500 \
+  --noise_dim $5 \
+  --hypothesis_dropout $4 \
+  --upsampling conv_transpose \
+  --skip_connections $6 \
+  --loss $LOSS \
+  --batch_size 64
+
+$HOME/costar_plan/costar_models/scripts/ctp_model_tool \
+  --features multi \
+  -e 100 \
+  --model conditional_image \
+  --data_file $HOME/work/$DATASET.h5f \
+  --lr $1 \
+  --dropout_rate $2 \
+  --decoder_dropout_rate $2 \
+  --model_directory $MODELDIR/ \
+  --optimizer $3 \
+  --use_noise true \
+  --steps_per_epoch 500 \
+  --noise_dim $5 \
+  --hypothesis_dropout $4 \
+  --upsampling conv_transpose \
+  --skip_connections $6 \
+  --loss $LOSS \
+  --batch_size 64
 
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --features multi \
@@ -78,6 +120,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --hypothesis_dropout $4 \
   --upsampling conv_transpose \
   --skip_connections $6 \
-  --batch_size 32
+  --loss $LOSS \
+  --batch_size 32 # --retrain 
   #--success_only \
 

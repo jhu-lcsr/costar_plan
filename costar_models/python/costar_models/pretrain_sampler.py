@@ -33,7 +33,7 @@ class PretrainSampler(PredictionSampler2):
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
         [I, q, g, oin, q_target, g_target,] = features
-        [tt, o1, v, qa, ga, I] = targets
+        [tt, o1, v, qa, ga, I_target] = targets
         oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
         return [I, q, g, oin], [I, q, g, oin_1h]
 
@@ -75,9 +75,10 @@ class PretrainSampler(PredictionSampler2):
         decoder.summary()
 
         enc = encoder([img_in])
+        rep_channels = self.encoder_channels
         sencoder = self._makeStateEncoder(arm_size, gripper_size, False)
         sdecoder = self._makeStateDecoder(arm_size, gripper_size,
-                self.tform_filters)
+                rep_channels)
 
         # =====================================================================
         # Load the arm and gripper representation
@@ -90,12 +91,13 @@ class PretrainSampler(PredictionSampler2):
         # =====================================================================
         # combine these models together with state information and label
         # information
-        hidden_encoder = self._makeToHidden(img_shape, arm_size, gripper_size, self.rep_size)
+        hidden_encoder = self._makeToHidden(img_shape, arm_size, gripper_size,
+                rep_channels)
         if self.skip_connections:
             h, skip_rep = hidden_encoder(ins)
         else:
             h = hidden_encoder(ins)
-        hidden_decoder = self._makeFromHidden()
+        hidden_decoder = self._makeFromHidden(rep_channels)
 
         if self.skip_connections:
             #img_x = hidden_decoder([x, skip_rep])
@@ -107,8 +109,7 @@ class PretrainSampler(PredictionSampler2):
         ae_outs = [img_x, arm_x, gripper_x, label_x]
         ae2 = Model(ins, ae_outs)
         ae2.compile(
-            loss=["mae","mae", "mae",
-                "categorical_crossentropy",],
+            loss=["mae","mae", "mae", "categorical_crossentropy"],
             loss_weights=[1.,0.5,0.1,0.025,],
             optimizer=self.getOptimizer())
         ae2.summary()
