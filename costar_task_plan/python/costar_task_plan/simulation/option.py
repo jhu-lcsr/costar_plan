@@ -206,7 +206,7 @@ class CartesianMotionPolicy(AbstractPolicy):
         # Interpolate in position alone
         dist = T_r_goal.p.Norm()
         vel = self.cartesian_vel
-        v_step = 0.1
+        v_step = 0.25
         v_to_stop = np.sqrt(dist*2*v_step)
         vel = min(vel, v_to_stop)
         if state.arm_goal_v is None:
