@@ -29,6 +29,14 @@ import grasp_model
 
 from tqdm import tqdm  # progress bars https://github.com/tqdm/tqdm
 
+try:
+    import horovod.keras as hvd
+except ImportError:
+    print('Horovod is not installed, see https://github.com/uber/horovod.'
+          'Distributed training is disabled but single machine training '
+          'should continue to work but without learning rate warmup.')
+    hvd = None
+
 flags.DEFINE_string('learning_rate_decay_algorithm', 'power_decay',
                     """Determines the algorithm by which learning rate decays,
                        options are power_decay, exp_decay, adam and progressive_drops.
@@ -57,7 +65,7 @@ flags.DEFINE_float('learning_rate_scheduler_power_decay_rate', 1.5,
                       Training from scratch within an initial learning rate of 0.1 might find a
                          power decay value of 2 to be useful.
                       Fine tuning with an initial learning rate of 0.001 may consder 1.5 power decay.""")
-flags.DEFINE_float('grasp_learning_rate', 0.1,
+flags.DEFINE_float('grasp_learning_rate', 0.01,
                    """Determines the initial learning rate""")
 flags.DEFINE_integer('eval_batch_size', 1, 'batch size per compute device')
 flags.DEFINE_integer('densenet_growth_rate', 12,
@@ -138,6 +146,17 @@ class GraspTrain(object):
                 this affects the memory consumption of the system when training, but if it fits into memory
                 you almost certainly want the value to be None, which includes every image.
         """
+
+        if hvd is not None:
+            # Initialize Horovod.
+            hvd.init()
+
+        # Pin GPU to be used to process local rank (one GPU per process)
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        config.gpu_options.visible_device_list = str(hvd.local_rank())
+        K.set_session(tf.Session(config=config))
+
         datasets = dataset.split(',')
         (pregrasp_op_batch,
          grasp_step_op_batch,
@@ -206,8 +225,27 @@ class GraspTrain(object):
             return lr
 
         callbacks = []
+        if hvd is not None:
+            callbacks = callbacks + [
+                # Broadcast initial variable states from rank 0 to all other processes.
+                # This is necessary to ensure consistent initialization of all workers when
+                # training is started with random weights or restored from a checkpoint.
+                hvd.callbacks.BroadcastGlobalVariablesCallback(0),
+
+                # Average metrics among workers at the end of every epoch.
+                #
+                # Note: This callback must be in the list before the ReduceLROnPlateau,
+                # TensorBoard or other metrics-based callbacks.
+                hvd.callbacks.MetricAverageCallback(),
+
+                # Using `lr = 1.0 * hvd.size()` from the very beginning leads to worse final
+                # accuracy. Scale the learning rate `lr = 1.0` ---> `lr = 1.0 * hvd.size()` during
+                # the first five epochs. See https://arxiv.org/abs/1706.02677 for details.
+                hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=5, verbose=1),
+            ]
+
         scheduler = keras.callbacks.LearningRateScheduler(lr_scheduler)
-        early_stopper = EarlyStopping(monitor='acc', min_delta=0.001, patience=10)
+        early_stopper = EarlyStopping(monitor='acc', min_delta=0.001, patience=32)
         csv_logger = CSVLogger(weights_name + '.csv')
         checkpoint = keras.callbacks.ModelCheckpoint(weights_name + '-epoch-{epoch:03d}-loss-{loss:.3f}-acc-{acc:.3f}.h5',
                                                      save_best_only=True, verbose=1, monitor='acc')
@@ -224,19 +262,36 @@ class GraspTrain(object):
 
         # 2017-08-28 afternoon trying NADAM with higher learning rate
         # optimizer = keras.optimizers.Nadam(lr=0.03, beta_1=0.825, beta_2=0.99685)
+        print('flags.optimizer', FLAGS.optimizer)
 
         # 2017-08-28 trying SGD
         # 2017-12-18 SGD worked very well and has been the primary training optimizer from 2017-09 to 2017-12
-        if FLAGS.optimizer is 'SGD':
-            optimizer = keras.optimizers.SGD(lr=learning_rate)
-            callbacks = callbacks + [scheduler]
+        if FLAGS.optimizer == 'SGD':
+
+            if hvd is not None:
+                # Adjust learning rate based on number of GPUs.
+                multiplier = hvd.size()
+            else:
+                multiplier = 1.0
+
+            optimizer = keras.optimizers.SGD(learning_rate * multiplier)
+
+            callbacks = callbacks + [
+                # Reduce the learning rate if training plateaus.
+                # TODO(ahundt) add validation checks and update monitor parameter to use them
+                keras.callbacks.ReduceLROnPlateau(patience=8, verbose=1, monitor='loss')
+            ]
 
         # 2017-08-27 Tried NADAM for a while with the settings below, only improved for first 2 epochs.
         # optimizer = keras.optimizers.Nadam(lr=0.004, beta_1=0.825, beta_2=0.99685)
 
         # 2017-12-18 Tried ADAM with AMSGrad, great progress initially, but stopped making progress very quickly
-        if FLAGS.optimizer is 'Adam':
+        if FLAGS.optimizer == 'Adam':
             optimizer = keras.optimizers.Adam(amsgrad=True)
+
+        if hvd is not None:
+            # Add Horovod Distributed Optimizer.
+            optimizer = hvd.DistributedOptimizer(optimizer)
 
         # create the model
         model = make_model_fn(
@@ -267,9 +322,9 @@ class GraspTrain(object):
             model.save_weights(final_weights_name)
         except (Exception, KeyboardInterrupt) as e:
             # always try to save weights
+            traceback.print_exc()
             final_weights_name = weights_name + '-autosaved-on-exception.h5'
             model.save_weights(final_weights_name)
-            traceback.print_exc()
             raise e
         return final_weights_name
 
@@ -352,7 +407,7 @@ class GraspTrain(object):
 
         model.summary()
 
-        steps = float(num_samples)/float(batch_size)
+        steps = float(num_samples) / float(batch_size)
 
         if not steps.is_integer():
             raise ValueError('The number of samples was not exactly divisible by the batch size!'
