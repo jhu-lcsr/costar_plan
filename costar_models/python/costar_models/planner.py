@@ -831,15 +831,17 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
         x = Dropout(dropout_rate)(x)
 
         # Project
-        x = AddConv2D(x, 64, [1,1], 1, dropout_rate, "same", False, name="A_project64",
-                constraint=3)
+        x = AddConv2D(x, 128, [1,1], 1, dropout_rate, "same", False,
+                name="A_project",
+                constraint=None)
         # conv down
-        x = AddConv2D(x, 128, [3,3], 2, dropout_rate, "same", False, name="A_down128",
-                constraint=3)
+        x = AddConv2D(x, 64, [3,3], 2, dropout_rate, "same", False,
+                name="A_down",
+                constraint=None)
         # conv across
         x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same", False,
                 name="A_C64",
-                constraint=3)
+                constraint=None)
         # This is the hidden representation of the world, but it should be flat
         # for our classifier to work.
         x = Flatten()(x)
@@ -881,15 +883,14 @@ def GetNextOptionAndValue(x, num_options, dense_size, dropout_rate=0.5, option_i
 
         # Project
         x = AddConv2D(x, 128, [1,1], 1, dropout_rate, "same",
-                name="VC1_project", constraint=3)
+                name="VC1_project", constraint=None)
         # conv down
         x = AddConv2D(x, 64, [3,3], 2, dropout_rate, "same",
-                name="VC2_64", constraint=3)
+                name="VC2_64", constraint=None)
         ## conv across
-        #x = AddConv2D(x, 64, [3,3], 2, dropout_rate, "same",
-        #        name="VC3_64", constraint=3)
-        #x = AddConv2D(x, 64, [3,3], 2, dropout_rate, "same",
-        #        name="VC4_64", constraint=3)
+        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
+                name="VC3_64", constraint=None)
+
         # Get vector
         x = Flatten()(x)
 
@@ -900,8 +901,8 @@ def GetNextOptionAndValue(x, num_options, dense_size, dropout_rate=0.5, option_i
             activation="softmax", name="lnext",)(x1)
 
     # Current value
-    x2 = AddDense(x, int(dense_size/4), "relu", 0)
-    x2 = AddDense(x2, int(dense_size/4), "relu", 0)
+    x2 = AddDense(x, int(dense_size/2), "relu", 0)
+    x2 = AddDense(x2, int(dense_size/2), "relu", 0)
     value_out = Dense(1, activation="linear", name="V",)(x2)
 
     return value_out, next_option_out
