@@ -312,57 +312,6 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         plt.show(block=False)
         plt.pause(0.01)
 
-    def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
-            next_features, next_arm, next_gripper,
-            prev_label, goal_features, goal_arm, goal_gripper, *args, **kwargs):
-        '''
-        Pre-process training data.
-        
-        Then, create the model. Train based on labeled data. Remove
-        unsuccessful examples.
-        '''
-
-        # ================================================
-        # Set up variable names -- just to make things a bit cleaner
-        I = features
-        q = arm
-        g = gripper
-        qa = arm_cmd
-        ga = gripper_cmd
-        oin = prev_label
-        I_target = goal_features
-        Inext_target = next_features
-        o_target = label
-        q_target = goal_arm
-        g_target = goal_gripper
-        action_labels = label
-
-        if self.supervisor is None:
-            self._makeModel(I, q, g, qa, ga, oin)
-
-        # Fit the main models
-        self._fitPredictor(
-                [I, q, g, prev_label],
-                [I_target, q_target, g_target, Inext_target,
-                    to_categorical(o_target, 64)])
-
-        # ===============================================
-        # Might be useful if you start getting shitty results... one problem we
-        # observed was accidentally training the embedding weights when
-        # learning all your policies.
-        #fig, axes = plt.subplots(5, 5,)
-        #self.plotInfo(
-        #        [I, q, g, oin],
-        #        [I_target, q_target, g_target, Inext_target],
-        #        axes,
-        #        )
-        #self._fitSupervisor([I, q, g, o_prev], o_target)
-        # ===============================================
-
-        action_target = [qa, ga]
-        #self._fitPolicies([I, q, g], action_labels, action_target)
-        #self._fitBaseline([I, q, g], action_target)
-
     def _getAllData(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             prev_label, goal_features, goal_arm, goal_gripper, value, *args, **kwargs):
         I = features / 255. # normalize the images

@@ -70,8 +70,11 @@ class RobotMultiFFRegression(RobotMultiHierarchical):
                 post_tiling_layers=3,
                 stride1_post_tiling_layers=1)
 
-        arm_out = Dense(arm_cmd_size)(x)
-        gripper_out = Dense(gripper_size)(x)
+        arm_out = Dense(arm_cmd_size, name="arm")(x)
+        gripper_out = Dense(gripper_size, name="gripper")(x)
+
+        if self.model is not None:
+            raise RuntimeError('overwriting old model!')
 
         model = Model(ins, [arm_out, gripper_out])
         optimizer = self.getOptimizer()
@@ -86,8 +89,9 @@ class RobotMultiFFRegression(RobotMultiHierarchical):
 
     def trainFromGenerators(self, train_generator, test_generator, data=None, *args, **kwargs):
         [features, arm, gripper], [arm_cmd, gripper_cmd] = self._getData(**data)
-        self._makeModel(features, arm, gripper, arm_cmd,
-                gripper_cmd, *args, **kwargs)
+        if self.model is None:
+            self._makeModel(features, arm, gripper, arm_cmd,
+                    gripper_cmd, *args, **kwargs)
         self.model.summary()
         self.model.fit_generator(
                 train_generator,
@@ -109,3 +113,26 @@ class RobotMultiFFRegression(RobotMultiHierarchical):
             plt.show()
 
         return res
+
+    def _loadWeights(self, *args, **kwargs):
+        '''
+        Load model weights. This is the default load weights function; you may
+        need to overload this for specific models.
+        '''
+        if self.model is not None:
+            print("using " + self.name + ".h5f")
+            self.model.load_weights(self.name + ".h5f")
+        else:
+            raise RuntimeError('_loadWeights() failed: model not found.')
+
+    def save(self):
+        '''
+        Save to a filename determined by the "self.name" field.
+        '''
+        if self.model is not None:
+            print("saving to " + self.name)
+            self.model.save_weights(self.name + ".h5f")
+        else:
+            raise RuntimeError('save() failed: model not found.')
+
+
