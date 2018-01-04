@@ -58,8 +58,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         self.actor = None
 
     def _makeModel(self, *args, **kwargs):
-        self.supervisor = self._makeSupervisor(*args, **kwargs)
-        self.actor = self._makeConditionalSupervisor(*args, **kwargs)
+        self.model, self.supervisor, self.actor = self._makeSupervisor(*args, **kwargs)
 
     def _makeSimpleActor(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
         '''
@@ -120,7 +119,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 discriminator=False,
                 kernel_size=[3,3],
                 tile=True,
-                option=self.num_options,
+                dense=False, flatten=False,
                 pre_tiling_layers=1,
                 post_tiling_layers=3,
                 stride1_post_tiling_layers=1)
@@ -136,8 +135,8 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         model.compile(loss="mae", optimizer=optimizer)
         return model
 
-    def _makeSupervisor(self, features):
-        (images, arm, gripper) = features
+    def _makeSupervisor(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
+        images = features
         img_shape = images.shape[1:]
         arm_size = arm.shape[-1]
         if len(gripper.shape) > 1:
@@ -181,62 +180,16 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         x = LeakyReLU(0.2)(x)
         label_out = Dense(self.num_options, activation="softmax",name="next_option")(x)
 
-        # =====================================================================
-        # Add in the chosen option
-        # ---------------------------------------------------------------------
-        option = Reshape([1,1,64])(label_out)
-        option = Lambda(lambda x: K.tile(x, tile_shape))(option)
-        enc_with_option = Concatenate(
-                axis=-1,
-                name="add_option_info")([enc,option])
-        goal_enc_with_option = Conv2D(self.img_num_filters,
-                kernel_size=[5,5], 
-                strides=(1, 1),
-                padding='same')(enc_with_option)
-        goal_enc_with_option = LeakyReLU(0.2,
-                name='goal_encoding_with_option')(goal_enc_with_option)
-        # ---------------------------------------------------------------------
-        next_frame_enc_with_option = Conv2D(self.img_num_filters,
-                kernel_size=[5,5], 
-                strides=(1, 1),
-                padding='same')(enc_with_option)
-        next_frame_enc_with_option = LeakyReLU(0.2,
-                name='next_frame_encoding_with_option')(next_frame_enc_with_option)
-        
-        # Predict the next joint states and gripper position. We add these back
-        # in from the inputs once again, in order to make sure they don't get
-        # lost in all the convolution layers above...
-        x = Conv2D(self.img_num_filters/2,
-                kernel_size=[5,5], 
-                strides=(2, 2),
-                padding='same')(goal_enc_with_option)
-        x = LeakyReLU(0.2)(x)
-        x = Flatten()(x)
-        x = Concatenate(name="add_current_arm_info")([x, ins[1], ins[2]])
-        x = Dense(self.combined_dense_size)(x)
-        x = Dropout(self.dropout_rate)(x)
-        x = LeakyReLU(0.2)(x)
-        arm_out = Dense(arm_size,name="action_arm_goal")(x)
-        gripper_out = Dense(gripper_size,name="action_gripper_goal")(x)
+        supervisor = Model(ins, label_out, name="supervisor")
+        actor = self._makeConditionalActor(features, arm, gripper, arm_cmd,
+                gripper_cmd, *args, **kwargs)
 
-        # =====================================================================
-        # PREDICTOR AND LATENT STATE MODEL
-        # Create the necessary models
-        goal_enc_with_option_flat = Flatten(name="goal_flat")(goal_enc_with_option)
-        next_frame_enc_with_option_flat = Flatten(name="next_frame_flat")(next_frame_enc_with_option)
+        supervisor.summary()
+        print("make model setup")
+        print(ins, actor.inputs)
+        model_ins = Input(name="img_in")
 
-        features_out = [
-                decoder([goal_enc_with_option_flat]),
-                arm_out,
-                gripper_out,
-                decoder2([next_frame_enc_with_option_flat])]
-
-        supervisor = Model(ins + [prev_option_in], [label_out])
-        predictor = Model(ins + [prev_option_in], features_out + [label_out])
-        predict_goal = Model(ins + [prev_option_in], features_out[:3],)
-        predict_next = Model(ins + [prev_option_in], features_out[3])
-
-        return enc, supervisor, predictor, predict_goal, predict_next
+        return model, supervisor, actor
 
     def plotInfo(self, features, targets, axes):
         # debugging: plot every 5th image from the dataset
@@ -308,19 +261,9 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
-        tt, o1, v, qa, ga, I = targets
-        if self.use_noise:
-            noise_len = features[0].shape[0]
-            z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-            if self.success_only:
-                return features[:self.num_features] + [z], [tt, o1]
-            else:
-                return features[:self.num_features] + [z], [tt, o1, v]
-        else:
-            if self.success_only:
-                return features[:self.num_features], [tt, o1]
-            else:
-                return features[:self.num_features], [tt, o1, v]
+        [I, q, g, oin, q_target, g_target,] = features
+        tt, o1, v, qa, ga, I_target = targets
+        return [I, q, g, oin, o1], [o1, np.squeeze(qa), np.squeeze(ga)]
 
     def _makeTrainTarget(self, I_target, q_target, g_target, o_target):
         if I_target is not None:
@@ -372,4 +315,15 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         else:
             raise RuntimeError('save() failed: model not found.')
 
-
+    def trainFromGenerators(self, train_generator, test_generator, data=None, *args, **kwargs):
+        [features, arm, gripper, oin, oi], [oi, arm_cmd, gripper_cmd] = self._getData(**data)
+        if self.model is None:
+            self._makeModel(features, arm, gripper, arm_cmd,
+                    gripper_cmd, *args, **kwargs)
+        self.model.summary()
+        self.model.fit_generator(
+                train_generator,
+                self.steps_per_epoch,
+                epochs=self.epochs,
+                validation_steps=self.validation_steps,
+                validation_data=test_generator,)
