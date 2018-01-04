@@ -13,8 +13,8 @@ export ND=0
 export HDR=0.2
 
 
-if [ 0 -gt 1 ]
-then
+# image rep
+if true; then
   rosrun costar_models ctp_model_tool \
     --features multi \
     -e 100 \
@@ -33,8 +33,8 @@ then
     --batch_size 64
 fi
 
-if [ 2 -gt 1 ]
-then
+# extra encoding of data
+if true; then
   rosrun costar_models ctp_model_tool \
     --features multi \
     -e 100 \
@@ -54,10 +54,31 @@ then
 fi
 
 
+# transitions with all data
+if false; then
+  rosrun costar_models ctp_model_tool \
+    --features multi \
+    -e 100 \
+    --model conditional_sampler2 \
+    --data_file $HOME/work/$DATASET.h5f \
+    --lr $LR \
+    --dropout_rate $DR \
+    --decoder_dropout_rate $DR \
+    --model_directory $MODELDIR/ \
+    --optimizer $OPT \
+    --use_noise true \
+    --steps_per_epoch 500 \
+    --noise_dim $ND \
+    --hypothesis_dropout $HDR \
+    --upsampling conv_transpose \
+    --batch_size 64
+fi
+
+# transitions, only images
 rosrun costar_models ctp_model_tool \
   --features multi \
   -e 100 \
-  --model conditional_sampler2 \
+  --model conditional_image \
   --data_file $HOME/work/$DATASET.h5f \
   --lr $LR \
   --dropout_rate $DR \
@@ -72,21 +93,24 @@ rosrun costar_models ctp_model_tool \
   --batch_size 64
 
 
-rosrun costar_models ctp_model_tool \
-  --features multi \
-  -e 100 \
-  --model predictor2 \
-  --data_file $HOME/work/$DATASET.h5f \
-  --lr $LR \
-  --dropout_rate $DR \
-  --decoder_dropout_rate $DR \
-  --model_directory $MODELDIR/ \
-  --optimizer $OPT \
-  --use_noise true \
-  --steps_per_epoch 500 \
-  --noise_dim $ND \
-  --hypothesis_dropout $HDR \
-  --upsampling conv_transpose \
-  --batch_size 32 # --retrain 
-  #--success_only \
+# multiple parallel predictions
+if false; then
+  rosrun costar_models ctp_model_tool \
+    --features multi \
+    -e 100 \
+    --model predictor2 \
+    --data_file $HOME/work/$DATASET.h5f \
+    --lr $LR \
+    --dropout_rate $DR \
+    --decoder_dropout_rate $DR \
+    --model_directory $MODELDIR/ \
+    --optimizer $OPT \
+    --use_noise true \
+    --steps_per_epoch 500 \
+    --noise_dim $ND \
+    --hypothesis_dropout $HDR \
+    --upsampling conv_transpose \
+    --batch_size 32 # --retrain 
+    #--success_only \
+fi
 
