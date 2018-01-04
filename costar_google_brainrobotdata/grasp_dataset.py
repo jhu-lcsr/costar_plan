@@ -1941,7 +1941,7 @@ class GraspDataset(object):
                                 '_depth_success_' + str(int(features_dict_np['grasp_success'])) + '.gif'))
                 gif_path = os.path.join(visualization_dir, gif_filename)
                 self.npy_to_gif(video, gif_path)
-    
+
     def count_success_failure_number(self, tf_session=tf.Session()):
         """ Counting number of success and failure in all attempts.
         # Returns:
@@ -1950,9 +1950,9 @@ class GraspDataset(object):
             success_ratio: success to total attempts ratio
         """
         batch_size = 1
-        (feature_op_dicts, _, _, num_samples) = self.get_training_dictionaries(batch_size=batch_size) 
+        (feature_op_dicts, _, _, num_samples) = self.get_training_dictionaries(batch_size=batch_size)
         tf_session.run(tf.global_variables_initializer())
-        
+
         success_num = 0
         failure_num = 0
         for attempt_num in tqdm(range(num_samples), desc='success_statistics'):
@@ -1963,7 +1963,7 @@ class GraspDataset(object):
             else:
                 failure_num += 1
 
-        return success_num, failure_num, success_num * 1.0 /num_samples
+        return success_num, failure_num, success_num * 1.0 / num_samples
 
 
 def get_multi_dataset_training_tensors(
