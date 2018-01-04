@@ -48,7 +48,7 @@ class ConditionalImage(PredictionSampler2):
         super(ConditionalImage, self).__init__(*args, **kwargs)
         self.PredictorCb = ImageCb
         self.rep_size = 256
-        self.num_transforms = 2
+        self.num_transforms = 3
         self.do_all = True
         self.transform_model = None
 
@@ -58,28 +58,15 @@ class ConditionalImage(PredictionSampler2):
         option = Input((48,),name="t_opt_in")
         x, y = h, option
         x = Concatenate()([h, h0])
-        x = TileOnto(x, y, self.num_options, (8,8))
-        x = AddConv2D(x, 64, [1,1], 1, 0.)
-        x0 = x
-        x = AddConv2D(x, 128, [7,7], 2, 0.)
-        # Process
+        x0 = AddConv2D(x, self.tform_filters*2, [1,1], 1, 0.)
+        x = x0
         for i in range(self.num_transforms):
-            #x = TileOnto(x, y, self.num_options, (4,4))
-            x = AddConv2D(x, 64, [7,7],
+            x = TileOnto(x, y, self.num_options, (8,8))
+            x = AddConv2D(x, self.tform_filters*2,
+                    self.tform_kernel_size,
                     stride=1,
-                    dropout_rate=0.)
-
-        x = AddConv2DTranspose(x,
-                32,
-                [5,5],
-                stride=2,
-                dropout_rate=0.)
-
-        x = Concatenate()([x,x0])
-        x = AddConv2D(x, 64, [5,5],
-                stride=1,
-                dropout_rate=0.)
-
+                    dropout_rate=self.tform_dropout_rate)
+        x =  Concatenate(axis=-1)([x,x0])
         x = AddConv2D(x, self.encoder_channels, [1, 1], stride=1,
                 dropout_rate=0.)
 
