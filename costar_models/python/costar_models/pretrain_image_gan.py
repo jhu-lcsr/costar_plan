@@ -169,7 +169,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         m = 0.99
         self.steps_up = 3
         hidden_dim = int(img_shape[0]/(2**self.steps_up))
-        extra_dim = 2 * hidden_shape[0] / (hidden_dim * hidden_dim)
+        extra_dim = int(2 * hidden_shape[0] / (hidden_dim * hidden_dim))
         (h,w,c) = (hidden_dim,
                     hidden_dim,
                     extra_dim)
@@ -197,7 +197,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         """
         for i in range(self.pretrain_iter):
             # Descriminator pass
-            img, _ = train_generator.next()
+            img, _ = next(train_generator)
             img = img[0]
             fake = self.generator.predict(img)
             self.discriminator.trainable = True
@@ -216,7 +216,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
             # MAE
             for i in range(self.epochs):
                 for j in range(self.steps_per_epoch):
-                    img, _ = train_generator.next()
+                    img, _ = next(train_generator)
                     img = img[0]
                     res = self.generator.train_on_batch(img, img)
                     print("\rEpoch {}, {}/{}: MAE loss {:.5}".format(
@@ -229,7 +229,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
             for i in range(self.epochs):
                 for j in range(self.steps_per_epoch):
                     # Descriminator pass
-                    img, _ = train_generator.next()
+                    img, _ = next(train_generator)
                     img = img[0]
                     fake = self.generator.predict(img)
                     self.discriminator.trainable = True
@@ -244,7 +244,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                         i, j, self.steps_per_epoch, res1, res2), end="")
 
                 # Accuracy tests
-                img, _ = train_generator.next()
+                img, _ = next(train_generator)
                 img = img[0]
                 fake = self.generator.predict(img)
                 results = self.discriminator.predict([img, fake])
@@ -262,7 +262,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                 for j in range(self.steps_per_epoch):
 
                     # Descriminator pass
-                    img, _ = train_generator.next()
+                    img, _ = next(train_generator)
                     img = img[0]
                     fake = self.generator.predict(img)
                     self.discriminator.trainable = True
@@ -275,7 +275,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                     self.discriminator.trainable = False
 
                     # Generator pass
-                    img, _ = train_generator.next()
+                    img, _ = next(train_generator)
                     img = img[0]
                     res = self.model.train_on_batch(
                             [img], [img, is_not_fake]
@@ -284,7 +284,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                         i, j, self.steps_per_epoch, res[0], res1, res2))
 
                 # Accuracy tests
-                img, _ = train_generator.next()
+                img, _ = next(train_generator)
                 img = img[0]
                 fake = self.generator.predict(img)
                 results = self.discriminator.predict([img, fake])
