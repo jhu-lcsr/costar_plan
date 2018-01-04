@@ -46,137 +46,125 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         super(RobotMultiHierarchical, self).__init__(taskdef, *args, **kwargs)
 
         self.num_frames = 1
+        self.img_col_dim = 256
+        self.img_num_filters = 64
+        self.robot_col_dense_size = 128
+        self.robot_col_dim = 64
+        self.combined_dense_size = self.img_col_dim
+        self.pose_col_dim = 64
+        self.num_options = 48
+        self.null_option = 37
+        self.supervisor = None
+        self.actor = None
 
-        self.dropout_rate = 0.5
-        self.img_dense_size = 1024
-        self.img_col_dim = 512
-        self.img_num_filters = 128
-        self.combined_dense_size = 128
-        self.partition_step_size = 2
+    def _makeModel(self, *args, **kwargs):
+        self.model, self.supervisor, self.actor = self._makeSupervisor(*args, **kwargs)
 
-    def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, label, *args, **kwargs):
-        self._makeHierarchicalModel(
-                (features, arm, gripper),
-                (arm_cmd, gripper_cmd),
-                label)
-
-    def _makePolicy(self, features, action, hidden=None):
+    def _makeSimpleActor(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
         '''
-        We need to use the task definition to create our high-level model, and
-        we need to use our data to initialize the low level models that will be
-        predicting our individual actions.
-
-        Parameters:
-        -----------
-        features: input list of features representing current state. Note that
-                  this is included for completeness in the hierarchical model,
-                  but is not currently used in this implementation (and ideally
-                  would not be).
-        action: input list of action outputs (arm and gripper commands for the
-                robot tasks).
-        hidden: "hidden" embedding of latent world state (input)
+        This creates a "dumb" actor model based on a set of features.
         '''
-        images, arm, gripper = features
-        arm_cmd, gripper_cmd = action
-        img_shape = images.shape[1:]
-        arm_size = arm.shape[-1]
+        img_shape = features.shape[1:]
+        arm_size = arm.shape[1]
+        arm_cmd_size = arm_cmd.shape[1]
         if len(gripper.shape) > 1:
-            gripper_size = gripper.shape[-1]
-        else:
-            gripper_size = 1
-        
-
-        x = Conv2D(self.img_num_filters/4,
-                kernel_size=[5,5], 
-                strides=(2, 2),
-                padding='same')(hidden)
-        x = Dropout(self.dropout_rate)(x)
-        x = LeakyReLU(0.2)(x)
-        x = Flatten()(x)
-        x = Dense(self.combined_dense_size)(x)
-        x = Dropout(self.dropout_rate)(x)
-        x = LeakyReLU(0.2)(x)
-
-        arm_out = Dense(arm_size)(x)
-        gripper_out = Dense(gripper_size)(x)
-
-        policy = Model(self.supervisor.inputs[:3], [arm_out, gripper_out])
-
-        return policy
-
-    def _makeSupervisor(self, features):
-        (images, arm, gripper) = features
-        img_shape = images.shape[1:]
-        arm_size = arm.shape[-1]
-        if len(gripper.shape) > 1:
-            gripper_size = gripper.shape[-1]
+            gripper_size = gripper.shape[1]
         else:
             gripper_size = 1
 
-        ins, enc = GetEncoder(img_shape,
-                arm_size,
-                gripper_size,
+        ins, x, skips = GetEncoder(
+                img_shape,
+                [arm_size, gripper_size],
                 self.img_col_dim,
                 self.dropout_rate,
                 self.img_num_filters,
-                leaky=False,
-                dropout=False,
-                pre_tiling_layers=0,
-                post_tiling_layers=3,
-                kernel_size=[5,5],
-                dense=False,
+                pose_col_dim=self.pose_col_dim,
+                discriminator=False,
+                kernel_size=[3,3],
                 tile=True,
-                option=None,#self._numLabels(),
+                pre_tiling_layers=1,
+                post_tiling_layers=3,
+                stride1_post_tiling_layers=1)
+
+        arm_out = Dense(arm_cmd_size, name="arm")(x)
+        gripper_out = Dense(gripper_size, name="gripper")(x)
+
+        if self.model is not None:
+            raise RuntimeError('overwriting old model!')
+
+        model = Model(ins, [arm_out, gripper_out])
+        optimizer = self.getOptimizer()
+        model.compile(loss="mae", optimizer=optimizer)
+        return model
+
+    def _makeConditionalActor(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
+        '''
+        This creates a "dumb" actor model 
+        '''
+        img_shape = features.shape[1:]
+        arm_size = arm.shape[1]
+        arm_cmd_size = arm_cmd.shape[1]
+        if len(gripper.shape) > 1:
+            gripper_size = gripper.shape[1]
+        else:
+            gripper_size = 1
+
+        ins, x, skips = GetEncoder(
+                img_shape,
+                [arm_size, gripper_size],
+                self.img_col_dim,
+                self.dropout_rate,
+                self.img_num_filters,
+                pose_col_dim=self.pose_col_dim,
+                discriminator=False,
+                kernel_size=[3,3],
+                tile=True,
+                dense=False, flatten=False,
+                pre_tiling_layers=1,
+                post_tiling_layers=3,
+                stride1_post_tiling_layers=1)
+
+        arm_out = Dense(arm_cmd_size, name="arm")(x)
+        gripper_out = Dense(gripper_size, name="gripper")(x)
+
+        if self.model is not None:
+            raise RuntimeError('overwriting old model!')
+
+        model = Model(ins, [arm_out, gripper_out])
+        optimizer = self.getOptimizer()
+        model.compile(loss="mae", optimizer=optimizer)
+        return model
+
+    def _makeSupervisor(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
+        images = features
+        img_shape = images.shape[1:]
+        arm_size = arm.shape[-1]
+        if len(gripper.shape) > 1:
+            gripper_size = gripper.shape[-1]
+        else:
+            gripper_size = 1
+
+        ins, x, skips = GetEncoder(
+                img_shape,
+                [arm_size, gripper_size],
+                self.img_col_dim,
+                self.dropout_rate,
+                self.img_num_filters,
+                pose_col_dim=self.pose_col_dim,
+                kernel_size=[3,3],
+                tile=True,
+                pre_tiling_layers=1,
+                post_tiling_layers=3,
+                stride1_post_tiling_layers=1,
+                discriminator=False,
+                dense=False,
+                option=self.num_options,
                 flatten=False,
                 )
-
-        # Tile on the option -- this is where our transition model comes in.
-        # Options are represented as a one-hot vector added to all possible
-        # positions in the image, and essentially give us _numLabels()
-        # additional image channels.
-        tile_width = img_shape[0]/(2**3)
-        tile_height = img_shape[1]/(2**3)
-        tile_shape = (1, tile_width, tile_height, 1)
-
-        rep, dec = GetDecoder(self.img_col_dim,
-                            img_shape,
-                            arm_size,
-                            gripper_size,
-                            dropout_rate=self.dropout_rate,
-                            kernel_size=[5,5],
-                            filters=self.img_num_filters,
-                            stride2_layers=3,
-                            stride1_layers=0,
-                            dropout=False,
-                            leaky=True,
-                            dense=False,
-                            option=None,
-                            batchnorm=True,)
-        rep2, dec2 = GetDecoder(self.img_col_dim,
-                            img_shape,
-                            arm_size,
-                            gripper_size,
-                            dropout_rate=self.dropout_rate,
-                            kernel_size=[5,5],
-                            filters=self.img_num_filters,
-                            stride2_layers=3,
-                            stride1_layers=0,
-                            dropout=False,
-                            leaky=True,
-                            dense=False,
-                            option=None,
-                            batchnorm=True,)
-
 
         # =====================================================================
         # SUPERVISOR
         # Predict the next option -- does not depend on option
-        prev_option_in = Input((1,),name="prev_option_in")
-        prev_option = OneHot(size=64)(prev_option_in)
-        prev_option = Reshape([1,1,64])(prev_option)
-        prev_option = Lambda(lambda x: K.tile(x, tile_shape))(prev_option)
-        x = Concatenate(axis=-1,name="add_prev_option_to_supervisor")(
-                [prev_option, enc])
         for _ in range(2):
             # Repeat twice to scale down to a very small size -- this will help
             # a little with the final image layers
@@ -190,93 +178,18 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         x = Dense(self.combined_dense_size)(x)
         x = Dropout(self.dropout_rate)(x)
         x = LeakyReLU(0.2)(x)
-        label_out = Dense(64, activation="sigmoid",name="next_option")(x)
-        decoder = Model(rep, dec, name="image_decoder")
-        decoder2 = Model(rep2, dec2, name="next_frame_image_decoder")
+        label_out = Dense(self.num_options, activation="softmax",name="next_option")(x)
 
-        # =====================================================================
-        # Add in the chosen option
-        # ---------------------------------------------------------------------
-        option = Reshape([1,1,64])(label_out)
-        option = Lambda(lambda x: K.tile(x, tile_shape))(option)
-        enc_with_option = Concatenate(
-                axis=-1,
-                name="add_option_info")([enc,option])
-        goal_enc_with_option = Conv2D(self.img_num_filters,
-                kernel_size=[5,5], 
-                strides=(1, 1),
-                padding='same')(enc_with_option)
-        goal_enc_with_option = LeakyReLU(0.2,
-                name='goal_encoding_with_option')(goal_enc_with_option)
-        # ---------------------------------------------------------------------
-        next_frame_enc_with_option = Conv2D(self.img_num_filters,
-                kernel_size=[5,5], 
-                strides=(1, 1),
-                padding='same')(enc_with_option)
-        next_frame_enc_with_option = LeakyReLU(0.2,
-                name='next_frame_encoding_with_option')(next_frame_enc_with_option)
-        
-        # Predict the next joint states and gripper position. We add these back
-        # in from the inputs once again, in order to make sure they don't get
-        # lost in all the convolution layers above...
-        x = Conv2D(self.img_num_filters/2,
-                kernel_size=[5,5], 
-                strides=(2, 2),
-                padding='same')(goal_enc_with_option)
-        x = LeakyReLU(0.2)(x)
-        x = Flatten()(x)
-        x = Concatenate(name="add_current_arm_info")([x, ins[1], ins[2]])
-        x = Dense(self.combined_dense_size)(x)
-        x = Dropout(self.dropout_rate)(x)
-        x = LeakyReLU(0.2)(x)
-        arm_out = Dense(arm_size,name="action_arm_goal")(x)
-        gripper_out = Dense(gripper_size,name="action_gripper_goal")(x)
+        supervisor = Model(ins, label_out, name="supervisor")
+        actor = self._makeConditionalActor(features, arm, gripper, arm_cmd,
+                gripper_cmd, *args, **kwargs)
 
-        # =====================================================================
-        # PREDICTOR AND LATENT STATE MODEL
-        # Create the necessary models
-        goal_enc_with_option_flat = Flatten(name="goal_flat")(goal_enc_with_option)
-        next_frame_enc_with_option_flat = Flatten(name="next_frame_flat")(next_frame_enc_with_option)
+        supervisor.summary()
+        print("make model setup")
+        print(ins, actor.inputs)
+        model_ins = Input(name="img_in")
 
-        features_out = [
-                decoder([goal_enc_with_option_flat]),
-                arm_out,
-                gripper_out,
-                decoder2([next_frame_enc_with_option_flat])]
-
-        supervisor = Model(ins + [prev_option_in], [label_out])
-        predictor = Model(ins + [prev_option_in], features_out + [label_out])
-        predict_goal = Model(ins + [prev_option_in], features_out[:3],)
-        predict_next = Model(ins + [prev_option_in], features_out[3])
-
-        return enc, supervisor, predictor, predict_goal, predict_next
-
-    def _fitPredictor(self, features, targets):
-        if self.show_iter > 0:
-            fig, axes = plt.subplots(5, 5,)
-
-        self._unfixWeights()
-        self.predictor.compile(
-                loss=(["mse"]*4+["binary_crossentropy"]),
-                optimizer=self.getOptimizer())
-        self.predictor.summary()
-
-        for i in range(self.iter):
-            idx = np.random.randint(0, features[0].shape[0], size=self.batch_size)
-            x = []
-            y = []
-            for f in features:
-                x.append(f[idx])
-            for f in targets:
-                y.append(f[idx])
-
-            losses = self.predictor.train_on_batch(x, y)
-
-            print("Iter %d: loss ="%(i),losses)
-            if self.show_iter > 0 and (i+1) % self.show_iter == 0:
-                self.plotInfo(features, targets, axes)
-
-        self._fixWeights()
+        return model, supervisor, actor
 
     def plotInfo(self, features, targets, axes):
         # debugging: plot every 5th image from the dataset
@@ -310,55 +223,107 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         plt.show(block=False)
         plt.pause(0.01)
 
-    def train(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
-            next_features, next_arm, next_gripper,
-            prev_label, goal_features, goal_arm, goal_gripper, *args, **kwargs):
-        '''
-        Pre-process training data.
-        
-        Then, create the model. Train based on labeled data. Remove
-        unsuccessful examples.
-        '''
-
-        # ================================================
-        # Set up variable names -- just to make things a bit cleaner
-        I = features
+    def _getAllData(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
+            prev_label, goal_features, goal_arm, goal_gripper, value, *args, **kwargs):
+        I = features / 255. # normalize the images
         q = arm
-        g = gripper
+        g = gripper * -1
         qa = arm_cmd
-        ga = gripper_cmd
+        ga = gripper_cmd * -1
         oin = prev_label
-        I_target = goal_features
-        Inext_target = next_features
-        o_target = label
+        I_target = goal_features / 255.
         q_target = goal_arm
-        g_target = goal_gripper
-        action_labels = label
+        g_target = goal_gripper * -1
+        o_target = label
 
-        if self.supervisor is None:
-            self._makeModel(I, q, g, qa, ga, oin)
+        # Preprocess values
+        value_target = np.array(value > 1.,dtype=float)
+        #if value_target[-1] == 0:
+        #    value_target = np.ones_like(value) - np.array(label == label[-1], dtype=float)
+        q[:,3:] = q[:,3:] / np.pi
+        q_target[:,3:] = q_target[:,3:] / np.pi
+        qa /= np.pi
 
-        # Fit the main models
-        self._fitPredictor(
-                [I, q, g, prev_label],
-                [I_target, q_target, g_target, Inext_target,
-                    to_categorical(o_target, 64)])
+        o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
+        train_target = self._makeTrainTarget(
+                I_target,
+                q_target,
+                g_target,
+                o_target)
 
-        # ===============================================
-        # Might be useful if you start getting shitty results... one problem we
-        # observed was accidentally training the embedding weights when
-        # learning all your policies.
-        #fig, axes = plt.subplots(5, 5,)
-        #self.plotInfo(
-        #        [I, q, g, oin],
-        #        [I_target, q_target, g_target, Inext_target],
-        #        axes,
-        #        )
-        #self._fitSupervisor([I, q, g, o_prev], o_target)
-        # ===============================================
+        return [I, q, g, oin, q_target, g_target,], [
+                np.expand_dims(train_target, axis=1),
+                o_target,
+                value_target,
+                np.expand_dims(qa, axis=1),
+                np.expand_dims(ga, axis=1),
+                I_target]
 
-        action_target = [qa, ga]
-        #self._fitPolicies([I, q, g], action_labels, action_target)
-        #self._fitBaseline([I, q, g], action_target)
+    def _getData(self, *args, **kwargs):
+        features, targets = self._getAllData(*args, **kwargs)
+        [I, q, g, oin, q_target, g_target,] = features
+        tt, o1, v, qa, ga, I_target = targets
+        return [I, q, g, oin, o1], [o1, np.squeeze(qa), np.squeeze(ga)]
+
+    def _makeTrainTarget(self, I_target, q_target, g_target, o_target):
+        if I_target is not None:
+            length = I_target.shape[0]
+            image_shape = I_target.shape[1:]
+            image_size = 1
+            for dim in image_shape:
+                image_size *= dim
+            image_size = int(image_size)
+            Itrain = np.reshape(I_target,(length, image_size))
+            return np.concatenate([Itrain, q_target,g_target,o_target],axis=-1)
+        else:
+            length = q_target.shape[0]
+            return np.concatenate([q_target,g_target,o_target],axis=-1)
 
 
+    def _loadWeights(self, *args, **kwargs):
+        '''
+        Load model weights. This is the default load weights function; you may
+        need to overload this for specific models.
+        '''
+        if self.model is not None:
+            print("using " + self.name + ".h5f")
+            self.model.load_weights(self.name + ".h5f")
+            if self.supervisor is not None:
+                try:
+                    self.supervisor.load_weights(self.name + "_supervisor.h5f")
+                except Exception as e:
+                    print(e)
+            if self.actor is not None:
+                try:
+                    self.actor.load_weights(self.name + "_actor.h5f")
+                except Exception as e:
+                    print(e)
+        else:
+            raise RuntimeError('_loadWeights() failed: model not found.')
+
+    def save(self):
+        '''
+        Save to a filename determined by the "self.name" field.
+        '''
+        if self.model is not None:
+            print("saving to " + self.name)
+            self.model.save_weights(self.name + ".h5f")
+            if self.supervisor is not None:
+                self.supervisor.save_weights(self.name + "_supervisor.h5f")
+            if self.actor is not None:
+                self.actor.save_weights(self.name + "_actor.h5f")
+        else:
+            raise RuntimeError('save() failed: model not found.')
+
+    def trainFromGenerators(self, train_generator, test_generator, data=None, *args, **kwargs):
+        [features, arm, gripper, oin, oi], [oi, arm_cmd, gripper_cmd] = self._getData(**data)
+        if self.model is None:
+            self._makeModel(features, arm, gripper, arm_cmd,
+                    gripper_cmd, *args, **kwargs)
+        self.model.summary()
+        self.model.fit_generator(
+                train_generator,
+                self.steps_per_epoch,
+                epochs=self.epochs,
+                validation_steps=self.validation_steps,
+                validation_data=test_generator,)
