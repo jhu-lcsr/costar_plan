@@ -169,7 +169,7 @@ def TileOnto(x,z,zlen,xsize,add=False):
     if not add:
         x = Concatenate(axis=-1)([x,z])
     else:
-        x = Add([x,z])
+        x = Add()([x,z])
     return x
 
 def TileArmAndGripper(x, arm_in, gripper_in, tile_width, tile_height,

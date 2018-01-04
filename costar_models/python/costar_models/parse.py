@@ -168,6 +168,10 @@ def GetModelParser():
                         help="Specific part of the planing model to train",
                         choices=GetSubmodelOptions(),
                         default="all")
+    parser.add_argument("--use_batchnorm",
+                        help="Use batchnorm (defaults to false; many models do
+                              not use this parameter.",
+                        action="store_true")
     return parser
 
 def GetSubmodelOptions():
