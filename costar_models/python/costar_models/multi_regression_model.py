@@ -18,8 +18,9 @@ from keras.optimizers import Adam
 
 from .abstract import AbstractAgentBasedModel
 from .robot_multi_models import *
+from .multi_hierarchical import *
 
-class RobotMultiFFRegression(AbstractAgentBasedModel):
+class RobotMultiFFRegression(RobotMultiHierarchical):
 
     def __init__(self, taskdef, *args, **kwargs):
         '''
@@ -31,7 +32,7 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
         joint state.
         '''
 
-        super(RobotMultiFFRegression, self).__init__(*args, **kwargs)
+        super(RobotMultiFFRegression, self).__init__(taskdef, *args, **kwargs)
 
         self.taskdef = taskdef
         self.model = None
@@ -40,11 +41,11 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
         
         self.img_dense_size = 512
         self.img_col_dim = 256
-        self.img_num_filters = 32
+        self.img_num_filters = 64
         self.robot_col_dense_size = 128
         self.robot_col_dim = 64
         self.combined_dense_size = 64
-        self.pose_col_dim = 32
+        self.pose_col_dim = 64
 
     def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
         img_shape = features.shape[1:]
@@ -55,7 +56,7 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
         else:
             gripper_size = 1
 
-        ins, x, skips, robot_skip = GetEncoder(
+        ins, x, skips = GetEncoder(
                 img_shape,
                 [arm_size, gripper_size],
                 self.img_col_dim,
@@ -66,7 +67,8 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
                 kernel_size=[3,3],
                 tile=True,
                 pre_tiling_layers=1,
-                post_tiling_layers=3)
+                post_tiling_layers=3,
+                stride1_post_tiling_layers=1)
 
         arm_out = Dense(arm_cmd_size)(x)
         gripper_out = Dense(gripper_size)(x)
@@ -76,9 +78,11 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
         model.compile(loss="mae", optimizer=optimizer)
         self.model = model
 
-
-    def _getData(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
-        return [features, arm, gripper], [arm_cmd, gripper_cmd]
+    def _getData(self, *args, **kwargs):
+        features, targets = self._getAllData(*args, **kwargs)
+        [I, q, g, oin, q_target, g_target,] = features
+        tt, o1, v, qa, ga, I_target = targets
+        return [I, q, g], [np.squeeze(qa), np.squeeze(ga)]
 
     def trainFromGenerators(self, train_generator, test_generator, data=None, *args, **kwargs):
         [features, arm, gripper], [arm_cmd, gripper_cmd] = self._getData(**data)
@@ -91,22 +95,6 @@ class RobotMultiFFRegression(AbstractAgentBasedModel):
                 epochs=self.epochs,
                 validation_steps=self.validation_steps,
                 validation_data=test_generator,)
-
-    def train(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
-        '''
-        Training data -- just direct regression based on MSE from the other
-        trajectory.
-        '''
-
-        self._makeModel(features, arm, gripper, arm_cmd,
-                gripper_cmd, *args, **kwargs)
-        self.model.summary()
-        self.model.fit(
-                x=[features, arm, gripper],
-                y=[arm_cmd, gripper_cmd],
-                epochs=self.epochs,
-                batch_size=self.batch_size,
-                )
 
     def predict(self, world):
         features = world.initial_features # use cached features

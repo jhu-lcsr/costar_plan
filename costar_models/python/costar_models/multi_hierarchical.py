@@ -53,6 +53,8 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         self.img_num_filters = 128
         self.combined_dense_size = 128
         self.partition_step_size = 2
+        self.num_options = 48
+        self.null_option = 37
 
     def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, label, *args, **kwargs):
         self._makeHierarchicalModel(
@@ -360,5 +362,72 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         action_target = [qa, ga]
         #self._fitPolicies([I, q, g], action_labels, action_target)
         #self._fitBaseline([I, q, g], action_target)
+
+    def _getAllData(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
+            prev_label, goal_features, goal_arm, goal_gripper, value, *args, **kwargs):
+        I = features / 255. # normalize the images
+        q = arm
+        g = gripper * -1
+        qa = arm_cmd
+        ga = gripper_cmd * -1
+        oin = prev_label
+        I_target = goal_features / 255.
+        q_target = goal_arm
+        g_target = goal_gripper * -1
+        o_target = label
+
+        # Preprocess values
+        value_target = np.array(value > 1.,dtype=float)
+        #if value_target[-1] == 0:
+        #    value_target = np.ones_like(value) - np.array(label == label[-1], dtype=float)
+        q[:,3:] = q[:,3:] / np.pi
+        q_target[:,3:] = q_target[:,3:] / np.pi
+        qa /= np.pi
+
+        o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
+        train_target = self._makeTrainTarget(
+                I_target,
+                q_target,
+                g_target,
+                o_target)
+
+        return [I, q, g, oin, q_target, g_target,], [
+                np.expand_dims(train_target, axis=1),
+                o_target,
+                value_target,
+                np.expand_dims(qa, axis=1),
+                np.expand_dims(ga, axis=1),
+                I_target]
+
+    def _getData(self, *args, **kwargs):
+        features, targets = self._getAllData(*args, **kwargs)
+        tt, o1, v, qa, ga, I = targets
+        if self.use_noise:
+            noise_len = features[0].shape[0]
+            z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
+            if self.success_only:
+                return features[:self.num_features] + [z], [tt, o1]
+            else:
+                return features[:self.num_features] + [z], [tt, o1, v]
+        else:
+            if self.success_only:
+                return features[:self.num_features], [tt, o1]
+            else:
+                return features[:self.num_features], [tt, o1, v]
+
+    def _makeTrainTarget(self, I_target, q_target, g_target, o_target):
+        if I_target is not None:
+            length = I_target.shape[0]
+            image_shape = I_target.shape[1:]
+            image_size = 1
+            for dim in image_shape:
+                image_size *= dim
+            image_size = int(image_size)
+            Itrain = np.reshape(I_target,(length, image_size))
+            return np.concatenate([Itrain, q_target,g_target,o_target],axis=-1)
+        else:
+            length = q_target.shape[0]
+            return np.concatenate([q_target,g_target,o_target],axis=-1)
+
 
 
