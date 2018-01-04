@@ -61,50 +61,6 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 (arm_cmd, gripper_cmd),
                 label)
 
-    def _makePolicy(self, features, action, hidden=None):
-        '''
-        We need to use the task definition to create our high-level model, and
-        we need to use our data to initialize the low level models that will be
-        predicting our individual actions.
-
-        Parameters:
-        -----------
-        features: input list of features representing current state. Note that
-                  this is included for completeness in the hierarchical model,
-                  but is not currently used in this implementation (and ideally
-                  would not be).
-        action: input list of action outputs (arm and gripper commands for the
-                robot tasks).
-        hidden: "hidden" embedding of latent world state (input)
-        '''
-        images, arm, gripper = features
-        arm_cmd, gripper_cmd = action
-        img_shape = images.shape[1:]
-        arm_size = arm.shape[-1]
-        if len(gripper.shape) > 1:
-            gripper_size = gripper.shape[-1]
-        else:
-            gripper_size = 1
-        
-
-        x = Conv2D(self.img_num_filters/4,
-                kernel_size=[5,5], 
-                strides=(2, 2),
-                padding='same')(hidden)
-        x = Dropout(self.dropout_rate)(x)
-        x = LeakyReLU(0.2)(x)
-        x = Flatten()(x)
-        x = Dense(self.combined_dense_size)(x)
-        x = Dropout(self.dropout_rate)(x)
-        x = LeakyReLU(0.2)(x)
-
-        arm_out = Dense(arm_size)(x)
-        gripper_out = Dense(gripper_size)(x)
-
-        policy = Model(self.supervisor.inputs[:3], [arm_out, gripper_out])
-
-        return policy
-
     def _makeSupervisor(self, features):
         (images, arm, gripper) = features
         img_shape = images.shape[1:]
@@ -114,70 +70,29 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         else:
             gripper_size = 1
 
-        ins, enc = GetEncoder(img_shape,
-                arm_size,
-                gripper_size,
+        ins, x, skips = GetEncoder(
+                img_shape,
+                [arm_size, gripper_size],
                 self.img_col_dim,
                 self.dropout_rate,
                 self.img_num_filters,
-                leaky=False,
-                dropout=False,
-                pre_tiling_layers=0,
+                pose_col_dim=self.pose_col_dim,
+                kernel_size=[3,3],
+                tile=True,
+                pre_tiling_layers=1,
                 post_tiling_layers=3,
-                kernel_size=[5,5],
+                stride1_post_tiling_layers=1,
+                discriminator=False,
                 dense=False,
                 tile=True,
-                option=None,#self._numLabels(),
+                option=self.num_options,
                 flatten=False,
                 )
-
-        # Tile on the option -- this is where our transition model comes in.
-        # Options are represented as a one-hot vector added to all possible
-        # positions in the image, and essentially give us _numLabels()
-        # additional image channels.
-        tile_width = img_shape[0]/(2**3)
-        tile_height = img_shape[1]/(2**3)
-        tile_shape = (1, tile_width, tile_height, 1)
-
-        rep, dec = GetDecoder(self.img_col_dim,
-                            img_shape,
-                            arm_size,
-                            gripper_size,
-                            dropout_rate=self.dropout_rate,
-                            kernel_size=[5,5],
-                            filters=self.img_num_filters,
-                            stride2_layers=3,
-                            stride1_layers=0,
-                            dropout=False,
-                            leaky=True,
-                            dense=False,
-                            option=None,
-                            batchnorm=True,)
-        rep2, dec2 = GetDecoder(self.img_col_dim,
-                            img_shape,
-                            arm_size,
-                            gripper_size,
-                            dropout_rate=self.dropout_rate,
-                            kernel_size=[5,5],
-                            filters=self.img_num_filters,
-                            stride2_layers=3,
-                            stride1_layers=0,
-                            dropout=False,
-                            leaky=True,
-                            dense=False,
-                            option=None,
-                            batchnorm=True,)
-
+        print(">>>>>>>>>>",x)
 
         # =====================================================================
         # SUPERVISOR
         # Predict the next option -- does not depend on option
-        prev_option_in = Input((1,),name="prev_option_in")
-        prev_option = OneHot(size=64)(prev_option_in)
-        prev_option = Reshape([1,1,64])(prev_option)
-        prev_option = Lambda(lambda x: K.tile(x, tile_shape))(prev_option)
-        x = Concatenate(axis=-1,name="add_prev_option_to_supervisor")(
-                [prev_option, enc])
         for _ in range(2):
             # Repeat twice to scale down to a very small size -- this will help
             # a little with the final image layers
