@@ -388,6 +388,8 @@ class OptionTemplate(object):
                 semantic_arg_name = self.semantic_remap[arg]
             else:
                 semantic_arg_name = arg
+            if not arg in arg_dict:
+                continue               
             filled_args[filled_arg_name] = arg_dict[arg]
             name_args[semantic_arg_name] = arg_dict[arg]
 
