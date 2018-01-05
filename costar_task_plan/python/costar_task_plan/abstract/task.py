@@ -217,7 +217,9 @@ class Task(object):
             # create the nodes
             for name, template in self.option_templates.items():
                 iname, option = template.instantiate(name, arg_set)
-                if isinstance(option, Task):
+                if option is None:
+                    continue
+                elif isinstance(option, Task):
                     # this was a subtask, and must be merged into the full version of
                     # the task model.
                     inodes = self.mergeTask(option, name, inodes)
@@ -406,9 +408,12 @@ class OptionTemplate(object):
 
         if self.task is None:
             iname = self.name_template % (name, make_str(name_args))
-            option = self.constructor(**filled_args)
-            for pc in self.postconditions:
-                option.addPostCondition(pc)
+            try:
+                option = self.constructor(**filled_args)
+                for pc in self.postconditions:
+                    option.addPostCondition(pc)
+            except Exception as e:
+                option = None
         else:
             option = Task(subtask_name=self.task.name)
             for args in self.task.options:
