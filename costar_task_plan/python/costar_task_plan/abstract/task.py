@@ -233,6 +233,12 @@ class Task(object):
                     # This subtask has been removed -- we no longer need it
                     # Its associated options have been merged into the graph as a whole
                     continue
+                elif name not in inodes:
+                    # This activity was never created -- we have no examples of
+                    # this action or of the necessary objects to create this
+                    # action in the real world.
+                    print ("Skipping missing option:", name)
+                    continue
                 for iname in inodes[name]:
                     self.generic_names[iname] = name
                     self.weights[iname] = []
