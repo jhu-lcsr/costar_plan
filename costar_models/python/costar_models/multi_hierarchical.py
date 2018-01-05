@@ -171,7 +171,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         for _ in range(2):
             # Repeat twice to scale down to a very small size -- this will help
             # a little with the final image layers
-            x = Conv2D(self.img_num_filters/4,
+            x = Conv2D(int(self.img_num_filters),
                     kernel_size=[5, 5], 
                     strides=(2, 2),
                     padding='same')(x)
