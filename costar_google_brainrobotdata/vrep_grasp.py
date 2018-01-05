@@ -893,7 +893,7 @@ class VREPGraspVisualization(object):
              gdtf_depth_pixel_T_endeffector_current_vec_quat_7_array,
              gdtf_image_coordinate_current,
              gdtf_depth_pixel_T_endeffector_final_vec_quat_7_array,
-             gdtf_image_coordinate_final,
+             gdtf_image_coordinatee_final,
              gdtf_sin_cos_2,
              gdtf_vec_sin_cos_5,
              gdtf_delta_depth_sin_cos_3,
@@ -903,7 +903,21 @@ class VREPGraspVisualization(object):
                     camera_to_base_4x4matrix,
                     base_T_endeffector_vec_quat_feature,
                     base_T_endeffector_final_close_gripper)
-
+            if 'print_transform' in vrepDebugMode:
+                print('gdtf_current_base_T_camera_vec_quat_7_array', gdtf_current_base_T_camera_vec_quat_7_array)
+                print('gdtf_eectf_vec_quat_7_array', gdtf_eectf_vec_quat_7_array)
+                print('gdtf_camera_T_endeffector_current_vec_quat_7_array', gdtf_camera_T_endeffector_current_vec_quat_7_array)
+                print('gdtf_camera_T_endeffector_final_vec_quat_7_array', gdtf_camera_T_endeffector_final_vec_quat_7_array)
+                print('gdtf_camera_T_depth_pixel_final_vec_quat_7_array', gdtf_camera_T_depth_pixel_final_vec_quat_7_array)
+                print('gdtf_depth_pixel_T_endeffector_current_vec_quat_7_array', gdtf_depth_pixel_T_endeffector_current_vec_quat_7_array)
+                print('gdtf_image_coordinate_current', gdtf_image_coordinate_current)
+                print('gdtf_depth_pixel_T_endeffector_final_vec_quat_7_array', gdtf_depth_pixel_T_endeffector_final_vec_quat_7_array)
+                print('gdtf_image_coordinatee_final', gdtf_image_coordinatee_final)
+                print('gdtf_sin_cos_2', gdtf_sin_cos_2)
+                print('gdtf_vec_sin_cos_5', gdtf_vec_sin_cos_5)
+                print('gdtf_delta_depth_sin_cos_3', gdtf_delta_depth_sin_cos_3)
+                print('gdtf_delta_depth_quat_5', gdtf_delta_depth_quat_5)
+                print('gdtf_vec_sin_cos_5', gdtf_vec_sin_cos_5)
             #############################
             # visualize surface relative transform
             if vrepVisualizeSurfaceRelativeTransform:
