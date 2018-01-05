@@ -110,8 +110,7 @@ def ptransform_to_vector_quaternion_array(ptransform, q_inverse=True, dtype=np.f
     quaternion = eigen.Quaterniond(rot)
     if q_inverse:
         quaternion = quaternion.inverse()
-    translation = ptransform.translation()
-    translation = np.array(translation).reshape(3)
+    translation = np.array(ptransform.translation()).reshape(3)
     # coeffs are in xyzw order
     q_floats_array = np.array(quaternion.coeffs())
     vec_quat_7 = np.append(translation, q_floats_array)
@@ -335,7 +334,7 @@ def endeffector_image_coordinate_and_cloud_point(cartesian_image,
     pixel_coordinate_of_endeffector: the [y_width, x_height] coordinate in the depth image frame of the xyz point cloud point.
     """
     # xyz coordinate of the endeffector in the camera frame
-    cte_xyz = camera_T_endeffector.translation()
+    cte_xyz = np.array(camera_T_endeffector.translation()).reshape(3)
     # transform the end effector coordinate into the depth image coordinate
     pixel_coordinate_of_endeffector = endeffector_image_coordinate(
         camera_intrinsics_matrix, cte_xyz).astype(np.int32)
@@ -457,7 +456,7 @@ def grasp_dataset_ptransform_to_vector_sin_theta_cos_theta(ptransform, dtype=np.
 
     vector_sin_theta_cos_theta in format [dx, dy, dz, sin(theta), cos(theta)]
     """
-    translation = np.squeeze(ptransform.translation())
+    translation = np.array(ptransform.translation()).reshape(3)
     theta = grasp_dataset_rotation_to_theta(ptransform.rotation())
     sin_cos_theta = np.array([np.sin(theta), np.cos(theta)])
     vector_sin_theta_cos_theta = np.concatenate([translation, sin_cos_theta])
@@ -688,7 +687,7 @@ def grasp_dataset_to_transforms_and_features(
 
     # Get the delta theta parameter, converting Plucker transform to [dx, dy, dz, sin(theta), cos(theta)]
     # Also see grasp_dataset_ptransform_to_vector_sin_theta_cos_theta()
-    eectf_translation = np.squeeze(np.array([eectf_ptrans.translation()], dtype=dtype))
+    eectf_translation = np.array(eectf_ptrans.translation(), dtype=dtype).reshape(3)
     eectf_theta = grasp_dataset_rotation_to_theta(eectf_ptrans.rotation())
     # print('in grasp_dataset_to_transforms_and_features 5, eectf_theta', eectf_theta)
     eectf_sin_theta = np.sin(eectf_theta)
