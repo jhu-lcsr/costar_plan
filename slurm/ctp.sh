@@ -17,50 +17,48 @@ echo "Running $@ on $SLURMD_NODENAME ..."
 module load tensorflow/cuda-8.0/r1.3 
 
 export DATASET="ctp_dec"
-export MODELDIR="$HOME/.costar/models_stack_Z2$1$3$2$4$5$6$7"
-export LOSS=$7
+export train_image_encoder=true
+export train_multi_encoder=true
+export learning_rate=$1
+export dropout=$2
+export optimizer=$3
+export noise_dim=$4
+export loss=$5
+export MODELDIR="$HOME/.costar/stack_$learning_rate$optimizer$dropout$noise_dim$loss"
 
-if [[ 0 -gt 1 ]]
+if $train_image_encoder
 then
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
     --features multi \
     -e 100 \
     --model pretrain_image_encoder \
     --data_file $HOME/work/$DATASET.h5f \
-    --lr $1 \
-    --dropout_rate $2 \
-    --decoder_dropout_rate $2 \
+    --lr $learning_rate \
+    --dropout_rate $dropout \
     --model_directory $MODELDIR/ \
-    --optimizer $3 \
+    --optimizer $optimizer \
     --use_noise true \
     --steps_per_epoch 500 \
-    --noise_dim $5 \
-    --hypothesis_dropout $4 \
-    --upsampling conv_transpose \
-    --skip_connections $6 \
-    --loss $LOSS \
+    --noise_dim $noise_dim \
+    --loss $loss \
     --batch_size 64
 fi
 
-if [ 0 -gt 1 ]
+if $train_multi_encoder
 then
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
     --features multi \
     -e 100 \
     --model pretrain_sampler \
     --data_file $HOME/work/$DATASET.h5f \
-    --lr $1 \
-    --dropout_rate $2 \
-    --decoder_dropout_rate $2 \
+    --lr $learning_rate \
+    --dropout_rate $dropout \
     --model_directory $MODELDIR/ \
-    --optimizer $3 \
+    --optimizer $optimizer \
     --use_noise true \
     --steps_per_epoch 500 \
-    --noise_dim $5 \
-    --hypothesis_dropout $4 \
-    --upsampling conv_transpose \
-    --skip_connections $6 \
-    --loss $LOSS \
+    --noise_dim $noise_dim \
+    --loss $loss \
     --batch_size 64
 fi
 
@@ -69,18 +67,13 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   -e 100 \
   --model conditional_image \
   --data_file $HOME/work/$DATASET.h5f \
-  --lr $1 \
-  --dropout_rate $2 \
-  --decoder_dropout_rate $2 \
+  --lr $learning_rate \
+  --dropout_rate $dropout \
   --model_directory $MODELDIR/ \
-  --optimizer $3 \
+  --optimizer $optimizer \
   --use_noise true \
   --steps_per_epoch 500 \
-  --noise_dim $5 \
-  --hypothesis_dropout $4 \
-  --upsampling conv_transpose \
-  --skip_connections $6 \
-  --loss $LOSS \
+  --loss $loss \
   --batch_size 64
 
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
@@ -88,39 +81,27 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   -e 100 \
   --model conditional_sampler2 \
   --data_file $HOME/work/$DATASET.h5f \
-  --lr $1 \
-  --dropout_rate $2 \
-  --decoder_dropout_rate $2 \
+  --lr $learning_rate \
+  --dropout_rate $dropout \
   --model_directory $MODELDIR/ \
-  --optimizer $3 \
+  --optimizer $optimizer \
   --use_noise true \
   --steps_per_epoch 500 \
-  --noise_dim $5 \
-  --hypothesis_dropout $4 \
-  --upsampling conv_transpose \
-  --skip_connections $6 \
-  --loss $LOSS \
+  --loss $loss \
   --batch_size 64
-
-
 
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --features multi \
   -e 100 \
   --model predictor2 \
   --data_file $HOME/work/$DATASET.h5f \
-  --lr $1 \
-  --dropout_rate $2 \
-  --decoder_dropout_rate $2 \
+  --lr $learning_rate \
+  --dropout_rate $dropout \
   --model_directory $MODELDIR/ \
-  --optimizer $3 \
+  --optimizer $optimizer \
   --use_noise true \
   --steps_per_epoch 500 \
-  --noise_dim $5 \
-  --hypothesis_dropout $4 \
-  --upsampling conv_transpose \
-  --skip_connections $6 \
-  --loss $LOSS \
+  --loss $loss \
   --batch_size 32 # --retrain 
   #--success_only \
 

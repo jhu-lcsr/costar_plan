@@ -53,18 +53,12 @@ do
         hd=true
         for dr in 0.1 0.2 0.3 0.4 0.5
         do
-          echo "starting LR=$lr, Dropout=$dr, optimizer=$opt, use dropout in hypotheses: $hd noise=$noise_dim, skip connections = $skip"
-          sbatch ctp.sh $lr $dr $opt $hd $noise_dim $skip $loss
+          echo "starting LR=$lr, Dropout=$dr, optimizer=$opt, noise=$noise_dim"
+          sbatch ctp.sh $lr $dr $opt $noise_dim $loss
         done
-        #hd=false
-        #for dr in 0.1 0.2 0.5
-        #do
-        #  echo "starting LR=$lr, Dropout=$dr, optimizer=$opt, use dropout in hypotheses: $hd noise=$noise_dim, skip connections = $skip"
-        #  sbatch ctp.sh $lr $dr $opt $hd $noise_dim $skip
-        #done
         dr=0.0
-        echo "starting LR=$lr, Dropout=$dr, optimizer=$opt, use dropout in hypotheses: $hd noise=$noise_dim, skip connections = $skip"
-        sbatch ctp.sh $lr $dr $opt $hd $noise_dim $skip $loss
+        echo "starting LR=$lr, Dropout=$dr, optimizer=$opt, noise=$noise_dim"
+        sbatch ctp.sh $lr $dr $opt $noise_dim $loss
       done
     done
     done
