@@ -754,6 +754,7 @@ class GraspDataset(object):
             time_ordered_feature_name_dict=None,
             num_samples=None,
             batch_size=FLAGS.batch_size,
+            gripper_z_offset=FLAGS.gripper_z_offset_meters,
             verbose=0):
         """Get runtime generated 3D transform feature tensors as a dictionary, including depth surface relative transforms.
 
@@ -981,7 +982,7 @@ class GraspDataset(object):
                      # parameters for grasp_dataset_to_transforms_and_features() function call
                      [cartesian_clear_view_op, camera_intrinsics_matrix, camera_T_base,
                       base_to_endeffector_op, final_base_to_endeffector_transform_op,
-                      FLAGS.gripper_z_offset_meters],
+                      gripper_z_offset],
                      # return type data formats to expect
                      [tf.float32] * 14,
                      stateful=False, name='py_func/grasp_dataset_to_transforms_and_features')
