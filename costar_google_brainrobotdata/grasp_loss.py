@@ -2,23 +2,24 @@ import tensorflow as tf
 from grasp_model import tile_vector_as_image_channels
 import keras
 from keras import backend as K
+from keras_contrib.losses import segmentation_losses
 
 
 def gaussian_kernel_2D(size=(3, 3), center=(1, 1), sigma=1):
     """Create a 2D gaussian kernel with specified size, center, and sigma.
 
-    Output with the default parameters:
+    Output with the parameters `size=(3, 3) center=(1, 1), sigma=1`:
 
         [[ 0.36787944  0.60653066  0.36787944]
          [ 0.60653066  1.          0.60653066]
          [ 0.36787944  0.60653066  0.36787944]]
 
-    references:
+    # References
 
             https://stackoverflow.com/a/43346070/99379
             https://stackoverflow.com/a/32279434/99379
 
-    To normalize:
+    # To normalize
 
         g = gaussian_kernel_2d()
         g /= np.sum(g)
@@ -30,7 +31,12 @@ def gaussian_kernel_2D(size=(3, 3), center=(1, 1), sigma=1):
     return kernel
 
 
-def grasp_segmentation_gaussian_loss(y_true, y_pred, gaussian_kernel_size=(3, 3), gaussian_sigma=1, loss=keras.losses.binary_crossentropy):
+def grasp_segmentation_gaussian_loss(
+        y_true,
+        y_pred,
+        gaussian_kernel_size=(3, 3),
+        gaussian_sigma=1,
+        loss=segmentation_losses.binary_crossentropy):
     """ Loss function incorporating grasp parameters.
 
     # Arguments
@@ -38,13 +44,21 @@ def grasp_segmentation_gaussian_loss(y_true, y_pred, gaussian_kernel_size=(3, 3)
         y_true: is assumed to be [label, x_img_coord, y_image_coord]
         y_pred: is expected to be a 2D array of labels.
     """
-    y_true_img = tile_vector_as_image_channels(y_true[0], y_pred)
+    label = y_true[0]
     y_height_coordinate = y_true[1]
     x_width_coordinate = y_true[2]
-    weights = gaussian_kernel_2D(gaussian_kernel_size, (y_height_coordinate, x_width_coordinate), gaussian_sigma)
-    loss_img = loss(y_true_img, y_pred)
+
+    y_true_img = tile_vector_as_image_channels(label, y_pred)
+    #
+    loss_img = (y_true_img, y_pred)
+    y_pred_shape = K.int_shape(y_pred)
+    if len(y_pred_shape) == 3:
+        y_pred_shape = y_pred[:-1]
+    if len(y_pred_shape) == 4:
+        y_pred_shape = y_pred[1:3]
+    weights = gaussian_kernel_2D(size=y_pred_shape, center=(y_height_coordinate, x_width_coordinate), gaussian_sigma)
     weighted_loss_img = tf.multiply(loss_img, weights)
-    return K.sum(weighted_loss_img)
+    return K.sum(K.flatten(weighted_loss_img))
 
 
 def grasp_segmentation_single_pixel_loss(y_true, y_pred, loss=keras.losses.binary_crossentropy):
