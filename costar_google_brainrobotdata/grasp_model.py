@@ -349,20 +349,27 @@ def grasp_model_levine_2016(clear_view_image_op,
     img_shape = K.int_shape(clear_view_image_op)[1:]
     inputImg1 = Input(shape=img_shape, tensor=clear_view_image_op)
     inputImg2 = Input(shape=img_shape, tensor=current_time_image_op)
-    combImg = Concatenate(-1)([inputImg1, inputImg2])
-    # img Conv 1
-    imgConv = Conv2D(64, kernel_size=(6, 6),
-                     activation='relu',
-                     strides=(2, 2),
-                     padding='same')(combImg)
+    # img 1 Conv 1
+    clear_view_img_conv = Conv2D(64, kernel_size=(6, 6),
+                                 activation='relu',
+                                 strides=(2, 2),
+                                 padding='same')(inputImg1)
+    # img 2 Conv 1
+    current_img_conv = Conv2D(64, kernel_size=(6, 6),
+                              activation='relu',
+                              strides=(2, 2),
+                              padding='same')(inputImg2)
 
     if pooling is 'max':
         # img maxPool
-        imgConv = MaxPooling2D(pool_size=(3, 3))(imgConv)
+        clear_view_img_conv = MaxPooling2D(pool_size=(3, 3))(clear_view_img_conv)
+        current_img_conv = MaxPooling2D(pool_size=(3, 3))(current_img_conv)
+
+    combImg = Concatenate(-1)([clear_view_img_conv, current_img_conv])
 
     # img Conv 2 - 7
     for i in range(6):
-        imgConv = Conv2D(64, (5, 5), padding='same', activation='relu')(imgConv)
+        imgConv = Conv2D(64, (5, 5), padding='same', activation='relu')(combImg)
 
     if pooling is 'max':
         # img maxPool 2
