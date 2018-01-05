@@ -20,12 +20,34 @@ export DATASET="ctp_dec"
 export MODELDIR="$HOME/.costar/models_stack_Z2$1$3$2$4$5$6$7"
 export LOSS=$7
 
-if [ 2 -gt 1 ]
+if [[ 0 -gt 1 ]]
 then
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
     --features multi \
     -e 100 \
     --model pretrain_image_encoder \
+    --data_file $HOME/work/$DATASET.h5f \
+    --lr $1 \
+    --dropout_rate $2 \
+    --decoder_dropout_rate $2 \
+    --model_directory $MODELDIR/ \
+    --optimizer $3 \
+    --use_noise true \
+    --steps_per_epoch 500 \
+    --noise_dim $5 \
+    --hypothesis_dropout $4 \
+    --upsampling conv_transpose \
+    --skip_connections $6 \
+    --loss $LOSS \
+    --batch_size 64
+fi
+
+if [ 2 -gt 1 ]
+then
+  $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
+    --features multi \
+    -e 100 \
+    --model pretrain_sampler \
     --data_file $HOME/work/$DATASET.h5f \
     --lr $1 \
     --dropout_rate $2 \
@@ -60,28 +82,6 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --skip_connections $6 \
   --loss $LOSS \
   --batch_size 64
-
-if [ 2 -gt 1 ]
-then
-  $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
-    --features multi \
-    -e 100 \
-    --model pretrain_sampler \
-    --data_file $HOME/work/$DATASET.h5f \
-    --lr $1 \
-    --dropout_rate $2 \
-    --decoder_dropout_rate $2 \
-    --model_directory $MODELDIR/ \
-    --optimizer $3 \
-    --use_noise true \
-    --steps_per_epoch 500 \
-    --noise_dim $5 \
-    --hypothesis_dropout $4 \
-    --upsampling conv_transpose \
-    --skip_connections $6 \
-    --loss $LOSS \
-    --batch_size 64
-fi
 
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --features multi \
