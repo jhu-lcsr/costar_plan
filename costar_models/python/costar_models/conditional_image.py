@@ -161,6 +161,7 @@ class ConditionalImage(PredictionSampler2):
         actor.compile(loss="mae",optimizer=self.getOptimizer())
         arm_cmd, gripper_cmd = actor([h, next_option_in])
         lfn = self.loss
+        lfn2 = "logcosh"
         val_loss = "mae"
 
         # =====================================================================
@@ -178,7 +179,7 @@ class ConditionalImage(PredictionSampler2):
                         gripper_cmd])
             train_predictor.compile(
                     loss=[lfn, "categorical_crossentropy", val_loss,
-                        lfn, lfn],
+                        lfn2, lfn2],
                     loss_weights=[1., 0.1, 1., 1., 0.2],
                     optimizer=self.getOptimizer())
         else:

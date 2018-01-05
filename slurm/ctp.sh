@@ -42,7 +42,7 @@ then
     --batch_size 64
 fi
 
-if [ 2 -gt 1 ]
+if [ 0 -gt 1 ]
 then
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
     --features multi \

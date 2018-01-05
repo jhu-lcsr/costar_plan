@@ -725,7 +725,6 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
     x0 = AddConv2D(x, filters*2, [1,1], 1, 0.)
     x = x0
     for i in range(num_blocks):
-        x = TileOnto(x, y, self.num_options, (8,8))
         x = AddConv2D(x, filters*2,
                 kernel_size,
                 stride=1,
@@ -843,25 +842,32 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
     x = xin
     if len(x.shape) > 2:
         # Project
-        x = AddConv2D(x, 32, [5,5], 1, 0., "same",
+        x = AddConv2D(x, 32, [5,5], 1, dropout_rate, "same",
                 bn=batchnorm,
-                lrelu=False,
+                lrelu=True,
                 name="A_project",
                 constraint=None)
 
         x = TileOnto(x, option_in, num_options, x.shape[1:3])
 
         # conv down
-        x = AddConv2D(x, 64, [5,5], 2, dropout_rate, "same",
+        x = AddConv2D(x, 64, [5,5], 1, dropout_rate, "same",
                 bn=batchnorm,
-                lrelu=False,
-                name="A_down",
+                lrelu=True,
+                name="A_C64A",
                 constraint=None)
         # conv across
         x = AddConv2D(x, 64, [5,5], 1, dropout_rate, "same",
                 bn=batchnorm,
-                lrelu=False,
-                name="A_C64",
+                lrelu=True,
+                name="A_C64B",
+                constraint=None)
+
+
+        x = AddConv2D(x, 32, [5,5], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="A_C32A",
                 constraint=None)
         # This is the hidden representation of the world, but it should be flat
         # for our classifier to work.
@@ -870,15 +876,15 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
     x = Concatenate()([x, option_in])
 
     # Same setup as the state decoders
-    x1 = AddDense(x, 512, "relu", 0., constraint=None, output=False,)
-    x1 = AddDense(x1, 512, "relu", 0., constraint=None, output=False,)
+    x1 = AddDense(x, 512, "lrelu", dropout_rate, constraint=None, output=False,)
+    x1 = AddDense(x1, 512, "lrelu", 0., constraint=None, output=False,)
     arm = AddDense(x1, arm_size, "linear", 0., output=True)
     gripper = AddDense(x1, gripper_size, "sigmoid", 0., output=True)
     #value = Dense(1, activation="sigmoid", name="V",)(x1)
     actor = Model([xin, option_in], [arm, gripper], name="actor")
     return actor
 
-def GetNextModel(x, num_options, dense_size, dropout_rate=0.5):
+def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     '''
     Next actions
     '''
@@ -889,9 +895,12 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5):
     x = Concatenate()([x0in, xin])
     if len(x.shape) > 2:
 
-        # Project out to a larger space for math
-        x = AddConv2D(x, 32, [5,5], 1, 0., "same",
-                name="NxC1_project", constraint=None)
+        # Project
+        x = AddConv2D(x, 32, [5,5], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="A_project",
+                constraint=None)
 
         if num_options > 0:
             option_x = OneHot(num_options)(option_in)
@@ -899,18 +908,34 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5):
             x = TileOnto(x, option_x, num_options, x.shape[1:3])
 
         # conv down
-        x = AddConv2D(x, 64, [5,5], 2, 0., "same",
-                name="NxC2_64", constraint=None)
-        ## conv across
         x = AddConv2D(x, 64, [5,5], 1, dropout_rate, "same",
-                name="NxC3_64", constraint=None)
+                bn=batchnorm,
+                lrelu=True,
+                name="A_C64A",
+                constraint=None)
+        # conv across
+        x = AddConv2D(x, 64, [5,5], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="A_C64B",
+                constraint=None)
 
-        # Get vector
+
+        x = AddConv2D(x, 32, [5,5], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="A_C32A",
+                constraint=None)
+        # This is the hidden representation of the world, but it should be flat
+        # for our classifier to work.
         x = Flatten()(x)
 
     # Next options
-    x1 = AddDense(x, dense_size, "relu", 0)
-    x1 = AddDense(x1, dense_size, "relu", 0)
+    x1 = AddDense(x, dense_size, "relu", dropout_rate, constraint=None,
+            output=False,)
+    x1 = AddDense(x1, dense_size, "relu", 0., constraint=None,
+            output=False,)
+
     next_option_out = Dense(num_options,
             activation="softmax", name="lnext",)(x1)
     next_model = Model([x0in, xin, option_in], next_option_out, name="next")
