@@ -1,6 +1,15 @@
+"""Code for training models on the google brain robotics grasping dataset.
+
+https://sites.google.com/site/brainrobotdata/home/grasping-dataset
+
+Author: Andrew Hundt <ATHundt@gmail.com>
+
+License: Apache v2 https://www.apache.org/licenses/LICENSE-2.0
+"""
 import os
 import sys
 import datetime
+import traceback
 import numpy as np
 import tensorflow as tf
 import keras
@@ -20,6 +29,14 @@ import grasp_model
 
 from tqdm import tqdm  # progress bars https://github.com/tqdm/tqdm
 
+try:
+    import horovod.keras as hvd
+except ImportError:
+    print('Horovod is not installed, see https://github.com/uber/horovod.'
+          'Distributed training is disabled but single machine training '
+          'should continue to work but without learning rate warmup.')
+    hvd = None
+
 flags.DEFINE_string('learning_rate_decay_algorithm', 'power_decay',
                     """Determines the algorithm by which learning rate decays,
                        options are power_decay, exp_decay, adam and progressive_drops.
@@ -34,10 +51,9 @@ flags.DEFINE_integer('epochs', 100,
                      """Epochs of training""")
 flags.DEFINE_string('grasp_dataset_eval', '097',
                     """Filter the subset of 1TB Grasp datasets to evaluate.
-                    None by default. 'all' will run all datasets in data_dir.
-                    '052' and '057' will download the small starter datasets.
-                    '102' will download the main dataset with 102 features,
-                    around 110 GB and 38k grasp attempts.
+                    097 by default. It is important to ensure that this selection
+                    is completely different from the selected training datasets
+                    with no overlap, otherwise your results won't be valid!
                     See https://sites.google.com/site/brainrobotdata/home
                     for a full listing.""")
 flags.DEFINE_string('pipeline_stage', 'train_eval',
@@ -49,7 +65,7 @@ flags.DEFINE_float('learning_rate_scheduler_power_decay_rate', 1.5,
                       Training from scratch within an initial learning rate of 0.1 might find a
                          power decay value of 2 to be useful.
                       Fine tuning with an initial learning rate of 0.001 may consder 1.5 power decay.""")
-flags.DEFINE_float('grasp_learning_rate', 0.001,
+flags.DEFINE_float('grasp_learning_rate', 0.01,
                    """Determines the initial learning rate""")
 flags.DEFINE_integer('eval_batch_size', 1, 'batch size per compute device')
 flags.DEFINE_integer('densenet_growth_rate', 12,
@@ -73,13 +89,13 @@ flags.DEFINE_bool('tf_allow_memory_growth', True,
                   """False if memory usage will be allocated all in advance
                      or True if it should grow as needed. Allocating all in
                      advance may reduce fragmentation.""")
-flags.DEFINE_string('learning_rate_scheduler', None,
+flags.DEFINE_string('learning_rate_scheduler', 'learning_rate_scheduler',
                     """Options are None and learning_rate_scheduler,
                        turning this on activates the scheduler which follows
                        a power decay path for the learning rate over time.
                        This is most useful with SGD, currently disabled with Adam.""")
-flags.DEFINE_string('optimizer', "Adam", "Options are Adam and SGD.")
-flags.DEFINE_string('progress_tracker', 'tensorboard',
+flags.DEFINE_string('optimizer', 'SGD', """Options are Adam and SGD.""")
+flags.DEFINE_string('progress_tracker', None,
                     """Utility to follow training progress, options are tensorboard and None.""")
 
 flags.FLAGS._parse_flags()
@@ -100,7 +116,7 @@ class GraspTrain(object):
               load_weights=FLAGS.load_weights,
               save_weights=FLAGS.save_weights,
               make_model_fn=grasp_model.grasp_model,
-              imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
+              imagenet_preprocessing=FLAGS.imagenet_preprocessing,
               grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
               grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
               random_crop=FLAGS.random_crop,
@@ -130,6 +146,17 @@ class GraspTrain(object):
                 this affects the memory consumption of the system when training, but if it fits into memory
                 you almost certainly want the value to be None, which includes every image.
         """
+
+        if hvd is not None:
+            # Initialize Horovod.
+            hvd.init()
+
+        # Pin GPU to be used to process local rank (one GPU per process)
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        config.gpu_options.visible_device_list = str(hvd.local_rank())
+        K.set_session(tf.Session(config=config))
+
         datasets = dataset.split(',')
         (pregrasp_op_batch,
          grasp_step_op_batch,
@@ -139,7 +166,7 @@ class GraspTrain(object):
              datasets,
              batch_size,
              grasp_datasets_batch_algorithm,
-             imagenet_mean_subtraction,
+             imagenet_preprocessing,
              random_crop,
              resize,
              grasp_sequence_min_time_step,
@@ -168,9 +195,10 @@ class GraspTrain(object):
                          mode=learning_rate_decay_algorithm,
                          epochs=epochs,
                          learning_power_decay_rate=learning_power_decay_rate):
-            '''if lr_dict.has_key(epoch):
+            """if lr_dict.has_key(epoch):
                 lr = lr_dict[epoch]
-                print 'lr: %f' % lr'''
+                print 'lr: %f' % lr
+            """
 
             if mode is 'power_decay':
                 # original lr scheduler
@@ -197,8 +225,27 @@ class GraspTrain(object):
             return lr
 
         callbacks = []
+        if hvd is not None:
+            callbacks = callbacks + [
+                # Broadcast initial variable states from rank 0 to all other processes.
+                # This is necessary to ensure consistent initialization of all workers when
+                # training is started with random weights or restored from a checkpoint.
+                hvd.callbacks.BroadcastGlobalVariablesCallback(0),
+
+                # Average metrics among workers at the end of every epoch.
+                #
+                # Note: This callback must be in the list before the ReduceLROnPlateau,
+                # TensorBoard or other metrics-based callbacks.
+                hvd.callbacks.MetricAverageCallback(),
+
+                # Using `lr = 1.0 * hvd.size()` from the very beginning leads to worse final
+                # accuracy. Scale the learning rate `lr = 1.0` ---> `lr = 1.0 * hvd.size()` during
+                # the first five epochs. See https://arxiv.org/abs/1706.02677 for details.
+                hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=5, verbose=1),
+            ]
+
         scheduler = keras.callbacks.LearningRateScheduler(lr_scheduler)
-        early_stopper = EarlyStopping(monitor='acc', min_delta=0.001, patience=10)
+        early_stopper = EarlyStopping(monitor='acc', min_delta=0.001, patience=32)
         csv_logger = CSVLogger(weights_name + '.csv')
         checkpoint = keras.callbacks.ModelCheckpoint(weights_name + '-epoch-{epoch:03d}-loss-{loss:.3f}-acc-{acc:.3f}.h5',
                                                      save_best_only=True, verbose=1, monitor='acc')
@@ -207,28 +254,44 @@ class GraspTrain(object):
 
         if FLAGS.progress_tracker is 'tensorboard':
             progress_tracker = TensorBoard(log_dir='./' + weights_name, write_graph=True,
-                                           write_grads=True, write_images=True,
-                                           embeddings_freq=10, embeddings_layer_names=None, embeddings_metadata=None)
+                                           write_grads=True, write_images=True)
+            callbacks = callbacks + [progress_tracker]
         # Will need to try more things later.
         # Nadam parameter choice reference:
         # https://github.com/tensorflow/tensorflow/pull/9175#issuecomment-295395355
 
         # 2017-08-28 afternoon trying NADAM with higher learning rate
         # optimizer = keras.optimizers.Nadam(lr=0.03, beta_1=0.825, beta_2=0.99685)
+        print('flags.optimizer', FLAGS.optimizer)
 
         # 2017-08-28 trying SGD
         # 2017-12-18 SGD worked very well and has been the primary training optimizer from 2017-09 to 2017-12
-        if FLAGS.optimizer is 'SGD':
-            optimizer = keras.optimizers.SGD(lr=learning_rate)
-            callbacks = callbacks + [scheduler]
+        if FLAGS.optimizer == 'SGD':
+
+            if hvd is not None:
+                # Adjust learning rate based on number of GPUs.
+                multiplier = hvd.size()
+            else:
+                multiplier = 1.0
+
+            optimizer = keras.optimizers.SGD(learning_rate * multiplier)
+
+            callbacks = callbacks + [
+                # Reduce the learning rate if training plateaus.
+                # TODO(ahundt) add validation checks and update monitor parameter to use them
+                keras.callbacks.ReduceLROnPlateau(patience=8, verbose=1, monitor='loss')
+            ]
 
         # 2017-08-27 Tried NADAM for a while with the settings below, only improved for first 2 epochs.
         # optimizer = keras.optimizers.Nadam(lr=0.004, beta_1=0.825, beta_2=0.99685)
 
-        # 2017-12-18
-        # Try ADAM with AMSGrad
-        if FLAGS.optimizer is 'Adam':
+        # 2017-12-18 Tried ADAM with AMSGrad, great progress initially, but stopped making progress very quickly
+        if FLAGS.optimizer == 'Adam':
             optimizer = keras.optimizers.Adam(amsgrad=True)
+
+        if hvd is not None:
+            # Add Horovod Distributed Optimizer.
+            optimizer = hvd.DistributedOptimizer(optimizer)
 
         # create the model
         model = make_model_fn(
@@ -259,6 +322,7 @@ class GraspTrain(object):
             model.save_weights(final_weights_name)
         except (Exception, KeyboardInterrupt) as e:
             # always try to save weights
+            traceback.print_exc()
             final_weights_name = weights_name + '-autosaved-on-exception.h5'
             model.save_weights(final_weights_name)
             raise e
@@ -269,7 +333,7 @@ class GraspTrain(object):
              load_weights=FLAGS.load_weights,
              save_weights=FLAGS.save_weights,
              make_model_fn=grasp_model.grasp_model,
-             imagenet_mean_subtraction=FLAGS.imagenet_mean_subtraction,
+             imagenet_preprocessing=FLAGS.imagenet_preprocessing,
              grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
              grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
              resize=FLAGS.resize,
@@ -305,8 +369,9 @@ class GraspTrain(object):
          simplified_grasp_command_op_batch,
          grasp_success_op_batch,
          num_samples) = data.get_training_tensors(batch_size=batch_size,
-                                                  imagenet_mean_subtraction=imagenet_mean_subtraction,
+                                                  imagenet_preprocessing=imagenet_preprocessing,
                                                   random_crop=False,
+                                                  image_augmentation=False,
                                                   resize=resize,
                                                   grasp_sequence_min_time_step=grasp_sequence_min_time_step,
                                                   grasp_sequence_max_time_step=grasp_sequence_max_time_step)
@@ -342,7 +407,7 @@ class GraspTrain(object):
 
         model.summary()
 
-        steps = float(num_samples)/float(batch_size)
+        steps = float(num_samples) / float(batch_size)
 
         if not steps.is_integer():
             raise ValueError('The number of samples was not exactly divisible by the batch size!'
@@ -373,6 +438,8 @@ class GraspTrain(object):
 
 def main():
     config = tf.ConfigProto()
+    config.inter_op_parallelism_threads = 40
+    config.intra_op_parallelism_threads = 40
     config.gpu_options.allow_growth = True
     session = tf.Session(config=config)
     K.set_session(session)

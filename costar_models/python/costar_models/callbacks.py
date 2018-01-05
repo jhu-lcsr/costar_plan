@@ -115,7 +115,7 @@ class PredictorShowImage(keras.callbacks.Callback):
         for j in range(self.num):
             msg = ''
             name = os.path.join(self.directory,
-                    "predictor_epoch%d_result%d.png"%(self.epoch,j))
+                    "predictor_epoch%03d_result%d.png"%(self.epoch,j))
             if self.verbose:
                 print("----------------")
                 print(name)
@@ -255,7 +255,7 @@ class ImageCb(keras.callbacks.Callback):
             img = res
         for j in range(self.num):
             name = os.path.join(self.directory,
-                    "image_%s_epoch%d_result%d.png"%(self.name,self.epoch,j))
+                    "image_%s_epoch%03d_result%d.png"%(self.name,self.epoch,j))
             fig = plt.figure()
             plt.subplot(1,3,1)
             plt.title('Input Image')
@@ -336,7 +336,7 @@ class PredictorShowImageOnly(keras.callbacks.Callback):
             print("============================")
         for j in range(self.num):
             name = os.path.join(self.directory,
-                    "image_predictor_epoch%d_result%d.png"%(self.epoch,j))
+                    "image_predictor_epoch%03d_result%d.png"%(self.epoch,j))
             fig = plt.figure()#figsize=(3+int(1.5*self.num_hypotheses),2))
             for k in range(self.num_random):
                 rand_offset = (k*(2+self.num_hypotheses))
@@ -412,7 +412,7 @@ class PredictorGoals(keras.callbacks.Callback):
             print("============================")
         for j in range(self.num):
             name = os.path.join(self.directory,
-                    "predictor_epoch%d_result%d.png"%(self.epoch,j))
+                    "predictor_epoch%03d_result%d.png"%(self.epoch,j))
             if self.verbose:
                 print("----------------")
                 print(name)

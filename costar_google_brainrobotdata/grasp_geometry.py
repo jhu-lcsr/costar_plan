@@ -688,7 +688,7 @@ def grasp_dataset_to_transforms_and_features(
 
     # Get the delta theta parameter, converting Plucker transform to [dx, dy, dz, sin(theta), cos(theta)]
     # Also see grasp_dataset_ptransform_to_vector_sin_theta_cos_theta()
-    eectf_translation = np.squeeze(eectf_ptrans.translation())
+    eectf_translation = np.squeeze(np.array([eectf_ptrans.translation()], dtype=dtype))
     eectf_theta = grasp_dataset_rotation_to_theta(eectf_ptrans.rotation())
     # print('in grasp_dataset_to_transforms_and_features 5, eectf_theta', eectf_theta)
     eectf_sin_theta = np.sin(eectf_theta)

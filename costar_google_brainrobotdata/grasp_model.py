@@ -125,7 +125,7 @@ def grasp_model_resnet(clear_view_image_op,
                        activation='sigmoid',
                        repetitions=None):
     if repetitions is None:
-        repetitions = [1, 1, 1, 1]
+        repetitions = [2, 2, 2, 2]
     combined_input_data = concat_images_with_tiled_vector([clear_view_image_op, current_time_image_op], input_vector_op)
     combined_input_shape = K.int_shape(combined_input_data)
     # the input shape should be a tuple of 3 values
@@ -398,7 +398,7 @@ def grasp_model_levine_2016(clear_view_image_op,
     # but only use if necessary.
     feature_shape = K.int_shape(combConv)
     if (feature_shape[1] > 1 or feature_shape[2] > 1):
-        combConv = GlobalAveragePooling2D()(combConv)
+        combConv = Flatten()(combConv)
     # combined full connected layers
     combConv = Dense(64, activation='relu')(combConv)
     combConv = Dense(64, activation='relu')(combConv)
