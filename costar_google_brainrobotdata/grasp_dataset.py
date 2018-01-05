@@ -2090,28 +2090,65 @@ class GraspDataset(object):
                 gif_path = os.path.join(visualization_dir, gif_filename)
                 self.npy_to_gif(video, gif_path)
 
-    def count_success_failure_number(self, tf_session=tf.Session()):
-        """ Counting number of success and failure in all attempts.
-        # Returns:
+    def count_success_failure_number(self, tf_session=tf.Session(), save_file=True, save_dir=FLAGS.data_dir, filename=None, verbose=1):
+        """ Count the total number of grasp attempts, grasp successes, and grasp failures in the loaded dataset.
+
+        Counts, prints, and saves a file containing:
+
+         1. the total number of grasp attempts in the dataset
+         2. the number of times an object was successfully grasped
+         3. the number of times an attempt failed and no object was grasped
+
+        The printout and saved file also writes:
+            grasp successes / total attempts
+            grasp failures / total attempts
+
+        # Returns
+
+            [attempt_num, success_num, failure_num]
+
+            attempt_num: total number of grasp attempts
             success_num: number of success attempts
             failure_num: number of failed attempts
-            success_ratio: success to total attempts ratio
         """
         batch_size = 1
         (feature_op_dicts, _, _, num_samples) = self.get_training_dictionaries(batch_size=batch_size)
+        [(fixed_feature_op_dict, _)] = feature_op_dicts
+        grasp_success_op = fixed_feature_op_dict['grasp_success']
         tf_session.run(tf.global_variables_initializer())
 
         success_num = 0
         failure_num = 0
         for attempt_num in tqdm(range(num_samples), desc='success_statistics'):
-            output_features_dicts = tf_session.run(feature_op_dicts)
-            [(features_dict_np, _)] = output_features_dicts
-            if int(features_dict_np['grasp_success']) == 1:
-                success_num += 1
-            else:
-                failure_num += 1
+            grasp_success = tf_session.run(grasp_success_op)
+            # grasp_success is 1 if successful, 0 otherwise
+            success_num += int(grasp_success)
 
-        return success_num, failure_num, success_num * 1.0 / num_samples
+        failure_num = num_samples - success_num
+        success_ratio = success_num * 1.0 / num_samples
+        text_lines = ('Statistics for grasp_dataset_' + self.dataset + ':\n' +
+                      'Total grasp attempts: ' + str(num_samples) + '\n' +
+                      'grasp successes: ' + str(success_num) + '\n' +
+                      'grasp failures: ' + str(failure_num) + '\n' +
+                      'grasp successes / total attempts: ' + str(success_ratio) + '\n' +
+                      'grasp failures / total attempts: ' + str(1 - success_ratio) + '\n')
+
+        if verbose:
+            print(str(text_lines))
+
+        if save_file is True:
+            save_dir = FLAGS.data_dir
+            mkdir_p(save_dir)
+            if filename is None:
+                filename = 'grasp_dataset_' + self.dataset + '_statistics.txt'
+            complete_path = os.path.join(save_dir, filename)
+            file_object = open(complete_path, 'w')
+            file_object.writelines(text_lines)
+            file_object.close()
+            if verbose:
+                print('Results saved to: ' + complete_path)
+
+        return num_samples, success_num, failure_num
 
 
 def get_multi_dataset_training_tensors(

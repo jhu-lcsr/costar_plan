@@ -1,13 +1,20 @@
 <launch>
-  <param name="red_xyz" default=""/>
-  <param name="blue_xyz" default=""/>
-  <param name="green_xyz" default=""/>
-  <param name="yellow_xyz" default=""/>
-  <param name="obs_xyz" default=""/>
-  <param name="red_rpy" default=""/>
-  <param name="blue_rpy" default=""/>
-  <param name="green_rpy" default=""/>
-  <param name="yellow_rpy" default=""/>
+  <param name="red_xyz" default="0.5 0.8 0.4"/>
+  <param name="blue_xyz" default="0.65 0.75 0.4"/>
+  <param name="green_xyz" default="0.8 0.6 0.4"/>
+  <param name="yellow_xyz" default="0.65 0.5 0.4"/>
+  <param name="obs_xyz" default="0.7 0.7 0.5"/>
+  <param name="red_rpy" default="0 0 0 "/>
+  <param name="blue_rpy" default="0 0 0"/>
+  <param name="green_rpy" default="0 0 0"/>
+  <param name="yellow_rpy" default="0 0 0"/>
+
+  <param name="red_block_description" file="$(find costar_simulation)/urdf/block/red.urdf"/>
+  <param name="blue_block_description" file="$(find costar_simulation)/urdf/block/blue.urdf"/>
+  <param name="green_block_description" file="$(find costar_simulation)/urdf/block/green.urdf"/>
+  <param name="yellow_block_description" file="$(find costar_simulation)/urdf/block/yellow.urdf"/>
+  <param name="obstacle_description" file="$(find costar_simulation)/urdf/block/obstacle.urdf"/>
+
 
 
 </launch>
