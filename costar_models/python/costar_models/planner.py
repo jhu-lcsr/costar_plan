@@ -899,7 +899,7 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
         x = AddConv2D(x, 32, [5,5], 1, dropout_rate, "same",
                 bn=batchnorm,
                 lrelu=True,
-                name="A_project",
+                name="Nx_project",
                 constraint=None)
 
         if num_options > 0:
@@ -911,20 +911,20 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
         x = AddConv2D(x, 64, [5,5], 1, dropout_rate, "same",
                 bn=batchnorm,
                 lrelu=True,
-                name="A_C64A",
+                name="Nx_C64A",
                 constraint=None)
         # conv across
         x = AddConv2D(x, 64, [5,5], 1, dropout_rate, "same",
                 bn=batchnorm,
                 lrelu=True,
-                name="A_C64B",
+                name="Nx_C64B",
                 constraint=None)
 
 
         x = AddConv2D(x, 32, [5,5], 1, dropout_rate, "same",
                 bn=batchnorm,
                 lrelu=True,
-                name="A_C32A",
+                name="Nx_C32A",
                 constraint=None)
         # This is the hidden representation of the world, but it should be flat
         # for our classifier to work.
@@ -952,9 +952,12 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5):
     x = Concatenate()([x0in, xin])
     if len(x.shape) > 2:
 
-        # Initial dropout -- noisy state
-        x = AddConv2D(x, 32, [5,5], 1, 0., "same",
-                name="VC1_32", constraint=None)
+        # Project
+        x = AddConv2D(x, 32, [5,5], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="V_project",
+                constraint=None)
 
         if num_options > 0:
             option_x = OneHot(num_options)(option_in)
@@ -962,18 +965,31 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5):
             x = TileOnto(x, option_x, num_options, x.shape[1:3])
 
         # conv down
-        x = AddConv2D(x, 64, [5,5], 2, 0., "same",
-                name="VC2_64", constraint=None)
-        ## conv across
         x = AddConv2D(x, 64, [5,5], 1, dropout_rate, "same",
-                name="VC3_64", constraint=None)
+                bn=batchnorm,
+                lrelu=True,
+                name="V_C64A",
+                constraint=None)
+        # conv across
+        x = AddConv2D(x, 64, [5,5], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="V_C64B",
+                constraint=None)
 
-        # Get vector
+
+        x = AddConv2D(x, 32, [5,5], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="V_C32A",
+                constraint=None)
+        # This is the hidden representation of the world, but it should be flat
+        # for our classifier to work.
         x = Flatten()(x)
 
     # Next options
-    x1 = AddDense(x, dense_size, "relu", 0)
-    x1 = AddDense(x1, dense_size, "relu", 0)
+    x1 = AddDense(x, dense_size, "lrelu", dropout_rate)
+    x1 = AddDense(x1, dense_size, "lrelu", 0)
     value_out = Dense(1,
             activation="linear", name="value",)(x1)
     next_model = Model([x0in, xin, option_in], value_out, name="V")
