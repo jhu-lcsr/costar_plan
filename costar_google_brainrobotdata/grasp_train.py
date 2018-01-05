@@ -29,6 +29,7 @@ import grasp_model
 import grasp_loss
 
 from tqdm import tqdm  # progress bars https://github.com/tqdm/tqdm
+# from keras_tqdm import TQDMCallback  # Keras tqdm progress bars https://github.com/bstriner/keras-tqdm
 
 try:
     import horovod.keras as hvd
@@ -262,6 +263,10 @@ class GraspTrain(object):
             progress_tracker = TensorBoard(log_dir='./' + weights_name, write_graph=True,
                                            write_grads=True, write_images=True)
             callbacks = callbacks + [progress_tracker]
+
+        # progress_bar = TQDMCallback()
+        # callbacks = callbacks + [progress_bar]
+
         # Will need to try more things later.
         # Nadam parameter choice reference:
         # https://github.com/tensorflow/tensorflow/pull/9175#issuecomment-295395355
@@ -271,7 +276,7 @@ class GraspTrain(object):
         print('FLAGS.optimizer', FLAGS.optimizer)
 
         # 2017-08-28 trying SGD
-        # 2017-12-18 SGD worked very well and has been the primary training optimizer from 2017-09 to 2017-12
+        # 2017-12-18 SGD worked very well and has been the primary training optimizer from 2017-09 to 2018-01
         if FLAGS.optimizer == 'SGD':
 
             if hvd is not None:
@@ -291,7 +296,7 @@ class GraspTrain(object):
         # 2017-08-27 Tried NADAM for a while with the settings below, only improved for first 2 epochs.
         # optimizer = keras.optimizers.Nadam(lr=0.004, beta_1=0.825, beta_2=0.99685)
 
-        # 2017-12-18 Tried ADAM with AMSGrad, great progress initially, but stopped making progress very quickly
+        # 2017-12-18, 2018-01-04 Tried ADAM with AMSGrad, great progress initially, but stopped making progress very quickly
         if FLAGS.optimizer == 'Adam':
             optimizer = keras.optimizers.Adam(amsgrad=True)
 
