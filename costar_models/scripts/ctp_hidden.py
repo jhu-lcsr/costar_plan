@@ -42,7 +42,10 @@ def visualizeHiddenMain(args):
         train_generator = model.trainGenerator(dataset)
         test_generator = model.testGenerator(dataset)
 
-   else:
+        data = next(test_generator)
+        print(data)
+
+    else:
         raise RuntimeError('Must provide a model to load')
 
 if __name__ == '__main__':

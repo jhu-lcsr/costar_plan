@@ -238,4 +238,13 @@ class ConditionalImage(PredictionSampler2):
         '''
         return self.image_decoder(hidden)
 
+    def next(self, hidden):
+        raise NotImplementedError('next() not implemented')
+
+    def transform(self, hidden, option_in=-1):
+        raise NotImplementedError('transform() not implemented')
+
+    def act(self, *args, **kwargs):
+        raise NotImplementedError('act() not implemented')
+
 

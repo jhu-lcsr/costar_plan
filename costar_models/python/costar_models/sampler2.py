@@ -330,6 +330,15 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         '''
         return self.hidden_decoder(hidden)
 
+    def next(self, hidden):
+        raise NotImplementedError('next() not implemented')
+
+    def transform(self, hidden, option_in=-1):
+        raise NotImplementedError('transform() not implemented')
+
+    def act(self, *args, **kwargs):
+        raise NotImplementedError('act() not implemented')
+
     def decodedInfo(self, features):
         '''
         Take decoded information and show it somewhere.
@@ -343,3 +352,8 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             print("-->", i, f.shape)
             print(f)
 
+    def showHidden(self, hidden):
+        '''
+        Display information about a hidden representation of the world.
+        '''
+        pass
