@@ -831,7 +831,7 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
 
 
 def GetActorModel(x, num_options, arm_size, gripper_size,
-        dropout_rate=0.5):
+        dropout_rate=0.5, batchnorm=True):
     '''
     Make an "actor" network that takes in an encoded image and an "option"
     label and produces the next command to execute.
@@ -843,18 +843,24 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
     x = xin
     if len(x.shape) > 2:
         # Project
-        x = AddConv2D(x, 32, [5,5], 1, 0., "same", False,
+        x = AddConv2D(x, 32, [5,5], 1, 0., "same",
+                bn=batchnorm,
+                lrelu=False,
                 name="A_project",
                 constraint=None)
 
         x = TileOnto(x, option_in, num_options, x.shape[1:3])
 
         # conv down
-        x = AddConv2D(x, 64, [5,5], 2, dropout_rate, "same", False,
+        x = AddConv2D(x, 64, [5,5], 2, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=False,
                 name="A_down",
                 constraint=None)
         # conv across
-        x = AddConv2D(x, 64, [5,5], 1, dropout_rate, "same", False,
+        x = AddConv2D(x, 64, [5,5], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=False,
                 name="A_C64",
                 constraint=None)
         # This is the hidden representation of the world, but it should be flat
@@ -864,8 +870,8 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
     x = Concatenate()([x, option_in])
 
     # Same setup as the state decoders
-    x1 = AddDense(x, 512, "relu", 0., constraint=None)
-    x1 = AddDense(x1, 512, "relu", 0., constraint=None)
+    x1 = AddDense(x, 512, "relu", 0., constraint=None, output=False,)
+    x1 = AddDense(x1, 512, "relu", 0., constraint=None, output=False,)
     arm = AddDense(x1, arm_size, "linear", 0., output=True)
     gripper = AddDense(x1, gripper_size, "sigmoid", 0., output=True)
     #value = Dense(1, activation="sigmoid", name="V",)(x1)
