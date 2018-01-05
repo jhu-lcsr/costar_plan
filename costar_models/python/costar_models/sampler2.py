@@ -275,8 +275,8 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         losses = [MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
-                        weights=[1., 0.5, 0.1, 0.025],
-                        loss=["mae","mae","mae","categorical_crossentropy"],
+                        weights=[1., 1., 0.2, 0.025],
+                        loss=["mae","logcosh","logcosh","categorical_crossentropy"],
                         #stats=stats,
                         avg_weight=0.1),]
         if self.success_only and False:
