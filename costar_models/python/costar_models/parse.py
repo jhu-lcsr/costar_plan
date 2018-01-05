@@ -172,7 +172,7 @@ def GetModelParser():
                         help="Use batchnorm (defaults to false; many models"
                               "do not use this parameter.",
                         type=int,
-                        default=0)
+                        default=1)
     return parser
 
 def GetSubmodelOptions():
