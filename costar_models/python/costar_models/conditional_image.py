@@ -46,7 +46,7 @@ class ConditionalImage(PredictionSampler2):
         taskdef: definition of the problem used to create a task model
         '''
         super(ConditionalImage, self).__init__(*args, **kwargs)
-        self.PredictorCb = ImageCb
+        self.PredictorCb = ImageWithFirstCb
         self.rep_size = 256
         self.num_transforms = 3
         self.do_all = True
