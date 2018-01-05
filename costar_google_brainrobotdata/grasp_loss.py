@@ -48,7 +48,7 @@ def grasp_segmentation_gaussian_loss(y_true, y_pred, gaussian_kernel_size=(3, 3)
 
 
 def grasp_segmentation_single_pixel_loss(y_true, y_pred, loss=keras.losses.binary_crossentropy):
-    """ Applies loss_fn at a specific pixel coordinate
+    """ Applies loss function at a specific pixel coordinate. Function can also be a metric.
 
     # Arguments
 
@@ -60,3 +60,7 @@ def grasp_segmentation_single_pixel_loss(y_true, y_pred, loss=keras.losses.binar
     x_width_coordinate = y_true[2]
     gripper_coordinate_y_pred = y_pred[y_height_coordinate, x_width_coordinate]
     return loss(label, gripper_coordinate_y_pred)
+
+
+def grasp_segmentation_single_pixel_metric(y_true, y_pred, metric=keras.metrics.binary_accuracy):
+    return grasp_segmentation_single_pixel_loss(y_true, y_pred, loss=metric)

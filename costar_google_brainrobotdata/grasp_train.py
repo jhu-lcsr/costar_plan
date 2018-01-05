@@ -26,6 +26,7 @@ from tensorflow.python.platform import flags
 
 import grasp_dataset
 import grasp_model
+import grasp_loss
 
 from tqdm import tqdm  # progress bars https://github.com/tqdm/tqdm
 
@@ -42,7 +43,8 @@ flags.DEFINE_string('learning_rate_decay_algorithm', 'power_decay',
                        options are power_decay, exp_decay, adam and progressive_drops.
                        Only applies with optimizer flag is SGD""")
 flags.DEFINE_string('grasp_model', 'grasp_model_single',
-                    """Choose the model definition to run, options are grasp_model and grasp_model_segmentation""")
+                    """Choose the model definition to run, options are:
+                       grasp_model_levine_2016, grasp_model, grasp_model_resnet, grasp_model_segmentation""")
 flags.DEFINE_string('save_weights', 'grasp_model_weights',
                     """Save a file with the trained model weights.""")
 flags.DEFINE_string('load_weights', 'grasp_model_weights.h5',
@@ -97,6 +99,8 @@ flags.DEFINE_string('learning_rate_scheduler', 'learning_rate_scheduler',
 flags.DEFINE_string('optimizer', 'SGD', """Options are Adam and SGD.""")
 flags.DEFINE_string('progress_tracker', None,
                     """Utility to follow training progress, options are tensorboard and None.""")
+flags.DEFINE_string('loss', 'grasp_segmentation_single_pixel_loss', """Options are binary_crossentropy and grasp_segmentation_single_pixel_loss.""")
+flags.DEFINE_string('metric', 'grasp_segmentation_single_pixel_metric', """Options are accuracy, binary_accuracy and grasp_segmentation_single_pixel_metric.""")
 
 flags.FLAGS._parse_flags()
 FLAGS = flags.FLAGS
@@ -127,7 +131,9 @@ class GraspTrain(object):
               learning_rate=FLAGS.grasp_learning_rate,
               learning_power_decay_rate=FLAGS.learning_rate_scheduler_power_decay_rate,
               dropout_rate=FLAGS.dropout_rate,
-              model_name=FLAGS.grasp_model):
+              model_name=FLAGS.grasp_model,
+              loss=FLAGS.loss,
+              metric=FLAGS.metric):
         """Train the grasping dataset
 
         This function depends on https://github.com/fchollet/keras/pull/6928
@@ -262,7 +268,7 @@ class GraspTrain(object):
 
         # 2017-08-28 afternoon trying NADAM with higher learning rate
         # optimizer = keras.optimizers.Nadam(lr=0.03, beta_1=0.825, beta_2=0.99685)
-        print('flags.optimizer', FLAGS.optimizer)
+        print('FLAGS.optimizer', FLAGS.optimizer)
 
         # 2017-08-28 trying SGD
         # 2017-12-18 SGD worked very well and has been the primary training optimizer from 2017-09 to 2017-12
@@ -293,6 +299,12 @@ class GraspTrain(object):
             # Add Horovod Distributed Optimizer.
             optimizer = hvd.DistributedOptimizer(optimizer)
 
+        if 'grasp_segmentation_single_pixel_loss' in loss:
+            loss = grasp_loss.grasp_segmentation_single_pixel_loss
+
+        if 'grasp_segmentation_single_pixel_metric' in metric:
+            metric = grasp_loss.grasp_segmentation_single_pixel_metric
+
         # create the model
         model = make_model_fn(
             pregrasp_op_batch,
@@ -310,8 +322,8 @@ class GraspTrain(object):
                       'starting fresh....'.format(load_weights))
 
         model.compile(optimizer=optimizer,
-                      loss='binary_crossentropy',
-                      metrics=['accuracy'],
+                      loss=loss,
+                      metrics=[metric],
                       target_tensors=[grasp_success_op_batch])
 
         model.summary()
@@ -340,7 +352,9 @@ class GraspTrain(object):
              resize_height=FLAGS.resize_height,
              resize_width=FLAGS.resize_width,
              eval_results_file=FLAGS.eval_results_file,
-             model_name=FLAGS.grasp_model):
+             model_name=FLAGS.grasp_model,
+             loss=FLAGS.loss,
+              metric=FLAGS.metric):
         """Train the grasping dataset
 
         This function depends on https://github.com/fchollet/keras/pull/6928
@@ -364,6 +378,7 @@ class GraspTrain(object):
            weights_name_str or None if a new weights file was not saved.
         """
         data = grasp_dataset.GraspDataset(dataset=dataset)
+        # TODO(ahundt) ensure eval call to get_training_tensors() always runs in the same order and does not rotate the dataset.
         # list of dictionaries the length of batch_size
         (pregrasp_op_batch, grasp_step_op_batch,
          simplified_grasp_command_op_batch,
@@ -400,9 +415,16 @@ class GraspTrain(object):
                 raise ValueError('Could not load weights {}, '
                                  'the file does not exist.'.format(load_weights))
 
+
+        if 'grasp_segmentation_single_pixel_loss' in loss:
+            loss = grasp_loss.grasp_segmentation_single_pixel_loss
+
+        if 'grasp_segmentation_single_pixel_metric' in metric:
+            metric = grasp_loss.grasp_segmentation_single_pixel_metric
+
         model.compile(optimizer='sgd',
-                      loss='binary_crossentropy',
-                      metrics=['accuracy'],
+                      loss=loss,
+                      metrics=[metric],
                       target_tensors=[grasp_success_op_batch])
 
         model.summary()
