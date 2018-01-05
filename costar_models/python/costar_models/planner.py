@@ -941,7 +941,7 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     next_model = Model([x0in, xin, option_in], next_option_out, name="next")
     return next_model
 
-def GetValueModel(x, num_options, dense_size, dropout_rate=0.5):
+def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     '''
     Value for the current world
     '''

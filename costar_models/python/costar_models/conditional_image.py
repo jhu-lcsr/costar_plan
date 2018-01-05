@@ -219,3 +219,23 @@ class ConditionalImage(PredictionSampler2):
                 return [I0, I, o1, oin], [ I_target]
 
 
+    def encode(self, *args, **kwargs):
+        '''
+        Encode available features into a new state
+
+        Parameters:
+        -----------
+        [unknown]: all are parsed via _getData() function.
+        '''
+        features, targets = self._getData(*args, **kwargs)
+        return self.image_encoder(features)
+
+    def decode(self, hidden):
+        '''
+        Decode features and produce a set of visualizable images or other
+        feature outputs.
+
+        '''
+        return self.image_decoder(hidden)
+
+

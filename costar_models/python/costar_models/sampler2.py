@@ -311,3 +311,35 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         else:
             return [I, q, g, oin], [tt, o1, v]
 
+    def encode(self, *args, **kwargs):
+        '''
+        Encode available features into a new state
+
+        Parameters:
+        -----------
+        [unknown]: all are parsed via _getData() function.
+        '''
+        features, targets = self._getData(*args, **kwargs)
+        return self.hidden_encoder(features)
+
+    def decode(self, hidden):
+        '''
+        Decode features and produce a set of visualizable images or other
+        feature outputs.
+
+        '''
+        return self.hidden_decoder(hidden)
+
+    def decodedInfo(self, features):
+        '''
+        Take decoded information and show it somewhere.
+
+        Parameters:
+        -----------
+        features: list of state information provided for a particular output
+        '''
+
+        for i, f in enumerate(features):
+            print("-->", i, f.shape)
+            print(f)
+
