@@ -28,8 +28,9 @@ class AbstractAgentBasedModel(object):
             clipnorm=100., show_iter=0, pretrain_iter=5,
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
             steps_per_epoch=500, validation_steps=25, choose_initial=10,
-            dropout_rate=0.5, decoder_dropout_rate=0.5,
+            dropout_rate=0.5, decoder_dropout_rate=None,
             tform_dropout_rate=0.,
+            use_batchnorm=1,
             hypothesis_dropout=False,
             dense_representation=True,
             skip_connections=0,
@@ -70,6 +71,7 @@ class AbstractAgentBasedModel(object):
         self.pretrain_iter = pretrain_iter
         self.noise_dim = zdim
         self.epochs = epochs
+        self.use_batchnorm = use_batchnorm > 0
         self.batch_size = batch_size
         self.optimizer = optimizer
         self.validation_steps = validation_steps
@@ -90,7 +92,10 @@ class AbstractAgentBasedModel(object):
         self.hypothesis_dropout = hypothesis_dropout
         self.use_noise = use_noise
         if self.hypothesis_dropout:
-            self.decoder_dropout_rate = decoder_dropout_rate
+            if decoder_dropout_rate is None:
+                self.decoder_dropout_rate = self.dropout_rate
+            else:
+                self.decoder_dropout_rate = float(decoder_dropout_rate)
         else:
             self.decoder_dropout_rate = 0.
         self.skip_connections = skip_connections > 0
@@ -492,6 +497,12 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
                 self.baseline.save_weights(self.name + "_baseline.h5f")
             for i, policy in enumerate(self.policies):
                 policy.save_weights(self.name + "_policy%02d.h5f"%i)
+        elif self.model is not None:
+            self.model.save_weights(self.name + ".h5f")
+            if self.supervisor is not None:
+                self.supervisor.save_weights(self.name + "_supervisor.h5f")
+            if self.actor is not None:
+                self.actor.save_weights(self.name + "_actor.h5f")
         else:
             raise RuntimeError('save() failed: model not found.')
 
@@ -517,6 +528,18 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
             except Exception as e:
                 print(e)
             self.predictor.load_weights(self.name + "_predictor.h5f")
+        elif self.model is not None:
+            print("----------------------------")
+            print("using " + self.name + " to load")
+            self.model.load_weights(self.name + ".h5f")
+            try:
+                self.supervisor.load_weights(self.name + "_supervisor.h5f")
+            except Exception as e:
+                print(e)
+            try:
+                self.actor.load_weights(self.name + "_actor.h5f")
+            except Exception as e:
+                print(e)
         else:
             raise RuntimeError('_loadWeights() failed: model not found.')
 

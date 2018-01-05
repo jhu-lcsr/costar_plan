@@ -248,12 +248,15 @@ class AbstractAgent(object):
         # This may require setting up window_length, etc.
         # NOTE: removing some unnecessary features that we really dont need to
         # save. This ued to add world.features.description
+        description = world.features.description
+        if not isinstance(description, list):
+            description = [description]
         if not self.collect_trajectories:
             if self.collection_mode == CM_NEXT:
-                next_list = ["reward", "label"] + world.features.description
+                next_list = ["reward", "label"] + description
                 goal_list = []
             elif self.collection_mode == CM_GOAL:
-                goal_list = ["reward", "label"] + world.features.description
+                goal_list = ["reward", "label"] + description
                 next_list = []
         else:
             next_list = []

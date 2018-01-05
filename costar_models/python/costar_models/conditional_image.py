@@ -34,7 +34,6 @@ class ConditionalImage(PredictionSampler2):
       - image
       - arm command
       - gripper command
-
     '''
 
     def __init__(self, *args, **kwargs):
@@ -49,7 +48,7 @@ class ConditionalImage(PredictionSampler2):
         super(ConditionalImage, self).__init__(*args, **kwargs)
         self.PredictorCb = ImageCb
         self.rep_size = 256
-        self.num_transforms = 2
+        self.num_transforms = 3
         self.do_all = True
         self.transform_model = None
 
@@ -58,29 +57,16 @@ class ConditionalImage(PredictionSampler2):
         h0 = Input((8,8,self.encoder_channels),name="h0_in")
         option = Input((48,),name="t_opt_in")
         x, y = h, option
-        x = TileOnto(x, y, self.num_options, (8,8))
-        x = AddConv2D(x, 128, [1,1], 1, 0.)
-        x = AddConv2D(x, 64, self.tform_kernel_size, 2, 0.)
-        # Process
+        x = Concatenate()([h, h0])
+        x0 = AddConv2D(x, self.tform_filters*2, [1,1], 1, 0.)
+        x = x0
         for i in range(self.num_transforms):
-            x = TileOnto(x, y, self.num_options, (4,4))
-            x = AddConv2D(x, 64,
+            x = TileOnto(x, y, self.num_options, (8,8))
+            x = AddConv2D(x, self.tform_filters*2,
                     self.tform_kernel_size,
                     stride=1,
-                    dropout_rate=0.)
-
-        x = AddConv2DTranspose(x,
-                64,
-                self.tform_kernel_size,
-                stride=2,
-                dropout_rate=0.)
-
-        x = Concatenate()([x,h,h0])
-        x = AddConv2D(x, 64,
-                self.tform_kernel_size,
-                stride=1,
-                dropout_rate=self.decoder_dropout_rate)
-
+                    dropout_rate=self.tform_dropout_rate)
+        x =  Concatenate(axis=-1)([x,x0])
         x = AddConv2D(x, self.encoder_channels, [1, 1], stride=1,
                 dropout_rate=0.)
 
@@ -140,10 +126,17 @@ class ConditionalImage(PredictionSampler2):
 
         h = encoder(img_in)
         h0 = encoder(img0_in)
-        value_out, next_option_out = GetNextOptionAndValue(h, self.num_options,
-                                                   self.rep_size,
-                                                   dropout_rate=self.dropout_rate,
-                                                   option_in=label_in)
+
+        next_model = GetNextModel(h, self.num_options, 128,
+                self.decoder_dropout_rate)
+        value_model = GetValueModel(h, self.num_options, 64,
+                self.decoder_dropout_rate)
+        next_model.compile(loss="mae", optimizer=self.getOptimizer())
+        value_model.compile(loss="mae", optimizer=self.getOptimizer())
+        value_out = value_model([h0,h,label_in])
+        next_option_out = next_model([h0,h,label_in])
+        self.next_model = next_model
+        self.value_model = value_model
 
         # create input for controlling noise output if that's what we decide
         # that we want to do
@@ -168,6 +161,7 @@ class ConditionalImage(PredictionSampler2):
         actor.compile(loss="mae",optimizer=self.getOptimizer())
         arm_cmd, gripper_cmd = actor([h, next_option_in])
         lfn = self.loss
+        lfn2 = "logcosh"
         val_loss = "mae"
 
         # =====================================================================
@@ -185,7 +179,7 @@ class ConditionalImage(PredictionSampler2):
                         gripper_cmd])
             train_predictor.compile(
                     loss=[lfn, "categorical_crossentropy", val_loss,
-                        lfn, lfn],
+                        lfn2, lfn2],
                     loss_weights=[1., 0.1, 1., 1., 0.2],
                     optimizer=self.getOptimizer())
         else:
