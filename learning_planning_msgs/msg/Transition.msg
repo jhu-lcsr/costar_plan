@@ -1,9 +1,9 @@
 
 # Which activity did we just perform?
-string from
+string from_activity
 
 # Which activity did we switch to after this?
-string to
+string to_activity
 
 # Number of times this transition occured
 int32 frequency
