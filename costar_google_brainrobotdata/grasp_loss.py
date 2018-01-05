@@ -70,9 +70,9 @@ def grasp_segmentation_single_pixel_loss(y_true, y_pred, loss=keras.losses.binar
         y_pred: predicted values
     """
     label = y_true[0]
-    y_height_coordinate = y_true[1]
-    x_width_coordinate = y_true[2]
-    gripper_coordinate_y_pred = y_pred[tf.cast(y_height_coordinate, tf.int32), tf.cast(x_width_coordinate, tf.int32)]
+    y_height_coordinate = tf.squeeze(tf.cast(y_true[1], tf.int32))
+    x_width_coordinate = tf.squeeze(tf.cast(y_true[2], tf.int32))
+    gripper_coordinate_y_pred = y_pred[y_height_coordinate, x_width_coordinate]
     return loss(label, gripper_coordinate_y_pred)
 
 
