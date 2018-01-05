@@ -682,12 +682,12 @@ def grasp_dataset_to_transforms_and_features(
 
     # get the delta depth offset
     # TODO(ahundt) verify that z correctly reflects the depth offset
-    delta_depth_final = np.array(depth_pixel_T_endeffector_final_ptrans.translation().z(), dtype=dtype)
+    delta_depth_final = np.array(depth_pixel_T_endeffector_final_ptrans.translation().z()).astype(dtype)
     # print('in grasp_dataset_to_transforms_and_features 4, delta_depth_final: ', delta_depth_final)
 
     # Get the delta theta parameter, converting Plucker transform to [dx, dy, dz, sin(theta), cos(theta)]
     # Also see grasp_dataset_ptransform_to_vector_sin_theta_cos_theta()
-    eectf_translation = np.array(eectf_ptrans.translation(), dtype=dtype).reshape(3)
+    eectf_translation = np.array(eectf_ptrans.translation()).reshape(3).astype(dtype)
     eectf_theta = grasp_dataset_rotation_to_theta(eectf_ptrans.rotation())
     # print('in grasp_dataset_to_transforms_and_features 5, eectf_theta', eectf_theta)
     eectf_sin_theta = np.sin(eectf_theta)
@@ -712,7 +712,7 @@ def grasp_dataset_to_transforms_and_features(
     # print('in grasp_dataset_to_transforms_and_features 7:')
 
     # [cte_sin_theta, cte_cos_theta]
-    sin_cos_2 = np.array([eectf_sin_theta, eectf_cos_theta], dtype=dtype)
+    sin_cos_2 = np.array([eectf_sin_theta, eectf_cos_theta]).astype(dtype)
     # print('in grasp_dataset_to_transforms_and_features 8 sin_cos_2:', sin_cos_2)
     # [cte_dx, cte_dy, cte_dz, eectf_sin_theta, eectf_cos_theta] vec_sin_cos_5, the levine 2016 'params' feature format.
     vec_sin_cos_5 = np.concatenate([eectf_translation, sin_cos_2]).astype(dtype)
