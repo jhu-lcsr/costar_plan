@@ -43,7 +43,7 @@ def grasp_segmentation_gaussian_loss(y_true, y_pred, gaussian_kernel_size=(3, 3)
     x_width_coordinate = y_true[2]
     weights = gaussian_kernel_2D(gaussian_kernel_size, (y_height_coordinate, x_width_coordinate), gaussian_sigma)
     loss_img = loss(y_true_img, y_pred)
-    weighted_loss_img = K.multiply(loss_img, weights)
+    weighted_loss_img = tf.multiply(loss_img, weights)
     return K.sum(weighted_loss_img)
 
 
