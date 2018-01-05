@@ -46,7 +46,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         super(RobotMultiHierarchical, self).__init__(taskdef, *args, **kwargs)
 
         self.num_frames = 1
-        self.img_col_dim = 256
+        self.img_col_dim = 512
         self.img_num_filters = 64
         self.robot_col_dense_size = 128
         self.robot_col_dim = 64
@@ -94,7 +94,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
         model = Model(ins, [arm_out, gripper_out])
         optimizer = self.getOptimizer()
-        model.compile(loss="mae", optimizer=optimizer)
+        model.compile(loss=self.loss, optimizer=optimizer)
         return model
 
     def _makeConditionalActor(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
@@ -126,6 +126,10 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 post_tiling_layers=3,
                 stride1_post_tiling_layers=1)
 
+        x = BatchNormalization()(x)
+        x = Dropout(self.dropout_rate)(x)
+        x = AddDense(x, 512, "lrelu", 0., constraint=None, output=False)
+
         arm_out = Dense(arm_cmd_size, name="arm")(x)
         gripper_out = Dense(gripper_size, name="gripper")(x)
 
@@ -135,7 +139,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         #model = Model(ins + [option_in], [arm_out, gripper_out])
         model = Model(ins, [arm_out, gripper_out])
         optimizer = self.getOptimizer()
-        model.compile(loss="mae", optimizer=optimizer)
+        model.compile(loss=self.loss, optimizer=optimizer)
         return model
 
     def _makeSupervisor(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
