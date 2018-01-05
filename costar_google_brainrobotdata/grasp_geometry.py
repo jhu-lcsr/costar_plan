@@ -465,7 +465,7 @@ def grasp_dataset_ptransform_to_vector_sin_theta_cos_theta(ptransform, dtype=np.
     return vector_sin_theta_cos_theta
 
 
-def grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector):
+def grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector, gripper_z_offset=0.05):
     """Convert brainrobotdata features camera_T_base and base_T_endeffector to camera_T_endeffector and ptransforms.
 
     This specific function exists because it accepts the raw feature types
@@ -475,6 +475,7 @@ def grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector):
 
     camera_T_base: a vector quaternion array
     base_T_endeffector: a 4x4 homogeneous 3D transformation matrix
+    gripper_z_offset: a float offset in meters in gripper's z axis
 
     # Returns
 
@@ -482,6 +483,11 @@ def grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector):
       camera_T_endeffector_ptrans, base_T_endeffector_ptrans, base_T_camera_ptrans
     """
     base_T_endeffector_ptrans = vector_quaternion_array_to_ptransform(base_T_endeffector)
+    # add offset (meter) offset in z axis
+    q = eigen.Quaterniond.Identity()
+    v = eigen.Vector3d([0, 0, gripper_z_offset])
+    pt_z_offset = sva.PTransformd(q, v)
+    base_T_endeffector_ptrans = base_T_endeffector_ptrans * pt_z_offset
     # In this case camera_T_base is a transform that takes a point in the base
     # frame of reference and transforms it to the camera frame of reference.
     camera_T_base_ptrans = matrix_to_ptransform(camera_T_base)
@@ -552,6 +558,7 @@ def grasp_dataset_to_transforms_and_features(
         camera_T_base,
         base_T_endeffector_current,
         base_T_endeffector_final,
+        gripper_z_offset=0.05,
         augmentation_rectangle=None,
         dtype=np.float32):
     """Extract transforms and features necessary to train from the grasping dataset.
