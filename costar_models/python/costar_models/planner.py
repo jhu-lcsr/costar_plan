@@ -108,7 +108,8 @@ def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate,
         x = Dropout(dropout_rate)(x)
     return x
 
-def AddDense(x, size, activation, dropout_rate, output=False, momentum=0.9):
+def AddDense(x, size, activation, dropout_rate, output=False, momentum=0.9,
+    constraint=3):
     '''
     Add a single dense block with batchnorm and activation.
 
@@ -123,7 +124,10 @@ def AddDense(x, size, activation, dropout_rate, output=False, momentum=0.9):
     --------
     x: output tensor
     '''
-    x = Dense(size, kernel_constraint=maxnorm(3))(x)
+    if constraint is not None:
+        x = Dense(size, kernel_constraint=maxnorm(constraint))(x)
+    else:
+        x = Dense(size)(x)
     if not output:
         x = BatchNormalization(momentum=momentum)(x)
     if activation == "lrelu":
@@ -158,16 +162,20 @@ def GetArmGripperEncoder(arm_size, gripper_size, dim=64):
     gripper_in = Input((gripper_size,))
     
 
-def TileOnto(x,z,zlen,xsize):
+def TileOnto(x,z,zlen,xsize,add=False):
     z = Reshape([1,1,zlen])(z)
     tile_shape = (int(1), int(xsize[0]), int(xsize[1]), 1)
     z = Lambda(lambda x: K.tile(x, tile_shape))(z)
-    x = Concatenate(axis=-1)([x,z])
+    if not add:
+        x = Concatenate(axis=-1)([x,z])
+    else:
+        x = Add()([x,z])
     return x
 
 def TileArmAndGripper(x, arm_in, gripper_in, tile_width, tile_height,
         option=None, option_in=None,
-        time_distributed=None, dim=64):
+        time_distributed=None, dim=64,
+        concatenate=False):
     arm_size = int(arm_in.shape[-1])
     gripper_size = int(gripper_in.shape[-1])
 
@@ -200,13 +208,16 @@ def TileArmAndGripper(x, arm_in, gripper_in, tile_width, tile_height,
 
     # finally perform the actual tiling
     robot = Lambda(lambda x: K.tile(x, tile_shape))(robot)
-    x = Concatenate(axis=-1)([x,robot])
+    if concatenate:
+        x = Concatenate(axis=-1)([x,robot])
+    else:
+        x = Add()([x, robot])
 
     return x, robot0
 
 def TilePose(x, pose_in, tile_width, tile_height,
         option=None, option_in=None,
-        time_distributed=None, dim=64):
+        time_distributed=None, dim=64, concatenate=False):
     pose_size = int(pose_in.shape[-1])
     
 
@@ -236,7 +247,10 @@ def TilePose(x, pose_in, tile_width, tile_height,
     # finally perform the actual tiling
     robot0 = robot
     robot = Lambda(lambda x: K.tile(x, tile_shape))(robot)
-    x = Concatenate(axis=-1)([x,robot])
+    if concatenate:
+        x = Concatenate(axis=-1)([x,robot])
+    else:
+        x = Add(axis=-1)([x, robot])
 
     return x, robot
 
@@ -708,15 +722,15 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
         dr = 0.
 
     x = xin
-    x0 = x
-    x = AddConv2D(x, filters, kernel_size, 2, 0.)
+    x0 = AddConv2D(x, filters*2, [1,1], 1, 0.)
+    x = x0
     for i in range(num_blocks):
-        x = AddConv2D(x, filters, kernel_size, 1, dr)
-    #x = AddConv2D(x, 128, kernel_size, 1, 0.)
-    #x = AddConv2D(x, 128, kernel_size, 1, 0.)
-    x = AddConv2DTranspose(x, filters, kernel_size, 1, 0.)
-    x = Concatenate()[x,x0]
-    #x = AddConv2DTranspose(x, filters, [1,1], 1, 0.)
+        x = AddConv2D(x, filters*2,
+                kernel_size,
+                stride=1,
+                dropout_rate=0)
+    x =  Concatenate(axis=-1)([x,x0])
+
     x = AddConv2D(x, rep_size[-1], kernel_size, 1, dr)
 
     ins = [xin]
@@ -816,7 +830,7 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
 
 
 def GetActorModel(x, num_options, arm_size, gripper_size,
-        dropout_rate=0.5):
+        dropout_rate=0.5, batchnorm=True):
     '''
     Make an "actor" network that takes in an encoded image and an "option"
     label and produces the next command to execute.
@@ -827,19 +841,34 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
     #x = Concatenate(axis=-1)([xin,x0in])
     x = xin
     if len(x.shape) > 2:
-        x = TileOnto(x, option_in, num_options, x.shape[1:3])
-        x = Dropout(dropout_rate)(x)
-
         # Project
-        x = AddConv2D(x, 64, [1,1], 1, dropout_rate, "same", False, name="A_project64",
-                constraint=3)
+        x = AddConv2D(x, 32, [5,5], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="A_project",
+                constraint=None)
+
+        x = TileOnto(x, option_in, num_options, x.shape[1:3])
+
         # conv down
-        x = AddConv2D(x, 128, [3,3], 2, dropout_rate, "same", False, name="A_down128",
-                constraint=3)
+        x = AddConv2D(x, 64, [5,5], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="A_C64A",
+                constraint=None)
         # conv across
-        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same", False,
-                name="A_C64",
-                constraint=3)
+        x = AddConv2D(x, 64, [5,5], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="A_C64B",
+                constraint=None)
+
+
+        x = AddConv2D(x, 32, [5,5], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="A_C32A",
+                constraint=None)
         # This is the hidden representation of the world, but it should be flat
         # for our classifier to work.
         x = Flatten()(x)
@@ -847,19 +876,111 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
     x = Concatenate()([x, option_in])
 
     # Same setup as the state decoders
-    x1 = AddDense(x, 512, "relu", 0.)
-    x1 = AddDense(x1, 512, "relu", 0.)
+    x1 = AddDense(x, 512, "lrelu", dropout_rate, constraint=None, output=False,)
+    x1 = AddDense(x1, 512, "lrelu", 0., constraint=None, output=False,)
     arm = AddDense(x1, arm_size, "linear", 0., output=True)
     gripper = AddDense(x1, gripper_size, "sigmoid", 0., output=True)
     #value = Dense(1, activation="sigmoid", name="V",)(x1)
     actor = Model([xin, option_in], [arm, gripper], name="actor")
     return actor
 
-def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, option_in=None):
+def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     '''
-    Next value and action
+    Next actions
     '''
-    pass
+
+    xin = Input([int(d) for d in x.shape[1:]], name="Nx_prev_h_in")
+    x0in = Input([int(d) for d in x.shape[1:]], name="Nx_prev_h0_in")
+    option_in = Input((1,), name="Nx_prev_o_in")
+    x = Concatenate()([x0in, xin])
+    if len(x.shape) > 2:
+
+        # Project
+        x = AddConv2D(x, 32, [5,5], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="A_project",
+                constraint=None)
+
+        if num_options > 0:
+            option_x = OneHot(num_options)(option_in)
+            option_x = Flatten()(option_x)
+            x = TileOnto(x, option_x, num_options, x.shape[1:3])
+
+        # conv down
+        x = AddConv2D(x, 64, [5,5], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="A_C64A",
+                constraint=None)
+        # conv across
+        x = AddConv2D(x, 64, [5,5], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="A_C64B",
+                constraint=None)
+
+
+        x = AddConv2D(x, 32, [5,5], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="A_C32A",
+                constraint=None)
+        # This is the hidden representation of the world, but it should be flat
+        # for our classifier to work.
+        x = Flatten()(x)
+
+    # Next options
+    x1 = AddDense(x, dense_size, "relu", dropout_rate, constraint=None,
+            output=False,)
+    x1 = AddDense(x1, dense_size, "relu", 0., constraint=None,
+            output=False,)
+
+    next_option_out = Dense(num_options,
+            activation="softmax", name="lnext",)(x1)
+    next_model = Model([x0in, xin, option_in], next_option_out, name="next")
+    return next_model
+
+def GetValueModel(x, num_options, dense_size, dropout_rate=0.5):
+    '''
+    Value for the current world
+    '''
+
+    xin = Input([int(d) for d in x.shape[1:]], name="V_prev_h_in")
+    x0in = Input([int(d) for d in x.shape[1:]], name="V_prev_h0_in")
+    option_in = Input((1,), name="V_prev_o_in")
+    x = Concatenate()([x0in, xin])
+    if len(x.shape) > 2:
+
+        # Initial dropout -- noisy state
+        x = AddConv2D(x, 32, [5,5], 1, 0., "same",
+                name="VC1_32", constraint=None)
+
+        if num_options > 0:
+            option_x = OneHot(num_options)(option_in)
+            option_x = Flatten()(option_x)
+            x = TileOnto(x, option_x, num_options, x.shape[1:3])
+
+        # conv down
+        x = AddConv2D(x, 64, [5,5], 2, 0., "same",
+                name="VC2_64", constraint=None)
+        ## conv across
+        x = AddConv2D(x, 64, [5,5], 1, dropout_rate, "same",
+                name="VC3_64", constraint=None)
+
+        # Get vector
+        x = Flatten()(x)
+
+    # Next options
+    x1 = AddDense(x, dense_size, "relu", 0)
+    x1 = AddDense(x1, dense_size, "relu", 0)
+    value_out = Dense(1,
+            activation="linear", name="value",)(x1)
+    next_model = Model([x0in, xin, option_in], value_out, name="V")
+    return next_model
+
+
+
 
 def GetNextOptionAndValue(x, num_options, dense_size, dropout_rate=0.5, option_in=None):
     '''
@@ -881,16 +1002,14 @@ def GetNextOptionAndValue(x, num_options, dense_size, dropout_rate=0.5, option_i
 
         # Project
         x = AddConv2D(x, 128, [1,1], 1, dropout_rate, "same",
-                name="VC1_project", constraint=3)
+                name="VC1_project", constraint=None)
         # conv down
         x = AddConv2D(x, 64, [3,3], 2, dropout_rate, "same",
-                name="VC2_64", constraint=3)
-        # conv across
-        x = AddConv2D(x, 64, [3,3], 2, dropout_rate, "same",
-                name="VC3_64", constraint=3)
+                name="VC2_64", constraint=None)
+        ## conv across
+        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
+                name="VC3_64", constraint=None)
 
-        x = AddConv2D(x, 64, [3,3], 2, dropout_rate, "same",
-                name="VC4_64", constraint=3)
         # Get vector
         x = Flatten()(x)
 
@@ -901,8 +1020,8 @@ def GetNextOptionAndValue(x, num_options, dense_size, dropout_rate=0.5, option_i
             activation="softmax", name="lnext",)(x1)
 
     # Current value
-    x2 = AddDense(x, int(dense_size/4), "relu", 0)
-    x2 = AddDense(x2, int(dense_size/4), "relu", 0)
+    x2 = AddDense(x, int(dense_size/2), "relu", 0)
+    x2 = AddDense(x2, int(dense_size/2), "relu", 0)
     value_out = Dense(1, activation="linear", name="V",)(x2)
 
     return value_out, next_option_out
