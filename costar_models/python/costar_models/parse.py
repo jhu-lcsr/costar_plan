@@ -159,8 +159,8 @@ def GetModelParser():
                         default="gan")
     parser.add_argument("--save_model",
                         help="Should we save to the model file",
-                        type=bool,
-                        default=True)
+                        type=int,
+                        default=1)
     parser.add_argument("--retrain",
                         help="Retrain sub-models",
                         action="store_true")
