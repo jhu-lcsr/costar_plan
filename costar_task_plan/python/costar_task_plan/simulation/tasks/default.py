@@ -17,8 +17,7 @@ class DefaultTaskDefinition(AbstractTaskDefinition):
 
     # These are for the UR5
     joint_positions = np.array([0.30, -1.33, -1.80, -0.27, 1.50, 1.60])
-    #random_limit = 0.8
-    random_limit = 0.0
+    random_limit = 0.5
 
     # define folder for blocks
     urdf_dir = "urdf"
@@ -31,8 +30,8 @@ class DefaultTaskDefinition(AbstractTaskDefinition):
         self.addCamera(
             #Camera("right", [-0.5, 0., 0.15], distance=0.8, roll=0.0,
             Camera("right", [-0.45, 0., 0.25], distance=0.7, roll=0.0,
-                image_width=64,
-                image_height=64,
+                image_width=128,
+                image_height=128,
                 pitch=-45,
                 yaw=-90,
                 #yaw=-60,

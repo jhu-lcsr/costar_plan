@@ -1,5 +1,31 @@
-
+# test 3D geometry algorithms for calculating deep learning grasp algorithm input parameters.
+#
+# Copyright 2017 Andrew Hundt.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import numpy as np
+try:
+    import eigen  # https://github.com/jrl-umi3218/Eigen3ToPython
+    import sva  # https://github.com/jrl-umi3218/SpaceVecAlg
+except ImportError:
+    print('eigen and sva not available, skipping components utilizing 3D geometry algorithms.'
+          'To install run the script at'
+          'https://github.com/ahundt/robotics_setup/blob/master/robotics_tasks.sh'
+          'or follow the instructions at https://github.com/jrl-umi3218/Eigen3ToPython'
+          'and https://github.com/jrl-umi3218/SpaceVecAlg and make sure python bindings'
+          'are enabled.')
+    eigen = None
+    sva = None
 import pytest
 from grasp_geometry import grasp_dataset_to_transforms_and_features
 from grasp_geometry import depth_image_to_point_cloud
@@ -119,6 +145,39 @@ def depth_image_to_point_cloud2(depth, intrinsics_matrix, dtype=np.float32):
     return XYZ.astype(dtype)
 
 
+def test_eigen_and_sva():
+    """ Test/demo of 3D geometry libraries eigen and sva
+
+        eigen  # https://github.com/jrl-umi3218/Eigen3ToPython
+        sva  # https://github.com/jrl-umi3218/SpaceVecAlg
+    """
+    print('eigen and sva test')
+    if eigen is not None and sva is not None:
+        qa = np.array([0, 0, 0, 1])
+        v = eigen.Vector3d([1, 1, 1])
+
+        qa4 = eigen.Vector4d(qa)
+
+        q = eigen.Quaterniond(qa4)
+
+        pt = sva.PTransformd(q, v)
+
+        print(str(np.array(pt.rotation())))
+        rot = [[1., 0., 0.],
+               [0., 1., 0.],
+               [0., 0., 1.]]
+        assert np.allclose(np.array(rot), np.array(pt.rotation()))
+        pt.translation()
+
+        trans = pt.translation()
+
+        assert trans.x() == 1.0
+        assert trans.y() == 1.0
+        assert trans.z() == 1.0
+        trans_np = np.array(trans)
+        assert np.allclose(trans_np, v)
+
+
 def test_grasp_dataset_to_transforms_and_features():
 
     def evaluate_grasp_dataset_to_transforms_and_features(depth_image, intrinsics, camera_to_base, base_to_end_current, base_to_end_final):
@@ -174,12 +233,6 @@ def test_depth_image_to_point_cloud():
     with tf.Session() as sess:
         XYZ_tf = sess.run(XYZ_tf)
 
-    print('depth')
-    print(depth)
-    print('XYZ_tf')
-    print(XYZ_tf[:, :, 2])
-    print('XYZ_numba')
-    print(XYZ_numba[:, :, 2])
     assert np.allclose(XYZ_numba, XYZ_np)
     assert np.allclose(XYZ_numba, XYZ_tf)
     assert np.allclose(np.squeeze(XYZ_numba[:, :, 2]), np.squeeze(depth))
@@ -237,5 +290,4 @@ def test_depth_image_to_point_cloud():
 
 
 if __name__ == '__main__':
-    test_depth_image_to_point_cloud()
     pytest.main([__file__])
