@@ -46,7 +46,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         super(RobotMultiHierarchical, self).__init__(taskdef, *args, **kwargs)
 
         self.num_frames = 1
-        self.img_col_dim = 256
+        self.img_col_dim = 512
         self.img_num_filters = 64
         self.robot_col_dense_size = 128
         self.robot_col_dim = 64
@@ -94,7 +94,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
         model = Model(ins, [arm_out, gripper_out])
         optimizer = self.getOptimizer()
-        model.compile(loss="mae", optimizer=optimizer)
+        model.compile(loss=self.loss, optimizer=optimizer)
         return model
 
     def _makeConditionalActor(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
@@ -109,6 +109,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         else:
             gripper_size = 1
 
+
         ins, x, skips = GetEncoder(
                 img_shape,
                 [arm_size, gripper_size],
@@ -119,10 +120,15 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 discriminator=False,
                 kernel_size=[3,3],
                 tile=True,
-                dense=False, flatten=False,
+                batchnorm=self.use_batchnorm,
+                option=self.num_options,
                 pre_tiling_layers=1,
                 post_tiling_layers=3,
                 stride1_post_tiling_layers=1)
+
+        x = BatchNormalization()(x)
+        x = Dropout(self.dropout_rate)(x)
+        x = AddDense(x, 512, "lrelu", 0., constraint=None, output=False)
 
         arm_out = Dense(arm_cmd_size, name="arm")(x)
         gripper_out = Dense(gripper_size, name="gripper")(x)
@@ -130,9 +136,10 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         if self.model is not None:
             raise RuntimeError('overwriting old model!')
 
+        #model = Model(ins + [option_in], [arm_out, gripper_out])
         model = Model(ins, [arm_out, gripper_out])
         optimizer = self.getOptimizer()
-        model.compile(loss="mae", optimizer=optimizer)
+        model.compile(loss=self.loss, optimizer=optimizer)
         return model
 
     def _makeSupervisor(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
@@ -168,7 +175,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         for _ in range(2):
             # Repeat twice to scale down to a very small size -- this will help
             # a little with the final image layers
-            x = Conv2D(self.img_num_filters/4,
+            x = Conv2D(int(self.img_num_filters),
                     kernel_size=[5, 5], 
                     strides=(2, 2),
                     padding='same')(x)
@@ -187,9 +194,9 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         supervisor.summary()
         print("make model setup")
         print(ins, actor.inputs)
-        model_ins = Input(name="img_in")
+        #model_ins = Input(name="img_in")
 
-        return model, supervisor, actor
+        return actor, supervisor, actor
 
     def plotInfo(self, features, targets, axes):
         # debugging: plot every 5th image from the dataset
@@ -251,7 +258,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 g_target,
                 o_target)
 
-        return [I, q, g, oin, q_target, g_target,], [
+        return [I, q, g, oin, label, q_target, g_target,], [
                 np.expand_dims(train_target, axis=1),
                 o_target,
                 value_target,
@@ -261,9 +268,9 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
-        [I, q, g, oin, q_target, g_target,] = features
+        [I, q, g, oin, label, q_target, g_target,] = features
         tt, o1, v, qa, ga, I_target = targets
-        return [I, q, g, oin, o1], [o1, np.squeeze(qa), np.squeeze(ga)]
+        return [I, q, g, label], [np.squeeze(qa), np.squeeze(ga)]
 
     def _makeTrainTarget(self, I_target, q_target, g_target, o_target):
         if I_target is not None:
@@ -316,7 +323,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
             raise RuntimeError('save() failed: model not found.')
 
     def trainFromGenerators(self, train_generator, test_generator, data=None, *args, **kwargs):
-        [features, arm, gripper, oin, oi], [oi, arm_cmd, gripper_cmd] = self._getData(**data)
+        [features, arm, gripper, oi], [arm_cmd, gripper_cmd] = self._getData(**data)
         if self.model is None:
             self._makeModel(features, arm, gripper, arm_cmd,
                     gripper_cmd, *args, **kwargs)
