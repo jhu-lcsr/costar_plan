@@ -415,7 +415,6 @@ class GraspTrain(object):
                 raise ValueError('Could not load weights {}, '
                                  'the file does not exist.'.format(load_weights))
 
-
         if 'grasp_segmentation_single_pixel_loss' in loss:
             loss = grasp_loss.grasp_segmentation_single_pixel_loss
 
