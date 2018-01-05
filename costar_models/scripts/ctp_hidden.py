@@ -3,9 +3,13 @@
 from __future__ import print_function
 
 import matplotlib as mpl
-mpl.use("Agg")
+#mpl.use("Agg")
+import matplotlib.pyplot as plt
+
+import numpy as np
 
 from costar_models import *
+from costar_models.sampler2 import PredictionSampler2
 from costar_models.datasets.npz import NpzDataset
 from costar_models.datasets.npy_generator import NpzGeneratorDataset
 from costar_models.datasets.h5f_generator import H5fGeneratorDataset
@@ -37,13 +41,31 @@ def visualizeHiddenMain(args):
 
     if 'model' in args and args['model'] is not None:
         model = MakeModel(taskdef=None, **args)
-        if 'load_model' in args and args['load_model']:
-            model.load(world=None,**data)
+        model.load(world=None,**data)
         train_generator = model.trainGenerator(dataset)
         test_generator = model.testGenerator(dataset)
 
-        data = next(test_generator)
-        print(data)
+        if not isinstance(model, PredictionSampler2):
+            raise RuntimeError('Only sampler2, conditional_sampler, etc. are'
+                               'supported')
+
+        features, targets = next(test_generator)
+        h = model.encode(features)
+        img = model.debugImage(features)
+        if not h.shape[0] == img.shape[0]:
+            raise RuntimeError('something went wrong with dimensions')
+
+        print("--------------\nHidden state:\n--------------\n")
+        print("shape of hidden samples =", h.shape)
+        print("shape of images =", img.shape)
+        for i in range(h.shape[0]):
+            plt.figure()
+            plt.subplot(3,3,1)
+            plt.imshow(img[i])
+            for j in range(h.shape[-1]):
+                plt.subplot(3,3,j+2)
+                plt.imshow(np.squeeze(h[i,:,:,j]))
+            plt.show()
 
     else:
         raise RuntimeError('Must provide a model to load')

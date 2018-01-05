@@ -219,7 +219,7 @@ class ConditionalImage(PredictionSampler2):
                 return [I0, I, o1, oin], [ I_target]
 
 
-    def encode(self, *args, **kwargs):
+    def encode(self, obs):
         '''
         Encode available features into a new state
 
@@ -227,8 +227,7 @@ class ConditionalImage(PredictionSampler2):
         -----------
         [unknown]: all are parsed via _getData() function.
         '''
-        features, targets = self._getData(*args, **kwargs)
-        return self.image_encoder(features)
+        return self.image_encoder.predict(obs[1])
 
     def decode(self, hidden):
         '''
@@ -247,4 +246,5 @@ class ConditionalImage(PredictionSampler2):
     def act(self, *args, **kwargs):
         raise NotImplementedError('act() not implemented')
 
-
+    def debugImage(self, features):
+        return features[1]

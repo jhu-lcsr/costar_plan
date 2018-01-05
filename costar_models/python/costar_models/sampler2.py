@@ -311,16 +311,15 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         else:
             return [I, q, g, oin], [tt, o1, v]
 
-    def encode(self, *args, **kwargs):
+    def encode(self, obs):
         '''
         Encode available features into a new state
 
         Parameters:
         -----------
-        [unknown]: all are parsed via _getData() function.
+        obs: list of observation data
         '''
-        features, targets = self._getData(*args, **kwargs)
-        return self.hidden_encoder(features)
+        return self.hidden_encoder(obs)
 
     def decode(self, hidden):
         '''
@@ -352,8 +351,5 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             print("-->", i, f.shape)
             print(f)
 
-    def showHidden(self, hidden):
-        '''
-        Display information about a hidden representation of the world.
-        '''
-        pass
+    def debugImage(self, features):
+        return features[0]
