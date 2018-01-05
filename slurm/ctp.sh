@@ -8,9 +8,6 @@
 #SBATCH --mail-type=end
 #SBATCH --mail-user=cpaxton3@jhu.edu
 
-set -e
-set -x
-set -u
 
 echo "Running $@ on $SLURMD_NODENAME ..."
 
@@ -28,6 +25,7 @@ export MODELDIR="$HOME/.costar/stack_$learning_rate$optimizer$dropout$noise_dim$
 
 if $train_image_encoder
 then
+  echo "Training encoder 1"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
     --features multi \
     -e 100 \
@@ -46,6 +44,7 @@ fi
 
 if $train_multi_encoder
 then
+  echo "Training encoder 2"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
     --features multi \
     -e 100 \
