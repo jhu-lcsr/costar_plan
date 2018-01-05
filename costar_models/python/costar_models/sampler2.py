@@ -75,7 +75,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         x = img_rep
         x = AddConv2D(x, 64, [1,1], 1, 0.,
                 "same", False, True)
-        x = TileOnto(img_rep, state_rep, 64, [8,8],add=True)
+        x = TileOnto(x, state_rep, 64, [8,8],add=True)
 
         x = AddConv2D(x, 128, [3,3], 1, self.dropout_rate, "same",
                 False, True)

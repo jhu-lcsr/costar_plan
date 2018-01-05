@@ -121,7 +121,7 @@ def GetModelParser():
     parser.add_argument("--upsampling",
                         help="set upsampling definition",
                         choices=UpsamplingOptions(),
-                        default=None,)
+                        default="conv_transpose")
     parser.add_argument("--hypothesis_dropout",
                         help="dropout in hypothesis decoder",
                         default=True,
