@@ -1,6 +1,6 @@
 # 3D geometry algorithms for calculating deep learning grasp algorithm input parameters.
 #
-# Copyright 2017 Andrew Hundt 2017.
+# Copyright 2017 Andrew Hundt.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
