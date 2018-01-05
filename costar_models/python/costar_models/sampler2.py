@@ -71,7 +71,12 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             img_rep = self.image_encoder(img_in)
         state_rep = self.state_encoder([arm_in, gripper_in, label_in])
         # Compress the size of the network
-        x = TileOnto(img_rep, state_rep, 64, [8,8])
+    
+        x = img_rep
+        x = AddConv2D(x, 64, [1,1], 1, 0.,
+                "same", False, True)
+        x = TileOnto(x, state_rep, 64, [8,8],add=True)
+
         x = AddConv2D(x, 128, [3,3], 1, self.dropout_rate, "same",
                 False, True)
         # Projection down to the right size
