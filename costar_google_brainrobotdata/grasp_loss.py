@@ -24,11 +24,12 @@ def gaussian_kernel_2D(size=(3, 3), center=(1, 1), sigma=1):
         g = gaussian_kernel_2d()
         g /= np.sum(g)
     """
-    xx, yy = tf.meshgrid(tf.range(0, size[0]),
-                         tf.range(0, size[1]),
-                         indexing='xy')
-    kernel = tf.exp(-((xx - center[0]) ** 2 + (yy - center[1]) ** 2) / (2. * sigma ** 2))
-    return kernel
+    with K.name_scope(name='gaussian_kernel_2D') as scope:
+        xx, yy = tf.meshgrid(tf.range(0, size[0]),
+                             tf.range(0, size[1]),
+                             indexing='xy')
+        kernel = tf.exp(-((xx - center[0]) ** 2 + (yy - center[1]) ** 2) / (2. * sigma ** 2))
+        return kernel
 
 
 def grasp_segmentation_gaussian_loss(
@@ -44,24 +45,25 @@ def grasp_segmentation_gaussian_loss(
         y_true: is assumed to be [label, x_img_coord, y_image_coord]
         y_pred: is expected to be a 2D array of labels.
     """
-    label = y_true[0]
-    y_height_coordinate = y_true[1]
-    x_width_coordinate = y_true[2]
+    with K.name_scope(name='grasp_segmentation_gaussian_loss') as scope:
+        label = y_true[0]
+        y_height_coordinate = y_true[1]
+        x_width_coordinate = y_true[2]
 
-    y_true_img = tile_vector_as_image_channels(label, y_pred)
-    #
-    loss_img = (y_true_img, y_pred)
-    y_pred_shape = K.int_shape(y_pred)
-    if len(y_pred_shape) == 3:
-        y_pred_shape = y_pred[:-1]
-    if len(y_pred_shape) == 4:
-        y_pred_shape = y_pred[1:3]
-    weights = gaussian_kernel_2D(size=y_pred_shape, center=(y_height_coordinate, x_width_coordinate), sigma=gaussian_sigma)
-    weighted_loss_img = tf.multiply(loss_img, weights)
-    return K.sum(K.flatten(weighted_loss_img))
+        y_true_img = tile_vector_as_image_channels(label, y_pred)
+        #
+        loss_img = (y_true_img, y_pred)
+        y_pred_shape = K.int_shape(y_pred)
+        if len(y_pred_shape) == 3:
+            y_pred_shape = y_pred[:-1]
+        if len(y_pred_shape) == 4:
+            y_pred_shape = y_pred[1:3]
+        weights = gaussian_kernel_2D(size=y_pred_shape, center=(y_height_coordinate, x_width_coordinate), sigma=gaussian_sigma)
+        weighted_loss_img = tf.multiply(loss_img, weights)
+        return K.sum(K.flatten(weighted_loss_img))
 
 
-def grasp_segmentation_single_pixel_loss(y_true, y_pred, loss=keras.losses.binary_crossentropy):
+def grasp_segmentation_single_pixel_loss(y_true, y_pred, loss=keras.losses.binary_crossentropy, name=None):
     """ Applies loss function at a specific pixel coordinate. Function can also be a metric.
 
     # Arguments
@@ -69,17 +71,20 @@ def grasp_segmentation_single_pixel_loss(y_true, y_pred, loss=keras.losses.binar
         y_true: [ground_truth_label, y_height_coordinate, x_width_coordinate]
         y_pred: predicted values
     """
-    label = y_true[:, :1]
-    yx_coordinate = tf.cast(y_true[:, 1:], tf.int32)
-    yx_shape = K.int_shape(yx_coordinate)
-    sample_index = tf.expand_dims(tf.range(yx_shape[0]), axis=-1)
-    byx_coordinate = tf.concat([sample_index, yx_coordinate], axis=-1)
-    print('y_true: ', y_true, ' y_pred:', y_pred, ' yx_coordinate: ', yx_shape, ' sample_index: ', sample_index, ' byx_coordinate: ', byx_coordinate)
+    if name is None:
+        name = 'grasp_segmentation_single_pixel_loss'
+    with K.name_scope(name=name) as scope:
+        label = y_true[:, :1]
+        yx_coordinate = tf.cast(y_true[:, 1:], tf.int32)
+        yx_shape = K.int_shape(yx_coordinate)
+        sample_index = tf.expand_dims(tf.range(yx_shape[0]), axis=-1)
+        byx_coordinate = tf.concat([sample_index, yx_coordinate], axis=-1)
+        print('y_true: ', y_true, ' y_pred:', y_pred, ' yx_coordinate: ', yx_shape, ' sample_index: ', sample_index, ' byx_coordinate: ', byx_coordinate)
 
-    # maybe need to transpose yx_coordinate?
-    gripper_coordinate_y_pred = tf.gather_nd(y_pred, byx_coordinate)
-    return loss(label, gripper_coordinate_y_pred)
+        # maybe need to transpose yx_coordinate?
+        gripper_coordinate_y_pred = tf.gather_nd(y_pred, byx_coordinate)
+        return loss(label, gripper_coordinate_y_pred)
 
 
 def grasp_segmentation_single_pixel_metric(y_true, y_pred, metric=keras.metrics.binary_accuracy):
-    return grasp_segmentation_single_pixel_loss(y_true, y_pred, loss=metric)
+    return grasp_segmentation_single_pixel_loss(y_true, y_pred, loss=metric, name='grasp_segmentation_single_pixel_metric')
