@@ -50,7 +50,7 @@ def visualizeHiddenMain(args):
                                'supported')
 
         data = next(test_generator)
-        features, targets = next(test_generator)
+        features, targets = next(train_generator)
         h = model.encode(features)
         prev_option = model.prevOption(features)
         img = model.debugImage(features)
@@ -67,7 +67,7 @@ def visualizeHiddenMain(args):
             print("------------- %d -------------"%i)
             print("prev option =", prev_option[i])
             print("best option =", np.argmax(p_a[i]))
-            print("best value =", v[i])
+            print("value =", v[i])
             print(p_a[i])
             plt.figure()
             plt.subplot(3,3,1)
