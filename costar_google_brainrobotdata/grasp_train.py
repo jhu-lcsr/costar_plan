@@ -100,9 +100,10 @@ flags.DEFINE_string('learning_rate_scheduler', 'learning_rate_scheduler',
 flags.DEFINE_string('optimizer', 'SGD', """Options are Adam and SGD.""")
 flags.DEFINE_string('progress_tracker', None,
                     """Utility to follow training progress, options are tensorboard and None.""")
-flags.DEFINE_string('loss', 'grasp_segmentation_single_pixel_loss', """Options are binary_crossentropy and grasp_segmentation_single_pixel_loss.""")
-flags.DEFINE_string('metric', 'grasp_segmentation_single_pixel_accuracy',
-                    """Options are accuracy, binary_accuracy and grasp_segmentation_single_pixel_accuracy.""")
+flags.DEFINE_string('loss', 'segmentation_single_pixel_binary_crossentropy',
+                    """Options are binary_crossentropy and segmentation_single_pixel_binary_crossentropy.""")
+flags.DEFINE_string('metric', 'segmentation_single_pixel_binary_accuracy',
+                    """Options are accuracy, binary_accuracy and segmentation_single_pixel_binary_accuracy.""")
 
 flags.FLAGS._parse_flags()
 FLAGS = flags.FLAGS
@@ -234,14 +235,14 @@ class GraspTrain(object):
 
         # TODO(ahundt) manage loss/accuracy names in a more principled way
         loss_name = 'loss'
-        if 'grasp_segmentation_single_pixel_loss' in loss:
-            loss = grasp_loss.grasp_segmentation_single_pixel_loss
-            loss_name = 'grasp_segmentation_single_pixel_loss'
+        if 'segmentation_single_pixel_binary_crossentropy' in loss:
+            loss = grasp_loss.segmentation_single_pixel_binary_crossentropy
+            loss_name = 'segmentation_single_pixel_binary_crossentropy'
 
         metric_name = 'acc'
-        if 'grasp_segmentation_single_pixel_accuracy' in metric:
+        if 'segmentation_single_pixel_binary_accuracy' in metric:
             metric_name = metric
-            metric = grasp_loss.grasp_segmentation_single_pixel_accuracy
+            metric = grasp_loss.segmentation_single_pixel_binary_accuracy
 
         callbacks = []
         if hvd is not None:
@@ -323,6 +324,9 @@ class GraspTrain(object):
             simplified_grasp_command_op_batch,
             input_image_shape=input_image_shape,
             dropout_rate=dropout_rate)
+
+        print('Available metrics: ' + str(model.metrics_names))
+        print('Available losses: ' + str(model.losses_names))
 
         if(load_weights):
             if os.path.isfile(load_weights):
@@ -426,11 +430,15 @@ class GraspTrain(object):
                 raise ValueError('Could not load weights {}, '
                                  'the file does not exist.'.format(load_weights))
 
-        if 'grasp_segmentation_single_pixel_loss' in loss:
-            loss = grasp_loss.grasp_segmentation_single_pixel_loss
+        loss_name = 'loss'
+        if 'segmentation_single_pixel_binary_crossentropy' in loss:
+            loss = grasp_loss.segmentation_single_pixel_binary_crossentropy
+            loss_name = 'segmentation_single_pixel_binary_crossentropy'
 
-        if 'grasp_segmentation_single_pixel_accuracy' in metric:
-            metric = grasp_loss.grasp_segmentation_single_pixel_accuracy
+        metric_name = 'acc'
+        if 'segmentation_single_pixel_binary_accuracy' in metric:
+            metric_name = metric
+            metric = grasp_loss.segmentation_single_pixel_binary_accuracy
 
         model.compile(optimizer='sgd',
                       loss=loss,
