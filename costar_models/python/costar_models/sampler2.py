@@ -319,7 +319,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         -----------
         obs: list of observation data
         '''
-        return self.hidden_encoder(obs)
+        return self.hidden_encoder.predict(obs)
 
     def decode(self, hidden):
         '''
@@ -327,9 +327,9 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         feature outputs.
 
         '''
-        return self.hidden_decoder(hidden)
+        return self.hidden_decoder.predict(hidden)
 
-    def next(self, hidden):
+    def pnext(self, hidden):
         raise NotImplementedError('next() not implemented')
 
     def transform(self, hidden, option_in=-1):
@@ -351,5 +351,9 @@ class PredictionSampler2(RobotMultiPredictionSampler):
             print("-->", i, f.shape)
             print(f)
 
+    def prevOption(self, features):
+        return features[3]
+
     def debugImage(self, features):
-        return features[0]
+        if self.use_noise:
+            return features[0]

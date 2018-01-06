@@ -4,9 +4,9 @@ from __future__ import print_function
 
 import matplotlib as mpl
 #mpl.use("Agg")
-import matplotlib.pyplot as plt
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 from costar_models import *
 from costar_models.sampler2 import PredictionSampler2
@@ -52,6 +52,10 @@ def visualizeHiddenMain(args):
         features, targets = next(test_generator)
         h = model.encode(features)
         img = model.debugImage(features)
+        #img = model.decode(h)
+        #h = model.image_encoder.predict(img)
+        #img = model.decode(h)
+        #h = model.image_encoder.predict(img)
         if not h.shape[0] == img.shape[0]:
             raise RuntimeError('something went wrong with dimensions')
 

@@ -34,7 +34,6 @@ class AbstractAgentBasedModel(object):
             hypothesis_dropout=False,
             dense_representation=True,
             skip_connections=0,
-            compatibility=1,
             use_noise=False,
             sampling=False,
             retrain=True,
@@ -44,7 +43,7 @@ class AbstractAgentBasedModel(object):
             save_model=1,
             hidden_size=128,
             loss="mae",
-            num_generator_files=1, predict_value=False, upsampling=None,
+            num_generator_files=3, predict_value=False, upsampling=None,
             task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
 
@@ -54,10 +53,6 @@ class AbstractAgentBasedModel(object):
         elif lr > 1.:
             raise RuntimeError('Extremely high learning rate: %f' % lr)
 
-        # ===================================
-        # REMOVE THIS 
-        self.compatibility = compatibility
-        # ===================================
         self.loss = loss
         self.retrain = retrain
         self.success_only = success_only

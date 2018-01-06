@@ -235,12 +235,41 @@ class ConditionalImage(PredictionSampler2):
         feature outputs.
 
         '''
-        return self.image_decoder(hidden)
+        return self.image_decoder.predict(hidden)
 
-    def next(self, hidden):
-        raise NotImplementedError('next() not implemented')
+    def prevOption(self, features):
+        '''
+        Just gets the previous option from a set of features
+        '''
+        if self.use_noise:
+            return features[4]
+        else:
+            return features[3]
+
+    def encodeInitial(self, obs):
+        '''
+        Call the encoder but only on the initial image frame
+        '''
+        return self.image_encoder.predict(obs[0])
+
+    def pnext(self, hidden, prev_option, features):
+        '''
+        Visualize based on hidden
+        '''
+        h0 = self.encodeInitial(features)
+
+        p = self.next_model.predict([h0, hidden, prev_option])
+        #p = np.exp(p)
+        #p /= np.sum(p)
+        return p
+
+    def value(self, hidden, prev_option, features):
+        h0 = self.encodeInitial(features)
+        v = self.value_model.predict([h0, hidden, prev_option])
+        return v
 
     def transform(self, hidden, option_in=-1):
+
         raise NotImplementedError('transform() not implemented')
 
     def act(self, *args, **kwargs):
