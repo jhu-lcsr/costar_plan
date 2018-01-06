@@ -231,6 +231,17 @@ class GraspTrain(object):
             print('lr: %f' % lr)
             return lr
 
+        # TODO(ahundt) manage loss/accuracy names in a more principled way
+        loss_name = 'loss'
+        if 'grasp_segmentation_single_pixel_loss' in loss:
+            loss = grasp_loss.grasp_segmentation_single_pixel_loss
+            loss_name = 'grasp_segmentation_single_pixel_loss'
+
+        metric_name = 'acc'
+        if 'grasp_segmentation_single_pixel_accuracy' in metric:
+            metric_name = metric
+            metric = grasp_loss.grasp_segmentation_single_pixel_metric
+
         callbacks = []
         if hvd is not None:
             callbacks = callbacks + [
@@ -252,10 +263,10 @@ class GraspTrain(object):
             ]
 
         scheduler = keras.callbacks.LearningRateScheduler(lr_scheduler)
-        early_stopper = EarlyStopping(monitor='acc', min_delta=0.001, patience=32)
+        early_stopper = EarlyStopping(monitor=metric_name, min_delta=0.001, patience=32)
         csv_logger = CSVLogger(weights_name + '.csv')
-        checkpoint = keras.callbacks.ModelCheckpoint(weights_name + '-epoch-{epoch:03d}-loss-{loss:.3f}-acc-{acc:.3f}.h5',
-                                                     save_best_only=True, verbose=1, monitor='acc')
+        checkpoint = keras.callbacks.ModelCheckpoint(weights_name + '-epoch-{epoch:03d}-loss-{' + loss_name + ':.3f}-acc-{' + metric_name + ':.3f}.h5',
+                                                     save_best_only=True, verbose=1, monitor=metric_name)
 
         callbacks = callbacks + [early_stopper, csv_logger, checkpoint]
 
@@ -290,7 +301,7 @@ class GraspTrain(object):
             callbacks = callbacks + [
                 # Reduce the learning rate if training plateaus.
                 # TODO(ahundt) add validation checks and update monitor parameter to use them
-                keras.callbacks.ReduceLROnPlateau(patience=8, verbose=1, monitor='loss')
+                keras.callbacks.ReduceLROnPlateau(patience=8, verbose=1, monitor=loss_name)
             ]
 
         # 2017-08-27 Tried NADAM for a while with the settings below, only improved for first 2 epochs.
@@ -303,12 +314,6 @@ class GraspTrain(object):
         if hvd is not None:
             # Add Horovod Distributed Optimizer.
             optimizer = hvd.DistributedOptimizer(optimizer)
-
-        if 'grasp_segmentation_single_pixel_loss' in loss:
-            loss = grasp_loss.grasp_segmentation_single_pixel_loss
-
-        if 'grasp_segmentation_single_pixel_metric' in metric:
-            metric = grasp_loss.grasp_segmentation_single_pixel_metric
 
         # create the model
         model = make_model_fn(
