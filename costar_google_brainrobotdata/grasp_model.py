@@ -319,6 +319,11 @@ def grasp_model_segmentation(clear_view_image_op=None,
         combined_input_data = concat_images_with_tiled_vector([clear_view_image_op, current_time_image_op], input_vector_op)
         combined_input_shape = K.int_shape(combined_input_data)
 
+    # the input shape should be a tuple of 3 values
+    # if the batch size is present, strip it out
+    # for call to ResNet constructor.
+    if len(combined_input_shape) == 4:
+        combined_input_shape = combined_input_shape[1:]
     model = DenseNetFCN(input_shape=combined_input_shape,
                         include_top='global_average_pooling',
                         input_tensor=combined_input_data,
