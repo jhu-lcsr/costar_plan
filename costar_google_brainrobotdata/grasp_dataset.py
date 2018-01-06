@@ -107,7 +107,7 @@ flags.DEFINE_integer('grasp_sequence_min_time_step', None,
                         stages of a grasping motion.""")
 flags.DEFINE_string(
     'grasp_sequence_motion_command_feature',
-    'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_sin_cos_5',
+    'move_to_grasp/time_ordered/reached_pose/depth_pixel_T_endeffector_final/delta_depth_sin_cos_3',
     """Different ways of representing the motion vector parameter.
        'move_to_grasp/time_ordered/reached_pose/depth_pixel_T_endeffector_final/delta_depth_sin_cos_3'
              [delta_depth, sin(theta), cos(theta)] where delta_depth depth offset for the gripper
