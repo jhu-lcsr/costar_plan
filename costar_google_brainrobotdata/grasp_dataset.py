@@ -109,20 +109,27 @@ flags.DEFINE_string(
     'grasp_sequence_motion_command_feature',
     'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_sin_cos_5',
     """Different ways of representing the motion vector parameter.
+       'move_to_grasp/time_ordered/reached_pose/depth_pixel_T_endeffector_final/delta_depth_sin_cos_3'
+             [delta_depth, sin(theta), cos(theta)] where delta_depth depth offset for the gripper
+                from the measured surface, alongside a single rotation angle theta containing sin(theta), cos(theta).
+                This format does not allow for arbitrary commands to be defined, and the rotation component
+                is based on the paper and dataset:
+                    https://sites.google.com/site/brainrobotdata/home/grasping-dataset
+                    https://arxiv.org/abs/1603.02199
        'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_sin_cos_5'
-           the real reached gripper pose of the end effector to calculate
-           the transform from the current time step to the final time step
-           to generate the parameters defined in https://arxiv.org/abs/1603.02199,
-           consisting of [x,y,z, sin(theta), cos(theta)].
+            the real reached gripper pose of the end effector to calculate
+            the transform from the current time step to the final time step
+            to generate the parameters defined in https://arxiv.org/abs/1603.02199,
+            consisting of [x,y,z, sin(theta), cos(theta)].
        'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_quat_7'
-           transform from the current endeffector pose to the final endeffector pose.
+            transform from the current endeffector pose to the final endeffector pose.
        'final_pose_orientation_quaternion' directly input the final pose translation and orientation.
        'next_timestep' input the params for the command saved in the dataset with translation,
-           sin theta, cos theta from the current time step to the next
+            sin theta, cos theta from the current time step to the next
        'endeffector_current_T_endeffector_final_vec_quat_7' use
-           the real reached gripper pose of the end effector to calculate
-           the transform from the current time step to the final time step
-           to generate the parameters [x, y, z, qx, qy, qz, qw].
+            the real reached gripper pose of the end effector to calculate
+            the transform from the current time step to the final time step
+            to generate the parameters [x, y, z, qx, qy, qz, qw].
     """)
 flags.DEFINE_string(
     'clear_view_image_feature', 'move_to_grasp/time_ordered/clear_view/rgb_image/preprocessed',
@@ -145,7 +152,8 @@ flags.DEFINE_string(
 
     """)
 flags.DEFINE_string(
-    'grasp_success_label', 'move_to_grasp/time_ordered/endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/preprocessed/grasp_success_yx_3',
+    'grasp_success_label',
+    'move_to_grasp/time_ordered/endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/preprocessed/grasp_success_yx_3',
     """Algorithm used to generate the grasp_success labels.
 
     Options include:
