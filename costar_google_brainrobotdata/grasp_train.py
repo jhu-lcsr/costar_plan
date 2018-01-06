@@ -267,8 +267,35 @@ class GraspTrain(object):
         scheduler = keras.callbacks.LearningRateScheduler(lr_scheduler)
         early_stopper = EarlyStopping(monitor=metric_name, min_delta=0.001, patience=32)
         csv_logger = CSVLogger(weights_name + '.csv')
-        checkpoint = keras.callbacks.ModelCheckpoint(weights_name + '-epoch-{epoch:03d}-loss-{' + loss_name + ':.3f}-acc-{' + metric_name + ':.3f}.h5',
-                                                     save_best_only=True, verbose=1, monitor=metric_name)
+        # TODO(ahundt) Re-enable results included in filename, need to fix the following error but this was skipped due to time constraints to start training:
+        """
+            Epoch 1/100
+            6493/6494 [============================>.] - ETA: 0s - loss: 0.7651 - grasp_segmentation_single_
+            pixel_accuracy: 0.5467Traceback (most recent call last):
+              File "grasp_train.py", line 343, in train
+                model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=callbacks)
+              File "/home/ahundt/src/keras/keras/engine/training.py", line 1658, in fit
+                validation_steps=validation_steps)
+              File "/home/ahundt/src/keras/keras/engine/training.py", line 1215, in _fit_loop
+                callbacks.on_epoch_end(epoch, epoch_logs)
+              File "/home/ahundt/src/keras/keras/callbacks.py", line 76, in on_epoch_end
+                callback.on_epoch_end(epoch, logs)
+              File "/home/ahundt/src/keras/keras/callbacks.py", line 401, in on_epoch_end
+                filepath = self.filepath.format(epoch=epoch + 1, **logs)
+            KeyError: 'grasp_segmentation_single_pixel_loss'
+            Traceback (most recent call last):
+              File "grasp_train.py", line 539, in <module>
+                main()
+              File "grasp_train.py", line 526, in main
+                model_name=FLAGS.grasp_model)
+              File "grasp_train.py", line 351, in train
+                raise e
+            KeyError: 'grasp_segmentation_single_pixel_loss'
+        """
+        # checkpoint = keras.callbacks.ModelCheckpoint(weights_name + '-epoch-{epoch:03d}-loss-{' + loss_name + ':.3f}-acc-{' + metric_name + ':.3f}.h5',
+        #                                              save_best_only=True, verbose=1, monitor=metric_name)
+        checkpoint = keras.callbacks.ModelCheckpoint(weights_name + '-epoch-{epoch:03d}.h5',
+                                                     save_best_only=False, verbose=1)
 
         callbacks = callbacks + [early_stopper, csv_logger, checkpoint]
 
@@ -339,7 +366,6 @@ class GraspTrain(object):
                       target_tensors=[grasp_success_op_batch])
 
         print('Available metrics: ' + str(model.metrics_names))
-        print('Available losses: ' + str(model.losses_names))
 
         model.summary()
 
