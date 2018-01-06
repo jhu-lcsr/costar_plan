@@ -9,6 +9,20 @@ Create an interactive session with a GPU to make sure your code and extensions a
 interact -n 6  -p gpu -g 1
 ```
 
+## User Configuration
+
+We recommend using byobu to maintain a persistent session. It may also help to run the [MARCC init script](../setup/init_marcc.sh).
+
+```
+# User specific aliases and functions
+module load gcc
+module load slurm 
+
+source ~/costar_plan/setup/init_marcc.sh
+[ -r /home-1/cpaxton3@jhu.edu/.byobu/prompt ] && . /home-1/cpaxton3@jhu.edu/.byobu/prompt
+```
+
+
 ## Training
 
 Run a training script with `sbatch`:

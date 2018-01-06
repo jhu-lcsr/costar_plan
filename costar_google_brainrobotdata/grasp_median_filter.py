@@ -3,9 +3,9 @@ from scipy.ndimage.filters import median_filter
 
 
 def grasp_dataset_median_filter(input_tensor, filter_height, filter_width):
-    """Median filter of tensor
-       input_tensor is 2D tensor tf.float32
-       filter_size is a tuple (x, y)
+    """ Median filter of tensor
+        input_tensor is 2D tensor tf.float32
+        filter_size is a tuple (x, y)
     """
     filter_size = (filter_height, filter_width)
     [filter_result] = tf.py_func(

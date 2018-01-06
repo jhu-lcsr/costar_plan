@@ -43,9 +43,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.tform_kernel_size  = [5,5]
         self.num_hypotheses = 4
         self.validation_split = 0.05
-        self.num_options = 48
         self.num_features = 4
-        self.null_option = 37
 
         # For the new model setup
         self.encoder_channels = 64
@@ -366,20 +364,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.predictor, self.train_predictor, self.actor, ins, hidden = \
             self._makePredictor(
                 (features, arm, gripper))
-
-    def _makeTrainTarget(self, I_target, q_target, g_target, o_target):
-        if I_target is not None:
-            length = I_target.shape[0]
-            image_shape = I_target.shape[1:]
-            image_size = 1
-            for dim in image_shape:
-                image_size *= dim
-            image_size = int(image_size)
-            Itrain = np.reshape(I_target,(length, image_size))
-            return np.concatenate([Itrain, q_target,g_target,o_target],axis=-1)
-        else:
-            length = q_target.shape[0]
-            return np.concatenate([q_target,g_target,o_target],axis=-1)
 
     def _getAllData(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             prev_label, goal_features, goal_arm, goal_gripper, value, *args, **kwargs):

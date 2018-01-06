@@ -62,7 +62,6 @@
     <visual>
       <geometry>
         <box size = "${robot_table_width} ${robot_table_length} ${robot_table_height}"/>
-        <!--<cylinder radius="0.0735" length="${robot_table_height}"/>-->
       </geometry>
       <material name="orange_transparent"/>
     </visual>

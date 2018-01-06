@@ -361,7 +361,10 @@ class CostarWorld(AbstractWorld):
         --------
         obj_list: a list of object identifiers (unique names)
         '''
-        return self.object_by_class[obj_class]
+        if obj_class in self.object_by_class:
+            return self.object_by_class[obj_class]
+        else:
+            return None
 
     def _dataToPose(self, data):
         '''
