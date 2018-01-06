@@ -87,8 +87,14 @@ def grasp_segmentation_single_pixel_loss(y_true, y_pred, loss=keras.losses.binar
 
 
 def grasp_segmentation_single_pixel_metric(y_true, y_pred, metric=keras.metrics.binary_accuracy, name=None):
-    if metric == keras.metrics.binary_accuracy:
+    if metric == keras.metrics.binary_accuracy and name is None:
         name = 'grasp_segmentation_single_pixel_accuracy'
     if name is None:
         name = 'grasp_segmentation_single_pixel_metric'
+    return grasp_segmentation_single_pixel_loss(y_true, y_pred, loss=metric, name=name)
+
+
+def grasp_segmentation_single_pixel_accuracy(y_true, y_pred, metric=keras.metrics.binary_accuracy, name=None):
+    if metric == keras.metrics.binary_accuracy and name is None:
+        name = 'grasp_segmentation_single_pixel_accuracy'
     return grasp_segmentation_single_pixel_loss(y_true, y_pred, loss=metric, name=name)

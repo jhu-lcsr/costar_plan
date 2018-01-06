@@ -241,7 +241,7 @@ class GraspTrain(object):
         metric_name = 'acc'
         if 'grasp_segmentation_single_pixel_accuracy' in metric:
             metric_name = metric
-            metric = grasp_loss.grasp_segmentation_single_pixel_metric
+            metric = grasp_loss.grasp_segmentation_single_pixel_accuracy
 
         callbacks = []
         if hvd is not None:
@@ -365,7 +365,7 @@ class GraspTrain(object):
              eval_results_file=FLAGS.eval_results_file,
              model_name=FLAGS.grasp_model,
              loss=FLAGS.loss,
-              metric=FLAGS.metric):
+             metric=FLAGS.metric):
         """Train the grasping dataset
 
         This function depends on https://github.com/fchollet/keras/pull/6928
@@ -429,8 +429,8 @@ class GraspTrain(object):
         if 'grasp_segmentation_single_pixel_loss' in loss:
             loss = grasp_loss.grasp_segmentation_single_pixel_loss
 
-        if 'grasp_segmentation_single_pixel_metric' in metric:
-            metric = grasp_loss.grasp_segmentation_single_pixel_metric
+        if 'grasp_segmentation_single_pixel_accuracy' in metric:
+            metric = grasp_loss.grasp_segmentation_single_pixel_accuracy
 
         model.compile(optimizer='sgd',
                       loss=loss,
