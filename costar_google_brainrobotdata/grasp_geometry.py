@@ -562,7 +562,7 @@ def grasp_dataset_to_transforms_and_features(
         camera_T_base,
         base_T_endeffector_current,
         base_T_endeffector_final,
-        gripper_z_offset=0.5,
+        gripper_z_offset=0.05,
         augmentation_rectangle=None,
         dtype=np.float32):
     """Extract transforms and features necessary to train from the grasping dataset.
