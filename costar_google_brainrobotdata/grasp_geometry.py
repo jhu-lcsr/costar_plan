@@ -483,12 +483,15 @@ def grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector, gripper_z_off
       camera_T_endeffector_ptrans, base_T_endeffector_ptrans, base_T_camera_ptrans
     """
     base_T_endeffector_ptrans = vector_quaternion_array_to_ptransform(base_T_endeffector)
+    random_int = np.random.randint(0, 1000)
+    tmp_array = np.array([base_T_endeffector_ptrans.translation()])
     if gripper_z_offset is not None and gripper_z_offset != 0.0:
         # add offset (meter) offset in z axis
         q = eigen.Quaterniond.Identity()
         v = eigen.Vector3d([0, 0, gripper_z_offset])
         pt_z_offset = sva.PTransformd(q, v)
-        base_T_endeffector_ptrans = base_T_endeffector_ptrans * pt_z_offset
+        base_T_endeffector_ptrans = pt_z_offset * base_T_endeffector_ptrans
+        print('before'+str(tmp_array)+'after'+str(random_int)+str(np.array([base_T_endeffector_ptrans.translation()])))
     # In this case camera_T_base is a transform that takes a point in the base
     # frame of reference and transforms it to the camera frame of reference.
     camera_T_base_ptrans = matrix_to_ptransform(camera_T_base)
@@ -559,7 +562,7 @@ def grasp_dataset_to_transforms_and_features(
         camera_T_base,
         base_T_endeffector_current,
         base_T_endeffector_final,
-        gripper_z_offset=0.05,
+        gripper_z_offset=0.5,
         augmentation_rectangle=None,
         dtype=np.float32):
     """Extract transforms and features necessary to train from the grasping dataset.

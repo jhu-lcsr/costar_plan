@@ -72,7 +72,7 @@ tf.flags.DEFINE_boolean('vrepDoNotReconnectOnceDisconnected', True, '')
 tf.flags.DEFINE_integer('vrepTimeOutInMs', 5000, 'Timeout in milliseconds upon which connection fails')
 tf.flags.DEFINE_integer('vrepCommThreadCycleInMs', 5, 'time between communication cycles')
 tf.flags.DEFINE_integer('vrepVisualizeGraspAttempt_min', 0, 'min grasp attempt to display from dataset, or -1 for no limit')
-tf.flags.DEFINE_integer('vrepVisualizeGraspAttempt_max', 5, 'max grasp attempt to display from dataset, exclusive, or -1 for no limit')
+tf.flags.DEFINE_integer('vrepVisualizeGraspAttempt_max', 1, 'max grasp attempt to display from dataset, exclusive, or -1 for no limit')
 tf.flags.DEFINE_string('vrepDebugMode', 'save_ply,print_transform',
                        """Options are: '', 'fixed_depth', 'save_ply', 'print_transform', 'print_drawLines'.
                        More than one option can be specified at a time with comma or space separation.""")
