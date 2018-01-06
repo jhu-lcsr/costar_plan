@@ -91,7 +91,7 @@ flags.DEFINE_boolean('resize', True,
                         resize_width and resize_height flags. It is suggested that an exact factor of 2 be used
                         relative to the input image directions if random_crop is disabled or the crop dimensions otherwise.
                      """)
-flags.DEFINE_float('gripper_z_offset_meters', 0.05,
+flags.DEFINE_float('gripper_z_offset_meters', 0.02,
                    """ Offset in gripper's z axis, so distance of pose in z axis changes.
                        default value 0.05.
                    """)
