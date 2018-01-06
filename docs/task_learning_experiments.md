@@ -25,5 +25,11 @@ This will run the `$COSTAR_PLAN/slurm/ctp.sh$ script with a few different argume
 ### Hidden State
 
 ```
-rosrun costar_models ctp_hidden.py --cpu --model conditional_image --data_file test2.h5f --features multi
+rosrun costar_models ctp_hidden.py --cpu --model conditional_image --data_file test2.h5f
+```
+
+### Transformation
+
+```
+rosrun costar_models ctp_transform.py --cpu --model conditional_image --data_file test2.h5f
 ```

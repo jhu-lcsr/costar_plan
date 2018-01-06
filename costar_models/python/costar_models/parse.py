@@ -104,7 +104,7 @@ def GetModelParser():
                         action="store_true")
     parser.add_argument('--features',
                         help="Specify feature function",
-                        default="null",
+                        default="multi",
                         choices=GetAvailableFeatures())
     parser.add_argument('--steps_per_epoch',
                         help="Steps per epoch (used with the generator-" + \
