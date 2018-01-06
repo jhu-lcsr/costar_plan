@@ -74,7 +74,7 @@ def grasp_segmentation_single_pixel_loss(y_true, y_pred, loss=keras.losses.binar
     if name is None:
         name = 'grasp_segmentation_single_pixel_loss'
     with K.name_scope(name=name) as scope:
-        label = y_true[:, :1]
+        label = tf.cast(y_true[:, :1], tf.float32)
         yx_coordinate = tf.cast(y_true[:, 1:], tf.int32)
         yx_shape = K.int_shape(yx_coordinate)
         sample_index = tf.expand_dims(tf.range(yx_shape[0]), axis=-1)
