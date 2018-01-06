@@ -937,7 +937,7 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
             output=False,)
 
     next_option_out = Dense(num_options,
-            activation="softmax", name="lnext",)(x1)
+            activation="sigmoid", name="lnext",)(x1)
     next_model = Model([x0in, xin, option_in], next_option_out, name="next")
     return next_model
 
@@ -991,7 +991,7 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     x1 = AddDense(x, dense_size, "lrelu", dropout_rate)
     x1 = AddDense(x1, dense_size, "lrelu", 0)
     value_out = Dense(1,
-            activation="linear", name="value",)(x1)
+            activation="sigmoid", name="value",)(x1)
     next_model = Model([x0in, xin, option_in], value_out, name="V")
     return next_model
 
@@ -1033,7 +1033,7 @@ def GetNextOptionAndValue(x, num_options, dense_size, dropout_rate=0.5, option_i
     x1 = AddDense(x, dense_size, "relu", 0)
     x1 = AddDense(x1, int(dense_size/2), "relu", 0)
     next_option_out = Dense(num_options,
-            activation="softmax", name="lnext",)(x1)
+            activation="sigmoid", name="lnext",)(x1)
 
     # Current value
     x2 = AddDense(x, int(dense_size/2), "relu", 0)
