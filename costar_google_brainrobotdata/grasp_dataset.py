@@ -92,7 +92,8 @@ flags.DEFINE_boolean('resize', True,
                         relative to the input image directions if random_crop is disabled or the crop dimensions otherwise.
                      """)
 flags.DEFINE_float('gripper_z_offset_meters', 0.02,
-                   """ Offset in gripper's z axis, so distance of pose in z axis changes.
+                   """ Offset of gripper's z axis in meters, so that in the final time
+                       step of grasp, the gripper reaches the object surface.
                        default value 0.02.
                    """)
 flags.DEFINE_boolean('image_augmentation', True,

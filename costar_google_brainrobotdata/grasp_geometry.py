@@ -483,7 +483,7 @@ def grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector, gripper_z_off
     """
     base_T_endeffector_ptrans = vector_quaternion_array_to_ptransform(base_T_endeffector)
     if gripper_z_offset is not None and gripper_z_offset != 0.0:
-        # add offset (meter) offset in z axis
+        # Add a z axis offset to the gripper frame, measured in meters.
         q = eigen.Quaterniond.Identity()
         v = eigen.Vector3d([0, 0, gripper_z_offset])
         pt_z_offset = sva.PTransformd(q, v)
