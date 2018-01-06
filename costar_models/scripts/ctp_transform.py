@@ -54,6 +54,8 @@ def visualizeHiddenMain(args):
         h = model.encode(features)
         prev_option = model.prevOption(features)
         img = model.debugImage(features)
+        null_option = np.ones_like(prev_option) * model.null_option
+        #p_a = model.pnext(h, null_option, features)
         p_a = model.pnext(h, prev_option, features)
         v = model.value(h, prev_option, features)
 

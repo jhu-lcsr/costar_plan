@@ -33,3 +33,4 @@ rosrun costar_models ctp_hidden.py --cpu --model conditional_image --data_file t
 ```
 rosrun costar_models ctp_transform.py --cpu --model conditional_image --data_file test2.h5f
 ```
+
