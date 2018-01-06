@@ -149,7 +149,11 @@ class LfD(object):
 
             model = self.skill_models[name]
             goal_type = instances[0].objs[-1]
-            goal = world.getObjects(goal_type)[0]
+            goals = world.getObjects(goal_type)
+            if goals is None:
+                continue
+            else:
+                goal = goals[0]
             goal_pose = world.getPose(goal)
             if verbose:
                 print(name,"goal is",goal_type,"and chose",goal)

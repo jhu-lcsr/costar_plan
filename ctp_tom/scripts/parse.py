@@ -68,6 +68,13 @@ def fakeTaskArgs():
     #'endpoint': ['l_ee_link', 'r_ee_link'],
     'endpoint': ['r_ee_link'],
     'high_table': ['tom_table'],
+    'screw': ['screw_1', 'screw_2'],
+    'Cube_blue': ['blue1'],
+    'Cube_red': ['red1'],
+    'Cube_green': ['green1'],
+    'Cube_yellow': ['yellow1'],
+    'top_wood': ['top_wood'],
+    'bottom_wood': ['bottom_wood'],
   }
   return args
 
