@@ -49,6 +49,7 @@ import grasp_geometry_tf
 import depth_image_encoding
 import random_crop as rcp
 import inception_preprocessing
+from grasp_median_filter import grasp_dataset_median_filter
 
 # DATASET LOADING CONFIGURATION COMMAND LINE PARAMETERS, see GraspDataset()
 flags.DEFINE_string('data_dir',
@@ -79,7 +80,7 @@ flags.DEFINE_integer('random_crop_width', 560,
                      """Width to randomly crop images, if enabled""")
 flags.DEFINE_integer('random_crop_height', 448,
                      """Height to randomly crop images, if enabled""")
-flags.DEFINE_boolean('random_crop', True,
+flags.DEFINE_boolean('random_crop', False,
                      """random_crop will apply the tf random crop function with
                         the parameters specified by random_crop_width and random_crop_height
                      """)
@@ -1237,7 +1238,7 @@ class GraspDataset(object):
                 image_features = GraspDataset.get_time_ordered_features(features, '/image/encoded')
                 image_features.extend(GraspDataset.get_time_ordered_features(features, 'depth_image/encoded'))
 
-            for image_feature in tqdm(image_features, desc='image_decode'):
+            for image_index, image_feature in tqdm(enumerate(image_features), desc='image_decode'):
                 image_buffer = tf.reshape(feature_op_dict[image_feature], shape=[])
                 if 'depth_image' in image_feature:
                     with tf.name_scope('depth'):
@@ -1258,15 +1259,16 @@ class GraspDataset(object):
                         image.set_shape([height, width])
                         # apply median filter to depth image
                         if FLAGS.median_filter:
+                            median_filter_name = 'depth_image/{0:3}/median_filtered'.format(image_index)
                             median_filter_image = grasp_dataset_median_filter(image, 
                             FLAGS.median_filter_height, FLAGS.median_filter_width)
-                            feature_op_dict['depth_image/median_filtered'] = median_filter_image
+                            feature_op_dict[median_filter_name] = median_filter_image
                         # depth images have one channel
                         if 'camera/intrinsics/matrix33' in feature_op_dict and point_cloud_fn is not None:
                             with tf.name_scope('xyz'):
                                 # generate xyz point cloud image feature
                                 if FLAGS.median_filter:
-                                    image = feature_op_dict['depth_image/median_filtered']
+                                    image = feature_op_dict[median_filter_name]
                                 if point_cloud_fn == 'tensorflow':
                                     # should be more efficient than the numpy version
                                     xyz_image = grasp_geometry_tf.depth_image_to_point_cloud(
