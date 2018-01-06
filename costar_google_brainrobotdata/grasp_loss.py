@@ -73,7 +73,7 @@ def grasp_segmentation_single_pixel_loss(y_true, y_pred, loss=keras.losses.binar
     yx_coordinate = tf.cast(y_true[:, 1:], tf.int32)
     yx_shape = K.int_shape(yx_coordinate)
     sample_index = tf.expand_dims(tf.range(yx_shape[0]), axis=-1)
-    byx_coordinate = tf.concat([sample_index, yx_coordinate], axis=-1)
+    byx_coordinate = tf.stack([sample_index, yx_coordinate], axis=-1)
     print('y_true: ', y_true, ' y_pred:', y_pred, ' yx_coordinate: ', yx_shape, ' sample_index: ', sample_index, ' byx_coordinate: ', byx_coordinate)
 
     # maybe need to transpose yx_coordinate?
