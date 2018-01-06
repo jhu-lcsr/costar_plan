@@ -101,7 +101,8 @@ flags.DEFINE_string('optimizer', 'SGD', """Options are Adam and SGD.""")
 flags.DEFINE_string('progress_tracker', None,
                     """Utility to follow training progress, options are tensorboard and None.""")
 flags.DEFINE_string('loss', 'grasp_segmentation_single_pixel_loss', """Options are binary_crossentropy and grasp_segmentation_single_pixel_loss.""")
-flags.DEFINE_string('metric', 'grasp_segmentation_single_pixel_metric', """Options are accuracy, binary_accuracy and grasp_segmentation_single_pixel_metric.""")
+flags.DEFINE_string('metric', 'grasp_segmentation_single_pixel_accuracy',
+                    """Options are accuracy, binary_accuracy and grasp_segmentation_single_pixel_accuracy.""")
 
 flags.FLAGS._parse_flags()
 FLAGS = flags.FLAGS
