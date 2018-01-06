@@ -325,9 +325,6 @@ class GraspTrain(object):
             input_image_shape=input_image_shape,
             dropout_rate=dropout_rate)
 
-        print('Available metrics: ' + str(model.metrics_names))
-        print('Available losses: ' + str(model.losses_names))
-
         if(load_weights):
             if os.path.isfile(load_weights):
                 model.load_weights(load_weights)
@@ -340,6 +337,9 @@ class GraspTrain(object):
                       loss=loss,
                       metrics=[metric],
                       target_tensors=[grasp_success_op_batch])
+
+        print('Available metrics: ' + str(model.metrics_names))
+        print('Available losses: ' + str(model.losses_names))
 
         model.summary()
 
