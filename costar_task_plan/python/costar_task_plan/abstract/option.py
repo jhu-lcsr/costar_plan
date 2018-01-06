@@ -13,12 +13,25 @@ problems. The important functions here are:
 '''
 class AbstractOption(object):
 
-  def __init__(self, name=""):
+  def __init__(self, name="", hidden=False):
+    '''
+    Create a generic version of an action that can be instantiated to generate
+    a task plan based on a specification.
+
+    Parameters:
+    -----------
+    name: a short unique description of this option
+    hidden: flag that determines if this option is an "official" part of the
+            task model for data collection and analysis purposes. Examples of
+            hidden options would be calls to (slow) object detection code, or
+            code that performs some action to verify success or failure.
+    '''
     self.name = name
     self.preconditions = []
     self.postconditions = []
     self.frequency = None
     self.weight = 0.
+    self.hidden = hidden
 
   @property
   def get_name(self):
