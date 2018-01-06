@@ -145,7 +145,7 @@ flags.DEFINE_string(
 
     """)
 flags.DEFINE_string(
-    'grasp_success_label', 'move_to_grasp/time_ordered/grasp_success',
+    'grasp_success_label', 'move_to_grasp/time_ordered/endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/preprocessed/grasp_success_yx_3',
     """Algorithm used to generate the grasp_success labels.
 
     Options include:
