@@ -151,12 +151,13 @@ flags.DEFINE_string(
     Options include:
 
         'move_to_grasp/time_ordered/grasp_success':
-            binary scalar, 1 for success 0 for failure
+            binary scalar, 1 for success 0 for failure. Pre-organized by time step to ease training,
+            but is identical to 'grasp_success' repeated once for each time step.
         'move_to_grasp/time_ordered/endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/preprocessed/grasp_success_yx_3':
             [grasp_success, y_coordinate, x_coordinate], grasp_success is 1 for success, 0 for failure,
             y_coordinate, x_coordinate is the gripper coordinate in the image at the time step when the gripper closed.
             This is useful for pixel-wise labeling of grasp attempts.
-        'grasp_success': binary scalar, 1 for success 0 for failure
+        'grasp_success': binary scalar, 1 for success 0 for failure, this is the single label for each complete grasp attempt.
         grasp_success_binary_2D: Apply a constant label at every input pixel.
             (Not yet implemented.)
         grasp_success_gaussian_2d: Apply a 0 to 1 label at every input pixel
