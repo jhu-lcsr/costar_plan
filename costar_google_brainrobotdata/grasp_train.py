@@ -141,6 +141,8 @@ class GraspTrain(object):
             if hvd is not None:
                 # Pin GPU to be used to process local rank (one GPU per process)
                 config.gpu_options.visible_device_list = str(hvd.local_rank())
+            config.inter_op_parallelism_threads = 40
+            config.intra_op_parallelism_threads = 40
             tf_session = tf.Session(config=config)
             K.set_session(tf_session)
 
