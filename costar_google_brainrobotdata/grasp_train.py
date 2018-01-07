@@ -1,10 +1,20 @@
 """Code for training models on the google brain robotics grasping dataset.
 
+Grasping Dataset:
 https://sites.google.com/site/brainrobotdata/home/grasping-dataset
 
 Author: Andrew Hundt <ATHundt@gmail.com>
 
 License: Apache v2 https://www.apache.org/licenses/LICENSE-2.0
+
+
+To see help detailing how to run this training script run:
+
+    python grasp_train.py -h
+
+Command line arguments are handled with the [tf flags API](https://github.com/tensorflow/tensorflow/blob/r1.4/tensorflow/python/platform/flags.py),
+which is a simple wrapper around argparse.
+
 """
 import os
 import sys
@@ -116,6 +126,24 @@ def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
 
 class GraspTrain(object):
 
+    def __init__(self, tf_session=None):
+        """ Create GraspTrain object
+
+            This function configures Keras and the tf session if the tf_session parameter is None.
+        """
+        if hvd is not None:
+            # Initialize Horovod.
+            hvd.init()
+
+        if tf_session is None:
+            config = tf.ConfigProto()
+            config.gpu_options.allow_growth = True
+            if hvd is not None:
+                # Pin GPU to be used to process local rank (one GPU per process)
+                config.gpu_options.visible_device_list = str(hvd.local_rank())
+            tf_session = tf.Session(config=config)
+            K.set_session(tf_session)
+
     def train(self, dataset=FLAGS.grasp_datasets_train,
               grasp_datasets_batch_algorithm=FLAGS.grasp_datasets_batch_algorithm,
               batch_size=FLAGS.batch_size,
@@ -155,17 +183,6 @@ class GraspTrain(object):
                 this affects the memory consumption of the system when training, but if it fits into memory
                 you almost certainly want the value to be None, which includes every image.
         """
-
-        if hvd is not None:
-            # Initialize Horovod.
-            hvd.init()
-
-        # Pin GPU to be used to process local rank (one GPU per process)
-        config = tf.ConfigProto()
-        config.gpu_options.allow_growth = True
-        config.gpu_options.visible_device_list = str(hvd.local_rank())
-        K.set_session(tf.Session(config=config))
-
         datasets = dataset.split(',')
         (pregrasp_op_batch,
          grasp_step_op_batch,
@@ -502,55 +519,94 @@ class GraspTrain(object):
         return weights_name_str
 
 
-def main():
-    config = tf.ConfigProto()
-    config.inter_op_parallelism_threads = 40
-    config.intra_op_parallelism_threads = 40
-    config.gpu_options.allow_growth = True
-    session = tf.Session(config=config)
-    K.set_session(session)
-    with K.get_session() as sess:
-        # Launch the training script for the particular model specified on the command line
-        # or via the default flag value
-        load_weights = FLAGS.load_weights
-        if FLAGS.grasp_model == 'grasp_model_resnet':
-            def make_model_fn(*a, **kw):
-                return grasp_model.grasp_model_resnet(
-                    *a, **kw)
-        elif FLAGS.grasp_model == 'grasp_model_pretrained':
-            def make_model_fn(*a, **kw):
-                return grasp_model.grasp_model_pretrained(
-                    growth_rate=FLAGS.densenet_growth_rate,
-                    reduction=FLAGS.densenet_reduction_after_pretrained,
-                    dense_blocks=FLAGS.densenet_dense_blocks,
-                    *a, **kw)
-        elif FLAGS.grasp_model == 'grasp_model_single':
-            def make_model_fn(*a, **kw):
-                return grasp_model.grasp_model(
-                    growth_rate=FLAGS.densenet_growth_rate,
-                    reduction=FLAGS.densenet_reduction,
-                    dense_blocks=FLAGS.densenet_dense_blocks,
-                    depth=FLAGS.densenet_depth,
-                    *a, **kw)
-        elif FLAGS.grasp_model == 'grasp_model_segmentation':
-            def make_model_fn(*a, **kw):
-                return grasp_model.grasp_model_segmentation(
-                    growth_rate=FLAGS.densenet_growth_rate,
-                    reduction=FLAGS.densenet_reduction,
-                    dense_blocks=FLAGS.densenet_dense_blocks,
-                    *a, **kw)
-        elif FLAGS.grasp_model == 'grasp_model_levine_2016':
-            def make_model_fn(*a, **kw):
-                return grasp_model.grasp_model_levine_2016(
-                    *a, **kw)
-        else:
-            available_functions = globals()
-            if FLAGS.grasp_model in available_functions:
-                make_model_fn = available_functions[FLAGS.grasp_model]
-            else:
-                raise ValueError('unknown model selected: {}'.format(FLAGS.grasp_model))
+def define_make_model_fn(grasp_model=FLAGS.grasp_model):
+    """ Get command line specified function that will be used later to the Keras Model object.
 
-        gt = GraspTrain()
+        This function seems a little odd, so please bear with me.
+        Instead of generating the model directly, This creates and
+        returns a function that will instantiate the model which
+        can be called later. In python, functions can actually
+        be created and passed around just like any other object.
+
+        Why make a function instead of just creating the model directly now?
+
+        This lets us write custom code that sets up the model
+        you asked for in the `--grasp_model` command line argument,
+        FLAGS.grasp_model. This means that when GraspTrain actually
+        creates the model they will all work in exactly the same way.
+        The end result is GraspTrain doesn't need a bunch of if
+        statements for every type of model, and the class can be more focused
+        on the grasping datasets and training code.
+
+        # Arguments:
+
+            grasp_model:
+                The name of the grasp model to use. Options are
+                'grasp_model_resnet'
+                'grasp_model_pretrained'
+                'grasp_model_single'
+                'grasp_model_segmentation'
+                'grasp_model_levine_2016'
+
+    """
+    if grasp_model == 'grasp_model_resnet':
+        def make_model_fn(*a, **kw):
+            return grasp_model.grasp_model_resnet(
+                *a, **kw)
+    elif grasp_model == 'grasp_model_pretrained':
+        def make_model_fn(*a, **kw):
+            return grasp_model.grasp_model_pretrained(
+                growth_rate=FLAGS.densenet_growth_rate,
+                reduction=FLAGS.densenet_reduction_after_pretrained,
+                dense_blocks=FLAGS.densenet_dense_blocks,
+                *a, **kw)
+    elif grasp_model == 'grasp_model_single':
+        def make_model_fn(*a, **kw):
+            return grasp_model.grasp_model(
+                growth_rate=FLAGS.densenet_growth_rate,
+                reduction=FLAGS.densenet_reduction,
+                dense_blocks=FLAGS.densenet_dense_blocks,
+                depth=FLAGS.densenet_depth,
+                *a, **kw)
+    elif grasp_model == 'grasp_model_segmentation':
+        def make_model_fn(*a, **kw):
+            return grasp_model.grasp_model_segmentation(
+                growth_rate=FLAGS.densenet_growth_rate,
+                reduction=FLAGS.densenet_reduction,
+                dense_blocks=FLAGS.densenet_dense_blocks,
+                *a, **kw)
+    elif grasp_model == 'grasp_model_levine_2016':
+        def make_model_fn(*a, **kw):
+            return grasp_model.grasp_model_levine_2016(
+                *a, **kw)
+    else:
+        available_functions = globals()
+        if FLAGS.grasp_model in available_functions:
+            make_model_fn = available_functions[FLAGS.grasp_model]
+        else:
+            raise ValueError('unknown model selected: {}'.format(FLAGS.grasp_model))
+    return make_model_fn
+
+
+def main():
+    """Launch the training and/or evaluation script for the particular model specified on the command line.
+    """
+
+    # create the object that does training and evaluation
+    # The init() function configures Keras and the tf session if the tf_session parameter is None.
+    gt = GraspTrain()
+
+    with K.get_session() as sess:
+        # Read command line arguments selecting the Keras model to train.
+        # The specific Keras Model varies based on the command line arguments.
+        # Based on the selection define_make_model_fn()
+        # will create a function that can be called later
+        # to actually create a Keras Model object.
+        # This is done so GraspTrain doesn't need specific code for every possible Keras Model.
+        make_model_fn = define_make_model_fn()
+
+        # Weights file to load, if any
+        load_weights = FLAGS.load_weights
 
         # train the model
         if 'train' in FLAGS.pipeline_stage:
@@ -566,7 +622,6 @@ def main():
                     load_weights=load_weights,
                     model_name=FLAGS.grasp_model)
         return None
-
 
 if __name__ == '__main__':
     FLAGS._parse_flags()
