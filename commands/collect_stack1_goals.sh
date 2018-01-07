@@ -8,7 +8,7 @@ rosrun costar_bullet $1 \
   -i 10000 --features multi  --verbose \
   --seed 0 \
   --cpu \
-  --save --data_file newdata.h5f \
+  --save --data_file data.h5f \
   --collection_mode goal
 
 # NOTE: removing this flag now that we are predicting both successful and
