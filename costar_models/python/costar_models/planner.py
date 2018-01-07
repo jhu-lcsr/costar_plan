@@ -175,7 +175,7 @@ def TileOnto(x,z,zlen,xsize,add=False):
 def TileArmAndGripper(x, arm_in, gripper_in, tile_width, tile_height,
         option=None, option_in=None,
         time_distributed=None, dim=64,
-        concatenate=False):
+        concatenate=True):
     arm_size = int(arm_in.shape[-1])
     gripper_size = int(gripper_in.shape[-1])
 
