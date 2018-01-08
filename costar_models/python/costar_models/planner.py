@@ -33,7 +33,8 @@ out: an output tensor
 '''
 
 def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
-        lrelu=False, bn=True, momentum=0.9, name=None, constraint=None):
+        lrelu=False, bn=True, momentum=0.9, name=None, constraint=None,
+        activation=None):
     '''
     Helper for creating networks. This one will add a convolutional block.
 
@@ -63,14 +64,18 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
         if name is not None:
             kwargs['name'] = "%s_bn"%name
         x = BatchNormalization(momentum=momentum, **kwargs)(x)
-    if lrelu:
+    if lrelu or activation == "lrelu":
         if name is not None:
             kwargs['name'] = "%s_lrelu"%name
         x = LeakyReLU(alpha=0.2, **kwargs)(x)
+    elif activation is not None:
+        if name is not None:
+            kwargs['name'] = "%s_%s"%(name,activation)
+        x = Activation(activation, **kwargs)(x)
     else:
         if name is not None:
             kwargs['name'] = "%s_relu"%name
-        x = Activation("relu")(x)
+        x = Activation("relu", **kwargs)(x)
     if dropout_rate > 0:
         if name is not None:
             kwargs['name'] = "%s_dropout%f"%(name, dropout_rate)

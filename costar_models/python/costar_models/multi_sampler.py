@@ -917,13 +917,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
               we handle things slightly differently.
         '''
         img = Input(img_shape,name="img_encoder_in")
-        img0 = Input(img_shape,name="img0_encoder_in")
-        dr = self.dropout_rate
+        #img0 = Input(img_shape,name="img0_encoder_in")
+        dr = self.dropout_rate * 0.
         x = img
-        x0 = img0
+        #x0 = img0
         x = AddConv2D(x, 32, [7,7], 1, dr, "same", lrelu=disc, bn=(not disc))
-        x0 = AddConv2D(x0, 32, [7,7], 1, dr, "same", lrelu=disc, bn=(not disc))
-        x = Concatenate(axis=-1)([x,x0])
+        #x0 = AddConv2D(x0, 32, [7,7], 1, dr, "same", lrelu=disc, bn=(not disc))
+        #x = Concatenate(axis=-1)([x,x0])
 
         x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=disc, bn=(not disc))
         x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=(not disc))
@@ -952,14 +952,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         if not disc:
 
-            image_encoder = Model([img, img0], x, name="Ienc")
+            image_encoder = Model([img], x, name="Ienc")
             image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
             self.image_encoder = image_encoder
         else:
             x = Flatten()(x)
             x = AddDense(x, 512, "lrelu", dr, output=True)
             x = AddDense(x, self.num_options, "softmax", 0., output=True)
-            image_encoder = Model([img, img0], x, name="Idisc")
+            image_encoder = Model([img], x, name="Idisc")
             image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
             self.image_discriminator = image_encoder
         return image_encoder
@@ -979,7 +979,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         x = rep
         if self.hypothesis_dropout:
-            dr = self.decoder_dropout_rate
+            dr = self.decoder_dropout_rate * 0.
         else:
             dr = 0.
         

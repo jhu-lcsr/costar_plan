@@ -81,6 +81,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         [img, q, g, oin, q_target, g_target,] = features
         return [img], [img]
 
+    """
     def _makeImageEncoder(self, img_shape):
         '''
         create image-only encoder to extract keypoints from the scene.
@@ -119,6 +120,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         image_encoder.summary()
         self.image_encoder = image_encoder
         return image_encoder
+    """
 
     def _makeImageDiscriminator(self, img_shape):
         '''
@@ -140,17 +142,18 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=True)
 #        x = AddConv2D(x, 128, [5,5], 1, dr, "same", lrelu=True)
         x = AddConv2D(x, 256, [5,5], 2, dr, "same", lrelu=True)
+        x = AddConv2D(x, 1, [5,5], 1, 0., "same", activation="sigmoid")
+        x = MaxPooling(pool_size=(8,8))(x)
 
-        x = Flatten()(x)
-
-        #x = AddDense(x, 512, "lrelu", dr, output=True)
-        x = AddDense(x, 1, "sigmoid", 0, output=True)
+        #x = Flatten()(x)
+        #x = AddDense(x, 1, "sigmoid", 0, output=True)
         discrim = Model(ins, x, name="image_discriminator")
         discrim.compile(loss="logcosh", loss_weights=[1],
                 optimizer=self.getOptimizer())
         self.image_discriminator = discrim
         return discrim
 
+    """
     def _makeImageDecoder(self, hidden_shape, img_shape=None, skip=False):
         '''
         helper function to construct a decoder that will make images.
@@ -191,6 +194,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         decoder.compile(loss="logcosh",optimizer=self.getOptimizer())
         self.image_decoder = decoder
         return decoder
+    """
 
     def _fit(self, train_generator, test_generator, callbacks):
 

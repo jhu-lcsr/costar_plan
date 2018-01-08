@@ -51,6 +51,7 @@ class ConditionalImage(PredictionSampler2):
         self.num_transforms = 3
         self.do_all = True
         self.transform_model = None
+        self.skip_connections = False
 
     def _makeTransform(self):
         h = Input((8,8,self.encoder_channels),name="h_in")
@@ -101,20 +102,25 @@ class ConditionalImage(PredictionSampler2):
         label_in = Input((1,))
         ins = [img0_in, img_in]
 
-        if self.skip_connections and False:
+        if self.skip_connections:
             encoder = self._makeImageEncoder2(img_shape)
         else:
             encoder = self._makeImageEncoder(img_shape)
+            encoder0 = self._makeImageEncoder(img_shape, copy=True)
         try:
             encoder.load_weights(self._makeName(
                 "pretrain_image_encoder_model",
                 "image_encoder.h5f"))
             encoder.trainable = self.retrain
+            encoder0.load_weights(self._makeName(
+                "pretrain_image_encoder_model",
+                "image_encoder.h5f"))
+            encoder0.trainable = True
         except Exception as e:
             if not self.retrain:
                 raise e
 
-        if self.skip_connections and False:
+        if self.skip_connections:
             decoder = self._makeImageDecoder2(self.hidden_shape)
         else:
             decoder = self._makeImageDecoder(self.hidden_shape)
@@ -130,7 +136,7 @@ class ConditionalImage(PredictionSampler2):
         # =====================================================================
         # Load the arm and gripper representation
 
-        if self.skip_connections and False:
+        if self.skip_connections:
             h, s32, s16, s8 = encoder([img0_in, img_in])
         else:
             h = encoder([img_in, img0_in])
