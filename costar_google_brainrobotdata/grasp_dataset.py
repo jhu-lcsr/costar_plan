@@ -1827,7 +1827,7 @@ class GraspDataset(object):
         # All time ordered features must have the same length for ease of use
         for (feature, time_ordered_features) in six.iteritems(time_ordered_feature_name_dict):
             if not len(time_ordered_features) == num_time_steps:
-                print('WARNING: expected ' + str(len(time_ordered_features)) + ' time steps but found ' + str(num_time_steps) +
+                print('WARNING: expected ' + str(num_time_steps) + ' time steps but found ' + str(len(time_ordered_features)) +
                       ' in feature: ' + feature + ' in dataset ' + self.dataset +
                       ' check get_training_dictionaries().'.join(traceback.format_stack()))
 
