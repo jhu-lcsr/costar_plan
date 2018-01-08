@@ -101,7 +101,10 @@ class ConditionalImage(PredictionSampler2):
         label_in = Input((1,))
         ins = [img0_in, img_in]
 
-        encoder = self._makeImageEncoder2(img_shape)
+        if self.skip_connections and False:
+            encoder = self._makeImageEncoder2(img_shape)
+        else:
+            encoder = self._makeImageEncoder(img_shape)
         try:
             encoder.load_weights(self._makeName(
                 "pretrain_image_encoder_model",
@@ -111,7 +114,7 @@ class ConditionalImage(PredictionSampler2):
             if not self.retrain:
                 raise e
 
-        if self.skip_connections or True:
+        if self.skip_connections and False:
             decoder = self._makeImageDecoder2(self.hidden_shape)
         else:
             decoder = self._makeImageDecoder(self.hidden_shape)
@@ -127,8 +130,11 @@ class ConditionalImage(PredictionSampler2):
         # =====================================================================
         # Load the arm and gripper representation
 
-        h, s32, s16, s8 = encoder([img0_in, img_in])
-        #h0 = encoder(img0_in)
+        if self.skip_connections and False:
+            h, s32, s16, s8 = encoder([img0_in, img_in])
+        else:
+            h = encoder([img_in, img0_in])
+            #h0 = encoder(img0_in)
 
         next_model = GetNextModel(h, self.num_options, 128,
                 self.decoder_dropout_rate)
