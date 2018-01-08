@@ -48,6 +48,8 @@
   <build_depend>ur_description</build_depend>
   <build_depend>costar_gazebo_plugins</build_depend>
   <build_depend>ur_gazebo</build_depend>
+  <build_depend>fetch_gazebo</build_depend>
+  <build_depend>simple_grasping</build_depend>
 
   <run_depend>costar_gazebo_plugins</run_depend>
   <run_depend>costar_task_plan</run_depend>
@@ -58,6 +60,8 @@
   <run_depend>ur_description</run_depend>
   <run_depend>ur_gazebo</run_depend>
   <run_depend>ur5_moveit_config</run_depend>
+  <run_depend>fetch_gazebo</run_depend>
+  <run_depend>simple_grasping</run_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
