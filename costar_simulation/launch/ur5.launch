@@ -19,9 +19,12 @@
   <!--<include file="$(find ur5_moveit_config)/launch/planning_context.launch">
     <arg name="load_robot_description" value="false"/>
   </include>-->
-  <include if="$(arg start_move_group)" file="$(find ur5_moveit_config)/launch/move_group.launch">
+  <!--include if="$(arg start_move_group)" file="$(find ur5_moveit_config)/launch/move_group.launch">
     <param name="allow_trajectory_execution" value="false"/>
     <param name="fake_execution" value="true"/>
+  </include-->
+  <include if="$(arg start_move_group)" file="$(find ur5_moveit_config)/launch/ur5_moveit_planning_execution.launch">
+    <arg name="sim" value="true"/>
   </include>
 
   <!-- push robot_description to factory and spawn robot in gazebo -->
@@ -35,9 +38,5 @@
   <!--Camera Pipeline -->
   <include file="$(find costar_simulation)/launch/camera.launch.xml" />
 
-  <!-- Bring up Gazebo controllers for the UR5 robot -->
-  <include file="$(find ur_gazebo)/launch/controller_utils.launch"/>
-  <rosparam file="$(find ur_gazebo)/controller/arm_controller_ur5.yaml" command="load"/>
-  <node name="arm_controller_spawner" pkg="controller_manager" type="controller_manager" args="spawn arm_controller" respawn="false" output="screen"/>
 
 </launch>
