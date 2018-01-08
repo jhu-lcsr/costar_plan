@@ -307,28 +307,31 @@ def grasp_model_segmentation(clear_view_image_op=None,
                              growth_rate=12,
                              reduction=0.5,
                              dense_blocks=4,
-                             dropout_rate=0.0):
+                             dropout_rate=0.0,
+                             activation='sigmoid',
+                             classes=1):
     if input_vector_op_shape is None:
         input_vector_op_shape = input_vector_op.get_shape().as_list()
     if input_image_shape is None:
         input_image_shape = [512, 640, 3]
 
     if input_vector_op is not None:
-        ims = tf.shape(clear_view_image_op)
-        ivs = tf.shape(input_vector_op)
-        input_vector_op = tf.reshape(input_vector_op, [1, 1, 1, ivs[0]])
-        input_vector_op = tf.tile(input_vector_op, tf.stack([ims[0], ims[1], ims[2], ivs[0]]))
+        combined_input_data = concat_images_with_tiled_vector([clear_view_image_op, current_time_image_op], input_vector_op)
+        combined_input_shape = K.int_shape(combined_input_data)
 
-    combined_input_data = tf.concat([clear_view_image_op, input_vector_op, current_time_image_op], -1)
-    combined_input_shape = input_image_shape
-    combined_input_shape[-1] = combined_input_shape[-1] * 2 + input_vector_op_shape[0]
+    # the input shape should be a tuple of 3 values
+    # if the batch size is present, strip it out
+    # for call to ResNet constructor.
+    if len(combined_input_shape) == 4:
+        combined_input_shape = combined_input_shape[1:]
     model = DenseNetFCN(input_shape=combined_input_shape,
                         include_top='global_average_pooling',
                         input_tensor=combined_input_data,
-                        activation='sigmoid',
+                        activation=activation,
                         growth_rate=growth_rate,
                         reduction=reduction,
-                        nb_dense_block=dense_blocks)
+                        nb_dense_block=dense_blocks,
+                        classes=classes)
     return model
 
 
