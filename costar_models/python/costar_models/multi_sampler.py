@@ -917,8 +917,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
               we handle things slightly differently.
         '''
         img = Input(img_shape,name="img_encoder_in")
+        img0 = Input(img_shape,name="img0_encoder_in")
         dr = self.dropout_rate
         x = img
+        x0 = img0
+        x = AddConv2D(x, 32, [7,7], 1, dr, "same", lrelu=disc, bn=(not disc))
+        x0 = AddConv2D(x0, 32, [7,7], 1, dr, "same", lrelu=disc, bn=(not disc))
+        x = Concatenate(axis=-1)([x,x0])
+
         x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=disc, bn=(not disc))
         x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=(not disc))
         x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=(not disc))
@@ -946,22 +952,19 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         if not disc:
 
-            if self.skip_connections:
-                image_encoder = Model([img], [x, y], name="Ienc")
-            else:
-                image_encoder = Model([img], x, name="Ienc")
+            image_encoder = Model([img, img0], x, name="Ienc")
             image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
             self.image_encoder = image_encoder
         else:
             x = Flatten()(x)
             x = AddDense(x, 512, "lrelu", dr, output=True)
             x = AddDense(x, self.num_options, "softmax", 0., output=True)
-            image_encoder = Model([img], x, name="Idisc")
+            image_encoder = Model([img, img0], x, name="Idisc")
             image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
             self.image_discriminator = image_encoder
         return image_encoder
 
-    def _makeImageDecoder(self, hidden_shape, img_shape=None, skip=False):
+    def _makeImageDecoder(self, hidden_shape, img_shape=None, copy=False):
         '''
         helper function to construct a decoder that will make images.
 
@@ -974,10 +977,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         else:
             rep = Input(hidden_shape,name="decoder_hidden_in")
 
-        if skip:
-            skip1 = Input((32,32,32),name="decoder_skip_in_1")
-            #skip2 = Input((16,16,32),name="decoder_skip_in_2")
-            #skip3 = Input((8,8,32),name="decoder_skip_in_3")
         x = rep
         if self.hypothesis_dropout:
             dr = self.decoder_dropout_rate
@@ -1001,16 +1000,16 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = AddConv2DTranspose(x, 32, [5,5], 1, 0.)
         x = AddConv2DTranspose(x, 32, [5,5], 2, dr)
         x = AddConv2DTranspose(x, 32, [5,5], 1, 0.)
-        if self.skip_connections and img_shape is not None:
-            x = Concatenate(axis=-1)([x, skip])
-            ins = [rep, skip]
-        else:
-            ins = rep
+        ins = rep
         x = Conv2D(3, kernel_size=[1,1], strides=(1,1),name="convert_to_rgb")(x)
         x = Activation("sigmoid")(x)
-        decoder = Model(ins, x, name="Idec")
-        decoder.compile(loss="mae",optimizer=self.getOptimizer())
-        self.image_decoder = decoder
+        if not copy:
+            decoder = Model(ins, x, name="Idec")
+            decoder.compile(loss="mae",optimizer=self.getOptimizer())
+            self.image_decoder = decoder
+        else:
+            decoder = Model(ins, x,)
+            decoder.compile(loss="mae",optimizer=self.getOptimizer())
         return decoder
 
     def _makeImageEncoder2(self, img_shape, disc=False):
