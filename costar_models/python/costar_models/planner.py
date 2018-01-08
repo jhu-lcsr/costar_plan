@@ -842,7 +842,7 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
     x = xin
     if len(x.shape) > 2:
         # Project
-        x = AddConv2D(x, 32, [5,5], 1, dropout_rate, "same",
+        x = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
                 bn=batchnorm,
                 lrelu=True,
                 name="A_project",
@@ -851,20 +851,20 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
         x = TileOnto(x, option_in, num_options, x.shape[1:3])
 
         # conv down
-        x = AddConv2D(x, 64, [5,5], 1, dropout_rate, "same",
+        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
                 bn=batchnorm,
                 lrelu=True,
                 name="A_C64A",
                 constraint=None)
         # conv across
-        x = AddConv2D(x, 64, [5,5], 1, dropout_rate, "same",
+        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
                 bn=batchnorm,
                 lrelu=True,
                 name="A_C64B",
                 constraint=None)
 
 
-        x = AddConv2D(x, 32, [5,5], 1, dropout_rate, "same",
+        x = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
                 bn=batchnorm,
                 lrelu=True,
                 name="A_C32A",
