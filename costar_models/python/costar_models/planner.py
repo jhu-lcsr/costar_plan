@@ -890,9 +890,10 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     '''
 
     xin = Input([int(d) for d in x.shape[1:]], name="Nx_prev_h_in")
-    x0in = Input([int(d) for d in x.shape[1:]], name="Nx_prev_h0_in")
+    #x0in = Input([int(d) for d in x.shape[1:]], name="Nx_prev_h0_in")
     option_in = Input((1,), name="Nx_prev_o_in")
-    x = Concatenate()([x0in, xin])
+    x = xin
+    #x = Concatenate()([x0in, xin])
     if len(x.shape) > 2:
 
         # Project
@@ -940,7 +941,8 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
 
     next_option_out = Dense(num_options,
             activation="sigmoid", name="lnext",)(x1)
-    next_model = Model([x0in, xin, option_in], next_option_out, name="next")
+    #next_model = Model([x0in, xin, option_in], next_option_out, name="next")
+    next_model = Model([xin, option_in], next_option_out, name="next")
     return next_model
 
 def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
@@ -949,9 +951,10 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     '''
 
     xin = Input([int(d) for d in x.shape[1:]], name="V_prev_h_in")
-    x0in = Input([int(d) for d in x.shape[1:]], name="V_prev_h0_in")
+    #x0in = Input([int(d) for d in x.shape[1:]], name="V_prev_h0_in")
     option_in = Input((1,), name="V_prev_o_in")
-    x = Concatenate()([x0in, xin])
+    x = xin
+    #x = Concatenate()([x0in, xin])
     if len(x.shape) > 2:
 
         # Project
@@ -994,7 +997,8 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     x1 = AddDense(x1, dense_size, "lrelu", 0)
     value_out = Dense(1,
             activation="sigmoid", name="value",)(x1)
-    next_model = Model([x0in, xin, option_in], value_out, name="V")
+    #next_model = Model([x0in, xin, option_in], value_out, name="V")
+    next_model = Model([xin, option_in], value_out, name="V")
     return next_model
 
 
