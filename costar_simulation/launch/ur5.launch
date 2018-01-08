@@ -34,6 +34,8 @@
 
   <node name="simple_gripper_action_server"
         pkg="costar_simulation"
-        type="robotiq_gripper_action_server"/>
+        type="robotiq_gripper_action_server.py"/>
+
+  <include file="$(find costar_simulation)/launch/rviz.launch" />
 
 </launch>
