@@ -464,7 +464,7 @@ def grasp_dataset_ptransform_to_vector_sin_theta_cos_theta(ptransform, dtype=np.
     return vector_sin_theta_cos_theta
 
 
-def grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector):
+def grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector, gripper_z_offset=None):
     """Convert brainrobotdata features camera_T_base and base_T_endeffector to camera_T_endeffector and ptransforms.
 
     This specific function exists because it accepts the raw feature types
@@ -474,6 +474,7 @@ def grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector):
 
     camera_T_base: a vector quaternion array
     base_T_endeffector: a 4x4 homogeneous 3D transformation matrix
+    gripper_z_offset: a float offset in meters in gripper's z axis
 
     # Returns
 
@@ -481,6 +482,12 @@ def grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector):
       camera_T_endeffector_ptrans, base_T_endeffector_ptrans, base_T_camera_ptrans
     """
     base_T_endeffector_ptrans = vector_quaternion_array_to_ptransform(base_T_endeffector)
+    if gripper_z_offset is not None and gripper_z_offset != 0.0:
+        # Add a z axis offset to the gripper frame, measured in meters.
+        q = eigen.Quaterniond.Identity()
+        v = eigen.Vector3d([0, 0, gripper_z_offset])
+        pt_z_offset = sva.PTransformd(q, v)
+        base_T_endeffector_ptrans = pt_z_offset * base_T_endeffector_ptrans
     # In this case camera_T_base is a transform that takes a point in the base
     # frame of reference and transforms it to the camera frame of reference.
     camera_T_base_ptrans = matrix_to_ptransform(camera_T_base)
@@ -551,6 +558,7 @@ def grasp_dataset_to_transforms_and_features(
         camera_T_base,
         base_T_endeffector_current,
         base_T_endeffector_final,
+        gripper_z_offset=0.05,
         augmentation_rectangle=None,
         dtype=np.float32):
     """Extract transforms and features necessary to train from the grasping dataset.
@@ -642,11 +650,10 @@ def grasp_dataset_to_transforms_and_features(
     # print('in grasp_dataset_to_transforms_and_features 0')
     # Get input transforms relative to the current time step
     (camera_T_endeffector_current_ptrans, base_T_endeffector_current_ptrans,
-     current_base_T_camera_ptrans) = grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector_current)
+     current_base_T_camera_ptrans) = grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector_current, gripper_z_offset)
     # get input transforms relative to the final time step when the gripper closes
     (camera_T_endeffector_final_ptrans, base_T_endeffector_final_ptrans,
-     final_base_T_camera_ptrans) = grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector_final)
-
+     final_base_T_camera_ptrans) = grasp_dataset_to_ptransform(camera_T_base, base_T_endeffector_final, gripper_z_offset)
     # endeffector_current_to_endeffector_final is abbreviated eectf.
     # Get current time to end time gripper position.
     # This is the pose transform defined by the gripper position at the following time frames:

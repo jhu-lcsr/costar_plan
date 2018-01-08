@@ -91,6 +91,11 @@ flags.DEFINE_boolean('resize', True,
                         resize_width and resize_height flags. It is suggested that an exact factor of 2 be used
                         relative to the input image directions if random_crop is disabled or the crop dimensions otherwise.
                      """)
+flags.DEFINE_float('gripper_z_offset_meters', 0.02,
+                   """ Offset of gripper's z axis in meters, so that in the final time
+                       step of grasp, the gripper reaches the object surface.
+                       default value 0.02.
+                   """)
 flags.DEFINE_boolean('image_augmentation', True,
                      'image augmentation applies random brightness, saturation, hue, contrast. imagenet_preprocessing must be True.')
 flags.DEFINE_boolean('imagenet_preprocessing', True,
@@ -757,6 +762,7 @@ class GraspDataset(object):
             time_ordered_feature_name_dict=None,
             num_samples=None,
             batch_size=FLAGS.batch_size,
+            gripper_z_offset=FLAGS.gripper_z_offset_meters,
             verbose=0):
         """Get runtime generated 3D transform feature tensors as a dictionary, including depth surface relative transforms.
 
@@ -981,7 +987,8 @@ class GraspDataset(object):
                      grasp_geometry.grasp_dataset_to_transforms_and_features,
                      # parameters for grasp_dataset_to_transforms_and_features() function call
                      [cartesian_clear_view_op, camera_intrinsics_matrix, camera_T_base,
-                      base_to_endeffector_op, final_base_to_endeffector_transform_op],
+                      base_to_endeffector_op, final_base_to_endeffector_transform_op,
+                      gripper_z_offset],
                      # return type data formats to expect
                      [tf.float32] * 14,
                      stateful=False, name='py_func/grasp_dataset_to_transforms_and_features')
