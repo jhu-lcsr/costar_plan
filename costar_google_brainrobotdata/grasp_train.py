@@ -126,19 +126,25 @@ def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
 
 class GraspTrain(object):
 
-    def __init__(self, tf_session=None):
+    def __init__(self, tf_session=None, distributed=None):
         """ Create GraspTrain object
 
             This function configures Keras and the tf session if the tf_session parameter is None.
+
+            # Arguments
+
+            tf_session: The tf session you wish to use, this is reccommended to remain None.
+            distribute: The distributed training utility you wish to use, options are 'horovod' and None.
         """
-        if hvd is not None:
+        self.distributed = distributed
+        if hvd is not None and self.distributed is 'horovod':
             # Initialize Horovod.
             hvd.init()
 
         if tf_session is None:
             config = tf.ConfigProto()
             config.gpu_options.allow_growth = True
-            if hvd is not None:
+            if hvd is not None and distributed == 'horovod':
                 # Pin GPU to be used to process local rank (one GPU per process)
                 config.gpu_options.visible_device_list = str(hvd.local_rank())
             # config.inter_op_parallelism_threads = 40
@@ -264,7 +270,7 @@ class GraspTrain(object):
             metric = grasp_loss.segmentation_single_pixel_binary_accuracy
 
         callbacks = []
-        if hvd is not None:
+        if hvd is not None and self.distributed is 'horovod':
             callbacks = callbacks + [
                 # Broadcast initial variable states from rank 0 to all other processes.
                 # This is necessary to ensure consistent initialization of all workers when
@@ -275,12 +281,15 @@ class GraspTrain(object):
                 #
                 # Note: This callback must be in the list before the ReduceLROnPlateau,
                 # TensorBoard or other metrics-based callbacks.
-                hvd.callbacks.MetricAverageCallback(),
-
+                hvd.callbacks.MetricAverageCallback()
+            ]
+        if hvd is not None:
+            # Use learning rate warmup even if not using horovod for training
+            callbacks = callbacks + [
                 # Using `lr = 1.0 * hvd.size()` from the very beginning leads to worse final
                 # accuracy. Scale the learning rate `lr = 1.0` ---> `lr = 1.0 * hvd.size()` during
                 # the first five epochs. See https://arxiv.org/abs/1706.02677 for details.
-                hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=5, verbose=1),
+                hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=5, verbose=1)
             ]
 
         scheduler = keras.callbacks.LearningRateScheduler(lr_scheduler)
@@ -338,7 +347,7 @@ class GraspTrain(object):
         # 2017-12-18 SGD worked very well and has been the primary training optimizer from 2017-09 to 2018-01
         if FLAGS.optimizer == 'SGD':
 
-            if hvd is not None:
+            if hvd is not None and self.distributed is 'horovod':
                 # Adjust learning rate based on number of GPUs.
                 multiplier = hvd.size()
             else:
@@ -359,7 +368,7 @@ class GraspTrain(object):
         if FLAGS.optimizer == 'Adam':
             optimizer = keras.optimizers.Adam(amsgrad=True)
 
-        if hvd is not None:
+        if hvd is not None and self.distributed is 'horovod':
             # Add Horovod Distributed Optimizer.
             optimizer = hvd.DistributedOptimizer(optimizer)
 
