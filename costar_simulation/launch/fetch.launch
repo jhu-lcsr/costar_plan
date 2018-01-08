@@ -1,0 +1,32 @@
+<launch>
+  <arg name="robot" default="fetch"/>
+  <arg name="debug" default="false"/>
+  <arg name="gui" default="true"/>
+  <arg name="headless" default="false"/>
+
+  <!-- Start Gazebo with a blank world -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="debug" value="$(arg debug)" />
+    <arg name="gui" value="$(arg gui)" />
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="headless" value="$(arg headless)"/>
+  </include>
+ 
+  <!-- Oh, you wanted a robot? -->
+  <include file="$(find fetch_gazebo)/launch/include/$(arg robot).launch.xml" />
+
+  <!-- Start MoveIt -->
+  <include file="$(find fetch_moveit_config)/launch/move_group.launch" >
+    <arg name="info" value="true"/><!-- publish grasp markers -->
+  </include>
+
+  <!-- Start Perception -->
+  <node name="basic_grasping_perception" pkg="simple_grasping" type="basic_grasping_perception" >
+    <rosparam command="load" file="$(find costar_simulation)/config/fetch_simple_grasping.yaml" />
+  </node>
+
+  <!-- Start Fetch navigation -->
+  <include file="$(find fetch_navigation)/launch/fetch_nav.launch" />
+
+</launch>
