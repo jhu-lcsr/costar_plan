@@ -32,5 +32,8 @@
   <!--Camera Pipeline -->
   <include file="$(find costar_simulation)/launch/camera.launch.xml" />
 
+  <node name="simple_gripper_action_server"
+        pkg="costar_simulation"
+        type="robotiq_gripper_action_server"/>
 
 </launch>
