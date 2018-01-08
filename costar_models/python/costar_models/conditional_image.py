@@ -180,7 +180,7 @@ class ConditionalImage(PredictionSampler2):
             train_predictor.compile(
                     loss=[lfn, "binary_crossentropy", val_loss,
                         lfn2, lfn2],
-                    loss_weights=[1., 0.1, 1., 1., 0.2],
+                    loss_weights=[1., 0.1, 0.1, 1., 0.2],
                     optimizer=self.getOptimizer())
         else:
             train_predictor = Model(ins + [label_in],

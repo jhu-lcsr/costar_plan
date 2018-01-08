@@ -28,5 +28,8 @@
 
   <!-- Start Fetch navigation -->
   <include file="$(find fetch_navigation)/launch/fetch_nav.launch" />
+  
+  <!-- Start up RVIZ -->
+  <include file="$(find costar_simulation)/launch/rviz.launch" />
 
 </launch>
