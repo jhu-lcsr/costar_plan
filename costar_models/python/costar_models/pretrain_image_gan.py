@@ -31,6 +31,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         '''
         super(PretrainImageGan, self).__init__(taskdef, *args, **kwargs)
         self.PredictorCb = ImageCb
+        self.load_pretrained_weights = False
 
     def _makePredictor(self, features):
         '''
@@ -51,16 +52,17 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                 self.hidden_shape,
                 self.skip_shape, False)
 
-        try:
-            encoder.load_weights(self._makeName(
-                "pretrain_image_encoder_model",
-                "image_encoder.h5f"))
-            decoder.load_weights(self._makeName(
-                "pretrain_image_encoder_model",
-                "image_decoder.h5f"))
-        except Exception as e:
-            if not self.retrain:
-                raise e
+        if self.load_pretrained_weights:
+            try:
+                encoder.load_weights(self._makeName(
+                    "pretrain_image_encoder_model",
+                    "image_encoder.h5f"))
+                decoder.load_weights(self._makeName(
+                    "pretrain_image_encoder_model",
+                    "image_decoder.h5f"))
+            except Exception as e:
+                if not self.retrain:
+                    raise e
 
         gen_out = decoder(enc)
         image_discriminator = self._makeImageDiscriminator(img_shape)
@@ -75,8 +77,8 @@ class PretrainImageGan(RobotMultiPredictionSampler):
 
         self.model = Model([img_in], [gen_out, o1])
         self.model.compile(
-                loss=["logcosh"] + ["binary_crossentropy"],
-                loss_weights=[0., 1],
+                loss=["mae"] + ["binary_crossentropy"],
+                loss_weights=[1., 1.],
                 optimizer=self.getOptimizer())
         self.model.summary()
 
@@ -231,7 +233,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                     img = img[0]
                     res = self.generator.train_on_batch(img, img)
                     print("\rEpoch {}, {}/{}: MAE loss {:.5}".format(
-                        i, j, self.steps_per_epoch, res), end="")
+                        i+1, j, self.steps_per_epoch, res), end="")
 
                 for c in callbacks:
                     c.on_epoch_end(i)
@@ -291,8 +293,8 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                     res = self.model.train_on_batch(
                             [img], [img, is_not_fake]
                     )
-                    print("Epoch {}, {}/{}: Gen loss {}, Real loss {}, Fake loss {}".format(
-                        i, j, self.steps_per_epoch, res[0], res1, res2))
+                    print("Epoch {}, {}/{}: Gen loss {}, Gen err {}, Real loss {}, Fake loss {}".format(
+                        i, j, self.steps_per_epoch, res[0], res[1], res1, res2))
 
                 # Accuracy tests
                 img, _ = next(train_generator)
