@@ -2,7 +2,6 @@ controller_list:
   - name: arm_controller
     action_ns: follow_joint_trajectory
     type: FollowJointTrajectory
-    allow_partial_joints_goal: True
     joints:
       - shoulder_pan_joint
       - shoulder_lift_joint

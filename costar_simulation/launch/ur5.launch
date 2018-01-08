@@ -8,6 +8,7 @@
   <!-- startup simulated world -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">   
     <arg name="world_name" default="worlds/empty.world"/>
+    <!--arg name="world_name" default="$(find costar_simulation)/launch/test.world"/-->
     <arg name="paused" value="$(arg paused)"/>
     <arg name="gui" value="$(arg gui)"/>
   </include>
