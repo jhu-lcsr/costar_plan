@@ -937,7 +937,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             self.hidden_size = 2*self.encoder_channels
             self.hidden_shape = (self.hidden_size,)
         else:
-            self.encoder_channels = 8
+            self.encoder_channels = 32
             x = AddConv2D(x, self.encoder_channels, [1,1], 1, 0.*dr,
                     "same", lrelu=disc, bn=(not disc))
             self.steps_down = 3
