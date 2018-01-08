@@ -1988,7 +1988,7 @@ class GraspDataset(object):
         clip = mpy.ImageSequenceClip(list(npy), fps)
         clip.write_gif(filename)
 
-    def create_gif(self, tf_session=tf.Session(),
+    def create_gif(self, tf_session=None,
                    visualization_dir=FLAGS.visualization_dir,
                    rgb_feature_type='move_to_grasp/time_ordered/rgb_image/preprocessed',
                    depth_feature_type='depth_image/rgb_encoded',
@@ -2020,6 +2020,8 @@ class GraspDataset(object):
         Raises:
         RuntimeError: if no files found.
         """
+        if tf_session is None:
+            tf_session = tf.Session()
         mkdir_p(FLAGS.visualization_dir)
 
         batch_size = 1
