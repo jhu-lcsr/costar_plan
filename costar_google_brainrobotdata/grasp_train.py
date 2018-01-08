@@ -114,6 +114,8 @@ flags.DEFINE_string('loss', 'segmentation_single_pixel_binary_crossentropy',
                     """Options are binary_crossentropy and segmentation_single_pixel_binary_crossentropy.""")
 flags.DEFINE_string('metric', 'segmentation_single_pixel_binary_accuracy',
                     """Options are accuracy, binary_accuracy and segmentation_single_pixel_binary_accuracy.""")
+flags.DEFINE_string('distributed', 'horovod',
+                    """Options are 'horovod' (github.com/uber/horovod) or None for distributed training utilities.""")
 
 flags.FLAGS._parse_flags()
 FLAGS = flags.FLAGS
@@ -126,7 +128,7 @@ def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
 
 class GraspTrain(object):
 
-    def __init__(self, tf_session=None, distributed=None):
+    def __init__(self, tf_session=None, distributed=FLAGS.distributed):
         """ Create GraspTrain object
 
             This function configures Keras and the tf session if the tf_session parameter is None.
@@ -134,7 +136,7 @@ class GraspTrain(object):
             # Arguments
 
             tf_session: The tf session you wish to use, this is reccommended to remain None.
-            distribute: The distributed training utility you wish to use, options are 'horovod' and None.
+            distributed: The distributed training utility you wish to use, options are 'horovod' and None.
         """
         self.distributed = distributed
         if hvd is not None and self.distributed is 'horovod':
