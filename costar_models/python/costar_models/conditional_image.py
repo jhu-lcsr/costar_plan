@@ -115,7 +115,7 @@ class ConditionalImage(PredictionSampler2):
             encoder0.load_weights(self._makeName(
                 "pretrain_image_encoder_model",
                 "image_encoder.h5f"))
-            encoder0.trainable = True
+            encoder0.trainable = self.retrain
         except Exception as e:
             if not self.retrain:
                 raise e

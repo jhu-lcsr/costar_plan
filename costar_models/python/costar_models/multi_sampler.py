@@ -1027,11 +1027,15 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         dr = self.dropout_rate
         x = img
         x0 = img0
-        x0 = AddConv2D(x0, 32, [5,5], 2, dr, "same", lrelu=disc, bn=(not disc))
-        x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=disc, bn=(not disc))
-        x = Add()([x,x0])
-        x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=(not disc))
-        x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=(not disc))
+        x = AddConv2D(x, 32, [7,7], 1, dr, "same", lrelu=disc, bn=(not disc))
+        x0 = AddConv2D(x0, 32, [7,7], 1, dr, "same", lrelu=disc, bn=(not disc))
+        #x = Add(axis=-1)([x,x0])
+        x = Concatenate(axis=-1)([x,x0])
+        xi = x
+
+        x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=(not disc))
+        x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=(not disc))
+        x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=(not disc))
         xa = x
         x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=(not disc))
         x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=(not disc))
@@ -1059,7 +1063,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         if not disc:
 
-            image_encoder = Model([img0, img], [x, xa, xb, xc], name="Ienc")
+            image_encoder = Model([img0, img], [x, xi, xa, xb, xc], name="Ienc")
             image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
             self.image_encoder = image_encoder
         else:
@@ -1099,7 +1103,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             x = AddDense(x, int(h*w*c), "relu", dr)
             x = Reshape((h,w,c))(x)
 
-        s32 = Input((32,32,32),name="skip_32")
+        s64 = Input((64,64,64),name="skip_64")
+        s32 = Input((32,32,64),name="skip_32")
         s16 = Input((16,16,64),name="skip_16")
         s8 = Input((8,8,128),name="skip_8")
         x = AddConv2DTranspose(x, 128, [1,1], 1, 0.*dr)
@@ -1107,11 +1112,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
         x = Add()([x,s16])
         x = AddConv2DTranspose(x, 64, [5,5], 1, 0.)
-        x = AddConv2DTranspose(x, 32, [5,5], 2, dr)
+        x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
         x = Add()([x,s32])
-        x = AddConv2DTranspose(x, 32, [5,5], 1, 0.)
-        x = AddConv2DTranspose(x, 32, [5,5], 2, dr)
-        x = AddConv2DTranspose(x, 32, [5,5], 1, 0.)
+        x = AddConv2DTranspose(x, 64, [5,5], 1, 0.)
+        x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
+        x = Add()([x,s64])
+        x = AddConv2DTranspose(x, 64, [5,5], 1, 0.)
         x = Conv2D(3, kernel_size=[1,1], strides=(1,1),name="convert_to_rgb")(x)
         x = Activation("sigmoid")(x)
         ins = [rep, s32, s16, s8]

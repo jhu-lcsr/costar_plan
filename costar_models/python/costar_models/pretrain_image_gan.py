@@ -9,6 +9,7 @@ from keras.callbacks import ModelCheckpoint
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
 from keras.layers.embeddings import Embedding
+from keras.layers.pooling import MaxPooling2D, AveragePooling2D
 from keras.layers.merge import Concatenate, Multiply
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
@@ -49,8 +50,19 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         decoder = self._makeImageDecoder(
                 self.hidden_shape,
                 self.skip_shape, False)
-        gen_out = decoder(enc)
 
+        try:
+            encoder.load_weights(self._makeName(
+                "pretrain_image_encoder_model",
+                "image_encoder.h5f"))
+            decoder.load_weights(self._makeName(
+                "pretrain_image_encoder_model",
+                "image_decoder.h5f"))
+        except Exception as e:
+            if not self.retrain:
+                raise e
+
+        gen_out = decoder(enc)
         image_discriminator = self._makeImageDiscriminator(img_shape)
         self.discriminator = image_discriminator
 
@@ -134,21 +146,16 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         img0 = Input(img_shape,name="img0_encoder_in")
         ins = [img, img0]
         dr = self.dropout_rate
-        dr = 0 # 0.5
+        dr = 0
         x = Concatenate(axis=-1)([img, img0])
+        x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=True)
         x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=True)
-#        x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
-#        x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
         x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=True)
-#        x = AddConv2D(x, 128, [5,5], 1, dr, "same", lrelu=True)
-        x = AddConv2D(x, 256, [5,5], 2, dr, "same", lrelu=True)
         x = AddConv2D(x, 1, [5,5], 1, 0., "same", activation="sigmoid")
-        x = MaxPooling(pool_size=(8,8))(x)
-
-        #x = Flatten()(x)
-        #x = AddDense(x, 1, "sigmoid", 0, output=True)
+        x = AveragePooling2D(pool_size=(8,8))(x)
+        x = Flatten()(x)
         discrim = Model(ins, x, name="image_discriminator")
-        discrim.compile(loss="logcosh", loss_weights=[1],
+        discrim.compile(loss="binary_crossentropy", loss_weights=[1.],
                 optimizer=self.getOptimizer())
         self.image_discriminator = discrim
         return discrim
