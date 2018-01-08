@@ -23,7 +23,7 @@
     <param name="allow_trajectory_execution" value="false"/>
     <param name="fake_execution" value="true"/>
   </include-->
-  <include if="$(arg start_move_group)" file="$(find ur5_moveit_config)/launch/ur5_moveit_planning_execution.launch">
+  <include if="$(arg start_move_group)" file="$(find costar_simulation)/launch/ur5_moveit_planning_execution.launch">
     <arg name="sim" value="true"/>
   </include>
 
