@@ -521,7 +521,7 @@ class GraspTrain(object):
         return weights_name_str
 
 
-def define_make_model_fn(grasp_model=FLAGS.grasp_model):
+def define_make_model_fn(grasp_model_name=FLAGS.grasp_model):
     """ Get command line specified function that will be used later to the Keras Model object.
 
         This function seems a little odd, so please bear with me.
@@ -551,18 +551,18 @@ def define_make_model_fn(grasp_model=FLAGS.grasp_model):
                 'grasp_model_levine_2016'
 
     """
-    if grasp_model == 'grasp_model_resnet':
+    if grasp_model_name == 'grasp_model_resnet':
         def make_model_fn(*a, **kw):
             return grasp_model.grasp_model_resnet(
                 *a, **kw)
-    elif grasp_model == 'grasp_model_pretrained':
+    elif grasp_model_name == 'grasp_model_pretrained':
         def make_model_fn(*a, **kw):
             return grasp_model.grasp_model_pretrained(
                 growth_rate=FLAGS.densenet_growth_rate,
                 reduction=FLAGS.densenet_reduction_after_pretrained,
                 dense_blocks=FLAGS.densenet_dense_blocks,
                 *a, **kw)
-    elif grasp_model == 'grasp_model_single':
+    elif grasp_model_name == 'grasp_model_single':
         def make_model_fn(*a, **kw):
             return grasp_model.grasp_model(
                 growth_rate=FLAGS.densenet_growth_rate,
@@ -570,20 +570,20 @@ def define_make_model_fn(grasp_model=FLAGS.grasp_model):
                 dense_blocks=FLAGS.densenet_dense_blocks,
                 depth=FLAGS.densenet_depth,
                 *a, **kw)
-    elif grasp_model == 'grasp_model_segmentation':
+    elif grasp_model_name == 'grasp_model_segmentation':
         def make_model_fn(*a, **kw):
             return grasp_model.grasp_model_segmentation(
                 growth_rate=FLAGS.densenet_growth_rate,
                 reduction=FLAGS.densenet_reduction,
                 dense_blocks=FLAGS.densenet_dense_blocks,
                 *a, **kw)
-    elif grasp_model == 'grasp_model_levine_2016':
+    elif grasp_model_name == 'grasp_model_levine_2016':
         def make_model_fn(*a, **kw):
             return grasp_model.grasp_model_levine_2016(
                 *a, **kw)
     else:
         available_functions = globals()
-        if FLAGS.grasp_model in available_functions:
+        if grasp_model_name in available_functions:
             make_model_fn = available_functions[FLAGS.grasp_model]
         else:
             raise ValueError('unknown model selected: {}'.format(FLAGS.grasp_model))
