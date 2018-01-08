@@ -281,11 +281,7 @@ class GraspTrain(object):
                 #
                 # Note: This callback must be in the list before the ReduceLROnPlateau,
                 # TensorBoard or other metrics-based callbacks.
-                hvd.callbacks.MetricAverageCallback()
-            ]
-        if hvd is not None:
-            # Use learning rate warmup even if not using horovod for training
-            callbacks = callbacks + [
+                hvd.callbacks.MetricAverageCallback(),
                 # Using `lr = 1.0 * hvd.size()` from the very beginning leads to worse final
                 # accuracy. Scale the learning rate `lr = 1.0` ---> `lr = 1.0 * hvd.size()` during
                 # the first five epochs. See https://arxiv.org/abs/1706.02677 for details.
