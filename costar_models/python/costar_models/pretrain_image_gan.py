@@ -78,7 +78,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         self.model = Model([img_in], [gen_out, o1])
         self.model.compile(
                 loss=["mae"] + ["binary_crossentropy"],
-                loss_weights=[10., 1.],
+                loss_weights=[100., 1.],
                 optimizer=self.getOptimizer())
         self.model.summary()
 
@@ -150,10 +150,9 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         dr = self.dropout_rate
         dr = 0
         x = Concatenate(axis=-1)([img, img0])
-        x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=True)
-        x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=True)
-        x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=True)
-        x = AddConv2D(x, 1, [5,5], 1, 0., "same", activation="sigmoid")
+        x = AddConv2D(x, 64, [4,4], 2, dr, "valid", lrelu=True)
+        x = AddConv2D(x, 128, [4,4], 2, dr, "valid", lrelu=True)
+        x = AddConv2D(x, 1, [4,4], 1, 0., "valid", activation="sigmoid")
         x = AveragePooling2D(pool_size=(8,8))(x)
         x = Flatten()(x)
         discrim = Model(ins, x, name="image_discriminator")
@@ -254,7 +253,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                             [img, fake], is_fake)
                     self.discriminator.trainable = False
                     print("\rEpoch {}, {}/{}: Descrim Real loss {}, Fake loss {}".format(
-                        i, j, self.steps_per_epoch, res1, res2), end="")
+                        i+1, j, self.steps_per_epoch, res1, res2), end="")
 
                 # Accuracy tests
                 img, _ = next(train_generator)
@@ -266,7 +265,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                 correct2 = np.count_nonzero(results2 < 0.5)
 
                 print("\nAccuracy Epoch {}, real acc {}, fake acc {}".format(
-                    i, correct/float(len(results)), correct2/float(len(results2))))
+                    i+1, correct/float(len(results)), correct2/float(len(results2))))
 
                 for c in callbacks:
                     c.on_epoch_end(i)
@@ -294,7 +293,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                             [img], [img, is_not_fake]
                     )
                     print("Epoch {}, {}/{}: Gen loss {}, Gen err {}, Real loss {}, Fake loss {}".format(
-                        i, j, self.steps_per_epoch, res[0], res[1], res1, res2))
+                        i+1, j, self.steps_per_epoch, res[0], res[1], res1, res2))
 
                 # Accuracy tests
                 img, _ = next(train_generator)
