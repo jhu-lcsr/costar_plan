@@ -12,6 +12,7 @@ from costar_task_plan.robotics.tom import *
 from sensor_msgs.msg import JointState
 
 from ctp_integration import MakeStackTask
+from ctp_integration.util import GetDetectObjectsService
 
 def getArgs():
     '''
@@ -73,6 +74,7 @@ def main():
         world.addObjects(fakeTaskArgs())
         filled_args = task.compile(fakeTaskArgs())
     else:
+        objects = GetDetectObjectsService()
         raise NotImplementedError('wait for object detection information')
 
     # print out task info
