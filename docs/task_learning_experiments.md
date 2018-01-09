@@ -24,9 +24,19 @@ This will run the `$COSTAR_PLAN/slurm/ctp.sh$ script with a few different argume
 
 ### Hidden State
 
+You can visualize the hidden state learned with models like `pretrain_image_encoder`, `pretrain_image_gan`, and `pretrain_sampler` with the `ctp_hidden.py` tool:
+
 ```
 rosrun costar_models ctp_hidden.py --cpu --model conditional_image --data_file test2.h5f
 ```
+
+The learned representations come in 8 x 8 x 8 = 512 dimensions by default. This tool is meant to visualize representations that are eight channels or so. This includes some spatial information; take a look at the examples below. You'll see information seems to have some spatial correlation to the original image.
+
+![Encoding blocks on the right](hidden1.png)
+
+This changes dramatically when we compare to a representation where all the blocks are now on the left:
+
+![Encoding blocks on the left](hidden2.png)
 
 ### Transformation
 
