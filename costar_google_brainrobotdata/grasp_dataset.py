@@ -1716,12 +1716,14 @@ class GraspDataset(object):
                         coordinate = self._resize_coordinate(feature, img_shape, output_shape)
                         coordinate_name = feature_key.replace(preprocessed_suffix, 'cropped_resized')
                         resized_coordinate_dict[coordinate_name] = coordinate
-                        features_complete_list = np.append(features_complete_list, coordinate_name)
+                        if batch_i == 0:
+                            features_complete_list = np.append(features_complete_list, coordinate_name)
                     elif 'image_coordinate/yx_2' in feature_key:
                         coordinate = self._resize_coordinate(feature, raw_img_shape, output_shape)
                         coordinate_name = feature_key.replace('image_coordinate/yx_2', 'image_coordinate/original_resized/yx_2')
                         resized_coordinate_dict[coordinate_name] = coordinate
-                        features_complete_list = np.append(features_complete_list, coordinate_name)
+                        if batch_i == 0:
+                            features_complete_list = np.append(features_complete_list, coordinate_name)
                     else:
                         print('Warning: unsupported feature_key detected in resize: ' + str(feature_key))
             fixed_feature_op_dict.update(resized_coordinate_dict)
@@ -1777,6 +1779,7 @@ class GraspDataset(object):
             feature_type='endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/' + preprocessed_final_coordinate_suffix,
             step='move_to_grasp'
         )
+        print('preprocessed_final_coordinate_names: ', preprocessed_final_coordinate_names)
 
         # get the sequence of preprocessed coordinates
         preprocessed_current_coordinate_names = self.get_time_ordered_features(
@@ -1784,6 +1787,7 @@ class GraspDataset(object):
             feature_type='endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/' + preprocessed_final_coordinate_suffix,
             step='move_to_grasp'
         )
+        print('preprocessed_current_coordinate_names: ', preprocessed_final_coordinate_names)
         num_time_steps = len(rgb_move_to_grasp_steps)
         grasp_success_names = ['grasp_success'] * num_time_steps
 
