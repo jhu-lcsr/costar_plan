@@ -164,6 +164,7 @@ class CostarBulletSimulation(object):
         else:
             connect_type = pb.DIRECT
         self.client = pb.connect(connect_type, options=options)
+        GRAVITY = (0,0,-9.8)
         pb.setGravity(*GRAVITY)
 
         # place the robot in the world and set up the task

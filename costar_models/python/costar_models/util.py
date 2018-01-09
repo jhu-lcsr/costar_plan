@@ -115,7 +115,7 @@ def MakeModel(features, model, taskdef, **kwargs):
         elif model == "image_sampler":
             model_instance = RobotMultiImageSampler(taskdef, model=model,
                     **kwargs)
-        elif model == "pretrain_image_encoder":
+        elif model == "pretrain_image_encoder" or model == "pretrain_image":
             model_instance = PretrainImageAutoencoder(taskdef, model=model,
                     **kwargs)
         elif model == "pretrain_state_encoder":
@@ -158,6 +158,7 @@ def GetModels():
             "goal_sampler", # samples goals instead of everything else
             "image_sampler", #just learn to predict goal image
             "pretrain_image_encoder", # tool for pretraining images
+            "pretrain_image", # tool for pretraining images
             "pretrain_state_encoder", # tool for pretraining states
             "pretrain_sampler", # tool for pretraining the sampler
             "predictor2", # second version of the prediction-sampler code

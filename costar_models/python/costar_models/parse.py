@@ -43,12 +43,12 @@ def GetModelParser():
                         type=int)
     parser.add_argument('-b','--batch_size',
                         help='Batch size to use in the model',
-                        default=32,
+                        default=64,
                         type=int)
     parser.add_argument('-e','--epochs',
                         help="Number of epochs",
                         type=int,
-                        default=1000,)
+                        default=500,)
     parser.add_argument('--data_file', '--file',
                         help="File name for data archive.",
                         default='data.npz')
@@ -92,10 +92,6 @@ def GetModelParser():
                         help="Run in CPU-only mode, even if GPUs are" + \
                              " available.",
                         action="store_true",)
-    parser.add_argument('--window_length',
-                        help="Window length used for data collection.",
-                        type=int,
-                        default=10)
     parser.add_argument('--seed',
                         help="Seed used for running experiments.",
                         type=int)
@@ -104,7 +100,7 @@ def GetModelParser():
                         action="store_true")
     parser.add_argument('--features',
                         help="Specify feature function",
-                        default="null",
+                        default="multi",
                         choices=GetAvailableFeatures())
     parser.add_argument('--steps_per_epoch',
                         help="Steps per epoch (used with the generator-" + \
@@ -159,8 +155,8 @@ def GetModelParser():
                         default="gan")
     parser.add_argument("--save_model",
                         help="Should we save to the model file",
-                        type=bool,
-                        default=True)
+                        type=int,
+                        default=1)
     parser.add_argument("--retrain",
                         help="Retrain sub-models",
                         action="store_true")
