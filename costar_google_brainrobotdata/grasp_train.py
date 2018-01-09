@@ -1,10 +1,20 @@
 """Code for training models on the google brain robotics grasping dataset.
 
+Grasping Dataset:
 https://sites.google.com/site/brainrobotdata/home/grasping-dataset
 
 Author: Andrew Hundt <ATHundt@gmail.com>
 
 License: Apache v2 https://www.apache.org/licenses/LICENSE-2.0
+
+
+To see help detailing how to run this training script run:
+
+    python grasp_train.py -h
+
+Command line arguments are handled with the [tf flags API](https://github.com/tensorflow/tensorflow/blob/r1.4/tensorflow/python/platform/flags.py),
+which is a simple wrapper around argparse.
+
 """
 import os
 import sys
@@ -26,8 +36,10 @@ from tensorflow.python.platform import flags
 
 import grasp_dataset
 import grasp_model
+import grasp_loss
 
 from tqdm import tqdm  # progress bars https://github.com/tqdm/tqdm
+# from keras_tqdm import TQDMCallback  # Keras tqdm progress bars https://github.com/bstriner/keras-tqdm
 
 try:
     import horovod.keras as hvd
@@ -42,12 +54,13 @@ flags.DEFINE_string('learning_rate_decay_algorithm', 'power_decay',
                        options are power_decay, exp_decay, adam and progressive_drops.
                        Only applies with optimizer flag is SGD""")
 flags.DEFINE_string('grasp_model', 'grasp_model_single',
-                    """Choose the model definition to run, options are grasp_model and grasp_model_segmentation""")
+                    """Choose the model definition to run, options are:
+                       grasp_model_levine_2016, grasp_model, grasp_model_resnet, grasp_model_segmentation""")
 flags.DEFINE_string('save_weights', 'grasp_model_weights',
                     """Save a file with the trained model weights.""")
 flags.DEFINE_string('load_weights', 'grasp_model_weights.h5',
                     """Load and continue training the specified file containing model weights.""")
-flags.DEFINE_integer('epochs', 100,
+flags.DEFINE_integer('epochs', 300,
                      """Epochs of training""")
 flags.DEFINE_string('grasp_dataset_eval', '097',
                     """Filter the subset of 1TB Grasp datasets to evaluate.
@@ -97,6 +110,12 @@ flags.DEFINE_string('learning_rate_scheduler', 'learning_rate_scheduler',
 flags.DEFINE_string('optimizer', 'SGD', """Options are Adam and SGD.""")
 flags.DEFINE_string('progress_tracker', None,
                     """Utility to follow training progress, options are tensorboard and None.""")
+flags.DEFINE_string('loss', 'segmentation_single_pixel_binary_crossentropy',
+                    """Options are binary_crossentropy and segmentation_single_pixel_binary_crossentropy.""")
+flags.DEFINE_string('metric', 'segmentation_single_pixel_binary_accuracy',
+                    """Options are accuracy, binary_accuracy and segmentation_single_pixel_binary_accuracy.""")
+flags.DEFINE_string('distributed', 'horovod',
+                    """Options are 'horovod' (github.com/uber/horovod) or None for distributed training utilities.""")
 
 flags.FLAGS._parse_flags()
 FLAGS = flags.FLAGS
@@ -108,6 +127,32 @@ def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
 
 
 class GraspTrain(object):
+
+    def __init__(self, tf_session=None, distributed=FLAGS.distributed):
+        """ Create GraspTrain object
+
+            This function configures Keras and the tf session if the tf_session parameter is None.
+
+            # Arguments
+
+            tf_session: The tf session you wish to use, this is reccommended to remain None.
+            distributed: The distributed training utility you wish to use, options are 'horovod' and None.
+        """
+        self.distributed = distributed
+        if hvd is not None and self.distributed is 'horovod':
+            # Initialize Horovod.
+            hvd.init()
+
+        if tf_session is None:
+            config = tf.ConfigProto()
+            config.gpu_options.allow_growth = True
+            if hvd is not None and distributed == 'horovod':
+                # Pin GPU to be used to process local rank (one GPU per process)
+                config.gpu_options.visible_device_list = str(hvd.local_rank())
+            # config.inter_op_parallelism_threads = 40
+            # config.intra_op_parallelism_threads = 40
+            tf_session = tf.Session(config=config)
+            K.set_session(tf_session)
 
     def train(self, dataset=FLAGS.grasp_datasets_train,
               grasp_datasets_batch_algorithm=FLAGS.grasp_datasets_batch_algorithm,
@@ -127,7 +172,9 @@ class GraspTrain(object):
               learning_rate=FLAGS.grasp_learning_rate,
               learning_power_decay_rate=FLAGS.learning_rate_scheduler_power_decay_rate,
               dropout_rate=FLAGS.dropout_rate,
-              model_name=FLAGS.grasp_model):
+              model_name=FLAGS.grasp_model,
+              loss=FLAGS.loss,
+              metric=FLAGS.metric):
         """Train the grasping dataset
 
         This function depends on https://github.com/fchollet/keras/pull/6928
@@ -146,17 +193,6 @@ class GraspTrain(object):
                 this affects the memory consumption of the system when training, but if it fits into memory
                 you almost certainly want the value to be None, which includes every image.
         """
-
-        if hvd is not None:
-            # Initialize Horovod.
-            hvd.init()
-
-        # Pin GPU to be used to process local rank (one GPU per process)
-        config = tf.ConfigProto()
-        config.gpu_options.allow_growth = True
-        config.gpu_options.visible_device_list = str(hvd.local_rank())
-        K.set_session(tf.Session(config=config))
-
         datasets = dataset.split(',')
         (pregrasp_op_batch,
          grasp_step_op_batch,
@@ -224,8 +260,19 @@ class GraspTrain(object):
             print('lr: %f' % lr)
             return lr
 
+        # TODO(ahundt) manage loss/accuracy names in a more principled way
+        loss_name = 'loss'
+        if 'segmentation_single_pixel_binary_crossentropy' in loss:
+            loss = grasp_loss.segmentation_single_pixel_binary_crossentropy
+            loss_name = 'segmentation_single_pixel_binary_crossentropy'
+
+        metric_name = 'acc'
+        if 'segmentation_single_pixel_binary_accuracy' in metric:
+            metric_name = metric
+            metric = grasp_loss.segmentation_single_pixel_binary_accuracy
+
         callbacks = []
-        if hvd is not None:
+        if hvd is not None and self.distributed is 'horovod':
             callbacks = callbacks + [
                 # Broadcast initial variable states from rank 0 to all other processes.
                 # This is necessary to ensure consistent initialization of all workers when
@@ -237,18 +284,44 @@ class GraspTrain(object):
                 # Note: This callback must be in the list before the ReduceLROnPlateau,
                 # TensorBoard or other metrics-based callbacks.
                 hvd.callbacks.MetricAverageCallback(),
-
                 # Using `lr = 1.0 * hvd.size()` from the very beginning leads to worse final
                 # accuracy. Scale the learning rate `lr = 1.0` ---> `lr = 1.0 * hvd.size()` during
                 # the first five epochs. See https://arxiv.org/abs/1706.02677 for details.
-                hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=5, verbose=1),
+                hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=5, verbose=1)
             ]
 
         scheduler = keras.callbacks.LearningRateScheduler(lr_scheduler)
-        early_stopper = EarlyStopping(monitor='acc', min_delta=0.001, patience=32)
+        early_stopper = EarlyStopping(monitor=metric_name, min_delta=0.001, patience=32)
         csv_logger = CSVLogger(weights_name + '.csv')
-        checkpoint = keras.callbacks.ModelCheckpoint(weights_name + '-epoch-{epoch:03d}-loss-{loss:.3f}-acc-{acc:.3f}.h5',
-                                                     save_best_only=True, verbose=1, monitor='acc')
+        # TODO(ahundt) Re-enable results included in filename, need to fix the following error but this was skipped due to time constraints to start training:
+        """
+            Epoch 1/100
+            6493/6494 [============================>.] - ETA: 0s - loss: 0.7651 - grasp_segmentation_single_
+            pixel_accuracy: 0.5467Traceback (most recent call last):
+              File "grasp_train.py", line 343, in train
+                model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=callbacks)
+              File "/home/ahundt/src/keras/keras/engine/training.py", line 1658, in fit
+                validation_steps=validation_steps)
+              File "/home/ahundt/src/keras/keras/engine/training.py", line 1215, in _fit_loop
+                callbacks.on_epoch_end(epoch, epoch_logs)
+              File "/home/ahundt/src/keras/keras/callbacks.py", line 76, in on_epoch_end
+                callback.on_epoch_end(epoch, logs)
+              File "/home/ahundt/src/keras/keras/callbacks.py", line 401, in on_epoch_end
+                filepath = self.filepath.format(epoch=epoch + 1, **logs)
+            KeyError: 'grasp_segmentation_single_pixel_loss'
+            Traceback (most recent call last):
+              File "grasp_train.py", line 539, in <module>
+                main()
+              File "grasp_train.py", line 526, in main
+                model_name=FLAGS.grasp_model)
+              File "grasp_train.py", line 351, in train
+                raise e
+            KeyError: 'grasp_segmentation_single_pixel_loss'
+        """
+        # checkpoint = keras.callbacks.ModelCheckpoint(weights_name + '-epoch-{epoch:03d}-loss-{' + loss_name + ':.3f}-acc-{' + metric_name + ':.3f}.h5',
+        #                                              save_best_only=True, verbose=1, monitor=metric_name)
+        checkpoint = keras.callbacks.ModelCheckpoint(weights_name + '-epoch-{epoch:03d}.h5',
+                                                     save_best_only=False, verbose=1)
 
         callbacks = callbacks + [early_stopper, csv_logger, checkpoint]
 
@@ -256,19 +329,23 @@ class GraspTrain(object):
             progress_tracker = TensorBoard(log_dir='./' + weights_name, write_graph=True,
                                            write_grads=True, write_images=True)
             callbacks = callbacks + [progress_tracker]
+
+        # progress_bar = TQDMCallback()
+        # callbacks = callbacks + [progress_bar]
+
         # Will need to try more things later.
         # Nadam parameter choice reference:
         # https://github.com/tensorflow/tensorflow/pull/9175#issuecomment-295395355
 
         # 2017-08-28 afternoon trying NADAM with higher learning rate
         # optimizer = keras.optimizers.Nadam(lr=0.03, beta_1=0.825, beta_2=0.99685)
-        print('flags.optimizer', FLAGS.optimizer)
+        print('FLAGS.optimizer', FLAGS.optimizer)
 
         # 2017-08-28 trying SGD
-        # 2017-12-18 SGD worked very well and has been the primary training optimizer from 2017-09 to 2017-12
+        # 2017-12-18 SGD worked very well and has been the primary training optimizer from 2017-09 to 2018-01
         if FLAGS.optimizer == 'SGD':
 
-            if hvd is not None:
+            if hvd is not None and self.distributed is 'horovod':
                 # Adjust learning rate based on number of GPUs.
                 multiplier = hvd.size()
             else:
@@ -279,17 +356,17 @@ class GraspTrain(object):
             callbacks = callbacks + [
                 # Reduce the learning rate if training plateaus.
                 # TODO(ahundt) add validation checks and update monitor parameter to use them
-                keras.callbacks.ReduceLROnPlateau(patience=8, verbose=1, monitor='loss')
+                keras.callbacks.ReduceLROnPlateau(patience=8, verbose=1, monitor=loss_name)
             ]
 
         # 2017-08-27 Tried NADAM for a while with the settings below, only improved for first 2 epochs.
         # optimizer = keras.optimizers.Nadam(lr=0.004, beta_1=0.825, beta_2=0.99685)
 
-        # 2017-12-18 Tried ADAM with AMSGrad, great progress initially, but stopped making progress very quickly
+        # 2017-12-18, 2018-01-04 Tried ADAM with AMSGrad, great progress initially, but stopped making progress very quickly
         if FLAGS.optimizer == 'Adam':
             optimizer = keras.optimizers.Adam(amsgrad=True)
 
-        if hvd is not None:
+        if hvd is not None and self.distributed is 'horovod':
             # Add Horovod Distributed Optimizer.
             optimizer = hvd.DistributedOptimizer(optimizer)
 
@@ -310,9 +387,11 @@ class GraspTrain(object):
                       'starting fresh....'.format(load_weights))
 
         model.compile(optimizer=optimizer,
-                      loss='binary_crossentropy',
-                      metrics=['accuracy'],
+                      loss=loss,
+                      metrics=[metric],
                       target_tensors=[grasp_success_op_batch])
+
+        print('Available metrics: ' + str(model.metrics_names))
 
         model.summary()
 
@@ -340,7 +419,9 @@ class GraspTrain(object):
              resize_height=FLAGS.resize_height,
              resize_width=FLAGS.resize_width,
              eval_results_file=FLAGS.eval_results_file,
-             model_name=FLAGS.grasp_model):
+             model_name=FLAGS.grasp_model,
+             loss=FLAGS.loss,
+             metric=FLAGS.metric):
         """Train the grasping dataset
 
         This function depends on https://github.com/fchollet/keras/pull/6928
@@ -364,6 +445,7 @@ class GraspTrain(object):
            weights_name_str or None if a new weights file was not saved.
         """
         data = grasp_dataset.GraspDataset(dataset=dataset)
+        # TODO(ahundt) ensure eval call to get_training_tensors() always runs in the same order and does not rotate the dataset.
         # list of dictionaries the length of batch_size
         (pregrasp_op_batch, grasp_step_op_batch,
          simplified_grasp_command_op_batch,
@@ -400,9 +482,19 @@ class GraspTrain(object):
                 raise ValueError('Could not load weights {}, '
                                  'the file does not exist.'.format(load_weights))
 
+        loss_name = 'loss'
+        if 'segmentation_single_pixel_binary_crossentropy' in loss:
+            loss = grasp_loss.segmentation_single_pixel_binary_crossentropy
+            loss_name = 'segmentation_single_pixel_binary_crossentropy'
+
+        metric_name = 'acc'
+        if 'segmentation_single_pixel_binary_accuracy' in metric:
+            metric_name = metric
+            metric = grasp_loss.segmentation_single_pixel_binary_accuracy
+
         model.compile(optimizer='sgd',
-                      loss='binary_crossentropy',
-                      metrics=['accuracy'],
+                      loss=loss,
+                      metrics=[metric],
                       target_tensors=[grasp_success_op_batch])
 
         model.summary()
@@ -436,55 +528,94 @@ class GraspTrain(object):
         return weights_name_str
 
 
-def main():
-    config = tf.ConfigProto()
-    config.inter_op_parallelism_threads = 40
-    config.intra_op_parallelism_threads = 40
-    config.gpu_options.allow_growth = True
-    session = tf.Session(config=config)
-    K.set_session(session)
-    with K.get_session() as sess:
-        # Launch the training script for the particular model specified on the command line
-        # or via the default flag value
-        load_weights = FLAGS.load_weights
-        if FLAGS.grasp_model == 'grasp_model_resnet':
-            def make_model_fn(*a, **kw):
-                return grasp_model.grasp_model_resnet(
-                    *a, **kw)
-        elif FLAGS.grasp_model == 'grasp_model_pretrained':
-            def make_model_fn(*a, **kw):
-                return grasp_model.grasp_model_pretrained(
-                    growth_rate=FLAGS.densenet_growth_rate,
-                    reduction=FLAGS.densenet_reduction_after_pretrained,
-                    dense_blocks=FLAGS.densenet_dense_blocks,
-                    *a, **kw)
-        elif FLAGS.grasp_model == 'grasp_model_single':
-            def make_model_fn(*a, **kw):
-                return grasp_model.grasp_model(
-                    growth_rate=FLAGS.densenet_growth_rate,
-                    reduction=FLAGS.densenet_reduction,
-                    dense_blocks=FLAGS.densenet_dense_blocks,
-                    depth=FLAGS.densenet_depth,
-                    *a, **kw)
-        elif FLAGS.grasp_model == 'grasp_model_segmentation':
-            def make_model_fn(*a, **kw):
-                return grasp_model.grasp_model_segmentation(
-                    growth_rate=FLAGS.densenet_growth_rate,
-                    reduction=FLAGS.densenet_reduction,
-                    dense_blocks=FLAGS.densenet_dense_blocks,
-                    *a, **kw)
-        elif FLAGS.grasp_model == 'grasp_model_levine_2016':
-            def make_model_fn(*a, **kw):
-                return grasp_model.grasp_model_levine_2016(
-                    *a, **kw)
-        else:
-            available_functions = globals()
-            if FLAGS.grasp_model in available_functions:
-                make_model_fn = available_functions[FLAGS.grasp_model]
-            else:
-                raise ValueError('unknown model selected: {}'.format(FLAGS.grasp_model))
+def define_make_model_fn(grasp_model_name=FLAGS.grasp_model):
+    """ Get command line specified function that will be used later to the Keras Model object.
 
-        gt = GraspTrain()
+        This function seems a little odd, so please bear with me.
+        Instead of generating the model directly, This creates and
+        returns a function that will instantiate the model which
+        can be called later. In python, functions can actually
+        be created and passed around just like any other object.
+
+        Why make a function instead of just creating the model directly now?
+
+        This lets us write custom code that sets up the model
+        you asked for in the `--grasp_model` command line argument,
+        FLAGS.grasp_model. This means that when GraspTrain actually
+        creates the model they will all work in exactly the same way.
+        The end result is GraspTrain doesn't need a bunch of if
+        statements for every type of model, and the class can be more focused
+        on the grasping datasets and training code.
+
+        # Arguments:
+
+            grasp_model:
+                The name of the grasp model to use. Options are
+                'grasp_model_resnet'
+                'grasp_model_pretrained'
+                'grasp_model_single'
+                'grasp_model_segmentation'
+                'grasp_model_levine_2016'
+
+    """
+    if grasp_model_name == 'grasp_model_resnet':
+        def make_model_fn(*a, **kw):
+            return grasp_model.grasp_model_resnet(
+                *a, **kw)
+    elif grasp_model_name == 'grasp_model_pretrained':
+        def make_model_fn(*a, **kw):
+            return grasp_model.grasp_model_pretrained(
+                growth_rate=FLAGS.densenet_growth_rate,
+                reduction=FLAGS.densenet_reduction_after_pretrained,
+                dense_blocks=FLAGS.densenet_dense_blocks,
+                *a, **kw)
+    elif grasp_model_name == 'grasp_model_single':
+        def make_model_fn(*a, **kw):
+            return grasp_model.grasp_model(
+                growth_rate=FLAGS.densenet_growth_rate,
+                reduction=FLAGS.densenet_reduction,
+                dense_blocks=FLAGS.densenet_dense_blocks,
+                depth=FLAGS.densenet_depth,
+                *a, **kw)
+    elif grasp_model_name == 'grasp_model_segmentation':
+        def make_model_fn(*a, **kw):
+            return grasp_model.grasp_model_segmentation(
+                growth_rate=FLAGS.densenet_growth_rate,
+                reduction=FLAGS.densenet_reduction,
+                dense_blocks=FLAGS.densenet_dense_blocks,
+                *a, **kw)
+    elif grasp_model_name == 'grasp_model_levine_2016':
+        def make_model_fn(*a, **kw):
+            return grasp_model.grasp_model_levine_2016(
+                *a, **kw)
+    else:
+        available_functions = globals()
+        if grasp_model_name in available_functions:
+            make_model_fn = available_functions[FLAGS.grasp_model]
+        else:
+            raise ValueError('unknown model selected: {}'.format(FLAGS.grasp_model))
+    return make_model_fn
+
+
+def main():
+    """Launch the training and/or evaluation script for the particular model specified on the command line.
+    """
+
+    # create the object that does training and evaluation
+    # The init() function configures Keras and the tf session if the tf_session parameter is None.
+    gt = GraspTrain()
+
+    with K.get_session() as sess:
+        # Read command line arguments selecting the Keras model to train.
+        # The specific Keras Model varies based on the command line arguments.
+        # Based on the selection define_make_model_fn()
+        # will create a function that can be called later
+        # to actually create a Keras Model object.
+        # This is done so GraspTrain doesn't need specific code for every possible Keras Model.
+        make_model_fn = define_make_model_fn()
+
+        # Weights file to load, if any
+        load_weights = FLAGS.load_weights
 
         # train the model
         if 'train' in FLAGS.pipeline_stage:
@@ -500,7 +631,6 @@ def main():
                     load_weights=load_weights,
                     model_name=FLAGS.grasp_model)
         return None
-
 
 if __name__ == '__main__':
     FLAGS._parse_flags()
