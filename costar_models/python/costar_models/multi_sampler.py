@@ -918,10 +918,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         '''
         img = Input(img_shape,name="img_encoder_in")
         #img0 = Input(img_shape,name="img0_encoder_in")
-        dr = self.dropout_rate * 0.
+        dr = self.dropout_rate
         x = img
         #x0 = img0
-        x = AddConv2D(x, 32, [7,7], 1, dr, "same", lrelu=disc, bn=(not disc))
+        x = AddConv2D(x, 32, [7,7], 1, 0., "same", lrelu=disc, bn=(not disc))
         #x0 = AddConv2D(x0, 32, [7,7], 1, dr, "same", lrelu=disc, bn=(not disc))
         #x = Concatenate(axis=-1)([x,x0])
 
@@ -979,7 +979,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         x = rep
         if self.hypothesis_dropout:
-            dr = self.decoder_dropout_rate * 0.
+            dr = self.decoder_dropout_rate
         else:
             dr = 0.
         
@@ -993,7 +993,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             x = Reshape((h,w,c))(x)
 
         #x = AddConv2DTranspose(x, 64, [5,5], 1, dr)
-        x = AddConv2DTranspose(x, 128, [1,1], 1, 0.*dr)
+        x = AddConv2DTranspose(x, 128, [1,1], 1, 0.)
         x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
         x = AddConv2DTranspose(x, 64, [5,5], 1, 0.)
         x = AddConv2DTranspose(x, 32, [5,5], 2, dr)
