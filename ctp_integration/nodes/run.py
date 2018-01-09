@@ -92,5 +92,5 @@ def main():
 if __name__ == '__main__':
     try:
         main()
-    except rospy.RosInterruptException as e:
+    except rospy.ROSInterruptException as e:
         pass
