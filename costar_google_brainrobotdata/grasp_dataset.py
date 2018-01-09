@@ -82,9 +82,9 @@ flags.DEFINE_boolean('random_crop', True,
                      """random_crop will apply the tf random crop function with
                         the parameters specified by random_crop_width and random_crop_height
                      """)
-flags.DEFINE_integer('resize_width', 80,
+flags.DEFINE_integer('resize_width', 160,
                      """Width to resize images before prediction, if enabled.""")
-flags.DEFINE_integer('resize_height', 64,
+flags.DEFINE_integer('resize_height', 128,
                      """Height to resize images before prediction, if enabled.""")
 flags.DEFINE_boolean('resize', True,
                      """resize will resize the input images to the desired dimensions specified but the
