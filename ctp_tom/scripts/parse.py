@@ -42,7 +42,7 @@ def getArgs():
                         help="set if you want the robot to generate a task plan")
     parser.add_argument("--execute",
                         action="store_true",
-                        help="print out a ton of information")
+                        help="execute on the real or fake robot")
     parser.add_argument("--iter","-i",
                         default=10,
                         type=int,
