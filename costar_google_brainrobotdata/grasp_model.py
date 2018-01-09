@@ -421,26 +421,30 @@ def grasp_model_levine_2016(
                                                 require_flatten=require_flatten)
         print('obtained image shape:', input_image_shape)
 
-        inputImg1 = Input(shape=input_image_shape, tensor=clear_view_image_op, name='clear_view_image_input')
-        inputImg2 = Input(shape=input_image_shape, tensor=current_time_image_op, name='current_time_image_input')
-        combImg = Concatenate(-1)([inputImg1, inputImg2])
-
-        print('combImg:', combImg, 'input_shape: ', input_image_shape)
+        clear_view_image_input = Input(shape=input_image_shape, tensor=clear_view_image_op, name='clear_view_image_input')
+        current_time_image_input = Input(shape=input_image_shape, tensor=current_time_image_op, name='current_time_image_input')
 
         # img Conv 1
-        imgConv = Conv2D(64, kernel_size=(6, 6),
-                         activation='relu',
-                         strides=strides_initial_conv,
-                         dilation_rate=dilation_rate,
-                         padding='same')(combImg)
+        Conv2DShared = Conv2D(64, kernel_size=(6, 6),
+                              activation='relu',
+                              strides=strides_initial_conv,
+                              dilation_rate=dilation_rate,
+                              padding='same')
+
+        clear_view_img_conv = Conv2DShared(clear_view_image_input)
+        current_time_img_conv = Conv2DShared(current_time_image_input)
 
         if pooling is 'max':
             # img maxPool
-            imgConv = MaxPooling2D(pool_size=(3, 3))(imgConv)
+            max_pool_shared = MaxPooling2D(pool_size=(3, 3))
+            clear_view_img_conv = max_pool_shared(clear_view_img_conv)
+            current_time_img_conv = max_pool_shared(current_time_img_conv)
+
+        combImg = Concatenate(-1)([clear_view_img_conv, current_time_img_conv])
 
         # img Conv 2 - 7
         for i in range(6):
-            imgConv = Conv2D(64, (5, 5), padding='same', activation='relu')(imgConv)
+            imgConv = Conv2D(64, (5, 5), padding='same', activation='relu')(combImg)
 
         print('predilation imgConv:', imgConv)
         imgConv = Conv2D(64, (5, 5), padding='same', activation='relu',
