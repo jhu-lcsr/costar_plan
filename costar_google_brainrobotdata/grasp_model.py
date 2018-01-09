@@ -404,8 +404,6 @@ def grasp_model_levine_2016(
     img_rows, img_cols, img_channels = 472, 472, 3  # 6 or 3
     """
     with K.name_scope(name) as scope:
-        print('clear view image op:', clear_view_image_op)
-        print('current time image op:', current_time_image_op)
         if input_image_shape is None:
             input_image_shape = K.int_shape(clear_view_image_op)[1:]
 
@@ -422,7 +420,6 @@ def grasp_model_levine_2016(
                                                 min_size=8,
                                                 data_format=K.image_data_format(),
                                                 require_flatten=require_flatten)
-        print('obtained image shape:', input_image_shape)
 
         clear_view_image_input = Input(shape=input_image_shape,
                                        tensor=clear_view_image_op,
@@ -456,15 +453,12 @@ def grasp_model_levine_2016(
         for i in range(6):
             imgConv = Conv2D(64, (5, 5), padding='same', activation='relu')(combImg)
 
-        print('predilation imgConv:', imgConv)
         imgConv = Conv2D(64, (5, 5), padding='same', activation='relu',
                          dilation_rate=dilation_rate)(imgConv)
 
-        print('postdilation imgConv:', imgConv)
         if pooling == 'max':
             # img maxPool 2
             imgConv = MaxPooling2D(pool_size=(3, 3))(imgConv)
-        print('postmaxpool imgConv:', imgConv)
 
         # motor Data
         vector_shape = K.int_shape(input_vector_op)[1:]
@@ -473,10 +467,8 @@ def grasp_model_levine_2016(
         # motor full conn
         motorConv = Dense(64, activation='relu')(motorData)
 
-        print('precombined imgConv:', imgConv, 'motorConv:', motorConv)
         # tile and concat the data
         combinedData = concat_images_with_tiled_vector_layer(imgConv, motorConv)
-        print('Combined', combinedData)
 
         # combined conv 8
         combConv = Conv2D(64, (3, 3), activation='relu', padding='same')(combinedData)
@@ -517,15 +509,11 @@ def grasp_model_levine_2016(
             else:
                 batch, row, col, channel = 0, 1, 2, 3
 
-            print('row:', row, ' col:', col)
             comb_conv_shape = K.int_shape(combConv)
             iidim = (input_image_shape[row-1], input_image_shape[col-1])
             ccdim = (comb_conv_shape[row], comb_conv_shape[col])
-            print('iidim:', iidim, ' ccdim:', ccdim)
             if not iidim == ccdim:
-                print('preupsample: ', combConv)
                 combConv = UpSampling2D(size=(iidim[0]/ccdim[0], iidim[1]/ccdim[1]))(combConv)
-                print('postupsample: ', combConv)
 
         # calculate the final classification output
         combConv = classifier_block(combConv, require_flatten, top, classes, activation,
