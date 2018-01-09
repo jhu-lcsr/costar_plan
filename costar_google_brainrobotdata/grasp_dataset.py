@@ -93,9 +93,9 @@ flags.DEFINE_integer('median_filter_width', 3,
 flags.DEFINE_integer('median_filter_height', 3,
                      """Height of median filter kernel.
                      """)
-flags.DEFINE_integer('resize_width', 80,
+flags.DEFINE_integer('resize_width', 160,
                      """Width to resize images before prediction, if enabled.""")
-flags.DEFINE_integer('resize_height', 64,
+flags.DEFINE_integer('resize_height', 128,
                      """Height to resize images before prediction, if enabled.""")
 flags.DEFINE_boolean('resize', True,
                      """resize will resize the input images to the desired dimensions specified but the
@@ -1275,7 +1275,9 @@ class GraspDataset(object):
                             with tf.name_scope('xyz'):
                                 # generate xyz point cloud image feature
                                 if FLAGS.median_filter:
-                                    image = feature_op_dict[median_filtered_image_feature]
+                                    depth_image = feature_op_dict[median_filtered_image_feature]
+                                else:
+                                    depth_image = image
                                 if point_cloud_fn == 'tensorflow':
                                     # should be more efficient than the numpy version
                                     xyz_image = grasp_geometry_tf.depth_image_to_point_cloud(
