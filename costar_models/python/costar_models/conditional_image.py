@@ -51,13 +51,14 @@ class ConditionalImage(PredictionSampler2):
         self.num_transforms = 3
         self.do_all = True
         self.transform_model = None
+        self.skip_connections = False
 
     def _makeTransform(self):
         h = Input((8,8,self.encoder_channels),name="h_in")
-        h0 = Input((8,8,self.encoder_channels),name="h0_in")
+        #h0 = Input((8,8,self.encoder_channels),name="h0_in")
         option = Input((48,),name="t_opt_in")
         x, y = h, option
-        x = Concatenate()([h, h0])
+        #x = Concatenate()([h, h0])
         x0 = AddConv2D(x, self.tform_filters*2, [1,1], 1, 0.)
         x = x0
         for i in range(self.num_transforms):
@@ -70,7 +71,8 @@ class ConditionalImage(PredictionSampler2):
         x = AddConv2D(x, self.encoder_channels, [1, 1], stride=1,
                 dropout_rate=0.)
 
-        self.transform_model = Model([h0,h,option], x, name="tform")
+        #self.transform_model = Model([h0,h,option], x, name="tform")
+        self.transform_model = Model([h,option], x, name="tform")
         self.transform_model.compile(loss="mae", optimizer=self.getOptimizer())
         self.transform_model.summary()
         return self.transform_model
@@ -100,18 +102,26 @@ class ConditionalImage(PredictionSampler2):
         label_in = Input((1,))
         ins = [img0_in, img_in]
 
-        encoder = self._makeImageEncoder(img_shape)
+        if self.skip_connections:
+            encoder = self._makeImageEncoder2(img_shape)
+        else:
+            encoder = self._makeImageEncoder(img_shape)
+            encoder0 = self._makeImageEncoder(img_shape, copy=True)
         try:
             encoder.load_weights(self._makeName(
                 "pretrain_image_encoder_model",
                 "image_encoder.h5f"))
             encoder.trainable = self.retrain
+            encoder0.load_weights(self._makeName(
+                "pretrain_image_encoder_model",
+                "image_encoder.h5f"))
+            encoder0.trainable = self.retrain
         except Exception as e:
             if not self.retrain:
                 raise e
 
         if self.skip_connections:
-            decoder = self._makeImageDecoder(self.hidden_shape,self.skip_shape)
+            decoder = self._makeImageDecoder2(self.hidden_shape)
         else:
             decoder = self._makeImageDecoder(self.hidden_shape)
         try:
@@ -126,8 +136,11 @@ class ConditionalImage(PredictionSampler2):
         # =====================================================================
         # Load the arm and gripper representation
 
-        h = encoder(img_in)
-        h0 = encoder(img0_in)
+        if self.skip_connections:
+            h, s32, s16, s8 = encoder([img0_in, img_in])
+        else:
+            h = encoder([img_in, img0_in])
+            #h0 = encoder(img0_in)
 
         next_model = GetNextModel(h, self.num_options, 128,
                 self.decoder_dropout_rate)
@@ -135,8 +148,10 @@ class ConditionalImage(PredictionSampler2):
                 self.decoder_dropout_rate)
         next_model.compile(loss="mae", optimizer=self.getOptimizer())
         value_model.compile(loss="mae", optimizer=self.getOptimizer())
-        value_out = value_model([h0,h,label_in])
-        next_option_out = next_model([h0,h,label_in])
+        #value_out = value_model([h0,h,label_in])
+        #next_option_out = next_model([h0,h,label_in])
+        value_out = value_model([h,label_in])
+        next_option_out = next_model([h,label_in])
         self.next_model = next_model
         self.value_model = value_model
 
@@ -154,8 +169,9 @@ class ConditionalImage(PredictionSampler2):
         y = next_option_in
         x = h
         tform = self._makeTransform()
-        x = tform([h0,h,y])
-        image_out = decoder(x)
+        #x = tform([h0,h,y])
+        x = tform([h,y])
+        image_out = decoder([x, s32, s16, s8])
 
         # =====================================================================
         actor = GetActorModel(h, self.num_options, arm_size, gripper_size,

@@ -33,7 +33,8 @@ out: an output tensor
 '''
 
 def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
-        lrelu=False, bn=True, momentum=0.9, name=None, constraint=None):
+        lrelu=False, bn=True, momentum=0.9, name=None, constraint=None,
+        activation=None):
     '''
     Helper for creating networks. This one will add a convolutional block.
 
@@ -63,14 +64,18 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
         if name is not None:
             kwargs['name'] = "%s_bn"%name
         x = BatchNormalization(momentum=momentum, **kwargs)(x)
-    if lrelu:
+    if lrelu or activation == "lrelu":
         if name is not None:
             kwargs['name'] = "%s_lrelu"%name
         x = LeakyReLU(alpha=0.2, **kwargs)(x)
+    elif activation is not None:
+        if name is not None:
+            kwargs['name'] = "%s_%s"%(name,activation)
+        x = Activation(activation, **kwargs)(x)
     else:
         if name is not None:
             kwargs['name'] = "%s_relu"%name
-        x = Activation("relu")(x)
+        x = Activation("relu", **kwargs)(x)
     if dropout_rate > 0:
         if name is not None:
             kwargs['name'] = "%s_dropout%f"%(name, dropout_rate)
@@ -890,9 +895,10 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     '''
 
     xin = Input([int(d) for d in x.shape[1:]], name="Nx_prev_h_in")
-    x0in = Input([int(d) for d in x.shape[1:]], name="Nx_prev_h0_in")
+    #x0in = Input([int(d) for d in x.shape[1:]], name="Nx_prev_h0_in")
     option_in = Input((1,), name="Nx_prev_o_in")
-    x = Concatenate()([x0in, xin])
+    x = xin
+    #x = Concatenate()([x0in, xin])
     if len(x.shape) > 2:
 
         # Project
@@ -940,7 +946,8 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
 
     next_option_out = Dense(num_options,
             activation="sigmoid", name="lnext",)(x1)
-    next_model = Model([x0in, xin, option_in], next_option_out, name="next")
+    #next_model = Model([x0in, xin, option_in], next_option_out, name="next")
+    next_model = Model([xin, option_in], next_option_out, name="next")
     return next_model
 
 def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
@@ -949,9 +956,10 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     '''
 
     xin = Input([int(d) for d in x.shape[1:]], name="V_prev_h_in")
-    x0in = Input([int(d) for d in x.shape[1:]], name="V_prev_h0_in")
+    #x0in = Input([int(d) for d in x.shape[1:]], name="V_prev_h0_in")
     option_in = Input((1,), name="V_prev_o_in")
-    x = Concatenate()([x0in, xin])
+    x = xin
+    #x = Concatenate()([x0in, xin])
     if len(x.shape) > 2:
 
         # Project
@@ -994,7 +1002,8 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     x1 = AddDense(x1, dense_size, "lrelu", 0)
     value_out = Dense(1,
             activation="sigmoid", name="value",)(x1)
-    next_model = Model([x0in, xin, option_in], value_out, name="V")
+    #next_model = Model([x0in, xin, option_in], value_out, name="V")
+    next_model = Model([xin, option_in], value_out, name="V")
     return next_model
 
 

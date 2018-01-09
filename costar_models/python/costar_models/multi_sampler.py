@@ -917,14 +917,131 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
               we handle things slightly differently.
         '''
         img = Input(img_shape,name="img_encoder_in")
+        #img0 = Input(img_shape,name="img0_encoder_in")
         dr = self.dropout_rate
         x = img
+        #x0 = img0
+        x = AddConv2D(x, 32, [7,7], 1, 0., "same", lrelu=disc, bn=(not disc))
+        #x0 = AddConv2D(x0, 32, [7,7], 1, dr, "same", lrelu=disc, bn=(not disc))
+        #x = Concatenate(axis=-1)([x,x0])
+
         x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=disc, bn=(not disc))
         x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=(not disc))
         x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=(not disc))
         x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=(not disc))
         x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=(not disc))
         x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=(not disc))
+
+        if self.use_spatial_softmax and not disc:
+            def _ssm(x):
+                return spatial_softmax(x)
+            self.encoder_channels = 32
+            x = AddConv2D(x, self.encoder_channels, [1,1], 1, 0.*dr,
+                    "same", lrelu=disc, bn=(not disc))
+            x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
+            self.hidden_shape = (self.encoder_channels*2,)
+            self.hidden_size = 2*self.encoder_channels
+            self.hidden_shape = (self.hidden_size,)
+        else:
+            self.encoder_channels = 8
+            x = AddConv2D(x, self.encoder_channels, [1,1], 1, 0.*dr,
+                    "same", lrelu=disc, bn=(not disc))
+            self.steps_down = 3
+            self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
+            self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.encoder_channels)
+
+        if not disc:
+
+            image_encoder = Model([img], x, name="Ienc")
+            image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
+            self.image_encoder = image_encoder
+        else:
+            x = Flatten()(x)
+            x = AddDense(x, 512, "lrelu", dr, output=True)
+            x = AddDense(x, self.num_options, "softmax", 0., output=True)
+            image_encoder = Model([img], x, name="Idisc")
+            image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
+            self.image_discriminator = image_encoder
+        return image_encoder
+
+    def _makeImageDecoder(self, hidden_shape, img_shape=None, copy=False):
+        '''
+        helper function to construct a decoder that will make images.
+
+        parameters:
+        -----------
+        img_shape: shape of the image, e.g. (64,64,3)
+        '''
+        if self.use_spatial_softmax:
+            rep = Input((self.hidden_size,),name="decoder_hidden_in")
+        else:
+            rep = Input(hidden_shape,name="decoder_hidden_in")
+
+        x = rep
+        if self.hypothesis_dropout:
+            dr = self.decoder_dropout_rate
+        else:
+            dr = 0.
+        
+        if self.use_spatial_softmax:
+            self.steps_up = 3
+            hidden_dim = int(img_shape[0]/(2**self.steps_up))
+            (h,w,c) = (hidden_dim,
+                       hidden_dim,
+                       self.encoder_channels)
+            x = AddDense(x, int(h*w*c), "relu", dr)
+            x = Reshape((h,w,c))(x)
+
+        #x = AddConv2DTranspose(x, 64, [5,5], 1, dr)
+        x = AddConv2DTranspose(x, 128, [1,1], 1, 0.)
+        x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
+        x = AddConv2DTranspose(x, 64, [5,5], 1, 0.)
+        x = AddConv2DTranspose(x, 32, [5,5], 2, dr)
+        x = AddConv2DTranspose(x, 32, [5,5], 1, 0.)
+        x = AddConv2DTranspose(x, 32, [5,5], 2, dr)
+        x = AddConv2DTranspose(x, 32, [5,5], 1, 0.)
+        ins = rep
+        x = Conv2D(3, kernel_size=[1,1], strides=(1,1),name="convert_to_rgb")(x)
+        x = Activation("sigmoid")(x)
+        if not copy:
+            decoder = Model(ins, x, name="Idec")
+            decoder.compile(loss="mae",optimizer=self.getOptimizer())
+            self.image_decoder = decoder
+        else:
+            decoder = Model(ins, x,)
+            decoder.compile(loss="mae",optimizer=self.getOptimizer())
+        return decoder
+
+    def _makeImageEncoder2(self, img_shape, disc=False):
+        '''
+        create image-only decoder to extract keypoints from the scene.
+        
+        Params:
+        -------
+        img_shape: shape of the image to encode
+        disc: is this being created as part of a discriminator network? If so,
+              we handle things slightly differently.
+        '''
+        img = Input(img_shape,name="img_encoder_in")
+        img0 = Input(img_shape,name="img0_encoder_in")
+        dr = self.dropout_rate
+        x = img
+        x0 = img0
+        x = AddConv2D(x, 32, [7,7], 1, dr, "same", lrelu=disc, bn=(not disc))
+        x0 = AddConv2D(x0, 32, [7,7], 1, dr, "same", lrelu=disc, bn=(not disc))
+        #x = Add(axis=-1)([x,x0])
+        x = Concatenate(axis=-1)([x,x0])
+        xi = x
+
+        x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=(not disc))
+        x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=(not disc))
+        x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=(not disc))
+        xa = x
+        x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=(not disc))
+        x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=(not disc))
+        xb = x
+        x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=(not disc))
+        xc = x
 
         if self.use_spatial_softmax and not disc:
             def _ssm(x):
@@ -946,10 +1063,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         if not disc:
 
-            if self.skip_connections:
-                image_encoder = Model([img], [x, y], name="Ienc")
-            else:
-                image_encoder = Model([img], x, name="Ienc")
+            image_encoder = Model([img0, img], [x, xi, xa, xb, xc], name="Ienc")
             image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
             self.image_encoder = image_encoder
         else:
@@ -961,7 +1075,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             self.image_discriminator = image_encoder
         return image_encoder
 
-    def _makeImageDecoder(self, hidden_shape, img_shape=None, skip=False):
+    def _makeImageDecoder2(self, hidden_shape, img_shape=None, skip=False):
         '''
         helper function to construct a decoder that will make images.
 
@@ -974,10 +1088,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         else:
             rep = Input(hidden_shape,name="decoder_hidden_in")
 
-        if skip:
-            skip1 = Input((32,32,32),name="decoder_skip_in_1")
-            #skip2 = Input((16,16,32),name="decoder_skip_in_2")
-            #skip3 = Input((8,8,32),name="decoder_skip_in_3")
         x = rep
         if self.hypothesis_dropout:
             dr = self.decoder_dropout_rate
@@ -993,25 +1103,29 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             x = AddDense(x, int(h*w*c), "relu", dr)
             x = Reshape((h,w,c))(x)
 
-        #x = AddConv2DTranspose(x, 64, [5,5], 1, dr)
+        s64 = Input((64,64,64),name="skip_64")
+        s32 = Input((32,32,64),name="skip_32")
+        s16 = Input((16,16,64),name="skip_16")
+        s8 = Input((8,8,128),name="skip_8")
         x = AddConv2DTranspose(x, 128, [1,1], 1, 0.*dr)
+        x = Add()([x,s8])
         x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
+        x = Add()([x,s16])
         x = AddConv2DTranspose(x, 64, [5,5], 1, 0.)
-        x = AddConv2DTranspose(x, 32, [5,5], 2, dr)
-        x = AddConv2DTranspose(x, 32, [5,5], 1, 0.)
-        x = AddConv2DTranspose(x, 32, [5,5], 2, dr)
-        x = AddConv2DTranspose(x, 32, [5,5], 1, 0.)
-        if self.skip_connections and img_shape is not None:
-            x = Concatenate(axis=-1)([x, skip])
-            ins = [rep, skip]
-        else:
-            ins = rep
+        x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
+        x = Add()([x,s32])
+        x = AddConv2DTranspose(x, 64, [5,5], 1, 0.)
+        x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
+        x = Add()([x,s64])
+        x = AddConv2DTranspose(x, 64, [5,5], 1, 0.)
         x = Conv2D(3, kernel_size=[1,1], strides=(1,1),name="convert_to_rgb")(x)
         x = Activation("sigmoid")(x)
+        ins = [rep, s32, s16, s8]
         decoder = Model(ins, x, name="Idec")
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         self.image_decoder = decoder
         return decoder
+
 
     def _targetsFromTrainTargets(self, train_targets):
         '''
