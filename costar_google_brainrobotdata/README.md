@@ -20,7 +20,8 @@ The blue circle is a visualization, not actual input, which marks the gripper st
 
 Color augmentation is also available:
 
-![102_grasp_3_rgb_success_1](https://user-images.githubusercontent.com/55744/34450881-8d017ce4-ece4-11e7-8e43-c72dcf11c89a.gif)
+![102_grasp_2_rgb_success_1](https://user-images.githubusercontent.com/55744/34698561-ba2bd61e-f4a6-11e7-88d9-5091aed500fe.gif)
+![102_grasp_3_rgb_success_1](https://user-images.githubusercontent.com/55744/34698564-bef2fba0-f4a6-11e7-9547-06b4410d86aa.gif)
 
 ### How to view the vrep dataset visualization
 
