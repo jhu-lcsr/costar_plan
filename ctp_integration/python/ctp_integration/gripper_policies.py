@@ -1,5 +1,6 @@
 
 from costar_task_plan.abstract import AbstractPolicy
+from costar_task_plan.robotics.core import *
 
 class CostarGripperPolicy(AbstractPolicy):
 

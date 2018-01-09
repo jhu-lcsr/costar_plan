@@ -27,19 +27,20 @@ class MotionOption(AbstractOption):
         else:
             raise RuntimeError('Must specify pose.')
 
-      def makeWorld(self, *args, **kwargs):
-    '''
-    Create a world for testing this specific option
-    '''
-    raise Exception('cannot make training world for this option')
+    def makeWorld(self, *args, **kwargs):
+        '''
+        Create a world for testing this specific option
+        '''
+        raise Exception('cannot make training world for this option')
 
-  def makePolicy(self, world, *args, **kwargs):
-      '''
-      Get policy for performing this option.
-      Get the gating condition for a specific option.
-      - execution should continue until such time as this condition is true.
-      '''
-      policy = CostarArmMotionPolicy(goal, pose)
-      condition = policy.finished
+    def makePolicy(self, world, *args, **kwargs):
+        '''
+        Get policy for performing this option.
+        Get the gating condition for a specific option.
+        - execution should continue until such time as this condition is true.
+        '''
 
+        policy = CostarArmMotionPolicy(goal, pose)
+        condition = policy.running
+        return policy, condition
 

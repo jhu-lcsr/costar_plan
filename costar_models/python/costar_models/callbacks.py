@@ -211,6 +211,7 @@ class StateCb(keras.callbacks.Callback):
                 print("%d: label = %s"%(j,np.argmax(label[j])))
                 print("vs. label =", np.argmax(self.targets[2][j]))
 
+
 class ImageCb(keras.callbacks.Callback):
     '''
     Save an image showing what some number of frames and associated predictions
@@ -221,7 +222,7 @@ class ImageCb(keras.callbacks.Callback):
     def __init__(self, predictor, features, targets,
             model_directory=DEFAULT_MODEL_DIRECTORY,
             name="model",
-            min_idx=0, max_idx=66, step=11,
+            min_idx=0, max_idx=66, step=11, show_idx=0,
             *args, **kwargs):
         '''
         Set up a data set we can use to output validation images.
@@ -240,6 +241,7 @@ class ImageCb(keras.callbacks.Callback):
         self.features = [f[self.idxs] for f in features]
         self.targets = [np.squeeze(t[self.idxs]) for t in targets]
         self.epoch = 0
+        self.show_idx = show_idx
         self.directory = os.path.join(model_directory,'debug')
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
@@ -259,7 +261,7 @@ class ImageCb(keras.callbacks.Callback):
             fig = plt.figure()
             plt.subplot(1,3,1)
             plt.title('Input Image')
-            plt.imshow(self.features[0][j])
+            plt.imshow(self.features[self.show_idx][j])
             plt.subplot(1,3,3)
             plt.title('Observed Goal')
             plt.imshow(self.targets[0][j])
@@ -268,6 +270,10 @@ class ImageCb(keras.callbacks.Callback):
             plt.title('Output')
             fig.savefig(name, bbox_inches="tight")
             plt.close(fig)
+
+class ImageWithFirstCb(ImageCb):
+    def __init__(self, *args, **kwargs):
+        super(ImageWithFirstCb, self).__init__(show_idx=1, *args, **kwargs)
 
 class PredictorShowImageOnly(keras.callbacks.Callback):
     '''
