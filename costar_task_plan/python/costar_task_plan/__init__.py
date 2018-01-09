@@ -22,7 +22,6 @@ try:
 except ImportError as e:
     print("[WARNING] simulation requires pybullet3")
 
-
 # =============================================================================
 # Neural Nets
 # Learning, training, and utilities.
