@@ -31,12 +31,11 @@ pip install pyassimp --user --upgrade
 
 # TODO(cpaxton): come up with a better way to install tensorflow here. We want
 # to ensure that everything is configured properly for tests.
-if [ nvidia-smi ]
-then
-  sudo -H pip install tensorflow
-else
-  sudo -H pip install tensorflow
-fi
+
+# Catkin is missing in Ubuntu, so we need to add the deb
+sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu `lsb_release -sc` main" > /etc/apt/sources.list.d/ros-latest.list'
+wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
+sudo apt-get update
 
 echo "======================================================"
 echo "ROS"
@@ -71,8 +70,9 @@ git clone git@github.com:ccny-ros-pkg/imu_tools.git
 git clone https://github.com/cpaxton/robotiq_85_gripper.git
 git clone https://github.com/cpaxton/tom_robot.git
 git clone git@github.com:cpaxton/urdf_parser_py.git --branch indigo-devel
-#git clone https://github.com/cpaxton/costar_plan.git
+git clone https://github.com/cpaxton/costar_plan.git
 rosdep install -y --from-paths ./ --ignore-src --rosdistro $ROS_DISTRO
 cd $CATKIN_WS/src
-catkin build
+catkin build --continue
 source $CATKIN_WS/devel/setup.bash
+

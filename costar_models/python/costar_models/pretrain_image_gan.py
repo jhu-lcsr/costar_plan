@@ -9,6 +9,7 @@ from keras.callbacks import ModelCheckpoint
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
 from keras.layers.embeddings import Embedding
+from keras.layers.pooling import MaxPooling2D, AveragePooling2D
 from keras.layers.merge import Concatenate, Multiply
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
@@ -30,6 +31,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         '''
         super(PretrainImageGan, self).__init__(taskdef, *args, **kwargs)
         self.PredictorCb = ImageCb
+        self.load_pretrained_weights = False
 
     def _makePredictor(self, features):
         '''
@@ -49,8 +51,20 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         decoder = self._makeImageDecoder(
                 self.hidden_shape,
                 self.skip_shape, False)
-        gen_out = decoder(enc)
 
+        if self.load_pretrained_weights:
+            try:
+                encoder.load_weights(self._makeName(
+                    "pretrain_image_encoder_model",
+                    "image_encoder.h5f"))
+                decoder.load_weights(self._makeName(
+                    "pretrain_image_encoder_model",
+                    "image_decoder.h5f"))
+            except Exception as e:
+                if not self.retrain:
+                    raise e
+
+        gen_out = decoder(enc)
         image_discriminator = self._makeImageDiscriminator(img_shape)
         self.discriminator = image_discriminator
 
@@ -63,8 +77,8 @@ class PretrainImageGan(RobotMultiPredictionSampler):
 
         self.model = Model([img_in], [gen_out, o1])
         self.model.compile(
-                loss=["logcosh"] + ["binary_crossentropy"],
-                loss_weights=[0., 1],
+                loss=["mae"] + ["binary_crossentropy"],
+                loss_weights=[10., 1.],
                 optimizer=self.getOptimizer())
         self.model.summary()
 
@@ -81,6 +95,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         [img, q, g, oin, q_target, g_target,] = features
         return [img], [img]
 
+    """
     def _makeImageEncoder(self, img_shape):
         '''
         create image-only encoder to extract keypoints from the scene.
@@ -113,11 +128,13 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         #self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.encoder_channels)
 
         # dense representation
-        x = AddDense(x, self.hidden_shape[0], "relu", dr)
+        x = AddDense(x, self.hidden_shape[0], "relu", 0)
         image_encoder = Model(ins, x, name="image_encoder")
         image_encoder.compile(loss="logcosh", optimizer=self.getOptimizer())
+        image_encoder.summary()
         self.image_encoder = image_encoder
         return image_encoder
+    """
 
     def _makeImageDiscriminator(self, img_shape):
         '''
@@ -131,25 +148,21 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         img0 = Input(img_shape,name="img0_encoder_in")
         ins = [img, img0]
         dr = self.dropout_rate
-        dr = 0 # 0.5
+        dr = 0
         x = Concatenate(axis=-1)([img, img0])
+        x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=True)
         x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=True)
-#        x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
-#        x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
         x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=True)
-#        x = AddConv2D(x, 128, [5,5], 1, dr, "same", lrelu=True)
-        x = AddConv2D(x, 256, [5,5], 2, dr, "same", lrelu=True)
-
+        x = AddConv2D(x, 1, [5,5], 1, 0., "same", activation="sigmoid")
+        x = AveragePooling2D(pool_size=(8,8))(x)
         x = Flatten()(x)
-
-        #x = AddDense(x, 512, "lrelu", dr, output=True)
-        x = AddDense(x, 1, "sigmoid", 0, output=True)
         discrim = Model(ins, x, name="image_discriminator")
-        discrim.compile(loss="logcosh", loss_weights=[1],
+        discrim.compile(loss="binary_crossentropy", loss_weights=[1.],
                 optimizer=self.getOptimizer())
         self.image_discriminator = discrim
         return discrim
 
+    """
     def _makeImageDecoder(self, hidden_shape, img_shape=None, skip=False):
         '''
         helper function to construct a decoder that will make images.
@@ -168,15 +181,15 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         m = 0.99
         self.steps_up = 3
         hidden_dim = int(img_shape[0]/(2**self.steps_up))
-        extra_dim = 2 * hidden_shape[0] / (hidden_dim * hidden_dim)
+        extra_dim = int(2 * hidden_shape[0] / (hidden_dim * hidden_dim))
         (h,w,c) = (hidden_dim,
                     hidden_dim,
                     extra_dim)
-        x = AddDense(x, int(h*w*c), "relu", dr)
+        x = AddDense(x, int(h*w*c), "relu", 0)
         x = Reshape((h,w,c))(x)
 
 #        x = AddConv2DTranspose(x, 128, [1,1], 1, 0.*dr, momentum=m)
-        x = AddConv2DTranspose(x, 128, [5,5], 1, dr, momentum=m)
+        x = AddConv2DTranspose(x, 128, [5,5], 1, 0, momentum=m)
         x = AddConv2DTranspose(x, 64, [5,5], 2, dr, momentum=m)
         x = AddConv2DTranspose(x, 64, [5,5], 1, dr, momentum=m)
         x = AddConv2DTranspose(x, 32, [5,5], 2, dr, momentum=m)
@@ -190,13 +203,14 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         decoder.compile(loss="logcosh",optimizer=self.getOptimizer())
         self.image_decoder = decoder
         return decoder
+    """
 
     def _fit(self, train_generator, test_generator, callbacks):
 
         """
         for i in range(self.pretrain_iter):
             # Descriminator pass
-            img, _ = train_generator.next()
+            img, _ = next(train_generator)
             img = img[0]
             fake = self.generator.predict(img)
             self.discriminator.trainable = True
@@ -215,11 +229,11 @@ class PretrainImageGan(RobotMultiPredictionSampler):
             # MAE
             for i in range(self.epochs):
                 for j in range(self.steps_per_epoch):
-                    img, _ = train_generator.next()
+                    img, _ = next(train_generator)
                     img = img[0]
                     res = self.generator.train_on_batch(img, img)
                     print("\rEpoch {}, {}/{}: MAE loss {:.5}".format(
-                        i, j, self.steps_per_epoch, res), end="")
+                        i+1, j, self.steps_per_epoch, res), end="")
 
                 for c in callbacks:
                     c.on_epoch_end(i)
@@ -228,7 +242,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
             for i in range(self.epochs):
                 for j in range(self.steps_per_epoch):
                     # Descriminator pass
-                    img, _ = train_generator.next()
+                    img, _ = next(train_generator)
                     img = img[0]
                     fake = self.generator.predict(img)
                     self.discriminator.trainable = True
@@ -239,8 +253,21 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                     res2 = self.discriminator.train_on_batch(
                             [img, fake], is_fake)
                     self.discriminator.trainable = False
-                    print("Epoch {}, {}/{}: Descrim Real loss {}, Fake loss {}".format(
-                        i, j, self.steps_per_epoch, res1, res2))
+                    print("\rEpoch {}, {}/{}: Descrim Real loss {}, Fake loss {}".format(
+                        i, j, self.steps_per_epoch, res1, res2), end="")
+
+                # Accuracy tests
+                img, _ = next(train_generator)
+                img = img[0]
+                fake = self.generator.predict(img)
+                results = self.discriminator.predict([img, fake])
+                results2 = self.discriminator.predict([img, img])
+                correct = np.count_nonzero(results >= 0.5)
+                correct2 = np.count_nonzero(results2 < 0.5)
+
+                print("\nAccuracy Epoch {}, real acc {}, fake acc {}".format(
+                    i, correct/float(len(results)), correct2/float(len(results2))))
+
                 for c in callbacks:
                     c.on_epoch_end(i)
         else:
@@ -248,7 +275,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                 for j in range(self.steps_per_epoch):
 
                     # Descriminator pass
-                    img, _ = train_generator.next()
+                    img, _ = next(train_generator)
                     img = img[0]
                     fake = self.generator.predict(img)
                     self.discriminator.trainable = True
@@ -261,16 +288,16 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                     self.discriminator.trainable = False
 
                     # Generator pass
-                    img, _ = train_generator.next()
+                    img, _ = next(train_generator)
                     img = img[0]
                     res = self.model.train_on_batch(
                             [img], [img, is_not_fake]
                     )
-                    print("Epoch {}, {}/{}: Gen loss {}, Real loss {}, Fake loss {}".format(
-                        i, j, self.steps_per_epoch, res[0], res1, res2))
+                    print("Epoch {}, {}/{}: Gen loss {}, Gen err {}, Real loss {}, Fake loss {}".format(
+                        i, j, self.steps_per_epoch, res[0], res[1], res1, res2))
 
                 # Accuracy tests
-                img, _ = train_generator.next()
+                img, _ = next(train_generator)
                 img = img[0]
                 fake = self.generator.predict(img)
                 results = self.discriminator.predict([img, fake])
@@ -278,9 +305,9 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                 correct = np.count_nonzero(results >= 0.5)
                 correct2 = np.count_nonzero(results2 < 0.5)
 
-                for c in callbacks:
-                    c.on_epoch_end(i)
-
                 print("Epoch {}, real acc {}, fake acc {}".format(
                     i, correct/float(len(results)), correct2/float(len(results2))))
+
+                for c in callbacks:
+                    c.on_epoch_end(i)
 
