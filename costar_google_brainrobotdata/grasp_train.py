@@ -356,7 +356,7 @@ class GraspTrain(object):
             callbacks = callbacks + [
                 # Reduce the learning rate if training plateaus.
                 # TODO(ahundt) add validation checks and update monitor parameter to use them
-                keras.callbacks.ReduceLROnPlateau(patience=8, verbose=1, monitor=loss_name)
+                keras.callbacks.ReduceLROnPlateau(patience=8, verbose=1, monitor=metric_name)
             ]
 
         # 2017-08-27 Tried NADAM for a while with the settings below, only improved for first 2 epochs.

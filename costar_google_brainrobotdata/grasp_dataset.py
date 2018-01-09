@@ -1779,7 +1779,6 @@ class GraspDataset(object):
             feature_type='endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/' + preprocessed_final_coordinate_suffix,
             step='move_to_grasp'
         )
-        print('preprocessed_final_coordinate_names: ', preprocessed_final_coordinate_names)
 
         # get the sequence of preprocessed coordinates
         preprocessed_current_coordinate_names = self.get_time_ordered_features(
@@ -1787,7 +1786,7 @@ class GraspDataset(object):
             feature_type='endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/' + preprocessed_final_coordinate_suffix,
             step='move_to_grasp'
         )
-        print('preprocessed_current_coordinate_names: ', preprocessed_final_coordinate_names)
+
         num_time_steps = len(rgb_move_to_grasp_steps)
         grasp_success_names = ['grasp_success'] * num_time_steps
 

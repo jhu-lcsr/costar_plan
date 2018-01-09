@@ -131,7 +131,6 @@ def classifier_block(input_tensor, require_flatten=True, top='classification',
         if verbose:
             print("    segmentation")
         x = Conv2D(classes, (1, 1), activation='linear', padding='same')(x)
-        print('x:', x, 'input_shape: ', input_shape)
 
         if K.image_data_format() == 'channels_first':
             channel, row, col = input_shape
