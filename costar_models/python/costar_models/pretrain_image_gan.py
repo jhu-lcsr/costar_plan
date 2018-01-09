@@ -77,7 +77,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         self.model = Model([img_in], [gen_out, o1])
         self.model.compile(
                 loss=["mae"] + ["binary_crossentropy"],
-                loss_weights=[10., 1.],
+                loss_weights=[100., 1.],
                 optimizer=self.getOptimizer())
         self.model.summary()
 
