@@ -506,7 +506,7 @@ def grasp_model_levine_2016(
         combConv = classifier_block(combConv, require_flatten, top, classes, activation,
                                     input_image_shape, final_pooling, verbose)
 
-        model = Model(inputs=[inputImg1, inputImg2, motorData], outputs=combConv)
+        model = Model(inputs=[clear_view_image_input, current_time_image_input, motorData], outputs=combConv)
         return model
 
 
