@@ -95,47 +95,6 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         [img, q, g, oin, q_target, g_target,] = features
         return [img], [img]
 
-    """
-    def _makeImageEncoder(self, img_shape):
-        '''
-        create image-only encoder to extract keypoints from the scene.
-        
-        Params:
-        -------
-        img_shape: shape of the image to encode
-        '''
-        img = Input(img_shape,name="img_encoder_in")
-        dr = self.dropout_rate
-        x = img
-        self.encoder_channels = 8
-        ec = self.encoder_channels
-        ins = img
-        x = AddConv2D(x, 32, [5,5], 2, dr, "same")
-
-        x = AddConv2D(x, 32, [5,5], 1, dr, "same")
-        x = AddConv2D(x, 32, [5,5], 1, dr, "same")
-        x = AddConv2D(x, 64, [5,5], 2, dr, "same")
-        x = AddConv2D(x, 64, [5,5], 1, dr, "same")
-        x = AddConv2D(x, 128, [5,5], 2, dr, "same")
-        # compressing to encoded format
-        x = AddConv2D(x, ec, [1,1], 1, 0, "same")
-
-        self.steps_down = 3
-        self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
-        #self.tform_filters = self.encoder_channels
-        self.hidden_shape = (256,)
-        x = Flatten()(x)
-        #self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.encoder_channels)
-
-        # dense representation
-        x = AddDense(x, self.hidden_shape[0], "relu", 0)
-        image_encoder = Model(ins, x, name="image_encoder")
-        image_encoder.compile(loss="logcosh", optimizer=self.getOptimizer())
-        image_encoder.summary()
-        self.image_encoder = image_encoder
-        return image_encoder
-    """
-
     def _makeImageDiscriminator(self, img_shape):
         '''
         create image-only encoder to extract keypoints from the scene.
@@ -161,68 +120,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         self.image_discriminator = discrim
         return discrim
 
-    """
-    def _makeImageDecoder(self, hidden_shape, img_shape=None, skip=False):
-        '''
-        helper function to construct a decoder that will make images.
-
-        parameters:
-        -----------
-        img_shape: shape of the image, e.g. (64, 64, 3)
-        '''
-        rep = Input(hidden_shape, name="decoder_hidden_in")
-
-        x = rep
-        if self.hypothesis_dropout:
-            dr = self.decoder_dropout_rate
-        else:
-            dr = 0.
-        m = 0.99
-        self.steps_up = 3
-        hidden_dim = int(img_shape[0]/(2**self.steps_up))
-        extra_dim = int(2 * hidden_shape[0] / (hidden_dim * hidden_dim))
-        (h,w,c) = (hidden_dim,
-                    hidden_dim,
-                    extra_dim)
-        x = AddDense(x, int(h*w*c), "relu", 0)
-        x = Reshape((h,w,c))(x)
-
-#        x = AddConv2DTranspose(x, 128, [1,1], 1, 0.*dr, momentum=m)
-        x = AddConv2DTranspose(x, 128, [5,5], 1, 0, momentum=m)
-        x = AddConv2DTranspose(x, 64, [5,5], 2, dr, momentum=m)
-        x = AddConv2DTranspose(x, 64, [5,5], 1, dr, momentum=m)
-        x = AddConv2DTranspose(x, 32, [5,5], 2, dr, momentum=m)
-        x = AddConv2DTranspose(x, 32, [5,5], 1, dr, momentum=m)
-        x = AddConv2DTranspose(x, 32, [5,5], 2, dr, momentum=m)
-        x = AddConv2DTranspose(x, 32, [5,5], 1, dr, momentum=m)
-        ins = rep
-        x = Conv2D(3, kernel_size=[1,1], strides=(1,1),name="convert_to_rgb")(x)
-        x = Activation("sigmoid")(x)
-        decoder = Model(ins, x, name="image_decoder")
-        decoder.compile(loss="logcosh",optimizer=self.getOptimizer())
-        self.image_decoder = decoder
-        return decoder
-    """
-
     def _fit(self, train_generator, test_generator, callbacks):
-
-        """
-        for i in range(self.pretrain_iter):
-            # Descriminator pass
-            img, _ = next(train_generator)
-            img = img[0]
-            fake = self.generator.predict(img)
-            self.discriminator.trainable = True
-            is_fake = np.random.random((self.batch_size, 1)) * 0.1 + 0.9
-            is_not_fake = np.random.random((self.batch_size, 1)) * 0.1
-            res1 = self.discriminator.train_on_batch(
-                    [img, img], is_not_fake)
-            res2 = self.discriminator.train_on_batch(
-                    [img, fake], is_fake)
-            self.discriminator.trainable = False
-            print("\rPretraining {}/{}: Real loss {}, Fake loss {}".format(
-                i, self.pretrain_iter, res1, res2))
-        """
 
         if self.gan_method == 'mae':
             # MAE
