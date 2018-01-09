@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 from costar_task_plan.abstract import AbstractOption
+from costar_task_plan.abstract import AbstractPolicy
 
 from .gripper_policies import CostarGripperPolicy
 
@@ -25,5 +26,16 @@ class GripperOption(AbstractOption):
         - execution should continue until such time as this condition is true.
         '''
         raise Exception('option.makePolicy not implemented!')
+
+
+class CostarGripperPolicy(AbstractPolicy):
+
+    '''
+    This simple policy just looks at robot internals to send the appropriate
+    "open gripper" command.
+    '''
+
+    def evaluate(self, world, state, actor):
+        return CostarRobotAction(gripper_cmd=state.robot.gripperOpenCommand())
 
 
