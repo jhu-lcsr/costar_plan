@@ -42,7 +42,7 @@ do
   # just use the adam optimizer
   for opt in adam
   do
-    for loss in mae logcosh
+    for loss in mae #logcosh
     do
     # what do we do about skip connections?
     for skip in 0 # 1
