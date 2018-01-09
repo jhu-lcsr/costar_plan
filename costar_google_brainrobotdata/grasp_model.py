@@ -12,6 +12,7 @@ from keras.layers import MaxPooling2D
 from keras.layers import AveragePooling2D
 from keras.layers import GlobalMaxPooling2D
 from keras.layers import GlobalAveragePooling2D
+from keras.layers import UpSampling2D
 from keras.layers.core import Flatten
 from keras.layers.core import RepeatVector
 from keras.layers import Input
@@ -384,6 +385,7 @@ def grasp_model_levine_2016(
         input_vector_op_shape=None,
         dropout_rate=None,
         strides_initial_conv=(2, 2),
+        dilation_rate_initial_conv=1,
         pooling='max',
         dilation_rate=1,
         activation='sigmoid',
@@ -395,7 +397,8 @@ def grasp_model_levine_2016(
         name='grasp_model_levine_2016'):
     """Model designed to match prior work.
 
-    Learning Hand-Eye Coordination for Robotic Grasping with Deep Learning and Large-Scale Data Collection.
+    Learning Hand-Eye Coordination for Robotic Grasping with
+    Deep Learning and Large-Scale Data Collection.
 
     Original paper input dimensions:
     img_rows, img_cols, img_channels = 472, 472, 3  # 6 or 3
@@ -421,24 +424,31 @@ def grasp_model_levine_2016(
                                                 require_flatten=require_flatten)
         print('obtained image shape:', input_image_shape)
 
-        clear_view_image_input = Input(shape=input_image_shape, tensor=clear_view_image_op, name='clear_view_image_input')
-        current_time_image_input = Input(shape=input_image_shape, tensor=current_time_image_op, name='current_time_image_input')
+        clear_view_image_input = Input(shape=input_image_shape,
+                                       tensor=clear_view_image_op,
+                                       name='clear_view_image_input')
+        current_time_image_input = Input(shape=input_image_shape,
+                                         tensor=current_time_image_op,
+                                         name='current_time_image_input')
 
-        # img Conv 1
-        Conv2DShared = Conv2D(64, kernel_size=(6, 6),
-                              activation='relu',
-                              strides=strides_initial_conv,
-                              dilation_rate=dilation_rate,
-                              padding='same')
+        # img1 Conv 1
+        clear_view_img_conv = Conv2D(64, kernel_size=(6, 6),
+                                     activation='relu',
+                                     strides=strides_initial_conv,
+                                     dilation_rate=dilation_rate_initial_conv,
+                                     padding='same')(clear_view_image_input)
 
-        clear_view_img_conv = Conv2DShared(clear_view_image_input)
-        current_time_img_conv = Conv2DShared(current_time_image_input)
+        # img2 Conv 1
+        current_time_img_conv = Conv2D(64, kernel_size=(6, 6),
+                                       activation='relu',
+                                       strides=strides_initial_conv,
+                                       dilation_rate=dilation_rate_initial_conv,
+                                       padding='same')(current_time_image_input)
 
-        if pooling is 'max':
+        if pooling == 'max':
             # img maxPool
-            max_pool_shared = MaxPooling2D(pool_size=(3, 3))
-            clear_view_img_conv = max_pool_shared(clear_view_img_conv)
-            current_time_img_conv = max_pool_shared(current_time_img_conv)
+            clear_view_img_conv = MaxPooling2D(pool_size=(3, 3))(clear_view_img_conv)
+            current_time_img_conv = MaxPooling2D(pool_size=(3, 3))(current_time_img_conv)
 
         combImg = Concatenate(-1)([clear_view_img_conv, current_time_img_conv])
 
@@ -451,7 +461,7 @@ def grasp_model_levine_2016(
                          dilation_rate=dilation_rate)(imgConv)
 
         print('postdilation imgConv:', imgConv)
-        if pooling is 'max':
+        if pooling == 'max':
             # img maxPool 2
             imgConv = MaxPooling2D(pool_size=(3, 3))(imgConv)
         print('postmaxpool imgConv:', imgConv)
@@ -479,7 +489,7 @@ def grasp_model_levine_2016(
         combConv = Conv2D(64, (5, 5), padding='same', activation='relu',
                           dilation_rate=dilation_rate)(combConv)
 
-        if pooling is 'max':
+        if pooling == 'max':
             # combined maxPool
             combConv = MaxPooling2D(pool_size=(2, 2))(combConv)
 
@@ -500,9 +510,24 @@ def grasp_model_levine_2016(
             combConv = Conv2D(64, (1, 1), activation='relu', padding='same')(combConv)
             combConv = Conv2D(64, (1, 1), activation='relu', padding='same')(combConv)
 
-        # if top == 'segmentation' and not x.output_shape == input_shape:
-        #     x = BilinearUpSampling2D(target_size=tuple(input_shape))(x)
+            # if the image was made smaller to save space,
+            # upsample before calculating the final output
+            if K.image_data_format() == 'channels_first':
+                batch, channel, row, col = 0, 1, 2, 3
+            else:
+                batch, row, col, channel = 0, 1, 2, 3
 
+            print('row:', row, ' col:', col)
+            comb_conv_shape = K.int_shape(combConv)
+            iidim = (input_image_shape[row-1], input_image_shape[col-1])
+            ccdim = (comb_conv_shape[row], comb_conv_shape[col])
+            print('iidim:', iidim, ' ccdim:', ccdim)
+            if not iidim == ccdim:
+                print('preupsample: ', combConv)
+                combConv = UpSampling2D(size=(iidim[0]/ccdim[0], iidim[1]/ccdim[1]))(combConv)
+                print('postupsample: ', combConv)
+
+        # calculate the final classification output
         combConv = classifier_block(combConv, require_flatten, top, classes, activation,
                                     input_image_shape, final_pooling, verbose)
 
@@ -517,7 +542,8 @@ def grasp_model_levine_2016_segmentation(
         input_image_shape=None,
         input_vector_op_shape=None,
         dropout_rate=None,
-        strides_initial_conv=(1, 1),
+        strides_initial_conv=(2, 2),
+        dilation_rate_initial_conv=1,
         pooling=None,
         dilation_rate=2,
         activation='sigmoid',
@@ -540,6 +566,7 @@ def grasp_model_levine_2016_segmentation(
         input_vector_op_shape,
         dropout_rate,
         strides_initial_conv,
+        dilation_rate_initial_conv,
         pooling,
         dilation_rate,
         activation,

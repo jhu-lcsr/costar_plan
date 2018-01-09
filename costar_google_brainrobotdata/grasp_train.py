@@ -472,7 +472,7 @@ class GraspTrain(object):
             pregrasp_op_batch,
             grasp_step_op_batch,
             simplified_grasp_command_op_batch,
-            input_image_shape=input_image_shape,
+            # input_image_shape=input_image_shape,
             dropout_rate=0.0)
 
         if(load_weights):
