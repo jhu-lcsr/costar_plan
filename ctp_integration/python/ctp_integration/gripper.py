@@ -3,8 +3,6 @@ from __future__ import print_function
 from costar_task_plan.abstract import AbstractOption
 from costar_task_plan.abstract import AbstractPolicy
 
-from .gripper_policies import CostarGripperPolicy
-
 class GripperOption(AbstractOption):
     '''
     This option calls out to the current segmenter and waits until termination.
