@@ -9,7 +9,7 @@ def GetLaunchOptions():
     '''
     These are the files that actually set up the environment
     '''
-    return ["ur5","husky"]
+    return ["ur5","husky","fetch"]
 
 def GetExperimentOptions():
     '''

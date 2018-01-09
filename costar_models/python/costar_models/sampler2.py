@@ -275,8 +275,8 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         losses = [MhpLossWithShape(
                         num_hypotheses=self.num_hypotheses,
                         outputs=[image_size, arm_size, gripper_size, self.num_options],
-                        weights=[1., 0.5, 0.1, 0.025],
-                        loss=["mae","mae","mae","categorical_crossentropy"],
+                        weights=[1., 1., 0.2, 0.025],
+                        loss=["mae","logcosh","logcosh","categorical_crossentropy"],
                         #stats=stats,
                         avg_weight=0.1),]
         if self.success_only and False:
@@ -286,7 +286,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         else:
             outs = [train_out, next_option_out, value_out]
             loss_weights = [1.0, 0.01, 0.01]
-            losses += ["categorical_crossentropy", "binary_crossentropy"]
+            losses += ["binary_crossentropy", "binary_crossentropy"]
         train_predictor = Model(ins, outs)
         train_predictor.compile(
                 loss=losses,
@@ -311,3 +311,49 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         else:
             return [I, q, g, oin], [tt, o1, v]
 
+    def encode(self, obs):
+        '''
+        Encode available features into a new state
+
+        Parameters:
+        -----------
+        obs: list of observation data
+        '''
+        return self.hidden_encoder.predict(obs)
+
+    def decode(self, hidden):
+        '''
+        Decode features and produce a set of visualizable images or other
+        feature outputs.
+
+        '''
+        return self.hidden_decoder.predict(hidden)
+
+    def pnext(self, hidden):
+        raise NotImplementedError('next() not implemented')
+
+    def transform(self, hidden, option_in=-1):
+        raise NotImplementedError('transform() not implemented')
+
+    def act(self, *args, **kwargs):
+        raise NotImplementedError('act() not implemented')
+
+    def decodedInfo(self, features):
+        '''
+        Take decoded information and show it somewhere.
+
+        Parameters:
+        -----------
+        features: list of state information provided for a particular output
+        '''
+
+        for i, f in enumerate(features):
+            print("-->", i, f.shape)
+            print(f)
+
+    def prevOption(self, features):
+        return features[3]
+
+    def debugImage(self, features):
+        if self.use_noise:
+            return features[0]
