@@ -55,4 +55,5 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --steps_per_epoch 500 \
   --noise_dim $noise_dim \
   --loss $loss \
+  --gan_method gan \
   --batch_size 64
