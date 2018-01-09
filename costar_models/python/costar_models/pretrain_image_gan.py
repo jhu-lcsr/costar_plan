@@ -31,7 +31,6 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         '''
         super(PretrainImageGan, self).__init__(taskdef, *args, **kwargs)
         self.PredictorCb = ImageCb
-        self.load_pretrained_weights = False
 
     def _makePredictor(self, features):
         '''
@@ -78,7 +77,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         self.model = Model([img_in], [gen_out, o1])
         self.model.compile(
                 loss=["mae"] + ["binary_crossentropy"],
-                loss_weights=[100., 1.],
+                loss_weights=[10., 1.],
                 optimizer=self.getOptimizer())
         self.model.summary()
 
@@ -108,11 +107,17 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         ins = [img, img0]
         dr = self.dropout_rate
         dr = 0
-        x = Concatenate(axis=-1)([img, img0])
-        x = AddConv2D(x, 64, [4,4], 2, dr, "valid", lrelu=True)
-        x = AddConv2D(x, 128, [4,4], 2, dr, "valid", lrelu=True)
-        x = AddConv2D(x, 1, [4,4], 1, 0., "valid", activation="sigmoid")
-        x = AveragePooling2D(pool_size=(8,8))(x)
+        x = AddConv2D(img, 64, [4,4], 1, dr, "valid", lrelu=True)
+        x0 = AddConv2D(img0, 64, [4,4], 1, dr, "valid", lrelu=True)
+        x = Add()([x, x0])
+        x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=True)
+        x = AddConv2D(x, 64, [4,4], 1, dr, "same", lrelu=True)
+        x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True)
+        x = AddConv2D(x, 128, [4,4], 1, dr, "same", lrelu=True)
+        x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
+        x = AddConv2D(x, 256, [4,4], 1, dr, "same", lrelu=True)
+        x = AddConv2D(x, 1, [4,4], 1, 0., "same", activation="sigmoid")
+        x = MaxPooling2D(pool_size=(8,8))(x)
         x = Flatten()(x)
         discrim = Model(ins, x, name="image_discriminator")
         discrim.compile(loss="binary_crossentropy", loss_weights=[1.],

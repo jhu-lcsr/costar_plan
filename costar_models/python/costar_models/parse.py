@@ -88,6 +88,11 @@ def GetModelParser():
                               " discriminators.",
                         default=0,
                         type=int)
+    parser.add_argument("--load_pretrained_weights", "--lpw",
+                        help="Load pretrained weights when training more"
+                             " complex models. Will usually fail gracefully"
+                             " if weights cannot be found. (GAN OPTION)",
+                        action="store_true")
     parser.add_argument("--cpu",
                         help="Run in CPU-only mode, even if GPUs are" + \
                              " available.",
