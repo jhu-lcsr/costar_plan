@@ -313,6 +313,45 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         return predictor, train_predictor, actor, ins, enc
 
+    def _makeTransform(self):
+        '''
+        This is the version made for the newer code, it is set up to use both
+        the initial and current observed world and creates a transform
+        dependent on which action you wish to perform.
+
+        Parameters:
+        -----------
+        none
+
+        Returns:
+        --------
+        transform model
+        '''
+        h = Input((8,8,self.encoder_channels),name="h_in")
+        h0 = Input((8,8,self.encoder_channels),name="h0_in")
+        option = Input((48,),name="t_opt_in")
+        x, y = h, option
+        x = AddConv2D(h, self.tform_filters, [1,1], 1, 0.)
+        x0 = AddConv2D(h0, self.tform_filters, [1,1], 1, 0.)
+        x = Add()([h, h0])
+        x0 = AddConv2D(x, self.tform_filters*2, [5,5], 1, 0.)
+        x = x0
+        for i in range(self.num_transforms):
+            x = TileOnto(x, y, self.num_options, (8,8))
+            x = AddConv2D(x, self.tform_filters*2,
+                    self.tform_kernel_size,
+                    stride=1,
+                    dropout_rate=self.tform_dropout_rate)
+        x =  Concatenate(axis=-1)([x,x0])
+        x = AddConv2D(x, self.encoder_channels, [1, 1], stride=1,
+                dropout_rate=0.)
+
+        self.transform_model = Model([h0,h,option], x, name="tform")
+        #self.transform_model = Model([h,option], x, name="tform")
+        self.transform_model.compile(loss="mae", optimizer=self.getOptimizer())
+        self.transform_model.summary()
+        return self.transform_model
+
     def _getTransform(self,i=0,rep_channels=32):
         transform_dropout = False
         use_options_again = self.use_next_option
@@ -1227,3 +1266,4 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 sums += np.array(losses)
 
         return sums, train_sum, length
+

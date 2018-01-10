@@ -22,8 +22,9 @@ from .split import *
 from .mhp_loss import *
 from .loss import *
 from .conditional_image import *
+from .pretrain_image_gan import *
 
-class ConditionalImageGan(ConditionalImage):
+class ConditionalImageGan(PretrainImageGan):
     '''
     Version of the sampler that only produces results conditioned on a
     particular action; this version does not bother trying to learn a separate
@@ -45,6 +46,12 @@ class ConditionalImageGan(ConditionalImage):
         taskdef: definition of the problem used to create a task model
         '''
         super(ConditionalImageGan, self).__init__(*args, **kwargs)
+        self.PredictorCb = ImageWithFirstCb
+        self.rep_size = 256
+        self.num_transforms = 3
+        self.do_all = True
+        self.transform_model = None
+        self.skip_connections = False
  
     def _makePredictor(self, features):
         # =====================================================================
@@ -103,29 +110,6 @@ class ConditionalImageGan(ConditionalImage):
         except Exception as e:
             if not self.retrain:
                 raise e
-
-        # =====================================================================
-        # Load the arm and gripper representation
-
-        if self.skip_connections:
-            h, s32, s16, s8 = encoder([img0_in, img_in])
-        else:
-            #h = encoder([img_in, img0_in])
-            h = encoder([img_in])
-            h0 = encoder(img0_in)
-
-        next_model = GetNextModel(h, self.num_options, 128,
-                self.decoder_dropout_rate)
-        value_model = GetValueModel(h, self.num_options, 64,
-                self.decoder_dropout_rate)
-        next_model.compile(loss="mae", optimizer=self.getOptimizer())
-        value_model.compile(loss="mae", optimizer=self.getOptimizer())
-        #value_out = value_model([h0,h,label_in])
-        #next_option_out = next_model([h0,h,label_in])
-        value_out = value_model([h,label_in])
-        next_option_out = next_model([h,label_in])
-        self.next_model = next_model
-        self.value_model = value_model
 
         # create input for controlling noise output if that's what we decide
         # that we want to do
