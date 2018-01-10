@@ -14,8 +14,9 @@ echo "Running $@ on $SLURMD_NODENAME ..."
 module load tensorflow/cuda-8.0/r1.3 
 
 export DATASET="ctp_dec"
-export train_image_encoder=true
-export train_multi_encoder=true
+export train_image_encoder=false
+export train_multi_encoder=false
+export train_predictor=false
 export learning_rate=$1
 export dropout=$2
 export optimizer=$3
@@ -89,19 +90,22 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --loss $loss \
   --batch_size 64
 
-$HOME/costar_plan/costar_models/scripts/ctp_model_tool \
-  --features multi \
-  -e 100 \
-  --model predictor \
-  --data_file $HOME/work/$DATASET.h5f \
-  --lr $learning_rate \
-  --dropout_rate $dropout \
-  --model_directory $MODELDIR/ \
-  --optimizer $optimizer \
-  --use_noise true \
-  --steps_per_epoch 500 \
-  --loss $loss \
-  --skip_connections 1 \
-  --batch_size 64 # --retrain 
-  #--success_only \
+if $train_predictor
+then
+  $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
+    --features multi \
+    -e 100 \
+    --model predictor \
+    --data_file $HOME/work/$DATASET.h5f \
+    --lr $learning_rate \
+    --dropout_rate $dropout \
+    --model_directory $MODELDIR/ \
+    --optimizer $optimizer \
+    --use_noise true \
+    --steps_per_epoch 500 \
+    --loss $loss \
+    --skip_connections 1 \
+    --batch_size 64 # --retrain 
+    #--success_only \
+fi
 
