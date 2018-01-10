@@ -333,19 +333,40 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x, y = h, option
         x = AddConv2D(h, self.tform_filters, [1,1], 1, 0.)
         x0 = AddConv2D(h0, self.tform_filters, [1,1], 1, 0.)
-        x = Add()([h, h0])
-        x0 = AddConv2D(x, self.tform_filters*2, [5,5], 1, 0.)
+        x0 = Add()([h, h0])
+        x0 = AddConv2D(x0, 64, [5,5], 1, 0.)
         x = x0
-        for i in range(self.num_transforms):
-            x = TileOnto(x, y, self.num_options, (8,8))
-            x = AddConv2D(x, self.tform_filters*2,
-                    self.tform_kernel_size,
-                    stride=1,
-                    dropout_rate=self.tform_dropout_rate)
-        x =  Concatenate(axis=-1)([x,x0])
+        y = AddDense(y, 64, "relu", 0., constraint=None, output=False)
+        x = TileOnto(x, y, 64, (8,8))
+        x = AddConv2D(x, self.tform_filters, [5,5], 1, 0.)
+
+        # --- start ssm block
+        def _ssm(x):
+            return spatial_softmax(x)
+        x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
+        x = AddDense(x, 2*self.tform_filters, "relu", 0.,
+                constraint=None, output=False,)
+        x = AddDense(x, 4*4*self.tform_filters, "relu", 0., constraint=None, output=False)
+        x = Reshape([4,4,self.tform_filters])(x)
+        # --- end ssm block
+
+        x = AddConv2DTranspose(x, self.tform_filters*2, [5,5], 2, 0.)
+        x = Concatenate()([x,x0])
+        #x = TileOnto(x0, x, self.tform_filters, (8,8))
+        #for i in range(self.num_transforms):
+        #    #x = TileOnto(x, y, self.num_options, (8,8))
+        #    x = AddConv2D(x, self.tform_filters*2,
+        #            self.tform_kernel_size,
+        #            stride=1,
+        #            dropout_rate=self.tform_dropout_rate)
+        #x =  Concatenate(axis=-1)([x,x0])
+        #x = AddConv2D(x, 2*self.tform_filters, [5, 5], stride=1,
+        #        dropout_rate=0.)
+
+        # --------------------------------------------------------------------
+        # Put resulting image into the output shape
         x = AddConv2D(x, self.encoder_channels, [1, 1], stride=1,
                 dropout_rate=0.)
-
         self.transform_model = Model([h0,h,option], x, name="tform")
         #self.transform_model = Model([h,option], x, name="tform")
         self.transform_model.compile(loss="mae", optimizer=self.getOptimizer())
