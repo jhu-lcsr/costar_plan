@@ -16,6 +16,7 @@ import six
 import numpy as np
 import tensorflow as tf
 import re
+from scipy.ndimage.filters import median_filter
 
 # progress bars https://github.com/tqdm/tqdm
 # import tqdm without enforcing it as a dependency
@@ -48,6 +49,7 @@ import grasp_geometry_tf
 import depth_image_encoding
 import random_crop as rcp
 import inception_preprocessing
+from grasp_median_filter import grasp_dataset_median_filter
 
 # DATASET LOADING CONFIGURATION COMMAND LINE PARAMETERS, see GraspDataset()
 flags.DEFINE_string('data_dir',
@@ -81,6 +83,15 @@ flags.DEFINE_integer('random_crop_height', 448,
 flags.DEFINE_boolean('random_crop', True,
                      """random_crop will apply the tf random crop function with
                         the parameters specified by random_crop_width and random_crop_height
+                     """)
+flags.DEFINE_boolean('median_filter', False,
+                     """median filter apply on depth image to remove zero and invalid depth.
+                     """)
+flags.DEFINE_integer('median_filter_width', 3,
+                     """Width of median filter kernel.
+                     """)
+flags.DEFINE_integer('median_filter_height', 3,
+                     """Height of median filter kernel.
                      """)
 flags.DEFINE_integer('resize_width', 160,
                      """Width to resize images before prediction, if enabled.""")
@@ -1239,7 +1250,7 @@ class GraspDataset(object):
                 image_features = GraspDataset.get_time_ordered_features(features, '/image/encoded')
                 image_features.extend(GraspDataset.get_time_ordered_features(features, 'depth_image/encoded'))
 
-            for image_feature in tqdm(image_features, desc='image_decode'):
+            for image_index, image_feature in enumerate(tqdm(image_features, desc='image_decode')):
                 image_buffer = tf.reshape(feature_op_dict[image_feature], shape=[])
                 if 'depth_image' in image_feature:
                     with tf.name_scope('depth'):
@@ -1258,10 +1269,20 @@ class GraspDataset(object):
                         RGB_SCALE_FACTOR = 256000.0
                         image = image / RGB_SCALE_FACTOR
                         image.set_shape([height, width])
+                        # apply median filter to depth image
+                        if FLAGS.median_filter:
+                            median_filter_image = grasp_dataset_median_filter(image, 
+                            FLAGS.median_filter_height, FLAGS.median_filter_width)
+                            median_filtered_image_feature = image_feature.replace('encoded', 'median_filtered')
+                            feature_op_dict[median_filtered_image_feature] = median_filter_image
                         # depth images have one channel
                         if 'camera/intrinsics/matrix33' in feature_op_dict and point_cloud_fn is not None:
                             with tf.name_scope('xyz'):
                                 # generate xyz point cloud image feature
+                                if FLAGS.median_filter:
+                                    depth_image = feature_op_dict[median_filtered_image_feature]
+                                else:
+                                    depth_image = image
                                 if point_cloud_fn == 'tensorflow':
                                     # should be more efficient than the numpy version
                                     xyz_image = grasp_geometry_tf.depth_image_to_point_cloud(
@@ -2120,7 +2141,11 @@ class GraspDataset(object):
                     feature_type=depth_feature_type)
                 if attempt_num == 0:
                     print("Saving depth features to a gif in the following order: " + str(ordered_depth_image_features))
-                video = np.concatenate(self.to_tensors(output_features_dicts, ordered_depth_image_features), axis=0)
+                frame_list = self.to_tensors(output_features_dicts, ordered_depth_image_features)
+                if FLAGS.median_filter:
+                    for single_frame in frame_list[0]:
+                            median_filter(single_frame, size=(FLAGS.median_filter_height,FLAGS.median_filter_width, 1), output=single_frame)
+                video = np.concatenate(frame_list, axis=0)
                 gif_filename = (os.path.basename(str(self.dataset) + '_grasp_' + str(int(attempt_num)) +
                                 '_depth_success_' + str(int(features_dict_np['grasp_success'])) + '.gif'))
                 gif_path = os.path.join(visualization_dir, gif_filename)
