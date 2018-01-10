@@ -84,6 +84,7 @@ class ConditionalImageGan(PretrainImageGan):
             encoder = self._makeImageEncoder(img_shape)
             #encoder0 = self._makeImageEncoder(img_shape, copy=True)
         try:
+            encoder.summary()
             encoder.load_weights(self._makeName(
                 "pretrain_image_encoder_model",
                 #"pretrain_image_gan_model",
