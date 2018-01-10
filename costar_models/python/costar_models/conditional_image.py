@@ -127,12 +127,13 @@ class ConditionalImage(PredictionSampler2):
                 self.decoder_dropout_rate)
         next_model.compile(loss="mae", optimizer=self.getOptimizer())
         value_model.compile(loss="mae", optimizer=self.getOptimizer())
-        value_out = value_model([h0,h,label_in])
+        value_out = value_model([h])
         next_option_out = next_model([h0,h,label_in])
         #value_out = value_model([h,label_in])
         #next_option_out = next_model([h,label_in])
         self.next_model = next_model
         self.value_model = value_model
+        self.next_model.summary()
 
         # create input for controlling noise output if that's what we decide
         # that we want to do
