@@ -131,42 +131,17 @@ class ConditionalImageGan(PretrainImageGan):
         #image_out = decoder([x, s32, s16, s8])
 
         # =====================================================================
-        actor = GetActorModel(h, self.num_options, arm_size, gripper_size,
-                self.decoder_dropout_rate)
-        actor.compile(loss="mae",optimizer=self.getOptimizer())
-        arm_cmd, gripper_cmd = actor([h, next_option_in])
         lfn = self.loss
-        lfn2 = "logcosh"
-        val_loss = "binary_crossentropy"
 
         # =====================================================================
         # Create models to train
         predictor = Model(ins + [label_in],
-                [image_out, next_option_out, value_out])
+                [image_out])
         predictor.compile(
-                loss=[lfn, "binary_crossentropy", val_loss],
-                loss_weights=[1., 0.1, 0.1,],
+                loss=[lfn],
                 optimizer=self.getOptimizer())
-        if self.do_all:
-            train_predictor = Model(ins + [label_in],
-                    [image_out, next_option_out, value_out, #o1, o2,
-                        arm_cmd,
-                        gripper_cmd])
-            train_predictor.compile(
-                    loss=[lfn, "binary_crossentropy", val_loss,
-                        lfn2, lfn2],
-                    loss_weights=[1., 0.1, 0.1, 1., 0.2],
-                    optimizer=self.getOptimizer())
-        else:
-            train_predictor = Model(ins + [label_in],
-                    [image_out, #o1, o2,
-                        ])
-            train_predictor.compile(
-                    loss=[lfn], 
-                    optimizer=self.getOptimizer())
-        actor.summary()
-        train_predictor.summary()
-        return predictor, train_predictor, actor, ins, h
+        train_predictor = predictor
+        return predictor, train_predictor, None, ins, h
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
@@ -182,15 +157,15 @@ class ConditionalImageGan(PretrainImageGan):
             if self.use_noise:
                 noise_len = features[0].shape[0]
                 z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-                return [I0, I, z, o1, oin], [ I_target, o1, v, qa, ga]
+                return [I0, I, z, o1], [ I_target]
             else:
-                return [I0, I, o1, oin], [ I_target, o1, v, qa, ga]
+                return [I0, I, o1], [ I_target]
         else:
             if self.use_noise:
                 noise_len = features[0].shape[0]
                 z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-                return [I0, I, z, o1, oin], [ I_target]
+                return [I0, I, z, o1], [ I_target]
             else:
-                return [I0, I, o1, oin], [ I_target]
+                return [I0, I, o1], [ I_target]
 
 
