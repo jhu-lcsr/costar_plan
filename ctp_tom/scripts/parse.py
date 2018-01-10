@@ -20,6 +20,10 @@ def getArgs():
     parser.add_argument("--demo_topic",
                         help="topic on which demonstration info was published",
                         default="/vr/learning/getDemonstrationInfo")
+    parser.add_argument("--alias_topic",
+                        help="topic on which aliases for granular actions are"
+                             " published.",
+                        default="/vr/learning/alias")
     parser.add_argument("--task_topic",
                         help="topic on which task info was published",)
     parser.add_argument("--fake",
@@ -88,7 +92,8 @@ def main():
                 configs=[TOM_RIGHT_CONFIG, TOM_LEFT_CONFIG],
                 unknown_apply_before=4,
                 min_action_length=1,
-                demo_topic=args.demo_topic)
+                demo_topic=args.demo_topic,
+                alias_topic=args.alias_topic)
         rtp.process() # run through the data and create models
         task = rtp.makeTask()
         world = TomWorld(lfd=rtp.lfd)
