@@ -214,13 +214,18 @@ class ConditionalImageGan(PretrainImageGan):
         x = AddConv2D(x, 64, [4,4], 2, dr, "valid", lrelu=True)
 
 
-        y = AddDense(option, 64, "lrelu", dr)
-        x = TileOnto(x, y, 64, (29,29))
+        #x = TileOnto(x, y, 64, (29,29))
         x = AddConv2D(x, 64, [4,4], 1, dr, "same", lrelu=True)
 
         x = AddConv2D(x, 128, [4,4], 2, dr, "valid", lrelu=True)
         x = AddConv2D(x, 128, [4,4], 1, dr, "same", lrelu=True)
+
         x = AddConv2D(x, 256, [4,4], 2, dr, "valid", lrelu=True)
+
+        y = AddDense(option, 256, "lrelu", dr)
+        print (x,y)
+        x = TileOnto(x, y, 64, (29,29))
+
         x = AddConv2D(x, 256, [4,4], 1, dr, "same", lrelu=True)
         x = AddConv2D(x, 1, [4,4], 1, 0., "valid", activation="sigmoid")
         #x = MaxPooling2D(pool_size=(8,8))(x)
