@@ -148,6 +148,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 images,
                 arm,
                 gripper)
+        if not self.skip_connections:
+            print("WARNING: skip connections were disabled and should be"
+                  "enabled for the default (SSM) predictor.")
+            self.skip_connections = True
         
         # =====================================================================
         # Create the encoder and decoder networks -- these are sub-networks
