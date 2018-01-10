@@ -53,7 +53,7 @@ flags.DEFINE_string('learning_rate_decay_algorithm', 'power_decay',
                     """Determines the algorithm by which learning rate decays,
                        options are power_decay, exp_decay, adam and progressive_drops.
                        Only applies with optimizer flag is SGD""")
-flags.DEFINE_string('grasp_model', 'grasp_model_single',
+flags.DEFINE_string('grasp_model', 'grasp_model_levine_2016_segmentation',
                     """Choose the model definition to run, options are:
                        grasp_model_levine_2016, grasp_model, grasp_model_resnet, grasp_model_segmentation""")
 flags.DEFINE_string('save_weights', 'grasp_model_weights',
@@ -160,7 +160,7 @@ class GraspTrain(object):
               epochs=FLAGS.epochs,
               load_weights=FLAGS.load_weights,
               save_weights=FLAGS.save_weights,
-              make_model_fn=grasp_model.grasp_model,
+              make_model_fn=grasp_model.grasp_model_densenet,
               imagenet_preprocessing=FLAGS.imagenet_preprocessing,
               grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
               grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
@@ -356,7 +356,7 @@ class GraspTrain(object):
             callbacks = callbacks + [
                 # Reduce the learning rate if training plateaus.
                 # TODO(ahundt) add validation checks and update monitor parameter to use them
-                keras.callbacks.ReduceLROnPlateau(patience=8, verbose=1, monitor=loss_name)
+                keras.callbacks.ReduceLROnPlateau(patience=8, verbose=1, monitor=metric_name)
             ]
 
         # 2017-08-27 Tried NADAM for a while with the settings below, only improved for first 2 epochs.
@@ -411,7 +411,7 @@ class GraspTrain(object):
              batch_size=FLAGS.eval_batch_size,
              load_weights=FLAGS.load_weights,
              save_weights=FLAGS.save_weights,
-             make_model_fn=grasp_model.grasp_model,
+             make_model_fn=grasp_model.grasp_model_densenet,
              imagenet_preprocessing=FLAGS.imagenet_preprocessing,
              grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
              grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
@@ -472,7 +472,7 @@ class GraspTrain(object):
             pregrasp_op_batch,
             grasp_step_op_batch,
             simplified_grasp_command_op_batch,
-            input_image_shape=input_image_shape,
+            # input_image_shape=input_image_shape,
             dropout_rate=0.0)
 
         if(load_weights):
@@ -553,7 +553,7 @@ def define_make_model_fn(grasp_model_name=FLAGS.grasp_model):
                 The name of the grasp model to use. Options are
                 'grasp_model_resnet'
                 'grasp_model_pretrained'
-                'grasp_model_single'
+                'grasp_model_densenet'
                 'grasp_model_segmentation'
                 'grasp_model_levine_2016'
 
@@ -569,9 +569,9 @@ def define_make_model_fn(grasp_model_name=FLAGS.grasp_model):
                 reduction=FLAGS.densenet_reduction_after_pretrained,
                 dense_blocks=FLAGS.densenet_dense_blocks,
                 *a, **kw)
-    elif grasp_model_name == 'grasp_model_single':
+    elif grasp_model_name == 'grasp_model_densenet':
         def make_model_fn(*a, **kw):
-            return grasp_model.grasp_model(
+            return grasp_model.grasp_model_densenet(
                 growth_rate=FLAGS.densenet_growth_rate,
                 reduction=FLAGS.densenet_reduction,
                 dense_blocks=FLAGS.densenet_dense_blocks,
@@ -584,6 +584,10 @@ def define_make_model_fn(grasp_model_name=FLAGS.grasp_model):
                 reduction=FLAGS.densenet_reduction,
                 dense_blocks=FLAGS.densenet_dense_blocks,
                 *a, **kw)
+    elif grasp_model_name == 'grasp_model_levine_2016_segmentation':
+        def make_model_fn(*a, **kw):
+            return grasp_model.grasp_model_levine_2016_segmentation(
+                *a, **kw)
     elif grasp_model_name == 'grasp_model_levine_2016':
         def make_model_fn(*a, **kw):
             return grasp_model.grasp_model_levine_2016(
@@ -591,9 +595,9 @@ def define_make_model_fn(grasp_model_name=FLAGS.grasp_model):
     else:
         available_functions = globals()
         if grasp_model_name in available_functions:
-            make_model_fn = available_functions[FLAGS.grasp_model]
+            make_model_fn = available_functions[grasp_model_name]
         else:
-            raise ValueError('unknown model selected: {}'.format(FLAGS.grasp_model))
+            raise ValueError('unknown model selected: {}'.format(grasp_model_name))
     return make_model_fn
 
 
