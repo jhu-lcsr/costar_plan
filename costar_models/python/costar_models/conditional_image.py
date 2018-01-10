@@ -127,10 +127,10 @@ class ConditionalImage(PredictionSampler2):
                 self.decoder_dropout_rate)
         next_model.compile(loss="mae", optimizer=self.getOptimizer())
         value_model.compile(loss="mae", optimizer=self.getOptimizer())
-        #value_out = value_model([h0,h,label_in])
-        #next_option_out = next_model([h0,h,label_in])
-        value_out = value_model([h,label_in])
-        next_option_out = next_model([h,label_in])
+        value_out = value_model([h0,h,label_in])
+        next_option_out = next_model([h0,h,label_in])
+        #value_out = value_model([h,label_in])
+        #next_option_out = next_model([h,label_in])
         self.next_model = next_model
         self.value_model = value_model
 
@@ -256,14 +256,17 @@ class ConditionalImage(PredictionSampler2):
         '''
         h0 = self.encodeInitial(features)
 
-        p = self.next_model.predict([h0, hidden, prev_option])
+        print(self.next_model.inputs)
+        #p = self.next_model.predict([h0, hidden, prev_option])
+        p = self.next_model.predict([hidden, prev_option])
         #p = np.exp(p)
         #p /= np.sum(p)
         return p
 
     def value(self, hidden, prev_option, features):
         h0 = self.encodeInitial(features)
-        v = self.value_model.predict([h0, hidden, prev_option])
+        #v = self.value_model.predict([h0, hidden, prev_option])
+        v = self.value_model.predict([hidden, prev_option])
         return v
 
     def transform(self, hidden, option_in=-1):
