@@ -210,14 +210,13 @@ class ConditionalImageGan(PretrainImageGan):
         x = AddConv2D(img, 64, [4,4], 1, dr, "valid", lrelu=True)
         x0 = AddConv2D(img0, 64, [4,4], 1, dr, "valid", lrelu=True)
         xg = AddConv2D(img_goal, 64, [4,4], 1, dr, "valid", lrelu=True)
-        x = Add()([x, x0])
+        x = Add()([x, x0, xg])
         x = AddConv2D(x, 64, [4,4], 2, dr, "valid", lrelu=True)
 
 
         y = AddDense(option, 64, "lrelu", dr)
         x = TileOnto(x, y, 64, (29,29))
         x = AddConv2D(x, 64, [4,4], 1, dr, "same", lrelu=True)
-
         x = AddConv2D(x, 128, [4,4], 2, dr, "valid", lrelu=True)
         x = AddConv2D(x, 128, [4,4], 1, dr, "same", lrelu=True)
         x = AddConv2D(x, 256, [4,4], 2, dr, "valid", lrelu=True)
