@@ -51,10 +51,10 @@ do
       for noise_dim in 0 # 1 8 32
       do
         hd=true
-        for dr in 0. 0.1 0.2 0.5 # 0.3 0.4
+        for dr in 0. 0.1 0.2 0.3 0.4 0.5
         do
           echo "starting LR=$lr, Dropout=$dr, optimizer=$opt, noise=$noise_dim"
-          sbatch ctp.sh $lr $dr $opt $noise_dim $loss
+          sbatch ctp_gan.sh $lr $dr $opt $noise_dim $loss
         done
       done
     done

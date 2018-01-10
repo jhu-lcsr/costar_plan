@@ -36,6 +36,7 @@ class AbstractAgentBasedModel(object):
             skip_connections=0,
             use_noise=False,
             sampling=False,
+            load_pretrained_weights=False,
             retrain=True,
             use_prev_option=True,
             success_only=False,
@@ -68,6 +69,7 @@ class AbstractAgentBasedModel(object):
         self.epochs = epochs
         self.use_batchnorm = use_batchnorm > 0
         self.batch_size = batch_size
+        self.load_pretrained_weights = load_pretrained_weights
         self.optimizer = optimizer
         self.validation_steps = validation_steps
         self.model_descriptor = model_descriptor
@@ -144,6 +146,7 @@ class AbstractAgentBasedModel(object):
         print("Successful examples only =", self.success_only)
         print("Loss =", loss)
         print("Retrain sub-models =", self.retrain)
+        print("Load pretrained weights =", self.load_pretrained_weights)
         print("-----------------------------------------------------------")
         print("------------------ Model Specific Options -----------------")
         print("residual =", self.residual)

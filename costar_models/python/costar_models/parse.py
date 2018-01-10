@@ -88,6 +88,11 @@ def GetModelParser():
                               " discriminators.",
                         default=0,
                         type=int)
+    parser.add_argument("--load_pretrained_weights", "--lpw",
+                        help="Load pretrained weights when training more"
+                             " complex models. Will usually fail gracefully"
+                             " if weights cannot be found. (GAN OPTION)",
+                        action="store_true")
     parser.add_argument("--cpu",
                         help="Run in CPU-only mode, even if GPUs are" + \
                              " available.",
@@ -148,7 +153,7 @@ def GetModelParser():
                         help="Loss for state variables: MSE, MAE, or log(cosh).",
                         choices=["mse","mae","logcosh"],
                         default="mae")
-    parser.add_argument("--gan-method",
+    parser.add_argument("--gan_method",
                         help="Whether to train with GAN or no GAN",
                         dest='gan_method',
                         choices=["gan", "mae", "desc"],
