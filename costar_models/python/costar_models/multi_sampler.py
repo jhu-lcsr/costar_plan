@@ -353,7 +353,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # --- end ssm block
 
         x = AddConv2DTranspose(x, self.tform_filters*2, [5,5], 2, 0.)
-        x = Concatenate()([x,skip])
+        if self.skip_connections or True:
+            x = Concatenate()([x,skip])
         #x = TileOnto(x0, x, self.tform_filters, (8,8))
         #for i in range(self.num_transforms):
         #    #x = TileOnto(x, y, self.num_options, (8,8))
