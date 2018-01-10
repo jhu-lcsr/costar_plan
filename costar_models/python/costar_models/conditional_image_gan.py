@@ -117,7 +117,13 @@ class ConditionalImageGan(PretrainImageGan):
             z = Input((self.num_hypotheses, self.noise_dim))
             ins += [z]
 
-        next_option_in = Input((48,), name="next_option_in")
+        if self.skip_connections:
+            h, s32, s16, s8 = encoder([img0_in, img_in])
+        else:
+            #h = encoder([img_in, img0_in])
+            h = encoder([img_in])
+            h0 = encoder(img0_in)
+        next_option_in = Input((self.num_options,), name="next_option_in")
         ins += [next_option_in]
 
         #y = OneHot(self.num_options)(next_option_in)
@@ -136,27 +142,29 @@ class ConditionalImageGan(PretrainImageGan):
         self.discriminator = image_discriminator
 
         image_discriminator.trainable = False
-        is_fake = image_discriminator([img_in, gen_out])
+        is_fake = image_discriminator([img0_in, img_in, next_option_in, image_out])
 
         # =====================================================================
         # Create generator model to train
         lfn = self.loss
-        predictor = Model(ins + [label_in],
+        predictor = Model(ins,
                 [image_out])
         predictor.compile(
                 loss=[lfn],
                 optimizer=self.getOptimizer())
+        self.generator = predictor
 
         # =====================================================================
         # And adversarial model 
-        model = Model([img_in], [image_out, is_fake])
+        model = Model(ins, [image_out, is_fake])
         model.compile(
                 loss=["mae"] + ["binary_crossentropy"],
                 loss_weights=[100., 1.],
                 optimizer=self.getOptimizer())
         model.summary()
+        self.model = model
 
-        return predictor, model, None, ins, h
+        return predictor, model, model, ins, h
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
@@ -182,5 +190,46 @@ class ConditionalImageGan(PretrainImageGan):
                 return [I0, I, z, o1], [ I_target]
             else:
                 return [I0, I, o1], [ I_target]
+
+    def _makeImageDiscriminator(self, img_shape):
+        '''
+        create image-only encoder to extract keypoints from the scene.
+        
+        Params:
+        -------
+        img_shape: shape of the image to encode
+        '''
+        img0 = Input(img_shape,name="img0_encoder_in")
+        img = Input(img_shape,name="img_encoder_in")
+        img_goal = Input(img_shape,name="goal_encoder_in")
+        option = Input((self.num_options,),name="disc_options")
+        ins = [img0, img, option, img_goal]
+        dr = self.dropout_rate
+        dr = 0
+        x = AddConv2D(img, 64, [4,4], 1, dr, "valid", lrelu=True)
+        x0 = AddConv2D(img0, 64, [4,4], 1, dr, "valid", lrelu=True)
+        xg = AddConv2D(img_goal, 64, [4,4], 1, dr, "valid", lrelu=True)
+        x = Add()([x, x0])
+        x = AddConv2D(x, 64, [4,4], 2, dr, "valid", lrelu=True)
+
+
+        y = AddDense(option, 64, "lrelu", dr)
+        x = TileOnto(x, y, 64, (29,29))
+        x = AddConv2D(x, 64, [4,4], 1, dr, "same", lrelu=True)
+
+        x = AddConv2D(x, 128, [4,4], 2, dr, "valid", lrelu=True)
+        x = AddConv2D(x, 128, [4,4], 1, dr, "same", lrelu=True)
+        x = AddConv2D(x, 256, [4,4], 2, dr, "valid", lrelu=True)
+        x = AddConv2D(x, 256, [4,4], 1, dr, "same", lrelu=True)
+        x = AddConv2D(x, 1, [4,4], 1, 0., "valid", activation="sigmoid")
+        #x = MaxPooling2D(pool_size=(8,8))(x)
+        print("out=",x)
+        x = AveragePooling2D(pool_size=(2,2))(x)
+        x = Flatten()(x)
+        discrim = Model(ins, x, name="image_discriminator")
+        discrim.compile(loss="binary_crossentropy", loss_weights=[1.],
+                optimizer=self.getOptimizer())
+        self.image_discriminator = discrim
+        return discrim
 
 
