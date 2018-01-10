@@ -111,7 +111,7 @@ tf.flags.DEFINE_string('vrepVisualizeRGBFormat', 'vrep_rgb',
                             Examples include 'vrep_depth_rgb' and 'vrep_depth_encoded_rgb',
                             see http://www.forum.coppeliarobotics.com/viewtopic.php?f=9&t=737&p=27805#p27805.
                        """)
-tf.flags.DEFINE_string('vrepVisualizationPipeline', 'tensorflow',
+tf.flags.DEFINE_string('vrepVisualizationPipeline', 'python',
                        """Options are: python, tensorflow.
                            'tensorflow' tensorflow loads the raw data from the dataset and
                                calculates all features before they are rendered with vrep via python,
