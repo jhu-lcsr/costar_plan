@@ -131,17 +131,32 @@ class ConditionalImageGan(PretrainImageGan):
         #image_out = decoder([x, s32, s16, s8])
 
         # =====================================================================
-        lfn = self.loss
+        # Make the discriminator
+        image_discriminator = self._makeImageDiscriminator(img_shape)
+        self.discriminator = image_discriminator
+
+        image_discriminator.trainable = False
+        is_fake = image_discriminator([img_in, gen_out])
 
         # =====================================================================
-        # Create models to train
+        # Create generator model to train
+        lfn = self.loss
         predictor = Model(ins + [label_in],
                 [image_out])
         predictor.compile(
                 loss=[lfn],
                 optimizer=self.getOptimizer())
-        train_predictor = predictor
-        return predictor, train_predictor, None, ins, h
+
+        # =====================================================================
+        # And adversarial model 
+        model = Model([img_in], [image_out, is_fake])
+        model.compile(
+                loss=["mae"] + ["binary_crossentropy"],
+                loss_weights=[100., 1.],
+                optimizer=self.getOptimizer())
+        model.summary()
+
+        return predictor, model, None, ins, h
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
