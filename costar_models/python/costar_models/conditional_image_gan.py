@@ -86,8 +86,8 @@ class ConditionalImageGan(PretrainImageGan):
         try:
             encoder.summary()
             encoder.load_weights(self._makeName(
-                "pretrain_image_encoder_model",
-                #"pretrain_image_gan_model",
+                #pretrain_image_encoder_model",
+                "pretrain_image_gan_model",
                 "image_encoder.h5f"))
             encoder.trainable = self.retrain
             #encoder0.load_weights(self._makeName(
@@ -104,8 +104,8 @@ class ConditionalImageGan(PretrainImageGan):
             decoder = self._makeImageDecoder(self.hidden_shape)
         try:
             decoder.load_weights(self._makeName(
-                "pretrain_image_encoder_model",
-                #"pretrain_image_gan_model",
+                #"pretrain_image_encoder_model",
+                "pretrain_image_gan_model",
                 "image_decoder.h5f"))
             decoder.trainable = self.retrain
         except Exception as e:

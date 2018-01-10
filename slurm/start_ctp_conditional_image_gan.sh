@@ -6,7 +6,7 @@ set -u
 
 module load tensorflow/cuda-8.0/r1.3 
 
-for lr in 0.001 0.0002 0.0001
+for lr in 0.001 0.0001
 do
   # just use the adam optimizer
   for opt in adam
