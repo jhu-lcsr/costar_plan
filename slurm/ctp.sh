@@ -104,4 +104,3 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --skip_connections 1 \
   --batch_size 64 # --retrain 
   #--success_only \
-

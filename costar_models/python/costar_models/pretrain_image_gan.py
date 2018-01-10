@@ -31,6 +31,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         '''
         super(PretrainImageGan, self).__init__(taskdef, *args, **kwargs)
         self.PredictorCb = ImageCb
+        self.load_pretrained_weights = False
 
     def _makePredictor(self, features):
         '''
@@ -107,6 +108,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         ins = [img, img0]
         dr = self.dropout_rate
         dr = 0
+        
         x = AddConv2D(img, 64, [4,4], 1, dr, "valid", lrelu=True)
         x0 = AddConv2D(img0, 64, [4,4], 1, dr, "valid", lrelu=True)
         x = Add()([x, x0])
@@ -117,6 +119,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         #x = MaxPooling2D(pool_size=(8,8))(x)
         print("out=",x)
         x = AveragePooling2D(pool_size=(2,2))(x)
+
         x = Flatten()(x)
         discrim = Model(ins, x, name="image_discriminator")
         discrim.compile(loss="binary_crossentropy", loss_weights=[1.],
