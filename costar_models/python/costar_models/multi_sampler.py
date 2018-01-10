@@ -330,13 +330,15 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         h = Input((8,8,self.encoder_channels),name="h_in")
         h0 = Input((8,8,self.encoder_channels),name="h0_in")
         option = Input((48,),name="t_opt_in")
-        x, y = h, option
         x = AddConv2D(h, self.tform_filters, [1,1], 1, 0.)
         x0 = AddConv2D(h0, self.tform_filters, [1,1], 1, 0.)
-        x0 = Add()([h, h0])
-        x0 = AddConv2D(x0, 64, [5,5], 1, 0.)
-        x = x0
-        y = AddDense(y, 64, "relu", 0., constraint=None, output=False)
+        y = AddDense(option, 64, "relu", 0., constraint=None, output=False)
+        x = Add()([x, x0])
+        x = AddConv2D(x, 64, [5,5], 1, 0.)
+
+        # store this for skip connection
+        skip = x
+
         x = TileOnto(x, y, 64, (8,8))
         x = AddConv2D(x, self.tform_filters, [5,5], 1, 0.)
 
@@ -351,7 +353,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # --- end ssm block
 
         x = AddConv2DTranspose(x, self.tform_filters*2, [5,5], 2, 0.)
-        x = Concatenate()([x,x0])
+        x = Concatenate()([x,skip])
         #x = TileOnto(x0, x, self.tform_filters, (8,8))
         #for i in range(self.num_transforms):
         #    #x = TileOnto(x, y, self.num_options, (8,8))

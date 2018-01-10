@@ -133,7 +133,6 @@ class ConditionalImage(PredictionSampler2):
         #next_option_out = next_model([h,label_in])
         self.next_model = next_model
         self.value_model = value_model
-        self.next_model.summary()
 
         # create input for controlling noise output if that's what we decide
         # that we want to do
@@ -149,6 +148,7 @@ class ConditionalImage(PredictionSampler2):
         y = next_option_in
         x = h
         tform = self._makeTransform()
+        tform.summary()
         x = tform([h0,h,y])
         #x = tform([h,y])
         image_out = decoder([x])
@@ -188,8 +188,6 @@ class ConditionalImage(PredictionSampler2):
             train_predictor.compile(
                     loss=[lfn], 
                     optimizer=self.getOptimizer())
-        actor.summary()
-        train_predictor.summary()
         return predictor, train_predictor, actor, ins, h
 
     def _getData(self, *args, **kwargs):
