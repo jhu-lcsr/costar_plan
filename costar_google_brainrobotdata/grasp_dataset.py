@@ -87,10 +87,10 @@ flags.DEFINE_boolean('random_crop', True,
 flags.DEFINE_boolean('median_filter', False,
                      """median filter apply on depth image to remove zero and invalid depth.
                      """)
-flags.DEFINE_integer('median_filter_width', 3,
+flags.DEFINE_integer('median_filter_width', 25,
                      """Width of median filter kernel.
                      """)
-flags.DEFINE_integer('median_filter_height', 3,
+flags.DEFINE_integer('median_filter_height', 25,
                      """Height of median filter kernel.
                      """)
 flags.DEFINE_integer('resize_width', 160,
@@ -1286,12 +1286,12 @@ class GraspDataset(object):
                                 if point_cloud_fn == 'tensorflow':
                                     # should be more efficient than the numpy version
                                     xyz_image = grasp_geometry_tf.depth_image_to_point_cloud(
-                                        image, feature_op_dict['camera/intrinsics/matrix33'])
+                                        depth_image, feature_op_dict['camera/intrinsics/matrix33'])
                                 elif point_cloud_fn == 'numpy':
                                     [xyz_image] = tf.py_func(
                                         grasp_geometry.depth_image_to_point_cloud,
                                         # parameters for function call
-                                        [image, feature_op_dict['camera/intrinsics/matrix33']],
+                                        [depth_image, feature_op_dict['camera/intrinsics/matrix33']],
                                         [tf.float32],
                                         stateful=False, name='py_func/depth_image_to_point_cloud'
                                     )
