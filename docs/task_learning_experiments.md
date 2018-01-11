@@ -7,6 +7,23 @@ This document is for experiments from 2018-01-05.
 
 ### Example Training Command
 
+This contains some examples of commands you can run on different data sets.
+
+#### Pretrain Encoders
+
+#### Conditional Images
+
+```
+# Start training
+rosrun costar_models ctp_model_tool --model conditional_image --data_file data.h5f --lr 0.0001 --dropout_rate 0.2
+
+# Resume training
+rosrun costar_models ctp_model_tool --model conditional_image --data_file data.h5f --lr 0.0001 --dropout_rate 0.2 --load_model
+
+# Retrain encoder and decoder end-to-end
+rosrun costar_models ctp_model_tool --model conditional_image --data_file data.h5f --lr 0.0001 --dropout_rate 0.2 --retrain
+```
+
 ### Training On MARCC
 
 MARCC is our cluster for machine learning, equipped with a large set of Tesla K80 GPUs. We assume that when training on a cluster like MARCC, you will not want a full ROS workspace, so instead we assume you will install to some path $COSTAR_PLAN and just run scripts.
