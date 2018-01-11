@@ -212,7 +212,7 @@ class ConditionalImageGan(PretrainImageGan):
         x = Add()([x, x0])
         x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
 
-        xg = AddConv2D(img_goal, 32, [5,5], 1, dr, "same", lrelu=True)
+        xg = AddConv2D(img_goal, 64, [5,5], 1, dr, "same", lrelu=True)
         x = Add()([x, xg])
         x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=True)
 
@@ -225,7 +225,6 @@ class ConditionalImageGan(PretrainImageGan):
         x = AddConv2D(x, 256, [5,5], 1, dr, "same", lrelu=True)
         x = AddConv2D(x, 1, [5,5], 1, 0., "same", activation="sigmoid")
         #x = MaxPooling2D(pool_size=(8,8))(x)
-        print("out=",x)
         x = AveragePooling2D(pool_size=(8,8))(x)
         x = Flatten()(x)
         discrim = Model(ins, x, name="image_discriminator")
