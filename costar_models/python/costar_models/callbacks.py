@@ -238,8 +238,6 @@ class ImageCb(keras.callbacks.Callback):
         self.predictor = predictor
         self.idxs = range(min_idx, max_idx, step)
         self.num = len(self.idxs)
-        for f in features:
-            print (f.shape)
         self.features = [f[self.idxs] for f in features]
         self.targets = [np.squeeze(t[self.idxs]) for t in targets]
         self.epoch = 0
@@ -276,6 +274,38 @@ class ImageCb(keras.callbacks.Callback):
 class ImageWithFirstCb(ImageCb):
     def __init__(self, *args, **kwargs):
         super(ImageWithFirstCb, self).__init__(show_idx=1, *args, **kwargs)
+
+    def on_epoch_end(self, epoch, logs={}):
+        self.epoch += 1
+        res = self.predictor.predict(self.features)
+        if isinstance(res, list):
+            img = res[0]
+            if len(res) == 4:
+                img, arm, gripper, label = res
+        else:
+            img = res
+        for j in range(self.num):
+            name = os.path.join(self.directory,
+                    "image_%s_epoch%03d_result%d.png"%(self.name,self.epoch,j))
+            fig = plt.figure()
+            plt.subplot(1,5,1)
+            plt.title('Input Image')
+            plt.imshow(self.features[self.show_idx][j])
+            plt.subplot(1,5,4)
+            plt.title('Observed Goal')
+            plt.imshow(self.targets[0][j])
+            plt.subplot(1,5,5)
+            plt.title('Observed Goal 2')
+            plt.imshow(self.targets[1][j])
+            plt.subplot(1,5,2)
+            plt.imshow(np.squeeze(img[j]))
+            plt.title('Output')
+            plt.imshow(self.targets[1][j])
+            plt.subplot(1,5,3)
+            plt.imshow(np.squeeze(img[j]))
+            plt.title('Output 2')
+            fig.savefig(name, bbox_inches="tight")
+            plt.close(fig)
 
 class PredictorShowImageOnly(keras.callbacks.Callback):
     '''

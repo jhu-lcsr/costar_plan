@@ -170,27 +170,27 @@ class ConditionalImage(PredictionSampler2):
         # =====================================================================
         # Create models to train
         predictor = Model(ins + [label_in],
-                [image_out, next_option_out, value_out])
+                [image_out, image_out2, next_option_out, value_out])
         predictor.compile(
-                loss=[lfn, "binary_crossentropy", val_loss],
-                loss_weights=[1., 0.1, 0.1,],
+                loss=[lfn, lfn, "binary_crossentropy", val_loss],
+                loss_weights=[1., 1., 0.1, 0.1,],
                 optimizer=self.getOptimizer())
         if self.do_all:
             train_predictor = Model(ins + [label_in],
-                    [image_out, next_option_out, value_out,
+                    [image_out, image_out2, next_option_out, value_out,
                         arm_cmd,
                         gripper_cmd])
             train_predictor.compile(
-                    loss=[lfn, "binary_crossentropy", val_loss,
+                    loss=[lfn, lfn, "binary_crossentropy", val_loss,
                         lfn2, lfn2],
-                    loss_weights=[1., 0.1, 0.1, 1., 0.2],
+                    loss_weights=[1., 1., 0.1, 0.1, 1., 0.2],
                     optimizer=self.getOptimizer())
         else:
             train_predictor = Model(ins + [label_in],
-                    [image_out,
+                    [image_out, image_out2,
                         ])
             train_predictor.compile(
-                    loss=[lfn], 
+                    loss=lfn, 
                     optimizer=self.getOptimizer())
         return predictor, train_predictor, actor, ins, h
 
