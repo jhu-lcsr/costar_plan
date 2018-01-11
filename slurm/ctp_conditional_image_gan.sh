@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --job-name=ctpZ
+#SBATCH --job-name=cgan
 #SBATCH --time=0-48:0:0
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
@@ -15,8 +15,8 @@ module load tensorflow/cuda-8.0/r1.3
 
 export DATASET="ctp_dec"
 export train_image_encoder=false
-export train_multi_encoder=false
-export train_predictor=false
+export train_image_encoder_gan=false
+export train_conditional_gan=true
 export learning_rate=$1
 export dropout=$2
 export optimizer=$3
@@ -40,16 +40,16 @@ then
     --steps_per_epoch 500 \
     --noise_dim $noise_dim \
     --loss $loss \
-    --batch_size 64
+    --batch_size 128
 fi
 
-if $train_multi_encoder
+if $train_image_encoder_gan
 then
-  echo "Training encoder 2"
+  echo "Training encoder gan"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
     --features multi \
     -e 100 \
-    --model pretrain_sampler \
+    --model pretrain_image_gan \
     --data_file $HOME/work/$DATASET.h5f \
     --lr $learning_rate \
     --dropout_rate $dropout \
@@ -59,43 +59,17 @@ then
     --steps_per_epoch 500 \
     --noise_dim $noise_dim \
     --loss $loss \
-    --batch_size 64
+    --gan_method gan \
+    --batch_size 128
 fi
 
-$HOME/costar_plan/costar_models/scripts/ctp_model_tool \
-  --features multi \
-  -e 100 \
-  --model conditional_image \
-  --data_file $HOME/work/$DATASET.h5f \
-  --lr $learning_rate \
-  --dropout_rate $dropout \
-  --model_directory $MODELDIR/ \
-  --optimizer $optimizer \
-  --use_noise true \
-  --steps_per_epoch 500 \
-  --loss $loss \
-  --batch_size 64
-
-$HOME/costar_plan/costar_models/scripts/ctp_model_tool \
-  --features multi \
-  -e 100 \
-  --model conditional_sampler2 \
-  --data_file $HOME/work/$DATASET.h5f \
-  --lr $learning_rate \
-  --dropout_rate $dropout \
-  --model_directory $MODELDIR/ \
-  --optimizer $optimizer \
-  --use_noise true \
-  --steps_per_epoch 500 \
-  --loss $loss \
-  --batch_size 64
-
-if $train_predictor
+if $train_conditional_gan
 then
+  echo "Training conditional gan"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
     --features multi \
     -e 100 \
-    --model predictor \
+    --model conditional_image_gan \
     --data_file $HOME/work/$DATASET.h5f \
     --lr $learning_rate \
     --dropout_rate $dropout \
@@ -103,9 +77,8 @@ then
     --optimizer $optimizer \
     --use_noise true \
     --steps_per_epoch 500 \
+    --noise_dim $noise_dim \
     --loss $loss \
-    --skip_connections 1 \
-    --batch_size 64 # --retrain 
-    #--success_only \
+    --gan_method gan \
+    --batch_size 128
 fi
-
