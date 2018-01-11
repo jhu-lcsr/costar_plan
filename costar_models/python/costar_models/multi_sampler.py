@@ -341,6 +341,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         x = TileOnto(x, y, 64, (8,8))
         x = AddConv2D(x, self.tform_filters, [5,5], 1, 0.)
+        x = Dropout(self.dropout_rate)(x)
 
         # --- start ssm block
         def _ssm(x):
@@ -355,6 +356,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = AddConv2DTranspose(x, self.tform_filters*2, [5,5], 2, 0.)
         if self.skip_connections or True:
             x = Concatenate()([x, skip])
+        x = Dropout(self.dropout_rate)(x)
         #x = AddConv2DTranspose(x, self.tform_filters*2, [5,5], 2, 0.)
         #x = TileOnto(x0, x, self.tform_filters, (8,8))
         for i in range(self.num_transforms):
@@ -362,7 +364,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             x = AddConv2D(x, self.tform_filters*2,
                     self.tform_kernel_size,
                     stride=1,
-                    dropout_rate=self.tform_dropout_rate)
+                    dropout_rate=self.dropout_rate)
         #x =  Concatenate(axis=-1)([x,x0])
         #x = AddConv2D(x, 2*self.tform_filters, [5, 5], stride=1,
         #        dropout_rate=0.)
