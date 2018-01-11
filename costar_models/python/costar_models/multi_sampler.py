@@ -356,8 +356,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     constraint=None, output=False,)
             x = AddDense(x, 4*4*self.tform_filters, "relu", 0., constraint=None, output=False)
             x = Reshape([4,4,self.tform_filters])(x)
-        x = AddConv2D(x, 128, [5,5], 1,
-                self.dropout_rate)
+        x = AddConv2D(x, 128, [5,5], 1, 0.)
         x = AddConv2DTranspose(x, 64, [5,5], 2,
                 self.dropout_rate)
         # --- end ssm block
