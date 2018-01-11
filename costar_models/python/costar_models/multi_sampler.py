@@ -332,16 +332,16 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         option = Input((48,),name="t_opt_in")
         x = AddConv2D(h, self.tform_filters, [1,1], 1, 0.)
         x0 = AddConv2D(h0, self.tform_filters, [1,1], 1, 0.)
-        x = Add()([x, x0])
+        x = Concatenate()([x, x0])
         x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate)
-
-        # store this for skip connection
-        skip = x
 
         # Add dense information
         y = AddDense(option, 64, "relu", 0., constraint=None, output=False)
         x = TileOnto(x, y, 64, (8,8))
-        x = AddConv2D(x, 2*self.tform_filters, [5,5], 1, 0.)
+        x = AddConv2D(x, 2*self.tform_filters, [5,5], 1, self.dropout_rate)
+
+        # store this for skip connection
+        skip = x
 
         # --- start ssm block
         def _ssm(x):
