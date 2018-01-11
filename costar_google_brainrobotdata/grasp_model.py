@@ -350,7 +350,8 @@ def grasp_model_segmentation(clear_view_image_op=None,
                              dense_blocks=4,
                              dropout_rate=0.0,
                              activation='sigmoid',
-                             classes=1):
+                             classes=1,
+                             early_transition=True):
     if input_vector_op_shape is None:
         input_vector_op_shape = input_vector_op.get_shape().as_list()
     if input_image_shape is None:
@@ -372,7 +373,8 @@ def grasp_model_segmentation(clear_view_image_op=None,
                         growth_rate=growth_rate,
                         reduction=reduction,
                         nb_dense_block=dense_blocks,
-                        classes=classes)
+                        classes=classes,
+                        early_transition=True)
     return model
 
 
