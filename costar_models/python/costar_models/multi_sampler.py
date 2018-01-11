@@ -342,22 +342,21 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         y = AddDense(option, 64, "relu", 0., constraint=None, output=False)
         x = TileOnto(x, y, 64, (8,8))
         x = AddConv2D(x, self.tform_filters, [5,5], 1, 0.)
-        x = Dropout(self.dropout_rate)(x)
 
         # --- start ssm block
         def _ssm(x):
             return spatial_softmax(x)
         x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
-        x = AddDense(x, 2*self.tform_filters, "relu", 0.,
+        x = AddDense(x, 4*self.tform_filters, "relu", 0.,
                 constraint=None, output=False,)
         x = AddDense(x, 4*4*self.tform_filters, "relu", 0., constraint=None, output=False)
         x = Reshape([4,4,self.tform_filters])(x)
-        x = AddConv2DTranspose(x, self.tform_filters, [5,5], 2, 0.)
+        x = AddConv2DTranspose(x, self.tform_filters*2, [5,5], 2, 0.)
         # --- end ssm block
 
         if self.skip_connections or True:
-            x = Concatenate()([x, x0])
-        x = Dropout(self.dropout_rate)(x)
+            x = Concatenate()([x, skip])
+        #x = Dropout(self.dropout_rate)(x)
         #x = AddConv2DTranspose(x, self.tform_filters*2, [5,5], 2, 0.)
         #x = TileOnto(x0, x, self.tform_filters, (8,8))
         for i in range(self.num_transforms):
