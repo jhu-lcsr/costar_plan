@@ -207,22 +207,22 @@ class ConditionalImageGan(PretrainImageGan):
         ins = [img0, img, option, img_goal]
         dr = self.dropout_rate
         dr = 0
-        x = AddConv2D(img, 32, [5,5], 1, dr, "same", lrelu=True)
-        x0 = AddConv2D(img0, 32, [5,5], 1, dr, "same", lrelu=True)
+        x = AddConv2D(img, 64, [5,5], 1, dr, "same", lrelu=True)
+        x0 = AddConv2D(img0, 64, [5,5], 1, dr, "same", lrelu=True)
         x = Add()([x, x0])
-        x = AddConv2D(x, 32, [5,5], 1, dr, "same", lrelu=True)
+        x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
 
         xg = AddConv2D(img_goal, 32, [5,5], 1, dr, "same", lrelu=True)
         x = Add()([x, xg])
-        x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=True)
-
-        y = AddDense(option, 32, "lrelu", dr)
-        x = TileOnto(x, y, 32, (32,32))
-        x = AddConv2D(x, 32, [5,5], 1, dr, "same", lrelu=True)
         x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=True)
+
+        y = AddDense(option, 64, "lrelu", dr)
+        x = TileOnto(x, y, 64, (32,32))
         x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
         x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=True)
         x = AddConv2D(x, 128, [5,5], 1, dr, "same", lrelu=True)
+        x = AddConv2D(x, 256, [5,5], 2, dr, "same", lrelu=True)
+        x = AddConv2D(x, 256, [5,5], 1, dr, "same", lrelu=True)
         x = AddConv2D(x, 1, [5,5], 1, 0., "same", activation="sigmoid")
         #x = MaxPooling2D(pool_size=(8,8))(x)
         print("out=",x)
