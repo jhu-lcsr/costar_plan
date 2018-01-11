@@ -152,9 +152,8 @@ class ConditionalImage(PredictionSampler2):
         tform = self._makeTransform()
         tform.summary()
         x = tform([h0,h,y])
-        #x = tform([h,y])
-        image_out = decoder([x])
         x2 = tform([h0,x,y2])
+        image_out = decoder([x])
         image_out2 = decoder([x2])
         #image_out = decoder([x, s32, s16, s8])
 

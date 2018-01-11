@@ -332,16 +332,16 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         option = Input((48,),name="t_opt_in")
         x = AddConv2D(h, self.tform_filters, [1,1], 1, 0.)
         x0 = AddConv2D(h0, self.tform_filters, [1,1], 1, 0.)
-        x = Add()([x, x0])
-        x = AddConv2D(x, 64, [5,5], 1, 0.)
-
-        # store this for skip connection
-        skip = x
+        x = Concatenate()([x, x0])
+        x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate)
 
         # Add dense information
         y = AddDense(option, 64, "relu", 0., constraint=None, output=False)
         x = TileOnto(x, y, 64, (8,8))
-        x = AddConv2D(x, 2*self.tform_filters, [5,5], 1, 0.)
+        x = AddConv2D(x, 2*self.tform_filters, [5,5], 1, self.dropout_rate)
+
+        # store this for skip connection
+        skip = x
 
         # --- start ssm block
         def _ssm(x):
@@ -351,12 +351,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 constraint=None, output=False,)
         x = AddDense(x, 4*4*self.tform_filters, "relu", 0., constraint=None, output=False)
         x = Reshape([4,4,self.tform_filters])(x)
-        x = AddConv2DTranspose(x, self.tform_filters*2, [5,5], 2, 0.)
+        x = AddConv2DTranspose(x, self.tform_filters*2, [5,5], 2,
+                self.dropout_rate)
         # --- end ssm block
 
         if self.skip_connections or True:
             x = Concatenate()([x, skip])
-        #x = Dropout(self.dropout_rate)(x)
         #x = AddConv2DTranspose(x, self.tform_filters*2, [5,5], 2, 0.)
         #x = TileOnto(x0, x, self.tform_filters, (8,8))
         for i in range(self.num_transforms):
