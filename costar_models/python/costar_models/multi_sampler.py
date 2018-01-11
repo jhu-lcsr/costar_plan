@@ -344,18 +344,18 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         y = AddDense(option, 64, "relu", 0., constraint=None, output=False)
         x = TileOnto(x, y, 64, (8,8))
         x = AddConv2D(x, 64, [5,5], 1, 0.)
-        x = AddConv2D(x, 128, [5,5], 2, 0.)
+        #x = AddConv2D(x, 128, [5,5], 2, 0.)
 
         # --- start ssm block
-        use_ssm = False
+        use_ssm = True
         if use_ssm:
             def _ssm(x):
                 return spatial_softmax(x)
             x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
-            x = AddDense(x, 4*self.tform_filters, "relu", 0.,
+            x = AddDense(x, 128, "relu", 0.,
                     constraint=None, output=False,)
-            x = AddDense(x, 4*4*self.tform_filters, "relu", 0., constraint=None, output=False)
-            x = Reshape([4,4,self.tform_filters])(x)
+            x = AddDense(x, 4*4*32, "relu", 0., constraint=None, output=False)
+            x = Reshape([4,4,32])(x)
         else:
             x = AddConv2D(x, 128, [5,5], 1, 0.)
         x = AddConv2DTranspose(x, 64, [5,5], 2,
