@@ -341,7 +341,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Add dense information
         y = AddDense(option, 64, "relu", 0., constraint=None, output=False)
         x = TileOnto(x, y, 64, (8,8))
-        x = AddConv2D(x, self.tform_filters, [5,5], 1, 0.)
+        x = AddConv2D(x, 2*self.tform_filters, [5,5], 1, 0.)
 
         # --- start ssm block
         def _ssm(x):
@@ -362,7 +362,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         for i in range(self.num_transforms):
             #x = TileOnto(x, y, self.num_options, (8,8))
             x = AddConv2D(x, self.tform_filters*2,
-                    [3,3],
+                    [5,5],
                     stride=1,
                     dropout_rate=self.dropout_rate)
         #x =  Concatenate(axis=-1)([x,x0])
