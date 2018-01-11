@@ -238,6 +238,8 @@ class ImageCb(keras.callbacks.Callback):
         self.predictor = predictor
         self.idxs = range(min_idx, max_idx, step)
         self.num = len(self.idxs)
+        for f in features:
+            print (f.shape)
         self.features = [f[self.idxs] for f in features]
         self.targets = [np.squeeze(t[self.idxs]) for t in targets]
         self.epoch = 0

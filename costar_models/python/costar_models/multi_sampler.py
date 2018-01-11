@@ -489,7 +489,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 # nothing else
                 first_next = -1
             img[i] = I_target[first_next]
-            next_option = tmp[first_next]
+            next_option[i] = tmp[first_next]
             #print ('---')
 
             if i > 40:
@@ -575,6 +575,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         )
         logCb = LogCallback(self.name,self.model_directory)
         cbf, cbt = self._getData(**data)
+
+        for i, f in enumerate(cbf):
+            if len(f.shape) < 1:
+                raise RuntimeError('feature %d not an appropriate size!'%i)
         imageCb = self.PredictorCb(
             self.predictor,
             name=self.name_prefix,
