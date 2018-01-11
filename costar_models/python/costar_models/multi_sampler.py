@@ -330,37 +330,44 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         h = Input((8,8,self.encoder_channels),name="h_in")
         h0 = Input((8,8,self.encoder_channels),name="h0_in")
         option = Input((48,),name="t_opt_in")
-        x = AddConv2D(h, self.tform_filters, [1,1], 1, 0.)
-        x0 = AddConv2D(h0, self.tform_filters, [1,1], 1, 0.)
-        x = Add()([x, x0])
-        x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate)
+        x = AddConv2D(h, 64, [1,1], 1, 0.)
+        x0 = AddConv2D(h0, 64, [1,1], 1, 0.)
 
-        # Add dense information
-        y = AddDense(option, 64, "relu", 0., constraint=None, output=False)
-        x = TileOnto(x, y, 64, (8,8), add=True)
-        x = AddConv2D(x, 2*self.tform_filters, [5,5], 1, 0.)
+        # Combine the hidden state observations
+        x = Concatenate()([x, x0])
+        x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate)
 
         # store this for skip connection
         skip = x
 
+        # Add dense information
+        y = AddDense(option, 64, "relu", 0., constraint=None, output=False)
+        x = TileOnto(x, y, 64, (8,8))
+        x = AddConv2D(x, 64, [5,5], 1, 0.)
+        x = AddConv2D(x, 128, [5,5], 2, 0.)
+
         # --- start ssm block
-        def _ssm(x):
-            return spatial_softmax(x)
-        x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
-        x = AddDense(x, 4*self.tform_filters, "relu", 0.,
-                constraint=None, output=False,)
-        x = AddDense(x, 4*4*self.tform_filters, "relu", 0., constraint=None, output=False)
-        x = Reshape([4,4,self.tform_filters])(x)
-        x = AddConv2DTranspose(x, self.tform_filters*2, [5,5], 2,
+        use_ssm = False
+        if use_ssm:
+            def _ssm(x):
+                return spatial_softmax(x)
+            x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
+            x = AddDense(x, 4*self.tform_filters, "relu", 0.,
+                    constraint=None, output=False,)
+            x = AddDense(x, 4*4*self.tform_filters, "relu", 0., constraint=None, output=False)
+            x = Reshape([4,4,self.tform_filters])(x)
+        x = AddConv2D(x, 128, [5,5], 1,
+                self.dropout_rate)
+        x = AddConv2DTranspose(x, 64, [5,5], 2,
                 self.dropout_rate)
         # --- end ssm block
 
         if self.skip_connections or True:
             x = Concatenate()([x, skip])
-        for i in range(self.num_transforms):
+        for i in range(1):
             #x = TileOnto(x, y, self.num_options, (8,8))
-            x = AddConv2D(x, self.tform_filters*2,
-                    [5,5],
+            x = AddConv2D(x, 64,
+                    [7,7],
                     stride=1,
                     dropout_rate=self.dropout_rate)
 
