@@ -456,12 +456,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         q_target[:,3:] = q_target[:,3:] / np.pi
         qa /= np.pi
 
-        o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
+        o_target_1h = np.squeeze(self.toOneHot2D(o_target, self.num_options))
         train_target = self._makeTrainTarget(
                 I_target,
                 q_target,
                 g_target,
-                o_target)
+                o_target_1h)
 
         return [I, q, g, oin, q_target, g_target,], [
                 np.expand_dims(train_target, axis=1),
@@ -471,10 +471,47 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 np.expand_dims(ga, axis=1),
                 I_target]
 
+    def _getNextGoal(self, features, targets):
+        [I, q, g, oin, q_target, g_target,] = features
+        tt, o1, v, qa, ga, I_target = targets
+        img = np.zeros_like(I_target)
+        next_option = np.zeros_like(o1)
+        for i in range(o1.shape[0]):
+            #print('---')
+            cur = o1[i]
+            #print(i, o1, o1.shape, cur)
+            tmp = np.copy(o1)
+            tmp[:i] = cur
+            first_next = np.argmax(tmp != cur)
+            #print (tmp, tmp[first_next])
+            #print (cur, tmp[first_next])
+            if tmp[first_next] == cur:
+                # nothing else
+                first_next = -1
+            img[i] = I_target[first_next]
+            next_option = tmp[first_next]
+            #print ('---')
+
+            if i > 40:
+                break
+
+        debug_next_goals = False
+        if debug_next_goals:
+            import matplotlib.pyplot as plt
+            plt.subplot(3,1,1)
+            plt.imshow(I[i])
+            plt.subplot(3,1,2)
+            plt.imshow(I_target[i])
+            plt.subplot(3,1,3)
+            plt.imshow(img[i])
+            plt.show()
+
+        return img, next_option
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
         tt, o1, v, qa, ga, I = targets
+        o1 = np.squeeze(self.toOneHot2D(o1, self.num_options))
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
@@ -1225,11 +1262,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         arm = np.squeeze(train_targets[0][:,:,imglen:imglen+6])
         gripper = train_targets[0][:,:,imglen+6]
         option = np.squeeze(train_targets[0][:,:,imglen+7:])
-        #print (train_targets[0].shape,imglen,imglen+6)
-        #print("img",img.shape)
-        #print("arm",arm.shape,arm[0])
-        #print("gripper",gripper.shape,gripper[0])
-        #print("option",option.shape,np.argmax(option[0,0]))
         return [img,arm,gripper,option]
 
     def _parsePredictorLoss(self, losses):
