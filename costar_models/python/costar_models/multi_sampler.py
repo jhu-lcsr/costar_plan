@@ -330,12 +330,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         h = Input((8,8,self.encoder_channels),name="h_in")
         h0 = Input((8,8,self.encoder_channels),name="h0_in")
         option = Input((48,),name="t_opt_in")
-        x = AddConv2D(h, 32, [1,1], 1, 0.)
-        x0 = AddConv2D(h0, 32, [1,1], 1, 0.)
+        x = AddConv2D(h, 64, [1,1], 1, 0.)
+        x0 = AddConv2D(h0, 64, [1,1], 1, 0.)
 
         # Combine the hidden state observations
         x = Concatenate()([x, x0])
-        x = AddConv2D(x, 64, [5,5], 1, 0.) #self.dropout_rate)
+        x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate)
 
         # store this for skip connection
         skip = x
@@ -344,7 +344,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         y = AddDense(option, 64, "relu", 0., constraint=None, output=False)
         x = TileOnto(x, y, 64, (8,8))
         x = AddConv2D(x, 64, [5,5], 1, 0.)
-        x = Dropout(self.dropout_rate)(x)
         #x = AddConv2D(x, 128, [5,5], 2, 0.)
 
         # --- start ssm block
@@ -359,14 +358,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             x = Reshape([4,4,32])(x)
         else:
             x = AddConv2D(x, 128, [5,5], 1, 0.)
-        x = AddConv2DTranspose(x, 64, [5,5], 2, 0.)
+        x = AddConv2DTranspose(x, 64, [5,5], 2,
+                self.dropout_rate)
         # --- end ssm block
 
         if self.skip_connections or True:
             x = Concatenate()([x, skip])
-        #x = Dropout(self.dropout_rate)(x)
 
-        for i in range(self.num_transforms):
+        for i in range(1):
             #x = TileOnto(x, y, self.num_options, (8,8))
             x = AddConv2D(x, 64,
                     [7,7],
