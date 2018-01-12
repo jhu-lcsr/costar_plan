@@ -368,7 +368,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         for i in range(self.num_transforms):
             #x = TileOnto(x, y, self.num_options, (8,8))
             x = AddConv2D(x, 64,
-                    [7,7],
+                    [5,5],
                     stride=1,
                     dropout_rate=self.dropout_rate)
 
