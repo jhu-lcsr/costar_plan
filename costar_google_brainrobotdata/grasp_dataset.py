@@ -1554,7 +1554,6 @@ class GraspDataset(object):
         """
         proportional_dimension_change = output_shape / input_shape[:2]
         resized_coordinate = coordinate * proportional_dimension_change
-        resized_coordinate = tf.Print(resized_coordinate, [resized_coordinate, coordinate, proportional_dimension_change, input_shape, output_shape], 'resized_coodinate')
         return resized_coordinate
 
     @staticmethod
