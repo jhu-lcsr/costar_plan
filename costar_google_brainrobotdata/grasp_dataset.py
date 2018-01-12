@@ -85,7 +85,7 @@ flags.DEFINE_boolean('random_crop', False,
                         the parameters specified by crop_width and crop_height.
 
                         If random crop is disabled a fixed crop will be applied
-                        that is centered on the image height and to the far 
+                        that is centered on the image height and to the far
                         right on the image width.
                      """)
 flags.DEFINE_boolean('median_filter', False,
@@ -1204,7 +1204,7 @@ class GraspDataset(object):
 
     @staticmethod
     def _image_decode(feature_op_dict, sensor_image_dimensions=None, image_features=None, decode_depth_as='depth',
-                      point_cloud_fn='tensorflow', median_filter=FLAGS.median_filter, 
+                      point_cloud_fn='tensorflow', median_filter=FLAGS.median_filter,
                       median_filter_height=FLAGS.median_filter_height, median_filter_width=FLAGS.median_filter_width):
         """ Add features to dict that supply decoded png and jpeg images for any encoded images present.
 
@@ -1385,21 +1385,27 @@ class GraspDataset(object):
             if sensor_image_dimensions is None:
                     sensor_image_dimensions = [FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels]
             height, width, rgb_channels = sensor_image_dimensions
-
+            print('4444444444444 random_crop_dimensions: ', random_crop_dimensions)
             # get dimensions of random crop if enabled
             if random_crop_dimensions is None:
                 random_crop_dimensions = tf.constant([FLAGS.crop_height, FLAGS.crop_width, rgb_channels], name='rgb_random_crop_dimensions')
                 depth_crop_dim_tensor = tf.constant([FLAGS.crop_height, FLAGS.crop_width, 1], name='depth_random_crop_dimensions')
             else:
                 random_crop_dimensions = tf.constant(random_crop_dimensions, dtype=tf.int32)
-                depth_crop_dim_tensor = tf.concat([random_crop_dimensions[:2], tf.constant([1], tf.int32)], 0)
+                depth_crop_dim_tensor = tf.cast(tf.concat([random_crop_dimensions[:2], tf.constant([1], tf.int32)], 0), tf.int32)
+
             feature_op_dict['rgb_random_crop_dimensions'] = random_crop_dimensions
             feature_op_dict['depth_random_crop_dimensions'] = depth_crop_dim_tensor
             if random_crop_offset is None:
+                print('00000000000000000000000000000 0 random_crop_offset:', random_crop_offset)
                 # get random crop offset parameters so that cropping will be done consistently.
                 random_crop_offset = rcp.random_crop_offset(sensor_image_dimensions, random_crop_dimensions, seed=seed)
             else:
+                print('**************************************** 0 random_crop_offset:', random_crop_offset)
                 random_crop_offset = tf.convert_to_tensor(random_crop_offset)
+
+            print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! random_crop_offset: ', random_crop_offset)
+            random_crop_offset = tf.Print(random_crop_offset, [random_crop_offset], '!!!!!!!!!!!!!!!!!!!! 2 random_crop_offset')
             feature_op_dict['random_crop_offset'] = random_crop_offset
             # add the modified image intrinsics, applying the changes that occur when a crop is performed
             if 'camera/intrinsics/matrix33' in feature_op_dict:
@@ -1418,13 +1424,20 @@ class GraspDataset(object):
 
             for image_feature in image_features:
                 image = feature_op_dict[image_feature]
+                random_crop_offset = tf.cast(random_crop_offset, tf.int32)                
+                depth_crop_dim_tensor = tf.cast(random_crop_offset, tf.int32)
                 if verbose:
                     print('_image_random_crop image:', image, 'random_crop_offset:', random_crop_offset)
                 if 'depth_image' in image_feature and 'xyz' not in image_feature:
+                    # if len(K.int_shape(image)) == 2:
+#                         image = tf.expand_dims(image, -1)
+                    # random_crop_offset = tf.Print(random_crop_offset, [random_crop_offset, depth_crop_dim_tensor], '>>>>>>>>>>><<<<<<< depth image random_crop_offset, depth_crop_dim_tensor')
                     image = rcp.crop_images(image_list=image, offset=random_crop_offset, size=depth_crop_dim_tensor)
                 else:
+                    # random_crop_offset = tf.Print(random_crop_offset, [random_crop_offset, random_crop_dimensions], '<<<<<<<< regular image random_crop_offset, depth_crop_dim_tensor')
                     # crop rgb and xyz tensor, which each have 3 channels
                     image = rcp.crop_images(image_list=image, offset=random_crop_offset, size=random_crop_dimensions)
+                    print('<><><><><><> image: ', image)
                 # two image feature types, replace the name in both cases, as appropriate
                 cropped_image_feature = image_feature.replace('decoded', 'cropped')
                 cropped_image_feature = cropped_image_feature.replace('median_filtered', 'median_filter_cropped')
@@ -1449,7 +1462,7 @@ class GraspDataset(object):
 
     def _image_random_crop_grasp_attempt(
             self, features_complete_list, feature_op_dicts, sensor_image_dimensions,
-            random_crop_offset, seed, time_ordered_feature_name_dict):
+            random_crop_dimensions, random_crop_offset, seed, time_ordered_feature_name_dict):
         """ Performs the crops for a given grasp attempt.
 
             Helper for get_training_dictionaries() which extracts image cropping features.
@@ -1466,7 +1479,8 @@ class GraspDataset(object):
         # loop through each grasp attempt in a batch and crop the images
         for feature_op_dict, sequence_op_dict in tqdm(feature_op_dicts, desc='get_training_dictionaries._image_random_crop()'):
             feature_op_dict, new_feature_list = GraspDataset._image_random_crop(
-                feature_op_dict, sensor_image_dimensions, random_crop_offset, seed, image_features=image_features)
+                feature_op_dict, sensor_image_dimensions, random_crop_dimensions,
+                random_crop_offset, image_features, seed)
             dict_and_feature_tuple_list.append((feature_op_dict, sequence_op_dict))
         # the new_feature_list should be the same for all the ops
         features_complete_list = np.append(features_complete_list, new_feature_list)
@@ -1536,8 +1550,10 @@ class GraspDataset(object):
     def _resize_coordinate(coordinate, input_shape, output_shape):
         """ Update a coordinate based on the current input shape and a new updated output shape.
         """
-        coordinate = coordinate * output_shape / input_shape[:2]
-        return coordinate
+        proportional_dimension_change = output_shape / input_shape[:2]
+        resized_coordinate = coordinate * proportional_dimension_change
+        resized_coordinate = tf.Print(resized_coordinate, [resized_coordinate, coordinate, proportional_dimension_change, input_shape, output_shape], 'resized_coodinate')
+        return resized_coordinate
 
     @staticmethod
     def to_tensors(feature_op_dicts, features):
@@ -1677,23 +1693,27 @@ class GraspDataset(object):
             random_crop_dimensions = [FLAGS.crop_height, FLAGS.crop_width, 3]
 
         if random_crop_offset is None:
-             # do random cropping of depth and rgb images if enabled
+            # do random cropping of depth and rgb images if enabled
             if random_crop:
                 # The preprocessed suffix is 'cropped' if cropping is enabled.
                 random_crop_offset = rcp.random_crop_offset(sensor_image_dimensions, random_crop_dimensions, seed=seed)
             else:
-                random_crop_offset = np.array([0, 0, 3])
+                print('<<<<<<<<<<<<<<,random_crop_dimensions: ', random_crop_dimensions)
+                random_crop_offset = np.array([0, 0, 0])
                 random_crop_offset[:2] = np.array(sensor_image_dimensions[:2]) - np.array(random_crop_dimensions[:2])
                 random_crop_offset[0] = random_crop_offset[0] / 2
+                print('<<<<<<<<<<<<<<,random_crop_offset: ', random_crop_offset)
+                # tf.Print(random_crop_offset, [random_crop_offset])
 
         preprocessed_suffix = 'cropped'
         preprocessed_depth_suffix = 'cropped'
         preprocessing_sequence = preprocessing_sequence + [preprocessed_suffix]
         # Do the random crop preprocessing
         # This updates rgb images, depth, images, and coordinates of the gripper
+        print('2222222222222222222222222 random crop sensor dimensions, random crop offset')
         feature_op_dicts, features_complete_list, time_ordered_feature_name_dict = self._image_random_crop_grasp_attempt(
             features_complete_list, feature_op_dicts, sensor_image_dimensions,
-            random_crop_offset, seed, time_ordered_feature_name_dict)
+            random_crop_dimensions, random_crop_offset, seed, time_ordered_feature_name_dict)
 
         if verbose:
             # print('feature_op_dicts_after_crop len:', len(feature_op_dicts), 'dicts:', feature_op_dicts)
