@@ -119,8 +119,8 @@ flags.DEFINE_float('gripper_z_offset_meters', 0.02,
                        default value 0.02.
                    """)
 flags.DEFINE_boolean('image_augmentation', True,
-                     """Image augmentation applies random brightness, saturation, hue, contrast to input rgb images only. 
-                        This option should only be utilized during training, 
+                     """Image augmentation applies random brightness, saturation, hue, contrast to input rgb images only.
+                        This option should only be utilized during training,
                         and only has an effect when imagenet_preprocessing is True.
                      """)
 flags.DEFINE_boolean('imagenet_preprocessing', True,
@@ -1432,7 +1432,7 @@ class GraspDataset(object):
 
             for image_feature in image_features:
                 image = feature_op_dict[image_feature]
-                random_crop_offset = tf.cast(random_crop_offset, tf.int32)                
+                random_crop_offset = tf.cast(random_crop_offset, tf.int32)
                 depth_crop_dim_tensor = tf.cast(random_crop_offset, tf.int32)
                 if verbose:
                     print('_image_random_crop image:', image, 'random_crop_offset:', random_crop_offset)
