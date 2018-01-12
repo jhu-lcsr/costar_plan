@@ -330,8 +330,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         h = Input((8,8,self.encoder_channels),name="h_in")
         h0 = Input((8,8,self.encoder_channels),name="h0_in")
         option = Input((48,),name="t_opt_in")
-        x = AddConv2D(h, 64, [1,1], 1, self.dropout_rate)
-        x0 = AddConv2D(h0, 64, [1,1], 1,self.dropout_rate)
+        x = AddConv2D(h, 64, [1,1], 1, 0.)
+        x0 = AddConv2D(h0, 64, [1,1], 1, 0.)
 
         # Combine the hidden state observations
         x = Concatenate()([x, x0])
@@ -364,6 +364,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         if self.skip_connections or True:
             x = Concatenate()([x, skip])
+
         for i in range(1):
             #x = TileOnto(x, y, self.num_options, (8,8))
             x = AddConv2D(x, 64,
