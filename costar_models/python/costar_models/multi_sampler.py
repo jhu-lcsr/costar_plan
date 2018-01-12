@@ -352,7 +352,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             def _ssm(x):
                 return spatial_softmax(x)
             x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
-            x = AddDense(x, 128, "relu", 0.,
+            x = AddDense(x, 256, "relu", 0.,
                     constraint=None, output=False,)
             x = AddDense(x, 4*4*32, "relu", 0., constraint=None, output=False)
             x = Reshape([4,4,32])(x)
