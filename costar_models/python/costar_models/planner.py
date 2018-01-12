@@ -925,6 +925,7 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
                 lrelu=True,
                 name="Nx_C64A",
                 constraint=None)
+	"""
         # conv across
         x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "valid",
                 bn=batchnorm,
@@ -938,6 +939,7 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
                 lrelu=True,
                 name="Nx_C32A",
                 constraint=None)
+	"""
         # This is the hidden representation of the world, but it should be flat
         # for our classifier to work.
         x = Flatten()(x)

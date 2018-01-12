@@ -327,8 +327,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         --------
         transform model
         '''
-        h = Input((8,8,self.encoder_channels),name="h_in")
-        h0 = Input((8,8,self.encoder_channels),name="h0_in")
+        h = Input((4,4,self.encoder_channels),name="h_in")
+        h0 = Input((4,4,self.encoder_channels),name="h0_in")
         option = Input((48,),name="t_opt_in")
         x = AddConv2D(h, 64, [1,1], 1, self.dropout_rate)
         x0 = AddConv2D(h0, 64, [1,1], 1,self.dropout_rate)
@@ -342,7 +342,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Add dense information
         y = AddDense(option, 64, "relu", 0., constraint=None, output=False)
-        x = TileOnto(x, y, 64, (8,8))
+        x = TileOnto(x, y, 64, (4,4))
         x = AddConv2D(x, 64, [5,5], 1, 0.)
         #x = AddConv2D(x, 128, [5,5], 2, 0.)
 
@@ -352,13 +352,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             def _ssm(x):
                 return spatial_softmax(x)
             x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
-            x = AddDense(x, 128, "relu", 0.,
+            x = AddDense(x, 256, "relu", 0.,
                     constraint=None, output=False,)
             x = AddDense(x, 4*4*32, "relu", 0., constraint=None, output=False)
             x = Reshape([4,4,32])(x)
         else:
             x = AddConv2D(x, 128, [5,5], 1, 0.)
-        x = AddConv2DTranspose(x, 64, [5,5], 2,
+       	x = AddConv2D(x, 64, [5,5], 1,
                 self.dropout_rate)
         # --- end ssm block
 
