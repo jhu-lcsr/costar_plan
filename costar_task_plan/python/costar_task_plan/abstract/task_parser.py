@@ -111,6 +111,7 @@ class TaskParser(object):
         self.num_arms = len(self.configs)
         self.unknown_apply_before = unknown_apply_before
         self.min_action_length = min_action_length
+        self._done = "DONE"
 
         # Store alias information for converting unknown activities into
         # others partway through a parse
@@ -119,6 +120,11 @@ class TaskParser(object):
         self.trajectories = {}
         self.trajectory_data = {}
         self.trajectory_features = {}
+
+        self.sequence_ends = {}
+
+    def setDoneName(self, done="DONE"):
+        self._done = done
 
     def addAlias(self, old_name, new_name):
         '''
@@ -252,6 +258,12 @@ class TaskParser(object):
             for name, obj in objs.items():
                 self.addObject(obj.name, obj.obj_class)
 
+            if seq not in self.sequence_ends:
+                self.sequence_ends[seq] = [
+                        self._getActionName(a)
+                        for a
+                        in actions]
+
             # In order - all actions specified
             for j, action in enumerate(actions):
 
@@ -277,6 +289,11 @@ class TaskParser(object):
                                 ["time"] + examples[j].obj_classes)
                         self._addTransition(prev_added[j], name)
                         prev_added[j] = name
+
+                        # compute final action
+                        if (self.sequence_ends[seq][j] in self.idle_tags
+                            or name not in self.idle_tags):
+                            self.sequence_ends[seq][j] = name
                     else:
                         print("WARNING: trajectory %s of length %d was too short"%(prev[j],len(examples[j].traj)))
 
@@ -304,6 +321,9 @@ class TaskParser(object):
 
                 prev[j] = name
                 prev_t[j] = t
+        for seq, actions in self.sequence_ends.items():
+            for action in actions:
+                self._addTransition(action, self._done)
 
     def addTrajectory(self, name, traj, data, objs):
         '''
