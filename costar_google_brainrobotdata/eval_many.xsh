@@ -36,5 +36,5 @@ for weightsfile in reversed(listvar):
         #os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
         #$CUDA_VISIBILE_DEVICES = @(cuda_dev)
         #CUDA_VISIBLE_DEVICES = @(cuda_dev)
-        CUDA_VISIBLE_DEVICES="i" && python grasp_train.py --epochs 1 --load_weights @(weightsfile) --pipeline_stage eval --grasp_model @(model_str)  --data_dir=~/datasets/grasping.ssd/ #--distributed None
+        CUDA_VISIBLE_DEVICES="1" && python grasp_train.py --epochs 1 --load_weights @(weightsfile) --pipeline_stage eval --grasp_model @(model_str)  --data_dir=~/datasets/grasping.ssd/ #--distributed None
         print('evaluation complete for: ' + weightsfile)
