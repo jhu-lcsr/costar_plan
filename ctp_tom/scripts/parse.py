@@ -99,6 +99,10 @@ def main():
         # Add an alias so we get a clean, readable name
         rtp.addAlias("GranularActivity_0c93aef1-fe5a-40bb-ba35-b4314ed10d42",
                      "Stack")
+        rtp.addObjectClassParent("Cube_red", "cube")
+        rtp.addObjectClassParent("Cube_blue", "cube")
+        rtp.addObjectClassParent("Cube_green", "cube")
+        rtp.addObjectClassParent("Cube_yellow", "cube")
         rtp.process() # run through the data and create models
         task = rtp.makeTask()
         world = TomWorld(lfd=rtp.lfd)

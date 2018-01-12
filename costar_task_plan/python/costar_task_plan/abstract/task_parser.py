@@ -55,7 +55,6 @@ class ActionInfo(object):
 
 class TaskParser(object):
 
-
     class Example:
         '''
         Lightweight class to track observed trajectories for one hand or
@@ -103,6 +102,7 @@ class TaskParser(object):
         self.object_classes = set()
         self.objects_by_class = {}
         self.classes_by_object = {}
+        self.object_parent_classes = {}
         self.action_naming_style = action_naming_style
         self.idle_tags = []
         self.unknown_tags = []
@@ -171,6 +171,16 @@ class TaskParser(object):
                 name += "_to_%s"%(self.classes_by_object[action.object_acted_on])
             return name
 
+    def _getObjectClassParent(self, obj):
+        '''
+        Return the parent class of a particular object if it has one. This is
+        used when computing the "parent" class of a particular action.
+        '''
+        if obj in self.object_parent_classes:
+            return self.object_parent_classes[obj]
+        else:
+            return obj
+
     def _getParentActionName(self, action):
         '''
         Get the name of the "parent" action which shares all its parameters
@@ -185,6 +195,18 @@ class TaskParser(object):
 
     def addIdle(self, *args):
         self.idle_tags += list(args)
+
+    def addObjectClassParent(self, obj_class, parent_class):
+        '''
+        Used as a way of indicating that multiple objects all belong to the
+        same parent object class. So for example if we see many different
+        cubes, this should be fine.
+        '''
+        if obj_class in self.object_parent_classes:
+            raise RuntimeError('Object class %s already has a'
+                               'parent class' % obj_class)
+        else:
+            self.object_parent_classes[obj_class] = parent_class
 
     def addUnknown(self, *args):
         self.unknown_tags += list(args)
@@ -334,6 +356,8 @@ class TaskParser(object):
 
                 prev[j] = name
                 prev_t[j] = t
+        print(">>>>>>>>>>>")
+        print(self.sequence_ends)
         for seq, actions in self.sequence_ends.items():
             for action in actions:
                 self._addTransition(action, self._done)
@@ -377,4 +401,5 @@ class TaskParser(object):
             args = self._getArgs(node)
             counts = [self.transition_counts[(parent,node)] for parent in parents]
             task.add(node, list(parents), args, counts)
+        print(task.nodes)
         return task
