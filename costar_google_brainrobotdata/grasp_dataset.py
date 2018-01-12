@@ -1385,7 +1385,6 @@ class GraspDataset(object):
             if sensor_image_dimensions is None:
                     sensor_image_dimensions = [FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels]
             height, width, rgb_channels = sensor_image_dimensions
-            print('4444444444444 random_crop_dimensions: ', random_crop_dimensions)
             # get dimensions of random crop if enabled
             if random_crop_dimensions is None:
                 random_crop_dimensions = tf.constant([FLAGS.crop_height, FLAGS.crop_width, rgb_channels], name='rgb_random_crop_dimensions')
@@ -1397,15 +1396,11 @@ class GraspDataset(object):
             feature_op_dict['rgb_random_crop_dimensions'] = random_crop_dimensions
             feature_op_dict['depth_random_crop_dimensions'] = depth_crop_dim_tensor
             if random_crop_offset is None:
-                print('00000000000000000000000000000 0 random_crop_offset:', random_crop_offset)
                 # get random crop offset parameters so that cropping will be done consistently.
                 random_crop_offset = rcp.random_crop_offset(sensor_image_dimensions, random_crop_dimensions, seed=seed)
             else:
-                print('**************************************** 0 random_crop_offset:', random_crop_offset)
                 random_crop_offset = tf.convert_to_tensor(random_crop_offset)
 
-            print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! random_crop_offset: ', random_crop_offset)
-            random_crop_offset = tf.Print(random_crop_offset, [random_crop_offset], '!!!!!!!!!!!!!!!!!!!! 2 random_crop_offset')
             feature_op_dict['random_crop_offset'] = random_crop_offset
             # add the modified image intrinsics, applying the changes that occur when a crop is performed
             if 'camera/intrinsics/matrix33' in feature_op_dict:
@@ -1429,13 +1424,8 @@ class GraspDataset(object):
                 if verbose:
                     print('_image_random_crop image:', image, 'random_crop_offset:', random_crop_offset)
                 if 'depth_image' in image_feature and 'xyz' not in image_feature:
-                    # if len(K.int_shape(image)) == 2:
-#                         image = tf.expand_dims(image, -1)
-                    # random_crop_offset = tf.Print(random_crop_offset, [random_crop_offset, depth_crop_dim_tensor], '>>>>>>>>>>><<<<<<< depth image random_crop_offset, depth_crop_dim_tensor')
                     image = rcp.crop_images(image_list=image, offset=random_crop_offset, size=depth_crop_dim_tensor)
                 else:
-                    # random_crop_offset = tf.Print(random_crop_offset, [random_crop_offset, random_crop_dimensions], '<<<<<<<< regular image random_crop_offset, depth_crop_dim_tensor')
-                    # crop rgb and xyz tensor, which each have 3 channels
                     image = rcp.crop_images(image_list=image, offset=random_crop_offset, size=random_crop_dimensions)
                     print('<><><><><><> image: ', image)
                 # two image feature types, replace the name in both cases, as appropriate
