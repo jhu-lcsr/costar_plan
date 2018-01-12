@@ -137,6 +137,7 @@ class TaskParser(object):
         old_name: previous name in dataset that should be removed
         new_name: newer name in dataset
         '''
+        self.alias[old_name] = new_name
 
     def addObjectClass(self, object_class):
         self.object_classes.add(object_class)
@@ -272,6 +273,8 @@ class TaskParser(object):
                 else:
                     obj_class = None
 
+                print ("============")
+                print(name, action)
                 name = self._getActionName(action)
                 if name is None:
                     # "None" is only acceptable as the root of a tree -- not
