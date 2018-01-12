@@ -76,6 +76,18 @@ flags.DEFINE_string('grasp_dataset', '102',
                     around 110 GB and 38k grasp attempts.
                     See https://sites.google.com/site/brainrobotdata/home
                     for a full listing.""")
+flags.DEFINE_boolean('median_filter', False,
+                     """Median filter apply on depth image to 
+                        remove small regions with depth values of zero,
+                        which represents invalid depth values.
+                        This is the first depth image preprocessing step.
+                     """)
+flags.DEFINE_integer('median_filter_width', 5,
+                     """Width of median filter kernel.
+                     """)
+flags.DEFINE_integer('median_filter_height', 5,
+                     """Height of median filter kernel.
+                     """)
 flags.DEFINE_integer('crop_width', 560,
                      """Width to crop images""")
 flags.DEFINE_integer('crop_height', 448,
@@ -88,21 +100,12 @@ flags.DEFINE_boolean('random_crop', False,
                         that is centered on the image height and to the far
                         right on the image width.
                      """)
-flags.DEFINE_boolean('median_filter', False,
-                     """median filter apply on depth image to remove zero and invalid depth.
-                     """)
-flags.DEFINE_integer('median_filter_width', 5,
-                     """Width of median filter kernel.
-                     """)
-flags.DEFINE_integer('median_filter_height', 5,
-                     """Height of median filter kernel.
-                     """)
 flags.DEFINE_integer('resize_width', 160,
                      """Width to resize images before prediction, if enabled.""")
 flags.DEFINE_integer('resize_height', 128,
                      """Height to resize images before prediction, if enabled.""")
 flags.DEFINE_boolean('resize', True,
-                     """resize will resize the input images to the desired dimensions specified but the
+                     """resize will resize the input images to the desired dimensions specified by the
                         resize_width and resize_height flags. It is suggested that an exact factor of 2 be used
                         relative to the input image directions if random_crop is disabled or the crop dimensions otherwise.
                      """)
@@ -112,9 +115,15 @@ flags.DEFINE_float('gripper_z_offset_meters', 0.02,
                        default value 0.02.
                    """)
 flags.DEFINE_boolean('image_augmentation', True,
-                     'image augmentation applies random brightness, saturation, hue, contrast. imagenet_preprocessing must be True.')
+                     """Image augmentation applies random brightness, saturation, hue, contrast to input rgb images only. 
+                        This option should only be utilized during training, 
+                        and only has an effect when imagenet_preprocessing is True.
+                     """)
 flags.DEFINE_boolean('imagenet_preprocessing', True,
-                     'subtract the imagenet mean pixel values from the rgb images')
+                     """Subtract the imagenet mean pixel values from the rgb images and normalize the image value.
+                        The recommended value is True and whichever choice you make it should remain the same
+                        for both training and inference.
+                     """)
 flags.DEFINE_integer('grasp_sequence_max_time_step', None,
                      """The grasp motion time sequence consists of up to 11 time steps.
                         This integer, or None for unlimited specifies the max number of these steps from the last to the first
