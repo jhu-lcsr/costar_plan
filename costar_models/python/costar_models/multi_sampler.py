@@ -364,7 +364,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         if self.skip_connections or True:
             x = Concatenate()([x, skip])
-        x = Dropout(self.dropout_rate)(x)
+        #x = Dropout(self.dropout_rate)(x)
 
         for i in range(self.num_transforms):
             #x = TileOnto(x, y, self.num_options, (8,8))
