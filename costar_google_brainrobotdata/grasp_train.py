@@ -111,7 +111,8 @@ flags.DEFINE_string('optimizer', 'SGD', """Options are Adam and SGD.""")
 flags.DEFINE_string('progress_tracker', None,
                     """Utility to follow training progress, options are tensorboard and None.""")
 flags.DEFINE_string('loss', 'segmentation_single_pixel_binary_crossentropy',
-                    """Options are binary_crossentropy and segmentation_single_pixel_binary_crossentropy.""")
+                    """Options are binary_crossentropy, segmentation_single_pixel_binary_crossentropy,
+                       and segmentation_gaussian_binary_crossentropy.""")
 flags.DEFINE_string('metric', 'segmentation_single_pixel_binary_accuracy',
                     """Options are accuracy, binary_accuracy and segmentation_single_pixel_binary_accuracy.""")
 flags.DEFINE_string('distributed', 'horovod',
@@ -265,6 +266,10 @@ class GraspTrain(object):
         if 'segmentation_single_pixel_binary_crossentropy' in loss:
             loss = grasp_loss.segmentation_single_pixel_binary_crossentropy
             loss_name = 'segmentation_single_pixel_binary_crossentropy'
+
+        if isinstance(loss, str) and 'segmentation_gaussian_binary_crossentropy' in loss:
+            loss = grasp_loss.segmentation_gaussian_binary_crossentropy
+            loss_name = 'segmentation_gaussian_binary_crossentropy'
 
         metric_name = 'acc'
         if 'segmentation_single_pixel_binary_accuracy' in metric:
