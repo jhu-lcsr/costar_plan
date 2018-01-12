@@ -152,6 +152,9 @@ class TaskParser(object):
         self.classes_by_object[obj] = obj_class
 
     def _getActionName(self, action):
+        '''
+        Get a long-form name of a particular action
+        '''
         if action.base_name in self.unknown_tags:
             return None
         elif self.action_naming_style == NAME_STYLE_SAME:
@@ -167,6 +170,15 @@ class TaskParser(object):
             if action.object_acted_on is not None:
                 name += "_to_%s"%(self.classes_by_object[action.object_acted_on])
             return name
+
+    def _getParentActionName(self, action):
+        '''
+        Get the name of the "parent" action which shares all its parameters
+        '''
+        if action.base_name in self.unknown_tags:
+            return None
+        else:
+            return action.base_name
 
     def resetDemonstration(self):
         self.data = []
@@ -273,8 +285,6 @@ class TaskParser(object):
                 else:
                     obj_class = None
 
-                print ("============")
-                print(name, action)
                 name = self._getActionName(action)
                 if name is None:
                     # "None" is only acceptable as the root of a tree -- not
