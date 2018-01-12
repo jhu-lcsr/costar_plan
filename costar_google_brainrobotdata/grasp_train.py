@@ -266,6 +266,10 @@ class GraspTrain(object):
             loss = grasp_loss.segmentation_single_pixel_binary_crossentropy
             loss_name = 'segmentation_single_pixel_binary_crossentropy'
 
+        if 'segmentation_gaussian_binary_crossentropy' in loss:
+            loss = grasp_loss.segmentation_gaussian_binary_crossentropy
+            loss_name = 'segmentation_gaussian_binary_crossentropy'
+
         metric_name = 'acc'
         if 'segmentation_single_pixel_binary_accuracy' in metric:
             metric_name = metric
