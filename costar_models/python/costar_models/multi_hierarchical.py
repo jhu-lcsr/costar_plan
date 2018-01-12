@@ -58,7 +58,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         self.actor = None
 
     def _makeModel(self, *args, **kwargs):
-        self.model, self.supervisor, self.actor = self._makeSupervisor(*args, **kwargs)
+        self.model, self.supervisor, self.actor = self._makeAll(*args, **kwargs)
 
     def _makeSimpleActor(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
         '''
@@ -110,25 +110,56 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
             gripper_size = 1
 
 
-        ins, x, skips = GetEncoder(
-                img_shape,
-                [arm_size, gripper_size],
-                self.img_col_dim,
-                self.dropout_rate,
-                self.img_num_filters,
-                pose_col_dim=self.pose_col_dim,
-                discriminator=False,
-                kernel_size=[3,3],
-                tile=True,
-                batchnorm=self.use_batchnorm,
-                option=self.num_options,
-                pre_tiling_layers=1,
-                post_tiling_layers=3,
-                stride1_post_tiling_layers=1)
+        #ins, x, skips = GetEncoder(
+        #        img_shape,
+        #        [arm_size, gripper_size],
+        #        self.img_col_dim,
+        #        self.dropout_rate,
+        #        self.img_num_filters,
+        #        pose_col_dim=self.pose_col_dim,
+        #        discriminator=False,
+        #        kernel_size=[3,3],
+        #        tile=True,
+        #        batchnorm=self.use_batchnorm,
+        #        option=self.num_options,
+        #        pre_tiling_layers=1,
+        #        post_tiling_layers=3,
+        #        stride1_post_tiling_layers=1)
+        img_in = Input(img_shape, name="ca_img_in")
+        x = img_in
+        x = AddConv2D(x, 64, [3,3], 1, 0., "same")
+        x = AddConv2D(x, 64, [3,3], 1, 0., "same")
+        x = MaxPooling2D(pool_size=(2,2))(x)
+        x = AddConv2D(x, 64, [3,3], 1, 0., "same")
+        x = AddConv2D(x, 64, [3,3], 1, 0., "same")
+        x = MaxPooling2D(pool_size=(2,2))(x)
+        x = AddConv2D(x, 64, [3,3], 1, 0., "same")
+        x = AddConv2D(x, 64, [3,3], 1, 0., "same")
+        x = MaxPooling2D(pool_size=(2,2))(x)
 
-        x = BatchNormalization()(x)
+        arm_in = Input((arm_size,),name="ca_arm_in")
+        gripper_in = Input((gripper_size,),name="ca_gripper_in")
+        y = Concatenate()([arm_in, gripper_in])
+        y = AddDense(y, 64, "relu", 0.)
+        x = TileOnto(x, y, 64, (8,8), add=True)
+        x = AddConv2D(x, 64, [3,3], 1, self.dropout_rate, "same")
+
+        cmd_in = Input((1,), name="option_cmd_in")
+        cmd = OneHot(self.num_options)(cmd_in)
+        cmd = AddDense(cmd, 64, "relu", 0.)
+        x = TileOnto(x, cmd, 64, (8,8), add=True)
+        x = AddConv2D(x, 64, [3,3], 1, self.dropout_rate, "same")
+        x = MaxPooling2D(pool_size=(2,2))(x)
+        x = AddConv2D(x, 64, [3,3], 1, 0., "same")
+        #x = BatchNormalization()(x)
+        x = Flatten()(x)
+        x = AddDense(x, 512, "lrelu", 0.,
+                constraint=3,
+                output=False)
         x = Dropout(self.dropout_rate)(x)
-        x = AddDense(x, 512, "lrelu", 0., constraint=None, output=False)
+        x = AddDense(x, 256, "lrelu", 0.,
+                constraint=3,
+                output=False)
 
         arm_out = Dense(arm_cmd_size, name="arm")(x)
         gripper_out = Dense(gripper_size, name="gripper")(x)
@@ -137,12 +168,13 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
             raise RuntimeError('overwriting old model!')
 
         #model = Model(ins + [option_in], [arm_out, gripper_out])
+        ins = [img_in, arm_in, gripper_in, cmd_in]
         model = Model(ins, [arm_out, gripper_out])
         optimizer = self.getOptimizer()
         model.compile(loss=self.loss, optimizer=optimizer)
         return model
 
-    def _makeSupervisor(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
+    def _makeAll(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
         images = features
         img_shape = images.shape[1:]
         arm_size = arm.shape[-1]

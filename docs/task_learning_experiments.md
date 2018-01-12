@@ -24,6 +24,17 @@ rosrun costar_models ctp_model_tool --model conditional_image --data_file data.h
 rosrun costar_models ctp_model_tool --model conditional_image --data_file data.h5f --lr 0.0001 --dropout_rate 0.2 --retrain
 ```
 
+#### Training Policies
+
+We also learn "actor" networks that operate on the current world state. These are trained with the `ff_regression` and `hierachical` models.
+
+```
+# Use the --success_only flag to make sure we don't learn bad things
+rosrun costar_models ctp_model_tool --model hierarchical --data_file data.h5f --lr 0.001 --dropout_rate 0.2 --success_only
+```
+
+The advantage here is that they can use a little bit more information than the previous versions should it prove necessary. They are also trained end-to-end, since there is no need for them to produce high quality images.
+
 ### Training On MARCC
 
 MARCC is our cluster for machine learning, equipped with a large set of Tesla K80 GPUs. We assume that when training on a cluster like MARCC, you will not want a full ROS workspace, so instead we assume you will install to some path $COSTAR_PLAN and just run scripts.
