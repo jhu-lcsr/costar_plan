@@ -96,9 +96,13 @@ flags.DEFINE_boolean('random_crop', False,
                      """random_crop will apply the tf random crop function with
                         the parameters specified by crop_width and crop_height.
 
-                        If random crop is disabled a fixed crop will be applied
-                        that is centered on the image height and to the far
-                        right on the image width.
+                        If random crop is disabled, a fixed crop will be applied
+                        to a box on the far right of the image which is vertically
+                        centered. If no crop is desired simply set the crop_width
+                        and crop_height equal to the sensor_image_width and
+                        sensor_image_height. However, it is important to ensure
+                        that you crop images to the same size during both training
+                        and test time.
                      """)
 flags.DEFINE_integer('resize_width', 160,
                      """Width to resize images before prediction, if enabled.""")
@@ -1436,7 +1440,6 @@ class GraspDataset(object):
                     image = rcp.crop_images(image_list=image, offset=random_crop_offset, size=depth_crop_dim_tensor)
                 else:
                     image = rcp.crop_images(image_list=image, offset=random_crop_offset, size=random_crop_dimensions)
-                    print('<><><><><><> image: ', image)
                 # two image feature types, replace the name in both cases, as appropriate
                 cropped_image_feature = image_feature.replace('decoded', 'cropped')
                 cropped_image_feature = cropped_image_feature.replace('median_filtered', 'median_filter_cropped')
@@ -1697,19 +1700,16 @@ class GraspDataset(object):
                 # The preprocessed suffix is 'cropped' if cropping is enabled.
                 random_crop_offset = rcp.random_crop_offset(sensor_image_dimensions, random_crop_dimensions, seed=seed)
             else:
-                print('<<<<<<<<<<<<<<,random_crop_dimensions: ', random_crop_dimensions)
+                # Fixed crop to a box on the far right of the image which is vertically centered.
                 random_crop_offset = np.array([0, 0, 0])
                 random_crop_offset[:2] = np.array(sensor_image_dimensions[:2]) - np.array(random_crop_dimensions[:2])
                 random_crop_offset[0] = random_crop_offset[0] / 2
-                print('<<<<<<<<<<<<<<,random_crop_offset: ', random_crop_offset)
-                # tf.Print(random_crop_offset, [random_crop_offset])
 
         preprocessed_suffix = 'cropped'
         preprocessed_depth_suffix = 'cropped'
         preprocessing_sequence = preprocessing_sequence + [preprocessed_suffix]
         # Do the random crop preprocessing
         # This updates rgb images, depth, images, and coordinates of the gripper
-        print('2222222222222222222222222 random crop sensor dimensions, random crop offset')
         feature_op_dicts, features_complete_list, time_ordered_feature_name_dict = self._image_random_crop_grasp_attempt(
             features_complete_list, feature_op_dicts, sensor_image_dimensions,
             random_crop_dimensions, random_crop_offset, seed, time_ordered_feature_name_dict)
