@@ -76,8 +76,8 @@ flags.DEFINE_string('grasp_dataset', '102',
                     around 110 GB and 38k grasp attempts.
                     See https://sites.google.com/site/brainrobotdata/home
                     for a full listing.""")
-flags.DEFINE_boolean('median_filter', False,
-                     """Median filter apply on depth image to 
+flags.DEFINE_boolean('median_filter', True,
+                     """Median filter apply on depth image to
                         remove small regions with depth values of zero,
                         which represents invalid depth values.
                         This is the first depth image preprocessing step.
