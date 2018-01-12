@@ -1039,7 +1039,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=(not disc))
         x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=(not disc))
         x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=(not disc))
-        x = AddConv2D(x, 256, [5,5], 2, dr, "same", lrelu=disc, bn=(not disc))
+        #x = AddConv2D(x, 256, [5,5], 2, dr, "same", lrelu=disc, bn=(not disc))
 
         if self.use_spatial_softmax and not disc:
             def _ssm(x):
@@ -1102,8 +1102,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             x = Reshape((h,w,c))(x)
 
         #x = AddConv2DTranspose(x, 64, [5,5], 1, dr)
-        x = AddConv2DTranspose(x, 256, [1,1], 1, 0.)
-        x = AddConv2DTranspose(x, 128, [5,5], 2, dr)
+        #x = AddConv2DTranspose(x, 256, [1,1], 1, 0.)
+        #x = AddConv2DTranspose(x, 128, [5,5], 2, dr)
+        x = AddConv2DTranspose(x, 128, [1,1], 1, 0.)
         x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
         x = AddConv2DTranspose(x, 64, [5,5], 1, 0.)
         x = AddConv2DTranspose(x, 32, [5,5], 2, dr)
