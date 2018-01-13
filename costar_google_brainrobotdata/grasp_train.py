@@ -126,6 +126,12 @@ FLAGS = flags.FLAGS
 def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
     return datetime.datetime.now().strftime(fmt).format(fname=fname)
 
+# mean predicted value metric
+# useful for detecting perverse
+# conditions such as
+# 100% grasp_success == True
+def mean_pred(y_true, y_pred):
+    return K.mean(y_pred)
 
 class GraspTrain(object):
 
@@ -393,7 +399,7 @@ class GraspTrain(object):
 
         model.compile(optimizer=optimizer,
                       loss=loss,
-                      metrics=[metric],
+                      metrics=[metric, mean_pred],
                       target_tensors=[grasp_success_op_batch])
 
         print('Available metrics: ' + str(model.metrics_names))
@@ -499,7 +505,7 @@ class GraspTrain(object):
 
         model.compile(optimizer='sgd',
                       loss=loss,
-                      metrics=[metric],
+                      metrics=[metric, mean_pred],
                       target_tensors=[grasp_success_op_batch])
 
         model.summary()
