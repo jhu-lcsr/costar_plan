@@ -78,7 +78,7 @@ flags.DEFINE_float('learning_rate_scheduler_power_decay_rate', 1.5,
                       Training from scratch within an initial learning rate of 0.1 might find a
                          power decay value of 2 to be useful.
                       Fine tuning with an initial learning rate of 0.001 may consder 1.5 power decay.""")
-flags.DEFINE_float('grasp_learning_rate', 0.01,
+flags.DEFINE_float('grasp_learning_rate', 0.1,
                    """Determines the initial learning rate""")
 flags.DEFINE_integer('eval_batch_size', 1, 'batch size per compute device')
 flags.DEFINE_integer('densenet_growth_rate', 12,
@@ -367,7 +367,7 @@ class GraspTrain(object):
             callbacks = callbacks + [
                 # Reduce the learning rate if training plateaus.
                 # TODO(ahundt) add validation checks and update monitor parameter to use them
-                keras.callbacks.ReduceLROnPlateau(patience=8, verbose=1, monitor=metric_name)
+                keras.callbacks.ReduceLROnPlateau(patience=4, verbose=1, monitor=metric_name)
             ]
 
         # 2017-08-27 Tried NADAM for a while with the settings below, only improved for first 2 epochs.
