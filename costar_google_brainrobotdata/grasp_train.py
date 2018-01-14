@@ -70,7 +70,7 @@ flags.DEFINE_string('grasp_dataset_eval', '052',
                     with no overlap, otherwise your results won't be valid!
                     See https://sites.google.com/site/brainrobotdata/home
                     for a full listing.""")
-flags.DEFINE_boolean('eval_per_epoch', False,
+flags.DEFINE_boolean('eval_per_epoch', True,
                      """Do evaluation on every epoch, if flag is true.""")
 flags.DEFINE_string('pipeline_stage', 'train_eval',
                     """Choose to "train", "eval", or "train_eval" with the grasp_dataset
@@ -162,7 +162,7 @@ class GraspTrain(object):
               grasp_datasets_batch_algorithm=FLAGS.grasp_datasets_batch_algorithm,
               batch_size=FLAGS.batch_size,
               epochs=FLAGS.epochs,
-              eval_per_epoch=FLAGS.epochs,
+              eval_per_epoch=FLAGS.eval_per_epoch,
               load_weights=FLAGS.load_weights,
               save_weights=FLAGS.save_weights,
               make_model_fn=grasp_model.grasp_model_densenet,
@@ -370,11 +370,11 @@ class GraspTrain(object):
 
         # add evalation callback, calls evalation of self.eval_model
         if eval_per_epoch:
-            callbasks = callbacks + [eval_callback(self.eval(
-                                                   make_model_fn=make_model_fn,
-                                                   load_weights=load_weights,
-                                                   model_name=load_weights,
-                                                   eval_per_epoch=FLAGS.eval_per_epoch))]
+            eval_model, step_num = self.eval(make_model_fn=make_model_fn,
+                                             load_weights=None,
+                                             model_name=FLAGS.grasp_model,
+                                             eval_per_epoch=FLAGS.eval_per_epoch)
+            callbasks = callbacks + [eval_callback(eval_model, step_num)]
 
         # 2017-08-27 Tried NADAM for a while with the settings below, only improved for first 2 epochs.
         # optimizer = keras.optimizers.Nadam(lr=0.004, beta_1=0.825, beta_2=0.99685)
@@ -483,7 +483,8 @@ class GraspTrain(object):
 
         ########################################################
         # End tensor configuration, begin model configuration and training
-        csv_logger = CSVLogger(load_weights + '_eval.csv')
+        if not eval_per_epoch:
+            csv_logger = CSVLogger(load_weights + '_eval.csv')
 
         # create the model
         model = make_model_fn(
@@ -514,9 +515,9 @@ class GraspTrain(object):
                       loss=loss,
                       metrics=[metric],
                       target_tensors=[grasp_success_op_batch])
-        self.eval_model = model
+
         if eval_per_epoch:
-            return self.eval_model, int(float(num_samples) / float(batch_size))
+            return model, int(float(num_samples) / float(batch_size))
         model.summary()
 
         steps = float(num_samples) / float(batch_size)
@@ -630,6 +631,7 @@ class eval_callback(Callback):
 
     def on_epoch_end(self, epoch, logs={}):
         # this is called automatically, so not able to pass other parameters here?
+        self.eval_model.load_weights(self.model.get_weights())
         loss, acc = self.eval_model.evaluate(None, None, steps=int(self.step_num))
         results_str = '\nevaluation results loss: ' + str(loss) + ' accuracy: ' + str(acc) + ' epoch: ' + epoch
         print(results_str)
