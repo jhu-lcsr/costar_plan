@@ -520,13 +520,16 @@ class GraspTrain(object):
                              'but manageable. num_samples: {} batch_size: {}'.format(num_samples, batch_size))
 
         try:
-            loss, acc = model.evaluate(None, None, steps=int(steps))
-            results_str = '\nevaluation results loss: ' + str(loss) + ' accuracy: ' + str(acc) + ' dataset: ' + dataset
-            print(results_str)
+            results = model.evaluate(None, None, steps=int(steps))
+            # results_str = '\nevaluation results loss: ' + str(loss) + ' accuracy: ' + str(acc) + ' dataset: ' + dataset
+            metrics_str = 'metrics:\n' + str(model.metrics_names) + 'results:' + str(results)
+            print(metrics_str)
             weights_name_str = load_weights + '_evaluation_dataset_{}_loss_{:.3f}_acc_{:.3f}'.format(dataset, loss, acc)
             weights_name_str = weights_name_str.replace('.h5', '') + '.h5'
-            with open(eval_results_file, 'w') as results_file:
-                results_file.write(results_str + '\n')
+
+            results_summary_name_str = weights_name_str.replace('.h5', '') + '.txt'
+            with open(results_summary_name_str, 'w') as results_summary:
+                results_summary.write(metrics_str + '\n')
             if save_weights:
                 model.save_weights(weights_name_str)
                 print('\n saved weights with evaluation result to ' + weights_name_str)
