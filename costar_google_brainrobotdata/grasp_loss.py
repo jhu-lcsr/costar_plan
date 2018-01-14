@@ -5,6 +5,40 @@ from keras import backend as K
 from keras_contrib.losses import segmentation_losses
 
 
+def gripper_coordinate_y_pred(y_true, y_pred):
+    """ Get the predicted value at the coordinate found in y_true.
+
+    # Arguments
+
+        y_true: [ground_truth_label, y_height_coordinate, x_width_coordinate]
+            Shape of y_true is [batch_size, 3].
+        y_pred: Predicted values with shape [batch_size, img_height, img_width, 1].
+    """
+    with K.name_scope(name="gripper_coordinate_y_pred") as scope:
+        yx_coordinate = tf.cast(y_true[:, 1:], tf.int32)
+        yx_shape = K.int_shape(yx_coordinate)
+        sample_index = tf.expand_dims(tf.range(yx_shape[0]), axis=-1)
+        byx_coordinate = tf.concat([sample_index, yx_coordinate], axis=-1)
+
+        # maybe need to transpose yx_coordinate?
+        gripper_coordinate_y_pred = tf.gather_nd(y_pred, byx_coordinate)
+        return gripper_coordinate_y_pred
+
+
+def gripper_coordinate_y_true(y_true, y_pred=None):
+    """ Get the label found in y_true which also contains coordinates.
+
+    # Arguments
+
+        y_true: [ground_truth_label, y_height_coordinate, x_width_coordinate]
+            Shape of y_true is [batch_size, 3].
+        y_pred: Predicted values with shape [batch_size, img_height, img_width, 1].
+    """
+    with K.name_scope(name="gripper_coordinate_y_true") as scope:
+        label = tf.cast(y_true[:, :1], tf.float32)
+        return label
+
+
 def gaussian_kernel_2D(size=(3, 3), center=(1, 1), sigma=1):
     """Create a 2D gaussian kernel with specified size, center, and sigma.
 
@@ -115,26 +149,22 @@ def segmentation_gaussian_binary_crossentropy(
 #         weighted_gaussian_labels = tf.concat(weighted_gaussian_labels, axis=0)
 #         return K.sum(K.flatten(weighted_gaussian_labels))
 
+
 def segmentation_single_pixel_measurement(y_true, y_pred, measurement=keras.losses.binary_crossentropy, name=None):
     """ Applies metric or loss function at a specific pixel coordinate.
 
     # Arguments
 
         y_true: [ground_truth_label, y_height_coordinate, x_width_coordinate]
-        y_pred: predicted values
+            Shape of y_true is [batch_size, 3].
+        y_pred: Predicted values with shape [batch_size, img_height, img_width, 1].
     """
     if name is None:
         name = 'grasp_segmentation_single_pixel_measurement'
     with K.name_scope(name=name) as scope:
-        label = tf.cast(y_true[:, :1], tf.float32)
-        yx_coordinate = tf.cast(y_true[:, 1:], tf.int32)
-        yx_shape = K.int_shape(yx_coordinate)
-        sample_index = tf.expand_dims(tf.range(yx_shape[0]), axis=-1)
-        byx_coordinate = tf.concat([sample_index, yx_coordinate], axis=-1)
-
-        # maybe need to transpose yx_coordinate?
-        gripper_coordinate_y_pred = tf.gather_nd(y_pred, byx_coordinate)
-        return measurement(label, gripper_coordinate_y_pred)
+        label = gripper_coordinate_y_true(y_true)
+        single_pixel_y_pred = gripper_coordinate_y_pred(y_true, y_pred)
+        return measurement(label, single_pixel_y_pred)
 
 
 def segmentation_single_pixel_binary_crossentropy(y_true, y_pred):
@@ -145,3 +175,40 @@ def segmentation_single_pixel_binary_crossentropy(y_true, y_pred):
 def segmentation_single_pixel_binary_accuracy(y_true, y_pred, name=None):
     return segmentation_single_pixel_measurement(y_true, y_pred, measurement=keras.metrics.binary_accuracy,
                                                  name='segmentation_single_pixel_binary_accuracy')
+
+
+# mean predicted value metric
+# useful for detecting perverse
+# conditions such as
+# 100% grasp_success == True
+def mean_pred(y_true, y_pred):
+    return K.mean(y_pred)
+
+
+# mean predicted value metric
+# useful for detecting perverse
+# conditions such as
+# 100% grasp_success == True
+def mean_pred_single_pixel(y_true, y_pred):
+    with K.name_scope(name='mean_pred_single_pixel') as scope:
+        single_pixel_y_pred = gripper_coordinate_y_pred(y_true, y_pred)
+        return K.mean(single_pixel_y_pred)
+
+
+# mean true value metric
+# useful for determining
+# summary statistics when using
+# the multi-dataset loader
+def mean_true(y_true, y_pred):
+    """
+
+    # Arguments
+
+        y_true: [ground_truth_label, y_height_coordinate, x_width_coordinate]
+            Shape of y_true is [batch_size, 3], or [ground_truth_label] with shape [batch_size].
+        y_pred: Predicted values with shape [batch_size, img_height, img_width, 1].
+    """
+    with K.name_scope(name='mean_true') as scope:
+        if len(K.int_shape(y_true)) == 2 and K.int_shape(y_true)[1] == 3:
+            y_true = tf.cast(y_true[:, :1], tf.float32)
+        return K.mean(y_true)

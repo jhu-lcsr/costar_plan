@@ -127,22 +127,6 @@ def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
     return datetime.datetime.now().strftime(fmt).format(fname=fname)
 
 
-# mean predicted value metric
-# useful for detecting perverse
-# conditions such as
-# 100% grasp_success == True
-def mean_pred(y_true, y_pred):
-    return K.mean(y_pred)
-
-
-# mean true value metric
-# useful for determining
-# summary statistics when using
-# the multi-dataset loader
-def mean_true(y_true, y_pred):
-    return K.mean(y_true)
-
-
 class GraspTrain(object):
 
     def __init__(self, tf_session=None, distributed=FLAGS.distributed):
@@ -277,7 +261,7 @@ class GraspTrain(object):
             print('lr: %f' % lr)
             return lr
 
-        # TODO(ahundt) manage loss/accuracy names in a more principled way
+        # TODO(ahundt) manage loss/metric names in a more principled way
         loss_name = 'loss'
         if 'segmentation_single_pixel_binary_crossentropy' in loss:
             loss = grasp_loss.segmentation_single_pixel_binary_crossentropy
@@ -287,10 +271,7 @@ class GraspTrain(object):
             loss = grasp_loss.segmentation_gaussian_binary_crossentropy
             loss_name = 'segmentation_gaussian_binary_crossentropy'
 
-        metric_name = 'acc'
-        if 'segmentation_single_pixel_binary_accuracy' in metric:
-            metric_name = metric
-            metric = grasp_loss.segmentation_single_pixel_binary_accuracy
+        metrics, monitor_metric_name = self.gather_metrics(metric)
 
         callbacks = []
         if hvd is not None and self.distributed is 'horovod':
@@ -312,7 +293,7 @@ class GraspTrain(object):
             ]
 
         scheduler = keras.callbacks.LearningRateScheduler(lr_scheduler)
-        early_stopper = EarlyStopping(monitor=metric_name, min_delta=0.001, patience=32)
+        early_stopper = EarlyStopping(monitor=monitor_metric_name, min_delta=0.001, patience=32)
         csv_logger = CSVLogger(weights_name + '.csv')
         # TODO(ahundt) Re-enable results included in filename, need to fix the following error but this was skipped due to time constraints to start training:
         """
@@ -377,7 +358,7 @@ class GraspTrain(object):
             callbacks = callbacks + [
                 # Reduce the learning rate if training plateaus.
                 # TODO(ahundt) add validation checks and update monitor parameter to use them
-                keras.callbacks.ReduceLROnPlateau(patience=4, verbose=1, monitor=metric_name)
+                keras.callbacks.ReduceLROnPlateau(patience=4, verbose=1, monitor=monitor_metric_name)
             ]
 
         # 2017-08-27 Tried NADAM for a while with the settings below, only improved for first 2 epochs.
@@ -409,7 +390,7 @@ class GraspTrain(object):
 
         model.compile(optimizer=optimizer,
                       loss=loss,
-                      metrics=[metric, mean_pred, mean_true],
+                      metrics=metrics,
                       target_tensors=[grasp_success_op_batch])
 
         print('Available metrics: ' + str(model.metrics_names))
@@ -508,14 +489,11 @@ class GraspTrain(object):
             loss = grasp_loss.segmentation_single_pixel_binary_crossentropy
             loss_name = 'segmentation_single_pixel_binary_crossentropy'
 
-        metric_name = 'acc'
-        if 'segmentation_single_pixel_binary_accuracy' in metric:
-            metric_name = metric
-            metric = grasp_loss.segmentation_single_pixel_binary_accuracy
+        metrics = self.gather_metrics(metric)
 
         model.compile(optimizer='sgd',
                       loss=loss,
-                      metrics=[metric, mean_pred, mean_true],
+                      metrics=metrics,
                       target_tensors=[grasp_success_op_batch])
 
         model.summary()
@@ -550,6 +528,21 @@ class GraspTrain(object):
             return None
 
         return weights_name_str
+
+    def gather_metrics(self, metric):
+        metrics = []
+        if 'segmentation_single_pixel_binary_accuracy' in metric:
+            monitor_metric_name = metric
+            metrics = metrics + [grasp_loss.segmentation_single_pixel_binary_accuracy]
+        else:
+            metrics = metrics + ['acc']
+            monitor_metric_name = 'acc'
+
+        if 'segmentation' in metric:
+            metrics = metrics + [grasp_loss.mean_pred_single_pixel]
+
+        metrics = metrics + [grasp_loss.mean_pred, grasp_loss.mean_true]
+        return metrics, monitor_metric_name
 
 
 def define_make_model_fn(grasp_model_name=FLAGS.grasp_model):
