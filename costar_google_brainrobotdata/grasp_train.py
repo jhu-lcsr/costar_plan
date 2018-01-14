@@ -133,6 +133,15 @@ def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
 def mean_pred(y_true, y_pred):
     return K.mean(y_pred)
 
+
+# mean true value metric
+# useful for determining
+# summary statistics when using
+# the multi-dataset loader
+def mean_true(y_true, y_pred):
+    return K.mean(y_pred)
+
+
 class GraspTrain(object):
 
     def __init__(self, tf_session=None, distributed=FLAGS.distributed):
@@ -399,7 +408,7 @@ class GraspTrain(object):
 
         model.compile(optimizer=optimizer,
                       loss=loss,
-                      metrics=[metric, mean_pred],
+                      metrics=[metric, mean_pred, mean_true],
                       target_tensors=[grasp_success_op_batch])
 
         print('Available metrics: ' + str(model.metrics_names))
@@ -505,7 +514,7 @@ class GraspTrain(object):
 
         model.compile(optimizer='sgd',
                       loss=loss,
-                      metrics=[metric, mean_pred],
+                      metrics=[metric, mean_pred, mean_true],
                       target_tensors=[grasp_success_op_batch])
 
         model.summary()
@@ -524,7 +533,7 @@ class GraspTrain(object):
             # results_str = '\nevaluation results loss: ' + str(loss) + ' accuracy: ' + str(acc) + ' dataset: ' + dataset
             metrics_str = 'metrics:\n' + str(model.metrics_names) + 'results:' + str(results)
             print(metrics_str)
-            weights_name_str = load_weights + '_evaluation_dataset_{}_loss_{:.3f}_acc_{:.3f}'.format(dataset, loss, acc)
+            weights_name_str = load_weights + '_evaluation_dataset_{}_loss_{:.3f}_acc_{:.3f}'.format(dataset, results[0], results[1])
             weights_name_str = weights_name_str.replace('.h5', '') + '.h5'
 
             results_summary_name_str = weights_name_str.replace('.h5', '') + '.txt'
