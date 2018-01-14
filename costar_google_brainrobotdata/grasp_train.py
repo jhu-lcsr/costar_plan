@@ -126,6 +126,7 @@ FLAGS = flags.FLAGS
 def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
     return datetime.datetime.now().strftime(fmt).format(fname=fname)
 
+
 # mean predicted value metric
 # useful for detecting perverse
 # conditions such as
@@ -139,7 +140,7 @@ def mean_pred(y_true, y_pred):
 # summary statistics when using
 # the multi-dataset loader
 def mean_true(y_true, y_pred):
-    return K.mean(y_pred)
+    return K.mean(y_true)
 
 
 class GraspTrain(object):
