@@ -31,6 +31,7 @@ from keras.callbacks import CSVLogger
 from keras.callbacks import EarlyStopping
 from keras.callbacks import ModelCheckpoint
 from keras.callbacks import TensorBoard
+from keras.callbacks import Callback
 
 from tensorflow.python.platform import flags
 
@@ -62,13 +63,15 @@ flags.DEFINE_string('load_weights', 'grasp_model_weights.h5',
                     """Load and continue training the specified file containing model weights.""")
 flags.DEFINE_integer('epochs', 300,
                      """Epochs of training""")
-flags.DEFINE_string('grasp_dataset_eval', '097',
+flags.DEFINE_string('grasp_dataset_eval', '052',
                     """Filter the subset of 1TB Grasp datasets to evaluate.
                     097 by default. It is important to ensure that this selection
                     is completely different from the selected training datasets
                     with no overlap, otherwise your results won't be valid!
                     See https://sites.google.com/site/brainrobotdata/home
                     for a full listing.""")
+flags.DEFINE_boolean('eval_per_epoch', False,
+                     """Do evaluation on every epoch, if flag is true.""")
 flags.DEFINE_string('pipeline_stage', 'train_eval',
                     """Choose to "train", "eval", or "train_eval" with the grasp_dataset
                        data for training and grasp_dataset_eval for evaluation.""")
@@ -159,6 +162,7 @@ class GraspTrain(object):
               grasp_datasets_batch_algorithm=FLAGS.grasp_datasets_batch_algorithm,
               batch_size=FLAGS.batch_size,
               epochs=FLAGS.epochs,
+              eval_per_epoch=FLAGS.epochs,
               load_weights=FLAGS.load_weights,
               save_weights=FLAGS.save_weights,
               make_model_fn=grasp_model.grasp_model_densenet,
@@ -364,6 +368,14 @@ class GraspTrain(object):
                 keras.callbacks.ReduceLROnPlateau(patience=8, verbose=1, monitor=metric_name)
             ]
 
+        # add evalation callback, calls evalation of self.eval_model
+        if eval_per_epoch:
+            callbasks = callbacks + [eval_callback(self.eval(
+                                                   make_model_fn=make_model_fn,
+                                                   load_weights=load_weights,
+                                                   model_name=load_weights,
+                                                   eval_per_epoch=FLAGS.eval_per_epoch))]
+
         # 2017-08-27 Tried NADAM for a while with the settings below, only improved for first 2 epochs.
         # optimizer = keras.optimizers.Nadam(lr=0.004, beta_1=0.825, beta_2=0.99685)
 
@@ -426,7 +438,8 @@ class GraspTrain(object):
              eval_results_file=FLAGS.eval_results_file,
              model_name=FLAGS.grasp_model,
              loss=FLAGS.loss,
-             metric=FLAGS.metric):
+             metric=FLAGS.metric,
+             eval_per_epoch=FLAGS.eval_per_epoch):
         """Train the grasping dataset
 
         This function depends on https://github.com/fchollet/keras/pull/6928
@@ -501,7 +514,9 @@ class GraspTrain(object):
                       loss=loss,
                       metrics=[metric],
                       target_tensors=[grasp_success_op_batch])
-
+        self.eval_model = model
+        if eval_per_epoch:
+            return self.eval_model, int(float(num_samples) / float(batch_size))
         model.summary()
 
         steps = float(num_samples) / float(batch_size)
@@ -605,6 +620,19 @@ def define_make_model_fn(grasp_model_name=FLAGS.grasp_model):
             raise ValueError('unknown model selected: {}'.format(grasp_model_name))
     return make_model_fn
 
+
+class eval_callback(Callback):
+    def __init__(self, eval_model, steps):
+        # parameter of callbacks passed during initialization
+        # pass evalation mode directly
+        self.eval_model = eval_model
+        self.step_num = steps
+
+    def on_epoch_end(self, epoch, logs={}):
+        # this is called automatically, so not able to pass other parameters here?
+        loss, acc = self.eval_model.evaluate(None, None, steps=int(self.step_num))
+        results_str = '\nevaluation results loss: ' + str(loss) + ' accuracy: ' + str(acc) + ' epoch: ' + epoch
+        print(results_str)
 
 def main():
     """Launch the training and/or evaluation script for the particular model specified on the command line.
