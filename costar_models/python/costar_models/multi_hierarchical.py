@@ -138,6 +138,68 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         model.compile(loss=self.loss, optimizer=optimizer)
         return model
 
+    def _makeManyActors(self):
+        '''
+        Make an actor per action, training them all together
+        '''
+        img_shape = features.shape[1:]
+        arm_size = arm.shape[1]
+        arm_cmd_size = arm_cmd.shape[1]
+        if len(gripper.shape) > 1:
+            gripper_size = gripper.shape[1]
+        else:
+            gripper_size = 1
+
+        encoder = self._makeImageEncoder(img_shape)
+
+        h = encoder(img_in)
+        x = Flatten()(h)
+        h0 = encoder(img0_in)
+        x0 = Flatten()(h0)
+        arm = Input((arm_size,), name="ee_in")
+        gripper = Input((gripper_size,)), name="gripper_in")
+        ins = [h0, h, arm, gripper]
+        arm_cmd_all, gripper_cmd_all = [], []
+        for i in range(self.num_options):
+            policy = self._makePolicy(i)
+            arm_cmd, gripper_cmd = policy(ins)
+            arm_cmd_all += [arm_cmd]
+            gripper_cmd_all += [gripper_cmd]
+
+
+
+
+        ins, x, skips = GetEncoder(
+                img_shape,
+                [arm_size, gripper_size],
+                self.img_col_dim,
+                self.dropout_rate,
+                self.img_num_filters,
+                pose_col_dim=self.pose_col_dim,
+                discriminator=False,
+                kernel_size=[3,3],
+                tile=True,
+                batchnorm=self.use_batchnorm,
+                pre_tiling_layers=1,
+                post_tiling_layers=3,
+                stride1_post_tiling_layers=1,
+                option=self.num_options,
+                )
+
+        arm_out = Dense(arm_cmd_size, name="arm")(x)
+        gripper_out = Dense(gripper_size, name="gripper")(x)
+
+        if self.model is not None:
+            raise RuntimeError('overwriting old model!')
+
+        model = Model(ins, [arm_out, gripper_out])
+        optimizer = self.getOptimizer()
+        model.compile(loss=self.loss, optimizer=optimizer)
+        return model
+
+
+
+
     def _makeAll(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
         images = features
         img_shape = images.shape[1:]
