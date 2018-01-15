@@ -195,7 +195,7 @@ class ConditionalImage(PredictionSampler2):
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
-        [I, q, g, oin, q_target, g_target,] = features
+        [I, q, g, oin, label, q_target, g_target,] = features
         tt, o1, v, qa, ga, I_target = targets
         I_target2, o2 = self._getNextGoal(features, targets)
         I0 = I[0,:,:,:]
