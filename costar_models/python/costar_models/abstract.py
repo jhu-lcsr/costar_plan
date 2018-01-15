@@ -27,7 +27,7 @@ class AbstractAgentBasedModel(object):
     def __init__(self, taskdef=None, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
             clipnorm=100., show_iter=0, pretrain_iter=5,
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
-            steps_per_epoch=500, validation_steps=25, choose_initial=10,
+            steps_per_epoch=500, validation_steps=25,
             dropout_rate=0.5, decoder_dropout_rate=None,
             tform_dropout_rate=0.,
             use_batchnorm=1,
@@ -60,7 +60,6 @@ class AbstractAgentBasedModel(object):
         self.use_prev_option = use_prev_option
         self.lr = lr
         self.iter = iter
-        self.choose_initial = choose_initial
         self.upsampling_method = upsampling
         self.show_iter = show_iter
         self.steps_per_epoch = steps_per_epoch
@@ -141,7 +140,6 @@ class AbstractAgentBasedModel(object):
         print("Noise dim =", self.noise_dim)
         print("Show images every %d iter"%self.show_iter)
         print("Pretrain for %d iter"%self.pretrain_iter)
-        print("p(Generator sample first frame) = 1/%d"%(self.choose_initial))
         print("Number of generator files = %d"%self.num_generator_files)
         print("Successful examples only =", self.success_only)
         print("Loss =", loss)
@@ -239,14 +237,15 @@ class AbstractAgentBasedModel(object):
             yield self._yield(data)
 
     def _yield(self, data):
-            features, targets = self._getData(**data)
-            n_samples = features[0].shape[0]
-            idx = np.random.randint(n_samples,size=(self.batch_size,))
-            r = np.random.randint(self.choose_initial)
-            if r > 0:
-                idx[0] = 0
-            return ([f[idx] for f in features],
-                    [t[idx] for t in targets])
+        '''
+        This is the code that actually samples a subset of the data from the
+        loaded data set and sends it to the model for training.
+        '''
+        features, targets = self._getData(**data)
+        n_samples = features[0].shape[0]
+        idx = np.random.randint(n_samples,size=(self.batch_size,))
+        return ([f[idx] for f in features],
+                [t[idx] for t in targets])
 
     def save(self):
         '''
