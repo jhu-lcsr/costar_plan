@@ -7,25 +7,27 @@ def MakeStackTask():
 
     task = Task()
 
-    pickup = _makePickup()
-    place = _makePlace()
+    # Create sub-tasks for left and right
+    pickup_left = _makePickupLeft()
+    pickup_right = _makePickupRight()
+    place_left = _makePlaceLeft()
+    place_right = _makePlaceRight()
 
     # Create the task: pick up any one block and put it down in a legal
     # position somewhere on the other side of the bin.
-    pickup_args = {
-        "task": pickup,
-        "args": ["block1"],
-    }
     place_args = {
         "task": place,
         "args": ["block2"],
     }
     task = Task()
-    task.add("pickup", None, pickup_args)
-    task.add("place", None, place_args)
+    task.add("pickup_left", None, _pickupLeftArgs())
+    task.add("place_right", "pickup_left", place_args)
+    task.add("pickup_right", None, pickup_args)
+    task.add("place_left", "pickup_right", place_args)
+    task.add("DONE", ["place_right", "place_left"], place_args)
 
-def _makePickup():
-    pickup = TaskTemplate("pickup", None)
+def _makePickupLeft():
+    pickup = TaskTemplate("pickup_left", None)
     pickup.add("home", None, _homeArgs())
     pickup.add("detect_objects", "home", _detectObjectsArgs())
 
@@ -34,6 +36,20 @@ def _makePickup():
 def _makePlace():
     place = TaskTemplate("place", "pickup")
     return place
+
+def _pickupLeftArgs():
+    # Create args for pickup from left task
+    return {
+        "task": pickup_left,
+        "args": ["block1"],
+    }
+
+def _pickupRightArgs():
+    # And create args for pickup from right task
+    return {
+        "task": pickup_right,
+        "args": ["block1"],
+    }
 
 def _checkBlocks1And2(block1,block2,**kwargs):
     '''
