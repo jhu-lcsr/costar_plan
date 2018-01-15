@@ -14,4 +14,23 @@
     <arg name="use_filtered_marker_tf" value="$(arg use_filtered_marker_tf)"/>
   </include>
 
+  <!--
+    roslaunch color_nn_segmenter costar_segmenter.launch
+    load_table:=true
+    load_existing_model:=true
+    model_name:=rgby_wood_white_bin
+    background_labels:=wood_block,white_bin
+    foreground_labels:=blue_block,green_block,red_block,yellow_block
+    kmeans_point_per_model:=2 table_tf:=ar_marker_2
+    -->
+    <include if="$(arg use_external_segmenter)" file="$(find color_nn_segmenter)/launch/costar_segmenter.launch">
+      <arg name="load_table" value="true"/>
+      <arg name="load_existing_model" value="true"/>
+      <arg name="model_name" value="rgby_wood_white_bin"/>
+      <arg name="background_labels" value="wood_block,white_bin"/>
+      <arg name="foreground_labels" value="blue_block,green_block,red_block,yellow_block"/>
+      <arg name="kmeans_point_per_model" value="2"/>
+      <arg name="table_tf" value="ar_marker_2"/>
+    </include>
+
 </launch>
