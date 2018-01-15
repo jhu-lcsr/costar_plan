@@ -82,6 +82,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 discriminator=False,
                 kernel_size=[3,3],
                 tile=True,
+                batchnorm=self.use_batchnorm,
                 pre_tiling_layers=1,
                 post_tiling_layers=3,
                 stride1_post_tiling_layers=1)
@@ -99,7 +100,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
     def _makeConditionalActor(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
         '''
-        This creates a "dumb" actor model 
+        This creates a "dumb" actor model based on a set of features.
         '''
         img_shape = features.shape[1:]
         arm_size = arm.shape[1]
@@ -109,57 +110,22 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         else:
             gripper_size = 1
 
-
-        #ins, x, skips = GetEncoder(
-        #        img_shape,
-        #        [arm_size, gripper_size],
-        #        self.img_col_dim,
-        #        self.dropout_rate,
-        #        self.img_num_filters,
-        #        pose_col_dim=self.pose_col_dim,
-        #        discriminator=False,
-        #        kernel_size=[3,3],
-        #        tile=True,
-        #        batchnorm=self.use_batchnorm,
-        #        option=self.num_options,
-        #        pre_tiling_layers=1,
-        #        post_tiling_layers=3,
-        #        stride1_post_tiling_layers=1)
-        img_in = Input(img_shape, name="ca_img_in")
-        x = img_in
-        x = AddConv2D(x, 64, [3,3], 1, 0., "same")
-        x = AddConv2D(x, 64, [3,3], 1, 0., "same")
-        x = MaxPooling2D(pool_size=(2,2))(x)
-        x = AddConv2D(x, 64, [3,3], 1, 0., "same")
-        x = AddConv2D(x, 64, [3,3], 1, 0., "same")
-        x = MaxPooling2D(pool_size=(2,2))(x)
-        x = AddConv2D(x, 64, [3,3], 1, 0., "same")
-        x = AddConv2D(x, 64, [3,3], 1, self.dropout_rate, "same")
-        x = MaxPooling2D(pool_size=(2,2))(x)
-
-        arm_in = Input((arm_size,),name="ca_arm_in")
-        gripper_in = Input((gripper_size,),name="ca_gripper_in")
-        y = Concatenate()([arm_in, gripper_in])
-        y = AddDense(y, 64, "relu", 0.)
-        x = TileOnto(x, y, 64, (8,8), add=True)
-        x = AddConv2D(x, 64, [3,3], 1, 0., "same")
-
-        cmd_in = Input((1,), name="option_cmd_in")
-        cmd = OneHot(self.num_options)(cmd_in)
-        cmd = AddDense(cmd, 64, "relu", 0.)
-        x = TileOnto(x, cmd, 64, (8,8), add=True)
-        x = AddConv2D(x, 64, [3,3], 1, self.dropout_rate, "same")
-        x = MaxPooling2D(pool_size=(2,2))(x)
-        x = AddConv2D(x, 64, [3,3], 1, 0., "same")
-        #x = BatchNormalization()(x)
-        x = Flatten()(x)
-        x = AddDense(x, 512, "relu", 0.,
-                constraint=None,
-                output=False)
-        x = Dropout(self.dropout_rate)(x)
-        x = AddDense(x, 512, "relu", 0.,
-                constraint=None,
-                output=False)
+        ins, x, skips = GetEncoder(
+                img_shape,
+                [arm_size, gripper_size],
+                self.img_col_dim,
+                self.dropout_rate,
+                self.img_num_filters,
+                pose_col_dim=self.pose_col_dim,
+                discriminator=False,
+                kernel_size=[3,3],
+                tile=True,
+                batchnorm=self.use_batchnorm,
+                pre_tiling_layers=1,
+                post_tiling_layers=3,
+                stride1_post_tiling_layers=1,
+                option=self.num_options,
+                )
 
         arm_out = Dense(arm_cmd_size, name="arm")(x)
         gripper_out = Dense(gripper_size, name="gripper")(x)
@@ -167,8 +133,6 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         if self.model is not None:
             raise RuntimeError('overwriting old model!')
 
-        #model = Model(ins + [option_in], [arm_out, gripper_out])
-        ins = [img_in, arm_in, gripper_in, cmd_in]
         model = Model(ins, [arm_out, gripper_out])
         optimizer = self.getOptimizer()
         model.compile(loss=self.loss, optimizer=optimizer)

@@ -41,7 +41,7 @@ class RobotMultiFFRegression(RobotMultiHierarchical):
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
-        [I, q, g, oin, q_target, g_target,] = features
+        [I, q, g, oin, label, q_target, g_target,] = features
         tt, o1, v, qa, ga, I_target = targets
         return [I, q, g], [np.squeeze(qa), np.squeeze(ga)]
 
