@@ -374,8 +374,6 @@ class TaskParser(object):
 
                 prev[j] = name
                 prev_t[j] = t
-        print(">>>>>>>>>>>")
-        print(self.sequence_ends)
         for seq, actions in self.sequence_ends.items():
             for action in actions:
                 self._addTransition(action, self._done)
@@ -394,13 +392,14 @@ class TaskParser(object):
         objs: list of object/feature names for this action
         '''
         parent_name = self.parent_action[name]
+        skill_name = name
         if not name in self.trajectories:
-            self.trajectories[parent_name] = []
-            self.trajectory_data[parent_name] = []
-            self.trajectory_features[parent_name] = objs
+            self.trajectories[skill_name] = []
+            self.trajectory_data[skill_name] = []
+            self.trajectory_features[skill_name] = objs
 
-        self.trajectories[parent_name].append(traj)
-        self.trajectory_data[parent_name].append(data)
+        self.trajectories[skill_name].append(traj)
+        self.trajectory_data[skill_name].append(data)
 
     def _getArgs(self, action_name):
         raise NotImplementedError('Create arguments for graph node')
@@ -421,7 +420,7 @@ class TaskParser(object):
                 generic_node = self.parent_action[node]
                 special_node = False
             if not special_node:
-                if not generic_node in self.trajectory_features:
+                if not node in self.trajectory_features:
                     continue
                 args = self._getArgs(node)
             counts = [self.transition_counts[(parent,node)] for parent in parents]
