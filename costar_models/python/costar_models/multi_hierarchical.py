@@ -154,11 +154,11 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         #x = BatchNormalization()(x)
         x = Flatten()(x)
         x = AddDense(x, 512, "lrelu", 0.,
-                constraint=3,
+                constraint=None,
                 output=False)
         x = Dropout(self.dropout_rate)(x)
-        x = AddDense(x, 256, "lrelu", 0.,
-                constraint=3,
+        x = AddDense(x, 512, "lrelu", 0.,
+                constraint=None,
                 output=False)
 
         arm_out = Dense(arm_cmd_size, name="arm")(x)
