@@ -131,20 +131,18 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         x = AddConv2D(x, 128, [3,3], 2, self.dropout_rate, "valid", bn=self.use_batchnorm)
         x = AddConv2D(x, 128, [3,3], 1, 0., "valid", bn=self.use_batchnorm)
         x = AddConv2D(x, 128, [3,3], 1, 0., "valid", bn=self.use_batchnorm)
-        x = AddConv2D(x, 256, [3,3], 1, 0., "valid", bn=self.use_batchnorm)
+        x = AddConv2D(x, 128, [3,3], 1, 0., "valid", bn=self.use_batchnorm)
 
         arm_in = Input((arm_size,),name="ca_arm_in")
         gripper_in = Input((gripper_size,),name="ca_gripper_in")
         y = Concatenate()([arm_in, gripper_in])
-        y = AddDense(y, 256, "relu", 0., output=True, constraint=3)
-        x = TileOnto(x, y, 256, (8,8), add=True)
+        y = AddDense(y, 128, "relu", 0., output=True, constraint=3)
+        x = TileOnto(x, y, 128, (8,8), add=True)
 
         cmd_in = Input((1,), name="option_cmd_in")
         cmd = OneHot(self.num_options)(cmd_in)
-        cmd = AddDense(cmd, 256, "relu", 0., output=True, constraint=3)
-        x = TileOnto(x, cmd, 256, (8,8), add=True)
-        x = AddConv2D(x, 128, [3,3], 1, self.dropout_rate, "valid",
-                bn=self.use_batchnorm)
+        cmd = AddDense(cmd, 128, "relu", 0., output=True, constraint=3)
+        x = TileOnto(x, cmd, 128, (8,8), add=True)
         x = AddConv2D(x, 64, [3,3], 1, self.dropout_rate, "valid",
                 bn=self.use_batchnorm)
         #x = BatchNormalization()(x)
