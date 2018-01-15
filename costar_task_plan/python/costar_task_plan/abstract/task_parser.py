@@ -415,9 +415,15 @@ class TaskParser(object):
         self.train()
         task = Task()
         for node, parents in self.transitions.items():
-            if not node in self.trajectory_features:
-                continue
-            args = self._getArgs(node)
+            if node == self._done:
+                special_node = True
+            else:
+                generic_node = self.parent_action[node]
+                special_node = False
+            if not special_node:
+                if not generic_node in self.trajectory_features:
+                    continue
+                args = self._getArgs(node)
             counts = [self.transition_counts[(parent,node)] for parent in parents]
             task.add(node, list(parents), args, counts)
         return task
