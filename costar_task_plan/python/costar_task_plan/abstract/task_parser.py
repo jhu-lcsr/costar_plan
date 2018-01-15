@@ -103,6 +103,7 @@ class TaskParser(object):
         self.objects_by_class = {}
         self.classes_by_object = {}
         self.object_parent_classes = {}
+        self.parent_action = {}
         self.action_naming_style = action_naming_style
         self.idle_tags = []
         self.unknown_tags = []
@@ -187,8 +188,22 @@ class TaskParser(object):
         '''
         if action.base_name in self.unknown_tags:
             return None
-        else:
+        elif self.action_naming_style == NAME_STYLE_SAME:
             return action.base_name
+        elif self.action_naming_style == NAME_STYLE_UNIQUE:
+            if action.arm == ActionInfo.ARM_LEFT:
+                arm = "left"
+            elif action.arm == ActionInfo.ARM_RIGHT:
+                arm = "right"
+            name = action.base_name
+            if action.object_in_hand is not None:
+                name += "_with_%s" % (self._getObjectClassParent(
+                    self.classes_by_object[action.object_in_hand]))
+            if action.object_acted_on is not None:
+                name += "_to_%s" % (self._getObjectClassParent(
+                    self.classes_by_object[action.object_acted_on]))
+            print("action %s parent = %s"%(action, name))
+            return name
 
     def resetDemonstration(self):
         self.data = []
@@ -308,6 +323,9 @@ class TaskParser(object):
                     obj_class = None
 
                 name = self._getActionName(action)
+                parent_name = self._getParentActionName(action)
+                if name not in self.parent_action:
+                    self.parent_action[name] = parent_name
                 if name is None:
                     # "None" is only acceptable as the root of a tree -- not
                     # anywhere as an action node. Whenever we see it, we are
@@ -375,13 +393,14 @@ class TaskParser(object):
         data: dict of object poses relevant to this action
         objs: list of object/feature names for this action
         '''
+        parent_name = self.parent_action[name]
         if not name in self.trajectories:
-            self.trajectories[name] = []
-            self.trajectory_data[name] = []
-            self.trajectory_features[name] = objs
+            self.trajectories[parent_name] = []
+            self.trajectory_data[parent_name] = []
+            self.trajectory_features[parent_name] = objs
 
-        self.trajectories[name].append(traj)
-        self.trajectory_data[name].append(data)
+        self.trajectories[parent_name].append(traj)
+        self.trajectory_data[parent_name].append(data)
 
     def _getArgs(self, action_name):
         raise NotImplementedError('Create arguments for graph node')
@@ -401,5 +420,4 @@ class TaskParser(object):
             args = self._getArgs(node)
             counts = [self.transition_counts[(parent,node)] for parent in parents]
             task.add(node, list(parents), args, counts)
-        print(task.nodes)
         return task
