@@ -159,6 +159,7 @@ class GraspTrain(object):
             K.set_session(tf_session)
 
     def train(self, dataset=FLAGS.grasp_datasets_train,
+              eval_dataset=FLAGS.grasp_dataset_eval,
               grasp_datasets_batch_algorithm=FLAGS.grasp_datasets_batch_algorithm,
               batch_size=FLAGS.batch_size,
               epochs=FLAGS.epochs,
@@ -372,10 +373,9 @@ class GraspTrain(object):
         if eval_per_epoch:
             eval_model, step_num = self.eval(make_model_fn=make_model_fn,
                                              load_weights=None,
-                                             model_name=FLAGS.grasp_model,
-                                             eval_per_epoch=FLAGS.eval_per_epoch)
-            callbasks = callbacks + [eval_callback(eval_model, step_num)]
-
+                                             model_name=model_name,
+                                             eval_per_epoch=eval_per_epoch)
+            callbacks = callbacks + [EvaluationCallback(eval_model, step_num)]
         # 2017-08-27 Tried NADAM for a while with the settings below, only improved for first 2 epochs.
         # optimizer = keras.optimizers.Nadam(lr=0.004, beta_1=0.825, beta_2=0.99685)
 
@@ -622,19 +622,23 @@ def define_make_model_fn(grasp_model_name=FLAGS.grasp_model):
     return make_model_fn
 
 
-class eval_callback(Callback):
+class EvaluationCallback(keras.callbacks.Callback):
     def __init__(self, eval_model, steps):
         # parameter of callbacks passed during initialization
         # pass evalation mode directly
+        super(EvaluationCallback, self).__init__()
         self.eval_model = eval_model
         self.step_num = steps
+        print('evaluation callback initialized')
 
     def on_epoch_end(self, epoch, logs={}):
         # this is called automatically, so not able to pass other parameters here?
-        self.eval_model.load_weights(self.model.get_weights())
+        print('evaluation callback called')
+        self.eval_model.set_weights(self.model.get_weights())
         loss, acc = self.eval_model.evaluate(None, None, steps=int(self.step_num))
-        results_str = '\nevaluation results loss: ' + str(loss) + ' accuracy: ' + str(acc) + ' epoch: ' + epoch
+        results_str = '\nevaluation results loss: ' + str(loss) + ' accuracy: ' + str(acc) + ' epoch: ' + str(epoch)
         print(results_str)
+
 
 def main():
     """Launch the training and/or evaluation script for the particular model specified on the command line.
