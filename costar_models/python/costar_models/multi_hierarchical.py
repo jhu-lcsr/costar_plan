@@ -256,7 +256,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         o_target = label
 
         # Preprocess values
-        value_target = np.array(value > 1.,dtype=float)
+        value_target = np.array(np.array(value) > 1.,dtype=float)
         #if value_target[-1] == 0:
         #    value_target = np.ones_like(value) - np.array(label == label[-1], dtype=float)
         q[:,3:] = q[:,3:] / np.pi

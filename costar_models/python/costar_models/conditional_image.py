@@ -53,6 +53,10 @@ class ConditionalImage(PredictionSampler2):
         self.transform_model = None
         self.skip_connections = False
 
+        if self.use_noise:
+            raise NotImplementedError('noise vectors not supported for'
+                                      'conditional_image model')
+
     def _makePredictor(self, features):
         # =====================================================================
         # Create many different image decoders
@@ -204,21 +208,13 @@ class ConditionalImage(PredictionSampler2):
         oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
         qa = np.squeeze(qa)
         ga = np.squeeze(ga)
+        #print("o1 = ", o1, o1.shape, type(o1))
+        #print("o2 = ", o2, o2.shape, type(o2))
         if self.do_all:
             o1_1h = np.squeeze(self.toOneHot2D(o1, self.num_options))
-            if self.use_noise:
-                noise_len = features[0].shape[0]
-                z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-                return [I0, I, z, o1, o2, oin], [ I_target, I_target2, o1_1h, v, qa, ga]
-            else:
-                return [I0, I, o1, o2, oin], [ I_target, I_target2, o1_1h, v, qa, ga]
+            return [I0, I, o1, o2, oin], [ I_target, I_target2, o1_1h, v, qa, ga]
         else:
-            if self.use_noise:
-                noise_len = features[0].shape[0]
-                z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-                return [I0, I, z, o1, o2, oin], [I_target, I_target2]
-            else:
-                return [I0, I, o1, o2, oin], [I_target, I_target2]
+            return [I0, I, o1, o2, oin], [I_target, I_target2]
 
 
     def encode(self, obs):
