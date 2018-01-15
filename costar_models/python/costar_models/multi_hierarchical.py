@@ -134,7 +134,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         x = AddConv2D(x, 64, [3,3], 1, 0., "same")
         x = MaxPooling2D(pool_size=(2,2))(x)
         x = AddConv2D(x, 64, [3,3], 1, 0., "same")
-        x = AddConv2D(x, 64, [3,3], 1, 0., "same")
+        x = AddConv2D(x, 64, [3,3], 1, self.dropout_rate, "same")
         x = MaxPooling2D(pool_size=(2,2))(x)
 
         arm_in = Input((arm_size,),name="ca_arm_in")
@@ -148,9 +148,9 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         cmd = OneHot(self.num_options)(cmd_in)
         cmd = AddDense(cmd, 64, "relu", 0.)
         x = TileOnto(x, cmd, 64, (8,8), add=True)
-        x = AddConv2D(x, 64, [3,3], 1, 0., "same")
-        x = MaxPooling2D(pool_size=(2,2))(x)
         x = AddConv2D(x, 64, [3,3], 1, self.dropout_rate, "same")
+        x = MaxPooling2D(pool_size=(2,2))(x)
+        x = AddConv2D(x, 64, [3,3], 1, 0., "same")
         #x = BatchNormalization()(x)
         x = Flatten()(x)
         x = AddDense(x, 512, "relu", 0.,
