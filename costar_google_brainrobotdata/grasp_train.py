@@ -81,7 +81,7 @@ flags.DEFINE_float('learning_rate_scheduler_power_decay_rate', 1.5,
                       Training from scratch within an initial learning rate of 0.1 might find a
                          power decay value of 2 to be useful.
                       Fine tuning with an initial learning rate of 0.001 may consder 1.5 power decay.""")
-flags.DEFINE_float('grasp_learning_rate', 0.01,
+flags.DEFINE_float('grasp_learning_rate', 0.1,
                    """Determines the initial learning rate""")
 flags.DEFINE_integer('eval_batch_size', 1, 'batch size per compute device')
 flags.DEFINE_integer('densenet_growth_rate', 12,
@@ -266,7 +266,7 @@ class GraspTrain(object):
             print('lr: %f' % lr)
             return lr
 
-        # TODO(ahundt) manage loss/accuracy names in a more principled way
+        # TODO(ahundt) manage loss/metric names in a more principled way
         loss_name = 'loss'
         if 'segmentation_single_pixel_binary_crossentropy' in loss:
             loss = grasp_loss.segmentation_single_pixel_binary_crossentropy
@@ -276,10 +276,7 @@ class GraspTrain(object):
             loss = grasp_loss.segmentation_gaussian_binary_crossentropy
             loss_name = 'segmentation_gaussian_binary_crossentropy'
 
-        metric_name = 'acc'
-        if 'segmentation_single_pixel_binary_accuracy' in metric:
-            metric_name = metric
-            metric = grasp_loss.segmentation_single_pixel_binary_accuracy
+        metrics, monitor_metric_name = self.gather_metrics(metric)
 
         callbacks = []
         if hvd is not None and self.distributed is 'horovod':
@@ -301,7 +298,7 @@ class GraspTrain(object):
             ]
 
         scheduler = keras.callbacks.LearningRateScheduler(lr_scheduler)
-        early_stopper = EarlyStopping(monitor=metric_name, min_delta=0.001, patience=32)
+        early_stopper = EarlyStopping(monitor=monitor_metric_name, min_delta=0.001, patience=32)
         csv_logger = CSVLogger(weights_name + '.csv')
         # TODO(ahundt) Re-enable results included in filename, need to fix the following error but this was skipped due to time constraints to start training:
         """
@@ -366,7 +363,7 @@ class GraspTrain(object):
             callbacks = callbacks + [
                 # Reduce the learning rate if training plateaus.
                 # TODO(ahundt) add validation checks and update monitor parameter to use them
-                keras.callbacks.ReduceLROnPlateau(patience=8, verbose=1, monitor=metric_name)
+                keras.callbacks.ReduceLROnPlateau(patience=4, verbose=1, monitor=monitor_metric_name)
             ]
 
         # add evalation callback, calls evalation of self.eval_model
@@ -405,7 +402,7 @@ class GraspTrain(object):
 
         model.compile(optimizer=optimizer,
                       loss=loss,
-                      metrics=[metric],
+                      metrics=metrics,
                       target_tensors=[grasp_success_op_batch])
 
         print('Available metrics: ' + str(model.metrics_names))
@@ -506,14 +503,11 @@ class GraspTrain(object):
             loss = grasp_loss.segmentation_single_pixel_binary_crossentropy
             loss_name = 'segmentation_single_pixel_binary_crossentropy'
 
-        metric_name = 'acc'
-        if 'segmentation_single_pixel_binary_accuracy' in metric:
-            metric_name = metric
-            metric = grasp_loss.segmentation_single_pixel_binary_accuracy
+        metrics = self.gather_metrics(metric)
 
         model.compile(optimizer='sgd',
                       loss=loss,
-                      metrics=[metric],
+                      metrics=metrics,
                       target_tensors=[grasp_success_op_batch])
 
         steps = float(num_samples) / float(batch_size)
@@ -530,13 +524,16 @@ class GraspTrain(object):
         model.summary()
 
         try:
-            loss, acc = model.evaluate(None, None, steps=int(steps))
-            results_str = '\nevaluation results loss: ' + str(loss) + ' accuracy: ' + str(acc) + ' dataset: ' + dataset
-            print(results_str)
-            weights_name_str = load_weights + '_evaluation_dataset_{}_loss_{:.3f}_acc_{:.3f}'.format(dataset, loss, acc)
+            results = model.evaluate(None, None, steps=int(steps))
+            # results_str = '\nevaluation results loss: ' + str(loss) + ' accuracy: ' + str(acc) + ' dataset: ' + dataset
+            metrics_str = 'metrics:\n' + str(model.metrics_names) + 'results:' + str(results)
+            print(metrics_str)
+            weights_name_str = load_weights + '_evaluation_dataset_{}_loss_{:.3f}_acc_{:.3f}'.format(dataset, results[0], results[1])
             weights_name_str = weights_name_str.replace('.h5', '') + '.h5'
-            with open(eval_results_file, 'w') as results_file:
-                results_file.write(results_str + '\n')
+
+            results_summary_name_str = weights_name_str.replace('.h5', '') + '.txt'
+            with open(results_summary_name_str, 'w') as results_summary:
+                results_summary.write(metrics_str + '\n')
             if save_weights:
                 model.save_weights(weights_name_str)
                 print('\n saved weights with evaluation result to ' + weights_name_str)
@@ -547,6 +544,21 @@ class GraspTrain(object):
             return None
 
         return weights_name_str
+
+    def gather_metrics(self, metric):
+        metrics = []
+        if 'segmentation_single_pixel_binary_accuracy' in metric:
+            monitor_metric_name = metric
+            metrics = metrics + [grasp_loss.segmentation_single_pixel_binary_accuracy]
+        else:
+            metrics = metrics + ['acc']
+            monitor_metric_name = 'acc'
+
+        if 'segmentation' in metric:
+            metrics = metrics + [grasp_loss.mean_pred_single_pixel]
+
+        metrics = metrics + [grasp_loss.mean_pred, grasp_loss.mean_true]
+        return metrics, monitor_metric_name
 
 
 def define_make_model_fn(grasp_model_name=FLAGS.grasp_model):

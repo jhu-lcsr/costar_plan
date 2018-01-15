@@ -76,7 +76,7 @@ flags.DEFINE_string('grasp_dataset', '102',
                     around 110 GB and 38k grasp attempts.
                     See https://sites.google.com/site/brainrobotdata/home
                     for a full listing.""")
-flags.DEFINE_boolean('median_filter', False,
+flags.DEFINE_boolean('median_filter', True,
                      """Median filter apply on depth image to
                         remove small regions with depth values of zero,
                         which represents invalid depth values.
@@ -92,7 +92,7 @@ flags.DEFINE_integer('crop_width', 560,
                      """Width to crop images""")
 flags.DEFINE_integer('crop_height', 448,
                      """Height to crop images""")
-flags.DEFINE_boolean('random_crop', False,
+flags.DEFINE_boolean('random_crop', True,
                      """random_crop will apply the tf random crop function with
                         the parameters specified by crop_width and crop_height.
 
