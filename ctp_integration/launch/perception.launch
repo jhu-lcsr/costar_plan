@@ -33,4 +33,7 @@
       <arg name="table_tf" value="ar_marker_2"/>
     </include>
 
+    <include if="$(arg use_external_segmenter)" file="$(find sp_segmenter)/launch/colored_blocks.launch">
+    </include>
+
 </launch>
