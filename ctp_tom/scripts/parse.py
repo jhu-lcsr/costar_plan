@@ -58,19 +58,20 @@ def getArgs():
     
     return parser.parse_args()
 
-def fakeTaskArgs():
+def fakeTaskArgs(arm="r_ee_link"):
   '''
   Set up a simplified set of arguments. These are for the optimization loop, 
   where we expect to only have one object to grasp at a time.
   '''
+  if not arm in ["r_ee_link", "l_ee_link"]:
+      raise RuntimeError("not a valid arm")
   args = {
     'orange': ['orange_1', 'orange_2', 'orange_3'],
     'box': ['box'],
     'drill': ['drill'],
     'drill_receptacle': ['drill_receptacle'],
     'block': ['block_1', 'block_2'],
-    #'endpoint': ['l_ee_link', 'r_ee_link'],
-    'endpoint': ['r_ee_link'],
+    'endpoint': [arm],
     'high_table': ['tom_table'],
     'screw': ['screw_1', 'screw_2'],
     'Cube_blue': ['blue1'],
@@ -79,6 +80,7 @@ def fakeTaskArgs():
     'Cube_yellow': ['yellow1'],
     'top_wood': ['top_wood'],
     'bottom_wood': ['bottom_wood'],
+    "Head": ["camera_link"],
   }
   return args
 
@@ -94,6 +96,13 @@ def main():
                 min_action_length=1,
                 demo_topic=args.demo_topic,
                 alias_topic=args.alias_topic)
+        # Add an alias so we get a clean, readable name
+        rtp.addAlias("GranularActivity_0c93aef1-fe5a-40bb-ba35-b4314ed10d42",
+                     "Stack")
+        rtp.addObjectClassParent("Cube_red", "cube")
+        rtp.addObjectClassParent("Cube_blue", "cube")
+        rtp.addObjectClassParent("Cube_green", "cube")
+        rtp.addObjectClassParent("Cube_yellow", "cube")
         rtp.process() # run through the data and create models
         task = rtp.makeTask()
         world = TomWorld(lfd=rtp.lfd)
