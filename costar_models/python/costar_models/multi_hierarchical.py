@@ -140,14 +140,14 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         arm_in = Input((arm_size,),name="ca_arm_in")
         gripper_in = Input((gripper_size,),name="ca_gripper_in")
         y = Concatenate()([arm_in, gripper_in])
-        y = AddDense(y, 64, "relu", 0., output=False)
+        y = AddDense(y, 64, "relu", 0., output=True, constraint=3)
         x = TileOnto(x, y, 64, (8,8), add=True)
         x = AddConv2D(x, 64, [3,3], 1, 0., "same",
                 bn=self.use_batchnorm, constraint=None,)
 
         cmd_in = Input((1,), name="option_cmd_in")
         cmd = OneHot(self.num_options)(cmd_in)
-        cmd = AddDense(cmd, 64, "relu", 0., output=False, constraint=None)
+        cmd = AddDense(cmd, 64, "relu", 0., output=True, constraint=3)
         x = TileOnto(x, cmd, 64, (8,8), add=True)
         x = AddConv2D(x, 64, [3,3], 1, self.dropout_rate, "same",
                 bn=self.use_batchnorm)
@@ -157,12 +157,12 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         #x = BatchNormalization()(x)
         x = Flatten()(x)
         x = AddDense(x, 512, "relu", 0.,
-                constraint=None,
-                output=False)
+                constraint=3,
+                output=True)
         x = Dropout(self.dropout_rate)(x)
         x = AddDense(x, 512, "relu", 0.,
-                constraint=None,
-                output=False)
+                constraint=3,
+                output=True)
 
         arm_out = Dense(arm_cmd_size, name="arm")(x)
         gripper_out = Dense(gripper_size, name="gripper")(x)
