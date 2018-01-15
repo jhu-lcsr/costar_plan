@@ -13,6 +13,7 @@ from keras.layers import AveragePooling2D
 from keras.layers import GlobalMaxPooling2D
 from keras.layers import GlobalAveragePooling2D
 from keras.layers import UpSampling2D
+from keras.layers import BatchNormalization
 from keras.layers.core import Flatten
 from keras.layers.core import RepeatVector
 from keras.layers import Input
@@ -374,6 +375,7 @@ def grasp_model_segmentation(clear_view_image_op=None,
                         reduction=reduction,
                         nb_dense_block=dense_blocks,
                         classes=classes,
+                        dropout_rate=dropout_rate,
                         early_transition=True)
     return model
 
@@ -471,6 +473,9 @@ def grasp_model_levine_2016(
         # tile and concat the data
         combinedData = concat_images_with_tiled_vector_layer(imgConv, motorConv)
 
+        if dropout_rate is not None:
+            combConv = Dropout(dropout_rate)(combinedData)
+
         # combined conv 8
         combConv = Conv2D(64, (3, 3), activation='relu', padding='same')(combinedData)
 
@@ -497,10 +502,18 @@ def grasp_model_levine_2016(
             if (feature_shape[1] > 1 or feature_shape[2] > 1):
                 combConv = Flatten()(combConv)
             # combined full connected layers
+            if dropout_rate is not None:
+                combConv = Dropout(dropout_rate)(combConv)
             combConv = Dense(64, activation='relu')(combConv)
+            if dropout_rate is not None:
+                combConv = Dropout(dropout_rate)(combConv)
             combConv = Dense(64, activation='relu')(combConv)
         elif top == 'segmentation':
+            if dropout_rate is not None:
+                combConv = Dropout(dropout_rate)(combConv)
             combConv = Conv2D(64, (1, 1), activation='relu', padding='same')(combConv)
+            if dropout_rate is not None:
+                combConv = Dropout(dropout_rate)(combConv)
             combConv = Conv2D(64, (1, 1), activation='relu', padding='same')(combConv)
 
             # if the image was made smaller to save space,
