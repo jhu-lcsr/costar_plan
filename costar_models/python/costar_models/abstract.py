@@ -337,6 +337,11 @@ class AbstractAgentBasedModel(object):
                     oh[i,j,idx] = 1.
         return oh
 
+    def _makeOption1h(self, option):
+        opt_1h = np.zeros((1,self._numLabels()))
+        opt_1h[0,option] = 1.
+        return opt_1h
+
 class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
 
     '''
@@ -353,7 +358,6 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
 
     def __init__(self, taskdef, *args, **kwargs):
         super(HierarchicalAgentBasedModel, self).__init__(taskdef, *args, **kwargs)
-        self.num_actions = 0
 
         # =====================================================================
         # Experimental hierarchical policy models:
@@ -365,16 +369,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         self.baseline = None
         # All low-level policies pi(x,o) --> u
         self.policies = []
-
-        # Helper models -- may be created or not (experimental code)
-        self.predict_goal = None
-        self.predict_next = None
-        
-    def _makeOption1h(self, option):
-        opt_1h = np.zeros((1,self._numLabels()))
-        opt_1h[0,option] = 1.
-        return opt_1h
-
+       
     def _makeSupervisor(self, feature):
         '''
         This needs to create a supervisor. This one maps from input to the
@@ -411,75 +406,6 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         self.policies = []
         for i in xrange(num_labels):
             self.policies.append(self._makePolicy(features, action, hidden))
-
-    def _fitSupervisor(self, features, label):
-        '''
-        Fit a high-level policy that tells us which low-level action we could
-        be taking at any particular time.
-        '''
-        self._fixWeights()
-        self.supervisor.compile(
-                loss="binary_crossentropy",
-                optimizer=self.getOptimizer())
-        self.supervisor.summary()
-        self.supervisor.fit(features, [label], epochs=self.epochs)
-
-    def _fitPolicies(self, features, label, action):
-        '''
-        Fit different policies for each model.
-        '''
-        # Divide up based on label
-        idx = np.argmax(np.squeeze(label[:,-1,:]),axis=-1)
-
-        self._fixWeights()
-
-        for i, model in enumerate(self.policies):
-
-            optimizer = self.getOptimizer()
-            model.compile(loss="mse", optimizer=optimizer)
-
-            # select data for this model
-            if isinstance(features, list):
-                x = [f[idx==i] for f in features]
-            else:
-                x = features[idx==i]
-            if isinstance(action, list):
-                a = [ac[idx==i] for ac in action]
-                if len(a) == 0 or a[0].shape[0] == 0:
-                    print('WARNING: no examples for %d'%i)
-                    continue
-            else:
-                a = action[idx==i]
-                if a.shape[0] == 0:
-                    print('WARNING: no examples for %d'%i)
-                    continue
-            model.fit(x, a, epochs=self.epochs)
-
-    def _fixWeights(self):
-        self.predictor.trainable = False
-        for layer in self.predictor.layers:
-            layer.trainable = False
-
-    def _unfixWeights(self):
-        self.predictor.trainable = True
-        for layer in self.predictor.layers:
-            layer.trainable = True
-
-    def _fitPredictor(self, features, targets):
-        '''
-        Can be different for every set of features so...
-        '''
-        self._unfixWeights()
-        self.predictor.compile(
-                loss="mse",
-                optimizer=self.getOptimizer())
-        self.predictor.fit(features, targets)
-        self._fixWeights()
-
-    def _fitBaseline(self, features, action):
-        self._fixWeights()
-        self.baseline.compile(loss="mse", optimizer=self.getOptimizer())
-        self.baseline.fit(features, action, epochs=self.epochs)
 
     def save(self):
         '''
