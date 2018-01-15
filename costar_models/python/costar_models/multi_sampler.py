@@ -475,6 +475,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             img[i] = I_target[first_next]
             next_option[i] = tmp[first_next]
             #print ('---')
+
         debug_next_goals = False
         if debug_next_goals:
             import matplotlib.pyplot as plt

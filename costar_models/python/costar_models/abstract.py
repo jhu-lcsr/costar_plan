@@ -214,38 +214,55 @@ class AbstractAgentBasedModel(object):
       sampleFn: callable to receive a feature dict
       '''
       while True:
-            data = {}
-            i = 0
-            while i < self.num_generator_files:
+            features, targets = [], []
+            idx = 0
+            while idx < self.num_generator_files:
                 fdata, fn = sampleFn()
                 if len(fdata.keys()) == 0:
                     print("WARNING: ", fn, "was empty.")
                     continue
-                for key, value in fdata.items():
+                ffeatures, ftargets = self._getData(**fdata)
+
+                # --------------------------------------------------------------
+                # Compute the features and aggregate
+                for i, value in enumerate(ffeatures):
                     if value.shape[0] == 0:
                         continue
-                    if key not in data:
-                        data[key] = value
-                    try:
-                        data[key] = np.concatenate([data[key],value],axis=0)
-                    except ValueError as e:
-                        print ("filename =", fn)
-                        print ("Data shape =", data[key].shape)
-                        print ("value shape =", value.shape)
-                        raise e
-                i += 1
-            yield self._yield(data)
+                    if i >= len(features):
+                        features.append(value)
+                    else:
+                        try:
+                            features[i] = np.concatenate([features[i],value],axis=0)
+                        except ValueError as e:
+                            print ("filename =", fn)
+                            print ("Data shape =", features[i].shape)
+                            print ("value shape =", value.shape)
+                            raise e
+                        #print ("feature data shape =", features[i].shape, i)
+                    # --------------------------------------------------------------
+                # Compute the targets and aggregate
+                for i, value in enumerate(ftargets):
+                    if value.shape[0] == 0:
+                        continue
+                    if i >= len(targets):
+                        targets.append(value)
+                    else:
+                        try:
+                            targets[i] = np.concatenate([targets[i],value],axis=0)
+                        except ValueError as e:
+                            print ("filename =", fn)
+                            print ("Data shape =", targets[i].shape)
+                            print ("value shape =", value.shape)
+                            raise e
+                        #print ("target data shape =", targets[i].shape, i)
+                idx += 1
+                # --------------------------------------------------------------
 
-    def _yield(self, data):
-        '''
-        This is the code that actually samples a subset of the data from the
-        loaded data set and sends it to the model for training.
-        '''
-        features, targets = self._getData(**data)
-        n_samples = features[0].shape[0]
-        idx = np.random.randint(n_samples,size=(self.batch_size,))
-        return ([f[idx] for f in features],
-                [t[idx] for t in targets])
+            n_samples = features[0].shape[0]
+            #print("COLLECTED", n_samples, "samples")
+            idx = np.random.randint(n_samples,size=(self.batch_size,))
+            yield ([f[idx] for f in features],
+                    [t[idx] for t in targets])
 
     def save(self):
         '''

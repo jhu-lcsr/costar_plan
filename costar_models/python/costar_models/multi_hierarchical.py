@@ -244,15 +244,15 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
     def _getAllData(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
             prev_label, goal_features, goal_arm, goal_gripper, value, *args, **kwargs):
-        I = features / 255. # normalize the images
-        q = arm
-        g = gripper * -1
-        qa = arm_cmd
-        ga = gripper_cmd * -1
+        I = np.array(features) / 255. # normalize the images
+        q = np.array(arm)
+        g = np.array(gripper) * -1
+        qa = np.array(arm_cmd)
+        ga = np.array(gripper_cmd) * -1
         oin = prev_label
-        I_target = goal_features / 255.
-        q_target = goal_arm
-        g_target = goal_gripper * -1
+        I_target = np.array(goal_features) / 255.
+        q_target = np.array(goal_arm)
+        g_target = np.array(goal_gripper) * -1
         o_target = label
 
         # Preprocess values
@@ -260,15 +260,15 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         #if value_target[-1] == 0:
         #    value_target = np.ones_like(value) - np.array(label == label[-1], dtype=float)
         q[:,3:] = q[:,3:] / np.pi
-        q_target[:,3:] = q_target[:,3:] / np.pi
+        q_target[:,3:] = np.array(q_target[:,3:]) / np.pi
         qa /= np.pi
 
-        o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
+        o_target_1h = np.squeeze(self.toOneHot2D(o_target, self.num_options))
         train_target = self._makeTrainTarget(
                 I_target,
                 q_target,
                 g_target,
-                o_target)
+                o_target_1h)
 
         return [I, q, g, oin, label, q_target, g_target,], [
                 np.expand_dims(train_target, axis=1),
