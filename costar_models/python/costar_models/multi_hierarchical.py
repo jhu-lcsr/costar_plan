@@ -58,6 +58,26 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         self.actor = None
 
     def _makeModel(self, *args, **kwargs):
+        '''
+        Set up all models necessary to create actions
+        '''
+        encoder = self._makeImageEncoder(img_shape)
+        decoder = self._makeImageDecoder(self.hidden_shape)
+        try:
+            encoder.load_weights(self._makeName(
+                "pretrain_image_encoder_model",
+                #"pretrain_image_gan_model",
+                "image_encoder.h5f"))
+            encoder.trainable = self.retrain
+            decoder.load_weights(self._makeName(
+                "pretrain_image_encoder_model",
+                #"pretrain_image_gan_model",
+                "image_decoder.h5f"))
+            decoder.trainable = self.retrain
+        except Exception as e:
+            if not self.retrain:
+                raise e
+
         self.model, self.supervisor, self.actor = self._makeAll(*args, **kwargs)
 
     def _makeSimpleActor(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
@@ -223,6 +243,16 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         #model_ins = Input(name="img_in")
 
         return actor, supervisor, actor
+
+    def _makePolicy(self, option):
+        '''
+        Create a single policy corresponding to option 
+
+        Parameters:
+        -----------
+        option: index of the policy to create
+        '''
+        pass
 
     def plotInfo(self, features, targets, axes):
         # debugging: plot every 5th image from the dataset
