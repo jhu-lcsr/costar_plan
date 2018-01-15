@@ -516,10 +516,6 @@ class GraspTrain(object):
                       metrics=[metric],
                       target_tensors=[grasp_success_op_batch])
 
-        if eval_per_epoch:
-            return model, int(float(num_samples) / float(batch_size))
-        model.summary()
-
         steps = float(num_samples) / float(batch_size)
 
         if not steps.is_integer():
@@ -528,6 +524,10 @@ class GraspTrain(object):
                              'divisible by the batch size. Right now the batch size cannot be changed for'
                              'the last sample, so in a worst case choose a batch size of 1. Not ideal,'
                              'but manageable. num_samples: {} batch_size: {}'.format(num_samples, batch_size))
+
+        if eval_per_epoch:
+            return model, int(steps)
+        model.summary()
 
         try:
             loss, acc = model.evaluate(None, None, steps=int(steps))
@@ -629,11 +629,9 @@ class EvaluationCallback(keras.callbacks.Callback):
         super(EvaluationCallback, self).__init__()
         self.eval_model = eval_model
         self.step_num = steps
-        print('evaluation callback initialized')
 
     def on_epoch_end(self, epoch, logs={}):
         # this is called automatically, so not able to pass other parameters here?
-        print('evaluation callback called')
         self.eval_model.set_weights(self.model.get_weights())
         loss, acc = self.eval_model.evaluate(None, None, steps=int(self.step_num))
         results_str = '\nevaluation results loss: ' + str(loss) + ' accuracy: ' + str(acc) + ' epoch: ' + str(epoch)
