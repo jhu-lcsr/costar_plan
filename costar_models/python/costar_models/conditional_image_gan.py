@@ -169,7 +169,6 @@ class ConditionalImageGan(PretrainImageGan):
                 loss=["mae"]*2 + ["binary_crossentropy"],
                 loss_weights=[50., 50., 1.],
                 optimizer=self.getOptimizer())
-        image_discriminator.summary()
         model.summary()
         self.model = model
 
