@@ -24,7 +24,7 @@ class DataCollector(object):
     self.description = "/robot_description"
     self.data_types = ["h5f", "npz"]
 
-    def __init__(self, data_type="h5f", rate=10):
+    def __init__(self, data_type="h5f", rate=10, data_root="."):
         '''
         Set up the writer (to save trials to disk) and subscribers (to process
         input from ROS and store the current state).
@@ -39,6 +39,7 @@ class DataCollector(object):
         else:
             raise RuntimeError("rate data type not supported: %s" % type(rate))
 
+        self.root = data_root
         self.data_type = data_type
         if self.data_type == "h5f":
             self.writer = H5fDataset(root)
@@ -47,7 +48,13 @@ class DataCollector(object):
         else:
             raise RuntimeError("data type %s not supported" % data_type)
 
-    def save(
+    def save(self, seed, result):
+        '''
+        Save function that wraps data set access.
+        '''
+
+        # for now all examples are considered a success
+        self.npz_writer.write(data, seed, result)
 
 if __name__ == '__main__':
     pass

@@ -86,12 +86,17 @@ def main():
         print(task.nodeSummary())
         print(task.children['ROOT()'])
 
-    if args.show:
+    collector = None
+    if args.mode == "show":
         from costar_task_plan.tools import showTask
         showTask(task)
+    elif args.mode == "collect":
+        collector = DataCollector()
 
     for i in range(args.execute):
         print("Executing trial %d..."(i))
+        if collector is not None:
+            collector.save(i, 1.)
 
 if __name__ == '__main__':
     try:
