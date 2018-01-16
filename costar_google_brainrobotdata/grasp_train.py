@@ -69,7 +69,7 @@ flags.DEFINE_string('grasp_dataset_eval', '097',
                     with no overlap, otherwise your results won't be valid!
                     See https://sites.google.com/site/brainrobotdata/home
                     for a full listing.""")
-flags.DEFINE_boolean('eval_per_epoch', False,
+flags.DEFINE_boolean('eval_per_epoch', True,
                      """Do evaluation on dataset_eval above in every epoch.
                         Weight flies for every epoch and single txt file of dataset
                         will be saved.
@@ -642,7 +642,7 @@ class EvaluationCallback(keras.callbacks.Callback):
         Then on_epoch_end, set_weight from the weights passed from self, which
         is actually weights from training model.
     """
-    def __init__(self, eval_model, steps, load_weights=FLAGS.load_weights, 
+    def __init__(self, eval_model, steps, load_weights=FLAGS.load_weights,
                  dataset=FLAGS.grasp_dataset_eval, save_weights=FLAGS.save_weights):
         # parameter of callbacks passed during initialization
         # pass evalation mode directly
