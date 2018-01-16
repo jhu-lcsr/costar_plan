@@ -895,18 +895,24 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     '''
 
     xin = Input([int(d) for d in x.shape[1:]], name="Nx_prev_h_in")
-    #x0in = Input([int(d) for d in x.shape[1:]], name="Nx_prev_h0_in")
+    x0in = Input([int(d) for d in x.shape[1:]], name="Nx_prev_h0_in")
     option_in = Input((1,), name="Nx_prev_o_in")
     x = xin
+    x0 = x0in
     #x = Concatenate()([x0in, xin])
     if len(x.shape) > 2:
-
         # Project
         x = AddConv2D(x, 32, [1,1], 1, dropout_rate, "same",
                 bn=batchnorm,
                 lrelu=True,
                 name="Nx_project",
                 constraint=None)
+        x0 = AddConv2D(x0, 32, [1,1], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="Nx_project0",
+                constraint=None)
+        x = Add()([x,x0])
 
         if num_options > 0:
             option_x = OneHot(num_options)(option_in)
@@ -914,20 +920,20 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
             x = TileOnto(x, option_x, num_options, x.shape[1:3])
 
         # conv down
-        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
+        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "valid",
                 bn=batchnorm,
                 lrelu=True,
                 name="Nx_C64A",
                 constraint=None)
         # conv across
-        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
+        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "valid",
                 bn=batchnorm,
                 lrelu=True,
                 name="Nx_C64B",
                 constraint=None)
 
 
-        x = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
+        x = AddConv2D(x, 32, [3,3], 1, dropout_rate, "valid",
                 bn=batchnorm,
                 lrelu=True,
                 name="Nx_C32A",
@@ -946,8 +952,8 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
 
     next_option_out = Dense(num_options,
             activation="sigmoid", name="lnext",)(x1)
-    #next_model = Model([x0in, xin, option_in], next_option_out, name="next")
-    next_model = Model([xin, option_in], next_option_out, name="next")
+    next_model = Model([x0in, xin, option_in], next_option_out, name="next")
+    #next_model = Model([xin, option_in], next_option_out, name="next")
     return next_model
 
 def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
@@ -956,43 +962,8 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     '''
 
     xin = Input([int(d) for d in x.shape[1:]], name="V_prev_h_in")
-    #x0in = Input([int(d) for d in x.shape[1:]], name="V_prev_h0_in")
-    option_in = Input((1,), name="V_prev_o_in")
     x = xin
-    #x = Concatenate()([x0in, xin])
     if len(x.shape) > 2:
-
-        # Project
-        x = AddConv2D(x, 32, [1,1], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="V_project",
-                constraint=None)
-
-        if num_options > 0:
-            option_x = OneHot(num_options)(option_in)
-            option_x = Flatten()(option_x)
-            x = TileOnto(x, option_x, num_options, x.shape[1:3])
-
-        # conv down
-        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="V_C64A",
-                constraint=None)
-        # conv across
-        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="V_C64B",
-                constraint=None)
-
-
-        x = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="V_C32A",
-                constraint=None)
         # This is the hidden representation of the world, but it should be flat
         # for our classifier to work.
         x = Flatten()(x)
@@ -1003,7 +974,7 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     value_out = Dense(1,
             activation="sigmoid", name="value",)(x1)
     #next_model = Model([x0in, xin, option_in], value_out, name="V")
-    next_model = Model([xin, option_in], value_out, name="V")
+    next_model = Model([xin], value_out, name="V")
     return next_model
 
 

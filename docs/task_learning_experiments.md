@@ -7,6 +7,34 @@ This document is for experiments from 2018-01-05.
 
 ### Example Training Command
 
+This contains some examples of commands you can run on different data sets.
+
+#### Pretrain Encoders
+
+#### Conditional Images
+
+```
+# Start training
+rosrun costar_models ctp_model_tool --model conditional_image --data_file data.h5f --lr 0.0001 --dropout_rate 0.2
+
+# Resume training
+rosrun costar_models ctp_model_tool --model conditional_image --data_file data.h5f --lr 0.0001 --dropout_rate 0.2 --load_model
+
+# Retrain encoder and decoder end-to-end
+rosrun costar_models ctp_model_tool --model conditional_image --data_file data.h5f --lr 0.0001 --dropout_rate 0.2 --retrain
+```
+
+#### Training Policies
+
+We also learn "actor" networks that operate on the current world state. These are trained with the `ff_regression` and `hierachical` models.
+
+```
+# Use the --success_only flag to make sure we don't learn bad things
+rosrun costar_models ctp_model_tool --model hierarchical --data_file data.h5f --lr 0.001 --dropout_rate 0.2 --success_only
+```
+
+The advantage here is that they can use a little bit more information than the previous versions should it prove necessary. They are also trained end-to-end, since there is no need for them to produce high quality images.
+
 ### Training On MARCC
 
 MARCC is our cluster for machine learning, equipped with a large set of Tesla K80 GPUs. We assume that when training on a cluster like MARCC, you will not want a full ROS workspace, so instead we assume you will install to some path $COSTAR_PLAN and just run scripts.
@@ -24,9 +52,19 @@ This will run the `$COSTAR_PLAN/slurm/ctp.sh$ script with a few different argume
 
 ### Hidden State
 
+You can visualize the hidden state learned with models like `pretrain_image_encoder`, `pretrain_image_gan`, and `pretrain_sampler` with the `ctp_hidden.py` tool:
+
 ```
 rosrun costar_models ctp_hidden.py --cpu --model conditional_image --data_file test2.h5f
 ```
+
+The learned representations come in 8 x 8 x 8 = 512 dimensions by default. This tool is meant to visualize representations that are eight channels or so. This includes some spatial information; take a look at the examples below. You'll see information seems to have some spatial correlation to the original image.
+
+![Encoding blocks on the right](hidden1.png)
+
+This changes dramatically when we compare to a representation where all the blocks are now on the left:
+
+![Encoding blocks on the left](hidden2.png)
 
 ### Transformation
 
