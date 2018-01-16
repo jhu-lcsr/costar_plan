@@ -508,6 +508,8 @@ def grasp_model_levine_2016(
             if dropout_rate is not None:
                 combConv = Dropout(dropout_rate)(combConv)
             combConv = Dense(64, activation='relu')(combConv)
+            if dropout_rate is not None:
+                combConv = Dropout(dropout_rate)(combConv)
         elif top == 'segmentation':
             if dropout_rate is not None:
                 combConv = Dropout(dropout_rate)(combConv)
@@ -515,6 +517,8 @@ def grasp_model_levine_2016(
             if dropout_rate is not None:
                 combConv = Dropout(dropout_rate)(combConv)
             combConv = Conv2D(64, (1, 1), activation='relu', padding='same')(combConv)
+            if dropout_rate is not None:
+                combConv = Dropout(dropout_rate)(combConv)
 
             # if the image was made smaller to save space,
             # upsample before calculating the final output
@@ -526,7 +530,7 @@ def grasp_model_levine_2016(
             comb_conv_shape = K.int_shape(combConv)
             iidim = (input_image_shape[row-1], input_image_shape[col-1])
             ccdim = (comb_conv_shape[row], comb_conv_shape[col])
-            if not iidim == ccdim:
+            if iidim != ccdim:
                 combConv = UpSampling2D(size=(iidim[0]/ccdim[0], iidim[1]/ccdim[1]))(combConv)
 
         # calculate the final classification output
