@@ -112,7 +112,14 @@ class HuskyDataCollector(object):
         rospy.Subscriber(overheadImageTopic, Image, self.imageCallback)
         rospy.Subscriber(huskyCmdVelTopic, Twist, self.cmdVelCallback)
 
+        self.listener = tf.TransformListener()
         self.writer = NpzDataset('husky_data')
+
+        self.trans = None
+        self.rot = None
+        self.roll, self.pitch, self.yaw = 0., 0., 0.
+
+        self.trans_threshold = 0.25
 
     def imageCallback(self, data):
         img_np_bk = imageToNumpy(data)
@@ -126,11 +133,18 @@ class HuskyDataCollector(object):
     def modelsCallback(self, data):
         self.gazeboModels = data    
 
+    def write(self, *args, **kwargs):
+        self.writer.write(*args, **kwargs)
     
     # returns true if goal has been reached, else false    
     def goalReached(self, finalPose):
-        #TODO
-        return False
+        goal_xyz = np.array([finalPose.position.x,
+                finalPose.position.y,
+                finalPose.position.z])
+        xyz = np.array(self.trans)
+        dist = np.linalg.norm(goal_xyz - xyz)
+
+        return dist < self.trans_threshold
       
     def getObjectList(self):
         return list(poseDictionary.keys())
@@ -259,18 +273,31 @@ class HuskyDataCollector(object):
         #imsave('/tmp/rgb_gradient.png', data['goal_image'][0])
         
 
-        self.writer.write(data, current_example['example'][0], total_reward)
+        collector.write(data, current_example['example'][0], total_reward)
+
+    def tick(self):
+        try:
+            (trans,rot) = self.listener.lookupTransform('/map', '/base_link', rospy.Time(0))
+        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+            return False
+
+        self.trans, self.rot = trans, rot
+        quaternion = (rot[0], rot[1], rot[2], rot[3])
+        euler = tf.transformations.euler_from_quaternion(quaternion)
+        self.roll = euler[0]
+        self.pitch = euler[1]
+        self.yaw = euler[2]
+        return True
     
-        
 if __name__ == '__main__':
     rospy.init_node('costar_husky_data_collection')
     collector = HuskyDataCollector()
     goalPub = rospy.Publisher(huskyGoalTopic, PoseStamped, queue_size=1)
     seqNumber = 0
     prev_label = -1
-    listener = tf.TransformListener()
     print("================================================")
-    print("Starting HUSKY data collector.")
+    print("Starting HUSKY data collector!")
+    print("---")
     print("This will dump all examples into the 'husky_data' folder.")
     print("If you are having trouble, make sure ROS is not having trouble ")
     print("synchronizing time; there is a rospy.sleep() here to help with")
@@ -288,7 +315,6 @@ if __name__ == '__main__':
             objectName = random.sample(poseDictionary.keys(), 1)[0]
             print("================================================")
             print("Random objective:", objectName)
-        
             
             poseStampedMsg = PoseStamped()
             poseStampedMsg.header.frame_id = "map"
@@ -309,32 +335,27 @@ if __name__ == '__main__':
             current_example['action'] = list()
         
             iterations = 0
-            while (collector.goalReached(poseStampedMsg.pose) == False and
-                    iterations < 1000):
-
+            
+            # Make sure we are getting poses
+            while not collector.tick():
                 rate.sleep()
+
+            # Loop until destination has been reached
+            max_iter = 1000
+            while (collector.goalReached(poseStampedMsg.pose) == False and
+                    iterations < max_iter):
 
                 # get global variables and write
                 current_example['reward'].append(1)
-                if iterations == 149:
+                if iterations == max_iter - 1:
                     current_example['done'].append(1)
                 else:
                     current_example['done'].append(0)
                 current_example['example'].append(seqNumber)
                 current_example['image'].append(collector.img_np)
-                try:
-                    (trans,rot) = listener.lookupTransform('/map', '/base_link', rospy.Time(0))
-                except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-                    continue
-
-                #print trans, rot
-
-                quaternion = (rot[0], rot[1], rot[2], rot[3])
-                euler = tf.transformations.euler_from_quaternion(quaternion)
-                roll = euler[0]
-                pitch = euler[1]
-                yaw = euler[2]
-                current_example['pose'].append([trans[0], trans[1], trans[2], roll, pitch, yaw])
+                current_example['pose'].append([
+                    collector.trans[0], collector.trans[1], collector.trans[2],
+                    collector.roll, collector.pitch, collector.yaw])
                 
                 action = collector.action
                 current_example['action'].append([
@@ -345,6 +366,9 @@ if __name__ == '__main__':
                 current_example['prev_label'].append(prev_label)
                 
                 iterations = iterations + 1
+                if not collector.tick():
+                    raise RuntimeError("collection lost contact with TF for some reason")
+                rate.sleep()
             
             print ("writing sample")
             collector.finishCurrentExample(current_example)
