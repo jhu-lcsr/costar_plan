@@ -162,7 +162,7 @@ class ConditionalImageGan(PretrainImageGan):
         model = Model(ins, [image_out, image_out2, is_fake])
         model.compile(
                 loss=["mae"]*2 + ["binary_crossentropy"],
-                loss_weights=[50., 50., 1.],
+                loss_weights=[100., 100., 1.],
                 optimizer=self.getOptimizer())
         model.summary()
         self.model = model
@@ -200,8 +200,8 @@ class ConditionalImageGan(PretrainImageGan):
         ins = [img0, img, option, option2, img_goal, img_goal2]
         dr = self.dropout_rate
         dr = 0
-        x = AddConv2D(img, 64, [5,5], 1, dr, "same", lrelu=True)
-        x0 = AddConv2D(img0, 64, [5,5], 1, dr, "same", lrelu=True)
+        x = AddConv2D(img, 64, [5,5], 1, dr, "same", lrelu=True, bn=False)
+        x0 = AddConv2D(img0, 64, [5,5], 1, dr, "same", lrelu=True, bn=False)
         x = Add()([x, x0])
         x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=True)
 
@@ -211,7 +211,7 @@ class ConditionalImageGan(PretrainImageGan):
         x = TileOnto(x, y, 64, (32,32), add=True)
         xh = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
 
-        xg = AddConv2D(img_goal, 64, [5,5], 2, dr, "same", lrelu=True)
+        xg = AddConv2D(img_goal, 64, [5,5], 2, dr, "same", lrelu=True, bn=False)
         x = Add()([xh, xg])
 
         # -------------------------------------------------------------
@@ -220,14 +220,15 @@ class ConditionalImageGan(PretrainImageGan):
         x = TileOnto(xh, y, 64, (32,32), add=True)
         x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
 
-        xg2 = AddConv2D(img_goal2, 64, [5,5], 2, dr, "same", lrelu=True)
+        xg2 = AddConv2D(img_goal2, 64, [5,5], 2, dr, "same", lrelu=True,
+                bn=False)
         x = Add()([x, xg2])
 
-        x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
+        x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=True)
         x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=True)
-        x = AddConv2D(x, 128, [5,5], 1, dr, "same", lrelu=True)
-        x = AddConv2D(x, 256, [5,5], 2, dr, "same", lrelu=True)
-        x = AddConv2D(x, 256, [5,5], 1, dr, "same", lrelu=True)
+        #x = AddConv2D(x, 128, [5,5], 1, dr, "same", lrelu=True)
+        #x = AddConv2D(x, 256, [5,5], 2, dr, "same", lrelu=True)
+        #x = AddConv2D(x, 256, [5,5], 1, dr, "same", lrelu=True)
         x = AddConv2D(x, 1, [5,5], 1, 0., "same", activation="sigmoid")
 
         #x = MaxPooling2D(pool_size=(8,8))(x)

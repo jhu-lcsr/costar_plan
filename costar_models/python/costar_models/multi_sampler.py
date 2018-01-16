@@ -359,7 +359,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 dropout_rate=0.)
         self.transform_model = Model([h0,h,option], x, name="tform")
         self.transform_model.compile(loss="mae", optimizer=self.getOptimizer())
-        self.transform_model.summary()
         return self.transform_model
 
     def _getTransform(self,i=0,rep_channels=32):
