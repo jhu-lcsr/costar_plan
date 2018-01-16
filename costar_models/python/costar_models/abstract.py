@@ -35,7 +35,6 @@ class AbstractAgentBasedModel(object):
             dense_representation=True,
             skip_connections=0,
             use_noise=False,
-            sampling=False,
             load_pretrained_weights=False,
             retrain=True,
             use_prev_option=True,
@@ -44,7 +43,7 @@ class AbstractAgentBasedModel(object):
             save_model=1,
             hidden_size=128,
             loss="mae",
-            num_generator_files=3, predict_value=False, upsampling=None,
+            num_generator_files=3, upsampling=None,
             task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
 
@@ -81,8 +80,6 @@ class AbstractAgentBasedModel(object):
         self.model_directory = os.path.expanduser(model_directory)
         self.name = self._makeName(self.name_prefix)
         self.num_generator_files = num_generator_files
-        self.residual = False
-        self.predict_value = predict_value
         self.dropout_rate = dropout_rate
         self.tform_dropout_rate = tform_dropout_rate
         self.hypothesis_dropout = hypothesis_dropout
@@ -102,8 +99,6 @@ class AbstractAgentBasedModel(object):
         self.hidden_size = hidden_size
         
         if self.noise_dim < 1:
-            self.use_noise = False
-        if self.sampling:
             self.use_noise = False
         # NOTE: removed because it's used inconsistently.
         # TODO: add this again
@@ -147,8 +142,6 @@ class AbstractAgentBasedModel(object):
         print("Load pretrained weights =", self.load_pretrained_weights)
         print("-----------------------------------------------------------")
         print("------------------ Model Specific Options -----------------")
-        print("residual =", self.residual)
-        print("predict values =", self.predict_value)
         print("dropout in hypothesis decoder =", self.hypothesis_dropout)
         print("dropout rate =", self.dropout_rate)
         print("tform dropout rate =", self.tform_dropout_rate)
@@ -156,7 +149,6 @@ class AbstractAgentBasedModel(object):
         print("use noise in model =", self.use_noise)
         print("dimensionality of noise =", self.noise_dim)
         print("skip connections =", self.skip_connections)
-        print("sampling =", self.sampling)
         print("gan_method =", self.gan_method)
         print("save_model =", self.save_model)
         print("-----------------------------------------------------------")
