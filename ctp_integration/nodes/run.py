@@ -91,7 +91,10 @@ def main():
         from costar_task_plan.tools import showTask
         showTask(task)
     elif args.mode == "collect":
-        collector = DataCollector()
+        collector = DataCollector(
+                root="~/.costar/data",
+                rate=10,
+                data_type="h5f")
 
     for i in range(args.execute):
         print("Executing trial %d..."(i))
