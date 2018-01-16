@@ -229,9 +229,6 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         model.compile(loss=self.loss, optimizer=optimizer)
         return model
 
-<<<<<<< HEAD
-
-
 
     def _makeAll(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
         images = features
@@ -286,11 +283,10 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         print("make model setup")
         print(ins, actor.inputs)
         #model_ins = Input(name="img_in")
-=======
+
     def _makePolicy(self, option):
         '''
         Create a single policy corresponding to option 
->>>>>>> devel
 
         Parameters:
         -----------
