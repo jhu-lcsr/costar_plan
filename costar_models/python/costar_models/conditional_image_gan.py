@@ -84,7 +84,6 @@ class ConditionalImageGan(PretrainImageGan):
             encoder = self._makeImageEncoder(img_shape)
             #encoder0 = self._makeImageEncoder(img_shape, copy=True)
         try:
-            encoder.summary()
             encoder.load_weights(self._makeName(
                 #pretrain_image_encoder_model",
                 "pretrain_image_gan_model",
@@ -170,6 +169,7 @@ class ConditionalImageGan(PretrainImageGan):
                 loss=["mae"]*2 + ["binary_crossentropy"],
                 loss_weights=[50., 50., 1.],
                 optimizer=self.getOptimizer())
+        image_discriminator.summary()
         model.summary()
         self.model = model
 
@@ -206,42 +206,33 @@ class ConditionalImageGan(PretrainImageGan):
         ins = [img0, img, option, option2, img_goal, img_goal2]
         dr = self.dropout_rate
         dr = 0
-        x = AddConv2D(img, 64, [5,5], 1, dr, "same", lrelu=True)
-        x0 = AddConv2D(img0, 64, [5,5], 1, dr, "same", lrelu=True)
+        x = AddConv2D(img, 64, [4,4], 1, dr, "same", lrelu=True)
+        x0 = AddConv2D(img0, 64, [4,4], 1, dr, "same", lrelu=True)
         x = Add()([x, x0])
-        x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=True)
+        x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=True)
 
         # -------------------------------------------------------------
         y = OneHot(self.num_options)(option)
         y = AddDense(y, 64, "lrelu", dr)
         x = TileOnto(x, y, 64, (32,32), add=True)
-        xh = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
+        xh = AddConv2D(x, 64, [4,4], 1, dr, "same", lrelu=True)
 
-        xg = AddConv2D(img_goal, 64, [5,5], 2, dr, "same", lrelu=True)
-        x = Add()([x, xg])
-
-        x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
-        x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=True)
-        x = AddConv2D(x, 128, [5,5], 1, dr, "same", lrelu=True)
-        x = AddConv2D(x, 256, [5,5], 2, dr, "same", lrelu=True)
-        x = AddConv2D(x, 256, [5,5], 1, dr, "same", lrelu=True)
-        x = AddConv2D(x, 1, [5,5], 1, 0., "same", activation="sigmoid")
+        xg = AddConv2D(img_goal, 64, [4,4], 2, dr, "same", lrelu=True)
+        x = Add()([xh, xg])
 
         # -------------------------------------------------------------
         y = OneHot(self.num_options)(option2)
         y = AddDense(y, 64, "lrelu", dr)
         x = TileOnto(xh, y, 64, (32,32), add=True)
-        x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
+        x = AddConv2D(x, 64, [4,4], 1, dr, "same", lrelu=True)
 
-        xg2 = AddConv2D(img_goal2, 64, [5,5], 2, dr, "same", lrelu=True)
-        xg2 = Add()([x, xg2])
+        xg2 = AddConv2D(img_goal2, 64, [4,4], 2, dr, "same", lrelu=True)
+        x = Add()([x, xg2])
 
-        x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
-        x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=True)
-        x = AddConv2D(x, 128, [5,5], 1, dr, "same", lrelu=True)
-        x = AddConv2D(x, 256, [5,5], 2, dr, "same", lrelu=True)
-        x = AddConv2D(x, 256, [5,5], 1, dr, "same", lrelu=True)
-        x = AddConv2D(x, 1, [5,5], 1, 0., "same", activation="sigmoid")
+        x = AddConv2D(x, 64, [4,4], 1, dr, "same", lrelu=True)
+        x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True)
+        x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
+        x = AddConv2D(x, 1, [4,4], 1, 0., "same", activation="sigmoid")
 
         #x = MaxPooling2D(pool_size=(8,8))(x)
         x = AveragePooling2D(pool_size=(8,8))(x)
