@@ -124,7 +124,6 @@ def classifier_block(input_tensor, require_flatten=True, top='classification',
     if require_flatten and top == 'classification':
         if verbose:
             print("    classification")
-        x = GlobalMaxPooling2D()(x)
         x = Dense(units=classes, activation=activation,
                   kernel_initializer="he_normal", name='fc' + str(classes))(x)
 
@@ -500,23 +499,35 @@ def grasp_model_levine_2016(
         if top == 'classification':
             feature_shape = K.int_shape(combConv)
             if (feature_shape[1] > 1 or feature_shape[2] > 1):
+                # combConv = GlobalMaxPooling2D()(combConv)
                 combConv = Flatten()(combConv)
+
             # combined full connected layers
             if dropout_rate is not None:
                 combConv = Dropout(dropout_rate)(combConv)
+
             combConv = Dense(64, activation='relu')(combConv)
+
             if dropout_rate is not None:
                 combConv = Dropout(dropout_rate)(combConv)
+
             combConv = Dense(64, activation='relu')(combConv)
+
             if dropout_rate is not None:
                 combConv = Dropout(dropout_rate)(combConv)
+
         elif top == 'segmentation':
+
             if dropout_rate is not None:
                 combConv = Dropout(dropout_rate)(combConv)
+
             combConv = Conv2D(64, (1, 1), activation='relu', padding='same')(combConv)
+
             if dropout_rate is not None:
                 combConv = Dropout(dropout_rate)(combConv)
+
             combConv = Conv2D(64, (1, 1), activation='relu', padding='same')(combConv)
+
             if dropout_rate is not None:
                 combConv = Dropout(dropout_rate)(combConv)
 
