@@ -76,7 +76,7 @@ flags.DEFINE_string('grasp_dataset', '102',
                     around 110 GB and 38k grasp attempts.
                     See https://sites.google.com/site/brainrobotdata/home
                     for a full listing.""")
-flags.DEFINE_boolean('median_filter', True,
+flags.DEFINE_boolean('median_filter', False,
                      """Median filter apply on depth image to
                         remove small regions with depth values of zero,
                         which represents invalid depth values.
@@ -1636,6 +1636,7 @@ class GraspDataset(object):
             resize=FLAGS.resize,
             resize_height=FLAGS.resize_height,
             resize_width=FLAGS.resize_width,
+            shift_ratio=0.01,
             seed=None,
             verbose=0):
         """Get feature dictionaries containing ops and time ordered feature lists.
@@ -1650,7 +1651,7 @@ class GraspDataset(object):
         if sensor_image_dimensions is None:
             sensor_image_dimensions = [FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels]
         if feature_op_dicts is None:
-            feature_op_dicts, features_complete_list, num_samples = self._get_simple_parallel_dataset_ops(batch_size=batch_size)
+            feature_op_dicts, features_complete_list, num_samples = self._get_simple_parallel_dataset_ops(batch_size=batch_size, shift_ratio=shift_ratio)
         if time_ordered_feature_name_dict is None:
             time_ordered_feature_name_dict = {}
 
@@ -1987,6 +1988,7 @@ class GraspDataset(object):
             grasp_success_label=FLAGS.grasp_success_label,
             grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
             grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
+            shift_ratio=0.01,
             seed=None):
         """Get tensors configured for training on grasps from a single dataset.
 
@@ -2086,7 +2088,8 @@ class GraspDataset(object):
         feature_op_dicts, features_complete_list, time_ordered_feature_name_dict, num_samples = self.get_training_dictionaries(
             batch_size=batch_size, random_crop=random_crop, sensor_image_dimensions=sensor_image_dimensions,
             imagenet_preprocessing=imagenet_preprocessing, image_augmentation=image_augmentation,
-            random_crop_dimensions=random_crop_dimensions, random_crop_offset=random_crop_offset)
+            random_crop_dimensions=random_crop_dimensions, random_crop_offset=random_crop_offset,
+            shift_ratio=shift_ratio)
 
         time_ordered_feature_tensor_dicts = GraspDataset.to_tensors(feature_op_dicts, time_ordered_feature_name_dict)
 
@@ -2336,7 +2339,8 @@ def get_multi_dataset_training_tensors(
         resize=FLAGS.resize,
         resize_height=FLAGS.resize_height,
         resize_width=FLAGS.resize_width,
-        grasp_datasets_batch_algorithm=FLAGS.grasp_datasets_batch_algorithm):
+        grasp_datasets_batch_algorithm=FLAGS.grasp_datasets_batch_algorithm,
+        shift_ratio=0.01):
     """Aggregate multiple datasets into combined training tensors.
 
     # TODO(ahundt) parameterize this function properly, don't just use FLAGS defaults in get_training_tensors

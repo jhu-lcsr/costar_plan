@@ -69,6 +69,11 @@ flags.DEFINE_string('grasp_dataset_eval', '097',
                     with no overlap, otherwise your results won't be valid!
                     See https://sites.google.com/site/brainrobotdata/home
                     for a full listing.""")
+flags.DEFINE_boolean('eval_per_epoch', False,
+                     """Do evaluation on dataset_eval above in every epoch.
+                        Weight flies for every epoch and single txt file of dataset
+                        will be saved.
+                     """)
 flags.DEFINE_string('pipeline_stage', 'train_eval',
                     """Choose to "train", "eval", or "train_eval" with the grasp_dataset
                        data for training and grasp_dataset_eval for evaluation.""")
@@ -159,6 +164,7 @@ class GraspTrain(object):
               grasp_datasets_batch_algorithm=FLAGS.grasp_datasets_batch_algorithm,
               batch_size=FLAGS.batch_size,
               epochs=FLAGS.epochs,
+              eval_per_epoch=FLAGS.eval_per_epoch,
               load_weights=FLAGS.load_weights,
               save_weights=FLAGS.save_weights,
               make_model_fn=grasp_model.grasp_model_densenet,
@@ -361,6 +367,12 @@ class GraspTrain(object):
                 keras.callbacks.ReduceLROnPlateau(patience=4, verbose=1, monitor=monitor_metric_name)
             ]
 
+        # add evalation callback, calls evalation of self.eval_model
+        if eval_per_epoch:
+            eval_model, step_num = self.eval(make_model_fn=make_model_fn,
+                                             model_name=model_name,
+                                             eval_per_epoch=eval_per_epoch)
+            callbacks = callbacks + [EvaluationCallback(eval_model, step_num)]
         # 2017-08-27 Tried NADAM for a while with the settings below, only improved for first 2 epochs.
         # optimizer = keras.optimizers.Nadam(lr=0.004, beta_1=0.825, beta_2=0.99685)
 
@@ -423,7 +435,8 @@ class GraspTrain(object):
              eval_results_file=FLAGS.eval_results_file,
              model_name=FLAGS.grasp_model,
              loss=FLAGS.loss,
-             metric=FLAGS.metric):
+             metric=FLAGS.metric,
+             eval_per_epoch=FLAGS.eval_per_epoch):
         """Train the grasping dataset
 
         This function depends on https://github.com/fchollet/keras/pull/6928
@@ -458,7 +471,8 @@ class GraspTrain(object):
                                                   image_augmentation=False,
                                                   resize=resize,
                                                   grasp_sequence_min_time_step=grasp_sequence_min_time_step,
-                                                  grasp_sequence_max_time_step=grasp_sequence_max_time_step)
+                                                  grasp_sequence_max_time_step=grasp_sequence_max_time_step,
+                                                  shift_ratio=0.0)
 
         if resize:
             input_image_shape = [resize_height, resize_width, 3]
@@ -467,7 +481,8 @@ class GraspTrain(object):
 
         ########################################################
         # End tensor configuration, begin model configuration and training
-        csv_logger = CSVLogger(load_weights + '_eval.csv')
+        if not eval_per_epoch:
+            csv_logger = CSVLogger(load_weights + '_eval.csv')
 
         # create the model
         model = make_model_fn(
@@ -477,26 +492,25 @@ class GraspTrain(object):
             # input_image_shape=input_image_shape,
             dropout_rate=0.0)
 
-        if(load_weights):
-            if os.path.isfile(load_weights):
-                model.load_weights(load_weights)
-            else:
-                raise ValueError('Could not load weights {}, '
-                                 'the file does not exist.'.format(load_weights))
+        if not eval_per_epoch:
+            if(load_weights):
+                if os.path.isfile(load_weights):
+                    model.load_weights(load_weights)
+                else:
+                    raise ValueError('Could not load weights {}, '
+                                     'the file does not exist.'.format(load_weights))
 
         loss_name = 'loss'
         if 'segmentation_single_pixel_binary_crossentropy' in loss:
             loss = grasp_loss.segmentation_single_pixel_binary_crossentropy
             loss_name = 'segmentation_single_pixel_binary_crossentropy'
 
-        metrics = self.gather_metrics(metric)
+        metrics, monitor_metric_name = self.gather_metrics(metric)
 
         model.compile(optimizer='sgd',
                       loss=loss,
                       metrics=metrics,
                       target_tensors=[grasp_success_op_batch])
-
-        model.summary()
 
         steps = float(num_samples) / float(batch_size)
 
@@ -506,6 +520,10 @@ class GraspTrain(object):
                              'divisible by the batch size. Right now the batch size cannot be changed for'
                              'the last sample, so in a worst case choose a batch size of 1. Not ideal,'
                              'but manageable. num_samples: {} batch_size: {}'.format(num_samples, batch_size))
+
+        if eval_per_epoch:
+            return model, int(steps)
+        model.summary()
 
         try:
             results = model.evaluate(None, None, steps=int(steps))
@@ -616,6 +634,40 @@ def define_make_model_fn(grasp_model_name=FLAGS.grasp_model):
         else:
             raise ValueError('unknown model selected: {}'.format(grasp_model_name))
     return make_model_fn
+
+
+class EvaluationCallback(keras.callbacks.Callback):
+    """ Use returns from GraspTrain.eval(), evaluation model and number of step
+        to initialize, with its own default values.
+        Then on_epoch_end, set_weight from the weights passed from self, which
+        is actually weights from training model.
+    """
+    def __init__(self, eval_model, steps, load_weights=FLAGS.load_weights, 
+                 dataset=FLAGS.grasp_dataset_eval, save_weights=FLAGS.save_weights):
+        # parameter of callbacks passed during initialization
+        # pass evalation mode directly
+        super(EvaluationCallback, self).__init__()
+        self.eval_model = eval_model
+        self.step_num = steps
+        self.load_weights = load_weights
+        self.dataset = dataset
+        self.save_weights = save_weights
+
+    def on_epoch_end(self, epoch, logs={}):
+        # this is called automatically, so not able to pass other parameters here?
+        self.eval_model.set_weights(self.model.get_weights())
+        results = self.eval_model.evaluate(None, None, steps=int(self.step_num))
+        metrics_str = 'metrics:\n' + str(self.eval_model.metrics_names) + 'results:' + str(results)
+        print(metrics_str)
+        weights_name_str = self.load_weights + '_evaluation_dataset_{}_epoch_{:03}_loss_{:.3f}_acc_{:.3f}'.format(self.dataset, epoch, results[0], results[1])
+        weights_name_str = weights_name_str.replace('.h5', '') + '.h5'
+        results_summary_name_str = self.load_weights + '_evaluation_dataset_{}'.format(self.dataset) + '.txt'
+        results_summary_name_str = results_summary_name_str.replace('.h5', '')
+        with open(results_summary_name_str, 'a') as results_summary:
+            results_summary.write(metrics_str + 'in epoch' + str(epoch) + '\n')
+        if self.save_weights:
+            self.eval_model.save_weights(weights_name_str)
+            print('\nsaved weights with evaluation result to ' + weights_name_str)
 
 
 def main():
