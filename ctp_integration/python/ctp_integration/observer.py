@@ -1,5 +1,6 @@
 
 import rospy
+import tf
 
 class IdentityObserver(object):
     def __init__(self, world, task):
@@ -11,14 +12,19 @@ class IdentityObserver(object):
 
 class Observer(object):
 
-    def __init__(self, world, task, detect_srv, topic):
+    def __init__(self, world, task, detect_srv, topic, tf_listener):
         self.world = world
         self.task = task
         self.detect_srv = detect_srv
         self.detected_objects_topic = topic
+        self.msg = None
+        if tf_listener is not None:
+            self.tf_listener = tf_listener
+        else:
+            self.tf_listener = tf.TransformListener()
 
     def _cb(self, msg):
-        oass
+        self.msg = msg
 
     def __call__(self):
         # Call the detect objects service and wait for response

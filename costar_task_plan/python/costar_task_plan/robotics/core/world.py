@@ -342,6 +342,9 @@ class CostarWorld(AbstractWorld):
             self.object_by_class[obj_class].append(obj_name)
         self.objects_to_track.append(obj_name)
 
+    def hasObject(self, obj):
+        return obj in self.objects_to_track
+
     def getObjects(self, obj_class):
         '''
         Return information about specific objects in the world. This should tell us
