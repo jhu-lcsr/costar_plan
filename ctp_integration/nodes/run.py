@@ -12,6 +12,8 @@ from costar_task_plan.robotics.core import CostarWorld
 from sensor_msgs.msg import JointState
 
 from ctp_integration import MakeStackTask
+from ctp_integration.observer import IdentityObserver, Observer
+from ctp_integration.collector import DataCollector
 from ctp_integration.util import GetDetectObjectsService
 
 def getArgs():
@@ -78,10 +80,11 @@ def main():
     if args.fake:
         world.addObjects(fakeTaskArgs())
         filled_args = task.compile(fakeTaskArgs())
-        observe = Identity(task, world)
+        observe = IdentityObserver(world, task)
     else:
         objects = GetDetectObjectsService()
         observe = Observer(world=world,
+                task=task,
                 detect_srv=objects,
                 topic="/costar_sp_segmenter/detected_object_list")
 
