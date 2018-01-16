@@ -2467,7 +2467,8 @@ def get_multi_dataset_training_tensors(
              random_crop=random_crop,
              resize=resize,
              grasp_sequence_min_time_step=grasp_sequence_min_time_step,
-             grasp_sequence_max_time_step=grasp_sequence_max_time_step)
+             grasp_sequence_max_time_step=grasp_sequence_max_time_step,
+             shift_ratio=shift_ratio)
 
         max_num_samples = max(num_samples, max_num_samples)
         pregrasp_op_batch.append(pregrasp_op)
