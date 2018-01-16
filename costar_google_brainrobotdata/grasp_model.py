@@ -499,8 +499,8 @@ def grasp_model_levine_2016(
         if top == 'classification':
             feature_shape = K.int_shape(combConv)
             if (feature_shape[1] > 1 or feature_shape[2] > 1):
-                # combConv = GlobalMaxPooling2D()(combConv)
-                combConv = Flatten()(combConv)
+                combConv = GlobalMaxPooling2D()(combConv)
+                # combConv = Flatten()(combConv)
 
             # combined full connected layers
             if dropout_rate is not None:
