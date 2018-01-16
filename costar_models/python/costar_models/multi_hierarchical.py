@@ -141,23 +141,57 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
             gripper_size = gripper.shape[1]
         else:
             gripper_size = 1
+        
+        new = True
+        if not new:
+            ins, x, skips = GetEncoder(
+                    img_shape,
+                    [arm_size, gripper_size],
+                    self.img_col_dim,
+                    self.dropout_rate,
+                    self.img_num_filters,
+                    pose_col_dim=self.pose_col_dim,
+                    discriminator=False,
+                    kernel_size=[3,3],
+                    tile=True,
+                    batchnorm=self.use_batchnorm,
+                    pre_tiling_layers=1,
+                    post_tiling_layers=3,
+                    stride1_post_tiling_layers=1,
+                    option=self.num_options,
+                    )
+        else:
+            img_in = Input(img_shape, name="ca_img_in")
+            x = img_in
+            x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate, "valid", bn=self.use_batchnorm)
+            x = AddConv2D(x, 128, [3,3], 2, self.dropout_rate, "valid", bn=self.use_batchnorm)
+            x = AddConv2D(x, 128, [3,3], 1, 0., "valid", bn=self.use_batchnorm)
+            x = AddConv2D(x, 128, [3,3], 1, 0., "valid", bn=self.use_batchnorm)
+            x = AddConv2D(x, 128, [3,3], 1, 0., "valid", bn=self.use_batchnorm)
 
-        ins, x, skips = GetEncoder(
-                img_shape,
-                [arm_size, gripper_size],
-                self.img_col_dim,
-                self.dropout_rate,
-                self.img_num_filters,
-                pose_col_dim=self.pose_col_dim,
-                discriminator=False,
-                kernel_size=[3,3],
-                tile=True,
-                batchnorm=self.use_batchnorm,
-                pre_tiling_layers=1,
-                post_tiling_layers=3,
-                stride1_post_tiling_layers=1,
-                option=self.num_options,
-                )
+            arm_in = Input((arm_size,),name="ca_arm_in")
+            gripper_in = Input((gripper_size,),name="ca_gripper_in")
+            y = Concatenate()([arm_in, gripper_in])
+            y = AddDense(y, 128, "relu", 0., output=True, constraint=3)
+            x = TileOnto(x, y, 128, (8,8), add=True)
+
+            cmd_in = Input((1,), name="option_cmd_in")
+            cmd = OneHot(self.num_options)(cmd_in)
+            cmd = AddDense(cmd, 128, "relu", 0., output=True, constraint=3)
+            x = TileOnto(x, cmd, 128, (8,8), add=True)
+            x = AddConv2D(x, 64, [3,3], 1, self.dropout_rate, "valid",
+                    bn=self.use_batchnorm)
+            #x = BatchNormalization()(x)
+            x = Flatten()(x)
+            x = AddDense(x, 512, "relu", 0.,
+                    constraint=3,
+                    output=True)
+            x = Dropout(self.dropout_rate)(x)
+            x = AddDense(x, 512, "relu", 0.,
+                    constraint=3,
+                    output=True)
+
+
 
         arm_out = Dense(arm_cmd_size, name="arm")(x)
         gripper_out = Dense(gripper_size, name="gripper")(x)
