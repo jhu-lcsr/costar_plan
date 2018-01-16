@@ -314,6 +314,7 @@ if __name__ == '__main__':
             
             objectName = None
             prevObjectName = None
+            failed = False
             for i in range(3):
                 # select random objectName
                 while objectName == prevObjectName:
@@ -330,7 +331,7 @@ if __name__ == '__main__':
                 goalPub.publish(poseStampedMsg)
 
                 # Loop until destination has been reached
-                max_iter = 150
+                max_iter = 200
                 iterations = 0
                 while (iterations < max_iter):
 
@@ -342,6 +343,7 @@ if __name__ == '__main__':
                     elif not at_goal and iterations == max_iter -1:
                         print(" ---> FAILED!")
                         current_example['reward'].append(-100)
+                        failed = True
                     else:
                         current_example['reward'].append(0)
 
@@ -371,6 +373,9 @@ if __name__ == '__main__':
                         break
 
                     rate.sleep()
+
+                if failed:
+                    break
                 
             print ("writing sample")
             collector.finishCurrentExample(current_example)
