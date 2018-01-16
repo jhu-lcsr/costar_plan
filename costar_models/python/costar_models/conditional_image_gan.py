@@ -121,21 +121,24 @@ class ConditionalImageGan(PretrainImageGan):
         if self.skip_connections:
             h, s32, s16, s8 = encoder([img0_in, img_in])
         else:
-            #h = encoder([img_in, img0_in])
             h = encoder([img_in])
             h0 = encoder(img0_in)
+
+        # next option - used to compute the next image 
         next_option_in = Input((1,), name="next_option_in")
         next_option2_in = Input((1,), name="next_option2_in")
         ins += [next_option_in]
 
         y = OneHot(self.num_options)(next_option_in)
         y = Flatten()(y)
+        y2 = OneHot(self.num_options)(next_option2_in)
+        y2 = Flatten()(y2)
         x = h
         tform = self._makeTransform()
         x = tform([h0,h,y])
-        #x = tform([h,y])
+        x2 = tform([h0,x,y2])
         image_out = decoder([x])
-        #image_out = decoder([x, s32, s16, s8])
+        image_out2 = decoder([x2])
 
         # =====================================================================
         # Make the discriminator
@@ -174,18 +177,15 @@ class ConditionalImageGan(PretrainImageGan):
         features, targets = self._getAllData(*args, **kwargs)
         [I, q, g, oin, label, q_target, g_target,] = features
         tt, o1, v, qa, ga, I_target = targets
+
+        # Create the next image including input image
         I0 = I[0,:,:,:]
         length = I.shape[0]
         I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
-        oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
-        qa = np.squeeze(qa)
-        ga = np.squeeze(ga)
-        if self.do_all:
-            noise_len = features[0].shape[0]
-            z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-            return [I0, I, o1], [ I_target]
-        else:
-            return [I0, I, o1], [ I_target]
+
+        # Extract the next goal
+        I_target2, o2 = self._getNextGoal(features, targets)
+        return [I0, I, o1, o2], [ I_target, I_target2 ]
 
     def _makeImageDiscriminator(self, img_shape):
         '''
@@ -198,6 +198,7 @@ class ConditionalImageGan(PretrainImageGan):
         img0 = Input(img_shape,name="img0_encoder_in")
         img = Input(img_shape,name="img_encoder_in")
         img_goal = Input(img_shape,name="goal_encoder_in")
+        img_goal2 = Input(img_shape,name="goal2_encoder_in")
         option = Input((1,),name="disc_options")
         option2 = Input((1,),name="disc2_options")
         ins = [img0, img, option, img_goal]
@@ -207,14 +208,33 @@ class ConditionalImageGan(PretrainImageGan):
         x0 = AddConv2D(img0, 64, [5,5], 1, dr, "same", lrelu=True)
         x = Add()([x, x0])
         x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
+        xh = x
+
+        # -------------------------------------------------------------
+        y = OneHot(self.num_options)(option)
+        y = AddDense(y, 64, "lrelu", dr)
+        x = TileOnto(x, y, 64, (32,32), add=True)
 
         xg = AddConv2D(img_goal, 64, [5,5], 1, dr, "same", lrelu=True)
         x = Add()([x, xg])
         x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=True)
 
-        y = OneHot(self.num_options)(option)
+        x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
+        x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=True)
+        x = AddConv2D(x, 128, [5,5], 1, dr, "same", lrelu=True)
+        x = AddConv2D(x, 256, [5,5], 2, dr, "same", lrelu=True)
+        x = AddConv2D(x, 256, [5,5], 1, dr, "same", lrelu=True)
+        x = AddConv2D(x, 1, [5,5], 1, 0., "same", activation="sigmoid")
+
+        # -------------------------------------------------------------
+        y = OneHot(self.num_options)(option2)
         y = AddDense(y, 64, "lrelu", dr)
-        x = TileOnto(x, y, 64, (32,32))
+        x = TileOnto(xh, y, 64, (32,32), add=True)
+
+        xg2 = AddConv2D(img_goal2, 64, [5,5], 1, dr, "same", lrelu=True)
+        x = Add()([x, xg2])
+        x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=True)
+
         x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
         x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=True)
         x = AddConv2D(x, 128, [5,5], 1, dr, "same", lrelu=True)
