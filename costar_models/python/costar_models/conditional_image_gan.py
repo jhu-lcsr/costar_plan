@@ -127,7 +127,7 @@ class ConditionalImageGan(PretrainImageGan):
         # next option - used to compute the next image 
         next_option_in = Input((1,), name="next_option_in")
         next_option2_in = Input((1,), name="next_option2_in")
-        ins += [next_option_in]
+        ins += [next_option_in, next_option2_in]
 
         y = OneHot(self.num_options)(next_option_in)
         y = Flatten()(y)
@@ -149,24 +149,26 @@ class ConditionalImageGan(PretrainImageGan):
         is_fake = image_discriminator([
             img0_in, img_in,
             next_option_in, 
-            image_out])
+            next_option2_in,
+            image_out,
+            image_out2])
 
         # =====================================================================
         # Create generator model to train
         lfn = self.loss
         predictor = Model(ins,
-                [image_out])
+                [image_out, image_out2])
         predictor.compile(
-                loss=[lfn],
+                loss=[lfn, lfn],
                 optimizer=self.getOptimizer())
         self.generator = predictor
 
         # =====================================================================
         # And adversarial model 
-        model = Model(ins, [image_out, is_fake])
+        model = Model(ins, [image_out, image_out2, is_fake])
         model.compile(
-                loss=["mae"] + ["binary_crossentropy"],
-                loss_weights=[100., 1.],
+                loss=["mae"]*2 + ["binary_crossentropy"],
+                loss_weights=[50., 50., 1.],
                 optimizer=self.getOptimizer())
         model.summary()
         self.model = model
@@ -201,23 +203,22 @@ class ConditionalImageGan(PretrainImageGan):
         img_goal2 = Input(img_shape,name="goal2_encoder_in")
         option = Input((1,),name="disc_options")
         option2 = Input((1,),name="disc2_options")
-        ins = [img0, img, option, img_goal]
+        ins = [img0, img, option, option2, img_goal, img_goal2]
         dr = self.dropout_rate
         dr = 0
         x = AddConv2D(img, 64, [5,5], 1, dr, "same", lrelu=True)
         x0 = AddConv2D(img0, 64, [5,5], 1, dr, "same", lrelu=True)
         x = Add()([x, x0])
-        x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
-        xh = x
+        x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=True)
 
         # -------------------------------------------------------------
         y = OneHot(self.num_options)(option)
         y = AddDense(y, 64, "lrelu", dr)
         x = TileOnto(x, y, 64, (32,32), add=True)
+        xh = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
 
-        xg = AddConv2D(img_goal, 64, [5,5], 1, dr, "same", lrelu=True)
+        xg = AddConv2D(img_goal, 64, [5,5], 2, dr, "same", lrelu=True)
         x = Add()([x, xg])
-        x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=True)
 
         x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
         x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=True)
@@ -230,10 +231,10 @@ class ConditionalImageGan(PretrainImageGan):
         y = OneHot(self.num_options)(option2)
         y = AddDense(y, 64, "lrelu", dr)
         x = TileOnto(xh, y, 64, (32,32), add=True)
+        x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
 
-        xg2 = AddConv2D(img_goal2, 64, [5,5], 1, dr, "same", lrelu=True)
-        x = Add()([x, xg2])
-        x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=True)
+        xg2 = AddConv2D(img_goal2, 64, [5,5], 2, dr, "same", lrelu=True)
+        xg2 = Add()([x, xg2])
 
         x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
         x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=True)
