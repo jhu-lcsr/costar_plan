@@ -191,8 +191,6 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                     constraint=3,
                     output=True)
 
-
-
         arm_out = Dense(arm_cmd_size, name="arm")(x)
         gripper_out = Dense(gripper_size, name="gripper")(x)
 
