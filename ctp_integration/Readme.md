@@ -5,7 +5,8 @@ Code for testing Costar Task Planner on the real UR5 robot in our lab. This inte
 ## Quick Start
 
 ```
-roslaunch ctp_integration collect.launch
+roslaunch ctp_integration bringup.launch
+rosrun ctp_integration run.py --iter 1000
 ```
 
 ## Guidelines

@@ -43,6 +43,10 @@ def getArgs():
                         default=0,
                         type=int,
                         help="number of samples to draw")
+    parser.add_argument("--mode",
+                        choices=["collect","test"],
+                        default="collect",
+                        help="Choose which mode to run in.")
 
     return parser.parse_args()
 
