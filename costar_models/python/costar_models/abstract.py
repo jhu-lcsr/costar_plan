@@ -93,7 +93,6 @@ class AbstractAgentBasedModel(object):
             self.decoder_dropout_rate = 0.
         self.skip_connections = skip_connections > 0
         self.dense_representation = dense_representation
-        self.sampling = sampling
         self.gan_method = gan_method
         self.save_model = save_model if save_model in [0,1] else 1
         self.hidden_size = hidden_size
