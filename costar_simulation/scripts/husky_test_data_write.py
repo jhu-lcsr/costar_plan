@@ -332,7 +332,7 @@ if __name__ == '__main__':
 
                 # Loop until destination has been reached
                 max_iter = 100
-                iterations = 0
+                iterations = 150
                 while (iterations < max_iter):
 
                     at_goal = collector.goalReached(poseStampedMsg.pose)
