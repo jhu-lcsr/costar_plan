@@ -471,7 +471,8 @@ class GraspTrain(object):
                                                   image_augmentation=False,
                                                   resize=resize,
                                                   grasp_sequence_min_time_step=grasp_sequence_min_time_step,
-                                                  grasp_sequence_max_time_step=grasp_sequence_max_time_step)
+                                                  grasp_sequence_max_time_step=grasp_sequence_max_time_step,
+                                                  shift_ratio=0.0)
 
         if resize:
             input_image_shape = [resize_height, resize_width, 3]
