@@ -53,6 +53,10 @@ class ConditionalImage(PredictionSampler2):
         self.transform_model = None
         self.skip_connections = False
 
+        if self.use_noise:
+            raise NotImplementedError('noise vectors not supported for'
+                                      'conditional_image model')
+
     def _makePredictor(self, features):
         # =====================================================================
         # Create many different image decoders
@@ -133,7 +137,6 @@ class ConditionalImage(PredictionSampler2):
         #next_option_out = next_model([h,label_in])
         self.next_model = next_model
         self.value_model = value_model
-        self.next_model.summary()
 
         # create input for controlling noise output if that's what we decide
         # that we want to do
@@ -141,24 +144,28 @@ class ConditionalImage(PredictionSampler2):
             z = Input((self.num_hypotheses, self.noise_dim))
             ins += [z]
 
-        next_option_in = Input((48,), name="next_option_in")
-        ins += [next_option_in]
+        next_option_in = Input((1,), name="next_option_in")
+        next_option_in2 = Input((1,), name="next_option_in2")
+        ins += [next_option_in, next_option_in2]
 
-        #y = OneHot(self.num_options)(next_option_in)
-        #y = Flatten()(y)
-        y = next_option_in
+        y = OneHot(self.num_options)(next_option_in)
+        y = Flatten()(y)
+        y2 = OneHot(self.num_options)(next_option_in2)
+        y2 = Flatten()(y2)
         x = h
         tform = self._makeTransform()
+        tform.summary()
         x = tform([h0,h,y])
-        #x = tform([h,y])
+        x2 = tform([h0,x,y2])
         image_out = decoder([x])
+        image_out2 = decoder([x2])
         #image_out = decoder([x, s32, s16, s8])
 
         # =====================================================================
         actor = GetActorModel(h, self.num_options, arm_size, gripper_size,
                 self.decoder_dropout_rate)
         actor.compile(loss="mae",optimizer=self.getOptimizer())
-        arm_cmd, gripper_cmd = actor([h, next_option_in])
+        arm_cmd, gripper_cmd = actor([h, y])
         lfn = self.loss
         lfn2 = "logcosh"
         val_loss = "binary_crossentropy"
@@ -166,56 +173,48 @@ class ConditionalImage(PredictionSampler2):
         # =====================================================================
         # Create models to train
         predictor = Model(ins + [label_in],
-                [image_out, next_option_out, value_out])
+                [image_out, image_out2, next_option_out, value_out])
         predictor.compile(
-                loss=[lfn, "binary_crossentropy", val_loss],
-                loss_weights=[1., 0.1, 0.1,],
+                loss=[lfn, lfn, "binary_crossentropy", val_loss],
+                loss_weights=[1., 1., 0.1, 0.1,],
                 optimizer=self.getOptimizer())
         if self.do_all:
             train_predictor = Model(ins + [label_in],
-                    [image_out, next_option_out, value_out, #o1, o2,
+                    [image_out, image_out2, next_option_out, value_out,
                         arm_cmd,
                         gripper_cmd])
             train_predictor.compile(
-                    loss=[lfn, "binary_crossentropy", val_loss,
+                    loss=[lfn, lfn, "binary_crossentropy", val_loss,
                         lfn2, lfn2],
-                    loss_weights=[1., 0.1, 0.1, 1., 0.2],
+                    loss_weights=[1., 1., 0.1, 0.1, 1., 0.2],
                     optimizer=self.getOptimizer())
         else:
             train_predictor = Model(ins + [label_in],
-                    [image_out, #o1, o2,
+                    [image_out, image_out2,
                         ])
             train_predictor.compile(
-                    loss=[lfn], 
+                    loss=lfn, 
                     optimizer=self.getOptimizer())
-        actor.summary()
-        train_predictor.summary()
         return predictor, train_predictor, actor, ins, h
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
-        [I, q, g, oin, q_target, g_target,] = features
+        [I, q, g, oin, label, q_target, g_target,] = features
         tt, o1, v, qa, ga, I_target = targets
+        I_target2, o2 = self._getNextGoal(features, targets)
         I0 = I[0,:,:,:]
         length = I.shape[0]
         I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
         oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
         qa = np.squeeze(qa)
         ga = np.squeeze(ga)
+        #print("o1 = ", o1, o1.shape, type(o1))
+        #print("o2 = ", o2, o2.shape, type(o2))
         if self.do_all:
-            if self.use_noise:
-                noise_len = features[0].shape[0]
-                z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-                return [I0, I, z, o1, oin], [ I_target, o1, v, qa, ga]
-            else:
-                return [I0, I, o1, oin], [ I_target, o1, v, qa, ga]
+            o1_1h = np.squeeze(self.toOneHot2D(o1, self.num_options))
+            return [I0, I, o1, o2, oin], [ I_target, I_target2, o1_1h, v, qa, ga]
         else:
-            if self.use_noise:
-                noise_len = features[0].shape[0]
-                z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-                return [I0, I, z, o1, oin], [ I_target]
-            else:
-                return [I0, I, o1, oin], [ I_target]
+            return [I0, I, o1, o2, oin], [I_target, I_target2]
 
 
     def encode(self, obs):
