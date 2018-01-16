@@ -24,7 +24,12 @@ class DataCollector(object):
     self.description = "/robot_description"
     self.data_types = ["h5f", "npz"]
 
-    def __init__(self, data_type="h5f", rate=10, data_root="."):
+    def __init__(self,
+            data_type="h5f",
+            rate=10,
+            data_root=".",
+            img_shape=(128,128)):
+
         '''
         Set up the writer (to save trials to disk) and subscribers (to process
         input from ROS and store the current state).
@@ -47,6 +52,52 @@ class DataCollector(object):
             self.writer = NpzDataset(root)
         else:
             raise RuntimeError("data type %s not supported" % data_type)
+
+        self.T_world_ee = None
+        self.T_world_camera = None
+        self.camera_frame = camera_frame
+        self.ee_frame = ee_frame
+
+        self.q = None
+        self.dq = None
+        self.pc = None
+        self.camera_depth_info = None
+        self.camera_rgb_info = None
+        self.depth_img = None
+        self.rgb_img = None
+
+        #self._camera_depth_info_sub = rospy.Subscriber(camera_depth_info_topic, CameraInfo, self._depthInfoCb)
+        #self._camera_rgb_info_sub = rospy.Subscriber(camera_rgb_info_topic, CameraInfo, self._rgbInfoCb)
+        self._rgb_sub = rospy.Subscriber(camera_rgb_topic, Image, self._rgbCb)
+        self._depth_sub = rospy.Subscriber(camera_depth_topic, Image, self._depthCb)
+        self._joints_sub = rospy.Subscriber(joints_topic, JointState, self._jointsCb)
+ 
+        self._resetData()
+
+    def _rgbCb(self, msg):
+        self.rgb_img = msg
+
+    def _depthCb(self, msg):
+        self.depth_img = msg
+
+    def _resetData(self):
+        self.data = {}
+        self.data["q"] = []
+        self.data["dq"] = []
+        self.data["T_ee"] = []
+        self.data["T_camera"] = []
+
+        # numpy matrix of xyzrgb values
+        self.data["xyzrgb"] = []
+
+        # -------------------------
+        # Camera info fields
+
+    def _jointsCb(self, msg):
+        self.q = msg.position
+        self.dq = msg.velocity
+
+
 
     def save(self, seed, result):
         '''

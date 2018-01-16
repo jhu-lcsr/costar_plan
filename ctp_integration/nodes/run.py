@@ -79,6 +79,7 @@ def main():
         filled_args = task.compile(fakeTaskArgs())
     else:
         objects = GetDetectObjectsService()
+        observe = Observer(objects)
         raise NotImplementedError('wait for object detection information')
 
     # print out task info
@@ -98,6 +99,17 @@ def main():
 
     for i in range(args.execute):
         print("Executing trial %d..."(i))
+        task, env, world = observe()
+        names, options = task.sampleSequence()
+        plan = OptionsExecutionManager(options)
+
+        # Update the plan and the collector in synchrony.
+        while True:
+            # Note: this will be "dummied out" for most of 
+            control = plan.apply(world)
+            env.step(control)
+            collector.tick()
+
         if collector is not None:
             collector.save(i, 1.)
 
