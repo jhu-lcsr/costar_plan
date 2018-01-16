@@ -331,8 +331,8 @@ if __name__ == '__main__':
                 goalPub.publish(poseStampedMsg)
 
                 # Loop until destination has been reached
-                max_iter = 100
-                iterations = 150
+                max_iter = 150
+                iterations = 0
                 while (iterations < max_iter):
 
                     at_goal = collector.goalReached(poseStampedMsg.pose)
