@@ -124,12 +124,12 @@ class ConditionalImageGan(PretrainImageGan):
             #h = encoder([img_in, img0_in])
             h = encoder([img_in])
             h0 = encoder(img0_in)
-        next_option_in = Input((self.num_options,), name="next_option_in")
+        next_option_in = Input((1,), name="next_option_in")
+        next_option2_in = Input((1,), name="next_option2_in")
         ins += [next_option_in]
 
-        #y = OneHot(self.num_options)(next_option_in)
-        #y = Flatten()(y)
-        y = next_option_in
+        y = OneHot(self.num_options)(next_option_in)
+        y = Flatten()(y)
         x = h
         tform = self._makeTransform()
         x = tform([h0,h,y])
@@ -143,7 +143,10 @@ class ConditionalImageGan(PretrainImageGan):
         self.discriminator = image_discriminator
 
         image_discriminator.trainable = False
-        is_fake = image_discriminator([img0_in, img_in, next_option_in, image_out])
+        is_fake = image_discriminator([
+            img0_in, img_in,
+            next_option_in, 
+            image_out])
 
         # =====================================================================
         # Create generator model to train
@@ -169,7 +172,7 @@ class ConditionalImageGan(PretrainImageGan):
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
-        [I, q, g, oin, q_target, g_target,] = features
+        [I, q, g, oin, label, q_target, g_target,] = features
         tt, o1, v, qa, ga, I_target = targets
         I0 = I[0,:,:,:]
         length = I.shape[0]
@@ -178,19 +181,11 @@ class ConditionalImageGan(PretrainImageGan):
         qa = np.squeeze(qa)
         ga = np.squeeze(ga)
         if self.do_all:
-            if self.use_noise:
-                noise_len = features[0].shape[0]
-                z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-                return [I0, I, z, o1], [ I_target]
-            else:
-                return [I0, I, o1], [ I_target]
+            noise_len = features[0].shape[0]
+            z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
+            return [I0, I, o1], [ I_target]
         else:
-            if self.use_noise:
-                noise_len = features[0].shape[0]
-                z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-                return [I0, I, z, o1], [ I_target]
-            else:
-                return [I0, I, o1], [ I_target]
+            return [I0, I, o1], [ I_target]
 
     def _makeImageDiscriminator(self, img_shape):
         '''
@@ -203,7 +198,8 @@ class ConditionalImageGan(PretrainImageGan):
         img0 = Input(img_shape,name="img0_encoder_in")
         img = Input(img_shape,name="img_encoder_in")
         img_goal = Input(img_shape,name="goal_encoder_in")
-        option = Input((self.num_options,),name="disc_options")
+        option = Input((1,),name="disc_options")
+        option2 = Input((1,),name="disc2_options")
         ins = [img0, img, option, img_goal]
         dr = self.dropout_rate
         dr = 0
@@ -216,7 +212,8 @@ class ConditionalImageGan(PretrainImageGan):
         x = Add()([x, xg])
         x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=True)
 
-        y = AddDense(option, 64, "lrelu", dr)
+        y = OneHot(self.num_options)(option)
+        y = AddDense(y, 64, "lrelu", dr)
         x = TileOnto(x, y, 64, (32,32))
         x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
         x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=True)
@@ -224,6 +221,7 @@ class ConditionalImageGan(PretrainImageGan):
         x = AddConv2D(x, 256, [5,5], 2, dr, "same", lrelu=True)
         x = AddConv2D(x, 256, [5,5], 1, dr, "same", lrelu=True)
         x = AddConv2D(x, 1, [5,5], 1, 0., "same", activation="sigmoid")
+
         #x = MaxPooling2D(pool_size=(8,8))(x)
         x = AveragePooling2D(pool_size=(8,8))(x)
         x = Flatten()(x)
