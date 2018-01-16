@@ -8,7 +8,7 @@ import rospy
 
 from costar_task_plan.mcts import PlanExecutionManager, DefaultExecute
 from costar_task_plan.robotics.core import RosTaskParser
-from costar_task_plan.robotics.tom import *
+from costar_task_plan.robotics.core import CostarWorld
 from sensor_msgs.msg import JointState
 
 from ctp_integration import MakeStackTask
@@ -74,13 +74,16 @@ def main():
     task = MakeStackTask()
 
     # create fake data or listen for a detected object information message
+    world = CostarWorld()
     if args.fake:
         world.addObjects(fakeTaskArgs())
         filled_args = task.compile(fakeTaskArgs())
+        observe = Identity(task, world)
     else:
         objects = GetDetectObjectsService()
-        observe = Observer(objects)
-        raise NotImplementedError('wait for object detection information')
+        observe = Observer(world=world,
+                detect_srv=objects,
+                topic="/costar_sp_segmenter/detected_object_list")
 
     # print out task info
     if args.verbose:

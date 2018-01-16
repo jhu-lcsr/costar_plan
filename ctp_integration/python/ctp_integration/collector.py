@@ -96,8 +96,7 @@ class DataCollector(object):
     def _jointsCb(self, msg):
         self.q = msg.position
         self.dq = msg.velocity
-
-
+        print(self.q, self.dq)
 
     def save(self, seed, result):
         '''
@@ -105,7 +104,8 @@ class DataCollector(object):
         '''
 
         # for now all examples are considered a success
-        self.npz_writer.write(data, seed, result)
+        self.npz_writer.write(self.data, seed, result)
+        self._resetData()
 
 if __name__ == '__main__':
     pass
