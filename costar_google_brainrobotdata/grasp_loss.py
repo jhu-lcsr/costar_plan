@@ -35,8 +35,7 @@ def gaussian_kernel_2D(size=(3, 3), center=(1, 1), sigma=1):
 def segmentation_gaussian_measurement(
         y_true,
         y_pred,
-        gaussian_kernel_size=(3, 3),
-        gaussian_sigma=1,
+        gaussian_sigma=10,
         measurement=segmentation_losses.binary_crossentropy):
     """ Loss function incorporating grasp parameters.
 
@@ -51,7 +50,6 @@ def segmentation_gaussian_measurement(
         x_width_coordinate = y_true[2]
 
         y_true_img = tile_vector_as_image_channels(label, y_pred)
-        #
         loss_img = (y_true_img, y_pred)
         y_pred_shape = K.int_shape(y_pred)
         if len(y_pred_shape) == 3:
@@ -66,15 +64,56 @@ def segmentation_gaussian_measurement(
 def segmentation_gaussian_binary_crossentropy(
         y_true,
         y_pred,
-        gaussian_kernel_size=(3, 3),
-        gaussian_sigma=1):
-    return segmentation_gaussian_measurement(
-        y_true=y_true, y_pred=y_pred,
-        gaussian_kernel_size=gaussian_kernel_size,
-        gaussian_sigma=gaussian_sigma,
-        measurement=segmentation_losses.binary_crossentropy
-    )
+        gaussian_sigma=10):
+    with K.name_scope(name='segmentation_gaussian_binary_crossentropy') as scope:
+        y_pred_shape = K.int_shape(y_pred)
+        batch_size = y_pred_shape[0]
+        y_true = tf.split(y_true, batch_size)
+        y_pred = tf.split(y_pred, batch_size)
+        results = []
+        for y_true_img, y_pred_img in zip(y_true, y_pred):
+            result = segmentation_gaussian_measurement(
+                y_true=y_true_img, y_pred=y_pred_img,
+                gaussian_sigma=gaussian_sigma,
+                measurement=segmentation_losses.binary_crossentropy
+            )
+            results = results + [result]
+        results = tf.concat(results, axis=0)
+        return results
 
+# def segmentation_gaussian_measurement(
+#         y_true,
+#         y_pred,
+#         gaussian_sigma=10,
+#         measurement=segmentation_losses.binary_crossentropy):
+#     """ Loss function incorporating grasp parameters.
+
+#     # Arguments
+
+#         y_true: is assumed to be [label, x_img_coord, y_image_coord]
+#         y_pred: is expected to be a 2D array of labels.
+#     """
+#     with K.name_scope(name='grasp_segmentation_gaussian_loss') as scope:
+#         y_pred_shape = K.int_shape(y_pred)
+#         batch_size = y_pred_shape[0]
+#         y_pred_img_shape = y_pred_shape[1:]
+#         if len(y_pred_shape) == 3:
+#             y_pred_shape = y_pred[:-1]
+#         if len(y_pred_shape) == 4:
+#             y_pred_shape = y_pred[1:3]
+
+#         y_true = tf.split(y_true, batch_size)
+#         y_pred = tf.split(y_pred, batch_size)
+#         weighted_gaussian_labels = []
+#         for i, ((label, y_height_coordinate, x_width_coordinate), y_pred_img) in enumerate(zip(y_true, y_pred)):
+#             y_true_img = tile_vector_as_image_channels(label, y_pred_img)
+#             measurement_img = measurement(K.flatten(y_true_img), K.flatten(y_pred_img))
+#             measurement_img = K.reshape(measurement_img, y_pred_img_shape)
+#             weights = gaussian_kernel_2D(size=y_pred_shape, center=(y_height_coordinate, x_width_coordinate), sigma=gaussian_sigma)
+#             weighted_loss_img = tf.multiply(measurement_img, weights)
+#             weighted_gaussian_labels = weighted_gaussian_labels + [weighted_loss_img]
+#         weighted_gaussian_labels = tf.concat(weighted_gaussian_labels, axis=0)
+#         return K.sum(K.flatten(weighted_gaussian_labels))
 
 def segmentation_single_pixel_measurement(y_true, y_pred, measurement=keras.losses.binary_crossentropy, name=None):
     """ Applies metric or loss function at a specific pixel coordinate.
@@ -92,7 +131,6 @@ def segmentation_single_pixel_measurement(y_true, y_pred, measurement=keras.loss
         yx_shape = K.int_shape(yx_coordinate)
         sample_index = tf.expand_dims(tf.range(yx_shape[0]), axis=-1)
         byx_coordinate = tf.concat([sample_index, yx_coordinate], axis=-1)
-        print('y_true: ', y_true, ' y_pred:', y_pred, ' yx_coordinate: ', yx_shape, ' sample_index: ', sample_index, ' byx_coordinate: ', byx_coordinate)
 
         # maybe need to transpose yx_coordinate?
         gripper_coordinate_y_pred = tf.gather_nd(y_pred, byx_coordinate)

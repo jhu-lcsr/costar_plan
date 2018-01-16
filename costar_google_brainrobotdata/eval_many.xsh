@@ -7,7 +7,7 @@ import os
 # all parameters are optional.
 # NOTE: CUDA OPTION IS NOT YET WORKING 
 # cuda_visible_devices can be "0" for gpu 0, "0,1" for gpus 0 and 1, "-1" for cpu only.
-
+$XONSH_SHOW_TRACEBACK=True
 model_str = ''
 cuda_dev = ''
 
@@ -36,5 +36,5 @@ for weightsfile in reversed(listvar):
         #os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
         #$CUDA_VISIBILE_DEVICES = @(cuda_dev)
         #CUDA_VISIBLE_DEVICES = @(cuda_dev)
-        CUDA_VISIBLE_DEVICES="1" && python grasp_train.py --epochs 1 --load_weights @(weightsfile) --pipeline_stage eval --grasp_model @(model_str)  --data_dir=~/datasets/grasping.ssd/
+        CUDA_VISIBLE_DEVICES="1" && python grasp_train.py --epochs 1 --load_weights @(weightsfile) --pipeline_stage eval --grasp_model @(model_str)  --data_dir=~/datasets/grasping.ssd/ #--distributed None
         print('evaluation complete for: ' + weightsfile)

@@ -1,5 +1,4 @@
 
-from .multi_gan_model import RobotMultiGAN
 from .multi_regression_model import RobotMultiFFRegression
 from .multi_tcn_regression_model import RobotMultiTCNRegression
 from .multi_lstm_regression import RobotMultiLSTMRegression
@@ -23,6 +22,7 @@ from .pretrain_image_gan import PretrainImageGan
 from .sampler2 import PredictionSampler2
 from .conditional_sampler2 import ConditionalSampler2
 from .conditional_image import ConditionalImage
+from .conditional_image_gan import ConditionalImageGan
 
 def MakeModel(features, model, taskdef, **kwargs):
     '''
@@ -57,11 +57,7 @@ def MakeModel(features, model, taskdef, **kwargs):
             ["features", "arm", "gripper"]
         As a part of their state input.
         '''
-        if model == 'gan':
-            model_instance = RobotMultiGAN(taskdef,
-                    model=model,
-                    **kwargs)
-        elif model == 'predictor':
+        if model == 'predictor':
             model_instance = RobotMultiPredictionSampler(taskdef,
                     model=model,
                     **kwargs)
@@ -81,28 +77,8 @@ def MakeModel(features, model, taskdef, **kwargs):
             model_instance = RobotMultiConvLSTMRegression(taskdef,
                     model=model,
                     **kwargs)
-        elif model == "sample":
-            model_instance = RobotMultiTrajectorySampler(taskdef,
-                    model=model,
-                    **kwargs)
-        elif model == "autoencoder":
-            model_instance = RobotMultiAutoencoder(taskdef,
-                    model=model,
-                    **kwargs)
         elif model == "hierarchical":
             model_instance = RobotMultiHierarchical(taskdef,
-                    model=model,
-                    **kwargs)
-        elif model == "unsupervised":
-            model_instance = RobotMultiUnsupervised(taskdef,
-                    model=model,
-                    **kwargs)
-        elif model == "unsupervised1":
-            model_instance = RobotMultiUnsupervised1(taskdef,
-                    model=model,
-                    **kwargs)
-        elif model == "sequence":
-            model_instance = RobotMultiSequencePredictor(taskdef,
                     model=model,
                     **kwargs)
         elif model == "husky_predictor":
@@ -129,6 +105,8 @@ def MakeModel(features, model, taskdef, **kwargs):
             model_instance = ConditionalSampler2(taskdef, model=model, **kwargs)
         elif model == "conditional_image":
             model_instance = ConditionalImage(taskdef, model=model, **kwargs)
+        elif model == "conditional_image_gan":
+            model_instance = ConditionalImageGan(taskdef, model=model, **kwargs)
         elif model == "pretrain_minimal":
             model_instance = PretrainMinimal(taskdef, model=model, **kwargs)
         elif model == "pretrain_image_gan":
@@ -143,17 +121,12 @@ def MakeModel(features, model, taskdef, **kwargs):
 
 def GetModels():
     return [None,
-            "gan", # simple GAN model for generating images
             "ff_regression", # regression model; just a dense net
             "tcn_regression", # ff regression model with a TCN
             "lstm_regression", # lstm regression model
             "conv_lstm_regression", # lstm regression model
-            "sample", # sampler NN to generate trajectories
             "predictor", # sampler NN to generate image goals
-            "autoencoder", # autoencoder image test
             "hierarchical", # hierarchical policy for planning
-            "unsupervised", # paper implementation for unsupervised method
-            "unsupervised1", # alternative implementation
             "husky_predictor", # husky multi prediction sampler implementation
             "goal_sampler", # samples goals instead of everything else
             "image_sampler", #just learn to predict goal image
@@ -165,6 +138,7 @@ def GetModels():
             "sampler2", # -----------------------------   (same as above)
             "conditional_sampler2", # just give the condition
             "conditional_image", # just give label and predict image
+            "conditional_image_gan", # just give label and predict image
             "pretrain_minimal",
             "pretrain_image_gan",
             ]
