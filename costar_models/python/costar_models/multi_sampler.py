@@ -43,7 +43,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.tform_kernel_size  = [5,5]
         self.num_hypotheses = 4
         self.validation_split = 0.05
-        self.num_features = 4
 
         # For the new model setup
         self.encoder_channels = 64
@@ -419,44 +418,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             self._makePredictor(
                 (features, arm, gripper))
 
-    def _getAllData(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
-            prev_label, goal_features, goal_arm, goal_gripper, value, *args, **kwargs):
-        I = features / 255. # normalize the images
-        q = arm
-        g = gripper * -1
-        qa = arm_cmd
-        ga = gripper_cmd * -1
-        oin = prev_label
-        I_target = goal_features / 255.
-        q_target = goal_arm
-        g_target = goal_gripper * -1
-        o_target = label
-
-        # Preprocess values
-        value_target = np.array(value > 1.,dtype=float)
-        #if value_target[-1] == 0:
-        #    value_target = np.ones_like(value) - np.array(label == label[-1], dtype=float)
-        q[:,3:] = q[:,3:] / np.pi
-        q_target[:,3:] = q_target[:,3:] / np.pi
-        qa /= np.pi
-
-        o_target_1h = np.squeeze(self.toOneHot2D(o_target, self.num_options))
-        train_target = self._makeTrainTarget(
-                I_target,
-                q_target,
-                g_target,
-                o_target_1h)
-
-        return [I, q, g, oin, q_target, g_target,], [
-                np.expand_dims(train_target, axis=1),
-                o_target,
-                value_target,
-                np.expand_dims(qa, axis=1),
-                np.expand_dims(ga, axis=1),
-                I_target]
-
     def _getNextGoal(self, features, targets):
-        [I, q, g, oin, q_target, g_target,] = features
+        [I, q, g, oin, label, q_target, g_target,] = features
         tt, o1, v, qa, ga, I_target = targets
         img = np.zeros_like(I_target)
         next_option = np.zeros_like(o1)
@@ -491,20 +454,22 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
+        [I, q, g, oin, label, q_target, g_target,] = features
+        features = [I, q, g, oin]
         tt, o1, v, qa, ga, I = targets
         o1 = np.squeeze(self.toOneHot2D(o1, self.num_options))
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
             if self.success_only:
-                return features[:self.num_features] + [z], [tt, o1]
+                return features, [z], [tt, o1]
             else:
-                return features[:self.num_features] + [z], [tt, o1, v]
+                return features + [z], [tt, o1, v]
         else:
             if self.success_only:
-                return features[:self.num_features], [tt, o1]
+                return features, [tt, o1]
             else:
-                return features[:self.num_features], [tt, o1, v]
+                return features, [tt, o1, v]
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''
@@ -525,7 +490,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Use sample data to compile the model and set everything else up.
         # Check to make sure data makes sense before running the model.
 
-        [I, q, g, oprev, q_target, g_target,] = features
+        [I, q, g, oprev, label, q_target, g_target,] = features
         [I_target2, o_target, value_target, qa, ga, I_target0] = targets
 
         if self.predictor is None:

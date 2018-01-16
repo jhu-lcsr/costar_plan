@@ -75,7 +75,6 @@ def GetModelParser():
                         default=100)
     parser.add_argument("--load_model", "--lm",
                         help="Load model from file for tests.",
-                        #type=argparse.FileType('r'))#,
                         action="store_true")
     parser.add_argument("--show_iter", "--si",
                         help="Show output images from model training" + \
@@ -112,13 +111,6 @@ def GetModelParser():
                               "based version of the fit tool",
                         default=300,
                         type=int)
-    parser.add_argument("--residual",
-                        help="add a new residual connections to the model" + \
-                              "if possible. Not all models implement this.",
-                        action="store_true")
-    parser.add_argument("--predict_value",
-                        help="tell predictor models to learn value as well",
-                        action="store_true")
     parser.add_argument("--upsampling",
                         help="set upsampling definition",
                         choices=UpsamplingOptions(),
@@ -145,9 +137,6 @@ def GetModelParser():
                         default=None)
     parser.add_argument("--success_only",
                         help="only train on positive examples",
-                        action="store_true")
-    parser.add_argument("--sampling",
-                        help="sampling version",
                         action="store_true")
     parser.add_argument("--loss",
                         help="Loss for state variables: MSE, MAE, or log(cosh).",

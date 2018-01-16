@@ -1,3 +1,7 @@
+#!/usr/bin/env python
+
+from __future__ import print_function
+
 import rospy
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Image
@@ -59,17 +63,13 @@ fireHydrantPose.orientation.w = -0.447
 
 #store the positions as ints, have a dictionary with keys, robots pose, orientation, and action, sequence (trial number), top down image is 5
 #randomize the ordering of targets
-poseDictionary = {'Dumpster': dumpsterPose, 'Barrier' : barrierPose, 'Barrel' :  constructionBarrelPose, 'Fire Hydrant': fireHydrantPose}
-
-dumpsterPose = None
-barrierPose = None
+poseDictionary = {
+        'Dumpster': dumpsterPose,
+        'Barrier' : barrierPose,
+        'Barrel' :  constructionBarrelPose,
+        'Fire Hydrant': fireHydrantPose}
 
 #globals
-gazeboModels = None
-img_np = None
-robot_pose = Odometry()
-robot_action = Twist()
-
 name_to_dtypes = {
 	"rgb8":    (np.uint8,  3),
 	"rgba8":   (np.uint8,  4),
@@ -102,48 +102,46 @@ def imageToNumpy(msg):
 		data = data[...,0]
 	return data
 
+class HuskyDataCollector(object):
+    def __init__(self):
+        self.gazeboModels = None
+        self.img_np = None
+        self.pose = Odometry()
+        self.action = Twist()
 
-def imageCallback(data):
-    global img_np
-    img_np_bk = imageToNumpy(data)
-    #print img_np.shape
-    img_np = imresize(img_np_bk, (64, 64))
-   
-    #print img_np.shape
-  
+        rospy.Subscriber(overheadImageTopic, Image, self.imageCallback)
+        rospy.Subscriber(huskyCmdVelTopic, Twist, self.cmdVelCallback)
+
+        self.writer = NpzDataset('husky_data')
+
+    def imageCallback(self, data):
+        img_np_bk = imageToNumpy(data)
+        #print img_np_bk.shape
+        self.img_np = imresize(img_np_bk, (64, 64))
+        #print self.img_np.shape
     
-def cmdVelCallback(data):
-    global robot_action
-    robot_action = data
+    def cmdVelCallback(self, data):
+        self.action = data
 
-def modelsCallback(data):
-    global gazeboModels
-    gazeboModels = data    
-    
-
-def listener():
-    # setup subscribers
-    rospy.init_node('costar_simulator_husky', anonymous=True)
-    rospy.Subscriber(overheadImageTopic, Image, imageCallback)
-    rospy.Subscriber(huskyCmdVelTopic, Twist, cmdVelCallback)
-
+    def modelsCallback(self, data):
+        self.gazeboModels = data    
 
     
-# returns true if goal has been reached, else false    
-def goalReached(finalPose):
-    #TODO
-    return False
+    # returns true if goal has been reached, else false    
+    def goalReached(self, finalPose):
+        #TODO
+        return False
       
-def getObjectList():
-    return list(poseDictionary.keys())
+    def getObjectList(self):
+        return list(poseDictionary.keys())
 
-def getOverheadCamera():
-    pass
+    def getOverheadCamera(self):
+        pass
 
-def moveToObject(objectName):
-    pass
+    def moveToObject(self, objectName):
+        pass
 
-def finishCurrentExample(example, max_label=-1, seed=None):
+    def finishCurrentExample(example, max_label=-1, seed=None):
         '''
         Preprocess this particular example:
         - split it up into different time windows of various sizes
@@ -156,12 +154,15 @@ def finishCurrentExample(example, max_label=-1, seed=None):
         # ============================================================
         # Split into chunks and preprocess the data.
         # This may require setting up window_length, etc.
-        next_list = ["reward", "done", "example", "label", "image", "robot_pose", "robot_action"]
+        next_list = ["reward", "done", "example", "label",
+                "image",
+                "pose",
+                "action"]
         # -- NOTE: you can add other features here in the future, but for now
         # we do not need these. Label gets some unique handling.
         prev_list  = []
-        first_list = ["image", "robot_pose"]
-        goal_list = ["image", "robot_pose"]
+        first_list = ["image", "pose"]
+        goal_list = ["image", "pose"]
         length = len(current_example['label'])
 
         # Create an empty dict to hold all the data from this last trial.
@@ -253,33 +254,40 @@ def finishCurrentExample(example, max_label=-1, seed=None):
         #print ("writing ", current_example['example'][0])
             
         #print ("data prev_label ", data['prev_label'], " label ", data['label'])
-        #print ("goal robot pose ", data['goal_robot_pose'])
+        #print ("goal robot pose ", data['goal_pose'])
         #from scipy.misc import imsave    
         #imsave('/tmp/rgb_gradient.png', data['goal_image'][0])
         
 
-        npz_writer.write(data, current_example['example'][0], total_reward)
+        self.writer.write(data, current_example['example'][0], total_reward)
     
         
 if __name__ == '__main__':
-    listener()
-    global gazeboModels
-    global robot_action
-    global img_np
+    rospy.init_node('costar_husky_data_collection')
+    collector = HuskyDataCollector()
     goalPub = rospy.Publisher(huskyGoalTopic, PoseStamped, queue_size=1)
     seqNumber = 0
-    npz_writer = NpzDataset('/home/katyakd1/projects/costar_ws/src/costar_plan/husky/costar_simulator/python/data/')
     prev_label = -1
     listener = tf.TransformListener()
-    while not rospy.is_shutdown():
-        
+    print("================================================")
+    print("Starting HUSKY data collector.")
+    print("This will dump all examples into the 'husky_data' folder.")
+    print("If you are having trouble, make sure ROS is not having trouble ")
+    print("synchronizing time; there is a rospy.sleep() here to help with")
+    print("that.")
+    rospy.sleep(0.5)
+
+    try:
         rate = rospy.Rate(10) # 10hz
         
-        
+        # Loop as long as we are runnin
         #for objectName in poseDictionary:
         while not rospy.is_shutdown():
+
             # select random objectName
-            objectName = random.sample(list(poseDictionary), 1)[0]
+            objectName = random.sample(poseDictionary.keys(), 1)[0]
+            print("================================================")
+            print("Random objective:", objectName)
         
             
             poseStampedMsg = PoseStamped()
@@ -287,7 +295,7 @@ if __name__ == '__main__':
             poseStampedMsg.header.stamp = rospy.Time.now()
             poseStampedMsg.pose = poseDictionary[objectName]
             
-            #print "position is ", poseStampedMsg.pose           
+            print ("position is ", poseStampedMsg.pose)
             goalPub.publish(poseStampedMsg)
             
             current_example = {}
@@ -297,16 +305,15 @@ if __name__ == '__main__':
             current_example['label'] = list()
             current_example['prev_label'] = list()
             current_example['image'] = list()  
-            current_example['robot_pose'] = list()
-            current_example['robot_action'] = list()
+            current_example['pose'] = list()
+            current_example['action'] = list()
         
-        
-            
             iterations = 0
-            
-            while (goalReached(poseStampedMsg.pose) == False and iterations < 150):
-                #print "sleeping ", iterations
+            while (collector.goalReached(poseStampedMsg.pose) == False and
+                    iterations < 1000):
+
                 rate.sleep()
+
                 # get global variables and write
                 current_example['reward'].append(1)
                 if iterations == 149:
@@ -314,44 +321,38 @@ if __name__ == '__main__':
                 else:
                     current_example['done'].append(0)
                 current_example['example'].append(seqNumber)
-                
-                current_example['image'].append(img_np)
+                current_example['image'].append(collector.img_np)
                 try:
                     (trans,rot) = listener.lookupTransform('/map', '/base_link', rospy.Time(0))
                 except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
                     continue
 
-                print trans, rot
+                #print trans, rot
 
                 quaternion = (rot[0], rot[1], rot[2], rot[3])
                 euler = tf.transformations.euler_from_quaternion(quaternion)
                 roll = euler[0]
                 pitch = euler[1]
                 yaw = euler[2]
-                current_example['robot_pose'].append([trans[0], trans[1], trans[2], roll, pitch, yaw])
+                current_example['pose'].append([trans[0], trans[1], trans[2], roll, pitch, yaw])
                 
-                
-                current_example['robot_action'].append([robot_action.linear.x, robot_action.linear.y, \
-                robot_action.linear.z, robot_action.angular.x, robot_action.angular.y, robot_action.angular.z])
+                action = collector.action
+                current_example['action'].append([
+                    action.linear.x, action.linear.y, action.linear.z,
+                    action.angular.x, action.angular.y, action.angular.z])
                 
                 current_example['label'].append(poseDictionary.keys().index(objectName))
                 current_example['prev_label'].append(prev_label)
                 
-                
-                
                 iterations = iterations + 1
             
-            #print ("writing sample")
-            finishCurrentExample(current_example)
-            #npz_writer.write(current_example, seqNumber, 1) 
+            print ("writing sample")
+            collector.finishCurrentExample(current_example)
             seqNumber = seqNumber + 1
-            print "prev_label", prev_label
+            print ("prev_label", prev_label)
             prev_label = poseDictionary.keys().index(objectName)
-            print "prev_label after update", prev_label
+            print ("prev_label after update", prev_label)
 
-        
-            
-    
-    
-    #rospy.spin()
+    except rospy.ROSInterruptException as e:
+        pass
     
