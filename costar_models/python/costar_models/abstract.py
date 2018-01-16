@@ -228,7 +228,7 @@ class AbstractAgentBasedModel(object):
                 for i, value in enumerate(ffeatures):
                     if value.shape[0] == 0:
                         continue
-                    if i >= len(features):
+                    if idx == 0:
                         features.append(value)
                     else:
                         try:
@@ -244,7 +244,7 @@ class AbstractAgentBasedModel(object):
                 for i, value in enumerate(ftargets):
                     if value.shape[0] == 0:
                         continue
-                    if i >= len(targets):
+                    if idx == 0:
                         targets.append(value)
                     else:
                         try:
@@ -259,10 +259,14 @@ class AbstractAgentBasedModel(object):
                 # --------------------------------------------------------------
 
             n_samples = features[0].shape[0]
+            for f in features:
+                if f.shape[0] != n_samples:
+                    raise ValueError("Feature lengths are not equal!")
+
             #print("COLLECTED", n_samples, "samples")
             idx = np.random.randint(n_samples,size=(self.batch_size,))
             yield ([f[idx] for f in features],
-                    [t[idx] for t in targets])
+                   [t[idx] for t in targets])
 
     def save(self):
         '''
