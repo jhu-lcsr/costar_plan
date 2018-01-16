@@ -308,8 +308,6 @@ if __name__ == '__main__':
             current_example['pose'] = list()
             current_example['action'] = list()
         
-            iterations = 0
-            
             # Make sure we are getting poses
             while not collector.tick():
                 rate.sleep()
@@ -332,13 +330,22 @@ if __name__ == '__main__':
                 goalPub.publish(poseStampedMsg)
 
                 # Loop until destination has been reached
-                max_iter = 1000
-                while (collector.goalReached(poseStampedMsg.pose) == False and
-                        iterations < max_iter):
+                max_iter = 150
+                iterations = 0
+                while (iterations < max_iter):
 
+                    at_goal = collector.goalReached(poseStampedMsg.pose)
                     # get global variables and write
-                    current_example['reward'].append(1)
-                    if iterations == max_iter - 1:
+                    if at_goal:
+                        print(" ---> SUCCESS!")
+                        current_example['reward'].append(10)
+                    elif not at_goal and iterations == max_iter -1:
+                        print(" ---> FAILED!")
+                        current_example['reward'].append(-100)
+                    else:
+                        current_example['reward'].append(0)
+
+                    if iterations == max_iter - 1 or at_goal:
                         current_example['done'].append(1)
                     else:
                         current_example['done'].append(0)
@@ -359,6 +366,10 @@ if __name__ == '__main__':
                     iterations = iterations + 1
                     if not collector.tick():
                         raise RuntimeError("collection lost contact with TF for some reason")
+
+                    if at_goal:
+                        break
+
                     rate.sleep()
                 
             print ("writing sample")
