@@ -217,7 +217,7 @@ class ConditionalImageGan(PretrainImageGan):
         # -------------------------------------------------------------
         y = OneHot(self.num_options)(option2)
         y = AddDense(y, 64, "lrelu", dr)
-        x = TileOnto(xh, y, 64, (32,32), add=True)
+        x = TileOnto(x, y, 64, (32,32), add=True)
         x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
 
         xg2 = AddConv2D(img_goal2, 64, [5,5], 2, dr, "same", lrelu=True,
