@@ -162,7 +162,7 @@ class ConditionalImageGan(PretrainImageGan):
         model = Model(ins, [image_out, image_out2, is_fake])
         model.compile(
                 loss=["mae"]*2 + ["binary_crossentropy"],
-                loss_weights=[50., 50., 1.],
+                loss_weights=[100., 100., 1.],
                 optimizer=self.getOptimizer())
         model.summary()
         self.model = model
