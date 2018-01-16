@@ -61,7 +61,11 @@ fireHydrantPose.orientation.w = -0.447
 
 #store the positions as ints, have a dictionary with keys, robots pose, orientation, and action, sequence (trial number), top down image is 5
 #randomize the ordering of targets
-poseDictionary = {'Dumpster': dumpsterPose, 'Barrier' : barrierPose, 'Barrel' :  constructionBarrelPose, 'Fire Hydrant': fireHydrantPose}
+poseDictionary = {
+        'Dumpster': dumpsterPose,
+        'Barrier' : barrierPose,
+        'Barrel' :  constructionBarrelPose,
+        'Fire Hydrant': fireHydrantPose}
 
 dumpsterPose = None
 barrierPose = None
@@ -128,7 +132,6 @@ def listener():
     rospy.init_node('costar_simulator_husky', anonymous=True)
     rospy.Subscriber(overheadImageTopic, Image, imageCallback)
     rospy.Subscriber(huskyCmdVelTopic, Twist, cmdVelCallback)
-
 
     
 # returns true if goal has been reached, else false    
@@ -277,7 +280,6 @@ if __name__ == '__main__':
         
         rate = rospy.Rate(10) # 10hz
         
-        
         #for objectName in poseDictionary:
         while not rospy.is_shutdown():
             # select random objectName
@@ -302,10 +304,7 @@ if __name__ == '__main__':
             current_example['robot_pose'] = list()
             current_example['robot_action'] = list()
         
-        
-            
             iterations = 0
-            
             while (goalReached(poseStampedMsg.pose) == False and iterations < 150):
                 #print "sleeping ", iterations
                 rate.sleep()
