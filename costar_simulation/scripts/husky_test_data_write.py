@@ -155,7 +155,7 @@ class HuskyDataCollector(object):
     def moveToObject(self, objectName):
         pass
 
-    def finishCurrentExample(example, max_label=-1, seed=None):
+    def finishCurrentExample(example, max_label=-1):
         '''
         Preprocess this particular example:
         - split it up into different time windows of various sizes
@@ -163,8 +163,6 @@ class HuskyDataCollector(object):
         - compute transition points
         - compute option-level (mid-level) labels
         '''
-        #print("Finishing example",example,seed)
-
         # ============================================================
         # Split into chunks and preprocess the data.
         # This may require setting up window_length, etc.
@@ -197,7 +195,7 @@ class HuskyDataCollector(object):
                 count = 1
             else:
                 count += 1
-        print (len(switches),  len(current_example['example']))
+        #print (len(switches),  len(current_example['example']))
         assert(len(switches) == len(current_example['example']))
 
         # ============================================
@@ -259,20 +257,6 @@ class HuskyDataCollector(object):
                 if key in goal_list:
                     data["goal_%s"%key].append(values[switches[i]])
 
-        # ===================================================================
-        # Print out the seed associated with this example for reproduction, and
-        # use it as part of the filename. If the seed is not provided, we will
-        # set to the current example index.
-        if seed is None:
-            seed = example
-        #print ("writing ", current_example['example'][0])
-            
-        #print ("data prev_label ", data['prev_label'], " label ", data['label'])
-        #print ("goal robot pose ", data['goal_pose'])
-        #from scipy.misc import imsave    
-        #imsave('/tmp/rgb_gradient.png', data['goal_image'][0])
-        
-
         collector.write(data, current_example['example'][0], total_reward)
 
     def tick(self):
@@ -311,18 +295,8 @@ if __name__ == '__main__':
         #for objectName in poseDictionary:
         while not rospy.is_shutdown():
 
-            # select random objectName
-            objectName = random.sample(poseDictionary.keys(), 1)[0]
             print("================================================")
-            print("Random objective:", objectName)
-            
-            poseStampedMsg = PoseStamped()
-            poseStampedMsg.header.frame_id = "map"
-            poseStampedMsg.header.stamp = rospy.Time.now()
-            poseStampedMsg.pose = poseDictionary[objectName]
-            
-            print ("position is ", poseStampedMsg.pose)
-            goalPub.publish(poseStampedMsg)
+            print("EXAMPLE NUMBER = ", seqNumber)
             
             current_example = {}
             current_example['reward'] = list()
@@ -339,37 +313,54 @@ if __name__ == '__main__':
             # Make sure we are getting poses
             while not collector.tick():
                 rate.sleep()
-
-            # Loop until destination has been reached
-            max_iter = 1000
-            while (collector.goalReached(poseStampedMsg.pose) == False and
-                    iterations < max_iter):
-
-                # get global variables and write
-                current_example['reward'].append(1)
-                if iterations == max_iter - 1:
-                    current_example['done'].append(1)
-                else:
-                    current_example['done'].append(0)
-                current_example['example'].append(seqNumber)
-                current_example['image'].append(collector.img_np)
-                current_example['pose'].append([
-                    collector.trans[0], collector.trans[1], collector.trans[2],
-                    collector.roll, collector.pitch, collector.yaw])
-                
-                action = collector.action
-                current_example['action'].append([
-                    action.linear.x, action.linear.y, action.linear.z,
-                    action.angular.x, action.angular.y, action.angular.z])
-                
-                current_example['label'].append(poseDictionary.keys().index(objectName))
-                current_example['prev_label'].append(prev_label)
-                
-                iterations = iterations + 1
-                if not collector.tick():
-                    raise RuntimeError("collection lost contact with TF for some reason")
-                rate.sleep()
             
+            objectName = None
+            prevObjectName = None
+            for i in range(3):
+                # select random objectName
+                while objectName == prevObjectName:
+                    objectName = random.sample(poseDictionary.keys(), 1)[0]
+                prevObjectName = objectName
+                print("Random objective:", objectName)
+                
+                poseStampedMsg = PoseStamped()
+                poseStampedMsg.header.frame_id = "map"
+                poseStampedMsg.header.stamp = rospy.Time.now()
+                poseStampedMsg.pose = poseDictionary[objectName]
+                
+                print ("position is ", poseStampedMsg.pose)
+                goalPub.publish(poseStampedMsg)
+
+                # Loop until destination has been reached
+                max_iter = 1000
+                while (collector.goalReached(poseStampedMsg.pose) == False and
+                        iterations < max_iter):
+
+                    # get global variables and write
+                    current_example['reward'].append(1)
+                    if iterations == max_iter - 1:
+                        current_example['done'].append(1)
+                    else:
+                        current_example['done'].append(0)
+                    current_example['example'].append(seqNumber)
+                    current_example['image'].append(collector.img_np)
+                    current_example['pose'].append([
+                        collector.trans[0], collector.trans[1], collector.trans[2],
+                        collector.roll, collector.pitch, collector.yaw])
+                    
+                    action = collector.action
+                    current_example['action'].append([
+                        action.linear.x, action.linear.y, action.linear.z,
+                        action.angular.x, action.angular.y, action.angular.z])
+                    
+                    current_example['label'].append(poseDictionary.keys().index(objectName))
+                    current_example['prev_label'].append(prev_label)
+                    
+                    iterations = iterations + 1
+                    if not collector.tick():
+                        raise RuntimeError("collection lost contact with TF for some reason")
+                    rate.sleep()
+                
             print ("writing sample")
             collector.finishCurrentExample(current_example)
             seqNumber = seqNumber + 1
