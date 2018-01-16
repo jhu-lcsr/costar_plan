@@ -2253,7 +2253,7 @@ class GraspDataset(object):
                 frame_list = self.to_tensors(output_features_dicts, ordered_depth_image_features)
                 if FLAGS.median_filter:
                     for single_frame in frame_list[0]:
-                            median_filter(single_frame, size=(FLAGS.median_filter_height,FLAGS.median_filter_width, 1), output=single_frame)
+                            median_filter(single_frame, size=(FLAGS.median_filter_height, FLAGS.median_filter_width, 1), output=single_frame)
                 video = np.concatenate(frame_list, axis=0)
                 gif_filename = (os.path.basename(str(self.dataset) + '_grasp_' + str(int(attempt_num)) +
                                 '_depth_success_' + str(int(features_dict_np['grasp_success'])) + '.gif'))
