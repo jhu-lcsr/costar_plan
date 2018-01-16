@@ -76,29 +76,40 @@ flags.DEFINE_string('grasp_dataset', '102',
                     around 110 GB and 38k grasp attempts.
                     See https://sites.google.com/site/brainrobotdata/home
                     for a full listing.""")
-flags.DEFINE_integer('random_crop_width', 560,
-                     """Width to randomly crop images, if enabled""")
-flags.DEFINE_integer('random_crop_height', 448,
-                     """Height to randomly crop images, if enabled""")
-flags.DEFINE_boolean('random_crop', True,
-                     """random_crop will apply the tf random crop function with
-                        the parameters specified by random_crop_width and random_crop_height
-                     """)
 flags.DEFINE_boolean('median_filter', False,
-                     """median filter apply on depth image to remove zero and invalid depth.
+                     """Median filter apply on depth image to
+                        remove small regions with depth values of zero,
+                        which represents invalid depth values.
+                        This is the first depth image preprocessing step.
                      """)
-flags.DEFINE_integer('median_filter_width', 3,
+flags.DEFINE_integer('median_filter_width', 5,
                      """Width of median filter kernel.
                      """)
-flags.DEFINE_integer('median_filter_height', 3,
+flags.DEFINE_integer('median_filter_height', 5,
                      """Height of median filter kernel.
+                     """)
+flags.DEFINE_integer('crop_width', 560,
+                     """Width to crop images""")
+flags.DEFINE_integer('crop_height', 448,
+                     """Height to crop images""")
+flags.DEFINE_boolean('random_crop', False,
+                     """random_crop will apply the tf random crop function with
+                        the parameters specified by crop_width and crop_height.
+
+                        If random crop is disabled, a fixed crop will be applied
+                        to a box on the far right of the image which is vertically
+                        centered. If no crop is desired simply set the crop_width
+                        and crop_height equal to the sensor_image_width and
+                        sensor_image_height. However, it is important to ensure
+                        that you crop images to the same size during both training
+                        and test time.
                      """)
 flags.DEFINE_integer('resize_width', 160,
                      """Width to resize images before prediction, if enabled.""")
 flags.DEFINE_integer('resize_height', 128,
                      """Height to resize images before prediction, if enabled.""")
 flags.DEFINE_boolean('resize', True,
-                     """resize will resize the input images to the desired dimensions specified but the
+                     """resize will resize the input images to the desired dimensions specified by the
                         resize_width and resize_height flags. It is suggested that an exact factor of 2 be used
                         relative to the input image directions if random_crop is disabled or the crop dimensions otherwise.
                      """)
@@ -108,9 +119,15 @@ flags.DEFINE_float('gripper_z_offset_meters', 0.02,
                        default value 0.02.
                    """)
 flags.DEFINE_boolean('image_augmentation', True,
-                     'image augmentation applies random brightness, saturation, hue, contrast. imagenet_preprocessing must be True.')
+                     """Image augmentation applies random brightness, saturation, hue, contrast to input rgb images only.
+                        This option should only be utilized during training,
+                        and only has an effect when imagenet_preprocessing is True.
+                     """)
 flags.DEFINE_boolean('imagenet_preprocessing', True,
-                     'subtract the imagenet mean pixel values from the rgb images')
+                     """Subtract the imagenet mean pixel values from the rgb images and normalize the image value.
+                        The recommended value is True and whichever choice you make it should remain the same
+                        for both training and inference.
+                     """)
 flags.DEFINE_integer('grasp_sequence_max_time_step', None,
                      """The grasp motion time sequence consists of up to 11 time steps.
                         This integer, or None for unlimited specifies the max number of these steps from the last to the first
@@ -774,6 +791,7 @@ class GraspDataset(object):
             num_samples=None,
             batch_size=FLAGS.batch_size,
             gripper_z_offset=FLAGS.gripper_z_offset_meters,
+            median_filter=FLAGS.median_filter,
             verbose=0):
         """Get runtime generated 3D transform feature tensors as a dictionary, including depth surface relative transforms.
 
@@ -928,6 +946,10 @@ class GraspDataset(object):
         xyz_image_feature_type = 'xyz_image/decoded'
         depth_image_feature_type = 'depth_image/decoded'
         camera_intrinsics_name = 'camera/intrinsics/matrix33'
+
+        if median_filter:
+            xyz_image_feature_type = 'xyz_image/median_filtered'
+            depth_image_feature_type = 'depth_image/median_filtered'
 
         xyz_image_clear_view_name = 'pregrasp/' + xyz_image_feature_type
         depth_image_clear_view_name = 'pregrasp/' + depth_image_feature_type
@@ -1194,7 +1216,9 @@ class GraspDataset(object):
         return dict_and_feature_tuple_list, features_complete_list, feature_count, attempt_count
 
     @staticmethod
-    def _image_decode(feature_op_dict, sensor_image_dimensions=None, image_features=None, decode_depth_as='depth', point_cloud_fn='tensorflow'):
+    def _image_decode(feature_op_dict, sensor_image_dimensions=None, image_features=None, decode_depth_as='depth',
+                      point_cloud_fn='tensorflow', median_filter=FLAGS.median_filter,
+                      median_filter_height=FLAGS.median_filter_height, median_filter_width=FLAGS.median_filter_width):
         """ Add features to dict that supply decoded png and jpeg images for any encoded images present.
 
         Any feature path that is 'image/encoded' will also now have 'image/decoded', and 'image/xyz' when
@@ -1270,23 +1294,18 @@ class GraspDataset(object):
                         image = image / RGB_SCALE_FACTOR
                         image.set_shape([height, width])
                         # apply median filter to depth image
-                        if FLAGS.median_filter:
-                            median_filter_image = grasp_dataset_median_filter(image, 
-                            FLAGS.median_filter_height, FLAGS.median_filter_width)
-                            median_filtered_image_feature = image_feature.replace('encoded', 'median_filtered')
-                            feature_op_dict[median_filtered_image_feature] = median_filter_image
+                        median_filtered_image = grasp_dataset_median_filter(image, median_filter_height, median_filter_width)
+                        median_filtered_image_feature = image_feature.replace('encoded', 'median_filtered')
                         # depth images have one channel
                         if 'camera/intrinsics/matrix33' in feature_op_dict and point_cloud_fn is not None:
                             with tf.name_scope('xyz'):
                                 # generate xyz point cloud image feature
-                                if FLAGS.median_filter:
-                                    depth_image = feature_op_dict[median_filtered_image_feature]
-                                else:
-                                    depth_image = image
                                 if point_cloud_fn == 'tensorflow':
                                     # should be more efficient than the numpy version
                                     xyz_image = grasp_geometry_tf.depth_image_to_point_cloud(
                                         image, feature_op_dict['camera/intrinsics/matrix33'])
+                                    median_filtered_xyz_image = grasp_geometry_tf.depth_image_to_point_cloud(
+                                        median_filtered_image, feature_op_dict['camera/intrinsics/matrix33'])
                                 elif point_cloud_fn == 'numpy':
                                     [xyz_image] = tf.py_func(
                                         grasp_geometry.depth_image_to_point_cloud,
@@ -1295,14 +1314,31 @@ class GraspDataset(object):
                                         [tf.float32],
                                         stateful=False, name='py_func/depth_image_to_point_cloud'
                                     )
+                                    [median_filtered_xyz_image] = tf.py_func(
+                                        grasp_geometry.depth_image_to_point_cloud,
+                                        # parameters for function call
+                                        [median_filtered_image, feature_op_dict['camera/intrinsics/matrix33']],
+                                        [tf.float32],
+                                        stateful=False, name='py_func/depth_image_to_point_cloud'
+                                    )
                                 else:
                                     raise ValueError('point_cloud_fn must be one of tensorflow, numpy, or None')
+                                # add xyz image to the dictionary and feature list
                                 xyz_image.set_shape([height, width, 3])
                                 xyz_image = tf.reshape(xyz_image, [height, width, 3])
                                 xyz_feature = image_feature.replace('depth_image/encoded', 'xyz_image/decoded')
                                 feature_op_dict[xyz_feature] = xyz_image
                                 new_feature_list = np.append(new_feature_list, xyz_feature)
+                                # add median filtered xyz image to the dictionary and feature list
+                                median_filtered_xyz_image.set_shape([height, width, 3])
+                                median_filtered_xyz_image = tf.reshape(median_filtered_xyz_image, [height, width, 3])
+                                median_filtered_xyz_feature = image_feature.replace('depth_image/encoded', 'xyz_image/median_filtered')
+                                feature_op_dict[median_filtered_xyz_feature] = median_filtered_xyz_image
+                                new_feature_list = np.append(new_feature_list, median_filtered_xyz_feature)
                         image = tf.reshape(image, [height, width, 1])
+                        median_filtered_image = tf.reshape(median_filtered_image, [height, width, 1])
+                        feature_op_dict[median_filtered_image_feature] = median_filtered_image
+                        new_feature_list = np.append(new_feature_list, median_filtered_image_feature)
                 else:
                     with tf.name_scope('rgb'):
                         image = tf.image.decode_jpeg(image_buffer, channels=sensor_image_dimensions[-1])
@@ -1345,7 +1381,7 @@ class GraspDataset(object):
             sensor_image_dimensions: [height, width, channels], defaults to
                 [FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels]
             random_crop_dimensions: [height, width, sensor_color_channels], defaults to
-                [FLAGS.random_crop_height, FLAGS.random_crop_width, rgb_channels], and for depth
+                [FLAGS.crop_height, FLAGS.crop_width, rgb_channels], and for depth
                 images the number of channels is automatically set to 1.
 
         # Returns
@@ -1362,18 +1398,22 @@ class GraspDataset(object):
             if sensor_image_dimensions is None:
                     sensor_image_dimensions = [FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels]
             height, width, rgb_channels = sensor_image_dimensions
-
             # get dimensions of random crop if enabled
             if random_crop_dimensions is None:
-                random_crop_dimensions = tf.constant([FLAGS.random_crop_height, FLAGS.random_crop_width, rgb_channels], name='rgb_random_crop_dimensions')
-                depth_crop_dim_tensor = tf.constant([FLAGS.random_crop_height, FLAGS.random_crop_width, 1], name='depth_random_crop_dimensions')
+                random_crop_dimensions = tf.constant([FLAGS.crop_height, FLAGS.crop_width, rgb_channels], name='rgb_random_crop_dimensions')
+                depth_crop_dim_tensor = tf.constant([FLAGS.crop_height, FLAGS.crop_width, 1], name='depth_random_crop_dimensions')
             else:
-                depth_crop_dim_tensor = tf.concat([random_crop_dimensions[:-1], tf.constant([1])])
+                random_crop_dimensions = tf.constant(random_crop_dimensions, dtype=tf.int32)
+                depth_crop_dim_tensor = tf.cast(tf.concat([random_crop_dimensions[:2], tf.constant([1], tf.int32)], 0), tf.int32)
+
             feature_op_dict['rgb_random_crop_dimensions'] = random_crop_dimensions
             feature_op_dict['depth_random_crop_dimensions'] = depth_crop_dim_tensor
             if random_crop_offset is None:
                 # get random crop offset parameters so that cropping will be done consistently.
                 random_crop_offset = rcp.random_crop_offset(sensor_image_dimensions, random_crop_dimensions, seed=seed)
+            else:
+                random_crop_offset = tf.convert_to_tensor(random_crop_offset)
+
             feature_op_dict['random_crop_offset'] = random_crop_offset
             # add the modified image intrinsics, applying the changes that occur when a crop is performed
             if 'camera/intrinsics/matrix33' in feature_op_dict:
@@ -1387,17 +1427,22 @@ class GraspDataset(object):
                 image_features = GraspDataset.get_time_ordered_features(features, '/image/decoded')
                 image_features.extend(GraspDataset.get_time_ordered_features(features, 'depth_image/decoded'))
                 image_features.extend(GraspDataset.get_time_ordered_features(features, 'xyz_image/decoded'))
+                image_features.extend(GraspDataset.get_time_ordered_features(features, 'depth_image/median_filtered'))
+                image_features.extend(GraspDataset.get_time_ordered_features(features, 'xyz_image/median_filtered'))
 
             for image_feature in image_features:
                 image = feature_op_dict[image_feature]
+                random_crop_offset = tf.cast(random_crop_offset, tf.int32)
+                depth_crop_dim_tensor = tf.cast(random_crop_offset, tf.int32)
                 if verbose:
                     print('_image_random_crop image:', image, 'random_crop_offset:', random_crop_offset)
                 if 'depth_image' in image_feature and 'xyz' not in image_feature:
                     image = rcp.crop_images(image_list=image, offset=random_crop_offset, size=depth_crop_dim_tensor)
                 else:
-                    # crop rgb and xyz tensor, which each have 3 channels
                     image = rcp.crop_images(image_list=image, offset=random_crop_offset, size=random_crop_dimensions)
+                # two image feature types, replace the name in both cases, as appropriate
                 cropped_image_feature = image_feature.replace('decoded', 'cropped')
+                cropped_image_feature = cropped_image_feature.replace('median_filtered', 'median_filter_cropped')
                 feature_op_dict[cropped_image_feature] = image
                 new_feature_list = np.append(new_feature_list, cropped_image_feature)
 
@@ -1419,7 +1464,7 @@ class GraspDataset(object):
 
     def _image_random_crop_grasp_attempt(
             self, features_complete_list, feature_op_dicts, sensor_image_dimensions,
-            random_crop_offset, seed, time_ordered_feature_name_dict):
+            random_crop_dimensions, random_crop_offset, seed, time_ordered_feature_name_dict):
         """ Performs the crops for a given grasp attempt.
 
             Helper for get_training_dictionaries() which extracts image cropping features.
@@ -1431,10 +1476,13 @@ class GraspDataset(object):
         image_features = GraspDataset.get_time_ordered_features(features_complete_list, '/image/decoded')
         image_features.extend(GraspDataset.get_time_ordered_features(features_complete_list, 'depth_image/decoded'))
         image_features.extend(GraspDataset.get_time_ordered_features(features_complete_list, 'xyz_image/decoded'))
+        image_features.extend(GraspDataset.get_time_ordered_features(features_complete_list, 'depth_image/median_filtered'))
+        image_features.extend(GraspDataset.get_time_ordered_features(features_complete_list, 'xyz_image/median_filtered'))
         # loop through each grasp attempt in a batch and crop the images
         for feature_op_dict, sequence_op_dict in tqdm(feature_op_dicts, desc='get_training_dictionaries._image_random_crop()'):
             feature_op_dict, new_feature_list = GraspDataset._image_random_crop(
-                feature_op_dict, sensor_image_dimensions, random_crop_offset, seed, image_features=image_features)
+                feature_op_dict, sensor_image_dimensions, random_crop_dimensions,
+                random_crop_offset, image_features, seed)
             dict_and_feature_tuple_list.append((feature_op_dict, sequence_op_dict))
         # the new_feature_list should be the same for all the ops
         features_complete_list = np.append(features_complete_list, new_feature_list)
@@ -1504,8 +1552,9 @@ class GraspDataset(object):
     def _resize_coordinate(coordinate, input_shape, output_shape):
         """ Update a coordinate based on the current input shape and a new updated output shape.
         """
-        coordinate = coordinate * output_shape / input_shape[:2]
-        return coordinate
+        proportional_dimension_change = output_shape / input_shape[:2]
+        resized_coordinate = coordinate * proportional_dimension_change
+        return resized_coordinate
 
     @staticmethod
     def to_tensors(feature_op_dicts, features):
@@ -1579,6 +1628,7 @@ class GraspDataset(object):
             batch_size=FLAGS.batch_size,
             image_augmentation=FLAGS.image_augmentation,
             imagenet_preprocessing=FLAGS.imagenet_preprocessing,
+            median_filter=FLAGS.median_filter,
             random_crop=FLAGS.random_crop,
             sensor_image_dimensions=None,
             random_crop_dimensions=None,
@@ -1606,6 +1656,8 @@ class GraspDataset(object):
 
         # image type to load
         preprocessed_suffix = 'decoded'
+        preprocessed_depth_suffix = 'decoded'
+
         # Ordered sequence of preprocessing operations performed in this function
         preprocessing_sequence = [preprocessed_suffix]
         if verbose:
@@ -1629,29 +1681,49 @@ class GraspDataset(object):
         # get the clear view rgb, depth, and xyz image names
         rgb_clear_view_name = 'grasp/image/decoded'
         depth_clear_view_name = 'pregrasp/depth_image/decoded'
+        median_filtered_depth_clear_view_name = 'pregrasp/depth_image/median_filtered'
         xyz_clear_view_name = 'pregrasp/xyz_image/decoded'
 
-        # do random cropping of depth and rgb images if enabled
-        if random_crop:
-            # The preprocessed suffix is 'cropped' if cropping is enabled.
-            preprocessed_suffix = 'cropped'
+        # get median filter of depth image if enabled
+        if median_filter:
+            preprocessed_depth_suffix = 'median_filtered'
             preprocessing_sequence = preprocessing_sequence + [preprocessed_suffix]
-            # Do the random crop preprocessing
-            # This updates rgb images, depth, images, and coordinates of the gripper
-            feature_op_dicts, features_complete_list, time_ordered_feature_name_dict = self._image_random_crop_grasp_attempt(
-                features_complete_list, feature_op_dicts, sensor_image_dimensions,
-                random_crop_offset, seed, time_ordered_feature_name_dict)
+
+        # get dimensions of random crop if enabled
+        if random_crop_dimensions is None:
+            random_crop_dimensions = [FLAGS.crop_height, FLAGS.crop_width, 3]
+
+        if random_crop_offset is None:
+            # do random cropping of depth and rgb images if enabled
+            if random_crop:
+                # The preprocessed suffix is 'cropped' if cropping is enabled.
+                random_crop_offset = rcp.random_crop_offset(sensor_image_dimensions, random_crop_dimensions, seed=seed)
+            else:
+                # Fixed crop to a box on the far right of the image which is vertically centered.
+                random_crop_offset = np.array([0, 0, 0])
+                random_crop_offset[:2] = np.array(sensor_image_dimensions[:2]) - np.array(random_crop_dimensions[:2])
+                random_crop_offset[0] = random_crop_offset[0] / 2
+
+        preprocessed_suffix = 'cropped'
+        preprocessed_depth_suffix = 'cropped'
+        preprocessing_sequence = preprocessing_sequence + [preprocessed_suffix]
+        # Do the random crop preprocessing
+        # This updates rgb images, depth, images, and coordinates of the gripper
+        feature_op_dicts, features_complete_list, time_ordered_feature_name_dict = self._image_random_crop_grasp_attempt(
+            features_complete_list, feature_op_dicts, sensor_image_dimensions,
+            random_crop_dimensions, random_crop_offset, seed, time_ordered_feature_name_dict)
 
         if verbose:
             # print('feature_op_dicts_after_crop len:', len(feature_op_dicts), 'dicts:', feature_op_dicts)
             print('feature_complete_list after crop len:', len(features_complete_list), 'list:', features_complete_list)
             print('END DICTS AFTER CROP')
 
+        preprocessed_depth_suffix = 'median_filter_cropped'
         # get the feature names for the sequence of xyz images
         # in which movement towards the close gripper step is made
-        xyz_move_to_grasp_steps_cropped = self.get_time_ordered_features(
+        xyz_move_to_grasp_steps_preprocessed = self.get_time_ordered_features(
             features_complete_list,
-            feature_type='xyz_image/cropped',
+            feature_type='xyz_image/' + preprocessed_depth_suffix,
             step='move_to_grasp'
         )
 
@@ -1663,10 +1735,10 @@ class GraspDataset(object):
             '/image/decoded', preprocessed_image_feature_type)
 
         preprocessed_depth_clear_view_name = depth_clear_view_name.replace(
-            'depth_image/decoded', 'depth_image/' + preprocessed_suffix)
+            'depth_image/decoded', 'depth_image/' + preprocessed_depth_suffix)
 
         preprocessed_xyz_clear_view_name = xyz_clear_view_name.replace(
-            'xyz_image/decoded', 'xyz_image/' + preprocessed_suffix)
+            'xyz_image/decoded', 'xyz_image/' + preprocessed_depth_suffix)
 
         # get the feature names for the sequence of rgb images
         # in which movement towards the close gripper step is made
@@ -1692,11 +1764,43 @@ class GraspDataset(object):
             step='move_to_grasp'
         )
 
+        # get the feature names for the sequence of xyz images
+        # in which movement towards the close gripper step is made
+        xyz_move_to_grasp_steps_median_filtered = self.get_time_ordered_features(
+            features_complete_list,
+            feature_type='xyz_image/median_filtered',
+            step='move_to_grasp'
+        )
+
+        # get the feature names for the sequence of xyz images
+        # in which movement towards the close gripper step is made
+        xyz_preprocessed_move_to_grasp_steps = self.get_time_ordered_features(
+            features_complete_list,
+            feature_type='xyz_image/' + preprocessed_depth_suffix,
+            step='move_to_grasp'
+        )
+
         # get the feature names for the sequence of depth images
         # in which movement towards the close gripper step is made
         depth_move_to_grasp_steps = self.get_time_ordered_features(
             features_complete_list,
             feature_type='depth_image/decoded',
+            step='move_to_grasp'
+        )
+
+        # get the feature names for the sequence of filtered depth images
+        # in which movement towards the close gripper step is made
+        preprocessed_depth_move_to_grasp_steps = self.get_time_ordered_features(
+            features_complete_list,
+            feature_type='depth_image/' + preprocessed_depth_suffix,
+            step='move_to_grasp'
+        )
+
+        # get the feature names for the sequence of filtered depth images
+        # in which movement towards the close gripper step is made
+        median_filtered_depth_move_to_grasp_steps = self.get_time_ordered_features(
+            features_complete_list,
+            feature_type='depth_image/median_filtered',
             step='move_to_grasp'
         )
 
@@ -1787,12 +1891,10 @@ class GraspDataset(object):
 
         # Determine the image coordinate feature name based on user selected preprocessing options
         preprocessed_final_coordinate_suffix = 'yx_2'
-        if random_crop and resize:
+        if resize:
             preprocessed_final_coordinate_suffix = 'cropped_resized/yx_2'
-        elif random_crop and not resize:
+        else:
             preprocessed_final_coordinate_suffix = 'cropped/yx_2'
-        elif not random_crop and resize:
-            preprocessed_final_coordinate_suffix = 'original_resized/yx_2'
 
         # get the sequence of preprocessed coordinates
         preprocessed_final_coordinate_names = self.get_time_ordered_features(
@@ -1828,15 +1930,19 @@ class GraspDataset(object):
             'move_to_grasp/time_ordered/clear_view/rgb_image/decoded': [rgb_clear_view_name] * num_time_steps,
             'move_to_grasp/time_ordered/clear_view/rgb_image/preprocessed': [fully_preprocessed_rgb_clear_view_name] * num_time_steps,
             'move_to_grasp/time_ordered/clear_view/depth_image/decoded': [depth_clear_view_name] * num_time_steps,
+            'move_to_grasp/time_ordered/clear_view/depth_image/median_filtered': [median_filtered_depth_clear_view_name] * num_time_steps,
             'move_to_grasp/time_ordered/clear_view/depth_image/preprocessed': [preprocessed_depth_clear_view_name] * num_time_steps,
             'move_to_grasp/time_ordered/clear_view/xyz_image/decoded': [xyz_clear_view_name] * num_time_steps,
-            'move_to_grasp/time_ordered/clear_view/xyz_image/preprocessed': [xyz_clear_view_name] * num_time_steps,
+            'move_to_grasp/time_ordered/clear_view/xyz_image/preprocessed': [preprocessed_xyz_clear_view_name] * num_time_steps,
             'move_to_grasp/time_ordered/rgb_image/decoded': rgb_move_to_grasp_steps,
             'move_to_grasp/time_ordered/rgb_image/preprocessed': preprocessed_rgb_move_to_grasp_steps_names,
             'move_to_grasp/time_ordered/xyz_image/decoded': xyz_move_to_grasp_steps,
             # note: at the time of writing preprocessing of xyz images only includes cropping
-            'move_to_grasp/time_ordered/xyz_image/preprocessed': xyz_move_to_grasp_steps_cropped,
+            'move_to_grasp/time_ordered/xyz_image/preprocessed': xyz_move_to_grasp_steps_preprocessed,
+            'move_to_grasp/time_ordered/xyz_image/median_filtered': xyz_move_to_grasp_steps_median_filtered,
+            'move_to_grasp/time_ordered/depth_image/preprocessed': preprocessed_depth_move_to_grasp_steps,
             'move_to_grasp/time_ordered/depth_image/decoded': depth_move_to_grasp_steps,
+            'move_to_grasp/time_ordered/depth_image/median_filtered': median_filtered_depth_move_to_grasp_steps,
             'move_to_grasp/time_ordered/grasp_success': grasp_success_names,
             'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/preprocessed/yx_2':
                 preprocessed_current_coordinate_names,

@@ -53,6 +53,10 @@ class ConditionalImage(PredictionSampler2):
         self.transform_model = None
         self.skip_connections = False
 
+        if self.use_noise:
+            raise NotImplementedError('noise vectors not supported for'
+                                      'conditional_image model')
+
     def _makePredictor(self, features):
         # =====================================================================
         # Create many different image decoders
@@ -150,7 +154,6 @@ class ConditionalImage(PredictionSampler2):
         y2 = Flatten()(y2)
         x = h
         tform = self._makeTransform()
-        tform.summary()
         x = tform([h0,h,y])
         x2 = tform([h0,x,y2])
         image_out = decoder([x])
@@ -172,7 +175,7 @@ class ConditionalImage(PredictionSampler2):
                 [image_out, image_out2, next_option_out, value_out])
         predictor.compile(
                 loss=[lfn, lfn, "binary_crossentropy", val_loss],
-                loss_weights=[1., 0.1, 0.1, 0.1,],
+                loss_weights=[1., 1., 0.1, 0.1,],
                 optimizer=self.getOptimizer())
         if self.do_all:
             train_predictor = Model(ins + [label_in],
@@ -195,7 +198,7 @@ class ConditionalImage(PredictionSampler2):
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
-        [I, q, g, oin, q_target, g_target,] = features
+        [I, q, g, oin, label, q_target, g_target,] = features
         tt, o1, v, qa, ga, I_target = targets
         I_target2, o2 = self._getNextGoal(features, targets)
         I0 = I[0,:,:,:]
@@ -204,21 +207,13 @@ class ConditionalImage(PredictionSampler2):
         oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
         qa = np.squeeze(qa)
         ga = np.squeeze(ga)
+        #print("o1 = ", o1, o1.shape, type(o1))
+        #print("o2 = ", o2, o2.shape, type(o2))
         if self.do_all:
             o1_1h = np.squeeze(self.toOneHot2D(o1, self.num_options))
-            if self.use_noise:
-                noise_len = features[0].shape[0]
-                z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-                return [I0, I, z, o1, o2, oin], [ I_target, I_target2, o1_1h, v, qa, ga]
-            else:
-                return [I0, I, o1, o2, oin], [ I_target, I_target2, o1_1h, v, qa, ga]
+            return [I0, I, o1, o2, oin], [ I_target, I_target2, o1_1h, v, qa, ga]
         else:
-            if self.use_noise:
-                noise_len = features[0].shape[0]
-                z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-                return [I0, I, z, o1, o2, oin], [I_target, I_target2]
-            else:
-                return [I0, I, o1, o2, oin], [I_target, I_target2]
+            return [I0, I, o1, o2, oin], [I_target, I_target2]
 
 
     def encode(self, obs):

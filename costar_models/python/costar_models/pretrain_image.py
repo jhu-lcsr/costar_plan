@@ -51,18 +51,12 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
         decoder = self._makeImageDecoder(
                     self.hidden_shape,
                     self.skip_shape,)
-        #decoder0 = self._makeImageDecoder(
-        #            self.hidden_shape,
-        #            self.skip_shape,
-        #            copy=True)
         out = decoder(enc)
-        #out0 = decoder0(enc)
 
         image_discriminator = self._makeImageEncoder(img_shape, disc=True)
 
         o1 = image_discriminator(ins)
         o2 = image_discriminator([out])
-        #o2.trainable = False
 
         encoder.summary()
         decoder.summary()
@@ -79,10 +73,7 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
-        [I, q, g, oin, q_target, g_target,] = features
-        #I0 = I[0,:,:,:]
-        #length = I.shape[0]
-        #I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
+        [I, q, g, oin, label, q_target, g_target,] = features
         o1 = targets[1]
         oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
         return [I], [I, oin_1h, oin_1h]
