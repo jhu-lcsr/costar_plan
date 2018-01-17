@@ -40,7 +40,10 @@ def main():
     transcriptions_dir = os.path.join(args.dataset, "transcriptions")
     filenames = os.listdir(transcriptions)
 
-    for filename in filenames:
+    for i, filename in enumerate(filenames):
+
+        if filename[0] == ".":
+            continue
 
         data = {}
         data["image"] = []
@@ -48,9 +51,6 @@ def main():
         data["goal_image"] = []
         data["goal_label"] = []
         data["prev_label"] = []
-
-        if filename[0] == ".":
-            continue
 
         txt_file = os.path.join(transcriptions, filename)
         with fin as file(txt_file, "r"):
@@ -65,17 +65,36 @@ def main():
         while vid.isOpened():
             ret, frame = vid.read()
 
-            # TODO: convert from BGR to RGB
+            # Convert from BGR to RGB
+            image = np.copy(frame)
+            image[:,:,0] = frame[:,:,2]
+            image[:,:,2] = frame[:,:,0]
 
             # Return this
             if not ret:
                 break
 
             # Plot 
-            plt.imshow(frame)
+            plt.imshow(image)
             plt.show()
             break
 
+        write(args.directory, data, i, 1)
+
+def write(directory, example, i, r):
+    '''
+    Write an example out to disk.
+    '''
+    if r > 0.:
+        status = "success"
+    else:
+        status = "failure"
+    filename = "example%06d.%s.h5f"%(i,status)
+    filename = os.path.join(directory, filename)
+    f = h5f.File(filename, 'w')
+    for key, value in example.items():
+        f.create_dataset(key, data=value)
+    f.close()
 
 
 if __name__ == "__main__":
