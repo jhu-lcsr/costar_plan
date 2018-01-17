@@ -2089,7 +2089,7 @@ class GraspDataset(object):
             batch_size=batch_size, random_crop=random_crop, sensor_image_dimensions=sensor_image_dimensions,
             imagenet_preprocessing=imagenet_preprocessing, image_augmentation=image_augmentation,
             random_crop_dimensions=random_crop_dimensions, random_crop_offset=random_crop_offset,
-            shift_ratio=shift_ratio)
+            shift_ratio=shift_ratio, seed=seed)
 
         time_ordered_feature_tensor_dicts = GraspDataset.to_tensors(feature_op_dicts, time_ordered_feature_name_dict)
 
@@ -2253,7 +2253,7 @@ class GraspDataset(object):
                 frame_list = self.to_tensors(output_features_dicts, ordered_depth_image_features)
                 if FLAGS.median_filter:
                     for single_frame in frame_list[0]:
-                            median_filter(single_frame, size=(FLAGS.median_filter_height,FLAGS.median_filter_width, 1), output=single_frame)
+                            median_filter(single_frame, size=(FLAGS.median_filter_height, FLAGS.median_filter_width, 1), output=single_frame)
                 video = np.concatenate(frame_list, axis=0)
                 gif_filename = (os.path.basename(str(self.dataset) + '_grasp_' + str(int(attempt_num)) +
                                 '_depth_success_' + str(int(features_dict_np['grasp_success'])) + '.gif'))
@@ -2340,7 +2340,8 @@ def get_multi_dataset_training_tensors(
         resize_height=FLAGS.resize_height,
         resize_width=FLAGS.resize_width,
         grasp_datasets_batch_algorithm=FLAGS.grasp_datasets_batch_algorithm,
-        shift_ratio=0.01):
+        shift_ratio=0.01,
+        seed=None):
     """Aggregate multiple datasets into combined training tensors.
 
     # TODO(ahundt) parameterize this function properly, don't just use FLAGS defaults in get_training_tensors
@@ -2467,7 +2468,9 @@ def get_multi_dataset_training_tensors(
              random_crop=random_crop,
              resize=resize,
              grasp_sequence_min_time_step=grasp_sequence_min_time_step,
-             grasp_sequence_max_time_step=grasp_sequence_max_time_step)
+             grasp_sequence_max_time_step=grasp_sequence_max_time_step,
+             shift_ratio=shift_ratio,
+             seed=seed)
 
         max_num_samples = max(num_samples, max_num_samples)
         pregrasp_op_batch.append(pregrasp_op)

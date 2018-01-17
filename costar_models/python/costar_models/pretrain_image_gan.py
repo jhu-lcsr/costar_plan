@@ -156,8 +156,12 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                     is_not_fake = np.random.random((self.batch_size, 1)) * 0.1
                     res1 = self.discriminator.train_on_batch(
                             img + target, is_not_fake)
+                    if isinstance(fake, list):
+                        inputs = img + fake
+                    else:
+                        inputs = img + [fake]
                     res2 = self.discriminator.train_on_batch(
-                            img + [fake], is_fake)
+                            inputs, is_fake)
                     self.discriminator.trainable = False
                     print("\rEpoch {}, {}/{}: Descrim Real loss {}, Fake loss {}".format(
                         i+1, j, self.steps_per_epoch, res1, res2), end="")
@@ -165,7 +169,11 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                 # Accuracy tests
                 img, target = next(train_generator)
                 fake = self.generator.predict(img)
-                results = self.discriminator.predict(img + [fake])
+                if isinstance(fake, list):
+                    inputs = img + fake
+                else:
+                    inputs = img + [fake]
+                results = self.discriminator.predict(inputs)
                 results2 = self.discriminator.predict(img + target)
                 correct = np.count_nonzero(results >= 0.5)
                 correct2 = np.count_nonzero(results2 < 0.5)
@@ -187,8 +195,12 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                     is_not_fake = np.random.random((self.batch_size, 1)) * 0.1
                     res1 = self.discriminator.train_on_batch(
                             img + target, is_not_fake)
+                    if isinstance(fake, list):
+                        inputs = img + fake
+                    else:
+                        inputs = img + [fake]
                     res2 = self.discriminator.train_on_batch(
-                            img + [fake], is_fake)
+                            inputs, is_fake)
                     self.discriminator.trainable = False
 
                     # Generator pass
@@ -202,7 +214,11 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                 # Accuracy tests
                 img, target = next(train_generator)
                 fake = self.generator.predict(img)
-                results = self.discriminator.predict(img + [fake])
+                if isinstance(fake, list):
+                    inputs = img + fake
+                else:
+                    inputs = img + [fake]
+                results = self.discriminator.predict(inputs)
                 results2 = self.discriminator.predict(img + target)
                 correct = np.count_nonzero(results >= 0.5)
                 correct2 = np.count_nonzero(results2 < 0.5)
