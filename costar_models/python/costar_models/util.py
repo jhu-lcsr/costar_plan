@@ -30,6 +30,7 @@ from .pretrain_image_dvrk import PretrainImageAutoencoderDVRK
 # Husky stuff
 from .husky_sampler import HuskyRobotMultiPredictionSampler
 from .pretrain_image_husky import PretrainImageAutoencoderHusky
+from .pretrain_image_husky_gan import PretrainImageHuskyGan
 
 def MakeModel(features, model, taskdef, **kwargs):
     '''
