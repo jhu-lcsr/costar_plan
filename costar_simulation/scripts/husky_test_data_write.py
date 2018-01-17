@@ -17,8 +17,8 @@ from cv_bridge import CvBridge, CvBridgeError
 import random
 
 from std_srvs.srv import Empty as EmptySrv
-from gazebo_msgs.srv import SetModelState
-from gazebo_msgs.msg import ModelState
+from gazebo_msgs.srv import SetModelState, SetLinkState, GetLinkState
+from gazebo_msgs.msg import ModelState, LinkState
 
 gazeboModelsTopic = "/gazebo/model_states"
 overheadImageTopic = "/overhead/camera/image_raw"
@@ -127,6 +127,11 @@ class HuskyDataCollector(object):
         self.unpause = rospy.ServiceProxy("/gazebo/unpause_physics", EmptySrv)
         self.set_model_state = rospy.ServiceProxy("/gazebo/set_model_state",
                 SetModelState)
+        self.set_link_state = rospy.ServiceProxy("/gazebo/set_link_state",
+                SetLinkState)
+        self.get_link_state = rospy.ServiceProxy("/gazebo/get_link_state",
+                GetLinkState)
+        self.pose = None
 
     def imageCallback(self, data):
         img_np_bk = imageToNumpy(data)
@@ -148,8 +153,11 @@ class HuskyDataCollector(object):
         goal_xyz = np.array([finalPose.position.x,
                 finalPose.position.y,
                 finalPose.position.z])
-        xyz = np.array(self.trans)
+        position = self.pose.position
+        xyz = np.array([position.x, position.y, 0.])
+        #xyz = np.array(self.trans)
         dist = np.linalg.norm(goal_xyz - xyz)
+        print (xyz, dist)
 
         return dist < self.trans_threshold
       
@@ -270,7 +278,7 @@ class HuskyDataCollector(object):
         self.pause()
     
         roll, pitch, yaw = np.random.random((3,)) * np.pi
-        state = ModelState()
+        state = LinkState()
         quaternion = tf.transformations.quaternion_from_euler(0., 0.,
             yaw)
         x, y = np.random.random((2,))
@@ -281,23 +289,33 @@ class HuskyDataCollector(object):
 
         state.pose.position.x = x
         state.pose.position.y = y
+        state.pose.position.z = 0.5
         state.pose.orientation.x = quaternion[0]
         state.pose.orientation.y = quaternion[1]
         state.pose.orientation.z = quaternion[2]
         state.pose.orientation.w = quaternion[3]
-        state.model_name = "mobile_base"
+        state.link_name = "base_link"
         
-        self.set_model_state(model_state=state)
+        #model_state = ModelState()
+        #model_state.model_name = "mobile_base"
+        #self.set_model_state(model_state=model_state)
+        #self.set_link_state(link_state=state)
+
         self.unpause()
 
     def tick(self):
         try:
             (trans,rot) = self.listener.lookupTransform('/map', '/base_link', rospy.Time(0))
+            msg = self.get_link_state(link_name="base_link")
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             return False
 
+        self.pose = msg.link_state.pose
         self.trans, self.rot = trans, rot
-        quaternion = (rot[0], rot[1], rot[2], rot[3])
+        #quaternion = (rot[0], rot[1], rot[2], rot[3])
+        orientation = self.pose.orientation
+        quaternion = (orientation.x, orientation.y, orientation.z,
+                orientation.w)
         euler = tf.transformations.euler_from_quaternion(quaternion)
         self.roll = euler[0]
         self.pitch = euler[1]
