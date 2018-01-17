@@ -52,6 +52,7 @@ class ConditionalImageGan(PretrainImageGan):
         self.do_all = True
         self.transform_model = None
         self.skip_connections = False
+        self.num_generator_files = 1
  
     def _makePredictor(self, features):
         # =====================================================================
@@ -200,31 +201,25 @@ class ConditionalImageGan(PretrainImageGan):
         ins = [img0, img, option, option2, img_goal, img_goal2]
         dr = self.dropout_rate
         dr = 0
-        x = AddConv2D(img, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        x0 = AddConv2D(img0, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        x = Add()([x, x0])
-        x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=True)
+
+        x1 = Concatenate()([img0, img, img_goal])
+        x1 = AddConv2D(x1, 32, [4,4], 2, dr, "same", lrelu=True, bn=False)
+        x2 = Concatenate()([img0, img_goal, img_goal2])
+        x2 = AddConv2D(x2, 32, [4,4], 2, dr, "same", lrelu=True, bn=False)
 
         # -------------------------------------------------------------
         y = OneHot(self.num_options)(option)
-        y = AddDense(y, 64, "lrelu", dr)
-        x = TileOnto(x, y, 64, (32,32), add=True)
-        x = AddConv2D(x, 64, [4,4], 1, dr, "same", lrelu=True)
-
-        xg = AddConv2D(img_goal, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
-        x = Add()([x, xg])
+        y = AddDense(y, 32, "lrelu", dr)
+        x1 = TileOnto(x1, y, 32, (32,32), add=False)
+        x1 = AddConv2D(x1, 32, [4,4], 1, dr, "same", lrelu=True)
 
         # -------------------------------------------------------------
         y = OneHot(self.num_options)(option2)
-        y = AddDense(y, 64, "lrelu", dr)
-        x = TileOnto(x, y, 64, (32,32), add=True)
-        x = AddConv2D(x, 64, [4,4], 1, dr, "same", lrelu=True)
+        y = AddDense(y, 32, "lrelu", dr)
+        x2 = TileOnto(x2, y, 32, (32,32), add=False)
+        x2 = AddConv2D(x2, 32, [4,4], 1, dr, "same", lrelu=True)
 
-        xg2 = AddConv2D(img_goal2, 64, [4,4], 2, dr, "same", lrelu=True,
-                bn=False)
-        x = Add()([x, xg2])
-
-        x = AddConv2D(x, 64, [4,4], 1, dr, "same", lrelu=True)
+        x = Concatenate()([x1, x2])
         x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True)
         #x = AddConv2D(x, 128, [4,4], 1, dr, "same", lrelu=True)
         x= AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)

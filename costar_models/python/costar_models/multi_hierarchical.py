@@ -190,6 +190,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
             x = AddDense(x, 512, "relu", 0.,
                     constraint=3,
                     output=True)
+            ins = [img_in, arm_in, gripper_in, cmd_in]
 
         arm_out = Dense(arm_cmd_size, name="arm")(x)
         gripper_out = Dense(gripper_size, name="gripper")(x)
@@ -336,11 +337,11 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         g = np.array(gripper) * -1
         qa = np.array(arm_cmd)
         ga = np.array(gripper_cmd) * -1
-        oin = prev_label
+        oin = np.array(prev_label)
         I_target = np.array(goal_features) / 255.
         q_target = np.array(goal_arm)
         g_target = np.array(goal_gripper) * -1
-        o_target = label
+        o_target = np.array(label)
 
         # Preprocess values
         value_target = np.array(np.array(value) > 1.,dtype=float)
