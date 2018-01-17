@@ -260,20 +260,17 @@ class HuskyRobotMultiPredictionSampler(RobotMultiPredictionSampler):
 
         return predictor, train_predictor, actor, ins, enc
 
-    def _makeModel(self, features, pose, *args, **kwargs):
+    def _makeModel(self, image, pose, *args, **kwargs):
         '''
         Little helper function wraps makePredictor to consturct all the models.
 
         Parameters:
         -----------
-        features, arm, gripper: variables of the appropriate sizes
+        image, arm, gripper: variables of the appropriate sizes
         '''
-        asdf
-        print(">>>>>>", self.train_predictor)
         self.predictor, self.train_predictor, self.actor, ins, hidden = \
             self._makePredictor(
-                (features, pose))
-        print(">>>>>>", self.train_predictor)
+                (image, pose))
         if self.train_predictor is None:
             raise RuntimeError('did not make trainable model')
 
