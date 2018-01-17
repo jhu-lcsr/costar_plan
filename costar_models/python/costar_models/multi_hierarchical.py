@@ -62,7 +62,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
         self.use_spatial_softmax = False
 
-    def _makeModel(self, features, arm, gripper, _, arm_cmd, gripper_cmd, *args, **kwargs):
+    def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
         '''
         Set up all models necessary to create actions
         '''
@@ -269,23 +269,28 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         img_shape = features.shape[1:]
         arm_size = arm.shape[1]
         arm_cmd_size = arm_cmd.shape[1]
+        print("arm_size ", arm_size, " arm_cmd_size ", arm_cmd_size)
         if len(gripper.shape) > 1:
             gripper_size = gripper.shape[1]
         else:
             gripper_size = 1
 
+        img_in = Input(img_shape,name="policy_img_in")
+        img0_in = Input(img_shape,name="policy_img0_in")
+        arm = Input((arm_size,), name="ee_in")
+        gripper = Input((gripper_size,), name="gripper_in")
+        ins = [img0_in, img_in, arm, gripper]
         h = encoder(img_in)
         x = Flatten()(h)
         h0 = encoder(img0_in)
         x0 = Flatten()(h0)
-        arm = Input((arm_size,), name="ee_in")
-        gripper = Input((gripper_size,), name="gripper_in")
-        ins = Concatenate()([x0, x, arm, gripper])
+        x = Concatenate()([x0, x, arm, gripper])
 
+        dr = self.dropout_rate
         x = AddDense(x, 512, "lrelu", dr, output=True, bn=False)
 
-        gripper_out = Dense(gripper_size, name="gripper" + str(option))(x)
-        arm_out = Dense(arm_cmd_size, name="arm" + str(option))(x)
+        arm_out = Dense(arm_cmd_size, name="arm_out")(x)
+        gripper_out = Dense(gripper_size, name="gripper_out")(x)
 
         model = Model(ins, [arm_out, gripper_out])
         model.compile(loss=self.loss, optimizer=self.getOptimizer())
@@ -418,12 +423,13 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
     def trainFromGenerators(self, train_generator, test_generator, data=None, *args, **kwargs):
         #[features, arm, gripper, oi], [arm_cmd, gripper_cmd] = self._getData(**data)
-        in_l, out_l = self._getData(**data)
+        features, targets = self._getAllData(**data)
+        [I, q, g, _, _, _, _] = features
+        _, _, _, qa, ga, _ = targets
+        qa, ga = np.squeeze(qa), np.squeeze(ga)
 
-        # concatenate all the arguments for splatting
-        args = in_l + out_l + list(args)
         if self.model is None:
-            self._makeModel(*args, **kwargs)
+            self._makeModel(I, q, g, qa, ga, *args, **kwargs)
         self.model.summary()
         self.model.fit_generator(
                 train_generator,
