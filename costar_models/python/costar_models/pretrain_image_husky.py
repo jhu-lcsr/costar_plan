@@ -54,17 +54,17 @@ class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
 
         image_discriminator = self._makeImageEncoder(img_shape, disc=True)
 
-        o1 = image_discriminator(ins)
-        o2 = image_discriminator([out])
+        #o1 = image_discriminator(ins)
+        #o2 = image_discriminator([out])
 
         encoder.summary()
         decoder.summary()
         image_discriminator.summary()
 
-        ae = Model(ins, [out, o1, o2])
+        ae = Model(ins, [out]) #, o1, o2])
         ae.compile(
-                loss=["mae"] + ["categorical_crossentropy"]*2,
-                loss_weights=[1.,1.e-2,1e-4],
+                loss=["mae"],# + ["categorical_crossentropy"]*2,
+                #loss_weights=[1.,1.e-2,1e-4],
                 optimizer=self.getOptimizer())
         ae.summary()
     
@@ -73,7 +73,7 @@ class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
         [I, q, oin, q_target] = features
-        o1 = targets[1]
-        oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
-        return [I], [I, oin_1h, oin_1h]
+        #o1 = targets[1]
+        #oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
+        return [I], [I]#, oin_1h, oin_1h]
 
