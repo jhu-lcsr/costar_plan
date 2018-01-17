@@ -40,7 +40,7 @@ class RobotPolicy(RobotMultiHierarchical):
 
 
         # add option to self.name, for saving
-        self.name += "_o" + str(self.option)
+        self.name += "_opt" + str(self.option)
 
 
     def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
@@ -52,24 +52,15 @@ class RobotPolicy(RobotMultiHierarchical):
                 arm,
                 gripper)
         encoder = self._makeImageEncoder(img_shape)
-        encoder.summary()
-        #decoder = self._makeImageDecoder(self.hidden_shape)
-        ''' debug
         try:
             encoder.load_weights(self._makeName(
                 "pretrain_image_encoder_model",
                 #"pretrain_image_gan_model",
                 "image_encoder.h5f"))
             encoder.trainable = self.retrain
-            #decoder.load_weights(self._makeName(
-            #    "pretrain_image_encoder_model",
-            #    #"pretrain_image_gan_model",
-            #    "image_decoder.h5f"))
-            #decoder.trainable = self.retrain
         except Exception as e:
             if not self.retrain:
                 raise e
-        '''
 
         # Make end-to-end conditional actor
         self.model = self._makePolicy(
@@ -81,10 +72,17 @@ class RobotPolicy(RobotMultiHierarchical):
         Filter out the data not relevant to the current option
         '''
         features, targets = self._getAllData(*args, **kwargs)
-        [_, _, _, _, label, _, _,] = features
-        # find the matches
-        idx = label == self.option
-        [I, q, g, _, _, _, _,] = [f[idx] for f in features]
-        [_, _, _, qa, ga, _] = [t[idx] for t in targets]
-        return [I, q, g], [np.squeeze(qa), np.squeeze(ga)]
+        [Iorig, _, _, _, label, _, _,] = features
+        labels = label[:]
+        # find the matches for filtering
+        idx = labels == self.option
+        if np.count_nonzero(idx) > 0:
+            [I, q, g, _, _, _, _,] = [f[idx] for f in features]
+            I0 = Iorig[0,:,:,:]
+            length = I.shape[0]
+            I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
+            [_, _, _, qa, ga, _] = [t[idx] for t in targets]
+            return [I0, I, q, g], [np.squeeze(qa), np.squeeze(ga)]
+        else:
+            return [], []
 

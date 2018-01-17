@@ -152,10 +152,11 @@ class AbstractAgentBasedModel(object):
         print("skip connections =", self.skip_connections)
         print("gan_method =", self.gan_method)
         print("save_model =", self.save_model)
+        print("use_batchnorm =", self.use_batchnorm)
         print("-----------------------------------------------------------")
         print("Optimizer =", self.optimizer)
-        print("Learning Rate = ", self.lr)
-        print("Clip Norm = ", self.clipnorm)
+        print("Learning Rate =", self.lr)
+        print("Clip Norm =", self.clipnorm)
         print("===========================================================")
 
         try:
@@ -209,12 +210,16 @@ class AbstractAgentBasedModel(object):
       while True:
             features, targets = [], []
             idx = 0
-            while idx < self.num_generator_files:
+            while True:
                 fdata, fn = sampleFn()
                 if len(fdata.keys()) == 0:
                     print("WARNING: ", fn, "was empty.")
                     continue
                 ffeatures, ftargets = self._getData(**fdata)
+
+                if len(ffeatures) == 0 or len(ffeatures[0]) == 0:
+                    #print("WARNING: ", fn, "was empty after getData.")
+                    continue
 
                 # --------------------------------------------------------------
                 # Compute the features and aggregate
@@ -248,15 +253,19 @@ class AbstractAgentBasedModel(object):
                             print ("value shape =", value.shape)
                             raise e
                         #print ("target data shape =", targets[i].shape, i)
+
                 idx += 1
                 # --------------------------------------------------------------
+                if idx > self.num_generator_files and \
+                        features[0].shape[0] >= self.batch_size:
+                            break
 
             n_samples = features[0].shape[0]
             for f in features:
                 if f.shape[0] != n_samples:
                     raise ValueError("Feature lengths are not equal!")
 
-            #print("COLLECTED", n_samples, "samples")
+            #print("Collected ", n_samples, " samples")
             idx = np.random.randint(n_samples,size=(self.batch_size,))
             yield ([f[idx] for f in features],
                    [t[idx] for t in targets])
