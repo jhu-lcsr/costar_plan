@@ -9,6 +9,7 @@ import rospy
 from costar_task_plan.mcts import PlanExecutionManager, DefaultExecute
 from costar_task_plan.robotics.core import RosTaskParser
 from costar_task_plan.robotics.core import CostarWorld
+from costar_task_plan.robotics.workshop import UR5_C_MODEL_CONFIG
 from sensor_msgs.msg import JointState
 
 from ctp_integration import MakeStackTask
@@ -84,7 +85,7 @@ def main():
     task = MakeStackTask()
 
     # create fake data or listen for a detected object information message
-    world = CostarWorld()
+    world = CostarWorld(robot_config=UR5_C_MODEL_CONFIG)
     if args.fake:
         world.addObjects(fakeTaskArgs())
         filled_args = task.compile(fakeTaskArgs())
