@@ -13,7 +13,6 @@ from .multi_sampler import RobotMultiPredictionSampler
 from .goal_sampler import RobotMultiGoalSampler
 from .multi_sequence import RobotMultiSequencePredictor
 from .image_sampler import RobotMultiImageSampler
-from .husky_sampler import HuskyRobotMultiPredictionSampler
 from .pretrain_image import PretrainImageAutoencoder
 from .pretrain_state import PretrainStateAutoencoder
 from .pretrain_sampler import PretrainSampler
@@ -27,6 +26,10 @@ from .conditional_image_gan import ConditionalImageGan
 
 # DVRK stuff
 from .pretrain_image_dvrk import PretrainImageAutoencoderDVRK
+
+# Husky stuff
+from .husky_sampler import HuskyRobotMultiPredictionSampler
+from .pretrain_image_husky import PretrainImageAutoencoderHusky
 
 def MakeModel(features, model, taskdef, **kwargs):
     '''
@@ -127,9 +130,13 @@ def MakeModel(features, model, taskdef, **kwargs):
                     **kwargs)
     elif features == "husky":
         if model == "pretrain_image_encoder":
-            model_instance = PretrainImageAutoencoder(taskdef,
+            model_instance = PretrainImageAutoencoderHusky(taskdef,
                     model=model,
                     features=features,
+                    **kwargs)
+        elif model == "predictor":
+            model_instance = HuskyRobotMultiPredictionSampler(taskdef,
+                    model=model,
                     **kwargs)
     
     # If we did not create a model then die.

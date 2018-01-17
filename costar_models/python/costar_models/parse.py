@@ -18,6 +18,8 @@ def GetAvailableFeatures():
     '''
     return ['empty',
             'null',
+            'husky',
+            'dvrk',
             'depth', # depth channel only
             'rgb', # RGB channels only
             'joint_state', # robot joints only

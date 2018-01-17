@@ -50,6 +50,14 @@ rosrun costar_models ctp_model_tool --model hierarchical --data_file data.h5f --
 
 The advantage here is that they can use a little bit more information than the previous versions should it prove necessary. They are also trained end-to-end, since there is no need for them to produce high quality images.
 
+### Husky Experiments
+
+First, you need a data set. Here we assume this was placed in `husky_data`, and consists of numpy blobs.
+
+```
+rosrun costar_models ctp_model_tool --model pretrain_image_encoder --features husky --data_file husky_data.npz --lr 0.001 --dropout_rate 0.2
+```
+
 ### Training On MARCC
 
 MARCC is our cluster for machine learning, equipped with a large set of Tesla K80 GPUs. We assume that when training on a cluster like MARCC, you will not want a full ROS workspace, so instead we assume you will install to some path $COSTAR_PLAN and just run scripts.

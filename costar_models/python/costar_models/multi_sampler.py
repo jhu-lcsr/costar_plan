@@ -485,31 +485,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         else:
             raise RuntimeError('predictor model sets sizes based on'
                                'sample data; must be provided')
-        # ===================================================================
-        # Use sample data to compile the model and set everything else up.
-        # Check to make sure data makes sense before running the model.
-
-        [I, q, g, oprev, label, q_target, g_target,] = features
-        [I_target2, o_target, value_target, qa, ga, I_target0] = targets
-
-        if self.predictor is None:
-            self._makeModel(I, q, g, qa, ga)
-
-        # Compute helpful variables
-        image_shape = I.shape[1:]
-        image_size = 1
-        for dim in image_shape:
-            image_size *= dim
-        image_size = int(image_size)
-        arm_size = q.shape[-1]
-        gripper_size = g.shape[-1]
-
-        train_size = image_size + arm_size + gripper_size + self.num_options
-        assert gripper_size == 1
-        # NOTE: arm size is one bigger when we have quaternions
-        #assert train_size == 12295 + self.num_options
-        #assert train_size == 12296 + self.num_options
-        assert train_size == (64*64*3) + self.num_arm_vars + 1 + self.num_options
 
         # ===================================================================
         # Create the callbacks and actually run the training loop.
