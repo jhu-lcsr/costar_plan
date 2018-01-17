@@ -25,6 +25,9 @@ from .conditional_sampler2 import ConditionalSampler2
 from .conditional_image import ConditionalImage
 from .conditional_image_gan import ConditionalImageGan
 
+# DVRK stuff
+from .pretrain_image_dvrk import PretrainImageAutoencoderDVRK
+
 def MakeModel(features, model, taskdef, **kwargs):
     '''
     This function will create the appropriate neural net based on images and so
@@ -96,7 +99,7 @@ def MakeModel(features, model, taskdef, **kwargs):
         elif model == "image_sampler":
             model_instance = RobotMultiImageSampler(taskdef, model=model,
                     **kwargs)
-        elif model == "pretrain_image_encoder" or model == "pretrain_image":
+        elif model == "pretrain_image_encoder":
             model_instance = PretrainImageAutoencoder(taskdef, model=model,
                     **kwargs)
         elif model == "pretrain_state_encoder":
@@ -116,6 +119,10 @@ def MakeModel(features, model, taskdef, **kwargs):
             model_instance = PretrainMinimal(taskdef, model=model, **kwargs)
         elif model == "pretrain_image_gan":
             model_instance = PretrainImageGan(taskdef, model=model, **kwargs)
+    elif features == "dvrk":
+        if model == "pretrain_image_encoder":
+            model_instance = PretrainImageAutoencoderDVRK(taskdef, model=model,
+                    **kwargs)
     
     # If we did not create a model then die.
     if model_instance is None:
@@ -137,7 +144,7 @@ def GetModels():
             "goal_sampler", # samples goals instead of everything else
             "image_sampler", #just learn to predict goal image
             "pretrain_image_encoder", # tool for pretraining images
-            "pretrain_image", # tool for pretraining images
+            "pretrain_image_encoder_dvrk", # tool for pretraining images dvrk
             "pretrain_state_encoder", # tool for pretraining states
             "pretrain_sampler", # tool for pretraining the sampler
             "predictor2", # second version of the prediction-sampler code
@@ -148,3 +155,4 @@ def GetModels():
             "pretrain_minimal",
             "pretrain_image_gan",
             ]
+
