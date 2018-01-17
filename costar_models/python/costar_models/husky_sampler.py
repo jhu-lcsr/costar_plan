@@ -47,12 +47,7 @@ class HuskyRobotMultiPredictionSampler(RobotMultiPredictionSampler):
         self.num_features = 3 
 
 
-
-       
-
-
     def _makePredictor(self, features):
-        
  
         (images, pose) = features
         img_shape = images.shape[1:]
@@ -301,55 +296,6 @@ class HuskyRobotMultiPredictionSampler(RobotMultiPredictionSampler):
         self.predictor, self.train_predictor, self.actor, ins, hidden = \
             self._makePredictor(
                 (features, pose))
-
-
-    def train(self, features, pose, pose_cmd, label,
-            
-            prev_label, goal_features, goal_pose, *args, **kwargs):
-        '''
-        Pre-process training data.
-        
-        Then, create the model. Train based on labeled data. Remove
-        unsuccessful examples.
-        '''
-
-        # ================================================
-        # Set up variable names -- just to make things a bit cleaner
-        I = features
-        q = pose
-        qa = pose_cmd
-        oin = prev_label
-        I_target = goal_features
-        o_target = label
-        q_target = goal_pose
-        action_labels = label
-
-        if self.supervisor is None:
-            self._makeModel(I, q, qa, oin)
-
-        # Fit the main models
-        self._fitPredictor(
-                [I, q, prev_label],
-                [I_target, q_target,
-                    to_categorical(o_target, 64)])
-
-        # ===============================================
-        # Might be useful if you start getting shitty results... one problem we
-        # observed was accidentally training the embedding weights when
-        # learning all your policies.
-        #fig, axes = plt.subplots(5, 5,)
-        #self.plotInfo(
-        #        [I, q, g, oin],
-        #        [I_target, q_target, g_target, Inext_target],
-        #        axes,
-        #        )
-        #self._fitSupervisor([I, q, g, o_prev], o_target)
-        # ===============================================
-
-        action_target = [qa]
-        #self._fitPolicies([I, q, g], action_labels, action_target)
-        #self._fitBaseline([I, q, g], action_target)
-
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''
