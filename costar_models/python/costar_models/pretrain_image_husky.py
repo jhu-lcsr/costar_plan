@@ -23,6 +23,15 @@ from .husky_sampler import *
 
 class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
 
+    def __init__(self, taskdef, *args, **kwargs):
+        '''
+        As in the other models, we call super() to parse arguments from the
+        command line and set things like our optimizer and learning rate.
+        '''
+        super(PretrainImageAutoencoderHusky, self).__init__(taskdef, *args, **kwargs)
+        self.PredictorCb = ImageCb
+
+
     def _makePredictor(self, features):
         '''
         Create model to predict possible manipulation goals.

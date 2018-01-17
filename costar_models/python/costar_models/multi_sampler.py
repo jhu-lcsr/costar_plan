@@ -481,7 +481,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         data: some extra data used for debugging (should be validation data)
         '''
         if data is not None:
-            print(type(self))
             features, targets = self._getAllData(**data)
         else:
             raise RuntimeError('predictor model sets sizes based on'
