@@ -16,13 +16,13 @@ class DataCollector(object):
     - current joint states
     - current gripper status
     '''
-    self.js_topic = "joint_states"
-    self.rgb_topic = "camera/rgb/image_raw"
-    self.depth_topic = "camera/depth_registered/image_raw"
-    self.ee = "/endpoint"
-    self.base_link = "/base_link"
-    self.description = "/robot_description"
-    self.data_types = ["h5f", "npz"]
+    js_topic = "joint_states"
+    rgb_topic = "camera/rgb/image_raw"
+    depth_topic = "camera/depth_registered/image_raw"
+    ee = "/endpoint"
+    base_link = "/base_link"
+    description = "/robot_description"
+    data_types = ["h5f", "npz"]
 
     def __init__(self,
             data_type="h5f",
