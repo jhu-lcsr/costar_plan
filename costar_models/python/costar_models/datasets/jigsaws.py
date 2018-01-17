@@ -1,5 +1,7 @@
 from __future__ import print_function
 
+import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 import os
 
@@ -28,7 +30,6 @@ class JigsawsDataset(object):
         acceptable_files = []
         for f in files:
             if not f[0] == '.':
-                #print("%d:"%(i+1), f)
                 if success_only:
                     name = f.split('.')
                     if name[1] == 'failure':
@@ -70,6 +71,9 @@ class JigsawsDataset(object):
         txt_file = os.path.join(self.name, "transcriptions", filename)
         avi_file = os.path.join(self.name, "video", filename_base,
                 "_capture1.avi")
+        vid = cv2.VideoCapture(avi_file)
+        while vid.isOpened():
+            ret, frame = vid.read()
 
         f = h5f.File(filename, 'r')
         return f
