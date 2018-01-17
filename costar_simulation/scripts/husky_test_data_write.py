@@ -293,6 +293,7 @@ if __name__ == '__main__':
         
         # Loop as long as we are runnin
         #for objectName in poseDictionary:
+        max_trials = 5000
         while not rospy.is_shutdown():
 
             print("================================================")
@@ -385,6 +386,9 @@ if __name__ == '__main__':
             print ("prev_label", prev_label)
             prev_label = poseDictionary.keys().index(objectName)
             print ("prev_label after update", prev_label)
+
+            if seqNumber >= max_trials:
+                break
 
     except rospy.ROSInterruptException as e:
         pass
