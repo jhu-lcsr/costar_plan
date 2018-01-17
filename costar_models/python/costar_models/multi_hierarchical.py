@@ -190,6 +190,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
             x = AddDense(x, 512, "relu", 0.,
                     constraint=3,
                     output=True)
+            ins = [img_in, arm_in, gripper_in, cmd_in]
 
         arm_out = Dense(arm_cmd_size, name="arm")(x)
         gripper_out = Dense(gripper_size, name="gripper")(x)
