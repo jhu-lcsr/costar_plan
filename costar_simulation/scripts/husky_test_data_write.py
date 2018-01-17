@@ -16,7 +16,7 @@ import cv2
 from cv_bridge import CvBridge, CvBridgeError
 import random
 
-
+from std_srvs.srv import Empty as EmptySrv
 
 
 gazeboModelsTopic = "/gazebo/model_states"
@@ -120,6 +120,10 @@ class HuskyDataCollector(object):
         self.roll, self.pitch, self.yaw = 0., 0., 0.
 
         self.trans_threshold = 0.25
+
+        rospy.wait_for_service("/gazebo/pause_physics")
+        self.pause = rospy.ServiceProxy("/gazebo/pause_physics", EmptySrv)
+        self.unpause = rospy.ServiceProxy("/gazebo/pause_physics", EmptySrv)
 
     def imageCallback(self, data):
         img_np_bk = imageToNumpy(data)
