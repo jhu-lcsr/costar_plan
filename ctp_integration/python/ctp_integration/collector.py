@@ -7,6 +7,9 @@ import tf_conversions.posemath as pm
 from costar_models.datasets.npz import NpzDataset
 from costar_models.datasets.h5f import H5fDataset
 
+from sensor_msgs.msg import Image
+from sensor_msgs.msg import JointState
+
 class DataCollector(object):
     '''
     Manages data collection. Will consume:
@@ -24,11 +27,12 @@ class DataCollector(object):
     description = "/robot_description"
     data_types = ["h5f", "npz"]
 
-    def __init__(self,
+    def __init__(self, robot_config,
             data_type="h5f",
             rate=10,
             data_root=".",
-            img_shape=(128,128)):
+            img_shape=(128,128),
+            camera_frame = "/camera_link",):
 
         '''
         Set up the writer (to save trials to disk) and subscribers (to process
@@ -47,16 +51,16 @@ class DataCollector(object):
         self.root = data_root
         self.data_type = data_type
         if self.data_type == "h5f":
-            self.writer = H5fDataset(root)
+            self.writer = H5fDataset(self.root)
         elif self.data_type == "npz":
-            self.writer = NpzDataset(root)
+            self.writer = NpzDataset(self.root)
         else:
             raise RuntimeError("data type %s not supported" % data_type)
 
         self.T_world_ee = None
         self.T_world_camera = None
         self.camera_frame = camera_frame
-        self.ee_frame = ee_frame
+        self.ee_frame = robot_config['end_link']
 
         self.q = None
         self.dq = None
@@ -68,9 +72,9 @@ class DataCollector(object):
 
         #self._camera_depth_info_sub = rospy.Subscriber(camera_depth_info_topic, CameraInfo, self._depthInfoCb)
         #self._camera_rgb_info_sub = rospy.Subscriber(camera_rgb_info_topic, CameraInfo, self._rgbInfoCb)
-        self._rgb_sub = rospy.Subscriber(camera_rgb_topic, Image, self._rgbCb)
-        self._depth_sub = rospy.Subscriber(camera_depth_topic, Image, self._depthCb)
-        self._joints_sub = rospy.Subscriber(joints_topic, JointState, self._jointsCb)
+        self._rgb_sub = rospy.Subscriber(self.rgb_topic, Image, self._rgbCb)
+        self._depth_sub = rospy.Subscriber(self.depth_topic, Image, self._depthCb)
+        self._joints_sub = rospy.Subscriber(self.js_topic, JointState, self._jointsCb)
  
         self._resetData()
 

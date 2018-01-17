@@ -42,7 +42,8 @@ def getArgs():
                         help="set if you want the robot to generate a task plan")
     parser.add_argument("--execute",
                         type=int,
-                        help="execute this many loops")
+                        help="execute this many loops",
+                        default=1)
     parser.add_argument("--iter","-i",
                         default=0,
                         type=int,
@@ -90,6 +91,7 @@ def main():
     task = MakeStackTask()
     world = CostarWorld(robot_config=UR5_C_MODEL_CONFIG)
     listener = tf.TransformListener()
+    rospy.init_node("ctp_integration_runner")
     rospy.sleep(0.5) # wait to cache incoming transforms
 
     if args.fake:
@@ -117,10 +119,11 @@ def main():
         collector = DataCollector(
                 data_root="~/.costar/data",
                 rate=10,
-                data_type="h5f")
+                data_type="h5f",
+                robot_config=UR5_C_MODEL_CONFIG)
 
     for i in range(args.execute):
-        print("Executing trial %d..."(i))
+        print("Executing trial %d..."%(i))
         task, env, world = observe()
         names, options = task.sampleSequence()
         plan = OptionsExecutionManager(options)
