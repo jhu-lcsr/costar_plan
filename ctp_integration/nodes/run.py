@@ -72,6 +72,14 @@ def main():
     # Read options from command line
     args = getArgs()
 
+    # Default joints for the motion planner when it needs to go to the home
+    # position - this will take us out of the way of the camera.
+    try:
+        q0 = rospy.get_param('/costar/robot/home')
+    except KeyError as e:
+        rospy.logwarn("CoSTAR home position not set, using default.")
+        q0 = [0.30, -1.33, -1.80, -0.27, 1.50, 1.60]
+
     # Create the task model
     task = MakeStackTask()
 
