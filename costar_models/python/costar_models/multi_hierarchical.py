@@ -183,11 +183,11 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                     bn=self.use_batchnorm)
             #x = BatchNormalization()(x)
             x = Flatten()(x)
-            x = AddDense(x, 512, "relu", 0.,
+            x = AddDense(x, 512, "relu", self.dropout_rate,
                     constraint=3,
                     output=True)
             x = Dropout(self.dropout_rate)(x)
-            x = AddDense(x, 512, "relu", 0.,
+            x = AddDense(x, 512, "relu", self.dropout_rate,
                     constraint=3,
                     output=True)
             ins = [img_in, arm_in, gripper_in, cmd_in]

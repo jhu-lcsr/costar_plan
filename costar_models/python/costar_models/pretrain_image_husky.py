@@ -27,11 +27,9 @@ class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
         '''
         Create model to predict possible manipulation goals.
         '''
-        (images, arm, gripper) = features
-        img_shape, image_size, arm_size, gripper_size = self._sizes(
-                images,
-                arm,
-                gripper)
+        (images, pose) = features
+        img_shape = images.shape[1:]
+        pose_size = pose.shape[-1]
 
         img_in = Input(img_shape,name="predictor_img_in")
         img0_in = Input(img_shape,name="predictor_img0_in")
