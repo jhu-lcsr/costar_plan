@@ -62,14 +62,14 @@ flags.DEFINE_string('load_weights', 'grasp_model_weights.h5',
                     """Load and continue training the specified file containing model weights.""")
 flags.DEFINE_integer('epochs', 300,
                      """Epochs of training""")
-flags.DEFINE_string('grasp_dataset_eval', '097',
+flags.DEFINE_string('grasp_dataset_eval', '052',
                     """Filter the subset of 1TB Grasp datasets to evaluate.
                     097 by default. It is important to ensure that this selection
                     is completely different from the selected training datasets
                     with no overlap, otherwise your results won't be valid!
                     See https://sites.google.com/site/brainrobotdata/home
                     for a full listing.""")
-flags.DEFINE_boolean('eval_per_epoch', False,
+flags.DEFINE_boolean('eval_per_epoch', True,
                      """Do evaluation on dataset_eval above in every epoch.
                         Weight flies for every epoch and single txt file of dataset
                         will be saved.
@@ -661,10 +661,24 @@ class EvaluationCallback(keras.callbacks.Callback):
         print(metrics_str)
         weights_name_str = self.load_weights + '_evaluation_dataset_{}_epoch_{:03}_loss_{:.3f}_acc_{:.3f}'.format(self.dataset, epoch, results[0], results[1])
         weights_name_str = weights_name_str.replace('.h5', '') + '.h5'
-        results_summary_name_str = self.load_weights + '_evaluation_dataset_{}'.format(self.dataset) + '.txt'
+        results_summary_name_str = self.load_weights + '_evaluation_dataset_{}'.format(self.dataset) + '.csv'
         results_summary_name_str = results_summary_name_str.replace('.h5', '')
+        metric_line = '' + str(epoch)
+        for key in logs.keys():
+            if key != 'lr':
+                metric_line += ',' + str(logs[key])
+        for result in results:
+            metric_line += ',' + str(result)
         with open(results_summary_name_str, 'a') as results_summary:
-            results_summary.write(metrics_str + 'in epoch' + str(epoch) + '\n')
+            if epoch==0:
+                head_line = 'epoch'
+                for key in logs.keys():
+                    if key != 'lr':
+                        head_line += ',' + 'train_' + key
+                for metric in self.eval_model.metrics_names:
+                    head_line += ',' + 'eval_' + metric
+                results_summary.write(head_line + '\n')
+            results_summary.write(metric_line + '\n')
         if self.save_weights:
             self.eval_model.save_weights(weights_name_str)
             print('\nsaved weights with evaluation result to ' + weights_name_str)
