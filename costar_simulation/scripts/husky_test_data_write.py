@@ -123,7 +123,7 @@ class HuskyDataCollector(object):
 
         rospy.wait_for_service("/gazebo/pause_physics")
         self.pause = rospy.ServiceProxy("/gazebo/pause_physics", EmptySrv)
-        self.unpause = rospy.ServiceProxy("/gazebo/pause_physics", EmptySrv)
+        self.unpause = rospy.ServiceProxy("/gazebo/unpause_physics", EmptySrv)
 
     def imageCallback(self, data):
         img_np_bk = imageToNumpy(data)
@@ -263,6 +263,11 @@ class HuskyDataCollector(object):
 
         collector.write(data, current_example['example'][0], total_reward)
 
+    def reset(self):
+        self.pause()
+
+        self.unpause()
+
     def tick(self):
         try:
             (trans,rot) = self.listener.lookupTransform('/map', '/base_link', rospy.Time(0))
@@ -302,6 +307,8 @@ if __name__ == '__main__':
 
             print("================================================")
             print("EXAMPLE NUMBER = ", seqNumber)
+
+            collector.reset()
             
             current_example = {}
             current_example['reward'] = list()
