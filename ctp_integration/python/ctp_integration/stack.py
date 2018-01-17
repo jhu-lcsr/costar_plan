@@ -15,27 +15,40 @@ def MakeStackTask():
 
     # Create the task: pick up any one block and put it down in a legal
     # position somewhere on the other side of the bin.
-    place_args = {
-        "task": place,
-        "args": ["block2"],
-    }
     task = Task()
-    task.add("pickup_left", None, _pickupLeftArgs())
-    task.add("place_right", "pickup_left", place_args)
-    task.add("pickup_right", None, pickup_args)
-    task.add("place_left", "pickup_right", place_args)
-    task.add("DONE", ["place_right", "place_left"], place_args)
+    task.add("pickup_left", None, pickup_left)
+    task.add("pickup_right", None, pickup_right)
+    task.add("place_left", "pickup_right", place_left)
+    task.add("place_right", "pickup_left", place_right)
+    task.add("DONE", ["place_right", "place_left"], {})
+
+    return task
 
 def _makePickupLeft():
     pickup = TaskTemplate("pickup_left", None)
     pickup.add("home", None, _homeArgs())
     pickup.add("detect_objects", "home", _detectObjectsArgs())
 
-    return pickup
+    return {"task": pickup, "args": ["object"]}
 
-def _makePlace():
-    place = TaskTemplate("place", "pickup")
-    return place
+def _makePickupRight():
+    pickup = TaskTemplate("pickup_right", None)
+    pickup.add("home", None, _homeArgs())
+    pickup.add("detect_objects", "home", _detectObjectsArgs())
+
+    return {"task": pickup, "args": ["object"]}
+
+def _makePlaceLeft():
+    place = TaskTemplate("place_left", ["pickup_right"])
+    place.add("home", None, _homeArgs())
+    place.add("detect_objects", "home", _detectObjectsArgs())
+    return {"task": place, "args": ["frame"]}
+
+def _makePlaceRight():
+    place = TaskTemplate("place_right", ["pickup_left"])
+    place.add("home", None, _homeArgs())
+    place.add("detect_objects", "home", _detectObjectsArgs())
+    return {"task": place, "args": ["frame"]}
 
 def _pickupLeftArgs():
     # Create args for pickup from left task
@@ -50,6 +63,12 @@ def _pickupRightArgs():
         "task": pickup_right,
         "args": ["block1"],
     }
+
+def _homeArgs():
+    return {}
+
+def _detectObjectsArgs():
+    return {}
 
 def _checkBlocks1And2(block1,block2,**kwargs):
     '''
