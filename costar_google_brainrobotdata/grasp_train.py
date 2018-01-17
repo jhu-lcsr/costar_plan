@@ -300,7 +300,7 @@ class GraspTrain(object):
 
         scheduler = keras.callbacks.LearningRateScheduler(lr_scheduler)
         early_stopper = EarlyStopping(monitor=monitor_metric_name, min_delta=0.001, patience=32)
-        csv_logger = CSVLogger(weights_name + '.csv')
+        
         # TODO(ahundt) Re-enable results included in filename, need to fix the following error but this was skipped due to time constraints to start training:
         """
             Epoch 1/100
@@ -331,7 +331,7 @@ class GraspTrain(object):
         checkpoint = keras.callbacks.ModelCheckpoint(weights_name + '-epoch-{epoch:03d}.h5',
                                                      save_best_only=False, verbose=1)
 
-        callbacks = callbacks + [early_stopper, csv_logger, checkpoint]
+        callbacks = callbacks + [early_stopper, checkpoint]
 
         if FLAGS.progress_tracker is 'tensorboard':
             progress_tracker = TensorBoard(log_dir='./' + weights_name, write_graph=True,
@@ -348,6 +348,13 @@ class GraspTrain(object):
         # 2017-08-28 afternoon trying NADAM with higher learning rate
         # optimizer = keras.optimizers.Nadam(lr=0.03, beta_1=0.825, beta_2=0.99685)
         print('FLAGS.optimizer', FLAGS.optimizer)
+
+        # add evalation callback, calls evalation of self.eval_model
+        if eval_per_epoch:
+            eval_model, step_num = self.eval(make_model_fn=make_model_fn,
+                                             model_name=model_name,
+                                             eval_per_epoch=eval_per_epoch)
+            callbacks = callbacks + [EvaluationCallback(eval_model, step_num)]
 
         # 2017-08-28 trying SGD
         # 2017-12-18 SGD worked very well and has been the primary training optimizer from 2017-09 to 2018-01
@@ -367,12 +374,8 @@ class GraspTrain(object):
                 keras.callbacks.ReduceLROnPlateau(patience=4, verbose=1, monitor=monitor_metric_name)
             ]
 
-        # add evalation callback, calls evalation of self.eval_model
-        if eval_per_epoch:
-            eval_model, step_num = self.eval(make_model_fn=make_model_fn,
-                                             model_name=model_name,
-                                             eval_per_epoch=eval_per_epoch)
-            callbacks = callbacks + [EvaluationCallback(eval_model, step_num)]
+        csv_logger = CSVLogger(weights_name + '.csv')
+        callbacks = callbacks + [csv_logger]
         # 2017-08-27 Tried NADAM for a while with the settings below, only improved for first 2 epochs.
         # optimizer = keras.optimizers.Nadam(lr=0.004, beta_1=0.825, beta_2=0.99685)
 
@@ -643,7 +646,8 @@ class EvaluationCallback(keras.callbacks.Callback):
         is actually weights from training model.
     """
     def __init__(self, eval_model, steps, load_weights=FLAGS.load_weights, 
-                 dataset=FLAGS.grasp_dataset_eval, save_weights=FLAGS.save_weights):
+                 dataset=FLAGS.grasp_dataset_eval, save_weights=FLAGS.save_weights,
+                 verbose=1):
         # parameter of callbacks passed during initialization
         # pass evalation mode directly
         super(EvaluationCallback, self).__init__()
@@ -652,34 +656,26 @@ class EvaluationCallback(keras.callbacks.Callback):
         self.load_weights = load_weights
         self.dataset = dataset
         self.save_weights = save_weights
+        self.verbose = verbose
 
     def on_epoch_end(self, epoch, logs={}):
         # this is called automatically, so not able to pass other parameters here?
         self.eval_model.set_weights(self.model.get_weights())
         results = self.eval_model.evaluate(None, None, steps=int(self.step_num))
-        metrics_str = 'metrics:\n' + str(self.eval_model.metrics_names) + 'results:' + str(results)
-        print(metrics_str)
+        metrics_str = 'val_metrics:\n' + str(self.eval_model.metrics_names) + '\nval_results:\n' + str(results)
+        if self.verbose:
+            print(metrics_str)
         weights_name_str = self.load_weights + '_evaluation_dataset_{}_epoch_{:03}_loss_{:.3f}_acc_{:.3f}'.format(self.dataset, epoch, results[0], results[1])
         weights_name_str = weights_name_str.replace('.h5', '') + '.h5'
         results_summary_name_str = self.load_weights + '_evaluation_dataset_{}'.format(self.dataset) + '.csv'
         results_summary_name_str = results_summary_name_str.replace('.h5', '')
         metric_line = '' + str(epoch)
-        for key in logs.keys():
-            metric_line += ',' + str(logs[key])
-        for result in results:
-            metric_line += ',' + str(result)
-        with open(results_summary_name_str, 'a') as results_summary:
-            if epoch==0:
-                head_line = 'epoch'
-                for key in logs.keys():
-                    head_line += ',' + 'train_' + key
-                for metric in self.eval_model.metrics_names:
-                    head_line += ',' + 'eval_' + metric
-                results_summary.write(head_line + '\n')
-            results_summary.write(metric_line + '\n')
+        for result, name in zip(results, self.eval_model.metrics_names):
+            logs['val_' + name] = result
         if self.save_weights:
             self.eval_model.save_weights(weights_name_str)
-            print('\nsaved weights with evaluation result to ' + weights_name_str)
+            if self.verbose:
+                print('\nsaved weights with evaluation result to ' + weights_name_str)
 
 
 def main():
