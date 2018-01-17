@@ -665,16 +665,14 @@ class EvaluationCallback(keras.callbacks.Callback):
         results_summary_name_str = results_summary_name_str.replace('.h5', '')
         metric_line = '' + str(epoch)
         for key in logs.keys():
-            if key != 'lr':
-                metric_line += ',' + str(logs[key])
+            metric_line += ',' + str(logs[key])
         for result in results:
             metric_line += ',' + str(result)
         with open(results_summary_name_str, 'a') as results_summary:
             if epoch==0:
                 head_line = 'epoch'
                 for key in logs.keys():
-                    if key != 'lr':
-                        head_line += ',' + 'train_' + key
+                    head_line += ',' + 'train_' + key
                 for metric in self.eval_model.metrics_names:
                     head_line += ',' + 'eval_' + metric
                 results_summary.write(head_line + '\n')
