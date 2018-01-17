@@ -51,6 +51,10 @@ def getArgs():
                         choices=["collect","test"],
                         default="collect",
                         help="Choose which mode to run in.")
+    parser.add_argument("--verbose", "-v",
+                        type=int,
+                        default=0,
+                        help="verbosity level")
 
     return parser.parse_args()
 
@@ -101,7 +105,7 @@ def main():
                 tf_listener=listener)
 
     # print out task info
-    if args.verbose:
+    if args.verbose > 0:
         print(task.nodeSummary())
         print(task.children['ROOT()'])
 
