@@ -125,6 +125,7 @@ class HuskyDataCollector(object):
         img_np_bk = imageToNumpy(data)
         #print img_np_bk.shape
         self.img_np = imresize(img_np_bk, (64, 64))
+        print (self.img_np)
         #print self.img_np.shape
     
     def cmdVelCallback(self, data):
