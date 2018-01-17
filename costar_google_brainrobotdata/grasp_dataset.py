@@ -223,7 +223,7 @@ flags.DEFINE_string(
     """)
 
 # MULTI DATASET AGGREGATION PARAMETERS, see get_multi_dataset_training_tensors()
-flags.DEFINE_string('grasp_datasets_train', '052',
+flags.DEFINE_string('grasp_datasets_train', '062_b,063,072_a,082_b,102',
                     """Filter multiple subsets of 1TB Grasp datasets to train.
 
                     For use with get_multi_dataset_training_tensors() when training
