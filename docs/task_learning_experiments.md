@@ -24,6 +24,21 @@ rosrun costar_models ctp_model_tool --model conditional_image --data_file data.h
 rosrun costar_models ctp_model_tool --model conditional_image --data_file data.h5f --lr 0.0001 --dropout_rate 0.2 --retrain
 ```
 
+### Conditional Image GAN
+
+This version runs the conditional image GAN:
+
+```
+rosrun costar_models ctp_model_tool --model conditional_image_gan --data_file data.h5f --lr 0.0002 --dropout_rate 0.2 
+```
+
+To train it end-to-end add the `--retrain` flag:
+```
+rosrun costar_models ctp_model_tool --model conditional_image_gan --data_file data.h5f --lr 0.0002 --dropout_rate 0.2 --retrain
+```
+
+Different values for dropout rate and for learning rate might be useful.
+
 #### Training Policies
 
 We also learn "actor" networks that operate on the current world state. These are trained with the `ff_regression` and `hierachical` models.
