@@ -62,7 +62,18 @@ def gaussian_kernel_2D(size=(3, 3), center=(1, 1), sigma=1):
         xx, yy = tf.meshgrid(tf.range(0, size[0]),
                              tf.range(0, size[1]),
                              indexing='xy')
-        kernel = tf.exp(-((xx - center[0]) ** 2 + (yy - center[1]) ** 2) / (2. * sigma ** 2))
+        # tuple does not support assignment
+        center_x = tf.reshape(center[0], [1, 1])
+        center_y = tf.reshape(center[1], [1, 1])
+        xx = tf.cast(xx, tf.float32)
+        yy = tf.cast(yy, tf.float32)
+        center_x = tf.cast(center_x, tf.float32)
+        center_y = tf.cast(center_y, tf.float32)
+        sigma_tensor = tf.constant([[(2.0 * sigma ** 2)]], tf.float32)
+        # tf.exp requires float16, float32, float64, complex64, complex128
+        kernel = tf.div(tf.exp(-((xx - center_x) ** 2 + (yy - center_y) ** 2)), sigma_tensor)
+        # # later multiplication requires tf.int32
+        # kernel = tf.cast(kernel, tf.int32)
         return kernel
 
 
@@ -79,20 +90,24 @@ def segmentation_gaussian_measurement(
         y_pred: is expected to be a 2D array of labels.
     """
     with K.name_scope(name='grasp_segmentation_gaussian_loss') as scope:
-        label = y_true[0]
-        y_height_coordinate = y_true[1]
-        x_width_coordinate = y_true[2]
-
-        y_true_img = tile_vector_as_image_channels(label, y_pred)
+        label = y_true[0, 0]
+        y_height_coordinate = y_true[0, 1]
+        x_width_coordinate = y_true[0, 2]
+        label = tf.reshape(label, [1, 1])
+        image_shape = tf.Tensor.get_shape(y_pred)
+        y_true_img = tile_vector_as_image_channels(label, image_shape)
+        y_true_img = tf.cast(y_true_img, tf.float32)
         loss_img = (y_true_img, y_pred)
         y_pred_shape = K.int_shape(y_pred)
         if len(y_pred_shape) == 3:
-            y_pred_shape = y_pred[:-1]
+            y_pred_shape = y_pred_shape[:-1]
         if len(y_pred_shape) == 4:
-            y_pred_shape = y_pred[1:3]
+            y_pred_shape = y_pred_shape[1:3]
         weights = gaussian_kernel_2D(size=y_pred_shape, center=(y_height_coordinate, x_width_coordinate), sigma=gaussian_sigma)
         weighted_loss_img = tf.multiply(loss_img, weights)
-        return K.sum(K.flatten(weighted_loss_img))
+        loss_sum = K.sum(K.flatten(weighted_loss_img))
+        loss_sum = tf.reshape(loss_sum, [1, 1])
+        return loss_sum
 
 
 def segmentation_gaussian_binary_crossentropy(
@@ -100,7 +115,7 @@ def segmentation_gaussian_binary_crossentropy(
         y_pred,
         gaussian_sigma=10):
     with K.name_scope(name='segmentation_gaussian_binary_crossentropy') as scope:
-        y_pred_shape = K.int_shape(y_pred)
+        y_pred_shape = tf.Tensor.get_shape(y_pred)
         batch_size = y_pred_shape[0]
         y_true = tf.split(y_true, batch_size)
         y_pred = tf.split(y_pred, batch_size)
