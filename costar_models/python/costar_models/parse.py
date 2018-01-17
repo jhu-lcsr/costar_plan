@@ -163,7 +163,7 @@ def GetModelParser():
                               "do not use this parameter.",
                         type=int,
                         default=1)
-    parser.add_argument("--option",
+    parser.add_argument("--option_num",
                         help="Choose an option to learn for the multi-policy hierarchical model",
                         type=int,
                         default=None)
