@@ -87,6 +87,5 @@ class JigsawsDataset(object):
             plt.show()
             break
 
-        f = h5f.File(filename, 'r')
         return f
 
