@@ -125,7 +125,6 @@ class HuskyDataCollector(object):
         img_np_bk = imageToNumpy(data)
         #print img_np_bk.shape
         self.img_np = imresize(img_np_bk, (64, 64))
-        print (self.img_np)
         #print self.img_np.shape
     
     def cmdVelCallback(self, data):
@@ -353,6 +352,8 @@ if __name__ == '__main__':
                     else:
                         current_example['done'].append(0)
                     current_example['example'].append(seqNumber)
+                    if collector.img_np is None:
+                        raise RuntimeError('could not find camera feed!')
                     current_example['image'].append(collector.img_np)
                     current_example['pose'].append([
                         collector.trans[0], collector.trans[1], collector.trans[2],
