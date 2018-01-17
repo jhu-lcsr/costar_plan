@@ -152,10 +152,11 @@ class AbstractAgentBasedModel(object):
         print("skip connections =", self.skip_connections)
         print("gan_method =", self.gan_method)
         print("save_model =", self.save_model)
+        print("use_batchnorm =", self.use_batchnorm)
         print("-----------------------------------------------------------")
         print("Optimizer =", self.optimizer)
-        print("Learning Rate = ", self.lr)
-        print("Clip Norm = ", self.clipnorm)
+        print("Learning Rate =", self.lr)
+        print("Clip Norm =", self.clipnorm)
         print("===========================================================")
 
         try:
