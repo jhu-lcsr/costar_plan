@@ -200,8 +200,8 @@ class ConditionalImageGan(PretrainImageGan):
         ins = [img0, img, option, option2, img_goal, img_goal2]
         dr = self.dropout_rate
         dr = 0
-        x = AddConv2D(img, 64, [5,5], 1, dr, "same", lrelu=True)
-        x0 = AddConv2D(img0, 64, [5,5], 1, dr, "same", lrelu=True)
+        x = AddConv2D(img, 64, [5,5], 1, dr, "same", lrelu=True, bn=False)
+        x0 = AddConv2D(img0, 64, [5,5], 1, dr, "same", lrelu=True, bn=False)
         x = Add()([x, x0])
         x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=True)
 
@@ -209,18 +209,18 @@ class ConditionalImageGan(PretrainImageGan):
         y = OneHot(self.num_options)(option)
         y = AddDense(y, 64, "lrelu", dr)
         x = TileOnto(x, y, 64, (32,32), add=True)
-        xh = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
+        x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
 
-        xg = AddConv2D(img_goal, 64, [5,5], 2, dr, "same", lrelu=True)
-        x = Add()([xh, xg])
+        xg = AddConv2D(img_goal, 64, [5,5], 2, dr, "same", lrelu=True, bn=False)
+        x = Add()([x, xg])
 
         # -------------------------------------------------------------
         y = OneHot(self.num_options)(option2)
         y = AddDense(y, 64, "lrelu", dr)
-        x = TileOnto(xh, y, 64, (32,32), add=True)
+        x = TileOnto(x, y, 64, (32,32), add=True)
         x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
 
-        xg2 = AddConv2D(img_goal2, 64, [5,5], 2, dr, "same", lrelu=True)
+        xg2 = AddConv2D(img_goal2, 64, [5,5], 2, dr, "same", lrelu=True, bn=False)
         x = Add()([x, xg2])
 
         x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
@@ -239,6 +239,7 @@ class ConditionalImageGan(PretrainImageGan):
                 optimizer=self.getOptimizer())
         self.lr *= 0.5
         self.image_discriminator = discrim
+	discrim.summary()
         return discrim
 
 
