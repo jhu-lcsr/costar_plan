@@ -94,6 +94,6 @@ class PretrainImageHuskyGan(PretrainImageGan):
         return self.model, self.model, None, [img_in], enc
 
     def _getData(self, image, *args, **kwargs):
-        I = image
+        I = image / 255.
         return [I], [I]
 

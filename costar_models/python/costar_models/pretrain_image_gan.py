@@ -92,7 +92,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
-        [img, q, g, oin, q_target, g_target,] = features
+        [img, q, g, oin, label, q_target, g_target,] = features
         return [img], [img]
 
     def _makeImageDiscriminator(self, img_shape):

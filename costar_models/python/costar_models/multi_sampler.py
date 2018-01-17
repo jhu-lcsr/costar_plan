@@ -485,7 +485,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Use sample data to compile the model and set everything else up.
         # Check to make sure data makes sense before running the model.
         if self.predictor is None:
-            self._makeModel(**data)
+            try:
+                self._makeModel(**data)
+            except Exception as e:
+                print("Could not create model from this dataset. Did you"
+                      " configure the tool wrong?")
+                raise e
 
         # ===================================================================
         # Create the callbacks and actually run the training loop.
