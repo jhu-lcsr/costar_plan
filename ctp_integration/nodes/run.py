@@ -115,7 +115,7 @@ def main():
         showTask(task)
     elif args.mode == "collect":
         collector = DataCollector(
-                root="~/.costar/data",
+                data_root="~/.costar/data",
                 rate=10,
                 data_type="h5f")
 
