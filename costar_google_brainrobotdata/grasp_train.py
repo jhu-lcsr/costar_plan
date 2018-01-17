@@ -62,7 +62,7 @@ flags.DEFINE_string('load_weights', 'grasp_model_weights.h5',
                     """Load and continue training the specified file containing model weights.""")
 flags.DEFINE_integer('epochs', 300,
                      """Epochs of training""")
-flags.DEFINE_string('grasp_dataset_eval', '052',
+flags.DEFINE_string('grasp_dataset_eval', '097',
                     """Filter the subset of 1TB Grasp datasets to evaluate.
                     097 by default. It is important to ensure that this selection
                     is completely different from the selected training datasets
