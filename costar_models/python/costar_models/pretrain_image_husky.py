@@ -63,7 +63,7 @@ class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
-        [I, q, g, oin, label, q_target, g_target,] = features
+        [I, q, oin, q_target] = features
         o1 = targets[1]
         oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
         return [I], [I, oin_1h, oin_1h]

@@ -260,31 +260,6 @@ class HuskyRobotMultiPredictionSampler(RobotMultiPredictionSampler):
 
         return predictor, train_predictor, actor, ins, enc
 
-   
-  
-    def load(self, features, pose, world, *args, **kwargs):
-        '''
-        Load will use the current model descriptor and name to load the file
-        that you are interested in, at least for now.
-        '''
-        if world is not None:
-            control = world.zeroAction()
-            reward = world.initial_reward
-            features = world.computeFeatures()
-            action_label = np.zeros((self._numLabels(),))
-            example = 0
-            done = False
-            data = world.vectorize(control, features, reward, done, example,
-                 action_label)
-            kwargs = {}
-            for k, v in data:
-                kwargs[k] = np.array([v])
-            self._makeModel(**kwargs)
-        else:
-            self._makeModel(features, pose, **kwargs)
-        self._loadWeights()
-
-
     def _makeModel(self, features, pose, *args, **kwargs):
         '''
         Little helper function wraps makePredictor to consturct all the models.
@@ -293,9 +268,14 @@ class HuskyRobotMultiPredictionSampler(RobotMultiPredictionSampler):
         -----------
         features, arm, gripper: variables of the appropriate sizes
         '''
+        asdf
+        print(">>>>>>", self.train_predictor)
         self.predictor, self.train_predictor, self.actor, ins, hidden = \
             self._makePredictor(
                 (features, pose))
+        print(">>>>>>", self.train_predictor)
+        if self.train_predictor is None:
+            raise RuntimeError('did not make trainable model')
 
     def _makeTrainTarget(self, I_target, q_target, o_target):
         length = I_target.shape[0]
@@ -307,14 +287,13 @@ class HuskyRobotMultiPredictionSampler(RobotMultiPredictionSampler):
         Itrain = np.reshape(I_target,(length, image_size))
         return np.concatenate([Itrain, q_target,o_target],axis=-1)
 
-
     def _getAllData(self, image, pose, action, label,
             prev_label, goal_image, goal_pose, value, *args, **kwargs):
-        I = image
+        I = image / 255.
         q = pose
         qa = action
         oin = prev_label
-        I_target = goal_image
+        I_target = goal_image / 255.
         q_target = goal_pose
         o_target = label
 
@@ -336,22 +315,17 @@ class HuskyRobotMultiPredictionSampler(RobotMultiPredictionSampler):
                 I_target]
 
 
-    def _getData(self, *args, **kwargs):
-        features, targets = self._getAllData(kwargs['image']/255.,kwargs['robot_pose'],kwargs['robot_action'],kwargs['label'],\
-            kwargs['prev_label'],kwargs['goal_image']/255.,kwargs['goal_robot_pose'], np.ones(len(kwargs['goal_robot_pose'])))
+    def _getData(self, image, pose, action, *args, **kwargs):
+        features, targets = self._getAllData(*args, **kwargs)
         tt, o1, v, qa, I = targets
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-            #return features[:self.num_features] + [z], [tt, o1, v]
-            #return features[:self.num_features] + [z], [tt, o1]#, v]
             if self.success_only:
                 return features[:self.num_features] + [o1, z], [tt, o1]
             else:
                 return features[:self.num_features] + [o1, z], [tt, v]
         else:
-            #return features[:self.num_features], [tt, o1, v]
-            #return features[:self.num_features], [tt, o1]#, v]
             if self.success_only:
                 
                 return features[:self.num_features] + [o1], [tt, o1]
