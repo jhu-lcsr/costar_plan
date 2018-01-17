@@ -69,11 +69,23 @@ class JigsawsDataset(object):
         '''
         filename_base = filename.split('.')[0]
         txt_file = os.path.join(self.name, "transcriptions", filename)
+        with fin as file(txt_file, "r"):
+            res = fin.readLine()
+            print(res)
         avi_file = os.path.join(self.name, "video", filename_base,
                 "_capture1.avi")
         vid = cv2.VideoCapture(avi_file)
         while vid.isOpened():
             ret, frame = vid.read()
+
+            # Return this
+            if not ret:
+                break
+
+            # Plot 
+            plt.imshow(frame)
+            plt.show()
+            break
 
         f = h5f.File(filename, 'r')
         return f
