@@ -54,7 +54,7 @@ class RobotPolicy(RobotMultiHierarchical):
         encoder = self._makeImageEncoder(img_shape)
         try:
             encoder.load_weights(self._makeName(
-                "pretrain_image_encoder_model",
+                "pretrain_image_model",
                 #"pretrain_image_gan_model",
                 "image_encoder.h5f"))
             encoder.trainable = self.retrain
