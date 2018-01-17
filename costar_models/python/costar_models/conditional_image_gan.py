@@ -209,10 +209,10 @@ class ConditionalImageGan(PretrainImageGan):
         y = OneHot(self.num_options)(option)
         y = AddDense(y, 64, "lrelu", dr)
         x = TileOnto(x, y, 64, (32,32), add=True)
-        xh = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
+        x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
 
         xg = AddConv2D(img_goal, 64, [5,5], 2, dr, "same", lrelu=True, bn=False)
-        x = Add()([xh, xg])
+        x = Add()([x, xg])
 
         # -------------------------------------------------------------
         y = OneHot(self.num_options)(option2)
@@ -224,10 +224,10 @@ class ConditionalImageGan(PretrainImageGan):
                 bn=False)
         x = Add()([x, xg2])
 
-        x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=True)
+        x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True)
         x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=True)
         #x = AddConv2D(x, 128, [5,5], 1, dr, "same", lrelu=True)
-        #x = AddConv2D(x, 256, [5,5], 2, dr, "same", lrelu=True)
+        x = AddConv2D(x, 256, [5,5], 2, dr, "same", lrelu=True)
         #x = AddConv2D(x, 256, [5,5], 1, dr, "same", lrelu=True)
         x = AddConv2D(x, 1, [5,5], 1, 0., "same", activation="sigmoid")
 
