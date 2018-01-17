@@ -72,8 +72,6 @@ def gaussian_kernel_2D(size=(3, 3), center=(1, 1), sigma=1):
         sigma_tensor = tf.constant([[(2.0 * sigma ** 2)]], tf.float32)
         # tf.exp requires float16, float32, float64, complex64, complex128
         kernel = tf.div(tf.exp(-((xx - center_x) ** 2 + (yy - center_y) ** 2)), sigma_tensor)
-        # # later multiplication requires tf.int32
-        # kernel = tf.cast(kernel, tf.int32)
         return kernel
 
 
@@ -82,12 +80,17 @@ def segmentation_gaussian_measurement(
         y_pred,
         gaussian_sigma=10,
         measurement=segmentation_losses.binary_crossentropy):
-    """ Loss function incorporating grasp parameters.
+    """ Apply metric or loss measurement incorporating a 2D gaussian.
+
+        Only works with batch size 1.
+        Loop and call this function repeatedly over each sample
+        to use a larger batch size.
 
     # Arguments
 
         y_true: is assumed to be [label, x_img_coord, y_image_coord]
-        y_pred: is expected to be a 2D array of labels.
+        y_pred: is expected to be a 2D array of labels
+            with shape [1, img_height, img_width, 1].
     """
     with K.name_scope(name='grasp_segmentation_gaussian_loss') as scope:
         label = y_true[0, 0]
@@ -112,11 +115,24 @@ def segmentation_gaussian_measurement(
         return loss_sum
 
 
-def segmentation_gaussian_binary_crossentropy(
+def segmentation_gaussian_measurement_batch(
         y_true,
         y_pred,
-        gaussian_sigma=10):
-    with K.name_scope(name='segmentation_gaussian_binary_crossentropy') as scope:
+        gaussian_sigma=10,
+        measurement=segmentation_losses.binary_crossentropy):
+    """ Apply metric or loss measurement to a batch of data incorporating a 2D gaussian.
+
+        Only works with batch size 1.
+        Loop and call this function repeatedly over each sample
+        to use a larger batch size.
+
+    # Arguments
+
+        y_true: is assumed to be [label, x_img_coord, y_image_coord]
+        y_pred: is expected to be a 2D array of labels
+            with shape [1, img_height, img_width, 1].
+    """
+    with K.name_scope(name='segmentation_gaussian_measurement_batch') as scope:
         y_pred_shape = tf.Tensor.get_shape(y_pred)
         batch_size = y_pred_shape[0]
         y_true = tf.split(y_true, batch_size)
@@ -126,45 +142,23 @@ def segmentation_gaussian_binary_crossentropy(
             result = segmentation_gaussian_measurement(
                 y_true=y_true_img, y_pred=y_pred_img,
                 gaussian_sigma=gaussian_sigma,
-                measurement=segmentation_losses.binary_crossentropy
+                measurement=measurement
             )
             results = results + [result]
         results = tf.concat(results, axis=0)
         return results
 
-# def segmentation_gaussian_measurement(
-#         y_true,
-#         y_pred,
-#         gaussian_sigma=10,
-#         measurement=segmentation_losses.binary_crossentropy):
-#     """ Loss function incorporating grasp parameters.
 
-#     # Arguments
-
-#         y_true: is assumed to be [label, x_img_coord, y_image_coord]
-#         y_pred: is expected to be a 2D array of labels.
-#     """
-#     with K.name_scope(name='grasp_segmentation_gaussian_loss') as scope:
-#         y_pred_shape = K.int_shape(y_pred)
-#         batch_size = y_pred_shape[0]
-#         y_pred_img_shape = y_pred_shape[1:]
-#         if len(y_pred_shape) == 3:
-#             y_pred_shape = y_pred[:-1]
-#         if len(y_pred_shape) == 4:
-#             y_pred_shape = y_pred[1:3]
-
-#         y_true = tf.split(y_true, batch_size)
-#         y_pred = tf.split(y_pred, batch_size)
-#         weighted_gaussian_labels = []
-#         for i, ((label, y_height_coordinate, x_width_coordinate), y_pred_img) in enumerate(zip(y_true, y_pred)):
-#             y_true_img = tile_vector_as_image_channels(label, y_pred_img)
-#             measurement_img = measurement(K.flatten(y_true_img), K.flatten(y_pred_img))
-#             measurement_img = K.reshape(measurement_img, y_pred_img_shape)
-#             weights = gaussian_kernel_2D(size=y_pred_shape, center=(y_height_coordinate, x_width_coordinate), sigma=gaussian_sigma)
-#             weighted_loss_img = tf.multiply(measurement_img, weights)
-#             weighted_gaussian_labels = weighted_gaussian_labels + [weighted_loss_img]
-#         weighted_gaussian_labels = tf.concat(weighted_gaussian_labels, axis=0)
-#         return K.sum(K.flatten(weighted_gaussian_labels))
+def segmentation_gaussian_binary_crossentropy(
+        y_true,
+        y_pred,
+        gaussian_sigma=10):
+    with K.name_scope(name='segmentation_gaussian_binary_crossentropy') as scope:
+        results = segmentation_gaussian_measurement_batch(
+                        y_true, y_pred,
+                        measurement=segmentation_losses.binary_crossentropy,
+                        gaussian_sigma=gaussian_sigma)
+        return results
 
 
 def segmentation_single_pixel_measurement(y_true, y_pred, measurement=keras.losses.binary_crossentropy, name=None):
@@ -194,30 +188,34 @@ def segmentation_single_pixel_binary_accuracy(y_true, y_pred, name=None):
                                                  name='segmentation_single_pixel_binary_accuracy')
 
 
-# mean predicted value metric
-# useful for detecting perverse
-# conditions such as
-# 100% grasp_success == True
 def mean_pred(y_true, y_pred):
+    """ mean predicted value metric
+
+        useful for detecting perverse
+        conditions such as
+        100% grasp_success == True
+    """
     return K.mean(y_pred)
 
 
-# mean predicted value metric
-# useful for detecting perverse
-# conditions such as
-# 100% grasp_success == True
 def mean_pred_single_pixel(y_true, y_pred):
+    """ mean predicted value metric at individual pixel coordinates.
+
+    useful for detecting perverse
+    conditions such as
+    100% grasp_success == True
+    """
     with K.name_scope(name='mean_pred_single_pixel') as scope:
         single_pixel_y_pred = gripper_coordinate_y_pred(y_true, y_pred)
         return K.mean(single_pixel_y_pred)
 
 
-# mean true value metric
-# useful for determining
-# summary statistics when using
-# the multi-dataset loader
 def mean_true(y_true, y_pred):
-    """
+    """ mean ground truth value metric
+
+    useful for determining
+    summary statistics when using
+    the multi-dataset loader
 
     # Arguments
 
