@@ -71,22 +71,18 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         image_discriminator.trainable = False
         o1 = image_discriminator([img_in, gen_out])
 
-        encoder.summary()
-        decoder.summary()
-        image_discriminator.summary()
-
         self.model = Model([img_in], [gen_out, o1])
         self.model.compile(
                 loss=["mae"] + ["binary_crossentropy"],
                 loss_weights=[100., 1.],
                 optimizer=self.getOptimizer())
-        self.model.summary()
 
         self.generator = Model([img_in], [gen_out])
         self.generator.compile(
                 loss=["logcosh"],
                 optimizer=self.getOptimizer())
-        self.generator.summary()
+
+        image_discriminator.summary()
 
         return self.model, self.model, None, [img_in], enc
 
@@ -109,19 +105,20 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         dr = self.dropout_rate
         dr = 0
         
-        x = AddConv2D(img, 64, [4,4], 1, dr, "valid", lrelu=True)
-        x0 = AddConv2D(img0, 64, [4,4], 1, dr, "valid", lrelu=True)
-        x = Add()([x, x0])
-        x = AddConv2D(x, 64, [4,4], 2, dr, "valid", lrelu=True)
-        x = AddConv2D(x, 64, [4,4], 1, dr, "same", lrelu=True)
-        x = AddConv2D(x, 128, [4,4], 2, dr, "valid", lrelu=True)
-        x = AddConv2D(x, 128, [4,4], 1, dr, "same", lrelu=True)
-        x = AddConv2D(x, 256, [4,4], 2, dr, "valid", lrelu=True)
-        x = AddConv2D(x, 256, [4,4], 1, dr, "same", lrelu=True)
-        x = AddConv2D(x, 1, [4,4], 1, 0., "valid", activation="sigmoid")
+        #x = AddConv2D(img, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
+        #x0 = AddConv2D(img0, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
+        #x = Add()([x, x0])
+        x = Concatenate(axis=-1)([img0,img])
+        x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
+        #x = AddConv2D(x, 64, [4,4], 1, dr, "same", lrelu=True)
+        x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True)
+        #x = AddConv2D(x, 128, [4,4], 1, dr, "same", lrelu=True)
+        x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
+        #x = AddConv2D(x, 256, [4,4], 1, dr, "same", lrelu=True)
+        x = AddConv2D(x, 1, [4,4], 1, 0., "same", activation="sigmoid")
         #x = MaxPooling2D(pool_size=(8,8))(x)
         print("out=",x)
-        x = AveragePooling2D(pool_size=(2,2))(x)
+        x = AveragePooling2D(pool_size=(8,8))(x)
 
         x = Flatten()(x)
         discrim = Model(ins, x, name="image_discriminator")

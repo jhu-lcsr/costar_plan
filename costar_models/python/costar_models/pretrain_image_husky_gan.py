@@ -74,22 +74,18 @@ class PretrainImageHuskyGan(PretrainImageGan):
         image_discriminator.trainable = False
         o1 = image_discriminator([img_in, gen_out])
 
-        encoder.summary()
-        decoder.summary()
-        image_discriminator.summary()
-
         self.model = Model([img_in], [gen_out, o1])
         self.model.compile(
                 loss=["mae"] + ["binary_crossentropy"],
                 loss_weights=[100., 1.],
                 optimizer=self.getOptimizer())
-        self.model.summary()
 
         self.generator = Model([img_in], [gen_out])
         self.generator.compile(
                 loss=["logcosh"],
                 optimizer=self.getOptimizer())
-        self.generator.summary()
+
+        image_discriminator.summary()
 
         return self.model, self.model, None, [img_in], enc
 
