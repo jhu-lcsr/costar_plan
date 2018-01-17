@@ -34,6 +34,7 @@ rosrun costar_models ctp_model_tool --model conditional_image_gan --data_file da
 
 To train it end-to-end add the `--retrain` flag:
 ```
+# Retrain encoders and decoders with "--retrain"
 rosrun costar_models ctp_model_tool --model conditional_image_gan --data_file data.h5f --lr 0.0002 --dropout_rate 0.2 --retrain
 ```
 
@@ -55,7 +56,17 @@ The advantage here is that they can use a little bit more information than the p
 First, you need a data set. Here we assume this was placed in `husky_data`, and consists of numpy blobs.
 
 ```
+# Set "--features husky" to use husky versions of models
 rosrun costar_models ctp_model_tool --model pretrain_image_encoder --features husky --data_file husky_data.npz --lr 0.001 --dropout_rate 0.2
+```
+
+Alternately, you can train the GAN version:
+
+```
+# Start gan with the pre-collected husky dataset, containing both successes and
+# failures.
+# Learning rate set to 0.0002 as per "Image to Image Translation..." paper.
+rosrun costar_models ctp_model_tool --model pretrain_image_gan --features husky --data_file husky_data.npz --lr 0.0002 --dropout_rate 0.2
 ```
 
 ### Training On MARCC
