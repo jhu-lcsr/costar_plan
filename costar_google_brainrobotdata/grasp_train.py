@@ -277,6 +277,10 @@ class GraspTrain(object):
             loss = grasp_loss.segmentation_gaussian_binary_crossentropy
             loss_name = 'segmentation_gaussian_binary_crossentropy'
 
+        if eval_per_epoch:
+            monitor_loss_name = 'val_loss'
+        else:
+            monitor_loss_name = 'loss'
         metrics, monitor_metric_name = self.gather_metrics(metric)
 
         callbacks = []
@@ -299,7 +303,7 @@ class GraspTrain(object):
             ]
 
         scheduler = keras.callbacks.LearningRateScheduler(lr_scheduler)
-        early_stopper = EarlyStopping(monitor=monitor_metric_name, min_delta=0.001, patience=32)
+        early_stopper = EarlyStopping(monitor=monitor_loss_name, min_delta=0.001, patience=32)
         
         # TODO(ahundt) Re-enable results included in filename, need to fix the following error but this was skipped due to time constraints to start training:
         """
@@ -367,11 +371,11 @@ class GraspTrain(object):
                 multiplier = 1.0
 
             optimizer = keras.optimizers.SGD(learning_rate * multiplier)
-
+            print(monitor_loss_name)
             callbacks = callbacks + [
                 # Reduce the learning rate if training plateaus.
                 # TODO(ahundt) add validation checks and update monitor parameter to use them
-                keras.callbacks.ReduceLROnPlateau(patience=4, verbose=1, monitor=monitor_metric_name)
+                keras.callbacks.ReduceLROnPlateau(patience=4, verbose=1, monitor=monitor_loss_name)
             ]
 
         csv_logger = CSVLogger(weights_name + '.csv')
