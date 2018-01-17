@@ -136,7 +136,7 @@ def MakeModel(features, model, taskdef, **kwargs):
                     features=features,
                     **kwargs)
         elif model == "pretrain_image_gan":
-            model_instance = PretrainImageAutoencoderHusky(taskdef,
+            model_instance = PretrainImageHuskyGan(taskdef,
                     model=model,
                     features=features,
                     **kwargs)

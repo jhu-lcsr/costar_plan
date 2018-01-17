@@ -20,18 +20,31 @@ from .split import *
 from .mhp_loss import *
 from .loss import *
 from .husky_sampler import *
+from .pretrain_image_gan import *
 
 class PretrainImageHuskyGan(PretrainImageGan):
+
+    def _makeModel(self, image, pose, *args, **kwargs):
+        '''
+        Little helper function wraps makePredictor to consturct all the models.
+
+        Parameters:
+        -----------
+        image, arm, gripper: variables of the appropriate sizes
+        '''
+        self.predictor, self.train_predictor, self.actor, ins, hidden = \
+            self._makePredictor(
+                (image, pose))
+        if self.train_predictor is None:
+            raise RuntimeError('did not make trainable model')
 
     def _makePredictor(self, features):
         '''
         Create model to predict possible manipulation goals.
         '''
-        (images, arm, gripper) = features
-        img_shape, image_size, arm_size, gripper_size = self._sizes(
-                images,
-                arm,
-                gripper)
+        (images, pose) = features
+        img_shape = images.shape[1:]
+        pose_size = pose.shape[-1]
 
         img_in = Input(img_shape,name="predictor_img_in")
         test_in = Input(img_shape, name="descriminator_test_in")
@@ -80,10 +93,7 @@ class PretrainImageHuskyGan(PretrainImageGan):
 
         return self.model, self.model, None, [img_in], enc
 
-    def _getData(self, *args, **kwargs):
-        features, targets = self._getAllData(*args, **kwargs)
-        [I, q, oin, q_target] = features
-        o1 = targets[1]
-        oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
-        return [I], [I, oin_1h, oin_1h]
+    def _getData(self, image, *args, **kwargs):
+        I = image
+        return [I], [I]
 
