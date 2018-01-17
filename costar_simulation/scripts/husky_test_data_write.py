@@ -105,6 +105,7 @@ def imageToNumpy(msg):
 
 class HuskyDataCollector(object):
     def __init__(self):
+        self.index = 0
         self.gazeboModels = None
         self.img_np = None
         self.pose = Odometry()
@@ -157,7 +158,7 @@ class HuskyDataCollector(object):
         xyz = np.array([position.x, position.y, 0.])
         #xyz = np.array(self.trans)
         dist = np.linalg.norm(goal_xyz - xyz)
-        print (xyz, dist)
+        #print (xyz, dist)
 
         return dist < self.trans_threshold
       
@@ -300,6 +301,9 @@ class HuskyDataCollector(object):
         #model_state.model_name = "mobile_base"
         #self.set_model_state(model_state=model_state)
         #self.set_link_state(link_state=state)
+        self.index += 1
+        if self.index > 10:
+            self.index = 0
 
         self.unpause()
 
