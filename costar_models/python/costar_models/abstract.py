@@ -44,7 +44,7 @@ class AbstractAgentBasedModel(object):
             hidden_size=128,
             loss="mae",
             num_generator_files=3, upsampling=None,
-            option=None, # for policy model
+            option_num=None, # for policy model
             task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
 
@@ -97,7 +97,7 @@ class AbstractAgentBasedModel(object):
         self.gan_method = gan_method
         self.save_model = save_model if save_model in [0,1] else 1
         self.hidden_size = hidden_size
-        self.option = option
+        self.option_num = option_num
         
         if self.noise_dim < 1:
             self.use_noise = False
