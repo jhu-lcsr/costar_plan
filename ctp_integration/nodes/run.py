@@ -5,6 +5,7 @@ import networkx as nx
 import numpy as np
 import argparse
 import rospy
+import tf
 
 from costar_task_plan.mcts import PlanExecutionManager, DefaultExecute
 from costar_task_plan.robotics.core import RosTaskParser
@@ -81,11 +82,12 @@ def main():
         rospy.logwarn("CoSTAR home position not set, using default.")
         q0 = [0.30, -1.33, -1.80, -0.27, 1.50, 1.60]
 
-    # Create the task model
+    # Create the task model, world, and other tools
     task = MakeStackTask()
-
-    # create fake data or listen for a detected object information message
     world = CostarWorld(robot_config=UR5_C_MODEL_CONFIG)
+    listener = tf.TransformListener()
+    rospy.sleep(0.5) # wait to cache incoming transforms
+
     if args.fake:
         world.addObjects(fakeTaskArgs())
         filled_args = task.compile(fakeTaskArgs())
@@ -95,7 +97,8 @@ def main():
         observe = Observer(world=world,
                 task=task,
                 detect_srv=objects,
-                topic="/costar_sp_segmenter/detected_object_list")
+                topic="/costar_sp_segmenter/detected_object_list",
+                tf_listener=listener)
 
     # print out task info
     if args.verbose:

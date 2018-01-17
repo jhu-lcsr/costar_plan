@@ -12,7 +12,11 @@ class IdentityObserver(object):
 
 class Observer(object):
 
-    def __init__(self, world, task, detect_srv, topic, tf_listener):
+    def __init__(self, world, task, detect_srv, topic, tf_listener=None):
+        '''
+        Create an observer. This will take a world and other information and
+        use it to provide updated worlds.
+        '''
         self.world = world
         self.task = task
         self.detect_srv = detect_srv
