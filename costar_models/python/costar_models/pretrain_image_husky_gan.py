@@ -21,7 +21,7 @@ from .mhp_loss import *
 from .loss import *
 from .husky_sampler import *
 
-class PretrainImageAutoencoderHuskyGan(PretrainImageGan):
+class PretrainImageHuskyGan(PretrainImageGan):
 
     def _makePredictor(self, features):
         '''

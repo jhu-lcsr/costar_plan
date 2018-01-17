@@ -134,6 +134,11 @@ def MakeModel(features, model, taskdef, **kwargs):
                     model=model,
                     features=features,
                     **kwargs)
+        elif model == "pretrain_image_gan":
+            model_instance = PretrainImageAutoencoderHusky(taskdef,
+                    model=model,
+                    features=features,
+                    **kwargs)
         elif model == "predictor":
             model_instance = HuskyRobotMultiPredictionSampler(taskdef,
                     model=model,
@@ -159,7 +164,6 @@ def GetModels():
             "goal_sampler", # samples goals instead of everything else
             "image_sampler", #just learn to predict goal image
             "pretrain_image_encoder", # tool for pretraining images
-            "pretrain_image_encoder_dvrk", # tool for pretraining images dvrk
             "pretrain_state_encoder", # tool for pretraining states
             "pretrain_sampler", # tool for pretraining the sampler
             "predictor2", # second version of the prediction-sampler code
