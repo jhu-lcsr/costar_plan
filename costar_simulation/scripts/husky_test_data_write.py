@@ -17,7 +17,8 @@ from cv_bridge import CvBridge, CvBridgeError
 import random
 
 from std_srvs.srv import Empty as EmptySrv
-
+from gazebo_msgs.srv import SetModelState
+from gazebo_msgs.msg import ModelState
 
 gazeboModelsTopic = "/gazebo/model_states"
 overheadImageTopic = "/overhead/camera/image_raw"
@@ -124,6 +125,8 @@ class HuskyDataCollector(object):
         rospy.wait_for_service("/gazebo/pause_physics")
         self.pause = rospy.ServiceProxy("/gazebo/pause_physics", EmptySrv)
         self.unpause = rospy.ServiceProxy("/gazebo/unpause_physics", EmptySrv)
+        self.set_model_state = rospy.ServiceProxy("/gazebo/set_model_state",
+                SetModelState)
 
     def imageCallback(self, data):
         img_np_bk = imageToNumpy(data)
@@ -265,7 +268,26 @@ class HuskyDataCollector(object):
 
     def reset(self):
         self.pause()
+    
+        roll, pitch, yaw = np.random.random((3,)) * np.pi
+        state = ModelState()
+        quaternion = tf.transformations.quaternion_from_euler(roll, pitch,
+            yaw)
+        x, y = np.random.random((2,))
+        x *= 0.2
+        x += 1.1
+        y *= -0.5
+        y += -2
 
+        state.pose.position.x = x
+        state.pose.position.y = y
+        state.pose.orientation.x = quaternion[0]
+        state.pose.orientation.y = quaternion[1]
+        state.pose.orientation.z = quaternion[2]
+        state.pose.orientation.w = quaternion[3]
+        state.model_name = "mobile_base"
+        
+        self.set_model_state(model_state=state)
         self.unpause()
 
     def tick(self):
