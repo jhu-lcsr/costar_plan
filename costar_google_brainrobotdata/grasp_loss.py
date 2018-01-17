@@ -97,15 +97,17 @@ def segmentation_gaussian_measurement(
         image_shape = tf.Tensor.get_shape(y_pred)
         y_true_img = tile_vector_as_image_channels(label, image_shape)
         y_true_img = tf.cast(y_true_img, tf.float32)
-        loss_img = (y_true_img, y_pred)
+        loss_img = measurement(y_true_img, y_pred)
         y_pred_shape = K.int_shape(y_pred)
         if len(y_pred_shape) == 3:
             y_pred_shape = y_pred_shape[:-1]
         if len(y_pred_shape) == 4:
             y_pred_shape = y_pred_shape[1:3]
         weights = gaussian_kernel_2D(size=y_pred_shape, center=(y_height_coordinate, x_width_coordinate), sigma=gaussian_sigma)
+        loss_img = K.flatten(loss_img)
+        weights = K.flatten(weights)
         weighted_loss_img = tf.multiply(loss_img, weights)
-        loss_sum = K.sum(K.flatten(weighted_loss_img))
+        loss_sum = K.sum(weighted_loss_img)
         loss_sum = tf.reshape(loss_sum, [1, 1])
         return loss_sum
 
