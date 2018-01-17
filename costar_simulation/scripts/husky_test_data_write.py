@@ -271,7 +271,7 @@ class HuskyDataCollector(object):
     
         roll, pitch, yaw = np.random.random((3,)) * np.pi
         state = ModelState()
-        quaternion = tf.transformations.quaternion_from_euler(roll, pitch,
+        quaternion = tf.transformations.quaternion_from_euler(0., 0.,
             yaw)
         x, y = np.random.random((2,))
         x *= 0.2
