@@ -331,11 +331,11 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         g = np.array(gripper) * -1
         qa = np.array(arm_cmd)
         ga = np.array(gripper_cmd) * -1
-        oin = prev_label
+        oin = np.array(prev_label)
         I_target = np.array(goal_features) / 255.
         q_target = np.array(goal_arm)
         g_target = np.array(goal_gripper) * -1
-        o_target = label
+        o_target = np.array(label)
 
         # Preprocess values
         value_target = np.array(np.array(value) > 1.,dtype=float)
