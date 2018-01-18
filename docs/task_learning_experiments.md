@@ -43,7 +43,7 @@ rosrun costar_models ctp_model_tool --model conditional_image_gan --data_file da
 rosrun costar_models ctp_model_tool --model conditional_image_gan --features multi --data_file data.h5f --lr 0.0002 --dropout_rate 0.2 --steps_per_epoch 500
 ```
 
-Different values for dropout rate and for learning rate might be useful.
+[Example script.](../commands/multi_conditional_image_gan.sh) Different values for dropout rate and for learning rate might be useful.
 
 #### Training Policies
 
@@ -73,6 +73,7 @@ Alternately, you can train the GAN version:
 # Learning rate set to 0.0002 as per "Image to Image Translation..." paper.
 rosrun costar_models ctp_model_tool --model pretrain_image_gan --features husky --data_file husky_data.npz --lr 0.0002 --dropout_rate 0.2
 ```
+[GAN example script](../commands/husky_pretrain_image_gan.sh)
 
 ### Training On MARCC
 
