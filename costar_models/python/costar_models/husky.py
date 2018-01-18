@@ -79,4 +79,28 @@ def GetHuskyActorModel(x, num_options, pose_size,
     actor = Model([xin, option_in], [pose], name="actor")
     return actor
 
+def GetConditionalHuskyData(do_all, num_options, image, pose, action, label,
+        prev_label, goal_image, goal_pose, value, *args, **kwargs):
+    I = np.array(image) / 255.
+    p = np.array(pose)
+    a = np.array(action)
+    I_target = np.array(goal_image) / 255.
+    q_target = np.array(goal_pose)
+    oin = np.array(prev_label)
+    o1 = np.array(label)
+    v = np.array(np.array(value) > 1.,dtype=float)
 
+    I_target2, o2 = GetNextGoal(I_target, o1)
+    I0 = I[0,:,:,:]
+    length = I.shape[0]
+    I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
+    oin_1h = np.squeeze(ToOneHot2D(oin, num_options))
+
+    if do_all:
+        o1_1h = np.squeeze(ToOneHot2D(o1, num_options))
+        return [I0, I, o1, o2, oin], [ I_target, I_target2,
+                o1_1h,
+                v,
+                action]
+    else:
+        return [I0, I, o1, o2, oin], [I_target, I_target2]
