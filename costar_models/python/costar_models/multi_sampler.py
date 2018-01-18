@@ -311,7 +311,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         '''
         h = Input((8,8,self.encoder_channels),name="h_in")
         h0 = Input((8,8,self.encoder_channels),name="h0_in")
-        option = Input((48,),name="t_opt_in")
+        option = Input((self.num_options,),name="t_opt_in")
         x = AddConv2D(h, 64, [1,1], 1, 0.)
         x0 = AddConv2D(h0, 64, [1,1], 1, 0.)
 
