@@ -2084,41 +2084,42 @@ class GraspDataset(object):
 
             (pregrasp_op_batch, grasp_step_op_batch, simplified_grasp_command_op_batch, grasp_success_op_batch, num_samples)
         """
-        # Get tensors that load the dataset from disk plus features calculated from the raw data, including transforms and point clouds
-        feature_op_dicts, features_complete_list, time_ordered_feature_name_dict, num_samples = self.get_training_dictionaries(
-            batch_size=batch_size, random_crop=random_crop, sensor_image_dimensions=sensor_image_dimensions,
-            imagenet_preprocessing=imagenet_preprocessing, image_augmentation=image_augmentation,
-            random_crop_dimensions=random_crop_dimensions, random_crop_offset=random_crop_offset,
-            shift_ratio=shift_ratio, seed=seed)
+        with K.name_scope('get_training_tensors') as scope:
+            # Get tensors that load the dataset from disk plus features calculated from the raw data, including transforms and point clouds
+            feature_op_dicts, features_complete_list, time_ordered_feature_name_dict, num_samples = self.get_training_dictionaries(
+                batch_size=batch_size, random_crop=random_crop, sensor_image_dimensions=sensor_image_dimensions,
+                imagenet_preprocessing=imagenet_preprocessing, image_augmentation=image_augmentation,
+                random_crop_dimensions=random_crop_dimensions, random_crop_offset=random_crop_offset,
+                shift_ratio=shift_ratio, seed=seed)
 
-        time_ordered_feature_tensor_dicts = GraspDataset.to_tensors(feature_op_dicts, time_ordered_feature_name_dict)
+            time_ordered_feature_tensor_dicts = GraspDataset.to_tensors(feature_op_dicts, time_ordered_feature_name_dict)
 
-        # motion commands, such as pose or transform features
-        simplified_grasp_command_op_batch = self.to_tensors(time_ordered_feature_tensor_dicts, motion_command_feature)
+            # motion commands, such as pose or transform features
+            simplified_grasp_command_op_batch = self.to_tensors(time_ordered_feature_tensor_dicts, motion_command_feature)
 
-        # image of a clear scene view, originally from 'view_clear_scene' step,
-        # There is also a move_to_grasp versions copied from view_clear_scene then repeated once for each time step.
-        pregrasp_op_batch = self.to_tensors(time_ordered_feature_tensor_dicts, clear_view_image_feature)
+            # image of a clear scene view, originally from 'view_clear_scene' step,
+            # There is also a move_to_grasp versions copied from view_clear_scene then repeated once for each time step.
+            pregrasp_op_batch = self.to_tensors(time_ordered_feature_tensor_dicts, clear_view_image_feature)
 
-        # image from the current time step
-        grasp_step_op_batch = self.to_tensors(time_ordered_feature_tensor_dicts, grasp_sequence_image_feature)
+            # image from the current time step
+            grasp_step_op_batch = self.to_tensors(time_ordered_feature_tensor_dicts, grasp_sequence_image_feature)
 
-        # grasp success labels from the motion
-        grasp_success_op_batch = self.to_tensors(time_ordered_feature_tensor_dicts, grasp_success_label)
+            # grasp success labels from the motion
+            grasp_success_op_batch = self.to_tensors(time_ordered_feature_tensor_dicts, grasp_success_label)
 
-        # make one long list from each list of lists
-        pregrasp_op_batch = list(itertools.chain.from_iterable(pregrasp_op_batch))
-        grasp_step_op_batch = list(itertools.chain.from_iterable(grasp_step_op_batch))
-        simplified_grasp_command_op_batch = list(itertools.chain.from_iterable(simplified_grasp_command_op_batch))
-        grasp_success_op_batch = list(itertools.chain.from_iterable(grasp_success_op_batch))
+            # make one long list from each list of lists
+            pregrasp_op_batch = list(itertools.chain.from_iterable(pregrasp_op_batch))
+            grasp_step_op_batch = list(itertools.chain.from_iterable(grasp_step_op_batch))
+            simplified_grasp_command_op_batch = list(itertools.chain.from_iterable(simplified_grasp_command_op_batch))
+            grasp_success_op_batch = list(itertools.chain.from_iterable(grasp_success_op_batch))
 
-        # stack all the data in a way that will let it run in parallel
-        pregrasp_op_batch = tf.parallel_stack(pregrasp_op_batch)
-        grasp_step_op_batch = tf.parallel_stack(grasp_step_op_batch)
-        simplified_grasp_command_op_batch = tf.parallel_stack(simplified_grasp_command_op_batch)
-        grasp_success_op_batch = tf.parallel_stack(grasp_success_op_batch)
+            # stack all the data in a way that will let it run in parallel
+            pregrasp_op_batch = tf.parallel_stack(pregrasp_op_batch)
+            grasp_step_op_batch = tf.parallel_stack(grasp_step_op_batch)
+            simplified_grasp_command_op_batch = tf.parallel_stack(simplified_grasp_command_op_batch)
+            grasp_success_op_batch = tf.parallel_stack(grasp_success_op_batch)
 
-        return pregrasp_op_batch, grasp_step_op_batch, simplified_grasp_command_op_batch, grasp_success_op_batch, num_samples
+            return pregrasp_op_batch, grasp_step_op_batch, simplified_grasp_command_op_batch, grasp_success_op_batch, num_samples
 
     def npy_to_gif(self, npy, filename, fps=2):
         """Convert a numpy array into a gif file at the location specified by filename.
@@ -2431,81 +2432,82 @@ def get_multi_dataset_training_tensors(
     elif not isinstance(datasets, list):
         raise ValueError('datasets parameter must be a list of strings or '
                          'a comma separated string such as 062_b,063,072_a,082_b,102')
-    max_num_samples = 0
-    grasp_datasets = []
-    pregrasp_op_batch = []
-    grasp_step_op_batch = []
-    # simplified_network_grasp_command_op
-    simplified_grasp_command_op_batch = []
-    grasp_success_op_batch = []
+    with K.name_scope('get_multi_dataset_training_tensors') as scope:
+        max_num_samples = 0
+        grasp_datasets = []
+        pregrasp_op_batch = []
+        grasp_step_op_batch = []
+        # simplified_network_grasp_command_op
+        simplified_grasp_command_op_batch = []
+        grasp_success_op_batch = []
 
-    dataset_batch_sizes = []
-    grasp_dataset_list = []
+        dataset_batch_sizes = []
+        grasp_dataset_list = []
 
-    # initialize all datasets
-    for single_dataset in datasets:
-        data = GraspDataset(dataset=single_dataset)
-        grasp_dataset_list.append(data)
-        dataset_batch_sizes.append(data.get_features()[1])
+        # initialize all datasets
+        for single_dataset in datasets:
+            data = GraspDataset(dataset=single_dataset)
+            grasp_dataset_list.append(data)
+            dataset_batch_sizes.append(data.get_features()[1])
 
-    max_batch_size = max(dataset_batch_sizes)
-    proportional_batch_sizes = []
-    num_samples_list = []
-    # Not sure why any thing assigned to max_batch_size, it can pass
-    for single_dataset, single_batch in zip(grasp_dataset_list, tqdm(dataset_batch_sizes, desc='load_selected_datasets')):
-        proportional_batch_size = batch_size
-        if(grasp_datasets_batch_algorithm == 'proportional'):
-            # scale batch size of each dataset according to the number of samples,
-            # while ensuring there is a minimum batch size of 1.
-            proportional_batch_size = max(int(np.ceil(float(batch_size) * float(single_batch) / float(max_batch_size))), 1)
-        data = single_dataset
-        # list of dictionaries the length of batch_size
-        (pregrasp_op,
-         grasp_step_op,
-         simplified_grasp_command_op,
-         grasp_success_op,
-         num_samples) = data.get_training_tensors(
-             batch_size=proportional_batch_size,
-             imagenet_preprocessing=imagenet_preprocessing,
-             random_crop=random_crop,
-             resize=resize,
-             grasp_sequence_min_time_step=grasp_sequence_min_time_step,
-             grasp_sequence_max_time_step=grasp_sequence_max_time_step,
-             shift_ratio=shift_ratio,
-             seed=seed)
+        max_batch_size = max(dataset_batch_sizes)
+        proportional_batch_sizes = []
+        num_samples_list = []
+        # Not sure why any thing assigned to max_batch_size, it can pass
+        for single_dataset, single_batch in zip(grasp_dataset_list, tqdm(dataset_batch_sizes, desc='load_selected_datasets')):
+            proportional_batch_size = batch_size
+            if(grasp_datasets_batch_algorithm == 'proportional'):
+                # scale batch size of each dataset according to the number of samples,
+                # while ensuring there is a minimum batch size of 1.
+                proportional_batch_size = max(int(np.ceil(float(batch_size) * float(single_batch) / float(max_batch_size))), 1)
+            data = single_dataset
+            # list of dictionaries the length of batch_size
+            (pregrasp_op,
+             grasp_step_op,
+             simplified_grasp_command_op,
+             grasp_success_op,
+             num_samples) = data.get_training_tensors(
+                 batch_size=proportional_batch_size,
+                 imagenet_preprocessing=imagenet_preprocessing,
+                 random_crop=random_crop,
+                 resize=resize,
+                 grasp_sequence_min_time_step=grasp_sequence_min_time_step,
+                 grasp_sequence_max_time_step=grasp_sequence_max_time_step,
+                 shift_ratio=shift_ratio,
+                 seed=seed)
 
-        proportional_batch_sizes.append(proportional_batch_size)
-        num_samples_list.append(num_samples)
-        max_num_samples = max(num_samples, max_num_samples)
-        pregrasp_op_batch.append(pregrasp_op)
-        grasp_step_op_batch.append(grasp_step_op)
-        simplified_grasp_command_op_batch.append(simplified_grasp_command_op)
-        grasp_success_op_batch.append(grasp_success_op)
-        # make sure we visit every image once
+            proportional_batch_sizes.append(proportional_batch_size)
+            num_samples_list.append(num_samples)
+            max_num_samples = max(num_samples, max_num_samples)
+            pregrasp_op_batch.append(pregrasp_op)
+            grasp_step_op_batch.append(grasp_step_op)
+            simplified_grasp_command_op_batch.append(simplified_grasp_command_op)
+            grasp_success_op_batch.append(grasp_success_op)
+            # make sure we visit every image once
 
-    # we must make sure to traverse all datasets at least once
-    num_samples = np.array(num_samples_list)
-    proportional_batch_sizes = np.array(proportional_batch_sizes)
-    possible_steps_per_epoch = np.ceil(num_samples / proportional_batch_sizes)
+        # we must make sure to traverse all datasets at least once
+        num_samples = np.array(num_samples_list)
+        proportional_batch_sizes = np.array(proportional_batch_sizes)
+        possible_steps_per_epoch = np.ceil(num_samples / proportional_batch_sizes)
 
-    # determine smallest steps_per_epoch
-    # which definitely traverses
-    # all datasets at least once,
-    # this will be the largest of the
-    # listed possibilities
-    steps_per_epoch = int(np.max(possible_steps_per_epoch))
+        # determine smallest steps_per_epoch
+        # which definitely traverses
+        # all datasets at least once,
+        # this will be the largest of the
+        # listed possibilities
+        steps_per_epoch = int(np.max(possible_steps_per_epoch))
 
-    pregrasp_op_batch = tf.concat(pregrasp_op_batch, 0)
-    grasp_step_op_batch = tf.concat(grasp_step_op_batch, 0)
-    simplified_grasp_command_op_batch = tf.concat(simplified_grasp_command_op_batch, 0)
-    print('grasp_success_op_batch before concat: ', grasp_success_op_batch)
-    grasp_success_op_batch = tf.concat(grasp_success_op_batch, 0)
-    print('pregrasp_op_batch:', pregrasp_op_batch,
-          'grasp_step_op_batch:', grasp_step_op_batch,
-          'simplified_grasp_command_op_batch:', simplified_grasp_command_op_batch,
-          'grasp_success_op_batch:', grasp_success_op_batch)
+        pregrasp_op_batch = tf.concat(pregrasp_op_batch, 0)
+        grasp_step_op_batch = tf.concat(grasp_step_op_batch, 0)
+        simplified_grasp_command_op_batch = tf.concat(simplified_grasp_command_op_batch, 0)
+        print('grasp_success_op_batch before concat: ', grasp_success_op_batch)
+        grasp_success_op_batch = tf.concat(grasp_success_op_batch, 0)
+        print('pregrasp_op_batch:', pregrasp_op_batch,
+              'grasp_step_op_batch:', grasp_step_op_batch,
+              'simplified_grasp_command_op_batch:', simplified_grasp_command_op_batch,
+              'grasp_success_op_batch:', grasp_success_op_batch)
 
-    return pregrasp_op_batch, grasp_step_op_batch, simplified_grasp_command_op_batch, grasp_success_op_batch, steps_per_epoch
+        return pregrasp_op_batch, grasp_step_op_batch, simplified_grasp_command_op_batch, grasp_success_op_batch, steps_per_epoch
 
 if __name__ == '__main__':
     with tf.Session() as sess:
