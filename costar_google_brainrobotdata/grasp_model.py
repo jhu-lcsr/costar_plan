@@ -473,7 +473,7 @@ def grasp_model_levine_2016(
         combinedData = concat_images_with_tiled_vector_layer(imgConv, motorConv)
 
         if dropout_rate is not None:
-            combConv = Dropout(dropout_rate)(combinedData)
+            combinedData = Dropout(dropout_rate)(combinedData)
 
         # combined conv 8
         combConv = Conv2D(64, (3, 3), activation='relu', padding='same')(combinedData)
