@@ -166,6 +166,7 @@ class ConditionalImageGan(PretrainImageGan):
                 loss_weights=[100., 100., 1.],
                 optimizer=self.getOptimizer())
         model.summary()
+        self.discriminator.summary()
         self.model = model
 
         return predictor, model, model, ins, h
