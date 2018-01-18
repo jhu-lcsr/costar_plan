@@ -75,7 +75,13 @@ rosrun costar_models ctp_model_tool --model pretrain_image_gan --features husky 
 ```
 [GAN example script](../commands/husky_pretrain_image_gan.sh)
 
-### Training On MARCC
+### Jigsaws Experiments
+
+```
+rosrun costar_models ctp_model_tool --model pretrain_image_gan --data_file suturing_data.h5f --lr 0.001 --dropout_rate 0.2 --features dvrk --batch_size 32
+```
+
+## Training On MARCC
 
 MARCC is our cluster for machine learning, equipped with a large set of Tesla K80 GPUs. We assume that when training on a cluster like MARCC, you will not want a full ROS workspace, so instead we assume you will install to some path $COSTAR_PLAN and just run scripts.
 
