@@ -18,6 +18,8 @@ def GetAvailableFeatures():
     '''
     return ['empty',
             'null',
+            'husky',
+            'jigsaws',
             'depth', # depth channel only
             'rgb', # RGB channels only
             'joint_state', # robot joints only
@@ -163,6 +165,11 @@ def GetModelParser():
                               "do not use this parameter.",
                         type=int,
                         default=1)
+    parser.add_argument("--option_num",
+                        help="Choose an option to learn for the multi-policy hierarchical model",
+                        type=int,
+                        default=None)
+
     return parser
 
 def GetSubmodelOptions():
