@@ -537,13 +537,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 self.hidden_decoder.save_weights(self.name + 
                 "_classifier.h5f")
             if self.transform_model is not None:
-                self.hidden_decoder.save_weights(self.name + 
+                self.transform_model.save_weights(self.name + 
                 "_transform.h5f")
             if self.value_model is not None:
-                self.hidden_decoder.save_weights(self.name + 
+                self.value_model.save_weights(self.name + 
                 "_value.h5f")
             if self.next_model is not None:
-                self.hidden_decoder.save_weights(self.name + 
+                self.next_model.save_weights(self.name + 
                 "_next.h5f")
 
         else:

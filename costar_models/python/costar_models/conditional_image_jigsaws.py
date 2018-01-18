@@ -23,8 +23,8 @@ from .mhp_loss import *
 from .loss import *
 from .sampler2 import *
 
+from .conditional_image import ConditionalImage
 from .dvrk import *
-
 
 class ConditionalImageJigsaws(ConditionalImage):
 
@@ -38,9 +38,9 @@ class ConditionalImageJigsaws(ConditionalImage):
 
         img_shape = image.shape[1:]
 
-        img0_in = Input(img_shape,name="predictor_img0_in")
-        img_in = Input(img_shape,name="predictor_img_in")
-        option_in = Input((1,), name="predictor_option_in"))
+        img0_in = Input(img_shape, name="predictor_img0_in")
+        img_in = Input(img_shape, name="predictor_img_in")
+        option_in = Input((1,), name="predictor_option_in")
         ins = [img0_in, img_in]
 
         if self.skip_connections:
@@ -56,12 +56,12 @@ class ConditionalImageJigsaws(ConditionalImage):
         # load encoder/decoder weights if found
         try:
             encoder.load_weights(self._makeName(
-                "pretrain_image_encoder_model",
+                "pretrain_image_encoder_model_jigsaws",
                 #"pretrain_image_gan_model",
                 "image_encoder.h5f"))
             encoder.trainable = self.retrain
             decoder.load_weights(self._makeName(
-                "pretrain_image_encoder_model",
+                "pretrain_image_encoder_model_jigsaws",
                 #"pretrain_image_gan_model",
                 "image_decoder.h5f"))
             decoder.trainable = self.retrain

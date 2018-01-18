@@ -28,6 +28,7 @@ from .discriminator import Discriminator
 # Jigsaws stuff
 from .pretrain_image_jigsaws import PretrainImageJigsaws
 from .pretrain_image_jigsaws_gan import PretrainImageJigsawsGan
+from .conditional_image_jigsaws import ConditionalImageJigsaws
 
 # Husky stuff
 from .husky_sampler import HuskyRobotMultiPredictionSampler
@@ -137,6 +138,11 @@ def MakeModel(features, model, taskdef, **kwargs):
                     **kwargs)
         elif model == "pretrain_image_gan":
             model_instance = PretrainImageJigsawsGan(taskdef,
+                    model=model,
+                    features=features,
+                    **kwargs)
+        elif model == "conditional_image":
+            model_instance = ConditionalImageJigsaws(taskdef,
                     model=model,
                     features=features,
                     **kwargs)

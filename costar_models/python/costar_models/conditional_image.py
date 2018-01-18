@@ -57,12 +57,6 @@ class ConditionalImage(PredictionSampler2):
     def _makePredictor(self, features):
         # =====================================================================
         # Create many different image decoders
-        image_outs = []
-        arm_outs = []
-        gripper_outs = []
-        train_outs = []
-        label_outs = []
-        
         (images, arm, gripper) = features
         img_shape, image_size, arm_size, gripper_size = self._sizes(
                 images,

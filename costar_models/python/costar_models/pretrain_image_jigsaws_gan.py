@@ -65,10 +65,10 @@ class PretrainImageJigsawsGan(PretrainImageGan):
         if self.load_pretrained_weights:
             try:
                 encoder.load_weights(self._makeName(
-                    "pretrain_image_encoder_model",
+                    "pretrain_image_encoder_model_jigsaws",
                     "image_encoder.h5f"))
                 decoder.load_weights(self._makeName(
-                    "pretrain_image_encoder_model",
+                    "pretrain_image_encoder_model_jigsaws",
                     "image_decoder.h5f"))
             except Exception as e:
                 if not self.retrain:

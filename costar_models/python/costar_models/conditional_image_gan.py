@@ -15,13 +15,7 @@ from keras.models import Model, Sequential
 from keras.optimizers import Adam
 from matplotlib import pyplot as plt
 
-from .abstract import *
 from .callbacks import *
-from .robot_multi_models import *
-from .split import *
-from .mhp_loss import *
-from .loss import *
-from .conditional_image import *
 from .pretrain_image_gan import *
 
 class ConditionalImageGan(PretrainImageGan):
@@ -50,19 +44,12 @@ class ConditionalImageGan(PretrainImageGan):
         self.rep_size = 256
         self.num_transforms = 3
         self.do_all = True
-        self.transform_model = None
         self.skip_connections = False
         self.num_generator_files = 1
  
     def _makePredictor(self, features):
         # =====================================================================
         # Create many different image decoders
-        image_outs = []
-        arm_outs = []
-        gripper_outs = []
-        train_outs = []
-        label_outs = []
-        
         (images, arm, gripper) = features
         img_shape, image_size, arm_size, gripper_size = self._sizes(
                 images,
@@ -176,7 +163,7 @@ class ConditionalImageGan(PretrainImageGan):
         return predictor, model, model, ins, h
 
     def _getData(self, *args, **kwargs):
-        features, targets = self._getAllData(*args, **kwargs)
+        features, targets = GetAllMultiData(self.num_options, *args, **kwargs)
         [I, q, g, oin, label, q_target, g_target,] = features
         tt, o1, v, qa, ga, I_target = targets
 
@@ -186,7 +173,7 @@ class ConditionalImageGan(PretrainImageGan):
         I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
 
         # Extract the next goal
-        I_target2, o2 = self._getNextGoal(features, targets)
+        I_target2, o2 = GetNextGoal(I_target, o1)
         return [I0, I, o1, o2], [ I_target, I_target2 ]
 
     def _makeImageDiscriminator(self, img_shape):
