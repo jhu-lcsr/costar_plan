@@ -199,8 +199,10 @@ class ConditionalImageGan(PretrainImageGan):
         xg1 = AddConv2D(img_goal, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
         xg2 = AddConv2D(img_goal2, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
 
-        x1 = Add()([x0, xobs, xg1])
-        x2 = Add()([x0, xg1, xg2])
+        #x1 = Add()([x0, xobs, xg1])
+        #x2 = Add()([x0, xg1, xg2])
+        x1 = Add()([xobs, xg1])
+        x2 = Add()([xg1, xg2])
         
         # -------------------------------------------------------------
         y = OneHot(self.num_options)(option)
@@ -215,6 +217,7 @@ class ConditionalImageGan(PretrainImageGan):
         x2 = AddConv2D(x2, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
 
         #x = Concatenate()([x1, x2])
+        x = x2
         x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True)
         #x = AddConv2D(x, 128, [4,4], 1, dr, "same", lrelu=True)
         x= AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
