@@ -34,6 +34,9 @@ def getArgs():
                         type=str,
                         default=None,
                         help="directory to make")
+    parser.add_argument("--drop_chance", "-d",
+                        type=int,
+                        default=20)
     return parser.parse_args()
 
 
@@ -106,41 +109,49 @@ def main():
             cur_gesture = 16
             next_gesture = None
             goal_frame = False
+            final_frame = False
             last_gesture = gestures[-1][2]
             for i, (start, end, gesture) in enumerate(gestures):
                 if frame_num < start:
-                    return goal_frame, prev_gesture, prev_gesture, gesture
+                    return goal_frame, final_frame, prev_gesture, prev_gesture, gesture
                 elif frame_num <= end:
                     goal_frame = frame_num == start
+                    final_frame = frame_num == end
                     next_gesture = gestures[i+1][2] if i + 1 < len(gestures) else last_gesture
-                    return goal_frame, prev_gesture, gesture, next_gesture
+                    return goal_frame, final_frame, prev_gesture, gesture, next_gesture
                 else:
                     prev_gesture = gesture
 
-            return False, None, None, None
+            return False, False, None, None, None
 
         for i, frame in enumerate(frames):
             frame_num = i + 1
 
-            goal_frame, last_gesture, gesture, next_gesture = get_gesture(frame_num, gestures)
+            goal_frame, final_frame, last_gesture, gesture, next_gesture = get_gesture(frame_num, gestures)
             if gesture is None: # check for beyond last
                 break
             if gesture == 16: # check for before first
                 continue
 
             image = imresize(frame, (96, 128))
+            #image = imresize(frame, (48, 64))
             image = image.astype(np.uint8)
 
-            #plt.imshow(frame)
             #plt.imshow(image)
             #plt.show()
+            
+            if args.drop_chance > 0 and not goal_frame and not final_frame:
+                r = np.random.randint(args.drop_chance)
+                if r > 0:
+                    continue
 
             frame_nums.append(frame_num)
             data["image"].append(image)
             data["label"].append(gesture)
             data["goal_label"].append(next_gesture)
             data["prev_label"].append(last_gesture)
-            print("i[{}], label[{}], goal_lbl[{}], prev_lbl[{}]".format(frame_num, gesture, next_gesture, last_gesture))
+            print("i[{}], goal_frame[{}], final_frame[{}], label[{}], goal_lbl[{}], prev_lbl[{}]".format(
+                frame_num, goal_frame, final_frame, gesture, next_gesture, last_gesture))
 
             # save goal_image
             if goal_frame:

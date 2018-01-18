@@ -30,7 +30,7 @@ class PretrainImageAutoencoderDVRK(PretrainImageAutoencoder):
         '''
         Create model to predict possible manipulation goals.
         '''
-        img_shape = images.shape[1:]
+        img_shape = image.shape[1:]
 
         img_in = Input(img_shape,name="predictor_img_in")
         img0_in = Input(img_shape,name="predictor_img0_in")
@@ -45,13 +45,11 @@ class PretrainImageAutoencoderDVRK(PretrainImageAutoencoder):
         out = decoder(enc)
 
         encoder.summary()
-        decoder.summary()
-        image_discriminator.summary()
 
-        ae = Model(ins, [out, o1, o2])
+        ae = Model(ins, out)
         ae.compile(
-                loss=["mae"] + ["categorical_crossentropy"]*2,
-                loss_weights=[1.,1.e-2,1e-4],
+                loss=["mae"], # + ["categorical_crossentropy"]*2,
+                #loss_weights=[1.,1.e-2,1e-4],
                 optimizer=self.getOptimizer())
         ae.summary()
     
@@ -72,5 +70,5 @@ class PretrainImageAutoencoderDVRK(PretrainImageAutoencoder):
             raise RuntimeError('did not make trainable model')
 
     def _getData(self, image, *args, **kwargs):
-        I = image / 255.
+        I = np.array(image) / 255.
         return [I], [I]

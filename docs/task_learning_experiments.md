@@ -5,9 +5,9 @@ This document is for experiments from 2018-01-05.
 
 ## Learning
 
-### Example Training Command
-
 This contains some examples of commands you can run on different data sets.
+
+### Stacking Task
 
 #### Pretrain Encoders
 
@@ -24,7 +24,7 @@ rosrun costar_models ctp_model_tool --model conditional_image --data_file data.h
 rosrun costar_models ctp_model_tool --model conditional_image --data_file data.h5f --lr 0.0001 --dropout_rate 0.2 --retrain
 ```
 
-### Conditional Image GAN
+#### Conditional Image GAN
 
 This version runs the conditional image GAN:
 
