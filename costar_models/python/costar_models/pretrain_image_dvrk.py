@@ -26,15 +26,11 @@ from .dvrk import *
 
 class PretrainImageAutoencoderDVRK(PretrainImageAutoencoder):
 
-    def _makePredictor(self, features):
+    def _makePredictor(self, image):
         '''
         Create model to predict possible manipulation goals.
         '''
-        (images, arm, gripper) = features
-        img_shape, image_size, arm_size, gripper_size = self._sizes(
-                images,
-                arm,
-                gripper)
+        img_shape = images.shape[1:]
 
         img_in = Input(img_shape,name="predictor_img_in")
         img0_in = Input(img_shape,name="predictor_img0_in")
@@ -61,10 +57,20 @@ class PretrainImageAutoencoderDVRK(PretrainImageAutoencoder):
     
         return ae, ae, None, [img_in], enc
 
-    def _getData(self, *args, **kwargs):
-        features, targets = self._getAllData(*args, **kwargs)
-        [I, q, g, oin, label, q_target, g_target,] = features
-        o1 = targets[1]
-        oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
-        return [I], [I, oin_1h, oin_1h]
+    def _makeModel(self, image, *args, **kwargs):
+        '''
+        Little helper function wraps makePredictor to consturct all the models.
 
+        Parameters:
+        -----------
+        image, arm, gripper: variables of the appropriate sizes
+        '''
+        self.predictor, self.train_predictor, self.actor, ins, hidden = \
+            self._makePredictor(
+                image)
+        if self.train_predictor is None:
+            raise RuntimeError('did not make trainable model')
+
+    def _getData(self, image, *args, **kwargs):
+        I = image / 255.
+        return [I], [I]

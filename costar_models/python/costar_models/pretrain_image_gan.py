@@ -117,7 +117,6 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         #x = AddConv2D(x, 256, [4,4], 1, dr, "same", lrelu=True)
         x = AddConv2D(x, 1, [4,4], 1, 0., "same", activation="sigmoid")
         #x = MaxPooling2D(pool_size=(8,8))(x)
-        print("out=",x)
         x = AveragePooling2D(pool_size=(8,8))(x)
 
         x = Flatten()(x)
