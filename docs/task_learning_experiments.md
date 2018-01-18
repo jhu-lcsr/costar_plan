@@ -79,10 +79,10 @@ rosrun costar_models ctp_model_tool --model pretrain_image_gan --features husky 
 
 ```
 # Run the jigsaws data to learn encoder
-rosrun costar_models ctp_model_tool --model pretrain_image --data_file suturing_data.h5f --lr 0.001 --dropout_rate 0.2 --features dvrk --batch_size 32
+rosrun costar_models ctp_model_tool --model pretrain_image --data_file suturing_data.h5f --lr 0.001 --dropout_rate 0.2 --features jigsaws --batch_size 32
 
 # Run the jigsaws data to learn encoder via GAN
-rosrun costar_models ctp_model_tool --model pretrain_image_gan --data_file suturing_data.h5f --lr 0.001 --dropout_rate 0.2 --features dvrk --batch_size 32
+rosrun costar_models ctp_model_tool --model pretrain_image_gan --data_file suturing_data.h5f --lr 0.001 --dropout_rate 0.2 --features jigsaws --batch_size 32
 ```
 
 ## Training On MARCC
