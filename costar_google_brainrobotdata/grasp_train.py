@@ -97,7 +97,7 @@ flags.DEFINE_float('densenet_reduction', 0.5,
 flags.DEFINE_float('densenet_reduction_after_pretrained', 0.5,
                    """DenseNet and DenseNetFCN reduction aka compression parameter,
                       applied to the second DenseNet component after pretrained imagenet models.""")
-flags.DEFINE_float('dropout_rate', 0.2,
+flags.DEFINE_float('dropout_rate', 0.5,
                    """Dropout rate for the model during training.""")
 flags.DEFINE_string('eval_results_file', 'grasp_model_eval.txt',
                     """Save a file with results of model evaluation.""")
