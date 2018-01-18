@@ -2449,13 +2449,15 @@ def get_multi_dataset_training_tensors(
         dataset_batch_sizes.append(data.get_features()[1])
 
     max_batch_size = max(dataset_batch_sizes)
+    proportional_batch_sizes = []
+    num_samples_list = []
     # Not sure why any thing assigned to max_batch_size, it can pass
     for single_dataset, single_batch in zip(grasp_dataset_list, tqdm(dataset_batch_sizes, desc='load_selected_datasets')):
         proportional_batch_size = batch_size
         if(grasp_datasets_batch_algorithm == 'proportional'):
             # scale batch size of each dataset according to the number of samples,
             # while ensuring there is a minimum batch size of 1.
-            proportional_batch_size = max(int(batch_size * single_batch / max_batch_size), 1)
+            proportional_batch_size = max(int(np.ceil(float(batch_size) * float(single_batch) / float(max_batch_size))), 1)
         data = single_dataset
         # list of dictionaries the length of batch_size
         (pregrasp_op,
@@ -2472,6 +2474,8 @@ def get_multi_dataset_training_tensors(
              shift_ratio=shift_ratio,
              seed=seed)
 
+        proportional_batch_sizes.append(proportional_batch_size)
+        num_samples_list.append(num_samples)
         max_num_samples = max(num_samples, max_num_samples)
         pregrasp_op_batch.append(pregrasp_op)
         grasp_step_op_batch.append(grasp_step_op)
@@ -2479,7 +2483,17 @@ def get_multi_dataset_training_tensors(
         grasp_success_op_batch.append(grasp_success_op)
         # make sure we visit every image once
 
-    steps_per_epoch = int(np.ceil(float(max_num_samples)/float(batch_size)))
+    # we must make sure to traverse all datasets at least once
+    num_samples = np.array(num_samples_list)
+    proportional_batch_sizes = np.array(proportional_batch_sizes)
+    possible_steps_per_epoch = np.ceil(num_samples / proportional_batch_sizes)
+
+    # determine smallest steps_per_epoch
+    # which definitely traverses
+    # all datasets at least once,
+    # this will be the largest of the
+    # listed possibilities
+    steps_per_epoch = int(np.max(possible_steps_per_epoch))
 
     pregrasp_op_batch = tf.concat(pregrasp_op_batch, 0)
     grasp_step_op_batch = tf.concat(grasp_step_op_batch, 0)
