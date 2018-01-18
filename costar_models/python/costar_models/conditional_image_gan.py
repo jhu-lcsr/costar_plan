@@ -214,7 +214,7 @@ class ConditionalImageGan(PretrainImageGan):
         x2 = TileOnto(x2, y, 64, (64,64), add=True)
         x2 = AddConv2D(x2, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
 
-        x = Concatenate()([x1, x2])
+        #x = Concatenate()([x1, x2])
         x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True)
         #x = AddConv2D(x, 128, [4,4], 1, dr, "same", lrelu=True)
         x= AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
