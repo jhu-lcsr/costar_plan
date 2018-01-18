@@ -298,7 +298,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         return predictor, train_predictor, actor, ins, enc
 
-    def _makeTransform(self):
+    def _makeTransform(self, h_dim=(8,8)):
         '''
         This is the version made for the newer code, it is set up to use both
         the initial and current observed world and creates a transform
@@ -312,8 +312,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         --------
         transform model
         '''
-        h = Input((8,8,self.encoder_channels),name="h_in")
-        h0 = Input((8,8,self.encoder_channels),name="h0_in")
+        h = Input((h_dim[0], h_dim[1], self.encoder_channels),name="h_in")
+        h0 = Input((h_dim[0],h_dim[1], self.encoder_channels),name="h0_in")
         option = Input((self.num_options,),name="t_opt_in")
         x = AddConv2D(h, 64, [1,1], 1, 0.)
         x0 = AddConv2D(h0, 64, [1,1], 1, 0.)
@@ -327,7 +327,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Add dense information
         y = AddDense(option, 64, "relu", 0., constraint=None, output=False)
-        x = TileOnto(x, y, 64, (8,8))
+        x = TileOnto(x, y, 64, h_dim)
         x = AddConv2D(x, 64, [5,5], 1, 0.)
         #x = AddConv2D(x, 128, [5,5], 2, 0.)
 
@@ -339,8 +339,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
             x = AddDense(x, 256, "relu", 0.,
                     constraint=None, output=False,)
-            x = AddDense(x, 4*4*32, "relu", 0., constraint=None, output=False)
-            x = Reshape([4,4,32])(x)
+            x = AddDense(x, h_dim[0] * h_dim[1] * 32/4, "relu", 0., constraint=None, output=False)
+            x = Reshape([h_dim[0]/2, h_dim[1]/2, 32])(x)
         else:
             x = AddConv2D(x, 128, [5,5], 1, 0.)
         x = AddConv2DTranspose(x, 64, [5,5], 2,

@@ -34,13 +34,14 @@ class ConditionalImageJigsaws(ConditionalImage):
 
         self.num_options = 16
 
-    def _makePredictor(self, image):
+    def _makeModel(self, image, *args, **kwargs):
 
         img_shape = image.shape[1:]
 
         img0_in = Input(img_shape, name="predictor_img0_in")
         img_in = Input(img_shape, name="predictor_img_in")
-        option_in = Input((1,), name="predictor_option_in")
+        prev_option_in = Input((1,), name="predictor_prev_option_in")
+        #prev_option_in = Flatten()(OneHot(self.num_options)(prev_option_in))
         ins = [img0_in, img_in]
 
         if self.skip_connections:
@@ -56,13 +57,13 @@ class ConditionalImageJigsaws(ConditionalImage):
         # load encoder/decoder weights if found
         try:
             encoder.load_weights(self._makeName(
-                "pretrain_image_encoder_model_jigsaws",
-                #"pretrain_image_gan_model",
+                #"pretrain_image_encoder_model_jigsaws",
+                "pretrain_image_gan_model_jigsaws",
                 "image_encoder.h5f"))
             encoder.trainable = self.retrain
             decoder.load_weights(self._makeName(
-                "pretrain_image_encoder_model_jigsaws",
-                #"pretrain_image_gan_model",
+                #"pretrain_image_encoder_model_jigsaws",
+                "pretrain_image_gan_model_jigsaws",
                 "image_decoder.h5f"))
             decoder.trainable = self.retrain
         except Exception as e:
@@ -75,11 +76,11 @@ class ConditionalImageJigsaws(ConditionalImage):
             h = encoder(img_in)
             h0 = encoder(img0_in)
 
-        # Create model for predicting image and label
+        # Create model for predicting label
         next_model = GetNextModel(h, self.num_options, 128,
                 self.decoder_dropout_rate)
         next_model.compile(loss="mae", optimizer=self.getOptimizer())
-        next_option_out = next_model([h0, h, option_in])
+        next_option_out = next_model([h0, h, prev_option_in])
         self.next_model = next_model
 
         # create input for controlling noise output if that's what we decide
@@ -88,47 +89,53 @@ class ConditionalImageJigsaws(ConditionalImage):
             z = Input((self.num_hypotheses, self.noise_dim))
             ins += [z]
 
-        next_option_in = Input((1,), name="next_option_in")
-        next_option_in2 = Input((1,), name="next_option_in2")
-        ins += [next_option_in, next_option_in2]
+        option_in = Input((1,), name="option_in")
+        option_in2 = Input((1,), name="option_in2")
+        ins += [option_in, option_in2]
 
-        y = OneHot(self.num_options)(next_option_in)
-        y = Flatten()(y)
-        y2 = OneHot(self.num_options)(next_option_in2)
-        y2 = Flatten()(y2)
+        # Image model
+        y = Flatten()(OneHot(self.num_options)(option_in))
+        y2 = Flatten()(OneHot(self.num_options)(option_in2))
         x = h
-        tform = self._makeTransform()
+        tform = self._makeTransform(h_dim=(12,16))
         x = tform([h0, h, y])
         x2 = tform([h0, x, y2])
-        image_out = decoder([x])
-        image_out2 = decoder([x2])
+        image_out, image_out2 = decoder([x]), decoder([x2])
 
         lfn = self.loss
         lfn2 = "logcosh"
 
         # =====================================================================
         # Create models to train
-        predictor = Model(ins + [option_in],
+        predictor = Model(ins + [prev_option_in],
                 [image_out, image_out2, next_option_out])
         predictor.compile(
                 loss=[lfn, lfn, "binary_crossentropy"],
                 loss_weights=[1., 1., 0.1],
                 optimizer=self.getOptimizer())
-        train_predictor = Model(ins + [option_in], [image_out, image_out2])
+        train_predictor = Model(ins + [prev_option_in],
+                [image_out, image_out2, next_option_out])
         train_predictor.compile(
-                loss=lfn,
+                loss=[lfn, lfn, "binary_crossentropy"],
+                loss_weights=[1., 1., 0.1],
                 optimizer=self.getOptimizer())
-        return predictor, train_predictor, ins, h
+
+        self.predictor = predictor
+        self.train_predictor = train_predictor
 
     def _getData(self, image, label, goal_image, goal_label,
             prev_label, *args, **kwargs):
+
+        image = np.array(image) / 255.
+        goal_image = np.array(goal_image) / 255.
 
         goal_image2, _ = GetNextGoal(goal_image, label)
 
         # Extend image_0 to full length of sequence
         image0 = image[0,:,:,:]
         length = image.shape[0]
-        image0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1])
+        image0 = np.tile(np.expand_dims(image0,axis=0),[length,1,1,1])
 
-        return [image0, image, label, goal_label], [goal_image, goal_image2]
+        label_1h = np.squeeze(ToOneHot2D(label, self.num_options))
+        return [image0, image, label, goal_label, prev_label], [goal_image, goal_image2, label_1h]
 

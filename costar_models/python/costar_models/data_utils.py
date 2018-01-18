@@ -30,53 +30,27 @@ def MakeOption1h(option, num_labels):
     opt_1h[0,option] = 1.
     return opt_1h
 
-def GetNextGoal(I_target, o1):
-    img = np.zeros_like(I_target)
-    next_option = np.zeros_like(o1)
-    for i in range(o1.shape[0]):
-        #print('---')
-        cur = o1[i]
-        #print(i, o1, o1.shape, cur)
-        tmp = np.copy(o1)
-        tmp[:i] = cur
-        first_next = np.argmax(tmp != cur)
-        #print (tmp, tmp[first_next])
-        #print (cur, tmp[first_next])
-        if tmp[first_next] == cur:
-            # nothing else
-            first_next = -1
-        img[i] = I_target[first_next]
-        next_option[i] = tmp[first_next]
-        #print ('---')
-
-    debug_next_goals = False
-    if debug_next_goals:
-        import matplotlib.pyplot as plt
-        plt.subplot(3,1,1)
-        plt.imshow(I[i])
-        plt.subplot(3,1,2)
-        plt.imshow(I_target[i])
-        plt.subplot(3,1,3)
-        plt.imshow(img[i])
-        plt.show()
-
-    return img, next_option
-
-def GetNextGoal2(imgs, labels):
+def GetNextGoal(imgs, labels):
     # Takes a list of target images and labels, and rotates them both
-    # to the left by group
+    # to the left group by group
     imgs = np.copy(imgs)
     labels = np.copy(labels)
+
+    if len(labels) == 0:
+        return imgs, labels
+
+    # reverse views
     irev = np.flip(imgs, axis=0)
     lrev = np.flip(labels, axis=0)
-    last_l = np.copy(lrev[0])
-    last_i = np.copy(irev[0])
-    write_l = last_l
-    write_i = last_i
-    # skip to relevant area
-    j = 0
-    while lrev[j] == last_l:
-        j += 1
+    last_l, last_i = np.copy(lrev[0]), np.copy(irev[0])
+    write_l, write_i = last_l, last_i
+
+    # skip the last area, going backwards
+    for j, l in enumerate(range(lrev.shape[0])):
+        if l != last_l:
+            break
+
+    # rotate in reverse order, starting from this point
     for i in range(j, lrev.shape[0]):
         # check for switch
         if lrev[i] != last_l:
@@ -86,9 +60,10 @@ def GetNextGoal2(imgs, labels):
             last_i = np.copy(irev[i])
         lrev[i] = write_l
         irev[i] = write_i
+
     return imgs, labels
 
-def GetNextGoal(I_target, o1):
+def GetNextGoalOld(I_target, o1):
     img = np.zeros_like(I_target)
     next_option = np.zeros_like(o1)
     for i in range(o1.shape[0]):
