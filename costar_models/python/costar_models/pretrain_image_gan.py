@@ -31,7 +31,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         '''
         super(PretrainImageGan, self).__init__(taskdef, *args, **kwargs)
         self.PredictorCb = ImageCb
-        self.load_pretrained_weights = False
+        self.load_pretrained_weights = True
 
     def _makePredictor(self, features):
         '''
@@ -61,8 +61,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                     "pretrain_image_encoder_model",
                     "image_decoder.h5f"))
             except Exception as e:
-                if not self.retrain:
-                    raise e
+                print(">> Failed to load pretrained generator weights.")
 
         gen_out = decoder(enc)
         image_discriminator = self._makeImageDiscriminator(img_shape)

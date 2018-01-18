@@ -38,6 +38,7 @@ class PretrainImageHuskyGan(PretrainImageGan):
         if self.train_predictor is None:
             raise RuntimeError('did not make trainable model')
 
+
     def _makePredictor(self, features):
         '''
         Create model to predict possible manipulation goals.
@@ -58,14 +59,13 @@ class PretrainImageHuskyGan(PretrainImageGan):
         if self.load_pretrained_weights:
             try:
                 encoder.load_weights(self._makeName(
-                    "pretrain_image_encoder_model",
+                    "pretrain_image_encoder_model_husky",
                     "image_encoder.h5f"))
                 decoder.load_weights(self._makeName(
-                    "pretrain_image_encoder_model",
+                    "pretrain_image_encoder_model_husky",
                     "image_decoder.h5f"))
             except Exception as e:
-                if not self.retrain:
-                    raise e
+                print(">> Failed to load pretrained generator weights.")
 
         gen_out = decoder(enc)
         image_discriminator = self._makeImageDiscriminator(img_shape)
