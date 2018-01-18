@@ -31,7 +31,9 @@ class ConditionalImageHusky(ConditionalImage):
         As in the other models, we call super() to parse arguments from the
         command line and set things like our optimizer and learning rate.
         '''
-        super(PretrainImageAutoencoderHusky, self).__init__(taskdef, *args, **kwargs)
+        super(ConditionalImageHusky, self).__init__(taskdef, *args, **kwargs)
+        self.num_options = 5
+        self.null_option = 4
 
     def _makeModel(self, image, pose, *args, **kwargs):
 

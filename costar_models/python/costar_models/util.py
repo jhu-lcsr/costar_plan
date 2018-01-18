@@ -32,6 +32,7 @@ from .pretrain_image_jigsaws_gan import PretrainImageJigsawsGan
 from .husky_sampler import HuskyRobotMultiPredictionSampler
 from .pretrain_image_husky import PretrainImageAutoencoderHusky
 from .pretrain_image_husky_gan import PretrainImageHuskyGan
+from .conditional_image_husky import ConditionalImageHusky
 
 def MakeModel(features, model, taskdef, **kwargs):
     '''
@@ -150,6 +151,10 @@ def MakeModel(features, model, taskdef, **kwargs):
             model_instance = HuskyRobotMultiPredictionSampler(taskdef,
                     model=model,
                     **kwargs)
+        elif model == "conditional_image":
+            model_instance = ConditionalImageHusky(taskdef, model=model, **kwargs)
+        elif model == "conditional_image_gan":
+            model_instance = ConditionalImageHuskyGan(taskdef, model=model, **kwargs)
     
     # If we did not create a model then die.
     if model_instance is None:
