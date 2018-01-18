@@ -4,5 +4,5 @@ rosrun costar_models ctp_model_tool \
   --data_file suturing_data.h5f \
   --lr 0.001 \
   --dropout_rate 0.2 \
-  --features dvrk \
+  --features jigsaws \
   --batch_size 32 $1
