@@ -35,11 +35,11 @@ class ConditionalImageJigsaws(ConditionalImage):
         self.num_options = 16
 
     def _makePredictor(self, image):
-        
+
         img_shape = image.shape[1:]
 
-        img_in = Input(img_shape,name="predictor_img_in")
         img0_in = Input(img_shape,name="predictor_img0_in")
+        img_in = Input(img_shape,name="predictor_img_in")
         option_in = Input((1,), name="predictor_option_in"))
         ins = [img0_in, img_in]
 
@@ -116,85 +116,19 @@ class ConditionalImageJigsaws(ConditionalImage):
                 optimizer=self.getOptimizer())
         train_predictor = Model(ins + [option_in], [image_out, image_out2])
         train_predictor.compile(
-                loss=lfn, 
+                loss=lfn,
                 optimizer=self.getOptimizer())
         return predictor, train_predictor, ins, h
 
     def _getData(self, image, label, goal_image, goal_label,
             prev_label, *args, **kwargs):
-        '''
-        Process a consecutive chunk of data, returning what we need
-        '''
 
-        I0 = image[0,:,:,:]
-        length = I.shape[0]
-        I0 = np.tile(np.expand_dims(I0, axis=0),[length,1,1,1]) 
-        oin_1h = np.squeeze(self.toOneHot2D(label, self.num_options))
-        if self.do_all:
-            o1_1h = np.squeeze(self.toOneHot2D(o1, self.num_options))
-            return [I0, I, o1, o2, oin], [ I_target, I_target2, o1_1h, v, qa, ga]
-        else:
-            return [I0, I, o1, o2, oin], [I_target, I_target2]
+        goal_image2, _ = GetNextGoal(goal_image, label)
 
+        # Extend image_0 to full length of sequence
+        image0 = image[0,:,:,:]
+        length = image.shape[0]
+        image0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1])
 
-    def encode(self, obs):
-        '''
-        Encode available features into a new state
+        return [image0, image, label, goal_label], [goal_image, goal_image2]
 
-        Parameters:
-        -----------
-        [unknown]: all are parsed via _getData() function.
-        '''
-        return self.image_encoder.predict(obs[1])
-
-    def decode(self, hidden):
-        '''
-        Decode features and produce a set of visualizable images or other
-        feature outputs.
-
-        '''
-        return self.image_decoder.predict(hidden)
-
-    def prevOption(self, features):
-        '''
-        Just gets the previous option from a set of features
-        '''
-        if self.use_noise:
-            return features[4]
-        else:
-            return features[3]
-
-    def encodeInitial(self, obs):
-        '''
-        Call the encoder but only on the initial image frame
-        '''
-        return self.image_encoder.predict(obs[0])
-
-    def pnext(self, hidden, prev_option, features):
-        '''
-        Visualize based on hidden
-        '''
-        h0 = self.encodeInitial(features)
-
-        print(self.next_model.inputs)
-        #p = self.next_model.predict([h0, hidden, prev_option])
-        p = self.next_model.predict([hidden, prev_option])
-        #p = np.exp(p)
-        #p /= np.sum(p)
-        return p
-
-    def value(self, hidden, prev_option, features):
-        h0 = self.encodeInitial(features)
-        #v = self.value_model.predict([h0, hidden, prev_option])
-        v = self.value_model.predict([hidden, prev_option])
-        return v
-
-    def transform(self, hidden, option_in=-1):
-
-        raise NotImplementedError('transform() not implemented')
-
-    def act(self, *args, **kwargs):
-        raise NotImplementedError('act() not implemented')
-
-    def debugImage(self, features):
-        return features[1]
