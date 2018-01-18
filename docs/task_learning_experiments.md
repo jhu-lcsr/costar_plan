@@ -36,6 +36,11 @@ To train it end-to-end add the `--retrain` flag:
 ```
 # Retrain encoders and decoders with "--retrain"
 rosrun costar_models ctp_model_tool --model conditional_image_gan --data_file data.h5f --lr 0.0002 --dropout_rate 0.2 --retrain
+
+# Alternately, specify the model set we want to use with "--features multi":
+# Adding the "--steps_per_epoch" flag can get you faster feedback when things
+# aren't working
+rosrun costar_models ctp_model_tool --model conditional_image_gan --features multi --data_file data.h5f --lr 0.0002 --dropout_rate 0.2 --steps_per_epoch 500
 ```
 
 Different values for dropout rate and for learning rate might be useful.
