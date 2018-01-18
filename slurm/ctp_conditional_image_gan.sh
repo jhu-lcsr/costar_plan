@@ -15,7 +15,7 @@ module load tensorflow/cuda-8.0/r1.3
 
 export DATASET="ctp_dec"
 export train_image_encoder=false
-export train_image_encoder_gan=true
+export train_image_encoder_gan=false
 export train_conditional_gan=true
 export learning_rate=$1
 export dropout=$2
