@@ -155,9 +155,9 @@ def segmentation_gaussian_binary_crossentropy(
         gaussian_sigma=10):
     with K.name_scope(name='segmentation_gaussian_binary_crossentropy') as scope:
         results = segmentation_gaussian_measurement_batch(
-                        y_true, y_pred,
-                        measurement=segmentation_losses.binary_crossentropy,
-                        gaussian_sigma=gaussian_sigma)
+            y_true, y_pred,
+            measurement=segmentation_losses.binary_crossentropy,
+            gaussian_sigma=gaussian_sigma)
         return results
 
 

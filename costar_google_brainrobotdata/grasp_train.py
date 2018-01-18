@@ -304,38 +304,8 @@ class GraspTrain(object):
 
         scheduler = keras.callbacks.LearningRateScheduler(lr_scheduler)
         early_stopper = EarlyStopping(monitor=monitor_loss_name, min_delta=0.001, patience=32)
-        
-        # TODO(ahundt) Re-enable results included in filename, need to fix the following error but this was skipped due to time constraints to start training:
-        """
-            Epoch 1/100
-            6493/6494 [============================>.] - ETA: 0s - loss: 0.7651 - grasp_segmentation_single_
-            pixel_accuracy: 0.5467Traceback (most recent call last):
-              File "grasp_train.py", line 343, in train
-                model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=callbacks)
-              File "/home/ahundt/src/keras/keras/engine/training.py", line 1658, in fit
-                validation_steps=validation_steps)
-              File "/home/ahundt/src/keras/keras/engine/training.py", line 1215, in _fit_loop
-                callbacks.on_epoch_end(epoch, epoch_logs)
-              File "/home/ahundt/src/keras/keras/callbacks.py", line 76, in on_epoch_end
-                callback.on_epoch_end(epoch, logs)
-              File "/home/ahundt/src/keras/keras/callbacks.py", line 401, in on_epoch_end
-                filepath = self.filepath.format(epoch=epoch + 1, **logs)
-            KeyError: 'grasp_segmentation_single_pixel_loss'
-            Traceback (most recent call last):
-              File "grasp_train.py", line 539, in <module>
-                main()
-              File "grasp_train.py", line 526, in main
-                model_name=FLAGS.grasp_model)
-              File "grasp_train.py", line 351, in train
-                raise e
-            KeyError: 'grasp_segmentation_single_pixel_loss'
-        """
-        # checkpoint = keras.callbacks.ModelCheckpoint(weights_name + '-epoch-{epoch:03d}-loss-{' + loss_name + ':.3f}-acc-{' + metric_name + ':.3f}.h5',
-        #                                              save_best_only=True, verbose=1, monitor=metric_name)
-        checkpoint = keras.callbacks.ModelCheckpoint(weights_name + '-epoch-{epoch:03d}.h5',
-                                                     save_best_only=False, verbose=1)
 
-        callbacks = callbacks + [early_stopper, checkpoint]
+        callbacks = callbacks + [early_stopper]
 
         if FLAGS.progress_tracker is 'tensorboard':
             progress_tracker = TensorBoard(log_dir='./' + weights_name, write_graph=True,
@@ -380,6 +350,13 @@ class GraspTrain(object):
 
         csv_logger = CSVLogger(weights_name + '.csv')
         callbacks = callbacks + [csv_logger]
+
+        checkpoint = keras.callbacks.ModelCheckpoint(weights_name + '-epoch-{epoch:03d}-' +
+                                                     monitor_loss_name + '-{' + monitor_loss_name + ':.3f}-' +
+                                                     monitor_metric_name + '-{' + monitor_metric_name + ':.3f}.h5',
+                                                     save_best_only=True, verbose=1, monitor=monitor_metric_name)
+        callbacks = callbacks + [checkpoint]
+
         # 2017-08-27 Tried NADAM for a while with the settings below, only improved for first 2 epochs.
         # optimizer = keras.optimizers.Nadam(lr=0.004, beta_1=0.825, beta_2=0.99685)
 
@@ -511,7 +488,7 @@ class GraspTrain(object):
         if 'segmentation_single_pixel_binary_crossentropy' in loss:
             loss = grasp_loss.segmentation_single_pixel_binary_crossentropy
             loss_name = 'segmentation_single_pixel_binary_crossentropy'
-        
+
         if isinstance(loss, str) and 'segmentation_gaussian_binary_crossentropy' in loss:
             loss = grasp_loss.segmentation_gaussian_binary_crossentropy
             loss_name = 'segmentation_gaussian_binary_crossentropy'
@@ -653,7 +630,7 @@ class EvaluationCallback(keras.callbacks.Callback):
         Then on_epoch_end, set_weight from the weights passed from self, which
         is actually weights from training model.
     """
-    def __init__(self, eval_model, steps, load_weights=FLAGS.load_weights, 
+    def __init__(self, eval_model, steps, load_weights=FLAGS.load_weights,
                  dataset=FLAGS.grasp_dataset_eval, save_weights=FLAGS.save_weights,
                  verbose=1):
         # parameter of callbacks passed during initialization
@@ -675,9 +652,6 @@ class EvaluationCallback(keras.callbacks.Callback):
             print(metrics_str)
         weights_name_str = self.load_weights + '_evaluation_dataset_{}_epoch_{:03}_loss_{:.3f}_acc_{:.3f}'.format(self.dataset, epoch, results[0], results[1])
         weights_name_str = weights_name_str.replace('.h5', '') + '.h5'
-        results_summary_name_str = self.load_weights + '_evaluation_dataset_{}'.format(self.dataset) + '.csv'
-        results_summary_name_str = results_summary_name_str.replace('.h5', '')
-        metric_line = '' + str(epoch)
         for result, name in zip(results, self.eval_model.metrics_names):
             logs['val_' + name] = result
         if self.save_weights:
