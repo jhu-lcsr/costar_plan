@@ -49,11 +49,11 @@ def GetNextGoal(imgs, labels):
         # check for switch
         if lrev[i] != last_l:
             write_l = last_l
-            write_I = last_I
+            write_i = last_i
             last_l = np.copy(lrev[i])
-            last_I = np.copy(Irev[i])
+            last_i = np.copy(irev[i])
         lrev[i] = write_l
-        Irev[i] = write_I
+        irev[i] = write_i
     return imgs, labels
 
 """
