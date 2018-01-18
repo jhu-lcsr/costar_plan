@@ -303,9 +303,6 @@ class GraspTrain(object):
             ]
 
         scheduler = keras.callbacks.LearningRateScheduler(lr_scheduler)
-        early_stopper = EarlyStopping(monitor=monitor_loss_name, min_delta=0.001, patience=32)
-
-        callbacks = callbacks + [early_stopper]
 
         if FLAGS.progress_tracker is 'tensorboard':
             progress_tracker = TensorBoard(log_dir='./' + weights_name, write_graph=True,
@@ -329,6 +326,9 @@ class GraspTrain(object):
                                              model_name=model_name,
                                              eval_per_epoch=eval_per_epoch)
             callbacks = callbacks + [EvaluationCallback(eval_model, step_num)]
+
+        early_stopper = EarlyStopping(monitor=monitor_loss_name, min_delta=0.001, patience=32)
+        callbacks = callbacks + [early_stopper]
 
         # 2017-08-28 trying SGD
         # 2017-12-18 SGD worked very well and has been the primary training optimizer from 2017-09 to 2018-01
