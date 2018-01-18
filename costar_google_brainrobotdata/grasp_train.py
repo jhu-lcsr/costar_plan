@@ -122,6 +122,10 @@ flags.DEFINE_string('metric', 'segmentation_single_pixel_binary_accuracy',
                     """Options are accuracy, binary_accuracy and segmentation_single_pixel_binary_accuracy.""")
 flags.DEFINE_string('distributed', 'horovod',
                     """Options are 'horovod' (github.com/uber/horovod) or None for distributed training utilities.""")
+flags.DEFINE_integer('early_stopping', None,
+                     """Stop training if the monitored loss does not improve after the specified number of epochs.
+                        Values of 0 or None will disable early stopping.
+                     """)
 
 flags.FLAGS._parse_flags()
 FLAGS = flags.FLAGS
@@ -181,7 +185,8 @@ class GraspTrain(object):
               dropout_rate=FLAGS.dropout_rate,
               model_name=FLAGS.grasp_model,
               loss=FLAGS.loss,
-              metric=FLAGS.metric):
+              metric=FLAGS.metric,
+              early_stopping=FLAGS.early_stopping):
         """Train the grasping dataset
 
         This function depends on https://github.com/fchollet/keras/pull/6928
@@ -327,8 +332,9 @@ class GraspTrain(object):
                                              eval_per_epoch=eval_per_epoch)
             callbacks = callbacks + [EvaluationCallback(eval_model, step_num)]
 
-        early_stopper = EarlyStopping(monitor=monitor_loss_name, min_delta=0.001, patience=32)
-        callbacks = callbacks + [early_stopper]
+        if early_stopping is not None and early_stopping > 0.0:
+            early_stopper = EarlyStopping(monitor=monitor_loss_name, min_delta=0.001, patience=32)
+            callbacks = callbacks + [early_stopper]
 
         # 2017-08-28 trying SGD
         # 2017-12-18 SGD worked very well and has been the primary training optimizer from 2017-09 to 2018-01
@@ -647,8 +653,8 @@ class EvaluationCallback(keras.callbacks.Callback):
         # this is called automatically, so not able to pass other parameters here?
         self.eval_model.set_weights(self.model.get_weights())
         results = self.eval_model.evaluate(None, None, steps=int(self.step_num))
-        metrics_str = 'val_metrics:\n' + str(self.eval_model.metrics_names) + '\nval_results:\n' + str(results)
         if self.verbose:
+            metrics_str = 'val_metrics:\n' + str(self.eval_model.metrics_names) + '\nval_results:\n' + str(results)
             print(metrics_str)
         weights_name_str = self.load_weights + '_evaluation_dataset_{}_epoch_{:03}_loss_{:.3f}_acc_{:.3f}'.format(self.dataset, epoch, results[0], results[1])
         weights_name_str = weights_name_str.replace('.h5', '') + '.h5'
