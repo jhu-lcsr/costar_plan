@@ -280,15 +280,29 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         img0_in = Input(img_shape,name="policy_img0_in")
         arm = Input((arm_size,), name="ee_in")
         gripper = Input((gripper_size,), name="gripper_in")
-        ins = [img0_in, img_in, arm, gripper]
-        h = encoder(img_in)
-        x = Flatten()(h)
-        h0 = encoder(img0_in)
-        x0 = Flatten()(h0)
-        x = Concatenate()([x0, x, arm, gripper])
 
-        dr = self.dropout_rate
-        x = AddDense(x, 512, "lrelu", dr, output=True, bn=False)
+        ins = [img0_in, img_in, arm, gripper]
+
+        dr, bn = self.dropout_rate, self.use_batchnorm
+
+        y = Concatenate()([arm, gripper])
+
+        x = encoder(img_in)
+        x0 = encoder(img0_in)
+
+        x = Concatenate(axis=-1)([x, x0])
+        x = AddConv2D(x, 32, [3,3], 1, dr, "same", lrelu=True, bn=bn)
+
+        y = AddDense(y, 32, "relu", 0., output=True, constraint=3)
+        x = TileOnto(x, y, 32, (8,8), add=False)
+
+        x = AddConv2D(x, 32, [3,3], 1, dr, "valid", lrelu=True, bn=bn)
+
+        x = Flatten()(x)
+        #x = Concatenate()([x, arm, gripper])
+
+        x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
+        x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
 
         arm_out = Dense(arm_cmd_size, name="arm_out")(x)
         gripper_out = Dense(gripper_size, name="gripper_out")(x)
