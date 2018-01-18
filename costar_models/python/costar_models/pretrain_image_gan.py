@@ -109,19 +109,21 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         x = Add()([x, x0])
         #x = Concatenate(axis=-1)([img0,img])
         x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
-        #x = AddConv2D(x, 64, [4,4], 1, dr, "same", lrelu=True)
-        x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True)
-        #x = AddConv2D(x, 128, [4,4], 1, dr, "same", lrelu=True)
-        x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
-        #x = AddConv2D(x, 256, [4,4], 1, dr, "same", lrelu=True)
+        #x = AddConv2D(x, 64, [4,4], 1, dr, "valid", lrelu=True)
+        x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True, bn=False)
+        #x = AddConv2D(x, 128, [4,4], 1, dr, "valid", lrelu=True)
+        #x = AddConv2D(x, 256, [4,4], 2, dr, "valid", lrelu=True)
+        #x = AddConv2D(x, 256, [4,4], 1, dr, "valid", lrelu=True, bn=False)
         x = AddConv2D(x, 1, [4,4], 1, 0., "same", activation="sigmoid")
-        #x = MaxPooling2D(pool_size=(8,8))(x)
-        x = AveragePooling2D(pool_size=(8,8))(x)
+        #x = AveragePooling2D(pool_size=(8,8))(x)
+        x = AveragePooling2D(pool_size=(16,16))(x)
 
         x = Flatten()(x)
         discrim = Model(ins, x, name="image_discriminator")
+        self.lr *= 2.
         discrim.compile(loss="binary_crossentropy", loss_weights=[1.],
                 optimizer=self.getOptimizer())
+        self.lr *= 0.5
         self.image_discriminator = discrim
         return discrim
 
