@@ -5,4 +5,4 @@ rosrun costar_models ctp_model_tool \
   --lr 0.001 \
   --dropout_rate 0.2 \
   --features dvrk \
-  --batch_size 32
+  --batch_size 32 $1
