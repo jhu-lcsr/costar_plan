@@ -113,7 +113,7 @@ flags.DEFINE_string('learning_rate_scheduler', 'learning_rate_scheduler',
                        a power decay path for the learning rate over time.
                        This is most useful with SGD, currently disabled with Adam.""")
 flags.DEFINE_string('optimizer', 'SGD', """Options are Adam and SGD.""")
-flags.DEFINE_string('progress_tracker', None,
+flags.DEFINE_string('progress_tracker', 'tensorboard',
                     """Utility to follow training progress, options are tensorboard and None.""")
 flags.DEFINE_string('loss', 'segmentation_single_pixel_binary_crossentropy',
                     """Options are binary_crossentropy, segmentation_single_pixel_binary_crossentropy,
@@ -312,11 +312,6 @@ class GraspTrain(object):
 
         scheduler = keras.callbacks.LearningRateScheduler(lr_scheduler)
 
-        if FLAGS.progress_tracker is 'tensorboard':
-            progress_tracker = TensorBoard(log_dir='./' + weights_name, write_graph=True,
-                                           write_grads=True, write_images=True)
-            callbacks = callbacks + [progress_tracker]
-
         # progress_bar = TQDMCallback()
         # callbacks = callbacks + [progress_bar]
 
@@ -338,6 +333,14 @@ class GraspTrain(object):
         if early_stopping is not None and early_stopping > 0.0:
             early_stopper = EarlyStopping(monitor=monitor_loss_name, min_delta=0.001, patience=32)
             callbacks = callbacks + [early_stopper]
+
+        if FLAGS.progress_tracker == 'tensorboard':
+            print('Enabling tensorboard...')
+            log_dir = './tensorboard_' + weights_name
+            grasp_dataset.mkdir_p(log_dir)
+            progress_tracker = TensorBoard(log_dir=log_dir, write_graph=True,
+                                           write_grads=True, write_images=True)
+            callbacks = callbacks + [progress_tracker]
 
         # 2017-08-28 trying SGD
         # 2017-12-18 SGD worked very well and has been the primary training optimizer from 2017-09 to 2018-01
