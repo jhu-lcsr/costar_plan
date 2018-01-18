@@ -449,11 +449,11 @@ def grasp_model_levine_2016(
             clear_view_img_conv = MaxPooling2D(pool_size=(3, 3))(clear_view_img_conv)
             current_time_img_conv = MaxPooling2D(pool_size=(3, 3))(current_time_img_conv)
 
-        combImg = Concatenate(-1)([clear_view_img_conv, current_time_img_conv])
+        imgConv = Concatenate(-1)([clear_view_img_conv, current_time_img_conv])
 
         # img Conv 2 - 7
         for i in range(6):
-            imgConv = Conv2D(64, (5, 5), padding='same', activation='relu')(combImg)
+            imgConv = Conv2D(64, (5, 5), padding='same', activation='relu')(imgConv)
 
         imgConv = Conv2D(64, (5, 5), padding='same', activation='relu',
                          dilation_rate=dilation_rate)(imgConv)
