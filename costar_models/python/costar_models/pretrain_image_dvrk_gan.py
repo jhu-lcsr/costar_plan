@@ -30,4 +30,6 @@ class PretrainImageJigsawsGan(PretrainImageHuskyGan):
         '''
         super(PretrainImageAutoencoderDVRK, self).__init__(taskdef, *args, **kwargs)
         self.PredictorCb = ImageCb
+
+        # This is literally the only change from the husky version
         self.num_generator_files = 1

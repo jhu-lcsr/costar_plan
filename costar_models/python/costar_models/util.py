@@ -26,6 +26,7 @@ from .conditional_image_gan import ConditionalImageGan
 
 # DVRK stuff
 from .pretrain_image_dvrk import PretrainImageAutoencoderDVRK
+from .pretrain_image_dvrk_gan import PretrainImageJigsawsGan
 
 # Husky stuff
 from .husky_sampler import HuskyRobotMultiPredictionSampler
