@@ -206,6 +206,7 @@ class GraspTrain(object):
                 you almost certainly want the value to be None, which includes every image.
         """
         datasets = dataset.split(',')
+        dataset_names_str = dataset.replace(',', '_')
         (pregrasp_op_batch,
          grasp_step_op_batch,
          simplified_grasp_command_op_batch,
@@ -228,7 +229,7 @@ class GraspTrain(object):
         ########################################################
         # End tensor configuration, begin model configuration and training
 
-        weights_name = timeStamped(save_weights + '-' + model_name)
+        weights_name = timeStamped(save_weights + '-' + model_name + '-dataset_' + dataset_names_str)
 
         # ###############learning rate scheduler####################
         # source: https://github.com/aurora95/Keras-FCN/blob/master/train.py
