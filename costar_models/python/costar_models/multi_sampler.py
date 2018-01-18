@@ -418,38 +418,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             self._makePredictor(
                 (features, arm, gripper))
 
-    def _getNextGoal(self, I_target, o1):
-        img = np.zeros_like(I_target)
-        next_option = np.zeros_like(o1)
-        for i in range(o1.shape[0]):
-            #print('---')
-            cur = o1[i]
-            #print(i, o1, o1.shape, cur)
-            tmp = np.copy(o1)
-            tmp[:i] = cur
-            first_next = np.argmax(tmp != cur)
-            #print (tmp, tmp[first_next])
-            #print (cur, tmp[first_next])
-            if tmp[first_next] == cur:
-                # nothing else
-                first_next = -1
-            img[i] = I_target[first_next]
-            next_option[i] = tmp[first_next]
-            #print ('---')
-
-        debug_next_goals = False
-        if debug_next_goals:
-            import matplotlib.pyplot as plt
-            plt.subplot(3,1,1)
-            plt.imshow(I[i])
-            plt.subplot(3,1,2)
-            plt.imshow(I_target[i])
-            plt.subplot(3,1,3)
-            plt.imshow(img[i])
-            plt.show()
-
-        return img, next_option
-
     def _getData(self, *args, **kwargs):
         features, targets = GetAllMultiData(*args, **kwargs)
         [I, q, g, oin, label, q_target, g_target,] = features

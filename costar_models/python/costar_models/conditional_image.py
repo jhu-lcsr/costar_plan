@@ -15,13 +15,10 @@ from keras.models import Model, Sequential
 from keras.optimizers import Adam
 from matplotlib import pyplot as plt
 
-from .abstract import *
 from .callbacks import *
-from .robot_multi_models import *
-from .split import *
-from .mhp_loss import *
-from .loss import *
 from .sampler2 import *
+from .data_utils import GetNextGoal, ToOneHot2D
+from .multi import *
 
 
 class ConditionalImage(PredictionSampler2):
@@ -190,20 +187,20 @@ class ConditionalImage(PredictionSampler2):
         return predictor, train_predictor, actor, ins, h
 
     def _getData(self, *args, **kwargs):
-        features, targets = self._getAllData(*args, **kwargs)
+        features, targets = GetAllMultiData(self.num_options, *args, **kwargs)
         [I, q, g, oin, label, q_target, g_target,] = features
         tt, o1, v, qa, ga, I_target = targets
-        I_target2, o2 = self._getNextGoal(I_target, p1)
+        I_target2, o2 = GetNextGoal(I_target, o1)
         I0 = I[0,:,:,:]
         length = I.shape[0]
         I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
-        oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
+        oin_1h = np.squeeze(ToOneHot2D(oin, self.num_options))
         qa = np.squeeze(qa)
         ga = np.squeeze(ga)
         #print("o1 = ", o1, o1.shape, type(o1))
         #print("o2 = ", o2, o2.shape, type(o2))
         if self.do_all:
-            o1_1h = np.squeeze(self.toOneHot2D(o1, self.num_options))
+            o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
             return [I0, I, o1, o2, oin], [ I_target, I_target2, o1_1h, v, qa, ga]
         else:
             return [I0, I, o1, o2, oin], [I_target, I_target2]
