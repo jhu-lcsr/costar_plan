@@ -20,6 +20,7 @@ from keras.layers import Input
 from keras.layers.merge import concatenate
 from keras.layers.merge import Concatenate
 from keras.layers.merge import _Merge
+from keras.layers.merge import Add
 from keras.models import Model
 from keras.layers import Lambda
 from keras.layers import Reshape
@@ -112,6 +113,39 @@ def concat_images_with_tiled_vector_layer(images, vector, image_shape=None, vect
         tile_shape = (int(1), int(image_shape[0]), int(image_shape[1]), int(1))
         tiled_vector = Lambda(lambda x: K.tile(x, tile_shape))(vector)
         x = Concatenate(axis=-1)([] + images + [tiled_vector])
+    return x
+
+
+def add_images_with_tiled_vector_layer(images, vector, image_shape=None, vector_shape=None):
+    """Tile a vector as if it were channels onto every pixel of an image.
+
+    This version is designed to be used as layers within a Keras model.
+
+    # Params
+       images: a list of images to combine, must have equal dimensions
+       vector: the 1D vector to tile onto every pixel
+       image_shape: Tuple with 3 entries defining the shape (batch, height, width)
+           images should be expected to have, do not specify the number
+           of batches.
+       vector_shape: Tuple with 3 entries defining the shape (batch, height, width)
+           images should be expected to have, do not specify the number
+           of batches.
+    """
+    with K.name_scope('add_images_with_tiled_vector_layer'):
+        if not isinstance(images, list):
+            images = [images]
+        if vector_shape is None:
+            # check if K.shape, K.int_shape, or vector.get_shape().as_list()[1:] is better
+            # https://github.com/fchollet/keras/issues/5211
+            vector_shape = K.int_shape(vector)[1:]
+        if image_shape is None:
+            # check if K.shape, K.int_shape, or image.get_shape().as_list()[1:] is better
+            # https://github.com/fchollet/keras/issues/5211
+            image_shape = K.int_shape(images[0])[1:]
+        vector = Reshape([1, 1, vector_shape[-1]])(vector)
+        tile_shape = (int(1), int(image_shape[0]), int(image_shape[1]), int(1))
+        tiled_vector = Lambda(lambda x: K.tile(x, tile_shape))(vector)
+        x = Add()([] + images + [tiled_vector])
     return x
 
 
@@ -449,7 +483,7 @@ def grasp_model_levine_2016(
             clear_view_img_conv = MaxPooling2D(pool_size=(3, 3))(clear_view_img_conv)
             current_time_img_conv = MaxPooling2D(pool_size=(3, 3))(current_time_img_conv)
 
-        imgConv = Concatenate(-1)([clear_view_img_conv, current_time_img_conv])
+        imgConv = Add()([clear_view_img_conv, current_time_img_conv])
 
         # img Conv 2 - 7
         for i in range(6):
@@ -470,7 +504,7 @@ def grasp_model_levine_2016(
         motorConv = Dense(64, activation='relu')(motorData)
 
         # tile and concat the data
-        combinedData = concat_images_with_tiled_vector_layer(imgConv, motorConv)
+        combinedData = add_images_with_tiled_vector_layer(imgConv, motorConv)
 
         if dropout_rate is not None:
             combinedData = Dropout(dropout_rate)(combinedData)
