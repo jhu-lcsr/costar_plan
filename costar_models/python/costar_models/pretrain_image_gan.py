@@ -31,7 +31,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         '''
         super(PretrainImageGan, self).__init__(taskdef, *args, **kwargs)
         self.PredictorCb = ImageCb
-        self.load_pretrained_weights = False
+        self.load_pretrained_weights = True
 
     def _makePredictor(self, features):
         '''
@@ -61,8 +61,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                     "pretrain_image_encoder_model",
                     "image_decoder.h5f"))
             except Exception as e:
-                if not self.retrain:
-                    raise e
+                print(">> Failed to load pretrained generator weights.")
 
         gen_out = decoder(enc)
         image_discriminator = self._makeImageDiscriminator(img_shape)
@@ -71,28 +70,24 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         image_discriminator.trainable = False
         o1 = image_discriminator([img_in, gen_out])
 
-        encoder.summary()
-        decoder.summary()
-        image_discriminator.summary()
-
         self.model = Model([img_in], [gen_out, o1])
         self.model.compile(
                 loss=["mae"] + ["binary_crossentropy"],
                 loss_weights=[100., 1.],
                 optimizer=self.getOptimizer())
-        self.model.summary()
 
         self.generator = Model([img_in], [gen_out])
         self.generator.compile(
                 loss=["logcosh"],
                 optimizer=self.getOptimizer())
-        self.generator.summary()
+
+        image_discriminator.summary()
 
         return self.model, self.model, None, [img_in], enc
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
-        [img, q, g, oin, q_target, g_target,] = features
+        [img, q, g, oin, label, q_target, g_target,] = features
         return [img], [img]
 
     def _makeImageDiscriminator(self, img_shape):
@@ -109,24 +104,26 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         dr = self.dropout_rate
         dr = 0
         
-        x = AddConv2D(img, 64, [4,4], 1, dr, "valid", lrelu=True)
-        x0 = AddConv2D(img0, 64, [4,4], 1, dr, "valid", lrelu=True)
+        x = AddConv2D(img, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
+        x0 = AddConv2D(img0, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
         x = Add()([x, x0])
-        x = AddConv2D(x, 64, [4,4], 2, dr, "valid", lrelu=True)
-        x = AddConv2D(x, 64, [4,4], 1, dr, "same", lrelu=True)
-        x = AddConv2D(x, 128, [4,4], 2, dr, "valid", lrelu=True)
-        x = AddConv2D(x, 128, [4,4], 1, dr, "same", lrelu=True)
-        x = AddConv2D(x, 256, [4,4], 2, dr, "valid", lrelu=True)
-        x = AddConv2D(x, 256, [4,4], 1, dr, "same", lrelu=True)
-        x = AddConv2D(x, 1, [4,4], 1, 0., "valid", activation="sigmoid")
-        #x = MaxPooling2D(pool_size=(8,8))(x)
-        print("out=",x)
-        x = AveragePooling2D(pool_size=(2,2))(x)
+        #x = Concatenate(axis=-1)([img0,img])
+        x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=True, bn=True)
+        #x = AddConv2D(x, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
+        x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True, bn=True)
+        #x = AddConv2D(x, 128, [4,4], 1, dr, "valid", lrelu=True)
+        x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True, bn=True)
+        #x = AddConv2D(x, 256, [4,4], 1, dr, "valid", lrelu=True, bn=False)
+        x = AddConv2D(x, 1, [4,4], 1, 0., "same", activation="sigmoid")
+        x = AveragePooling2D(pool_size=(8,8))(x)
+        #x = AveragePooling2D(pool_size=(16,16))(x)
 
         x = Flatten()(x)
         discrim = Model(ins, x, name="image_discriminator")
+        self.lr *= 2.
         discrim.compile(loss="binary_crossentropy", loss_weights=[1.],
                 optimizer=self.getOptimizer())
+        self.lr *= 0.5
         self.image_discriminator = discrim
         return discrim
 

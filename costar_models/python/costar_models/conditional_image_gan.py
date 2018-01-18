@@ -52,6 +52,7 @@ class ConditionalImageGan(PretrainImageGan):
         self.do_all = True
         self.transform_model = None
         self.skip_connections = False
+        self.num_generator_files = 1
  
     def _makePredictor(self, features):
         # =====================================================================
@@ -82,17 +83,12 @@ class ConditionalImageGan(PretrainImageGan):
             encoder = self._makeImageEncoder2(img_shape)
         else:
             encoder = self._makeImageEncoder(img_shape)
-            #encoder0 = self._makeImageEncoder(img_shape, copy=True)
         try:
             encoder.load_weights(self._makeName(
                 #pretrain_image_encoder_model",
                 "pretrain_image_gan_model",
                 "image_encoder.h5f"))
             encoder.trainable = self.retrain
-            #encoder0.load_weights(self._makeName(
-            #    "pretrain_image_encoder_model",
-            #    "image_encoder.h5f"))
-            #encoder0.trainable = self.retrain
         except Exception as e:
             if not self.retrain:
                 raise e
@@ -167,9 +163,10 @@ class ConditionalImageGan(PretrainImageGan):
         model = Model(ins, [image_out, image_out2, is_fake])
         model.compile(
                 loss=["mae"]*2 + ["binary_crossentropy"],
-                loss_weights=[50., 50., 1.],
+                loss_weights=[100., 100., 1.],
                 optimizer=self.getOptimizer())
         model.summary()
+        self.discriminator.summary()
         self.model = model
 
         return predictor, model, model, ins, h
@@ -205,40 +202,42 @@ class ConditionalImageGan(PretrainImageGan):
         ins = [img0, img, option, option2, img_goal, img_goal2]
         dr = self.dropout_rate
         dr = 0
-        x = AddConv2D(img, 64, [4,4], 1, dr, "same", lrelu=True)
-        x0 = AddConv2D(img0, 64, [4,4], 1, dr, "same", lrelu=True)
-        x = Add()([x, x0])
-        x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=True)
 
+        x0 = AddConv2D(img0, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
+        xobs = AddConv2D(img, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
+        xg1 = AddConv2D(img_goal, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
+        xg2 = AddConv2D(img_goal2, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
+
+        x1 = Add()([x0, xobs, xg1])
+        x2 = Add()([x0, xg1, xg2])
+        
         # -------------------------------------------------------------
         y = OneHot(self.num_options)(option)
         y = AddDense(y, 64, "lrelu", dr)
-        x = TileOnto(x, y, 64, (32,32), add=True)
-        xh = AddConv2D(x, 64, [4,4], 1, dr, "same", lrelu=True)
-
-        xg = AddConv2D(img_goal, 64, [4,4], 2, dr, "same", lrelu=True)
-        x = Add()([xh, xg])
+        x1 = TileOnto(x1, y, 64, (64,64), add=True)
+        x1 = AddConv2D(x1, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
 
         # -------------------------------------------------------------
         y = OneHot(self.num_options)(option2)
         y = AddDense(y, 64, "lrelu", dr)
-        x = TileOnto(xh, y, 64, (32,32), add=True)
-        x = AddConv2D(x, 64, [4,4], 1, dr, "same", lrelu=True)
+        x2 = TileOnto(x2, y, 64, (64,64), add=True)
+        x2 = AddConv2D(x2, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
 
-        xg2 = AddConv2D(img_goal2, 64, [4,4], 2, dr, "same", lrelu=True)
-        x = Add()([x, xg2])
-
-        x = AddConv2D(x, 64, [4,4], 1, dr, "same", lrelu=True)
+        x = Concatenate()([x1, x2])
         x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True)
-        x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
+        #x = AddConv2D(x, 128, [4,4], 1, dr, "same", lrelu=True)
+        x= AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
+        #x = AddConv2D(x, 256, [4,4], 1, dr, "same", lrelu=True)
         x = AddConv2D(x, 1, [4,4], 1, 0., "same", activation="sigmoid")
 
         #x = MaxPooling2D(pool_size=(8,8))(x)
         x = AveragePooling2D(pool_size=(8,8))(x)
         x = Flatten()(x)
         discrim = Model(ins, x, name="image_discriminator")
+        self.lr *= 2.
         discrim.compile(loss="binary_crossentropy", loss_weights=[1.],
                 optimizer=self.getOptimizer())
+        self.lr *= 0.5
         self.image_discriminator = discrim
         return discrim
 
