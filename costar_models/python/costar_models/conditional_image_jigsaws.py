@@ -41,17 +41,13 @@ class ConditionalImageJigsaws(ConditionalImage):
         img0_in = Input(img_shape, name="predictor_img0_in")
         img_in = Input(img_shape, name="predictor_img_in")
         prev_option_in = Input((1,), name="predictor_prev_option_in")
-        #prev_option_in = Flatten()(OneHot(self.num_options)(prev_option_in))
         ins = [img0_in, img_in]
 
         if self.skip_connections:
             encoder = self._makeImageEncoder2(img_shape)
-        else:
-            encoder = self._makeImageEncoder(img_shape)
-
-        if self.skip_connections:
             decoder = self._makeImageDecoder2(self.hidden_shape)
         else:
+            encoder = self._makeImageEncoder(img_shape)
             decoder = self._makeImageDecoder(self.hidden_shape)
 
         # load encoder/decoder weights if found
