@@ -32,7 +32,6 @@ class PretrainImageJigsaws(PretrainImageAutoencoder):
         command line and set things like our optimizer and learning rate.
         '''
         super(PretrainImageJigsaws, self).__init__(taskdef, *args, **kwargs)
-        self.PredictorCb = ImageCb
         self.num_generator_files = 1
 
     def _makePredictor(self, image):
@@ -42,8 +41,6 @@ class PretrainImageJigsaws(PretrainImageAutoencoder):
         img_shape = image.shape[1:]
 
         img_in = Input(img_shape,name="predictor_img_in")
-        img0_in = Input(img_shape,name="predictor_img0_in")
-        option_in = Input((1,), name="predictor_option_in")
         encoder = self._makeImageEncoder(img_shape)
         ins = [img_in]
         
