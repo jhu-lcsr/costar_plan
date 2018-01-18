@@ -282,11 +282,13 @@ class GraspTrain(object):
             loss = grasp_loss.segmentation_gaussian_binary_crossentropy
             loss_name = 'segmentation_gaussian_binary_crossentropy'
 
+        metrics, monitor_metric_name = self.gather_metrics(metric)
+
         if eval_per_epoch:
             monitor_loss_name = 'val_loss'
+            monitor_metric_name = 'val_' + monitor_metric_name
         else:
             monitor_loss_name = 'loss'
-        metrics, monitor_metric_name = self.gather_metrics(metric)
 
         callbacks = []
         if hvd is not None and self.distributed is 'horovod':
@@ -330,7 +332,7 @@ class GraspTrain(object):
             eval_model, step_num = self.eval(make_model_fn=make_model_fn,
                                              model_name=model_name,
                                              eval_per_epoch=eval_per_epoch)
-            callbacks = callbacks + [EvaluationCallback(eval_model, step_num)]
+            callbacks = callbacks + [EvaluateInputTensor(eval_model, step_num)]
 
         if early_stopping is not None and early_stopping > 0.0:
             early_stopper = EarlyStopping(monitor=monitor_loss_name, min_delta=0.001, patience=32)
@@ -350,8 +352,7 @@ class GraspTrain(object):
             print(monitor_loss_name)
             callbacks = callbacks + [
                 # Reduce the learning rate if training plateaus.
-                # TODO(ahundt) add validation checks and update monitor parameter to use them
-                keras.callbacks.ReduceLROnPlateau(patience=4, verbose=1, monitor=monitor_loss_name)
+                keras.callbacks.ReduceLROnPlateau(patience=4, verbose=1, factor=0.5, monitor=monitor_loss_name)
             ]
 
         csv_logger = CSVLogger(weights_name + '.csv')
@@ -360,7 +361,7 @@ class GraspTrain(object):
         checkpoint = keras.callbacks.ModelCheckpoint(weights_name + '-epoch-{epoch:03d}-' +
                                                      monitor_loss_name + '-{' + monitor_loss_name + ':.3f}-' +
                                                      monitor_metric_name + '-{' + monitor_metric_name + ':.3f}.h5',
-                                                     save_best_only=True, verbose=1, monitor=monitor_metric_name)
+                                                     save_best_only=False, verbose=1, monitor=monitor_metric_name)
         callbacks = callbacks + [checkpoint]
 
         # 2017-08-27 Tried NADAM for a while with the settings below, only improved for first 2 epochs.
@@ -630,40 +631,52 @@ def define_make_model_fn(grasp_model_name=FLAGS.grasp_model):
     return make_model_fn
 
 
-class EvaluationCallback(keras.callbacks.Callback):
-    """ Use returns from GraspTrain.eval(), evaluation model and number of step
-        to initialize, with its own default values.
-        Then on_epoch_end, set_weight from the weights passed from self, which
-        is actually weights from training model.
+class EvaluateInputTensor(keras.callbacks.Callback):
+    """ Validate a model which does not expect external numpy data during training.
+
+    Keras does not expect external numpy data at training time, and thus cannot
+    accept numpy arrays for validation when all of a Keras Model's
+    `Input(input_tensor)` layers are provided an  `input_tensor` parameter,
+    and the call to `Model.compile(target_tensors)` defines all `target_tensors`
+    Instead, create a second model configured with input tensors for validation
+    and add it to the `EvaluateInputTensor` callback to perform validation.
+
+    It is recommended that this callback be the first in the list of callbacks
+    because it defines the validation variables required by many other callbacks,
+    and Callbacks are made in order.
+
+    #TODO(ahundt) replace when https://github.com/keras-team/keras/pull/9105 is available
+
+    # Arguments
+        model: Keras model on which to call model.evaluate().
+        steps: Integer or `None`.
+            Total number of steps (batches of samples)
+            before declaring the evaluation round finished.
+            Ignored with the default value of `None`.
     """
-    def __init__(self, eval_model, steps, load_weights=FLAGS.load_weights,
-                 dataset=FLAGS.grasp_dataset_eval, save_weights=FLAGS.save_weights,
-                 verbose=1):
+
+    def __init__(self, model, steps, metrics_prefix='val', verbose=1):
         # parameter of callbacks passed during initialization
         # pass evalation mode directly
-        super(EvaluationCallback, self).__init__()
-        self.eval_model = eval_model
-        self.step_num = steps
-        self.load_weights = load_weights
-        self.dataset = dataset
-        self.save_weights = save_weights
+        super(EvaluateInputTensor, self).__init__()
+        self.val_model = model
+        self.num_steps = steps
         self.verbose = verbose
+        self.metrics_prefix = metrics_prefix
 
     def on_epoch_end(self, epoch, logs={}):
-        # this is called automatically, so not able to pass other parameters here?
-        self.eval_model.set_weights(self.model.get_weights())
-        results = self.eval_model.evaluate(None, None, steps=int(self.step_num))
-        if self.verbose:
-            metrics_str = 'val_metrics:\n' + str(self.eval_model.metrics_names) + '\nval_results:\n' + str(results)
+        self.val_model.set_weights(self.model.get_weights())
+        results = self.val_model.evaluate(None, None, steps=int(self.num_steps),
+                                          verbose=self.verbose)
+        metrics_str = '\n'
+        for result, name in zip(results, self.val_model.metrics_names):
+            metric_name = self.metrics_prefix + '_' + name
+            logs[metric_name] = result
+            if self.verbose > 0:
+                metrics_str = metrics_str + metric_name + ': ' + str(result) + ' '
+
+        if self.verbose > 0:
             print(metrics_str)
-        weights_name_str = self.load_weights + '_evaluation_dataset_{}_epoch_{:03}_loss_{:.3f}_acc_{:.3f}'.format(self.dataset, epoch, results[0], results[1])
-        weights_name_str = weights_name_str.replace('.h5', '') + '.h5'
-        for result, name in zip(results, self.eval_model.metrics_names):
-            logs['val_' + name] = result
-        if self.save_weights:
-            self.eval_model.save_weights(weights_name_str)
-            if self.verbose:
-                print('\nsaved weights with evaluation result to ' + weights_name_str)
 
 
 def main():
