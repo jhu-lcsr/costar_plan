@@ -31,7 +31,7 @@ then
     --features multi \
     -e 100 \
     --model pretrain_image_encoder \
-    --data_file $HOME/work/$DATASET.h5f \
+    --data_file $HOME/work/$DATASET.npz \
     --lr $learning_rate \
     --dropout_rate $dropout \
     --features husky \
@@ -51,7 +51,7 @@ then
     --features multi \
     -e 100 \
     --model pretrain_sampler \
-    --data_file $HOME/work/$DATASET.h5f \
+    --data_file $HOME/work/$DATASET.npz \
     --lr $learning_rate \
     --features husky \
     --dropout_rate $dropout \
@@ -68,7 +68,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --features multi \
   -e 100 \
   --model conditional_image \
-  --data_file $HOME/work/$DATASET.h5f \
+  --data_file $HOME/work/$DATASET.npz \
   --lr $learning_rate \
   --dropout_rate $dropout \
   --model_directory $MODELDIR/ \
@@ -84,7 +84,7 @@ then
     --features multi \
     -e 100 \
     --model predictor \
-    --data_file $HOME/work/$DATASET.h5f \
+    --data_file $HOME/work/$DATASET.npz \
     --features husky \
     --lr $learning_rate \
     --dropout_rate $dropout \
