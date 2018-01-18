@@ -136,6 +136,10 @@ class ConditionalImageGan(PretrainImageGan):
         image_out2 = decoder([x2])
 
         # =====================================================================
+        # Save
+        self.transform_model = tform
+
+        # =====================================================================
         # Make the discriminator
         image_discriminator = self._makeImageDiscriminator(img_shape)
         self.discriminator = image_discriminator

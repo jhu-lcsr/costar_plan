@@ -23,6 +23,7 @@ from .sampler2 import PredictionSampler2
 from .conditional_sampler2 import ConditionalSampler2
 from .conditional_image import ConditionalImage
 from .conditional_image_gan import ConditionalImageGan
+from .discriminator import Discriminator
 
 # Jigsaws stuff
 from .pretrain_image_jigsaws import PretrainImageJigsaws
@@ -33,6 +34,7 @@ from .husky_sampler import HuskyRobotMultiPredictionSampler
 from .pretrain_image_husky import PretrainImageAutoencoderHusky
 from .pretrain_image_husky_gan import PretrainImageHuskyGan
 from .conditional_image_husky import ConditionalImageHusky
+from .discriminator import HuskyDiscriminator
 
 def MakeModel(features, model, taskdef, **kwargs):
     '''
@@ -125,6 +127,8 @@ def MakeModel(features, model, taskdef, **kwargs):
             model_instance = PretrainMinimal(taskdef, model=model, **kwargs)
         elif model == "pretrain_image_gan":
             model_instance = PretrainImageGan(taskdef, model=model, **kwargs)
+        elif model == "discriminator":
+            model_instance = Discriminator(taskdef, model=model, **kwargs)
     elif features == "jigsaws":
         if model == "pretrain_image_encoder":
             model_instance = PretrainImageJigsaws(taskdef,
@@ -155,6 +159,8 @@ def MakeModel(features, model, taskdef, **kwargs):
             model_instance = ConditionalImageHusky(taskdef, model=model, **kwargs)
         elif model == "conditional_image_gan":
             model_instance = ConditionalImageHuskyGan(taskdef, model=model, **kwargs)
+        elif model == "husky_discriminator":
+            model_instance = HuskyDiscriminator(taskdef, model=model, **kwargs)
     
     # If we did not create a model then die.
     if model_instance is None:

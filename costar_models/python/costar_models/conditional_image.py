@@ -125,8 +125,6 @@ class ConditionalImage(PredictionSampler2):
         next_option_out = next_model([h0,h,label_in])
         #value_out = value_model([h,label_in])
         #next_option_out = next_model([h,label_in])
-        self.next_model = next_model
-        self.value_model = value_model
 
         # create input for controlling noise output if that's what we decide
         # that we want to do
@@ -149,6 +147,12 @@ class ConditionalImage(PredictionSampler2):
         image_out = decoder([x])
         image_out2 = decoder([x2])
         #image_out = decoder([x, s32, s16, s8])
+
+        # =====================================================================
+        # Store the models for next time
+        self.next_model = next_model
+        self.value_model = value_model
+        self.transform_model = tform
 
         # =====================================================================
         actor = GetActorModel(h, self.num_options, arm_size, gripper_size,

@@ -106,6 +106,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.state_decoder = None
         self.hidden_encoder = None
         self.hidden_decoder = None
+        self.next_model = None
+        self.value_model = None
+        self.transform_model = None
 
         # ===================================================================
         # These are hard coded settings -- tweaking them may break a bunch of
@@ -472,20 +475,23 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         for i, f in enumerate(cbf):
             if len(f.shape) < 1:
                 raise RuntimeError('feature %d not an appropriate size!'%i)
-        imageCb = self.PredictorCb(
-            self.predictor,
-            name=self.name_prefix,
-            features=cbf,
-            targets=cbt,
-            model_directory=self.model_directory,
-            num_hypotheses=self.num_hypotheses,
-            verbose=True,
-            use_noise=self.use_noise,
-            noise_dim=self.noise_dim,
-            min_idx=0,
-            max_idx=70,
-            step=10,)
-        callbacks=[modelCheckpointCb, logCb, imageCb]
+        if self.PredictorCb is not None:
+            imageCb = self.PredictorCb(
+                self.predictor,
+                name=self.name_prefix,
+                features=cbf,
+                targets=cbt,
+                model_directory=self.model_directory,
+                num_hypotheses=self.num_hypotheses,
+                verbose=True,
+                use_noise=self.use_noise,
+                noise_dim=self.noise_dim,
+                min_idx=0,
+                max_idx=70,
+                step=10,)
+            callbacks=[modelCheckpointCb, logCb, imageCb]
+        else:
+            callbacks=[modelCheckpointCb, logCb,]
         self._fit(train_generator, test_generator, callbacks)
 
     def _fit(self, train_generator, test_generator, callbacks):
@@ -527,6 +533,19 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             if self.hidden_decoder is not None:
                 self.hidden_decoder.save_weights(self.name + 
                 "_hidden_decoder.h5f")
+            if self.classifier is not None:
+                self.hidden_decoder.save_weights(self.name + 
+                "_classifier.h5f")
+            if self.transform_model is not None:
+                self.hidden_decoder.save_weights(self.name + 
+                "_transform.h5f")
+            if self.value_model is not None:
+                self.hidden_decoder.save_weights(self.name + 
+                "_value.h5f")
+            if self.next_model is not None:
+                self.hidden_decoder.save_weights(self.name + 
+                "_next.h5f")
+
         else:
             raise RuntimeError('save() failed: model not found.')
 
