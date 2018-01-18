@@ -163,7 +163,7 @@ class ConditionalImageGan(PretrainImageGan):
         return predictor, model, model, ins, h
 
     def _getData(self, *args, **kwargs):
-        features, targets = self._getAllData(*args, **kwargs)
+        features, targets = GetAllMultiData(self.num_options, *args, **kwargs)
         [I, q, g, oin, label, q_target, g_target,] = features
         tt, o1, v, qa, ga, I_target = targets
 
@@ -173,7 +173,7 @@ class ConditionalImageGan(PretrainImageGan):
         I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
 
         # Extract the next goal
-        I_target2, o2 = self._getNextGoal(features, targets)
+        I_target2, o2 = GetNextGoal(I_target, o1)
         return [I0, I, o1, o2], [ I_target, I_target2 ]
 
     def _makeImageDiscriminator(self, img_shape):
