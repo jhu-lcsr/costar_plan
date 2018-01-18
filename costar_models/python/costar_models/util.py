@@ -128,7 +128,12 @@ def MakeModel(features, model, taskdef, **kwargs):
             model_instance = PretrainImageAutoencoderDVRK(taskdef,
                     model=model,
                     features=features,
+         elif model == "pretrain_image_gan":
+            model_instance = PretrainImageJigsawsGan(taskdef,
+                    model=model,
+                    features=features,
                     **kwargs)
+                   **kwargs)
     elif features == "husky":
         if model == "pretrain_image_encoder":
             model_instance = PretrainImageAutoencoderHusky(taskdef,
