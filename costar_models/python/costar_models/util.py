@@ -35,6 +35,7 @@ from .husky_sampler import HuskyRobotMultiPredictionSampler
 from .pretrain_image_husky import PretrainImageAutoencoderHusky
 from .pretrain_image_husky_gan import PretrainImageHuskyGan
 from .conditional_image_husky import ConditionalImageHusky
+from .conditional_image_husky_gan import ConditionalImageHuskyGan
 from .discriminator import HuskyDiscriminator
 
 def MakeModel(features, model, taskdef, **kwargs):
