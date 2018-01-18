@@ -908,12 +908,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         dr = self.decoder_dropout_rate 
 
         x = rep_in
-        x = AddConv2D(x, 64, [3,3], 1, dr, "valid", False)
-        x = AddConv2D(x, 64, [3,3], 1, dr, "valid", False)
-        x = AddConv2D(x, 64, [3,3], 1, dr, "valid", False)
+        x = AddConv2D(x, 64, [3,3], 2, dr, "same", False)
+        x = AddConv2D(x, 64, [3,3], 1, dr, "same", False)
+        #x = AddConv2D(x, 64, [3,3], 1, dr, "same", False)
         x = Flatten()(x)
-        x1 = AddDense(x, 512, "relu", dr, output=True, bn=False)
-        x2 = AddDense(x, 256, "relu", dr, output=True, bn=False)
+        x1 = AddDense(x, 512, "relu", dr, bn=False)
+        x1 = AddDense(x1, 512, "relu", dr, bn=False)
+        x2 = AddDense(x, 256, "relu", dr)
         arm = AddDense(x1, arm_size, "linear", 0., output=True)
         gripper = AddDense(x1, gripper_size, "sigmoid", 0., output=True)
         option = AddDense(x2, self.num_options, "softmax", 0., output=True)
