@@ -15,13 +15,8 @@ from keras.models import Model, Sequential
 from keras.optimizers import Adam
 from matplotlib import pyplot as plt
 
-from .abstract import *
-from .callbacks import *
-from .robot_multi_models import *
-from .split import *
-from .mhp_loss import *
-from .loss import *
 from .conditional_image import *
+from .husky import *
 
 
 class ConditionalImageHusky(ConditionalImage):
@@ -45,7 +40,6 @@ class ConditionalImageHusky(ConditionalImage):
         train_outs = []
         label_outs = []
         
-        (image, pose) = features
         img_shape = image.shape[1:]
         pose_size = pose.shape[-1]
 
@@ -128,7 +122,7 @@ class ConditionalImageHusky(ConditionalImage):
         #image_out = decoder([x, s32, s16, s8])
 
         # =====================================================================
-        actor = GetHuskyActorModel(h, self.num_options, arm_size, gripper_size,
+        actor = GetHuskyActorModel(h, self.num_options, pose_size,
                 self.decoder_dropout_rate)
         actor.compile(loss="mae",optimizer=self.getOptimizer())
         cmd = actor([h, y])
@@ -150,8 +144,8 @@ class ConditionalImageHusky(ConditionalImage):
                         cmd])
             train_predictor.compile(
                     loss=[lfn, lfn, "binary_crossentropy", val_loss,
-                        lfn2, lfn2],
-                    loss_weights=[1., 1., 0.1, 0.1, 1., 0.2],
+                        lfn2,],
+                    loss_weights=[1., 1., 0.1, 0.1, 1.,],
                     optimizer=self.getOptimizer())
         else:
             train_predictor = Model(ins + [label_in],
@@ -175,14 +169,14 @@ class ConditionalImageHusky(ConditionalImage):
         o1 = np.array(label)
         v = np.array(value)
 
-        I_target2, o2 = self._getNextGoal(I_target, o1)
+        I_target2, o2 = GetNextGoal(I_target, o1)
         I0 = I[0,:,:,:]
         length = I.shape[0]
         I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
-        oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
+        oin_1h = np.squeeze(ToOneHot2D(oin, self.num_options))
 
         if self.do_all:
-            o1_1h = np.squeeze(self.toOneHot2D(o1, self.num_options))
+            o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
             return [I0, I, o1, o2, oin], [ I_target, I_target2,
                     o1_1h,
                     v,
