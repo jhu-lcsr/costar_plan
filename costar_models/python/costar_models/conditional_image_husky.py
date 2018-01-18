@@ -56,7 +56,7 @@ class ConditionalImageHusky(ConditionalImage):
             encoder = self._makeImageEncoder(img_shape)
         try:
             encoder.load_weights(self._makeName(
-                "pretrain_image_encoder_model",
+                "pretrain_image_encoder_model_husky",
                 #"pretrain_image_gan_model",
                 "image_encoder.h5f"))
             encoder.trainable = self.retrain
@@ -70,7 +70,7 @@ class ConditionalImageHusky(ConditionalImage):
             decoder = self._makeImageDecoder(self.hidden_shape)
         try:
             decoder.load_weights(self._makeName(
-                "pretrain_image_encoder_model",
+                "pretrain_image_encoder_model_husky",
                 #"pretrain_image_gan_model",
                 "image_decoder.h5f"))
             decoder.trainable = self.retrain
@@ -167,7 +167,7 @@ class ConditionalImageHusky(ConditionalImage):
         q_target = np.array(goal_pose)
         oin = np.array(prev_label)
         o1 = np.array(label)
-        v = np.array(value)
+        v = np.array(np.array(value) > 1.,dtype=float)
 
         I_target2, o2 = GetNextGoal(I_target, o1)
         I0 = I[0,:,:,:]

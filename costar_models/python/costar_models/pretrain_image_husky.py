@@ -13,12 +13,6 @@ from keras.layers.merge import Concatenate, Multiply
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 
-from .abstract import *
-from .callbacks import *
-from .robot_multi_models import *
-from .split import *
-from .mhp_loss import *
-from .loss import *
 from .husky_sampler import *
 
 class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
@@ -32,13 +26,11 @@ class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
         self.PredictorCb = ImageCb
 
 
-    def _makePredictor(self, features):
+    def _makeModel(self, image, *args, **kwargs):
         '''
         Create model to predict possible manipulation goals.
         '''
-        (images, pose) = features
-        img_shape = images.shape[1:]
-        pose_size = pose.shape[-1]
+        img_shape = image.shape[1:]
 
         img_in = Input(img_shape,name="predictor_img_in")
         img0_in = Input(img_shape,name="predictor_img0_in")
@@ -68,12 +60,11 @@ class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
                 optimizer=self.getOptimizer())
         ae.summary()
     
-        return ae, ae, None, [img_in], enc
+        self.predictor = ae
+        self.train_predictor = ae
+        self.actor = None
 
-    def _getData(self, *args, **kwargs):
-        features, targets = self._getAllData(*args, **kwargs)
-        [I, q, oin, q_target] = features
-        #o1 = targets[1]
-        #oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
-        return [I], [I]#, oin_1h, oin_1h]
+    def _getData(self, image, *args, **kwargs):
+        I = np.array(image) / 255.
+        return [I], [I]
 
