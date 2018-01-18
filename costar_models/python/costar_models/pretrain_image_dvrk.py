@@ -26,6 +26,15 @@ from .dvrk import *
 
 class PretrainImageAutoencoderDVRK(PretrainImageAutoencoder):
 
+    def __init__(self, taskdef, *args, **kwargs):
+        '''
+        As in the other models, we call super() to parse arguments from the
+        command line and set things like our optimizer and learning rate.
+        '''
+        super(PretrainImageAutoencoderDVRK, self).__init__(taskdef, *args, **kwargs)
+        self.PredictorCb = ImageCb
+        self.num_generator_files = 1
+
     def _makePredictor(self, image):
         '''
         Create model to predict possible manipulation goals.
