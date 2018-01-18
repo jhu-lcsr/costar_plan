@@ -18,6 +18,7 @@ from matplotlib import pyplot as plt
 from .abstract import *
 from .callbacks import *
 from .multi_hierarchical import *
+from .multi import *
 from .robot_multi_models import *
 from .split import *
 from .mhp_loss import *
@@ -417,9 +418,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             self._makePredictor(
                 (features, arm, gripper))
 
-    def _getNextGoal(self, features, targets):
-        [I, q, g, oin, label, q_target, g_target,] = features
-        tt, o1, v, qa, ga, I_target = targets
+    def _getNextGoal(self, I_target, o1):
         img = np.zeros_like(I_target)
         next_option = np.zeros_like(o1)
         for i in range(o1.shape[0]):
@@ -452,7 +451,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         return img, next_option
 
     def _getData(self, *args, **kwargs):
-        features, targets = self._getAllData(*args, **kwargs)
+        features, targets = GetAllMultiData(*args, **kwargs)
         [I, q, g, oin, label, q_target, g_target,] = features
         features = [I, q, g, oin]
         tt, o1, v, qa, ga, I = targets
@@ -609,11 +608,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             test_features.append(f2)
             next_option_idx += 1
 
+        # Use previous option when predicting
         if self.use_prev_option:
-            # previous options
-            #prev_option = self._makeOption1h(self.prev_option)
-            #tile_shape = [self.batch_size,1]
-            #prev_option = np.tile(prev_option, tile_shape)
             if self.prev_option is None:
                 prev = self.null_option
             else:

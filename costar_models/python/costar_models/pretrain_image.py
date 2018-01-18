@@ -13,12 +13,6 @@ from keras.layers.merge import Concatenate, Multiply
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 
-from .abstract import *
-from .callbacks import *
-from .robot_multi_models import *
-from .split import *
-from .mhp_loss import *
-from .loss import *
 from .multi_sampler import *
 
 class PretrainImageAutoencoder(RobotMultiPredictionSampler):
@@ -72,9 +66,9 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
         return ae, ae, None, [img_in], enc
 
     def _getData(self, *args, **kwargs):
-        features, targets = self._getAllData(*args, **kwargs)
+        features, targets = GetAllMultiData(self.num_options, *args, **kwargs)
         [I, q, g, oin, label, q_target, g_target,] = features
         o1 = targets[1]
-        oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
+        oin_1h = np.squeeze(ToOneHot2D(oin, self.num_options))
         return [I], [I, oin_1h, oin_1h]
 

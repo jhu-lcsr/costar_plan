@@ -258,7 +258,7 @@ class HuskyRobotMultiPredictionSampler(RobotMultiPredictionSampler):
         predictor.compile(loss="mae", optimizer=self.getOptimizer())
         train_predictor.summary()
 
-        return predictor, train_predictor, actor, ins, enc
+        return predictor, train_predictor, actor
 
     def _makeModel(self, image, pose, *args, **kwargs):
         '''
@@ -268,7 +268,7 @@ class HuskyRobotMultiPredictionSampler(RobotMultiPredictionSampler):
         -----------
         image, arm, gripper: variables of the appropriate sizes
         '''
-        self.predictor, self.train_predictor, self.actor, ins, hidden = \
+        self.predictor, self.train_predictor, self.actor = \
             self._makePredictor(
                 (image, pose))
         if self.train_predictor is None:

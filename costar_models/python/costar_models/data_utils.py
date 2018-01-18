@@ -5,6 +5,29 @@ import numpy as np
 from keras import backend as K
 from keras.preprocessing.image import Iterator
 
+def ToOneHot2D(f, dim):
+    '''
+    Convert all to one-hot vectors. If we have a "-1" label, example was
+    considered unlabeled and should just get a zero...
+    '''
+    if len(f.shape) == 1:
+        f = np.expand_dims(f, -1)
+    assert len(f.shape) == 2
+    shape = f.shape + (dim,)
+    oh = np.zeros(shape)
+    #oh[np.arange(f.shape[0]), np.arange(f.shape[1]), f]
+    for i in range(f.shape[0]):
+        for j in range(f.shape[1]):
+            idx = f[i,j]
+            if idx >= 0:
+                oh[i,j,idx] = 1.
+    return oh
+
+def MakeOption1h(option, num_labels):
+    opt_1h = np.zeros((1,num_labels))
+    opt_1h[0,option] = 1.
+    return opt_1h
+
 # Data generator that creates sequences for input into PredNet.
 class SequenceGenerator(Iterator):
     def __init__(self, data_file, source_file, nt,

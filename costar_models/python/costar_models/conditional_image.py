@@ -76,9 +76,9 @@ class ConditionalImage(PredictionSampler2):
         # Load the image decoders
         img_in = Input(img_shape,name="predictor_img_in")
         img0_in = Input(img_shape,name="predictor_img0_in")
-        arm_in = Input((arm_size,))
-        gripper_in = Input((gripper_size,))
-        arm_gripper = Concatenate()([arm_in, gripper_in])
+        #arm_in = Input((arm_size,))
+        #gripper_in = Input((gripper_size,))
+        #arm_gripper = Concatenate()([arm_in, gripper_in])
         label_in = Input((1,))
         ins = [img0_in, img_in]
 
@@ -86,17 +86,12 @@ class ConditionalImage(PredictionSampler2):
             encoder = self._makeImageEncoder2(img_shape)
         else:
             encoder = self._makeImageEncoder(img_shape)
-            #encoder0 = self._makeImageEncoder(img_shape, copy=True)
         try:
             encoder.load_weights(self._makeName(
                 "pretrain_image_encoder_model",
                 #"pretrain_image_gan_model",
                 "image_encoder.h5f"))
             encoder.trainable = self.retrain
-            #encoder0.load_weights(self._makeName(
-            #    "pretrain_image_encoder_model",
-            #    "image_encoder.h5f"))
-            #encoder0.trainable = self.retrain
         except Exception as e:
             if not self.retrain:
                 raise e
@@ -117,11 +112,9 @@ class ConditionalImage(PredictionSampler2):
 
         # =====================================================================
         # Load the arm and gripper representation
-
         if self.skip_connections:
             h, s32, s16, s8 = encoder([img0_in, img_in])
         else:
-            #h = encoder([img_in, img0_in])
             h = encoder([img_in])
             h0 = encoder(img0_in)
 
@@ -200,7 +193,7 @@ class ConditionalImage(PredictionSampler2):
         features, targets = self._getAllData(*args, **kwargs)
         [I, q, g, oin, label, q_target, g_target,] = features
         tt, o1, v, qa, ga, I_target = targets
-        I_target2, o2 = self._getNextGoal(features, targets)
+        I_target2, o2 = self._getNextGoal(I_target, p1)
         I0 = I[0,:,:,:]
         length = I.shape[0]
         I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 

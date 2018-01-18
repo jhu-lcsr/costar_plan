@@ -341,29 +341,6 @@ class AbstractAgentBasedModel(object):
         '''
         raise NotImplementedError('predict() not supported yet.')
 
-    def toOneHot2D(self, f, dim):
-        '''
-        Convert all to one-hot vectors. If we have a "-1" label, example was
-        considered unlabeled and should just get a zero...
-        '''
-        if len(f.shape) == 1:
-            f = np.expand_dims(f, -1)
-        assert len(f.shape) == 2
-        shape = f.shape + (dim,)
-        oh = np.zeros(shape)
-        #oh[np.arange(f.shape[0]), np.arange(f.shape[1]), f]
-        for i in range(f.shape[0]):
-            for j in range(f.shape[1]):
-                idx = f[i,j]
-                if idx >= 0:
-                    oh[i,j,idx] = 1.
-        return oh
-
-    def _makeOption1h(self, option):
-        opt_1h = np.zeros((1,self._numLabels()))
-        opt_1h[0,option] = 1.
-        return opt_1h
-
 class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
 
     '''
