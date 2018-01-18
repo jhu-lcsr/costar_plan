@@ -5,7 +5,6 @@ from keras import backend as K
 from keras.preprocessing.image import Iterator
 from matplotlib import pyplot as plt
 
-import hickle as hkl
 import numpy as np
 
 def ToOneHot2D(f, dim):
@@ -64,6 +63,7 @@ def GetNextGoal(I_target, o1):
 
     return img, next_option
 
+"""
 # Data generator that creates sequences for input into PredNet.
 class SequenceGenerator(Iterator):
     def __init__(self, data_file, source_file, nt,
@@ -128,3 +128,4 @@ class SequenceGenerator(Iterator):
         for i, idx in enumerate(self.possible_starts):
             X_all[i] = self.preprocess(self.X[idx:idx+self.nt])
         return X_all
+"""
