@@ -24,9 +24,9 @@ from .conditional_sampler2 import ConditionalSampler2
 from .conditional_image import ConditionalImage
 from .conditional_image_gan import ConditionalImageGan
 
-# DVRK stuff
-from .pretrain_image_dvrk import PretrainImageAutoencoderDVRK
-from .pretrain_image_dvrk_gan import PretrainImageJigsawsGan
+# Jigsaws stuff
+from .pretrain_image_jigsaws import PretrainImageJigsaws
+from .pretrain_image_jigsaws_gan import PretrainImageJigsawsGan
 
 # Husky stuff
 from .husky_sampler import HuskyRobotMultiPredictionSampler
@@ -124,9 +124,9 @@ def MakeModel(features, model, taskdef, **kwargs):
             model_instance = PretrainMinimal(taskdef, model=model, **kwargs)
         elif model == "pretrain_image_gan":
             model_instance = PretrainImageGan(taskdef, model=model, **kwargs)
-    elif features == "dvrk":
+    elif features == "jigsaws":
         if model == "pretrain_image_encoder":
-            model_instance = PretrainImageAutoencoderDVRK(taskdef,
+            model_instance = PretrainImageJigsaws(taskdef,
                     model=model,
                     features=features,
                     **kwargs)
