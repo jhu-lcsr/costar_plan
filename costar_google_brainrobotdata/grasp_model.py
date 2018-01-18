@@ -13,12 +13,14 @@ from keras.layers import AveragePooling2D
 from keras.layers import GlobalMaxPooling2D
 from keras.layers import GlobalAveragePooling2D
 from keras.layers import UpSampling2D
+from keras.layers import BatchNormalization
 from keras.layers.core import Flatten
 from keras.layers.core import RepeatVector
 from keras.layers import Input
 from keras.layers.merge import concatenate
 from keras.layers.merge import Concatenate
 from keras.layers.merge import _Merge
+from keras.layers.merge import Add
 from keras.models import Model
 from keras.layers import Lambda
 from keras.layers import Reshape
@@ -114,6 +116,39 @@ def concat_images_with_tiled_vector_layer(images, vector, image_shape=None, vect
     return x
 
 
+def add_images_with_tiled_vector_layer(images, vector, image_shape=None, vector_shape=None):
+    """Tile a vector as if it were channels onto every pixel of an image.
+
+    This version is designed to be used as layers within a Keras model.
+
+    # Params
+       images: a list of images to combine, must have equal dimensions
+       vector: the 1D vector to tile onto every pixel
+       image_shape: Tuple with 3 entries defining the shape (batch, height, width)
+           images should be expected to have, do not specify the number
+           of batches.
+       vector_shape: Tuple with 3 entries defining the shape (batch, height, width)
+           images should be expected to have, do not specify the number
+           of batches.
+    """
+    with K.name_scope('add_images_with_tiled_vector_layer'):
+        if not isinstance(images, list):
+            images = [images]
+        if vector_shape is None:
+            # check if K.shape, K.int_shape, or vector.get_shape().as_list()[1:] is better
+            # https://github.com/fchollet/keras/issues/5211
+            vector_shape = K.int_shape(vector)[1:]
+        if image_shape is None:
+            # check if K.shape, K.int_shape, or image.get_shape().as_list()[1:] is better
+            # https://github.com/fchollet/keras/issues/5211
+            image_shape = K.int_shape(images[0])[1:]
+        vector = Reshape([1, 1, vector_shape[-1]])(vector)
+        tile_shape = (int(1), int(image_shape[0]), int(image_shape[1]), int(1))
+        tiled_vector = Lambda(lambda x: K.tile(x, tile_shape))(vector)
+        x = Add()([] + images + [tiled_vector])
+    return x
+
+
 def classifier_block(input_tensor, require_flatten=True, top='classification',
                      classes=1, activation='sigmoid',
                      input_shape=None, final_pooling=None, verbose=False):
@@ -123,7 +158,6 @@ def classifier_block(input_tensor, require_flatten=True, top='classification',
     if require_flatten and top == 'classification':
         if verbose:
             print("    classification")
-        x = GlobalMaxPooling2D()(x)
         x = Dense(units=classes, activation=activation,
                   kernel_initializer="he_normal", name='fc' + str(classes))(x)
 
@@ -374,6 +408,7 @@ def grasp_model_segmentation(clear_view_image_op=None,
                         reduction=reduction,
                         nb_dense_block=dense_blocks,
                         classes=classes,
+                        dropout_rate=dropout_rate,
                         early_transition=True)
     return model
 
@@ -448,11 +483,11 @@ def grasp_model_levine_2016(
             clear_view_img_conv = MaxPooling2D(pool_size=(3, 3))(clear_view_img_conv)
             current_time_img_conv = MaxPooling2D(pool_size=(3, 3))(current_time_img_conv)
 
-        combImg = Concatenate(-1)([clear_view_img_conv, current_time_img_conv])
+        imgConv = Add()([clear_view_img_conv, current_time_img_conv])
 
         # img Conv 2 - 7
         for i in range(6):
-            imgConv = Conv2D(64, (5, 5), padding='same', activation='relu')(combImg)
+            imgConv = Conv2D(64, (5, 5), padding='same', activation='relu')(imgConv)
 
         imgConv = Conv2D(64, (5, 5), padding='same', activation='relu',
                          dilation_rate=dilation_rate)(imgConv)
@@ -469,7 +504,10 @@ def grasp_model_levine_2016(
         motorConv = Dense(64, activation='relu')(motorData)
 
         # tile and concat the data
-        combinedData = concat_images_with_tiled_vector_layer(imgConv, motorConv)
+        combinedData = add_images_with_tiled_vector_layer(imgConv, motorConv)
+
+        if dropout_rate is not None:
+            combinedData = Dropout(dropout_rate)(combinedData)
 
         # combined conv 8
         combConv = Conv2D(64, (3, 3), activation='relu', padding='same')(combinedData)
@@ -495,13 +533,37 @@ def grasp_model_levine_2016(
         if top == 'classification':
             feature_shape = K.int_shape(combConv)
             if (feature_shape[1] > 1 or feature_shape[2] > 1):
-                combConv = Flatten()(combConv)
+                combConv = GlobalMaxPooling2D()(combConv)
+                # combConv = Flatten()(combConv)
+
             # combined full connected layers
+            if dropout_rate is not None:
+                combConv = Dropout(dropout_rate)(combConv)
+
             combConv = Dense(64, activation='relu')(combConv)
+
+            if dropout_rate is not None:
+                combConv = Dropout(dropout_rate)(combConv)
+
             combConv = Dense(64, activation='relu')(combConv)
+
+            if dropout_rate is not None:
+                combConv = Dropout(dropout_rate)(combConv)
+
         elif top == 'segmentation':
+
+            if dropout_rate is not None:
+                combConv = Dropout(dropout_rate)(combConv)
+
             combConv = Conv2D(64, (1, 1), activation='relu', padding='same')(combConv)
+
+            if dropout_rate is not None:
+                combConv = Dropout(dropout_rate)(combConv)
+
             combConv = Conv2D(64, (1, 1), activation='relu', padding='same')(combConv)
+
+            if dropout_rate is not None:
+                combConv = Dropout(dropout_rate)(combConv)
 
             # if the image was made smaller to save space,
             # upsample before calculating the final output
@@ -513,7 +575,7 @@ def grasp_model_levine_2016(
             comb_conv_shape = K.int_shape(combConv)
             iidim = (input_image_shape[row-1], input_image_shape[col-1])
             ccdim = (comb_conv_shape[row], comb_conv_shape[col])
-            if not iidim == ccdim:
+            if iidim != ccdim:
                 combConv = UpSampling2D(size=(iidim[0]/ccdim[0], iidim[1]/ccdim[1]))(combConv)
 
         # calculate the final classification output
