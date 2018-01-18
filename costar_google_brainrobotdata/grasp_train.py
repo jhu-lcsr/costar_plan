@@ -120,8 +120,8 @@ flags.DEFINE_string('loss', 'segmentation_single_pixel_binary_crossentropy',
                        and segmentation_gaussian_binary_crossentropy.""")
 flags.DEFINE_string('metric', 'segmentation_single_pixel_binary_accuracy',
                     """Options are accuracy, binary_accuracy and segmentation_single_pixel_binary_accuracy.""")
-flags.DEFINE_string('distributed', 'horovod',
-                    """Options are 'horovod' (github.com/uber/horovod) or None for distributed training utilities.""")
+flags.DEFINE_string('distributed', 'keras',
+                    """Options are 'horovod' (github.com/uber/horovod), keras, or None for distributed training utilities.""")
 flags.DEFINE_integer('early_stopping', None,
                      """Stop training if the monitored loss does not improve after the specified number of epochs.
                         Values of 0 or None will disable early stopping.
@@ -293,6 +293,7 @@ class GraspTrain(object):
                 monitor_loss_name = 'loss'
 
             callbacks = []
+            model_fit_updates = []
             if hvd is not None and self.distributed is 'horovod':
                 callbacks = callbacks + [
                     # Broadcast initial variable states from rank 0 to all other processes.
@@ -396,17 +397,25 @@ class GraspTrain(object):
                           'the file does not exist, '
                           'starting fresh....'.format(load_weights))
 
-            model.compile(optimizer=optimizer,
-                          loss=loss,
-                          metrics=metrics,
-                          target_tensors=[grasp_success_op_batch])
+            if self.distributed == 'keras':
+                # note: 'keras' option requires github.com/ahundt/keras StagingArea branch,
+                # otherwise this will encounter an error when you try to run it.
+                training_model, model_fit_updates = keras.utils.training_utils.multi_gpu_model(model, 2)
+            else:
+                training_model = model
+
+            training_model.compile(optimizer=optimizer,
+                                   loss=loss,
+                                   metrics=metrics,
+                                   target_tensors=[grasp_success_op_batch])
 
             print('Available metrics: ' + str(model.metrics_names))
 
             model.summary()
 
             try:
-                model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=callbacks)
+                training_model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=callbacks,
+                                   updates=model_fit_updates)
                 final_weights_name = weights_name + '-final.h5'
                 model.save_weights(final_weights_name)
             except (Exception, KeyboardInterrupt) as e:
