@@ -13,7 +13,7 @@ echo "Running $@ on $SLURMD_NODENAME ..."
 
 module load tensorflow/cuda-8.0/r1.3 
 
-export DATASET="ctp_dec"
+export DATASET="husky_data"
 export train_image_encoder=true
 export train_multi_encoder=false
 export train_predictor=false
