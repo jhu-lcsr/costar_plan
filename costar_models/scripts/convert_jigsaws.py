@@ -2,6 +2,8 @@
 
 from __future__ import print_function
 
+from scipy.misc import imresize
+
 import argparse
 import cv2
 import matplotlib.pyplot as plt
@@ -126,8 +128,15 @@ def main():
             if gesture == 16: # check for before first
                 continue
 
+            image = imresize(frame, (96, 128))
+            image = image.astype(np.uint8)
+
+            #plt.imshow(frame)
+            #plt.imshow(image)
+            #plt.show()
+
             frame_nums.append(frame_num)
-            data["image"].append(frame)
+            data["image"].append(image)
             data["label"].append(gesture)
             data["goal_label"].append(next_gesture)
             data["prev_label"].append(last_gesture)
@@ -135,7 +144,7 @@ def main():
 
             # save goal_image
             if goal_frame:
-                goal_images.append((frame_num, frame))
+                goal_images.append((frame_num, image))
 
         def lookup(num, arr):
             for frame_num, frame in arr:
