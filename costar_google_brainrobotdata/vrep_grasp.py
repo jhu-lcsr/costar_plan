@@ -8,6 +8,7 @@ Author: Andrew Hundt <ATHundt@gmail.com>
 License: Apache v2 https://www.apache.org/licenses/LICENSE-2.0
 """
 import os
+os.environ.setdefault('PATH', '')
 import errno
 import traceback
 
@@ -51,6 +52,8 @@ except ImportError:
 from grasp_dataset import GraspDataset
 import grasp_geometry
 import grasp_geometry_tf
+from grasp_train import GraspTrain
+from grasp_train import define_make_model_fn
 from depth_image_encoding import ClipFloatValues
 from depth_image_encoding import FloatArrayToRgbImage
 from depth_image_encoding import FloatArrayToRawRGB
@@ -119,6 +122,12 @@ tf.flags.DEFINE_string('vrepVisualizationPipeline', 'tensorflow',
                                then the visualize_python function calculates the features
                                before they are rendered with vrep.
                        """)
+tf.flags.DEFINE_boolean('vrepVisualizePredictions', 'True',
+                        """Visualize the predictions of weights defined in grasp_train.py,
+                           If loss is pixel-wise, prediction will be 2d image of probabilities.
+                           Otherwise it's boolean indicate success or failure.
+                        """
+                        )
 
 flags.FLAGS._parse_flags()
 FLAGS = flags.FLAGS
@@ -528,8 +537,17 @@ class VREPGraspVisualization(object):
         for attempt_num in tqdm(range(num_samples / batch_size), desc='dataset'):
             attempt_num_string = 'attempt_' + str(attempt_num).zfill(4) + '_'
             vrepPrint(self.client_id, 'dataset_' + dataset + '_' + attempt_num_string + 'starting')
-            # batch shize should actually always be 1 for this visualization
-            output_features_dicts = tf_session.run(feature_op_dicts)
+            # use fetches arguments to get tensors explicitly
+            if FLAGS.vrepVisualizePredictions == True:
+                make_model_fn = define_make_model_fn()
+                gt = GraspTrain()
+                pred_model = gt.get_compiled_model(make_model_fn=make_model_fn, fetches=feature_op_dicts)
+                # x should be passed through internal calls
+                predictions, _, output_features_dicts = pred_model.predict_on_batch(x=None)
+            else:
+                # batch shize should actually always be 1 for this visualization
+                predictions = None
+                output_features_dicts = tf_session.run(feature_op_dicts)
             # reorganize is grasp attempt so it is easy to walk through
             [time_ordered_feature_data_dict] = grasp_dataset_object.to_tensors(output_features_dicts, time_ordered_feature_name_dict)
             # features_dict_np contains fixed dimension features, sequence_dict_np contains variable length sequences of data
