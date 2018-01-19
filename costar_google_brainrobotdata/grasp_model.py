@@ -483,87 +483,88 @@ def grasp_model_levine_2016(
             clear_view_img_conv = MaxPooling2D(pool_size=(3, 3))(clear_view_img_conv)
             current_time_img_conv = MaxPooling2D(pool_size=(3, 3))(current_time_img_conv)
 
-        imgConv = Add()([clear_view_img_conv, current_time_img_conv])
+        x = Add()([clear_view_img_conv, current_time_img_conv])
 
         # img Conv 2 - 7
         for i in range(6):
-            imgConv = Conv2D(64, (5, 5), padding='same', activation='relu')(imgConv)
+            x = Conv2D(64, (5, 5), padding='same', activation='relu')(x)
 
-        imgConv = Conv2D(64, (5, 5), padding='same', activation='relu',
-                         dilation_rate=dilation_rate)(imgConv)
+        x = Conv2D(64, (5, 5), padding='same', activation='relu',
+                   dilation_rate=dilation_rate)(x)
 
         if pooling == 'max':
             # img maxPool 2
-            imgConv = MaxPooling2D(pool_size=(3, 3))(imgConv)
+            x = MaxPooling2D(pool_size=(3, 3))(x)
 
-        # motor Data
-        vector_shape = K.int_shape(input_vector_op)[1:]
-        motorData = Input(shape=vector_shape, tensor=input_vector_op, name='motion_command_vector_input')
+        if input_vector_op is not None or input_vector_op is not None:
+            # Handle input command data
+            vector_shape = K.int_shape(input_vector_op)[1:]
+            motorData = Input(shape=vector_shape, tensor=input_vector_op, name='motion_command_vector_input')
 
-        # motor full conn
-        motorConv = Dense(64, activation='relu')(motorData)
+            # motor full conn
+            motorConv = Dense(64, activation='relu')(motorData)
 
-        # tile and concat the data
-        combinedData = add_images_with_tiled_vector_layer(imgConv, motorConv)
+            # tile and concat the data
+            x = add_images_with_tiled_vector_layer(x, motorConv)
 
-        if dropout_rate is not None:
-            combinedData = Dropout(dropout_rate)(combinedData)
+            if dropout_rate is not None:
+                x = Dropout(dropout_rate)(x)
 
         # combined conv 8
-        combConv = Conv2D(64, (3, 3), activation='relu', padding='same')(combinedData)
+        x = Conv2D(64, (3, 3), activation='relu', padding='same')(x)
 
         # combined conv 9 - 12
         for i in range(2):
-            combConv = Conv2D(64, (3, 3), activation='relu', padding='same')(combConv)
+            x = Conv2D(64, (3, 3), activation='relu', padding='same')(x)
 
         # combined conv 13
-        combConv = Conv2D(64, (5, 5), padding='same', activation='relu',
-                          dilation_rate=dilation_rate)(combConv)
+        x = Conv2D(64, (5, 5), padding='same', activation='relu',
+                   dilation_rate=dilation_rate)(x)
 
         if pooling == 'max':
             # combined maxPool
-            combConv = MaxPooling2D(pool_size=(2, 2))(combConv)
+            x = MaxPooling2D(pool_size=(2, 2))(x)
 
         # combined conv 14 - 16
         for i in range(3):
-            combConv = Conv2D(64, (3, 3), activation='relu', padding='same')(combConv)
+            x = Conv2D(64, (3, 3), activation='relu', padding='same')(x)
 
         # Extra Global Average Pooling allows more flexible input dimensions
         # but only use if necessary.
         if top == 'classification':
-            feature_shape = K.int_shape(combConv)
+            feature_shape = K.int_shape(x)
             if (feature_shape[1] > 1 or feature_shape[2] > 1):
-                combConv = GlobalMaxPooling2D()(combConv)
-                # combConv = Flatten()(combConv)
+                x = GlobalMaxPooling2D()(x)
+                # x = Flatten()(x)
 
             # combined full connected layers
             if dropout_rate is not None:
-                combConv = Dropout(dropout_rate)(combConv)
+                x = Dropout(dropout_rate)(x)
 
-            combConv = Dense(64, activation='relu')(combConv)
-
-            if dropout_rate is not None:
-                combConv = Dropout(dropout_rate)(combConv)
-
-            combConv = Dense(64, activation='relu')(combConv)
+            x = Dense(64, activation='relu')(x)
 
             if dropout_rate is not None:
-                combConv = Dropout(dropout_rate)(combConv)
+                x = Dropout(dropout_rate)(x)
+
+            x = Dense(64, activation='relu')(x)
+
+            if dropout_rate is not None:
+                x = Dropout(dropout_rate)(x)
 
         elif top == 'segmentation':
 
             if dropout_rate is not None:
-                combConv = Dropout(dropout_rate)(combConv)
+                x = Dropout(dropout_rate)(x)
 
-            combConv = Conv2D(64, (1, 1), activation='relu', padding='same')(combConv)
-
-            if dropout_rate is not None:
-                combConv = Dropout(dropout_rate)(combConv)
-
-            combConv = Conv2D(64, (1, 1), activation='relu', padding='same')(combConv)
+            x = Conv2D(64, (1, 1), activation='relu', padding='same')(x)
 
             if dropout_rate is not None:
-                combConv = Dropout(dropout_rate)(combConv)
+                x = Dropout(dropout_rate)(x)
+
+            x = Conv2D(64, (1, 1), activation='relu', padding='same')(x)
+
+            if dropout_rate is not None:
+                x = Dropout(dropout_rate)(x)
 
             # if the image was made smaller to save space,
             # upsample before calculating the final output
@@ -572,17 +573,17 @@ def grasp_model_levine_2016(
             else:
                 batch, row, col, channel = 0, 1, 2, 3
 
-            comb_conv_shape = K.int_shape(combConv)
+            comb_conv_shape = K.int_shape(x)
             iidim = (input_image_shape[row-1], input_image_shape[col-1])
             ccdim = (comb_conv_shape[row], comb_conv_shape[col])
             if iidim != ccdim:
-                combConv = UpSampling2D(size=(iidim[0]/ccdim[0], iidim[1]/ccdim[1]))(combConv)
+                x = UpSampling2D(size=(iidim[0]/ccdim[0], iidim[1]/ccdim[1]))(x)
 
         # calculate the final classification output
-        combConv = classifier_block(combConv, require_flatten, top, classes, activation,
+        x = classifier_block(x, require_flatten, top, classes, activation,
                                     input_image_shape, final_pooling, verbose)
 
-        model = Model(inputs=[clear_view_image_input, current_time_image_input, motorData], outputs=combConv)
+        model = Model(inputs=[clear_view_image_input, current_time_image_input, motorData], outputs=x)
         return model
 
 
