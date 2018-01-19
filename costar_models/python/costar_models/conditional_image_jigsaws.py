@@ -32,7 +32,7 @@ class ConditionalImageJigsaws(ConditionalImage):
 
         super(ConditionalImageJigsaws, self).__init__(*args, **kwargs)
 
-        self.num_options = 16
+        self.num_options = SuturingNumOptions()
 
     def _makeModel(self, image, *args, **kwargs):
 

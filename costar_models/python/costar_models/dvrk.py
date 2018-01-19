@@ -20,6 +20,40 @@ from .planner import *
 '''
 Contains tools to make the sub-models for the DVRK application
 '''
+
+
+def SuturingNumOptions():
+    return 15
+
+def MakeJigsawsImageClassifier(model, img_shape):
+    img = Input(img_shape,name="img_classifier_in")
+    bn = True
+    disc = True
+    dr = model.dropout_rate
+    x = img
+
+    x = AddConv2D(x, 32, [7,7], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 128, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 128, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+
+    x = Flatten()(x)
+    x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
+    x = AddDense(x, model.num_options, "softmax", 0., output=True, bn=False)
+    image_encoder = Model([img], x, name="classifier")
+    image_encoder.compile(loss="categorical_crossentropy", optimizer=model.getOptimizer())
+    model.classifier = image_encoder
+    return image_encoder
+
+
+
 def MakeJigsawsImageEncoder(model, img_shape, disc=False):
     '''
     create image-only decoder to extract keypoints from the scene.
@@ -46,7 +80,8 @@ def MakeJigsawsImageEncoder(model, img_shape, disc=False):
     x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-    #x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 128, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
     #x = AddConv2D(x, 256, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
 
     if model.use_spatial_softmax and not disc:
@@ -109,6 +144,8 @@ def MakeJigsawsImageDecoder(model, hidden_shape, img_shape=None, copy=False):
 
     #x = AddConv2DTranspose(x, 64, [5,5], 1, dr, bn=bn)
     x = AddConv2DTranspose(x, 128, [1,1], 1, 0., bn=bn)
+    x = AddConv2DTranspose(x, 128, [5,5], 2, dr, bn=bn)
+    x = AddConv2DTranspose(x, 128, [5,5], 1, 0., bn=bn)
     x = AddConv2DTranspose(x, 64, [5,5], 2, dr, bn=bn)
     x = AddConv2DTranspose(x, 64, [5,5], 1, 0., bn=bn)
     x = AddConv2DTranspose(x, 32, [5,5], 2, dr, bn=bn)

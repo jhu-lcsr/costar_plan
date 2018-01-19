@@ -30,6 +30,7 @@ from .pretrain_image_jigsaws import PretrainImageJigsaws
 from .pretrain_image_jigsaws_gan import PretrainImageJigsawsGan
 from .conditional_image_jigsaws import ConditionalImageJigsaws
 from .conditional_image_gan_jigsaws import ConditionalImageGanJigsaws
+from .discriminator import JigsawsDiscriminator
 
 # Husky stuff
 from .husky_sampler import HuskyRobotMultiPredictionSampler
@@ -160,6 +161,10 @@ def MakeModel(features, model, taskdef, **kwargs):
                     model=model,
                     features=features,
                     **kwargs)
+        elif model == "discriminator":
+            model_instance = JigsawsDiscriminator(False, taskdef, model=model, **kwargs)
+        elif model == "goal_discriminator":
+            model_instance = JigsawsDiscriminator(True, taskdef, model=model, **kwargs)
     elif features == "husky":
         '''
         Husky simulator. This is a robot moving around on a 2D plane, so our
@@ -191,7 +196,8 @@ def MakeModel(features, model, taskdef, **kwargs):
     # If we did not create a model then die.
     if model_instance is None:
         raise NotImplementedError("Combination of model %s and features %s" + \
-                                  " is not currently supported by CTP.")
+                                  " is not currently supported by CTP."
+                                  % (model, features))
 
     return model_instance
 
