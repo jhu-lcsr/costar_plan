@@ -38,12 +38,10 @@ def _makeTrainTarget(I_target, q_target, g_target, o_target):
 
 def MakeImageClassifier(model, img_shape):
     img = Input(img_shape,name="img_classifier_in")
-    img0 = Input(img_shape,name="img0_classifier_in")
     bn = True
     disc = True
     dr = model.dropout_rate
     x = img
-    x0 = img0
 
     x = AddConv2D(x, 32, [7,7], 1, 0., "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
@@ -56,7 +54,7 @@ def MakeImageClassifier(model, img_shape):
     x = Flatten()(x)
     x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
     x = AddDense(x, model.num_options, "softmax", 0., output=True, bn=False)
-    image_encoder = Model([img0, img], x, name="classifier")
+    image_encoder = Model([img], x, name="classifier")
     image_encoder.compile(loss="categorical_crossentropy", optimizer=model.getOptimizer())
     model.classifier = image_encoder
     return image_encoder

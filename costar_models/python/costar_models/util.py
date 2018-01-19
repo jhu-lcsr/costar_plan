@@ -131,7 +131,9 @@ def MakeModel(features, model, taskdef, **kwargs):
         elif model == "pretrain_image_gan":
             model_instance = PretrainImageGan(taskdef, model=model, **kwargs)
         elif model == "discriminator":
-            model_instance = Discriminator(taskdef, model=model, **kwargs)
+            model_instance = Discriminator(False, taskdef, model=model, **kwargs)
+        elif model == "goal_discriminator":
+            model_instance = Discriminator(True, taskdef, model=model, **kwargs)
     elif features == "jigsaws":
         '''
         These models are all meant for use with the JHU-JIGSAWS dataset. This
@@ -181,8 +183,10 @@ def MakeModel(features, model, taskdef, **kwargs):
             model_instance = ConditionalImageHusky(taskdef, model=model, **kwargs)
         elif model == "conditional_image_gan":
             model_instance = ConditionalImageHuskyGan(taskdef, model=model, **kwargs)
-        elif model == "husky_discriminator":
-            model_instance = HuskyDiscriminator(taskdef, model=model, **kwargs)
+        elif model == "discriminator":
+            model_instance = HuskyDiscriminator(False, taskdef, model=model, **kwargs)
+        elif model == "goal_discriminator":
+            model_instance = HuskyDiscriminator(True, taskdef, model=model, **kwargs)
     
     # If we did not create a model then die.
     if model_instance is None:
