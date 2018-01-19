@@ -179,7 +179,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True)
         #x = AddConv2D(x, 128, [4,4], 1, dr, "same", lrelu=True)
         x= AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
-        x= AddConv2D(x, 512, [4,4], 2, dr, "same", lrelu=True)
+        #x= AddConv2D(x, 512, [4,4], 2, dr, "same", lrelu=True)
         #x = AddConv2D(x, 256, [4,4], 1, dr, "same", lrelu=True)
         x = AddConv2D(x, 1, [4,4], 1, 0., "same", activation="sigmoid")
 

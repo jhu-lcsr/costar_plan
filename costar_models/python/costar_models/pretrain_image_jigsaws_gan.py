@@ -13,13 +13,8 @@ from keras.layers.merge import Concatenate, Multiply
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 
-from .abstract import *
-from .callbacks import *
-from .robot_multi_models import *
-from .split import *
-from .mhp_loss import *
-from .loss import *
 from .pretrain_image_gan import *
+from .dvrk import *
 
 class PretrainImageJigsawsGan(PretrainImageGan):
 
@@ -56,9 +51,10 @@ class PretrainImageJigsawsGan(PretrainImageGan):
         img_in = Input(img_shape,name="predictor_img_in")
         test_in = Input(img_shape, name="descriminator_test_in")
 
-        encoder = self._makeImageEncoder(img_shape)
+        encoder = MakeJigsawsImageEncoder(self, img_shape)
         enc = encoder([img_in])
-        decoder = self._makeImageDecoder(
+        decoder = MakeJigsawsImageDecoder(
+                self,
                 self.hidden_shape,
                 self.skip_shape, False)
 
