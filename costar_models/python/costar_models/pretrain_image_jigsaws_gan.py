@@ -5,13 +5,10 @@ import keras.losses as losses
 import keras.optimizers as optimizers
 import numpy as np
 
-from keras.callbacks import ModelCheckpoint
-from keras.layers.advanced_activations import LeakyReLU
+from keras.layers.pooling import MaxPooling2D, AveragePooling2D
 from keras.layers import Input, RepeatVector, Reshape
-from keras.layers.embeddings import Embedding
 from keras.layers.merge import Concatenate, Multiply
 from keras.losses import binary_crossentropy
-from keras.models import Model, Sequential
 
 from .pretrain_image_gan import *
 from .dvrk import *
@@ -67,8 +64,7 @@ class PretrainImageJigsawsGan(PretrainImageGan):
                     "pretrain_image_encoder_model_jigsaws",
                     "image_decoder.h5f"))
             except Exception as e:
-                if not self.retrain:
-                    raise e
+                print(">>> could not load pretrained image weights")
 
         gen_out = decoder(enc)
         image_discriminator = self._makeImageDiscriminator(img_shape)

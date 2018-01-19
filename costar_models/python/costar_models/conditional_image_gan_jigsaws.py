@@ -5,19 +5,15 @@ import keras.losses as losses
 import keras.optimizers as optimizers
 import numpy as np
 
-from keras.callbacks import ModelCheckpoint
-from keras.layers.advanced_activations import LeakyReLU
+from keras.layers.pooling import MaxPooling2D, AveragePooling2D
 from keras.layers import Input, RepeatVector, Reshape
-from keras.layers.embeddings import Embedding
 from keras.layers.merge import Concatenate, Multiply
-from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
-from keras.optimizers import Adam
 from matplotlib import pyplot as plt
 
-from .callbacks import *
-from .pretrain_image_gan import *
 from .conditional_image_gan import ConditionalImageGan
+from .dvrk import *
+from .data_utils import *
 
 class ConditionalImageGanJigsaws(ConditionalImageGan):
     '''
@@ -40,17 +36,13 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         img_in = Input(img_shape, name="predictor_img_in")
         ins = [img0_in, img_in]
 
-        if self.skip_connections:
-            encoder = self._makeImageEncoder2(img_shape)
-            decoder = self._makeImageDecoder2(self.hidden_shape)
-        else:
-            encoder = self._makeImageEncoder(img_shape)
-            decoder = self._makeImageDecoder(self.hidden_shape)
+        encoder = MakeJigsawsImageEncoder(self, img_shape)
+        decoder = MakeJigsawsImageDecoder(self, self.hidden_shape)
 
         try:
             encoder.load_weights(self._makeName(
                 #pretrain_image_encoder_model",
-                "pretrain_image_gan_model",
+                "pretrain_image_gan_model_jigsaws",
                 "image_encoder.h5f"))
             encoder.trainable = self.retrain
             decoder.load_weights(self._makeName(
@@ -184,7 +176,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         x = AddConv2D(x, 1, [4,4], 1, 0., "same", activation="sigmoid")
 
         #x = MaxPooling2D(pool_size=(8,8))(x)
-        x = AveragePooling2D(pool_size=(6,8))(x)
+        x = AveragePooling2D(pool_size=(12,16))(x)
         x = Flatten()(x)
         discrim = Model(ins, x, name="image_discriminator")
         self.lr *= 2.
