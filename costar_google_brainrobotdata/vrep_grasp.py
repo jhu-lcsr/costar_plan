@@ -534,16 +534,19 @@ class VREPGraspVisualization(object):
             parent_handle = -1
             print('could not find object with the specified name, so putting objects in world frame:', parent_name)
 
+        make_model_fn = define_make_model_fn()
+        gt = GraspTrain()
+        pred_model = gt.get_compiled_model(make_model_fn=make_model_fn, fetches=feature_op_dicts)
+
         for attempt_num in tqdm(range(num_samples / batch_size), desc='dataset'):
             attempt_num_string = 'attempt_' + str(attempt_num).zfill(4) + '_'
             vrepPrint(self.client_id, 'dataset_' + dataset + '_' + attempt_num_string + 'starting')
             # use fetches arguments to get tensors explicitly
             if FLAGS.vrepVisualizePredictions == True:
-                make_model_fn = define_make_model_fn()
-                gt = GraspTrain()
-                pred_model = gt.get_compiled_model(make_model_fn=make_model_fn, fetches=feature_op_dicts)
                 # x should be passed through internal calls
                 predictions, _, output_features_dicts = pred_model.predict_on_batch(x=None)
+                print(predictions)
+                return
             else:
                 # batch shize should actually always be 1 for this visualization
                 predictions = None
