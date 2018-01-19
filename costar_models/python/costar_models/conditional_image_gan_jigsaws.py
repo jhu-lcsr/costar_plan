@@ -121,22 +121,6 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
 
         self.predictor = generator
 
-'''
-    def _getData(self, *args, **kwargs):
-        features, targets = GetAllMultiData(self.num_options, *args, **kwargs)
-        [I, q, g, oin, label, q_target, g_target,] = features
-        tt, o1, v, qa, ga, I_target = targets
-
-        # Create the next image including input image
-        I0 = I[0,:,:,:]
-        length = I.shape[0]
-        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
-
-        # Extract the next goal
-        I_target2, o2 = GetNextGoal(I_target, o1)
-        return [I0, I, o1, o2], [ I_target, I_target2 ]
-'''
-
     def _getData(self, image, label, goal_image, goal_label,
             prev_label, *args, **kwargs):
 
