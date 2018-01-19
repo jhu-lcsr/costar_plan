@@ -406,33 +406,6 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 validation_steps=self.validation_steps,
                 validation_data=test_generator,)
 
-    def _makeImageClassifier(self, img_shape):
-        img = Input(img_shape,name="img_classifier_in")
-        img0 = Input(img_shape,name="img0_classifier_in")
-        bn = False
-        dr = self.dropout_rate
-        x = img
-        x0 = img0
-
-        x = AddConv2D(x, 32, [7,7], 1, dr, "same", lrelu=disc, bn=bn)
-        x0 = AddConv2D(x0, 32, [7,7], 1, dr, "same", lrelu=disc, bn=bn)
-        x = Concatenate(axis=-1)([x,x0])
-
-        x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-        x = AddConv2D(x, 32, [5,5], 1, dr, "same", lrelu=disc, bn=bn)
-        x = AddConv2D(x, 32, [5,5], 1, dr, "same", lrelu=disc, bn=bn)
-        x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-        x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=disc, bn=bn)
-        x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-
-        x = Flatten()(x)
-        x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
-        x = AddDense(x, self.num_options, "softmax", 0., output=True, bn=False)
-        image_encoder = Model([img0, img], x, name="Idisc")
-        image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
-        self.classifier = image_encoder
-        return image_encoder
-
     def _makeImageEncoder(self, img_shape, disc=False):
         '''
         create image-only decoder to extract keypoints from the scene.

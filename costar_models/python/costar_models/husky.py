@@ -22,9 +22,16 @@ from keras.constraints import max_norm
 
 from .planner import *
 
+
 '''
+===============================================================================
 Contains tools to make the sub-models for the Husky application
+===============================================================================
 '''
+
+def HuskyNumOptions():
+    return 5
+
 def GetHuskyActorModel(x, num_options, pose_size,
         dropout_rate=0.5, batchnorm=True):
     '''

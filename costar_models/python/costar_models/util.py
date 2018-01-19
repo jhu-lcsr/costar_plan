@@ -213,5 +213,6 @@ def GetModels():
             "conditional_image_gan", # just give label and predict image
             "pretrain_minimal",
             "pretrain_image_gan",
+            "discriminator",
             ]
 

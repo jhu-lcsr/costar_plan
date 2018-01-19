@@ -41,6 +41,33 @@ def _makeTrainTarget(I_target, q_target, g_target, o_target):
         length = q_target.shape[0]
         return np.concatenate([q_target,g_target,o_target],axis=-1)
 
+def MakeImageClassifier(model, img_shape):
+    img = Input(img_shape,name="img_classifier_in")
+    img0 = Input(img_shape,name="img0_classifier_in")
+    bn = False
+    dr = model.dropout_rate
+    x = img
+    x0 = img0
+
+    x = AddConv2D(x, 32, [7,7], 1, dr, "same", lrelu=True, bn=bn)
+    x0 = AddConv2D(x0, 32, [7,7], 1, dr, "same", lrelu=True, bn=bn)
+    x = Concatenate(axis=-1)([x,x0])
+
+    x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=True, bn=bn)
+    x = AddConv2D(x, 32, [5,5], 1, dr, "same", lrelu=True, bn=bn)
+    x = AddConv2D(x, 32, [5,5], 1, dr, "same", lrelu=True, bn=bn)
+    x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=True, bn=bn)
+    x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True, bn=bn)
+    x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=True, bn=bn)
+
+    x = Flatten()(x)
+    x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
+    x = AddDense(x, model.num_options, "softmax", 0., output=True, bn=False)
+    image_encoder = Model([img0, img], x, name="ITrue")
+    image_encoder.compile(loss="mae", optimizer=model.getOptimizer())
+    model.classifier = image_encoder
+    return image_encoder
+
 def GetActorModel(x, num_options, arm_size, gripper_size,
         dropout_rate=0.5, batchnorm=True):
     '''
