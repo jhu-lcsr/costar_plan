@@ -6,6 +6,7 @@ import keras.optimizers as optimizers
 import numpy as np
 import tensorflow as tf
 
+from keras.layers.pooling import MaxPooling2D
 from keras.layers import Input, RepeatVector, Reshape
 from keras.layers import BatchNormalization, Dropout
 from keras.layers import Dense, Conv2D, Activation, Flatten
@@ -27,12 +28,12 @@ def SuturingNumOptions():
 
 def MakeJigsawsImageClassifier(model, img_shape):
     img = Input(img_shape,name="img_classifier_in")
-    bn = True
+    bn = False
     disc = True
     dr = 0.5 #model.dropout_rate
     x = img
 
-    x = BatchNormalization()(x)
+    #x = BatchNormalization()(x)
     x = AddConv2D(x, 32, [7,7], 1, 0., "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
@@ -45,8 +46,9 @@ def MakeJigsawsImageClassifier(model, img_shape):
     x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
 
+    #x = MaxPooling2D((3,4))(x)
     x = Flatten()(x)
-    x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
+    #x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
     x = AddDense(x, model.num_options, "softmax", 0., output=True, bn=False)
     image_encoder = Model([img], x, name="classifier")
     image_encoder.compile(loss="categorical_crossentropy",
