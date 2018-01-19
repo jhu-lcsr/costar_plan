@@ -15,6 +15,8 @@ from keras.models import Model, Sequential
 
 from .multi_sampler import *
 from .multi import *
+from .husky import *
+from .dvrk import *
 
 class Discriminator(RobotMultiPredictionSampler):
 
@@ -53,13 +55,14 @@ class Discriminator(RobotMultiPredictionSampler):
 
 class HuskyDiscriminator(RobotMultiPredictionSampler):
 
-    def __init__(self, taskdef, *args, **kwargs):
+    def __init__(self, goal, taskdef, *args, **kwargs):
         '''
         As in the other models, we call super() to parse arguments from the
         command line and set things like our optimizer and learning rate.
         '''
         super(HuskyDiscriminator, self).__init__(taskdef, *args, **kwargs)
         self.PredictorCb = None
+        self.goal = goal
         self.num_options = HuskyNumOptions()
 
     def _makeModel(self, image, *args, **kwargs):
@@ -67,10 +70,42 @@ class HuskyDiscriminator(RobotMultiPredictionSampler):
         Create model to predict possible manipulation goals.
         '''
         img_shape = image.shape[1:]
-        disc = self._makeImageEncoder(img_shape, disc=True)
+        disc = MakeImageClassifier(self, img_shape)
         disc.summary()
 
-        self.train_predictor = disc
+        self.model = disc
+
+    def _getData(self, image, goal_image, label, *args, **kwargs):
+        I = np.array(image) / 255.
+        I_target = np.array(goal_image) / 255.
+        o1 = np.array(label)
+        o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
+        if self.goal:
+            return [I_target], [o1_1h]
+        else:
+            return [I], [o1_1h]
+
+class JigsawsDiscriminator(RobotMultiPredictionSampler):
+
+    def __init__(self, goal, taskdef, *args, **kwargs):
+        '''
+        As in the other models, we call super() to parse arguments from the
+        command line and set things like our optimizer and learning rate.
+        '''
+        super(JigsawsDiscriminator, self).__init__(taskdef, *args, **kwargs)
+        self.PredictorCb = None
+        self.num_options = SuturingNumOptions()
+        self.goal = goal
+
+    def _makeModel(self, image, *args, **kwargs):
+        '''
+        Create model to predict possible manipulation goals.
+        '''
+        img_shape = image.shape[1:]
+        disc = MakeJigsawsImageClassifier(self, img_shape)
+        disc.summary()
+
+        self.model = disc
 
     def _getData(self, image, goal_image, label, *args, **kwargs):
         I = np.array(image) / 255.
