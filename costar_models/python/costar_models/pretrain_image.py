@@ -47,19 +47,23 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
                     self.skip_shape,)
         out = decoder(enc)
 
-        image_discriminator = self._makeImageEncoder(img_shape, disc=True)
-
-        o1 = image_discriminator(ins)
-        o2 = image_discriminator([out])
+        #image_discriminator = self._makeImageEncoder(img_shape, disc=True)
+        #o1 = image_discriminator(ins)
+        #o2 = image_discriminator([out])
+        image_discriminator = MakeImageClassifier(img_shape)
+        image_discriminator.load_weights("discriminator_model_classifier.h5f")
+        image_discriminator.trainable = False
+            
+        o2 = image_discriminator([img0_in, out])
 
         encoder.summary()
         decoder.summary()
         image_discriminator.summary()
 
-        ae = Model(ins, [out, o1, o2])
+        ae = Model(ins, [out, o2])
         ae.compile(
-                loss=["mae"] + ["categorical_crossentropy"]*2,
-                loss_weights=[1.,1.e-2,1e-4],
+                loss=["mae"] + ["categorical_crossentropy"],
+                loss_weights=[1.,1e-3],
                 optimizer=self.getOptimizer())
         ae.summary()
     
