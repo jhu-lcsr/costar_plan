@@ -5,7 +5,7 @@ import os
 # this xonsh shell script (https://github.com/xonsh/xonsh) i
 # will run the evaluation step on a whole set of model files in a folder.
 # all parameters are optional.
-# NOTE: CUDA OPTION IS NOT YET WORKING 
+# NOTE: CUDA OPTION IS NOT YET WORKING
 # cuda_visible_devices can be "0" for gpu 0, "0,1" for gpus 0 and 1, "-1" for cpu only.
 $XONSH_SHOW_TRACEBACK=True
 model_str = ''

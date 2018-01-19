@@ -69,6 +69,11 @@ flags.DEFINE_string('grasp_dataset_eval', '097',
                     with no overlap, otherwise your results won't be valid!
                     See https://sites.google.com/site/brainrobotdata/home
                     for a full listing.""")
+flags.DEFINE_boolean('eval_per_epoch', True,
+                     """Do evaluation on dataset_eval above in every epoch.
+                        Weight flies for every epoch and single txt file of dataset
+                        will be saved.
+                     """)
 flags.DEFINE_string('pipeline_stage', 'train_eval',
                     """Choose to "train", "eval", or "train_eval" with the grasp_dataset
                        data for training and grasp_dataset_eval for evaluation.""")
@@ -78,7 +83,7 @@ flags.DEFINE_float('learning_rate_scheduler_power_decay_rate', 1.5,
                       Training from scratch within an initial learning rate of 0.1 might find a
                          power decay value of 2 to be useful.
                       Fine tuning with an initial learning rate of 0.001 may consder 1.5 power decay.""")
-flags.DEFINE_float('grasp_learning_rate', 0.01,
+flags.DEFINE_float('grasp_learning_rate', 0.1,
                    """Determines the initial learning rate""")
 flags.DEFINE_integer('eval_batch_size', 1, 'batch size per compute device')
 flags.DEFINE_integer('densenet_growth_rate', 12,
@@ -92,7 +97,7 @@ flags.DEFINE_float('densenet_reduction', 0.5,
 flags.DEFINE_float('densenet_reduction_after_pretrained', 0.5,
                    """DenseNet and DenseNetFCN reduction aka compression parameter,
                       applied to the second DenseNet component after pretrained imagenet models.""")
-flags.DEFINE_float('dropout_rate', 0.2,
+flags.DEFINE_float('dropout_rate', 0.5,
                    """Dropout rate for the model during training.""")
 flags.DEFINE_string('eval_results_file', 'grasp_model_eval.txt',
                     """Save a file with results of model evaluation.""")
@@ -108,7 +113,7 @@ flags.DEFINE_string('learning_rate_scheduler', 'learning_rate_scheduler',
                        a power decay path for the learning rate over time.
                        This is most useful with SGD, currently disabled with Adam.""")
 flags.DEFINE_string('optimizer', 'SGD', """Options are Adam and SGD.""")
-flags.DEFINE_string('progress_tracker', None,
+flags.DEFINE_string('progress_tracker', 'tensorboard',
                     """Utility to follow training progress, options are tensorboard and None.""")
 flags.DEFINE_string('loss', 'segmentation_single_pixel_binary_crossentropy',
                     """Options are binary_crossentropy, segmentation_single_pixel_binary_crossentropy,
@@ -117,6 +122,10 @@ flags.DEFINE_string('metric', 'segmentation_single_pixel_binary_accuracy',
                     """Options are accuracy, binary_accuracy and segmentation_single_pixel_binary_accuracy.""")
 flags.DEFINE_string('distributed', 'horovod',
                     """Options are 'horovod' (github.com/uber/horovod) or None for distributed training utilities.""")
+flags.DEFINE_integer('early_stopping', None,
+                     """Stop training if the monitored loss does not improve after the specified number of epochs.
+                        Values of 0 or None will disable early stopping.
+                     """)
 
 flags.FLAGS._parse_flags()
 FLAGS = flags.FLAGS
@@ -159,6 +168,7 @@ class GraspTrain(object):
               grasp_datasets_batch_algorithm=FLAGS.grasp_datasets_batch_algorithm,
               batch_size=FLAGS.batch_size,
               epochs=FLAGS.epochs,
+              eval_per_epoch=FLAGS.eval_per_epoch,
               load_weights=FLAGS.load_weights,
               save_weights=FLAGS.save_weights,
               make_model_fn=grasp_model.grasp_model_densenet,
@@ -175,7 +185,8 @@ class GraspTrain(object):
               dropout_rate=FLAGS.dropout_rate,
               model_name=FLAGS.grasp_model,
               loss=FLAGS.loss,
-              metric=FLAGS.metric):
+              metric=FLAGS.metric,
+              early_stopping=FLAGS.early_stopping):
         """Train the grasping dataset
 
         This function depends on https://github.com/fchollet/keras/pull/6928
@@ -194,223 +205,217 @@ class GraspTrain(object):
                 this affects the memory consumption of the system when training, but if it fits into memory
                 you almost certainly want the value to be None, which includes every image.
         """
-        datasets = dataset.split(',')
-        (pregrasp_op_batch,
-         grasp_step_op_batch,
-         simplified_grasp_command_op_batch,
-         grasp_success_op_batch,
-         steps_per_epoch) = grasp_dataset.get_multi_dataset_training_tensors(
-             datasets,
-             batch_size,
-             grasp_datasets_batch_algorithm,
-             imagenet_preprocessing,
-             random_crop,
-             resize,
-             grasp_sequence_min_time_step,
-             grasp_sequence_max_time_step)
+        with K.name_scope('train') as scope:
+            datasets = dataset.split(',')
+            dataset_names_str = dataset.replace(',', '_')
+            (pregrasp_op_batch,
+             grasp_step_op_batch,
+             simplified_grasp_command_op_batch,
+             grasp_success_op_batch,
+             steps_per_epoch) = grasp_dataset.get_multi_dataset_training_tensors(
+                 datasets,
+                 batch_size,
+                 grasp_datasets_batch_algorithm,
+                 imagenet_preprocessing,
+                 random_crop,
+                 resize,
+                 grasp_sequence_min_time_step,
+                 grasp_sequence_max_time_step)
 
-        if resize:
-            input_image_shape = [resize_height, resize_width, 3]
-        else:
-            input_image_shape = [512, 640, 3]
+            if resize:
+                input_image_shape = [resize_height, resize_width, 3]
+            else:
+                input_image_shape = [512, 640, 3]
 
-        ########################################################
-        # End tensor configuration, begin model configuration and training
+            ########################################################
+            # End tensor configuration, begin model configuration and training
 
-        weights_name = timeStamped(save_weights + '-' + model_name)
+            weights_name = timeStamped(save_weights + '-' + model_name + '-dataset_' + dataset_names_str)
 
-        # ###############learning rate scheduler####################
-        # source: https://github.com/aurora95/Keras-FCN/blob/master/train.py
-        # some quick lines to see what a power_decay schedule would do at each epoch:
-        # import numpy as np
-        # epochs = 100
-        # learning_rate = 0.1
-        # learning_power_decay_rate = 2
-        # print([learning_rate * ((1 - float(epoch)/epochs) ** learning_power_decay_rate) for epoch in np.arange(epochs)])
+            # ###############learning rate scheduler####################
+            # source: https://github.com/aurora95/Keras-FCN/blob/master/train.py
+            # some quick lines to see what a power_decay schedule would do at each epoch:
+            # import numpy as np
+            # epochs = 100
+            # learning_rate = 0.1
+            # learning_power_decay_rate = 2
+            # print([learning_rate * ((1 - float(epoch)/epochs) ** learning_power_decay_rate) for epoch in np.arange(epochs)])
 
-        def lr_scheduler(epoch, learning_rate=learning_rate,
-                         mode=learning_rate_decay_algorithm,
-                         epochs=epochs,
-                         learning_power_decay_rate=learning_power_decay_rate):
-            """if lr_dict.has_key(epoch):
-                lr = lr_dict[epoch]
-                print 'lr: %f' % lr
-            """
+            def lr_scheduler(epoch, learning_rate=learning_rate,
+                             mode=learning_rate_decay_algorithm,
+                             epochs=epochs,
+                             learning_power_decay_rate=learning_power_decay_rate):
+                """if lr_dict.has_key(epoch):
+                    lr = lr_dict[epoch]
+                    print 'lr: %f' % lr
+                """
 
-            if mode is 'power_decay':
-                # original lr scheduler
-                lr = learning_rate * ((1 - float(epoch)/epochs) ** learning_power_decay_rate)
-            if mode is 'exp_decay':
-                # exponential decay
-                lr = (float(learning_rate) ** float(learning_power_decay_rate)) ** float(epoch+1)
-            # adam default lr
-            if mode is 'adam':
-                lr = 0.001
-
-            if mode is 'progressive_drops':
-                # drops as progression proceeds, good for sgd
-                if epoch > 0.9 * epochs:
-                    lr = 0.0001
-                elif epoch > 0.75 * epochs:
+                if mode is 'power_decay':
+                    # original lr scheduler
+                    lr = learning_rate * ((1 - float(epoch)/epochs) ** learning_power_decay_rate)
+                if mode is 'exp_decay':
+                    # exponential decay
+                    lr = (float(learning_rate) ** float(learning_power_decay_rate)) ** float(epoch+1)
+                # adam default lr
+                if mode is 'adam':
                     lr = 0.001
-                elif epoch > 0.5 * epochs:
-                    lr = 0.01
+
+                if mode is 'progressive_drops':
+                    # drops as progression proceeds, good for sgd
+                    if epoch > 0.9 * epochs:
+                        lr = 0.0001
+                    elif epoch > 0.75 * epochs:
+                        lr = 0.001
+                    elif epoch > 0.5 * epochs:
+                        lr = 0.01
+                    else:
+                        lr = 0.1
+
+                print('lr: %f' % lr)
+                return lr
+
+            # TODO(ahundt) manage loss/metric names in a more principled way
+            loss_name = 'loss'
+            if 'segmentation_single_pixel_binary_crossentropy' in loss:
+                loss = grasp_loss.segmentation_single_pixel_binary_crossentropy
+                loss_name = 'segmentation_single_pixel_binary_crossentropy'
+
+            if isinstance(loss, str) and 'segmentation_gaussian_binary_crossentropy' in loss:
+                loss = grasp_loss.segmentation_gaussian_binary_crossentropy
+                loss_name = 'segmentation_gaussian_binary_crossentropy'
+
+            metrics, monitor_metric_name = self.gather_metrics(metric)
+
+            if eval_per_epoch:
+                monitor_loss_name = 'val_loss'
+                monitor_metric_name = 'val_' + monitor_metric_name
+            else:
+                monitor_loss_name = 'loss'
+
+            callbacks = []
+            if hvd is not None and self.distributed is 'horovod':
+                callbacks = callbacks + [
+                    # Broadcast initial variable states from rank 0 to all other processes.
+                    # This is necessary to ensure consistent initialization of all workers when
+                    # training is started with random weights or restored from a checkpoint.
+                    hvd.callbacks.BroadcastGlobalVariablesCallback(0),
+
+                    # Average metrics among workers at the end of every epoch.
+                    #
+                    # Note: This callback must be in the list before the ReduceLROnPlateau,
+                    # TensorBoard or other metrics-based callbacks.
+                    hvd.callbacks.MetricAverageCallback(),
+                    # Using `lr = 1.0 * hvd.size()` from the very beginning leads to worse final
+                    # accuracy. Scale the learning rate `lr = 1.0` ---> `lr = 1.0 * hvd.size()` during
+                    # the first five epochs. See https://arxiv.org/abs/1706.02677 for details.
+                    hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=5, verbose=1)
+                ]
+
+            scheduler = keras.callbacks.LearningRateScheduler(lr_scheduler)
+
+            # progress_bar = TQDMCallback()
+            # callbacks = callbacks + [progress_bar]
+
+            # Will need to try more things later.
+            # Nadam parameter choice reference:
+            # https://github.com/tensorflow/tensorflow/pull/9175#issuecomment-295395355
+
+            # 2017-08-28 afternoon trying NADAM with higher learning rate
+            # optimizer = keras.optimizers.Nadam(lr=0.03, beta_1=0.825, beta_2=0.99685)
+            print('FLAGS.optimizer', FLAGS.optimizer)
+
+            # add evalation callback, calls evalation of self.eval_model
+            if eval_per_epoch:
+                eval_model, step_num = self.eval(make_model_fn=make_model_fn,
+                                                 model_name=model_name,
+                                                 eval_per_epoch=eval_per_epoch)
+                callbacks = callbacks + [EvaluateInputTensor(eval_model, step_num)]
+
+            if early_stopping is not None and early_stopping > 0.0:
+                early_stopper = EarlyStopping(monitor=monitor_loss_name, min_delta=0.001, patience=32)
+                callbacks = callbacks + [early_stopper]
+
+            if FLAGS.progress_tracker == 'tensorboard':
+                print('Enabling tensorboard...')
+                log_dir = './tensorboard_' + weights_name
+                grasp_dataset.mkdir_p(log_dir)
+                progress_tracker = TensorBoard(log_dir=log_dir, write_graph=True,
+                                               write_grads=True, write_images=True)
+                callbacks = callbacks + [progress_tracker]
+
+            # 2017-08-28 trying SGD
+            # 2017-12-18 SGD worked very well and has been the primary training optimizer from 2017-09 to 2018-01
+            if FLAGS.optimizer == 'SGD':
+
+                if hvd is not None and self.distributed is 'horovod':
+                    # Adjust learning rate based on number of GPUs.
+                    multiplier = hvd.size()
                 else:
-                    lr = 0.1
+                    multiplier = 1.0
 
-            print('lr: %f' % lr)
-            return lr
+                optimizer = keras.optimizers.SGD(learning_rate * multiplier)
+                print(monitor_loss_name)
+                callbacks = callbacks + [
+                    # Reduce the learning rate if training plateaus.
+                    keras.callbacks.ReduceLROnPlateau(patience=4, verbose=1, factor=0.5, monitor=monitor_loss_name)
+                ]
 
-        # TODO(ahundt) manage loss/accuracy names in a more principled way
-        loss_name = 'loss'
-        if 'segmentation_single_pixel_binary_crossentropy' in loss:
-            loss = grasp_loss.segmentation_single_pixel_binary_crossentropy
-            loss_name = 'segmentation_single_pixel_binary_crossentropy'
+            csv_logger = CSVLogger(weights_name + '.csv')
+            callbacks = callbacks + [csv_logger]
 
-        if isinstance(loss, str) and 'segmentation_gaussian_binary_crossentropy' in loss:
-            loss = grasp_loss.segmentation_gaussian_binary_crossentropy
-            loss_name = 'segmentation_gaussian_binary_crossentropy'
+            checkpoint = keras.callbacks.ModelCheckpoint(weights_name + '-epoch-{epoch:03d}-' +
+                                                         monitor_loss_name + '-{' + monitor_loss_name + ':.3f}-' +
+                                                         monitor_metric_name + '-{' + monitor_metric_name + ':.3f}.h5',
+                                                         save_best_only=False, verbose=1, monitor=monitor_metric_name)
+            callbacks = callbacks + [checkpoint]
 
-        metric_name = 'acc'
-        if 'segmentation_single_pixel_binary_accuracy' in metric:
-            metric_name = metric
-            metric = grasp_loss.segmentation_single_pixel_binary_accuracy
+            # 2017-08-27 Tried NADAM for a while with the settings below, only improved for first 2 epochs.
+            # optimizer = keras.optimizers.Nadam(lr=0.004, beta_1=0.825, beta_2=0.99685)
 
-        callbacks = []
-        if hvd is not None and self.distributed is 'horovod':
-            callbacks = callbacks + [
-                # Broadcast initial variable states from rank 0 to all other processes.
-                # This is necessary to ensure consistent initialization of all workers when
-                # training is started with random weights or restored from a checkpoint.
-                hvd.callbacks.BroadcastGlobalVariablesCallback(0),
-
-                # Average metrics among workers at the end of every epoch.
-                #
-                # Note: This callback must be in the list before the ReduceLROnPlateau,
-                # TensorBoard or other metrics-based callbacks.
-                hvd.callbacks.MetricAverageCallback(),
-                # Using `lr = 1.0 * hvd.size()` from the very beginning leads to worse final
-                # accuracy. Scale the learning rate `lr = 1.0` ---> `lr = 1.0 * hvd.size()` during
-                # the first five epochs. See https://arxiv.org/abs/1706.02677 for details.
-                hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=5, verbose=1)
-            ]
-
-        scheduler = keras.callbacks.LearningRateScheduler(lr_scheduler)
-        early_stopper = EarlyStopping(monitor=metric_name, min_delta=0.001, patience=32)
-        csv_logger = CSVLogger(weights_name + '.csv')
-        # TODO(ahundt) Re-enable results included in filename, need to fix the following error but this was skipped due to time constraints to start training:
-        """
-            Epoch 1/100
-            6493/6494 [============================>.] - ETA: 0s - loss: 0.7651 - grasp_segmentation_single_
-            pixel_accuracy: 0.5467Traceback (most recent call last):
-              File "grasp_train.py", line 343, in train
-                model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=callbacks)
-              File "/home/ahundt/src/keras/keras/engine/training.py", line 1658, in fit
-                validation_steps=validation_steps)
-              File "/home/ahundt/src/keras/keras/engine/training.py", line 1215, in _fit_loop
-                callbacks.on_epoch_end(epoch, epoch_logs)
-              File "/home/ahundt/src/keras/keras/callbacks.py", line 76, in on_epoch_end
-                callback.on_epoch_end(epoch, logs)
-              File "/home/ahundt/src/keras/keras/callbacks.py", line 401, in on_epoch_end
-                filepath = self.filepath.format(epoch=epoch + 1, **logs)
-            KeyError: 'grasp_segmentation_single_pixel_loss'
-            Traceback (most recent call last):
-              File "grasp_train.py", line 539, in <module>
-                main()
-              File "grasp_train.py", line 526, in main
-                model_name=FLAGS.grasp_model)
-              File "grasp_train.py", line 351, in train
-                raise e
-            KeyError: 'grasp_segmentation_single_pixel_loss'
-        """
-        # checkpoint = keras.callbacks.ModelCheckpoint(weights_name + '-epoch-{epoch:03d}-loss-{' + loss_name + ':.3f}-acc-{' + metric_name + ':.3f}.h5',
-        #                                              save_best_only=True, verbose=1, monitor=metric_name)
-        checkpoint = keras.callbacks.ModelCheckpoint(weights_name + '-epoch-{epoch:03d}.h5',
-                                                     save_best_only=False, verbose=1)
-
-        callbacks = callbacks + [early_stopper, csv_logger, checkpoint]
-
-        if FLAGS.progress_tracker is 'tensorboard':
-            progress_tracker = TensorBoard(log_dir='./' + weights_name, write_graph=True,
-                                           write_grads=True, write_images=True)
-            callbacks = callbacks + [progress_tracker]
-
-        # progress_bar = TQDMCallback()
-        # callbacks = callbacks + [progress_bar]
-
-        # Will need to try more things later.
-        # Nadam parameter choice reference:
-        # https://github.com/tensorflow/tensorflow/pull/9175#issuecomment-295395355
-
-        # 2017-08-28 afternoon trying NADAM with higher learning rate
-        # optimizer = keras.optimizers.Nadam(lr=0.03, beta_1=0.825, beta_2=0.99685)
-        print('FLAGS.optimizer', FLAGS.optimizer)
-
-        # 2017-08-28 trying SGD
-        # 2017-12-18 SGD worked very well and has been the primary training optimizer from 2017-09 to 2018-01
-        if FLAGS.optimizer == 'SGD':
+            # 2017-12-18, 2018-01-04 Tried ADAM with AMSGrad, great progress initially, but stopped making progress very quickly
+            if FLAGS.optimizer == 'Adam':
+                optimizer = keras.optimizers.Adam(amsgrad=True)
 
             if hvd is not None and self.distributed is 'horovod':
-                # Adjust learning rate based on number of GPUs.
-                multiplier = hvd.size()
-            else:
-                multiplier = 1.0
+                # Add Horovod Distributed Optimizer.
+                optimizer = hvd.DistributedOptimizer(optimizer)
 
-            optimizer = keras.optimizers.SGD(learning_rate * multiplier)
+            # create the model
+            model = make_model_fn(
+                pregrasp_op_batch,
+                grasp_step_op_batch,
+                simplified_grasp_command_op_batch,
+                input_image_shape=input_image_shape,
+                dropout_rate=dropout_rate)
 
-            callbacks = callbacks + [
-                # Reduce the learning rate if training plateaus.
-                # TODO(ahundt) add validation checks and update monitor parameter to use them
-                keras.callbacks.ReduceLROnPlateau(patience=8, verbose=1, monitor=metric_name)
-            ]
+            if(load_weights):
+                if os.path.isfile(load_weights):
+                    model.load_weights(load_weights)
+                else:
+                    print('Could not load weights {}, '
+                          'the file does not exist, '
+                          'starting fresh....'.format(load_weights))
 
-        # 2017-08-27 Tried NADAM for a while with the settings below, only improved for first 2 epochs.
-        # optimizer = keras.optimizers.Nadam(lr=0.004, beta_1=0.825, beta_2=0.99685)
+            model.compile(optimizer=optimizer,
+                          loss=loss,
+                          metrics=metrics,
+                          target_tensors=[grasp_success_op_batch])
 
-        # 2017-12-18, 2018-01-04 Tried ADAM with AMSGrad, great progress initially, but stopped making progress very quickly
-        if FLAGS.optimizer == 'Adam':
-            optimizer = keras.optimizers.Adam(amsgrad=True)
+            print('Available metrics: ' + str(model.metrics_names))
 
-        if hvd is not None and self.distributed is 'horovod':
-            # Add Horovod Distributed Optimizer.
-            optimizer = hvd.DistributedOptimizer(optimizer)
+            model.summary()
 
-        # create the model
-        model = make_model_fn(
-            pregrasp_op_batch,
-            grasp_step_op_batch,
-            simplified_grasp_command_op_batch,
-            input_image_shape=input_image_shape,
-            dropout_rate=dropout_rate)
-
-        if(load_weights):
-            if os.path.isfile(load_weights):
-                model.load_weights(load_weights)
-            else:
-                print('Could not load weights {}, '
-                      'the file does not exist, '
-                      'starting fresh....'.format(load_weights))
-
-        model.compile(optimizer=optimizer,
-                      loss=loss,
-                      metrics=[metric],
-                      target_tensors=[grasp_success_op_batch])
-
-        print('Available metrics: ' + str(model.metrics_names))
-
-        model.summary()
-
-        try:
-            model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=callbacks)
-            final_weights_name = weights_name + '-final.h5'
-            model.save_weights(final_weights_name)
-        except (Exception, KeyboardInterrupt) as e:
-            # always try to save weights
-            traceback.print_exc()
-            final_weights_name = weights_name + '-autosaved-on-exception.h5'
-            model.save_weights(final_weights_name)
-            raise e
-        return final_weights_name
+            try:
+                model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=callbacks)
+                final_weights_name = weights_name + '-final.h5'
+                model.save_weights(final_weights_name)
+            except (Exception, KeyboardInterrupt) as e:
+                # always try to save weights
+                traceback.print_exc()
+                final_weights_name = weights_name + '-autosaved-on-exception.h5'
+                model.save_weights(final_weights_name)
+                raise e
+            return final_weights_name
 
     def eval(self, dataset=FLAGS.grasp_dataset_eval,
              batch_size=FLAGS.eval_batch_size,
@@ -426,7 +431,8 @@ class GraspTrain(object):
              eval_results_file=FLAGS.eval_results_file,
              model_name=FLAGS.grasp_model,
              loss=FLAGS.loss,
-             metric=FLAGS.metric):
+             metric=FLAGS.metric,
+             eval_per_epoch=FLAGS.eval_per_epoch):
         """Train the grasping dataset
 
         This function depends on https://github.com/fchollet/keras/pull/6928
@@ -449,88 +455,113 @@ class GraspTrain(object):
 
            weights_name_str or None if a new weights file was not saved.
         """
-        data = grasp_dataset.GraspDataset(dataset=dataset)
-        # TODO(ahundt) ensure eval call to get_training_tensors() always runs in the same order and does not rotate the dataset.
-        # list of dictionaries the length of batch_size
-        (pregrasp_op_batch, grasp_step_op_batch,
-         simplified_grasp_command_op_batch,
-         grasp_success_op_batch,
-         num_samples) = data.get_training_tensors(batch_size=batch_size,
-                                                  imagenet_preprocessing=imagenet_preprocessing,
-                                                  random_crop=False,
-                                                  image_augmentation=False,
-                                                  resize=resize,
-                                                  grasp_sequence_min_time_step=grasp_sequence_min_time_step,
-                                                  grasp_sequence_max_time_step=grasp_sequence_max_time_step)
+        with K.name_scope('eval') as scope:
+            data = grasp_dataset.GraspDataset(dataset=dataset)
+            # TODO(ahundt) ensure eval call to get_training_tensors() always runs in the same order and does not rotate the dataset.
+            # list of dictionaries the length of batch_size
+            (pregrasp_op_batch, grasp_step_op_batch,
+             simplified_grasp_command_op_batch,
+             grasp_success_op_batch,
+             num_samples) = data.get_training_tensors(batch_size=batch_size,
+                                                      imagenet_preprocessing=imagenet_preprocessing,
+                                                      random_crop=False,
+                                                      image_augmentation=False,
+                                                      resize=resize,
+                                                      grasp_sequence_min_time_step=grasp_sequence_min_time_step,
+                                                      grasp_sequence_max_time_step=grasp_sequence_max_time_step,
+                                                      shift_ratio=0.0)
 
-        if resize:
-            input_image_shape = [resize_height, resize_width, 3]
-        else:
-            input_image_shape = [512, 640, 3]
-
-        ########################################################
-        # End tensor configuration, begin model configuration and training
-        csv_logger = CSVLogger(load_weights + '_eval.csv')
-
-        # create the model
-        model = make_model_fn(
-            pregrasp_op_batch,
-            grasp_step_op_batch,
-            simplified_grasp_command_op_batch,
-            # input_image_shape=input_image_shape,
-            dropout_rate=0.0)
-
-        if(load_weights):
-            if os.path.isfile(load_weights):
-                model.load_weights(load_weights)
+            if resize:
+                input_image_shape = [resize_height, resize_width, 3]
             else:
-                raise ValueError('Could not load weights {}, '
-                                 'the file does not exist.'.format(load_weights))
+                input_image_shape = [512, 640, 3]
 
-        loss_name = 'loss'
-        if 'segmentation_single_pixel_binary_crossentropy' in loss:
-            loss = grasp_loss.segmentation_single_pixel_binary_crossentropy
-            loss_name = 'segmentation_single_pixel_binary_crossentropy'
+            ########################################################
+            # End tensor configuration, begin model configuration and training
+            if not eval_per_epoch:
+                csv_logger = CSVLogger(load_weights + '_eval.csv')
 
-        metric_name = 'acc'
+            # create the model
+            model = make_model_fn(
+                pregrasp_op_batch,
+                grasp_step_op_batch,
+                simplified_grasp_command_op_batch,
+                # input_image_shape=input_image_shape,
+                dropout_rate=0.0)
+
+            if not eval_per_epoch:
+                if(load_weights):
+                    if os.path.isfile(load_weights):
+                        model.load_weights(load_weights)
+                    else:
+                        raise ValueError('Could not load weights {}, '
+                                         'the file does not exist.'.format(load_weights))
+
+            loss_name = 'loss'
+            if 'segmentation_single_pixel_binary_crossentropy' in loss:
+                loss = grasp_loss.segmentation_single_pixel_binary_crossentropy
+                loss_name = 'segmentation_single_pixel_binary_crossentropy'
+
+            if isinstance(loss, str) and 'segmentation_gaussian_binary_crossentropy' in loss:
+                loss = grasp_loss.segmentation_gaussian_binary_crossentropy
+                loss_name = 'segmentation_gaussian_binary_crossentropy'
+
+            metrics, monitor_metric_name = self.gather_metrics(metric)
+
+            model.compile(optimizer='sgd',
+                          loss=loss,
+                          metrics=metrics,
+                          target_tensors=[grasp_success_op_batch])
+
+            steps = float(num_samples) / float(batch_size)
+
+            if not steps.is_integer():
+                raise ValueError('The number of samples was not exactly divisible by the batch size!'
+                                 'For correct, reproducible evaluation your number of samples must be exactly'
+                                 'divisible by the batch size. Right now the batch size cannot be changed for'
+                                 'the last sample, so in a worst case choose a batch size of 1. Not ideal,'
+                                 'but manageable. num_samples: {} batch_size: {}'.format(num_samples, batch_size))
+
+            if eval_per_epoch:
+                return model, int(steps)
+            model.summary()
+
+            try:
+                results = model.evaluate(None, None, steps=int(steps))
+                # results_str = '\nevaluation results loss: ' + str(loss) + ' accuracy: ' + str(acc) + ' dataset: ' + dataset
+                metrics_str = 'metrics:\n' + str(model.metrics_names) + 'results:' + str(results)
+                print(metrics_str)
+                weights_name_str = load_weights + '_evaluation_dataset_{}_loss_{:.3f}_acc_{:.3f}'.format(dataset, results[0], results[1])
+                weights_name_str = weights_name_str.replace('.h5', '') + '.h5'
+
+                results_summary_name_str = weights_name_str.replace('.h5', '') + '.txt'
+                with open(results_summary_name_str, 'w') as results_summary:
+                    results_summary.write(metrics_str + '\n')
+                if save_weights:
+                    model.save_weights(weights_name_str)
+                    print('\n saved weights with evaluation result to ' + weights_name_str)
+
+            except KeyboardInterrupt as e:
+                print('Evaluation canceled at user request, '
+                      'any results are incomplete for this run.')
+                return None
+
+            return weights_name_str
+
+    def gather_metrics(self, metric):
+        metrics = []
         if 'segmentation_single_pixel_binary_accuracy' in metric:
-            metric_name = metric
-            metric = grasp_loss.segmentation_single_pixel_binary_accuracy
+            monitor_metric_name = metric
+            metrics = metrics + [grasp_loss.segmentation_single_pixel_binary_accuracy]
+        else:
+            metrics = metrics + ['acc']
+            monitor_metric_name = 'acc'
 
-        model.compile(optimizer='sgd',
-                      loss=loss,
-                      metrics=[metric],
-                      target_tensors=[grasp_success_op_batch])
+        if 'segmentation' in metric:
+            metrics = metrics + [grasp_loss.mean_pred_single_pixel]
 
-        model.summary()
-
-        steps = float(num_samples) / float(batch_size)
-
-        if not steps.is_integer():
-            raise ValueError('The number of samples was not exactly divisible by the batch size!'
-                             'For correct, reproducible evaluation your number of samples must be exactly'
-                             'divisible by the batch size. Right now the batch size cannot be changed for'
-                             'the last sample, so in a worst case choose a batch size of 1. Not ideal,'
-                             'but manageable. num_samples: {} batch_size: {}'.format(num_samples, batch_size))
-
-        try:
-            loss, acc = model.evaluate(None, None, steps=int(steps))
-            results_str = '\nevaluation results loss: ' + str(loss) + ' accuracy: ' + str(acc) + ' dataset: ' + dataset
-            print(results_str)
-            weights_name_str = load_weights + '_evaluation_dataset_{}_loss_{:.3f}_acc_{:.3f}'.format(dataset, loss, acc)
-            weights_name_str = weights_name_str.replace('.h5', '') + '.h5'
-            with open(eval_results_file, 'w') as results_file:
-                results_file.write(results_str + '\n')
-            if save_weights:
-                model.save_weights(weights_name_str)
-                print('\n saved weights with evaluation result to ' + weights_name_str)
-
-        except KeyboardInterrupt as e:
-            print('Evaluation canceled at user request, '
-                  'any results are incomplete for this run.')
-            return None
-
-        return weights_name_str
+        metrics = metrics + [grasp_loss.mean_pred, grasp_loss.mean_true]
+        return metrics, monitor_metric_name
 
 
 def define_make_model_fn(grasp_model_name=FLAGS.grasp_model):
@@ -604,6 +635,54 @@ def define_make_model_fn(grasp_model_name=FLAGS.grasp_model):
         else:
             raise ValueError('unknown model selected: {}'.format(grasp_model_name))
     return make_model_fn
+
+
+class EvaluateInputTensor(keras.callbacks.Callback):
+    """ Validate a model which does not expect external numpy data during training.
+
+    Keras does not expect external numpy data at training time, and thus cannot
+    accept numpy arrays for validation when all of a Keras Model's
+    `Input(input_tensor)` layers are provided an  `input_tensor` parameter,
+    and the call to `Model.compile(target_tensors)` defines all `target_tensors`
+    Instead, create a second model configured with input tensors for validation
+    and add it to the `EvaluateInputTensor` callback to perform validation.
+
+    It is recommended that this callback be the first in the list of callbacks
+    because it defines the validation variables required by many other callbacks,
+    and Callbacks are made in order.
+
+    #TODO(ahundt) replace when https://github.com/keras-team/keras/pull/9105 is available
+
+    # Arguments
+        model: Keras model on which to call model.evaluate().
+        steps: Integer or `None`.
+            Total number of steps (batches of samples)
+            before declaring the evaluation round finished.
+            Ignored with the default value of `None`.
+    """
+
+    def __init__(self, model, steps, metrics_prefix='val', verbose=1):
+        # parameter of callbacks passed during initialization
+        # pass evalation mode directly
+        super(EvaluateInputTensor, self).__init__()
+        self.val_model = model
+        self.num_steps = steps
+        self.verbose = verbose
+        self.metrics_prefix = metrics_prefix
+
+    def on_epoch_end(self, epoch, logs={}):
+        self.val_model.set_weights(self.model.get_weights())
+        results = self.val_model.evaluate(None, None, steps=int(self.num_steps),
+                                          verbose=self.verbose)
+        metrics_str = '\n'
+        for result, name in zip(results, self.val_model.metrics_names):
+            metric_name = self.metrics_prefix + '_' + name
+            logs[metric_name] = result
+            if self.verbose > 0:
+                metrics_str = metrics_str + metric_name + ': ' + str(result) + ' '
+
+        if self.verbose > 0:
+            print(metrics_str)
 
 
 def main():
