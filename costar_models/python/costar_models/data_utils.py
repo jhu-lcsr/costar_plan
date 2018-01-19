@@ -30,8 +30,40 @@ def MakeOption1h(option, num_labels):
     opt_1h[0,option] = 1.
     return opt_1h
 
+def GetNextGoal(imgs, labels):
+    # Takes a list of target images and labels, and rotates them both
+    # to the left group by group
+    imgs = np.copy(imgs)
+    labels = np.copy(labels)
 
-def GetNextGoal(I_target, o1):
+    if len(labels) == 0:
+        return imgs, labels
+
+    # reverse views
+    irev = np.flip(imgs, axis=0)
+    lrev = np.flip(labels, axis=0)
+    last_l, last_i = np.copy(lrev[0]), np.copy(irev[0])
+    write_l, write_i = last_l, last_i
+
+    # skip the last area, going backwards
+    for j, l in enumerate(range(lrev.shape[0])):
+        if l != last_l:
+            break
+
+    # rotate in reverse order, starting from this point
+    for i in range(j, lrev.shape[0]):
+        # check for switch
+        if lrev[i] != last_l:
+            write_l = last_l
+            write_i = last_i
+            last_l = np.copy(lrev[i])
+            last_i = np.copy(irev[i])
+        lrev[i] = write_l
+        irev[i] = write_i
+
+    return imgs, labels
+
+def GetNextGoalOld(I_target, o1):
     img = np.zeros_like(I_target)
     next_option = np.zeros_like(o1)
     for i in range(o1.shape[0]):
