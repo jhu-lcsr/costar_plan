@@ -6,19 +6,14 @@ import keras.optimizers as optimizers
 import numpy as np
 import tensorflow as tf
 
-from keras.constraints import maxnorm
+from keras.layers.pooling import MaxPooling2D, AveragePooling2D
 from keras.layers.advanced_activations import LeakyReLU
-from keras.layers import Input, RepeatVector, Reshape
-from keras.layers import UpSampling2D, Conv2DTranspose
+from keras.layers import Input
 from keras.layers import BatchNormalization, Dropout
 from keras.layers import Dense, Conv2D, Activation, Flatten
-from keras.layers import Lambda
 from keras.layers.merge import Add, Multiply
 from keras.layers.merge import Concatenate
-from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
-from keras.optimizers import Adam
-from keras.constraints import max_norm
 
 from .planner import *
 from .data_utils import *
@@ -43,28 +38,25 @@ def _makeTrainTarget(I_target, q_target, g_target, o_target):
 
 def MakeImageClassifier(model, img_shape):
     img = Input(img_shape,name="img_classifier_in")
-    img0 = Input(img_shape,name="img0_classifier_in")
-    bn = False
+    bn = True
+    disc = True
     dr = model.dropout_rate
     x = img
-    x0 = img0
 
-    x = AddConv2D(x, 32, [7,7], 1, dr, "same", lrelu=True, bn=bn)
-    x0 = AddConv2D(x0, 32, [7,7], 1, dr, "same", lrelu=True, bn=bn)
-    x = Concatenate(axis=-1)([x,x0])
-
-    x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=True, bn=bn)
-    x = AddConv2D(x, 32, [5,5], 1, dr, "same", lrelu=True, bn=bn)
-    x = AddConv2D(x, 32, [5,5], 1, dr, "same", lrelu=True, bn=bn)
-    x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=True, bn=bn)
-    x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=True, bn=bn)
-    x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=True, bn=bn)
+    x = AddConv2D(x, 32, [7,7], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 256, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
 
     x = Flatten()(x)
     x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
     x = AddDense(x, model.num_options, "softmax", 0., output=True, bn=False)
-    image_encoder = Model([img0, img], x, name="ITrue")
-    image_encoder.compile(loss="mae", optimizer=model.getOptimizer())
+    image_encoder = Model([img], x, name="classifier")
+    image_encoder.compile(loss="categorical_crossentropy", optimizer=model.getOptimizer())
     model.classifier = image_encoder
     return image_encoder
 
