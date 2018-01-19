@@ -46,7 +46,8 @@ def MakeJigsawsImageEncoder(model, img_shape, disc=False):
     x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-    #x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 128, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
     #x = AddConv2D(x, 256, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
 
     if model.use_spatial_softmax and not disc:
@@ -109,6 +110,8 @@ def MakeJigsawsImageDecoder(model, hidden_shape, img_shape=None, copy=False):
 
     #x = AddConv2DTranspose(x, 64, [5,5], 1, dr, bn=bn)
     x = AddConv2DTranspose(x, 128, [1,1], 1, 0., bn=bn)
+    x = AddConv2DTranspose(x, 128, [5,5], 2, dr, bn=bn)
+    x = AddConv2DTranspose(x, 128, [5,5], 1, 0., bn=bn)
     x = AddConv2DTranspose(x, 64, [5,5], 2, dr, bn=bn)
     x = AddConv2DTranspose(x, 64, [5,5], 1, 0., bn=bn)
     x = AddConv2DTranspose(x, 32, [5,5], 2, dr, bn=bn)
