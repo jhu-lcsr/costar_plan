@@ -118,6 +118,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         model.summary()
         self.discriminator.summary()
         self.model = model
+        self.train_predictor = model
 
         self.predictor = generator
 
