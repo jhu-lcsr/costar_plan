@@ -6,10 +6,7 @@ import keras.optimizers as optimizers
 import numpy as np
 import tensorflow as tf
 
-from keras.constraints import maxnorm
-from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
-from keras.layers import UpSampling2D, Conv2DTranspose
 from keras.layers import BatchNormalization, Dropout
 from keras.layers import Dense, Conv2D, Activation, Flatten
 from keras.layers import Lambda
@@ -17,11 +14,8 @@ from keras.layers.merge import Add, Multiply
 from keras.layers.merge import Concatenate
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
-from keras.optimizers import Adam
-from keras.constraints import max_norm
 
 from .planner import *
-
 
 '''
 Contains tools to make the sub-models for the DVRK application
@@ -52,7 +46,8 @@ def MakeJigsawsImageEncoder(model, img_shape, disc=False):
     x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 256, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    #x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    #x = AddConv2D(x, 256, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
 
     if model.use_spatial_softmax and not disc:
         def _ssm(x):
@@ -65,7 +60,7 @@ def MakeJigsawsImageEncoder(model, img_shape, disc=False):
         model.hidden_size = 2*model.encoder_channels
         model.hidden_shape = (model.hidden_size,)
     else:
-        model.encoder_channels = 16
+        model.encoder_channels = 8
         x = AddConv2D(x, model.encoder_channels, [1,1], 1, 0.*dr,
                 "same", lrelu=disc, bn=bn)
         model.steps_down = 3
@@ -113,8 +108,7 @@ def MakeJigsawsImageDecoder(model, hidden_shape, img_shape=None, copy=False):
         x = Reshape((h,w,c))(x)
 
     #x = AddConv2DTranspose(x, 64, [5,5], 1, dr, bn=bn)
-    x = AddConv2DTranspose(x, 256, [1,1], 1, dr, bn=bn)
-    x = AddConv2DTranspose(x, 128, [5,5], 2, 0., bn=bn)
+    x = AddConv2DTranspose(x, 128, [1,1], 1, 0., bn=bn)
     x = AddConv2DTranspose(x, 64, [5,5], 2, dr, bn=bn)
     x = AddConv2DTranspose(x, 64, [5,5], 1, 0., bn=bn)
     x = AddConv2DTranspose(x, 32, [5,5], 2, dr, bn=bn)

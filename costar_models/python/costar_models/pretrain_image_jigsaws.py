@@ -5,12 +5,8 @@ import keras.losses as losses
 import keras.optimizers as optimizers
 import numpy as np
 
-from keras.callbacks import ModelCheckpoint
-from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
-from keras.layers.embeddings import Embedding
 from keras.layers.merge import Concatenate, Multiply
-from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 
 from .abstract import *
