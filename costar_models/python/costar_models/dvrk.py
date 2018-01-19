@@ -32,6 +32,7 @@ def MakeJigsawsImageClassifier(model, img_shape):
     dr = 0.5 #model.dropout_rate
     x = img
 
+    x = BatchNormalization()(x)
     x = AddConv2D(x, 32, [7,7], 1, 0., "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
@@ -48,7 +49,9 @@ def MakeJigsawsImageClassifier(model, img_shape):
     x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
     x = AddDense(x, model.num_options, "softmax", 0., output=True, bn=False)
     image_encoder = Model([img], x, name="classifier")
-    image_encoder.compile(loss="categorical_crossentropy", optimizer=model.getOptimizer())
+    image_encoder.compile(loss="categorical_crossentropy",
+                          metrics="accuracy",
+                          optimizer=model.getOptimizer())
     model.classifier = image_encoder
     return image_encoder
 
