@@ -115,7 +115,7 @@ flags.DEFINE_string('learning_rate_scheduler', 'learning_rate_scheduler',
 flags.DEFINE_string('optimizer', 'SGD', """Options are Adam and SGD.""")
 flags.DEFINE_string('progress_tracker', 'tensorboard',
                     """Utility to follow training progress, options are tensorboard and None.""")
-flags.DEFINE_string('loss', 'segmentation_single_pixel_binary_crossentropy',
+flags.DEFINE_string('loss', 'segmentation_gaussian_binary_crossentropy',
                     """Options are binary_crossentropy, segmentation_single_pixel_binary_crossentropy,
                        and segmentation_gaussian_binary_crossentropy.""")
 flags.DEFINE_string('metric', 'segmentation_single_pixel_binary_accuracy',
