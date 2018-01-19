@@ -274,7 +274,6 @@ class GraspTrain(object):
                 print('lr: %f' % lr)
                 return lr
 
-            # TODO(ahundt) manage loss/metric names in a more principled way
             loss = self.gather_losses(loss)
 
             metrics, monitor_metric_name = self.gather_metrics(metric)
