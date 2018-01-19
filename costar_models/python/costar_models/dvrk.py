@@ -29,7 +29,7 @@ def MakeJigsawsImageClassifier(model, img_shape):
     img = Input(img_shape,name="img_classifier_in")
     bn = True
     disc = True
-    dr = model.dropout_rate
+    dr = 0.5 #model.dropout_rate
     x = img
 
     x = AddConv2D(x, 32, [7,7], 1, 0., "same", lrelu=disc, bn=bn)
@@ -38,10 +38,10 @@ def MakeJigsawsImageClassifier(model, img_shape):
     x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 128, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 128, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
 
     x = Flatten()(x)
