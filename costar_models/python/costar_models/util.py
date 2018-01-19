@@ -218,5 +218,6 @@ def GetModels():
             "pretrain_minimal",
             "pretrain_image_gan",
             "discriminator",
+            "goal_discriminator",
             ]
 
