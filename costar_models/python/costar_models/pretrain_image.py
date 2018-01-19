@@ -51,7 +51,8 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
         #o1 = image_discriminator(ins)
         #o2 = image_discriminator([out])
         image_discriminator = MakeImageClassifier(img_shape)
-        image_discriminator.load_weights("discriminator_model_classifier.h5f")
+        #image_discriminator.load_weights("discriminator_model_classifier.h5f")
+        image_discriminator.load_weights("discriminator_model_predictor_weights.h5f")
         image_discriminator.trainable = False
             
         o2 = image_discriminator([img0_in, out])
