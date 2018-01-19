@@ -29,12 +29,14 @@ from .discriminator import Discriminator
 from .pretrain_image_jigsaws import PretrainImageJigsaws
 from .pretrain_image_jigsaws_gan import PretrainImageJigsawsGan
 from .conditional_image_jigsaws import ConditionalImageJigsaws
+from .conditional_image_gan_jigsaws import ConditionalImageGanJigsaws
 
 # Husky stuff
 from .husky_sampler import HuskyRobotMultiPredictionSampler
 from .pretrain_image_husky import PretrainImageAutoencoderHusky
 from .pretrain_image_husky_gan import PretrainImageHuskyGan
 from .conditional_image_husky import ConditionalImageHusky
+from .conditional_image_husky_gan import ConditionalImageHuskyGan
 from .discriminator import HuskyDiscriminator
 
 def MakeModel(features, model, taskdef, **kwargs):
@@ -131,6 +133,11 @@ def MakeModel(features, model, taskdef, **kwargs):
         elif model == "discriminator":
             model_instance = Discriminator(taskdef, model=model, **kwargs)
     elif features == "jigsaws":
+        '''
+        These models are all meant for use with the JHU-JIGSAWS dataset. This
+        is a surgical activity data set containing suturing, needle passing,
+        and a few other tasks.
+        '''
         if model == "pretrain_image_encoder":
             model_instance = PretrainImageJigsaws(taskdef,
                     model=model,
@@ -146,7 +153,16 @@ def MakeModel(features, model, taskdef, **kwargs):
                     model=model,
                     features=features,
                     **kwargs)
+        elif model == "conditional_image_gan":
+            model_instance = ConditionalImageGanJigsaws(taskdef,
+                    model=model,
+                    features=features,
+                    **kwargs)
     elif features == "husky":
+        '''
+        Husky simulator. This is a robot moving around on a 2D plane, so our
+        action and state spaces are slightly different.
+        '''
         if model == "pretrain_image_encoder":
             model_instance = PretrainImageAutoencoderHusky(taskdef,
                     model=model,

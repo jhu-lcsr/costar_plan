@@ -41,11 +41,12 @@ class PretrainImageJigsaws(PretrainImageAutoencoder):
         img_shape = image.shape[1:]
 
         img_in = Input(img_shape,name="predictor_img_in")
-        encoder = self._makeImageEncoder(img_shape)
+        encoder = MakeJigsawsImageEncoder(self, img_shape)
         ins = [img_in]
         
         enc = encoder(ins)
-        decoder = self._makeImageDecoder(
+        decoder = MakeJigsawsImageDecoder(
+                    self,
                     self.hidden_shape,
                     self.skip_shape,)
         out = decoder(enc)

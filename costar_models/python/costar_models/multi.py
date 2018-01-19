@@ -20,6 +20,7 @@ from keras.models import Model, Sequential
 from keras.optimizers import Adam
 from keras.constraints import max_norm
 
+from .planner import *
 from .data_utils import *
 
 '''
