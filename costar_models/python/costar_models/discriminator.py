@@ -49,7 +49,7 @@ class Discriminator(RobotMultiPredictionSampler):
         I0 = I[0,:,:,:]
         length = I.shape[0]
         I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
-        return [I0, I_target], [o1_1h]
+        return [I0, I], [o1_1h]
 
 class HuskyDiscriminator(RobotMultiPredictionSampler):
 
