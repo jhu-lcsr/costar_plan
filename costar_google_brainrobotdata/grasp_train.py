@@ -275,14 +275,7 @@ class GraspTrain(object):
                 return lr
 
             # TODO(ahundt) manage loss/metric names in a more principled way
-            loss_name = 'loss'
-            if 'segmentation_single_pixel_binary_crossentropy' in loss:
-                loss = grasp_loss.segmentation_single_pixel_binary_crossentropy
-                loss_name = 'segmentation_single_pixel_binary_crossentropy'
-
-            if isinstance(loss, str) and 'segmentation_gaussian_binary_crossentropy' in loss:
-                loss = grasp_loss.segmentation_gaussian_binary_crossentropy
-                loss_name = 'segmentation_gaussian_binary_crossentropy'
+            loss = self.gather_losses(loss)
 
             metrics, monitor_metric_name = self.gather_metrics(metric)
 
@@ -497,14 +490,7 @@ class GraspTrain(object):
                         raise ValueError('Could not load weights {}, '
                                          'the file does not exist.'.format(load_weights))
 
-            loss_name = 'loss'
-            if 'segmentation_single_pixel_binary_crossentropy' in loss:
-                loss = grasp_loss.segmentation_single_pixel_binary_crossentropy
-                loss_name = 'segmentation_single_pixel_binary_crossentropy'
-
-            if isinstance(loss, str) and 'segmentation_gaussian_binary_crossentropy' in loss:
-                loss = grasp_loss.segmentation_gaussian_binary_crossentropy
-                loss_name = 'segmentation_gaussian_binary_crossentropy'
+            loss = self.gather_losses(loss)
 
             metrics, monitor_metric_name = self.gather_metrics(metric)
 
@@ -563,9 +549,24 @@ class GraspTrain(object):
         metrics = metrics + [grasp_loss.mean_pred, grasp_loss.mean_true]
         return metrics, monitor_metric_name
 
+    def gather_losses(self, loss):
+        # TODO(ahundt) manage loss/metric names in a more principled way
+        loss_name = 'loss'
+        if 'segmentation_single_pixel_binary_crossentropy' in loss:
+            loss = grasp_loss.segmentation_single_pixel_binary_crossentropy
+            loss_name = 'segmentation_single_pixel_binary_crossentropy'
+
+        if isinstance(loss, str) and 'segmentation_gaussian_binary_crossentropy' in loss:
+            loss = grasp_loss.segmentation_gaussian_binary_crossentropy
+            loss_name = 'segmentation_gaussian_binary_crossentropy'
+        return loss
+
 
 def define_make_model_fn(grasp_model_name=FLAGS.grasp_model):
-    """ Get command line specified function that will be used later to the Keras Model object.
+    """ Select the Neural Network Model to use.
+
+        Gets a command line specified function that
+        will be used later to create the Keras Model object.
 
         This function seems a little odd, so please bear with me.
         Instead of generating the model directly, This creates and
