@@ -14,12 +14,7 @@ from keras.layers.merge import Concatenate, Multiply
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 
-from .abstract import *
 from .callbacks import *
-from .robot_multi_models import *
-from .split import *
-from .mhp_loss import *
-from .loss import *
 from .multi_sampler import *
 
 class PretrainImageGan(RobotMultiPredictionSampler):
@@ -86,7 +81,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         return self.model, self.model, None, [img_in], enc
 
     def _getData(self, *args, **kwargs):
-        features, targets = self._getAllData(*args, **kwargs)
+        features, targets = GetAllMultiData(self.num_options, *args, **kwargs)
         [img, q, g, oin, label, q_target, g_target,] = features
         return [img], [img]
 

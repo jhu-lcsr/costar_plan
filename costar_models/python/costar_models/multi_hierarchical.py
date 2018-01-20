@@ -56,6 +56,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         self.null_option = 37
         self.supervisor = None
         self.actor = None
+        self.classifier = None
 
         # Feature presets
         self.arm_cmd_size = 6
@@ -383,6 +384,8 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 self.supervisor.save_weights(self.name + "_supervisor.h5f")
             if self.actor is not None:
                 self.actor.save_weights(self.name + "_actor.h5f")
+            if self.classifier is not None:
+                self.classifier.save_weights(self.name + "_classifier.h5f")
         else:
             raise RuntimeError('save() failed: model not found.')
 
@@ -402,6 +405,33 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 epochs=self.epochs,
                 validation_steps=self.validation_steps,
                 validation_data=test_generator,)
+
+    def _makeImageClassifier(self, img_shape):
+        img = Input(img_shape,name="img_classifier_in")
+        img0 = Input(img_shape,name="img0_classifier_in")
+        bn = False
+        dr = self.dropout_rate
+        x = img
+        x0 = img0
+
+        x = AddConv2D(x, 32, [7,7], 1, dr, "same", lrelu=disc, bn=bn)
+        x0 = AddConv2D(x0, 32, [7,7], 1, dr, "same", lrelu=disc, bn=bn)
+        x = Concatenate(axis=-1)([x,x0])
+
+        x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+        x = AddConv2D(x, 32, [5,5], 1, dr, "same", lrelu=disc, bn=bn)
+        x = AddConv2D(x, 32, [5,5], 1, dr, "same", lrelu=disc, bn=bn)
+        x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+        x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=disc, bn=bn)
+        x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+
+        x = Flatten()(x)
+        x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
+        x = AddDense(x, self.num_options, "softmax", 0., output=True, bn=False)
+        image_encoder = Model([img0, img], x, name="Idisc")
+        image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
+        self.classifier = image_encoder
+        return image_encoder
 
     def _makeImageEncoder(self, img_shape, disc=False):
         '''

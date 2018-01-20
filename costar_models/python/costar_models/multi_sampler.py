@@ -106,6 +106,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.state_decoder = None
         self.hidden_encoder = None
         self.hidden_decoder = None
+        self.next_model = None
+        self.value_model = None
+        self.transform_model = None
 
         # ===================================================================
         # These are hard coded settings -- tweaking them may break a bunch of
@@ -295,7 +298,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         return predictor, train_predictor, actor, ins, enc
 
-    def _makeTransform(self):
+    def _makeTransform(self, h_dim=(8,8)):
         '''
         This is the version made for the newer code, it is set up to use both
         the initial and current observed world and creates a transform
@@ -309,8 +312,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         --------
         transform model
         '''
-        h = Input((8,8,self.encoder_channels),name="h_in")
-        h0 = Input((8,8,self.encoder_channels),name="h0_in")
+        h = Input((h_dim[0], h_dim[1], self.encoder_channels),name="h_in")
+        h0 = Input((h_dim[0],h_dim[1], self.encoder_channels),name="h0_in")
         option = Input((self.num_options,),name="t_opt_in")
         x = AddConv2D(h, 64, [1,1], 1, 0.)
         x0 = AddConv2D(h0, 64, [1,1], 1, 0.)
@@ -324,7 +327,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Add dense information
         y = AddDense(option, 64, "relu", 0., constraint=None, output=False)
-        x = TileOnto(x, y, 64, (8,8))
+        x = TileOnto(x, y, 64, h_dim)
         x = AddConv2D(x, 64, [5,5], 1, 0.)
         #x = AddConv2D(x, 128, [5,5], 2, 0.)
 
@@ -336,8 +339,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
             x = AddDense(x, 256, "relu", 0.,
                     constraint=None, output=False,)
-            x = AddDense(x, 4*4*32, "relu", 0., constraint=None, output=False)
-            x = Reshape([4,4,32])(x)
+            x = AddDense(x, h_dim[0] * h_dim[1] * 32/4, "relu", 0., constraint=None, output=False)
+            x = Reshape([h_dim[0]/2, h_dim[1]/2, 32])(x)
         else:
             x = AddConv2D(x, 128, [5,5], 1, 0.)
         x = AddConv2DTranspose(x, 64, [5,5], 2,
@@ -452,6 +455,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Use sample data to compile the model and set everything else up.
         # Check to make sure data makes sense before running the model.
         if self.predictor is None:
+            self._makeModel(**data)
             try:
                 self._makeModel(**data)
             except Exception as e:
@@ -472,20 +476,23 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         for i, f in enumerate(cbf):
             if len(f.shape) < 1:
                 raise RuntimeError('feature %d not an appropriate size!'%i)
-        imageCb = self.PredictorCb(
-            self.predictor,
-            name=self.name_prefix,
-            features=cbf,
-            targets=cbt,
-            model_directory=self.model_directory,
-            num_hypotheses=self.num_hypotheses,
-            verbose=True,
-            use_noise=self.use_noise,
-            noise_dim=self.noise_dim,
-            min_idx=0,
-            max_idx=70,
-            step=10,)
-        callbacks=[modelCheckpointCb, logCb, imageCb]
+        if self.PredictorCb is not None:
+            imageCb = self.PredictorCb(
+                self.predictor,
+                name=self.name_prefix,
+                features=cbf,
+                targets=cbt,
+                model_directory=self.model_directory,
+                num_hypotheses=self.num_hypotheses,
+                verbose=True,
+                use_noise=self.use_noise,
+                noise_dim=self.noise_dim,
+                min_idx=0,
+                max_idx=70,
+                step=10,)
+            callbacks=[modelCheckpointCb, logCb, imageCb]
+        else:
+            callbacks=[modelCheckpointCb, logCb,]
         self._fit(train_generator, test_generator, callbacks)
 
     def _fit(self, train_generator, test_generator, callbacks):
@@ -527,6 +534,19 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             if self.hidden_decoder is not None:
                 self.hidden_decoder.save_weights(self.name + 
                 "_hidden_decoder.h5f")
+            if self.classifier is not None:
+                self.hidden_decoder.save_weights(self.name + 
+                "_classifier.h5f")
+            if self.transform_model is not None:
+                self.transform_model.save_weights(self.name + 
+                "_transform.h5f")
+            if self.value_model is not None:
+                self.value_model.save_weights(self.name + 
+                "_value.h5f")
+            if self.next_model is not None:
+                self.next_model.save_weights(self.name + 
+                "_next.h5f")
+
         else:
             raise RuntimeError('save() failed: model not found.')
 
