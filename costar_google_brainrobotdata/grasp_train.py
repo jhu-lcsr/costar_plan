@@ -31,6 +31,7 @@ from keras.callbacks import CSVLogger
 from keras.callbacks import EarlyStopping
 from keras.callbacks import ModelCheckpoint
 from keras.callbacks import TensorBoard
+from keras.models import Model
 
 from tensorflow.python.platform import flags
 
@@ -60,7 +61,9 @@ flags.DEFINE_string('grasp_model', 'grasp_model_levine_2016_segmentation',
                        grasp_model_levine_2016, grasp_model, grasp_model_resnet, grasp_model_segmentation""")
 flags.DEFINE_string('save_weights', 'grasp_model_weights',
                     """Save a file with the trained model weights.""")
-flags.DEFINE_string('load_weights', 'grasp_model_weights.h5',
+flags.DEFINE_string('load_weights', None,
+# flags.DEFINE_string('load_weights', 'grasp_model_weights.h5',
+# flags.DEFINE_string('load_weights', '2018-01-19-19-22-29_delta_depth_sin_cos_3-grasp_model_levine_2016_segmentation-dataset_062_b_063_072_a_082_b_102-epoch-001-val_loss-0.775-val_segmentation_single_pixel_binary_accuracy-0.354.h5',
                     """Load and continue training the specified file containing model weights.""")
 flags.DEFINE_integer('epochs', 300,
                      """Epochs of training""")
@@ -122,7 +125,7 @@ flags.DEFINE_string('loss', 'segmentation_single_pixel_binary_crossentropy',
                        and segmentation_gaussian_binary_crossentropy.""")
 flags.DEFINE_string('metric', 'segmentation_single_pixel_binary_accuracy',
                     """Options are accuracy, binary_accuracy and segmentation_single_pixel_binary_accuracy.""")
-flags.DEFINE_string('distributed', 'horovod',
+flags.DEFINE_string('distributed', None,
                     """Options are 'horovod' (github.com/uber/horovod) or None for distributed training utilities.""")
 flags.DEFINE_integer('early_stopping', None,
                      """Stop training if the monitored loss does not improve after the specified number of epochs.
@@ -601,8 +604,13 @@ class GraspTrain(object):
                           loss=loss,
                           metrics=metrics,
                           target_tensors=[grasp_success_op_batch],
-                          fetches=fetches,
-                          return_fetches=True)
+                          fetches=fetches)
+
+            # Warning: hacky workaround to get both fetches and predictions back
+            # see https://github.com/keras-team/keras/pull/9121 for details
+            # TODO(ahundt) remove this hack
+            model._make_predict_function = keras_workaround._make_predict_function_get_fetches.__get__(model, Model)
+
             return model
 
     def gather_metrics(self, metric):
@@ -621,7 +629,6 @@ class GraspTrain(object):
         return metrics, monitor_metric_name
 
     def gather_losses(self, loss):
-        # TODO(ahundt) manage loss/metric names in a more principled way
         loss_name = 'loss'
         if 'segmentation_single_pixel_binary_crossentropy' in loss:
             loss = grasp_loss.segmentation_single_pixel_binary_crossentropy

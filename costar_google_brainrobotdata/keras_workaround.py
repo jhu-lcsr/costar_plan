@@ -1,9 +1,10 @@
 """Override some keras functionality so you can get fetches back from keras.predict.
 
-# Warning! Super hacky workaround to get fetches back when predict() gets called:
-model._make_predict_function = keras_workaround._make_predict_function_get_fetches
+Warning! This file is a super hacky workaround to get fetches back when predict()
+gets called see https://github.com/keras-team/keras/pull/9121 for details.
+This file is adapted from https://github.com/keras-team/keras. Usage:
 
-This file adapted from https://github.com/keras-team/keras.
+    model._make_predict_function = keras_workaround._make_predict_function_get_fetches
 
 Author: Andrew Hundt <ATHundt@gmail.com>
 
@@ -12,13 +13,14 @@ License: Apache v2 https://www.apache.org/licenses/LICENSE-2.0
 """
 import tf
 import keras
-import keras.backend.tensorflow_backend import *
 import keras.backend as K
+from keras.backend.tensorflow_backend import *
 
 # Function adapted from K.backend.tensorflow_backend
+# periodically check keras itself for changes to these classes and functions
 
 
-class Function(object):
+class FunctionGetFetches(object):
     """Runs a computation graph.
 
     It's possible to pass arguments to `tf.Session.run()` via `session_kwargs`.
@@ -111,7 +113,7 @@ def function_get_fetches(inputs, outputs, updates=None, **kwargs):
             if not (has_arg(tf.Session.run, key, True) or has_arg(Function.__init__, key, True)):
                 msg = 'Invalid argument "%s" passed to K.function with TensorFlow backend' % key
                 raise ValueError(msg)
-    return Function(inputs, outputs, updates=updates, **kwargs)
+    return FunctionGetFetches(inputs, outputs, updates=updates, **kwargs)
 
 
 # _make_predict_function_get_fetches adapted from _make_predict_function() in K.backend.tensorflow_backend
