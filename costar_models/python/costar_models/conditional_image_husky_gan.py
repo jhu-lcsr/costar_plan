@@ -15,23 +15,18 @@ from keras.models import Model, Sequential
 from keras.optimizers import Adam
 from matplotlib import pyplot as plt
 
-from .conditional_image import *
-from .husky import *
+from .conditional_image_gan import *
 
+class ConditionalImageHuskyGan(ConditionalImageGan):
+    def __init__(self, *args, **kwargs):
+        super(ConditionalImageHuskyGan, self).__init__(*args, **kwargs)
 
-class ConditionalImageHusky(ConditionalImage):
-
-    def __init__(self, taskdef, *args, **kwargs):
-        '''
-        As in the other models, we call super() to parse arguments from the
-        command line and set things like our optimizer and learning rate.
-        '''
-        super(ConditionalImageHusky, self).__init__(taskdef, *args, **kwargs)
-        self.num_options = 5
-        self.null_option = 4
+    def _getData(self, *args, **kwargs):
+        return GetConditionalHuskyData(self.do_all, self.num_options, *args, **kwargs)
 
     def _makeModel(self, image, pose, *args, **kwargs):
-       
+
+
         img_shape = image.shape[1:]
         pose_size = pose.shape[-1]
 
@@ -42,24 +37,18 @@ class ConditionalImageHusky(ConditionalImage):
         label_in = Input((1,))
         ins = [img0_in, img_in]
 
-        if self.skip_connections:
-            encoder = self._makeImageEncoder2(img_shape)
-        else:
-            encoder = self._makeImageEncoder(img_shape)
+        encoder = self._makeImageEncoder(img_shape)
         try:
             encoder.load_weights(self._makeName(
-                "pretrain_image_encoder_model_husky",
-                #"pretrain_image_gan_model",
+                #"pretrain_image_encoder_model_husky",
+                "pretrain_image_gan_model_husky",
                 "image_encoder.h5f"))
             encoder.trainable = self.retrain
         except Exception as e:
             if not self.retrain:
                 raise e
 
-        if self.skip_connections:
-            decoder = self._makeImageDecoder2(self.hidden_shape)
-        else:
-            decoder = self._makeImageDecoder(self.hidden_shape)
+        decoder = self._makeImageDecoder(self.hidden_shape)
         try:
             decoder.load_weights(self._makeName(
                 "pretrain_image_encoder_model_husky",
@@ -78,24 +67,11 @@ class ConditionalImageHusky(ConditionalImage):
             h = encoder([img_in])
             h0 = encoder(img0_in)
 
-        next_model = GetNextModel(h, self.num_options, 128,
-                self.decoder_dropout_rate)
-        value_model = GetValueModel(h, self.num_options, 64,
-                self.decoder_dropout_rate)
-        next_model.compile(loss="mae", optimizer=self.getOptimizer())
-        value_model.compile(loss="mae", optimizer=self.getOptimizer())
-        value_out = value_model([h])
-        next_option_out = next_model([h0,h,label_in])
-
         # create input for controlling noise output if that's what we decide
         # that we want to do
         if self.use_noise:
             z = Input((self.num_hypotheses, self.noise_dim))
             ins += [z]
-
-        next_option_in = Input((1,), name="next_option_in")
-        next_option_in2 = Input((1,), name="next_option_in2")
-        ins += [next_option_in, next_option_in2]
 
         y = OneHot(self.num_options)(next_option_in)
         y = Flatten()(y)
@@ -107,11 +83,21 @@ class ConditionalImageHusky(ConditionalImage):
         x2 = tform([h0,x,y2])
         image_out = decoder([x])
         image_out2 = decoder([x2])
-        #image_out = decoder([x, s32, s16, s8])
 
-        self.next_model = next_model
-        self.value_model = value_model
         self.transform_model = tform
+
+        # =====================================================================
+        # Make the discriminator
+        image_discriminator = self._makeImageDiscriminator(img_shape)
+        self.discriminator = image_discriminator
+
+        image_discriminator.trainable = False
+        is_fake = image_discriminator([
+            img0_in, img_in,
+            next_option_in, 
+            next_option2_in,
+            image_out,
+            image_out2])
 
         # =====================================================================
         actor = GetHuskyActorModel(h, self.num_options, pose_size,
@@ -149,6 +135,3 @@ class ConditionalImageHusky(ConditionalImage):
         self.predictor = predictor
         self.train_predictor = train_predictor
         self.actor = actor
-
-    def _getData(self, *args, **kwargs):
-        return GetConditionalHuskyData(self.do_all, self.num_options, *args, **kwargs)
