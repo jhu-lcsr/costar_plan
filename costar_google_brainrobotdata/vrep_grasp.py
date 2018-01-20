@@ -545,8 +545,8 @@ class VREPGraspVisualization(object):
             if FLAGS.vrepVisualizePredictions == True:
                 # x should be passed through internal calls
                 predictions, _, output_features_dicts = pred_model.predict_on_batch(x=None)
-                print(predictions)
-                return
+                output_features_dicts = [(output_features_dicts[0],output_features_dicts[1])] 
+                print(predictions.shape)
             else:
                 # batch shize should actually always be 1 for this visualization
                 predictions = None
@@ -663,11 +663,12 @@ class VREPGraspVisualization(object):
                 current_coordinates = time_ordered_feature_data_dict[current_coordinate_name]
                 final_coordinates = time_ordered_feature_data_dict[final_coordinate_name]
 
-                for img_num, (rgb, depth, xyz, current_coordinate, final_coordinate) in enumerate(zip(rgb_images,
+                for img_num, (rgb, depth, xyz, current_coordinate, final_coordinate, prediction) in enumerate(zip(rgb_images,
                                                                                                       depth_images,
                                                                                                       xyz_images,
                                                                                                       current_coordinates,
-                                                                                                      final_coordinates)):
+                                                                                                      final_coordinates,
+                                                                                                      predictions)):
                     # depth = grasp_geometry.draw_circle(grasp_geometry.draw_circle(depth, current_coordinate), final_coordinate)
                     rgb = grasp_geometry.draw_circle(grasp_geometry.draw_circle(rgb, current_coordinate, color=(0, 255, 255)), final_coordinate, color=(255, 255, 0))
                     create_point_cloud(
@@ -678,6 +679,19 @@ class VREPGraspVisualization(object):
                         parent_handle=parent_handle,
                         rgb_sensor_display_name='kcam_rgb',
                         depth_sensor_display_name='kcam_depth',
+                        point_cloud=xyz)
+
+                    prediction = np.squeeze(prediction)
+                    prediction = 255 * prediction
+                    rgb_prediction = np.dstack((prediction, prediction, prediction))
+                    create_point_cloud(
+                        self.client_id, 'prediction_point_cloud',
+                        transform=base_to_camera_vec_quat_7,
+                        depth_image=depth,
+                        color_image=rgb_prediction,
+                        parent_handle=parent_handle,
+                        rgb_sensor_display_name='kcam_rgb_prediction',
+                        depth_sensor_display_name='kcam_depth_prediction',
                         point_cloud=xyz)
 
     def visualize_python(self, tf_session, dataset=FLAGS.grasp_dataset, batch_size=1, parent_name=FLAGS.vrepParentName,
