@@ -31,12 +31,15 @@ from keras.callbacks import CSVLogger
 from keras.callbacks import EarlyStopping
 from keras.callbacks import ModelCheckpoint
 from keras.callbacks import TensorBoard
+from keras.models import Model
 
 from tensorflow.python.platform import flags
 
 import grasp_dataset
 import grasp_model
 import grasp_loss
+import keras_workaround
+from callbacks import EvaluateInputTensor
 
 from tqdm import tqdm  # progress bars https://github.com/tqdm/tqdm
 # from keras_tqdm import TQDMCallback  # Keras tqdm progress bars https://github.com/bstriner/keras-tqdm
@@ -58,7 +61,9 @@ flags.DEFINE_string('grasp_model', 'grasp_model_levine_2016_segmentation',
                        grasp_model_levine_2016, grasp_model, grasp_model_resnet, grasp_model_segmentation""")
 flags.DEFINE_string('save_weights', 'grasp_model_weights',
                     """Save a file with the trained model weights.""")
-flags.DEFINE_string('load_weights', 'grasp_model_weights.h5',
+flags.DEFINE_string('load_weights', None,
+# flags.DEFINE_string('load_weights', 'grasp_model_weights.h5',
+# flags.DEFINE_string('load_weights', '2018-01-19-19-22-29_delta_depth_sin_cos_3-grasp_model_levine_2016_segmentation-dataset_062_b_063_072_a_082_b_102-epoch-001-val_loss-0.775-val_segmentation_single_pixel_binary_accuracy-0.354.h5',
                     """Load and continue training the specified file containing model weights.""")
 flags.DEFINE_integer('epochs', 300,
                      """Epochs of training""")
@@ -120,7 +125,7 @@ flags.DEFINE_string('loss', 'segmentation_single_pixel_binary_crossentropy',
                        and segmentation_gaussian_binary_crossentropy.""")
 flags.DEFINE_string('metric', 'segmentation_single_pixel_binary_accuracy',
                     """Options are accuracy, binary_accuracy and segmentation_single_pixel_binary_accuracy.""")
-flags.DEFINE_string('distributed', 'horovod',
+flags.DEFINE_string('distributed', None,
                     """Options are 'horovod' (github.com/uber/horovod) or None for distributed training utilities.""")
 flags.DEFINE_integer('early_stopping', None,
                      """Stop training if the monitored loss does not improve after the specified number of epochs.
@@ -533,6 +538,81 @@ class GraspTrain(object):
 
             return weights_name_str
 
+    def get_compiled_model(self, dataset=FLAGS.grasp_dataset_eval,
+                           batch_size=1,
+                           load_weights=FLAGS.load_weights,
+                           make_model_fn=grasp_model.grasp_model_densenet,
+                           imagenet_preprocessing=FLAGS.imagenet_preprocessing,
+                           grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
+                           grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
+                           resize=FLAGS.resize,
+                           resize_height=FLAGS.resize_height,
+                           resize_width=FLAGS.resize_width,
+                           model_name=FLAGS.grasp_model,
+                           loss=FLAGS.loss,
+                           metric=FLAGS.metric,
+                           fetches=None):
+        with K.name_scope('predict') as scope:
+            data = grasp_dataset.GraspDataset(dataset=dataset)
+            (pregrasp_op_batch, grasp_step_op_batch,
+             simplified_grasp_command_op_batch,
+             grasp_success_op_batch,
+             num_samples) = data.get_training_tensors(batch_size=batch_size,
+                                                      imagenet_preprocessing=imagenet_preprocessing,
+                                                      random_crop=False,
+                                                      image_augmentation=False,
+                                                      resize=resize,
+                                                      grasp_sequence_min_time_step=grasp_sequence_min_time_step,
+                                                      grasp_sequence_max_time_step=grasp_sequence_max_time_step,
+                                                      shift_ratio=0.0)
+
+            if resize:
+                input_image_shape = [resize_height, resize_width, 3]
+            else:
+                input_image_shape = [512, 640, 3]
+
+            ########################################################
+            # End tensor configuration, begin model configuration and training
+
+            # create the model
+            model = make_model_fn(
+                pregrasp_op_batch,
+                grasp_step_op_batch,
+                simplified_grasp_command_op_batch,
+                # input_image_shape=input_image_shape,
+                dropout_rate=0.0)
+
+            if(load_weights):
+                if os.path.isfile(load_weights):
+                    model.load_weights(load_weights)
+                else:
+                    raise ValueError('Could not load weights {}, '
+                                     'the file does not exist.'.format(load_weights))
+
+            loss_name = 'loss'
+            if 'segmentation_single_pixel_binary_crossentropy' in loss:
+                loss = grasp_loss.segmentation_single_pixel_binary_crossentropy
+                loss_name = 'segmentation_single_pixel_binary_crossentropy'
+
+            if isinstance(loss, str) and 'segmentation_gaussian_binary_crossentropy' in loss:
+                loss = grasp_loss.segmentation_gaussian_binary_crossentropy
+                loss_name = 'segmentation_gaussian_binary_crossentropy'
+
+            metrics, monitor_metric_name = self.gather_metrics(metric)
+
+            model.compile(optimizer='sgd',
+                          loss=loss,
+                          metrics=metrics,
+                          target_tensors=[grasp_success_op_batch],
+                          fetches=fetches)
+
+            # Warning: hacky workaround to get both fetches and predictions back
+            # see https://github.com/keras-team/keras/pull/9121 for details
+            # TODO(ahundt) remove this hack
+            model._make_predict_function = keras_workaround._make_predict_function_get_fetches.__get__(model, Model)
+
+            return model
+
     def gather_metrics(self, metric):
         metrics = []
         if 'segmentation_single_pixel_binary_accuracy' in metric:
@@ -549,7 +629,6 @@ class GraspTrain(object):
         return metrics, monitor_metric_name
 
     def gather_losses(self, loss):
-        # TODO(ahundt) manage loss/metric names in a more principled way
         loss_name = 'loss'
         if 'segmentation_single_pixel_binary_crossentropy' in loss:
             loss = grasp_loss.segmentation_single_pixel_binary_crossentropy
@@ -635,54 +714,6 @@ def define_make_model_fn(grasp_model_name=FLAGS.grasp_model):
         else:
             raise ValueError('unknown model selected: {}'.format(grasp_model_name))
     return make_model_fn
-
-
-class EvaluateInputTensor(keras.callbacks.Callback):
-    """ Validate a model which does not expect external numpy data during training.
-
-    Keras does not expect external numpy data at training time, and thus cannot
-    accept numpy arrays for validation when all of a Keras Model's
-    `Input(input_tensor)` layers are provided an  `input_tensor` parameter,
-    and the call to `Model.compile(target_tensors)` defines all `target_tensors`
-    Instead, create a second model configured with input tensors for validation
-    and add it to the `EvaluateInputTensor` callback to perform validation.
-
-    It is recommended that this callback be the first in the list of callbacks
-    because it defines the validation variables required by many other callbacks,
-    and Callbacks are made in order.
-
-    #TODO(ahundt) replace when https://github.com/keras-team/keras/pull/9105 is available
-
-    # Arguments
-        model: Keras model on which to call model.evaluate().
-        steps: Integer or `None`.
-            Total number of steps (batches of samples)
-            before declaring the evaluation round finished.
-            Ignored with the default value of `None`.
-    """
-
-    def __init__(self, model, steps, metrics_prefix='val', verbose=1):
-        # parameter of callbacks passed during initialization
-        # pass evalation mode directly
-        super(EvaluateInputTensor, self).__init__()
-        self.val_model = model
-        self.num_steps = steps
-        self.verbose = verbose
-        self.metrics_prefix = metrics_prefix
-
-    def on_epoch_end(self, epoch, logs={}):
-        self.val_model.set_weights(self.model.get_weights())
-        results = self.val_model.evaluate(None, None, steps=int(self.num_steps),
-                                          verbose=self.verbose)
-        metrics_str = '\n'
-        for result, name in zip(results, self.val_model.metrics_names):
-            metric_name = self.metrics_prefix + '_' + name
-            logs[metric_name] = result
-            if self.verbose > 0:
-                metrics_str = metrics_str + metric_name + ': ' + str(result) + ' '
-
-        if self.verbose > 0:
-            print(metrics_str)
 
 
 def main():

@@ -38,6 +38,8 @@ PIL or standard image viewers.
 
 import numpy as np
 from PIL import Image
+from skimage import img_as_ubyte
+from skimage.color import grey2rgb
 
 
 def ClipFloatValues(float_array, min_value, max_value):
@@ -220,6 +222,7 @@ def FloatArrayToRawRGB(im, min_value=0.0, max_value=1.0):
     http://pillow.readthedocs.io/en/3.4.x/reference/Image.html#PIL.Image.Image.convert
     https://en.wikipedia.org/wiki/Rec._601
     """
-    im = ClipFloatValues(im, min_value, max_value) - min_value
-    im *= 255.0 / (max_value - min_value)
-    return np.dstack([im.astype(np.uint8)] * 3)
+    im = img_as_ubyte(im)
+    if im.shape[-1] == 1:
+        im = grey2rgb(im)
+    return im

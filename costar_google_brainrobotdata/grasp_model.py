@@ -2,6 +2,7 @@ import tensorflow as tf
 
 import keras
 from keras.applications.resnet50 import ResNet50
+from keras.applications.nasnet import NASNetMobile
 from keras import backend as K
 from keras.layers import Dense
 from keras.layers import Dropout
@@ -199,7 +200,7 @@ def grasp_model_resnet(clear_view_image_op,
                        activation='sigmoid',
                        repetitions=None):
     if repetitions is None:
-        repetitions = [2, 2, 2, 2]
+        repetitions = [1, 1, 1, 1]
     combined_input_data = concat_images_with_tiled_vector([clear_view_image_op, current_time_image_op], input_vector_op)
     combined_input_shape = K.int_shape(combined_input_data)
     # the input shape should be a tuple of 3 values
@@ -227,8 +228,8 @@ def grasp_model_pretrained(clear_view_image_op,
                            input_vector_op,
                            input_image_shape=None,
                            input_vector_op_shape=None,
-                           growth_rate=12,
-                           reduction=0.75,
+                           growth_rate=36,
+                           reduction=0.5,
                            dense_blocks=4,
                            include_top=True,
                            dropout_rate=0.0,
@@ -242,13 +243,13 @@ def grasp_model_pretrained(clear_view_image_op,
 
     print('input_image_shape:', input_image_shape)
 
-    clear_view_model = ResNet50(
-        input_shape=input_image_shape,
+    clear_view_model = NASNetMobile(
+        input_shape=input_image_shape[1:],
         input_tensor=clear_view_image_op,
         include_top=False)
 
-    current_time_model = ResNet50(
-        input_shape=input_image_shape,
+    current_time_model = NASNetMobile(
+        input_shape=input_image_shape[1:],
         input_tensor=current_time_image_op,
         include_top=False)
 
@@ -258,25 +259,25 @@ def grasp_model_pretrained(clear_view_image_op,
         for layer in current_time_model.layers:
             layer.trainable = False
 
-    clear_view_unpooled_layer = clear_view_model.layers[-2].get_output_at(0)
-    unpooled_shape = clear_view_unpooled_layer.get_shape().as_list()
+    # clear_view_unpooled_layer = clear_view_model.layers[-2].get_output_at(0)
+    clear_view_unpooled_layer = clear_view_model.outputs[0]
+    unpooled_shape = K.int_shape(clear_view_unpooled_layer)
     print('clear_view_unpooled_layer: ', clear_view_unpooled_layer)
     print('unpooled_shape: ', unpooled_shape)
-    current_time_unpooled = current_time_model.layers[-2].get_output_at(0)
-    print('input_vector_op before tile: ', input_vector_op)
-    input_vector_op = tile_vector_as_image_channels(
-        input_vector_op,
-        unpooled_shape
-        )
-    print('input_vector_op after tile: ', input_vector_op)
+    # current_time_unpooled = current_time_model.layers[-2].get_output_at(0)
+    current_time_unpooled = current_time_model.outputs[0]
     print('clear_view_model.outputs: ', clear_view_model.outputs)
     print('current_time_model.outputs: ', current_time_model.outputs)
-    combined_input_data = tf.concat([clear_view_unpooled_layer, input_vector_op, current_time_unpooled], -1)
+    unpooled_shape = [input_vector_op_shape[0], unpooled_shape[1], unpooled_shape[2], unpooled_shape[3]]
+    clear_view_unpooled_layer = clear_view_unpooled_layer.set_shape(unpooled_shape)
+    current_time_unpooled = current_time_unpooled.set_shape(unpooled_shape)
+
+    combined_input_data = concat_images_with_tiled_vector_layer([clear_view_unpooled_layer, current_time_unpooled], input_vector_op,
+                                                                image_shape=unpooled_shape)
 
     print('combined_input_data.get_shape().as_list():', combined_input_data.get_shape().as_list())
-    combined_input_shape = combined_input_data.get_shape().as_list()
-    combined_input_shape[-1] = unpooled_shape[-1] * 2 + input_vector_op_shape[-1]
-    model_name = 'resnet'
+    combined_input_shape = K.int_shape(combined_input_data)
+    model_name = 'dense'
     if model_name == 'dense':
         final_nb_layer = 4
         nb_filter = combined_input_shape[-1]
@@ -287,10 +288,11 @@ def grasp_model_pretrained(clear_view_image_op,
             bottleneck=True, dropout_rate=dropout_rate, weight_decay=weight_decay)
 
         concat_axis = -1
-        x = BatchNormalization(axis=concat_axis, epsilon=1.1e-5)(x)
+        x = BatchNormalization(axis=concat_axis, epsilon=1.1e-5, name='final_bn')(x)
         x = Activation('relu')(x)
-        x = GlobalAveragePooling2D()(x)
+        x = GlobalMaxPooling2D()(x)
         x = Dense(1, activation='sigmoid')(x)
+        model = Model(inputs=[clear_view_image_op, current_time_image_op, input_vector_op], outputs=[x])
     elif model_name == 'densenet':
         model = DenseNet(input_shape=combined_input_shape[1:],
                          include_top=include_top,
