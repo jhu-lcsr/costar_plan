@@ -581,9 +581,15 @@ def grasp_model_levine_2016(
 
         # calculate the final classification output
         x = classifier_block(x, require_flatten, top, classes, activation,
-                                    input_image_shape, final_pooling, verbose)
+                             input_image_shape, final_pooling, verbose)
 
-        model = Model(inputs=[clear_view_image_input, current_time_image_input, motorData], outputs=x)
+        # make a list of all inputs into the model
+        inputs = [clear_view_image_input, current_time_image_input]
+        if input_vector_op is not None or input_vector_op is not None:
+            inputs = inputs + [motorData]
+
+        # create the model
+        model = Model(inputs=inputs, outputs=x)
         return model
 
 
