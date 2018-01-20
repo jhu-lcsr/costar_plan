@@ -14,6 +14,7 @@ echo "Running $@ on $SLURMD_NODENAME ..."
 module load tensorflow/cuda-8.0/r1.3 
 
 export DATASET="suturing_data2"
+export train_discriminator=true
 export train_image_encoder=true
 export learning_rate=$1
 export dropout=$2
@@ -21,6 +22,8 @@ export optimizer=$3
 export noise_dim=$4
 export loss=$5
 export MODELDIR="$HOME/.costar/suturing_$learning_rate$optimizer$dropout$noise_dim$loss"
+
+
 
 if $train_image_encoder
 then
