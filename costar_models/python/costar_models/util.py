@@ -162,9 +162,13 @@ def MakeModel(features, model, taskdef, **kwargs):
                     features=features,
                     **kwargs)
         elif model == "discriminator":
-            model_instance = JigsawsDiscriminator(False, taskdef, model=model, **kwargs)
+            model_instance = JigsawsDiscriminator(False, taskdef,
+                    features=features,
+                    model=model, **kwargs)
         elif model == "goal_discriminator":
-            model_instance = JigsawsDiscriminator(True, taskdef, model=model, **kwargs)
+            model_instance = JigsawsDiscriminator(True, taskdef,
+                    features=features,
+                    model=model, **kwargs)
     elif features == "husky":
         '''
         Husky simulator. This is a robot moving around on a 2D plane, so our
@@ -182,16 +186,27 @@ def MakeModel(features, model, taskdef, **kwargs):
                     **kwargs)
         elif model == "predictor":
             model_instance = HuskyRobotMultiPredictionSampler(taskdef,
+                    features=features,
                     model=model,
                     **kwargs)
         elif model == "conditional_image":
-            model_instance = ConditionalImageHusky(taskdef, model=model, **kwargs)
+            model_instance = ConditionalImageHusky(taskdef,
+                    features=features,
+                    model=model,
+                    **kwargs)
         elif model == "conditional_image_gan":
-            model_instance = ConditionalImageHuskyGan(taskdef, model=model, **kwargs)
+            model_instance = ConditionalImageHuskyGan(taskdef,
+                    features=features,
+                    model=model,
+                    **kwargs)
         elif model == "discriminator":
-            model_instance = HuskyDiscriminator(False, taskdef, model=model, **kwargs)
+            model_instance = HuskyDiscriminator(False, taskdef,
+                    features=features,
+                    model=model, **kwargs)
         elif model == "goal_discriminator":
-            model_instance = HuskyDiscriminator(True, taskdef, model=model, **kwargs)
+            model_instance = HuskyDiscriminator(True, taskdef,
+                    features=features,
+                    model=model, **kwargs)
     
     # If we did not create a model then die.
     if model_instance is None:
