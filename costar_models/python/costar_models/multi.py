@@ -6,19 +6,14 @@ import keras.optimizers as optimizers
 import numpy as np
 import tensorflow as tf
 
-from keras.constraints import maxnorm
+from keras.layers.pooling import MaxPooling2D, AveragePooling2D
 from keras.layers.advanced_activations import LeakyReLU
-from keras.layers import Input, RepeatVector, Reshape
-from keras.layers import UpSampling2D, Conv2DTranspose
+from keras.layers import Input
 from keras.layers import BatchNormalization, Dropout
 from keras.layers import Dense, Conv2D, Activation, Flatten
-from keras.layers import Lambda
 from keras.layers.merge import Add, Multiply
 from keras.layers.merge import Concatenate
-from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
-from keras.optimizers import Adam
-from keras.constraints import max_norm
 
 from .planner import *
 from .data_utils import *
@@ -40,6 +35,31 @@ def _makeTrainTarget(I_target, q_target, g_target, o_target):
     else:
         length = q_target.shape[0]
         return np.concatenate([q_target,g_target,o_target],axis=-1)
+
+def MakeImageClassifier(model, img_shape):
+    img = Input(img_shape,name="img_classifier_in")
+    bn = True
+    disc = True
+    dr = model.dropout_rate
+    x = img
+
+    x = AddConv2D(x, 32, [7,7], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 128, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+
+    x = Flatten()(x)
+    x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
+    x = AddDense(x, model.num_options, "softmax", 0., output=True, bn=False)
+    image_encoder = Model([img], x, name="classifier")
+    image_encoder.compile(loss="categorical_crossentropy", optimizer=model.getOptimizer())
+    model.classifier = image_encoder
+    return image_encoder
 
 def GetActorModel(x, num_options, arm_size, gripper_size,
         dropout_rate=0.5, batchnorm=True):
@@ -89,7 +109,7 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
 
     # Same setup as the state decoders
     x1 = AddDense(x, 512, "lrelu", dropout_rate, constraint=None, output=False,)
-    x1 = AddDense(x1, 512, "lrelu", 0., constraint=None, output=False,)
+    x1 = AddDense(x1, 512, "lrelu", dropout_rate, constraint=None, output=False,)
     arm = AddDense(x1, arm_size, "linear", 0., output=True)
     gripper = AddDense(x1, gripper_size, "sigmoid", 0., output=True)
     #value = Dense(1, activation="sigmoid", name="V",)(x1)
