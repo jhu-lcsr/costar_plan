@@ -15,13 +15,10 @@ from keras.models import Model, Sequential
 from keras.optimizers import Adam
 from matplotlib import pyplot as plt
 
-from .abstract import *
 from .callbacks import *
-from .robot_multi_models import *
-from .split import *
-from .mhp_loss import *
-from .loss import *
 from .sampler2 import *
+from .data_utils import GetNextGoal, ToOneHot2D
+from .multi import *
 
 
 class ConditionalImage(PredictionSampler2):
@@ -60,12 +57,6 @@ class ConditionalImage(PredictionSampler2):
     def _makePredictor(self, features):
         # =====================================================================
         # Create many different image decoders
-        image_outs = []
-        arm_outs = []
-        gripper_outs = []
-        train_outs = []
-        label_outs = []
-        
         (images, arm, gripper) = features
         img_shape, image_size, arm_size, gripper_size = self._sizes(
                 images,
@@ -76,9 +67,9 @@ class ConditionalImage(PredictionSampler2):
         # Load the image decoders
         img_in = Input(img_shape,name="predictor_img_in")
         img0_in = Input(img_shape,name="predictor_img0_in")
-        arm_in = Input((arm_size,))
-        gripper_in = Input((gripper_size,))
-        arm_gripper = Concatenate()([arm_in, gripper_in])
+        #arm_in = Input((arm_size,))
+        #gripper_in = Input((gripper_size,))
+        #arm_gripper = Concatenate()([arm_in, gripper_in])
         label_in = Input((1,))
         ins = [img0_in, img_in]
 
@@ -86,17 +77,12 @@ class ConditionalImage(PredictionSampler2):
             encoder = self._makeImageEncoder2(img_shape)
         else:
             encoder = self._makeImageEncoder(img_shape)
-            #encoder0 = self._makeImageEncoder(img_shape, copy=True)
         try:
             encoder.load_weights(self._makeName(
                 "pretrain_image_encoder_model",
                 #"pretrain_image_gan_model",
                 "image_encoder.h5f"))
             encoder.trainable = self.retrain
-            #encoder0.load_weights(self._makeName(
-            #    "pretrain_image_encoder_model",
-            #    "image_encoder.h5f"))
-            #encoder0.trainable = self.retrain
         except Exception as e:
             if not self.retrain:
                 raise e
@@ -117,11 +103,9 @@ class ConditionalImage(PredictionSampler2):
 
         # =====================================================================
         # Load the arm and gripper representation
-
         if self.skip_connections:
             h, s32, s16, s8 = encoder([img0_in, img_in])
         else:
-            #h = encoder([img_in, img0_in])
             h = encoder([img_in])
             h0 = encoder(img0_in)
 
@@ -135,8 +119,6 @@ class ConditionalImage(PredictionSampler2):
         next_option_out = next_model([h0,h,label_in])
         #value_out = value_model([h,label_in])
         #next_option_out = next_model([h,label_in])
-        self.next_model = next_model
-        self.value_model = value_model
 
         # create input for controlling noise output if that's what we decide
         # that we want to do
@@ -159,6 +141,12 @@ class ConditionalImage(PredictionSampler2):
         image_out = decoder([x])
         image_out2 = decoder([x2])
         #image_out = decoder([x, s32, s16, s8])
+
+        # =====================================================================
+        # Store the models for next time
+        self.next_model = next_model
+        self.value_model = value_model
+        self.transform_model = tform
 
         # =====================================================================
         actor = GetActorModel(h, self.num_options, arm_size, gripper_size,
@@ -197,20 +185,20 @@ class ConditionalImage(PredictionSampler2):
         return predictor, train_predictor, actor, ins, h
 
     def _getData(self, *args, **kwargs):
-        features, targets = self._getAllData(*args, **kwargs)
+        features, targets = GetAllMultiData(self.num_options, *args, **kwargs)
         [I, q, g, oin, label, q_target, g_target,] = features
         tt, o1, v, qa, ga, I_target = targets
-        I_target2, o2 = self._getNextGoal(features, targets)
+        I_target2, o2 = GetNextGoal(I_target, o1)
         I0 = I[0,:,:,:]
         length = I.shape[0]
         I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
-        oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
+        oin_1h = np.squeeze(ToOneHot2D(oin, self.num_options))
         qa = np.squeeze(qa)
         ga = np.squeeze(ga)
         #print("o1 = ", o1, o1.shape, type(o1))
         #print("o2 = ", o2, o2.shape, type(o2))
         if self.do_all:
-            o1_1h = np.squeeze(self.toOneHot2D(o1, self.num_options))
+            o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
             return [I0, I, o1, o2, oin], [ I_target, I_target2, o1_1h, v, qa, ga]
         else:
             return [I0, I, o1, o2, oin], [I_target, I_target2]

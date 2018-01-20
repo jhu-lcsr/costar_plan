@@ -37,6 +37,8 @@ from tensorflow.python.platform import flags
 import grasp_dataset
 import grasp_model
 import grasp_loss
+import keras_workaround
+from callbacks import EvaluateInputTensor
 
 from tqdm import tqdm  # progress bars https://github.com/tqdm/tqdm
 # from keras_tqdm import TQDMCallback  # Keras tqdm progress bars https://github.com/bstriner/keras-tqdm
@@ -274,15 +276,7 @@ class GraspTrain(object):
                 print('lr: %f' % lr)
                 return lr
 
-            # TODO(ahundt) manage loss/metric names in a more principled way
-            loss_name = 'loss'
-            if 'segmentation_single_pixel_binary_crossentropy' in loss:
-                loss = grasp_loss.segmentation_single_pixel_binary_crossentropy
-                loss_name = 'segmentation_single_pixel_binary_crossentropy'
-
-            if isinstance(loss, str) and 'segmentation_gaussian_binary_crossentropy' in loss:
-                loss = grasp_loss.segmentation_gaussian_binary_crossentropy
-                loss_name = 'segmentation_gaussian_binary_crossentropy'
+            loss = self.gather_losses(loss)
 
             metrics, monitor_metric_name = self.gather_metrics(metric)
 
@@ -497,14 +491,7 @@ class GraspTrain(object):
                         raise ValueError('Could not load weights {}, '
                                          'the file does not exist.'.format(load_weights))
 
-            loss_name = 'loss'
-            if 'segmentation_single_pixel_binary_crossentropy' in loss:
-                loss = grasp_loss.segmentation_single_pixel_binary_crossentropy
-                loss_name = 'segmentation_single_pixel_binary_crossentropy'
-
-            if isinstance(loss, str) and 'segmentation_gaussian_binary_crossentropy' in loss:
-                loss = grasp_loss.segmentation_gaussian_binary_crossentropy
-                loss_name = 'segmentation_gaussian_binary_crossentropy'
+            loss = self.gather_losses(loss)
 
             metrics, monitor_metric_name = self.gather_metrics(metric)
 
@@ -633,9 +620,24 @@ class GraspTrain(object):
         metrics = metrics + [grasp_loss.mean_pred, grasp_loss.mean_true]
         return metrics, monitor_metric_name
 
+    def gather_losses(self, loss):
+        # TODO(ahundt) manage loss/metric names in a more principled way
+        loss_name = 'loss'
+        if 'segmentation_single_pixel_binary_crossentropy' in loss:
+            loss = grasp_loss.segmentation_single_pixel_binary_crossentropy
+            loss_name = 'segmentation_single_pixel_binary_crossentropy'
+
+        if isinstance(loss, str) and 'segmentation_gaussian_binary_crossentropy' in loss:
+            loss = grasp_loss.segmentation_gaussian_binary_crossentropy
+            loss_name = 'segmentation_gaussian_binary_crossentropy'
+        return loss
+
 
 def define_make_model_fn(grasp_model_name=FLAGS.grasp_model):
-    """ Get command line specified function that will be used later to the Keras Model object.
+    """ Select the Neural Network Model to use.
+
+        Gets a command line specified function that
+        will be used later to create the Keras Model object.
 
         This function seems a little odd, so please bear with me.
         Instead of generating the model directly, This creates and
@@ -705,54 +707,6 @@ def define_make_model_fn(grasp_model_name=FLAGS.grasp_model):
         else:
             raise ValueError('unknown model selected: {}'.format(grasp_model_name))
     return make_model_fn
-
-
-class EvaluateInputTensor(keras.callbacks.Callback):
-    """ Validate a model which does not expect external numpy data during training.
-
-    Keras does not expect external numpy data at training time, and thus cannot
-    accept numpy arrays for validation when all of a Keras Model's
-    `Input(input_tensor)` layers are provided an  `input_tensor` parameter,
-    and the call to `Model.compile(target_tensors)` defines all `target_tensors`
-    Instead, create a second model configured with input tensors for validation
-    and add it to the `EvaluateInputTensor` callback to perform validation.
-
-    It is recommended that this callback be the first in the list of callbacks
-    because it defines the validation variables required by many other callbacks,
-    and Callbacks are made in order.
-
-    #TODO(ahundt) replace when https://github.com/keras-team/keras/pull/9105 is available
-
-    # Arguments
-        model: Keras model on which to call model.evaluate().
-        steps: Integer or `None`.
-            Total number of steps (batches of samples)
-            before declaring the evaluation round finished.
-            Ignored with the default value of `None`.
-    """
-
-    def __init__(self, model, steps, metrics_prefix='val', verbose=1):
-        # parameter of callbacks passed during initialization
-        # pass evalation mode directly
-        super(EvaluateInputTensor, self).__init__()
-        self.val_model = model
-        self.num_steps = steps
-        self.verbose = verbose
-        self.metrics_prefix = metrics_prefix
-
-    def on_epoch_end(self, epoch, logs={}):
-        self.val_model.set_weights(self.model.get_weights())
-        results = self.val_model.evaluate(None, None, steps=int(self.num_steps),
-                                          verbose=self.verbose)
-        metrics_str = '\n'
-        for result, name in zip(results, self.val_model.metrics_names):
-            metric_name = self.metrics_prefix + '_' + name
-            logs[metric_name] = result
-            if self.verbose > 0:
-                metrics_str = metrics_str + metric_name + ': ' + str(result) + ' '
-
-        if self.verbose > 0:
-            print(metrics_str)
 
 
 def main():

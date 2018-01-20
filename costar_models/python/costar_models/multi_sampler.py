@@ -18,6 +18,7 @@ from matplotlib import pyplot as plt
 from .abstract import *
 from .callbacks import *
 from .multi_hierarchical import *
+from .multi import *
 from .robot_multi_models import *
 from .split import *
 from .mhp_loss import *
@@ -105,6 +106,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.state_decoder = None
         self.hidden_encoder = None
         self.hidden_decoder = None
+        self.next_model = None
+        self.value_model = None
+        self.transform_model = None
 
         # ===================================================================
         # These are hard coded settings -- tweaking them may break a bunch of
@@ -294,7 +298,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         return predictor, train_predictor, actor, ins, enc
 
-    def _makeTransform(self):
+    def _makeTransform(self, h_dim=(8,8)):
         '''
         This is the version made for the newer code, it is set up to use both
         the initial and current observed world and creates a transform
@@ -308,9 +312,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         --------
         transform model
         '''
-        h = Input((8,8,self.encoder_channels),name="h_in")
-        h0 = Input((8,8,self.encoder_channels),name="h0_in")
-        option = Input((48,),name="t_opt_in")
+        h = Input((h_dim[0], h_dim[1], self.encoder_channels),name="h_in")
+        h0 = Input((h_dim[0],h_dim[1], self.encoder_channels),name="h0_in")
+        option = Input((self.num_options,),name="t_opt_in")
         x = AddConv2D(h, 64, [1,1], 1, 0.)
         x0 = AddConv2D(h0, 64, [1,1], 1, 0.)
 
@@ -323,7 +327,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Add dense information
         y = AddDense(option, 64, "relu", 0., constraint=None, output=False)
-        x = TileOnto(x, y, 64, (8,8))
+        x = TileOnto(x, y, 64, h_dim)
         x = AddConv2D(x, 64, [5,5], 1, 0.)
         #x = AddConv2D(x, 128, [5,5], 2, 0.)
 
@@ -335,8 +339,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
             x = AddDense(x, 256, "relu", 0.,
                     constraint=None, output=False,)
-            x = AddDense(x, 4*4*32, "relu", 0., constraint=None, output=False)
-            x = Reshape([4,4,32])(x)
+            x = AddDense(x, h_dim[0] * h_dim[1] * 32/4, "relu", 0., constraint=None, output=False)
+            x = Reshape([h_dim[0]/2, h_dim[1]/2, 32])(x)
         else:
             x = AddConv2D(x, 128, [5,5], 1, 0.)
         x = AddConv2DTranspose(x, 64, [5,5], 2,
@@ -359,7 +363,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 dropout_rate=0.)
         self.transform_model = Model([h0,h,option], x, name="tform")
         self.transform_model.compile(loss="mae", optimizer=self.getOptimizer())
-        self.transform_model.summary()
         return self.transform_model
 
     def _getTransform(self,i=0,rep_channels=32):
@@ -418,42 +421,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             self._makePredictor(
                 (features, arm, gripper))
 
-    def _getNextGoal(self, features, targets):
-        [I, q, g, oin, label, q_target, g_target,] = features
-        tt, o1, v, qa, ga, I_target = targets
-        img = np.zeros_like(I_target)
-        next_option = np.zeros_like(o1)
-        for i in range(o1.shape[0]):
-            #print('---')
-            cur = o1[i]
-            #print(i, o1, o1.shape, cur)
-            tmp = np.copy(o1)
-            tmp[:i] = cur
-            first_next = np.argmax(tmp != cur)
-            #print (tmp, tmp[first_next])
-            #print (cur, tmp[first_next])
-            if tmp[first_next] == cur:
-                # nothing else
-                first_next = -1
-            img[i] = I_target[first_next]
-            next_option[i] = tmp[first_next]
-            #print ('---')
-
-        debug_next_goals = False
-        if debug_next_goals:
-            import matplotlib.pyplot as plt
-            plt.subplot(3,1,1)
-            plt.imshow(I[i])
-            plt.subplot(3,1,2)
-            plt.imshow(I_target[i])
-            plt.subplot(3,1,3)
-            plt.imshow(img[i])
-            plt.show()
-
-        return img, next_option
-
     def _getData(self, *args, **kwargs):
-        features, targets = self._getAllData(*args, **kwargs)
+        features, targets = GetAllMultiData(*args, **kwargs)
         [I, q, g, oin, label, q_target, g_target,] = features
         features = [I, q, g, oin]
         tt, o1, v, qa, ga, I = targets
@@ -481,36 +450,18 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         test_generator: produces test examples
         data: some extra data used for debugging (should be validation data)
         '''
-        if data is not None:
-            features, targets = self._getAllData(**data)
-        else:
-            raise RuntimeError('predictor model sets sizes based on'
-                               'sample data; must be provided')
+
         # ===================================================================
         # Use sample data to compile the model and set everything else up.
         # Check to make sure data makes sense before running the model.
-
-        [I, q, g, oprev, label, q_target, g_target,] = features
-        [I_target2, o_target, value_target, qa, ga, I_target0] = targets
-
         if self.predictor is None:
-            self._makeModel(I, q, g, qa, ga)
-
-        # Compute helpful variables
-        image_shape = I.shape[1:]
-        image_size = 1
-        for dim in image_shape:
-            image_size *= dim
-        image_size = int(image_size)
-        arm_size = q.shape[-1]
-        gripper_size = g.shape[-1]
-
-        train_size = image_size + arm_size + gripper_size + self.num_options
-        assert gripper_size == 1
-        # NOTE: arm size is one bigger when we have quaternions
-        #assert train_size == 12295 + self.num_options
-        #assert train_size == 12296 + self.num_options
-        assert train_size == (64*64*3) + self.num_arm_vars + 1 + self.num_options
+            self._makeModel(**data)
+            try:
+                self._makeModel(**data)
+            except Exception as e:
+                print("Could not create model from this dataset. Did you"
+                      " configure the tool wrong?")
+                raise e
 
         # ===================================================================
         # Create the callbacks and actually run the training loop.
@@ -525,20 +476,23 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         for i, f in enumerate(cbf):
             if len(f.shape) < 1:
                 raise RuntimeError('feature %d not an appropriate size!'%i)
-        imageCb = self.PredictorCb(
-            self.predictor,
-            name=self.name_prefix,
-            features=cbf,
-            targets=cbt,
-            model_directory=self.model_directory,
-            num_hypotheses=self.num_hypotheses,
-            verbose=True,
-            use_noise=self.use_noise,
-            noise_dim=self.noise_dim,
-            min_idx=0,
-            max_idx=70,
-            step=10,)
-        callbacks=[modelCheckpointCb, logCb, imageCb]
+        if self.PredictorCb is not None:
+            imageCb = self.PredictorCb(
+                self.predictor,
+                name=self.name_prefix,
+                features=cbf,
+                targets=cbt,
+                model_directory=self.model_directory,
+                num_hypotheses=self.num_hypotheses,
+                verbose=True,
+                use_noise=self.use_noise,
+                noise_dim=self.noise_dim,
+                min_idx=0,
+                max_idx=70,
+                step=10,)
+            callbacks=[modelCheckpointCb, logCb, imageCb]
+        else:
+            callbacks=[modelCheckpointCb, logCb,]
         self._fit(train_generator, test_generator, callbacks)
 
     def _fit(self, train_generator, test_generator, callbacks):
@@ -580,6 +534,19 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             if self.hidden_decoder is not None:
                 self.hidden_decoder.save_weights(self.name + 
                 "_hidden_decoder.h5f")
+            if self.classifier is not None:
+                self.hidden_decoder.save_weights(self.name + 
+                "_classifier.h5f")
+            if self.transform_model is not None:
+                self.transform_model.save_weights(self.name + 
+                "_transform.h5f")
+            if self.value_model is not None:
+                self.value_model.save_weights(self.name + 
+                "_value.h5f")
+            if self.next_model is not None:
+                self.next_model.save_weights(self.name + 
+                "_next.h5f")
+
         else:
             raise RuntimeError('save() failed: model not found.')
 
@@ -629,11 +596,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             test_features.append(f2)
             next_option_idx += 1
 
+        # Use previous option when predicting
         if self.use_prev_option:
-            # previous options
-            #prev_option = self._makeOption1h(self.prev_option)
-            #tile_shape = [self.batch_size,1]
-            #prev_option = np.tile(prev_option, tile_shape)
             if self.prev_option is None:
                 prev = self.null_option
             else:
@@ -932,11 +896,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         dr = self.decoder_dropout_rate 
 
         x = rep_in
-        x = AddConv2D(x, 64, [3,3], 2, 0., "same", False)
+        x = AddConv2D(x, 64, [3,3], 2, dr, "same", False)
         x = AddConv2D(x, 64, [3,3], 1, dr, "same", False)
+        #x = AddConv2D(x, 64, [3,3], 1, dr, "same", False)
         x = Flatten()(x)
-        x1 = AddDense(x, 512, "relu", dr)
-        x1 = AddDense(x1, 512, "relu", 0.)
+        x1 = AddDense(x, 512, "relu", dr, bn=False)
+        x1 = AddDense(x1, 512, "relu", dr, bn=False)
         x2 = AddDense(x, 256, "relu", dr)
         arm = AddDense(x1, arm_size, "linear", 0., output=True)
         gripper = AddDense(x1, gripper_size, "sigmoid", 0., output=True)
