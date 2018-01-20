@@ -47,12 +47,7 @@ class HuskyRobotMultiPredictionSampler(RobotMultiPredictionSampler):
         self.num_features = 3 
 
 
-
-       
-
-
     def _makePredictor(self, features):
-        
  
         (images, pose) = features
         img_shape = images.shape[1:]
@@ -263,165 +258,21 @@ class HuskyRobotMultiPredictionSampler(RobotMultiPredictionSampler):
         predictor.compile(loss="mae", optimizer=self.getOptimizer())
         train_predictor.summary()
 
-        return predictor, train_predictor, actor, ins, enc
+        return predictor, train_predictor, actor
 
-   
-  
-    def load(self, features, pose, world, *args, **kwargs):
-        '''
-        Load will use the current model descriptor and name to load the file
-        that you are interested in, at least for now.
-        '''
-        if world is not None:
-            control = world.zeroAction()
-            reward = world.initial_reward
-            features = world.computeFeatures()
-            action_label = np.zeros((self._numLabels(),))
-            example = 0
-            done = False
-            data = world.vectorize(control, features, reward, done, example,
-                 action_label)
-            kwargs = {}
-            for k, v in data:
-                kwargs[k] = np.array([v])
-            self._makeModel(**kwargs)
-        else:
-            self._makeModel(features, pose, **kwargs)
-        self._loadWeights()
-
-
-    def _makeModel(self, features, pose, *args, **kwargs):
+    def _makeModel(self, image, pose, *args, **kwargs):
         '''
         Little helper function wraps makePredictor to consturct all the models.
 
         Parameters:
         -----------
-        features, arm, gripper: variables of the appropriate sizes
+        image, arm, gripper: variables of the appropriate sizes
         '''
-        self.predictor, self.train_predictor, self.actor, ins, hidden = \
+        self.predictor, self.train_predictor, self.actor = \
             self._makePredictor(
-                (features, pose))
-
-
-    def train(self, features, pose, pose_cmd, label,
-            
-            prev_label, goal_features, goal_pose, *args, **kwargs):
-        '''
-        Pre-process training data.
-        
-        Then, create the model. Train based on labeled data. Remove
-        unsuccessful examples.
-        '''
-
-        # ================================================
-        # Set up variable names -- just to make things a bit cleaner
-        I = features
-        q = pose
-        qa = pose_cmd
-        oin = prev_label
-        I_target = goal_features
-        o_target = label
-        q_target = goal_pose
-        action_labels = label
-
-        if self.supervisor is None:
-            self._makeModel(I, q, qa, oin)
-
-        # Fit the main models
-        self._fitPredictor(
-                [I, q, prev_label],
-                [I_target, q_target,
-                    to_categorical(o_target, 64)])
-
-        # ===============================================
-        # Might be useful if you start getting shitty results... one problem we
-        # observed was accidentally training the embedding weights when
-        # learning all your policies.
-        #fig, axes = plt.subplots(5, 5,)
-        #self.plotInfo(
-        #        [I, q, g, oin],
-        #        [I_target, q_target, g_target, Inext_target],
-        #        axes,
-        #        )
-        #self._fitSupervisor([I, q, g, o_prev], o_target)
-        # ===============================================
-
-        action_target = [qa]
-        #self._fitPolicies([I, q, g], action_labels, action_target)
-        #self._fitBaseline([I, q, g], action_target)
-
-
-    def trainFromGenerators(self, train_generator, test_generator, data=None):
-        '''
-        Train tool from generator
-
-        Parameters:
-        -----------
-        train_generator: produces training examples
-        test_generator: produces test examples
-        data: some extra data used for debugging (should be validation data)
-        '''
-        if data is not None:
-            features, targets = self._getAllData(data['image']/255.,data['robot_pose'],data['robot_action'],data['label'],\
-            data['prev_label'],data['goal_image']/255.,data['goal_robot_pose'], np.ones(len(data['goal_robot_pose'])))
-
-            print ("leng th of targets is ", len(targets))
-            print (len(targets[2]))
-        else:
-            raise RuntimeError('predictor model sets sizes based on'
-                               'sample data; must be provided')
-        # ===================================================================
-        # Use sample data to compile the model and set everything else up.
-        # Check to make sure data makes sense before running the model.
-
-        [I, q, oprev, q_target,] = features
-        [I_target2, o_target, value_target, qa, I_target0] = targets
-
-
-        if self.predictor is None:
-            self._makeModel(I, q, qa)
-
-        # Compute helpful variables
-        image_shape = I.shape[1:]
-        image_size = 1
-        for dim in image_shape:
-            image_size *= dim
-        image_size = int(image_size)
-        pose_size = q.shape[-1]
-
-        train_size = image_size + pose_size  + self.num_options
-        # NOTE: arm size is one bigger when we have quaternions
-        #assert train_size == 12295 + self.num_options
-        #assert train_size == 12296 + self.num_options
-        #assert train_size == (64*64*3) + self.num_pose_vars + 1 + self.num_options, #KDK TODO
-
-        # ===================================================================
-        # Create the callbacks and actually run the training loop.
-        modelCheckpointCb = ModelCheckpoint(
-            filepath=self.name+"_predictor_weights.h5f",
-            verbose=1,
-            save_best_only=True # does not work without validation wts
-        )
-        logCb = LogCallback(self.name,self.model_directory)
-        imageCb = self.PredictorCb(
-            self.predictor,
-            features=features[:4],
-            targets=targets,
-            model_directory=self.model_directory,
-            num_hypotheses=self.num_hypotheses,
-            verbose=True,
-            use_noise=self.use_noise,
-            noise_dim=self.noise_dim,
-            min_idx=0,
-            max_idx=100,
-            step=10,)
-        self.train_predictor.fit_generator(
-                train_generator,
-                self.steps_per_epoch,
-                epochs=self.epochs,
-                validation_steps=self.validation_steps,
-                validation_data=test_generator,
-                callbacks=[modelCheckpointCb, logCb, imageCb])
+                (image, pose))
+        if self.train_predictor is None:
+            raise RuntimeError('did not make trainable model')
 
     def _makeTrainTarget(self, I_target, q_target, o_target):
         length = I_target.shape[0]
@@ -433,14 +284,13 @@ class HuskyRobotMultiPredictionSampler(RobotMultiPredictionSampler):
         Itrain = np.reshape(I_target,(length, image_size))
         return np.concatenate([Itrain, q_target,o_target],axis=-1)
 
-
-    def _getAllData(self, features, pose, pose_cmd, label,
-            prev_label, goal_features, goal_pose, value, *args, **kwargs):
-        I = features
+    def _getAllData(self, image, pose, action, label,
+            prev_label, goal_image, goal_pose, value, *args, **kwargs):
+        I = image / 255.
         q = pose
-        qa = pose_cmd
+        qa = action
         oin = prev_label
-        I_target = goal_features
+        I_target = goal_image / 255.
         q_target = goal_pose
         o_target = label
 
@@ -462,38 +312,17 @@ class HuskyRobotMultiPredictionSampler(RobotMultiPredictionSampler):
                 I_target]
 
 
-    # def _getData(self, *args, **kwargs):
-        
-    #     features, targets = self._getAllData(kwargs['image']/255.,kwargs['robot_pose'],kwargs['robot_action'],kwargs['label'],\
-    #         kwargs['prev_label'],kwargs['goal_image']/255.,kwargs['goal_robot_pose'], np.ones(len(kwargs['goal_robot_pose'])))
-    #     tt, o1, v, qa, I = targets
-    #     if self.use_noise:
-    #         noise_len = features[0].shape[0]
-    #         z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-    #         return features[:self.num_features] + [z], [tt] #, o1, v]
-    #     else:
-    #         return features[:self.num_features], [tt] #, o1, v]
-
-  
-   
-   
-
-    def _getData(self, *args, **kwargs):
-        features, targets = self._getAllData(kwargs['image']/255.,kwargs['robot_pose'],kwargs['robot_action'],kwargs['label'],\
-            kwargs['prev_label'],kwargs['goal_image']/255.,kwargs['goal_robot_pose'], np.ones(len(kwargs['goal_robot_pose'])))
+    def _getData(self, image, pose, action, *args, **kwargs):
+        features, targets = self._getAllData(*args, **kwargs)
         tt, o1, v, qa, I = targets
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-            #return features[:self.num_features] + [z], [tt, o1, v]
-            #return features[:self.num_features] + [z], [tt, o1]#, v]
             if self.success_only:
                 return features[:self.num_features] + [o1, z], [tt, o1]
             else:
                 return features[:self.num_features] + [o1, z], [tt, v]
         else:
-            #return features[:self.num_features], [tt, o1, v]
-            #return features[:self.num_features], [tt, o1]#, v]
             if self.success_only:
                 
                 return features[:self.num_features] + [o1], [tt, o1]

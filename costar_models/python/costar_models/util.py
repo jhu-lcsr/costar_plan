@@ -6,13 +6,13 @@ from .multi_conv_lstm_regression import RobotMultiConvLSTMRegression
 from .multi_trajectory_sampler import RobotMultiTrajectorySampler
 from .multi_autoencoder_model import RobotMultiAutoencoder
 from .multi_hierarchical import RobotMultiHierarchical
+from .multi_policy import RobotPolicy
 
 # Model for sampling predictiosn
 from .multi_sampler import RobotMultiPredictionSampler
 from .goal_sampler import RobotMultiGoalSampler
 from .multi_sequence import RobotMultiSequencePredictor
 from .image_sampler import RobotMultiImageSampler
-from .husky_sampler import HuskyRobotMultiPredictionSampler
 from .pretrain_image import PretrainImageAutoencoder
 from .pretrain_state import PretrainStateAutoencoder
 from .pretrain_sampler import PretrainSampler
@@ -23,6 +23,21 @@ from .sampler2 import PredictionSampler2
 from .conditional_sampler2 import ConditionalSampler2
 from .conditional_image import ConditionalImage
 from .conditional_image_gan import ConditionalImageGan
+from .discriminator import Discriminator
+
+# Jigsaws stuff
+from .pretrain_image_jigsaws import PretrainImageJigsaws
+from .pretrain_image_jigsaws_gan import PretrainImageJigsawsGan
+from .conditional_image_jigsaws import ConditionalImageJigsaws
+from .conditional_image_gan_jigsaws import ConditionalImageGanJigsaws
+
+# Husky stuff
+from .husky_sampler import HuskyRobotMultiPredictionSampler
+from .pretrain_image_husky import PretrainImageAutoencoderHusky
+from .pretrain_image_husky_gan import PretrainImageHuskyGan
+from .conditional_image_husky import ConditionalImageHusky
+from .conditional_image_husky_gan import ConditionalImageHuskyGan
+from .discriminator import HuskyDiscriminator
 
 def MakeModel(features, model, taskdef, **kwargs):
     '''
@@ -81,6 +96,10 @@ def MakeModel(features, model, taskdef, **kwargs):
             model_instance = RobotMultiHierarchical(taskdef,
                     model=model,
                     **kwargs)
+        elif model == "policy":
+            model_instance = RobotPolicy(taskdef,
+                    model=model,
+                    **kwargs)
         elif model == "husky_predictor":
             model_instance = HuskyRobotMultiPredictionSampler(taskdef,
                     model=model,
@@ -91,7 +110,7 @@ def MakeModel(features, model, taskdef, **kwargs):
         elif model == "image_sampler":
             model_instance = RobotMultiImageSampler(taskdef, model=model,
                     **kwargs)
-        elif model == "pretrain_image_encoder" or model == "pretrain_image":
+        elif model == "pretrain_image_encoder":
             model_instance = PretrainImageAutoencoder(taskdef, model=model,
                     **kwargs)
         elif model == "pretrain_state_encoder":
@@ -111,6 +130,59 @@ def MakeModel(features, model, taskdef, **kwargs):
             model_instance = PretrainMinimal(taskdef, model=model, **kwargs)
         elif model == "pretrain_image_gan":
             model_instance = PretrainImageGan(taskdef, model=model, **kwargs)
+        elif model == "discriminator":
+            model_instance = Discriminator(taskdef, model=model, **kwargs)
+    elif features == "jigsaws":
+        '''
+        These models are all meant for use with the JHU-JIGSAWS dataset. This
+        is a surgical activity data set containing suturing, needle passing,
+        and a few other tasks.
+        '''
+        if model == "pretrain_image_encoder":
+            model_instance = PretrainImageJigsaws(taskdef,
+                    model=model,
+                    features=features,
+                    **kwargs)
+        elif model == "pretrain_image_gan":
+            model_instance = PretrainImageJigsawsGan(taskdef,
+                    model=model,
+                    features=features,
+                    **kwargs)
+        elif model == "conditional_image":
+            model_instance = ConditionalImageJigsaws(taskdef,
+                    model=model,
+                    features=features,
+                    **kwargs)
+        elif model == "conditional_image_gan":
+            model_instance = ConditionalImageGanJigsaws(taskdef,
+                    model=model,
+                    features=features,
+                    **kwargs)
+    elif features == "husky":
+        '''
+        Husky simulator. This is a robot moving around on a 2D plane, so our
+        action and state spaces are slightly different.
+        '''
+        if model == "pretrain_image_encoder":
+            model_instance = PretrainImageAutoencoderHusky(taskdef,
+                    model=model,
+                    features=features,
+                    **kwargs)
+        elif model == "pretrain_image_gan":
+            model_instance = PretrainImageHuskyGan(taskdef,
+                    model=model,
+                    features=features,
+                    **kwargs)
+        elif model == "predictor":
+            model_instance = HuskyRobotMultiPredictionSampler(taskdef,
+                    model=model,
+                    **kwargs)
+        elif model == "conditional_image":
+            model_instance = ConditionalImageHusky(taskdef, model=model, **kwargs)
+        elif model == "conditional_image_gan":
+            model_instance = ConditionalImageHuskyGan(taskdef, model=model, **kwargs)
+        elif model == "husky_discriminator":
+            model_instance = HuskyDiscriminator(taskdef, model=model, **kwargs)
     
     # If we did not create a model then die.
     if model_instance is None:
@@ -127,11 +199,11 @@ def GetModels():
             "conv_lstm_regression", # lstm regression model
             "predictor", # sampler NN to generate image goals
             "hierarchical", # hierarchical policy for planning
+            "policy", # single policy hierarchical
             "husky_predictor", # husky multi prediction sampler implementation
             "goal_sampler", # samples goals instead of everything else
             "image_sampler", #just learn to predict goal image
             "pretrain_image_encoder", # tool for pretraining images
-            "pretrain_image", # tool for pretraining images
             "pretrain_state_encoder", # tool for pretraining states
             "pretrain_sampler", # tool for pretraining the sampler
             "predictor2", # second version of the prediction-sampler code
@@ -142,3 +214,4 @@ def GetModels():
             "pretrain_minimal",
             "pretrain_image_gan",
             ]
+

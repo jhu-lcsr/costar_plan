@@ -44,6 +44,7 @@ class AbstractAgentBasedModel(object):
             hidden_size=128,
             loss="mae",
             num_generator_files=3, upsampling=None,
+            option_num=None, # for policy model
             task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
 
@@ -72,7 +73,10 @@ class AbstractAgentBasedModel(object):
         self.validation_steps = validation_steps
         self.model_descriptor = model_descriptor
         self.task = task
-        self.features = features
+        if features == "multi":
+            self.features = None
+        else:
+            self.features = features
         self.robot = robot
         self.name_prefix = "%s_%s"%(model, self.model_descriptor)
         self.clipnorm = float(clipnorm)
@@ -96,15 +100,12 @@ class AbstractAgentBasedModel(object):
         self.gan_method = gan_method
         self.save_model = save_model if save_model in [0,1] else 1
         self.hidden_size = hidden_size
+        self.option_num = option_num
         
         if self.noise_dim < 1:
             self.use_noise = False
-        # NOTE: removed because it's used inconsistently.
-        # TODO: add this again
-        #if self.task is not None:
-        #    self.name += "_%s"%self.task
-        #if self.features is not None:
-        #    self.name += "_%s"%self.features   
+        if self.features is not None:
+            self.name += "_%s"%self.features   
 
         # Define previous option for when executing -- this should default to
         # None, set to 2 for testing only
@@ -150,10 +151,11 @@ class AbstractAgentBasedModel(object):
         print("skip connections =", self.skip_connections)
         print("gan_method =", self.gan_method)
         print("save_model =", self.save_model)
+        print("use_batchnorm =", self.use_batchnorm)
         print("-----------------------------------------------------------")
         print("Optimizer =", self.optimizer)
-        print("Learning Rate = ", self.lr)
-        print("Clip Norm = ", self.clipnorm)
+        print("Learning Rate =", self.lr)
+        print("Clip Norm =", self.clipnorm)
         print("===========================================================")
 
         try:
@@ -207,19 +209,23 @@ class AbstractAgentBasedModel(object):
       while True:
             features, targets = [], []
             idx = 0
-            while idx < self.num_generator_files:
+            while True:
                 fdata, fn = sampleFn()
                 if len(fdata.keys()) == 0:
                     print("WARNING: ", fn, "was empty.")
                     continue
                 ffeatures, ftargets = self._getData(**fdata)
 
+                if len(ffeatures) == 0 or len(ffeatures[0]) == 0:
+                    #print("WARNING: ", fn, "was empty after getData.")
+                    continue
+
                 # --------------------------------------------------------------
                 # Compute the features and aggregate
                 for i, value in enumerate(ffeatures):
                     if value.shape[0] == 0:
                         continue
-                    if i >= len(features):
+                    if idx == 0:
                         features.append(value)
                     else:
                         try:
@@ -235,7 +241,7 @@ class AbstractAgentBasedModel(object):
                 for i, value in enumerate(ftargets):
                     if value.shape[0] == 0:
                         continue
-                    if i >= len(targets):
+                    if idx == 0:
                         targets.append(value)
                     else:
                         try:
@@ -246,14 +252,22 @@ class AbstractAgentBasedModel(object):
                             print ("value shape =", value.shape)
                             raise e
                         #print ("target data shape =", targets[i].shape, i)
+
                 idx += 1
                 # --------------------------------------------------------------
+                if idx > self.num_generator_files and \
+                        features[0].shape[0] >= self.batch_size:
+                            break
 
             n_samples = features[0].shape[0]
-            #print("COLLECTED", n_samples, "samples")
+            for f in features:
+                if f.shape[0] != n_samples:
+                    raise ValueError("Feature lengths are not equal!")
+
+            #print("Collected ", n_samples, " samples")
             idx = np.random.randint(n_samples,size=(self.batch_size,))
             yield ([f[idx] for f in features],
-                    [t[idx] for t in targets])
+                   [t[idx] for t in targets])
 
     def save(self):
         '''
@@ -326,29 +340,6 @@ class AbstractAgentBasedModel(object):
         world: a single world observation.
         '''
         raise NotImplementedError('predict() not supported yet.')
-
-    def toOneHot2D(self, f, dim):
-        '''
-        Convert all to one-hot vectors. If we have a "-1" label, example was
-        considered unlabeled and should just get a zero...
-        '''
-        if len(f.shape) == 1:
-            f = np.expand_dims(f, -1)
-        assert len(f.shape) == 2
-        shape = f.shape + (dim,)
-        oh = np.zeros(shape)
-        #oh[np.arange(f.shape[0]), np.arange(f.shape[1]), f]
-        for i in range(f.shape[0]):
-            for j in range(f.shape[1]):
-                idx = f[i,j]
-                if idx >= 0:
-                    oh[i,j,idx] = 1.
-        return oh
-
-    def _makeOption1h(self, option):
-        opt_1h = np.zeros((1,self._numLabels()))
-        opt_1h[0,option] = 1.
-        return opt_1h
 
 class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
 
