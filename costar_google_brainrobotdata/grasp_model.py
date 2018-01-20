@@ -2,6 +2,7 @@ import tensorflow as tf
 
 import keras
 from keras.applications.resnet50 import ResNet50
+from keras.applications.nasnet import NASNetMobile
 from keras import backend as K
 from keras.layers import Dense
 from keras.layers import Dropout
@@ -13,12 +14,14 @@ from keras.layers import AveragePooling2D
 from keras.layers import GlobalMaxPooling2D
 from keras.layers import GlobalAveragePooling2D
 from keras.layers import UpSampling2D
+from keras.layers import BatchNormalization
 from keras.layers.core import Flatten
 from keras.layers.core import RepeatVector
 from keras.layers import Input
 from keras.layers.merge import concatenate
 from keras.layers.merge import Concatenate
 from keras.layers.merge import _Merge
+from keras.layers.merge import Add
 from keras.models import Model
 from keras.layers import Lambda
 from keras.layers import Reshape
@@ -114,6 +117,39 @@ def concat_images_with_tiled_vector_layer(images, vector, image_shape=None, vect
     return x
 
 
+def add_images_with_tiled_vector_layer(images, vector, image_shape=None, vector_shape=None):
+    """Tile a vector as if it were channels onto every pixel of an image.
+
+    This version is designed to be used as layers within a Keras model.
+
+    # Params
+       images: a list of images to combine, must have equal dimensions
+       vector: the 1D vector to tile onto every pixel
+       image_shape: Tuple with 3 entries defining the shape (batch, height, width)
+           images should be expected to have, do not specify the number
+           of batches.
+       vector_shape: Tuple with 3 entries defining the shape (batch, height, width)
+           images should be expected to have, do not specify the number
+           of batches.
+    """
+    with K.name_scope('add_images_with_tiled_vector_layer'):
+        if not isinstance(images, list):
+            images = [images]
+        if vector_shape is None:
+            # check if K.shape, K.int_shape, or vector.get_shape().as_list()[1:] is better
+            # https://github.com/fchollet/keras/issues/5211
+            vector_shape = K.int_shape(vector)[1:]
+        if image_shape is None:
+            # check if K.shape, K.int_shape, or image.get_shape().as_list()[1:] is better
+            # https://github.com/fchollet/keras/issues/5211
+            image_shape = K.int_shape(images[0])[1:]
+        vector = Reshape([1, 1, vector_shape[-1]])(vector)
+        tile_shape = (int(1), int(image_shape[0]), int(image_shape[1]), int(1))
+        tiled_vector = Lambda(lambda x: K.tile(x, tile_shape))(vector)
+        x = Add()([] + images + [tiled_vector])
+    return x
+
+
 def classifier_block(input_tensor, require_flatten=True, top='classification',
                      classes=1, activation='sigmoid',
                      input_shape=None, final_pooling=None, verbose=False):
@@ -123,7 +159,6 @@ def classifier_block(input_tensor, require_flatten=True, top='classification',
     if require_flatten and top == 'classification':
         if verbose:
             print("    classification")
-        x = GlobalMaxPooling2D()(x)
         x = Dense(units=classes, activation=activation,
                   kernel_initializer="he_normal", name='fc' + str(classes))(x)
 
@@ -165,7 +200,7 @@ def grasp_model_resnet(clear_view_image_op,
                        activation='sigmoid',
                        repetitions=None):
     if repetitions is None:
-        repetitions = [2, 2, 2, 2]
+        repetitions = [1, 1, 1, 1]
     combined_input_data = concat_images_with_tiled_vector([clear_view_image_op, current_time_image_op], input_vector_op)
     combined_input_shape = K.int_shape(combined_input_data)
     # the input shape should be a tuple of 3 values
@@ -193,8 +228,8 @@ def grasp_model_pretrained(clear_view_image_op,
                            input_vector_op,
                            input_image_shape=None,
                            input_vector_op_shape=None,
-                           growth_rate=12,
-                           reduction=0.75,
+                           growth_rate=36,
+                           reduction=0.5,
                            dense_blocks=4,
                            include_top=True,
                            dropout_rate=0.0,
@@ -208,13 +243,13 @@ def grasp_model_pretrained(clear_view_image_op,
 
     print('input_image_shape:', input_image_shape)
 
-    clear_view_model = ResNet50(
-        input_shape=input_image_shape,
+    clear_view_model = NASNetMobile(
+        input_shape=input_image_shape[1:],
         input_tensor=clear_view_image_op,
         include_top=False)
 
-    current_time_model = ResNet50(
-        input_shape=input_image_shape,
+    current_time_model = NASNetMobile(
+        input_shape=input_image_shape[1:],
         input_tensor=current_time_image_op,
         include_top=False)
 
@@ -224,25 +259,25 @@ def grasp_model_pretrained(clear_view_image_op,
         for layer in current_time_model.layers:
             layer.trainable = False
 
-    clear_view_unpooled_layer = clear_view_model.layers[-2].get_output_at(0)
-    unpooled_shape = clear_view_unpooled_layer.get_shape().as_list()
+    # clear_view_unpooled_layer = clear_view_model.layers[-2].get_output_at(0)
+    clear_view_unpooled_layer = clear_view_model.outputs[0]
+    unpooled_shape = K.int_shape(clear_view_unpooled_layer)
     print('clear_view_unpooled_layer: ', clear_view_unpooled_layer)
     print('unpooled_shape: ', unpooled_shape)
-    current_time_unpooled = current_time_model.layers[-2].get_output_at(0)
-    print('input_vector_op before tile: ', input_vector_op)
-    input_vector_op = tile_vector_as_image_channels(
-        input_vector_op,
-        unpooled_shape
-        )
-    print('input_vector_op after tile: ', input_vector_op)
+    # current_time_unpooled = current_time_model.layers[-2].get_output_at(0)
+    current_time_unpooled = current_time_model.outputs[0]
     print('clear_view_model.outputs: ', clear_view_model.outputs)
     print('current_time_model.outputs: ', current_time_model.outputs)
-    combined_input_data = tf.concat([clear_view_unpooled_layer, input_vector_op, current_time_unpooled], -1)
+    unpooled_shape = [input_vector_op_shape[0], unpooled_shape[1], unpooled_shape[2], unpooled_shape[3]]
+    clear_view_unpooled_layer = clear_view_unpooled_layer.set_shape(unpooled_shape)
+    current_time_unpooled = current_time_unpooled.set_shape(unpooled_shape)
+
+    combined_input_data = concat_images_with_tiled_vector_layer([clear_view_unpooled_layer, current_time_unpooled], input_vector_op,
+                                                                image_shape=unpooled_shape)
 
     print('combined_input_data.get_shape().as_list():', combined_input_data.get_shape().as_list())
-    combined_input_shape = combined_input_data.get_shape().as_list()
-    combined_input_shape[-1] = unpooled_shape[-1] * 2 + input_vector_op_shape[-1]
-    model_name = 'resnet'
+    combined_input_shape = K.int_shape(combined_input_data)
+    model_name = 'dense'
     if model_name == 'dense':
         final_nb_layer = 4
         nb_filter = combined_input_shape[-1]
@@ -253,10 +288,11 @@ def grasp_model_pretrained(clear_view_image_op,
             bottleneck=True, dropout_rate=dropout_rate, weight_decay=weight_decay)
 
         concat_axis = -1
-        x = BatchNormalization(axis=concat_axis, epsilon=1.1e-5)(x)
+        x = BatchNormalization(axis=concat_axis, epsilon=1.1e-5, name='final_bn')(x)
         x = Activation('relu')(x)
-        x = GlobalAveragePooling2D()(x)
+        x = GlobalMaxPooling2D()(x)
         x = Dense(1, activation='sigmoid')(x)
+        model = Model(inputs=[clear_view_image_op, current_time_image_op, input_vector_op], outputs=[x])
     elif model_name == 'densenet':
         model = DenseNet(input_shape=combined_input_shape[1:],
                          include_top=include_top,
@@ -374,6 +410,7 @@ def grasp_model_segmentation(clear_view_image_op=None,
                         reduction=reduction,
                         nb_dense_block=dense_blocks,
                         classes=classes,
+                        dropout_rate=dropout_rate,
                         early_transition=True)
     return model
 
@@ -448,60 +485,88 @@ def grasp_model_levine_2016(
             clear_view_img_conv = MaxPooling2D(pool_size=(3, 3))(clear_view_img_conv)
             current_time_img_conv = MaxPooling2D(pool_size=(3, 3))(current_time_img_conv)
 
-        combImg = Concatenate(-1)([clear_view_img_conv, current_time_img_conv])
+        x = Add()([clear_view_img_conv, current_time_img_conv])
 
         # img Conv 2 - 7
         for i in range(6):
-            imgConv = Conv2D(64, (5, 5), padding='same', activation='relu')(combImg)
+            x = Conv2D(64, (5, 5), padding='same', activation='relu')(x)
 
-        imgConv = Conv2D(64, (5, 5), padding='same', activation='relu',
-                         dilation_rate=dilation_rate)(imgConv)
+        x = Conv2D(64, (5, 5), padding='same', activation='relu',
+                   dilation_rate=dilation_rate)(x)
 
         if pooling == 'max':
             # img maxPool 2
-            imgConv = MaxPooling2D(pool_size=(3, 3))(imgConv)
+            x = MaxPooling2D(pool_size=(3, 3))(x)
 
-        # motor Data
-        vector_shape = K.int_shape(input_vector_op)[1:]
-        motorData = Input(shape=vector_shape, tensor=input_vector_op, name='motion_command_vector_input')
+        if input_vector_op is not None or input_vector_op is not None:
+            # Handle input command data
+            vector_shape = K.int_shape(input_vector_op)[1:]
+            motorData = Input(shape=vector_shape, tensor=input_vector_op, name='motion_command_vector_input')
 
-        # motor full conn
-        motorConv = Dense(64, activation='relu')(motorData)
+            # motor full conn
+            motorConv = Dense(64, activation='relu')(motorData)
 
-        # tile and concat the data
-        combinedData = concat_images_with_tiled_vector_layer(imgConv, motorConv)
+            # tile and concat the data
+            x = add_images_with_tiled_vector_layer(x, motorConv)
+
+            if dropout_rate is not None:
+                x = Dropout(dropout_rate)(x)
 
         # combined conv 8
-        combConv = Conv2D(64, (3, 3), activation='relu', padding='same')(combinedData)
+        x = Conv2D(64, (3, 3), activation='relu', padding='same')(x)
 
         # combined conv 9 - 12
         for i in range(2):
-            combConv = Conv2D(64, (3, 3), activation='relu', padding='same')(combConv)
+            x = Conv2D(64, (3, 3), activation='relu', padding='same')(x)
 
         # combined conv 13
-        combConv = Conv2D(64, (5, 5), padding='same', activation='relu',
-                          dilation_rate=dilation_rate)(combConv)
+        x = Conv2D(64, (5, 5), padding='same', activation='relu',
+                   dilation_rate=dilation_rate)(x)
 
         if pooling == 'max':
             # combined maxPool
-            combConv = MaxPooling2D(pool_size=(2, 2))(combConv)
+            x = MaxPooling2D(pool_size=(2, 2))(x)
 
         # combined conv 14 - 16
         for i in range(3):
-            combConv = Conv2D(64, (3, 3), activation='relu', padding='same')(combConv)
+            x = Conv2D(64, (3, 3), activation='relu', padding='same')(x)
 
         # Extra Global Average Pooling allows more flexible input dimensions
         # but only use if necessary.
         if top == 'classification':
-            feature_shape = K.int_shape(combConv)
+            feature_shape = K.int_shape(x)
             if (feature_shape[1] > 1 or feature_shape[2] > 1):
-                combConv = Flatten()(combConv)
+                x = GlobalMaxPooling2D()(x)
+                # x = Flatten()(x)
+
             # combined full connected layers
-            combConv = Dense(64, activation='relu')(combConv)
-            combConv = Dense(64, activation='relu')(combConv)
+            if dropout_rate is not None:
+                x = Dropout(dropout_rate)(x)
+
+            x = Dense(64, activation='relu')(x)
+
+            if dropout_rate is not None:
+                x = Dropout(dropout_rate)(x)
+
+            x = Dense(64, activation='relu')(x)
+
+            if dropout_rate is not None:
+                x = Dropout(dropout_rate)(x)
+
         elif top == 'segmentation':
-            combConv = Conv2D(64, (1, 1), activation='relu', padding='same')(combConv)
-            combConv = Conv2D(64, (1, 1), activation='relu', padding='same')(combConv)
+
+            if dropout_rate is not None:
+                x = Dropout(dropout_rate)(x)
+
+            x = Conv2D(64, (1, 1), activation='relu', padding='same')(x)
+
+            if dropout_rate is not None:
+                x = Dropout(dropout_rate)(x)
+
+            x = Conv2D(64, (1, 1), activation='relu', padding='same')(x)
+
+            if dropout_rate is not None:
+                x = Dropout(dropout_rate)(x)
 
             # if the image was made smaller to save space,
             # upsample before calculating the final output
@@ -510,17 +575,23 @@ def grasp_model_levine_2016(
             else:
                 batch, row, col, channel = 0, 1, 2, 3
 
-            comb_conv_shape = K.int_shape(combConv)
+            comb_conv_shape = K.int_shape(x)
             iidim = (input_image_shape[row-1], input_image_shape[col-1])
             ccdim = (comb_conv_shape[row], comb_conv_shape[col])
-            if not iidim == ccdim:
-                combConv = UpSampling2D(size=(iidim[0]/ccdim[0], iidim[1]/ccdim[1]))(combConv)
+            if iidim != ccdim:
+                x = UpSampling2D(size=(iidim[0]/ccdim[0], iidim[1]/ccdim[1]))(x)
 
         # calculate the final classification output
-        combConv = classifier_block(combConv, require_flatten, top, classes, activation,
-                                    input_image_shape, final_pooling, verbose)
+        x = classifier_block(x, require_flatten, top, classes, activation,
+                             input_image_shape, final_pooling, verbose)
 
-        model = Model(inputs=[clear_view_image_input, current_time_image_input, motorData], outputs=combConv)
+        # make a list of all inputs into the model
+        inputs = [clear_view_image_input, current_time_image_input]
+        if input_vector_op is not None or input_vector_op is not None:
+            inputs = inputs + [motorData]
+
+        # create the model
+        model = Model(inputs=inputs, outputs=x)
         return model
 
 
