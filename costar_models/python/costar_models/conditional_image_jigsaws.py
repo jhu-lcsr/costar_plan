@@ -47,8 +47,8 @@ class ConditionalImageJigsaws(ConditionalImage):
             encoder = self._makeImageEncoder2(img_shape)
             decoder = self._makeImageDecoder2(self.hidden_shape)
         else:
-            encoder = self._makeImageEncoder(img_shape)
-            decoder = self._makeImageDecoder(self.hidden_shape)
+            encoder = MakeJigsawsImageEncoder(self, img_shape)
+            decoder = MakeJigsawsImageDecoder(self, self.hidden_shape)
 
         # load encoder/decoder weights if found
         try:
@@ -66,6 +66,16 @@ class ConditionalImageJigsaws(ConditionalImage):
             if not self.retrain:
                 raise e
 
+
+        # =====================================================================
+        # Load the discriminator
+        image_discriminator = MakeJigsawsImageClassifier(self, img_shape)
+        #image_discriminator.load_weights("discriminator_model_classifier.h5f")
+        image_discriminator.load_weights(
+                self._makeName("goal_discriminator_model", "predictor_weights.h5f"))
+
+        # =====================================================================
+        # Create encoded state
         if self.skip_connections:
             h, s32, s16, s8 = encoder([img0_in, img_in])
         else:
@@ -73,7 +83,7 @@ class ConditionalImageJigsaws(ConditionalImage):
             h0 = encoder(img0_in)
 
         # Create model for predicting label
-        next_model = GetNextModel(h, self.num_options, 128,
+        next_model = GetJigsawsNextModel(h, self.num_options, 128,
                 self.decoder_dropout_rate)
         next_model.compile(loss="mae", optimizer=self.getOptimizer())
         next_option_out = next_model([h0, h, prev_option_in])
@@ -93,10 +103,12 @@ class ConditionalImageJigsaws(ConditionalImage):
         y = Flatten()(OneHot(self.num_options)(option_in))
         y2 = Flatten()(OneHot(self.num_options)(option_in2))
         x = h
-        tform = self._makeTransform(h_dim=(12,16))
+        #tform = self._makeTransform(h_dim=(12,16))
+        tform = self._makeTransform(h_dim=(6,8))
         x = tform([h0, h, y])
         x2 = tform([h0, x, y2])
         image_out, image_out2 = decoder([x]), decoder([x2])
+        disc_out2 = image_discriminator(image_out2)
 
         lfn = self.loss
         lfn2 = "logcosh"
@@ -109,15 +121,15 @@ class ConditionalImageJigsaws(ConditionalImage):
                 loss=[lfn, lfn, "binary_crossentropy"],
                 loss_weights=[1., 1., 0.1],
                 optimizer=self.getOptimizer())
-        train_predictor = Model(ins + [prev_option_in],
-                [image_out, image_out2, next_option_out])
-        train_predictor.compile(
-                loss=[lfn, lfn, "binary_crossentropy"],
-                loss_weights=[1., 1., 0.1],
+        model = Model(ins + [prev_option_in],
+                [image_out, image_out2, next_option_out, disc_out2])
+        model.compile(
+                loss=[lfn, lfn, "binary_crossentropy", "categorical_crossentropy"],
+                loss_weights=[1., 1., 0.1, 1e-4],
                 optimizer=self.getOptimizer())
 
         self.predictor = predictor
-        self.train_predictor = train_predictor
+        self.model = model
 
     def _getData(self, image, label, goal_image, goal_label,
             prev_label, *args, **kwargs):
@@ -125,7 +137,7 @@ class ConditionalImageJigsaws(ConditionalImage):
         image = np.array(image) / 255.
         goal_image = np.array(goal_image) / 255.
 
-        goal_image2, _ = GetNextGoal(goal_image, label)
+        goal_image2, label2 = GetNextGoal(goal_image, label)
 
         # Extend image_0 to full length of sequence
         image0 = image[0,:,:,:]
@@ -133,5 +145,6 @@ class ConditionalImageJigsaws(ConditionalImage):
         image0 = np.tile(np.expand_dims(image0,axis=0),[length,1,1,1])
 
         label_1h = np.squeeze(ToOneHot2D(label, self.num_options))
-        return [image0, image, label, goal_label, prev_label], [goal_image, goal_image2, label_1h]
+        label2_1h = np.squeeze(ToOneHot2D(label2, self.num_options))
+        return [image0, image, label, goal_label, prev_label], [goal_image, goal_image2, label_1h, label2_1h]
 
