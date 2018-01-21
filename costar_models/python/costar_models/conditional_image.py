@@ -102,7 +102,6 @@ class ConditionalImage(PredictionSampler2):
                 raise e
 
         image_discriminator = MakeImageClassifier(self, img_shape)
-        #image_discriminator.load_weights("discriminator_model_classifier.h5f")
         image_discriminator.load_weights(
                 self._makeName("goal_discriminator_model", "predictor_weights.h5f"))
         image_discriminator.trainable = False

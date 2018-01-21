@@ -17,7 +17,7 @@ from matplotlib import pyplot as plt
 
 from .conditional_image import *
 from .husky import *
-
+from .planner import *
 
 class ConditionalImageHusky(ConditionalImage):
 
@@ -27,8 +27,8 @@ class ConditionalImageHusky(ConditionalImage):
         command line and set things like our optimizer and learning rate.
         '''
         super(ConditionalImageHusky, self).__init__(taskdef, *args, **kwargs)
-        self.num_options = 5
-        self.null_option = 4
+        self.num_options = HuskyNumOptions()
+        self.null_option = HuskyNullOption()
 
     def _makeModel(self, image, pose, *args, **kwargs):
        
@@ -108,6 +108,13 @@ class ConditionalImageHusky(ConditionalImage):
         image_out = decoder([x])
         image_out2 = decoder([x2])
         #image_out = decoder([x, s32, s16, s8])
+
+        image_discriminator = MakeImageClassifier(self, img_shape)
+        image_discriminator.load_weights(
+                self._makeName("goal_discriminator_model_husky", "predictor_weights.h5f"))
+        image_discriminator.trainable = False
+ 
+        disc_out2 = image_discriminator(image_out2)
 
         self.next_model = next_model
         self.value_model = value_model
