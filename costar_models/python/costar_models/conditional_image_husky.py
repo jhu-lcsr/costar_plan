@@ -138,23 +138,23 @@ class ConditionalImageHusky(ConditionalImage):
                 loss_weights=[1., 1., 0.1, 0.1,],
                 optimizer=self.getOptimizer())
         if self.do_all:
-            train_predictor = Model(ins + [label_in],
+            model = Model(ins + [label_in],
                     [image_out, image_out2, next_option_out, value_out,
                         cmd])
-            train_predictor.compile(
+            model.compile(
                     loss=[lfn, lfn, "binary_crossentropy", val_loss,
                         lfn2,],
                     loss_weights=[1., 1., 0.1, 0.1, 1.,],
                     optimizer=self.getOptimizer())
         else:
-            train_predictor = Model(ins + [label_in],
+            model = Model(ins + [label_in],
                     [image_out, image_out2,
                         ])
-            train_predictor.compile(
+            model.compile(
                     loss=lfn, 
                     optimizer=self.getOptimizer())
         self.predictor = predictor
-        self.train_predictor = train_predictor
+        self.model = model
         self.actor = actor
 
     def _getData(self, *args, **kwargs):
