@@ -72,7 +72,8 @@ class ConditionalImageJigsaws(ConditionalImage):
         image_discriminator = MakeJigsawsImageClassifier(self, img_shape)
         #image_discriminator.load_weights("discriminator_model_classifier.h5f")
         image_discriminator.load_weights(
-                self._makeName("goal_discriminator_model", "predictor_weights.h5f"))
+                self._makeName("goal_discriminator_model_jigsaws", "predictor_weights.h5f"))
+        image_discriminator.trainable = False
 
         # =====================================================================
         # Create encoded state
