@@ -336,7 +336,6 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
             raise RuntimeError('save() failed: model not found.')
 
     def trainFromGenerators(self, train_generator, test_generator, data=None, *args, **kwargs):
-        print(data.keys())
         if self.model is None:
             self._makeModel(**data)
         self.model.summary()

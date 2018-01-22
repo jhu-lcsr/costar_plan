@@ -47,12 +47,18 @@ class PretrainImageJigsaws(PretrainImageAutoencoder):
                     self.skip_shape,)
         out = decoder(enc)
 
+        image_discriminator = MakeJigsawsImageClassifier(self, img_shape)
+        image_discriminator.load_weights(
+                self._makeName("discriminator_model", "predictor_weights.h5f"))
+        image_discriminator.trainable = False
+        o2 = image_discriminator([out])
+
         encoder.summary()
 
-        ae = Model(ins, out)
+        ae = Model(ins, [out, o2])
         ae.compile(
-                loss=["mae"], # + ["categorical_crossentropy"]*2,
-                #loss_weights=[1.,1.e-2,1e-4],
+                loss=["mae", "categorical_crossentropy"],
+                loss_weights=[1.,1e-4],
                 optimizer=self.getOptimizer())
         ae.summary()
     
@@ -74,4 +80,6 @@ class PretrainImageJigsaws(PretrainImageAutoencoder):
 
     def _getData(self, image, *args, **kwargs):
         I = np.array(image) / 255.
-        return [I], [I]
+        o1 = np.array(label)
+        o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
+        return [I], [I, o1_1h]

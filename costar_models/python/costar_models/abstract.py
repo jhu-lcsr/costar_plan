@@ -22,6 +22,8 @@ class AbstractAgentBasedModel(object):
         name = os.path.join(self.model_directory, prefix)
         if model_type is not None:
             name = name + "_%s"%(str(model_type))
+        if self.features is not None:
+            self.name += "_%s"%self.features   
         return name
 
     def __init__(self, taskdef=None, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
@@ -104,8 +106,6 @@ class AbstractAgentBasedModel(object):
         
         if self.noise_dim < 1:
             self.use_noise = False
-        if self.features is not None:
-            self.name += "_%s"%self.features   
 
         # Define previous option for when executing -- this should default to
         # None, set to 2 for testing only

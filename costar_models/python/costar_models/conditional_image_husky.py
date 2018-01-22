@@ -48,7 +48,7 @@ class ConditionalImageHusky(ConditionalImage):
             encoder = self._makeImageEncoder(img_shape)
         try:
             encoder.load_weights(self._makeName(
-                "pretrain_image_encoder_model_husky",
+                "pretrain_image_encoder_model",
                 #"pretrain_image_gan_model_husky",
                 "image_encoder.h5f"))
             encoder.trainable = self.retrain
