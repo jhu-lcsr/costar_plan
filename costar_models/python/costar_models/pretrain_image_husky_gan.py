@@ -56,6 +56,17 @@ class PretrainImageHuskyGan(PretrainImageGan):
                 self.hidden_shape,
                 self.skip_shape, False)
 
+        if self.load_pretrained_weights:
+            try:
+                encoder.load_weights(self.makeName(
+                    "pretrain_image_encoder",
+                    "image_encoder.h5f"))
+                decoder.load_weights(self.makeName(
+                    "pretrain_image_encoder",
+                    "image_decoder.h5f"))
+            except Exception as e:
+                print(">> Failed to load pretrained generator weights.")
+
         gen_out = decoder(enc)
         image_discriminator = self._makeImageDiscriminator(img_shape)
         self.discriminator = image_discriminator
