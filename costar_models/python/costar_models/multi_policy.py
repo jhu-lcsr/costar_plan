@@ -89,14 +89,13 @@ class HuskyPolicy(RobotPolicy):
         self.null_option = HuskyNullOption()
         super(HuskyPolicy, self).__init__(taskdef, *args, **kwargs)
 
-    def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
+    def _makeModel(self, image, pose, action, *args, **kwargs):
         '''
         Set up all models necessary to create actions
         '''
-        img_shape, image_size, arm_size, gripper_size = self._sizes(
-                features,
-                arm,
-                gripper)
+        
+        img_shape = image.shape[1:]
+        pose_size = pose.shape[-1]
         encoder = self._makeImageEncoder(img_shape)
 
         # Note: we must load weights for this version of the model. There's no
@@ -110,8 +109,7 @@ class HuskyPolicy(RobotPolicy):
 
         # Make end-to-end conditional actor
         self.model = MakeHuskyPolicy(
-                encoder, features, arm, gripper,
-                arm_cmd, gripper_cmd, option=self.option_num)
+                encoder, image, pose, action, option=self.option_num)
 
 
 
