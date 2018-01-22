@@ -131,6 +131,7 @@ def main():
             if gesture is None: # check for beyond last
                 break
             if gesture == 16: # check for before first
+                print("-- skipping frame", i)
                 continue
 
             image = imresize(frame, (96, 128))
