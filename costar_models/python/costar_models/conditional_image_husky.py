@@ -49,7 +49,7 @@ class ConditionalImageHusky(ConditionalImage):
             encoder = self._makeImageEncoder(img_shape)
             decoder = self._makeImageDecoder(self.hidden_shape)
 
-        LoadEncoderWeights(self, encoder, decoder)
+        LoadEncoderWeights(self, encoder, decoder, gan=False)
         image_discriminator = LoadGoalClassifierWeights(self,
                 make_classifier_fn=MakeImageClassifier,
                 img_shape=img_shape)
