@@ -61,7 +61,8 @@ class RobotPolicy(RobotMultiHierarchical):
         # Make end-to-end conditional actor
         self.model = MakeMultiPolicy(
                 encoder, features, arm, gripper,
-                arm_cmd, gripper_cmd, option=self.option)
+                arm_cmd, gripper_cmd, option=self.option_num)
+
 
     def _getData(self, *args, **kwargs):
         '''
@@ -86,7 +87,33 @@ class HuskyPolicy(RobotPolicy):
     def __init__(self, taskdef, *args, **kwargs):
         self.options = HuskyNumOptions()
         self.null_option = HuskyNullOption()
-        super(RobotPolicy, self).__init__(taskdef, *args, **kwargs)
+        super(HuskyPolicy, self).__init__(taskdef, *args, **kwargs)
+
+    def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
+        '''
+        Set up all models necessary to create actions
+        '''
+        img_shape, image_size, arm_size, gripper_size = self._sizes(
+                features,
+                arm,
+                gripper)
+        encoder = self._makeImageEncoder(img_shape)
+
+        # Note: we must load weights for this version of the model. There's no
+        # alternative, because we're expecting to train many different models
+        # here.
+        encoder.load_weights(self._makeName(
+            "pretrain_image_encoder_model_husky",
+            #"pretrain_image_gan_model_husky",
+            "image_encoder.h5f"))
+        encoder.trainable = False
+
+        # Make end-to-end conditional actor
+        self.model = MakeHuskyPolicy(
+                encoder, features, arm, gripper,
+                arm_cmd, gripper_cmd, option=self.option_num)
+
+
 
     def _getData(self, *args, **kwargs):
         '''
