@@ -96,7 +96,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.tform_filters)
 
         # These are the list of models that we want to learn
-        self.train_predictor = None
         self.image_discriminator = None
         self.predictor = None
         self.actor = None
@@ -278,11 +277,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             loss_weights = [0.90, 0.1, 0.0]
             losses += ["categorical_crossentropy", "binary_crossentropy"]
 
-        train_predictor = Model(ins, outs)
+        model = Model(ins, outs)
 
         # =====================================================================
         # Create models to train
-        train_predictor.compile(
+        model.compile(
                 loss=losses,
                 loss_weights=loss_weights,
                 optimizer=self.getOptimizer())
@@ -294,9 +293,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 "categorical_crossentropy",
                 "mae"],
         optimizer=self.getOptimizer())
-        train_predictor.summary()
+        model.summary()
 
-        return predictor, train_predictor, actor, ins, enc
+        return predictor, model, actor, ins, enc
 
     def _makeTransform(self, h_dim=(8,8)):
         '''
@@ -417,7 +416,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         -----------
         features, arm, gripper: variables of the appropriate sizes
         '''
-        self.predictor, self.train_predictor, self.actor, ins, hidden = \
+        self.predictor, self.model, self.actor, ins, hidden = \
             self._makePredictor(
                 (features, arm, gripper))
 
@@ -454,7 +453,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # ===================================================================
         # Use sample data to compile the model and set everything else up.
         # Check to make sure data makes sense before running the model.
-        if self.predictor is None:
+        if self.model is None:
             self._makeModel(**data)
             try:
                 self._makeModel(**data)
@@ -496,7 +495,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self._fit(train_generator, test_generator, callbacks)
 
     def _fit(self, train_generator, test_generator, callbacks):
-        self.train_predictor.fit_generator(
+        self.model.fit_generator(
             train_generator,
             self.steps_per_epoch,
             epochs=self.epochs,
@@ -509,12 +508,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         '''
         Save to a filename determined by the "self.name" field.
         '''
-        if self.predictor is not None:
+        if self.model is not None:
             print("----------------------------")
             print("Saving to " + self.name + "_{predictor, actor, image_decoder}")
-            self.train_predictor.save_weights(self.name + "_train_predictor.h5f")
-            if self.actor is not None:
+            self.model.save_weights(self.name + "_train_predictor.h5f")
+            if self.predictor is not None:
                 self.predictor.save_weights(self.name + "_predictor.h5f")
+            if self.actor is not None:
                 self.actor.save_weights(self.name + "_actor.h5f")
             if self.image_decoder is not None:
                 self.image_decoder.save_weights(self.name +
@@ -535,7 +535,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 self.hidden_decoder.save_weights(self.name + 
                 "_hidden_decoder.h5f")
             if self.classifier is not None:
-                self.hidden_decoder.save_weights(self.name + 
+                self.classifier.save_weights(self.name + 
                 "_classifier.h5f")
             if self.transform_model is not None:
                 self.transform_model.save_weights(self.name + 
@@ -555,7 +555,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         Load model weights. This is the default load weights function; you may
         need to overload this for specific models.
         '''
-        if self.predictor is not None:
+        if self.model is not None:
             print("----------------------------")
             print("using " + self.name + " to load")
             try:
@@ -563,7 +563,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 #self.predictor.load_weights(self.name + "_predictor.h5f")
             except Exception as e:
                 print("Could not load actor:", e)
-            self.train_predictor.load_weights(self.name + "_train_predictor.h5f")
+            self.model.load_weights(self.name + "_train_predictor.h5f")
             if self.image_decoder is not None:
                 self.image_decoder.load_weights(self.name +
                 "_image_decoder.h5f")
@@ -576,6 +576,22 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             if self.state_encoder is not None:
                 self.state_encoder.load_weights(self.name +
                 "_state_encoder.h5f")
+            if self.classifier is not None:
+                self.classifier.load_weights(self.name + 
+                "_classifier.h5f")
+            if self.transform_model is not None:
+                self.transform_model.load_weights(self.name + 
+                "_transform.h5f")
+            if self.value_model is not None:
+                self.value_model.load_weights(self.name + 
+                "_value.h5f")
+            if self.next_model is not None:
+                self.next_model.load_weights(self.name + 
+                "_next.h5f")
+            if self.predictor is not None:
+                self.predictor.load_weights(self.name + "_predictor.h5f")
+            if self.actor is not None:
+                self.actor.load_weights(self.name + "_actor.h5f")
         else:
             raise RuntimeError('_loadWeights() failed: model not found.')
 
@@ -1006,7 +1022,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             f = [np.array([f[i]]) for f in features]
             t = [np.array([t[i]]) for t in targets]
             pt = [np.array([pt[i]]) for pt in prediction_targets]
-            loss, train_loss, next_loss = self.train_predictor.evaluate(f, t,
+            loss, train_loss, next_loss = self.model.evaluate(f, t,
                     verbose=0)
             #print ("actual arm = ", kwargs['goal_arm'][0])
             #print ("actual gripper = ", kwargs['goal_gripper'][0])

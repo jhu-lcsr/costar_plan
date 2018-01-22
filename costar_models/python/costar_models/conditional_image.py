@@ -101,6 +101,12 @@ class ConditionalImage(PredictionSampler2):
             if not self.retrain:
                 raise e
 
+        image_discriminator = MakeImageClassifier(self, img_shape)
+        image_discriminator.load_weights(
+                self._makeName("goal_discriminator_model", "predictor_weights.h5f"))
+        image_discriminator.trainable = False
+ 
+
         # =====================================================================
         # Load the arm and gripper representation
         if self.skip_connections:
@@ -142,6 +148,8 @@ class ConditionalImage(PredictionSampler2):
         image_out2 = decoder([x2])
         #image_out = decoder([x, s32, s16, s8])
 
+        disc_out2 = image_discriminator(image_out2)
+
         # =====================================================================
         # Store the models for next time
         self.next_model = next_model
@@ -169,11 +177,11 @@ class ConditionalImage(PredictionSampler2):
             train_predictor = Model(ins + [label_in],
                     [image_out, image_out2, next_option_out, value_out,
                         arm_cmd,
-                        gripper_cmd])
+                        gripper_cmd, disc_out2])
             train_predictor.compile(
                     loss=[lfn, lfn, "binary_crossentropy", val_loss,
-                        lfn2, lfn2],
-                    loss_weights=[1., 1., 0.1, 0.1, 1., 0.2],
+                        lfn2, lfn2, "categorical_crossentropy"],
+                    loss_weights=[1., 1., 0.1, 0.1, 1., 0.2, 1e-4],
                     optimizer=self.getOptimizer())
         else:
             train_predictor = Model(ins + [label_in],
@@ -193,13 +201,16 @@ class ConditionalImage(PredictionSampler2):
         length = I.shape[0]
         I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
         oin_1h = np.squeeze(ToOneHot2D(oin, self.num_options))
+        o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
+        o2_1h = np.squeeze(ToOneHot2D(o2, self.num_options))
         qa = np.squeeze(qa)
         ga = np.squeeze(ga)
         #print("o1 = ", o1, o1.shape, type(o1))
         #print("o2 = ", o2, o2.shape, type(o2))
         if self.do_all:
             o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
-            return [I0, I, o1, o2, oin], [ I_target, I_target2, o1_1h, v, qa, ga]
+            return [I0, I, o1, o2, oin], [ I_target, I_target2, o1_1h, v, qa,
+                    ga, o2_1h]
         else:
             return [I0, I, o1, o2, oin], [I_target, I_target2]
 
