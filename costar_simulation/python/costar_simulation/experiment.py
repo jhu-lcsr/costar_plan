@@ -77,6 +77,8 @@ class StackExperiment(Experiment):
         configure(model_name=self.model_name,
                 joint_names=self.joint_names,
                 joint_positions=self.joint_positions)
+
+        # select random block positions for each block
         pass
 
 

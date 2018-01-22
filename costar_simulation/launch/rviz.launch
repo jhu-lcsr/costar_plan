@@ -1,8 +1,14 @@
 <launch>
 
-  <arg name="rviz_config" default="$(find costar_simulation)/rviz/simulation.rviz" doc="(string) rviz config file for user interface"/>
+  <arg name="debug" default="false" />
+  <arg unless="$(arg debug)" name="launch_prefix" value="" />
+  <arg     if="$(arg debug)" name="launch_prefix" value="gdb --ex run --args" />
+
+  <arg name="rviz_config" default="$(find costar_simulation)/launch/moveit.rviz" doc="(string) rviz config file for user interface"/>
 
   <!-- start rviz and load the appropriate rviz configuration if desired -->
-  <node pkg="rviz" type="rviz" name="rviz" args="-d $(arg rviz_config)" />
+  <node pkg="rviz" launch-prefix="$(arg launch_prefix)" type="rviz" name="$(anon rviz)" args="-d $(arg rviz_config)">
+    <rosparam command="load" file="$(find costar_simulation)/config/kinematics.yaml"/>
+  </node>
 
 </launch>

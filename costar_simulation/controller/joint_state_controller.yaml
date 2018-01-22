@@ -1,3 +1,4 @@
 joint_state_controller:
     type: joint_state_controller/JointStateController
+    allow_partial_joints_goal: True
     publish_rate: 50  

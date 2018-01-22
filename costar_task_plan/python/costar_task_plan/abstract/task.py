@@ -217,7 +217,9 @@ class Task(object):
             # create the nodes
             for name, template in self.option_templates.items():
                 iname, option = template.instantiate(name, arg_set)
-                if isinstance(option, Task):
+                if option is None:
+                    continue
+                elif isinstance(option, Task):
                     # this was a subtask, and must be merged into the full version of
                     # the task model.
                     inodes = self.mergeTask(option, name, inodes)
@@ -230,6 +232,12 @@ class Task(object):
                 if template.task is not None:
                     # This subtask has been removed -- we no longer need it
                     # Its associated options have been merged into the graph as a whole
+                    continue
+                elif name not in inodes:
+                    # This activity was never created -- we have no examples of
+                    # this action or of the necessary objects to create this
+                    # action in the real world.
+                    print ("Skipping missing option:", name)
                     continue
                 for iname in inodes[name]:
                     self.generic_names[iname] = name
@@ -329,7 +337,7 @@ class Task(object):
         sequence = []
         tag = ROOT_TAG
         while True:
-            children = self.getChildren(tag)
+            children, weights = self.getChildren(tag)
             if children is None or len(children) == 0:
                 break
             else:
@@ -388,6 +396,8 @@ class OptionTemplate(object):
                 semantic_arg_name = self.semantic_remap[arg]
             else:
                 semantic_arg_name = arg
+            if not arg in arg_dict:
+                continue               
             filled_args[filled_arg_name] = arg_dict[arg]
             name_args[semantic_arg_name] = arg_dict[arg]
 
@@ -404,9 +414,12 @@ class OptionTemplate(object):
 
         if self.task is None:
             iname = self.name_template % (name, make_str(name_args))
-            option = self.constructor(**filled_args)
-            for pc in self.postconditions:
-                option.addPostCondition(pc)
+            try:
+                option = self.constructor(**filled_args)
+                for pc in self.postconditions:
+                    option.addPostCondition(pc)
+            except Exception as e:
+                option = None
         else:
             option = Task(subtask_name=self.task.name)
             for args in self.task.options:

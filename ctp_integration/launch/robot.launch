@@ -1,0 +1,46 @@
+<launch>
+
+  <arg name="gripper_ip_address" default="192.168.1.11"/>
+  <arg name="ee_frame" value="ee_link"/>
+  <arg name="base_frame" value="base_link"/>
+
+  <arg name="sim" default="false"/>
+  <arg name="start_move_group" default="true"/>
+  <arg name="start_robotiq_force_sensor" default="false" doc="(bool) Launch robotiq force sensor."/>
+  <arg name="use_scene_parsing_pose" default="false" doc="Use the stable pose generated from the scene parsing algorithm"/>
+  <arg name="use_external_segmenter" default="true" doc="Use external point cloud segmentation false for sp_segmenter, true for something else e.g. color_nn_segmenter (k means color segmentation)"/>
+
+  <include file="$(find costar_bringup)/launch/utilities.launch">
+    <arg name="start_robotiq_force_sensor" value="$(arg start_robotiq_force_sensor)"/>
+    <arg name="start_instructor" value="false"/>
+    <arg name="rviz" value="false"/>
+  </include>
+
+  <include file="$(find costar_bringup)/launch/predicator_nodes.launch"/>
+
+  <!-- Bringup default configuration for the UR5 -->
+  <include file="$(find costar_bringup)/launch/config/ur5.launch">
+    <arg name="use_scene_parsing_pose" value="$(arg use_scene_parsing_pose)"/>
+    <arg name="use_external_segmenter" value="$(arg use_external_segmenter)"/>
+  </include>
+
+ <group unless="$(arg sim)">
+
+    <!-- motion planning --> 
+    <include if="$(arg start_move_group)" file="$(find ur5_moveit_config)/launch/move_group.launch">
+      <param name="allow_trajectory_execution" value="true"/>
+      <param name="fake_execution" value="true"/>
+    </include>
+
+    <!-- process high level motion commands -->
+    <include file="$(find costar_robot_manager)/launch/simple_ur5_driver.launch"/>
+
+    <!-- gripper bringup: connect to s model via TCP/IP -->
+    <node name="robotiq_c_model_interface" pkg="robotiq_c_model_control" type="CModelTcpNode.py" args="$(arg gripper_ip_address)"/>
+    <include file="$(find gripper_robotiq)/launch/c_model.launch">
+      <arg name="ee_frame" value="$(arg ee_frame)"/>
+    </include>
+
+  </group>
+
+</launch>

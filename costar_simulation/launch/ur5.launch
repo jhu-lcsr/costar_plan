@@ -7,6 +7,8 @@
 
   <!-- startup simulated world -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">   
+    <arg name="world_name" default="worlds/empty.world"/>
+    <!--arg name="world_name" default="$(find costar_simulation)/launch/test.world"/-->
     <arg name="paused" value="$(arg paused)"/>
     <arg name="gui" value="$(arg gui)"/>
   </include>
@@ -15,12 +17,9 @@
     <arg name="limited" value="$(arg limited)"/>
   </include>
 
-  <!--<include file="$(find ur5_moveit_config)/launch/planning_context.launch">
-    <arg name="load_robot_description" value="false"/>
-  </include>-->
-  <include if="$(arg start_move_group)" file="$(find ur5_moveit_config)/launch/move_group.launch">
-    <param name="allow_trajectory_execution" value="false"/>
-    <param name="fake_execution" value="true"/>
+  <include if="$(arg start_move_group)" file="$(find costar_simulation)/launch/ur5_moveit_planning_execution.launch">
+    <arg name="sim" value="true"/>
+    <arg name="limited" value="true"/>
   </include>
 
   <!-- push robot_description to factory and spawn robot in gazebo -->
@@ -34,7 +33,10 @@
   <!--Camera Pipeline -->
   <include file="$(find costar_simulation)/launch/camera.launch.xml" />
 
-  <!-- Robot state -->
-  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+  <node name="simple_gripper_action_server"
+        pkg="costar_simulation"
+        type="robotiq_gripper_action_server.py"/>
+
+  <include file="$(find costar_simulation)/launch/rviz.launch" />
 
 </launch>

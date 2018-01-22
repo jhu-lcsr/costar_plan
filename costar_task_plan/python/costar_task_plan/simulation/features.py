@@ -141,11 +141,11 @@ class ImagePlusFeatures(AbstractFeatures):
             arm = [T.p.x(), T.p.y(), T.p.z(),] + rpy
         else:
             arm = [T.p.x(), T.p.y(), T.p.z(),] + list(T.M.GetQuaternion())
-        return [img[:, :, :3], np.array(arm), state.gripper]
+        return [img[:, :, :3], np.array(arm), np.array(state.arm), state.gripper]
 
     @property
     def description(self):
-        return ["features", "arm", "gripper"]
+        return ["features", "arm", "joints", "gripper"]
 
 class PoseFeatures(AbstractFeatures):
     '''

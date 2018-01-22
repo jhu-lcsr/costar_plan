@@ -88,10 +88,17 @@ class AbstractPolicy(object):
   def evaluate(self, world, state, actor):
     raise Exception('policy.evaluate not implemented')
 
-'''
-Reward class governs what rewards we want to follow
-'''
+  def running(self, world, state, actor):
+    '''
+    Overwrite this to bound a condition with this function, which can be
+    used in place of an ordinary condition.
+    '''
+    raise NotImplementedError('finished() not implemented for policy')
+
 class AbstractReward(object):
+  '''
+  Reward class governs what rewards we want to follow
+  '''
   def __call__(self, world):
     return self.evaluate(world)
 

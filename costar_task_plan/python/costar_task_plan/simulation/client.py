@@ -35,7 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from costar_task_plan.tools import showTask
 
-from config import *
 from features import GetFeatures
 from util import GetTaskDefinition, GetRobotInterface
 from world import *
@@ -165,6 +164,7 @@ class CostarBulletSimulation(object):
         else:
             connect_type = pb.DIRECT
         self.client = pb.connect(connect_type, options=options)
+        GRAVITY = (0,0,-9.8)
         pb.setGravity(*GRAVITY)
 
         # place the robot in the world and set up the task

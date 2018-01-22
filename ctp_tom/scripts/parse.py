@@ -20,6 +20,10 @@ def getArgs():
     parser.add_argument("--demo_topic",
                         help="topic on which demonstration info was published",
                         default="/vr/learning/getDemonstrationInfo")
+    parser.add_argument("--alias_topic",
+                        help="topic on which aliases for granular actions are"
+                             " published.",
+                        default="/vr/learning/alias")
     parser.add_argument("--task_topic",
                         help="topic on which task info was published",)
     parser.add_argument("--fake",
@@ -42,7 +46,7 @@ def getArgs():
                         help="set if you want the robot to generate a task plan")
     parser.add_argument("--execute",
                         action="store_true",
-                        help="print out a ton of information")
+                        help="execute on the real or fake robot")
     parser.add_argument("--iter","-i",
                         default=10,
                         type=int,
@@ -54,20 +58,29 @@ def getArgs():
     
     return parser.parse_args()
 
-def fakeTaskArgs():
+def fakeTaskArgs(arm="r_ee_link"):
   '''
   Set up a simplified set of arguments. These are for the optimization loop, 
   where we expect to only have one object to grasp at a time.
   '''
+  if not arm in ["r_ee_link", "l_ee_link"]:
+      raise RuntimeError("not a valid arm")
   args = {
     'orange': ['orange_1', 'orange_2', 'orange_3'],
     'box': ['box'],
     'drill': ['drill'],
     'drill_receptacle': ['drill_receptacle'],
     'block': ['block_1', 'block_2'],
-    #'endpoint': ['l_ee_link', 'r_ee_link'],
-    'endpoint': ['r_ee_link'],
+    'endpoint': [arm],
     'high_table': ['tom_table'],
+    'screw': ['screw_1', 'screw_2'],
+    'Cube_blue': ['blue1'],
+    'Cube_red': ['red1'],
+    'Cube_green': ['green1'],
+    'Cube_yellow': ['yellow1'],
+    'top_wood': ['top_wood'],
+    'bottom_wood': ['bottom_wood'],
+    "Head": ["camera_link"],
   }
   return args
 
@@ -81,7 +94,15 @@ def main():
                 configs=[TOM_RIGHT_CONFIG, TOM_LEFT_CONFIG],
                 unknown_apply_before=4,
                 min_action_length=1,
-                demo_topic=args.demo_topic)
+                demo_topic=args.demo_topic,
+                alias_topic=args.alias_topic)
+        # Add an alias so we get a clean, readable name
+        rtp.addAlias("GranularActivity_0c93aef1-fe5a-40bb-ba35-b4314ed10d42",
+                     "Stack")
+        rtp.addObjectClassParent("Cube_red", "cube")
+        rtp.addObjectClassParent("Cube_blue", "cube")
+        rtp.addObjectClassParent("Cube_green", "cube")
+        rtp.addObjectClassParent("Cube_yellow", "cube")
         rtp.process() # run through the data and create models
         task = rtp.makeTask()
         world = TomWorld(lfd=rtp.lfd)
@@ -136,7 +157,7 @@ def main():
 
             try:
                 rate = rospy.Rate(30)
-                rospy.sleep(0.5)
+                rospy.sleep(0.1)
                 r_js_pub.publish(r_msg)
                 l_js_pub.publish(l_msg)
                 while not rospy.is_shutdown():
@@ -147,6 +168,9 @@ def main():
                 return
 
     if args.plan:
+        world.update()
+        rospy.sleep(0.1)
+        world.update()
         if not args.fake:
             raise RuntimeError('currently only fake scene is supported')
         path = do_search(world, task, max_depth=args.max_depth, iter=args.iter)

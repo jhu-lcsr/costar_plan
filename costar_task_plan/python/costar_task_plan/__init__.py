@@ -15,28 +15,18 @@ __all__ = ['World', 'HorizontalRoadMap', 'State', 'Action',
 import abstract
 import needle_master
 import grid_world
+import robotics
 
 try:
     import simulation
-except ImportError, e:
-    print "[WARNING] simulation requires pybullet3"
-    print e
-
-try:
-    import robotics
-except ImportError, e:
-    print "[WARNING] ROS/CoSTAR failed to import. ROS may be missing."
-    print e
+except ImportError as e:
+    print("[WARNING] simulation requires pybullet3")
 
 # =============================================================================
 # Neural Nets
 # Learning, training, and utilities.
-try:
-    import agent
-    import trainers
-except ImportError, e:
-    print "[WARNING] keras/tensorflow required for some tools"
-    print e
+import agent
+import trainers
 
 # =============================================================================
 # Task Planning

@@ -1,10 +1,101 @@
 from __future__ import print_function
 
-import hickle as hkl
-import numpy as np
+
 from keras import backend as K
 from keras.preprocessing.image import Iterator
+from matplotlib import pyplot as plt
 
+import numpy as np
+
+def ToOneHot2D(f, dim):
+    '''
+    Convert all to one-hot vectors. If we have a "-1" label, example was
+    considered unlabeled and should just get a zero...
+    '''
+    if len(f.shape) == 1:
+        f = np.expand_dims(f, -1)
+    assert len(f.shape) == 2
+    shape = f.shape + (dim,)
+    oh = np.zeros(shape)
+    #oh[np.arange(f.shape[0]), np.arange(f.shape[1]), f]
+    for i in range(f.shape[0]):
+        for j in range(f.shape[1]):
+            idx = f[i,j]
+            if idx >= 0:
+                oh[i,j,idx] = 1.
+    return oh
+
+def MakeOption1h(option, num_labels):
+    opt_1h = np.zeros((1,num_labels))
+    opt_1h[0,option] = 1.
+    return opt_1h
+
+def GetNextGoal(imgs, labels):
+    # Takes a list of target images and labels, and rotates them both
+    # to the left group by group
+    imgs = np.copy(imgs)
+    labels = np.copy(labels)
+
+    if len(labels) == 0:
+        return imgs, labels
+
+    # reverse views
+    irev = np.flip(imgs, axis=0)
+    lrev = np.flip(labels, axis=0)
+    last_l, last_i = np.copy(lrev[0]), np.copy(irev[0])
+    write_l, write_i = last_l, last_i
+
+    # skip the last area, going backwards
+    for j, l in enumerate(range(lrev.shape[0])):
+        if l != last_l:
+            break
+
+    # rotate in reverse order, starting from this point
+    for i in range(j, lrev.shape[0]):
+        # check for switch
+        if lrev[i] != last_l:
+            write_l = last_l
+            write_i = last_i
+            last_l = np.copy(lrev[i])
+            last_i = np.copy(irev[i])
+        lrev[i] = write_l
+        irev[i] = write_i
+
+    return imgs, labels
+
+def GetNextGoalOld(I_target, o1):
+    img = np.zeros_like(I_target)
+    next_option = np.zeros_like(o1)
+    for i in range(o1.shape[0]):
+        #print('---')
+        cur = o1[i]
+        #print(i, o1, o1.shape, cur)
+        tmp = np.copy(o1)
+        tmp[:i] = cur
+        first_next = np.argmax(tmp != cur)
+        #print (tmp, tmp[first_next])
+        #print (cur, tmp[first_next])
+        if tmp[first_next] == cur:
+            # nothing else
+            first_next = -1
+        img[i] = I_target[first_next]
+        next_option[i] = tmp[first_next]
+        #print ('---')
+
+    debug_next_goals = False
+    if debug_next_goals:
+        import matplotlib.pyplot as plt
+        plt.subplot(3,1,1)
+        plt.imshow(I[i])
+        plt.subplot(3,1,2)
+        plt.imshow(I_target[i])
+        plt.subplot(3,1,3)
+        plt.imshow(img[i])
+        plt.show()
+
+    return img, next_option
+
+"""
 # Data generator that creates sequences for input into PredNet.
 class SequenceGenerator(Iterator):
     def __init__(self, data_file, source_file, nt,
@@ -69,3 +160,4 @@ class SequenceGenerator(Iterator):
         for i, idx in enumerate(self.possible_starts):
             X_all[i] = self.preprocess(self.X[idx:idx+self.nt])
         return X_all
+"""
