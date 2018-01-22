@@ -89,10 +89,25 @@ def GetHuskyActorModel(x, num_options, pose_size,
     actor = Model([xin, option_in], [pose], name="actor")
     return actor
 
-def GetPolicyHuskyData(num_options, image, pose, action, label):
+def GetPolicyHuskyData(num_options, option, image, pose, action, label):
     I = np.array(image) / 255.
     p = np.array(pose)
     a = np.array(action)
+    labels = label[:]
+    print(label.shape, labels.shape)
+    asdf
+
+    idx = labels == option
+    if np.count_nonzero(idx) > 0:
+        I = I[idx]
+        p = p[idx]
+        a = a[idx]
+        I0 = I[0,:,:,:]
+        length = I.shape[0]
+        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
+        return [I0, I, p], [a]
+    else:
+        return [], []
 
 def GetConditionalHuskyData(do_all, num_options, image, pose, action, label,
         prev_label, goal_image, goal_pose, value, *args, **kwargs):

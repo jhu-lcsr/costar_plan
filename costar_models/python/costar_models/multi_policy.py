@@ -59,7 +59,7 @@ class RobotPolicy(RobotMultiHierarchical):
         encoder.trainable = False
 
         # Make end-to-end conditional actor
-        self.model = self._makePolicy(
+        self.model = MakeMultiPolicy(
                 encoder, features, arm, gripper,
                 arm_cmd, gripper_cmd, option=self.option)
 
@@ -71,7 +71,7 @@ class RobotPolicy(RobotMultiHierarchical):
         [Iorig, _, _, _, label, _, _,] = features
         labels = label[:]
         # find the matches for filtering
-        idx = labels == self.option
+        idx = labels == self.option_num
         if np.count_nonzero(idx) > 0:
             [I, q, g, _, _, _, _,] = [f[idx] for f in features]
             I0 = Iorig[0,:,:,:]
@@ -92,19 +92,5 @@ class HuskyPolicy(RobotPolicy):
         '''
         Filter out the data not relevant to the current option
         '''
-        features, targets = self._getAllData(*args, **kwargs)
-        [Iorig, _, _, _, label, _, _,] = features
-        labels = label[:]
-        # find the matches for filtering
-        idx = labels == self.option
-        if np.count_nonzero(idx) > 0:
-            [I, q, g, _, _, _, _,] = [f[idx] for f in features]
-            I0 = Iorig[0,:,:,:]
-            length = I.shape[0]
-            I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
-            [_, _, _, qa, ga, _] = [t[idx] for t in targets]
-            return [I0, I, q, g], [np.squeeze(qa), np.squeeze(ga)]
-        else:
-            return [], []
-
-
+        return GetPolicyHuskyData(self.num_options, self.option_num, *args,
+                **kwargs)
