@@ -52,15 +52,15 @@ class RobotPolicy(RobotMultiHierarchical):
                 arm,
                 gripper)
         encoder = self._makeImageEncoder(img_shape)
-        try:
-            encoder.load_weights(self._makeName(
-                "pretrain_image_model",
-                #"pretrain_image_gan_model",
-                "image_encoder.h5f"))
-            encoder.trainable = self.retrain
-        except Exception as e:
-            if not self.retrain:
-                raise e
+
+        # Note: we must load weights for this version of the model. There's no
+        # alternative, because we're expecting to train many different models
+        # here.
+        encoder.load_weights(self._makeName(
+            "pretrain_image_encoder_model",
+            #"pretrain_image_gan_model",
+            "image_encoder.h5f"))
+        encoder.trainable = False
 
         # Make end-to-end conditional actor
         self.model = self._makePolicy(
