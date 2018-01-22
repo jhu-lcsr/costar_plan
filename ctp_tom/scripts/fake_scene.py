@@ -4,6 +4,8 @@ from __future__ import print_function
 
 import rospy
 import tf
+import PyKDL as kdl
+import tf_conversions.posemath as pm
 
 from geometry_msgs.msg import Pose, Point
 from moveit_msgs.msg import PlanningScene
@@ -28,6 +30,9 @@ class FakeScenePublisher(object):
         self.orange3 = (0.68,
                   -0.10,
                   -0.363829042912)
+        table_vec = (0, -0.5, 0.863)
+        table_rot = kdl.Rotation.RotZ(-np.pi)
+        self.table = pm.toTf(kdl.Frame(table_rot, table_vec))
 
     def tick(self):
         self.tf_pub.sendTransform(self.orange1,
