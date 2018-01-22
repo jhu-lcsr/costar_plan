@@ -179,6 +179,11 @@ def MakeModel(features, model, taskdef, **kwargs):
                     model=model,
                     features=features,
                     **kwargs)
+        elif model == "policy":
+            model_instance = HuskyPolicy(taskdef,
+                    model=model,
+                    features=features,
+                    **kwargs)
         elif model == "pretrain_image_gan":
             model_instance = PretrainImageHuskyGan(taskdef,
                     model=model,
