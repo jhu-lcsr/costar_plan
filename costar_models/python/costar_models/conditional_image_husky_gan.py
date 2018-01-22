@@ -16,8 +16,20 @@ class ConditionalImageHuskyGan(ConditionalImageGan):
     def __init__(self, *args, **kwargs):
         super(ConditionalImageHuskyGan, self).__init__(*args, **kwargs)
 
-    def _getData(self, *args, **kwargs):
-        return GetConditionalHuskyData(self.do_all, self.num_options, *args, **kwargs)
+    def _getData(self, image, goal_image, label, prev_label, *args, **kwargs):
+        I = np.array(image) / 255.
+        I_target = np.array(goal_image) / 255.
+        oin = np.array(prev_label)
+        o1 = np.array(label)
+
+        # Create the next image including input image
+        I0 = I[0,:,:,:]
+        length = I.shape[0]
+        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
+
+        # Extract the next goal
+        I_target2, o2 = GetNextGoal(I_target, o1)
+        return [I0, I, o1, o2], [ I_target, I_target2 ]
 
     def _makeModel(self, image, pose, *args, **kwargs):
 
