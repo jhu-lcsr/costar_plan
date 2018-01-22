@@ -15,9 +15,11 @@ module load tensorflow/cuda-8.0/r1.3
 
 export DATASET="husky_data"
 export train_discriminator=true
-export train_image_encoder=true
+export train_image_encoder=false
 export train_multi_encoder=false
 export train_predictor=false
+export train_gans=true
+export train_encoder_gan=true
 export learning_rate=$1
 export dropout=$2
 export optimizer=$3
@@ -133,3 +135,36 @@ then
     #--success_only \
 fi
 
+if $train_gans
+then
+  if $train_encoder_gan
+  then
+    $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
+      --features multi \
+      -e 100 \
+      --model pretrain_image_gan \
+      --data_file $HOME/work/$DATASET.npz \
+      --features husky \
+      --lr $learning_rate \
+      --dropout_rate $dropout \
+      --model_directory $MODELDIR/ \
+      --optimizer $optimizer \
+      --steps_per_epoch 300 \
+      --loss $loss \
+      --batch_size 64
+  fi
+
+  $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
+    --features multi \
+    -e 100 \
+    --model conditional_image_gan \
+    --data_file $HOME/work/$DATASET.npz \
+    --features husky \
+    --lr $learning_rate \
+    --dropout_rate $dropout \
+    --model_directory $MODELDIR/ \
+    --optimizer $optimizer \
+    --steps_per_epoch 300 \
+    --loss $loss \
+    --batch_size 64
+fi
