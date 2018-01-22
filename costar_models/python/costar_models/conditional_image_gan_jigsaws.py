@@ -32,43 +32,29 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
 
         img_shape = image.shape[1:]
 
+        # Create inputs
         img0_in = Input(img_shape, name="predictor_img0_in")
         img_in = Input(img_shape, name="predictor_img_in")
         ins = [img0_in, img_in]
-
-        encoder = MakeJigsawsImageEncoder(self, img_shape)
-        decoder = MakeJigsawsImageDecoder(self, self.hidden_shape)
-
-        try:
-            encoder.load_weights(self._makeName(
-                #pretrain_image_encoder_model",
-                "pretrain_image_gan_model_jigsaws",
-                "image_encoder.h5f"))
-            encoder.trainable = self.retrain
-            decoder.load_weights(self._makeName(
-                #"pretrain_image_encoder_model",
-                "pretrain_image_gan_model_jigsaws",
-                "image_decoder.h5f"))
-            decoder.trainable = self.retrain
-        except Exception as e:
-            if not self.retrain:
-                raise e
-
-        if self.skip_connections:
-            h, s32, s16, s8 = encoder([img0_in, img_in])
-        else:
-            h = encoder(img_in)
-            h0 = encoder(img0_in)
-
-        # create input for controlling noise output if that's what we decide
-        # that we want to do
-        if self.use_noise:
-            ins += [Input((self.num_hypotheses, self.noise_dim))]
 
         # next option - used to compute the next image 
         option_in = Input((1,), name="option_in")
         option_in2 = Input((1,), name="option_in2")
         ins += [option_in, option_in2]
+
+        # =====================================================================
+        # Load weights and stuff. We'll load the GAN version of the weights.
+        encoder = MakeJigsawsImageEncoder(self, img_shape)
+        decoder = MakeJigsawsImageDecoder(self, self.hidden_shape)
+        LoadEncoderWeights(self, encoder, decoder, gan=True)
+
+        # =====================================================================
+        # Create outputs
+        if self.skip_connections:
+            h, s32, s16, s8 = encoder([img0_in, img_in])
+        else:
+            h = encoder(img_in)
+            h0 = encoder(img0_in)
 
         y = Flatten()(OneHot(self.num_options)(option_in))
         y2 = Flatten()(OneHot(self.num_options)(option_in2))

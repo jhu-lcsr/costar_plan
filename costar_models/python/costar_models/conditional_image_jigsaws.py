@@ -50,6 +50,8 @@ class ConditionalImageJigsaws(ConditionalImage):
             encoder = MakeJigsawsImageEncoder(self, img_shape)
             decoder = MakeJigsawsImageDecoder(self, self.hidden_shape)
 
+        # =====================================================================
+        # Load weights and stuff
         LoadEncoderWeights(self, encoder, decoder)
         image_discriminator = LoadGoalClassifierWeights(self,
                 make_classifier_fn=MakeJigsawsImageClassifier,
