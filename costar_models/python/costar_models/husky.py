@@ -134,3 +134,55 @@ def GetConditionalHuskyData(do_all, num_options, image, pose, action, label,
                 action]
     else:
         return [I0, I, o1, o2, oin], [I_target, I_target2]
+
+def MakeHuskyPolicy(model, encoder, image, pose, action, option):
+    '''
+    Create a single policy corresponding to option 
+
+    Parameters:
+    -----------
+    option: index of the policy to create
+    '''
+    img_shape = features.shape[1:]
+    pose_size = pose.shape[-1]
+    action_size = action.shape[-1]
+    print("pose_size ", pose_size, " action_size ", action_size)
+    if len(gripper.shape) > 1:
+        gripper_size = gripper.shape[1]
+    else:
+        gripper_size = 1
+
+    img_in = Input(img_shape,name="policy_img_in")
+    img0_in = Input(img_shape,name="policy_img0_in")
+    pose_in = Input((pose_size,), name="pose_in")
+    ins = [img0_in, img_in, pose_in]
+
+    dr, bn = model.dropout_rate, model.use_batchnorm
+
+    x = encoder(img_in)
+    x0 = encoder(img0_in)
+    y = pose_in
+
+    x = Concatenate(axis=-1)([x, x0])
+    x = AddConv2D(x, 32, [3,3], 1, dr, "same", lrelu=True, bn=bn)
+
+    y = AddDense(y, 32, "relu", 0., output=True, constraint=3)
+    x = TileOnto(x, y, 32, (8,8), add=False)
+
+    x = AddConv2D(x, 32, [3,3], 1, dr, "valid", lrelu=True, bn=bn)
+
+    x = Flatten()(x)
+    #x = Concatenate()([x, arm, gripper])
+
+    x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
+    x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
+
+    pose_out = Dense(action_size, name="pose_out")(x)
+    gripper_out = Dense(gripper_size, name="gripper_out")(x)
+
+    model = Model(ins, [pose_out, gripper_out])
+    model.compile(loss=model.loss, optimizer=model.getOptimizer())
+    model.summary()
+    return model
+
+
