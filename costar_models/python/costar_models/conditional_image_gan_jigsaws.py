@@ -145,20 +145,22 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         y = AddDense(y, 64, "lrelu", dr)
         x1 = TileOnto(x1, y, 64, img_size, add=True)
         x1 = AddConv2D(x1, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
+        x1 = AddConv2D(x1, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
+        x1 = AddConv2D(x1, 128, [4,4], 2, dr, "same", lrelu=True)
+        #x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
+        x1 = AddConv2D(x1, 1, [4,4], 1, 0., "same", activation="sigmoid")
 
         # -------------------------------------------------------------
         y = OneHot(self.num_options)(option2)
         y = AddDense(y, 64, "lrelu", dr)
         x2 = TileOnto(x2, y, 64, img_size, add=True)
         x2 = AddConv2D(x2, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
-        x = x2
-        #x = Concatenate()([x1, x2])
-        x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True)
-        #x = AddConv2D(x, 128, [4,4], 1, dr, "same", lrelu=True)
-        x= AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
-        #x= AddConv2D(x, 512, [4,4], 2, dr, "same", lrelu=True)
-        #x = AddConv2D(x, 256, [4,4], 1, dr, "same", lrelu=True)
-        x = AddConv2D(x, 1, [4,4], 1, 0., "same", activation="sigmoid")
+        x2 = AddConv2D(x2, 128, [4,4], 2, dr, "same", lrelu=True)
+        #x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
+        x2 = AddConv2D(x2, 1, [4,4], 1, 0., "same", activation="sigmoid")
+
+
+        x = Add()([x1, x2])
 
         #x = MaxPooling2D(pool_size=(8,8))(x)
         x = AveragePooling2D(pool_size=(12,16))(x)
