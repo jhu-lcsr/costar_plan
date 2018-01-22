@@ -68,6 +68,7 @@ class PretrainImageJigsawsGan(PretrainImageGan):
                     "image_decoder"))
             except Exception as e:
                 print(">>> could not load pretrained image weights")
+                print(e)
 
         gen_out = decoder(enc)
         image_discriminator = self._makeImageDiscriminator(img_shape)
