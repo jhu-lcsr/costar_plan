@@ -75,31 +75,12 @@ class ConditionalImage(PredictionSampler2):
 
         if self.skip_connections:
             encoder = self._makeImageEncoder2(img_shape)
-        else:
-            encoder = self._makeImageEncoder(img_shape)
-        try:
-            encoder.load_weights(self._makeName(
-                "pretrain_image_encoder_model",
-                #"pretrain_image_gan_model",
-                "image_encoder.h5f"))
-            encoder.trainable = self.retrain
-        except Exception as e:
-            if not self.retrain:
-                raise e
-
-        if self.skip_connections:
             decoder = self._makeImageDecoder2(self.hidden_shape)
         else:
+            encoder = self._makeImageEncoder(img_shape)
             decoder = self._makeImageDecoder(self.hidden_shape)
-        try:
-            decoder.load_weights(self._makeName(
-                "pretrain_image_encoder_model",
-                #"pretrain_image_gan_model",
-                "image_decoder.h5f"))
-            decoder.trainable = self.retrain
-        except Exception as e:
-            if not self.retrain:
-                raise e
+
+        LoadEncoderWeights(self, encoder, decoder)
 
         image_discriminator = MakeImageClassifier(self, img_shape)
         image_discriminator.load_weights(

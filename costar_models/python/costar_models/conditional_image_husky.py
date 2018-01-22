@@ -44,31 +44,15 @@ class ConditionalImageHusky(ConditionalImage):
 
         if self.skip_connections:
             encoder = self._makeImageEncoder2(img_shape)
-        else:
-            encoder = self._makeImageEncoder(img_shape)
-        try:
-            encoder.load_weights(self._makeName(
-                "pretrain_image_encoder_model",
-                #"pretrain_image_gan_model_husky",
-                "image_encoder.h5f"))
-            encoder.trainable = self.retrain
-        except Exception as e:
-            if not self.retrain:
-                raise e
-
-        if self.skip_connections:
             decoder = self._makeImageDecoder2(self.hidden_shape)
         else:
+            encoder = self._makeImageEncoder(img_shape)
             decoder = self._makeImageDecoder(self.hidden_shape)
-        try:
-            decoder.load_weights(self._makeName(
-                "pretrain_image_encoder_model_husky",
-                #"pretrain_image_gan_model",
-                "image_decoder.h5f"))
-            decoder.trainable = self.retrain
-        except Exception as e:
-            if not self.retrain:
-                raise e
+
+        LoadEncoderWeights(self, encoder, decoder)
+        image_discriminator = LoadGoalClassifierWeights(self,
+                make_classifier_fn=MakeImageClassifier,
+                img_shape=img_shape)
 
         # =====================================================================
         # Load the arm and gripper representation
@@ -109,11 +93,6 @@ class ConditionalImageHusky(ConditionalImage):
         image_out2 = decoder([x2])
         #image_out = decoder([x, s32, s16, s8])
 
-        image_discriminator = MakeImageClassifier(self, img_shape)
-        image_discriminator.load_weights(
-                self._makeName("goal_discriminator_model_husky", "predictor_weights.h5f"))
-        image_discriminator.trainable = False
- 
         disc_out2 = image_discriminator(image_out2)
 
         self.next_model = next_model
