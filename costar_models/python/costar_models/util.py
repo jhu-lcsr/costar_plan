@@ -39,6 +39,7 @@ from .pretrain_image_husky_gan import PretrainImageHuskyGan
 from .conditional_image_husky import ConditionalImageHusky
 from .conditional_image_husky_gan import ConditionalImageHuskyGan
 from .discriminator import HuskyDiscriminator
+from .multi_policy import HuskyPolicy
 
 def MakeModel(features, model, taskdef, **kwargs):
     '''
