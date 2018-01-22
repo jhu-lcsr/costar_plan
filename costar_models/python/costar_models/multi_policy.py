@@ -30,13 +30,13 @@ class RobotPolicy(RobotMultiHierarchical):
     def __init__(self, taskdef, *args, **kwargs):
         super(RobotPolicy, self).__init__(taskdef, *args, **kwargs)
 
-        if self.option is None:
+        if self.option_num is None:
             raise RuntimeError("Policy model requires an 'option' argument")
-        if self.option >= self.null_option:
+        if self.option_num >= self.null_option:
             raise RuntimeError("Policy model requires an option between 0 and " +str(self.null_option)) 
 
         # add option to self.name, for saving
-        self.name += "_opt" + str(self.option)
+        self.name += "_opt" + str(self.option_num)
 
 
     def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
