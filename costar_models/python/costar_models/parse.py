@@ -18,6 +18,8 @@ def GetAvailableFeatures():
     '''
     return ['empty',
             'null',
+            'husky',
+            'jigsaws',
             'depth', # depth channel only
             'rgb', # RGB channels only
             'joint_state', # robot joints only
@@ -75,7 +77,6 @@ def GetModelParser():
                         default=100)
     parser.add_argument("--load_model", "--lm",
                         help="Load model from file for tests.",
-                        #type=argparse.FileType('r'))#,
                         action="store_true")
     parser.add_argument("--show_iter", "--si",
                         help="Show output images from model training" + \
@@ -88,6 +89,11 @@ def GetModelParser():
                               " discriminators.",
                         default=0,
                         type=int)
+    parser.add_argument("--load_pretrained_weights", "--lpw",
+                        help="Load pretrained weights when training more"
+                             " complex models. Will usually fail gracefully"
+                             " if weights cannot be found. (GAN OPTION)",
+                        action="store_true")
     parser.add_argument("--cpu",
                         help="Run in CPU-only mode, even if GPUs are" + \
                              " available.",
@@ -107,13 +113,6 @@ def GetModelParser():
                               "based version of the fit tool",
                         default=300,
                         type=int)
-    parser.add_argument("--residual",
-                        help="add a new residual connections to the model" + \
-                              "if possible. Not all models implement this.",
-                        action="store_true")
-    parser.add_argument("--predict_value",
-                        help="tell predictor models to learn value as well",
-                        action="store_true")
     parser.add_argument("--upsampling",
                         help="set upsampling definition",
                         choices=UpsamplingOptions(),
@@ -141,14 +140,11 @@ def GetModelParser():
     parser.add_argument("--success_only",
                         help="only train on positive examples",
                         action="store_true")
-    parser.add_argument("--sampling",
-                        help="sampling version",
-                        action="store_true")
     parser.add_argument("--loss",
                         help="Loss for state variables: MSE, MAE, or log(cosh).",
                         choices=["mse","mae","logcosh"],
                         default="mae")
-    parser.add_argument("--gan-method",
+    parser.add_argument("--gan_method",
                         help="Whether to train with GAN or no GAN",
                         dest='gan_method',
                         choices=["gan", "mae", "desc"],
@@ -169,6 +165,11 @@ def GetModelParser():
                               "do not use this parameter.",
                         type=int,
                         default=1)
+    parser.add_argument("--option_num",
+                        help="Choose an option to learn for the multi-policy hierarchical model",
+                        type=int,
+                        default=None)
+
     return parser
 
 def GetSubmodelOptions():

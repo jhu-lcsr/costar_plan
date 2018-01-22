@@ -2,6 +2,7 @@ import tensorflow as tf
 
 import keras
 from keras.applications.resnet50 import ResNet50
+from keras.applications.nasnet import NASNetMobile
 from keras import backend as K
 from keras.layers import Dense
 from keras.layers import Dropout
@@ -12,12 +13,15 @@ from keras.layers import MaxPooling2D
 from keras.layers import AveragePooling2D
 from keras.layers import GlobalMaxPooling2D
 from keras.layers import GlobalAveragePooling2D
+from keras.layers import UpSampling2D
+from keras.layers import BatchNormalization
 from keras.layers.core import Flatten
 from keras.layers.core import RepeatVector
 from keras.layers import Input
 from keras.layers.merge import concatenate
 from keras.layers.merge import Concatenate
 from keras.layers.merge import _Merge
+from keras.layers.merge import Add
 from keras.models import Model
 from keras.layers import Lambda
 from keras.layers import Reshape
@@ -113,6 +117,77 @@ def concat_images_with_tiled_vector_layer(images, vector, image_shape=None, vect
     return x
 
 
+def add_images_with_tiled_vector_layer(images, vector, image_shape=None, vector_shape=None):
+    """Tile a vector as if it were channels onto every pixel of an image.
+
+    This version is designed to be used as layers within a Keras model.
+
+    # Params
+       images: a list of images to combine, must have equal dimensions
+       vector: the 1D vector to tile onto every pixel
+       image_shape: Tuple with 3 entries defining the shape (batch, height, width)
+           images should be expected to have, do not specify the number
+           of batches.
+       vector_shape: Tuple with 3 entries defining the shape (batch, height, width)
+           images should be expected to have, do not specify the number
+           of batches.
+    """
+    with K.name_scope('add_images_with_tiled_vector_layer'):
+        if not isinstance(images, list):
+            images = [images]
+        if vector_shape is None:
+            # check if K.shape, K.int_shape, or vector.get_shape().as_list()[1:] is better
+            # https://github.com/fchollet/keras/issues/5211
+            vector_shape = K.int_shape(vector)[1:]
+        if image_shape is None:
+            # check if K.shape, K.int_shape, or image.get_shape().as_list()[1:] is better
+            # https://github.com/fchollet/keras/issues/5211
+            image_shape = K.int_shape(images[0])[1:]
+        vector = Reshape([1, 1, vector_shape[-1]])(vector)
+        tile_shape = (int(1), int(image_shape[0]), int(image_shape[1]), int(1))
+        tiled_vector = Lambda(lambda x: K.tile(x, tile_shape))(vector)
+        x = Add()([] + images + [tiled_vector])
+    return x
+
+
+def classifier_block(input_tensor, require_flatten=True, top='classification',
+                     classes=1, activation='sigmoid',
+                     input_shape=None, final_pooling=None, verbose=False):
+    """ Performs the final classification step for a given problem.
+    """
+    x = input_tensor
+    if require_flatten and top == 'classification':
+        if verbose:
+            print("    classification")
+        x = Dense(units=classes, activation=activation,
+                  kernel_initializer="he_normal", name='fc' + str(classes))(x)
+
+    elif require_flatten and top == 'segmentation':
+        if verbose:
+            print("    segmentation")
+        x = Conv2D(classes, (1, 1), activation='linear', padding='same')(x)
+
+        if K.image_data_format() == 'channels_first':
+            channel, row, col = input_shape
+        else:
+            row, col, channel = input_shape
+
+        x = Reshape((row * col, classes))(x)
+        x = Activation(activation)(x)
+        x = Reshape((row, col, classes))(x)
+
+    elif final_pooling == 'avg':
+        if verbose:
+            print("    GlobalAveragePooling2D")
+        x = GlobalAveragePooling2D()(x)
+
+    elif final_pooling == 'max':
+        if verbose:
+            print("    GlobalMaxPooling2D")
+        x = GlobalMaxPooling2D()(x)
+    return x
+
+
 def grasp_model_resnet(clear_view_image_op,
                        current_time_image_op,
                        input_vector_op,
@@ -125,7 +200,7 @@ def grasp_model_resnet(clear_view_image_op,
                        activation='sigmoid',
                        repetitions=None):
     if repetitions is None:
-        repetitions = [2, 2, 2, 2]
+        repetitions = [1, 1, 1, 1]
     combined_input_data = concat_images_with_tiled_vector([clear_view_image_op, current_time_image_op], input_vector_op)
     combined_input_shape = K.int_shape(combined_input_data)
     # the input shape should be a tuple of 3 values
@@ -153,8 +228,8 @@ def grasp_model_pretrained(clear_view_image_op,
                            input_vector_op,
                            input_image_shape=None,
                            input_vector_op_shape=None,
-                           growth_rate=12,
-                           reduction=0.75,
+                           growth_rate=36,
+                           reduction=0.5,
                            dense_blocks=4,
                            include_top=True,
                            dropout_rate=0.0,
@@ -168,13 +243,13 @@ def grasp_model_pretrained(clear_view_image_op,
 
     print('input_image_shape:', input_image_shape)
 
-    clear_view_model = ResNet50(
-        input_shape=input_image_shape,
+    clear_view_model = NASNetMobile(
+        input_shape=input_image_shape[1:],
         input_tensor=clear_view_image_op,
         include_top=False)
 
-    current_time_model = ResNet50(
-        input_shape=input_image_shape,
+    current_time_model = NASNetMobile(
+        input_shape=input_image_shape[1:],
         input_tensor=current_time_image_op,
         include_top=False)
 
@@ -184,25 +259,25 @@ def grasp_model_pretrained(clear_view_image_op,
         for layer in current_time_model.layers:
             layer.trainable = False
 
-    clear_view_unpooled_layer = clear_view_model.layers[-2].get_output_at(0)
-    unpooled_shape = clear_view_unpooled_layer.get_shape().as_list()
+    # clear_view_unpooled_layer = clear_view_model.layers[-2].get_output_at(0)
+    clear_view_unpooled_layer = clear_view_model.outputs[0]
+    unpooled_shape = K.int_shape(clear_view_unpooled_layer)
     print('clear_view_unpooled_layer: ', clear_view_unpooled_layer)
     print('unpooled_shape: ', unpooled_shape)
-    current_time_unpooled = current_time_model.layers[-2].get_output_at(0)
-    print('input_vector_op before tile: ', input_vector_op)
-    input_vector_op = tile_vector_as_image_channels(
-        input_vector_op,
-        unpooled_shape
-        )
-    print('input_vector_op after tile: ', input_vector_op)
+    # current_time_unpooled = current_time_model.layers[-2].get_output_at(0)
+    current_time_unpooled = current_time_model.outputs[0]
     print('clear_view_model.outputs: ', clear_view_model.outputs)
     print('current_time_model.outputs: ', current_time_model.outputs)
-    combined_input_data = tf.concat([clear_view_unpooled_layer, input_vector_op, current_time_unpooled], -1)
+    unpooled_shape = [input_vector_op_shape[0], unpooled_shape[1], unpooled_shape[2], unpooled_shape[3]]
+    clear_view_unpooled_layer = clear_view_unpooled_layer.set_shape(unpooled_shape)
+    current_time_unpooled = current_time_unpooled.set_shape(unpooled_shape)
+
+    combined_input_data = concat_images_with_tiled_vector_layer([clear_view_unpooled_layer, current_time_unpooled], input_vector_op,
+                                                                image_shape=unpooled_shape)
 
     print('combined_input_data.get_shape().as_list():', combined_input_data.get_shape().as_list())
-    combined_input_shape = combined_input_data.get_shape().as_list()
-    combined_input_shape[-1] = unpooled_shape[-1] * 2 + input_vector_op_shape[-1]
-    model_name = 'resnet'
+    combined_input_shape = K.int_shape(combined_input_data)
+    model_name = 'dense'
     if model_name == 'dense':
         final_nb_layer = 4
         nb_filter = combined_input_shape[-1]
@@ -213,10 +288,11 @@ def grasp_model_pretrained(clear_view_image_op,
             bottleneck=True, dropout_rate=dropout_rate, weight_decay=weight_decay)
 
         concat_axis = -1
-        x = BatchNormalization(axis=concat_axis, epsilon=1.1e-5)(x)
+        x = BatchNormalization(axis=concat_axis, epsilon=1.1e-5, name='final_bn')(x)
         x = Activation('relu')(x)
-        x = GlobalAveragePooling2D()(x)
+        x = GlobalMaxPooling2D()(x)
         x = Dense(1, activation='sigmoid')(x)
+        model = Model(inputs=[clear_view_image_op, current_time_image_op, input_vector_op], outputs=[x])
     elif model_name == 'densenet':
         model = DenseNet(input_shape=combined_input_shape[1:],
                          include_top=include_top,
@@ -251,17 +327,18 @@ def grasp_model_pretrained(clear_view_image_op,
     return model
 
 
-def grasp_model(clear_view_image_op,
-                current_time_image_op,
-                input_vector_op,
-                input_image_shape=None,
-                input_vector_op_shape=None,
-                depth=40,
-                growth_rate=36,
-                reduction=0.5,
-                dense_blocks=3,
-                include_top=True,
-                dropout_rate=0.0):
+def grasp_model_densenet(
+        clear_view_image_op,
+        current_time_image_op,
+        input_vector_op,
+        input_image_shape=None,
+        input_vector_op_shape=None,
+        depth=40,
+        growth_rate=36,
+        reduction=0.5,
+        dense_blocks=3,
+        include_top=True,
+        dropout_rate=0.0):
     if input_vector_op_shape is None:
         input_vector_op_shape = input_vector_op.get_shape().as_list()
     if input_image_shape is None:
@@ -309,7 +386,8 @@ def grasp_model_segmentation(clear_view_image_op=None,
                              dense_blocks=4,
                              dropout_rate=0.0,
                              activation='sigmoid',
-                             classes=1):
+                             classes=1,
+                             early_transition=True):
     if input_vector_op_shape is None:
         input_vector_op_shape = input_vector_op.get_shape().as_list()
     if input_image_shape is None:
@@ -331,82 +409,229 @@ def grasp_model_segmentation(clear_view_image_op=None,
                         growth_rate=growth_rate,
                         reduction=reduction,
                         nb_dense_block=dense_blocks,
-                        classes=classes)
+                        classes=classes,
+                        dropout_rate=dropout_rate,
+                        early_transition=True)
     return model
 
 
-def grasp_model_levine_2016(clear_view_image_op,
-                            current_time_image_op,
-                            input_vector_op,
-                            input_image_shape=None,
-                            input_vector_op_shape=None,
-                            dropout_rate=None,
-                            pooling='max'):
+def grasp_model_levine_2016(
+        clear_view_image_op,
+        current_time_image_op,
+        input_vector_op,
+        input_image_shape=None,
+        input_vector_op_shape=None,
+        dropout_rate=None,
+        strides_initial_conv=(2, 2),
+        dilation_rate_initial_conv=1,
+        pooling='max',
+        dilation_rate=1,
+        activation='sigmoid',
+        final_pooling='max',
+        require_flatten=True,
+        top='classification',
+        classes=1,
+        verbose=False,
+        name='grasp_model_levine_2016'):
     """Model designed to match prior work.
 
-    Learning Hand-Eye Coordination for Robotic Grasping with Deep Learning and Large-Scale Data Collection.
+    Learning Hand-Eye Coordination for Robotic Grasping with
+    Deep Learning and Large-Scale Data Collection.
 
     Original paper input dimensions:
     img_rows, img_cols, img_channels = 472, 472, 3  # 6 or 3
     """
-    img_shape = K.int_shape(clear_view_image_op)[1:]
-    inputImg1 = Input(shape=img_shape, tensor=clear_view_image_op)
-    inputImg2 = Input(shape=img_shape, tensor=current_time_image_op)
-    combImg = Concatenate(-1)([inputImg1, inputImg2])
-    # img Conv 1
-    imgConv = Conv2D(64, kernel_size=(6, 6),
-                     activation='relu',
-                     strides=(2, 2),
-                     padding='same')(combImg)
+    with K.name_scope(name) as scope:
+        if input_image_shape is None:
+            input_image_shape = K.int_shape(clear_view_image_op)[1:]
 
-    if pooling is 'max':
-        # img maxPool
-        imgConv = MaxPooling2D(pool_size=(3, 3))(imgConv)
+        if activation not in ['softmax', 'sigmoid', None]:
+            raise ValueError('activation must be one of "softmax" or "sigmoid"'
+                             ' or None, but is: ' + str(activation))
 
-    # img Conv 2 - 7
-    for i in range(6):
-        imgConv = Conv2D(64, (5, 5), padding='same', activation='relu')(imgConv)
+        if activation == 'sigmoid' and classes != 1:
+            raise ValueError('sigmoid activation can only be used when classes = 1')
 
-    if pooling is 'max':
-        # img maxPool 2
-        imgConv = MaxPooling2D(pool_size=(3, 3))(imgConv)
+        # Determine proper input shape
+        input_image_shape = _obtain_input_shape(input_image_shape,
+                                                default_size=32,
+                                                min_size=8,
+                                                data_format=K.image_data_format(),
+                                                require_flatten=require_flatten)
 
-    # motor Data
-    vector_shape = K.int_shape(input_vector_op)[1:]
-    motorData = Input(shape=vector_shape, tensor=input_vector_op)
+        clear_view_image_input = Input(shape=input_image_shape,
+                                       tensor=clear_view_image_op,
+                                       name='clear_view_image_input')
+        current_time_image_input = Input(shape=input_image_shape,
+                                         tensor=current_time_image_op,
+                                         name='current_time_image_input')
 
-    # motor full conn
-    motorConv = Dense(64, activation='relu')(motorData)
+        # img1 Conv 1
+        clear_view_img_conv = Conv2D(64, kernel_size=(6, 6),
+                                     activation='relu',
+                                     strides=strides_initial_conv,
+                                     dilation_rate=dilation_rate_initial_conv,
+                                     padding='same')(clear_view_image_input)
 
-    # tile and concat the data
-    combinedData = concat_images_with_tiled_vector_layer(imgConv, motorConv)
-    print('Combined', combinedData)
+        # img2 Conv 1
+        current_time_img_conv = Conv2D(64, kernel_size=(6, 6),
+                                       activation='relu',
+                                       strides=strides_initial_conv,
+                                       dilation_rate=dilation_rate_initial_conv,
+                                       padding='same')(current_time_image_input)
 
-    # combined conv 8
-    combConv = Conv2D(64, (3, 3), activation='relu', padding='same')(combinedData)
+        if pooling == 'max':
+            # img maxPool
+            clear_view_img_conv = MaxPooling2D(pool_size=(3, 3))(clear_view_img_conv)
+            current_time_img_conv = MaxPooling2D(pool_size=(3, 3))(current_time_img_conv)
 
-    # combined conv 9 - 13
-    for i in range(3):
-        combConv = Conv2D(64, (3, 3), activation='relu', padding='same')(combConv)
+        x = Add()([clear_view_img_conv, current_time_img_conv])
 
-    if pooling is 'max':
-        # combined maxPool
-        combConv = MaxPooling2D(pool_size=(2, 2))(combConv)
+        # img Conv 2 - 7
+        for i in range(6):
+            x = Conv2D(64, (5, 5), padding='same', activation='relu')(x)
 
-    # combined conv 14 - 16
-    for i in range(3):
-        combConv = Conv2D(64, (3, 3), activation='relu', padding='same')(combConv)
+        x = Conv2D(64, (5, 5), padding='same', activation='relu',
+                   dilation_rate=dilation_rate)(x)
 
-    # Extra Global Average Pooling allows more flexible input dimensions
-    # but only use if necessary.
-    feature_shape = K.int_shape(combConv)
-    if (feature_shape[1] > 1 or feature_shape[2] > 1):
-        combConv = Flatten()(combConv)
-    # combined full connected layers
-    combConv = Dense(64, activation='relu')(combConv)
-    combConv = Dense(64, activation='relu')(combConv)
-    # get down to a single prediction
-    combConv = Dense(1, activation='sigmoid')(combConv)
+        if pooling == 'max':
+            # img maxPool 2
+            x = MaxPooling2D(pool_size=(3, 3))(x)
 
-    model = Model(inputs=[inputImg1, inputImg2, motorData], outputs=combConv)
-    return model
+        if input_vector_op is not None or input_vector_op is not None:
+            # Handle input command data
+            vector_shape = K.int_shape(input_vector_op)[1:]
+            motorData = Input(shape=vector_shape, tensor=input_vector_op, name='motion_command_vector_input')
+
+            # motor full conn
+            motorConv = Dense(64, activation='relu')(motorData)
+
+            # tile and concat the data
+            x = add_images_with_tiled_vector_layer(x, motorConv)
+
+            if dropout_rate is not None:
+                x = Dropout(dropout_rate)(x)
+
+        # combined conv 8
+        x = Conv2D(64, (3, 3), activation='relu', padding='same')(x)
+
+        # combined conv 9 - 12
+        for i in range(2):
+            x = Conv2D(64, (3, 3), activation='relu', padding='same')(x)
+
+        # combined conv 13
+        x = Conv2D(64, (5, 5), padding='same', activation='relu',
+                   dilation_rate=dilation_rate)(x)
+
+        if pooling == 'max':
+            # combined maxPool
+            x = MaxPooling2D(pool_size=(2, 2))(x)
+
+        # combined conv 14 - 16
+        for i in range(3):
+            x = Conv2D(64, (3, 3), activation='relu', padding='same')(x)
+
+        # Extra Global Average Pooling allows more flexible input dimensions
+        # but only use if necessary.
+        if top == 'classification':
+            feature_shape = K.int_shape(x)
+            if (feature_shape[1] > 1 or feature_shape[2] > 1):
+                x = GlobalMaxPooling2D()(x)
+                # x = Flatten()(x)
+
+            # combined full connected layers
+            if dropout_rate is not None:
+                x = Dropout(dropout_rate)(x)
+
+            x = Dense(64, activation='relu')(x)
+
+            if dropout_rate is not None:
+                x = Dropout(dropout_rate)(x)
+
+            x = Dense(64, activation='relu')(x)
+
+            if dropout_rate is not None:
+                x = Dropout(dropout_rate)(x)
+
+        elif top == 'segmentation':
+
+            if dropout_rate is not None:
+                x = Dropout(dropout_rate)(x)
+
+            x = Conv2D(64, (1, 1), activation='relu', padding='same')(x)
+
+            if dropout_rate is not None:
+                x = Dropout(dropout_rate)(x)
+
+            x = Conv2D(64, (1, 1), activation='relu', padding='same')(x)
+
+            if dropout_rate is not None:
+                x = Dropout(dropout_rate)(x)
+
+            # if the image was made smaller to save space,
+            # upsample before calculating the final output
+            if K.image_data_format() == 'channels_first':
+                batch, channel, row, col = 0, 1, 2, 3
+            else:
+                batch, row, col, channel = 0, 1, 2, 3
+
+            comb_conv_shape = K.int_shape(x)
+            iidim = (input_image_shape[row-1], input_image_shape[col-1])
+            ccdim = (comb_conv_shape[row], comb_conv_shape[col])
+            if iidim != ccdim:
+                x = UpSampling2D(size=(iidim[0]/ccdim[0], iidim[1]/ccdim[1]))(x)
+
+        # calculate the final classification output
+        x = classifier_block(x, require_flatten, top, classes, activation,
+                             input_image_shape, final_pooling, verbose)
+
+        # make a list of all inputs into the model
+        inputs = [clear_view_image_input, current_time_image_input]
+        if input_vector_op is not None or input_vector_op is not None:
+            inputs = inputs + [motorData]
+
+        # create the model
+        model = Model(inputs=inputs, outputs=x)
+        return model
+
+
+def grasp_model_levine_2016_segmentation(
+        clear_view_image_op,
+        current_time_image_op,
+        input_vector_op,
+        input_image_shape=None,
+        input_vector_op_shape=None,
+        dropout_rate=None,
+        strides_initial_conv=(2, 2),
+        dilation_rate_initial_conv=1,
+        pooling=None,
+        dilation_rate=2,
+        activation='sigmoid',
+        require_flatten=None,
+        include_top=True,
+        top='segmentation',
+        classes=1,
+        verbose=False):
+    """ The levine 2016 model adapted for segmentation.
+
+    Based on the prior work:
+
+        Learning Hand-Eye Coordination for Robotic Grasping with Deep Learning and Large-Scale Data Collection.
+    """
+    return grasp_model_levine_2016(
+        clear_view_image_op,
+        current_time_image_op,
+        input_vector_op,
+        input_image_shape,
+        input_vector_op_shape,
+        dropout_rate,
+        strides_initial_conv,
+        dilation_rate_initial_conv,
+        pooling,
+        dilation_rate,
+        activation,
+        require_flatten,
+        include_top,
+        top,
+        classes,
+        verbose)

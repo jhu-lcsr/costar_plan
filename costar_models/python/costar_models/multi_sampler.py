@@ -18,6 +18,7 @@ from matplotlib import pyplot as plt
 from .abstract import *
 from .callbacks import *
 from .multi_hierarchical import *
+from .multi import *
 from .robot_multi_models import *
 from .split import *
 from .mhp_loss import *
@@ -43,7 +44,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.tform_kernel_size  = [5,5]
         self.num_hypotheses = 4
         self.validation_split = 0.05
-        self.num_features = 4
 
         # For the new model setup
         self.encoder_channels = 64
@@ -80,10 +80,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         else:
             self.num_transforms = 3
 
-        # Feature presets
-        self.arm_cmd_size = 6
-        self.gripper_cmd_size = 1
-
         # Used for classifiers: value and next option
         self.combined_dense_size = 256
         self.value_dense_size = 32
@@ -100,7 +96,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.tform_filters)
 
         # These are the list of models that we want to learn
-        self.train_predictor = None
         self.image_discriminator = None
         self.predictor = None
         self.actor = None
@@ -110,6 +105,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.state_decoder = None
         self.hidden_encoder = None
         self.hidden_decoder = None
+        self.next_model = None
+        self.value_model = None
+        self.transform_model = None
 
         # ===================================================================
         # These are hard coded settings -- tweaking them may break a bunch of
@@ -125,20 +123,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Use the same transform for everything
         self.always_same_transform = False
 
-    def _sizes(self, images, arm, gripper):
-        img_shape = images.shape[1:]
-        arm_size = arm.shape[-1]
-        if len(gripper.shape) > 1:
-            gripper_size = gripper.shape[-1]
-        else:
-            gripper_size = 1
-        image_size = 1
-        for dim in img_shape:
-            image_size *= dim
-        image_size = int(image_size)
-
-        return img_shape, image_size, arm_size, gripper_size
-
     def _makePredictor(self, features):
         '''
         Create model to predict possible manipulation goals.
@@ -148,6 +132,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 images,
                 arm,
                 gripper)
+        if not self.skip_connections:
+            print("WARNING: skip connections were disabled and should be"
+                  "enabled for the default (SSM) predictor.")
+            self.skip_connections = True
         
         # =====================================================================
         # Create the encoder and decoder networks -- these are sub-networks
@@ -289,11 +277,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             loss_weights = [0.90, 0.1, 0.0]
             losses += ["categorical_crossentropy", "binary_crossentropy"]
 
-        train_predictor = Model(ins, outs)
+        model = Model(ins, outs)
 
         # =====================================================================
         # Create models to train
-        train_predictor.compile(
+        model.compile(
                 loss=losses,
                 loss_weights=loss_weights,
                 optimizer=self.getOptimizer())
@@ -305,9 +293,76 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 "categorical_crossentropy",
                 "mae"],
         optimizer=self.getOptimizer())
-        train_predictor.summary()
+        model.summary()
 
-        return predictor, train_predictor, actor, ins, enc
+        return predictor, model, actor, ins, enc
+
+    def _makeTransform(self, h_dim=(8,8)):
+        '''
+        This is the version made for the newer code, it is set up to use both
+        the initial and current observed world and creates a transform
+        dependent on which action you wish to perform.
+
+        Parameters:
+        -----------
+        none
+
+        Returns:
+        --------
+        transform model
+        '''
+        h = Input((h_dim[0], h_dim[1], self.encoder_channels),name="h_in")
+        h0 = Input((h_dim[0],h_dim[1], self.encoder_channels),name="h0_in")
+        option = Input((self.num_options,),name="t_opt_in")
+        x = AddConv2D(h, 64, [1,1], 1, 0.)
+        x0 = AddConv2D(h0, 64, [1,1], 1, 0.)
+
+        # Combine the hidden state observations
+        x = Concatenate()([x, x0])
+        x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate)
+
+        # store this for skip connection
+        skip = x
+
+        # Add dense information
+        y = AddDense(option, 64, "relu", 0., constraint=None, output=False)
+        x = TileOnto(x, y, 64, h_dim)
+        x = AddConv2D(x, 64, [5,5], 1, 0.)
+        #x = AddConv2D(x, 128, [5,5], 2, 0.)
+
+        # --- start ssm block
+        use_ssm = True
+        if use_ssm:
+            def _ssm(x):
+                return spatial_softmax(x)
+            x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
+            x = AddDense(x, 256, "relu", 0.,
+                    constraint=None, output=False,)
+            x = AddDense(x, h_dim[0] * h_dim[1] * 32/4, "relu", 0., constraint=None, output=False)
+            x = Reshape([h_dim[0]/2, h_dim[1]/2, 32])(x)
+        else:
+            x = AddConv2D(x, 128, [5,5], 1, 0.)
+        x = AddConv2DTranspose(x, 64, [5,5], 2,
+                self.dropout_rate)
+        # --- end ssm block
+
+        if self.skip_connections or True:
+            x = Concatenate()([x, skip])
+
+        for i in range(1):
+            #x = TileOnto(x, y, self.num_options, (8,8))
+            x = AddConv2D(x, 64,
+                    [7,7],
+                    stride=1,
+                    dropout_rate=self.dropout_rate)
+
+        # --------------------------------------------------------------------
+        # Put resulting image into the output shape
+        x = AddConv2D(x, self.encoder_channels, [1, 1], stride=1,
+                dropout_rate=0.)
+        self.transform_model = Model([h0,h,option], x, name="tform")
+        self.transform_model.compile(loss="mae", optimizer=self.getOptimizer())
+        return self.transform_model
 
     def _getTransform(self,i=0,rep_channels=32):
         transform_dropout = False
@@ -361,62 +416,28 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         -----------
         features, arm, gripper: variables of the appropriate sizes
         '''
-        self.predictor, self.train_predictor, self.actor, ins, hidden = \
+        self.predictor, self.model, self.actor, ins, hidden = \
             self._makePredictor(
                 (features, arm, gripper))
 
-    def _getAllData(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
-            prev_label, goal_features, goal_arm, goal_gripper, value, *args, **kwargs):
-        I = features / 255. # normalize the images
-        q = arm
-        g = gripper * -1
-        qa = arm_cmd
-        ga = gripper_cmd * -1
-        oin = prev_label
-        I_target = goal_features / 255.
-        q_target = goal_arm
-        g_target = goal_gripper * -1
-        o_target = label
-
-        # Preprocess values
-        value_target = np.array(value > 1.,dtype=float)
-        #if value_target[-1] == 0:
-        #    value_target = np.ones_like(value) - np.array(label == label[-1], dtype=float)
-        q[:,3:] = q[:,3:] / np.pi
-        q_target[:,3:] = q_target[:,3:] / np.pi
-        qa /= np.pi
-
-        o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
-        train_target = self._makeTrainTarget(
-                I_target,
-                q_target,
-                g_target,
-                o_target)
-
-        return [I, q, g, oin, q_target, g_target,], [
-                np.expand_dims(train_target, axis=1),
-                o_target,
-                value_target,
-                np.expand_dims(qa, axis=1),
-                np.expand_dims(ga, axis=1),
-                I_target]
-
-
     def _getData(self, *args, **kwargs):
-        features, targets = self._getAllData(*args, **kwargs)
+        features, targets = GetAllMultiData(*args, **kwargs)
+        [I, q, g, oin, label, q_target, g_target,] = features
+        features = [I, q, g, oin]
         tt, o1, v, qa, ga, I = targets
+        o1 = np.squeeze(self.toOneHot2D(o1, self.num_options))
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
             if self.success_only:
-                return features[:self.num_features] + [z], [tt, o1]
+                return features, [z], [tt, o1]
             else:
-                return features[:self.num_features] + [z], [tt, o1, v]
+                return features + [z], [tt, o1, v]
         else:
             if self.success_only:
-                return features[:self.num_features], [tt, o1]
+                return features, [tt, o1]
             else:
-                return features[:self.num_features], [tt, o1, v]
+                return features, [tt, o1, v]
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''
@@ -428,36 +449,18 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         test_generator: produces test examples
         data: some extra data used for debugging (should be validation data)
         '''
-        if data is not None:
-            features, targets = self._getAllData(**data)
-        else:
-            raise RuntimeError('predictor model sets sizes based on'
-                               'sample data; must be provided')
+
         # ===================================================================
         # Use sample data to compile the model and set everything else up.
         # Check to make sure data makes sense before running the model.
-
-        [I, q, g, oprev, q_target, g_target,] = features
-        [I_target2, o_target, value_target, qa, ga, I_target0] = targets
-
-        if self.predictor is None:
-            self._makeModel(I, q, g, qa, ga)
-
-        # Compute helpful variables
-        image_shape = I.shape[1:]
-        image_size = 1
-        for dim in image_shape:
-            image_size *= dim
-        image_size = int(image_size)
-        arm_size = q.shape[-1]
-        gripper_size = g.shape[-1]
-
-        train_size = image_size + arm_size + gripper_size + self.num_options
-        assert gripper_size == 1
-        # NOTE: arm size is one bigger when we have quaternions
-        #assert train_size == 12295 + self.num_options
-        #assert train_size == 12296 + self.num_options
-        assert train_size == (64*64*3) + self.num_arm_vars + 1 + self.num_options
+        if self.model is None:
+            self._makeModel(**data)
+            try:
+                self._makeModel(**data)
+            except Exception as e:
+                print("Could not create model from this dataset. Did you"
+                      " configure the tool wrong?")
+                raise e
 
         # ===================================================================
         # Create the callbacks and actually run the training loop.
@@ -468,24 +471,31 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         )
         logCb = LogCallback(self.name,self.model_directory)
         cbf, cbt = self._getData(**data)
-        imageCb = self.PredictorCb(
-            self.predictor,
-            name=self.name_prefix,
-            features=cbf,
-            targets=cbt,
-            model_directory=self.model_directory,
-            num_hypotheses=self.num_hypotheses,
-            verbose=True,
-            use_noise=self.use_noise,
-            noise_dim=self.noise_dim,
-            min_idx=0,
-            max_idx=70,
-            step=10,)
-        callbacks=[modelCheckpointCb, logCb, imageCb]
+
+        for i, f in enumerate(cbf):
+            if len(f.shape) < 1:
+                raise RuntimeError('feature %d not an appropriate size!'%i)
+        if self.PredictorCb is not None:
+            imageCb = self.PredictorCb(
+                self.predictor,
+                name=self.name_prefix,
+                features=cbf,
+                targets=cbt,
+                model_directory=self.model_directory,
+                num_hypotheses=self.num_hypotheses,
+                verbose=True,
+                use_noise=self.use_noise,
+                noise_dim=self.noise_dim,
+                min_idx=0,
+                max_idx=70,
+                step=10,)
+            callbacks=[modelCheckpointCb, logCb, imageCb]
+        else:
+            callbacks=[modelCheckpointCb, logCb,]
         self._fit(train_generator, test_generator, callbacks)
 
     def _fit(self, train_generator, test_generator, callbacks):
-        self.train_predictor.fit_generator(
+        self.model.fit_generator(
             train_generator,
             self.steps_per_epoch,
             epochs=self.epochs,
@@ -498,12 +508,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         '''
         Save to a filename determined by the "self.name" field.
         '''
-        if self.predictor is not None:
+        if self.model is not None:
             print("----------------------------")
             print("Saving to " + self.name + "_{predictor, actor, image_decoder}")
-            self.train_predictor.save_weights(self.name + "_train_predictor.h5f")
-            if self.actor is not None:
+            self.model.save_weights(self.name + "_train_predictor.h5f")
+            if self.predictor is not None:
                 self.predictor.save_weights(self.name + "_predictor.h5f")
+            if self.actor is not None:
                 self.actor.save_weights(self.name + "_actor.h5f")
             if self.image_decoder is not None:
                 self.image_decoder.save_weights(self.name +
@@ -523,6 +534,19 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             if self.hidden_decoder is not None:
                 self.hidden_decoder.save_weights(self.name + 
                 "_hidden_decoder.h5f")
+            if self.classifier is not None:
+                self.classifier.save_weights(self.name + 
+                "_classifier.h5f")
+            if self.transform_model is not None:
+                self.transform_model.save_weights(self.name + 
+                "_transform.h5f")
+            if self.value_model is not None:
+                self.value_model.save_weights(self.name + 
+                "_value.h5f")
+            if self.next_model is not None:
+                self.next_model.save_weights(self.name + 
+                "_next.h5f")
+
         else:
             raise RuntimeError('save() failed: model not found.')
 
@@ -531,7 +555,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         Load model weights. This is the default load weights function; you may
         need to overload this for specific models.
         '''
-        if self.predictor is not None:
+        if self.model is not None:
             print("----------------------------")
             print("using " + self.name + " to load")
             try:
@@ -539,7 +563,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 #self.predictor.load_weights(self.name + "_predictor.h5f")
             except Exception as e:
                 print("Could not load actor:", e)
-            self.train_predictor.load_weights(self.name + "_train_predictor.h5f")
+            self.model.load_weights(self.name + "_train_predictor.h5f")
             if self.image_decoder is not None:
                 self.image_decoder.load_weights(self.name +
                 "_image_decoder.h5f")
@@ -552,6 +576,22 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             if self.state_encoder is not None:
                 self.state_encoder.load_weights(self.name +
                 "_state_encoder.h5f")
+            if self.classifier is not None:
+                self.classifier.load_weights(self.name + 
+                "_classifier.h5f")
+            if self.transform_model is not None:
+                self.transform_model.load_weights(self.name + 
+                "_transform.h5f")
+            if self.value_model is not None:
+                self.value_model.load_weights(self.name + 
+                "_value.h5f")
+            if self.next_model is not None:
+                self.next_model.load_weights(self.name + 
+                "_next.h5f")
+            if self.predictor is not None:
+                self.predictor.load_weights(self.name + "_predictor.h5f")
+            if self.actor is not None:
+                self.actor.load_weights(self.name + "_actor.h5f")
         else:
             raise RuntimeError('_loadWeights() failed: model not found.')
 
@@ -572,11 +612,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             test_features.append(f2)
             next_option_idx += 1
 
+        # Use previous option when predicting
         if self.use_prev_option:
-            # previous options
-            #prev_option = self._makeOption1h(self.prev_option)
-            #tile_shape = [self.batch_size,1]
-            #prev_option = np.tile(prev_option, tile_shape)
             if self.prev_option is None:
                 prev = self.null_option
             else:
@@ -875,11 +912,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         dr = self.decoder_dropout_rate 
 
         x = rep_in
-        x = AddConv2D(x, 64, [3,3], 2, 0., "same", False)
+        x = AddConv2D(x, 64, [3,3], 2, dr, "same", False)
         x = AddConv2D(x, 64, [3,3], 1, dr, "same", False)
+        #x = AddConv2D(x, 64, [3,3], 1, dr, "same", False)
         x = Flatten()(x)
-        x1 = AddDense(x, 512, "relu", dr)
-        x1 = AddDense(x1, 512, "relu", 0.)
+        x1 = AddDense(x, 512, "relu", dr, bn=False)
+        x1 = AddDense(x1, 512, "relu", dr, bn=False)
         x2 = AddDense(x, 256, "relu", dr)
         arm = AddDense(x1, arm_size, "linear", 0., output=True)
         gripper = AddDense(x1, gripper_size, "sigmoid", 0., output=True)
@@ -905,226 +943,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         Take input state and image information projected into a latent space
         and decode them back into their appropriate output representations
         '''
-
-    def _makeImageEncoder(self, img_shape, disc=False):
-        '''
-        create image-only decoder to extract keypoints from the scene.
-        
-        Params:
-        -------
-        img_shape: shape of the image to encode
-        disc: is this being created as part of a discriminator network? If so,
-              we handle things slightly differently.
-        '''
-        img = Input(img_shape,name="img_encoder_in")
-        #img0 = Input(img_shape,name="img0_encoder_in")
-        dr = self.dropout_rate
-        x = img
-        #x0 = img0
-        x = AddConv2D(x, 32, [7,7], 1, 0., "same", lrelu=disc, bn=(not disc))
-        #x0 = AddConv2D(x0, 32, [7,7], 1, dr, "same", lrelu=disc, bn=(not disc))
-        #x = Concatenate(axis=-1)([x,x0])
-
-        x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=disc, bn=(not disc))
-        x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=(not disc))
-        x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=(not disc))
-        x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=(not disc))
-        x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=(not disc))
-        x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=(not disc))
-
-        if self.use_spatial_softmax and not disc:
-            def _ssm(x):
-                return spatial_softmax(x)
-            self.encoder_channels = 32
-            x = AddConv2D(x, self.encoder_channels, [1,1], 1, 0.*dr,
-                    "same", lrelu=disc, bn=(not disc))
-            x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
-            self.hidden_shape = (self.encoder_channels*2,)
-            self.hidden_size = 2*self.encoder_channels
-            self.hidden_shape = (self.hidden_size,)
-        else:
-            self.encoder_channels = 8
-            x = AddConv2D(x, self.encoder_channels, [1,1], 1, 0.*dr,
-                    "same", lrelu=disc, bn=(not disc))
-            self.steps_down = 3
-            self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
-            self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.encoder_channels)
-
-        if not disc:
-
-            image_encoder = Model([img], x, name="Ienc")
-            image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
-            self.image_encoder = image_encoder
-        else:
-            x = Flatten()(x)
-            x = AddDense(x, 512, "lrelu", dr, output=True)
-            x = AddDense(x, self.num_options, "softmax", 0., output=True)
-            image_encoder = Model([img], x, name="Idisc")
-            image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
-            self.image_discriminator = image_encoder
-        return image_encoder
-
-    def _makeImageDecoder(self, hidden_shape, img_shape=None, copy=False):
-        '''
-        helper function to construct a decoder that will make images.
-
-        parameters:
-        -----------
-        img_shape: shape of the image, e.g. (64,64,3)
-        '''
-        if self.use_spatial_softmax:
-            rep = Input((self.hidden_size,),name="decoder_hidden_in")
-        else:
-            rep = Input(hidden_shape,name="decoder_hidden_in")
-
-        x = rep
-        if self.hypothesis_dropout:
-            dr = self.decoder_dropout_rate
-        else:
-            dr = 0.
-        
-        if self.use_spatial_softmax:
-            self.steps_up = 3
-            hidden_dim = int(img_shape[0]/(2**self.steps_up))
-            (h,w,c) = (hidden_dim,
-                       hidden_dim,
-                       self.encoder_channels)
-            x = AddDense(x, int(h*w*c), "relu", dr)
-            x = Reshape((h,w,c))(x)
-
-        #x = AddConv2DTranspose(x, 64, [5,5], 1, dr)
-        x = AddConv2DTranspose(x, 128, [1,1], 1, 0.)
-        x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
-        x = AddConv2DTranspose(x, 64, [5,5], 1, 0.)
-        x = AddConv2DTranspose(x, 32, [5,5], 2, dr)
-        x = AddConv2DTranspose(x, 32, [5,5], 1, 0.)
-        x = AddConv2DTranspose(x, 32, [5,5], 2, dr)
-        x = AddConv2DTranspose(x, 32, [5,5], 1, 0.)
-        ins = rep
-        x = Conv2D(3, kernel_size=[1,1], strides=(1,1),name="convert_to_rgb")(x)
-        x = Activation("sigmoid")(x)
-        if not copy:
-            decoder = Model(ins, x, name="Idec")
-            decoder.compile(loss="mae",optimizer=self.getOptimizer())
-            self.image_decoder = decoder
-        else:
-            decoder = Model(ins, x,)
-            decoder.compile(loss="mae",optimizer=self.getOptimizer())
-        return decoder
-
-    def _makeImageEncoder2(self, img_shape, disc=False):
-        '''
-        create image-only decoder to extract keypoints from the scene.
-        
-        Params:
-        -------
-        img_shape: shape of the image to encode
-        disc: is this being created as part of a discriminator network? If so,
-              we handle things slightly differently.
-        '''
-        img = Input(img_shape,name="img_encoder_in")
-        img0 = Input(img_shape,name="img0_encoder_in")
-        dr = self.dropout_rate
-        x = img
-        x0 = img0
-        x = AddConv2D(x, 32, [7,7], 1, dr, "same", lrelu=disc, bn=(not disc))
-        x0 = AddConv2D(x0, 32, [7,7], 1, dr, "same", lrelu=disc, bn=(not disc))
-        #x = Add(axis=-1)([x,x0])
-        x = Concatenate(axis=-1)([x,x0])
-        xi = x
-
-        x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=(not disc))
-        x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=(not disc))
-        x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=(not disc))
-        xa = x
-        x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=(not disc))
-        x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=(not disc))
-        xb = x
-        x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=(not disc))
-        xc = x
-
-        if self.use_spatial_softmax and not disc:
-            def _ssm(x):
-                return spatial_softmax(x)
-            self.encoder_channels = 32
-            x = AddConv2D(x, self.encoder_channels, [1,1], 1, 0.*dr,
-                    "same", lrelu=disc, bn=(not disc))
-            x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
-            self.hidden_shape = (self.encoder_channels*2,)
-            self.hidden_size = 2*self.encoder_channels
-            self.hidden_shape = (self.hidden_size,)
-        else:
-            self.encoder_channels = 32
-            x = AddConv2D(x, self.encoder_channels, [1,1], 1, 0.*dr,
-                    "same", lrelu=disc, bn=(not disc))
-            self.steps_down = 3
-            self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
-            self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.encoder_channels)
-
-        if not disc:
-
-            image_encoder = Model([img0, img], [x, xi, xa, xb, xc], name="Ienc")
-            image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
-            self.image_encoder = image_encoder
-        else:
-            x = Flatten()(x)
-            x = AddDense(x, 512, "lrelu", dr, output=True)
-            x = AddDense(x, self.num_options, "softmax", 0., output=True)
-            image_encoder = Model([img], x, name="Idisc")
-            image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
-            self.image_discriminator = image_encoder
-        return image_encoder
-
-    def _makeImageDecoder2(self, hidden_shape, img_shape=None, skip=False):
-        '''
-        helper function to construct a decoder that will make images.
-
-        parameters:
-        -----------
-        img_shape: shape of the image, e.g. (64,64,3)
-        '''
-        if self.use_spatial_softmax:
-            rep = Input((self.hidden_size,),name="decoder_hidden_in")
-        else:
-            rep = Input(hidden_shape,name="decoder_hidden_in")
-
-        x = rep
-        if self.hypothesis_dropout:
-            dr = self.decoder_dropout_rate
-        else:
-            dr = 0.
-        
-        if self.use_spatial_softmax:
-            self.steps_up = 3
-            hidden_dim = int(img_shape[0]/(2**self.steps_up))
-            (h,w,c) = (hidden_dim,
-                       hidden_dim,
-                       self.encoder_channels)
-            x = AddDense(x, int(h*w*c), "relu", dr)
-            x = Reshape((h,w,c))(x)
-
-        s64 = Input((64,64,64),name="skip_64")
-        s32 = Input((32,32,64),name="skip_32")
-        s16 = Input((16,16,64),name="skip_16")
-        s8 = Input((8,8,128),name="skip_8")
-        x = AddConv2DTranspose(x, 128, [1,1], 1, 0.*dr)
-        x = Add()([x,s8])
-        x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
-        x = Add()([x,s16])
-        x = AddConv2DTranspose(x, 64, [5,5], 1, 0.)
-        x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
-        x = Add()([x,s32])
-        x = AddConv2DTranspose(x, 64, [5,5], 1, 0.)
-        x = AddConv2DTranspose(x, 64, [5,5], 2, dr)
-        x = Add()([x,s64])
-        x = AddConv2DTranspose(x, 64, [5,5], 1, 0.)
-        x = Conv2D(3, kernel_size=[1,1], strides=(1,1),name="convert_to_rgb")(x)
-        x = Activation("sigmoid")(x)
-        ins = [rep, s32, s16, s8]
-        decoder = Model(ins, x, name="Idec")
-        decoder.compile(loss="mae",optimizer=self.getOptimizer())
-        self.image_decoder = decoder
-        return decoder
 
 
     def _targetsFromTrainTargets(self, train_targets):
@@ -1155,11 +973,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         arm = np.squeeze(train_targets[0][:,:,imglen:imglen+6])
         gripper = train_targets[0][:,:,imglen+6]
         option = np.squeeze(train_targets[0][:,:,imglen+7:])
-        #print (train_targets[0].shape,imglen,imglen+6)
-        #print("img",img.shape)
-        #print("arm",arm.shape,arm[0])
-        #print("gripper",gripper.shape,gripper[0])
-        #print("option",option.shape,np.argmax(option[0,0]))
         return [img,arm,gripper,option]
 
     def _parsePredictorLoss(self, losses):
@@ -1209,7 +1022,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             f = [np.array([f[i]]) for f in features]
             t = [np.array([t[i]]) for t in targets]
             pt = [np.array([pt[i]]) for pt in prediction_targets]
-            loss, train_loss, next_loss = self.train_predictor.evaluate(f, t,
+            loss, train_loss, next_loss = self.model.evaluate(f, t,
                     verbose=0)
             #print ("actual arm = ", kwargs['goal_arm'][0])
             #print ("actual gripper = ", kwargs['goal_gripper'][0])
@@ -1223,3 +1036,4 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 sums += np.array(losses)
 
         return sums, train_sum, length
+
