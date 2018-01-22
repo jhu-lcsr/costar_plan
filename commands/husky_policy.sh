@@ -3,7 +3,7 @@ echo "format: $0 [option_num] [optional_arg]"
 rosrun costar_models ctp_model_tool \
   --model policy \
   --data_file husky_data.npz \
-  --lr 0.01 \
+  --lr 0.001 \
   --dropout_rate 0.2 \
   --features husky \
   --batch_size 32  \
