@@ -17,7 +17,7 @@ from matplotlib import pyplot as plt
 
 from .conditional_image import *
 from .husky import *
-
+from .planner import *
 
 class ConditionalImageHusky(ConditionalImage):
 
@@ -27,8 +27,8 @@ class ConditionalImageHusky(ConditionalImage):
         command line and set things like our optimizer and learning rate.
         '''
         super(ConditionalImageHusky, self).__init__(taskdef, *args, **kwargs)
-        self.num_options = 5
-        self.null_option = 4
+        self.num_options = HuskyNumOptions()
+        self.null_option = HuskyNullOption()
 
     def _makeModel(self, image, pose, *args, **kwargs):
        
@@ -109,6 +109,13 @@ class ConditionalImageHusky(ConditionalImage):
         image_out2 = decoder([x2])
         #image_out = decoder([x, s32, s16, s8])
 
+        image_discriminator = MakeImageClassifier(self, img_shape)
+        image_discriminator.load_weights(
+                self._makeName("goal_discriminator_model_husky", "predictor_weights.h5f"))
+        image_discriminator.trainable = False
+ 
+        disc_out2 = image_discriminator(image_out2)
+
         self.next_model = next_model
         self.value_model = value_model
         self.transform_model = tform
@@ -131,23 +138,23 @@ class ConditionalImageHusky(ConditionalImage):
                 loss_weights=[1., 1., 0.1, 0.1,],
                 optimizer=self.getOptimizer())
         if self.do_all:
-            train_predictor = Model(ins + [label_in],
+            model = Model(ins + [label_in],
                     [image_out, image_out2, next_option_out, value_out,
                         cmd])
-            train_predictor.compile(
+            model.compile(
                     loss=[lfn, lfn, "binary_crossentropy", val_loss,
                         lfn2,],
                     loss_weights=[1., 1., 0.1, 0.1, 1.,],
                     optimizer=self.getOptimizer())
         else:
-            train_predictor = Model(ins + [label_in],
+            model = Model(ins + [label_in],
                     [image_out, image_out2,
                         ])
-            train_predictor.compile(
+            model.compile(
                     loss=lfn, 
                     optimizer=self.getOptimizer())
         self.predictor = predictor
-        self.train_predictor = train_predictor
+        self.model = model
         self.actor = actor
 
     def _getData(self, *args, **kwargs):

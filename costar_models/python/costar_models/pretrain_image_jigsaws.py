@@ -5,12 +5,8 @@ import keras.losses as losses
 import keras.optimizers as optimizers
 import numpy as np
 
-from keras.callbacks import ModelCheckpoint
-from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
-from keras.layers.embeddings import Embedding
 from keras.layers.merge import Concatenate, Multiply
-from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 
 from .abstract import *
@@ -41,11 +37,12 @@ class PretrainImageJigsaws(PretrainImageAutoencoder):
         img_shape = image.shape[1:]
 
         img_in = Input(img_shape,name="predictor_img_in")
-        encoder = self._makeImageEncoder(img_shape)
+        encoder = MakeJigsawsImageEncoder(self, img_shape)
         ins = [img_in]
         
         enc = encoder(ins)
-        decoder = self._makeImageDecoder(
+        decoder = MakeJigsawsImageDecoder(
+                    self,
                     self.hidden_shape,
                     self.skip_shape,)
         out = decoder(enc)

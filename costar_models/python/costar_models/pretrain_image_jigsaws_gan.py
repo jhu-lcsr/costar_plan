@@ -5,21 +5,13 @@ import keras.losses as losses
 import keras.optimizers as optimizers
 import numpy as np
 
-from keras.callbacks import ModelCheckpoint
-from keras.layers.advanced_activations import LeakyReLU
+from keras.layers.pooling import MaxPooling2D, AveragePooling2D
 from keras.layers import Input, RepeatVector, Reshape
-from keras.layers.embeddings import Embedding
 from keras.layers.merge import Concatenate, Multiply
 from keras.losses import binary_crossentropy
-from keras.models import Model, Sequential
 
-from .abstract import *
-from .callbacks import *
-from .robot_multi_models import *
-from .split import *
-from .mhp_loss import *
-from .loss import *
 from .pretrain_image_gan import *
+from .dvrk import *
 
 class PretrainImageJigsawsGan(PretrainImageGan):
 
@@ -56,9 +48,10 @@ class PretrainImageJigsawsGan(PretrainImageGan):
         img_in = Input(img_shape,name="predictor_img_in")
         test_in = Input(img_shape, name="descriminator_test_in")
 
-        encoder = self._makeImageEncoder(img_shape)
+        encoder = MakeJigsawsImageEncoder(self, img_shape)
         enc = encoder([img_in])
-        decoder = self._makeImageDecoder(
+        decoder = MakeJigsawsImageDecoder(
+                self,
                 self.hidden_shape,
                 self.skip_shape, False)
 
@@ -71,8 +64,7 @@ class PretrainImageJigsawsGan(PretrainImageGan):
                     "pretrain_image_encoder_model_jigsaws",
                     "image_decoder.h5f"))
             except Exception as e:
-                if not self.retrain:
-                    raise e
+                print(">>> could not load pretrained image weights")
 
         gen_out = decoder(enc)
         image_discriminator = self._makeImageDiscriminator(img_shape)
@@ -115,9 +107,10 @@ class PretrainImageJigsawsGan(PretrainImageGan):
         x = Add()([x, x0])
         x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
         x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True)
-        x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
+        #x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
         x = AddConv2D(x, 1, [4,4], 1, 0., "same", activation="sigmoid")
-        x = AveragePooling2D(pool_size=(12,16))(x)
+        #x = AveragePooling2D(pool_size=(12,16))(x)
+        x = AveragePooling2D(pool_size=(24,32))(x)
 
         x = Flatten()(x)
         discrim = Model(ins, x, name="image_discriminator")

@@ -30,6 +30,7 @@ from .pretrain_image_jigsaws import PretrainImageJigsaws
 from .pretrain_image_jigsaws_gan import PretrainImageJigsawsGan
 from .conditional_image_jigsaws import ConditionalImageJigsaws
 from .conditional_image_gan_jigsaws import ConditionalImageGanJigsaws
+from .discriminator import JigsawsDiscriminator
 
 # Husky stuff
 from .husky_sampler import HuskyRobotMultiPredictionSampler
@@ -131,7 +132,9 @@ def MakeModel(features, model, taskdef, **kwargs):
         elif model == "pretrain_image_gan":
             model_instance = PretrainImageGan(taskdef, model=model, **kwargs)
         elif model == "discriminator":
-            model_instance = Discriminator(taskdef, model=model, **kwargs)
+            model_instance = Discriminator(False, taskdef, model=model, **kwargs)
+        elif model == "goal_discriminator":
+            model_instance = Discriminator(True, taskdef, model=model, **kwargs)
     elif features == "jigsaws":
         '''
         These models are all meant for use with the JHU-JIGSAWS dataset. This
@@ -158,6 +161,14 @@ def MakeModel(features, model, taskdef, **kwargs):
                     model=model,
                     features=features,
                     **kwargs)
+        elif model == "discriminator":
+            model_instance = JigsawsDiscriminator(False, taskdef,
+                    features=features,
+                    model=model, **kwargs)
+        elif model == "goal_discriminator":
+            model_instance = JigsawsDiscriminator(True, taskdef,
+                    features=features,
+                    model=model, **kwargs)
     elif features == "husky":
         '''
         Husky simulator. This is a robot moving around on a 2D plane, so our
@@ -175,19 +186,33 @@ def MakeModel(features, model, taskdef, **kwargs):
                     **kwargs)
         elif model == "predictor":
             model_instance = HuskyRobotMultiPredictionSampler(taskdef,
+                    features=features,
                     model=model,
                     **kwargs)
         elif model == "conditional_image":
-            model_instance = ConditionalImageHusky(taskdef, model=model, **kwargs)
+            model_instance = ConditionalImageHusky(taskdef,
+                    features=features,
+                    model=model,
+                    **kwargs)
         elif model == "conditional_image_gan":
-            model_instance = ConditionalImageHuskyGan(taskdef, model=model, **kwargs)
-        elif model == "husky_discriminator":
-            model_instance = HuskyDiscriminator(taskdef, model=model, **kwargs)
+            model_instance = ConditionalImageHuskyGan(taskdef,
+                    features=features,
+                    model=model,
+                    **kwargs)
+        elif model == "discriminator":
+            model_instance = HuskyDiscriminator(False, taskdef,
+                    features=features,
+                    model=model, **kwargs)
+        elif model == "goal_discriminator":
+            model_instance = HuskyDiscriminator(True, taskdef,
+                    features=features,
+                    model=model, **kwargs)
     
     # If we did not create a model then die.
     if model_instance is None:
         raise NotImplementedError("Combination of model %s and features %s" + \
-                                  " is not currently supported by CTP.")
+                                  " is not currently supported by CTP."
+                                  % (model, features))
 
     return model_instance
 
@@ -213,5 +238,7 @@ def GetModels():
             "conditional_image_gan", # just give label and predict image
             "pretrain_minimal",
             "pretrain_image_gan",
+            "discriminator",
+            "goal_discriminator",
             ]
 
