@@ -94,28 +94,23 @@ class ConditionalImageHuskyGan(ConditionalImageGan):
 
         # =====================================================================
         # Create models to train
-        predictor = Model(ins + [label_in],
-                [image_out, image_out2, next_option_out, value_out])
+
+        predictor = Model(ins,
+                [image_out, image_out2])
         predictor.compile(
-                loss=[lfn, lfn, "binary_crossentropy", val_loss],
-                loss_weights=[1., 1., 0.1, 0.1,],
+                loss=[lfn, lfn],
                 optimizer=self.getOptimizer())
-        if self.do_all:
-            train_predictor = Model(ins + [label_in],
-                    [image_out, image_out2, next_option_out, value_out,
-                        cmd])
-            train_predictor.compile(
-                    loss=[lfn, lfn, "binary_crossentropy", val_loss,
-                        lfn2,],
-                    loss_weights=[1., 1., 0.1, 0.1, 1.,],
-                    optimizer=self.getOptimizer())
-        else:
-            train_predictor = Model(ins + [label_in],
-                    [image_out, image_out2,
-                        ])
-            train_predictor.compile(
-                    loss=lfn, 
-                    optimizer=self.getOptimizer())
-        self.predictor = predictor
-        self.train_predictor = train_predictor
-        self.actor = actor
+        self.generator = predictor
+
+        # =====================================================================
+        # And adversarial model 
+        model = Model(ins, [image_out, image_out2, is_fake])
+        model.compile(
+                loss=["mae"]*2 + ["binary_crossentropy"],
+                loss_weights=[100., 100., 1.],
+                optimizer=self.getOptimizer())
+        model.summary()
+        self.discriminator.summary()
+        self.model = model
+
+
