@@ -34,4 +34,12 @@ class Observer(object):
         # Call the detect objects service and wait for response
         world = self.world.fork()
         self.detect_srv()
+
+        # Yeah just wait for a moment until this is done
+        rospy.sleep(0.5)
+    
+        # Env is the wrapper that interfaces with the world and consumes
+        # our commands
+        env = None
+        return self.task, env, world
         
