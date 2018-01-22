@@ -17,6 +17,13 @@ class ConditionalImageHuskyGan(ConditionalImageGan):
         super(ConditionalImageHuskyGan, self).__init__(*args, **kwargs)
 
     def _getData(self, image, goal_image, label, prev_label, *args, **kwargs):
+        '''
+        For the gan version we need:
+        - current image
+        - initial image
+        - goal image
+        - labels
+        '''
         I = np.array(image) / 255.
         I_target = np.array(goal_image) / 255.
         oin = np.array(prev_label)
