@@ -89,15 +89,12 @@ def GetHuskyActorModel(x, num_options, pose_size,
     actor = Model([xin, option_in], [pose], name="actor")
     return actor
 
-def GetPolicyHuskyData(num_options, option, image, pose, action, label):
+def GetPolicyHuskyData(num_options, option, image, pose, action, label, *args,
+        **kwargs):
     I = np.array(image) / 255.
     p = np.array(pose)
     a = np.array(action)
-    labels = label[:]
-    print(label.shape, labels.shape)
-    asdf
-
-    idx = labels == option
+    idx = label == option
     if np.count_nonzero(idx) > 0:
         I = I[idx]
         p = p[idx]
@@ -135,18 +132,25 @@ def GetConditionalHuskyData(do_all, num_options, image, pose, action, label,
     else:
         return [I0, I, o1, o2, oin], [I_target, I_target2]
 
-def MakeHuskyPolicy(model, encoder, image, pose, action, option):
+def MakeHuskyPolicy(model, encoder, image, pose, action, option, verbose=True):
     '''
     Create a single policy corresponding to option 
 
     Parameters:
     -----------
+    model: definition of model/training configuration
+    encoder: converts to hidden representation
+    image: example of image data
+    pose: example of pose data
+    action: example of action data
     option: index of the policy to create
+    verbose: should we print model info?
     '''
     img_shape = image.shape[1:]
     pose_size = pose.shape[-1]
     action_size = action.shape[-1]
-    print("pose_size ", pose_size, " action_size ", action_size)
+    if verbose:
+        print("pose_size =", pose_size, "action_size =", action_size)
 
     img_in = Input(img_shape,name="policy_img_in")
     img0_in = Input(img_shape,name="policy_img0_in")
@@ -174,9 +178,10 @@ def MakeHuskyPolicy(model, encoder, image, pose, action, option):
 
     action_out = Dense(action_size, name="action_out")(x)
 
-    model = Model(ins, [action_out])
-    model.compile(loss=model.loss, optimizer=model.getOptimizer())
-    model.summary()
-    return model
+    policy = Model(ins, [action_out])
+    policy.compile(loss=model.loss, optimizer=model.getOptimizer())
+    if verbose:
+        policy.summary()
+    return policy
 
 
