@@ -7,7 +7,7 @@ __all__ = [
     # Utilities
     "MakeModel", "GetModels", "ParseModelArgs",
     "ParseVisualizeArgs",
-    "SetCPU",
+    "ConfigureGPU",
     # ===========================================================================
     # Visualization and models
     "RobotMultiKeypointsVisualizer",
