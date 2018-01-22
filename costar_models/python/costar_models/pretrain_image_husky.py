@@ -14,6 +14,7 @@ from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 
 from .husky_sampler import *
+from .husky import *
 
 class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
 
@@ -24,7 +25,8 @@ class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
         '''
         super(PretrainImageAutoencoderHusky, self).__init__(taskdef, *args, **kwargs)
         self.PredictorCb = ImageCb
-
+        self.num_options = HuskyNumOptions()
+        self.null_option = HuskyNumOptions()
 
     def _makeModel(self, image, *args, **kwargs):
         '''
@@ -44,10 +46,10 @@ class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
                     self.skip_shape,)
         out = decoder(enc)
 
-        image_discriminator = MakeImageClassifier(self, img_shape)
-        image_discriminator.load_weights(
-                self.makeName("discriminator", submodel="classifier"))
-        image_discriminator.trainable = False
+        # Discriminate on distinctive features like heading we hope
+        image_discriminator = LoadClassifierWeights(self,
+                MakeImageClassifier,
+                img_shape)
         o2 = image_discriminator([out])
 
         encoder.summary()
@@ -62,7 +64,7 @@ class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
         ae.summary()
     
         self.predictor = ae
-        self.train_predictor = ae
+        self.model = ae
         self.actor = None
 
     def _getData(self, image, label, *args, **kwargs):
