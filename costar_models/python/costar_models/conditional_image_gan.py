@@ -65,7 +65,9 @@ class ConditionalImageGan(PretrainImageGan):
         gripper_in = Input((gripper_size,))
         arm_gripper = Concatenate()([arm_in, gripper_in])
         label_in = Input((1,))
-        ins = [img0_in, img_in]
+        next_option_in = Input((1,), name="next_option_in")
+        next_option2_in = Input((1,), name="next_option2_in")
+        ins = [img0_in, img_in, next_option_in, next_option2_in]
 
         if self.skip_connections:
             encoder = self._makeImageEncoder2(img_shape)
@@ -88,11 +90,8 @@ class ConditionalImageGan(PretrainImageGan):
             h = encoder([img_in])
             h0 = encoder(img0_in)
 
-        # next option - used to compute the next image 
-        next_option_in = Input((1,), name="next_option_in")
-        next_option2_in = Input((1,), name="next_option2_in")
-        ins += [next_option_in, next_option2_in]
-
+        # =====================================================================
+        # Actually get the right outputs
         y = OneHot(self.num_options)(next_option_in)
         y = Flatten()(y)
         y2 = OneHot(self.num_options)(next_option2_in)

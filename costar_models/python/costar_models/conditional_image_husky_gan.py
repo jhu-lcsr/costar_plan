@@ -5,17 +5,12 @@ import keras.losses as losses
 import keras.optimizers as optimizers
 import numpy as np
 
-from keras.callbacks import ModelCheckpoint
-from keras.layers.advanced_activations import LeakyReLU
-from keras.layers import Input, RepeatVector, Reshape
-from keras.layers.embeddings import Embedding
+from keras.layers import Input
 from keras.layers.merge import Concatenate, Multiply
-from keras.losses import binary_crossentropy
-from keras.models import Model, Sequential
-from keras.optimizers import Adam
-from matplotlib import pyplot as plt
+from keras.models import Model
 
 from .conditional_image_gan import *
+from .husky import *
 
 class ConditionalImageHuskyGan(ConditionalImageGan):
     def __init__(self, *args, **kwargs):
@@ -35,7 +30,9 @@ class ConditionalImageHuskyGan(ConditionalImageGan):
         img_in = Input(img_shape,name="predictor_img_in")
         img0_in = Input(img_shape,name="predictor_img0_in")
         label_in = Input((1,))
-        ins = [img0_in, img_in]
+        next_option_in = Input((1,), name="next_option_in")
+        next_option2_in = Input((1,), name="next_option2_in")
+        ins = [img0_in, img_in, next_option_in, next_option2_in]
 
         if self.skip_connections:
             encoder = self._makeImageEncoder2(img_shape)
@@ -62,7 +59,7 @@ class ConditionalImageHuskyGan(ConditionalImageGan):
 
         y = OneHot(self.num_options)(next_option_in)
         y = Flatten()(y)
-        y2 = OneHot(self.num_options)(next_option_in2)
+        y2 = OneHot(self.num_options)(next_option2_in)
         y2 = Flatten()(y2)
         x = h
         tform = self._makeTransform()
