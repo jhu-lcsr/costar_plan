@@ -172,15 +172,13 @@ def MakeHuskyPolicy(model, encoder, image, pose, action, option):
     x = AddConv2D(x, 32, [3,3], 1, dr, "valid", lrelu=True, bn=bn)
 
     x = Flatten()(x)
-    #x = Concatenate()([x, arm, gripper])
 
     x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
     x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
 
-    pose_out = Dense(action_size, name="pose_out")(x)
-    gripper_out = Dense(gripper_size, name="gripper_out")(x)
+    action_out = Dense(action_size, name="action_out")(x)
 
-    model = Model(ins, [pose_out, gripper_out])
+    model = Model(ins, [action_out])
     model.compile(loss=model.loss, optimizer=model.getOptimizer())
     model.summary()
     return model
