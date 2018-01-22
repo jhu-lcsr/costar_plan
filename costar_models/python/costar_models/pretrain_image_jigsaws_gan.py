@@ -63,7 +63,7 @@ class PretrainImageJigsawsGan(PretrainImageGan):
                 encoder.load_weights(self.makeName(
                     "pretrain_image_encoder",
                     "image_encoder"))
-                decoder.load_weights(self._makeName(
+                decoder.load_weights(self.makeName(
                     "pretrain_image_encoder",
                     "image_decoder"))
             except Exception as e:
@@ -111,10 +111,10 @@ class PretrainImageJigsawsGan(PretrainImageGan):
         x = Add()([x, x0])
         x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
         x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True)
-        x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
+        #x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
         x = AddConv2D(x, 1, [4,4], 1, 0., "same", activation="sigmoid")
-        x = AveragePooling2D(pool_size=(12,16))(x)
-        #x = AveragePooling2D(pool_size=(24,32))(x)
+        #x = AveragePooling2D(pool_size=(12,16))(x)
+        x = AveragePooling2D(pool_size=(24,32))(x)
 
         x = Flatten()(x)
         discrim = Model(ins, x, name="image_discriminator")
