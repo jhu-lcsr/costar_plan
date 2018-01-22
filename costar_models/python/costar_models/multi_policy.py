@@ -18,11 +18,8 @@ from keras.models import Model, Sequential
 from keras.optimizers import Adam
 from keras.utils.np_utils import to_categorical
 
-from .abstract import HierarchicalAgentBasedModel
 from .multi_hierarchical import RobotMultiHierarchical
-from .preprocess import *
-from .robot_multi_models import *
-from .split import *
+from .husky import *
 
 class RobotPolicy(RobotMultiHierarchical):
 
@@ -37,7 +34,6 @@ class RobotPolicy(RobotMultiHierarchical):
             raise RuntimeError("Policy model requires an 'option' argument")
         if self.option >= self.null_option:
             raise RuntimeError("Policy model requires an option between 0 and " +str(self.null_option)) 
-
 
         # add option to self.name, for saving
         self.name += "_opt" + str(self.option)
@@ -85,4 +81,30 @@ class RobotPolicy(RobotMultiHierarchical):
             return [I0, I, q, g], [np.squeeze(qa), np.squeeze(ga)]
         else:
             return [], []
+
+class HuskyPolicy(RobotPolicy):
+    def __init__(self, taskdef, *args, **kwargs):
+        self.options = HuskyNumOptions()
+        self.null_option = HuskyNullOption()
+        super(RobotPolicy, self).__init__(taskdef, *args, **kwargs)
+
+    def _getData(self, *args, **kwargs):
+        '''
+        Filter out the data not relevant to the current option
+        '''
+        features, targets = self._getAllData(*args, **kwargs)
+        [Iorig, _, _, _, label, _, _,] = features
+        labels = label[:]
+        # find the matches for filtering
+        idx = labels == self.option
+        if np.count_nonzero(idx) > 0:
+            [I, q, g, _, _, _, _,] = [f[idx] for f in features]
+            I0 = Iorig[0,:,:,:]
+            length = I.shape[0]
+            I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
+            [_, _, _, qa, ga, _] = [t[idx] for t in targets]
+            return [I0, I, q, g], [np.squeeze(qa), np.squeeze(ga)]
+        else:
+            return [], []
+
 

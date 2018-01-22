@@ -89,6 +89,11 @@ def GetHuskyActorModel(x, num_options, pose_size,
     actor = Model([xin, option_in], [pose], name="actor")
     return actor
 
+def GetPolicyHuskyData(num_options, image, pose, action, label):
+    I = np.array(image) / 255.
+    p = np.array(pose)
+    a = np.array(action)
+
 def GetConditionalHuskyData(do_all, num_options, image, pose, action, label,
         prev_label, goal_image, goal_pose, value, *args, **kwargs):
     I = np.array(image) / 255.
