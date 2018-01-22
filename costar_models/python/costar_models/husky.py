@@ -122,13 +122,14 @@ def GetConditionalHuskyData(do_all, num_options, image, pose, action, label,
     length = I.shape[0]
     I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
     oin_1h = np.squeeze(ToOneHot2D(oin, num_options))
+    o2_1h = np.squeeze(ToOneHot2D(o2, num_options))
 
     if do_all:
         o1_1h = np.squeeze(ToOneHot2D(o1, num_options))
         return [I0, I, o1, o2, oin], [ I_target, I_target2,
                 o1_1h,
                 v,
-                action]
+                action, o2_1h]
     else:
         return [I0, I, o1, o2, oin], [I_target, I_target2]
 
