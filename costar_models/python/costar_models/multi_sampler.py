@@ -589,7 +589,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             if self.predictor is not None:
                 self.predictor.load_weights(self.name + "_predictor.h5f")
         else:
-            raise RuntimeError('_loadWeights() failed: model not found.')
+            raise RuntimeError('_loadWeights() failed: model not yet created.')
 
     def predict(self, world):
         '''
