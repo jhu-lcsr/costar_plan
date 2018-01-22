@@ -76,7 +76,7 @@ flags.DEFINE_string('grasp_dataset', '102',
                     around 110 GB and 38k grasp attempts.
                     See https://sites.google.com/site/brainrobotdata/home
                     for a full listing.""")
-flags.DEFINE_boolean('median_filter', False,
+flags.DEFINE_boolean('median_filter', True,
                      """Median filter apply on depth image to
                         remove small regions with depth values of zero,
                         which represents invalid depth values.
@@ -113,7 +113,7 @@ flags.DEFINE_boolean('resize', True,
                         resize_width and resize_height flags. It is suggested that an exact factor of 2 be used
                         relative to the input image directions if random_crop is disabled or the crop dimensions otherwise.
                      """)
-flags.DEFINE_float('gripper_z_offset_meters', 0.02,
+flags.DEFINE_float('gripper_z_offset_meters', 0.15,
                    """ Offset of gripper's z axis in meters, so that in the final time
                        step of grasp, the gripper reaches the object surface.
                        default value 0.02.
@@ -142,6 +142,10 @@ flags.DEFINE_string(
     'grasp_sequence_motion_command_feature',
     'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/delta_depth_sin_cos_3',
     """Different ways of representing the motion vector parameter.
+
+    Options include:
+        None: don't supply a motion command
+        '': don't supply a motion command (same as None)
        'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/delta_depth_sin_cos_3'
              [delta_depth, sin(theta), cos(theta)] where delta_depth depth offset for the gripper
                 from the measured surface, alongside a single rotation angle theta containing sin(theta), cos(theta).
@@ -211,7 +215,6 @@ flags.DEFINE_string(
     """Algorithm used to generate the image coordinate labels.
 
     Options include:
-
     'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/preprocessed/yx_2':
         the coordinate of the end effector at the final time step, after all preprocessing has been run.
     'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/preprocessed/preprocessed/yx_2':
@@ -1604,6 +1607,29 @@ class GraspDataset(object):
             return [[fixed_dict[feature] for feature in features] for (fixed_dict, seq_dict) in feature_op_dicts]
 
     @staticmethod
+    def to_training_tensor(time_ordered_feature_tensor_dicts, feature_name):
+        """ Calls to_tensors plus converts the data to a single large tensor.
+
+        This returns a single tf tensor for a single feature
+        in a format you can pass directly to a Keras model.
+
+        # Arguments
+
+        time_ordered_feature_tensor_dicts: A dictionary with keys which are strings and values which are lists of tensors.
+        feature_name: A string identifying which specific feature in the dictionary to convert.
+        """
+        if feature_name is None or feature_name is '':
+            return None
+        # image of a clear scene view, originally from 'view_clear_scene' step,
+        # There is also a move_to_grasp versions copied from view_clear_scene then repeated once for each time step.
+        op_batch = GraspDataset.to_tensors(time_ordered_feature_tensor_dicts, feature_name)
+        # make one long list from each list of lists
+        op_batch = list(itertools.chain.from_iterable(op_batch))
+        # stack all the data in a way that will let it run in parallel
+        op_batch = tf.parallel_stack(op_batch)
+        return op_batch
+
+    @staticmethod
     def _confirm_expected_feature(features, feature_name, select=0, expected=1):
         """ Returns a single feature out of a list for when one is supposed to be selected out of many.
 
@@ -1611,7 +1637,8 @@ class GraspDataset(object):
             If the expected number of features isn't present, a warning and stack trace is printed.
         """
         if len(features) == 0:
-            raise ValueError('There should be at least one xyz view_clear_scene image feature such as grasp/xyz_image/decoded, but it is missing!')
+            raise ValueError('There should be at least one xyz view_clear_scene image '
+                             'feature such as grasp/xyz_image/decoded, but it is missing!')
         selected = features[select]
         if len(features) != expected:
             print('Warning: unexpected number of data sources for feature type:' + feature_name + ' found: ' + str(features) +
@@ -1670,9 +1697,9 @@ class GraspDataset(object):
         # calculated from the raw data, including transforms and point clouds
         (feature_op_dicts, features_complete_list,
          time_ordered_feature_name_dict, num_samples) = self._get_transform_tensors(
-            feature_op_dicts=feature_op_dicts, features_complete_list=features_complete_list,
-            time_ordered_feature_name_dict=time_ordered_feature_name_dict,
-            num_samples=num_samples, batch_size=batch_size)
+             feature_op_dicts=feature_op_dicts, features_complete_list=features_complete_list,
+             time_ordered_feature_name_dict=time_ordered_feature_name_dict,
+             num_samples=num_samples, batch_size=batch_size)
 
         if verbose:
             # print('feature_op_dicts_after_transform_tensors, len', len(feature_op_dicts), 'dicts:', feature_op_dicts)
@@ -2092,32 +2119,21 @@ class GraspDataset(object):
                 random_crop_dimensions=random_crop_dimensions, random_crop_offset=random_crop_offset,
                 shift_ratio=shift_ratio, seed=seed)
 
+            # convert the dictionary with only feature strings to a dictionary with actual tensors
             time_ordered_feature_tensor_dicts = GraspDataset.to_tensors(feature_op_dicts, time_ordered_feature_name_dict)
-
-            # motion commands, such as pose or transform features
-            simplified_grasp_command_op_batch = self.to_tensors(time_ordered_feature_tensor_dicts, motion_command_feature)
 
             # image of a clear scene view, originally from 'view_clear_scene' step,
             # There is also a move_to_grasp versions copied from view_clear_scene then repeated once for each time step.
-            pregrasp_op_batch = self.to_tensors(time_ordered_feature_tensor_dicts, clear_view_image_feature)
+            pregrasp_op_batch = self.to_training_tensor(time_ordered_feature_tensor_dicts, clear_view_image_feature)
 
             # image from the current time step
-            grasp_step_op_batch = self.to_tensors(time_ordered_feature_tensor_dicts, grasp_sequence_image_feature)
+            grasp_step_op_batch = self.to_training_tensor(time_ordered_feature_tensor_dicts, grasp_sequence_image_feature)
 
             # grasp success labels from the motion
-            grasp_success_op_batch = self.to_tensors(time_ordered_feature_tensor_dicts, grasp_success_label)
+            grasp_success_op_batch = self.to_training_tensor(time_ordered_feature_tensor_dicts, grasp_success_label)
 
-            # make one long list from each list of lists
-            pregrasp_op_batch = list(itertools.chain.from_iterable(pregrasp_op_batch))
-            grasp_step_op_batch = list(itertools.chain.from_iterable(grasp_step_op_batch))
-            simplified_grasp_command_op_batch = list(itertools.chain.from_iterable(simplified_grasp_command_op_batch))
-            grasp_success_op_batch = list(itertools.chain.from_iterable(grasp_success_op_batch))
-
-            # stack all the data in a way that will let it run in parallel
-            pregrasp_op_batch = tf.parallel_stack(pregrasp_op_batch)
-            grasp_step_op_batch = tf.parallel_stack(grasp_step_op_batch)
-            simplified_grasp_command_op_batch = tf.parallel_stack(simplified_grasp_command_op_batch)
-            grasp_success_op_batch = tf.parallel_stack(grasp_success_op_batch)
+            # motion commands, such as pose or transform features
+            simplified_grasp_command_op_batch = self.to_training_tensor(time_ordered_feature_tensor_dicts, motion_command_feature)
 
             return pregrasp_op_batch, grasp_step_op_batch, simplified_grasp_command_op_batch, grasp_success_op_batch, num_samples
 
@@ -2499,7 +2515,10 @@ def get_multi_dataset_training_tensors(
 
         pregrasp_op_batch = tf.concat(pregrasp_op_batch, 0)
         grasp_step_op_batch = tf.concat(grasp_step_op_batch, 0)
-        simplified_grasp_command_op_batch = tf.concat(simplified_grasp_command_op_batch, 0)
+        if None not in simplified_grasp_command_op_batch:
+            simplified_grasp_command_op_batch = tf.concat(simplified_grasp_command_op_batch, 0)
+        else:
+            simplified_grasp_command_op_batch = None
         print('grasp_success_op_batch before concat: ', grasp_success_op_batch)
         grasp_success_op_batch = tf.concat(grasp_success_op_batch, 0)
         print('pregrasp_op_batch:', pregrasp_op_batch,

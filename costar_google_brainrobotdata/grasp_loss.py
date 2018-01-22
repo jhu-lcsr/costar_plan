@@ -39,39 +39,60 @@ def gripper_coordinate_y_true(y_true, y_pred=None):
         return label
 
 
-def gaussian_kernel_2D(size=(3, 3), center=(1, 1), sigma=1):
+def gaussian_kernel_2D(size=(3, 3), center=None, sigma=1):
     """Create a 2D gaussian kernel with specified size, center, and sigma.
 
-    Output with the parameters `size=(3, 3) center=(1, 1), sigma=1`:
+    All coordinates are in (y, x) order, which is (height, width),
+    with (0, 0) at the top left corner.
+
+    Output with the default parameters `size=(3, 3) center=None, sigma=1`:
 
         [[ 0.36787944  0.60653066  0.36787944]
          [ 0.60653066  1.          0.60653066]
          [ 0.36787944  0.60653066  0.36787944]]
 
-    # References
+    Output with parameters `size=(3, 3) center=(0, 1), sigma=1`:
+
+        [[0.60653067 1.         0.60653067]
+        [0.36787945 0.60653067 0.36787945]
+        [0.082085   0.13533528 0.082085  ]]
+    # Arguments
+
+        size: dimensions of the output gaussian (height_y, width_x)
+        center: coordinate of the center (maximum value) of the output gaussian, (height_y, width_x).
+            Default of None will automatically be the center coordinate of the output size.
+        sigma: standard deviation of the gaussian in pixels
+
+    # References:
 
             https://stackoverflow.com/a/43346070/99379
             https://stackoverflow.com/a/32279434/99379
 
-    # To normalize
+    # How to normalize
 
         g = gaussian_kernel_2d()
         g /= np.sum(g)
     """
     with K.name_scope(name='gaussian_kernel_2D') as scope:
-        xx, yy = tf.meshgrid(tf.range(0, size[0]),
+        if center is None:
+            center_y = tf.reshape(size[0] / 2, [1, 1])
+            center_x = tf.reshape(size[1] / 2, [1, 1])
+        else:
+            # tuple does not support assignment
+            center_y = tf.reshape(center[0], [1, 1])
+            center_x = tf.reshape(center[1], [1, 1])
+
+        yy, xx = tf.meshgrid(tf.range(0, size[0]),
                              tf.range(0, size[1]),
-                             indexing='xy')
-        # tuple does not support assignment
-        center_x = tf.reshape(center[0], [1, 1])
-        center_y = tf.reshape(center[1], [1, 1])
-        xx = tf.cast(xx, tf.float32)
+                             indexing='ij')
         yy = tf.cast(yy, tf.float32)
-        center_x = tf.cast(center_x, tf.float32)
+        xx = tf.cast(xx, tf.float32)
         center_y = tf.cast(center_y, tf.float32)
+        center_x = tf.cast(center_x, tf.float32)
         sigma_tensor = tf.constant([[(2.0 * sigma ** 2)]], tf.float32)
         # tf.exp requires float16, float32, float64, complex64, complex128
-        kernel = tf.div(tf.exp(-((xx - center_x) ** 2 + (yy - center_y) ** 2)), sigma_tensor)
+        kernel = tf.exp(tf.div(-((xx - center_x) ** 2 + (yy - center_y) ** 2), sigma_tensor))
+        kernel = tf.Print(kernel, [center_x, center_y, xx, yy, sigma_tensor], 'gaussian_tf')
         return kernel
 
 

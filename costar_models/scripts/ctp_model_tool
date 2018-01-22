@@ -42,8 +42,6 @@ def main(args):
         train_generator = model.trainGenerator(dataset)
         test_generator = model.testGenerator(dataset)
         try:
-            # was:
-            #model.train(**data)
             model.trainFromGenerators(train_generator, test_generator, data)
         except KeyboardInterrupt:
             pass

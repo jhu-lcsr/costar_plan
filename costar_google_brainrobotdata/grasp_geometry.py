@@ -785,27 +785,47 @@ def vector_quaternion_arrays_allclose(vq1, vq2, rtol=1e-6, atol=1e-6, verbose=0)
     return comp12 or comp13
 
 
-def gaussian_kernel_2D(size=(3, 3), center=(1, 1), sigma=1):
+def gaussian_kernel_2D(size=(3, 3), center=None, sigma=1):
     """Create a 2D gaussian kernel with specified size, center, and sigma.
 
-    Output with the default parameters:
+    All coordinates are in (y, x) order, which is (height, width),
+    with (0, 0) at the top left corner.
+
+    Output with the default parameters `size=(3, 3) center=None, sigma=1`:
 
         [[ 0.36787944  0.60653066  0.36787944]
          [ 0.60653066  1.          0.60653066]
          [ 0.36787944  0.60653066  0.36787944]]
 
-    references:
+    Output with parameters `size=(3, 3) center=(0, 1), sigma=1`:
+
+        [[0.60653067 1.         0.60653067]
+        [0.36787945 0.60653067 0.36787945]
+        [0.082085   0.13533528 0.082085  ]]
+
+    # Arguments
+
+        size: dimensions of the output gaussian (height_y, width_x)
+        center: coordinate of the center (maximum value) of the output gaussian, (height_y, width_x).
+            Default of None will automatically be the center coordinate of the output size.
+        sigma: standard deviation of the gaussian in pixels
+
+    # References:
 
             https://stackoverflow.com/a/43346070/99379
             https://stackoverflow.com/a/32279434/99379
 
-    To normalize:
+    # How to normalize
 
         g = gaussian_kernel_2d()
         g /= np.sum(g)
     """
-    xx, yy = np.meshgrid(np.arange(size[0]), np.arange(size[1]))
-    kernel = np.exp(-((xx - center[0]) ** 2 + (yy - center[1]) ** 2) / (2. * sigma ** 2))
+    if center is None:
+        center = np.array(size) / 2
+    yy, xx = np.meshgrid(np.arange(size[0]),
+                         np.arange(size[1]),
+                         indexing='ij')
+    kernel = np.exp(-((yy - center[0]) ** 2 + (xx - center[1]) ** 2) / (2. * sigma ** 2))
     return kernel
 
 

@@ -6,7 +6,7 @@ set -u
 
 module load tensorflow/cuda-8.0/r1.3 
 
-for lr in 0.001 0.0001
+for lr in 0.001 0.0002 0.0001
 do
   # just use the adam optimizer
   for opt in adam
@@ -20,7 +20,7 @@ do
       for noise_dim in 0 # 1 8 32
       do
         hd=true
-        for dr in 0. 0.1 0.2 0.5 # 0.3 0.4
+        for dr in 0. 0.1 0.2 # 0.3 0.4 0.5
         do
           echo "starting LR=$lr, Dropout=$dr, optimizer=$opt, noise=$noise_dim"
           sbatch ctp_conditional_image_gan.sh $lr $dr $opt $noise_dim $loss
