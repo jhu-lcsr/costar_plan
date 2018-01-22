@@ -210,9 +210,11 @@ def MakeModel(features, model, taskdef, **kwargs):
     
     # If we did not create a model then die.
     if model_instance is None:
-        raise NotImplementedError("Combination of model %s and features %s" + \
+        if features is None:
+            features = "n/a"
+        raise NotImplementedError("Combination of model {} and features {}"
                                   " is not currently supported by CTP."
-                                  % (model, features))
+                                  .format(model, features))
 
     return model_instance
 
