@@ -81,12 +81,9 @@ class ConditionalImage(PredictionSampler2):
             decoder = self._makeImageDecoder(self.hidden_shape)
 
         LoadEncoderWeights(self, encoder, decoder)
-
-        image_discriminator = MakeImageClassifier(self, img_shape)
-        image_discriminator.load_weights(
-                self._makeName("goal_discriminator_model", "predictor_weights.h5f"))
-        image_discriminator.trainable = False
- 
+        image_discriminator = LoadGoalClassifierWeights(self,
+                make_classifier_fn=MakeImageClassifier,
+                img_shape=img_shape)
 
         # =====================================================================
         # Load the arm and gripper representation

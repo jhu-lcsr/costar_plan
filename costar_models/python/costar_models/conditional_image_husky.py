@@ -91,8 +91,6 @@ class ConditionalImageHusky(ConditionalImage):
         x2 = tform([h0,x,y2])
         image_out = decoder([x])
         image_out2 = decoder([x2])
-        #image_out = decoder([x, s32, s16, s8])
-
         disc_out2 = image_discriminator(image_out2)
 
         self.next_model = next_model
@@ -119,11 +117,11 @@ class ConditionalImageHusky(ConditionalImage):
         if self.do_all:
             model = Model(ins + [label_in],
                     [image_out, image_out2, next_option_out, value_out,
-                        cmd])
+                        cmd, disc_out2])
             model.compile(
                     loss=[lfn, lfn, "binary_crossentropy", val_loss,
-                        lfn2,],
-                    loss_weights=[1., 1., 0.1, 0.1, 1.,],
+                        lfn2, "categorical_crossentropy"],
+                    loss_weights=[1., 1., 0.1, 0.1, 1., 1e-4],
                     optimizer=self.getOptimizer())
         else:
             model = Model(ins + [label_in],

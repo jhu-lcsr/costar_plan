@@ -50,30 +50,10 @@ class ConditionalImageJigsaws(ConditionalImage):
             encoder = MakeJigsawsImageEncoder(self, img_shape)
             decoder = MakeJigsawsImageDecoder(self, self.hidden_shape)
 
-        # load encoder/decoder weights if found
-        try:
-            encoder.load_weights(self._makeName(
-                #"pretrain_image_encoder_model_jigsaws",
-                "pretrain_image_gan_model_jigsaws",
-                "image_encoder.h5f"))
-            encoder.trainable = self.retrain
-            decoder.load_weights(self._makeName(
-                #"pretrain_image_encoder_model_jigsaws",
-                "pretrain_image_gan_model_jigsaws",
-                "image_decoder.h5f"))
-            decoder.trainable = self.retrain
-        except Exception as e:
-            if not self.retrain:
-                raise e
-
-
-        # =====================================================================
-        # Load the discriminator
-        image_discriminator = MakeJigsawsImageClassifier(self, img_shape)
-        #image_discriminator.load_weights("discriminator_model_classifier.h5f")
-        image_discriminator.load_weights(
-                self._makeName("goal_discriminator_model_jigsaws", "predictor_weights.h5f"))
-        image_discriminator.trainable = False
+        LoadEncoderWeights(self, encoder, decoder)
+        image_discriminator = LoadGoalClassifierWeights(self,
+                make_classifier_fn=MakeJigsawsImageClassifier,
+                img_shape=img_shape)
 
         # =====================================================================
         # Create encoded state
