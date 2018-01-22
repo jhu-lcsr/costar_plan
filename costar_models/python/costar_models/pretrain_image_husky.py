@@ -52,10 +52,6 @@ class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
                 img_shape)
         o2 = image_discriminator([out])
 
-        encoder.summary()
-        decoder.summary()
-        image_discriminator.summary()
-
         ae = Model(ins, [out, o2])
         ae.compile(
                 loss=["mae", "categorical_crossentropy"],

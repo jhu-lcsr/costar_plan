@@ -39,6 +39,9 @@ class PretrainImageJigsawsGan(PretrainImageGan):
         # This is literally the only change from the husky version
         self.num_generator_files = 1
 
+        # Also set up the number of options we expect
+        self.num_options = SuturingNumOptions()
+
     def _makePredictor(self, images):
         '''
         Create model to predict possible manipulation goals.
@@ -57,12 +60,12 @@ class PretrainImageJigsawsGan(PretrainImageGan):
 
         if self.load_pretrained_weights:
             try:
-                encoder.load_weights(self._makeName(
-                    "pretrain_image_encoder_model_jigsaws",
-                    "image_encoder.h5f"))
+                encoder.load_weights(self.makeName(
+                    "pretrain_image_encoder",
+                    "image_encoder"))
                 decoder.load_weights(self._makeName(
-                    "pretrain_image_encoder_model_jigsaws",
-                    "image_decoder.h5f"))
+                    "pretrain_image_encoder",
+                    "image_decoder"))
             except Exception as e:
                 print(">>> could not load pretrained image weights")
 
@@ -107,10 +110,10 @@ class PretrainImageJigsawsGan(PretrainImageGan):
         x = Add()([x, x0])
         x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
         x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True)
-        #x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
+        x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
         x = AddConv2D(x, 1, [4,4], 1, 0., "same", activation="sigmoid")
-        #x = AveragePooling2D(pool_size=(12,16))(x)
-        x = AveragePooling2D(pool_size=(24,32))(x)
+        x = AveragePooling2D(pool_size=(12,16))(x)
+        #x = AveragePooling2D(pool_size=(24,32))(x)
 
         x = Flatten()(x)
         discrim = Model(ins, x, name="image_discriminator")

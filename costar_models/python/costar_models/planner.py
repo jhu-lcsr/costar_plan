@@ -1081,7 +1081,6 @@ def LoadGoalClassifierWeights(model, make_classifier_fn, img_shape):
 
 def LoadClassifierWeights(model, make_classifier_fn, img_shape):
     image_discriminator = make_classifier_fn(model, img_shape)
-    image_discriminator.summary()
     image_discriminator.load_weights(
             model.makeName("discriminator", "classifier"))
     image_discriminator.trainable = False
