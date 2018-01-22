@@ -59,7 +59,7 @@ class RobotPolicy(RobotMultiHierarchical):
         encoder.trainable = False
 
         # Make end-to-end conditional actor
-        self.model = MakeMultiPolicy(
+        self.model = MakeMultiPolicy(self, 
                 encoder, features, arm, gripper,
                 arm_cmd, gripper_cmd, option=self.option_num)
 
@@ -95,12 +95,11 @@ class HuskyPolicy(RobotPolicy):
         '''
         
         img_shape = image.shape[1:]
-        pose_size = pose.shape[-1]
-        encoder = self._makeImageEncoder(img_shape)
 
         # Note: we must load weights for this version of the model. There's no
         # alternative, because we're expecting to train many different models
         # here.
+        encoder = self._makeImageEncoder(img_shape)
         encoder.load_weights(self._makeName(
             "pretrain_image_encoder_model_husky",
             #"pretrain_image_gan_model_husky",
@@ -108,7 +107,7 @@ class HuskyPolicy(RobotPolicy):
         encoder.trainable = False
 
         # Make end-to-end conditional actor
-        self.model = MakeHuskyPolicy(
+        self.model = MakeHuskyPolicy(self, 
                 encoder, image, pose, action, option=self.option_num)
 
 

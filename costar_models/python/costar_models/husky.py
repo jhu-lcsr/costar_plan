@@ -143,14 +143,10 @@ def MakeHuskyPolicy(model, encoder, image, pose, action, option):
     -----------
     option: index of the policy to create
     '''
-    img_shape = features.shape[1:]
+    img_shape = image.shape[1:]
     pose_size = pose.shape[-1]
     action_size = action.shape[-1]
     print("pose_size ", pose_size, " action_size ", action_size)
-    if len(gripper.shape) > 1:
-        gripper_size = gripper.shape[1]
-    else:
-        gripper_size = 1
 
     img_in = Input(img_shape,name="policy_img_in")
     img0_in = Input(img_shape,name="policy_img0_in")
