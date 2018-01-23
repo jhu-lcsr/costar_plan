@@ -99,10 +99,11 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         dr = self.dropout_rate
         dr = 0
         
-        x = AddConv2D(img, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        x0 = AddConv2D(img0, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        x = Add()([x, x0])
-        x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=True, bn=True)
+        #x = AddConv2D(img, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
+        #x0 = AddConv2D(img0, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
+        #x = Add()([x, x0])
+        x = Concatenate(axis=-1)([img0, img])
+        x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
         x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True, bn=True)
         x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True, bn=True)
         x = AddConv2D(x, 1, [4,4], 1, 0., "same", activation="sigmoid",
