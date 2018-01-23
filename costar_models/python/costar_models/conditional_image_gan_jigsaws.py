@@ -59,7 +59,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         y = Flatten()(OneHot(self.num_options)(option_in))
         y2 = Flatten()(OneHot(self.num_options)(option_in2))
         x = h
-        tform = MakeJigsawsTransform(h_dim=(12,16))
+        tform = MakeJigsawsTransform(self, h_dim=(12,16))
         x = tform([h0, h, y])
         x2 = tform([h0, x, y2])
         image_out, image_out2 = decoder([x]), decoder([x2])
@@ -145,10 +145,9 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         y = AddDense(y, 64, "lrelu", dr)
         x1 = TileOnto(x1, y, 64, img_size, add=True)
         x1 = AddConv2D(x1, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
-        x1 = AddConv2D(x1, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
         x1 = AddConv2D(x1, 128, [4,4], 2, dr, "same", lrelu=True)
         #x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
-        x1 = AddConv2D(x1, 1, [4,4], 1, 0., "same", activation="sigmoid")
+        #x1 = AddConv2D(x1, 1, [4,4], 1, 0., "same", activation="sigmoid")
 
         # -------------------------------------------------------------
         y = OneHot(self.num_options)(option2)
@@ -157,13 +156,11 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         x2 = AddConv2D(x2, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
         x2 = AddConv2D(x2, 128, [4,4], 2, dr, "same", lrelu=True)
         #x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
-        x2 = AddConv2D(x2, 1, [4,4], 1, 0., "same", activation="sigmoid")
 
-
-        x = Add()([x1, x2])
-
-        #x = MaxPooling2D(pool_size=(8,8))(x)
-        x = AveragePooling2D(pool_size=(12,16))(x)
+        x = Concatenate(axis=-1)([x1, x2])
+        x = AddConv2D(x, 1, [4,4], 1, 0., "same", activation="sigmoid")
+        #x = AveragePooling2D(pool_size=(12,16))(x)
+        x = AveragePooling2D(pool_size=(24,32))(x)
         x = Flatten()(x)
         discrim = Model(ins, x, name="image_discriminator")
         self.lr *= 2.
