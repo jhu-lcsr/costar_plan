@@ -122,6 +122,8 @@ class TaskParser(object):
         self.trajectory_data = {}
         self.trajectory_features = {}
 
+        self.parent_trajectories = {}
+
         self.sequence_ends = {}
 
     def setDoneName(self, done="DONE"):
@@ -400,6 +402,32 @@ class TaskParser(object):
 
         self.trajectories[skill_name].append(traj)
         self.trajectory_data[skill_name].append(data)
+
+    def collectTrajectories(self):
+        trajs = {}
+        data = {}
+        features = {}
+        print("Collecting trajectories for abstraction training.")
+        for name, traj in self.trajectories.items():
+            parent_name = self.parent_action[name]
+            if parent_name not in features:
+                parent_features = []
+                print(">", name, "has features:", self.trajectory_features[name])
+                for f in self.trajectory_features[name]:
+                    if f in self.object_parent_classes:
+                        pf = self.object_parent_classes[f]
+                        print(f, "-->", pf)
+                        parent_features.append(pf)
+                    else:
+                        parent_features.append(f)
+                print("Parent features:", parent_features)
+                features[parent_name] = parent_features
+            if parent_name not in trajs:
+                trajs[parent_name] = []
+                data[parent_name] = []
+            trajs[parent_name] += traj
+            data[parent_name] += data
+        return trajs, data, features
 
     def _getArgs(self, action_name):
         raise NotImplementedError('Create arguments for graph node')
