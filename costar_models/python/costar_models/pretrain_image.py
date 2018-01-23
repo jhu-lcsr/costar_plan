@@ -36,10 +36,10 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
                 gripper)
 
         img_in = Input(img_shape,name="predictor_img_in")
-        img0_in = Input(img_shape,name="predictor_img0_in")
+        #img0_in = Input(img_shape,name="predictor_img0_in")
         option_in = Input((1,), name="predictor_option_in")
         encoder = self._makeImageEncoder(img_shape)
-        ins = [img0_in, img_in]
+        ins = [img_in]
         
         # Create the encoder
         enc = encoder(img_in)
@@ -51,10 +51,10 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
         # Create the discriminator
         image_discriminator = MakeImageClassifier(self, img_shape)
         image_discriminator.load_weights(
-                self.makeName("discriminator", "classifeir.h5f"))
+                self.makeName("discriminator", "classifier"))
         image_discriminator.trainable = False
             
-        o2 = image_discriminator([img0_in, out])
+        o2 = image_discriminator([out])
 
         ae = Model(ins, [out, o2])
         ae.compile(
@@ -70,5 +70,5 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
         [I, q, g, oin, label, q_target, g_target,] = features
         o1 = targets[1]
         oin_1h = np.squeeze(ToOneHot2D(oin, self.num_options))
-        return [I, I], [I, oin_1h]
+        return [I], [I, oin_1h]
 
