@@ -407,6 +407,7 @@ class TaskParser(object):
         trajs = {}
         data = {}
         features = {}
+        instances = {}
         print("Collecting trajectories for abstraction training.")
         for name, traj in self.trajectories.items():
             parent_name = self.parent_action[name]
@@ -425,9 +426,13 @@ class TaskParser(object):
             if parent_name not in trajs:
                 trajs[parent_name] = []
                 data[parent_name] = []
+                instances[parent_name] = []
             trajs[parent_name] += traj
-            data[parent_name] += self.trajectory_data[name]
-        return trajs, data, features
+            instance_data = self.trajectory_data[name]
+            num_instances = len(instance_data)
+            data[parent_name] += instance_data
+            instances[parent_name] += num_instances * [self.trajectory_features[name]]
+        return trajs, data, features, instances
 
     def _getArgs(self, action_name):
         raise NotImplementedError('Create arguments for graph node')

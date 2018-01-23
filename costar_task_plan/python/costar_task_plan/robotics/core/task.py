@@ -219,12 +219,13 @@ class RosTaskParser(TaskParser):
         print("-------------------------------")
         for key, traj in self.trajectories.items():
             print("%s:"%key, len(traj), "with", self.trajectory_features[key])
-        trajectories, data, features = self.collectTrajectories()
+        trajectories, data, features, instances = self.collectTrajectories()
         print("-------------------------------")
         print("Number of parent trajectories:")
         print("-------------------------------")
         for key, traj in trajectories.items():
             print("%s:"%key, len(traj), "with", features[key])
+        print (instances)
         print("===============================")
         self.lfd.train(trajectories, data, features)
 
