@@ -69,6 +69,7 @@ class LfD(object):
         self.skill_instances = {}
         self.skill_features = {}
         self.skill_models = {}
+        self.parent_skills = {}
 
         self.pubs = {}
 
@@ -93,16 +94,16 @@ class LfD(object):
             data = trajectory_data[name]
             features = RobotFeatures(self.config, self.kdl_kin)
 
-            # Create the set of skill instances. Here we may want to modify
-            # this to collect all "parent" instances instead.
             self.skill_instances[name] = []
 
             # Each world here is an observation of a particular frame in this scene
             for i, (traj, world) in enumerate(zip(trajs, data)):
 
                 if instance_params is not None:
-                    skill_objs = instance_params[name][i]
+                    sub_name, skill_objs = instance_params[name][i]
+                    self.parent_skills[sub_name] = name
                 else:
+                    sub_name = None
                     skill_objs = objs[name]
 
                 ts = [t for t, _, _ in traj]
@@ -123,6 +124,10 @@ class LfD(object):
                 instance.fit(ee_frames=ee, worlds=world)
 
                 self.skill_instances[name].append(instance)
+                if ((not sub_name == name) and (sub_name is not None)):
+                    if sub_name not in self.skill_instances:
+                        self.skill_instances[sub_name] = []
+                    self.skill_instances[sub_name].append(instance)
 
                 if not name in self.skill_features:
                     self.skill_features[name] = f
@@ -172,6 +177,10 @@ class LfD(object):
                 print(name,"goal is",goal_type,"and chose",goal)
             if goal_pose is None:
                 continue
+            if name in self.parent_skills:
+                parent_name = self.parent_skills[name]
+            else:
+                parent_name = name
 
             option = DmpOption(
                 policy_type=CartesianDmpPolicy,
@@ -180,7 +189,7 @@ class LfD(object):
                 goal_object=goal,
                 skill_name=name,
                 feature_model=model,
-                traj_dist=self.getParamDistribution(name))
+                traj_dist=self.getParamDistribution(parent_name))
 
             policy, condition = option.makePolicy(world)
             dynamics = SimulatedDynamics()

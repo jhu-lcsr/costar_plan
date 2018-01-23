@@ -433,7 +433,7 @@ class TaskParser(object):
             instance_data = self.trajectory_data[name]
             num_params = len(instance_data)
             data[parent_name] += instance_data
-            params[parent_name] += num_params * [self.trajectory_features[name]]
+            params[parent_name] += num_params * [(name, self.trajectory_features[name])]
         return trajs, data, features, params
 
     def _getArgs(self, action_name):
