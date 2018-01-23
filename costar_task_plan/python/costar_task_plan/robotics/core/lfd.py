@@ -165,7 +165,6 @@ class LfD(object):
 
         for name, instances in self.skill_instances.items():
 
-            model = self.skill_models[name]
             goal_type = instances[0].objs[-1]
             goals = world.getObjects(goal_type)
             if goals is None:
@@ -181,6 +180,9 @@ class LfD(object):
                 parent_name = self.parent_skills[name]
             else:
                 parent_name = name
+            print("PARENT =", parent_name)
+
+            model = self.skill_models[parent_name]
 
             option = DmpOption(
                 policy_type=CartesianDmpPolicy,
