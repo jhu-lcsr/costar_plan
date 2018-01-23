@@ -1,5 +1,11 @@
 from __future__ import print_function
 
+'''
+===============================================================================
+Contains tools to make the sub-models for the Husky application
+===============================================================================
+'''
+
 import keras.backend as K
 import keras.losses as losses
 import keras.optimizers as optimizers
@@ -22,12 +28,6 @@ from keras.constraints import max_norm
 
 from .planner import *
 from .data_utils import *
-
-'''
-===============================================================================
-Contains tools to make the sub-models for the Husky application
-===============================================================================
-'''
 
 def HuskyNumOptions():
     return 5

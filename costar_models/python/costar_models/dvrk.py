@@ -1,5 +1,11 @@
 from __future__ import print_function
 
+'''
+===============================================================================
+Contains tools to make the sub-models for the DVRK application
+===============================================================================
+'''
+
 import keras.backend as K
 import keras.losses as losses
 import keras.optimizers as optimizers
@@ -17,11 +23,7 @@ from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 
 from .planner import *
-
-'''
-Contains tools to make the sub-models for the DVRK application
-'''
-
+from .temporary import *
 
 def SuturingNumOptions():
     return 15

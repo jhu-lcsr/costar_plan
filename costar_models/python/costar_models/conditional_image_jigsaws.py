@@ -86,7 +86,7 @@ class ConditionalImageJigsaws(ConditionalImage):
         y = Flatten()(OneHot(self.num_options)(option_in))
         y2 = Flatten()(OneHot(self.num_options)(option_in2))
         x = h
-        tform = MakeJigsawsTransform(h_dim=(12,16))
+        tform = MakeJigsawsTransform(self, h_dim=(12,16))
         x = tform([h0, h, y])
         x2 = tform([h0, x, y2])
         image_out, image_out2 = decoder([x]), decoder([x2])
