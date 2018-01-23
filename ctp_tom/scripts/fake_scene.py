@@ -107,22 +107,22 @@ class FakeScenePublisher(object):
         self.tf_pub.sendTransform(self.red1,
                 (0,0,0,1),
                 rospy.Time.now(), 
-                "/red_cube_1",
+                "/red1",
                 "/torso_link")
         self.tf_pub.sendTransform(self.green1,
                 (0,0,0,1),
                 rospy.Time.now(), 
-                "/green_cube_1",
+                "/green1",
                 "/torso_link")
         self.tf_pub.sendTransform(self.blue1,
                 (0,0,0,1),
                 rospy.Time.now(), 
-                "/blue_cube_1",
+                "/blue1",
                 "/torso_link")
         self.tf_pub.sendTransform(self.yellow1,
                 (0,0,0,1),
                 rospy.Time.now(), 
-                "/yellow_cube_1",
+                "/yellow1",
                 "/torso_link")
 
 if __name__ == '__main__':

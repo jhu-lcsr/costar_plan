@@ -87,6 +87,8 @@ class LfD(object):
             features = RobotFeatures(self.config, self.kdl_kin)
             skill_objs = objs[name]
 
+            # Create the set of skill instances. Here we may want to modify
+            # this to collect all "parent" instances instead.
             self.skill_instances[name] = []
 
             # Each world here is an observation of a particular frame in this scene
@@ -288,6 +290,10 @@ class LfD(object):
         params = np.array(params)
         mu = np.mean(params,axis=0)
         sigma = np.cov(params.T)
+
+        if params.T.shape[1] < 2:
+            raise RuntimeError("Cannot create a distribution from one example!")
+
         assert mu.shape[0] == sigma.shape[0]
         return Distribution(mu, sigma)
 
