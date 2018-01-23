@@ -200,10 +200,9 @@ class ConditionalImageGan(PretrainImageGan):
         #x = Concatenate()([x1, x2])
         x = x2
         x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True)
-        #x = AddConv2D(x, 128, [4,4], 1, dr, "same", lrelu=True)
         x= AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
-        #x = AddConv2D(x, 256, [4,4], 1, dr, "same", lrelu=True)
-        x = AddConv2D(x, 1, [4,4], 1, 0., "same", activation="sigmoid")
+        x = AddConv2D(x, 1, [4,4], 1, 0., "same", activation="sigmoid",
+                bn=False)
 
         #x = MaxPooling2D(pool_size=(8,8))(x)
         x = AveragePooling2D(pool_size=(8,8))(x)
