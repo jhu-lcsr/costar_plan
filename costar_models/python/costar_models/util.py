@@ -14,9 +14,7 @@ from .goal_sampler import RobotMultiGoalSampler
 from .multi_sequence import RobotMultiSequencePredictor
 from .image_sampler import RobotMultiImageSampler
 from .pretrain_image import PretrainImageAutoencoder
-from .pretrain_state import PretrainStateAutoencoder
 from .pretrain_sampler import PretrainSampler
-from .pretrain_minimal import PretrainMinimal
 from .pretrain_image_gan import PretrainImageGan
 
 from .sampler2 import PredictionSampler2
@@ -120,16 +118,12 @@ def MakeModel(features, model, taskdef, **kwargs):
                     **kwargs)
         elif model == "pretrain_sampler":
             model_instance = PretrainSampler(taskdef, model=model, **kwargs)
-        elif model == "predictor2" or model == "sampler2":
-            model_instance = PredictionSampler2(taskdef, model=model, **kwargs)
         elif model == "conditional_sampler2":
             model_instance = ConditionalSampler2(taskdef, model=model, **kwargs)
         elif model == "conditional_image":
             model_instance = ConditionalImage(taskdef, model=model, **kwargs)
         elif model == "conditional_image_gan":
             model_instance = ConditionalImageGan(taskdef, model=model, **kwargs)
-        elif model == "pretrain_minimal":
-            model_instance = PretrainMinimal(taskdef, model=model, **kwargs)
         elif model == "pretrain_image_gan":
             model_instance = PretrainImageGan(taskdef, model=model, **kwargs)
         elif model == "discriminator":
@@ -233,18 +227,14 @@ def GetModels():
             "predictor", # sampler NN to generate image goals
             "hierarchical", # hierarchical policy for planning
             "policy", # single policy hierarchical
-            "husky_predictor", # husky multi prediction sampler implementation
             "goal_sampler", # samples goals instead of everything else
             "image_sampler", #just learn to predict goal image
             "pretrain_image_encoder", # tool for pretraining images
             "pretrain_state_encoder", # tool for pretraining states
             "pretrain_sampler", # tool for pretraining the sampler
-            "predictor2", # second version of the prediction-sampler code
-            "sampler2", # -----------------------------   (same as above)
             "conditional_sampler2", # just give the condition
             "conditional_image", # just give label and predict image
             "conditional_image_gan", # just give label and predict image
-            "pretrain_minimal",
             "pretrain_image_gan",
             "discriminator",
             "goal_discriminator",
