@@ -173,26 +173,27 @@ class ConditionalImageGan(PretrainImageGan):
         dr = self.dropout_rate
         dr = 0
 
-        x0 = AddConv2D(img0, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        xobs = AddConv2D(img, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        xg1 = AddConv2D(img_goal, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        xg2 = AddConv2D(img_goal2, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
-
+        #x0 = AddConv2D(img0, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
+        #xobs = AddConv2D(img, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
+        #xg1 = AddConv2D(img_goal, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
+        #xg2 = AddConv2D(img_goal2, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
         #x1 = Add()([x0, xobs, xg1])
         #x2 = Add()([x0, xg1, xg2])
-        x1 = Add()([xobs, xg1])
-        x2 = Add()([xg1, xg2])
+        #x1 = Add()([xobs, xg1])
+        #x2 = Add()([xg1, xg2])
+        x1 = Concatenate(axis=-1)([img, img_goal])
+        x2 = Concatenate(axis=-1)([img_goal, img_goal2])
         
         # -------------------------------------------------------------
         y = OneHot(self.num_options)(option)
         y = AddDense(y, 64, "lrelu", dr)
-        x1 = TileOnto(x1, y, 64, (64,64), add=True)
+        #x1 = TileOnto(x1, y, 64, (64,64), add=True)
         x1 = AddConv2D(x1, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
 
         # -------------------------------------------------------------
         y = OneHot(self.num_options)(option2)
         y = AddDense(y, 64, "lrelu", dr)
-        x2 = TileOnto(x2, y, 64, (64,64), add=True)
+        #x2 = TileOnto(x2, y, 64, (64,64), add=True)
         x2 = AddConv2D(x2, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
 
         #x = Concatenate()([x1, x2])

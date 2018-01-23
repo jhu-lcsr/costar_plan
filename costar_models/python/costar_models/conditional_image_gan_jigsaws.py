@@ -131,17 +131,17 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         dr = 0
         img_size = (96, 128)
 
-        x0 = AddConv2D(img0, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        xobs = AddConv2D(img, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        xg1 = AddConv2D(img_goal, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        xg2 = AddConv2D(img_goal2, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
+        #x0 = AddConv2D(img0, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
+        #xobs = AddConv2D(img, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
+        #xg1 = AddConv2D(img_goal, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
+        #xg2 = AddConv2D(img_goal2, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
 
         #x1 = Add()([x0, xobs, xg1])
         #x2 = Add()([x0, xg1, xg2])
         #x1 = Add()([xobs, xg1])
         #x2 = Add()([xg1, xg2])
-        x1 = Concatenate(axis=-1)([xobs, xg1])
-        x2 = Concatenate(axis=-1)([xg1, xg2])
+        x1 = Concatenate(axis=-1)([img, img_goal])
+        x2 = Concatenate(axis=-1)([img_goal, img_goal2])
         
         # -------------------------------------------------------------
         y = OneHot(self.num_options)(option)
