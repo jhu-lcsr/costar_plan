@@ -72,7 +72,7 @@ class LfD(object):
 
         self.pubs = {}
 
-    def train(self, trajectories, trajectory_data, objs, skill_instances=None):
+    def train(self, trajectories, trajectory_data, objs, instance_params=None):
         '''
         Generate DMPs and GMMs associated with different labeled actions.
 
@@ -92,14 +92,18 @@ class LfD(object):
 
             data = trajectory_data[name]
             features = RobotFeatures(self.config, self.kdl_kin)
-            skill_objs = objs[name]
 
             # Create the set of skill instances. Here we may want to modify
             # this to collect all "parent" instances instead.
             self.skill_instances[name] = []
 
             # Each world here is an observation of a particular frame in this scene
-            for traj, world in zip(trajs, data):
+            for i, (traj, world) in enumerate(zip(trajs, data)):
+
+                if instance_params is not None:
+                    skill_objs = instance_params[name][i]
+                else:
+                    skill_objs = objs[name]
 
                 ts = [t for t, _, _ in traj]
                 dt = np.mean(np.diff(ts))
