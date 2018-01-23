@@ -125,12 +125,12 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         x = Add()([x, x0])
         x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=True, bn=True)
         x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True, bn=True)
-        #x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True, bn=True)
+        x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True, bn=True)
         x = AddConv2D(x, 1, [4,4], 1, 0., "same",
                 activation=activation,
                 bn=False)
-        x = AveragePooling2D(pool_size=(16,16))(x)
-        #x = AveragePooling2D(pool_size=(8,8))(x)
+        #x = AveragePooling2D(pool_size=(16,16))(x)
+        x = AveragePooling2D(pool_size=(8,8))(x)
         x = Flatten()(x)
 
         discrim = Model(ins, x, name="image_discriminator")
