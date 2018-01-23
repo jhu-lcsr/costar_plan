@@ -167,8 +167,8 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         x = AddConv2D(x, 1, [4,4], 1, 0., "same", activation="sigmoid", bn=False)
 
         # Combine
-        #x = AveragePooling2D(pool_size=(12,16))(x)
-        x = AveragePooling2D(pool_size=(24,32))(x)
+        x = AveragePooling2D(pool_size=(12,16))(x)
+        #x = AveragePooling2D(pool_size=(24,32))(x)
         x = Flatten()(x)
         discrim = Model(ins, x, name="image_discriminator")
         self.lr *= 2.
