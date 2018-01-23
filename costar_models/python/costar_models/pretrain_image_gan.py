@@ -17,6 +17,9 @@ from keras.models import Model, Sequential
 from .callbacks import *
 from .multi_sampler import *
 
+def wasserstein_loss(y_true, y_pred):
+    return K.mean(y_true * y_pred)
+
 class PretrainImageGan(RobotMultiPredictionSampler):
 
     def __init__(self, taskdef, *args, **kwargs):
@@ -58,6 +61,14 @@ class PretrainImageGan(RobotMultiPredictionSampler):
             except Exception as e:
                 print(">> Failed to load pretrained generator weights.")
 
+        wasserstein = True
+        if wasserstein:
+            loss = wasserstein_loss
+            activation = "linear"
+        else:
+            loss = "binary_crossentropy"
+            activation = "sigmoid"
+
         gen_out = decoder(enc)
         image_discriminator = self._makeImageDiscriminator(img_shape)
         self.discriminator = image_discriminator
@@ -85,7 +96,9 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         [img, q, g, oin, label, q_target, g_target,] = features
         return [img], [img]
 
-    def _makeImageDiscriminator(self, img_shape):
+    def _makeImageDiscriminator(self, img_shape,
+            loss="binary_crossentropy",
+            activation="sigmoid"):
         '''
         create image-only encoder to extract keypoints from the scene.
         
@@ -98,6 +111,14 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         ins = [img, img0]
         dr = self.dropout_rate
         dr = 0
+
+        wasserstein = True
+        if wasserstein:
+            loss = wasserstein_loss
+            activation = "linear"
+        else:
+            loss = "binary_crossentropy"
+            activation = "sigmoid"
         
         x = AddConv2D(img, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
         x0 = AddConv2D(img0, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
@@ -105,13 +126,13 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=True, bn=True)
         x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True, bn=True)
         x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True, bn=True)
-        x = AddConv2D(x, 1, [4,4], 1, 0., "same", activation="sigmoid")
+        x = AddConv2D(x, 1, [4,4], 1, 0., "same", activation=activation)
         x = AveragePooling2D(pool_size=(8,8))(x)
-
         x = Flatten()(x)
+
         discrim = Model(ins, x, name="image_discriminator")
         self.lr *= 2.
-        discrim.compile(loss="binary_crossentropy", loss_weights=[1.],
+        discrim.compile(loss=loss, loss_weights=[1.],
                 optimizer=self.getOptimizer())
         self.lr *= 0.5
         self.image_discriminator = discrim
@@ -171,23 +192,41 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                 for c in callbacks:
                     c.on_epoch_end(i)
         else:
+            wasserstein = True
+            d_iters = 10
+
             for i in range(self.epochs):
                 for j in range(self.steps_per_epoch):
 
-                    # Descriminator pass
-                    img, target = next(train_generator)
-                    fake = self.generator.predict(img)
-                    self.discriminator.trainable = True
-                    is_fake = np.random.random((self.batch_size, 1)) * 0.1 + 0.9
-                    is_not_fake = np.random.random((self.batch_size, 1)) * 0.1
-                    res1 = self.discriminator.train_on_batch(
-                            img + target, is_not_fake)
-                    if isinstance(fake, list):
-                        inputs = img + fake
-                    else:
-                        inputs = img + [fake]
-                    res2 = self.discriminator.train_on_batch(
-                            inputs, is_fake)
+                    for d in range(d_iters):
+
+                        # Clip the weights for the wasserstein gan
+                        for l in self.discriminator.layers:
+                            weights = l.get_weights()
+                            weights = [np.clip(w, -0.01, 0.01) for w in
+                                    weights]
+                            l.set_weights(weights)
+
+                        # Descriminator pass
+                        img, target = next(train_generator)
+                        fake = self.generator.predict(img)
+                        self.discriminator.trainable = True
+                        #is_fake = np.random.random((self.batch_size, 1)) * 0.1 + 0.9
+                        #is_not_fake = np.random.random((self.batch_size, 1)) * 0.1
+                        is_fake = np.ones((self.batch_size,1))
+                        is_not_fake = -1*np.ones((self.batch_size,1))
+                        res1 = self.discriminator.train_on_batch(
+                                img + target, is_not_fake)
+
+                        if isinstance(fake, list):
+                            inputs = img + fake
+                        else:
+                            inputs = img + [fake]
+                        res2 = self.discriminator.train_on_batch(
+                                inputs, is_fake)
+                        print(res1, res2)
+
+
                     self.discriminator.trainable = False
 
                     # Generator pass
