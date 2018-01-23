@@ -158,6 +158,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         #x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
 
         x = Concatenate(axis=-1)([x1, x2])
+        #x = Add()([x1, x2])
         x = AddConv2D(x, 1, [4,4], 1, 0., "same", activation="sigmoid")
         #x = AveragePooling2D(pool_size=(12,16))(x)
         x = AveragePooling2D(pool_size=(24,32))(x)
