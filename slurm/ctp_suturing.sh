@@ -23,6 +23,40 @@ export noise_dim=$4
 export loss=$5
 export MODELDIR="$HOME/.costar/suturing_$learning_rate$optimizer$dropout$noise_dim$loss"
 
+if $train_discriminator
+then
+  echo "Training discriminator 1"
+  $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
+    --features multi \
+    -e 100 \
+    --model discriminator \
+    --data_file $HOME/work/$DATASET.h5f \
+    --features husky \
+    --lr $learning_rate \
+    --dropout_rate $dropout \
+    --model_directory $MODELDIR/ \
+    --optimizer $optimizer \
+    --steps_per_epoch 500 \
+    --noise_dim $noise_dim \
+    --loss $loss \
+    --batch_size 64
+  echo "Training discriminator 2"
+  $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
+    --features multi \
+    -e 100 \
+    --model goal_discriminator \
+    --data_file $HOME/work/$DATASET.h5f \
+    --lr $learning_rate \
+    --features husky \
+    --dropout_rate $dropout \
+    --model_directory $MODELDIR/ \
+    --optimizer $optimizer \
+    --steps_per_epoch 500 \
+    --noise_dim $noise_dim \
+    --loss $loss \
+    --batch_size 64
+fi
+
 
 
 if $train_image_encoder
@@ -32,7 +66,7 @@ then
     --features multi \
     -e 100 \
     --model pretrain_image_encoder \
-    --data_file $HOME/work/$DATASET.npz \
+    --data_file $HOME/work/$DATASET.h5f \
     --lr $learning_rate \
     --dropout_rate $dropout \
     --features jigsaws \
@@ -49,7 +83,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --features multi \
   -e 100 \
   --model conditional_image \
-  --data_file $HOME/work/$DATASET.npz \
+  --data_file $HOME/work/$DATASET.h5f \
   --lr $learning_rate \
   --dropout_rate $dropout \
   --model_directory $MODELDIR/ \
