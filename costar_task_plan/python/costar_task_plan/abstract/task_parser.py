@@ -426,7 +426,7 @@ class TaskParser(object):
                 trajs[parent_name] = []
                 data[parent_name] = []
             trajs[parent_name] += traj
-            data[parent_name] += data
+            data[parent_name] += self.trajectory_data[name]
         return trajs, data, features
 
     def _getArgs(self, action_name):
