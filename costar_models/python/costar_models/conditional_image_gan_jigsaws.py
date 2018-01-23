@@ -94,7 +94,6 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
                 loss_weights=[100., 100., 1.],
                 optimizer=self.getOptimizer())
         model.summary()
-        self.discriminator.summary()
         self.model = model
 
         self.predictor = generator
@@ -139,13 +138,15 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
 
         #x1 = Add()([x0, xobs, xg1])
         #x2 = Add()([x0, xg1, xg2])
-        x1 = Add()([xobs, xg1])
-        x2 = Add()([xg1, xg2])
+        #x1 = Add()([xobs, xg1])
+        #x2 = Add()([xg1, xg2])
+        x1 = Concatenate(axis=-1)([xobs, xg1])
+        x2 = Concatenate(axis=-1)([xg1, xg2])
         
         # -------------------------------------------------------------
         y = OneHot(self.num_options)(option)
         y = AddDense(y, 64, "lrelu", dr)
-        x1 = TileOnto(x1, y, 64, img_size, add=True)
+        #x1 = TileOnto(x1, y, 64, img_size, add=True)
         x1 = AddConv2D(x1, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
         x1 = AddConv2D(x1, 128, [4,4], 2, dr, "same", lrelu=True, bn=True)
         x1 = AddConv2D(x1, 256, [4,4], 2, dr, "same", lrelu=True, bn=True)
@@ -154,7 +155,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         # -------------------------------------------------------------
         y = OneHot(self.num_options)(option2)
         y = AddDense(y, 64, "lrelu", dr)
-        x2 = TileOnto(x2, y, 64, img_size, add=True)
+        #x2 = TileOnto(x2, y, 64, img_size, add=True)
         x2 = AddConv2D(x2, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
         x2 = AddConv2D(x2, 128, [4,4], 2, dr, "same", lrelu=True, bn=True)
         x2 = AddConv2D(x2, 256, [4,4], 2, dr, "same", lrelu=True, bn=True)
