@@ -423,6 +423,8 @@ class TaskParser(object):
                         parent_features.append(f)
                 print("Parent features:", parent_features)
                 features[parent_name] = parent_features
+
+            # Instantiate the new set up for this model
             if parent_name not in trajs:
                 trajs[parent_name] = []
                 data[parent_name] = []

@@ -72,9 +72,16 @@ class LfD(object):
 
         self.pubs = {}
 
-    def train(self, trajectories, trajectory_data, objs, obj_classes={}):
+    def train(self, trajectories, trajectory_data, objs, skill_instances=None):
         '''
         Generate DMPs and GMMs associated with different labeled actions.
+
+        Parameters:
+        -----------
+        trajectories: trajectory data by high level skill
+        trajectory_data: training data (object poses)
+        objs: specific data needed for each skill
+        skill_instances: mid-level class info about objects (red, blue, etc.)
         '''
 
         for name, trajs in trajectories.items():
