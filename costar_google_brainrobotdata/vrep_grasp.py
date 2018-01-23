@@ -13,7 +13,7 @@ import traceback
 
 import numpy as np
 import six  # compatibility between python 2 + 3 = six
-# import matplotlib
+import matplotlib.pyplot as plt
 
 try:
     import vrep.vrep as vrep
@@ -124,10 +124,14 @@ tf.flags.DEFINE_string('vrepVisualizationPipeline', 'tensorflow',
                                then the visualize_python function calculates the features
                                before they are rendered with vrep.
                        """)
-tf.flags.DEFINE_boolean('vrepVisualizePredictions', False,
+tf.flags.DEFINE_boolean('vrepVisualizePredictions', True,
                         """Visualize the predictions of weights defined in grasp_train.py,
                            If loss is pixel-wise, prediction will be 2d image of probabilities.
                            Otherwise it's boolean indicate success or failure.
+                        """
+                        )
+tf.flags.DEFINE_boolean('vrepVisualizeMatPlotLib', True,
+                        """Visualize the predictions with a matplotlib heat map.
                         """
                         )
 
@@ -524,11 +528,23 @@ class VREPGraspVisualization(object):
             tensorflow loads the raw data from the dataset and also calculates all
             features before they are rendered with vrep via python,
         """
-        grasp_dataset_object = GraspDataset(dataset=dataset)
         batch_size = 1
-
-        (feature_op_dicts, features_complete_list,
-         time_ordered_feature_name_dict, num_samples) = grasp_dataset_object.get_training_dictionaries(batch_size=batch_size)
+        grasp_dataset_object = GraspDataset(dataset=dataset)
+        if FLAGS.vrepVisualizePredictions is True:
+            make_model_fn = define_make_model_fn()
+            gt = GraspTrain()
+            (pred_model, pregrasp_op_batch, grasp_step_op_batch, 
+             simplified_grasp_command_op_batch, 
+             grasp_success_op_batch, feature_op_dicts, 
+             features_complete_list, 
+             time_ordered_feature_name_dict, 
+             num_samples) = gt.get_compiled_model(
+                dataset=grasp_dataset_object,
+                make_model_fn=make_model_fn)
+        else:
+            (feature_op_dicts, features_complete_list,
+             time_ordered_feature_name_dict, 
+             num_samples) = grasp_dataset_object.get_training_dictionaries(batch_size=batch_size)
 
         if verbose > 0:
             print('visualize_tensorflow.time_ordered_feature_name_dict', time_ordered_feature_name_dict, 'feature_op_dicts:', feature_op_dicts)
@@ -538,10 +554,6 @@ class VREPGraspVisualization(object):
         if error_code is -1:
             parent_handle = -1
             print('could not find object with the specified name, so putting objects in world frame:', parent_name)
-
-        make_model_fn = define_make_model_fn()
-        gt = GraspTrain()
-        pred_model = gt.get_compiled_model(make_model_fn=make_model_fn, fetches=feature_op_dicts)
 
         for attempt_num in tqdm(range(num_samples / batch_size), desc='dataset'):
             attempt_num_string = 'attempt_' + str(attempt_num).zfill(4) + '_'
@@ -687,15 +699,24 @@ class VREPGraspVisualization(object):
                         self.client_id, 'current_point_cloud',
                         transform=base_to_camera_vec_quat_7,
                         depth_image=depth,
-                        color_image=rgb,
+                        color_image=np.copy(rgb),
                         parent_handle=parent_handle,
                         rgb_sensor_display_name='kcam_rgb_current',
                         depth_sensor_display_name='kcam_depth_current',
                         point_cloud=xyz)
 
                     if prediction is not None:
-                        rgb_prediction = resize(prediction, rgb.shape[:2], preserve_range=True)
-                        rgb_prediction = img_as_ubyte(rgb_prediction)
+                        print('original prediction_shape: ', prediction.shape, 'pred_max: ', np.max(prediction), ' pred_min:', np.min(prediction))
+                        prediction = prediction - 0.5
+                        prediction = prediction * 100
+                        prediction = prediction + 0.5
+                        print('scaled prediction_shape: ', prediction.shape, 'pred_max: ', np.max(prediction), ' pred_min:', np.min(prediction))
+                        if FLAGS.vrepVisualizeMatPlotLib:
+                            plt.imshow(np.squeeze(prediction))
+                            plt.show()
+                        rgb_prediction = img_as_ubyte(prediction)
+                        print('grey_prediction_shape: ', rgb_prediction.shape, 'pred_max: ', np.max(rgb_prediction), ' pred_min:', np.min(rgb_prediction))
+                        rgb_prediction = resize(rgb_prediction, (rgb.shape[0],rgb.shape[1]), preserve_range=False)
                         if rgb_prediction.shape[-1] == 1:
                             rgb_prediction = grey2rgb(rgb_prediction)
                         rgb_prediction = grasp_geometry.draw_circle(grasp_geometry.draw_circle(rgb_prediction, current_coordinate,
