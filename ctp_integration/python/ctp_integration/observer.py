@@ -38,6 +38,10 @@ class Observer(object):
         self.msg = msg
 
     def __call__(self):
+
+        # Empty out the current version of the task to get a new task model
+        self.task.clear()
+
         # Call the detect objects service and wait for response
         world = self.world.fork()
         self.detect_srv()
