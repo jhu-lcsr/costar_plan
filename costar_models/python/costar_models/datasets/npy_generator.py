@@ -75,9 +75,10 @@ class NpzGeneratorDataset(object):
         np.random.shuffle(self.train)
 
         if self.preload:
-            for f in self.tests + self.train:
+            print("Preloading all files...")
+            for f in self.test + self.train:
                 nm = os.path.join(self.name, f)
-                preload_cache[nm] = self._load(nm)
+                self.preload_cache[nm] = self._load(nm)
 
         return sample
 
