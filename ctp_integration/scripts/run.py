@@ -8,6 +8,7 @@ import rospy
 import tf
 
 from costar_task_plan.mcts import PlanExecutionManager, DefaultExecute
+from costar_task_plan.mcts import OptionsExecutionManager
 from costar_task_plan.robotics.core import RosTaskParser
 from costar_task_plan.robotics.core import CostarWorld
 from costar_task_plan.robotics.workshop import UR5_C_MODEL_CONFIG
@@ -132,7 +133,7 @@ def main():
         while True:
             # Note: this will be "dummied out" for most of 
             control = plan.apply(world)
-            env.step(control)
+            print(control)
             collector.tick()
 
         if collector is not None:

@@ -47,13 +47,24 @@ class Observer(object):
         world = self.world.fork()
         self.detect_srv()
 
+        # Spin
         rate = rospy.Rate(10)
         while self.msg == None and not rospy.is_shutdown():
             rate.sleep()
 
-        # Yeah just wait for a moment until this is done
-        rospy.sleep(0.5)
+        # Generate a task plan from a message
+        for obj in self.msg.objects:
+            name = obj.id
+            obj_class = obj.object_class
     
+            # Create arguments for the task plan
+            args = {}
+            if not object_class in args:
+                args[obj_class] = set()
+            args[obj_class].insert(name)
+
+        print(args)
+
         # Env is the wrapper that interfaces with the world and consumes
         # our commands
         env = None # TODO: add this
