@@ -2,7 +2,7 @@
 import numpy as np
 import PyKDL as kdl
 import rospy 
-import tf
+import tf2_ros as tf2
 import tf_conversions.posemath as pm
 
 from costar_models.datasets.npz import NpzDataset
@@ -133,19 +133,15 @@ class DataCollector(object):
         Compute endpoint positions and update data. Should happen at some
         fixed frequency like 10 hz.
         '''
-        if self.tf_listener.frameExists(self.base_link) and self.tf_listener.frameExists(self.ee_frame):
-            t = self.tf_listener.getLatestCommonTime(self.base_link, self.ee_frame)
-            ee_pos, ee_rot = self.tf_listener.lookupTransform(self.base_link, self.ee_frame, t)
-        else:
-            rospy.logwarn("Failed lookup: %s to %s"%(self.base_link, self.camera_frame))
+        try:
+            t = rospy.Time(0)
+            c_pos, c_rot = self.tf_listener.lookup_transform(self.base_link, self.camera_frame, t)
+            ee_pos, ee_rot = self.tf_listener.lookup_transform(self.base_link, self.ee_frame, t)
+        except (tf2.LookupException, tf2.ExtrapolationException, tf2.ConnectivityException) as e:
+            rospy.logwarn("Failed lookup: %s to %s, %s"%(self.base_link, self.camera_frame, self.ee_frame))
             return False
 
-        if self.tf_listener.frameExists(self.base_link) and self.tf_listener.frameExists(self.camera_frame):
-            t = self.tf_listener.getLatestCommonTime(self.base_link, self.camera_frame)
-            c_pos, c_rot = self.tf_listener.lookupTransform(self.base_link, self.camera_frame, t)
-        else:
-            rospy.logwarn("Failed lookup: %s to %s"%(self.base_link, self.camera_frame))
-            return False
+        return True
 
 if __name__ == '__main__':
     pass

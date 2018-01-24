@@ -5,7 +5,7 @@ import networkx as nx
 import numpy as np
 import argparse
 import rospy
-import tf
+import tf2_ros as tf2
 
 from costar_task_plan.mcts import PlanExecutionManager, DefaultExecute
 from costar_task_plan.mcts import OptionsExecutionManager
@@ -93,7 +93,8 @@ def main():
     # Create the task model, world, and other tools
     task = MakeStackTask()
     world = CostarWorld(robot_config=UR5_C_MODEL_CONFIG)
-    listener = tf.TransformListener()
+    tf_buffer = tf2.Buffer()
+    tf_listener = tf2.TransformListener(tf_buffer)
     rospy.sleep(0.5) # wait to cache incoming transforms
 
     if args.fake:
@@ -106,7 +107,7 @@ def main():
                 task=task,
                 detect_srv=objects,
                 topic="/costar_sp_segmenter/detected_object_list",
-                tf_listener=listener)
+                tf_listener=tf_buffer)
 
     # print out task info
     if args.verbose > 0:
@@ -123,7 +124,7 @@ def main():
                 rate=10,
                 data_type="h5f",
                 robot_config=UR5_C_MODEL_CONFIG,
-                tf_listener=listener)
+                tf_listener=tf_buffer)
 
     for i in range(args.execute):
         print("Executing trial %d..."%(i))
