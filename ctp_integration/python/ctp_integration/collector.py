@@ -78,6 +78,8 @@ class DataCollector(object):
  
         self._resetData()
 
+        self.verbosity = 1
+
     def _rgbCb(self, msg):
         self.rgb_img = msg
 
@@ -100,7 +102,8 @@ class DataCollector(object):
     def _jointsCb(self, msg):
         self.q = msg.position
         self.dq = msg.velocity
-        print(self.q, self.dq)
+        if self.verbosity > 3:
+            rospy.loginfo(self.q, self.dq)
 
     def save(self, seed, result):
         '''

@@ -35,6 +35,7 @@ class Observer(object):
                 self._detected_objects_cb)
 
     def _detected_objects_cb(self, msg):
+        # Save detected objects message
         self.msg = msg
 
     def __call__(self):
