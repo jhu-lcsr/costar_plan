@@ -98,6 +98,7 @@ class LfD(object):
                 self.skill_instances[name] = []
 
             # Each world here is an observation of a particular frame in this scene
+            assert(len(trajs) == len(data))
             for i, (traj, world) in enumerate(zip(trajs, data)):
 
                 if instance_params is not None:
