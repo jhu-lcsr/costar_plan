@@ -287,6 +287,15 @@ class Task(object):
             self.nodes[iname] = option
             self.children[iname] = set()
 
+    def clear(self):
+        self.nodes = {}
+        self.children = {}
+        self.weights = {}
+        self.indices = {}
+        self.names = {}
+        self.compiled = False
+        self.generic_names = {}
+
     def makeTree(self, world, max_depth=10):
         '''
         Make the root of a tree search. This creates the whole tree structure that
