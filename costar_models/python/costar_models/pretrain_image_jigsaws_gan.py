@@ -106,16 +106,16 @@ class PretrainImageJigsawsGan(PretrainImageGan):
         ins = [img, img0]
         dr = self.dropout_rate
         
-        #x = AddConv2D(img, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        #x0 = AddConv2D(img0, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        #x = Add()([x, x0])
-        x = Concatenate(axis=-1)([img0, img])
+        x = AddConv2D(img, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
+        x0 = AddConv2D(img0, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
+        x = Add()([x, x0])
+        #x = Concatenate(axis=-1)([img0, img])
         x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
         x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True, bn=True)
-        #x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
+        x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True, bn=True)
         x = AddConv2D(x, 1, [4,4], 1, 0., "same", activation="sigmoid", bn=False)
-        #x = AveragePooling2D(pool_size=(12,16))(x)
-        x = AveragePooling2D(pool_size=(24,32))(x)
+        x = AveragePooling2D(pool_size=(12,16))(x)
+        #x = AveragePooling2D(pool_size=(24,32))(x)
 
         x = Flatten()(x)
         discrim = Model(ins, x, name="image_discriminator")
