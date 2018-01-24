@@ -304,9 +304,15 @@ class LfD(object):
         '''
         Return the appropriate model for this particular skill.
         '''
-        while skill in self.parent_skills:
-            skill = self.parent_skills[skill]
+        skill = self.getParent(skill)
         return self.skill_models[skill]
+
+    def getParent(self, skill):
+        while skill in self.parent_skills:
+            if skill == self.parent_skills[skill]:
+                break
+            skill = self.parent_skills[skill]
+        return skill
 
     def getParamDistribution(self, skill):
         '''
@@ -315,9 +321,9 @@ class LfD(object):
         counts to optimize to a new environment.
         '''
 
-        # Get the parent skill
-        while skill in self.parent_skills:
-            skill = self.parent_skills[skill]
+        # Get the parent skill - this is the highest level skill of the type
+        # in case we have more than one.
+        skill = self.getParent(skill)
 
         # Aggregate features used when training the parent skill model
         params = []
