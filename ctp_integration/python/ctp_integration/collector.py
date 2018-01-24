@@ -141,8 +141,8 @@ class DataCollector(object):
             rospy.logwarn("Failed lookup: %s to %s, %s"%(self.base_link, self.camera_frame, self.ee_frame))
             return False
 
-        T_c = pm.fromMsg(c_pose)
-        T_ee = pm.fromMsg(ee_pose)
+        T_c = pm.fromMsg(c_pose.transform)
+        T_ee = pm.fromMsg(ee_pose.transform)
 
         return True
 
