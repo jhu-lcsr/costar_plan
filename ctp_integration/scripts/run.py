@@ -124,7 +124,7 @@ def main():
 
     for i in range(args.execute):
         print("Executing trial %d..."%(i))
-        task, env, world = observe()
+        task, world = observe()
         names, options = task.sampleSequence()
         plan = OptionsExecutionManager(options)
 

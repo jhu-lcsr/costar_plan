@@ -40,6 +40,6 @@ class Observer(object):
     
         # Env is the wrapper that interfaces with the world and consumes
         # our commands
-        env = None
-        return self.task, env, world
+        env = None # TODO: add this
+        return self.task, world
         
