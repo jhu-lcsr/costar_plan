@@ -110,8 +110,8 @@ class LfD(object):
 
                 # Add a publisher for the sub-model if one does not exist yet
                 if sub_name is not None and sub_name not in self.pubs:
-                    self.pubs[name] = rospy.Publisher(
-                        join('costar', 'lfd', name), PoseArray, queue_size=1000)
+                    self.pubs[sub_name] = rospy.Publisher(
+                        join('costar', 'lfd', sub_name), PoseArray, queue_size=1000)
 
                 ts = [t for t, _, _ in traj]
                 dt = np.mean(np.diff(ts))
@@ -251,6 +251,7 @@ class LfD(object):
 
             msg = PoseArray(poses=poses)
             msg.header.frame_id = self.base_link
+            print(self.pubs)
             self.pubs[name].publish(msg)
 
     def save(self, project_name):
