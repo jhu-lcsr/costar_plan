@@ -2,6 +2,8 @@
 import rospy
 import tf
 
+from costar_objrec_msgs.msg import DetectedObjectList
+
 class IdentityObserver(object):
     def __init__(self, world, task):
         self.world = world
@@ -27,13 +29,22 @@ class Observer(object):
         else:
             self.tf_listener = tf.TransformListener()
 
-    def _cb(self, msg):
+        self._detected_objects_sub = rospy.Subscriber(
+                self.detected_objects_topic, 
+                DetectedObjectList,
+                self._detected_objects_cb)
+
+    def _detected_objects_cb(self, msg):
         self.msg = msg
 
     def __call__(self):
         # Call the detect objects service and wait for response
         world = self.world.fork()
         self.detect_srv()
+
+        rate = rospy.Rate(10)
+        while self.msg == None and not rospy.is_shutdown():
+            rate.sleep()
 
         # Yeah just wait for a moment until this is done
         rospy.sleep(0.5)
