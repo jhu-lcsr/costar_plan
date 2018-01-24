@@ -79,8 +79,8 @@ class PretrainImageJigsawsGan(PretrainImageGan):
 
         self.model = Model([img_in], [gen_out, o1])
         self.model.compile(
-                loss=["mae"] + ["binary_crossentropy"],
-                loss_weights=[10., 1.],
+                loss=["mae"] + [wasserstein_loss],
+                loss_weights=[1., 1.],
                 optimizer=self.getOptimizer())
 
         self.generator = Model([img_in], [gen_out])
@@ -104,23 +104,20 @@ class PretrainImageJigsawsGan(PretrainImageGan):
         img = Input(img_shape,name="img_encoder_in")
         img0 = Input(img_shape,name="img0_encoder_in")
         ins = [img, img0]
-        dr = self.dropout_rate
+        dr = 0.3
         
-        x = AddConv2D(img, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        x0 = AddConv2D(img0, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
+        x = AddConv2D(img, 32, [4,4], 1, dr, "same", lrelu=True, bn=False)
+        x0 = AddConv2D(img0, 32, [4,4], 1, dr, "same", lrelu=True, bn=False)
         x = Add()([x, x0])
         #x = Concatenate(axis=-1)([img0, img])
-        x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
-        x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True, bn=True)
-        #x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True, bn=True)
-        x = AddConv2D(x, 1, [4,4], 1, 0., "same", activation="sigmoid", bn=False)
-        #x = AveragePooling2D(pool_size=(12,16))(x)
-        x = AveragePooling2D(pool_size=(24,32))(x)
-        #x = AveragePooling2D(pool_size=(48,64))(x)
-
+        x = AddConv2D(x, 32, [4,4], 2, dr, "valid", lrelu=True, bn=False)
+        x = AddConv2D(x, 64, [4,4], 2, dr, "valid", lrelu=True, bn=True)
+        x = AddConv2D(x, 128, [4,4], 2, dr, "valid", lrelu=True, bn=True)
+        x = AddConv2D(x, 256, [4,4], 2, dr, "valid", lrelu=True, bn=True)
         x = Flatten()(x)
+        x = Dense(1, activation="linear")(x)
         discrim = Model(ins, x, name="image_discriminator")
-        discrim.compile(loss="binary_crossentropy", loss_weights=[1.],
+        discrim.compile(loss=wasserstein_loss,
                 optimizer=self.getOptimizer())
         self.image_discriminator = discrim
         return discrim
