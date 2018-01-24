@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --job-name=ctpHusky
+#SBATCH --job-name=jigsaws
 #SBATCH --time=0-48:0:0
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
