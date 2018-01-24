@@ -58,7 +58,7 @@ class PretrainImageJigsawsGan(PretrainImageGan):
                 self.hidden_shape,
                 self.skip_shape, False)
 
-        if self.load_pretrained_weights:
+        if self.load_pretrained_weights and False:
             try:
                 encoder.load_weights(self.makeName(
                     "pretrain_image_encoder",

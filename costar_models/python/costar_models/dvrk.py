@@ -223,11 +223,11 @@ def MakeJigsawsImageDecoder(model, hidden_shape, img_shape=None, copy=False):
     x = AddConv2DTranspose(x, 256, [1,1], 1, dr, bn=bn)
 
     x = AddConv2DTranspose(x, 128, [5,5], 2, 0., bn=bn)
-    #x = AddConv2DTranspose(x, 128, [5,5], 1, 0., bn=bn)
+    x = AddConv2DTranspose(x, 128, [5,5], 1, 0., bn=bn)
     x = AddConv2DTranspose(x, 64, [5,5], 2, 0., bn=bn)
-    #x = AddConv2DTranspose(x, 64, [5,5], 1, 0., bn=bn)
+    x = AddConv2DTranspose(x, 64, [5,5], 1, 0., bn=bn)
     x = AddConv2DTranspose(x, 32, [5,5], 2, 0., bn=bn)
-    #x = AddConv2DTranspose(x, 32, [5,5], 1, 0., bn=bn)
+    x = AddConv2DTranspose(x, 32, [5,5], 1, 0., bn=bn)
     x = AddConv2DTranspose(x, 32, [5,5], 2, 0., bn=bn)
     x = AddConv2DTranspose(x, 16, [5,5], 1, 0., bn=bn)
     ins = rep
