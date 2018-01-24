@@ -32,49 +32,34 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
 
         img_shape = image.shape[1:]
 
+        # Create inputs
         img0_in = Input(img_shape, name="predictor_img0_in")
         img_in = Input(img_shape, name="predictor_img_in")
         ins = [img0_in, img_in]
-
-        encoder = MakeJigsawsImageEncoder(self, img_shape)
-        decoder = MakeJigsawsImageDecoder(self, self.hidden_shape)
-
-        try:
-            encoder.load_weights(self._makeName(
-                #pretrain_image_encoder_model",
-                "pretrain_image_gan_model_jigsaws",
-                "image_encoder.h5f"))
-            encoder.trainable = self.retrain
-            decoder.load_weights(self._makeName(
-                #"pretrain_image_encoder_model",
-                "pretrain_image_gan_model_jigsaws",
-                "image_decoder.h5f"))
-            decoder.trainable = self.retrain
-        except Exception as e:
-            if not self.retrain:
-                raise e
-
-        if self.skip_connections:
-            h, s32, s16, s8 = encoder([img0_in, img_in])
-        else:
-            h = encoder(img_in)
-            h0 = encoder(img0_in)
-
-        # create input for controlling noise output if that's what we decide
-        # that we want to do
-        if self.use_noise:
-            ins += [Input((self.num_hypotheses, self.noise_dim))]
 
         # next option - used to compute the next image 
         option_in = Input((1,), name="option_in")
         option_in2 = Input((1,), name="option_in2")
         ins += [option_in, option_in2]
 
+        # =====================================================================
+        # Load weights and stuff. We'll load the GAN version of the weights.
+        encoder = MakeJigsawsImageEncoder(self, img_shape)
+        decoder = MakeJigsawsImageDecoder(self, self.hidden_shape)
+        LoadEncoderWeights(self, encoder, decoder, gan=True)
+
+        # =====================================================================
+        # Create outputs
+        if self.skip_connections:
+            h, s32, s16, s8 = encoder([img0_in, img_in])
+        else:
+            h = encoder(img_in)
+            h0 = encoder(img0_in)
+
         y = Flatten()(OneHot(self.num_options)(option_in))
         y2 = Flatten()(OneHot(self.num_options)(option_in2))
         x = h
-        #tform = self._makeTransform(h_dim=(12,16))
-        tform = self._makeTransform(h_dim=(6,8))
+        tform = MakeJigsawsTransform(self, h_dim=(12,16))
         x = tform([h0, h, y])
         x2 = tform([h0, x, y2])
         image_out, image_out2 = decoder([x]), decoder([x2])
@@ -160,23 +145,23 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         y = AddDense(y, 64, "lrelu", dr)
         x1 = TileOnto(x1, y, 64, img_size, add=True)
         x1 = AddConv2D(x1, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
+        x1 = AddConv2D(x1, 128, [4,4], 2, dr, "same", lrelu=True)
+        #x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
+        #x1 = AddConv2D(x1, 1, [4,4], 1, 0., "same", activation="sigmoid")
 
         # -------------------------------------------------------------
         y = OneHot(self.num_options)(option2)
         y = AddDense(y, 64, "lrelu", dr)
         x2 = TileOnto(x2, y, 64, img_size, add=True)
         x2 = AddConv2D(x2, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
-        x = x2
-        #x = Concatenate()([x1, x2])
-        x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True)
-        #x = AddConv2D(x, 128, [4,4], 1, dr, "same", lrelu=True)
-        x= AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
-        #x= AddConv2D(x, 512, [4,4], 2, dr, "same", lrelu=True)
-        #x = AddConv2D(x, 256, [4,4], 1, dr, "same", lrelu=True)
-        x = AddConv2D(x, 1, [4,4], 1, 0., "same", activation="sigmoid")
+        x2 = AddConv2D(x2, 128, [4,4], 2, dr, "same", lrelu=True)
+        #x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
 
-        #x = MaxPooling2D(pool_size=(8,8))(x)
-        x = AveragePooling2D(pool_size=(12,16))(x)
+        x = Concatenate(axis=-1)([x1, x2])
+        #x = Add()([x1, x2])
+        x = AddConv2D(x, 1, [4,4], 1, 0., "same", activation="sigmoid")
+        #x = AveragePooling2D(pool_size=(12,16))(x)
+        x = AveragePooling2D(pool_size=(24,32))(x)
         x = Flatten()(x)
         discrim = Model(ins, x, name="image_discriminator")
         self.lr *= 2.

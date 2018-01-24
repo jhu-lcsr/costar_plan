@@ -7,7 +7,7 @@ __all__ = [
     # Utilities
     "MakeModel", "GetModels", "ParseModelArgs",
     "ParseVisualizeArgs",
-    "SetCPU",
+    "ConfigureGPU",
     # ===========================================================================
     # Visualization and models
     "RobotMultiKeypointsVisualizer",
@@ -36,6 +36,6 @@ from .ctp_visualize_decoder import *
 # Tools for training, etc
 from .parse import *
 from .util import GetModels, MakeModel
-from .cpu import SetCPU
+from .cpu import ConfigureGPU
 
 

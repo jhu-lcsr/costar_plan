@@ -221,7 +221,7 @@ class ImageCb(keras.callbacks.Callback):
 
     def __init__(self, predictor, features, targets,
             model_directory=DEFAULT_MODEL_DIRECTORY,
-            name="model",
+            name="model", features_name=None,
             min_idx=0, max_idx=66, step=11, show_idx=0,
             *args, **kwargs):
         '''
@@ -235,6 +235,10 @@ class ImageCb(keras.callbacks.Callback):
         verbose: print out extra information
         '''
         self.name = name
+        if features_name is None:
+            self.features_name = "def"
+        else:
+            self.features_name = features_name
         self.predictor = predictor
         self.idxs = range(min_idx, max_idx, step)
         self.num = len(self.idxs)
@@ -257,7 +261,7 @@ class ImageCb(keras.callbacks.Callback):
             img = res
         for j in range(self.num):
             name = os.path.join(self.directory,
-                    "image_%s_epoch%03d_result%d.png"%(self.name,self.epoch,j))
+                    "%s_%s_epoch%03d_result%d.png"%(self.name,self.features_name,self.epoch,j))
             fig = plt.figure()
             plt.subplot(1,3,1)
             plt.title('Input Image')
@@ -288,7 +292,7 @@ class ImageWithFirstCb(ImageCb):
             img = res
         for j in range(self.num):
             name = os.path.join(self.directory,
-                    "image_%s_epoch%03d_result%d.png"%(self.name,self.epoch,j))
+                    "%s_%s_epoch%03d_result%d.png"%(self.name,self.features_name,self.epoch,j))
             fig = plt.figure()
             plt.subplot(1,5,1)
             plt.title('Input Image')

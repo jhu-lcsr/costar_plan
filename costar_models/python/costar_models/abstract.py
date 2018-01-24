@@ -18,10 +18,12 @@ class AbstractAgentBasedModel(object):
     will also provide the model with a way to collect data or whatever.
     '''
 
-    def _makeName(self, prefix, model_type=None):
-        name = os.path.join(self.model_directory, prefix)
-        if model_type is not None:
-            name = name + "_%s"%(str(model_type))
+    def makeName(self, prefix, submodel=None):
+        name = os.path.join(self.model_directory, prefix) + "_model"
+        if self.features is not None:
+            name += "_%s"%self.features   
+        if submodel is not None:
+            name += "_%s.h5f"%submodel
         return name
 
     def __init__(self, taskdef=None, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
@@ -71,18 +73,17 @@ class AbstractAgentBasedModel(object):
         self.load_pretrained_weights = load_pretrained_weights
         self.optimizer = optimizer
         self.validation_steps = validation_steps
-        self.model_descriptor = model_descriptor
         self.task = task
         if features == "multi":
             self.features = None
         else:
             self.features = features
         self.robot = robot
-        self.name_prefix = "%s_%s"%(model, self.model_descriptor)
+        self.name_prefix = model
         self.clipnorm = float(clipnorm)
         self.taskdef = taskdef
         self.model_directory = os.path.expanduser(model_directory)
-        self.name = self._makeName(self.name_prefix)
+        self.name = self.makeName(self.name_prefix)
         self.num_generator_files = num_generator_files
         self.dropout_rate = dropout_rate
         self.tform_dropout_rate = tform_dropout_rate
@@ -104,8 +105,6 @@ class AbstractAgentBasedModel(object):
         
         if self.noise_dim < 1:
             self.use_noise = False
-        if self.features is not None:
-            self.name += "_%s"%self.features   
 
         # Define previous option for when executing -- this should default to
         # None, set to 2 for testing only
@@ -123,7 +122,6 @@ class AbstractAgentBasedModel(object):
         print("Robot = ", self.robot)
         print("Task = ", self.task)
         print("Model type = ", model)
-        print("Model description = ", self.model_descriptor)
         print("Model directory = ", self.model_directory)
         print("Models saved with prefix = ", self.name)
         print("-----------------------------------------------------------")
