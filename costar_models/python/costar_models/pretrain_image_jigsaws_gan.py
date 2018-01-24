@@ -111,7 +111,7 @@ class PretrainImageJigsawsGan(PretrainImageGan):
         x = Add()([x, x0])
         #x = Concatenate(axis=-1)([img0, img])
         x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
-        x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True, bn=False)
+        x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True, bn=True)
         #x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True, bn=True)
         x = AddConv2D(x, 1, [4,4], 1, 0., "same", activation="sigmoid", bn=False)
         #x = AveragePooling2D(pool_size=(12,16))(x)
