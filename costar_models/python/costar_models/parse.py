@@ -173,6 +173,9 @@ def GetModelParser():
                         help="portion of the gpu to allocate for this job",
                         type=float,
                         default=1.)
+    parser.add_argument("--preload",
+                        help="preload all files into RAM", default=False,
+                        action='store_true')
 
     return parser
 

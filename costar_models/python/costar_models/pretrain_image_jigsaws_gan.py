@@ -28,12 +28,12 @@ class PretrainImageJigsawsGan(PretrainImageGan):
         if self.train_predictor is None:
             raise RuntimeError('did not make trainable model')
 
-    def __init__(self, taskdef, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         '''
         As in the other models, we call super() to parse arguments from the
         command line and set things like our optimizer and learning rate.
         '''
-        super(PretrainImageJigsawsGan, self).__init__(taskdef, *args, **kwargs)
+        super(PretrainImageJigsawsGan, self).__init__(*args, **kwargs)
         self.PredictorCb = ImageCb
 
         # This is literally the only change from the husky version
