@@ -106,14 +106,14 @@ class PretrainImageJigsawsGan(PretrainImageGan):
         ins = [img, img0]
         dr = 0.3
         
-        x = AddConv2D(img, 32, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        x0 = AddConv2D(img0, 32, [4,4], 1, dr, "same", lrelu=True, bn=False)
+        x = AddConv2D(img, 32, [4,4], 1, 0, "same", lrelu=True, bn=False)
+        x0 = AddConv2D(img0, 32, [4,4], 1, 0, "same", lrelu=True, bn=False)
         x = Add()([x, x0])
         #x = Concatenate(axis=-1)([img0, img])
         x = AddConv2D(x, 32, [4,4], 2, dr, "valid", lrelu=True, bn=False)
-        x = AddConv2D(x, 64, [4,4], 2, dr, "valid", lrelu=True, bn=True)
-        x = AddConv2D(x, 128, [4,4], 2, dr, "valid", lrelu=True, bn=True)
-        x = AddConv2D(x, 256, [4,4], 2, dr, "valid", lrelu=True, bn=True)
+        x = AddConv2D(x, 64, [4,4], 2, dr, "valid", lrelu=True, bn=False)
+        x = AddConv2D(x, 128, [4,4], 2, dr, "valid", lrelu=True, bn=False)
+        x = AddConv2D(x, 256, [4,4], 2, dr, "valid", lrelu=True, bn=False)
         x = AddConv2D(x, 1, [1,1], 1, dr, "same", lrelu=True, bn=False)
         x = AveragePooling2D(pool_size=(4,6))(x)
         x = Flatten()(x)
