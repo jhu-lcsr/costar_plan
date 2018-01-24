@@ -204,7 +204,6 @@ class TaskParser(object):
             if action.object_acted_on is not None:
                 name += "_to_%s" % (self._getObjectClassParent(
                     self.classes_by_object[action.object_acted_on]))
-            print("action %s parent = %s"%(action, name))
             return name
 
     def resetDemonstration(self):
