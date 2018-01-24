@@ -150,15 +150,15 @@ def MakeJigsawsImageEncoder(model, img_shape, disc=False):
     #x0 = AddConv2D(x0, 32, [7,7], 1, dr, "same", lrelu=disc, bn=bn)
     #x = Concatenate(axis=-1)([x,x0])
 
-    x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 32, [5,5], 2, 0., "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [5,5], 2, 0., "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 128, [5,5], 2, 0., "same", lrelu=disc, bn=bn)
     #x = AddConv2D(x, 128, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 128, [5,5], 1, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 256, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 128, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 256, [5,5], 2, 0., "same", lrelu=disc, bn=bn)
 
     if model.use_spatial_softmax and not disc:
         def _ssm(x):
@@ -218,16 +218,18 @@ def MakeJigsawsImageDecoder(model, hidden_shape, img_shape=None, copy=False):
         x = AddDense(x, int(h*w*c), "relu", dr, bn=bn)
         x = Reshape((h,w,c))(x)
 
+    # Choose a mapping out of the hidden space
     #x = AddConv2DTranspose(x, 128, [1,1], 1, 0., bn=bn)
-    x = AddConv2DTranspose(x, 256, [1,1], 1, 0., bn=bn)
-    x = AddConv2DTranspose(x, 128, [5,5], 2, dr, bn=bn)
-    x = AddConv2DTranspose(x, 128, [5,5], 1, 0., bn=bn)
-    x = AddConv2DTranspose(x, 64, [5,5], 2, dr, bn=bn)
-    x = AddConv2DTranspose(x, 64, [5,5], 1, 0., bn=bn)
-    x = AddConv2DTranspose(x, 32, [5,5], 2, dr, bn=bn)
-    x = AddConv2DTranspose(x, 32, [5,5], 1, 0., bn=bn)
-    x = AddConv2DTranspose(x, 32, [5,5], 2, dr, bn=bn)
-    x = AddConv2DTranspose(x, 32, [5,5], 1, 0., bn=bn)
+    x = AddConv2DTranspose(x, 256, [1,1], 1, dr, bn=bn)
+
+    x = AddConv2DTranspose(x, 128, [5,5], 2, 0., bn=bn)
+    #x = AddConv2DTranspose(x, 128, [5,5], 1, 0., bn=bn)
+    x = AddConv2DTranspose(x, 64, [5,5], 2, 0., bn=bn)
+    #x = AddConv2DTranspose(x, 64, [5,5], 1, 0., bn=bn)
+    x = AddConv2DTranspose(x, 32, [5,5], 2, 0., bn=bn)
+    #x = AddConv2DTranspose(x, 32, [5,5], 1, 0., bn=bn)
+    x = AddConv2DTranspose(x, 32, [5,5], 2, 0., bn=bn)
+    x = AddConv2DTranspose(x, 16, [5,5], 1, 0., bn=bn)
     ins = rep
     x = Conv2D(3, kernel_size=[1,1], strides=(1,1),name="convert_to_rgb")(x)
     x = Activation("sigmoid")(x)
