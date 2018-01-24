@@ -99,6 +99,8 @@ def main():
         # Add an alias so we get a clean, readable name
         rtp.addAlias("GranularActivity_0c93aef1-fe5a-40bb-ba35-b4314ed10d42",
                      "Stack")
+        rtp.addAlias("GranularActivity_76c3a12a-4a4c-48c2-98fd-dfe2cd1079c8",
+                     "PutDown")
         rtp.addObjectClassParent("Cube_red", "cube")
         rtp.addObjectClassParent("Cube_blue", "cube")
         rtp.addObjectClassParent("Cube_green", "cube")

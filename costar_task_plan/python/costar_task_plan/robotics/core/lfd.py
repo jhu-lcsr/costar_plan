@@ -94,7 +94,8 @@ class LfD(object):
             data = trajectory_data[name]
             features = RobotFeatures(self.config, self.kdl_kin)
 
-            self.skill_instances[name] = []
+            if not name in self.skill_instances:
+                self.skill_instances[name] = []
 
             # Each world here is an observation of a particular frame in this scene
             for i, (traj, world) in enumerate(zip(trajs, data)):
@@ -123,6 +124,7 @@ class LfD(object):
                                                   objs=skill_objs)
                 instance.fit(ee_frames=ee, worlds=world)
 
+                print (">>>", name, sub_name, len(self.skill_instances[name]))
                 self.skill_instances[name].append(instance)
                 if ((not sub_name == name) and (sub_name is not None)):
                     if sub_name not in self.skill_instances:
@@ -304,7 +306,7 @@ class LfD(object):
         '''
         while skill in self.parent_skills:
             skill = parent_skill[skill]
-        return self.skill_instances[skill]
+        return self.skill_models[skill]
 
     def getParamDistribution(self, skill):
         '''
@@ -312,6 +314,12 @@ class LfD(object):
         policies. We can then use these together with our expected feature
         counts to optimize to a new environment.
         '''
+
+        # Get the parent skill
+        while skill in self.parent_skills:
+            skill = parent_skill[skill]
+
+        # Aggregate features used when training the parent skill model
         params = []
         for instance in self.skill_instances[skill]:
             params.append(instance.params())
@@ -320,7 +328,8 @@ class LfD(object):
         params = np.array(params)
         mu = np.mean(params,axis=0)
         sigma = np.cov(params.T)
-
+        
+        print (skill, params.T.shape)
         if params.T.shape[1] < 2:
             raise RuntimeError("Cannot create a distribution from one example!")
 
