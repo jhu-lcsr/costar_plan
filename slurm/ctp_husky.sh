@@ -15,7 +15,7 @@ module load tensorflow/cuda-8.0/r1.3
 
 export DATASET="husky_data"
 export train_discriminator=true
-export train_image_encoder=false
+export train_image_encoder=true
 export train_multi_encoder=false
 export train_predictor=false
 export train_gans=true
@@ -34,7 +34,7 @@ then
     --features multi \
     -e 100 \
     --model discriminator \
-    --data_file $HOME/work/$DATASET.h5f \
+    --data_file $HOME/work/$DATASET.npz \
     --features husky \
     --lr $learning_rate \
     --dropout_rate $dropout \
@@ -49,7 +49,7 @@ then
     --features multi \
     -e 100 \
     --model goal_discriminator \
-    --data_file $HOME/work/$DATASET.h5f \
+    --data_file $HOME/work/$DATASET.npz \
     --lr $learning_rate \
     --features husky \
     --dropout_rate $dropout \

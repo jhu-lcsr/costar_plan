@@ -137,8 +137,6 @@ class ConditionalImageGan(PretrainImageGan):
                 loss=["mae"]*2 + ["binary_crossentropy"],
                 loss_weights=[100., 100., 1.],
                 optimizer=self.getOptimizer())
-        model.summary()
-        self.discriminator.summary()
         self.model = model
 
         return predictor, model, model, ins, h
@@ -201,7 +199,7 @@ class ConditionalImageGan(PretrainImageGan):
         x = x2
         x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True)
         x= AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
-        x = AddConv2D(x, 1, [4,4], 1, 0., "same", activation="sigmoid",
+        x = AddConv2D(x, 1, [4,4], 1, 0., "same", activation="linear",
                 bn=False)
 
         #x = MaxPooling2D(pool_size=(8,8))(x)
@@ -209,7 +207,7 @@ class ConditionalImageGan(PretrainImageGan):
         x = Flatten()(x)
         discrim = Model(ins, x, name="image_discriminator")
         self.lr *= 2.
-        discrim.compile(loss="binary_crossentropy", loss_weights=[1.],
+        discrim.compile(loss=wasserstein_loss, loss_weights=[1.],
                 optimizer=self.getOptimizer())
         self.lr *= 0.5
         self.image_discriminator = discrim
