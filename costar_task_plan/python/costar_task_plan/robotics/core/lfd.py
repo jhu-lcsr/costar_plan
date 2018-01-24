@@ -298,6 +298,14 @@ class LfD(object):
             model_filename = os.path.join(models_dir, '%s_gmm.yml' % name)
             self.skill_models[name] = yaml_load(model_filename)
 
+    def getSkillModel(self, skill):
+        '''
+        Return the appropriate model for this particular skill.
+        '''
+        while skill in self.parent_skills:
+            skill = parent_skill[skill]
+        return self.skill_instances[skill]
+
     def getParamDistribution(self, skill):
         '''
         Get the mean and covariance associated with our observed expert

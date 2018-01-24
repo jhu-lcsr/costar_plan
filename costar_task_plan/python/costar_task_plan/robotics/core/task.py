@@ -96,7 +96,7 @@ class RosTaskParser(TaskParser):
                 goal_object=goal,
                 config=self.configs[0],
                 skill_name=skill_name,
-                feature_model=self.lfd.skill_models[skill_name],
+                feature_model=self.lfd.getSkillModel(skill_name),
                 kinematics=self.lfd.kdl_kin,
                 traj_dist=self.lfd.getParamDistribution(skill_name),
                 policy_type=CartesianDmpPolicy)
