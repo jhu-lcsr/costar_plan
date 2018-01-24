@@ -125,7 +125,7 @@ class DataCollector(object):
         '''
 
         # for now all examples are considered a success
-        self.npz_writer.write(self.data, seed, result)
+        self.writer.write(self.data, seed, result)
         self._resetData()
 
     def tick(self):
@@ -144,7 +144,7 @@ class DataCollector(object):
             t = self.tf_listener.getLatestCommonTime(self.base_link, self.camera_frame)
             c_pos, c_rot = self.tf_listener.lookupTransform(self.base_link, self.camera_frame, t)
         else:
-            rospy.logwarn("Failed lookup: %s to %s"%(self.base_link, self.camera_frame, t.to_sec()))
+            rospy.logwarn("Failed lookup: %s to %s"%(self.base_link, self.camera_frame))
             return False
 
 if __name__ == '__main__':

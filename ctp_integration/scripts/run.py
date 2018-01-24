@@ -77,7 +77,9 @@ def fakeTaskArgs():
   return args
 
 def main():
-    # Read options from command line
+
+    # Create node and read options from command line
+    rospy.init_node("ctp_integration_runner")
     args = getArgs()
 
     # Default joints for the motion planner when it needs to go to the home
@@ -92,7 +94,6 @@ def main():
     task = MakeStackTask()
     world = CostarWorld(robot_config=UR5_C_MODEL_CONFIG)
     listener = tf.TransformListener()
-    rospy.init_node("ctp_integration_runner")
     rospy.sleep(0.5) # wait to cache incoming transforms
 
     if args.fake:
