@@ -131,15 +131,12 @@ def main():
             if gesture is None: # check for beyond last
                 break
             if gesture == 16: # check for before first
+                print("-- skipping frame", i)
                 continue
 
             image = imresize(frame, (96, 128))
-            #image = imresize(frame, (48, 64))
             image = image.astype(np.uint8)
 
-            #plt.imshow(image)
-            #plt.show()
-            
             if args.drop_chance > 0 and not goal_frame and not final_frame:
                 r = np.random.randint(args.drop_chance)
                 if r > 0:
@@ -157,6 +154,14 @@ def main():
             if goal_frame:
                 goal_images.append((frame_num, image))
 
+                #if gesture == 8:
+                #    print("Gesture =", gesture, "Frame num =", frame_num)
+                #    plt.imshow(image)
+                #    plt.show()
+
+        # Helper function: look for goals that might work
+        # This one will take num and search for entries in the array of goals
+        # where those entries occur after this one
         def lookup(num, arr):
             for frame_num, frame in arr:
                 if frame_num > num:

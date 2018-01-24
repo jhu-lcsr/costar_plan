@@ -5,24 +5,38 @@ import keras.losses as losses
 import keras.optimizers as optimizers
 import numpy as np
 
-from keras.callbacks import ModelCheckpoint
-from keras.layers.advanced_activations import LeakyReLU
-from keras.layers import Input, RepeatVector, Reshape
-from keras.layers.embeddings import Embedding
+from keras.layers import Input
 from keras.layers.merge import Concatenate, Multiply
-from keras.losses import binary_crossentropy
-from keras.models import Model, Sequential
-from keras.optimizers import Adam
-from matplotlib import pyplot as plt
+from keras.models import Model
 
 from .conditional_image_gan import *
+from .husky import *
 
 class ConditionalImageHuskyGan(ConditionalImageGan):
     def __init__(self, *args, **kwargs):
         super(ConditionalImageHuskyGan, self).__init__(*args, **kwargs)
 
-    def _getData(self, *args, **kwargs):
-        return GetConditionalHuskyData(self.do_all, self.num_options, *args, **kwargs)
+    def _getData(self, image, goal_image, label, prev_label, *args, **kwargs):
+        '''
+        For the gan version we need:
+        - current image
+        - initial image
+        - goal image
+        - labels
+        '''
+        I = np.array(image) / 255.
+        I_target = np.array(goal_image) / 255.
+        oin = np.array(prev_label)
+        o1 = np.array(label)
+
+        # Create the next image including input image
+        I0 = I[0,:,:,:]
+        length = I.shape[0]
+        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
+
+        # Extract the next goal
+        I_target2, o2 = GetNextGoal(I_target, o1)
+        return [I0, I, o1, o2], [ I_target, I_target2 ]
 
     def _makeModel(self, image, pose, *args, **kwargs):
 
@@ -35,29 +49,18 @@ class ConditionalImageHuskyGan(ConditionalImageGan):
         img_in = Input(img_shape,name="predictor_img_in")
         img0_in = Input(img_shape,name="predictor_img0_in")
         label_in = Input((1,))
-        ins = [img0_in, img_in]
+        next_option_in = Input((1,), name="next_option_in")
+        next_option2_in = Input((1,), name="next_option2_in")
+        ins = [img0_in, img_in, next_option_in, next_option2_in]
 
-        encoder = self._makeImageEncoder(img_shape)
-        try:
-            encoder.load_weights(self._makeName(
-                #"pretrain_image_encoder_model_husky",
-                "pretrain_image_gan_model_husky",
-                "image_encoder.h5f"))
-            encoder.trainable = self.retrain
-        except Exception as e:
-            if not self.retrain:
-                raise e
+        if self.skip_connections:
+            encoder = self._makeImageEncoder2(img_shape)
+            decoder = self._makeImageDecoder2(self.hidden_shape)
+        else:
+            encoder = self._makeImageEncoder(img_shape)
+            decoder = self._makeImageDecoder(self.hidden_shape)
 
-        decoder = self._makeImageDecoder(self.hidden_shape)
-        try:
-            decoder.load_weights(self._makeName(
-                "pretrain_image_encoder_model_husky",
-                #"pretrain_image_gan_model",
-                "image_decoder.h5f"))
-            decoder.trainable = self.retrain
-        except Exception as e:
-            if not self.retrain:
-                raise e
+        LoadEncoderWeights(self, encoder, decoder, gan=True)
 
         # =====================================================================
         # Load the arm and gripper representation
@@ -75,7 +78,7 @@ class ConditionalImageHuskyGan(ConditionalImageGan):
 
         y = OneHot(self.num_options)(next_option_in)
         y = Flatten()(y)
-        y2 = OneHot(self.num_options)(next_option_in2)
+        y2 = OneHot(self.num_options)(next_option2_in)
         y2 = Flatten()(y2)
         x = h
         tform = self._makeTransform()
@@ -110,28 +113,23 @@ class ConditionalImageHuskyGan(ConditionalImageGan):
 
         # =====================================================================
         # Create models to train
-        predictor = Model(ins + [label_in],
-                [image_out, image_out2, next_option_out, value_out])
+
+        predictor = Model(ins,
+                [image_out, image_out2])
         predictor.compile(
-                loss=[lfn, lfn, "binary_crossentropy", val_loss],
-                loss_weights=[1., 1., 0.1, 0.1,],
+                loss=[lfn, lfn],
                 optimizer=self.getOptimizer())
-        if self.do_all:
-            train_predictor = Model(ins + [label_in],
-                    [image_out, image_out2, next_option_out, value_out,
-                        cmd])
-            train_predictor.compile(
-                    loss=[lfn, lfn, "binary_crossentropy", val_loss,
-                        lfn2,],
-                    loss_weights=[1., 1., 0.1, 0.1, 1.,],
-                    optimizer=self.getOptimizer())
-        else:
-            train_predictor = Model(ins + [label_in],
-                    [image_out, image_out2,
-                        ])
-            train_predictor.compile(
-                    loss=lfn, 
-                    optimizer=self.getOptimizer())
-        self.predictor = predictor
-        self.train_predictor = train_predictor
-        self.actor = actor
+        self.generator = predictor
+
+        # =====================================================================
+        # And adversarial model 
+        model = Model(ins, [image_out, image_out2, is_fake])
+        model.compile(
+                loss=["mae"]*2 + ["binary_crossentropy"],
+                loss_weights=[100., 100., 1.],
+                optimizer=self.getOptimizer())
+        model.summary()
+        self.discriminator.summary()
+        self.model = model
+
+

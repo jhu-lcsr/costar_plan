@@ -39,6 +39,9 @@ class PretrainImageJigsawsGan(PretrainImageGan):
         # This is literally the only change from the husky version
         self.num_generator_files = 1
 
+        # Also set up the number of options we expect
+        self.num_options = SuturingNumOptions()
+
     def _makePredictor(self, images):
         '''
         Create model to predict possible manipulation goals.
@@ -57,14 +60,15 @@ class PretrainImageJigsawsGan(PretrainImageGan):
 
         if self.load_pretrained_weights:
             try:
-                encoder.load_weights(self._makeName(
-                    "pretrain_image_encoder_model_jigsaws",
-                    "image_encoder.h5f"))
-                decoder.load_weights(self._makeName(
-                    "pretrain_image_encoder_model_jigsaws",
-                    "image_decoder.h5f"))
+                encoder.load_weights(self.makeName(
+                    "pretrain_image_encoder",
+                    "image_encoder"))
+                decoder.load_weights(self.makeName(
+                    "pretrain_image_encoder",
+                    "image_decoder"))
             except Exception as e:
                 print(">>> could not load pretrained image weights")
+                print(e)
 
         gen_out = decoder(enc)
         image_discriminator = self._makeImageDiscriminator(img_shape)

@@ -58,11 +58,11 @@ class PretrainImageHuskyGan(PretrainImageGan):
 
         if self.load_pretrained_weights:
             try:
-                encoder.load_weights(self._makeName(
-                    "pretrain_image_encoder_model_husky",
+                encoder.load_weights(self.makeName(
+                    "pretrain_image_encoder",
                     "image_encoder.h5f"))
-                decoder.load_weights(self._makeName(
-                    "pretrain_image_encoder_model_husky",
+                decoder.load_weights(self.makeName(
+                    "pretrain_image_encoder",
                     "image_decoder.h5f"))
             except Exception as e:
                 print(">> Failed to load pretrained generator weights.")

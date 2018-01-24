@@ -1,5 +1,11 @@
 from __future__ import print_function
 
+'''
+===============================================================================
+Contains tools to make the sub-models for the Husky application
+===============================================================================
+'''
+
 import keras.backend as K
 import keras.losses as losses
 import keras.optimizers as optimizers
@@ -22,12 +28,6 @@ from keras.constraints import max_norm
 
 from .planner import *
 from .data_utils import *
-
-'''
-===============================================================================
-Contains tools to make the sub-models for the Husky application
-===============================================================================
-'''
 
 def HuskyNumOptions():
     return 5
@@ -89,6 +89,23 @@ def GetHuskyActorModel(x, num_options, pose_size,
     actor = Model([xin, option_in], [pose], name="actor")
     return actor
 
+def GetPolicyHuskyData(num_options, option, image, pose, action, label, *args,
+        **kwargs):
+    I = np.array(image) / 255.
+    p = np.array(pose)
+    a = np.array(action)
+    idx = label == option
+    if np.count_nonzero(idx) > 0:
+        I = I[idx]
+        p = p[idx]
+        a = a[idx]
+        I0 = I[0,:,:,:]
+        length = I.shape[0]
+        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
+        return [I0, I, p], [a]
+    else:
+        return [], []
+
 def GetConditionalHuskyData(do_all, num_options, image, pose, action, label,
         prev_label, goal_image, goal_pose, value, *args, **kwargs):
     I = np.array(image) / 255.
@@ -105,12 +122,67 @@ def GetConditionalHuskyData(do_all, num_options, image, pose, action, label,
     length = I.shape[0]
     I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
     oin_1h = np.squeeze(ToOneHot2D(oin, num_options))
+    o2_1h = np.squeeze(ToOneHot2D(o2, num_options))
 
     if do_all:
         o1_1h = np.squeeze(ToOneHot2D(o1, num_options))
         return [I0, I, o1, o2, oin], [ I_target, I_target2,
                 o1_1h,
                 v,
-                action]
+                action, o2_1h]
     else:
         return [I0, I, o1, o2, oin], [I_target, I_target2]
+
+def MakeHuskyPolicy(model, encoder, image, pose, action, option, verbose=True):
+    '''
+    Create a single policy corresponding to option 
+
+    Parameters:
+    -----------
+    model: definition of model/training configuration
+    encoder: converts to hidden representation
+    image: example of image data
+    pose: example of pose data
+    action: example of action data
+    option: index of the policy to create
+    verbose: should we print model info?
+    '''
+    img_shape = image.shape[1:]
+    pose_size = pose.shape[-1]
+    action_size = action.shape[-1]
+    if verbose:
+        print("pose_size =", pose_size, "action_size =", action_size)
+
+    img_in = Input(img_shape,name="policy_img_in")
+    img0_in = Input(img_shape,name="policy_img0_in")
+    pose_in = Input((pose_size,), name="pose_in")
+    ins = [img0_in, img_in, pose_in]
+
+    dr, bn = model.dropout_rate, model.use_batchnorm
+
+    x = encoder(img_in)
+    x0 = encoder(img0_in)
+    y = pose_in
+
+    x = Concatenate(axis=-1)([x, x0])
+    x = AddConv2D(x, 32, [3,3], 1, dr, "same", lrelu=True, bn=bn)
+
+    y = AddDense(y, 32, "relu", 0., output=True, constraint=3)
+    x = TileOnto(x, y, 32, (8,8), add=False)
+
+    x = AddConv2D(x, 32, [3,3], 1, dr, "valid", lrelu=True, bn=bn)
+
+    x = Flatten()(x)
+
+    x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
+    x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
+
+    action_out = Dense(action_size, name="action_out")(x)
+
+    policy = Model(ins, [action_out])
+    policy.compile(loss=model.loss, optimizer=model.getOptimizer())
+    if verbose:
+        policy.summary()
+    return policy
+
+

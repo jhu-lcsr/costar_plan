@@ -169,6 +169,10 @@ def GetModelParser():
                         help="Choose an option to learn for the multi-policy hierarchical model",
                         type=int,
                         default=None)
+    parser.add_argument("--gpu_fraction",
+                        help="portion of the gpu to allocate for this job",
+                        type=float,
+                        default=1.)
 
     return parser
 

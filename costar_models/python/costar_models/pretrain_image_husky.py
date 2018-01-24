@@ -14,6 +14,7 @@ from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 
 from .husky_sampler import *
+from .husky import *
 
 class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
 
@@ -24,7 +25,8 @@ class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
         '''
         super(PretrainImageAutoencoderHusky, self).__init__(taskdef, *args, **kwargs)
         self.PredictorCb = ImageCb
-
+        self.num_options = HuskyNumOptions()
+        self.null_option = HuskyNumOptions()
 
     def _makeModel(self, image, *args, **kwargs):
         '''
@@ -44,27 +46,26 @@ class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
                     self.skip_shape,)
         out = decoder(enc)
 
-        image_discriminator = self._makeImageEncoder(img_shape, disc=True)
+        # Discriminate on distinctive features like heading we hope
+        image_discriminator = LoadClassifierWeights(self,
+                MakeImageClassifier,
+                img_shape)
+        o2 = image_discriminator([out])
 
-        #o1 = image_discriminator(ins)
-        #o2 = image_discriminator([out])
-
-        encoder.summary()
-        decoder.summary()
-        image_discriminator.summary()
-
-        ae = Model(ins, [out]) #, o1, o2])
+        ae = Model(ins, [out, o2])
         ae.compile(
-                loss=["mae"],# + ["categorical_crossentropy"]*2,
-                #loss_weights=[1.,1.e-2,1e-4],
+                loss=["mae", "categorical_crossentropy"],
+                loss_weights=[1.,1e-4],
                 optimizer=self.getOptimizer())
         ae.summary()
     
         self.predictor = ae
-        self.train_predictor = ae
+        self.model = ae
         self.actor = None
 
-    def _getData(self, image, *args, **kwargs):
+    def _getData(self, image, label, *args, **kwargs):
         I = np.array(image) / 255.
-        return [I], [I]
+        o1 = np.array(label)
+        o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
+        return [I], [I, o1_1h]
 

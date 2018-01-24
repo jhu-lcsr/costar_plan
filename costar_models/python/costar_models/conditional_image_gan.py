@@ -17,6 +17,7 @@ from matplotlib import pyplot as plt
 
 from .callbacks import *
 from .pretrain_image_gan import *
+from .planner import *
 
 class ConditionalImageGan(PretrainImageGan):
     '''
@@ -64,35 +65,18 @@ class ConditionalImageGan(PretrainImageGan):
         gripper_in = Input((gripper_size,))
         arm_gripper = Concatenate()([arm_in, gripper_in])
         label_in = Input((1,))
-        ins = [img0_in, img_in]
+        next_option_in = Input((1,), name="next_option_in")
+        next_option2_in = Input((1,), name="next_option2_in")
+        ins = [img0_in, img_in, next_option_in, next_option2_in]
 
         if self.skip_connections:
             encoder = self._makeImageEncoder2(img_shape)
-        else:
-            encoder = self._makeImageEncoder(img_shape)
-        try:
-            encoder.load_weights(self._makeName(
-                #pretrain_image_encoder_model",
-                "pretrain_image_gan_model",
-                "image_encoder.h5f"))
-            encoder.trainable = self.retrain
-        except Exception as e:
-            if not self.retrain:
-                raise e
-
-        if self.skip_connections:
             decoder = self._makeImageDecoder2(self.hidden_shape)
         else:
+            encoder = self._makeImageEncoder(img_shape)
             decoder = self._makeImageDecoder(self.hidden_shape)
-        try:
-            decoder.load_weights(self._makeName(
-                #"pretrain_image_encoder_model",
-                "pretrain_image_gan_model",
-                "image_decoder.h5f"))
-            decoder.trainable = self.retrain
-        except Exception as e:
-            if not self.retrain:
-                raise e
+
+        LoadEncoderWeights(self, encoder, decoder)
 
         # create input for controlling noise output if that's what we decide
         # that we want to do
@@ -106,11 +90,8 @@ class ConditionalImageGan(PretrainImageGan):
             h = encoder([img_in])
             h0 = encoder(img0_in)
 
-        # next option - used to compute the next image 
-        next_option_in = Input((1,), name="next_option_in")
-        next_option2_in = Input((1,), name="next_option2_in")
-        ins += [next_option_in, next_option2_in]
-
+        # =====================================================================
+        # Actually get the right outputs
         y = OneHot(self.num_options)(next_option_in)
         y = Flatten()(y)
         y2 = OneHot(self.num_options)(next_option2_in)

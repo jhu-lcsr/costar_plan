@@ -29,6 +29,7 @@ class PretrainImageJigsaws(PretrainImageAutoencoder):
         '''
         super(PretrainImageJigsaws, self).__init__(taskdef, *args, **kwargs)
         self.num_generator_files = 1
+        self.num_options = SuturingNumOptions()
 
     def _makePredictor(self, image):
         '''
@@ -36,23 +37,29 @@ class PretrainImageJigsaws(PretrainImageAutoencoder):
         '''
         img_shape = image.shape[1:]
 
+        # Create model input
         img_in = Input(img_shape,name="predictor_img_in")
-        encoder = MakeJigsawsImageEncoder(self, img_shape)
         ins = [img_in]
-        
-        enc = encoder(ins)
+
+        # Create encoder and decoder
+        encoder = MakeJigsawsImageEncoder(self, img_shape)
         decoder = MakeJigsawsImageDecoder(
                     self,
                     self.hidden_shape,
                     self.skip_shape,)
+        
+        # Encode and connect the discriminator
+        enc = encoder(ins)
+        image_discriminator = LoadClassifierWeights(self,
+                MakeJigsawsImageClassifier,
+                img_shape)
         out = decoder(enc)
+        o2 = image_discriminator([out])
 
-        encoder.summary()
-
-        ae = Model(ins, out)
+        ae = Model(ins, [out, o2])
         ae.compile(
-                loss=["mae"], # + ["categorical_crossentropy"]*2,
-                #loss_weights=[1.,1.e-2,1e-4],
+                loss=["mae", "categorical_crossentropy"],
+                loss_weights=[1.,1e-4],
                 optimizer=self.getOptimizer())
         ae.summary()
     
@@ -66,12 +73,14 @@ class PretrainImageJigsaws(PretrainImageAutoencoder):
         -----------
         image, arm, gripper: variables of the appropriate sizes
         '''
-        self.predictor, self.train_predictor, self.actor, ins, hidden = \
+        self.predictor, self.model, self.actor, ins, hidden = \
             self._makePredictor(
                 image)
-        if self.train_predictor is None:
+        if self.model is None:
             raise RuntimeError('did not make trainable model')
 
-    def _getData(self, image, *args, **kwargs):
+    def _getData(self, image, label, *args, **kwargs):
         I = np.array(image) / 255.
-        return [I], [I]
+        o1 = np.array(label)
+        o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
+        return [I], [I, o1_1h]

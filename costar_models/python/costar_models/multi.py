@@ -116,6 +116,60 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
     actor = Model([xin, option_in], [arm, gripper], name="actor")
     return actor
 
+def MakeMultiPolicy(model, encoder, features, arm, gripper,
+        arm_cmd, gripper_cmd, option):
+    '''
+    Create a single policy corresponding to option 
+
+    Parameters:
+    -----------
+    option: index of the policy to create
+    '''
+    img_shape = features.shape[1:]
+    arm_size = arm.shape[1]
+    arm_cmd_size = arm_cmd.shape[1]
+    print("arm_size ", arm_size, " arm_cmd_size ", arm_cmd_size)
+    if len(gripper.shape) > 1:
+        gripper_size = gripper.shape[1]
+    else:
+        gripper_size = 1
+
+    img_in = Input(img_shape,name="policy_img_in")
+    img0_in = Input(img_shape,name="policy_img0_in")
+    arm = Input((arm_size,), name="ee_in")
+    gripper = Input((gripper_size,), name="gripper_in")
+
+    ins = [img0_in, img_in, arm, gripper]
+
+    dr, bn = model.dropout_rate, model.use_batchnorm
+
+    y = Concatenate()([arm, gripper])
+
+    x = encoder(img_in)
+    x0 = encoder(img0_in)
+
+    x = Concatenate(axis=-1)([x, x0])
+    x = AddConv2D(x, 32, [3,3], 1, dr, "same", lrelu=True, bn=bn)
+
+    y = AddDense(y, 32, "relu", 0., output=True, constraint=3)
+    x = TileOnto(x, y, 32, (8,8), add=False)
+
+    x = AddConv2D(x, 32, [3,3], 1, dr, "valid", lrelu=True, bn=bn)
+
+    x = Flatten()(x)
+    #x = Concatenate()([x, arm, gripper])
+
+    x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
+    x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
+
+    arm_out = Dense(arm_cmd_size, name="arm_out")(x)
+    gripper_out = Dense(gripper_size, name="gripper_out")(x)
+
+    model = Model(ins, [arm_out, gripper_out])
+    model.compile(loss=model.loss, optimizer=model.getOptimizer())
+    model.summary()
+    return model
+
 
 
 def GetAllMultiData(num_options, features, arm, gripper, arm_cmd, gripper_cmd, label,

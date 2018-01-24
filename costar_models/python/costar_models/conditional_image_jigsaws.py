@@ -50,30 +50,12 @@ class ConditionalImageJigsaws(ConditionalImage):
             encoder = MakeJigsawsImageEncoder(self, img_shape)
             decoder = MakeJigsawsImageDecoder(self, self.hidden_shape)
 
-        # load encoder/decoder weights if found
-        try:
-            encoder.load_weights(self._makeName(
-                #"pretrain_image_encoder_model_jigsaws",
-                "pretrain_image_gan_model_jigsaws",
-                "image_encoder.h5f"))
-            encoder.trainable = self.retrain
-            decoder.load_weights(self._makeName(
-                #"pretrain_image_encoder_model_jigsaws",
-                "pretrain_image_gan_model_jigsaws",
-                "image_decoder.h5f"))
-            decoder.trainable = self.retrain
-        except Exception as e:
-            if not self.retrain:
-                raise e
-
-
         # =====================================================================
-        # Load the discriminator
-        image_discriminator = MakeJigsawsImageClassifier(self, img_shape)
-        #image_discriminator.load_weights("discriminator_model_classifier.h5f")
-        image_discriminator.load_weights(
-                self._makeName("goal_discriminator_model_jigsaws", "predictor_weights.h5f"))
-        image_discriminator.trainable = False
+        # Load weights and stuff
+        LoadEncoderWeights(self, encoder, decoder)
+        image_discriminator = LoadGoalClassifierWeights(self,
+                make_classifier_fn=MakeJigsawsImageClassifier,
+                img_shape=img_shape)
 
         # =====================================================================
         # Create encoded state
@@ -104,8 +86,7 @@ class ConditionalImageJigsaws(ConditionalImage):
         y = Flatten()(OneHot(self.num_options)(option_in))
         y2 = Flatten()(OneHot(self.num_options)(option_in2))
         x = h
-        #tform = self._makeTransform(h_dim=(12,16))
-        tform = self._makeTransform(h_dim=(6,8))
+        tform = MakeJigsawsTransform(self, h_dim=(12,16))
         x = tform([h0, h, y])
         x2 = tform([h0, x, y2])
         image_out, image_out2 = decoder([x]), decoder([x2])
