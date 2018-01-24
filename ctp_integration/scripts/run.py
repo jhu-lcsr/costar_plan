@@ -135,8 +135,6 @@ def main():
             # Note: this will be "dummied out" for most of 
             control = plan.apply(world)
             ok = collector.tick()
-            if not ok:
-                rospy.logwarn("Could not compute all features.")
 
         if collector is not None:
             collector.save(i, 1.)

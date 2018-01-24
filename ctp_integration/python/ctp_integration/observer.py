@@ -53,17 +53,22 @@ class Observer(object):
             rate.sleep()
 
         # Generate a task plan from a message
+        # Step 1. Create args describing which objects we saw.
+        args = {}
         for obj in self.msg.objects:
             name = obj.id
             obj_class = obj.object_class
     
             # Create arguments for the task plan
-            args = {}
             if not obj_class in args:
                 args[obj_class] = set()
             args[obj_class].add(name)
-
         print(args)
+
+        # Step 2. Compile the plan.
+        self.world.addObjects(args)
+        filled_args = self.task.compile(args)
+        print(filled_args)
 
         # Env is the wrapper that interfaces with the world and consumes
         # our commands
