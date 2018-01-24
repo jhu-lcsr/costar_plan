@@ -121,7 +121,8 @@ def main():
                 data_root="~/.costar/data",
                 rate=10,
                 data_type="h5f",
-                robot_config=UR5_C_MODEL_CONFIG)
+                robot_config=UR5_C_MODEL_CONFIG,
+                tf_listener=listener)
 
     for i in range(args.execute):
         print("Executing trial %d..."%(i))
@@ -130,11 +131,12 @@ def main():
         plan = OptionsExecutionManager(options)
 
         # Update the plan and the collector in synchrony.
-        while True:
+        while not rospy.is_shutdown():
             # Note: this will be "dummied out" for most of 
             control = plan.apply(world)
-            print(control)
-            collector.tick()
+            ok = collector.tick()
+            if not ok:
+                rospy.logwarn("Could not compute all features.")
 
         if collector is not None:
             collector.save(i, 1.)

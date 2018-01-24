@@ -1,4 +1,5 @@
 
+import numpy as np
 import PyKDL as kdl
 import rospy 
 import tf
@@ -7,6 +8,7 @@ import tf_conversions.posemath as pm
 from costar_models.datasets.npz import NpzDataset
 from costar_models.datasets.h5f import H5fDataset
 
+from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import JointState
 
@@ -32,14 +34,19 @@ class DataCollector(object):
             rate=10,
             data_root=".",
             img_shape=(128,128),
-            camera_frame = "/camera_link",):
+            camera_frame = "/camera_link",
+            tf_listener=None):
 
         '''
         Set up the writer (to save trials to disk) and subscribers (to process
         input from ROS and store the current state).
         '''
 
-        self.tf_listener = tf.TransformListener()
+
+        if tf_listener is not None:
+            self.tf_listener = tf_listener
+        else:
+            self.tf_listener = tf.TransformListener()
 
         if isinstance(rate, int) or isinstance(rate, float):
             self.rate = rospy.Rate(rate)
@@ -75,13 +82,20 @@ class DataCollector(object):
         self._rgb_sub = rospy.Subscriber(self.rgb_topic, Image, self._rgbCb)
         self._depth_sub = rospy.Subscriber(self.depth_topic, Image, self._depthCb)
         self._joints_sub = rospy.Subscriber(self.js_topic, JointState, self._jointsCb)
+
+        self._bridge = CvBridge()
  
         self._resetData()
 
         self.verbosity = 1
 
     def _rgbCb(self, msg):
-        self.rgb_img = msg
+        try:
+            cv_image = self._bridge.imgmsg_to_cv2(msg, "bgr8")
+        except CvBridgeError as e:
+            rospy.logwarn(str(e))
+
+        self.rgb_img = np.asarray(cv_image)
 
     def _depthCb(self, msg):
         self.depth_img = msg
@@ -113,6 +127,23 @@ class DataCollector(object):
         # for now all examples are considered a success
         self.npz_writer.write(self.data, seed, result)
         self._resetData()
+
+    def tick(self):
+        '''
+        Compute endpoint positions and update data. Should happen at some
+        fixed frequency like 10 hz.
+        '''
+        if self.tf.frameExists(self.base_link) and self.tf_listener.frameExists(self.ee_frame):
+            t = self.tf.getLatestCommonTime(self.base_link, self.ee_frame)
+            ee_pos, ee_rot = self.tf.lookupTransform(self.base_link, self.ee_frame, t)
+        else:
+            return False
+
+        if self.tf.frameExists(self.base_link) and self.tf_listener.frameExists(self.camera_frame):
+            t = self.tf_listener.getLatestCommonTime(self.base_link, self.ee_frame)
+            c_pos, c_rot = self.tf_listener.lookupTransform(self.base_link, self.camera_frame, t)
+        else:
+            return False
 
 if __name__ == '__main__':
     pass

@@ -59,9 +59,9 @@ class Observer(object):
     
             # Create arguments for the task plan
             args = {}
-            if not object_class in args:
+            if not obj_class in args:
                 args[obj_class] = set()
-            args[obj_class].insert(name)
+            args[obj_class].add(name)
 
         print(args)
 
