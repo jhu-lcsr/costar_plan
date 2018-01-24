@@ -1055,3 +1055,33 @@ def GetActor(enc0, enc_h, supervisor, label_out, num_hypotheses, *args, **kwargs
 
     # Compute the probability of a high-level label under our distribution
     p_oh = K.sum(label_out, axis=1) / num_hypotheses
+
+def LoadEncoderWeights(model, encoder, decoder, gan=False):
+    if gan:
+        name = "pretrain_image_gan"
+    else:
+        name = "pretrain_image_encoder"
+    try:
+        encoder.load_weights(
+                model.makeName(name,
+                               submodel="image_encoder"))
+        decoder.load_weights(
+                model.makeName(name,
+                               submodel="image_decoder"))
+    except IOError as e:
+        if not model.retrain:
+            raise e
+
+def LoadGoalClassifierWeights(model, make_classifier_fn, img_shape):
+    image_discriminator = make_classifier_fn(model, img_shape)
+    image_discriminator.load_weights(
+            model.makeName("goal_discriminator", "classifier"))
+    image_discriminator.trainable = False
+    return image_discriminator
+
+def LoadClassifierWeights(model, make_classifier_fn, img_shape):
+    image_discriminator = make_classifier_fn(model, img_shape)
+    image_discriminator.load_weights(
+            model.makeName("discriminator", "classifier"))
+    image_discriminator.trainable = False
+    return image_discriminator

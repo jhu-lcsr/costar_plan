@@ -5,9 +5,10 @@ import networkx as nx
 import numpy as np
 import argparse
 import rospy
-import tf
+import tf2_ros as tf2
 
 from costar_task_plan.mcts import PlanExecutionManager, DefaultExecute
+from costar_task_plan.mcts import OptionsExecutionManager
 from costar_task_plan.robotics.core import RosTaskParser
 from costar_task_plan.robotics.core import CostarWorld
 from costar_task_plan.robotics.workshop import UR5_C_MODEL_CONFIG
@@ -76,7 +77,9 @@ def fakeTaskArgs():
   return args
 
 def main():
-    # Read options from command line
+
+    # Create node and read options from command line
+    rospy.init_node("ctp_integration_runner")
     args = getArgs()
 
     # Default joints for the motion planner when it needs to go to the home
@@ -90,8 +93,8 @@ def main():
     # Create the task model, world, and other tools
     task = MakeStackTask()
     world = CostarWorld(robot_config=UR5_C_MODEL_CONFIG)
-    listener = tf.TransformListener()
-    rospy.init_node("ctp_integration_runner")
+    tf_buffer = tf2.Buffer()
+    tf_listener = tf2.TransformListener(tf_buffer)
     rospy.sleep(0.5) # wait to cache incoming transforms
 
     if args.fake:
@@ -104,7 +107,7 @@ def main():
                 task=task,
                 detect_srv=objects,
                 topic="/costar_sp_segmenter/detected_object_list",
-                tf_listener=listener)
+                tf_listener=tf_buffer)
 
     # print out task info
     if args.verbose > 0:
@@ -120,7 +123,9 @@ def main():
                 data_root="~/.costar/data",
                 rate=10,
                 data_type="h5f",
-                robot_config=UR5_C_MODEL_CONFIG)
+                robot_config=UR5_C_MODEL_CONFIG,
+                camera_frame="camera_link",
+                tf_listener=tf_buffer)
 
     for i in range(args.execute):
         print("Executing trial %d..."%(i))
@@ -129,11 +134,10 @@ def main():
         plan = OptionsExecutionManager(options)
 
         # Update the plan and the collector in synchrony.
-        while True:
+        while not rospy.is_shutdown():
             # Note: this will be "dummied out" for most of 
             control = plan.apply(world)
-            env.step(control)
-            collector.tick()
+            ok = collector.tick()
 
         if collector is not None:
             collector.save(i, 1.)

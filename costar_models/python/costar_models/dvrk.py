@@ -1,5 +1,11 @@
 from __future__ import print_function
 
+'''
+===============================================================================
+Contains tools to make the sub-models for the DVRK application
+===============================================================================
+'''
+
 import keras.backend as K
 import keras.losses as losses
 import keras.optimizers as optimizers
@@ -17,11 +23,7 @@ from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 
 from .planner import *
-
-'''
-Contains tools to make the sub-models for the DVRK application
-'''
-
+from .temporary import *
 
 def SuturingNumOptions():
     return 15
@@ -57,6 +59,75 @@ def MakeJigsawsImageClassifier(model, img_shape):
     model.classifier = image_encoder
     return image_encoder
 
+def MakeJigsawsTransform(model, h_dim=(12,16)):
+    '''
+    This is the version made for the newer code, it is set up to use both
+    the initial and current observed world and creates a transform
+    dependent on which action you wish to perform.
+
+    Parameters:
+    -----------
+    model: contains multiple sub-models and training configuration
+    h_dim: hidden space default (height, width)
+
+    Returns:
+    --------
+    transform model
+
+    This will also set the "transform_model" field of "model".
+    '''
+    h = Input((h_dim[0], h_dim[1], model.encoder_channels),name="h_in")
+    h0 = Input((h_dim[0],h_dim[1], model.encoder_channels),name="h0_in")
+    option = Input((model.num_options,),name="t_opt_in")
+    x = AddConv2D(h, 64, [1,1], 1, 0.)
+    x0 = AddConv2D(h0, 64, [1,1], 1, 0.)
+
+    # Combine the hidden state observations
+    x = Concatenate()([x, x0])
+    x = AddConv2D(x, 64, [5,5], 1, model.dropout_rate)
+
+    # store this for skip connection
+    skip = x
+
+    # Add dense information
+    y = AddDense(option, 64, "relu", 0., constraint=None, output=False)
+    x = TileOnto(x, y, 64, h_dim)
+    x = AddConv2D(x, 64, [5,5], 1, 0.)
+    #x = AddConv2D(x, 128, [5,5], 2, 0.)
+
+    # --- start ssm block
+    use_ssm = True
+    if use_ssm:
+        def _ssm(x):
+            return spatial_softmax(x)
+        x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
+        x = AddDense(x, 256, "relu", 0.,
+                constraint=None, output=False,)
+        x = AddDense(x, h_dim[0] * h_dim[1] * 32/4, "relu", 0., constraint=None, output=False)
+        x = Reshape([h_dim[0]/2, h_dim[1]/2, 32])(x)
+    else:
+        x = AddConv2D(x, 128, [5,5], 1, 0.)
+    x = AddConv2DTranspose(x, 64, [5,5], 2,
+            model.dropout_rate)
+    # --- end ssm block
+
+    if model.skip_connections or True:
+        x = Concatenate()([x, skip])
+
+    for i in range(1):
+        #x = TileOnto(x, y, model.num_options, (8,8))
+        x = AddConv2D(x, 64,
+                [7,7],
+                stride=1,
+                dropout_rate=model.dropout_rate)
+
+    # --------------------------------------------------------------------
+    # Put resulting image into the output shape
+    x = AddConv2D(x, model.encoder_channels, [1, 1], stride=1,
+            dropout_rate=0.)
+    model.transform_model = Model([h0,h,option], x, name="tform")
+    model.transform_model.compile(loss="mae", optimizer=model.getOptimizer())
+    return model.transform_model
 
 
 def MakeJigsawsImageEncoder(model, img_shape, disc=False):
@@ -85,8 +156,8 @@ def MakeJigsawsImageEncoder(model, img_shape, disc=False):
     x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 128, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    #x = AddConv2D(x, 128, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    #x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
     #x = AddConv2D(x, 256, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
 
     if model.use_spatial_softmax and not disc:
@@ -149,8 +220,8 @@ def MakeJigsawsImageDecoder(model, hidden_shape, img_shape=None, copy=False):
 
     #x = AddConv2DTranspose(x, 64, [5,5], 1, dr, bn=bn)
     x = AddConv2DTranspose(x, 128, [1,1], 1, 0., bn=bn)
-    x = AddConv2DTranspose(x, 128, [5,5], 2, dr, bn=bn)
-    x = AddConv2DTranspose(x, 128, [5,5], 1, 0., bn=bn)
+    #x = AddConv2DTranspose(x, 128, [5,5], 2, dr, bn=bn)
+    #x = AddConv2DTranspose(x, 128, [5,5], 1, 0., bn=bn)
     x = AddConv2DTranspose(x, 64, [5,5], 2, dr, bn=bn)
     x = AddConv2DTranspose(x, 64, [5,5], 1, 0., bn=bn)
     x = AddConv2DTranspose(x, 32, [5,5], 2, dr, bn=bn)

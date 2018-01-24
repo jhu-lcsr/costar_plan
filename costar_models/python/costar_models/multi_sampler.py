@@ -479,6 +479,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             imageCb = self.PredictorCb(
                 self.predictor,
                 name=self.name_prefix,
+                features_name=self.features,
                 features=cbf,
                 targets=cbt,
                 model_directory=self.model_directory,
@@ -558,12 +559,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.model is not None:
             print("----------------------------")
             print("using " + self.name + " to load")
-            try:
-                self.actor.load_weights(self.name + "_actor.h5f")
-                #self.predictor.load_weights(self.name + "_predictor.h5f")
-            except Exception as e:
-                print("Could not load actor:", e)
             self.model.load_weights(self.name + "_train_predictor.h5f")
+            if self.actor is not None:
+                self.actor.load_weights(self.name + "_actor.h5f")
             if self.image_decoder is not None:
                 self.image_decoder.load_weights(self.name +
                 "_image_decoder.h5f")
@@ -590,10 +588,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 "_next.h5f")
             if self.predictor is not None:
                 self.predictor.load_weights(self.name + "_predictor.h5f")
-            if self.actor is not None:
-                self.actor.load_weights(self.name + "_actor.h5f")
         else:
-            raise RuntimeError('_loadWeights() failed: model not found.')
+            raise RuntimeError('_loadWeights() failed: model not yet created.')
 
     def predict(self, world):
         '''

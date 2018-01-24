@@ -1,12 +1,14 @@
 
+import numpy as np
 import PyKDL as kdl
 import rospy 
-import tf
+import tf2_ros as tf2
 import tf_conversions.posemath as pm
 
 from costar_models.datasets.npz import NpzDataset
 from costar_models.datasets.h5f import H5fDataset
 
+from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import JointState
 
@@ -22,8 +24,8 @@ class DataCollector(object):
     js_topic = "joint_states"
     rgb_topic = "camera/rgb/image_raw"
     depth_topic = "camera/depth_registered/image_raw"
-    ee = "/endpoint"
-    base_link = "/base_link"
+    ee = "endpoint"
+    base_link = "base_link"
     description = "/robot_description"
     data_types = ["h5f", "npz"]
 
@@ -32,14 +34,19 @@ class DataCollector(object):
             rate=10,
             data_root=".",
             img_shape=(128,128),
-            camera_frame = "/camera_link",):
+            camera_frame = "camera_link",
+            tf_listener=None):
 
         '''
         Set up the writer (to save trials to disk) and subscribers (to process
         input from ROS and store the current state).
         '''
 
-        self.tf_listener = tf.TransformListener()
+
+        if tf_listener is not None:
+            self.tf_listener = tf_listener
+        else:
+            self.tf_listener = tf.TransformListener()
 
         if isinstance(rate, int) or isinstance(rate, float):
             self.rate = rospy.Rate(rate)
@@ -75,11 +82,20 @@ class DataCollector(object):
         self._rgb_sub = rospy.Subscriber(self.rgb_topic, Image, self._rgbCb)
         self._depth_sub = rospy.Subscriber(self.depth_topic, Image, self._depthCb)
         self._joints_sub = rospy.Subscriber(self.js_topic, JointState, self._jointsCb)
+
+        self._bridge = CvBridge()
  
         self._resetData()
 
+        self.verbosity = 1
+
     def _rgbCb(self, msg):
-        self.rgb_img = msg
+        try:
+            cv_image = self._bridge.imgmsg_to_cv2(msg, "bgr8")
+        except CvBridgeError as e:
+            rospy.logwarn(str(e))
+
+        self.rgb_img = np.asarray(cv_image)
 
     def _depthCb(self, msg):
         self.depth_img = msg
@@ -88,19 +104,15 @@ class DataCollector(object):
         self.data = {}
         self.data["q"] = []
         self.data["dq"] = []
-        self.data["T_ee"] = []
-        self.data["T_camera"] = []
-
-        # numpy matrix of xyzrgb values
-        self.data["xyzrgb"] = []
-
-        # -------------------------
-        # Camera info fields
+        self.data["pose"] = []
+        self.data["camera"] = []
+        self.data["image"] = []
 
     def _jointsCb(self, msg):
         self.q = msg.position
         self.dq = msg.velocity
-        print(self.q, self.dq)
+        if self.verbosity > 3:
+            rospy.loginfo(self.q, self.dq)
 
     def save(self, seed, result):
         '''
@@ -108,8 +120,48 @@ class DataCollector(object):
         '''
 
         # for now all examples are considered a success
-        self.npz_writer.write(self.data, seed, result)
+        self.writer.write(self.data, seed, result)
         self._resetData()
+
+    def tick(self, action=None):
+        '''
+        Compute endpoint positions and update data. Should happen at some
+        fixed frequency like 10 hz.
+
+        Parameters:
+        -----------
+        action: name of high level action being executed
+        '''
+        try:
+            t = rospy.Time(0)
+            c_pose = self.tf_listener.lookup_transform(self.base_link, self.camera_frame, t)
+            ee_pose = self.tf_listener.lookup_transform(self.base_link, self.ee_frame, t)
+        except (tf2.LookupException, tf2.ExtrapolationException, tf2.ConnectivityException) as e:
+            rospy.logwarn("Failed lookup: %s to %s, %s"%(self.base_link, self.camera_frame, self.ee_frame))
+            return False
+
+        c_xyz = [c_pose.transform.translation.x,
+                 c_pose.transform.translation.y,
+                 c_pose.transform.translation.z,]
+        c_quat = [c_pose.transform.rotation.x,
+                  c_pose.transform.rotation.y,
+                  c_pose.transform.rotation.z,
+                  c_pose.transform.rotation.w,]
+        ee_xyz = [ee_pose.transform.translation.x,
+                 ee_pose.transform.translation.y,
+                 ee_pose.transform.translation.z,]
+        ee_quat = [ee_pose.transform.rotation.x,
+                  ee_pose.transform.rotation.y,
+                  ee_pose.transform.rotation.z,
+                  ee_pose.transform.rotation.w,]
+
+        self.data["q"].append(q)
+        self.data["dq"].append(dq)
+        self.data["pose"].append(ee_xyz + ee_quat)
+        self.data["camera"].append(c_xyz + c_quat)
+        self.data["image"].append(np.copy(self.rgb_img))
+
+        return True
 
 if __name__ == '__main__':
     pass

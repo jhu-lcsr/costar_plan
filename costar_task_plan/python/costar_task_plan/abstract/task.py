@@ -161,10 +161,13 @@ class Task(object):
             self.template_connections.append((parent, name, frequency))
 
     def getChildren(self, node):
+        '''
+        Return the children associated with this particular node.
+        '''
         if node in self.children:
             return self.children[node], self.weights[node]
         else:
-            return []
+            return [], []
 
     def getOption(self, node):
         if node in self.nodes:
@@ -285,6 +288,15 @@ class Task(object):
                 inodes[name] = [iname]
             self.nodes[iname] = option
             self.children[iname] = set()
+
+    def clear(self):
+        self.nodes = {}
+        self.children = {}
+        self.weights = {}
+        self.indices = {}
+        self.names = {}
+        self.compiled = False
+        self.generic_names = {}
 
     def makeTree(self, world, max_depth=10):
         '''
