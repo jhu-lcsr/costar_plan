@@ -104,7 +104,7 @@ class PretrainImageJigsawsGan(PretrainImageGan):
         img = Input(img_shape,name="img_encoder_in")
         img0 = Input(img_shape,name="img0_encoder_in")
         ins = [img, img0]
-        dr = 0.5 #self.dropout_rate
+        dr = 0.3 #self.dropout_rate
         
         x = AddConv2D(img, 64, [4,4], 1, 0., "same", lrelu=True, bn=False)
         x0 = AddConv2D(img0, 64, [4,4], 1, 0., "same", lrelu=True, bn=False)
