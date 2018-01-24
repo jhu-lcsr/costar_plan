@@ -24,8 +24,8 @@ class DataCollector(object):
     js_topic = "joint_states"
     rgb_topic = "camera/rgb/image_raw"
     depth_topic = "camera/depth_registered/image_raw"
-    ee = "/endpoint"
-    base_link = "/base_link"
+    ee = "endpoint"
+    base_link = "base_link"
     description = "/robot_description"
     data_types = ["h5f", "npz"]
 
@@ -34,7 +34,7 @@ class DataCollector(object):
             rate=10,
             data_root=".",
             img_shape=(128,128),
-            camera_frame = "/camera_link",
+            camera_frame = "camera_link",
             tf_listener=None):
 
         '''
@@ -135,11 +135,14 @@ class DataCollector(object):
         '''
         try:
             t = rospy.Time(0)
-            c_pos, c_rot = self.tf_listener.lookup_transform(self.base_link, self.camera_frame, t)
-            ee_pos, ee_rot = self.tf_listener.lookup_transform(self.base_link, self.ee_frame, t)
+            c_pose = self.tf_listener.lookup_transform(self.base_link, self.camera_frame, t)
+            ee_pose = self.tf_listener.lookup_transform(self.base_link, self.ee_frame, t)
         except (tf2.LookupException, tf2.ExtrapolationException, tf2.ConnectivityException) as e:
             rospy.logwarn("Failed lookup: %s to %s, %s"%(self.base_link, self.camera_frame, self.ee_frame))
             return False
+
+        T_c = pm.fromMsg(c_pose)
+        T_ee = pm.fromMsg(ee_pose)
 
         return True
 

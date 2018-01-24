@@ -124,6 +124,7 @@ def main():
                 rate=10,
                 data_type="h5f",
                 robot_config=UR5_C_MODEL_CONFIG,
+                camera_frame="camera_link",
                 tf_listener=tf_buffer)
 
     for i in range(args.execute):
