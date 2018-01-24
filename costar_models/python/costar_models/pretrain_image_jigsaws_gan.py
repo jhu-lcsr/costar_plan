@@ -80,7 +80,7 @@ class PretrainImageJigsawsGan(PretrainImageGan):
         self.model = Model([img_in], [gen_out, o1])
         self.model.compile(
                 loss=["mae"] + [wasserstein_loss],
-                loss_weights=[1., 100.],
+                loss_weights=[0., 1.],
                 optimizer=self.getOptimizer())
 
         self.generator = Model([img_in], [gen_out])
