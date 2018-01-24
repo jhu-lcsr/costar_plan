@@ -58,7 +58,7 @@ class PretrainImageJigsawsGan(PretrainImageGan):
                 self.hidden_shape,
                 self.skip_shape, False)
 
-        if self.load_pretrained_weights and False:
+        if self.load_pretrained_weights:
             try:
                 encoder.load_weights(self.makeName(
                     "pretrain_image_encoder",
@@ -106,9 +106,12 @@ class PretrainImageJigsawsGan(PretrainImageGan):
         ins = [img, img0]
         dr = 0.5#self.dropout_rate
         
-        x = AddConv2D(img, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        x0 = AddConv2D(img0, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
+        x = AddConv2D(img, 64, [4,4], 1, 0., "same", lrelu=True, bn=False)
+        x0 = AddConv2D(img0, 64, [4,4], 1, 0., "same", lrelu=True, bn=False)
         x = Add()([x, x0])
+        x = Dropout(dr)(x)
+        #x = Dropout(0.5)(img)
+        #x0 = Dropout(0.5)(img0)
         #x = Concatenate(axis=-1)([img0, img])
         x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
         x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True, bn=False)

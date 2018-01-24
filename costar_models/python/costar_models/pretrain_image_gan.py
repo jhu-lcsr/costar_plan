@@ -112,10 +112,12 @@ class PretrainImageGan(RobotMultiPredictionSampler):
 
         x = Flatten()(x)
         discrim = Model(ins, x, name="image_discriminator")
-        self.lr *= 2.
+        #self.lr *= 2.
+        self.optimizer = "sgd"
         discrim.compile(loss="binary_crossentropy", loss_weights=[1.],
                 optimizer=self.getOptimizer())
-        self.lr *= 0.5
+        #self.lr *= 0.5
+        self.optimizer = "sgd"
         self.image_discriminator = discrim
         return discrim
 
