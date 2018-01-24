@@ -104,14 +104,9 @@ class DataCollector(object):
         self.data = {}
         self.data["q"] = []
         self.data["dq"] = []
-        self.data["T_ee"] = []
-        self.data["T_camera"] = []
-
-        # numpy matrix of xyzrgb values
-        self.data["xyzrgb"] = []
-
-        # -------------------------
-        # Camera info fields
+        self.data["pose"] = []
+        self.data["camera"] = []
+        self.data["image"] = []
 
     def _jointsCb(self, msg):
         self.q = msg.position
@@ -128,10 +123,14 @@ class DataCollector(object):
         self.writer.write(self.data, seed, result)
         self._resetData()
 
-    def tick(self):
+    def tick(self, action=None):
         '''
         Compute endpoint positions and update data. Should happen at some
         fixed frequency like 10 hz.
+
+        Parameters:
+        -----------
+        action: name of high level action being executed
         '''
         try:
             t = rospy.Time(0)
@@ -141,21 +140,26 @@ class DataCollector(object):
             rospy.logwarn("Failed lookup: %s to %s, %s"%(self.base_link, self.camera_frame, self.ee_frame))
             return False
 
-        c_xyz = (c_pose.transform.translation.x,
+        c_xyz = [c_pose.transform.translation.x,
                  c_pose.transform.translation.y,
-                 c_pose.transform.translation.z,)
-        c_quat = (c_pose.transform.rotation.x,
+                 c_pose.transform.translation.z,]
+        c_quat = [c_pose.transform.rotation.x,
                   c_pose.transform.rotation.y,
                   c_pose.transform.rotation.z,
-                  c_pose.transform.rotation.w,)
-        ee_xyz = (ee_pose.transform.translation.x,
+                  c_pose.transform.rotation.w,]
+        ee_xyz = [ee_pose.transform.translation.x,
                  ee_pose.transform.translation.y,
-                 ee_pose.transform.translation.z,)
-        ee_quat = (ee_pose.transform.rotation.x,
+                 ee_pose.transform.translation.z,]
+        ee_quat = [ee_pose.transform.rotation.x,
                   ee_pose.transform.rotation.y,
                   ee_pose.transform.rotation.z,
-                  ee_pose.transform.rotation.w,)
+                  ee_pose.transform.rotation.w,]
 
+        self.data["q"].append(q)
+        self.data["dq"].append(dq)
+        self.data["pose"].append(ee_xyz + ee_quat)
+        self.data["camera"].append(c_xyz + c_quat)
+        self.data["image"].append(np.copy(self.rgb_img))
 
         return True
 
