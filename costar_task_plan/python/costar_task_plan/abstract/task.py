@@ -220,7 +220,6 @@ class Task(object):
             # create the nodes
             for name, template in self.option_templates.items():
                 iname, option = template.instantiate(name, arg_set)
-                print (">>", name, iname, option)
                 if option is None:
                     continue
                 elif isinstance(option, Task):
@@ -230,7 +229,6 @@ class Task(object):
                 else:
                     self._addInstantiatedNode(name, iname, option, inodes)
 
-            print(inodes)
             # Connect nodes and their children, plus update the list of weights
             # associated with each parent-child pair.
             for name, template in self.option_templates.items():
