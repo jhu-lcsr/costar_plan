@@ -114,8 +114,10 @@ class PretrainImageJigsawsGan(PretrainImageGan):
         x = AddConv2D(x, 64, [4,4], 2, dr, "valid", lrelu=True, bn=True)
         x = AddConv2D(x, 128, [4,4], 2, dr, "valid", lrelu=True, bn=True)
         x = AddConv2D(x, 256, [4,4], 2, dr, "valid", lrelu=True, bn=True)
+        x = AddConv2D(x, 1, [1,1], 1, dr, "same", lrelu=True, bn=False)
+        x = AveragePooling2D(pool_size=(4,6))(x)
         x = Flatten()(x)
-        x = Dense(1, activation="linear")(x)
+        #x = Dense(1, activation="linear")(x)
         discrim = Model(ins, x, name="image_discriminator")
         discrim.compile(loss=wasserstein_loss,
                 optimizer=self.getOptimizer())
