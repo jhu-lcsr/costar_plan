@@ -125,7 +125,6 @@ class LfD(object):
                                                   objs=skill_objs)
                 instance.fit(ee_frames=ee, worlds=world)
 
-                print (">>>", name, sub_name, len(self.skill_instances[name]))
                 self.skill_instances[name].append(instance)
                 if ((not sub_name == name) and (sub_name is not None)):
                     if sub_name not in self.skill_instances:
@@ -306,7 +305,7 @@ class LfD(object):
         Return the appropriate model for this particular skill.
         '''
         while skill in self.parent_skills:
-            skill = parent_skill[skill]
+            skill = self.parent_skills[skill]
         return self.skill_models[skill]
 
     def getParamDistribution(self, skill):
@@ -318,7 +317,7 @@ class LfD(object):
 
         # Get the parent skill
         while skill in self.parent_skills:
-            skill = parent_skill[skill]
+            skill = self.parent_skills[skill]
 
         # Aggregate features used when training the parent skill model
         params = []
@@ -328,11 +327,15 @@ class LfD(object):
         # get mean and get std dev
         params = np.array(params)
         mu = np.mean(params,axis=0)
-        sigma = np.cov(params.T)
         
-        print (skill, params.T.shape)
         if params.T.shape[1] < 2:
-            raise RuntimeError("Cannot create a distribution from one example!")
+            #raise RuntimeError("Cannot create a distribution from one example!")
+            rospy.logwarn("%s: Cannot create distribution from one example!" % skill)
+            rospy.logwarn("skill =" + str(skill) + " shape =" + str(params.T.shape))
+            size = mu.shape[0]
+            sigma = 1e-6 * np.eye(size)
+        else:
+            sigma = np.cov(params.T)
 
         assert mu.shape[0] == sigma.shape[0]
         return Distribution(mu, sigma)

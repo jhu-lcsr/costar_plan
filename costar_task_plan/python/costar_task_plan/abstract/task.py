@@ -217,6 +217,7 @@ class Task(object):
             # create the nodes
             for name, template in self.option_templates.items():
                 iname, option = template.instantiate(name, arg_set)
+                print (">>", name, iname, option)
                 if option is None:
                     continue
                 elif isinstance(option, Task):
@@ -226,6 +227,7 @@ class Task(object):
                 else:
                     self._addInstantiatedNode(name, iname, option, inodes)
 
+            print(inodes)
             # Connect nodes and their children, plus update the list of weights
             # associated with each parent-child pair.
             for name, template in self.option_templates.items():
@@ -414,12 +416,16 @@ class OptionTemplate(object):
 
         if self.task is None:
             iname = self.name_template % (name, make_str(name_args))
-            try:
-                option = self.constructor(**filled_args)
-                for pc in self.postconditions:
-                    option.addPostCondition(pc)
-            except Exception as e:
-                option = None
+            #try:
+            option = self.constructor(**filled_args)
+            for pc in self.postconditions:
+                option.addPostCondition(pc)
+            #except Exception as e:
+            #    print("Warning: failed to create option %s (instance of %s)" % (iname, name))
+            #    print("args =", arg_dict)
+            #    print("name_args =", name_args)
+            #    print(e)
+            #    option = None
         else:
             option = Task(subtask_name=self.task.name)
             for args in self.task.options:
