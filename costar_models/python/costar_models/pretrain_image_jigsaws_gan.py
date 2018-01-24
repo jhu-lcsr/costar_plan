@@ -109,7 +109,6 @@ class PretrainImageJigsawsGan(PretrainImageGan):
         x = AddConv2D(img, 64, [4,4], 1, 0., "same", lrelu=True, bn=False)
         x0 = AddConv2D(img0, 64, [4,4], 1, 0., "same", lrelu=True, bn=False)
         x = Add()([x, x0])
-        x = Dropout(dr)(x)
         #x = Dropout(0.5)(img)
         #x0 = Dropout(0.5)(img0)
         #x = Concatenate(axis=-1)([img0, img])
