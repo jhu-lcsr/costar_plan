@@ -80,9 +80,6 @@ class Secondary(PredictionSampler2):
         value_model.compile(loss="mae", optimizer=self.getOptimizer())
         value_out = value_model([h])
         next_option_out = next_model([h0,h,label_in])
-        #value_out = value_model([h,label_in])
-        #next_option_out = next_model([h,label_in])
-
         next_option_in = Input((1,), name="next_option_in")
         next_option_in2 = Input((1,), name="next_option_in2")
         ins += [next_option_in, next_option_in2]
@@ -103,14 +100,6 @@ class Secondary(PredictionSampler2):
         val_loss = "binary_crossentropy"
 
         # =====================================================================
-        # Create models to train
-        predictor = Model(ins + [label_in],
-                [image_out, image_out2, next_option_out, value_out])
-        predictor.compile(
-                loss=[lfn, lfn, "binary_crossentropy", val_loss],
-                loss_weights=[1., 1., 0.1, 0.1,],
-                optimizer=self.getOptimizer())
-
         train_predictor = Model(ins + [label_in],
                 [next_option_out, value_out,
                     arm_cmd,
@@ -120,7 +109,7 @@ class Secondary(PredictionSampler2):
                     lfn2, lfn2, "categorical_crossentropy"],
                 loss_weights=[1., 1., 1., 0.2],
                 optimizer=self.getOptimizer())
-        return predictor, train_predictor, actor, ins, h
+        return None, train_predictor, actor, ins, h
 
     def _getData(self, *args, **kwargs):
         features, targets = GetAllMultiData(self.num_options, *args, **kwargs)

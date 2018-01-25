@@ -48,10 +48,13 @@ class Discriminator(RobotMultiPredictionSampler):
         I = np.array(features) / 255.
         I_target = np.array(goal_features) / 255.
         o1_1h = np.squeeze(ToOneHot2D(np.array(label), self.num_options))
+        I0 = I[0,:,:,:]
+        length = I.shape[0]
+        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
         if self.goal:
-            return [I_target], [o1_1h]
+            return [I0, I_target], [o1_1h]
         else:
-            return [I], [o1_1h]
+            return [I0, I], [o1_1h]
 
 class HuskyDiscriminator(RobotMultiPredictionSampler):
 
@@ -80,10 +83,13 @@ class HuskyDiscriminator(RobotMultiPredictionSampler):
         I_target = np.array(goal_image) / 255.
         o1 = np.array(label)
         o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
+        I0 = I[0,:,:,:]
+        length = I.shape[0]
+        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
         if self.goal:
-            return [I_target], [o1_1h]
+            return [I0, I_target], [o1_1h]
         else:
-            return [I], [o1_1h]
+            return [I0, I], [o1_1h]
 
 class JigsawsDiscriminator(RobotMultiPredictionSampler):
 
@@ -112,8 +118,11 @@ class JigsawsDiscriminator(RobotMultiPredictionSampler):
         I_target = np.array(goal_image) / 255.
         o1 = np.array(label)
         o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
+        I0 = I[0,:,:,:]
+        length = I.shape[0]
+        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
         if self.goal:
-            return [I_target], [o1_1h]
+            return [I0, I_target], [o1_1h]
         else:
-            return [I], [o1_1h]
+            return [I0, I], [o1_1h]
 

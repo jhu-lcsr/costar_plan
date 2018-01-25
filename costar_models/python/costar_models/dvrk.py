@@ -29,14 +29,18 @@ def SuturingNumOptions():
     return 15
 
 def MakeJigsawsImageClassifier(model, img_shape):
+    img0 = Input(img_shape,name="img0_classifier_in")
     img = Input(img_shape,name="img_classifier_in")
     bn = True
     disc = True
     dr = 0.5 #model.dropout_rate
     x = img
+    x0 = img0
 
-    #x = BatchNormalization()(x)
+    x0 = AddConv2D(x0, 32, [7,7], 1, 0., "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 32, [7,7], 1, 0., "same", lrelu=disc, bn=bn)
+    x = Add()([x0, x])
+
     x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
