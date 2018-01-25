@@ -70,13 +70,13 @@ def MakeJigsawsMultiDecoder(model, decoder, num_images=4, h_dim=(12,16)):
     Make multiple images
     '''
     h = Input((h_dim[0], h_dim[1], 64),name="h_in")
-
-    # Add some dropout so we don't end up overfitting our examples
-    x = Dropout(model.dropout_rate)(h)
+    x = h
 
     xs = []
     for i in range(num_images):
-        xi = AddConv2D(x, model.encoder_channels, [5, 5], stride=1,
+        xi = AddConv2D(x, 64, [5, 5], stride=1,
+                dropout_rate=model.dropout_rate)
+        xi = AddConv2D(xi, model.encoder_channels, [5, 5], stride=1,
                 dropout_rate=0.)
         xi = decoder(xi)
         img_x = Lambda(
