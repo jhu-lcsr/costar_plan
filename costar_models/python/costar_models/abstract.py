@@ -46,6 +46,7 @@ class AbstractAgentBasedModel(object):
             hidden_size=128,
             loss="mae",
             num_generator_files=3, upsampling=None,
+            clip_weights=0, use_wasserstein=False,
             option_num=None, # for policy model
             task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
@@ -106,9 +107,17 @@ class AbstractAgentBasedModel(object):
         if self.noise_dim < 1:
             self.use_noise = False
 
+        self.use_wasserstein = use_wasserstein
+        self.clip_weights = clip_weights
+        # Activate clip_weights for wasserstein
+        if self.use_wasserstein and self.clip_weights == 0:
+            self.clip_weights = 0.01
+
         # Define previous option for when executing -- this should default to
         # None, set to 2 for testing only
         self.prev_option = 2
+
+        
 
         # default: store the whole model here.
         # NOTE: this may not actually be where you want to save it.
@@ -148,8 +157,10 @@ class AbstractAgentBasedModel(object):
         print("dimensionality of noise =", self.noise_dim)
         print("skip connections =", self.skip_connections)
         print("gan_method =", self.gan_method)
+        print("wasserstein_loss =", self.use_wasserstein)
         print("save_model =", self.save_model)
         print("use_batchnorm =", self.use_batchnorm)
+        print("clip_weights =", self.clip_weights)
         print("-----------------------------------------------------------")
         print("Optimizer =", self.optimizer)
         print("Learning Rate =", self.lr)

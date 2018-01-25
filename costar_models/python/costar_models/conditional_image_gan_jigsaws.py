@@ -172,8 +172,8 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         x = Flatten()(x)
         discrim = Model(ins, x, name="image_discriminator")
         self.lr *= 2.
-        discrim.compile(loss="binary_crossentropy", loss_weights=[1.],
-                optimizer=self.getOptimizer())
+        loss = wasserstein_loss if self.use_wasserstein else "binary_crossentropy"
+        discrim.compile(loss=loss, optimizer=self.getOptimizer())
         self.lr *= 0.5
         self.image_discriminator = discrim
         return discrim
