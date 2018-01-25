@@ -1,5 +1,7 @@
 from __future__ import print_function
 
+from costar_robot_msgs.srv import SmartMove
+
 from costar_task_plan.abstract.task import *
 
 
@@ -56,6 +58,12 @@ def MakeStackTask():
     '''
 
     task = Task()
+
+    # Make services
+    rospy.wait_for_service("/costar/SmartPlace")
+    rospy.wait_for_service("/costar/SmartGrasp")
+    place = rospy.ServiceProxy("/costar/SmartPlace", SmartMove)
+    grasp = rospy.ServiceProxy("/costar/SmartGrasp", SmartMove)
 
     # Create sub-tasks for left and right
     pickup_left = _makePickupLeft()
