@@ -145,5 +145,6 @@ class ConditionalImageJigsaws(ConditionalImage):
         label2_1h = np.squeeze(ToOneHot2D(label2, self.num_options))
         return ([image0, image, label, goal_label, prev_label],
                 [np.expand_dims(goal_image, axis=1),
-                 np.expand_dims(goal_image2, axis=1), label_1h])#, label2_1h]
+                 #np.expand_dims(goal_image2, axis=1), label_1h])#, label2_1h]
+                 np.expand_dims(goal_image2, axis=1)])
 
