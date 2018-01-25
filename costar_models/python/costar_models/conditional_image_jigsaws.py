@@ -67,11 +67,11 @@ class ConditionalImageJigsaws(ConditionalImage):
             h0 = encoder(img0_in)
 
         # Create model for predicting label
-        next_model = GetJigsawsNextModel(h, self.num_options, 128,
-                self.decoder_dropout_rate)
-        next_model.compile(loss="mae", optimizer=self.getOptimizer())
-        next_option_out = next_model([h0, h, prev_option_in])
-        self.next_model = next_model
+        #next_model = GetJigsawsNextModel(h, self.num_options, 128,
+        #        self.decoder_dropout_rate)
+        #next_model.compile(loss="mae", optimizer=self.getOptimizer())
+        #next_option_out = next_model([h0, h, prev_option_in])
+        #self.next_model = next_model
 
         # create input for controlling noise output if that's what we decide
         # that we want to do
@@ -112,16 +112,16 @@ class ConditionalImageJigsaws(ConditionalImage):
         # =====================================================================
         # Create models to train
         predictor = Model(ins + [prev_option_in],
-                [image_out, image_out2, next_option_out])
+                [image_out, image_out2])
         predictor.compile(
                 loss=[self.loss, self.loss, "binary_crossentropy"],
-                loss_weights=[1., 1., 0.1],
+                loss_weights=[1., 1.],
                 optimizer=self.getOptimizer())
         model = Model(ins + [prev_option_in],
-                [image_out, image_out2, next_option_out])#, disc_out2])
+                [image_out, image_out2])#, disc_out2])
         model.compile(
                 loss=[lfn, lfn, "binary_crossentropy"],# "categorical_crossentropy"],
-                loss_weights=[1., 1., 0.1],#, 1e-3],
+                loss_weights=[1., 1.],#, 1e-3],
                 optimizer=self.getOptimizer())
 
         self.predictor = predictor
