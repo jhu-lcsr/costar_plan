@@ -90,7 +90,6 @@ class ConditionalImageJigsaws(ConditionalImage):
                 weights=[1.0],
                 loss=[self.loss],
                 avg_weight=0.05,
-                stats=stats
                 )
 
         # --------------------------------------------------------------------
