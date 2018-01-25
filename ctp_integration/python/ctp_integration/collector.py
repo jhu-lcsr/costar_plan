@@ -57,6 +57,7 @@ class DataCollector(object):
 
         self.root = data_root
         self.data_type = data_type
+        rospy.logwarn("Dataset root set to " + str(self.root))
         if self.data_type == "h5f":
             self.writer = H5fDataset(self.root)
         elif self.data_type == "npz":
@@ -155,8 +156,8 @@ class DataCollector(object):
                   ee_pose.transform.rotation.z,
                   ee_pose.transform.rotation.w,]
 
-        self.data["q"].append(q)
-        self.data["dq"].append(dq)
+        self.data["q"].append(np.copy(self.q))
+        self.data["dq"].append(np.copy(self.dq))
         self.data["pose"].append(ee_xyz + ee_quat)
         self.data["camera"].append(c_xyz + c_quat)
         self.data["image"].append(np.copy(self.rgb_img))

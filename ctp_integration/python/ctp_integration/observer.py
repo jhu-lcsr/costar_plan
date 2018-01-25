@@ -63,12 +63,12 @@ class Observer(object):
             if not obj_class in args:
                 args[obj_class] = set()
             args[obj_class].add(name)
-        print(args)
+        rospy.loginfo("Detected objects: " + str(args))
 
         # Step 2. Compile the plan.
         self.world.addObjects(args)
-        filled_args = self.task.compile(args)
-        print(filled_args)
+        #filled_args = self.task.compile(args)
+        #print(filled_args)
 
         # Env is the wrapper that interfaces with the world and consumes
         # our commands
