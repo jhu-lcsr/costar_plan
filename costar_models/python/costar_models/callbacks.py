@@ -360,7 +360,7 @@ class PredictorShowImageOnlyMultiStep(keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs={}):
         # take the model and print it out
         self.epoch += 1
-        data[k] = self.predictor.predict(self.features)
+        data = self.predictor.predict(self.features)
         plt.ioff()
         if self.verbose:
             print("============================")
@@ -380,7 +380,7 @@ class PredictorShowImageOnlyMultiStep(keras.callbacks.Callback):
             for rand_offset in range(2):
                 for i in range(self.num_hypotheses):
                     plt.subplot(2,2+self.num_hypotheses,i+2+rand_offset)
-                    plt.imshow(np.squeeze(data[k][rand_offset][i]))
+                    plt.imshow(np.squeeze(data[rand_offset][i]))
                     plt.title('Hypothesis %d'%(i+1))
 
             if self.verbose:
