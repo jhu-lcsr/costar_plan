@@ -46,6 +46,7 @@ def GetHuskyActorModel(x, num_options, pose_size,
 
     option_in = Input((num_options,), name="actor_o_in")
     x = xin
+    x0 = x0in
     if len(x.shape) > 2:
         # Project
         x = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
@@ -53,7 +54,7 @@ def GetHuskyActorModel(x, num_options, pose_size,
                 lrelu=True,
                 name="A_project",
                 constraint=None)
-        x0 = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
+        x0 = AddConv2D(x0, 32, [3,3], 1, dropout_rate, "same",
                 bn=batchnorm,
                 lrelu=True,
                 name="A0_project",
@@ -92,7 +93,7 @@ def GetHuskyActorModel(x, num_options, pose_size,
     x1 = AddDense(x1, 512, "lrelu", 0., constraint=None, output=False,)
     pose = AddDense(x1, pose_size, "linear", 0., output=True)
     #value = Dense(1, activation="sigmoid", name="V",)(x1)
-    actor = Model([xin, option_in], [pose], name="actor")
+    actor = Model([x0in, xin, option_in], [pose], name="actor")
     return actor
 
 def GetPolicyHuskyData(num_options, option, image, pose, action, label, *args,
@@ -201,6 +202,7 @@ def GetHuskyPoseModel(x, num_options, arm_size, gripper_size,
     x0in = Input([int(d) for d in x.shape[1:]], name="pose_h0_in")
 
     x = xin
+    x0 = x0in
     if len(x.shape) > 2:
         # Project
         x = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
@@ -208,7 +210,7 @@ def GetHuskyPoseModel(x, num_options, arm_size, gripper_size,
                 lrelu=True,
                 name="A_project",
                 constraint=None)
-        x0 = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
+        x0 = AddConv2D(x0, 32, [3,3], 1, dropout_rate, "same",
                 bn=batchnorm,
                 lrelu=True,
                 name="A0_project",
@@ -245,7 +247,7 @@ def GetHuskyPoseModel(x, num_options, arm_size, gripper_size,
     arm = AddDense(x1, arm_size, "linear", 0., output=True)
     gripper = AddDense(x1, gripper_size, "sigmoid", 0., output=True)
     #value = Dense(1, activation="sigmoid", name="V",)(x1)
-    actor = Model([xin, option_in], [arm, gripper], name="pose")
+    actor = Model([x0in, xin, option_in], [arm, gripper], name="pose")
     return actor
 
 

@@ -64,7 +64,7 @@ class Secondary(PredictionSampler2):
                 make_classifier_fn=MakeImageClassifier,
                 img_shape=img_shape)
         tform = self._makeTransform()
-        LoadTransformWeights(tform)
+        LoadTransformWeights(self, tform)
 
         # =====================================================================
         # Load the arm and gripper representation
@@ -86,29 +86,39 @@ class Secondary(PredictionSampler2):
         next_option_in2 = Input((1,), name="next_option_in2")
         ins += [next_option_in, next_option_in2]
 
+        y = OneHot(self.num_options)(next_option_in)
+        y = Flatten()(y)
+
+        # =====================================================================
+        actor = GetActorModel(h, self.num_options, arm_size, gripper_size,
+                self.decoder_dropout_rate)
+        pose = GetPoseModel(h, self.num_options, arm_size, gripper_size,
+                self.decoder_dropout_rate)
+        actor.compile(loss="mae",optimizer=self.getOptimizer())
+        pose.compile(loss="mae",optimizer=self.getOptimizer())
+        arm_cmd, gripper_cmd = actor([h0, h, y])
+        arm_state, gripper_state = pose([h0, h])
+
         # =====================================================================
         # Store the models for next time
         self.next_model = next_model
         self.value_model = value_model
         self.transform_model = tform
+        self.pose_model = pose
 
         # =====================================================================
-        actor = GetActorModel(h, self.num_options, arm_size, gripper_size,
-                self.decoder_dropout_rate)
-        actor.compile(loss="mae",optimizer=self.getOptimizer())
-        arm_cmd, gripper_cmd = actor([h, y])
         val_loss = "binary_crossentropy"
-
-        # =====================================================================
         train_predictor = Model(ins + [label_in],
                 [next_option_out, value_out,
                     arm_cmd,
-                    gripper_cmd])
+                    gripper_cmd,
+                    arm_state,
+                    gripper_state,])
         train_predictor.compile(
                 loss=["binary_crossentropy", val_loss,
                     self.loss, self.loss,
                     self.loss, self.loss],
-                loss_weights=[1., 1., 1., 0.2],
+                loss_weights=[1., 1., 1., 0.2, 1., 1.],
                 optimizer=self.getOptimizer())
         return None, train_predictor, actor, ins, h
 

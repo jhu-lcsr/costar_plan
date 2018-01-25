@@ -107,6 +107,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.hidden_decoder = None
         self.next_model = None
         self.value_model = None
+        self.pose_model = None
         self.transform_model = None
 
         # ===================================================================
@@ -544,6 +545,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             if self.value_model is not None:
                 self.value_model.save_weights(self.name + 
                 "_value.h5f")
+            if self.pose_model is not None:
+                self.pose_model.save_weights(self.name + 
+                "_pose.h5f")
             if self.next_model is not None:
                 self.next_model.save_weights(self.name + 
                 "_next.h5f")

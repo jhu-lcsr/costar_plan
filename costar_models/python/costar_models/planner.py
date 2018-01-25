@@ -1091,7 +1091,7 @@ def LoadTransformWeights(model, tform, gan = False):
     else:
         append = ''
     tform.load_weights(
-            model.makeName("conditional_image" + append, "transform.h5f"))
+            model.makeName("conditional_image" + append, "transform"))
     tform.trainable = False
     return tform
 
