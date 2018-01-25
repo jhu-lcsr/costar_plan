@@ -104,7 +104,7 @@ class ConditionalImageJigsaws(ConditionalImage):
         x = tform([h0, x, y])
         x2 = tform([h0, x, y2])
         image_out, image_out2 = multi_decoder([x]), multi_decoder([x2])
-        disc_out2 = image_discriminator(image_out2)
+        #disc_out2 = image_discriminator(image_out2)
 
         lfn2 = "logcosh"
 
@@ -113,14 +113,14 @@ class ConditionalImageJigsaws(ConditionalImage):
         predictor = Model(ins + [prev_option_in],
                 [image_out, image_out2, next_option_out])
         predictor.compile(
-                loss=[lfn, lfn, "binary_crossentropy"],
+                loss=[self.loss, self.loss, "binary_crossentropy"],
                 loss_weights=[1., 1., 0.1],
                 optimizer=self.getOptimizer())
         model = Model(ins + [prev_option_in],
-                [image_out, image_out2, next_option_out, disc_out2])
+                [image_out, image_out2, next_option_out])#, disc_out2])
         model.compile(
-                loss=[lfn, lfn, "binary_crossentropy", "categorical_crossentropy"],
-                loss_weights=[1., 1., 0.1, 1e-3],
+                loss=[lfn, lfn, "binary_crossentropy"],# "categorical_crossentropy"],
+                loss_weights=[1., 1., 0.1],#, 1e-3],
                 optimizer=self.getOptimizer())
 
         self.predictor = predictor
@@ -141,5 +141,7 @@ class ConditionalImageJigsaws(ConditionalImage):
 
         label_1h = np.squeeze(ToOneHot2D(label, self.num_options))
         label2_1h = np.squeeze(ToOneHot2D(label2, self.num_options))
-        return [image0, image, label, goal_label, prev_label], [goal_image, goal_image2, label_1h, label2_1h]
+        return ([image0, image, label, goal_label, prev_label],
+                [np.expand_dims(goal_image, axis=1),
+                 np.expand_dims(goal_image2, axis=1), label_1h])#, label2_1h]
 
