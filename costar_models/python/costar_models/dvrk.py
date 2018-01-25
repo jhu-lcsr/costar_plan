@@ -59,6 +59,37 @@ def MakeJigsawsImageClassifier(model, img_shape):
     model.classifier = image_encoder
     return image_encoder
 
+def MakeJigsawsExpand(model, x, h_dim=(12,16)):
+    '''
+    Take a model and project it out to whatever size
+    '''
+    return AddConv2D(h, 64, [1,1], 1, 0.)(x)
+
+def MakeJigsawsMultiDecoder(model, decoder, x, num_images=4, h_dim=(12,16)):
+    '''
+    Make multiple images
+    '''
+    h = Input((h_dim[0], h_dim[1], 64),name="h_in")
+
+    x = h
+    xs = []
+    for i in range(num_images):
+        xi = AddConv2D(x, model.encoder_channels, [5, 5], stride=1,
+                dropout_rate=0.)
+        xi = decoder(xi)
+        img_x = Lambda(
+            lambda y: K.expand_dims(y, 1),
+            name="img_hypothesis_%d"%i)(xi)
+        xs.append(img_x)
+    img_out = Concatenate(axis=1)(image_outs)
+    print(img_out)
+
+    mm = Model(h, img_out, name="multi")
+    mm.compile(loss="mae", optimizer=model.getOptimizer())
+    mm.summary()
+
+    return mm, loss
+
 def MakeJigsawsTransform(model, h_dim=(12,16)):
     '''
     This is the version made for the newer code, it is set up to use both
@@ -76,10 +107,9 @@ def MakeJigsawsTransform(model, h_dim=(12,16)):
 
     This will also set the "transform_model" field of "model".
     '''
-    h = Input((h_dim[0], h_dim[1], model.encoder_channels),name="h_in")
+    h = Input((h_dim[0], h_dim[1], 64),name="h_in")
     h0 = Input((h_dim[0],h_dim[1], model.encoder_channels),name="h0_in")
     option = Input((model.num_options,),name="t_opt_in")
-    x = AddConv2D(h, 64, [1,1], 1, 0.)
     x0 = AddConv2D(h0, 64, [1,1], 1, 0.)
 
     # Combine the hidden state observations
@@ -122,8 +152,8 @@ def MakeJigsawsTransform(model, h_dim=(12,16)):
 
     # --------------------------------------------------------------------
     # Put resulting image into the output shape
-    x = AddConv2D(x, model.encoder_channels, [1, 1], stride=1,
-            dropout_rate=0.)
+    #x = AddConv2D(x, model.encoder_channels, [1, 1], stride=1,
+    #        dropout_rate=0.)
     model.transform_model = Model([h0,h,option], x, name="tform")
     model.transform_model.compile(loss="mae", optimizer=model.getOptimizer())
     #model.transform_model.summary()

@@ -82,17 +82,31 @@ class ConditionalImageJigsaws(ConditionalImage):
         option_in2 = Input((1,), name="option_in2")
         ins += [option_in, option_in2]
 
+        # --------------------------------------------------------------------
+        # Create multiple hypothesis loss
+        lfn = MhpLossWithShape(
+                num_hypotheses=self.num_hypotheses,
+                outputs=[image_size],
+                weights=[1.0],
+                loss=[self.loss],
+                avg_weight=0.05,
+                stats=stats
+                )
+
+        # --------------------------------------------------------------------
         # Image model
+        h_dim = (12, 16)
+        multi_decoder = MakeJigsawsMultiDecoder(self, decoder,
+                self.num_hypotheses, h_dim)
         y = Flatten()(OneHot(self.num_options)(option_in))
         y2 = Flatten()(OneHot(self.num_options)(option_in2))
-        x = h
-        tform = MakeJigsawsTransform(self, h_dim=(12,16))
-        x = tform([h0, h, y])
+        x = MakeJigsawsExpand(self, h, h_dim)
+        tform = MakeJigsawsTransform(self, h_dim)
+        x = tform([h0, x, y])
         x2 = tform([h0, x, y2])
-        image_out, image_out2 = decoder([x]), decoder([x2])
+        image_out, image_out2 = multi_decoder([x]), multi_decoder([x2])
         disc_out2 = image_discriminator(image_out2)
 
-        lfn = self.loss
         lfn2 = "logcosh"
 
         # =====================================================================
@@ -107,7 +121,7 @@ class ConditionalImageJigsaws(ConditionalImage):
                 [image_out, image_out2, next_option_out, disc_out2])
         model.compile(
                 loss=[lfn, lfn, "binary_crossentropy", "categorical_crossentropy"],
-                loss_weights=[1., 1., 0.1, 1e-4],
+                loss_weights=[1., 1., 0.1, 1e-3],
                 optimizer=self.getOptimizer())
 
         self.predictor = predictor
