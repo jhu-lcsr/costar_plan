@@ -64,6 +64,10 @@ def GetModelParser():
     parser.add_argument("--optimizer","--opt",
                         help="optimizer to use with learning",
                         default="adam")
+    parser.add_argument("--clip_weights",
+                        help="clip the weights to [-value to +value] (0 is no clipping)",
+                        type=int,
+                        default=0),
     parser.add_argument("-z", "--zdim", "--noise_dim",
                         help="size of action parameterization",
                         type=int,
@@ -176,7 +180,11 @@ def GetModelParser():
     parser.add_argument("--preload",
                         help="preload all files into RAM", default=False,
                         action='store_true')
-
+    parser.add_argument("--wasserstein",
+                        help="Use weisserstein gan loss. Sets clip_weights to 0.01",
+                        default=False,
+                        dest='use_wasserstein',
+                        action='store_true')
     return parser
 
 def GetSubmodelOptions():

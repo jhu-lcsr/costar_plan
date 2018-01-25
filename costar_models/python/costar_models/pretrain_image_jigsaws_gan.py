@@ -15,6 +15,19 @@ from .dvrk import *
 
 class PretrainImageJigsawsGan(PretrainImageGan):
 
+    def __init__(self, *args, **kwargs):
+        '''
+        As in the other models, we call super() to parse arguments from the
+        command line and set things like our optimizer and learning rate.
+        '''
+        super(PretrainImageJigsawsGan, self).__init__(*args, **kwargs)
+
+        # This is literally the only change from the husky version
+        self.num_generator_files = 1
+
+        # Also set up the number of options we expect
+        self.num_options = SuturingNumOptions()
+
     def _makeModel(self, image, *args, **kwargs):
         '''
         Little helper function wraps makePredictor to consturct all the models.
@@ -27,20 +40,6 @@ class PretrainImageJigsawsGan(PretrainImageGan):
             self._makePredictor(image)
         if self.train_predictor is None:
             raise RuntimeError('did not make trainable model')
-
-    def __init__(self, *args, **kwargs):
-        '''
-        As in the other models, we call super() to parse arguments from the
-        command line and set things like our optimizer and learning rate.
-        '''
-        super(PretrainImageJigsawsGan, self).__init__(*args, **kwargs)
-        self.PredictorCb = ImageCb
-
-        # This is literally the only change from the husky version
-        self.num_generator_files = 1
-
-        # Also set up the number of options we expect
-        self.num_options = SuturingNumOptions()
 
     def _makePredictor(self, images):
         '''
@@ -61,11 +60,9 @@ class PretrainImageJigsawsGan(PretrainImageGan):
         if self.load_pretrained_weights:
             try:
                 encoder.load_weights(self.makeName(
-                    "pretrain_image_encoder",
-                    "image_encoder"))
+                    "pretrain_image_encoder", "image_encoder"))
                 decoder.load_weights(self.makeName(
-                    "pretrain_image_encoder",
-                    "image_decoder"))
+                    "pretrain_image_encoder", "image_decoder"))
             except Exception as e:
                 print(">>> could not load pretrained image weights")
                 print(e)
@@ -77,9 +74,11 @@ class PretrainImageJigsawsGan(PretrainImageGan):
         image_discriminator.trainable = False
         o1 = image_discriminator([img_in, gen_out])
 
+        loss = wasserstein_loss if self.use_wasserstein else "binary_crossentropy"
+
         self.model = Model([img_in], [gen_out, o1])
         self.model.compile(
-                loss=["mae"] + [wasserstein_loss],
+                loss=["mae", loss],
                 loss_weights=[1., 1.],
                 optimizer=self.getOptimizer())
 
@@ -105,21 +104,28 @@ class PretrainImageJigsawsGan(PretrainImageGan):
         img0 = Input(img_shape,name="img0_encoder_in")
         ins = [img, img0]
         dr = 0.3
+
+        if self.use_wasserstein:
+            loss = wasserstein_loss
+            activation = "linear"
+        else:
+            loss = "binary_crossentropy"
+            activation = "sigmoid"
         
         x = AddConv2D(img, 32, [4,4], 1, 0, "same", lrelu=True, bn=False)
         x0 = AddConv2D(img0, 32, [4,4], 1, 0, "same", lrelu=True, bn=False)
         x = Add()([x, x0])
         #x = Concatenate(axis=-1)([img0, img])
-        x = AddConv2D(x, 32, [4,4], 2, dr, "valid", lrelu=True, bn=False)
-        x = AddConv2D(x, 64, [4,4], 2, dr, "valid", lrelu=True, bn=False)
-        x = AddConv2D(x, 128, [4,4], 2, dr, "valid", lrelu=True, bn=False)
-        x = AddConv2D(x, 256, [4,4], 2, dr, "valid", lrelu=True, bn=False)
-        x = AddConv2D(x, 1, [1,1], 1, dr, "same", lrelu=True, bn=False)
-        x = AveragePooling2D(pool_size=(4,6))(x)
+        x = AddConv2D(x, 32, [4,4], 2, dr, "same", lrelu=True, bn=False)
+        x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
+        x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True, bn=False)
+        #x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True, bn=False)
+        x = AddConv2D(x, 1, [1,1], 1, dr, "same", activation=activation, bn=False)
+        x = AveragePooling2D(pool_size=(12,16))(x)
         x = Flatten()(x)
         #x = Dense(1, activation="linear")(x)
         discrim = Model(ins, x, name="image_discriminator")
-        discrim.compile(loss=wasserstein_loss,
+        discrim.compile(loss=loss,
                 optimizer=self.getOptimizer())
         self.image_discriminator = discrim
         return discrim
