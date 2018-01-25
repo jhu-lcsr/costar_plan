@@ -84,42 +84,41 @@ def MakeJigsawsTransform(model, h_dim=(12,16)):
 
     # Combine the hidden state observations
     x = Concatenate()([x, x0])
-    x = AddConv2D(x, 64, [5,5], 1, model.dropout_rate)
+    x = AddConv2D(x, 64, [5,5], 1, 0.)
+    skip0 = x
 
     # store this for skip connection
+    x = AddConv2D(x, 64, [5,5], 2, 0.)
     skip = x
 
     # Add dense information
     y = AddDense(option, 64, "relu", 0., constraint=None, output=False)
-    x = TileOnto(x, y, 64, h_dim)
+    x = TileOnto(x, y, 64, (h_dim[0]/2, h_dim[1]/2), add=True)
     x = AddConv2D(x, 64, [5,5], 1, 0.)
-    #x = AddConv2D(x, 128, [5,5], 2, 0.)
 
     # --- start ssm block
-    use_ssm = True
-    if use_ssm:
-        def _ssm(x):
-            return spatial_softmax(x)
-        x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
-        x = AddDense(x, 256, "relu", 0.,
-                constraint=None, output=False,)
-        x = AddDense(x, h_dim[0] * h_dim[1] * 32/4, "relu", 0., constraint=None, output=False)
-        x = Reshape([h_dim[0]/2, h_dim[1]/2, 32])(x)
-    else:
-        x = AddConv2D(x, 128, [5,5], 1, 0.)
-    x = AddConv2DTranspose(x, 64, [5,5], 2,
-            model.dropout_rate)
+    def _ssm(x):
+        return spatial_softmax(x)
+    x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
+    x = AddDense(x, 128, "relu", 0.,
+            constraint=None, output=False,)
+    x = AddDense(x, h_dim[0] * h_dim[1] * 64/16, "relu", model.dropout_rate, constraint=None, output=False)
+    x = Reshape([h_dim[0]/4, h_dim[1]/4, 64])(x)
+    x = AddConv2DTranspose(x, 64, [5,5], 2, 0.)
+
     # --- end ssm block
+    x = Concatenate()([x, skip])
+    x = Dropout(model.dropout_rate)(x)
+    x = AddConv2DTranspose(x, 64,
+            [5,5],
+            stride=2,
+            dropout_rate=model.dropout_rate)
 
-    if model.skip_connections or True:
-        x = Concatenate()([x, skip])
-
-    for i in range(1):
-        #x = TileOnto(x, y, model.num_options, (8,8))
-        x = AddConv2D(x, 64,
-                [7,7],
-                stride=1,
-                dropout_rate=model.dropout_rate)
+    x = Concatenate()([x, skip0])
+    x = AddConv2D(x, 64,
+            [5,5],
+            stride=1,
+            dropout_rate=model.dropout_rate)
 
     # --------------------------------------------------------------------
     # Put resulting image into the output shape
@@ -127,6 +126,7 @@ def MakeJigsawsTransform(model, h_dim=(12,16)):
             dropout_rate=0.)
     model.transform_model = Model([h0,h,option], x, name="tform")
     model.transform_model.compile(loss="mae", optimizer=model.getOptimizer())
+    #model.transform_model.summary()
     return model.transform_model
 
 
