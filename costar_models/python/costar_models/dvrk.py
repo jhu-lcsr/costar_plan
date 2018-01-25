@@ -63,9 +63,9 @@ def MakeJigsawsExpand(model, x, h_dim=(12,16)):
     '''
     Take a model and project it out to whatever size
     '''
-    return AddConv2D(h, 64, [1,1], 1, 0.)(x)
+    return AddConv2D(x, 64, [1,1], 1, 0.)
 
-def MakeJigsawsMultiDecoder(model, decoder, x, num_images=4, h_dim=(12,16)):
+def MakeJigsawsMultiDecoder(model, decoder, num_images=4, h_dim=(12,16)):
     '''
     Make multiple images
     '''
@@ -81,14 +81,12 @@ def MakeJigsawsMultiDecoder(model, decoder, x, num_images=4, h_dim=(12,16)):
             lambda y: K.expand_dims(y, 1),
             name="img_hypothesis_%d"%i)(xi)
         xs.append(img_x)
-    img_out = Concatenate(axis=1)(image_outs)
-    print(img_out)
+    img_out = Concatenate(axis=1)(xs)
 
     mm = Model(h, img_out, name="multi")
     mm.compile(loss="mae", optimizer=model.getOptimizer())
-    mm.summary()
 
-    return mm, loss
+    return mm
 
 def MakeJigsawsTransform(model, h_dim=(12,16)):
     '''
@@ -110,6 +108,7 @@ def MakeJigsawsTransform(model, h_dim=(12,16)):
     h = Input((h_dim[0], h_dim[1], 64),name="h_in")
     h0 = Input((h_dim[0],h_dim[1], model.encoder_channels),name="h0_in")
     option = Input((model.num_options,),name="t_opt_in")
+    x = h # This is already encoded
     x0 = AddConv2D(h0, 64, [1,1], 1, 0.)
 
     # Combine the hidden state observations
