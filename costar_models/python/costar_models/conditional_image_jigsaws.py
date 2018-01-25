@@ -114,7 +114,7 @@ class ConditionalImageJigsaws(ConditionalImage):
         predictor = Model(ins + [prev_option_in],
                 [image_out, image_out2])
         predictor.compile(
-                loss=[self.loss, self.loss, "binary_crossentropy"],
+                loss=[self.loss, self.loss],#, "binary_crossentropy"],
                 loss_weights=[1., 1.],
                 optimizer=self.getOptimizer())
         model = Model(ins + [prev_option_in],
