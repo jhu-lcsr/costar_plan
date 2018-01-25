@@ -67,11 +67,15 @@ def _makeSmartPlaceRequest(poses, name):
     req.obj_class = "place"
     return req
 
-def _makeSmartGraspRequest(poses, name):
+def _makeSmartGraspRequest(color):
     '''
     Helper function to create a grasp request via smartmove.
     '''
     req = SmartMove()
+    req.pose = None
+    if not color in ["red", "blue", "green", "yellow"]:
+        raise RuntimeError("color %s not recognized" % color)
+    req.obj_class = "%s_cube" % color
 
 def MakeStackTask():
     '''

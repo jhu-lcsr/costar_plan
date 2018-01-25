@@ -67,7 +67,7 @@ class Observer(object):
 
         # Step 2. Compile the plan.
         self.world.addObjects(args)
-        filled_args = self.task.compile(args)
+        #filled_args = self.task.compile(args)
         print(filled_args)
 
         # Env is the wrapper that interfaces with the world and consumes
