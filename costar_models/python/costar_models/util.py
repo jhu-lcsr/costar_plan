@@ -238,5 +238,6 @@ def GetModels():
             "pretrain_image_gan",
             "discriminator",
             "goal_discriminator",
+            "secondary", # train secondary models like value, actor, state, etc
             ]
 

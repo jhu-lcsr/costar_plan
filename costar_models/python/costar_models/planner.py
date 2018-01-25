@@ -844,6 +844,9 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     option_in = Input((1,), name="Nx_prev_o_in")
     x = xin
     x0 = x0in
+
+    # Combine these two to get information that may be obscured
+
     #x = Concatenate()([x0in, xin])
     if len(x.shape) > 2:
         # Project
