@@ -86,7 +86,7 @@ class ConditionalImageJigsaws(ConditionalImage):
         # Create multiple hypothesis loss
         lfn = MhpLossWithShape(
                 num_hypotheses=self.num_hypotheses,
-                outputs=[image_size],
+                outputs=[img_size],
                 weights=[1.0],
                 loss=[self.loss],
                 avg_weight=0.05,
