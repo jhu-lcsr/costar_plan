@@ -56,7 +56,7 @@ def MakeJigsawsImageClassifier(model, img_shape):
     x = Flatten()(x)
     x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
     x = AddDense(x, model.num_options, "softmax", 0., output=True, bn=False)
-    image_encoder = Model([img], x, name="classifier")
+    image_encoder = Model([img0, img], x, name="classifier")
     image_encoder.compile(loss="categorical_crossentropy",
                           metrics=["accuracy"],
                           optimizer=model.getOptimizer())
