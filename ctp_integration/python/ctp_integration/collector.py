@@ -57,6 +57,7 @@ class DataCollector(object):
 
         self.root = data_root
         self.data_type = data_type
+        rospy.logwarn("Dataset root set to " + str(self.root))
         if self.data_type == "h5f":
             self.writer = H5fDataset(self.root)
         elif self.data_type == "npz":
