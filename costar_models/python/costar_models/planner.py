@@ -1101,3 +1101,12 @@ def LoadClassifierWeights(model, make_classifier_fn, img_shape):
             model.makeName("discriminator", "classifier"))
     image_discriminator.trainable = False
     return image_discriminator
+
+def MultiDiscriminator(x, discriminator, num_hypotheses):
+    disc = []
+    for i in range(num_hypotheses:
+            xi = x[i]
+            disc.append(discriminator([img0, xi]))
+    res = Concatenate(axis=1)(xs)
+    print(disc, res)
+    return res

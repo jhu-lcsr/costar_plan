@@ -54,9 +54,9 @@ class ConditionalImageJigsaws(ConditionalImage):
         # =====================================================================
         # Load weights and stuff
         LoadEncoderWeights(self, encoder, decoder, gan=True)
-        #image_discriminator = LoadGoalClassifierWeights(self,
-        #        make_classifier_fn=MakeJigsawsImageClassifier,
-        #        img_shape=img_shape)
+        image_discriminator = LoadGoalClassifierWeights(self,
+                make_classifier_fn=MakeJigsawsImageClassifier,
+                img_shape=img_shape)
 
         # =====================================================================
         # Create encoded state
@@ -92,6 +92,13 @@ class ConditionalImageJigsaws(ConditionalImage):
                 loss=[self.loss],
                 avg_weight=0.1,
                 )
+        lfn2 = MhpLossWithShape(
+                num_hypotheses=self.num_hypotheses,
+                outputs=[self.num_options],
+                weights=[1.0],
+                loss=["binary_crossentropy"],
+                avg_weight=1.,
+                )
 
         # --------------------------------------------------------------------
         # Image model
@@ -105,23 +112,22 @@ class ConditionalImageJigsaws(ConditionalImage):
         x = tform([h0, x, y])
         x2 = tform([h0, x, y2])
         image_out, image_out2 = multi_decoder([x]), multi_decoder([x2])
-        #disc_out2 = image_discriminator(image_out2)
-
-        lfn2 = "logcosh"
+        disc_out2 = MultiDiscriminator(image_out2, image_discriminator,
+                self.num_hypotheses)
 
         # =====================================================================
         # Create models to train
         predictor = Model(ins + [prev_option_in],
                 [image_out, image_out2])
         predictor.compile(
-                loss=[self.loss, self.loss],#, "binary_crossentropy"],
+                loss=[self.loss, self.loss],
                 loss_weights=[1., 1.],
                 optimizer=self.getOptimizer())
         model = Model(ins + [prev_option_in],
-                [image_out, image_out2])#, disc_out2])
+                [image_out, image_out2, disc_out2])
         model.compile(
-                loss=[lfn, lfn],# "categorical_crossentropy"],
-                loss_weights=[1., 1.],#, 1e-3],
+                loss=[lfn, lfn, lfn2],
+                loss_weights=[1., 1., 1e-3],
                 optimizer=self.getOptimizer())
 
         self.predictor = predictor
@@ -146,5 +152,6 @@ class ConditionalImageJigsaws(ConditionalImage):
         return ([image0, image, label, goal_label, prev_label],
                 [np.expand_dims(goal_image, axis=1),
                  #np.expand_dims(goal_image2, axis=1), label_1h])#, label2_1h]
-                 np.expand_dims(goal_image2, axis=1)])
+                 np.expand_dims(goal_image2, axis=1),
+                 np.expand_dims(label2_1h, axis=1)])
 
