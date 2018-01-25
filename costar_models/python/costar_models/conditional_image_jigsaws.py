@@ -15,10 +15,7 @@ from keras.models import Model, Sequential
 from keras.optimizers import Adam
 from matplotlib import pyplot as plt
 
-from .abstract import *
-from .callbacks import *
 from .robot_multi_models import *
-from .split import *
 from .mhp_loss import *
 from .loss import *
 from .sampler2 import *
@@ -33,10 +30,14 @@ class ConditionalImageJigsaws(ConditionalImage):
         super(ConditionalImageJigsaws, self).__init__(*args, **kwargs)
 
         self.num_options = SuturingNumOptions()
+        self.PredictorCb = PredictorShowImageOnlyMultiStep
 
     def _makeModel(self, image, *args, **kwargs):
 
         img_shape = image.shape[1:]
+        img_size = 1.
+        for dim in img_shape:
+            img_size *= dim
 
         img0_in = Input(img_shape, name="predictor_img0_in")
         img_in = Input(img_shape, name="predictor_img_in")
@@ -52,7 +53,7 @@ class ConditionalImageJigsaws(ConditionalImage):
 
         # =====================================================================
         # Load weights and stuff
-        LoadEncoderWeights(self, encoder, decoder)
+        LoadEncoderWeights(self, encoder, decoder, gan=True)
         image_discriminator = LoadGoalClassifierWeights(self,
                 make_classifier_fn=MakeJigsawsImageClassifier,
                 img_shape=img_shape)
@@ -82,17 +83,30 @@ class ConditionalImageJigsaws(ConditionalImage):
         option_in2 = Input((1,), name="option_in2")
         ins += [option_in, option_in2]
 
+        # --------------------------------------------------------------------
+        # Create multiple hypothesis loss
+        lfn = MhpLossWithShape(
+                num_hypotheses=self.num_hypotheses,
+                outputs=[img_size],
+                weights=[1.0],
+                loss=[self.loss],
+                avg_weight=0.05,
+                )
+
+        # --------------------------------------------------------------------
         # Image model
+        h_dim = (12, 16)
+        multi_decoder = MakeJigsawsMultiDecoder(self, decoder,
+                self.num_hypotheses, h_dim)
         y = Flatten()(OneHot(self.num_options)(option_in))
         y2 = Flatten()(OneHot(self.num_options)(option_in2))
-        x = h
-        tform = MakeJigsawsTransform(self, h_dim=(12,16))
-        x = tform([h0, h, y])
+        x = MakeJigsawsExpand(self, h, h_dim)
+        tform = MakeJigsawsTransform(self, h_dim)
+        x = tform([h0, x, y])
         x2 = tform([h0, x, y2])
-        image_out, image_out2 = decoder([x]), decoder([x2])
-        disc_out2 = image_discriminator(image_out2)
+        image_out, image_out2 = multi_decoder([x]), multi_decoder([x2])
+        #disc_out2 = image_discriminator(image_out2)
 
-        lfn = self.loss
         lfn2 = "logcosh"
 
         # =====================================================================
@@ -100,18 +114,19 @@ class ConditionalImageJigsaws(ConditionalImage):
         predictor = Model(ins + [prev_option_in],
                 [image_out, image_out2, next_option_out])
         predictor.compile(
-                loss=[lfn, lfn, "binary_crossentropy"],
+                loss=[self.loss, self.loss, "binary_crossentropy"],
                 loss_weights=[1., 1., 0.1],
                 optimizer=self.getOptimizer())
         model = Model(ins + [prev_option_in],
-                [image_out, image_out2, next_option_out, disc_out2])
+                [image_out, image_out2, next_option_out])#, disc_out2])
         model.compile(
-                loss=[lfn, lfn, "binary_crossentropy", "categorical_crossentropy"],
-                loss_weights=[1., 1., 0.1, 1e-4],
+                loss=[lfn, lfn, "binary_crossentropy"],# "categorical_crossentropy"],
+                loss_weights=[1., 1., 0.1],#, 1e-3],
                 optimizer=self.getOptimizer())
 
         self.predictor = predictor
         self.model = model
+        self.model.summary()
 
     def _getData(self, image, label, goal_image, goal_label,
             prev_label, *args, **kwargs):
@@ -128,5 +143,7 @@ class ConditionalImageJigsaws(ConditionalImage):
 
         label_1h = np.squeeze(ToOneHot2D(label, self.num_options))
         label2_1h = np.squeeze(ToOneHot2D(label2, self.num_options))
-        return [image0, image, label, goal_label, prev_label], [goal_image, goal_image2, label_1h, label2_1h]
+        return ([image0, image, label, goal_label, prev_label],
+                [np.expand_dims(goal_image, axis=1),
+                 np.expand_dims(goal_image2, axis=1), label_1h])#, label2_1h]
 

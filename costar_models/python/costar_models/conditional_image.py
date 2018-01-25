@@ -104,12 +104,6 @@ class ConditionalImage(PredictionSampler2):
         #value_out = value_model([h,label_in])
         #next_option_out = next_model([h,label_in])
 
-        # create input for controlling noise output if that's what we decide
-        # that we want to do
-        if self.use_noise:
-            z = Input((self.num_hypotheses, self.noise_dim))
-            ins += [z]
-
         next_option_in = Input((1,), name="next_option_in")
         next_option_in2 = Input((1,), name="next_option_in2")
         ins += [next_option_in, next_option_in2]
@@ -159,7 +153,8 @@ class ConditionalImage(PredictionSampler2):
             train_predictor.compile(
                     loss=[lfn, lfn, "binary_crossentropy", val_loss,
                         lfn2, lfn2, "categorical_crossentropy"],
-                    loss_weights=[1., 1., 0.1, 0.1, 1., 0.2, 1e-4],
+                    #loss_weights=[1., 1., 0.1, 0.1, 1., 0.2, 1e-3],
+                    loss_weights=[1., 1., 0., 0., 0., 0., 1e-3],
                     optimizer=self.getOptimizer())
         else:
             train_predictor = Model(ins + [label_in],

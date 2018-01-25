@@ -85,6 +85,22 @@ rosrun costar_models ctp_model_tool --model pretrain_image --data_file suturing_
 rosrun costar_models ctp_model_tool --model pretrain_image_gan --data_file suturing_data.h5f --lr 0.001 --dropout_rate 0.2 --features jigsaws --batch_size 32
 ```
 
+#### Wasserstein GAN
+
+We also implemented Wasserstein GAN training.
+
+```
+# Run with wasserstein GAN loss
+rosrun costar_models ctp_model_tool --model pretrain_image_gan \
+  --features jigsaws --batch_size 64 --data_file suturing_data2.h5f \
+  --lr 0.00005 --optimizer rmsprop --steps_per_epoch 100 \
+  --dropout_rate 0.1 --load_model --preload  --wasserstein
+```
+
+Some options here:
+  - `--preload` will try to store the whole data set in memory for faster procesing
+  - `--wasserstein` will tell the GAN to try something different (wasserstein loss)
+
 ## Training On MARCC
 
 MARCC is our cluster for machine learning, equipped with a large set of Tesla K80 GPUs. We assume that when training on a cluster like MARCC, you will not want a full ROS workspace, so instead we assume you will install to some path $COSTAR_PLAN and just run scripts.

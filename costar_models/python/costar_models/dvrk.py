@@ -59,6 +59,37 @@ def MakeJigsawsImageClassifier(model, img_shape):
     model.classifier = image_encoder
     return image_encoder
 
+def MakeJigsawsExpand(model, x, h_dim=(12,16)):
+    '''
+    Take a model and project it out to whatever size
+    '''
+    return AddConv2D(x, 64, [1,1], 1, 0.)
+
+def MakeJigsawsMultiDecoder(model, decoder, num_images=4, h_dim=(12,16)):
+    '''
+    Make multiple images
+    '''
+    h = Input((h_dim[0], h_dim[1], 64),name="h_in")
+
+    # Add some dropout so we don't end up overfitting our examples
+    x = Dropout(model.dropout_rate)(h)
+
+    xs = []
+    for i in range(num_images):
+        xi = AddConv2D(x, model.encoder_channels, [5, 5], stride=1,
+                dropout_rate=0.)
+        xi = decoder(xi)
+        img_x = Lambda(
+            lambda y: K.expand_dims(y, 1),
+            name="img_hypothesis_%d"%i)(xi)
+        xs.append(img_x)
+    img_out = Concatenate(axis=1)(xs)
+
+    mm = Model(h, img_out, name="multi")
+    mm.compile(loss="mae", optimizer=model.getOptimizer())
+
+    return mm
+
 def MakeJigsawsTransform(model, h_dim=(12,16)):
     '''
     This is the version made for the newer code, it is set up to use both
@@ -76,57 +107,57 @@ def MakeJigsawsTransform(model, h_dim=(12,16)):
 
     This will also set the "transform_model" field of "model".
     '''
-    h = Input((h_dim[0], h_dim[1], model.encoder_channels),name="h_in")
+    h = Input((h_dim[0], h_dim[1], 64),name="h_in")
     h0 = Input((h_dim[0],h_dim[1], model.encoder_channels),name="h0_in")
     option = Input((model.num_options,),name="t_opt_in")
-    x = AddConv2D(h, 64, [1,1], 1, 0.)
+    x = h # This is already encoded
     x0 = AddConv2D(h0, 64, [1,1], 1, 0.)
 
     # Combine the hidden state observations
     x = Concatenate()([x, x0])
-    x = AddConv2D(x, 64, [5,5], 1, model.dropout_rate)
+    x = AddConv2D(x, 64, [5,5], 1, 0.)
+    skip0 = x
 
     # store this for skip connection
+    x = AddConv2D(x, 64, [5,5], 2, 0.)
     skip = x
 
     # Add dense information
     y = AddDense(option, 64, "relu", 0., constraint=None, output=False)
-    x = TileOnto(x, y, 64, h_dim)
+    x = TileOnto(x, y, 64, (h_dim[0]/2, h_dim[1]/2), add=True)
     x = AddConv2D(x, 64, [5,5], 1, 0.)
-    #x = AddConv2D(x, 128, [5,5], 2, 0.)
 
     # --- start ssm block
-    use_ssm = True
-    if use_ssm:
-        def _ssm(x):
-            return spatial_softmax(x)
-        x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
-        x = AddDense(x, 256, "relu", 0.,
-                constraint=None, output=False,)
-        x = AddDense(x, h_dim[0] * h_dim[1] * 32/4, "relu", 0., constraint=None, output=False)
-        x = Reshape([h_dim[0]/2, h_dim[1]/2, 32])(x)
-    else:
-        x = AddConv2D(x, 128, [5,5], 1, 0.)
-    x = AddConv2DTranspose(x, 64, [5,5], 2,
-            model.dropout_rate)
+    def _ssm(x):
+        return spatial_softmax(x)
+    x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
+    x = AddDense(x, 128, "relu", 0.,
+            constraint=None, output=False,)
+    x = AddDense(x, h_dim[0] * h_dim[1] * 64/16, "relu", model.dropout_rate, constraint=None, output=False)
+    x = Reshape([h_dim[0]/4, h_dim[1]/4, 64])(x)
+    x = AddConv2DTranspose(x, 64, [5,5], 2, 0.)
+
     # --- end ssm block
+    x = Concatenate()([x, skip])
+    x = Dropout(model.dropout_rate)(x)
+    x = AddConv2DTranspose(x, 64,
+            [5,5],
+            stride=2,
+            dropout_rate=model.dropout_rate)
 
-    if model.skip_connections or True:
-        x = Concatenate()([x, skip])
-
-    for i in range(1):
-        #x = TileOnto(x, y, model.num_options, (8,8))
-        x = AddConv2D(x, 64,
-                [7,7],
-                stride=1,
-                dropout_rate=model.dropout_rate)
+    x = Concatenate()([x, skip0])
+    x = AddConv2D(x, 64,
+            [5,5],
+            stride=1,
+            dropout_rate=model.dropout_rate)
 
     # --------------------------------------------------------------------
     # Put resulting image into the output shape
-    x = AddConv2D(x, model.encoder_channels, [1, 1], stride=1,
-            dropout_rate=0.)
+    #x = AddConv2D(x, model.encoder_channels, [1, 1], stride=1,
+    #        dropout_rate=0.)
     model.transform_model = Model([h0,h,option], x, name="tform")
     model.transform_model.compile(loss="mae", optimizer=model.getOptimizer())
+    #model.transform_model.summary()
     return model.transform_model
 
 
