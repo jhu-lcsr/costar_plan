@@ -108,6 +108,8 @@ class ConditionalImage(PredictionSampler2):
         next_option_in2 = Input((1,), name="next_option_in2")
         ins += [next_option_in, next_option_in2]
 
+        # =====================================================================
+        # Apply transforms
         y = OneHot(self.num_options)(next_option_in)
         y = Flatten()(y)
         y2 = OneHot(self.num_options)(next_option_in2)
@@ -118,8 +120,9 @@ class ConditionalImage(PredictionSampler2):
         x2 = tform([h0,x,y2])
         image_out = decoder([x])
         image_out2 = decoder([x2])
-        #image_out = decoder([x, s32, s16, s8])
 
+        # =====================================================================
+        # Compute classifier on the last transform
         disc_out2 = image_discriminator([img0_in, image_out2])
 
         # =====================================================================
