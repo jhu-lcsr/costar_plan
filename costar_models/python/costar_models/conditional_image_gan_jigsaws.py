@@ -14,6 +14,7 @@ from matplotlib import pyplot as plt
 from .conditional_image_gan import ConditionalImageGan
 from .dvrk import *
 from .data_utils import *
+from .pretrain_image_gan import wasserstein_loss
 
 class ConditionalImageGanJigsaws(ConditionalImageGan):
     '''
@@ -59,7 +60,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         y = Flatten()(OneHot(self.num_options)(option_in))
         y2 = Flatten()(OneHot(self.num_options)(option_in2))
         x = h
-        tform = MakeJigsawsTransform(self, h_dim=(12,16))
+        tform = MakeJigsawsTransform(self, h_dim=(12,16), small=True)
         x = tform([h0, h, y])
         x2 = tform([h0, x, y2])
         image_out, image_out2 = decoder([x]), decoder([x2])
