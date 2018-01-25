@@ -7,34 +7,37 @@ def GetPoses():
     '''
     All poses have been recorded relative to /base_link. If the robot moves
     they may no longer work.
+
+    This creates the poses necessary to make certain colorful patterns on the
+    bottom of the white tray.
     '''
     pose1_left = kdl.Frame(
             kdl.Rotation.Quaternion(),
             kdl.Vector(0.493, -0.202, 0.216))
     pose2_left = kdl.Frame(
-            kdl.Rotation.Quaternion(),
-            kdl.Vector())
+            kdl.Rotation.Quaternion(0.610, 0.318, -0.549, 0.474),
+            kdl.Vector(0.450, -0.304, 0.216))
     pose3_left = kdl.Frame(
-            kdl.Rotation.Quaternion(),
-            kdl.Vector())
+            kdl.Rotation.Quaternion(0.603, 0.320, -0.528, 0.505),
+            kdl.Vector(0.557, -0.336, 0.198))
     pose4_left = kdl.Frame(
-            kdl.Rotation.Quaternion(),
-            kdl.Vector())
+            kdl.Rotation.Quaternion(0.627, 0.320, -0.518, 0.486),
+            kdl.Vector(0.594, -0.228, 0.205))
     pose1_right = kdl.Frame(
-            kdl.Rotation.Quaternion(),
-            kdl.Vector(0.493, -0.202, 0.216))
+            kdl.Rotation.Quaternion(0.650, 0.300, -0.451, 0.533),
+            kdl.Vector(0.492, 0.013, 0.214))
     pose2_right = kdl.Frame(
-            kdl.Rotation.Quaternion(),
-            kdl.Vector())
+            kdl.Rotation.Quaternion(0.645, 0.304, -0.467, 0.523),
+            kdl.Vector(0.480, -0.089, 0.210))
     pose3_right = kdl.Frame(
-            kdl.Rotation.Quaternion(),
-            kdl.Vector())
+            kdl.Rotation.Quaternion(0.657, 0.283, -0.472, 0.514),
+            kdl.Vector(0.569, -0.110, 0.198))
     pose4_right = kdl.Frame(
-            kdl.Rotation.Quaternion(),
-            kdl.Vector())
+            kdl.Rotation.Quaternion(0.638, 0.330, -0.421, 0.553),
+            kdl.Vector(0.596, -0.014, 0.203))
     pose_home = kdl.Frame(
-            kdl.Rotation.Quaternion(),
-            kdl.Vector())
+            kdl.Rotation.Quaternion(0.711, -0.143, -0.078, 0.684),
+            kdl.Vector(0.174, -0.157, 0.682))
     poses = {"home": pose_home,
              "pose1_left": pose1_left,
              "pose2_left": pose2_left,
