@@ -34,6 +34,9 @@ class ConditionalImageJigsaws(ConditionalImage):
     def _makeModel(self, image, *args, **kwargs):
 
         img_shape = image.shape[1:]
+        img_size = 1.
+        for dim in img_shape:
+            img_size *= dim
 
         img0_in = Input(img_shape, name="predictor_img0_in")
         img_in = Input(img_shape, name="predictor_img_in")
