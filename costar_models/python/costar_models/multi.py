@@ -60,7 +60,7 @@ def MakeImageClassifier(model, img_shape):
     x = AddConv2D(x, 128, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
 
     x = Flatten()(x)
-    #x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
+    x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
     x = AddDense(x, model.num_options, "softmax", 0., output=True, bn=False)
     image_encoder = Model([img0, img], x, name="classifier")
     image_encoder.compile(loss="categorical_crossentropy",
@@ -68,6 +68,62 @@ def MakeImageClassifier(model, img_shape):
             metrics=["accuracy"])
     model.classifier = image_encoder
     return image_encoder
+
+def GetPoseModel(x, num_options, arm_size, gripper_size,
+        dropout_rate=0.5, batchnorm=True):
+    '''
+    Make an "actor" network that takes in an encoded image and an "option"
+    label and produces the next command to execute.
+    '''
+    xin = Input([int(d) for d in x.shape[1:]], name="pose_h_in")
+    x0in = Input([int(d) for d in x.shape[1:]], name="pose_h0_in")
+
+    x = xin
+    if len(x.shape) > 2:
+        # Project
+        x = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="A_project",
+                constraint=None)
+        x0 = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="A0_project",
+                constraint=None)
+        x = Add()([x0,x])
+
+        # conv down
+        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="A_C64A",
+                constraint=None)
+        # conv across
+        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="A_C64B",
+                constraint=None)
+
+        x = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="A_C32A",
+                constraint=None)
+
+        # This is the hidden representation of the world, but it should be flat
+        # for our classifier to work.
+        x = Flatten()(x)
+
+    # Same setup as the state decoders
+    x1 = AddDense(x, 512, "lrelu", dropout_rate, constraint=None, output=False,)
+    x1 = AddDense(x1, 512, "lrelu", 0., constraint=None, output=False,)
+    arm = AddDense(x1, arm_size, "linear", 0., output=True)
+    gripper = AddDense(x1, gripper_size, "sigmoid", 0., output=True)
+    #value = Dense(1, activation="sigmoid", name="V",)(x1)
+    actor = Model([xin, option_in], [arm, gripper], name="pose")
+    return actor
 
 def GetActorModel(x, num_options, arm_size, gripper_size,
         dropout_rate=0.5, batchnorm=True):
@@ -88,8 +144,12 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
                 lrelu=True,
                 name="A_project",
                 constraint=None)
-
-        x = TileOnto(x, option_in, num_options, x.shape[1:3])
+        x0 = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="A0_project",
+                constraint=None)
+        x = Add()([x0,x])
 
         # conv down
         x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
@@ -97,13 +157,14 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
                 lrelu=True,
                 name="A_C64A",
                 constraint=None)
+        x = TileOnto(x, option_in, num_options, x.shape[1:3])
+
         # conv across
         x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
                 bn=batchnorm,
                 lrelu=True,
                 name="A_C64B",
                 constraint=None)
-
 
         x = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
                 bn=batchnorm,
@@ -114,11 +175,9 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
         # for our classifier to work.
         x = Flatten()(x)
 
-    x = Concatenate()([x, option_in])
-
     # Same setup as the state decoders
     x1 = AddDense(x, 512, "lrelu", dropout_rate, constraint=None, output=False,)
-    x1 = AddDense(x1, 512, "lrelu", dropout_rate, constraint=None, output=False,)
+    x1 = AddDense(x1, 512, "lrelu", 0., constraint=None, output=False,)
     arm = AddDense(x1, arm_size, "linear", 0., output=True)
     gripper = AddDense(x1, gripper_size, "sigmoid", 0., output=True)
     #value = Dense(1, activation="sigmoid", name="V",)(x1)
