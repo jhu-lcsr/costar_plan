@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --job-name=ctpHusky
+#SBATCH --job-name=jigsaws
 #SBATCH --time=0-48:0:0
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
@@ -31,7 +31,7 @@ then
     -e 100 \
     --model discriminator \
     --data_file $HOME/work/$DATASET.h5f \
-    --features husky \
+    --features jigsaws \
     --lr $learning_rate \
     --dropout_rate $dropout \
     --model_directory $MODELDIR/ \
@@ -47,7 +47,7 @@ then
     --model goal_discriminator \
     --data_file $HOME/work/$DATASET.h5f \
     --lr $learning_rate \
-    --features husky \
+    --features jigsaws \
     --dropout_rate $dropout \
     --model_directory $MODELDIR/ \
     --optimizer $optimizer \
@@ -87,6 +87,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --lr $learning_rate \
   --dropout_rate $dropout \
   --model_directory $MODELDIR/ \
+  --features jigsaws \
   --optimizer $optimizer \
   --use_noise true \
   --steps_per_epoch 500 \
