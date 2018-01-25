@@ -112,8 +112,12 @@ class ConditionalImageJigsaws(ConditionalImage):
         x = tform([h0, x, y])
         x2 = tform([h0, x, y2])
         image_out, image_out2 = multi_decoder([x]), multi_decoder([x2])
-        disc_out2 = MultiDiscriminator(image_out2, image_discriminator,
-                self.num_hypotheses)
+        multi_disc = MultiDiscriminator(self, image_out2, image_discriminator,
+                img0_in,
+                self.num_hypotheses,
+                img_shape,)
+        multi_disc.trainable = False
+        disc_out2 = multi_disc([img0_in, image_out2])
 
         # =====================================================================
         # Create models to train

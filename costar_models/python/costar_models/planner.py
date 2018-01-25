@@ -1102,11 +1102,23 @@ def LoadClassifierWeights(model, make_classifier_fn, img_shape):
     image_discriminator.trainable = False
     return image_discriminator
 
-def MultiDiscriminator(x, discriminator, num_hypotheses):
+def MultiDiscriminator(model, x, discriminator, img0, num_hypotheses, img_shape):
+    img0 = Input(img_shape)
+    y = Input((num_hypotheses,) + img_shape)
     disc = []
-    for i in range(num_hypotheses:
-            xi = x[i]
-            disc.append(discriminator([img0, xi]))
-    res = Concatenate(axis=1)(xs)
-    print(disc, res)
-    return res
+    x = y
+    for i in range(num_hypotheses):
+            def _slice(y):
+                return y[:,i]
+            xi = Lambda(_slice, name="slice_%d"%i)(x)
+            print(x,xi)
+            d = discriminator([img0, xi])
+            print(d)
+            def _expand_dims(y):
+                return K.expand_dims(y,axis=1)
+            d = Lambda(_expand_dims, name="expand_dims_%d"%i)(d)
+            disc.append(d)
+    res = Concatenate(axis=1)(disc)
+    md = Model([img0, y], res, name="multi_disc")
+    md.compile(loss="mae", optimizer=model.getOptimizer())
+    return md
