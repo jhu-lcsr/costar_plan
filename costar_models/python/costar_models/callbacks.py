@@ -379,7 +379,6 @@ class PredictorShowImageOnlyMultiStep(keras.callbacks.Callback):
                 plt.title('Observed Goal')
                 plt.imshow(np.squeeze(self.targets[k][j]))
                 for i in range(self.num_hypotheses):
-                    print(rand_offset, i, data[k][i].shape)
                     plt.subplot(2,2+self.num_hypotheses,i+2+rand_offset)
                     plt.imshow(np.squeeze(data[k][j][i]))
                     plt.title('Hypothesis %d'%(i+1))
