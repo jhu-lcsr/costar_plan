@@ -1,4 +1,51 @@
+from __future__ import print_function
+
 from costar_task_plan.abstract.task import *
+
+
+def GetPoses():
+    '''
+    All poses have been recorded relative to /base_link. If the robot moves
+    they may no longer work.
+    '''
+    pose1_left = kdl.Frame(
+            kdl.Rotation.Quaternion(),
+            kdl.Vector(0.493, -0.202, 0.216))
+    pose2_left = kdl.Frame(
+            kdl.Rotation.Quaternion(),
+            kdl.Vector())
+    pose3_left = kdl.Frame(
+            kdl.Rotation.Quaternion(),
+            kdl.Vector())
+    pose4_left = kdl.Frame(
+            kdl.Rotation.Quaternion(),
+            kdl.Vector())
+    pose1_right = kdl.Frame(
+            kdl.Rotation.Quaternion(),
+            kdl.Vector(0.493, -0.202, 0.216))
+    pose2_right = kdl.Frame(
+            kdl.Rotation.Quaternion(),
+            kdl.Vector())
+    pose3_right = kdl.Frame(
+            kdl.Rotation.Quaternion(),
+            kdl.Vector())
+    pose4_right = kdl.Frame(
+            kdl.Rotation.Quaternion(),
+            kdl.Vector())
+    pose_home = kdl.Frame(
+            kdl.Rotation.Quaternion(),
+            kdl.Vector())
+    poses = {"home": pose_home,
+             "pose1_left": pose1_left,
+             "pose2_left": pose2_left,
+             "pose3_left": pose3_left,
+             "pose4_left": pose4_left,
+             "pose1_right": pose1_right,
+             "pose2_right": pose2_right,
+             "pose3_right": pose3_right,
+             "pose4_right": pose4_right,}
+    return poses
+
 
 def MakeStackTask():
     '''
