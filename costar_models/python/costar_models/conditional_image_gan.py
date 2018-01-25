@@ -207,7 +207,8 @@ class ConditionalImageGan(PretrainImageGan):
         x = Flatten()(x)
         discrim = Model(ins, x, name="image_discriminator")
         self.lr *= 2.
-        discrim.compile(loss=wasserstein_loss, loss_weights=[1.],
+        loss = wasserstein_loss if self.use_wasserstein else "binary_crossentropy"
+        discrim.compile(loss=loss, loss_weights=[1.],
                 optimizer=self.getOptimizer())
         self.lr *= 0.5
         self.image_discriminator = discrim
