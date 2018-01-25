@@ -373,11 +373,11 @@ class PredictorShowImageOnlyMultiStep(keras.callbacks.Callback):
             plt.subplot(2,2+self.num_hypotheses,1)
             plt.title('Input Image')
             plt.imshow(self.features[0][j])
-            plt.subplot(2,2+self.num_hypotheses,2+self.num_hypotheses)
-            plt.title('Observed Goal')
-            print(len(data[0]),len(data), len(data[0][j]))
             for k in range(2):
                 rand_offset = (k*(2+self.num_hypotheses))
+                plt.subplot(2,2+self.num_hypotheses,2+self.num_hypotheses+rand_offset)
+                plt.title('Observed Goal')
+                plt.imshow(np.squeeze(self.targets[k][j]))
                 for i in range(self.num_hypotheses):
                     print(rand_offset, i, data[k][i].shape)
                     plt.subplot(2,2+self.num_hypotheses,i+2+rand_offset)
