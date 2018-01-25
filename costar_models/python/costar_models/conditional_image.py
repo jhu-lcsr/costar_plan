@@ -120,7 +120,7 @@ class ConditionalImage(PredictionSampler2):
         image_out2 = decoder([x2])
         #image_out = decoder([x, s32, s16, s8])
 
-        disc_out2 = image_discriminator(image_out2)
+        disc_out2 = image_discriminator([img0_in, image_out2])
 
         # =====================================================================
         # Store the models for next time
