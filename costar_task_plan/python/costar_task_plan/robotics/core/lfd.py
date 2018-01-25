@@ -187,7 +187,6 @@ class LfD(object):
                 parent_name = self.parent_skills[name]
             else:
                 parent_name = name
-            print("PARENT =", parent_name)
 
             model = self.skill_models[parent_name]
 
