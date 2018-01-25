@@ -1,6 +1,11 @@
 from __future__ import print_function
 
+import PyKDL as kdl
+import rospy
+import tf_conversions.posemath as pm
+
 from costar_robot_msgs.srv import SmartMove
+from geometry_msgs.msg import Pose
 
 from costar_task_plan.abstract.task import *
 
@@ -51,6 +56,22 @@ def GetPoses():
              "pose4_right": pose4_right,}
     return poses
 
+
+def _makeSmartPlaceRequest(poses, name):
+    '''
+    Helper function for making the place call
+    '''
+    req = SmartMove()
+    req.pose = pm.toMsg(poses[name])
+    req.name = name
+    req.obj_class = "place"
+    return req
+
+def _makeSmartGraspRequest(poses, name):
+    '''
+    Helper function to create a grasp request via smartmove.
+    '''
+    req = SmartMove()
 
 def MakeStackTask():
     '''
