@@ -67,7 +67,7 @@ def MakeJigsawsExpand(model, x, h_dim=(12,16)):
     '''
     Take a model and project it out to whatever size
     '''
-    return AddConv2D(x, 64, [1,1], 1, 0.)
+    return AddConv2D(x, 64, [5,5], 1, 0.)
 
 def MakeJigsawsMultiDecoder(model, decoder, num_images=4, h_dim=(12,16)):
     '''
@@ -79,7 +79,9 @@ def MakeJigsawsMultiDecoder(model, decoder, num_images=4, h_dim=(12,16)):
     xs = []
     for i in range(num_images):
         xi = AddConv2D(x, 64, [5, 5], stride=1,
-                dropout_rate=model.dropout_rate)
+                dropout_rate=0.)
+        xi = AddConv2D(x, 64, [5, 5], stride=1,
+                dropout_rate=0.)
         xi = AddConv2D(xi, model.encoder_channels, [5, 5], stride=1,
                 dropout_rate=0.)
         xi = decoder(xi)
