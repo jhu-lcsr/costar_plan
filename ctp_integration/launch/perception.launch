@@ -34,6 +34,7 @@
     </include>
 
     <include if="$(arg use_external_segmenter)" file="$(find sp_segmenter)/launch/colored_block.launch">
+      <arg name="useObjectPersistence" value="false"/>
     </include>
 
 </launch>

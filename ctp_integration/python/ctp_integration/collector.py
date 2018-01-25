@@ -155,8 +155,8 @@ class DataCollector(object):
                   ee_pose.transform.rotation.z,
                   ee_pose.transform.rotation.w,]
 
-        self.data["q"].append(q)
-        self.data["dq"].append(dq)
+        self.data["q"].append(np.copy(self.q))
+        self.data["dq"].append(np.copy(self.dq))
         self.data["pose"].append(ee_xyz + ee_quat)
         self.data["camera"].append(c_xyz + c_quat)
         self.data["image"].append(np.copy(self.rgb_img))
