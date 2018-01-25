@@ -125,6 +125,7 @@ class ConditionalImageJigsaws(ConditionalImage):
 
         self.predictor = predictor
         self.model = model
+        self.model.summary()
 
     def _getData(self, image, label, goal_image, goal_label,
             prev_label, *args, **kwargs):
