@@ -63,6 +63,8 @@ class Secondary(PredictionSampler2):
         image_discriminator = LoadGoalClassifierWeights(self,
                 make_classifier_fn=MakeImageClassifier,
                 img_shape=img_shape)
+        tform = self._makeTransform()
+        LoadTransformWeights(tform)
 
         # =====================================================================
         # Load the arm and gripper representation
@@ -95,8 +97,6 @@ class Secondary(PredictionSampler2):
                 self.decoder_dropout_rate)
         actor.compile(loss="mae",optimizer=self.getOptimizer())
         arm_cmd, gripper_cmd = actor([h, y])
-        lfn = self.loss
-        lfn2 = "logcosh"
         val_loss = "binary_crossentropy"
 
         # =====================================================================
@@ -105,8 +105,9 @@ class Secondary(PredictionSampler2):
                     arm_cmd,
                     gripper_cmd])
         train_predictor.compile(
-                loss=[lfn, lfn, "binary_crossentropy", val_loss,
-                    lfn2, lfn2, "categorical_crossentropy"],
+                loss=["binary_crossentropy", val_loss,
+                    self.loss, self.loss,
+                    self.loss, self.loss],
                 loss_weights=[1., 1., 1., 0.2],
                 optimizer=self.getOptimizer())
         return None, train_predictor, actor, ins, h
@@ -128,67 +129,5 @@ class Secondary(PredictionSampler2):
         #print("o2 = ", o2, o2.shape, type(o2))
         o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
         return ([I0, I, o1, o2, oin],
-                [ o1_1h, v, qa, ga,])
+                [ o1_1h, v, qa, ga, q, g])
 
-
-    def encode(self, obs):
-        '''
-        Encode available features into a new state
-
-        Parameters:
-        -----------
-        [unknown]: all are parsed via _getData() function.
-        '''
-        return self.image_encoder.predict(obs[1])
-
-    def decode(self, hidden):
-        '''
-        Decode features and produce a set of visualizable images or other
-        feature outputs.
-
-        '''
-        return self.image_decoder.predict(hidden)
-
-    def prevOption(self, features):
-        '''
-        Just gets the previous option from a set of features
-        '''
-        if self.use_noise:
-            return features[4]
-        else:
-            return features[3]
-
-    def encodeInitial(self, obs):
-        '''
-        Call the encoder but only on the initial image frame
-        '''
-        return self.image_encoder.predict(obs[0])
-
-    def pnext(self, hidden, prev_option, features):
-        '''
-        Visualize based on hidden
-        '''
-        h0 = self.encodeInitial(features)
-
-        print(self.next_model.inputs)
-        #p = self.next_model.predict([h0, hidden, prev_option])
-        p = self.next_model.predict([hidden, prev_option])
-        #p = np.exp(p)
-        #p /= np.sum(p)
-        return p
-
-    def value(self, hidden, prev_option, features):
-        h0 = self.encodeInitial(features)
-        #v = self.value_model.predict([h0, hidden, prev_option])
-        v = self.value_model.predict([hidden, prev_option])
-        return v
-
-    def transform(self, hidden, option_in=-1):
-
-        raise NotImplementedError('transform() not implemented')
-
-    def act(self, *args, **kwargs):
-        raise NotImplementedError('act() not implemented')
-
-    def debugImage(self, features):
-        r

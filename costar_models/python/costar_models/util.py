@@ -22,6 +22,7 @@ from .conditional_sampler2 import ConditionalSampler2
 from .conditional_image import ConditionalImage
 from .conditional_image_gan import ConditionalImageGan
 from .discriminator import Discriminator
+from .secondary import Secondary
 
 # Jigsaws stuff
 from .pretrain_image_jigsaws import PretrainImageJigsaws
@@ -130,6 +131,8 @@ def MakeModel(features, model, taskdef, **kwargs):
             model_instance = Discriminator(False, taskdef, model=model, **kwargs)
         elif model == "goal_discriminator":
             model_instance = Discriminator(True, taskdef, model=model, **kwargs)
+        elif model == "secondary":
+            model_instance = Secondary(taskdef, model=model, **kwargs)
     elif features == "jigsaws":
         '''
         These models are all meant for use with the JHU-JIGSAWS dataset. This

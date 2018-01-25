@@ -1082,6 +1082,19 @@ def LoadGoalClassifierWeights(model, make_classifier_fn, img_shape):
     image_discriminator.trainable = False
     return image_discriminator
 
+def LoadTransformWeights(model, tform, gan = False):
+    '''
+    Simple function to load the right transform weights.
+    '''
+    if gan:
+        append = '_gan'
+    else:
+        append = ''
+    tform.load_weights(
+            model.makeName("conditional_image" + append, "transform.h5f"))
+    tform.trainable = False
+    return tform
+
 def LoadClassifierWeights(model, make_classifier_fn, img_shape):
     image_discriminator = make_classifier_fn(model, img_shape)
     image_discriminator.load_weights(
