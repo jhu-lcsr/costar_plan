@@ -116,7 +116,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
         x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True, bn=False)
         x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True, bn=False)
-        x = AddConv2D(x, 1, [4,4], 1, 0., "same",
+        x = AddConv2D(x, 1, [1,1], 1, 0., "same",
                 activation=activation,
                 bn=False)
         #x = AveragePooling2D(pool_size=(16,16))(x)
@@ -191,12 +191,13 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                     for d in range(d_iters):
 
                         # Clip the weights for the wasserstein gan
-                        clip = self.clip_weights
-                        for l in self.discriminator.layers:
-                            weights = l.get_weights()
-                            for w in weights:
-                                np.clip(w, -clip, clip)
-                            l.set_weights(weights)
+                        if self.clip_weights > 0:
+                            c = self.clip_weights
+                            for l in self.discriminator.layers:
+                                weights = l.get_weights()
+                                for w in weights:
+                                    np.clip(w, -c, c)
+                                l.set_weights(weights)
 
                         # Descriminator pass
                         img, target = next(train_generator)

@@ -1,15 +1,3 @@
-from __future__ import print_function
-
-import keras.backend as K
-import keras.losses as losses
-import keras.optimizers as optimizers
-import numpy as np
-
-from keras.callbacks import ModelCheckpoint
-from keras.layers.advanced_activations import LeakyReLU
-from keras.layers import Input, RepeatVector, Reshape
-from keras.layers.embeddings import Embedding
-from keras.layers.merge import Concatenate, Multiply
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 from keras.optimizers import Adam
@@ -21,7 +9,7 @@ from .data_utils import GetNextGoal, ToOneHot2D
 from .multi import *
 
 
-class ConditionalImage(PredictionSampler2):
+class Secondary(PredictionSampler2):
     '''
     Version of the sampler that only produces results conditioned on a
     particular action; this version does not bother trying to learn a separate
@@ -42,17 +30,8 @@ class ConditionalImage(PredictionSampler2):
         -----------
         taskdef: definition of the problem used to create a task model
         '''
-        super(ConditionalImage, self).__init__(*args, **kwargs)
-        self.PredictorCb = ImageWithFirstCb
-        self.rep_size = 256
-        self.num_transforms = 3
-        self.do_all = True
-        self.transform_model = None
-        self.skip_connections = False
-
-        if self.use_noise:
-            raise NotImplementedError('noise vectors not supported for'
-                                      'conditional_image model')
+        super(Secondary, self).__init__(*args, **kwargs)
+        self.PredictorCb = None
 
     def _makePredictor(self, features):
         # =====================================================================
@@ -67,9 +46,9 @@ class ConditionalImage(PredictionSampler2):
         # Load the image decoders
         img_in = Input(img_shape,name="predictor_img_in")
         img0_in = Input(img_shape,name="predictor_img0_in")
-        #arm_in = Input((arm_size,))
-        #gripper_in = Input((gripper_size,))
-        #arm_gripper = Concatenate()([arm_in, gripper_in])
+        arm_in = Input((arm_size,))
+        gripper_in = Input((gripper_size,))
+        arm_gripper = Concatenate()([arm_in, gripper_in])
         label_in = Input((1,))
         ins = [img0_in, img_in]
 
@@ -101,29 +80,9 @@ class ConditionalImage(PredictionSampler2):
         value_model.compile(loss="mae", optimizer=self.getOptimizer())
         value_out = value_model([h])
         next_option_out = next_model([h0,h,label_in])
-        #value_out = value_model([h,label_in])
-        #next_option_out = next_model([h,label_in])
-
         next_option_in = Input((1,), name="next_option_in")
         next_option_in2 = Input((1,), name="next_option_in2")
         ins += [next_option_in, next_option_in2]
-
-        # =====================================================================
-        # Apply transforms
-        y = OneHot(self.num_options)(next_option_in)
-        y = Flatten()(y)
-        y2 = OneHot(self.num_options)(next_option_in2)
-        y2 = Flatten()(y2)
-        x = h
-        tform = self._makeTransform()
-        x = tform([h0,h,y])
-        x2 = tform([h0,x,y2])
-        image_out = decoder([x])
-        image_out2 = decoder([x2])
-
-        # =====================================================================
-        # Compute classifier on the last transform
-        disc_out2 = image_discriminator([img0_in, image_out2])
 
         # =====================================================================
         # Store the models for next time
@@ -141,32 +100,16 @@ class ConditionalImage(PredictionSampler2):
         val_loss = "binary_crossentropy"
 
         # =====================================================================
-        # Create models to train
-        predictor = Model(ins + [label_in],
-                [image_out, image_out2, next_option_out, value_out])
-        predictor.compile(
-                loss=[lfn, lfn, "binary_crossentropy", val_loss],
-                loss_weights=[1., 1., 0.1, 0.1,],
+        train_predictor = Model(ins + [label_in],
+                [next_option_out, value_out,
+                    arm_cmd,
+                    gripper_cmd])
+        train_predictor.compile(
+                loss=[lfn, lfn, "binary_crossentropy", val_loss,
+                    lfn2, lfn2, "categorical_crossentropy"],
+                loss_weights=[1., 1., 1., 0.2],
                 optimizer=self.getOptimizer())
-        if self.do_all:
-            train_predictor = Model(ins + [label_in],
-                    [image_out, image_out2, next_option_out, value_out,
-                        arm_cmd,
-                        gripper_cmd, disc_out2])
-            train_predictor.compile(
-                    loss=[lfn, lfn, "binary_crossentropy", val_loss,
-                        lfn2, lfn2, "categorical_crossentropy"],
-                    #loss_weights=[1., 1., 0.1, 0.1, 1., 0.2, 1e-3],
-                    loss_weights=[1., 1., 0., 0., 0., 0., 1e-3],
-                    optimizer=self.getOptimizer())
-        else:
-            train_predictor = Model(ins + [label_in],
-                    [image_out, image_out2,
-                        ])
-            train_predictor.compile(
-                    loss=lfn, 
-                    optimizer=self.getOptimizer())
-        return predictor, train_predictor, actor, ins, h
+        return None, train_predictor, actor, ins, h
 
     def _getData(self, *args, **kwargs):
         features, targets = GetAllMultiData(self.num_options, *args, **kwargs)
@@ -183,12 +126,9 @@ class ConditionalImage(PredictionSampler2):
         ga = np.squeeze(ga)
         #print("o1 = ", o1, o1.shape, type(o1))
         #print("o2 = ", o2, o2.shape, type(o2))
-        if self.do_all:
-            o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
-            return [I0, I, o1, o2, oin], [ I_target, I_target2, o1_1h, v, qa,
-                    ga, o2_1h]
-        else:
-            return [I0, I, o1, o2, oin], [I_target, I_target2]
+        o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
+        return ([I0, I, o1, o2, oin],
+                [ o1_1h, v, qa, ga,])
 
 
     def encode(self, obs):
@@ -251,4 +191,4 @@ class ConditionalImage(PredictionSampler2):
         raise NotImplementedError('act() not implemented')
 
     def debugImage(self, features):
-        return features[1]
+        r

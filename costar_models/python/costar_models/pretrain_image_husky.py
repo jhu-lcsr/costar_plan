@@ -38,7 +38,7 @@ class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
         img0_in = Input(img_shape,name="predictor_img0_in")
         option_in = Input((1,), name="predictor_option_in")
         encoder = self._makeImageEncoder(img_shape)
-        ins = [img_in]
+        ins = [img0_in, img_in]
         
         enc = encoder(ins)
         decoder = self._makeImageDecoder(
@@ -67,5 +67,8 @@ class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
         I = np.array(image) / 255.
         o1 = np.array(label)
         o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
-        return [I], [I, o1_1h]
+        I0 = I[0,:,:,:]
+        length = I.shape[0]
+        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
+        return [I0, I], [I, o1_1h]
 

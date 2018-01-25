@@ -67,34 +67,24 @@ class ConditionalSampler2(PredictionSampler2):
         label_in = Input((1,))
         ins = [img_in, arm_in, gripper_in, label_in]
 
-        encoder = self._makeImageEncoder(img_shape)
-        try:
-            encoder.load_weights(self._makeName(
-                "pretrain_image_encoder_model",
-                "image_encoder.h5f"))
-            encoder.trainable = self.retrain
-        except Exception as e:
-            raise e
-
         if self.skip_connections:
-            decoder = self._makeImageDecoder(self.hidden_shape,self.skip_shape)
+            encoder = self._makeImageEncoder2(img_shape)
+            decoder = self._makeImageDecoder2(self.hidden_shape)
         else:
+            encoder = self._makeImageEncoder(img_shape)
             decoder = self._makeImageDecoder(self.hidden_shape)
-        try:
-            decoder.load_weights(self._makeName(
-                "pretrain_image_encoder_model",
-                "image_decoder.h5f"))
-            decoder.trainable = self.retrain
-        except Exception as e:
-            raise e
 
+        LoadEncoderWeights(self, encoder, decoder)
+        image_discriminator = LoadGoalClassifierWeights(self,
+                make_classifier_fn=MakeImageClassifier,
+                img_shape=img_shape)
+
+        # =====================================================================
+        # Load the arm and gripper representation
         rep_channels = self.encoder_channels
         sencoder = self._makeStateEncoder(arm_size, gripper_size, False)
         sdecoder = self._makeStateDecoder(arm_size, gripper_size,
                 rep_channels)
-
-        # =====================================================================
-        # Load the arm and gripper representation
 
         # =====================================================================
         # combine these models together with state information and label
@@ -104,12 +94,12 @@ class ConditionalSampler2(PredictionSampler2):
         hidden_decoder = self._makeFromHidden(rep_channels)
 
         try:
-            hidden_encoder.load_weights(self._makeName(
-                "pretrain_sampler_model",
-                "hidden_encoder.h5f"))
-            hidden_decoder.load_weights(self._makeName(
-                "pretrain_sampler_model",
-                "hidden_decoder.h5f"))
+            hidden_encoder.load_weights(self.makeName(
+                "pretrain_sampler",
+                "hidden_encoder"))
+            hidden_decoder.load_weights(self.makeName(
+                "pretrain_sampler",
+                "hidden_decoder"))
             hidden_encoder.trainable = self.retrain
             hidden_decoder.trainable = self.retrain
         except Exception as e:
@@ -162,7 +152,7 @@ class ConditionalSampler2(PredictionSampler2):
         return predictor, predictor, actor, ins, h
 
     def _getData(self, *args, **kwargs):
-        features, targets = self._getAllData(*args, **kwargs)
+        features, targets = GetAllMultiData(self.num_options, *args, **kwargs)
         [I, q, g, oin, q_target, g_target,] = features
         tt, o1, v, qa, ga, I_target = targets
         if self.use_noise:

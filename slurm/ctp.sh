@@ -17,7 +17,7 @@ export DATASET="ctp_dec"
 export train_discriminator=true
 export train_image_encoder=true
 export train_multi_encoder=true
-export train_predictor=false
+export train_predictor=true
 export learning_rate=$1
 export dropout=$2
 export optimizer=$3
@@ -93,18 +93,22 @@ then
     --batch_size 64
 fi
 
-$HOME/costar_plan/costar_models/scripts/ctp_model_tool \
-  --features multi \
-  -e 100 \
-  --model conditional_image \
-  --data_file $HOME/work/$DATASET.h5f \
-  --lr $learning_rate \
-  --dropout_rate $dropout \
-  --model_directory $MODELDIR/ \
-  --optimizer $optimizer \
-  --steps_per_epoch 500 \
-  --loss $loss \
-  --batch_size 64
+
+if $train_conditional_image
+then
+  $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
+    --features multi \
+    -e 150 \
+    --model conditional_image \
+    --data_file $HOME/work/$DATASET.h5f \
+    --lr $learning_rate \
+    --dropout_rate $dropout \
+    --model_directory $MODELDIR/ \
+    --optimizer $optimizer \
+    --steps_per_epoch 500 \
+    --loss $loss \
+    --batch_size 64
+fi
 
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --features multi \
