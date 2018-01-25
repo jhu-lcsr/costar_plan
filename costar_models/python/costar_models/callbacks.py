@@ -322,6 +322,7 @@ class PredictorShowImageOnlyMultiStep(keras.callbacks.Callback):
             model_directory=DEFAULT_MODEL_DIRECTORY,
             num_hypotheses=4,
             verbose=False,
+            features_name=None,
             noise_dim=64,
             use_noise=False,
             name="model",
@@ -337,6 +338,11 @@ class PredictorShowImageOnlyMultiStep(keras.callbacks.Callback):
         num_hypotheses: how many outputs to expect
         verbose: print out extra information
         '''
+
+        if features_name is None:
+            self.features_name = "def"
+        else:
+            self.features_name = features_name
         self.verbose = verbose
         self.predictor = predictor
         self.idxs = range(min_idx, max_idx, step)
@@ -371,7 +377,8 @@ class PredictorShowImageOnlyMultiStep(keras.callbacks.Callback):
             print("============================")
         for j in range(self.num):
             name = os.path.join(self.directory,
-                    "image_predictor_epoch%03d_result%d.png"%(self.epoch,j))
+                    "%s_predictor_epoch%03d_result%d.png"%(self.features_name,
+                        self.epoch, j))
             fig = plt.figure()#figsize=(3+int(1.5*self.num_hypotheses),2))
 
             rand_offset = (k*(2+self.num_hypotheses))
