@@ -370,7 +370,6 @@ class PredictorShowImageOnlyMultiStep(keras.callbacks.Callback):
                         self.epoch, j))
             fig = plt.figure()#figsize=(3+int(1.5*self.num_hypotheses),2))
 
-            rand_offset = (k*(2+self.num_hypotheses))
             plt.subplot(2,2+self.num_hypotheses,1)
             plt.title('Input Image')
             plt.imshow(self.features[0][j])
