@@ -30,6 +30,7 @@ class ConditionalImageJigsaws(ConditionalImage):
         super(ConditionalImageJigsaws, self).__init__(*args, **kwargs)
 
         self.num_options = SuturingNumOptions()
+        self.PredictorCb = PredictorShowImageOnlyMultiStep
 
     def _makeModel(self, image, *args, **kwargs):
 
