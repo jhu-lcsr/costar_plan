@@ -7,12 +7,16 @@
   <arg name="use_scene_parsing_pose" default="false" doc="Use the stable pose generated from the scene parsing algorithm"/>
   <arg name="use_external_segmenter" default="false" doc="Use external point cloud segmentation false for sp_segmenter, true for something else e.g. color_nn_segmenter (k means color segmentation)"/>
   <arg name="use_filtered_marker_tf" default="false" doc="Use filtered ar_marker from instructor_core/launch/shoulder_smooth.launch"/>
+  <arg name="table_frame" default="table_center"/>
 
   <!-- start up the camera -->
   <include if="$(arg start_camera)" file="$(find costar_bringup)/launch/camera.launch">
-    <param name="start_alvar" value="$(arg start_alvar)"/>
-    <param name="table_frame" value="$(arg table_frame)"/>
+    <arg name="start_alvar" value="$(arg start_alvar)"/>
+    <arg name="table_frame" value="$(arg table_frame)"/>
     <arg name="use_filtered_marker_tf" value="$(arg use_filtered_marker_tf)"/>
+    <arg name="fake_table_frame" value="true"/>
+    <!-- Create center of the table to describe left and right -->
+    <arg name="table_center" value="0.422 -0.135 -0.023 0.030 -0.004 -0.157 0.987"/>
   </include>
 
   <!--
