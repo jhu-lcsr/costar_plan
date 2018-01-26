@@ -50,7 +50,7 @@ class PretrainImageJigsaws(PretrainImageAutoencoder):
                     self.skip_shape,)
         
         # Encode and connect the discriminator
-        enc = encoder(ins)
+        enc = encoder(img_in)
         image_discriminator = LoadClassifierWeights(self,
                 MakeJigsawsImageClassifier,
                 img_shape)
