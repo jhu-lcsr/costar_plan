@@ -17,6 +17,7 @@ export DATASET="ctp_dec"
 export train_discriminator=false
 export train_image_encoder=false
 export train_multi_encoder=false
+export train_conditional_image=true
 export train_predictor=true
 export learning_rate=$1
 export dropout=$2

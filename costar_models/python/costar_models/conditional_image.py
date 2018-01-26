@@ -46,7 +46,6 @@ class ConditionalImage(PredictionSampler2):
         self.PredictorCb = ImageWithFirstCb
         self.rep_size = 256
         self.num_transforms = 3
-        self.do_all = True
         self.transform_model = None
         self.skip_connections = False
 
@@ -93,17 +92,14 @@ class ConditionalImage(PredictionSampler2):
             h = encoder([img_in])
             h0 = encoder(img0_in)
 
-        next_model = GetNextModel(h, self.num_options, 128,
-                self.decoder_dropout_rate)
-        value_model = GetValueModel(h, self.num_options, 64,
-                self.decoder_dropout_rate)
-        next_model.compile(loss="mae", optimizer=self.getOptimizer())
-        value_model.compile(loss="mae", optimizer=self.getOptimizer())
-        value_out = value_model([h])
-        next_option_out = next_model([h0,h,label_in])
-        #value_out = value_model([h,label_in])
-        #next_option_out = next_model([h,label_in])
-
+        #next_model = GetNextModel(h, self.num_options, 128,
+        #        self.decoder_dropout_rate)
+        #value_model = GetValueModel(h, self.num_options, 64,
+        #        self.decoder_dropout_rate)
+        #next_model.compile(loss="mae", optimizer=self.getOptimizer())
+        #value_model.compile(loss="mae", optimizer=self.getOptimizer())
+        #value_out = value_model([h0, h])
+        #next_option_out = next_model([h0,h,label_in])
         next_option_in = Input((1,), name="next_option_in")
         next_option_in2 = Input((1,), name="next_option_in2")
         ins += [next_option_in, next_option_in2]
@@ -142,31 +138,15 @@ class ConditionalImage(PredictionSampler2):
 
         # =====================================================================
         # Create models to train
-        predictor = Model(ins + [label_in],
-                [image_out, image_out2, next_option_out, value_out])
-        predictor.compile(
-                loss=[lfn, lfn, "binary_crossentropy", val_loss],
-                loss_weights=[1., 1., 0.1, 0.1,],
+        train_predictor = Model(ins + [label_in],
+                [image_out, image_out2, next_option_out, value_out,
+                    arm_cmd,
+                    gripper_cmd, disc_out2])
+        train_predictor.compile(
+                loss=[lfn, lfn, "categorical_crossentropy"],
+                loss_weights=[1., 1., 1e-3],
                 optimizer=self.getOptimizer())
-        if self.do_all:
-            train_predictor = Model(ins + [label_in],
-                    [image_out, image_out2, next_option_out, value_out,
-                        arm_cmd,
-                        gripper_cmd, disc_out2])
-            train_predictor.compile(
-                    loss=[lfn, lfn, "binary_crossentropy", val_loss,
-                        lfn2, lfn2, "categorical_crossentropy"],
-                    #loss_weights=[1., 1., 0.1, 0.1, 1., 0.2, 1e-3],
-                    loss_weights=[1., 1., 0., 0., 0., 0., 1e-3],
-                    optimizer=self.getOptimizer())
-        else:
-            train_predictor = Model(ins + [label_in],
-                    [image_out, image_out2,
-                        ])
-            train_predictor.compile(
-                    loss=lfn, 
-                    optimizer=self.getOptimizer())
-        return predictor, train_predictor, actor, ins, h
+        return None, train_predictor, None, ins, h
 
     def _getData(self, *args, **kwargs):
         features, targets = GetAllMultiData(self.num_options, *args, **kwargs)
@@ -181,14 +161,11 @@ class ConditionalImage(PredictionSampler2):
         o2_1h = np.squeeze(ToOneHot2D(o2, self.num_options))
         qa = np.squeeze(qa)
         ga = np.squeeze(ga)
-        #print("o1 = ", o1, o1.shape, type(o1))
-        #print("o2 = ", o2, o2.shape, type(o2))
-        if self.do_all:
-            o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
+        if self.validate:
             return [I0, I, o1, o2, oin], [ I_target, I_target2, o1_1h, v, qa,
                     ga, o2_1h]
         else:
-            return [I0, I, o1, o2, oin], [I_target, I_target2]
+            return [I0, I, o1, o2, oin], [I_target, I_target2, o2_1h]
 
 
     def encode(self, obs):
