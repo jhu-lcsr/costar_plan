@@ -71,7 +71,7 @@ before_install:
 # Create a catkin workspace with the package under integration.
 install:
   # Set up costasr_stack
-  - wget https://raw.githubusercontent.com/cpaxton/costar_stack/master/install_indigo.sh
+  - wget https://raw.githubusercontent.com/cpaxton/costar_stack/feature/collection/install_indigo.sh
   - chmod +x install_indigo.sh
   - source ./install_indigo.sh
   - export COSTAR_WS="$HOME/costar_ws"
