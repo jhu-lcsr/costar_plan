@@ -477,9 +477,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         for i, f in enumerate(cbf):
             if len(f.shape) < 1:
                 raise RuntimeError('feature %d not an appropriate size!'%i)
+        if self.predictor is not None:
+            predictor = self.predictor
+        else:
+            predictor = self.train_predictor
         if self.PredictorCb is not None:
             imageCb = self.PredictorCb(
-                self.predictor,
+                predictor,
                 name=self.name_prefix,
                 features_name=self.features,
                 features=cbf,
