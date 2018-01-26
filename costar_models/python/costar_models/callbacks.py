@@ -312,6 +312,85 @@ class ImageWithFirstCb(ImageCb):
             fig.savefig(name, bbox_inches="tight")
             plt.close(fig)
 
+class PredictorShowImageOnlyMultiStep(keras.callbacks.Callback):
+    '''
+    Save an image showing what some number of frames and associated predictions
+    will look like at the end of an epoch.
+    '''
+
+    def __init__(self, predictor, features, targets,
+            model_directory=DEFAULT_MODEL_DIRECTORY,
+            num_hypotheses=4,
+            verbose=False,
+            features_name=None,
+            noise_dim=64,
+            use_noise=False,
+            name="model",
+            use_prev_option=True,
+            min_idx=0, max_idx=66, step=11):
+        '''
+        Set up a data set we can use to output validation images.
+
+        Parameters:
+        -----------
+        predictor: model used to generate predictions
+        targets: training target info, in compressed form
+        num_hypotheses: how many outputs to expect
+        verbose: print out extra information
+        '''
+
+        if features_name is None:
+            self.features_name = "def"
+        else:
+            self.features_name = features_name
+        self.verbose = verbose
+        self.predictor = predictor
+        self.idxs = range(min_idx, max_idx, step)
+        self.num = len(self.idxs)
+        self.features = [f[self.idxs] for f in features]
+        self.targets = [np.squeeze(t[self.idxs]) for t in targets]
+        self.epoch = 0
+        self.num_hypotheses = num_hypotheses
+        self.directory = os.path.join(model_directory,'debug')
+        self.noise_dim = noise_dim
+        self.use_noise = use_noise
+        if not os.path.exists(self.directory):
+            os.makedirs(self.directory)
+
+    def on_epoch_end(self, epoch, logs={}):
+        # take the model and print it out
+        self.epoch += 1
+        data = self.predictor.predict(self.features)
+        plt.ioff()
+        if self.verbose:
+            print("============================")
+        for j in range(self.num):
+            name = os.path.join(self.directory,
+                    "%s_predictor_epoch%03d_result%d.png"%(self.features_name,
+                        self.epoch, j))
+            fig = plt.figure()#figsize=(3+int(1.5*self.num_hypotheses),2))
+
+            plt.subplot(2,2+self.num_hypotheses,1)
+            plt.title('Input Image')
+            plt.imshow(self.features[0][j])
+            for k in range(2):
+                # This counts off rows
+                rand_offset = (k*(2+self.num_hypotheses))
+                plt.subplot(2,2+self.num_hypotheses,2+self.num_hypotheses+rand_offset)
+                plt.title('Observed Goal')
+                plt.imshow(np.squeeze(self.targets[k][j]))
+                for i in range(self.num_hypotheses):
+                    plt.subplot(2,2+self.num_hypotheses,i+2+rand_offset)
+                    plt.imshow(np.squeeze(data[k][j][i]))
+                    plt.title('Hypothesis %d'%(i+1))
+
+            if self.verbose:
+                print(name)
+            fig.savefig(name, bbox_inches="tight")
+            plt.close(fig)
+
+
+
 class PredictorShowImageOnly(keras.callbacks.Callback):
     '''
     Save an image showing what some number of frames and associated predictions

@@ -94,7 +94,6 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
                 loss_weights=[100., 100., 1.],
                 optimizer=self.getOptimizer())
         model.summary()
-        self.discriminator.summary()
         self.model = model
 
         self.predictor = generator
@@ -137,16 +136,20 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         xg1 = AddConv2D(img_goal, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
         xg2 = AddConv2D(img_goal2, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
 
-        x1 = Add()([x0, xobs, xg1])
-        x2 = Add()([x0, xg1, xg2])
+        #x1 = Add()([x0, xobs, xg1])
+        #x2 = Add()([x0, xg1, xg2])
+        x1 = Add()([xobs, xg1])
+        x2 = Add()([xg1, xg2])
+        #x1 = Concatenate(axis=-1)([img, img_goal])
+        #x2 = Concatenate(axis=-1)([img_goal, img_goal2])
         
         # -------------------------------------------------------------
         y = OneHot(self.num_options)(option)
         y = AddDense(y, 64, "lrelu", dr)
-        x1 = TileOnto(x1, y, 64, img_size, add=True)
+        #x1 = TileOnto(x1, y, 64, img_size, add=True)
         x1 = AddConv2D(x1, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
-        x1 = AddConv2D(x1, 128, [4,4], 2, dr, "same", lrelu=True)
-        #x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
+        x1 = AddConv2D(x1, 128, [4,4], 2, dr, "same", lrelu=True, bn=True)
+        #x1 = AddConv2D(x1, 256, [4,4], 2, dr, "same", lrelu=True, bn=True)
         #x1 = AddConv2D(x1, 1, [4,4], 1, 0., "same", activation="sigmoid")
 
         # -------------------------------------------------------------
@@ -154,14 +157,18 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         y = AddDense(y, 64, "lrelu", dr)
         x2 = TileOnto(x2, y, 64, img_size, add=True)
         x2 = AddConv2D(x2, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
-        x2 = AddConv2D(x2, 128, [4,4], 2, dr, "same", lrelu=True)
-        #x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
 
-        x = Concatenate(axis=-1)([x1, x2])
+        # Final block
+        x = x2
+        x2 = AddConv2D(x2, 128, [4,4], 2, dr, "same", lrelu=True, bn=True)
+        x2 = AddConv2D(x2, 256, [4,4], 2, dr, "same", lrelu=True, bn=True)
+        #x = Concatenate(axis=-1)([x1, x2])
         #x = Add()([x1, x2])
-        x = AddConv2D(x, 1, [4,4], 1, 0., "same", activation="sigmoid")
-        #x = AveragePooling2D(pool_size=(12,16))(x)
-        x = AveragePooling2D(pool_size=(24,32))(x)
+        x = AddConv2D(x2, 1, [1,1], 1, 0., "same", activation="sigmoid", bn=False)
+
+        # Combine
+        x = AveragePooling2D(pool_size=(12,16))(x)
+        #x = AveragePooling2D(pool_size=(24,32))(x)
         x = Flatten()(x)
         discrim = Model(ins, x, name="image_discriminator")
         self.lr *= 2.

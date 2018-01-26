@@ -28,12 +28,12 @@ class PretrainImageJigsawsGan(PretrainImageGan):
         if self.train_predictor is None:
             raise RuntimeError('did not make trainable model')
 
-    def __init__(self, taskdef, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         '''
         As in the other models, we call super() to parse arguments from the
         command line and set things like our optimizer and learning rate.
         '''
-        super(PretrainImageJigsawsGan, self).__init__(taskdef, *args, **kwargs)
+        super(PretrainImageJigsawsGan, self).__init__(*args, **kwargs)
         self.PredictorCb = ImageCb
 
         # This is literally the only change from the husky version
@@ -80,7 +80,7 @@ class PretrainImageJigsawsGan(PretrainImageGan):
         self.model = Model([img_in], [gen_out, o1])
         self.model.compile(
                 loss=["mae"] + ["binary_crossentropy"],
-                loss_weights=[100., 1.],
+                loss_weights=[10., 1.],
                 optimizer=self.getOptimizer())
 
         self.generator = Model([img_in], [gen_out])
@@ -109,10 +109,11 @@ class PretrainImageJigsawsGan(PretrainImageGan):
         x = AddConv2D(img, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
         x0 = AddConv2D(img0, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
         x = Add()([x, x0])
+        #x = Concatenate(axis=-1)([img0, img])
         x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
-        x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True)
-        #x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
-        x = AddConv2D(x, 1, [4,4], 1, 0., "same", activation="sigmoid")
+        x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True, bn=True)
+        #x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True, bn=True)
+        x = AddConv2D(x, 1, [1,1], 1, 0., "same", activation="sigmoid", bn=False)
         #x = AveragePooling2D(pool_size=(12,16))(x)
         x = AveragePooling2D(pool_size=(24,32))(x)
 
