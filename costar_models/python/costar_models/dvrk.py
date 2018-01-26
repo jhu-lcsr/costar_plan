@@ -94,7 +94,7 @@ def MakeJigsawsMultiDecoder(model, decoder, num_images=4, h_dim=(12,16)):
 
     return mm
 
-def MakeJigsawsTransform(model, h_dim=(12,16)):
+def MakeJigsawsTransform(model, h_dim=(12,16), small=False):
     '''
     This is the version made for the newer code, it is set up to use both
     the initial and current observed world and creates a transform
@@ -111,7 +111,10 @@ def MakeJigsawsTransform(model, h_dim=(12,16)):
 
     This will also set the "transform_model" field of "model".
     '''
-    h = Input((h_dim[0], h_dim[1], 64),name="h_in")
+    if small:
+	    h = Input((h_dim[0], h_dim[1], 8),name="h_in")
+    else:
+	    h = Input((h_dim[0], h_dim[1], 64),name="h_in")
     h0 = Input((h_dim[0],h_dim[1], model.encoder_channels),name="h0_in")
     option = Input((model.num_options,),name="t_opt_in")
     x = h # This is already encoded
@@ -157,8 +160,9 @@ def MakeJigsawsTransform(model, h_dim=(12,16)):
 
     # --------------------------------------------------------------------
     # Put resulting image into the output shape
-    #x = AddConv2D(x, model.encoder_channels, [1, 1], stride=1,
-    #        dropout_rate=0.)
+    if small:
+        x = AddConv2D(x, model.encoder_channels, [1, 1], stride=1,
+                      dropout_rate=0.)
     model.transform_model = Model([h0,h,option], x, name="tform")
     model.transform_model.compile(loss="mae", optimizer=model.getOptimizer())
     #model.transform_model.summary()
