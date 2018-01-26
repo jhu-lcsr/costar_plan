@@ -66,8 +66,8 @@ def GetModelParser():
                         default="adam")
     parser.add_argument("--clip_weights",
                         help="clip the weights to [-value to +value] (0 is no clipping)",
-                        type=int,
-                        default=0),
+                        type=float,
+                        default=0.01),
     parser.add_argument("-z", "--zdim", "--noise_dim",
                         help="size of action parameterization",
                         type=int,

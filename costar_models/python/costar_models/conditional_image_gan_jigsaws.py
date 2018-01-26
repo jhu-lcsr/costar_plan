@@ -160,6 +160,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
 
         # Combine
         #x = AveragePooling2D(pool_size=(12,16))(x)
+        #x = AveragePooling2D(pool_size=(12,16))(x)
         #x = AveragePooling2D(pool_size=(24,32))(x)
         x = x2
         x = Flatten()(x)
