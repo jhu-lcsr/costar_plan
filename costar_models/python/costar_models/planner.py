@@ -938,10 +938,10 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
         x = Flatten()(x)
 
     # Next options
-    x1 = AddDense(x, dense_size, "lrelu", dropout_rate)
-    x1 = AddDense(x1, dense_size, "lrelu", 0)
+    #x = AddDense(x, dense_size, "lrelu", dropout_rate)
+    #x = AddDense(x, dense_size, "lrelu", 0)
     value_out = Dense(1,
-            activation="sigmoid", name="value",)(x1)
+            activation="sigmoid", name="value",)(x)
     next_model = Model([x0in, xin], value_out, name="V")
     return next_model
 

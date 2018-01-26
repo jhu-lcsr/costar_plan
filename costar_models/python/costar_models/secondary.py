@@ -89,6 +89,7 @@ class Secondary(PredictionSampler2):
             self.value_model = model
             outs = model([h0, h])
             loss = "binary_crossentropy"
+            metrics=["accuracy"]
         elif self.submodel == "next":
             model = GetNextModel(h, self.num_options, 128,
                     self.decoder_dropout_rate)
@@ -96,6 +97,7 @@ class Secondary(PredictionSampler2):
             outs = model([h0,h,label_in])
             self.next_model = model
             loss = "binary_crossentropy"
+            metrics=["accuracy"]
         elif self.submodel == "actor":
             actor = GetActorModel(h, self.num_options, arm_size, gripper_size,
                     self.decoder_dropout_rate)
@@ -103,6 +105,7 @@ class Secondary(PredictionSampler2):
             model = actor
             outs = actor([h0, h, y])
             loss = self.loss
+            metrics=[]
         elif self.submodel == "pose":
             model = GetPoseModel(h, self.num_options, arm_size, gripper_size,
                     self.decoder_dropout_rate)
@@ -110,11 +113,13 @@ class Secondary(PredictionSampler2):
             self.pose_model = model
             outs = pose([h0, h])
             loss = self.loss
+            metrics=[]
 
         model.summary()
         # =====================================================================
         train_predictor = Model(ins + [label_in], outs)
         train_predictor.compile(loss=loss,
+                metrics=metrics,
                 optimizer=self.getOptimizer())
         return None, train_predictor, actor, ins, h
 
