@@ -127,9 +127,7 @@ class ConditionalImage(PredictionSampler2):
         # =====================================================================
         # Create models to train
         train_predictor = Model(ins + [label_in],
-                [image_out, image_out2, next_option_out, value_out,
-                    arm_cmd,
-                    gripper_cmd, disc_out2])
+                [image_out, image_out2, disc_out2])
         train_predictor.compile(
                 loss=[lfn, lfn, "categorical_crossentropy"],
                 loss_weights=[1., 1., 1e-3],
