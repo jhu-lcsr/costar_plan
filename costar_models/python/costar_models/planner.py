@@ -911,7 +911,7 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
 
     xin = Input([int(d) for d in x.shape[1:]], name="V_h_in")
     x0in = Input([int(d) for d in x.shape[1:]], name="V_h0_in")
-
+    bn = batchnorm
     x = xin
     x0 = x0in
     if len(x.shape) > 2:
@@ -929,17 +929,17 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
                 name="A0_project",
                 constraint=None)
         x = Add()([x0,x])
-        x = AddConv2D(x, 8, [3,3], 1, 0.*dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="A_C32A",
-                constraint=None)
+
+        x = AddConv2D(x, 64, [3,3], 2, dropout_rate, "same", lrelu=True, bn=bn)
+        x = AddConv2D(x, 64, [3,3], 1, 0., "same", lrelu=True, bn=bn)
+        x = AddConv2D(x, 128, [3,3], 2, dropout_rate, "same", lrelu=True, bn=bn)
+        x = AddConv2D(x, 128, [3,3], 1, dropout_rate, "same", lrelu=True, bn=bn)
 
         x = Flatten()(x)
 
     # Next options
-    #x = AddDense(x, dense_size, "lrelu", dropout_rate)
-    #x = AddDense(x, dense_size, "lrelu", 0)
+    x = AddDense(x, 2*dense_size, "lrelu", dropout_rate)
+    x = AddDense(x, 2*dense_size, "lrelu", 0)
     value_out = Dense(1,
             activation="sigmoid", name="value",)(x)
     next_model = Model([x0in, xin], value_out, name="V")

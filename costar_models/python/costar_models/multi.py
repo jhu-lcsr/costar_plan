@@ -180,7 +180,7 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
 
     # Same setup as the state decoders
     x1 = AddDense(x, 512, "lrelu", dropout_rate, constraint=None, output=False,)
-    x1 = AddDense(x1, 512, "lrelu", 0., constraint=None, output=False,)
+    x1 = AddDense(x1, 512, "lrelu", dropout_rate, constraint=None, output=False,)
     arm = AddDense(x1, arm_size, "linear", 0., output=True)
     gripper = AddDense(x1, gripper_size, "sigmoid", 0., output=True)
     #value = Dense(1, activation="sigmoid", name="V",)(x1)
