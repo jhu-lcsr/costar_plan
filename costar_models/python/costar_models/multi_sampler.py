@@ -478,9 +478,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             if len(f.shape) < 1:
                 raise RuntimeError('feature %d not an appropriate size!'%i)
         if self.predictor is not None:
+            # If we have a unique model associated with visualization
             predictor = self.predictor
         else:
-            predictor = self.train_predictor
+            predictor = self.model
         if self.PredictorCb is not None:
             imageCb = self.PredictorCb(
                 predictor,
