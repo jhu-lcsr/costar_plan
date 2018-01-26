@@ -90,10 +90,12 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         # =====================================================================
         # And adversarial model 
         model = Model(ins, [image_out, image_out2, is_fake])
+        loss = wasserstein_loss if self.use_wasserstein else "binary_crossentropy"
         model.compile(
-                loss=["mae", "mae", "binary_crossentropy"],
-                loss_weights=[100., 100., 1.],
+                loss=["mae", "mae", loss],
+                loss_weights=[1., 1., 1.],
                 optimizer=self.getOptimizer())
+	self.discriminator.summary()
         model.summary()
         self.model = model
 
@@ -163,14 +165,16 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         x = x2
         x2 = AddConv2D(x2, 128, [4,4], 2, dr, "same", lrelu=True, bn=True)
         x2 = AddConv2D(x2, 256, [4,4], 2, dr, "same", lrelu=True, bn=True)
+        x2 = AddConv2D(x2, 512, [4,4], 2, dr, "same", lrelu=True, bn=True)
         #x = Concatenate(axis=-1)([x1, x2])
         #x = Add()([x1, x2])
-        x = AddConv2D(x2, 1, [1,1], 1, 0., "same", activation="sigmoid", bn=False)
+        #x = AddConv2D(x2, 1, [1,1], 1, 0., "same", l, bn=True)
 
         # Combine
-        x = AveragePooling2D(pool_size=(12,16))(x)
+        #x = AveragePooling2D(pool_size=(12,16))(x)
         #x = AveragePooling2D(pool_size=(24,32))(x)
         x = Flatten()(x)
+	x = AddDense(x, 1, "linear", 0., output=True, bn=False)
         discrim = Model(ins, x, name="image_discriminator")
         self.lr *= 2.
         loss = wasserstein_loss if self.use_wasserstein else "binary_crossentropy"
