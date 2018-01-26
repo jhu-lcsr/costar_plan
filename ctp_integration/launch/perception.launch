@@ -2,6 +2,7 @@
 
   <arg name="start_semi_static" default="false"/>
   <arg name="start_camera" default="true"/>
+  <arg name="start_alvar" default="true"/>
 
   <arg name="use_scene_parsing_pose" default="false" doc="Use the stable pose generated from the scene parsing algorithm"/>
   <arg name="use_external_segmenter" default="false" doc="Use external point cloud segmentation false for sp_segmenter, true for something else e.g. color_nn_segmenter (k means color segmentation)"/>
