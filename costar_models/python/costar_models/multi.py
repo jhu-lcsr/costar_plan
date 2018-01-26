@@ -95,37 +95,24 @@ def GetPoseModel(x, num_options, arm_size, gripper_size,
                 constraint=None)
         x = Add()([x0,x])
 
-        # conv down
-        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="A_C64A",
-                constraint=None)
-        x = TileOnto(x, option_in, num_options, x.shape[1:3])
-
-        # conv across
-        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="A_C64B",
-                constraint=None)
-
-        x = AddConv2D(x, 32, [3,3], 1, 0.*dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="A_C32A",
-                constraint=None)
-
+        x = AddConv2D(x, 64, [3,3], 2, dropout_rate, "same", lrelu=True,
+                bn=batchnorm)
+        x = AddConv2D(x, 64, [3,3], 1, 0., "same", lrelu=True, bn=batchnorm)
+        x = AddConv2D(x, 128, [3,3], 2, dropout_rate, "same", lrelu=True,
+                bn=batchnorm)
+        x = AddConv2D(x, 128, [3,3], 1, dropout_rate, "same", lrelu=True,
+                bn=batchnorm)
+        
         # This is the hidden representation of the world, but it should be flat
         # for our classifier to work.
         x = Flatten()(x)
 
     # Same setup as the state decoders
     x1 = AddDense(x, 512, "lrelu", dropout_rate, constraint=None, output=False,)
-    x1 = AddDense(x1, 512, "lrelu", 0., constraint=None, output=False,)
+    x1 = AddDense(x1, 512, "lrelu", dropout_rate, constraint=None, output=False,)
     arm = AddDense(x1, arm_size, "linear", 0., output=True)
     gripper = AddDense(x1, gripper_size, "sigmoid", 0., output=True)
-    actor = Model([x0in, xin], [arm, gripper], name="pose")
+    actor = Model([x0in, xin, option_in], [arm, gripper], name="pose")
     return actor
 
 def GetActorModel(x, num_options, arm_size, gripper_size,
@@ -154,26 +141,14 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
                 constraint=None)
         x = Add()([x0,x])
 
-        # conv down
-        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="A_C64A",
-                constraint=None)
-        x = TileOnto(x, option_in, num_options, x.shape[1:3])
+        x = AddConv2D(x, 64, [3,3], 2, dropout_rate, "same", lrelu=True,
+                bn=batchnorm)
+        x = AddConv2D(x, 64, [3,3], 1, 0., "same", lrelu=True, bn=batchnorm)
+        x = AddConv2D(x, 128, [3,3], 2, dropout_rate, "same", lrelu=True,
+                bn=batchnorm)
+        x = AddConv2D(x, 128, [3,3], 1, dropout_rate, "same", lrelu=True,
+                bn=batchnorm)
 
-        # conv across
-        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="A_C64B",
-                constraint=None)
-
-        x = AddConv2D(x, 32, [3,3], 1, 0.*dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="A_C32A",
-                constraint=None)
         # This is the hidden representation of the world, but it should be flat
         # for our classifier to work.
         x = Flatten()(x)

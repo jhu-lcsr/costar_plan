@@ -61,9 +61,9 @@ class Secondary(PredictionSampler2):
             decoder = self._makeImageDecoder(self.hidden_shape)
 
         LoadEncoderWeights(self, encoder, decoder)
-        image_discriminator = LoadGoalClassifierWeights(self,
-                make_classifier_fn=MakeImageClassifier,
-                img_shape=img_shape)
+        #image_discriminator = LoadGoalClassifierWeights(self,
+        #        make_classifier_fn=MakeImageClassifier,
+        #        img_shape=img_shape)
         tform = self._makeTransform()
         LoadTransformWeights(self, tform)
 
@@ -111,7 +111,7 @@ class Secondary(PredictionSampler2):
                     self.decoder_dropout_rate)
             model.compile(loss="mae",optimizer=self.getOptimizer())
             self.pose_model = model
-            outs = pose([h0, h])
+            outs = model([h0, h, y])
             loss = self.loss
             metrics=[]
 
