@@ -160,6 +160,7 @@ class AbstractAgentBasedModel(object):
         print("skip connections =", self.skip_connections)
         print("gan_method =", self.gan_method)
         print("wasserstein_loss =", self.use_wasserstein)
+        print("clip disc weights =", self.clip_weights)
         print("save_model =", self.save_model)
         print("use_batchnorm =", self.use_batchnorm)
         print("clip_weights =", self.clip_weights)
