@@ -909,11 +909,32 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     Value for the current world
     '''
 
-    xin = Input([int(d) for d in x.shape[1:]], name="V_prev_h_in")
+    xin = Input([int(d) for d in x.shape[1:]], name="V_h_in")
+    x0in = Input([int(d) for d in x.shape[1:]], name="V_h0_in")
+
     x = xin
+    x0 = x0in
     if len(x.shape) > 2:
         # This is the hidden representation of the world, but it should be flat
         # for our classifier to work.
+
+        x = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="A_project",
+                constraint=None)
+        x0 = AddConv2D(x0, 32, [3,3], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="A0_project",
+                constraint=None)
+        x = Add()([x0,x])
+        x = AddConv2D(x, 8, [3,3], 1, 0.*dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="A_C32A",
+                constraint=None)
+
         x = Flatten()(x)
 
     # Next options
