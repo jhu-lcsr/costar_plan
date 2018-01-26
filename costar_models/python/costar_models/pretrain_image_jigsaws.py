@@ -40,7 +40,7 @@ class PretrainImageJigsaws(PretrainImageAutoencoder):
         # Create model input
         img0_in = Input(img_shape,name="predictor_img0_in")
         img_in = Input(img_shape,name="predictor_img_in")
-        ins = [img0_in]
+        ins = [img0_in, img_in]
 
         # Create encoder and decoder
         encoder = MakeJigsawsImageEncoder(self, img_shape)
