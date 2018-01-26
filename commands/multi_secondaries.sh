@@ -24,6 +24,7 @@ rosrun costar_models ctp_model_tool \
   --model secondary --data_file data.h5f \
   --epochs 100 \
   --lr 0.001  --dropout_rate 0.1 \
+  --success_only \
   --features multi --batch_size 64 \
   --steps_per_epoch 500 --submodel actor $1
 
@@ -32,4 +33,5 @@ rosrun costar_models ctp_model_tool \
   --epochs 200 \
    --lr 0.001  --dropout_rate 0.1 \
    --features multi --batch_size 64 \
+   --success_only \
    --steps_per_epoch 500 --submodel pose $1

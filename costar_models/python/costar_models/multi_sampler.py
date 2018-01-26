@@ -760,7 +760,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         leaky=True,
                         skips=skips,
                         original=None,
-                        resnet_blocks=self.residual,
                         batchnorm=True,)
         decoder = Model(rep, dec)
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
@@ -885,7 +884,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         dense=self.dense_representation,
                         dense_rep_size=self.img_col_dim,
                         skips=self.skip_connections,
-                        resnet_blocks=self.residual,
                         batchnorm=True,)
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         decoder.summary()

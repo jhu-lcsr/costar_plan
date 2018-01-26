@@ -49,9 +49,8 @@ class Secondary(PredictionSampler2):
         img0_in = Input(img_shape,name="predictor_img0_in")
         arm_in = Input((arm_size,))
         gripper_in = Input((gripper_size,))
-        arm_gripper = Concatenate()([arm_in, gripper_in])
         label_in = Input((1,))
-        ins = [img0_in, img_in]
+        ins = [img0_in, img_in, arm_in, gripper_in]
 
         if self.skip_connections:
             encoder = self._makeImageEncoder2(img_shape)
@@ -111,7 +110,7 @@ class Secondary(PredictionSampler2):
                     self.decoder_dropout_rate)
             model.compile(loss="mae",optimizer=self.getOptimizer())
             self.pose_model = model
-            outs = model([h0, h, y])
+            outs = model([h0, h, y, arm_in, gripper_in])
             loss = self.loss
             metrics=[]
 
@@ -145,5 +144,5 @@ class Secondary(PredictionSampler2):
             outs = [qa, ga]
         elif self.submodel == "pose":
             outs = [q_target, g_target]
-        return ([I0, I, o1, o2, oin], outs)
+        return ([I0, I, q, g, o1, o2, oin], outs)
 
