@@ -942,8 +942,7 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     x1 = AddDense(x1, dense_size, "lrelu", 0)
     value_out = Dense(1,
             activation="sigmoid", name="value",)(x1)
-    #next_model = Model([x0in, xin, option_in], value_out, name="V")
-    next_model = Model([xin], value_out, name="V")
+    next_model = Model([x0in, xin], value_out, name="V")
     return next_model
 
 

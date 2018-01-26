@@ -87,7 +87,7 @@ class Secondary(PredictionSampler2):
                     self.decoder_dropout_rate)
             model.compile(loss="mae", optimizer=self.getOptimizer())
             self.value_model = model
-            outs = model([h])
+            outs = model([h0, h])
             loss = "binary_crossentropy"
         elif self.submodel == "next":
             model = GetNextModel(h, self.num_options, 128,
