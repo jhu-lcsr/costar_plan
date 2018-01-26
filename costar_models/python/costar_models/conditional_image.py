@@ -122,19 +122,7 @@ class ConditionalImage(PredictionSampler2):
         disc_out2 = image_discriminator([img0_in, image_out2])
 
         # =====================================================================
-        # Store the models for next time
-        self.next_model = next_model
-        self.value_model = value_model
-        self.transform_model = tform
-
-        # =====================================================================
-        actor = GetActorModel(h, self.num_options, arm_size, gripper_size,
-                self.decoder_dropout_rate)
-        actor.compile(loss="mae",optimizer=self.getOptimizer())
-        arm_cmd, gripper_cmd = actor([h, y])
         lfn = self.loss
-        lfn2 = "logcosh"
-        val_loss = "binary_crossentropy"
 
         # =====================================================================
         # Create models to train
