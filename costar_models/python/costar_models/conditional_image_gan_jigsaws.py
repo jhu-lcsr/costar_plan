@@ -93,7 +93,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         loss = wasserstein_loss if self.use_wasserstein else "binary_crossentropy"
         model.compile(
                 loss=["mae", "mae", loss],
-                loss_weights=[100., 100., 1.],
+                loss_weights=[1., 1., 1.],
                 optimizer=self.getOptimizer())
         self.discriminator.summary()
         model.summary()
@@ -159,6 +159,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         #x = AddConv2D(x2, 1, [1,1], 1, 0., "same", l, bn=True)
 
         # Combine
+        #x = AveragePooling2D(pool_size=(12,16))(x)
         #x = AveragePooling2D(pool_size=(12,16))(x)
         #x = AveragePooling2D(pool_size=(24,32))(x)
         x = x2
