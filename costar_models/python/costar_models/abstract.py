@@ -32,6 +32,7 @@ class AbstractAgentBasedModel(object):
             steps_per_epoch=500, validation_steps=25,
             dropout_rate=0.5, decoder_dropout_rate=None,
             tform_dropout_rate=0.,
+            validate=False,
             use_batchnorm=1,
             hypothesis_dropout=False,
             dense_representation=True,
@@ -76,6 +77,7 @@ class AbstractAgentBasedModel(object):
         self.load_pretrained_weights = load_pretrained_weights
         self.optimizer = optimizer
         self.validation_steps = validation_steps
+        self.validate = validate
         self.task = task
         if features == "multi":
             self.features = None

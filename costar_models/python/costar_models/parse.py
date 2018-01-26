@@ -186,7 +186,7 @@ def GetModelParser():
                         dest='use_wasserstein',
                         action='store_true')
     parser.add_argument("--validate",
-                        help="Validation mode."
+                        help="Validation mode.",
                         action="store_true")
     return parser
 
