@@ -41,6 +41,7 @@ class AbstractAgentBasedModel(object):
             retrain=True,
             use_prev_option=True,
             success_only=False,
+            submodel=None,
             gan_method="gan",
             save_model=1,
             hidden_size=128,
@@ -57,6 +58,7 @@ class AbstractAgentBasedModel(object):
         elif lr > 1.:
             raise RuntimeError('Extremely high learning rate: %f' % lr)
 
+        self.submodel = submodel
         self.loss = loss
         self.retrain = retrain
         self.success_only = success_only

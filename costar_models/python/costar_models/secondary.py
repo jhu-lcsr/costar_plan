@@ -32,6 +32,7 @@ class Secondary(PredictionSampler2):
         '''
         super(Secondary, self).__init__(*args, **kwargs)
         self.PredictorCb = None
+        self.load_training_model = False
 
     def _makePredictor(self, features):
         # =====================================================================
@@ -74,51 +75,46 @@ class Secondary(PredictionSampler2):
             h = encoder([img_in])
             h0 = encoder(img0_in)
 
-        next_model = GetNextModel(h, self.num_options, 128,
-                self.decoder_dropout_rate)
-        value_model = GetValueModel(h, self.num_options, 64,
-                self.decoder_dropout_rate)
-        next_model.compile(loss="mae", optimizer=self.getOptimizer())
-        value_model.compile(loss="mae", optimizer=self.getOptimizer())
-        value_out = value_model([h])
-        next_option_out = next_model([h0,h,label_in])
         next_option_in = Input((1,), name="next_option_in")
         next_option_in2 = Input((1,), name="next_option_in2")
         ins += [next_option_in, next_option_in2]
-
         y = OneHot(self.num_options)(next_option_in)
         y = Flatten()(y)
 
-        # =====================================================================
-        actor = GetActorModel(h, self.num_options, arm_size, gripper_size,
-                self.decoder_dropout_rate)
-        pose = GetPoseModel(h, self.num_options, arm_size, gripper_size,
-                self.decoder_dropout_rate)
-        actor.compile(loss="mae",optimizer=self.getOptimizer())
-        pose.compile(loss="mae",optimizer=self.getOptimizer())
-        arm_cmd, gripper_cmd = actor([h0, h, y])
-        arm_state, gripper_state = pose([h0, h])
+        actor = None
+        if self.submodel == "value":
+            model = GetValueModel(h, self.num_options, 64,
+                    self.decoder_dropout_rate)
+            model.compile(loss="mae", optimizer=self.getOptimizer())
+            self.value_model = model
+            outs = model([h])
+            loss = "binary_crossentropy"
+        elif self.submodel == "next":
+            model = GetNextModel(h, self.num_options, 128,
+                    self.decoder_dropout_rate)
+            model.compile(loss="mae", optimizer=self.getOptimizer())
+            outs = model([h0,h,label_in])
+            self.next_model = model
+            loss = "binary_crossentropy"
+        elif self.submodel == "actor":
+            actor = GetActorModel(h, self.num_options, arm_size, gripper_size,
+                    self.decoder_dropout_rate)
+            actor.compile(loss="mae",optimizer=self.getOptimizer())
+            model = actor
+            outs = actor([h0, h, y])
+            loss = self.loss
+        elif self.submodel == "pose":
+            model = GetPoseModel(h, self.num_options, arm_size, gripper_size,
+                    self.decoder_dropout_rate)
+            model.compile(loss="mae",optimizer=self.getOptimizer())
+            self.pose_model = model
+            outs = pose([h0, h])
+            loss = self.loss
 
+        model.summary()
         # =====================================================================
-        # Store the models for next time
-        self.next_model = next_model
-        self.value_model = value_model
-        self.transform_model = tform
-        self.pose_model = pose
-
-        # =====================================================================
-        val_loss = "binary_crossentropy"
-        train_predictor = Model(ins + [label_in],
-                [next_option_out, value_out,
-                    arm_cmd,
-                    gripper_cmd,
-                    arm_state,
-                    gripper_state,])
-        train_predictor.compile(
-                loss=["binary_crossentropy", val_loss,
-                    self.loss, self.loss,
-                    self.loss, self.loss],
-                loss_weights=[1., 1., 1., 0.2, 1., 1.],
+        train_predictor = Model(ins + [label_in], outs)
+        train_predictor.compile(loss=loss,
                 optimizer=self.getOptimizer())
         return None, train_predictor, actor, ins, h
 
@@ -135,9 +131,14 @@ class Secondary(PredictionSampler2):
         o2_1h = np.squeeze(ToOneHot2D(o2, self.num_options))
         qa = np.squeeze(qa)
         ga = np.squeeze(ga)
-        #print("o1 = ", o1, o1.shape, type(o1))
-        #print("o2 = ", o2, o2.shape, type(o2))
         o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
-        return ([I0, I, o1, o2, oin],
-                [ o1_1h, v, qa, ga, q, g])
+        if self.submodel == "value":
+            outs = [v]
+        elif self.submodel == "next":
+            outs = [o1_1h]
+        elif self.submodel == "actor":
+            outs = [qa, ga]
+        elif self.submodel == "pose":
+            outs = [q_target, g_target]
+        return ([I0, I, o1, o2, oin], outs)
 

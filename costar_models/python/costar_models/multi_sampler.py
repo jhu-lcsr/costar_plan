@@ -44,6 +44,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.tform_kernel_size  = [5,5]
         self.num_hypotheses = 4
         self.validation_split = 0.05
+        self.load_training_model = False
 
         # For the new model setup
         self.encoder_channels = 64
@@ -562,8 +563,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         '''
         if self.model is not None:
             print("----------------------------")
-            print("using " + self.name + " to load")
-            self.model.load_weights(self.name + "_train_predictor.h5f")
+            print("using " + self.name + " to load:")
+            if self.load_training_model:
+                self.model.load_weights(self.name + "_train_predictor.h5f")
             if self.actor is not None:
                 self.actor.load_weights(self.name + "_actor.h5f")
             if self.image_decoder is not None:

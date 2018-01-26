@@ -77,6 +77,7 @@ def GetPoseModel(x, num_options, arm_size, gripper_size,
     '''
     xin = Input([int(d) for d in x.shape[1:]], name="pose_h_in")
     x0in = Input([int(d) for d in x.shape[1:]], name="pose_h0_in")
+    option_in = Input((48,), name="actor_o_in")
 
     x = xin
     x0 = x0in
@@ -100,6 +101,8 @@ def GetPoseModel(x, num_options, arm_size, gripper_size,
                 lrelu=True,
                 name="A_C64A",
                 constraint=None)
+        x = TileOnto(x, option_in, num_options, x.shape[1:3])
+
         # conv across
         x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
                 bn=batchnorm,
@@ -107,7 +110,7 @@ def GetPoseModel(x, num_options, arm_size, gripper_size,
                 name="A_C64B",
                 constraint=None)
 
-        x = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
+        x = AddConv2D(x, 32, [3,3], 1, 0.*dropout_rate, "same",
                 bn=batchnorm,
                 lrelu=True,
                 name="A_C32A",
@@ -166,7 +169,7 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
                 name="A_C64B",
                 constraint=None)
 
-        x = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
+        x = AddConv2D(x, 32, [3,3], 1, 0.*dropout_rate, "same",
                 bn=batchnorm,
                 lrelu=True,
                 name="A_C32A",
