@@ -81,7 +81,7 @@ class RobotPolicy(RobotMultiHierarchical):
             length = I.shape[0]
             I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
             [_, _, _, qa, ga, _] = [t[idx] for t in targets]
-            return [I0, I, q, g], [np.squeeze(qa), np.squeeze(ga)]
+            return [I0, I, q, g], [qa[:,0,:], ga[:,0,:]]
         else:
             return [], []
 
