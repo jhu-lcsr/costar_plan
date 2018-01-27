@@ -15,10 +15,13 @@ module load tensorflow/cuda-8.0/r1.3
 
 export DATASET="ctp_dec"
 export train_discriminator=false
+export train_discriminator2=false
 export train_image_encoder=false
 export train_multi_encoder=false
 export train_conditional_image=false
+export train_conditional_sampler=false
 export train_predictor=true
+export train_policies=true
 export learning_rate=$1
 export dropout=$2
 export optimizer=$3
@@ -42,6 +45,9 @@ then
     --noise_dim $noise_dim \
     --loss $loss \
     --batch_size 64
+fi
+if $train_discriminator2
+then
   echo "Training discriminator 2"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
     --features multi \
@@ -111,6 +117,8 @@ then
     --batch_size 64
 fi
 
+if $train_conditional_sampler
+then
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --features multi \
   -e 100 \
@@ -123,6 +131,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --steps_per_epoch 500 \
   --loss $loss \
   --batch_size 64
+fi
 
 if $train_predictor
 then
@@ -143,3 +152,22 @@ then
     #--success_only \
 fi
 
+
+if $train_policies
+then
+  $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
+    --features multi \
+    -e 100 \
+    --model policy \
+    --data_file $HOME/work/$DATASET.h5f \
+    --lr $learning_rate \
+    --dropout_rate $dropout \
+    --model_directory $MODELDIR/ \
+    --optimizer $optimizer \
+    --use_noise true \
+    --steps_per_epoch 500 \
+    --loss $loss \
+    --skip_connections 1 \
+    --batch_size 64 # --retrain 
+    #--success_only \
+fi

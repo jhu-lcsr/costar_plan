@@ -50,6 +50,7 @@ class PredictorShowImage(keras.callbacks.Callback):
             name="model",
             num_hypotheses=4,
             verbose=False,
+            features_name=None,
             use_prev_option=True,
             noise_dim=64,
             use_noise=False,
@@ -167,6 +168,7 @@ class StateCb(keras.callbacks.Callback):
     def __init__(self, predictor, features, targets,
             model_directory=DEFAULT_MODEL_DIRECTORY,
             name="model",
+            features_name=None,
             min_idx=0, max_idx=66, step=11,
             *args, **kwargs):
         '''
@@ -402,6 +404,7 @@ class PredictorShowImageOnly(keras.callbacks.Callback):
             num_hypotheses=4,
             verbose=False,
             noise_dim=64,
+            features_name=None,
             use_noise=False,
             name="model",
             use_prev_option=True,
@@ -491,6 +494,7 @@ class PredictorGoals(keras.callbacks.Callback):
             num_hypotheses=4,
             verbose=False,
             use_prev_option=True,
+            features_name=None,
             noise_dim=64,
             name="model",
             use_noise=False,
