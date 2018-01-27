@@ -20,6 +20,7 @@ from keras.utils.np_utils import to_categorical
 
 from .multi_hierarchical import RobotMultiHierarchical
 from .husky import *
+from .multi import *
 
 class RobotPolicy(RobotMultiHierarchical):
 
