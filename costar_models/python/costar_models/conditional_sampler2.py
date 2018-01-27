@@ -118,11 +118,11 @@ class ConditionalSampler2(PredictionSampler2):
             z = Input((self.num_hypotheses, self.noise_dim))
             ins += [z]
 
-        next_option_in = Input((48,), name="next_option_in")
+        next_option_in = Input((1,), name="next_option_in")
         ins += [next_option_in]
 
-        #y = OneHot(self.num_options)(next_option_in)
-        #y = Flatten()(y)
+        y = OneHot(self.num_options)(next_option_in)
+        y = Flatten()(y)
         y = next_option_in
         x = h
         x = AddConv2D(x, self.tform_filters*2, [1,1], 1, 0.)
