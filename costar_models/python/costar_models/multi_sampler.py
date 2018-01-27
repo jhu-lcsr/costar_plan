@@ -418,7 +418,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 (features, arm, gripper))
 
     def _getData(self, *args, **kwargs):
-        features, targets = GetAllMultiData(*args, **kwargs)
+        features, targets = GetAllMultiData(self, self.num_options, *args, **kwargs)
         [I, q, g, oin, label, q_target, g_target,] = features
         features = [I, q, g, oin]
         tt, o1, v, qa, ga, I = targets
