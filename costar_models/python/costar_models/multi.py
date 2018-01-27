@@ -204,10 +204,9 @@ def MakeMultiPolicy(model, encoder, features, arm, gripper,
     arm_out = Dense(arm_cmd_size, name="arm_out")(x)
     gripper_out = Dense(gripper_size, name="gripper_out")(x)
 
-    model = Model(ins, [arm_out, gripper_out])
-    model.compile(loss=model.loss, optimizer=model.getOptimizer())
-    model.summary()
-    return model
+    policy = Model(ins, [arm_out, gripper_out])
+    policy.compile(loss=model.loss, optimizer=model.getOptimizer())
+    return policy
 
 
 

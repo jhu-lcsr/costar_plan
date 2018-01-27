@@ -63,6 +63,7 @@ class RobotPolicy(RobotMultiHierarchical):
         self.model = MakeMultiPolicy(self, 
                 encoder, features, arm, gripper,
                 arm_cmd, gripper_cmd, option=self.option_num)
+        self.model.summary()
 
 
     def _getData(self, *args, **kwargs):
