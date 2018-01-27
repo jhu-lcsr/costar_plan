@@ -155,19 +155,23 @@ fi
 
 if $train_policies
 then
-  $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
-    --features multi \
-    -e 100 \
-    --model policy \
-    --data_file $HOME/work/$DATASET.h5f \
-    --lr $learning_rate \
-    --dropout_rate $dropout \
-    --model_directory $MODELDIR/ \
-    --optimizer $optimizer \
-    --use_noise true \
-    --steps_per_epoch 500 \
-    --loss $loss \
-    --skip_connections 1 \
-    --batch_size 64 # --retrain 
-    #--success_only \
+  for opt in $(seq 0 36)
+  do
+    $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
+      --features multi \
+      -e 100 \
+      --model policy \
+      --data_file $HOME/work/$DATASET.h5f \
+      --lr $learning_rate \
+      --dropout_rate $dropout \
+      --model_directory $MODELDIR/ \
+      --optimizer $optimizer \
+      --use_noise true \
+      --steps_per_epoch 500 \
+      --loss $loss \
+      --option_num $opt \
+      --skip_connections 1 \
+      --batch_size 64 # --retrain 
+      #--success_only \
+    done
 fi
