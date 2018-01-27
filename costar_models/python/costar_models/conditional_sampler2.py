@@ -123,11 +123,10 @@ class ConditionalSampler2(PredictionSampler2):
 
         y = OneHot(self.num_options)(next_option_in)
         y = Flatten()(y)
-        y = next_option_in
         x = h
         x = AddConv2D(x, self.tform_filters*2, [1,1], 1, 0.)
         for i in range(self.num_transforms):
-            print(x)
+            print(x,y)
             x = TileOnto(x, y, self.num_options, (8,8))
             x = AddConv2D(x, self.tform_filters*2,
                     self.tform_kernel_size,
@@ -149,19 +148,21 @@ class ConditionalSampler2(PredictionSampler2):
                       "binary_crossentropy"],
                 loss_weights=[1., 1., 0.2, 0.025, 0.1, 0.],
                 optimizer=self.getOptimizer())
-        predictor.summary()
         return predictor, predictor, actor, ins, h
 
     def _getData(self, *args, **kwargs):
         features, targets = GetAllMultiData(self.num_options, *args, **kwargs)
         [I, q, g, oin, label, q_target, g_target,] = features
         tt, o1, v, qa, ga, I_target = targets
+        o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-            return [I, q, g, oin, z, o1], [o1, v, I_target, q_target, g_target,
-                    o1]
+            return [I, q, g, oin, z, o1], [o1_1h, v, I_target, q_target, g_target,
+                    o1_1h,
+                    o1_1h]
         else:
-            return [I, q, g, oin, o1], [I_target, q_target, g_target, o1, o1,
+            return [I, q, g, oin, o1], [I_target, q_target, g_target, o1_1h,
+                    o1_1h,
                     v,]
 
