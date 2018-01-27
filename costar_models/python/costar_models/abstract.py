@@ -237,7 +237,7 @@ class AbstractAgentBasedModel(object):
                 # --------------------------------------------------------------
                 # Compute the features and aggregate
                 for i, value in enumerate(ffeatures):
-                    if value.shape[0] == 0:
+                    if len(value.shape) < 1 or value.shape[0] == 0:
                         continue
                     if idx == 0:
                         features.append(value)
@@ -245,15 +245,17 @@ class AbstractAgentBasedModel(object):
                         try:
                             features[i] = np.concatenate([features[i],value],axis=0)
                         except ValueError as e:
+                            print("index", i)
                             print ("filename =", fn)
                             print ("Data shape =", features[i].shape)
                             print ("value shape =", value.shape)
+                            print(features[i].shape, value.shape)
                             raise e
                         #print ("feature data shape =", features[i].shape, i)
                     # --------------------------------------------------------------
                 # Compute the targets and aggregate
                 for i, value in enumerate(ftargets):
-                    if value.shape[0] == 0:
+                    if len(value.shape) < 1 or value.shape[0] == 0:
                         continue
                     if idx == 0:
                         targets.append(value)
@@ -261,6 +263,9 @@ class AbstractAgentBasedModel(object):
                         try:
                             targets[i] = np.concatenate([targets[i],value],axis=0)
                         except ValueError as e:
+                            print("index", i)
+                            print (targets[i])
+                            print(value)
                             print ("filename =", fn)
                             print ("Data shape =", targets[i].shape)
                             print ("value shape =", value.shape)
@@ -276,6 +281,7 @@ class AbstractAgentBasedModel(object):
             n_samples = features[0].shape[0]
             for f in features:
                 if f.shape[0] != n_samples:
+                    print(f.shape, n_samples)
                     raise ValueError("Feature lengths are not equal!")
 
             #print("Collected ", n_samples, " samples")
