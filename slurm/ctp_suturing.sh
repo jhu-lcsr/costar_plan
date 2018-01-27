@@ -15,7 +15,7 @@ module load tensorflow/cuda-8.0/r1.3
 
 export DATASET="suturing_data2"
 export train_discriminator1=false
-export train_discriminator2=false
+export train_discriminator2=true
 export train_image_encoder=false
 export learning_rate=$1
 export dropout=$2
@@ -43,7 +43,7 @@ then
     --loss $loss \
     --batch_size 64
 fi
-if $train_discriminator1
+if $train_discriminator2
 then
   echo "Training discriminator 2"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
