@@ -152,7 +152,7 @@ class ConditionalSampler2(PredictionSampler2):
         return predictor, predictor, actor, ins, h
 
     def _getData(self, *args, **kwargs):
-        features, targets = GetAllMultiData(self, self.num_options, *args, **kwargs)
+        features, targets = GetAllMultiData(self.num_options, *args, **kwargs)
         [I, q, g, oin, label, q_target, g_target,] = features
         tt, o1, v, qa, ga, I_target = targets
         if self.use_noise:
