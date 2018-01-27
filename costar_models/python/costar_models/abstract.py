@@ -276,6 +276,7 @@ class AbstractAgentBasedModel(object):
             n_samples = features[0].shape[0]
             for f in features:
                 if f.shape[0] != n_samples:
+                    print(f.shape, n_samples)
                     raise ValueError("Feature lengths are not equal!")
 
             #print("Collected ", n_samples, " samples")

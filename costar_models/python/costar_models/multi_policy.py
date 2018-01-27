@@ -70,7 +70,7 @@ class RobotPolicy(RobotMultiHierarchical):
         '''
         Filter out the data not relevant to the current option
         '''
-        features, targets = self._getAllData(*args, **kwargs)
+        features, targets = GetAllMultiData(self.num_options, *args, **kwargs)
         [Iorig, _, _, _, label, _, _,] = features
         labels = label[:]
         # find the matches for filtering
