@@ -37,20 +37,20 @@ def MakeJigsawsImageClassifier(model, img_shape):
     x = img
     x0 = img0
 
-    x0 = AddConv2D(x0, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = Add()([x0, x])
+    #x0 = AddConv2D(x0, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 32, [7,7], 1, 0., "same", lrelu=disc, bn=bn)
+    #x = Add()([x0, x])
 
-    x = AddConv2D(x, 32, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 32, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 32, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 128, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
 
     #x = MaxPooling2D((3,4))(x)
     x = Flatten()(x)
@@ -131,7 +131,7 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=False):
 
     # Add dense information
     y = AddDense(option, 64, "relu", 0., constraint=None, output=False)
-    x = TileOnto(x, y, 64, (h_dim[0]/2, h_dim[1]/2), add=True)
+    x = TileOnto(x, y, 64, (int(h_dim[0]/2), int(h_dim[1]/2)), add=True)
     x = AddConv2D(x, 64, [5,5], 1, 0.)
 
     # --- start ssm block
@@ -140,8 +140,8 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=False):
     x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
     x = AddDense(x, 128, "relu", 0.,
             constraint=None, output=False,)
-    x = AddDense(x, h_dim[0] * h_dim[1] * 64/16, "relu", model.dropout_rate, constraint=None, output=False)
-    x = Reshape([h_dim[0]/4, h_dim[1]/4, 64])(x)
+    x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/16,) "relu", model.dropout_rate, constraint=None, output=False)
+    x = Reshape([int(h_dim[0]/4), int(h_dim[1]/4), 64])(x)
     x = AddConv2DTranspose(x, 64, [5,5], 2, 0.)
 
     # --- end ssm block
