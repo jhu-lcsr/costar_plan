@@ -422,19 +422,19 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         [I, q, g, oin, label, q_target, g_target,] = features
         features = [I, q, g, oin]
         tt, o1, v, qa, ga, I = targets
-        o1 = np.squeeze(self.toOneHot2D(o1, self.num_options))
+        o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
             if self.success_only:
-                return features, [z], [tt, o1]
+                return features, [z], [tt, o1_1h]
             else:
-                return features + [z], [tt, o1, v]
+                return features + [z], [tt, o1_1y, v]
         else:
             if self.success_only:
-                return features, [tt, o1]
+                return features, [tt, o1_1h]
             else:
-                return features, [tt, o1, v]
+                return features, [tt, o1_1h, v]
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''

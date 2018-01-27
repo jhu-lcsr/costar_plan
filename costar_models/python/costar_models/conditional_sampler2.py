@@ -126,7 +126,6 @@ class ConditionalSampler2(PredictionSampler2):
         x = h
         x = AddConv2D(x, self.tform_filters*2, [1,1], 1, 0.)
         for i in range(self.num_transforms):
-            print(x,y)
             x = TileOnto(x, y, self.num_options, (8,8))
             x = AddConv2D(x, self.tform_filters*2,
                     self.tform_kernel_size,
