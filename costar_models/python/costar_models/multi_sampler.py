@@ -207,10 +207,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 else:
                     x = transform([enc])
             
-            if self.sampling:
-                x, mu, sigma = x
-                stats.append((mu, sigma))
-
             # This maps from our latent world state back into observable images.
             if self.skip_connections:
                 decoder_inputs = [x] + skips
@@ -386,7 +382,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     dropout_rate=self.dropout_rate,
                     leaky=True,
                     num_blocks=self.num_transforms,
-                    use_sampling=self.sampling,
                     relu=transform_relu,
                     option=options,
                     use_noise=self.use_noise,
