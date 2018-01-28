@@ -12,7 +12,7 @@ do
     do
       for dr in 0.1 0.2 # 0. 0.3 0.4 0.5
       do
-        for model in value next pose actor
+        for model in value next pose actor q
         do
           echo "Creating models with $opt $loss $skip $noise_dim $dr $model"
           sbatch ctp_secondary.sh $lr $dr $opt $noise_dim $loss $model
