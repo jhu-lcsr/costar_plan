@@ -14,11 +14,11 @@ echo "Running $@ on $SLURMD_NODENAME ..."
 module load tensorflow/cuda-8.0/r1.3 
 
 export DATASET="husky_data"
-export train_discriminator=true
+export train_discriminator=false
 export train_image_encoder=true
-export train_multi_encoder=false
+export train_multi_encoder=true
 export train_predictor=false
-export train_gans=true
+export train_gans=false
 export train_encoder_gan=true
 export learning_rate=$1
 export dropout=$2
@@ -47,7 +47,7 @@ then
   echo "Training discriminator 2"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
     --features multi \
-    -e 100 \
+    -e 10 \
     --model goal_discriminator \
     --data_file $HOME/work/$DATASET.npz \
     --lr $learning_rate \
