@@ -109,6 +109,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.hidden_decoder = None
         self.next_model = None
         self.value_model = None
+        self.q_model = None
         self.pose_model = None
         self.transform_model = None
 
@@ -559,6 +560,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 print(">>> SAVING VALUE")
                 self.value_model.save_weights(self.name + 
                 "_value.h5f")
+            if self.q_model is not None:
+                print(">>> SAVING Q MODEL")
+                self.q_model.save_weights(self.name + 
+                "_q.h5f")
             if self.pose_model is not None:
                 print(">>> SAVING POSE")
                 self.pose_model.save_weights(self.name + 
@@ -617,6 +622,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 print(">>> LOADING NEXT")
                 self.next_model.load_weights(self.name + 
                 "_next.h5f")
+            if self.q_model is not None:
+                print(">>> LOADING Q MODEL")
+                self.q_model.load_weights(self.name + 
+                "_q.h5f")
             if self.pose_model is not None:
                 print(">>> LOADING POSE")
                 self.pose_model.load_weights(self.name + 

@@ -28,6 +28,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         super(ConditionalImageGanJigsaws, self).__init__(*args, **kwargs)
 
         self.num_options = 16
+        self.save_encoder_decoder = self.retrain
  
     def _makeModel(self, image, *args, **kwargs):
 
