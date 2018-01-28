@@ -47,6 +47,7 @@ class ConditionalImageGan(PretrainImageGan):
         self.do_all = True
         self.skip_connections = False
         self.num_generator_files = 1
+        self.save_encoder_decoder = self.retrain
  
     def _makePredictor(self, features):
         # =====================================================================
