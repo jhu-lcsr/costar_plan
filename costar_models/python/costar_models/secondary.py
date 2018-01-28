@@ -63,8 +63,8 @@ class Secondary(PredictionSampler2):
         #image_discriminator = LoadGoalClassifierWeights(self,
         #        make_classifier_fn=MakeImageClassifier,
         #        img_shape=img_shape)
-        tform = self._makeTransform()
-        LoadTransformWeights(self, tform)
+        #tform = self._makeTransform()
+        #LoadTransformWeights(self, tform)
 
         # =====================================================================
         # Load the arm and gripper representation
@@ -87,6 +87,14 @@ class Secondary(PredictionSampler2):
             model.compile(loss="mae", optimizer=self.getOptimizer())
             self.value_model = model
             outs = model([h0, h])
+            loss = "binary_crossentropy"
+            metrics=["accuracy"]
+        elif self.submodel == "q":
+            model = GetNextModel(h, self.num_options, 128,
+                    self.decoder_dropout_rate)
+            model.compile(loss="mae", optimizer=self.getOptimizer())
+            outs = model([h0,h,label_in])
+            self.q_model = model
             loss = "binary_crossentropy"
             metrics=["accuracy"]
         elif self.submodel == "next":
@@ -140,6 +148,11 @@ class Secondary(PredictionSampler2):
             outs = [v]
         elif self.submodel == "next":
             outs = [o1_1h]
+        elif self.submodel == "q":
+            if len(v.shape) == 1:
+                v = np.expand_dims(v,axis=1)
+            vs = np.repeat(v, self.num_options, axis=1)
+            outs = [o1_1h * vs]
         elif self.submodel == "actor":
             outs = [qa, ga]
         elif self.submodel == "pose":

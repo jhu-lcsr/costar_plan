@@ -462,11 +462,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # ===================================================================
         # Create the callbacks and actually run the training loop.
         modelCheckpointCb = ModelCheckpoint(
-            filepath=self.name+"_predictor_weights.h5f",
+            filepath=self.weightsName(),
             verbose=1,
             save_best_only=True # does not work without validation wts
         )
-        logCb = LogCallback(self.name,self.model_directory)
+        logCb = LogCallback(self.logName(),self.model_directory)
         cbf, cbt = self._getData(**data)
 
         for i, f in enumerate(cbf):

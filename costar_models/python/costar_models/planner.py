@@ -918,27 +918,24 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
         # This is the hidden representation of the world, but it should be flat
         # for our classifier to work.
 
-        x = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
+        x = AddConv2D(x, 64, [5,5], 1, dropout_rate, "same",
                 bn=batchnorm,
                 lrelu=True,
                 name="A_project",
                 constraint=None)
-        x0 = AddConv2D(x0, 32, [3,3], 1, dropout_rate, "same",
+        x0 = AddConv2D(x0, 64, [5,5], 1, dropout_rate, "same",
                 bn=batchnorm,
                 lrelu=True,
                 name="A0_project",
                 constraint=None)
         x = Add()([x0,x])
 
-        x = AddConv2D(x, 64, [3,3], 2, dropout_rate, "same", lrelu=True, bn=bn)
-        x = AddConv2D(x, 64, [3,3], 1, 0., "same", lrelu=True, bn=bn)
-        x = AddConv2D(x, 128, [3,3], 2, dropout_rate, "same", lrelu=True, bn=bn)
-        x = AddConv2D(x, 128, [3,3], 1, dropout_rate, "same", lrelu=True, bn=bn)
+        x = AddConv2D(x, 64, [5,5], 2, dropout_rate, "same", lrelu=True, bn=bn)
+        x = AddConv2D(x, 64, [5,5], 2, dropout_rate, "same", lrelu=True, bn=bn)
 
         x = Flatten()(x)
 
     # Next options
-    x = AddDense(x, 2*dense_size, "lrelu", dropout_rate)
     x = AddDense(x, 2*dense_size, "lrelu", 0)
     value_out = Dense(1,
             activation="sigmoid", name="value",)(x)
