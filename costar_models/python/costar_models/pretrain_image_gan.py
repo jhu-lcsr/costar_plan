@@ -30,7 +30,6 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         super(PretrainImageGan, self).__init__(*args, **kwargs)
         self.PredictorCb = ImageCb
         self.load_pretrained_weights = True
-        self.save_encoder_decoder = True
 
     def _makePredictor(self, features):
         '''
@@ -70,10 +69,11 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         o1 = image_discriminator([img_in, gen_out])
 
         loss = wasserstein_loss if self.use_wasserstein else "binary_crossentropy"
+        weights = [1., 1.] if self.use_wasserstein else [100., 1.]
         self.model = Model([img_in], [gen_out, o1])
         self.model.compile(
                 loss=["mae", loss],
-                loss_weights=[100., 1.],
+                loss_weights=weights,
                 optimizer=self.getOptimizer())
 
         self.generator = Model([img_in], [gen_out])
@@ -189,18 +189,15 @@ class PretrainImageGan(RobotMultiPredictionSampler):
             for i in range(self.epochs):
                 for j in range(self.steps_per_epoch):
 
-                    if j == 0:
-                        iter_for_step = d_iters * 10
-                    else:
-                        iter_for_step = d_iters
-                    for d in range(iter_for_step):
+                    for d in range(d_iters):
 
                         # Clip the weights for the wasserstein gan
                         if self.clip_weights > 0:
                             c = self.clip_weights
                             for l in self.discriminator.layers:
                                 weights = l.get_weights()
-                                weights = [np.clip(w, -c, c) for w in weights]
+                                for w in weights:
+                                    np.clip(w, -c, c)
                                 l.set_weights(weights)
 
                         # Descriminator pass
