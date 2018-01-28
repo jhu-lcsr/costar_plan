@@ -622,6 +622,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 print(">>> LOADING NEXT")
                 self.next_model.load_weights(self.name + 
                 "_next.h5f")
+            if self.q_model is not None:
+                print(">>> LOADING Q MODEL")
+                self.q_model.load_weights(self.name + 
+                "_q.h5f")
             if self.pose_model is not None:
                 print(">>> LOADING POSE")
                 self.pose_model.load_weights(self.name + 
