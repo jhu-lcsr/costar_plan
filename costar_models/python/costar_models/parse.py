@@ -191,7 +191,7 @@ def GetModelParser():
     return parser
 
 def GetSubmodelOptions():
-    return ["value", "actor", "pose", "next"]
+    return ["q", "value", "actor", "pose", "next"]
 
 def UpsamplingOptions():
     return [None,"upsampling","conv_transpose","bilinear"]
