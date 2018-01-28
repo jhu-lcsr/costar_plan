@@ -63,8 +63,8 @@ class Secondary(PredictionSampler2):
         #image_discriminator = LoadGoalClassifierWeights(self,
         #        make_classifier_fn=MakeImageClassifier,
         #        img_shape=img_shape)
-        tform = self._makeTransform()
-        LoadTransformWeights(self, tform)
+        #tform = self._makeTransform()
+        #LoadTransformWeights(self, tform)
 
         # =====================================================================
         # Load the arm and gripper representation
