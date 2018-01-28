@@ -56,7 +56,7 @@ class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
         ae = Model(ins, [out, o2])
         ae.compile(
                 loss=["mae", "categorical_crossentropy"],
-                loss_weights=[1.,1e-4],
+                loss_weights=[1.,1e-3],
                 optimizer=self.getOptimizer())
         ae.summary()
     
