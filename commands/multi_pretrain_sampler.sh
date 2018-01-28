@@ -4,4 +4,4 @@ rosrun costar_models ctp_model_tool \
   --features multi \
   --data_file data.h5f \
   --lr 0.001  \
-  --dropout_rate 0.2 $1
+  --dropout_rate 0.1 $1

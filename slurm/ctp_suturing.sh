@@ -14,8 +14,9 @@ echo "Running $@ on $SLURMD_NODENAME ..."
 module load tensorflow/cuda-8.0/r1.3 
 
 export DATASET="suturing_data2"
-export train_discriminator=true
-export train_image_encoder=true
+export train_discriminator1=false
+export train_discriminator2=true
+export train_image_encoder=false
 export learning_rate=$1
 export dropout=$2
 export optimizer=$3
@@ -23,7 +24,7 @@ export noise_dim=$4
 export loss=$5
 export MODELDIR="$HOME/.costar/suturing_$learning_rate$optimizer$dropout$noise_dim$loss"
 
-if $train_discriminator
+if $train_discriminator1
 then
   echo "Training discriminator 1"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
@@ -31,15 +32,19 @@ then
     -e 100 \
     --model discriminator \
     --data_file $HOME/work/$DATASET.h5f \
+    --preload \
     --features jigsaws \
     --lr $learning_rate \
     --dropout_rate $dropout \
     --model_directory $MODELDIR/ \
     --optimizer $optimizer \
-    --steps_per_epoch 500 \
+    --steps_per_epoch 150 \
     --noise_dim $noise_dim \
     --loss $loss \
     --batch_size 64
+fi
+if $train_discriminator1
+then
   echo "Training discriminator 2"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
     --features multi \
@@ -48,10 +53,11 @@ then
     --data_file $HOME/work/$DATASET.h5f \
     --lr $learning_rate \
     --features jigsaws \
+    --preload \
     --dropout_rate $dropout \
     --model_directory $MODELDIR/ \
     --optimizer $optimizer \
-    --steps_per_epoch 500 \
+    --steps_per_epoch 150 \
     --noise_dim $noise_dim \
     --loss $loss \
     --batch_size 64
@@ -73,7 +79,8 @@ then
     --model_directory $MODELDIR/ \
     --optimizer $optimizer \
     --use_noise true \
-    --steps_per_epoch 500 \
+    --preload \
+    --steps_per_epoch 300 \
     --noise_dim $noise_dim \
     --loss $loss \
     --batch_size 64
@@ -90,7 +97,8 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --features jigsaws \
   --optimizer $optimizer \
   --use_noise true \
-  --steps_per_epoch 500 \
+  --steps_per_epoch 300 \
+  --preload \
   --loss $loss \
   --batch_size 64
 

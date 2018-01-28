@@ -14,6 +14,7 @@ from matplotlib import pyplot as plt
 from .conditional_image_gan import ConditionalImageGan
 from .dvrk import *
 from .data_utils import *
+from .pretrain_image_gan import wasserstein_loss
 
 class ConditionalImageGanJigsaws(ConditionalImageGan):
     '''
@@ -46,7 +47,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         # Load weights and stuff. We'll load the GAN version of the weights.
         encoder = MakeJigsawsImageEncoder(self, img_shape)
         decoder = MakeJigsawsImageDecoder(self, self.hidden_shape)
-        LoadEncoderWeights(self, encoder, decoder, gan=True)
+        LoadEncoderWeights(self, encoder, decoder, gan=False)
 
         # =====================================================================
         # Create outputs
@@ -59,7 +60,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         y = Flatten()(OneHot(self.num_options)(option_in))
         y2 = Flatten()(OneHot(self.num_options)(option_in2))
         x = h
-        tform = MakeJigsawsTransform(self, h_dim=(12,16))
+        tform = MakeJigsawsTransform(self, h_dim=(12,16), small=True)
         x = tform([h0, h, y])
         x2 = tform([h0, x, y2])
         image_out, image_out2 = decoder([x]), decoder([x2])
@@ -89,10 +90,12 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         # =====================================================================
         # And adversarial model 
         model = Model(ins, [image_out, image_out2, is_fake])
+        loss = wasserstein_loss if self.use_wasserstein else "binary_crossentropy"
         model.compile(
-                loss=["mae", "mae", "binary_crossentropy"],
-                loss_weights=[100., 100., 1.],
+                loss=["mae", "mae", loss],
+                loss_weights=[1., 1., 1.],
                 optimizer=self.getOptimizer())
+        self.discriminator.summary()
         model.summary()
         self.model = model
 
@@ -131,49 +134,41 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         dr = 0
         img_size = (96, 128)
 
-        x0 = AddConv2D(img0, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        xobs = AddConv2D(img, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        xg1 = AddConv2D(img_goal, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        xg2 = AddConv2D(img_goal2, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
+        x0 = AddConv2D(img0, 32, [4,4], 1, dr, "same", lrelu=True, bn=False)
+        xobs = AddConv2D(img, 32, [4,4], 1, dr, "same", lrelu=True, bn=False)
+        xg1 = AddConv2D(img_goal, 32, [4,4], 1, dr, "same", lrelu=True, bn=False)
+        xg2 = AddConv2D(img_goal2, 32, [4,4], 1, dr, "same", lrelu=True, bn=False)
 
         #x1 = Add()([x0, xobs, xg1])
         #x2 = Add()([x0, xg1, xg2])
         x1 = Add()([xobs, xg1])
         x2 = Add()([xg1, xg2])
-        #x1 = Concatenate(axis=-1)([img, img_goal])
-        #x2 = Concatenate(axis=-1)([img_goal, img_goal2])
         
         # -------------------------------------------------------------
-        y = OneHot(self.num_options)(option)
-        y = AddDense(y, 64, "lrelu", dr)
-        #x1 = TileOnto(x1, y, 64, img_size, add=True)
-        x1 = AddConv2D(x1, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
-        x1 = AddConv2D(x1, 128, [4,4], 2, dr, "same", lrelu=True, bn=True)
-        #x1 = AddConv2D(x1, 256, [4,4], 2, dr, "same", lrelu=True, bn=True)
-        #x1 = AddConv2D(x1, 1, [4,4], 1, 0., "same", activation="sigmoid")
-
-        # -------------------------------------------------------------
         y = OneHot(self.num_options)(option2)
-        y = AddDense(y, 64, "lrelu", dr)
-        x2 = TileOnto(x2, y, 64, img_size, add=True)
-        x2 = AddConv2D(x2, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
+        y = AddDense(y, 32, "lrelu", dr)
+        x2 = TileOnto(x2, y, 32, img_size, add=True)
+        x2 = AddConv2D(x2, 32, [4,4], 2, dr, "valid", lrelu=True, bn=False)
 
         # Final block
-        x = x2
-        x2 = AddConv2D(x2, 128, [4,4], 2, dr, "same", lrelu=True, bn=True)
-        x2 = AddConv2D(x2, 256, [4,4], 2, dr, "same", lrelu=True, bn=True)
+        x2 = AddConv2D(x2, 64, [4,4], 2, dr, "valid", lrelu=True, bn=True)
+        x2 = AddConv2D(x2, 128, [4,4], 2, dr, "valid", lrelu=True, bn=True)
+        x2 = AddConv2D(x2, 256, [4,4], 2, dr, "valid", lrelu=True, bn=True)
         #x = Concatenate(axis=-1)([x1, x2])
         #x = Add()([x1, x2])
-        x = AddConv2D(x2, 1, [1,1], 1, 0., "same", activation="sigmoid", bn=False)
+        #x = AddConv2D(x2, 1, [1,1], 1, 0., "same", l, bn=True)
 
         # Combine
-        x = AveragePooling2D(pool_size=(12,16))(x)
+        #x = AveragePooling2D(pool_size=(12,16))(x)
+        #x = AveragePooling2D(pool_size=(12,16))(x)
         #x = AveragePooling2D(pool_size=(24,32))(x)
+        x = x2
         x = Flatten()(x)
+        x = AddDense(x, 1, "linear", 0., output=True, bn=False)
         discrim = Model(ins, x, name="image_discriminator")
         self.lr *= 2.
-        discrim.compile(loss="binary_crossentropy", loss_weights=[1.],
-                optimizer=self.getOptimizer())
+        loss = wasserstein_loss if self.use_wasserstein else "binary_crossentropy"
+        discrim.compile(loss=loss, optimizer=self.getOptimizer())
         self.lr *= 0.5
         self.image_discriminator = discrim
         return discrim

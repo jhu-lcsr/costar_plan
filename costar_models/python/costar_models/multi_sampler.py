@@ -44,6 +44,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.tform_kernel_size  = [5,5]
         self.num_hypotheses = 4
         self.validation_split = 0.05
+        self.load_training_model = False
 
         # For the new model setup
         self.encoder_channels = 64
@@ -107,6 +108,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.hidden_decoder = None
         self.next_model = None
         self.value_model = None
+        self.pose_model = None
         self.transform_model = None
 
         # ===================================================================
@@ -205,10 +207,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 else:
                     x = transform([enc])
             
-            if self.sampling:
-                x, mu, sigma = x
-                stats.append((mu, sigma))
-
             # This maps from our latent world state back into observable images.
             if self.skip_connections:
                 decoder_inputs = [x] + skips
@@ -338,8 +336,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
             x = AddDense(x, 256, "relu", 0.,
                     constraint=None, output=False,)
-            x = AddDense(x, h_dim[0] * h_dim[1] * 32/4, "relu", 0., constraint=None, output=False)
-            x = Reshape([h_dim[0]/2, h_dim[1]/2, 32])(x)
+            x = AddDense(x, int(h_dim[0] * h_dim[1] * 32/4), "relu", 0., constraint=None, output=False)
+            x = Reshape([int(h_dim[0]/2), int(h_dim[1]/2), 32])(x)
         else:
             x = AddConv2D(x, 128, [5,5], 1, 0.)
         x = AddConv2DTranspose(x, 64, [5,5], 2,
@@ -384,7 +382,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     dropout_rate=self.dropout_rate,
                     leaky=True,
                     num_blocks=self.num_transforms,
-                    use_sampling=self.sampling,
                     relu=transform_relu,
                     option=options,
                     use_noise=self.use_noise,
@@ -421,23 +418,23 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 (features, arm, gripper))
 
     def _getData(self, *args, **kwargs):
-        features, targets = GetAllMultiData(*args, **kwargs)
+        features, targets = GetAllMultiData(self.num_options, *args, **kwargs)
         [I, q, g, oin, label, q_target, g_target,] = features
         features = [I, q, g, oin]
         tt, o1, v, qa, ga, I = targets
-        o1 = np.squeeze(self.toOneHot2D(o1, self.num_options))
+        o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
             if self.success_only:
-                return features, [z], [tt, o1]
+                return features, [z], [tt, o1_1h]
             else:
-                return features + [z], [tt, o1, v]
+                return features + [z], [tt, o1_1y, v]
         else:
             if self.success_only:
-                return features, [tt, o1]
+                return features, [tt, o1_1h]
             else:
-                return features, [tt, o1, v]
+                return features, [tt, o1_1h, v]
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''
@@ -475,9 +472,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         for i, f in enumerate(cbf):
             if len(f.shape) < 1:
                 raise RuntimeError('feature %d not an appropriate size!'%i)
+        if self.predictor is not None:
+            # If we have a unique model associated with visualization
+            predictor = self.predictor
+        else:
+            predictor = self.model
         if self.PredictorCb is not None:
             imageCb = self.PredictorCb(
-                self.predictor,
+                predictor,
                 name=self.name_prefix,
                 features_name=self.features,
                 features=cbf,
@@ -514,37 +516,53 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             print("Saving to " + self.name + "_{predictor, actor, image_decoder}")
             self.model.save_weights(self.name + "_train_predictor.h5f")
             if self.predictor is not None:
+                print(">>> SAVING PREDICTOR")
                 self.predictor.save_weights(self.name + "_predictor.h5f")
             if self.actor is not None:
+                print(">>> SAVING ACTOR")
                 self.actor.save_weights(self.name + "_actor.h5f")
             if self.image_decoder is not None:
+                print(">>> SAVING IMAGE DECODER")
                 self.image_decoder.save_weights(self.name +
                 "_image_decoder.h5f")
             if self.image_encoder is not None:
+                print(">>> SAVING IMAGE ENCODER")
                 self.image_encoder.save_weights(self.name + 
                 "_image_encoder.h5f")
             if self.state_encoder is not None:
+                print(">>> SAVING STATE ENCODER")
                 self.state_encoder.save_weights(self.name +
                 "_state_encoder.h5f")
             if self.state_decoder is not None:
+                print(">>> SAVING STATE DECODER")
                 self.state_decoder.save_weights(self.name + 
                 "_state_decoder.h5f")
             if self.hidden_encoder is not None:
+                print(">>> SAVING HIDDEN ENCODER")
                 self.hidden_encoder.save_weights(self.name + 
                 "_hidden_encoder.h5f")
             if self.hidden_decoder is not None:
+                print(">>> SAVING HIDDEN ENCODER")
                 self.hidden_decoder.save_weights(self.name + 
                 "_hidden_decoder.h5f")
             if self.classifier is not None:
+                print(">>> SAVING CLASSIFIER")
                 self.classifier.save_weights(self.name + 
                 "_classifier.h5f")
             if self.transform_model is not None:
+                print(">>> SAVING TRANSFORM")
                 self.transform_model.save_weights(self.name + 
                 "_transform.h5f")
             if self.value_model is not None:
+                print(">>> SAVING VALUE")
                 self.value_model.save_weights(self.name + 
                 "_value.h5f")
+            if self.pose_model is not None:
+                print(">>> SAVING POSE")
+                self.pose_model.save_weights(self.name + 
+                "_pose.h5f")
             if self.next_model is not None:
+                print(">>> SAVING NEXT")
                 self.next_model.save_weights(self.name + 
                 "_next.h5f")
 
@@ -558,35 +576,51 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         '''
         if self.model is not None:
             print("----------------------------")
-            print("using " + self.name + " to load")
-            self.model.load_weights(self.name + "_train_predictor.h5f")
+            print("using " + self.name + " to load:")
+            if self.load_training_model:
+                print(">>> LOADING TRAINING SETUP")
+                self.model.load_weights(self.name + "_train_predictor.h5f")
             if self.actor is not None:
+                print(">>> LOADING ACTOR")
                 self.actor.load_weights(self.name + "_actor.h5f")
             if self.image_decoder is not None:
+                print(">>> LOADING IMAGE DECODER")
                 self.image_decoder.load_weights(self.name +
                 "_image_decoder.h5f")
             if self.image_encoder is not None:
+                print(">>> LOADING IMAGE ENCODER")
                 self.image_encoder.load_weights(self.name +
                 "_image_encoder.h5f")
             if self.state_decoder is not None:
+                print(">>> LOADING STATE DECODER")
                 self.state_decoder.load_weights(self.name +
                 "_state_decoder.h5f")
             if self.state_encoder is not None:
+                print(">>> LOADING STATE ENCODER")
                 self.state_encoder.load_weights(self.name +
                 "_state_encoder.h5f")
             if self.classifier is not None:
+                print(">>> LOADING CLASSIFIER")
                 self.classifier.load_weights(self.name + 
                 "_classifier.h5f")
             if self.transform_model is not None:
+                print(">>> LOADING TRANSFORM")
                 self.transform_model.load_weights(self.name + 
                 "_transform.h5f")
             if self.value_model is not None:
+                print(">>> LOADING VALUE")
                 self.value_model.load_weights(self.name + 
                 "_value.h5f")
             if self.next_model is not None:
+                print(">>> LOADING NEXT")
                 self.next_model.load_weights(self.name + 
                 "_next.h5f")
+            if self.pose_model is not None:
+                print(">>> LOADING POSE")
+                self.pose_model.load_weights(self.name + 
+                "_pose.h5f")
             if self.predictor is not None:
+                print(">>> LOADING PREDICTOR")
                 self.predictor.load_weights(self.name + "_predictor.h5f")
         else:
             raise RuntimeError('_loadWeights() failed: model not yet created.')
@@ -726,7 +760,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         leaky=True,
                         skips=skips,
                         original=None,
-                        resnet_blocks=self.residual,
                         batchnorm=True,)
         decoder = Model(rep, dec)
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
@@ -851,7 +884,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         dense=self.dense_representation,
                         dense_rep_size=self.img_col_dim,
                         skips=self.skip_connections,
-                        resnet_blocks=self.residual,
                         batchnorm=True,)
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         decoder.summary()

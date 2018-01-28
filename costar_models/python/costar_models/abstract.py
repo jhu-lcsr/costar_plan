@@ -32,6 +32,7 @@ class AbstractAgentBasedModel(object):
             steps_per_epoch=500, validation_steps=25,
             dropout_rate=0.5, decoder_dropout_rate=None,
             tform_dropout_rate=0.,
+            validate=False,
             use_batchnorm=1,
             hypothesis_dropout=False,
             dense_representation=True,
@@ -41,11 +42,13 @@ class AbstractAgentBasedModel(object):
             retrain=True,
             use_prev_option=True,
             success_only=False,
+            submodel=None,
             gan_method="gan",
             save_model=1,
             hidden_size=128,
             loss="mae",
             num_generator_files=3, upsampling=None,
+            clip_weights=0, use_wasserstein=False,
             option_num=None, # for policy model
             task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
@@ -56,6 +59,7 @@ class AbstractAgentBasedModel(object):
         elif lr > 1.:
             raise RuntimeError('Extremely high learning rate: %f' % lr)
 
+        self.submodel = submodel
         self.loss = loss
         self.retrain = retrain
         self.success_only = success_only
@@ -73,6 +77,7 @@ class AbstractAgentBasedModel(object):
         self.load_pretrained_weights = load_pretrained_weights
         self.optimizer = optimizer
         self.validation_steps = validation_steps
+        self.validate = validate
         self.task = task
         if features == "multi":
             self.features = None
@@ -106,9 +111,17 @@ class AbstractAgentBasedModel(object):
         if self.noise_dim < 1:
             self.use_noise = False
 
+        self.use_wasserstein = use_wasserstein
+        self.clip_weights = clip_weights
+        # Activate clip_weights for wasserstein
+        if self.use_wasserstein and self.clip_weights == 0:
+            self.clip_weights = 0.01
+
         # Define previous option for when executing -- this should default to
         # None, set to 2 for testing only
         self.prev_option = 2
+
+        
 
         # default: store the whole model here.
         # NOTE: this may not actually be where you want to save it.
@@ -148,8 +161,11 @@ class AbstractAgentBasedModel(object):
         print("dimensionality of noise =", self.noise_dim)
         print("skip connections =", self.skip_connections)
         print("gan_method =", self.gan_method)
+        print("wasserstein_loss =", self.use_wasserstein)
+        print("clip disc weights =", self.clip_weights)
         print("save_model =", self.save_model)
         print("use_batchnorm =", self.use_batchnorm)
+        print("clip_weights =", self.clip_weights)
         print("-----------------------------------------------------------")
         print("Optimizer =", self.optimizer)
         print("Learning Rate =", self.lr)
@@ -221,7 +237,7 @@ class AbstractAgentBasedModel(object):
                 # --------------------------------------------------------------
                 # Compute the features and aggregate
                 for i, value in enumerate(ffeatures):
-                    if value.shape[0] == 0:
+                    if len(value.shape) < 1 or value.shape[0] == 0:
                         continue
                     if idx == 0:
                         features.append(value)
@@ -229,15 +245,17 @@ class AbstractAgentBasedModel(object):
                         try:
                             features[i] = np.concatenate([features[i],value],axis=0)
                         except ValueError as e:
+                            print("index", i)
                             print ("filename =", fn)
                             print ("Data shape =", features[i].shape)
                             print ("value shape =", value.shape)
+                            print(features[i].shape, value.shape)
                             raise e
                         #print ("feature data shape =", features[i].shape, i)
                     # --------------------------------------------------------------
                 # Compute the targets and aggregate
                 for i, value in enumerate(ftargets):
-                    if value.shape[0] == 0:
+                    if len(value.shape) < 1 or value.shape[0] == 0:
                         continue
                     if idx == 0:
                         targets.append(value)
@@ -245,6 +263,9 @@ class AbstractAgentBasedModel(object):
                         try:
                             targets[i] = np.concatenate([targets[i],value],axis=0)
                         except ValueError as e:
+                            print("index", i)
+                            print (targets[i])
+                            print(value)
                             print ("filename =", fn)
                             print ("Data shape =", targets[i].shape)
                             print ("value shape =", value.shape)
@@ -260,6 +281,7 @@ class AbstractAgentBasedModel(object):
             n_samples = features[0].shape[0]
             for f in features:
                 if f.shape[0] != n_samples:
+                    print(f.shape, n_samples)
                     raise ValueError("Feature lengths are not equal!")
 
             #print("Collected ", n_samples, " samples")

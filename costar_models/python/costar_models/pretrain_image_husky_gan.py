@@ -74,9 +74,10 @@ class PretrainImageHuskyGan(PretrainImageGan):
         image_discriminator.trainable = False
         o1 = image_discriminator([img_in, gen_out])
 
+        loss = wasserstein_loss if self.use_wasserstein else "binary_crossentropy"
         self.model = Model([img_in], [gen_out, o1])
         self.model.compile(
-                loss=["mae"] + ["binary_crossentropy"],
+                loss=["mae", loss],
                 loss_weights=[100., 1.],
                 optimizer=self.getOptimizer())
 

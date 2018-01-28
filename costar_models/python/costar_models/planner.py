@@ -844,6 +844,9 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     option_in = Input((1,), name="Nx_prev_o_in")
     x = xin
     x0 = x0in
+
+    # Combine these two to get information that may be obscured
+
     #x = Concatenate()([x0in, xin])
     if len(x.shape) > 2:
         # Project
@@ -906,20 +909,40 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     Value for the current world
     '''
 
-    xin = Input([int(d) for d in x.shape[1:]], name="V_prev_h_in")
+    xin = Input([int(d) for d in x.shape[1:]], name="V_h_in")
+    x0in = Input([int(d) for d in x.shape[1:]], name="V_h0_in")
+    bn = batchnorm
     x = xin
+    x0 = x0in
     if len(x.shape) > 2:
         # This is the hidden representation of the world, but it should be flat
         # for our classifier to work.
+
+        x = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="A_project",
+                constraint=None)
+        x0 = AddConv2D(x0, 32, [3,3], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="A0_project",
+                constraint=None)
+        x = Add()([x0,x])
+
+        x = AddConv2D(x, 64, [3,3], 2, dropout_rate, "same", lrelu=True, bn=bn)
+        x = AddConv2D(x, 64, [3,3], 1, 0., "same", lrelu=True, bn=bn)
+        x = AddConv2D(x, 128, [3,3], 2, dropout_rate, "same", lrelu=True, bn=bn)
+        x = AddConv2D(x, 128, [3,3], 1, dropout_rate, "same", lrelu=True, bn=bn)
+
         x = Flatten()(x)
 
     # Next options
-    x1 = AddDense(x, dense_size, "lrelu", dropout_rate)
-    x1 = AddDense(x1, dense_size, "lrelu", 0)
+    x = AddDense(x, 2*dense_size, "lrelu", dropout_rate)
+    x = AddDense(x, 2*dense_size, "lrelu", 0)
     value_out = Dense(1,
-            activation="sigmoid", name="value",)(x1)
-    #next_model = Model([x0in, xin, option_in], value_out, name="V")
-    next_model = Model([xin], value_out, name="V")
+            activation="sigmoid", name="value",)(x)
+    next_model = Model([x0in, xin], value_out, name="V")
     return next_model
 
 
@@ -1074,10 +1097,23 @@ def LoadEncoderWeights(model, encoder, decoder, gan=False):
 
 def LoadGoalClassifierWeights(model, make_classifier_fn, img_shape):
     image_discriminator = make_classifier_fn(model, img_shape)
-    image_discriminator.load_weights(
-            model.makeName("goal_discriminator", "classifier"))
+    #image_discriminator.load_weights(
+    #        model.makeName("goal_discriminator", "classifier"))
     image_discriminator.trainable = False
     return image_discriminator
+
+def LoadTransformWeights(model, tform, gan = False):
+    '''
+    Simple function to load the right transform weights.
+    '''
+    if gan:
+        append = '_gan'
+    else:
+        append = ''
+    tform.load_weights(
+            model.makeName("conditional_image" + append, "transform"))
+    tform.trainable = False
+    return tform
 
 def LoadClassifierWeights(model, make_classifier_fn, img_shape):
     image_discriminator = make_classifier_fn(model, img_shape)
@@ -1085,3 +1121,24 @@ def LoadClassifierWeights(model, make_classifier_fn, img_shape):
             model.makeName("discriminator", "classifier"))
     image_discriminator.trainable = False
     return image_discriminator
+
+def MultiDiscriminator(model, x, discriminator, img0, num_hypotheses, img_shape):
+    img0 = Input(img_shape)
+    y = Input((num_hypotheses,) + img_shape)
+    disc = []
+    x = y
+    for i in range(num_hypotheses):
+            def _slice(y):
+                return y[:,i]
+            xi = Lambda(_slice, name="slice_%d"%i)(x)
+            print(x,xi)
+            d = discriminator([img0, xi])
+            print(d)
+            def _expand_dims(y):
+                return K.expand_dims(y,axis=1)
+            d = Lambda(_expand_dims, name="expand_dims_%d"%i)(d)
+            disc.append(d)
+    res = Concatenate(axis=1)(disc)
+    md = Model([img0, y], res, name="multi_disc")
+    md.compile(loss="mae", optimizer=model.getOptimizer())
+    return md

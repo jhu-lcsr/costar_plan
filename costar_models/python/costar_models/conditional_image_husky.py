@@ -91,7 +91,7 @@ class ConditionalImageHusky(ConditionalImage):
         x2 = tform([h0,x,y2])
         image_out = decoder([x])
         image_out2 = decoder([x2])
-        disc_out2 = image_discriminator(image_out2)
+        disc_out2 = image_discriminator([img0_in, image_out2])
 
         self.next_model = next_model
         self.value_model = value_model
