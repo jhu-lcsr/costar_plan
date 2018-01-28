@@ -92,9 +92,10 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         # And adversarial model 
         model = Model(ins, [image_out, image_out2, is_fake])
         loss = wasserstein_loss if self.use_wasserstein else "binary_crossentropy"
+        weights = [0.01, 0.01, 1.] if self.use_wasserstein else [100., 100., 1.]
         model.compile(
                 loss=["mae", "mae", loss],
-                loss_weights=[1e-4, 1e-4, 1.],
+                loss_weights=weights,
                 optimizer=self.getOptimizer())
         self.discriminator.summary()
         model.summary()
