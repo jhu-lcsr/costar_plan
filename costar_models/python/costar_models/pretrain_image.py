@@ -24,6 +24,7 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
         '''
         super(PretrainImageAutoencoder, self).__init__(taskdef, *args, **kwargs)
         self.PredictorCb = ImageCb
+        self.save_encoder_decoder = True
 
     def _makePredictor(self, features):
         '''

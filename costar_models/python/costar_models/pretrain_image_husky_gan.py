@@ -32,6 +32,7 @@ class PretrainImageHuskyGan(PretrainImageGan):
         -----------
         image, arm, gripper: variables of the appropriate sizes
         '''
+        self.save_encoder_decoder = True
         self.predictor, self.train_predictor, self.actor, ins, hidden = \
             self._makePredictor(
                 (image, pose))

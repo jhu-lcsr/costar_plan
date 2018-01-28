@@ -27,6 +27,7 @@ class PretrainImageJigsawsGan(PretrainImageGan):
 
         # Also set up the number of options we expect
         self.num_options = SuturingNumOptions()
+        self.save_encoder_decoder = True
 
     def _makeModel(self, image, *args, **kwargs):
         '''

@@ -45,6 +45,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_hypotheses = 4
         self.validation_split = 0.05
         self.load_training_model = False
+        self.save_encoder_decoder = False
 
         # For the new model setup
         self.encoder_channels = 64
@@ -521,14 +522,15 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             if self.actor is not None:
                 print(">>> SAVING ACTOR")
                 self.actor.save_weights(self.name + "_actor.h5f")
-            if self.image_decoder is not None:
-                print(">>> SAVING IMAGE DECODER")
-                self.image_decoder.save_weights(self.name +
-                "_image_decoder.h5f")
-            if self.image_encoder is not None:
-                print(">>> SAVING IMAGE ENCODER")
-                self.image_encoder.save_weights(self.name + 
-                "_image_encoder.h5f")
+            if self.save_encoder_decoder:
+                if self.image_decoder is not None:
+                    print(">>> SAVING IMAGE DECODER")
+                    self.image_decoder.save_weights(self.name +
+                    "_image_decoder.h5f")
+                if self.image_encoder is not None:
+                    print(">>> SAVING IMAGE ENCODER")
+                    self.image_encoder.save_weights(self.name + 
+                    "_image_encoder.h5f")
             if self.state_encoder is not None:
                 print(">>> SAVING STATE ENCODER")
                 self.state_encoder.save_weights(self.name +

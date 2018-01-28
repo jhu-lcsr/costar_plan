@@ -27,6 +27,7 @@ class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
         self.PredictorCb = ImageCb
         self.num_options = HuskyNumOptions()
         self.null_option = HuskyNumOptions()
+        self.save_encoder_decoder = True
 
     def _makeModel(self, image, *args, **kwargs):
         '''
