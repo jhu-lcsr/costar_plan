@@ -27,9 +27,25 @@ export optimizer=$3
 export noise_dim=$4
 export loss=$5
 export model=$6
-export MODELDIR="$HOME/.costar/stack_$learning_rate$optimizer$dropout$noise_dim$loss"
 
-echo "Training policy $model"
+echo $0 $1 $2 $3 $4 $5 $6
+echo "[STACK] Training policy $model"
+export MODELDIR="$HOME/.costar/stack_$learning_rate$optimizer$dropout$noise_dim$loss"
+$HOME/costar_plan/costar_models/scripts/ctp_model_tool \
+  --features multi \
+  -e 100 \
+  --model secondary \
+  --data_file $HOME/work/$DATASET.h5f \
+  --lr $learning_rate \
+  --dropout_rate $dropout \
+  --model_directory $MODELDIR/ \
+  --optimizer $optimizer \
+  --steps_per_epoch 500 \
+  --noise_dim $noise_dim \
+  --loss $loss \
+  --batch_size 64
+
+export MODELDIR="$HOME/.costar/husky_$learning_rate$optimizer$dropout$noise_dim$loss"
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --features multi \
   -e 100 \
