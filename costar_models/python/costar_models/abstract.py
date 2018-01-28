@@ -26,6 +26,18 @@ class AbstractAgentBasedModel(object):
             name += "_%s.h5f"%submodel
         return name
 
+    def weightsName(self):
+        name = self.name
+        if self.submodel is not None:
+            name += "_%s.h5f"%self.submodel
+        return name + "_weights.h5f"
+
+    def logName(self):
+        name = self.name
+        if self.submodel is not None:
+            name += "_%s.h5f"%self.submodel
+        return name
+
     def __init__(self, taskdef=None, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
             clipnorm=100., show_iter=0, pretrain_iter=5,
             optimizer="sgd", model_descriptor="model", zdim=16, features=None,
