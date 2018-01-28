@@ -51,7 +51,7 @@ class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
         image_discriminator = LoadClassifierWeights(self,
                 MakeImageClassifier,
                 img_shape)
-        o2 = image_discriminator([out])
+        o2 = image_discriminator([img0_in, out])
 
         ae = Model(ins, [out, o2])
         ae.compile(
