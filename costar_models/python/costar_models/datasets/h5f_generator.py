@@ -25,3 +25,8 @@ class H5fGeneratorDataset(NpzGeneratorDataset):
         f = h5f.File(filename, 'r')
         return f
 
+    def _close(self, sample_file):
+        '''
+        For numpy arrays this does nothing
+        '''
+        sample_file.close()

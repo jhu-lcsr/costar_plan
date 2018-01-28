@@ -28,6 +28,11 @@ class NpzGeneratorDataset(object):
     def write(self, *args, **kwargs):
         raise NotImplementedError('this dataset does not save things')
 
+    def _close(self, sample_file):
+        '''
+        For numpy arrays this does nothing
+        '''
+        pass
 
     def load(self, success_only=False):
         '''
@@ -54,6 +59,7 @@ class NpzGeneratorDataset(object):
                     if value.shape[0] == 0:
                         continue
                     sample[key] = np.concatenate([sample[key],value],axis=0)
+                self._close(fsample)
             i += 1
             acceptable_files.append(f)
 
