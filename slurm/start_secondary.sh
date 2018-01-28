@@ -16,8 +16,7 @@ do
           for model in value next pose actor
           do
             echo "Creating models with $opt $loss $skip $noise_dim $dr $model"
-            ctp_secondary.sh $lr $dr $opt $noise_dim $loss $model
-            #sbatch ctp_secondary.sh $lr $dr $opt $noise_dim $loss $model
+            sbatch ctp_secondary.sh $lr $dr $opt $noise_dim $loss $model
           done
         done
       done
