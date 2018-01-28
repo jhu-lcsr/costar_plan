@@ -35,6 +35,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --features multi \
   -e 100 \
   --model secondary \
+  --submodel $model \
   --data_file $HOME/work/$DATASET.h5f \
   --lr $learning_rate \
   --dropout_rate $dropout \
