@@ -22,6 +22,14 @@ rosrun costar_models ctp_model_tool \
 
 rosrun costar_models ctp_model_tool \
   --model secondary --data_file data.h5f \
+  --epochs 50 \
+  --lr 0.001  --dropout_rate 0.1 --features multi \
+  --batch_size 64 --steps_per_epoch 500 --submodel q $1
+
+rosrun costar_models ctp_model_tool \
+
+rosrun costar_models ctp_model_tool \
+  --model secondary --data_file data.h5f \
   --epochs 100 \
   --lr 0.001  --dropout_rate 0.1 \
   --success_only \
