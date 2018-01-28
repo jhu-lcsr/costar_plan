@@ -12,7 +12,6 @@ echo "Running $@ on $SLURMD_NODENAME ..."
 
 module load tensorflow/cuda-8.0/r1.3 
 
-export DATASET="ctp_dec"
 export train_discriminator=false
 export train_discriminator2=false
 export train_image_encoder=false
@@ -31,6 +30,7 @@ export model=$6
 echo $0 $1 $2 $3 $4 $5 $6
 echo "[STACK] Training policy $model"
 export MODELDIR="$HOME/.costar/stack_$learning_rate$optimizer$dropout$noise_dim$loss"
+export DATASET="ctp_dec"
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --features multi \
   -e 100 \
@@ -46,11 +46,12 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --batch_size 64
 
 export MODELDIR="$HOME/.costar/husky_$learning_rate$optimizer$dropout$noise_dim$loss"
+export DATASET="husky_data"
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --features multi \
   -e 100 \
   --model secondary \
-  --data_file $HOME/work/$DATASET.h5f \
+  --data_file $HOME/work/$DATASET.npz \
   --lr $learning_rate \
   --dropout_rate $dropout \
   --model_directory $MODELDIR/ \

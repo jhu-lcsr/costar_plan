@@ -40,7 +40,7 @@ class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
         encoder = self._makeImageEncoder(img_shape)
         ins = [img0_in, img_in]
         
-        enc = encoder(ins)
+        enc = encoder([img_in])
         decoder = self._makeImageDecoder(
                     self.hidden_shape,
                     self.skip_shape,)
