@@ -18,14 +18,16 @@ cd -
 wass=$1
 
 lrs='0.001 0.0002 0.0001'
+optimizers=adam
 
 if [[ $wass == wass* ]]; then 
   lrs='0.00005 0.0001 0.00002'
+  optimizers=rmsprop
 fi
 
 for lr in $lrs; do
   # just use the adam optimizer
-  for opt in adam; do
+  for opt in $optimizers; do
     for loss in mae; do #logcosh
     # what do we do about skip connections?
     for skip in 0; do # 1
