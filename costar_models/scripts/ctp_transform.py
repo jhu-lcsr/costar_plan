@@ -21,7 +21,7 @@ external features.
 '''
 
 def visualizeHiddenMain(args):
-    SetCPU(args)
+    ConfigureGPU(args)
 
     data_file_info = args['data_file'].split('.')
     data_type = data_file_info[-1]

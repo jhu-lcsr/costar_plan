@@ -93,14 +93,9 @@ class ConditionalImage(PredictionSampler2):
             h = encoder([img_in])
             h0 = encoder(img0_in)
 
-        #next_model = GetNextModel(h, self.num_options, 128,
-        #        self.decoder_dropout_rate)
-        #value_model = GetValueModel(h, self.num_options, 64,
-        #        self.decoder_dropout_rate)
-        #next_model.compile(loss="mae", optimizer=self.getOptimizer())
-        #value_model.compile(loss="mae", optimizer=self.getOptimizer())
-        #value_out = value_model([h0, h])
-        #next_option_out = next_model([h0,h,label_in])
+        if self.validate:
+            self.loadValidationModels(arm_size, gripper_size)
+
         next_option_in = Input((1,), name="next_option_in")
         next_option_in2 = Input((1,), name="next_option_in2")
         ins += [next_option_in, next_option_in2]
@@ -153,6 +148,24 @@ class ConditionalImage(PredictionSampler2):
                     ga, o2_1h]
         else:
             return [I0, I, o1, o2, oin], [I_target, I_target2, o2_1h]
+
+
+    def loadValidationModels(self):
+
+        arm_in = Input((arm_size,))
+        gripper_in = Input((gripper_size,))
+        arm_gripper = Concatenate()([arm_in, gripper_in])
+        label_in = Input((1,))
+        ins = [img0_in, img_in]
+
+        next_model = GetNextModel(h, self.num_options, 128,
+                self.decoder_dropout_rate)
+        value_model = GetValueModel(h, self.num_options, 64,
+                self.decoder_dropout_rate)
+        next_model.compile(loss="mae", optimizer=self.getOptimizer())
+        value_model.compile(loss="mae", optimizer=self.getOptimizer())
+        value_out = value_model([h0, h])
+        next_option_out = next_model([h0,h,label_in])
 
 
     def encode(self, obs):
