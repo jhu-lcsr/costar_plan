@@ -99,7 +99,7 @@ def gaussian_kernel_2D(size=(3, 3), center=None, sigma=1):
 def segmentation_gaussian_measurement(
         y_true,
         y_pred,
-        gaussian_sigma=10,
+        gaussian_sigma=3,
         measurement=segmentation_losses.binary_crossentropy):
     """ Apply metric or loss measurement incorporating a 2D gaussian.
 
@@ -139,7 +139,7 @@ def segmentation_gaussian_measurement(
 def segmentation_gaussian_measurement_batch(
         y_true,
         y_pred,
-        gaussian_sigma=10,
+        gaussian_sigma=3,
         measurement=segmentation_losses.binary_crossentropy):
     """ Apply metric or loss measurement to a batch of data incorporating a 2D gaussian.
 
@@ -173,7 +173,7 @@ def segmentation_gaussian_measurement_batch(
 def segmentation_gaussian_binary_crossentropy(
         y_true,
         y_pred,
-        gaussian_sigma=10):
+        gaussian_sigma=3):
     with K.name_scope(name='segmentation_gaussian_binary_crossentropy') as scope:
         results = segmentation_gaussian_measurement_batch(
             y_true, y_pred,
