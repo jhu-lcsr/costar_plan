@@ -41,6 +41,7 @@ def visualizeHiddenMain(args):
 
     if 'model' in args and args['model'] is not None:
         model = MakeModel(taskdef=None, **args)
+        model.validate = True
         model.load(world=None,**data)
         train_generator = model.trainGenerator(dataset)
         test_generator = model.testGenerator(dataset)
@@ -52,12 +53,13 @@ def visualizeHiddenMain(args):
         data = next(test_generator)
         features, targets = next(train_generator)
         h = model.encode(features)
+        h0 = model.encodeInitial(features)
         prev_option = model.prevOption(features)
         img = model.debugImage(features)
         null_option = np.ones_like(prev_option) * model.null_option
         #p_a = model.pnext(h, null_option, features)
-        p_a = model.pnext(h, prev_option, features)
-        v = model.value(h, prev_option, features)
+        p_a = model.pnext(h0, h, prev_option, features)
+        v = model.value(h0, h)
 
         if not h.shape[0] == img.shape[0]:
             raise RuntimeError('something went wrong with dimensions')
@@ -78,8 +80,6 @@ def visualizeHiddenMain(args):
                 plt.subplot(3,3,j+2)
                 plt.imshow(np.squeeze(h[i,:,:,j]))
             plt.show()
-
-
 
     else:
         raise RuntimeError('Must provide a model to load')
