@@ -24,6 +24,12 @@ export loss=$7
 export wass=$8 # 'wass
 export MODELDIR="$HOME/.costar/${dataset}_${learning_rate}_${optimizer}_${dropout}_${noise_dim}_${loss}_${wass}"
 
+# Handle different Marcc layouts
+data_dir=$HOME/work/$dataset
+if [[ ! -d $data_dir ]]; then
+	data_dir=$HOME/work/dev_yb/$dataset
+fi
+
 wass_cmd=''
 if [[ $wass == wass* ]]; then wass_cmd='--use_wasserstein'; fi
 	
@@ -35,7 +41,7 @@ then
     --features $features \
     -e 100 \
     --model pretrain_image_encoder \
-    --data_file $HOME/work/$dataset.h5f \
+    --data_file $data_dir.h5f \
     --lr $learning_rate \
     --dropout_rate $dropout \
     --model_directory $MODELDIR/ \
@@ -52,7 +58,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --features $features \
   -e 100 \
   --model pretrain_image_gan \
-  --data_file $HOME/work/$dataset.h5f \
+  --data_file $data_dir.h5f \
   --lr $learning_rate \
   --dropout_rate $dropout \
   --model_directory $MODELDIR/ \
@@ -70,7 +76,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --features $features \
   -e 100 \
   --model conditional_image_gan \
-  --data_file $HOME/work/$dataset.h5f \
+  --data_file $data_dir.h5f \
   --lr $learning_rate \
   --dropout_rate $dropout \
   --model_directory $MODELDIR/ \
