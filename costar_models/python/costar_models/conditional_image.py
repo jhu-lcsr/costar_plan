@@ -232,9 +232,12 @@ class ConditionalImage(PredictionSampler2):
         v = self.value_model.predict([hidden0, hidden])
         return v
 
-    def transform(self, hidden, option_in=-1):
-
-        raise NotImplementedError('transform() not implemented')
+    def transform(self, hidden0, hidden, option_in=-1):
+        if option_in < 0 or option_in > self.num_options:
+            option_in = self.null_option
+        oin = MakeOption1h(option_in, self.num_options)
+        h = self.transform_model.predict([hidden0, hidden, oin])
+        return h
 
     def act(self, *args, **kwargs):
         raise NotImplementedError('act() not implemented')
