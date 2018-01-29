@@ -63,15 +63,12 @@ def visualizeHiddenMain(args):
         print("shape of hidden samples =", h.shape)
         print("shape of images =", img.shape)
         for i in range(h.shape[0]):
-            plt.figure()
+            plt.figure(figsize=(3,3))
             plt.subplot(3,3,1)
-            plt.imshow(img[i])
+            Show(img[i])
             for j in range(h.shape[-1]):
                 plt.subplot(3,3,j+2)
-                plt.imshow(np.squeeze(h[i,:,:,j]))
-            frame1 = plt.gca()
-            frame1.axes().get_xaxis().set_visible(False)
-            frame1.axes().get_yaxis().set_visible(False)
+                Show(np.squeeze(h[i,:,:,j]))
             plt.show()
 
     else:

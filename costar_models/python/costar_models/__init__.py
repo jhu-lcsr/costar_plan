@@ -8,6 +8,7 @@ __all__ = [
     "MakeModel", "GetModels", "ParseModelArgs",
     "ParseVisualizeArgs",
     "ConfigureGPU",
+    "Show",
     # ===========================================================================
     # Visualization and models
     "RobotMultiKeypointsVisualizer",
@@ -37,5 +38,4 @@ from .ctp_visualize_decoder import *
 from .parse import *
 from .util import GetModels, MakeModel
 from .cpu import ConfigureGPU
-
-
+from .plotting import *

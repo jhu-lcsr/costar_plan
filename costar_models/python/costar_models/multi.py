@@ -116,43 +116,37 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
     '''
     xin = Input([int(d) for d in x.shape[1:]], name="actor_h_in")
     x0in = Input([int(d) for d in x.shape[1:]], name="actor_h0_in")
-
+    arm_in = Input((arm_size,), name="ee_in")
+    gripper_in = Input((gripper_size,), name="gripper_in")
     option_in = Input((48,), name="actor_o_in")
-    x = xin
-    x0 = x0in
-    if len(x.shape) > 2:
-        # Project
-        x = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="A_project",
-                constraint=None)
-        x0 = AddConv2D(x0, 32, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="A0_project",
-                constraint=None)
-        x = Add()([x0,x])
 
-        x = AddConv2D(x, 64, [3,3], 2, dropout_rate, "same", lrelu=True,
-                bn=batchnorm)
-        x = AddConv2D(x, 64, [3,3], 1, 0., "same", lrelu=True, bn=batchnorm)
-        x = AddConv2D(x, 128, [3,3], 2, dropout_rate, "same", lrelu=True,
-                bn=batchnorm)
-        x = AddConv2D(x, 128, [3,3], 1, dropout_rate, "same", lrelu=True,
-                bn=batchnorm)
+    x0, x = x0in, xin
+    #dr, bn = dropout_rate, batchnorm
+    dr, bn = dropout_rate, False
 
-        # This is the hidden representation of the world, but it should be flat
-        # for our classifier to work.
-        x = Flatten()(x)
+    x = Concatenate(axis=-1)([x, x0])
+    x = AddConv2D(x, 32, [3,3], 1, dr, "same", lrelu=True, bn=bn)
 
-    # Same setup as the state decoders
-    x1 = AddDense(x, 512, "lrelu", dropout_rate, constraint=None, output=False,)
-    x1 = AddDense(x1, 512, "lrelu", dropout_rate, constraint=None, output=False,)
-    arm = AddDense(x1, arm_size, "linear", 0., output=True)
-    gripper = AddDense(x1, gripper_size, "sigmoid", 0., output=True)
+    # Add arm, gripper
+    y = Concatenate()([arm_in, gripper_in])
+    y = AddDense(y, 32, "relu", 0., output=True, constraint=3)
+    x = TileOnto(x, y, 32, (8,8), add=False)
+    x = AddConv2D(x, 64, [3,3], 1, dr, "valid", lrelu=True, bn=bn)
+
+    # Add arm, gripper
+    y2 = AddDense(option_in, 64, "relu", 0., output=True, constraint=3)
+    x = TileOnto(x, y2, 64, (6,6), add=False)
+    x = AddConv2D(x, 128, [3,3], 1, dr, "valid", lrelu=True, bn=bn)
+    x = AddConv2D(x, 64, [3,3], 1, dr, "valid", lrelu=True, bn=bn)
+
+    x = Flatten()(x)
+    x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
+    x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)    # Same setup as the state decoders
+
+    arm = AddDense(x, arm_size, "linear", 0., output=True)
+    gripper = AddDense(x, gripper_size, "sigmoid", 0., output=True)
     #value = Dense(1, activation="sigmoid", name="V",)(x1)
-    actor = Model([x0in, xin, option_in], [arm, gripper], name="actor")
+    actor = Model([x0in, xin, arm_in, gripper_in, option_in], [arm, gripper], name="actor")
     return actor
 
 def MakeMultiPolicy(model, encoder, features, arm, gripper,
