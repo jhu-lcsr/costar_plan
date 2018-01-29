@@ -39,6 +39,7 @@ from .conditional_image_husky import ConditionalImageHusky
 from .conditional_image_husky_gan import ConditionalImageHuskyGan
 from .discriminator import HuskyDiscriminator
 from .multi_policy import HuskyPolicy
+from .secondary import HuskySecondary
 
 def MakeModel(features, model, taskdef, **kwargs):
     '''
@@ -210,6 +211,8 @@ def MakeModel(features, model, taskdef, **kwargs):
             model_instance = HuskyDiscriminator(True, taskdef,
                     features=features,
                     model=model, **kwargs)
+        elif model == "secondary":
+            model_instance = HuskySecondary(taskdef, model=model, **kwargs)
     
     # If we did not create a model then die.
     if model_instance is None:
