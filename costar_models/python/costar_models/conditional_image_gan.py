@@ -134,7 +134,7 @@ class ConditionalImageGan(PretrainImageGan):
         # =====================================================================
         # And adversarial model 
         loss = wasserstein_loss if self.use_wasserstein else "binary_crossentropy"
-        weights = [0.01, 0.01, 1.] if self.use_wasserstein else [100., 100., 1.]
+        weights = [1., 1., 1.] if self.use_wasserstein else [100., 100., 1.]
 
         model = Model(ins, [image_out, image_out2, is_fake])
         model.compile(
