@@ -9,6 +9,8 @@ if [[ $# < 1 ]]; then
   exit 1
 fi
 
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
 wass=$1
 
 lrs='0.001 0.0002 0.0001'
@@ -27,7 +29,7 @@ for lr in $lrs; do
       for noise_dim in 0; do # 1 8 32
         for dr in 0. 0.1 0.2; do # 0.3 0.4 0.5; do
           echo "starting cpt_dec multi $wass LR=$lr, dr=$dr, opt=$opt, noise=$noise_dim"
-          sbatch ctp_gan.sh ctp_dec multi $lr $dr $opt $noise_dim $loss $wass
+          sbatch "$SCRIPT_DIR"/ctp_gan.sh ctp_dec multi $lr $dr $opt $noise_dim $loss $wass
         done
       done
     done
