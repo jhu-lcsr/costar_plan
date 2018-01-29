@@ -121,7 +121,8 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
     option_in = Input((48,), name="actor_o_in")
 
     x0, x = x0in, xin
-    dr, bn = dropout_rate, batchnorm
+    #dr, bn = dropout_rate, batchnorm
+    dr, bn = dropout_rate, False
 
     x = Concatenate(axis=-1)([x, x0])
     x = AddConv2D(x, 32, [3,3], 1, dr, "same", lrelu=True, bn=bn)
@@ -140,7 +141,7 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
 
     x = Flatten()(x)
     x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
-    x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)    # Same setup as the state decoders
+    x = AddDense(x, 512, "lrelu", 0., output=True, bn=bn)    # Same setup as the state decoders
 
     arm = AddDense(x, arm_size, "linear", 0., output=True)
     gripper = AddDense(x, gripper_size, "sigmoid", 0., output=True)
