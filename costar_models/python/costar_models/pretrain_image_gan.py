@@ -196,8 +196,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                             c = self.clip_weights
                             for l in self.discriminator.layers:
                                 weights = l.get_weights()
-                                for w in weights:
-                                    np.clip(w, -c, c)
+                                weights = [np.clip(w, -c, c) for w in weights]
                                 l.set_weights(weights)
 
                         # Descriminator pass
