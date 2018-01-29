@@ -520,9 +520,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             if self.predictor is not None:
                 print(">>> SAVING PREDICTOR")
                 self.predictor.save_weights(self.name + "_predictor.h5f")
-            if self.actor is not None:
-                print(">>> SAVING ACTOR")
-                self.actor.save_weights(self.name + "_actor.h5f")
             if self.save_encoder_decoder:
                 if self.image_decoder is not None:
                     print(">>> SAVING IMAGE DECODER")
@@ -556,22 +553,26 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 print(">>> SAVING TRANSFORM")
                 self.transform_model.save_weights(self.name + 
                 "_transform.h5f")
-            if self.value_model is not None:
-                print(">>> SAVING VALUE")
-                self.value_model.save_weights(self.name + 
-                "_value.h5f")
-            if self.q_model is not None:
-                print(">>> SAVING Q MODEL")
-                self.q_model.save_weights(self.name + 
-                "_q.h5f")
-            if self.pose_model is not None:
-                print(">>> SAVING POSE")
-                self.pose_model.save_weights(self.name + 
-                "_pose.h5f")
-            if self.next_model is not None:
-                print(">>> SAVING NEXT")
-                self.next_model.save_weights(self.name + 
-                "_next.h5f")
+            if not self.validate:
+                if self.actor is not None:
+                    print(">>> SAVING ACTOR")
+                    self.actor.save_weights(self.name + "_actor.h5f")
+                if self.value_model is not None:
+                    print(">>> SAVING VALUE")
+                    self.value_model.save_weights(self.name + 
+                    "_value.h5f")
+                if self.q_model is not None:
+                    print(">>> SAVING Q MODEL")
+                    self.q_model.save_weights(self.name + 
+                    "_q.h5f")
+                if self.pose_model is not None:
+                    print(">>> SAVING POSE")
+                    self.pose_model.save_weights(self.name + 
+                    "_pose.h5f")
+                if self.next_model is not None:
+                    print(">>> SAVING NEXT")
+                    self.next_model.save_weights(self.name + 
+                    "_next.h5f")
 
         else:
             raise RuntimeError('save() failed: model not found.')
