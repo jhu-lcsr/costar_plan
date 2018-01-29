@@ -77,7 +77,7 @@ class ConditionalImageGan(PretrainImageGan):
             encoder = self._makeImageEncoder(img_shape)
             decoder = self._makeImageDecoder(self.hidden_shape)
 
-        LoadEncoderWeights(self, encoder, decoder)
+        LoadEncoderWeights(self, encoder, decoder, gan=True)
 
         # create input for controlling noise output if that's what we decide
         # that we want to do
