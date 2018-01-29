@@ -111,7 +111,7 @@ class Secondary(PredictionSampler2):
                     self.decoder_dropout_rate)
             actor.compile(loss="mae",optimizer=self.getOptimizer())
             model = actor
-            outs = actor([h0, h, y])
+            outs = actor([h0, h, arm_in, gripper_in, y])
             loss = self.loss
             metrics=[]
         elif self.submodel == "pose":

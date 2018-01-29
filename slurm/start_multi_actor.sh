@@ -20,17 +20,16 @@ export train_conditional_image=false
 export train_conditional_sampler=false
 export train_predictor=true
 export train_policies=true
-export learning_rate=$1
-export dropout=$2
-export optimizer=$3
-export noise_dim=$4
-export loss=$5
-export model=$6
+export learning_rate=0.001
+export dropout=0.01
+export optimizer=adam
+export noise_dim=0
+export loss=mae
+export model=actor
 
 export train_multi=false
 export train_husky=true
 
-echo $0 $1 $2 $3 $4 $5 $6
 echo "[STACK] Training policy $model"
 export MODELDIR="$HOME/.costar/stack_$learning_rate$optimizer$dropout$noise_dim$loss"
 export DATASET="ctp_dec"
@@ -48,21 +47,3 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --noise_dim $noise_dim \
   --loss $loss \
   --batch_size 64
-
-export MODELDIR="$HOME/.costar/husky_$learning_rate$optimizer$dropout$noise_dim$loss"
-export DATASET="husky_data"
-$HOME/costar_plan/costar_models/scripts/ctp_model_tool \
-  --features husky \
-  -e 100 \
-  --model secondary \
-  --data_file $HOME/work/$DATASET.npz \
-  --lr $learning_rate \
-  --dropout_rate $dropout \
-  --model_directory $MODELDIR/ \
-  --optimizer $optimizer \
-  --steps_per_epoch 500 \
-  --noise_dim $noise_dim \
-  --loss $loss \
-  --batch_size 64
-
-
