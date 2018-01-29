@@ -31,7 +31,7 @@ if [[ ! -d $data_dir ]]; then
 fi
 
 wass_cmd=''
-if [[ $wass == wass* ]]; then wass_cmd='--use_wasserstein'; fi
+if [[ $wass == wass* ]]; then wass_cmd='--wasserstein'; fi
 	
 
 if $train_image_encoder
