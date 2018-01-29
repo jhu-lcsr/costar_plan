@@ -15,7 +15,7 @@ do
         for model in actor
         do
           echo "Creating models with $opt $loss $skip $noise_dim $dr $model"
-          sbatch ctp_secondary.sh $lr $dr $opt $noise_dim $loss $model
+          sbatch ctp_actor.sh $lr $dr $opt $noise_dim $loss
         done
       done
     done
