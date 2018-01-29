@@ -371,7 +371,11 @@ def dilated_late_concat_model(
     if vector_logits is None:
         x = Concatenate(axis=-1)(image_logits)
     else:
-        v = Concatenate(axis=0)(vector_logits)
+        v = vector_logits
+        if len(vector_logits) > 1:
+            v = Concatenate(axis=0)(v)
+        else:
+            [v] = v
         v = Dense(vector_dense_filters)(v)
         x = concat_images_with_tiled_vector_layer(image_logits, v)
 
