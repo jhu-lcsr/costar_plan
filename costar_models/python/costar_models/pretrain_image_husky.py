@@ -27,6 +27,7 @@ class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
         self.PredictorCb = ImageCb
         self.num_options = HuskyNumOptions()
         self.null_option = HuskyNumOptions()
+        self.save_encoder_decoder = True
 
     def _makeModel(self, image, *args, **kwargs):
         '''
@@ -50,12 +51,12 @@ class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
         image_discriminator = LoadClassifierWeights(self,
                 MakeImageClassifier,
                 img_shape)
-        o2 = image_discriminator([out])
+        o2 = image_discriminator([img0_in, out])
 
         ae = Model(ins, [out, o2])
         ae.compile(
                 loss=["mae", "categorical_crossentropy"],
-                loss_weights=[1.,1e-4],
+                loss_weights=[1.,1e-3],
                 optimizer=self.getOptimizer())
         ae.summary()
     

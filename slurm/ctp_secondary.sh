@@ -27,6 +27,9 @@ export noise_dim=$4
 export loss=$5
 export model=$6
 
+export train_multi=false
+export train_husky=true
+
 echo $0 $1 $2 $3 $4 $5 $6
 echo "[STACK] Training policy $model"
 export MODELDIR="$HOME/.costar/stack_$learning_rate$optimizer$dropout$noise_dim$loss"

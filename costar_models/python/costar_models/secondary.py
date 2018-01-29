@@ -33,6 +33,7 @@ class Secondary(PredictionSampler2):
         super(Secondary, self).__init__(*args, **kwargs)
         self.PredictorCb = None
         self.load_training_model = False
+        self.save_encoder_decoder = False
 
     def _makePredictor(self, features):
         # =====================================================================

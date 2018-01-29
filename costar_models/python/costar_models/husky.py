@@ -113,7 +113,7 @@ def GetPolicyHuskyData(num_options, option, image, pose, action, label, *args,
     else:
         return [], []
 
-def GetConditionalHuskyData(do_all, num_options, image, pose, action, label,
+def GetConditionalHuskyData(num_options, image, pose, action, label,
         prev_label, goal_image, goal_pose, value, *args, **kwargs):
     I = np.array(image) / 255.
     p = np.array(pose)
@@ -131,14 +131,7 @@ def GetConditionalHuskyData(do_all, num_options, image, pose, action, label,
     oin_1h = np.squeeze(ToOneHot2D(oin, num_options))
     o2_1h = np.squeeze(ToOneHot2D(o2, num_options))
 
-    if do_all:
-        o1_1h = np.squeeze(ToOneHot2D(o1, num_options))
-        return [I0, I, o1, o2, oin], [ I_target, I_target2,
-                o1_1h,
-                v,
-                action, o2_1h]
-    else:
-        return [I0, I, o1, o2, oin], [I_target, I_target2]
+    return [I0, I, o1, o2, oin], [I_target, I_target2, o2_1h]
 
 def MakeHuskyPolicy(model, encoder, image, pose, action, option, verbose=True):
     '''

@@ -26,7 +26,7 @@ from .planner import *
 from .temporary import *
 
 def SuturingNumOptions():
-    return 15
+    return 16
 
 def MakeJigsawsImageClassifier(model, img_shape):
     img0 = Input(img_shape,name="img0_classifier_in")

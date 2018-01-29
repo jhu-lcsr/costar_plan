@@ -69,6 +69,9 @@ def visualizeHiddenMain(args):
             for j in range(h.shape[-1]):
                 plt.subplot(3,3,j+2)
                 plt.imshow(np.squeeze(h[i,:,:,j]))
+            frame1 = plt.gca()
+            frame1.axes().get_xaxis().set_visible(False)
+            frame1.axes().get_yaxis().set_visible(False)
             plt.show()
 
     else:

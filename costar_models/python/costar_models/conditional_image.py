@@ -48,6 +48,7 @@ class ConditionalImage(PredictionSampler2):
         self.num_transforms = 3
         self.transform_model = None
         self.skip_connections = False
+        self.save_encoder_decoder = self.retrain
 
         if self.use_noise:
             raise NotImplementedError('noise vectors not supported for'
