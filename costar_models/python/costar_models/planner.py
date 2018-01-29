@@ -1077,11 +1077,13 @@ def GetActor(enc0, enc_h, supervisor, label_out, num_hypotheses, *args, **kwargs
     p_oh = K.sum(label_out, axis=1) / num_hypotheses
 
 def LoadEncoderWeights(model, encoder, decoder, gan=False):
-    g = "pretrain_image_gan"
-    e = "pretrain_image_encoder"
-    names = [g, e] if gan else [e, g]
+    gs = "pretrain_image_gan"
+    es = "pretrain_image_encoder"
+    names = [gs, es] if gan else [es, gs]
     loaded = False
 
+
+    saved_e = None
     for name in names:
         try:
             encoder.load_weights(
@@ -1093,6 +1095,7 @@ def LoadEncoderWeights(model, encoder, decoder, gan=False):
             loaded = True
 
         except IOError as e:
+            saved_e = e
             continue
 
     if not loaded and not model.retrain:
