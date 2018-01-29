@@ -188,8 +188,12 @@ class PretrainImageGan(RobotMultiPredictionSampler):
 
             for i in range(self.epochs):
                 for j in range(self.steps_per_epoch):
+                    if j == 0:
+                        iter_for_step = d_iters * 10
+                    else:
+                        iter_for_step = d_iters
 
-                    for d in range(d_iters):
+                    for d in range(iter_for_step):
 
                         # Clip the weights for the wasserstein gan
                         if self.clip_weights > 0:
