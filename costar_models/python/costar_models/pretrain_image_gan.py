@@ -29,7 +29,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         '''
         super(PretrainImageGan, self).__init__(*args, **kwargs)
         self.PredictorCb = ImageCb
-        self.load_pretrained_weights = True
+        self.load_pretrained_weights = False
 
     def _makePredictor(self, features):
         '''
