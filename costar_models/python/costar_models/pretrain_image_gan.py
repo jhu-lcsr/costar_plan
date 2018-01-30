@@ -265,5 +265,5 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                 logs['D fake acc'] = d_fake_acc
 
                 for c in callbacks:
-                    c.on_epoch_end(i, logs)
+                    c.on_epoch_end(i, logs=logs)
 
