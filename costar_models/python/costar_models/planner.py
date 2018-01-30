@@ -1093,6 +1093,10 @@ def LoadEncoderWeights(model, encoder, decoder, gan=False):
             decoder.load_weights(d_nm)
             loaded = True
 
+            if loaded:
+                print("... success!")
+                break
+
         except IOError as e:
             saved_e = e
             continue

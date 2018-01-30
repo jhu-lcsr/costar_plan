@@ -82,9 +82,6 @@ class ConditionalImage(PredictionSampler2):
             decoder = self._makeImageDecoder(self.hidden_shape)
 
         LoadEncoderWeights(self, encoder, decoder)
-        image_discriminator = LoadGoalClassifierWeights(self,
-                make_classifier_fn=MakeImageClassifier,
-                img_shape=img_shape)
 
         # =====================================================================
         # Load the arm and gripper representation
@@ -113,21 +110,31 @@ class ConditionalImage(PredictionSampler2):
         image_out, image_out2 = decoder([x]), decoder([x2])
 
         # Compute classifier on the last transform
-        disc_out2 = image_discriminator([img0_in, image_out2])
-
-        lfn = self.loss
+        if not self.no_disc:
+            image_discriminator = LoadGoalClassifierWeights(self,
+                    make_classifier_fn=MakeImageClassifier,
+                    img_shape=img_shape)
+            disc_out2 = image_discriminator([img0_in, image_out2])
 
         # Create models to train
-        train_predictor = Model(ins + [label_in],
-                [image_out, image_out2, disc_out2])
         if self.no_disc:
             disc_wt = 0.
         else:
             disc_wt = 1e-3
-        train_predictor.compile(
-                loss=[lfn, lfn, "categorical_crossentropy"],
-                loss_weights=[1., 1., disc_wt],
-                optimizer=self.getOptimizer())
+        if self.no_disc:
+            train_predictor = Model(ins + [label_in],
+                    [image_out, image_out2])
+            train_predictor.compile(
+                    loss=[self.loss, self.loss,],
+                    loss_weights=[1., 1.,],
+                    optimizer=self.getOptimizer())
+        else:
+            train_predictor = Model(ins + [label_in],
+                    [image_out, image_out2, disc_out2])
+            train_predictor.compile(
+                    loss=[self.loss, self.loss, "categorical_crossentropy"],
+                    loss_weights=[1., 1., disc_wt],
+                    optimizer=self.getOptimizer())
         return None, train_predictor, None, ins, h
 
     def _getData(self, *args, **kwargs):
@@ -146,6 +153,8 @@ class ConditionalImage(PredictionSampler2):
         if self.validate:
             return [I0, I, o1, o2, oin], [ I_target, I_target2, o1_1h, v, qa,
                     ga, o2_1h]
+        elif self.no_disc:
+            return [I0, I, o1, o2, oin], [I_target, I_target2]
         else:
             return [I0, I, o1, o2, oin], [I_target, I_target2, o2_1h]
 

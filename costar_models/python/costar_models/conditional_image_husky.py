@@ -50,9 +50,6 @@ class ConditionalImageHusky(ConditionalImage):
             decoder = self._makeImageDecoder(self.hidden_shape)
 
         LoadEncoderWeights(self, encoder, decoder, gan=False)
-        image_discriminator = LoadGoalClassifierWeights(self,
-                make_classifier_fn=MakeImageClassifier,
-                img_shape=img_shape)
 
         # =====================================================================
         # Load the arm and gripper representation
@@ -76,21 +73,34 @@ class ConditionalImageHusky(ConditionalImage):
         x2 = tform([h0,x,y2])
         image_out = decoder([x])
         image_out2 = decoder([x2])
-        disc_out2 = image_discriminator([img0_in, image_out2])
+
+        if not self.no_disc:
+            image_discriminator = LoadGoalClassifierWeights(self,
+                    make_classifier_fn=MakeImageClassifier,
+                    img_shape=img_shape)
+            disc_out2 = image_discriminator([img0_in, image_out2])
 
         # =====================================================================
         # Create models to train
-        model = Model(ins + [label_in],
-                [image_out, image_out2, disc_out2])
         if self.no_disc:
             disc_wt = 0.
         else:
             disc_wt = 1e-3
-        model.compile(
-                loss=[self.loss, self.loss, "categorical_crossentropy"],
-                loss_weights=[1., 1., disc_wt],
-                optimizer=self.getOptimizer())
+        if self.no_disc:
+            model = Model(ins + [label_in],
+                    [image_out, image_out2,])
+            model.compile(
+                    loss=[self.loss, self.loss,],
+                    loss_weights=[1., 1.,],
+                    optimizer=self.getOptimizer())
+        else:
+            model = Model(ins + [label_in],
+                    [image_out, image_out2, disc_out2])
+            model.compile(
+                    loss=[self.loss, self.loss, "categorical_crossentropy"],
+                    loss_weights=[1., 1., disc_wt],
+                    optimizer=self.getOptimizer())
         self.model = model
 
     def _getData(self, *args, **kwargs):
-        return GetConditionalHuskyData(self.num_options, *args, **kwargs)
+        return GetConditionalHuskyData(self.no_disc, self.num_options, *args, **kwargs)

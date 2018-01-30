@@ -54,9 +54,6 @@ class ConditionalImageJigsaws(ConditionalImage):
         # =====================================================================
         # Load weights and stuff
         LoadEncoderWeights(self, encoder, decoder)
-        image_discriminator = LoadGoalClassifierWeights(self,
-                make_classifier_fn=MakeJigsawsImageClassifier,
-                img_shape=img_shape)
 
         # =====================================================================
         # Create encoded state
@@ -89,21 +86,33 @@ class ConditionalImageJigsaws(ConditionalImage):
         l = [h0, x, y2, z2] if self.use_noise else [h0, x, y]
         x2 = tform(l)
         image_out, image_out2 = decoder([x]), decoder([x2])
-        disc_out2 = image_discriminator([image_out2])
 
-        # Create models to train
-        model = Model(ins + [prev_option_in],
-                [image_out, image_out2, disc_out2])
+        if not self.no_disc:
+            image_discriminator = LoadGoalClassifierWeights(self,
+                    make_classifier_fn=MakeJigsawsImageClassifier,
+                    img_shape=img_shape)
+            disc_out2 = image_discriminator([img0_in, image_out2])
+
         # --------------------------------------------------------------------
         # Create multiple hypothesis loss
         if self.no_disc:
             disc_wt = 0.
         else:
             disc_wt = 1e-3
-        model.compile(
-                loss=[self.loss, self.loss, "categorical_crossentropy"],
-                loss_weights=[1., 1., disc_wt],
-                optimizer=self.getOptimizer())
+        if self.no_disc:
+            model = Model(ins + [prev_option_in],
+                    [image_out, image_out2,])
+            model.compile(
+                    loss=[self.loss, self.loss,],
+                    loss_weights=[1., 1.,],
+                    optimizer=self.getOptimizer())
+        else:
+            model = Model(ins + [prev_option_in],
+                    [image_out, image_out2, disc_out2])
+            model.compile(
+                    loss=[self.loss, self.loss, "categorical_crossentropy"],
+                    loss_weights=[1., 1., disc_wt],
+                    optimizer=self.getOptimizer())
         self.predictor = None
         self.model = model
         self.model.summary()
@@ -123,8 +132,13 @@ class ConditionalImageJigsaws(ConditionalImage):
 
         label_1h = np.squeeze(ToOneHot2D(label, self.num_options))
         label2_1h = np.squeeze(ToOneHot2D(label2, self.num_options))
-        return ([image0, image, label, goal_label, prev_label],
-                [np.expand_dims(goal_image, axis=1),
-                 np.expand_dims(goal_image2, axis=1),
-                 np.expand_dims(label2_1h, axis=1)])
+        if self.no_disc:
+            return ([image0, image, label, goal_label, prev_label],
+                    [goal_image,
+                     goal_image2,])
+        else:
+            return ([image0, image, label, goal_label, prev_label],
+                    [goal_image,
+                     goal_image2,
+                     label2_1h,])
 
