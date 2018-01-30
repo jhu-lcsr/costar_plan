@@ -83,8 +83,8 @@ class ConditionalImageGan(PretrainImageGan):
         # create input for controlling noise output if that's what we decide
         # that we want to do
         if self.use_noise:
-            z1 = Input((self.noise_dim,))
-            z2 = Input((self.noise_dim,))
+            z1 = Input((self.noise_dim,), name="z1_in")
+            z2 = Input((self.noise_dim,), name="z2_in")
             ins += [z1, z2]
 
         if self.skip_connections:

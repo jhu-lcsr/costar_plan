@@ -315,7 +315,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         h0 = Input((h_dim[0],h_dim[1], self.encoder_channels),name="h0_in")
         option = Input((self.num_options,),name="t_opt_in")
         if self.use_noise:
-            z = Input((self.noise_dim,))
+            z = Input((self.noise_dim,), name="z_in")
 
         x = AddConv2D(h, 64, [1,1], 1, 0.)
         x0 = AddConv2D(h0, 64, [1,1], 1, 0.)

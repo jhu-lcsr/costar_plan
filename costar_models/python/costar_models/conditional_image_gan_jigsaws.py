@@ -59,8 +59,8 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
             h0 = encoder(img0_in)
 
         if self.use_noise:
-            z1 = Input(self.noise_dim)
-            z2 = Input(self.noise_dim)
+            z1 = Input((self.noise_dim,), name="z1_in")
+            z2 = Input((self.noise_dim,), name="z2_in")
             ins += [z1, z2]
 
         y = Flatten()(OneHot(self.num_options)(option_in))

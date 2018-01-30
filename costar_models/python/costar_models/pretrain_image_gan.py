@@ -92,11 +92,12 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         return [img], [img]
 
     def _addNoise(self, in_data):
-        sz = in_data[0].shape[0]
+        out = [x for x in in_data]
+        sz = out[0].shape[0]
         for _ in range(self.noise_iters):
             x = np.random.random((sz, self.noise_dim))
-            in_data.append(x)
-        return in_data
+            out.append(x)
+        return out
 
     def _makeImageDiscriminator(self, img_shape):
         '''
@@ -173,7 +174,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                     inputs = img + fake if isinstance(fake, list) else img + [fake]
                     res2 = self.discriminator.train_on_batch(inputs, is_fake)
                     self.discriminator.trainable = False
-                    print("\rEpoch {}, {}/{}: Descrim Real loss {}, Fake loss {}".format(
+                    print("\rEpoch {}, {}/{}: D Real loss {}, Fake loss {}".format(
                         i+1, j, self.steps_per_epoch, res1, res2), end="")
 
                 # Accuracy tests
@@ -230,7 +231,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
 
                         inputs = img + fake if isinstance(fake, list) else img + [fake]
                         res2 = self.discriminator.train_on_batch(inputs, is_fake)
-                        print("D real loss[{}], fake loss[{}]".format(res1, res2))
+                        print("D real loss[{:.5f}] fake loss[{:.5f}]".format(res1, res2))
 
                     self.discriminator.trainable = False
 
@@ -240,8 +241,8 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                     res = self.model.train_on_batch(
                             data, target + [is_not_fake]
                     )
-                    print('Epoch {}, {}/{}: G loss[{}], G err[{}]'.format(
-                        i+1, j, self.steps_per_epoch, res[0], res[1]))
+                    print('Epoch {:03}/{:03}, step {:03}/{:03}: G loss[{:.5f}], G err[{:.5f}]'.format(
+                        i+1, self.epochs, j, self.steps_per_epoch, res[0], res[1]))
 
                     totals[0] += res1
                     totals[1] += res2
@@ -263,8 +264,8 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                 d_real_acc = correct / float(len(results))
                 d_fake_acc = correct2 / float(len(results2))
 
-                print("Epoch {}, testing D acc: real[{}], fake[{}]".format(
-                    i, d_real_acc, d_fake_acc))
+                print("Epoch {:03}/{:03}, testing D acc: real[{:.5f}], fake[{:.5f}]".format(
+                    i+1, self.epochs, d_real_acc, d_fake_acc))
 
                 logs = {}
                 totals = [x / self.steps_per_epoch for x in totals]
