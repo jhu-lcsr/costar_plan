@@ -69,7 +69,6 @@ def visualizeHiddenMain(args):
         print (o1)
         print(prev_option)
         print(action)
-        asdf
         h_goal = model.transform(h0, h0, o1)
         img_goal = model.decode(h_goal)
         v_goal = model.value(h0, h_goal)
@@ -80,6 +79,7 @@ def visualizeHiddenMain(args):
             print("------------- %d -------------"%i)
             print("prev option =", prev_option[i])
             print("best option =", np.argmax(p_a[i]))
+            print("actual option=", o1[i])
             print("value =", v[i])
             print("goal value =", v_goal[i])
             print(p_a[i])
