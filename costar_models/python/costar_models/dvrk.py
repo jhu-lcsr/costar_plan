@@ -119,6 +119,9 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=False):
 	    h = Input((h_dim[0], h_dim[1], 64),name="h_in")
     h0 = Input((h_dim[0],h_dim[1], model.encoder_channels),name="h0_in")
     option = Input((model.num_options,),name="t_opt_in")
+    if self.use_noise:
+        z = Input((self.noise_dim,), name="z_in")
+
     x = h # This is already encoded
     x0 = AddConv2D(h0, 64, [1,1], 1, 0.)
 
@@ -130,6 +133,11 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=False):
     # store this for skip connection
     x = AddConv2D(x, 64, [5,5], 2, 0.)
     skip = x
+
+    if self.use_noise:
+        y = AddDense(z, 32, "relu", 0., constrain=None, output=False)
+        x = TileOnto(x, y, 32, h_dim)
+        x = AddConv2D(x, 32, [5,5], 1, 0.)
 
     # Add dense information
     y = AddDense(option, 64, "relu", 0., constraint=None, output=False)
@@ -165,7 +173,8 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=False):
     if small:
         x = AddConv2D(x, model.encoder_channels, [1, 1], stride=1,
                       dropout_rate=0.)
-    model.transform_model = Model([h0,h,option], x, name="tform")
+    l = [h0, h, option, z] if self.use_noise else [h0, h, option]
+    model.transform_model = Model(l, x, name="tform")
     model.transform_model.compile(loss="mae", optimizer=model.getOptimizer())
     #model.transform_model.summary()
     return model.transform_model

@@ -48,6 +48,7 @@ class ConditionalImageGan(PretrainImageGan):
         self.skip_connections = False
         self.num_generator_files = 1
         self.save_encoder_decoder = self.retrain
+        self.noise_iters = 2
 
     def _makePredictor(self, features):
         # =====================================================================
@@ -82,8 +83,9 @@ class ConditionalImageGan(PretrainImageGan):
         # create input for controlling noise output if that's what we decide
         # that we want to do
         if self.use_noise:
-            z = Input((self.num_hypotheses, self.noise_dim))
-            ins += [z]
+            z1 = Input((self.noise_dim,), name="z1_in")
+            z2 = Input((self.noise_dim,), name="z2_in")
+            ins += [z1, z2]
 
         if self.skip_connections:
             h, s32, s16, s8 = encoder([img0_in, img_in])
@@ -93,16 +95,15 @@ class ConditionalImageGan(PretrainImageGan):
 
         # =====================================================================
         # Actually get the right outputs
-        y = OneHot(self.num_options)(next_option_in)
-        y = Flatten()(y)
-        y2 = OneHot(self.num_options)(next_option2_in)
-        y2 = Flatten()(y2)
+        y = Flatten()(OneHot(self.num_options)(next_option_in))
+        y2 = Flatten()(OneHot(self.num_options)(next_option2_in))
         x = h
         tform = self._makeTransform()
-        x = tform([h0,h,y])
-        x2 = tform([h0,x,y2])
-        image_out = decoder([x])
-        image_out2 = decoder([x2])
+        l = [h0, h, y, z1] if self.use_noise else [h0, h, y]
+        x = tform(l)
+        l = [h0, x, y2, z2] if self.use_noise else [h0, x, y2]
+        x2 = tform(l)
+        image_out, image_out2 = decoder([x]), decoder([x2])
 
         # =====================================================================
         # Save
@@ -116,18 +117,15 @@ class ConditionalImageGan(PretrainImageGan):
         image_discriminator.trainable = False
         is_fake = image_discriminator([
             img0_in, img_in,
-            next_option_in,
-            next_option2_in,
-            image_out,
-            image_out2])
+            next_option_in, next_option2_in,
+            image_out, image_out2])
 
         # =====================================================================
         # Create generator model to train
         lfn = self.loss
-        predictor = Model(ins,
-                [image_out, image_out2])
+        predictor = Model(ins, [image_out, image_out2])
         predictor.compile(
-                loss=[lfn, lfn],
+                loss=[lfn, lfn], # ignored since we don't train G
                 optimizer=self.getOptimizer())
         self.generator = predictor
 
@@ -142,6 +140,9 @@ class ConditionalImageGan(PretrainImageGan):
                 loss_weights=weights,
                 optimizer=self.getOptimizer())
         self.model = model
+
+        self.discriminator.summary()
+        self.model.summary()
 
         return predictor, model, model, ins, h
 

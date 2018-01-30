@@ -40,7 +40,6 @@ class ConditionalImageHuskyGan(ConditionalImageGan):
 
     def _makeModel(self, image, pose, *args, **kwargs):
 
-
         img_shape = image.shape[1:]
         pose_size = pose.shape[-1]
 
@@ -70,22 +69,20 @@ class ConditionalImageHuskyGan(ConditionalImageGan):
             h = encoder([img_in])
             h0 = encoder(img0_in)
 
-        # create input for controlling noise output if that's what we decide
-        # that we want to do
         if self.use_noise:
-            z = Input((self.num_hypotheses, self.noise_dim))
-            ins += [z]
+            z1 = Input((self.noise_dim,), name="z1_in")
+            z2 = Input((self.noise_dim,), name="z2_in")
+            ins += [z1, z2]
 
-        y = OneHot(self.num_options)(next_option_in)
-        y = Flatten()(y)
-        y2 = OneHot(self.num_options)(next_option2_in)
-        y2 = Flatten()(y2)
+        y = Flatten()(OneHot(self.num_options)(next_option_in))
+        y2 = Flatten()(OneHot(self.num_options)(next_option2_in))
         x = h
         tform = self._makeTransform()
-        x = tform([h0,h,y])
-        x2 = tform([h0,x,y2])
-        image_out = decoder([x])
-        image_out2 = decoder([x2])
+        l = [h0, h, y, z1] if self.use_noise else [h0, h, y]
+        x = tform(l)
+        l = [h0, x, y2, z2] if self.use_noise else [h0, x, y2]
+        x2 = tform(l)
+        image_out, image_out2 = decoder([x]), decoder([x2])
 
         self.transform_model = tform
 
@@ -108,25 +105,24 @@ class ConditionalImageHuskyGan(ConditionalImageGan):
         actor.compile(loss="mae",optimizer=self.getOptimizer())
         cmd = actor([h, y])
         lfn = self.loss
-        lfn2 = "logcosh"
-        val_loss = "binary_crossentropy"
 
         # =====================================================================
         # Create models to train
 
-        predictor = Model(ins,
-                [image_out, image_out2])
+        predictor = Model(ins, [image_out, image_out2])
         predictor.compile(
-                loss=[lfn, lfn],
+                loss=[lfn, lfn], # unused
                 optimizer=self.getOptimizer())
         self.generator = predictor
 
         # =====================================================================
         # And adversarial model
         model = Model(ins, [image_out, image_out2, is_fake])
+        loss = wasserstein_loss if self.use_wasserstein else "binary_crossentropy"
+        weights = [0.01, 0.01, 1.] if self.use_wasserstein else [100., 100., 1.]
         model.compile(
-                loss=["mae"]*2 + ["binary_crossentropy"],
-                loss_weights=[100., 100., 1.],
+                loss=["mae", "mae", loss],
+                loss_weights=weights,
                 optimizer=self.getOptimizer())
         model.summary()
         self.discriminator.summary()

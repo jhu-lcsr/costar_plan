@@ -314,6 +314,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         h = Input((h_dim[0], h_dim[1], self.encoder_channels),name="h_in")
         h0 = Input((h_dim[0],h_dim[1], self.encoder_channels),name="h0_in")
         option = Input((self.num_options,),name="t_opt_in")
+        if self.use_noise:
+            z = Input((self.noise_dim,), name="z_in")
+
         x = AddConv2D(h, 64, [1,1], 1, 0.)
         x0 = AddConv2D(h0, 64, [1,1], 1, 0.)
 
@@ -323,6 +326,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # store this for skip connection
         skip = x
+
+        if self.use_noise:
+            y = AddDense(z, 32, "relu", 0., constraint=None, output=False)
+            x = TileOnto(x, y, 32, h_dim)
+            x = AddConv2D(x, 32, [5,5], 1, 0.)
 
         # Add dense information
         y = AddDense(option, 64, "relu", 0., constraint=None, output=False)
@@ -360,7 +368,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Put resulting image into the output shape
         x = AddConv2D(x, self.encoder_channels, [1, 1], stride=1,
                 dropout_rate=0.)
-        self.transform_model = Model([h0,h,option], x, name="tform")
+
+        l = [h0, h, option, z] if self.use_noise else [h0, h, option]
+        self.transform_model = Model(l, x, name="tform")
         self.transform_model.compile(loss="mae", optimizer=self.getOptimizer())
         return self.transform_model
 
