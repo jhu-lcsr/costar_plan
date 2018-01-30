@@ -31,7 +31,7 @@ if [[ ! -d $data_dir ]]; then
 fi
 
 wass_cmd=''
-if [[ $wass == wass* ]]; then wass_cmd='--use_wasserstein'; fi
+if [[ $wass == wass* ]]; then wass_cmd='--wasserstein'; fi
 	
 
 if $train_image_encoder
@@ -47,7 +47,7 @@ then
     --model_directory $MODELDIR/ \
     --optimizer $optimizer \
     --use_noise false \
-    --steps_per_epoch 500 \
+    --steps_per_epoch 100 \
     --noise_dim $noise_dim \
     --loss $loss \
     --batch_size 64
@@ -64,7 +64,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --model_directory $MODELDIR/ \
   --optimizer $optimizer \
   --use_noise false \
-  --steps_per_epoch 500 \
+  --steps_per_epoch 100 \
   --noise_dim $noise_dim \
   --loss $loss \
   --gan_method gan \
@@ -82,7 +82,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --model_directory $MODELDIR/ \
   --optimizer $optimizer \
   --use_noise false \
-  --steps_per_epoch 500 \
+  --steps_per_epoch 100 \
   --noise_dim $noise_dim \
   --loss $loss \
   --gan_method gan \

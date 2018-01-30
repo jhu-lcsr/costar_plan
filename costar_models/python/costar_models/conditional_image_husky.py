@@ -31,7 +31,7 @@ class ConditionalImageHusky(ConditionalImage):
         self.null_option = HuskyNullOption()
 
     def _makeModel(self, image, pose, *args, **kwargs):
-       
+
         img_shape = image.shape[1:]
         pose_size = pose.shape[-1]
 

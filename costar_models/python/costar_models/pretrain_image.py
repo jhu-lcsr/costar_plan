@@ -41,7 +41,7 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
         option_in = Input((1,), name="predictor_option_in")
         encoder = self._makeImageEncoder(img_shape)
         ins = [img0_in, img_in]
-        
+
         # Create the encoder
         enc = encoder(img_in)
         decoder = self._makeImageDecoder(
@@ -62,7 +62,7 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
                 loss_weights=[1.,1e-3],
                 optimizer=self.getOptimizer())
         ae.summary()
-    
+
         return ae, ae, None, [img_in], enc
 
     def _getData(self, *args, **kwargs):
@@ -71,7 +71,7 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
         o1 = targets[1]
         I0 = I[0,:,:,:]
         length = I.shape[0]
-        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
+        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1])
         oin_1h = np.squeeze(ToOneHot2D(oin, self.num_options))
         return [I0, I], [I, oin_1h]
 

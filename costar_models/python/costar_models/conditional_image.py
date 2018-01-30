@@ -137,7 +137,7 @@ class ConditionalImage(PredictionSampler2):
         I_target2, o2 = GetNextGoal(I_target, o1)
         I0 = I[0,:,:,:]
         length = I.shape[0]
-        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
+        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1])
         oin_1h = np.squeeze(ToOneHot2D(oin, self.num_options))
         o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
         o2_1h = np.squeeze(ToOneHot2D(o2, self.num_options))

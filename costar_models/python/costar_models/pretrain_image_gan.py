@@ -29,7 +29,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         '''
         super(PretrainImageGan, self).__init__(*args, **kwargs)
         self.PredictorCb = ImageCb
-        self.load_pretrained_weights = True
+        self.load_pretrained_weights = False
 
     def _makePredictor(self, features):
         '''
@@ -93,7 +93,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
     def _makeImageDiscriminator(self, img_shape):
         '''
         create image-only encoder to extract keypoints from the scene.
-        
+
         Params:
         -------
         img_shape: shape of the image to encode
@@ -110,7 +110,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         else:
             loss = "binary_crossentropy"
             activation = "sigmoid"
-        
+
         x = AddConv2D(img, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
         x0 = AddConv2D(img0, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
         x = Add()([x, x0])
@@ -185,14 +185,16 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                     c.on_epoch_end(i)
         else: # actual gan
             d_iters = 10
+            totals = [0, 0, 0, 0]
 
             for i in range(self.epochs):
                 for j in range(self.steps_per_epoch):
-                    if j == 0:
-                        iter_for_step = d_iters * 10
-                    else:
-                        iter_for_step = d_iters
 
+                    iter_for_step = d_iters * 10 if j % 40 == 0 else d_iters
+                    if not self.use_wasserstein:
+                        iter_for_step = 1
+
+                    # Discriminator loops
                     for d in range(iter_for_step):
 
                         # Clip the weights for the wasserstein gan
@@ -218,8 +220,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
 
                         inputs = img + fake if isinstance(fake, list) else img + [fake]
                         res2 = self.discriminator.train_on_batch(inputs, is_fake)
-                        print(res1, res2)
-
+                        print("D real loss[{}], fake loss[{}]".format(res1, res2))
 
                     self.discriminator.trainable = False
 
@@ -228,9 +229,14 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                     res = self.model.train_on_batch(
                             img, target + [is_not_fake]
                     )
-                    print("Epoch {}, {}/{}: Gen loss {}, Gen err {}, Real loss {}, Fake loss {}".format(
-                        i+1, j, self.steps_per_epoch, res[0],
-                        res[1], res1, res2))
+                    print('Epoch {}, {}/{}: G loss[{}], G err[{}]'.format(
+                        i+1, j, self.steps_per_epoch, res[0], res[1]))
+
+                    totals[0] += res1
+                    totals[1] += res2
+                    totals[2] += res[0]
+                    totals[3] += res[1]
+
 
                 # Accuracy tests
                 img, target = next(train_generator)
@@ -242,9 +248,21 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                 correct = np.count_nonzero(results >= threshold)
                 correct2 = np.count_nonzero(results2 < threshold)
 
-                print("Epoch {}, real acc {}, fake acc {}".format(
-                    i, correct/float(len(results)), correct2/float(len(results2))))
+                d_real_acc = correct / float(len(results))
+                d_fake_acc = correct2 / float(len(results2))
+
+                print("Epoch {}, testing D acc: real[{}], fake[{}]".format(
+                    i, d_real_acc, d_fake_acc))
+
+                logs = {}
+                totals = [x / self.steps_per_epoch for x in totals]
+                logs['D real loss'] = totals[0]
+                logs['D fake loss'] = totals[1]
+                logs['G loss'] = totals[2]
+                logs['G l1 error'] = totals[3]
+                logs['D real acc'] = d_real_acc
+                logs['D fake acc'] = d_fake_acc
 
                 for c in callbacks:
-                    c.on_epoch_end(i)
+                    c.on_epoch_end(i, logs)
 

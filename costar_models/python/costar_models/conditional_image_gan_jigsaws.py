@@ -29,7 +29,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
 
         self.num_options = 16
         self.save_encoder_decoder = self.retrain
- 
+
     def _makeModel(self, image, *args, **kwargs):
 
         img_shape = image.shape[1:]
@@ -39,7 +39,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         img_in = Input(img_shape, name="predictor_img_in")
         ins = [img0_in, img_in]
 
-        # next option - used to compute the next image 
+        # next option - used to compute the next image
         option_in = Input((1,), name="option_in")
         option_in2 = Input((1,), name="option_in2")
         ins += [option_in, option_in2]
@@ -48,7 +48,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         # Load weights and stuff. We'll load the GAN version of the weights.
         encoder = MakeJigsawsImageEncoder(self, img_shape)
         decoder = MakeJigsawsImageDecoder(self, self.hidden_shape)
-        LoadEncoderWeights(self, encoder, decoder, gan=False)
+        LoadEncoderWeights(self, encoder, decoder, gan=True)
 
         # =====================================================================
         # Create outputs
@@ -89,7 +89,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         self.generator = generator
 
         # =====================================================================
-        # And adversarial model 
+        # And adversarial model
         model = Model(ins, [image_out, image_out2, is_fake])
         loss = wasserstein_loss if self.use_wasserstein else "binary_crossentropy"
         weights = [0.01, 0.01, 1.] if self.use_wasserstein else [100., 100., 1.]
@@ -120,7 +120,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
     def _makeImageDiscriminator(self, img_shape):
         '''
         create image-only encoder to extract keypoints from the scene.
-        
+
         Params:
         -------
         img_shape: shape of the image to encode
@@ -145,7 +145,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         #x2 = Add()([x0, xg1, xg2])
         x1 = Add()([xobs, xg1])
         x2 = Add()([xg1, xg2])
-        
+
         # -------------------------------------------------------------
         y = OneHot(self.num_options)(option2)
         y = AddDense(y, 32, "lrelu", dr)
