@@ -52,7 +52,7 @@ then
     --loss $loss \
     --batch_size 64
 fi
-if $train_discriminator1
+if $train_discriminator2
 then
   echo "Training discriminator 2"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
