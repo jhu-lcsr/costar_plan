@@ -96,7 +96,7 @@ class PretrainImageJigsawsGan(PretrainImageGan):
     def _makeImageDiscriminator(self, img_shape):
         '''
         create image-only encoder to extract keypoints from the scene.
-        
+
         Params:
         -------
         img_shape: shape of the image to encode
@@ -112,7 +112,7 @@ class PretrainImageJigsawsGan(PretrainImageGan):
         else:
             loss = "binary_crossentropy"
             activation = "sigmoid"
-        
+
         x = AddConv2D(img, 32, [4,4], 1, 0, "same", lrelu=True, bn=False)
         x0 = AddConv2D(img0, 32, [4,4], 1, 0, "same", lrelu=True, bn=False)
         x = Add()([x, x0])
