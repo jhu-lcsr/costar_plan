@@ -513,7 +513,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         '''
         Save to a filename determined by the "self.name" field.
         '''
-        if self.model is not None:
+        if self.model is not None and not self.validate:
             print("----------------------------")
             print("Saving to " + self.name + "_{predictor, ...}")
             print(">>> SAVING TRAINING SETUP TO 'train_predictor'")
@@ -574,7 +574,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     print(">>> SAVING NEXT")
                     self.next_model.save_weights(self.name + 
                     "_next.h5f")
-
+        elif self.validate:
+            print(">>> SKIP SAVING IN VALIDATION MODE")
         else:
             raise RuntimeError('save() failed: model not found.')
 

@@ -28,7 +28,7 @@ from .temporary import *
 def SuturingNumOptions():
     return 16
 
-def MakeJigsawsImageClassifier(model, img_shape):
+def MakeJigsawsImageClassifier(model, img_shape, trainable = True):
     img0 = Input(img_shape,name="img0_classifier_in")
     img = Input(img_shape,name="img_classifier_in")
     bn = True
@@ -57,6 +57,8 @@ def MakeJigsawsImageClassifier(model, img_shape):
     #x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
     x = AddDense(x, model.num_options, "softmax", 0., output=True, bn=False)
     image_encoder = Model([img0, img], x, name="classifier")
+    if not trainable:
+        image_encoder.trainable = False
     image_encoder.compile(loss="categorical_crossentropy",
                           metrics=["accuracy"],
                           optimizer=model.getOptimizer())

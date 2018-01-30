@@ -1102,10 +1102,11 @@ def LoadEncoderWeights(model, encoder, decoder, gan=False):
         raise e
 
 def LoadGoalClassifierWeights(model, make_classifier_fn, img_shape):
-    image_discriminator = make_classifier_fn(model, img_shape)
-    #image_discriminator.load_weights(
-    #        model.makeName("goal_discriminator", "classifier"))
+    image_discriminator = make_classifier_fn(model, img_shape, trainable=False)
+    image_discriminator.load_weights(
+            model.makeName("goal_discriminator", "classifier"))
     image_discriminator.trainable = False
+    print("Loaded goal classifier weights")
     return image_discriminator
 
 def LoadTransformWeights(model, tform, gan = False):
@@ -1122,10 +1123,11 @@ def LoadTransformWeights(model, tform, gan = False):
     return tform
 
 def LoadClassifierWeights(model, make_classifier_fn, img_shape):
-    image_discriminator = make_classifier_fn(model, img_shape)
+    image_discriminator = make_classifier_fn(model, img_shape, trainable=False)
     image_discriminator.load_weights(
             model.makeName("discriminator", "classifier"))
     image_discriminator.trainable = False
+    print("Loaded classifier weights")
     return image_discriminator
 
 def MultiDiscriminator(model, x, discriminator, img0, num_hypotheses, img_shape):
