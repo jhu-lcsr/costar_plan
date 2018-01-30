@@ -39,8 +39,8 @@ class ConditionalImageJigsaws(ConditionalImage):
         for dim in img_shape:
             img_size *= dim
 
-        img0_in = Input(img_shape, name="predictor_img0_in")
         img_in = Input(img_shape, name="predictor_img_in")
+        img0_in = Input(img_shape, name="predictor_img0_in")
         prev_option_in = Input((1,), name="predictor_prev_option_in")
         ins = [img0_in, img_in]
 
@@ -53,7 +53,7 @@ class ConditionalImageJigsaws(ConditionalImage):
 
         # =====================================================================
         # Load weights and stuff
-        LoadEncoderWeights(self, encoder, decoder, gan=False)
+        LoadEncoderWeights(self, encoder, decoder)
         image_discriminator = LoadGoalClassifierWeights(self,
                 make_classifier_fn=MakeJigsawsImageClassifier,
                 img_shape=img_shape)
@@ -78,57 +78,31 @@ class ConditionalImageJigsaws(ConditionalImage):
         ins += [option_in, option_in2]
 
         # --------------------------------------------------------------------
-        # Create multiple hypothesis loss
-        lfn = MhpLossWithShape(
-                num_hypotheses=self.num_hypotheses,
-                outputs=[img_size],
-                weights=[1.0],
-                loss=[self.loss],
-                avg_weight=0.1,
-                )
-        lfn2 = MhpLossWithShape(
-                num_hypotheses=self.num_hypotheses,
-                outputs=[self.num_options],
-                weights=[1.0],
-                loss=["binary_crossentropy"],
-                avg_weight=1.,
-                )
-
-        # --------------------------------------------------------------------
         # Image model
         h_dim = (12, 16)
-        multi_decoder = MakeJigsawsMultiDecoder(self, decoder,
-                self.num_hypotheses, h_dim)
         y = Flatten()(OneHot(self.num_options)(option_in))
         y2 = Flatten()(OneHot(self.num_options)(option_in2))
-        x = MakeJigsawsExpand(self, h, h_dim)
-        tform = MakeJigsawsTransform(self, h_dim)
-        x = tform([h0, x, y])
-        x2 = tform([h0, x, y2])
-        image_out, image_out2 = multi_decoder([x]), multi_decoder([x2])
-        multi_disc = MultiDiscriminator(self, image_out2, image_discriminator,
-                img0_in,
-                self.num_hypotheses,
-                img_shape,)
-        multi_disc.trainable = False
-        disc_out2 = multi_disc([img0_in, image_out2])
 
-        # =====================================================================
+        tform = MakeJigsawsTransform(self, h_dim)
+        x = tform([h0, h, y])
+        x2 = tform([h0, x, y2])
+
+        image_out, image_out2 = decoder([x]), decoder([x2])
+
+        # Compute classifier on the last transform
+        disc_out2 = image_discriminator([img0_in, image_out2])
+
+        lfn = self.loss
+
         # Create models to train
-        predictor = Model(ins + [prev_option_in],
-                [image_out, image_out2])
-        predictor.compile(
-                loss=[self.loss, self.loss],
-                loss_weights=[1., 1.],
-                optimizer=self.getOptimizer())
         model = Model(ins + [prev_option_in],
                 [image_out, image_out2, disc_out2])
         model.compile(
-                loss=[lfn, lfn, lfn2],
+                loss=[lfn, lfn, "categorical_crossentropy"],
                 loss_weights=[1., 1., 1e-3],
                 optimizer=self.getOptimizer())
 
-        self.predictor = predictor
+        self.predictor = None
         self.model = model
         self.model.summary()
 
@@ -149,7 +123,6 @@ class ConditionalImageJigsaws(ConditionalImage):
         label2_1h = np.squeeze(ToOneHot2D(label2, self.num_options))
         return ([image0, image, label, goal_label, prev_label],
                 [np.expand_dims(goal_image, axis=1),
-                 #np.expand_dims(goal_image2, axis=1), label_1h])#, label2_1h]
                  np.expand_dims(goal_image2, axis=1),
                  np.expand_dims(label2_1h, axis=1)])
 
