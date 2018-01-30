@@ -1085,13 +1085,12 @@ def LoadEncoderWeights(model, encoder, decoder, gan=False):
     saved_e = None
     for name in names:
         try:
-            encoder.load_weights(
-                    model.makeName(name,
-                                submodel="image_encoder"))
-            decoder.load_weights(
-                    model.makeName(name,
-                                submodel="image_decoder"))
-            print("Loaded", name, "weights")
+            e_nm = model.makeName(name, submodel="image_encoder")
+            d_nm = model.makeName(name, submodel="image_decoder")
+            print("Trying to load", e_nm)
+            encoder.load_weights(e_nm)
+            print("Trying to load", d_nm)
+            decoder.load_weights(d_nm)
             loaded = True
 
         except IOError as e:
@@ -1102,10 +1101,11 @@ def LoadEncoderWeights(model, encoder, decoder, gan=False):
         raise e
 
 def LoadGoalClassifierWeights(model, make_classifier_fn, img_shape):
-    image_discriminator = make_classifier_fn(model, img_shape)
-    #image_discriminator.load_weights(
-    #        model.makeName("goal_discriminator", "classifier"))
+    image_discriminator = make_classifier_fn(model, img_shape, trainable=False)
+    image_discriminator.load_weights(
+            model.makeName("goal_discriminator", "classifier"))
     image_discriminator.trainable = False
+    print("Loaded goal classifier weights")
     return image_discriminator
 
 def LoadTransformWeights(model, tform, gan = False):
@@ -1122,10 +1122,11 @@ def LoadTransformWeights(model, tform, gan = False):
     return tform
 
 def LoadClassifierWeights(model, make_classifier_fn, img_shape):
-    image_discriminator = make_classifier_fn(model, img_shape)
+    image_discriminator = make_classifier_fn(model, img_shape, trainable=False)
     image_discriminator.load_weights(
             model.makeName("discriminator", "classifier"))
     image_discriminator.trainable = False
+    print("Loaded classifier weights")
     return image_discriminator
 
 def MultiDiscriminator(model, x, discriminator, img0, num_hypotheses, img_shape):

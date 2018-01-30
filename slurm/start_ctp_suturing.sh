@@ -6,7 +6,7 @@ set -u
 
 module load tensorflow/cuda-8.0/r1.3 
 
-for lr in 0.01 0.001 0.0002 0.0001
+for lr in 0.001 0.0001
 do
   # just use the adam optimizer
   for opt in adam
@@ -20,10 +20,11 @@ do
       for noise_dim in 0 # 1 8 32
       do
         hd=true
-        for dr in 0.1 0.2 # 0. 0.3 0.4 0.5
+        use_disc=true
+        for dr in 0.1 #0.2 # 0. 0.3 0.4 0.5
         do
           echo "starting LR=$lr, Dropout=$dr, optimizer=$opt, noise=$noise_dim"
-          sbatch ctp_suturing.sh $lr $dr $opt $noise_dim $loss
+          sbatch ctp_suturing.sh $lr $dr $opt $noise_dim $loss false $use_disc
         done
       done
     done

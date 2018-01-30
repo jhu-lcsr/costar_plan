@@ -52,18 +52,24 @@ def visualizeHiddenMain(args):
 
         data = next(test_generator)
         features, targets = next(train_generator)
-        h = model.encode(features)
-        h0 = model.encodeInitial(features)
+        [I0, I, o1, o2, oin] = features
+        [ I_target, I_target2, o1_1h, v, qa, ga, o2_1h] = targets
+        h = model.encode(I)
+        h0 = model.encode(I0)
         prev_option = model.prevOption(features)
         img = model.debugImage(features)
         null_option = np.ones_like(prev_option) * model.null_option
-        p_a = model.pnext(h0, h, prev_option, features)
+        p_a = model.pnext(h0, h, prev_option)
         v = model.value(h0, h)
 
         if not h.shape[0] == img.shape[0]:
             raise RuntimeError('something went wrong with dimensions')
-
-        h_goal = model.transform(h0, h0, np.argmax(p_a,axis=1))
+        print("shape =", p_a.shape)
+        action = np.argmax(p_a,axis=1)
+        print (o1)
+        print(prev_option)
+        print(action)
+        h_goal = model.transform(h0, h0, o1)
         img_goal = model.decode(h_goal)
         v_goal = model.value(h0, h_goal)
         print("--------------\nHidden state:\n--------------\n")
@@ -73,6 +79,7 @@ def visualizeHiddenMain(args):
             print("------------- %d -------------"%i)
             print("prev option =", prev_option[i])
             print("best option =", np.argmax(p_a[i]))
+            print("actual option=", o1[i])
             print("value =", v[i])
             print("goal value =", v_goal[i])
             print(p_a[i])

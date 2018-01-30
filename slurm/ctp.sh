@@ -17,17 +17,42 @@ export DATASET="ctp_dec"
 export train_discriminator=true
 export train_discriminator2=true
 export train_image_encoder=true
-export train_multi_encoder=false
 export train_conditional_image=true
-export train_conditional_sampler=false
-export train_predictor=false
 export train_policies=true
+
 export learning_rate=$1
 export dropout=$2
 export optimizer=$3
 export noise_dim=$4
 export loss=$5
-export MODELDIR="$HOME/.costar/stack_$learning_rate$optimizer$dropout$noise_dim$loss"
+export retrain=$6
+export use_disc=$7
+#export MODELDIR="$HOME/.costar/stack_$learning_rate$optimizer$dropout$noise_dim$loss"
+export MODELROOT="$HOME/.costar/"
+export SUBDIR="stack_$learning_rate$optimizer$dropout$noise_dim$loss"
+
+# ----------------------------------
+# Old versions
+export train_multi_encoder=false
+export train_conditional_sampler=false
+export train_predictor=false
+
+retrain_cmd=""
+if $retrain
+then
+  retrain_cmd="--retrain"
+  SUBDIR=${SUBDIR}_retrain
+fi
+
+use_disc_cmd=""
+if [[ ! $use_disc ]]
+then
+  use_disc_cmd="--no_disc"
+  SUBDIR=${SUBDIR}_nodisc
+fi
+
+
+export MODELDIR="$MODELROOT/$SUBDIR
 
 if $train_discriminator
 then
@@ -46,7 +71,7 @@ then
     --loss $loss \
     --batch_size 64
 fi
-if $train_discriminator2
+if $train_discriminator2 && $use_disc
 then
   echo "Training discriminator 2"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
@@ -114,7 +139,7 @@ then
     --optimizer $optimizer \
     --steps_per_epoch 500 \
     --loss $loss \
-    --batch_size 64
+    --batch_size 64 $retrain_cmd
 fi
 
 if $train_conditional_sampler
@@ -148,8 +173,7 @@ then
     --steps_per_epoch 500 \
     --loss $loss \
     --skip_connections 1 \
-    --batch_size 64 # --retrain 
-    #--success_only \
+    --batch_size 64
 fi
 
 
@@ -171,7 +195,7 @@ then
       --loss $loss \
       --option_num $opt \
       --skip_connections 1 \
-      --batch_size 64 # --retrain 
-      #--success_only \
+      --success_only \
+      --batch_size 64
     done
 fi

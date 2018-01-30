@@ -49,6 +49,7 @@ class ConditionalImage(PredictionSampler2):
         self.transform_model = None
         self.skip_connections = False
         self.save_encoder_decoder = self.retrain
+        self.load_training_model = True
 
         if self.use_noise:
             raise NotImplementedError('noise vectors not supported for'
@@ -102,31 +103,30 @@ class ConditionalImage(PredictionSampler2):
 
         # =====================================================================
         # Apply transforms
-        y = OneHot(self.num_options)(next_option_in)
-        y = Flatten()(y)
-        y2 = OneHot(self.num_options)(next_option_in2)
-        y2 = Flatten()(y2)
-        x = h
+        y = Flatten()(OneHot(self.num_options)(next_option_in))
+        y2 = Flatten()(OneHot(self.num_options)(next_option_in2))
+
         tform = self._makeTransform()
         x = tform([h0,h,y])
         x2 = tform([h0,x,y2])
-        image_out = decoder([x])
-        image_out2 = decoder([x2])
 
-        # =====================================================================
+        image_out, image_out2 = decoder([x]), decoder([x2])
+
         # Compute classifier on the last transform
         disc_out2 = image_discriminator([img0_in, image_out2])
 
-        # =====================================================================
         lfn = self.loss
 
-        # =====================================================================
         # Create models to train
         train_predictor = Model(ins + [label_in],
                 [image_out, image_out2, disc_out2])
+        if self.no_disc:
+            disc_wt = 0.
+        else:
+            disc_wt = 1e-3
         train_predictor.compile(
                 loss=[lfn, lfn, "categorical_crossentropy"],
-                loss_weights=[1., 1., 1e-3],
+                loss_weights=[1., 1., disc_wt],
                 optimizer=self.getOptimizer())
         return None, train_predictor, None, ins, h
 
@@ -183,7 +183,7 @@ class ConditionalImage(PredictionSampler2):
         self.q_model.load_weights(self.makeName("secondary", "q"))
 
 
-    def encode(self, obs):
+    def encode(self, img):
         '''
         Encode available features into a new state
 
@@ -191,7 +191,7 @@ class ConditionalImage(PredictionSampler2):
         -----------
         [unknown]: all are parsed via _getData() function.
         '''
-        return self.image_encoder.predict(obs[1])
+        return self.image_encoder.predict(img)
 
     def decode(self, hidden):
         '''
@@ -201,27 +201,10 @@ class ConditionalImage(PredictionSampler2):
         '''
         return self.image_decoder.predict(hidden)
 
-    def prevOption(self, features):
-        '''
-        Just gets the previous option from a set of features
-        '''
-        if self.use_noise:
-            return features[4]
-        else:
-            return features[3]
-
-    def encodeInitial(self, obs):
-        '''
-        Call the encoder but only on the initial image frame
-        '''
-        return self.image_encoder.predict(obs[0])
-
-    def pnext(self, hidden0, hidden, prev_option, features):
+    def pnext(self, hidden0, hidden, prev_option):
         '''
         Visualize based on hidden
         '''
-        h0 = self.encodeInitial(features)
-
         p = self.next_model.predict([hidden0, hidden, prev_option])
         #p = np.exp(p)
         #p /= np.sum(p)
