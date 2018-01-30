@@ -185,9 +185,10 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                     c.on_epoch_end(i)
         else: # actual gan
             d_iters = 10
-            totals = [0, 0, 0, 0]
 
             for i in range(self.epochs):
+                totals = [0, 0, 0, 0]
+
                 for j in range(self.steps_per_epoch):
 
                     iter_for_step = d_iters * 10 if j % 40 == 0 else d_iters
