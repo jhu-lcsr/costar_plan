@@ -125,7 +125,7 @@ then
     --optimizer $optimizer \
     --steps_per_epoch 500 \
     --loss $loss \
-    --batch_size 64
+    --batch_size 64 $retrain_cmd
 fi
 
 if $train_conditional_sampler
@@ -159,8 +159,7 @@ then
     --steps_per_epoch 500 \
     --loss $loss \
     --skip_connections 1 \
-    --batch_size 64 # --retrain 
-    #--success_only \
+    --batch_size 64
 fi
 
 
@@ -182,7 +181,7 @@ then
       --loss $loss \
       --option_num $opt \
       --skip_connections 1 \
-      --batch_size 64 # --retrain 
-      #--success_only \
+      --success_only \
+      --batch_size 64
     done
 fi

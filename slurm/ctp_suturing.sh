@@ -108,5 +108,5 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --steps_per_epoch 300 \
   --preload \
   --loss $loss \
-  --batch_size 24
+  --batch_size 64 $retrain_cmd
 
