@@ -17,17 +17,28 @@ export DATASET="ctp_dec"
 export train_discriminator=true
 export train_discriminator2=true
 export train_image_encoder=true
-export train_multi_encoder=false
 export train_conditional_image=true
-export train_conditional_sampler=false
-export train_predictor=false
 export train_policies=true
 export learning_rate=$1
 export dropout=$2
 export optimizer=$3
 export noise_dim=$4
 export loss=$5
+export retrain=$6
 export MODELDIR="$HOME/.costar/stack_$learning_rate$optimizer$dropout$noise_dim$loss"
+
+# ----------------------------------
+# Old versions
+export train_multi_encoder=false
+export train_conditional_sampler=false
+export train_predictor=false
+
+retrain_cmd=""
+if $retrain
+then
+  retrain_cmd="--retrain"
+  MODELDIR="$HOME/.costar/stack_retrain$learning_rate$optimizer$dropout$noise_dim$loss"
+fi
 
 if $train_discriminator
 then
@@ -114,7 +125,7 @@ then
     --optimizer $optimizer \
     --steps_per_epoch 500 \
     --loss $loss \
-    --batch_size 64
+    --batch_size 64 $retrain_cmd
 fi
 
 if $train_conditional_sampler
@@ -148,8 +159,7 @@ then
     --steps_per_epoch 500 \
     --loss $loss \
     --skip_connections 1 \
-    --batch_size 64 # --retrain 
-    #--success_only \
+    --batch_size 64
 fi
 
 
@@ -171,7 +181,7 @@ then
       --loss $loss \
       --option_num $opt \
       --skip_connections 1 \
-      --batch_size 64 # --retrain 
-      #--success_only \
+      --success_only \
+      --batch_size 64
     done
 fi

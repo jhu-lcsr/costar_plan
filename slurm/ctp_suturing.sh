@@ -14,15 +14,24 @@ echo "Running $@ on $SLURMD_NODENAME ..."
 module load tensorflow/cuda-8.0/r1.3 
 
 export DATASET="suturing_data2"
-export train_discriminator1=false
-export train_discriminator2=false
-export train_image_encoder=false
+export train_discriminator1=true
+export train_discriminator2=true
+export train_image_encoder=true
 export learning_rate=$1
 export dropout=$2
 export optimizer=$3
 export noise_dim=$4
 export loss=$5
+export retrain=$6
 export MODELDIR="$HOME/.costar/suturing_$learning_rate$optimizer$dropout$noise_dim$loss"
+
+retrain_cmd=""
+if $retrain
+then
+  retrain_cmd="--retrain"
+  MODELDIR="$HOME/.costar/suturing_retrain$learning_rate$optimizer$dropout$noise_dim$loss"
+fi
+
 
 if $train_discriminator1
 then
@@ -99,5 +108,5 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --steps_per_epoch 300 \
   --preload \
   --loss $loss \
-  --batch_size 24
+  --batch_size 64 $retrain_cmd
 
