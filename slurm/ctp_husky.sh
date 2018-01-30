@@ -23,7 +23,15 @@ export dropout=$2
 export optimizer=$3
 export noise_dim=$4
 export loss=$5
+export retrain=$6
 export MODELDIR="$HOME/.costar/husky_$learning_rate$optimizer$dropout$noise_dim$loss"
+
+retrain_cmd=""
+if $retrain
+then
+  retrain_cmd="--retrain"
+  MODELDIR="$HOME/.costar/husky_retrain$learning_rate$optimizer$dropout$noise_dim$loss"
+fi
 
 if $train_discriminator
 then

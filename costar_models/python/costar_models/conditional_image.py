@@ -184,7 +184,7 @@ class ConditionalImage(PredictionSampler2):
         self.q_model.load_weights(self.makeName("secondary", "q"))
 
 
-    def encode(self, obs):
+    def encode(self, img):
         '''
         Encode available features into a new state
 
@@ -192,7 +192,7 @@ class ConditionalImage(PredictionSampler2):
         -----------
         [unknown]: all are parsed via _getData() function.
         '''
-        return self.image_encoder.predict(obs[1])
+        return self.image_encoder.predict(img)
 
     def decode(self, hidden):
         '''
@@ -202,27 +202,10 @@ class ConditionalImage(PredictionSampler2):
         '''
         return self.image_decoder.predict(hidden)
 
-    def prevOption(self, features):
-        '''
-        Just gets the previous option from a set of features
-        '''
-        if self.use_noise:
-            return features[4]
-        else:
-            return features[3]
-
-    def encodeInitial(self, obs):
-        '''
-        Call the encoder but only on the initial image frame
-        '''
-        return self.image_encoder.predict(obs[0])
-
-    def pnext(self, hidden0, hidden, prev_option, features):
+    def pnext(self, hidden0, hidden, prev_option):
         '''
         Visualize based on hidden
         '''
-        h0 = self.encodeInitial(features)
-
         p = self.next_model.predict([hidden0, hidden, prev_option])
         #p = np.exp(p)
         #p /= np.sum(p)
