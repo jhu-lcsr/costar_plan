@@ -1082,7 +1082,6 @@ def LoadEncoderWeights(model, encoder, decoder, gan=False):
     names = [gs, es] if gan else [es, gs]
     loaded = False
 
-
     saved_e = None
     for name in names:
         try:
@@ -1092,6 +1091,7 @@ def LoadEncoderWeights(model, encoder, decoder, gan=False):
             decoder.load_weights(
                     model.makeName(name,
                                 submodel="image_decoder"))
+            print("Loaded", name, "weights")
             loaded = True
 
         except IOError as e:
