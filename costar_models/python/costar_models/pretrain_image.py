@@ -49,18 +49,26 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
                     self.skip_shape,)
         out = decoder(enc)
 
-        # Create the discriminator to make sure this is a good image
-        image_discriminator = MakeImageClassifier(self, img_shape)
-        image_discriminator.load_weights(
-                self.makeName("discriminator", "classifier"))
-        image_discriminator.trainable = False
-        o2 = image_discriminator([img0_in, out])
+        if not self.no_disc:
+            # Create the discriminator to make sure this is a good image
+            image_discriminator = MakeImageClassifier(self, img_shape)
+            image_discriminator.load_weights(
+                    self.makeName("discriminator", "classifier"))
+            image_discriminator.trainable = False
+            o2 = image_discriminator([img0_in, out])
 
-        ae = Model(ins, [out, o2])
-        ae.compile(
-                loss=["mae"] + ["categorical_crossentropy"],
-                loss_weights=[1.,1e-3],
-                optimizer=self.getOptimizer())
+        if self.no_disc:
+            ae = Model(ins, [out])
+            ae.compile(
+                    loss=["mae"],
+                    loss_weights=[1.],
+             
+        else:
+            ae = Model(ins, [out, o2])
+            ae.compile(
+                    loss=["mae"] + ["categorical_crossentropy"],
+                    loss_weights=[1.,1e-3],
+                    optimizer=self.getOptimizer())
         ae.summary()
 
         return ae, ae, None, [img_in], enc
@@ -72,6 +80,9 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
         I0 = I[0,:,:,:]
         length = I.shape[0]
         I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1])
-        oin_1h = np.squeeze(ToOneHot2D(oin, self.num_options))
-        return [I0, I], [I, oin_1h]
+        if self.no_disc:
+            return [I0, I], [I]
+        else:
+            oin_1h = np.squeeze(ToOneHot2D(oin, self.num_options))
+            return [I0, I], [I, oin_1h]
 

@@ -84,8 +84,11 @@ class PretrainImageJigsaws(PretrainImageAutoencoder):
     def _getData(self, image, label, *args, **kwargs):
         I = np.array(image) / 255.
         o1 = np.array(label)
-        o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
         I0 = I[0,:,:,:]
         length = I.shape[0]
         I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1])
-        return [I0, I], [I, o1_1h]
+        if self.no_disc:
+            return [I0, I], [I]
+        else:
+            o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
+            return [I0, I], [I, o1_1h]

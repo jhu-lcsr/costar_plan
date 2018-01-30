@@ -18,7 +18,7 @@ export train_discriminator=true
 export train_discriminator2=true
 export train_image_encoder=true
 export train_conditional_image=true
-export train_policies=true
+export train_policies=false
 
 export learning_rate=$1
 export dropout=$2
