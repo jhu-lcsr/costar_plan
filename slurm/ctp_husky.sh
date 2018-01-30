@@ -42,6 +42,8 @@ then
   SUBDIR=${SUBDIR}_nodisc
 fi
 
+export MODELDIR="$MODELROOT/$SUBDIR"
+
 if [[ $train_discriminator && $use_disc ]]
 then
   echo "Training discriminator 1"

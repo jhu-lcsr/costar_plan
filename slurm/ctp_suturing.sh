@@ -41,8 +41,9 @@ then
   SUBDIR=${SUBDIR}_nodisc
 fi
 
+export MODELDIR="$MODELROOT/$SUBDIR"
 
-if $train_discriminator1
+if [[ $train_discriminator1 && $use_disc ]]
 then
   echo "Training discriminator 1"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
@@ -100,7 +101,7 @@ then
     --steps_per_epoch 300 \
     --noise_dim $noise_dim \
     --loss $loss \
-    --batch_size 64
+    --batch_size 64 $use_disc
 fi
 
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
@@ -117,5 +118,5 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --steps_per_epoch 300 \
   --preload \
   --loss $loss \
-  --batch_size 64 $retrain_cmd
+  --batch_size 64 $retrain_cmd $use_disc_cmd
 

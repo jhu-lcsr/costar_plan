@@ -52,9 +52,9 @@ then
 fi
 
 
-export MODELDIR="$MODELROOT/$SUBDIR
+export MODELDIR="$MODELROOT/$SUBDIR"
 
-if $train_discriminator
+if [[ $train_discriminator && $use_disc ]]
 then
   echo "Training discriminator 1"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
@@ -71,7 +71,7 @@ then
     --loss $loss \
     --batch_size 64
 fi
-if $train_discriminator2 && $use_disc
+if [[ $train_discriminator2 && $use_disc ]]
 then
   echo "Training discriminator 2"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
@@ -104,8 +104,30 @@ then
     --steps_per_epoch 500 \
     --noise_dim $noise_dim \
     --loss $loss \
-    --batch_size 64
+    --batch_size 64 $use_disc_cmd
 fi
+
+if $train_conditional_image
+then
+  $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
+    --features multi \
+    -e 150 \
+    --model conditional_image \
+    --data_file $HOME/work/$DATASET.h5f \
+    --lr $learning_rate \
+    --dropout_rate $dropout \
+    --model_directory $MODELDIR/ \
+    --optimizer $optimizer \
+    --steps_per_epoch 500 \
+    --loss $loss \
+    --batch_size 64 $retrain_cmd $use_disc_cmd
+fi
+
+# ==============================================
+# ==============================================
+#  These are all old commands.
+# ==============================================
+# ==============================================
 
 if $train_multi_encoder
 then
@@ -123,23 +145,6 @@ then
     --noise_dim $noise_dim \
     --loss $loss \
     --batch_size 64
-fi
-
-
-if $train_conditional_image
-then
-  $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
-    --features multi \
-    -e 150 \
-    --model conditional_image \
-    --data_file $HOME/work/$DATASET.h5f \
-    --lr $learning_rate \
-    --dropout_rate $dropout \
-    --model_directory $MODELDIR/ \
-    --optimizer $optimizer \
-    --steps_per_epoch 500 \
-    --loss $loss \
-    --batch_size 64 $retrain_cmd
 fi
 
 if $train_conditional_sampler
