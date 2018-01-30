@@ -91,7 +91,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         lfn = self.loss
         generator = Model(ins, [image_out, image_out2])
         generator.compile(
-                loss=[lfn, lfn],
+                loss=[lfn, lfn], # unused
                 optimizer=self.getOptimizer())
         self.generator = generator
 
