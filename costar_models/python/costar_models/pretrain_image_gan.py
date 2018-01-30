@@ -93,7 +93,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
     def _makeImageDiscriminator(self, img_shape):
         '''
         create image-only encoder to extract keypoints from the scene.
-        
+
         Params:
         -------
         img_shape: shape of the image to encode
@@ -110,7 +110,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         else:
             loss = "binary_crossentropy"
             activation = "sigmoid"
-        
+
         x = AddConv2D(img, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
         x0 = AddConv2D(img0, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
         x = Add()([x, x0])

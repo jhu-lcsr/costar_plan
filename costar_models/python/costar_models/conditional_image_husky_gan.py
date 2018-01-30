@@ -32,7 +32,7 @@ class ConditionalImageHuskyGan(ConditionalImageGan):
         # Create the next image including input image
         I0 = I[0,:,:,:]
         length = I.shape[0]
-        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
+        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1])
 
         # Extract the next goal
         I_target2, o2 = GetNextGoal(I_target, o1)
@@ -97,7 +97,7 @@ class ConditionalImageHuskyGan(ConditionalImageGan):
         image_discriminator.trainable = False
         is_fake = image_discriminator([
             img0_in, img_in,
-            next_option_in, 
+            next_option_in,
             next_option2_in,
             image_out,
             image_out2])
@@ -122,7 +122,7 @@ class ConditionalImageHuskyGan(ConditionalImageGan):
         self.generator = predictor
 
         # =====================================================================
-        # And adversarial model 
+        # And adversarial model
         model = Model(ins, [image_out, image_out2, is_fake])
         model.compile(
                 loss=["mae"]*2 + ["binary_crossentropy"],

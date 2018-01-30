@@ -48,7 +48,7 @@ class ConditionalImageGan(PretrainImageGan):
         self.skip_connections = False
         self.num_generator_files = 1
         self.save_encoder_decoder = self.retrain
- 
+
     def _makePredictor(self, features):
         # =====================================================================
         # Create many different image decoders
@@ -116,7 +116,7 @@ class ConditionalImageGan(PretrainImageGan):
         image_discriminator.trainable = False
         is_fake = image_discriminator([
             img0_in, img_in,
-            next_option_in, 
+            next_option_in,
             next_option2_in,
             image_out,
             image_out2])
@@ -132,7 +132,7 @@ class ConditionalImageGan(PretrainImageGan):
         self.generator = predictor
 
         # =====================================================================
-        # And adversarial model 
+        # And adversarial model
         loss = wasserstein_loss if self.use_wasserstein else "binary_crossentropy"
         weights = [0.01, 0.01, 1.] if self.use_wasserstein else [100., 100., 1.]
 
@@ -153,7 +153,7 @@ class ConditionalImageGan(PretrainImageGan):
         # Create the next image including input image
         I0 = I[0,:,:,:]
         length = I.shape[0]
-        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
+        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1])
 
         # Extract the next goal
         I_target2, o2 = GetNextGoal(I_target, o1)
@@ -162,7 +162,7 @@ class ConditionalImageGan(PretrainImageGan):
     def _makeImageDiscriminator(self, img_shape):
         '''
         create image-only encoder to extract keypoints from the scene.
-        
+
         Params:
         -------
         img_shape: shape of the image to encode
@@ -186,7 +186,7 @@ class ConditionalImageGan(PretrainImageGan):
         #x2 = Add()([x0, xg1, xg2])
         x1 = Add()([xobs, xg1])
         x2 = Add()([xg1, xg2])
-        
+
         # -------------------------------------------------------------
         y = OneHot(self.num_options)(option)
         y = AddDense(y, 64, "lrelu", dr)

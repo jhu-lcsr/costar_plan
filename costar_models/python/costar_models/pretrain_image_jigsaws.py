@@ -49,7 +49,7 @@ class PretrainImageJigsaws(PretrainImageAutoencoder):
                     self,
                     self.hidden_shape,
                     self.skip_shape,)
-        
+
         # Encode and connect the discriminator
         enc = encoder(img_in)
         image_discriminator = LoadClassifierWeights(self,
@@ -64,7 +64,7 @@ class PretrainImageJigsaws(PretrainImageAutoencoder):
                 loss_weights=[1.,1e-4],
                 optimizer=self.getOptimizer())
         ae.summary()
-    
+
         return ae, ae, None, [img_in], enc
 
     def _makeModel(self, image, *args, **kwargs):
@@ -87,5 +87,5 @@ class PretrainImageJigsaws(PretrainImageAutoencoder):
         o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
         I0 = I[0,:,:,:]
         length = I.shape[0]
-        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
+        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1])
         return [I0, I], [I, o1_1h]
