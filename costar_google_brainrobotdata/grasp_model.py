@@ -700,11 +700,11 @@ def grasp_model_levine_2016(
             print('conv2 shape:' + str(K.int_shape(current_time_img_conv)))
         if pooling == 'max':
             # img maxPool
-            maxpool_name_a='maxpool' + str(maxpool_counter)
+            maxpool_name_a = 'maxpool' + str(maxpool_counter)
             clear_view_img_conv = MaxPooling2D(pool_size=(3, 3),
                                                name=maxpool_name_a)(clear_view_img_conv)
             maxpool_counter += 1
-            maxpool_name_b='maxpool' + str(maxpool_counter)
+            maxpool_name_b = 'maxpool' + str(maxpool_counter)
             current_time_img_conv = MaxPooling2D(pool_size=(3, 3),
                                                  name=maxpool_name_b)(current_time_img_conv)
             maxpool_counter += 1
@@ -826,7 +826,6 @@ def grasp_model_levine_2016_segmentation(
         final_pooling=None,
         require_flatten=True,
         activation='sigmoid',
-        final_pooling=None,
         include_top=True,
         top='segmentation',
         classes=1,
