@@ -62,6 +62,11 @@ class ConditionalImageHuskyGan(ConditionalImageGan):
 
         LoadEncoderWeights(self, encoder, decoder, gan=True)
 
+        if self.use_noise:
+            z1 = Input(self.noise_dim)
+            z2 = Input(self.noise_dim)
+            ins += [z1, z2]
+
         # =====================================================================
         # Load the arm and gripper representation
         if self.skip_connections:
@@ -82,8 +87,10 @@ class ConditionalImageHuskyGan(ConditionalImageGan):
         y2 = Flatten()(y2)
         x = h
         tform = self._makeTransform()
-        x = tform([h0,h,y])
-        x2 = tform([h0,x,y2])
+        l = [h0, h, y, z1] if self.use_noise else [h0, h, y]
+        x = tform(l)
+        l = [h0, x, y2, z2] if self.use_noise else [h0, x, y2]
+        x2 = tform(l)
         image_out = decoder([x])
         image_out2 = decoder([x2])
 

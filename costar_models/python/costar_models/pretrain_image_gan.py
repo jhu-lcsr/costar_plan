@@ -30,6 +30,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         super(PretrainImageGan, self).__init__(*args, **kwargs)
         self.PredictorCb = ImageCb
         self.load_pretrained_weights = False
+        self.noise_iters = 1
 
     def _makePredictor(self, features):
         '''
@@ -89,6 +90,13 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         features, targets = GetAllMultiData(self.num_options, *args, **kwargs)
         [img, q, g, oin, label, q_target, g_target,] = features
         return [img], [img]
+
+    def _addNoise(self, in_data):
+        sz = in_data[0].shape[0]
+        for _ in self.noise_iters:
+            x = np.random((sz, self.noise_dim))
+            in_data.append(x)
+        return in_data
 
     def _makeImageDiscriminator(self, img_shape):
         '''
@@ -208,7 +216,8 @@ class PretrainImageGan(RobotMultiPredictionSampler):
 
                         # Descriminator pass
                         img, target = next(train_generator)
-                        fake = self.generator.predict(img)
+                        data = self._addNoise(img) if self.use_noise else img
+                        fake = self.generator.predict(data)
                         self.discriminator.trainable = True
                         if self.use_wasserstein:
                             is_fake = np.ones((self.batch_size,1))
@@ -227,8 +236,9 @@ class PretrainImageGan(RobotMultiPredictionSampler):
 
                     # Generator pass
                     img, target = next(train_generator)
+                    data = self._addNoise(img) if self.use_noise else img
                     res = self.model.train_on_batch(
-                            img, target + [is_not_fake]
+                            data, target + [is_not_fake]
                     )
                     print('Epoch {}, {}/{}: G loss[{}], G err[{}]'.format(
                         i+1, j, self.steps_per_epoch, res[0], res[1]))
@@ -241,7 +251,8 @@ class PretrainImageGan(RobotMultiPredictionSampler):
 
                 # Accuracy tests
                 img, target = next(train_generator)
-                fake = self.generator.predict(img)
+                data = self._addNoise(img) if self.use_noise else img
+                fake = self.generator.predict(data)
                 inputs = img + fake if isinstance(fake, list) else img + [fake]
                 results = self.discriminator.predict(inputs)
                 results2 = self.discriminator.predict(img + target)
