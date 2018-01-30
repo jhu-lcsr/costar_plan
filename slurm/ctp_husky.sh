@@ -89,7 +89,7 @@ then
     --features husky \
     --model_directory $MODELDIR/ \
     --optimizer $optimizer \
-    --use_noise true \
+    --use_noise \
     --steps_per_epoch 500 \
     --noise_dim $noise_dim \
     --loss $loss \
@@ -105,7 +105,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --dropout_rate $dropout \
   --model_directory $MODELDIR/ \
   --optimizer $optimizer \
-  --use_noise true \
+  --use_noise \
   --steps_per_epoch 500 \
   --loss $loss \
   --batch_size 64 $retrain_cmd

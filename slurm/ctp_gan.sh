@@ -46,7 +46,6 @@ then
     --dropout_rate $dropout \
     --model_directory $MODELDIR/ \
     --optimizer $optimizer \
-    --use_noise false \
     --steps_per_epoch 100 \
     --noise_dim $noise_dim \
     --loss $loss \
@@ -63,13 +62,12 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --dropout_rate $dropout \
   --model_directory $MODELDIR/ \
   --optimizer $optimizer \
-  --use_noise false \
   --steps_per_epoch 100 \
   --noise_dim $noise_dim \
   --loss $loss \
   --gan_method gan \
   --batch_size 64 \
-	$wass_cmd
+  $wass_cmd
 
 echo "Training conditional gan"
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
@@ -81,11 +79,10 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --dropout_rate $dropout \
   --model_directory $MODELDIR/ \
   --optimizer $optimizer \
-  --use_noise false \
   --steps_per_epoch 100 \
   --noise_dim $noise_dim \
   --loss $loss \
   --gan_method gan \
   --batch_size 64 \
-	$wass_cmd
+  $wass_cmd
 
