@@ -81,5 +81,5 @@ class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
             return [I0, I], [I]
         else:
             o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
-            return [I0, I], [I, oin_1h]
+            return [I0, I], [I, o1_1h]
 

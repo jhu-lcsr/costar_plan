@@ -62,7 +62,7 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
             ae.compile(
                     loss=["mae"],
                     loss_weights=[1.],
-             
+                    optimizer=self.getOptimizer())
         else:
             ae = Model(ins, [out, o2])
             ae.compile(
@@ -83,6 +83,6 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
         if self.no_disc:
             return [I0, I], [I]
         else:
-            oin_1h = np.squeeze(ToOneHot2D(oin, self.num_options))
-            return [I0, I], [I, oin_1h]
+            o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
+            return [I0, I], [I, o1_1h]
 
