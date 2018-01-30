@@ -17,7 +17,7 @@ from matplotlib import pyplot as plt
 
 from .callbacks import *
 from .sampler2 import *
-from .data_utils import GetNextGoal, ToOneHot2D
+from .data_utils import GetNextGoal, ToOneHot
 from .multi import *
 
 
@@ -137,10 +137,10 @@ class ConditionalImage(PredictionSampler2):
         I_target2, o2 = GetNextGoal(I_target, o1)
         I0 = I[0,:,:,:]
         length = I.shape[0]
-        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1])
-        oin_1h = np.squeeze(ToOneHot2D(oin, self.num_options))
-        o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
-        o2_1h = np.squeeze(ToOneHot2D(o2, self.num_options))
+        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
+        oin_1h = ToOneHot(oin, self.num_options)
+        o1_1h = ToOneHot(o1, self.num_options)
+        o2_1h = ToOneHot(o2, self.num_options)
         qa = np.squeeze(qa)
         ga = np.squeeze(ga)
         if self.validate:
@@ -232,9 +232,18 @@ class ConditionalImage(PredictionSampler2):
         v = self.value_model.predict([hidden0, hidden])
         return v
 
-    def transform(self, hidden, option_in=-1):
-
-        raise NotImplementedError('transform() not implemented')
+    def transform(self, hidden0, hidden, option_in=-1):
+        #if option_in < 0 or option_in > self.num_options:
+        #    option_in = self.null_option
+        #oin = MakeOption1h(option_in, self.num_options)
+        if len(option_in.shape) == 1:
+            oin = ToOneHot(option_in, self.num_options)
+        else:
+            oin = option_in
+        #length = hidden.shape[0]
+        #oin = np.repeat(oin, length, axis=0)
+        h = self.transform_model.predict([hidden0, hidden, oin])
+        return h
 
     def act(self, *args, **kwargs):
         raise NotImplementedError('act() not implemented')

@@ -63,6 +63,9 @@ def visualizeHiddenMain(args):
         if not h.shape[0] == img.shape[0]:
             raise RuntimeError('something went wrong with dimensions')
 
+        h_goal = model.transform(h0, h0, np.argmax(p_a,axis=1))
+        img_goal = model.decode(h_goal)
+        v_goal = model.value(h0, h_goal)
         print("--------------\nHidden state:\n--------------\n")
         print("shape of hidden samples =", h.shape)
         print("shape of images =", img.shape)
@@ -71,13 +74,19 @@ def visualizeHiddenMain(args):
             print("prev option =", prev_option[i])
             print("best option =", np.argmax(p_a[i]))
             print("value =", v[i])
+            print("goal value =", v_goal[i])
             print(p_a[i])
             plt.figure()
-            plt.subplot(3,3,1)
-            plt.imshow(img[i])
-            for j in range(h.shape[-1]):
-                plt.subplot(3,3,j+2)
-                plt.imshow(np.squeeze(h[i,:,:,j]))
+            plt.subplot(1,5,1)
+            Show(img[i])
+            plt.subplot(1,5,2)
+            Show(np.squeeze(h[i,:,:,:3]))
+            plt.subplot(1,5,3)
+            Show(np.squeeze(h_goal[i,:,:,:3]))
+            plt.subplot(1,5,4)
+            Show(img_goal[i])
+            plt.subplot(1,5,5)
+            Show(targets[0][i])
             plt.show()
 
     else:
