@@ -194,9 +194,9 @@ def GetConditionalHuskyData(no_disc, num_options, image, pose, action, label,
     o2_1h = np.squeeze(ToOneHot2D(o2, num_options))
     
     if no_disc:
-        return [I0, I, o1, o2, oin], [I_target, I_target2, o2_1h]
-    else:
         return [I0, I, o1, o2, oin], [I_target, I_target2,]
+    else:
+        return [I0, I, o1, o2, oin], [I_target, I_target2, o2_1h]
 
 def MakeHuskyPolicy(model, encoder, image, pose, action, option, verbose=True):
     '''
