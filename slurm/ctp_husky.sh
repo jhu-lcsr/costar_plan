@@ -24,13 +24,22 @@ export optimizer=$3
 export noise_dim=$4
 export loss=$5
 export retrain=$6
-export MODELDIR="$HOME/.costar/husky_$learning_rate$optimizer$dropout$noise_dim$loss"
+#export MODELDIR="$HOME/.costar/husky_$learning_rate$optimizer$dropout$noise_dim$loss"
+export MODELROOT="$HOME/.costar/"
+export SUBDIR="husky_$learning_rate$optimizer$dropout$noise_dim$loss"
 
 retrain_cmd=""
 if $retrain
 then
   retrain_cmd="--retrain"
-  MODELDIR="$HOME/.costar/husky_retrain$learning_rate$optimizer$dropout$noise_dim$loss"
+  SUBDIR=${SUBDIR}_retrain
+fi
+
+use_disc_cmd=""
+if [[ ! $use_disc ]]
+then
+  use_disc_cmd="--no_disc"
+  SUBDIR=${SUBDIR}_nodisc
 fi
 
 if $train_discriminator
