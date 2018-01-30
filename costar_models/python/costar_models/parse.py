@@ -38,7 +38,7 @@ def GetModelParser():
                         default=1e-3)
     parser.add_argument('--model_directory',
                         help="models directory",
-                        default = "~/.costar/models"),
+                        default = "~/.costar/models")
     parser.add_argument('-i', '--iter',
                         help='Number of iterations to run',
                         default=100,
@@ -131,7 +131,7 @@ def GetModelParser():
                         default=0.5)
     parser.add_argument("--use_noise",
                         help="use random noise to sample distributions",
-                        action='store_true')
+                        action='store_true',
                         default=False)
     parser.add_argument("--skip_connections", "--sc",
                         help="use skip connections to generate better outputs",

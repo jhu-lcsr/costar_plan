@@ -93,8 +93,8 @@ class PretrainImageGan(RobotMultiPredictionSampler):
 
     def _addNoise(self, in_data):
         sz = in_data[0].shape[0]
-        for _ in self.noise_iters:
-            x = np.random((sz, self.noise_dim))
+        for _ in range(self.noise_iters):
+            x = np.random.random((sz, self.noise_dim))
             in_data.append(x)
         return in_data
 
