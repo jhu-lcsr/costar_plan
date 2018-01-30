@@ -71,7 +71,7 @@ def GetModelParser():
     parser.add_argument("-z", "--zdim", "--noise_dim",
                         help="size of action parameterization",
                         type=int,
-                        default=0)
+                        default=1)
     parser.add_argument("-D", "--debug_model", "--dm", "--debug",
                         help="Run a short script to debug the current model.",
                         action="store_true")
@@ -131,7 +131,7 @@ def GetModelParser():
                         default=0.5)
     parser.add_argument("--use_noise",
                         help="use random noise to sample distributions",
-                        type=bool,
+                        action='store_true')
                         default=False)
     parser.add_argument("--skip_connections", "--sc",
                         help="use skip connections to generate better outputs",
