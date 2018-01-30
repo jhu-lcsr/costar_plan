@@ -96,7 +96,7 @@ def MakeJigsawsMultiDecoder(model, decoder, num_images=4, h_dim=(12,16)):
 
     return mm
 
-def MakeJigsawsTransform(model, h_dim=(12,16), small=False):
+def MakeJigsawsTransform(model, h_dim=(12,16), small=True):
     '''
     This is the version made for the newer code, it is set up to use both
     the initial and current observed world and creates a transform

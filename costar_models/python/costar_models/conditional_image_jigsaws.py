@@ -39,8 +39,8 @@ class ConditionalImageJigsaws(ConditionalImage):
         for dim in img_shape:
             img_size *= dim
 
-        img0_in = Input(img_shape, name="predictor_img0_in")
         img_in = Input(img_shape, name="predictor_img_in")
+        img0_in = Input(img_shape, name="predictor_img0_in")
         prev_option_in = Input((1,), name="predictor_prev_option_in")
         ins = [img0_in, img_in]
 
@@ -53,7 +53,7 @@ class ConditionalImageJigsaws(ConditionalImage):
 
         # =====================================================================
         # Load weights and stuff
-        LoadEncoderWeights(self, encoder, decoder, gan=False)
+        LoadEncoderWeights(self, encoder, decoder)
         image_discriminator = LoadGoalClassifierWeights(self,
                 make_classifier_fn=MakeJigsawsImageClassifier,
                 img_shape=img_shape)
@@ -80,7 +80,6 @@ class ConditionalImageJigsaws(ConditionalImage):
         # --------------------------------------------------------------------
         # Image model
         h_dim = (12, 16)
-
         y = Flatten()(OneHot(self.num_options)(option_in))
         y2 = Flatten()(OneHot(self.num_options)(option_in2))
         x = h
@@ -92,7 +91,6 @@ class ConditionalImageJigsaws(ConditionalImage):
         image_out, image_out2 = decoder([x]), decoder([x2])
         disc_out2 = image_discriminator([image_out2])
 
-        # =====================================================================
         # Create models to train
         model = Model(ins + [prev_option_in],
                 [image_out, image_out2, disc_out2])
@@ -106,7 +104,7 @@ class ConditionalImageJigsaws(ConditionalImage):
                 loss=[self.loss, self.loss, "categorical_crossentropy"],
                 loss_weights=[1., 1., disc_wt],
                 optimizer=self.getOptimizer())
-
+        self.predictor = None
         self.model = model
         self.model.summary()
 
@@ -127,7 +125,6 @@ class ConditionalImageJigsaws(ConditionalImage):
         label2_1h = np.squeeze(ToOneHot2D(label2, self.num_options))
         return ([image0, image, label, goal_label, prev_label],
                 [np.expand_dims(goal_image, axis=1),
-                 #np.expand_dims(goal_image2, axis=1), label_1h])#, label2_1h]
                  np.expand_dims(goal_image2, axis=1),
                  np.expand_dims(label2_1h, axis=1)])
 

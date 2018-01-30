@@ -1085,13 +1085,12 @@ def LoadEncoderWeights(model, encoder, decoder, gan=False):
     saved_e = None
     for name in names:
         try:
-            encoder.load_weights(
-                    model.makeName(name,
-                                submodel="image_encoder"))
-            decoder.load_weights(
-                    model.makeName(name,
-                                submodel="image_decoder"))
-            print("Loaded", name, "weights")
+            e_nm = model.makeName(name, submodel="image_encoder")
+            d_nm = model.makeName(name, submodel="image_decoder")
+            print("Trying to load", e_nm)
+            encoder.load_weights(e_nm)
+            print("Trying to load", d_nm)
+            decoder.load_weights(d_nm)
             loaded = True
 
         except IOError as e:
