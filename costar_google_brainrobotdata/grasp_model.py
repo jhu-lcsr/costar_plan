@@ -233,7 +233,7 @@ def classifier_block(input_tensor, include_top=True, top='classification',
                   kernel_initializer="he_normal", name='fc' + str(classes))(x)
 
     elif include_top and top == 'segmentation':
-        if verbose:
+        if verbose > 0:
             print("    segmentation")
         x = Conv2D(classes, (1, 1), activation='linear', padding='same')(x)
 
@@ -634,9 +634,9 @@ def grasp_model_levine_2016(
         dilation_rate_initial_conv=1,
         pooling='max',
         dilation_rate=1,
-        activation='sigmoid',
         final_pooling='max',
         include_top=True,
+        activation='sigmoid',
         top='classification',
         classes=1,
         verbose=0,
@@ -674,70 +674,125 @@ def grasp_model_levine_2016(
                                          tensor=current_time_image_op,
                                          name='current_time_image_input')
 
+        conv_counter = 1
+        maxpool_counter = 1
+        dense_counter = 1
+        dropout_counter = 1
+
         # img1 Conv 1
         clear_view_img_conv = Conv2D(64, kernel_size=(6, 6),
                                      activation='relu',
                                      strides=strides_initial_conv,
                                      dilation_rate=dilation_rate_initial_conv,
-                                     padding='same')(clear_view_image_input)
+                                     padding='same',
+                                     name='conv'+str(conv_counter))(clear_view_image_input)
+        conv_counter += 1
 
         # img2 Conv 1
         current_time_img_conv = Conv2D(64, kernel_size=(6, 6),
                                        activation='relu',
                                        strides=strides_initial_conv,
                                        dilation_rate=dilation_rate_initial_conv,
-                                       padding='same')(current_time_image_input)
-
+                                       padding='same',
+                                       name='conv'+str(conv_counter))(current_time_image_input)
+        conv_counter += 1
+        if verbose > 0:
+            print('conv2 shape:' + str(K.int_shape(current_time_img_conv)))
         if pooling == 'max':
             # img maxPool
-            clear_view_img_conv = MaxPooling2D(pool_size=(3, 3))(clear_view_img_conv)
-            current_time_img_conv = MaxPooling2D(pool_size=(3, 3))(current_time_img_conv)
+            maxpool_name_a='maxpool' + str(maxpool_counter)
+            clear_view_img_conv = MaxPooling2D(pool_size=(3, 3),
+                                               name=maxpool_name_a)(clear_view_img_conv)
+            maxpool_counter += 1
+            maxpool_name_b='maxpool' + str(maxpool_counter)
+            current_time_img_conv = MaxPooling2D(pool_size=(3, 3),
+                                                 name=maxpool_name_b)(current_time_img_conv)
+            maxpool_counter += 1
+            if verbose > 0:
+                print(maxpool_name_a, maxpool_name_b)
 
         x = Add()([clear_view_img_conv, current_time_img_conv])
 
-        # img Conv 2 - 7
-        for i in range(6):
-            x = Conv2D(64, (5, 5), padding='same', activation='relu')(x)
-
+        # img Conv 2
         x = Conv2D(64, (5, 5), padding='same', activation='relu',
-                   dilation_rate=dilation_rate)(x)
+                   dilation_rate=dilation_rate,
+                   name='conv'+str(conv_counter))(x)
+        conv_counter += 1
 
+        # img Conv 3 - 8
+        for i in range(6):
+            x = Conv2D(64, (5, 5), padding='same', activation='relu',
+                       name='conv'+str(conv_counter))(x)
+            conv_counter += 1
+
+        if verbose > 0:
+            print('pre max pool shape:' + str(K.int_shape(x)))
         if pooling == 'max':
             # img maxPool 2
-            x = MaxPooling2D(pool_size=(3, 3))(x)
+            maxpool_name = 'maxpool' + str(maxpool_counter)
+            x = MaxPooling2D(pool_size=(3, 3), name=maxpool_name)(x)
+            if verbose > 0:
+                print(maxpool_name + ' shape:' + str(K.int_shape(x)))
+            maxpool_counter += 1
 
+        if verbose > 0:
+            print('post max pool shape:' + str(K.int_shape(x)))
         if input_vector_op is not None or input_vector_op is not None:
             # Handle input command data
             vector_shape = K.int_shape(input_vector_op)[1:]
             motorData = Input(shape=vector_shape, tensor=input_vector_op, name='motion_command_vector_input')
 
             # motor full conn
-            motorConv = Dense(64, activation='relu')(motorData)
+            motorConv = Dense(64, activation='relu',
+                              name='dense'+str(dense_counter))(motorData)
+            dense_counter += 1
 
             # tile and concat the data
             x = add_images_with_tiled_vector_layer(x, motorConv)
 
             if dropout_rate is not None:
-                x = Dropout(dropout_rate)(x)
+                x = Dropout(dropout_rate, name='dropout'+str(dropout_counter))(x)
+                dropout_counter += 1
 
         # combined conv 8
-        x = Conv2D(64, (3, 3), activation='relu', padding='same')(x)
+        x = Conv2D(64, (3, 3), activation='relu', padding='same',
+                   dilation_rate=dilation_rate,
+                   name='conv'+str(conv_counter))(x)
+        conv_counter += 1
 
-        # combined conv 9 - 12
+        #TODO(dingyu95) check if this is the right number of convs, update later and make a model
+        # combined conv 10 - 12
         for i in range(2):
-            x = Conv2D(64, (3, 3), activation='relu', padding='same')(x)
+            x = Conv2D(64, (3, 3), activation='relu', padding='same',
+                       name='conv'+str(conv_counter))(x)
+            conv_counter += 1
 
         # combined conv 13
         x = Conv2D(64, (5, 5), padding='same', activation='relu',
-                   dilation_rate=dilation_rate)(x)
+                   name='conv'+str(conv_counter))(x)
+        conv_counter += 1
 
+
+        if verbose > 0:
+            print('pre max pool shape:' + str(K.int_shape(x)))
         if pooling == 'max':
             # combined maxPool
-            x = MaxPooling2D(pool_size=(2, 2))(x)
+            maxpool_name = 'maxpool' + str(maxpool_counter)
+            x = MaxPooling2D(pool_size=(2, 2), name=maxpool_name)(x)
+            if verbose > 0:
+                print(maxpool_name + ' shape:' + str(K.int_shape(x)))
+            maxpool_counter += 1
 
+        if verbose > 0:
+            print('post max pool shape:' + str(K.int_shape(x)))
+        x = Conv2D(64, (3, 3), activation='relu', padding='same',
+                   dilation_rate=dilation_rate,
+                   name='conv'+str(conv_counter))(x)
+        conv_counter += 1
         # combined conv 14 - 16
-        for i in range(3):
-            x = Conv2D(64, (3, 3), activation='relu', padding='same')(x)
+        for i in range(2):
+            x = Conv2D(64, (3, 3), activation='relu', padding='same', name='conv'+str(conv_counter))(x)
+            conv_counter += 1
 
         # The top block adds the final "decision making" layers
         # and the classifier block according to the problem type.
@@ -768,6 +823,8 @@ def grasp_model_levine_2016_segmentation(
         dilation_rate_initial_conv=1,
         pooling=None,
         dilation_rate=2,
+        final_pooling=None,
+        require_flatten=True,
         activation='sigmoid',
         final_pooling=None,
         include_top=True,
@@ -775,25 +832,26 @@ def grasp_model_levine_2016_segmentation(
         classes=1,
         verbose=0):
     """ The levine 2016 model adapted for segmentation.
-
+    #TODO(ahundt) require_flatten is formerly include_top from keras, change to something like include_classifier_block
     Based on the prior work:
 
         Learning Hand-Eye Coordination for Robotic Grasping with Deep Learning and Large-Scale Data Collection.
     """
+    print('grasp_model_levine_2016_segmentation')
     return grasp_model_levine_2016(
-        clear_view_image_op,
-        current_time_image_op,
-        input_vector_op,
-        input_image_shape,
-        input_vector_op_shape,
-        dropout_rate,
-        strides_initial_conv,
-        dilation_rate_initial_conv,
-        pooling,
-        dilation_rate,
-        activation,
-        final_pooling,
-        include_top,
-        top,
-        classes,
-        verbose)
+        clear_view_image_op=clear_view_image_op,
+        current_time_image_op=current_time_image_op,
+        input_vector_op=input_vector_op,
+        input_image_shape=input_image_shape,
+        input_vector_op_shape=input_vector_op_shape,
+        dropout_rate=dropout_rate,
+        strides_initial_conv=strides_initial_conv,
+        dilation_rate_initial_conv=dilation_rate_initial_conv,
+        pooling=pooling,
+        dilation_rate=dilation_rate,
+        final_pooling=final_pooling,
+        require_flatten=require_flatten,
+        activation=activation,
+        top=top,
+        classes=classes,
+        verbose=verbose)

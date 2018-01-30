@@ -17,8 +17,8 @@ def gripper_coordinate_y_pred(y_true, y_pred):
     with K.name_scope(name="gripper_coordinate_y_pred") as scope:
         yx_coordinate = tf.cast(y_true[:, 1:], tf.int32)
         yx_shape = K.int_shape(yx_coordinate)
-        sample_index = tf.expand_dims(tf.range(yx_shape[0]), axis=-1)
-        byx_coordinate = tf.concat([sample_index, yx_coordinate], axis=-1)
+        sample_index = K.expand_dims(tf.range(yx_shape[0]), axis=-1)
+        byx_coordinate = K.concatenate([sample_index, yx_coordinate], axis=-1)
 
         # maybe need to transpose yx_coordinate?
         gripper_coordinate_y_pred = tf.gather_nd(y_pred, byx_coordinate)
@@ -75,12 +75,12 @@ def gaussian_kernel_2D(size=(3, 3), center=None, sigma=1):
     """
     with K.name_scope(name='gaussian_kernel_2D') as scope:
         if center is None:
-            center_y = tf.reshape(size[0] / 2, [1, 1])
-            center_x = tf.reshape(size[1] / 2, [1, 1])
+            center_y = K.reshape(size[0] / 2, [1, 1])
+            center_x = K.reshape(size[1] / 2, [1, 1])
         else:
             # tuple does not support assignment
-            center_y = tf.reshape(center[0], [1, 1])
-            center_x = tf.reshape(center[1], [1, 1])
+            center_y = K.reshape(center[0], [1, 1])
+            center_x = K.reshape(center[1], [1, 1])
 
         yy, xx = tf.meshgrid(tf.range(0, size[0]),
                              tf.range(0, size[1]),
@@ -117,7 +117,7 @@ def segmentation_gaussian_measurement(
         label = y_true[0, 0]
         y_height_coordinate = y_true[0, 1]
         x_width_coordinate = y_true[0, 2]
-        label = tf.reshape(label, [1, 1])
+        label = K.reshape(label, [1, 1])
         image_shape = tf.Tensor.get_shape(y_pred)
         y_true_img = tile_vector_as_image_channels(label, image_shape)
         y_true_img = tf.cast(y_true_img, tf.float32)
@@ -132,7 +132,7 @@ def segmentation_gaussian_measurement(
         weights = K.flatten(weights)
         weighted_loss_img = tf.multiply(loss_img, weights)
         loss_sum = K.sum(weighted_loss_img)
-        loss_sum = tf.reshape(loss_sum, [1, 1])
+        loss_sum = K.reshape(loss_sum, [1, 1])
         return loss_sum
 
 
