@@ -82,9 +82,13 @@ class ConditionalImageHusky(ConditionalImage):
         # Create models to train
         model = Model(ins + [label_in],
                 [image_out, image_out2, disc_out2])
+        if self.no_disc:
+            disc_wt = 0.
+        else:
+            disc_wt = 1e-3
         model.compile(
                 loss=[self.loss, self.loss, "categorical_crossentropy"],
-                loss_weights=[1., 1., 1e-3],
+                loss_weights=[1., 1., disc_wt],
                 optimizer=self.getOptimizer())
         self.model = model
 

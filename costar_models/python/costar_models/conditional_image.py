@@ -125,9 +125,13 @@ class ConditionalImage(PredictionSampler2):
         # Create models to train
         train_predictor = Model(ins + [label_in],
                 [image_out, image_out2, disc_out2])
+        if self.no_disc:
+            disc_wt = 0.
+        else:
+            disc_wt = 1e-3
         train_predictor.compile(
                 loss=[lfn, lfn, "categorical_crossentropy"],
-                loss_weights=[1., 1., 1e-3],
+                loss_weights=[1., 1., disc_wt],
                 optimizer=self.getOptimizer())
         return None, train_predictor, None, ins, h
 

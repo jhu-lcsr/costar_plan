@@ -78,57 +78,35 @@ class ConditionalImageJigsaws(ConditionalImage):
         ins += [option_in, option_in2]
 
         # --------------------------------------------------------------------
-        # Create multiple hypothesis loss
-        lfn = MhpLossWithShape(
-                num_hypotheses=self.num_hypotheses,
-                outputs=[img_size],
-                weights=[1.0],
-                loss=[self.loss],
-                avg_weight=0.1,
-                )
-        lfn2 = MhpLossWithShape(
-                num_hypotheses=self.num_hypotheses,
-                outputs=[self.num_options],
-                weights=[1.0],
-                loss=["binary_crossentropy"],
-                avg_weight=1.,
-                )
-
-        # --------------------------------------------------------------------
         # Image model
         h_dim = (12, 16)
-        multi_decoder = MakeJigsawsMultiDecoder(self, decoder,
-                self.num_hypotheses, h_dim)
+
         y = Flatten()(OneHot(self.num_options)(option_in))
         y2 = Flatten()(OneHot(self.num_options)(option_in2))
-        x = MakeJigsawsExpand(self, h, h_dim)
-        tform = MakeJigsawsTransform(self, h_dim)
-        x = tform([h0, x, y])
-        x2 = tform([h0, x, y2])
-        image_out, image_out2 = multi_decoder([x]), multi_decoder([x2])
-        multi_disc = MultiDiscriminator(self, image_out2, image_discriminator,
-                img0_in,
-                self.num_hypotheses,
-                img_shape,)
-        multi_disc.trainable = False
-        disc_out2 = multi_disc([img0_in, image_out2])
+        x = h
+        tform = MakeJigsawsTransform(self, h_dim=(12,16), small=True)
+        l = [h0, h, y, z1] if self.use_noise else [h0, h, y]
+        x = tform(l)
+        l = [h0, x, y2, z2] if self.use_noise else [h0, x, y]
+        x2 = tform(l)
+        image_out, image_out2 = decoder([x]), decoder([x2])
+        disc_out2 = image_discriminator([image_out2])
 
         # =====================================================================
         # Create models to train
-        predictor = Model(ins + [prev_option_in],
-                [image_out, image_out2])
-        predictor.compile(
-                loss=[self.loss, self.loss],
-                loss_weights=[1., 1.],
-                optimizer=self.getOptimizer())
         model = Model(ins + [prev_option_in],
                 [image_out, image_out2, disc_out2])
+        # --------------------------------------------------------------------
+        # Create multiple hypothesis loss
+        if self.no_disc:
+            disc_wt = 0.
+        else:
+            disc_wt = 1e-3
         model.compile(
-                loss=[lfn, lfn, lfn2],
-                loss_weights=[1., 1., 1e-3],
+                loss=[self.loss, self.loss, "categorical_crossentropy"],
+                loss_weights=[1., 1., disc_wt],
                 optimizer=self.getOptimizer())
 
-        self.predictor = predictor
         self.model = model
         self.model.summary()
 

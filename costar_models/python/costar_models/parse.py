@@ -188,6 +188,9 @@ def GetModelParser():
     parser.add_argument("--validate",
                         help="Validation mode.",
                         action="store_true")
+    parser.add_argument("--no_disc",
+                        help="Disable discriminator usage with images",
+                        action="store_true")
     return parser
 
 def GetSubmodelOptions():

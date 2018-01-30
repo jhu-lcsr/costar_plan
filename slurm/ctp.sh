@@ -19,13 +19,17 @@ export train_discriminator2=true
 export train_image_encoder=true
 export train_conditional_image=true
 export train_policies=true
+
 export learning_rate=$1
 export dropout=$2
 export optimizer=$3
 export noise_dim=$4
 export loss=$5
 export retrain=$6
-export MODELDIR="$HOME/.costar/stack_$learning_rate$optimizer$dropout$noise_dim$loss"
+export use_disc=$7
+#export MODELDIR="$HOME/.costar/stack_$learning_rate$optimizer$dropout$noise_dim$loss"
+export MODELROOT="$HOME/.costar/"
+export SUBDIR="stack_$learning_rate$optimizer$dropout$noise_dim$loss"
 
 # ----------------------------------
 # Old versions
@@ -37,8 +41,18 @@ retrain_cmd=""
 if $retrain
 then
   retrain_cmd="--retrain"
-  MODELDIR="$HOME/.costar/stack_retrain$learning_rate$optimizer$dropout$noise_dim$loss"
+  SUBDIR=${SUBDIR}_retrain
 fi
+
+use_disc_cmd=""
+if [[ ! $use_disc ]]
+then
+  use_disc_cmd="--no_disc"
+  SUBDIR=${SUBDIR}_nodisc
+fi
+
+
+export MODELDIR="$MODELROOT/$SUBDIR
 
 if $train_discriminator
 then
@@ -57,7 +71,7 @@ then
     --loss $loss \
     --batch_size 64
 fi
-if $train_discriminator2
+if $train_discriminator2 && $use_disc
 then
   echo "Training discriminator 2"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
