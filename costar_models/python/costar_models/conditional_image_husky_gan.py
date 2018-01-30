@@ -40,7 +40,6 @@ class ConditionalImageHuskyGan(ConditionalImageGan):
 
     def _makeModel(self, image, pose, *args, **kwargs):
 
-
         img_shape = image.shape[1:]
         pose_size = pose.shape[-1]
 
@@ -74,12 +73,6 @@ class ConditionalImageHuskyGan(ConditionalImageGan):
         else:
             h = encoder([img_in])
             h0 = encoder(img0_in)
-
-        # create input for controlling noise output if that's what we decide
-        # that we want to do
-        if self.use_noise:
-            z = Input((self.num_hypotheses, self.noise_dim))
-            ins += [z]
 
         y = OneHot(self.num_options)(next_option_in)
         y = Flatten()(y)
@@ -132,7 +125,7 @@ class ConditionalImageHuskyGan(ConditionalImageGan):
         # And adversarial model
         model = Model(ins, [image_out, image_out2, is_fake])
         model.compile(
-                loss=["mae"]*2 + ["binary_crossentropy"],
+                loss=["mae", "mae", "binary_crossentropy"],
                 loss_weights=[100., 100., 1.],
                 optimizer=self.getOptimizer())
         model.summary()
