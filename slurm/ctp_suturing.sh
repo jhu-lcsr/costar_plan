@@ -114,7 +114,6 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --model_directory $MODELDIR/ \
   --features jigsaws \
   --optimizer $optimizer \
-  --use_noise \
   --steps_per_epoch 300 \
   --preload \
   --loss $loss \

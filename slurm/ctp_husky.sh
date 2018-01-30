@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --job-name=ctpHusky
+#SBATCH --job-name=husky
 #SBATCH --time=0-48:0:0
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
@@ -91,7 +91,6 @@ then
     --features husky \
     --model_directory $MODELDIR/ \
     --optimizer $optimizer \
-    --use_noise \
     --steps_per_epoch 500 \
     --noise_dim $noise_dim \
     --loss $loss \
@@ -107,7 +106,6 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --dropout_rate $dropout \
   --model_directory $MODELDIR/ \
   --optimizer $optimizer \
-  --use_noise \
   --steps_per_epoch 500 \
   --loss $loss \
   --batch_size 64 $retrain_cmd $use_disc_cmd

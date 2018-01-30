@@ -50,8 +50,11 @@ class Secondary(PredictionSampler2):
         img0_in = Input(img_shape,name="predictor_img0_in")
         arm_in = Input((arm_size,))
         gripper_in = Input((gripper_size,))
+        next_option_in = Input((1,), name="next_option_in")
+        next_option_in2 = Input((1,), name="next_option_in2")
         label_in = Input((1,))
-        ins = [img0_in, img_in, arm_in, gripper_in]
+        ins = [img0_in, img_in, arm_in, gripper_in, next_option_in,
+                next_option_in2, label_in]
 
         if self.skip_connections:
             encoder = self._makeImageEncoder2(img_shape)
@@ -75,8 +78,6 @@ class Secondary(PredictionSampler2):
             h = encoder([img_in])
             h0 = encoder(img0_in)
 
-        next_option_in = Input((1,), name="next_option_in")
-        next_option_in2 = Input((1,), name="next_option_in2")
         ins += [next_option_in, next_option_in2]
         y = OneHot(self.num_options)(next_option_in)
         y = Flatten()(y)
@@ -125,7 +126,7 @@ class Secondary(PredictionSampler2):
 
         model.summary()
         # =====================================================================
-        train_predictor = Model(ins + [label_in], outs)
+        train_predictor = Model(ins, outs)
         train_predictor.compile(loss=loss,
                 metrics=metrics,
                 optimizer=self.getOptimizer())

@@ -174,7 +174,6 @@ then
     --dropout_rate $dropout \
     --model_directory $MODELDIR/ \
     --optimizer $optimizer \
-    --use_noise \
     --steps_per_epoch 500 \
     --loss $loss \
     --skip_connections 1 \
@@ -195,7 +194,6 @@ then
       --dropout_rate $dropout \
       --model_directory $MODELDIR/ \
       --optimizer $optimizer \
-      --use_noise \
       --steps_per_epoch 500 \
       --loss $loss \
       --option_num $opt \
