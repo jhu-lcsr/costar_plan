@@ -515,7 +515,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         '''
         if self.model is not None:
             print("----------------------------")
-            print("Saving to " + self.name + "_{predictor, actor, image_decoder}")
+            print("Saving to " + self.name + "_{predictor, ...}")
+            print(">>> SAVING TRAINING SETUP TO 'train_predictor'")
             self.model.save_weights(self.name + "_train_predictor.h5f")
             if self.predictor is not None:
                 print(">>> SAVING PREDICTOR")
@@ -585,9 +586,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.model is not None:
             print("----------------------------")
             print("using " + self.name + " to load:")
-            if self.load_training_model:
-                print(">>> LOADING TRAINING SETUP")
-                self.model.load_weights(self.name + "_train_predictor.h5f")
             if self.image_decoder is not None:
                 print(">>> LOADING IMAGE DECODER")
                 self.image_decoder.load_weights(self.name +
@@ -636,6 +634,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             if self.predictor is not None:
                 print(">>> LOADING PREDICTOR")
                 self.predictor.load_weights(self.name + "_predictor.h5f")
+            if self.load_training_model:
+                print(">>> LOADING TRAINING SETUP")
+                self.model.load_weights(self.name + "_train_predictor.h5f")
         else:
             raise RuntimeError('_loadWeights() failed: model not yet created.')
 
