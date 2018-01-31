@@ -44,6 +44,7 @@ then
 fi
 
 export MODELDIR="$MODELROOT/$SUBDIR"
+touch $MODELDIR/$SLURM_JOB_ID
 
 if [[ $train_discriminator && $use_disc ]]
 then

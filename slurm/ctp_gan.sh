@@ -25,6 +25,7 @@ export loss=$7
 export wass=$8 # 'wass
 export use_noise=$9
 export MODELDIR="$HOME/.costar/${dataset}_${learning_rate}_${optimizer}_${dropout}_${noise_dim}_${loss}_${wass}_${use_noise}"
+touch $MODELDIR/$SLURM_JOB_ID
 
 # Handle different Marcc layouts
 data_dir=$HOME/work/$dataset
