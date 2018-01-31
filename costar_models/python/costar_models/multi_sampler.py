@@ -512,74 +512,56 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             validation_data=test_generator,
             callbacks=callbacks)
 
+    def _getSaveLoadItems(self, is_save):
+        items = []
+
+        if is_save or self.load_training_model:
+            items.append((self.model, 'train_predictor'))
+
+        if self.save_encoder_decoder:
+            items += [
+                (self.image_decoder, 'image_decoder'),
+                (self.image_encoder, 'image_encoder')
+            ]
+
+        items += [
+            (self.predictor, 'predictor'),
+            (self.state_encoder, 'state_encoder'),
+            (self.state_decoder, 'state_decoder'),
+            (self.hidden_encoder, 'hidden_encoder'),
+            (self.hidden_decoder, 'hidden_decoder'),
+            (self.classifier, 'classifier'),
+            (self.transform_model, 'transform'),
+            (self.transform_model, 'transform')
+        ]
+
+        if not self.validate:
+            items += [
+                (self.actor, 'actor'),
+                (self.value_model, 'value'),
+                (self.q_model, 'q'),
+                (self.pose_model, 'pose'),
+                (self.next_model, 'next')
+            ]
+
+        return items
+
+
 
     def save(self):
         '''
         Save to a filename determined by the "self.name" field.
         '''
-        if self.model is not None and not self.validate:
-            print("----------------------------")
-            print("Saving to " + self.name + "_{predictor, ...}")
-            print(">>> SAVING TRAINING SETUP TO 'train_predictor'")
-            self.model.save_weights(self.name + "_train_predictor.h5f")
-            if self.predictor is not None:
-                print(">>> SAVING PREDICTOR")
-                self.predictor.save_weights(self.name + "_predictor.h5f")
-            if self.save_encoder_decoder:
-                if self.image_decoder is not None:
-                    print(">>> SAVING IMAGE DECODER")
-                    self.image_decoder.save_weights(self.name +
-                    "_image_decoder.h5f")
-                if self.image_encoder is not None:
-                    print(">>> SAVING IMAGE ENCODER")
-                    self.image_encoder.save_weights(self.name +
-                    "_image_encoder.h5f")
-            if self.state_encoder is not None:
-                print(">>> SAVING STATE ENCODER")
-                self.state_encoder.save_weights(self.name +
-                "_state_encoder.h5f")
-            if self.state_decoder is not None:
-                print(">>> SAVING STATE DECODER")
-                self.state_decoder.save_weights(self.name +
-                "_state_decoder.h5f")
-            if self.hidden_encoder is not None:
-                print(">>> SAVING HIDDEN ENCODER")
-                self.hidden_encoder.save_weights(self.name +
-                "_hidden_encoder.h5f")
-            if self.hidden_decoder is not None:
-                print(">>> SAVING HIDDEN ENCODER")
-                self.hidden_decoder.save_weights(self.name +
-                "_hidden_decoder.h5f")
-            if self.classifier is not None:
-                print(">>> SAVING CLASSIFIER")
-                self.classifier.save_weights(self.name +
-                "_classifier.h5f")
-            if self.transform_model is not None:
-                print(">>> SAVING TRANSFORM")
-                self.transform_model.save_weights(self.name +
-                "_transform.h5f")
-            if not self.validate:
-                if self.actor is not None:
-                    print(">>> SAVING ACTOR")
-                    self.actor.save_weights(self.name + "_actor.h5f")
-                if self.value_model is not None:
-                    print(">>> SAVING VALUE")
-                    self.value_model.save_weights(self.name +
-                    "_value.h5f")
-                if self.q_model is not None:
-                    print(">>> SAVING Q MODEL")
-                    self.q_model.save_weights(self.name +
-                    "_q.h5f")
-                if self.pose_model is not None:
-                    print(">>> SAVING POSE")
-                    self.pose_model.save_weights(self.name +
-                    "_pose.h5f")
-                if self.next_model is not None:
-                    print(">>> SAVING NEXT")
-                    self.next_model.save_weights(self.name +
-                    "_next.h5f")
-        elif self.validate:
+        if self.validate:
             print(">>> SKIP SAVING IN VALIDATION MODE")
+
+        elif self.model is not None:
+            items = self._getSaveLoadItems(is_save=True)
+
+            for (item, name) in items:
+                if item is not None:
+                    print(">>> Saving", name)
+                    item.save_weights('{}_{}.h5f'.format(self.name, name))
         else:
             raise RuntimeError('save() failed: model not found.')
 
@@ -589,60 +571,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         need to overload this for specific models.
         '''
         if self.model is not None:
-            print("----------------------------")
-            print("using " + self.name + " to load:")
-            if self.save_encoder_decoder:
-                if self.image_decoder is not None:
-                    print(">>> LOADING IMAGE DECODER")
-                    self.image_decoder.load_weights(self.name +
-                    "_image_decoder.h5f")
-                if self.image_encoder is not None:
-                    print(">>> LOADING IMAGE ENCODER")
-                    self.image_encoder.load_weights(self.name +
-                    "_image_encoder.h5f")
-            if self.state_decoder is not None:
-                print(">>> LOADING STATE DECODER")
-                self.state_decoder.load_weights(self.name +
-                "_state_decoder.h5f")
-            if self.state_encoder is not None:
-                print(">>> LOADING STATE ENCODER")
-                self.state_encoder.load_weights(self.name +
-                "_state_encoder.h5f")
-            if self.classifier is not None:
-                print(">>> LOADING CLASSIFIER")
-                self.classifier.load_weights(self.name +
-                "_classifier.h5f")
-            if self.transform_model is not None:
-                print(">>> LOADING TRANSFORM")
-                self.transform_model.load_weights(self.name +
-                "_transform.h5f")
-            if not self.validate:
-                # Just don't load these
-                if self.value_model is not None:
-                    print(">>> LOADING VALUE")
-                    self.value_model.load_weights(self.name +
-                    "_value.h5f")
-                if self.next_model is not None:
-                    print(">>> LOADING NEXT")
-                    self.next_model.load_weights(self.name +
-                    "_next.h5f")
-                if self.q_model is not None:
-                    print(">>> LOADING Q MODEL")
-                    self.q_model.load_weights(self.name +
-                    "_q.h5f")
-                if self.actor is not None:
-                    print(">>> LOADING ACTOR")
-                    self.actor.load_weights(self.name + "_actor.h5f")
-                if self.pose_model is not None:
-                    print(">>> LOADING POSE")
-                    self.pose_model.load_weights(self.name +
-                    "_pose.h5f")
-            if self.predictor is not None:
-                print(">>> LOADING PREDICTOR")
-                self.predictor.load_weights(self.name + "_predictor.h5f")
-            if self.load_training_model:
-                print(">>> LOADING TRAINING SETUP")
-                self.model.load_weights(self.name + "_train_predictor.h5f")
+            print("Using", self.name, "to load:")
+            items = self._getSaveLoadItems(is_save=False)
+
+            for (item, name) in items:
+                if item is not None:
+                    print(">>> Loading", name)
+                    item.load_weights('{}_{}.h5f'.format(self.name, name))
         else:
             raise RuntimeError('_loadWeights() failed: model not yet created.')
 
