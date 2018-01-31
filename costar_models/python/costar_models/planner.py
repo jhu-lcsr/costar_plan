@@ -1102,7 +1102,7 @@ def LoadEncoderWeights(model, encoder, decoder, gan=False):
             continue
 
     if not loaded and not model.retrain:
-        raise e
+        raise saved_e
 
 def LoadGoalClassifierWeights(model, make_classifier_fn, img_shape):
     image_discriminator = make_classifier_fn(model, img_shape, trainable=False)

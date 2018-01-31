@@ -47,12 +47,6 @@ class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
                     self.skip_shape,)
         out = decoder(enc)
 
-        # Discriminate on distinctive features like heading we hope
-        image_discriminator = LoadClassifierWeights(self,
-                MakeImageClassifier,
-                img_shape)
-        o2 = image_discriminator([img0_in, out])
-
         if self.no_disc:
             ae = Model(ins, [out])
             ae.compile(
@@ -60,6 +54,12 @@ class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
                     loss_weights=[1.],
                     optimizer=self.getOptimizer())
         else:
+            # Discriminate on distinctive features like heading we hope
+            image_discriminator = LoadClassifierWeights(self,
+                    MakeImageClassifier,
+                    img_shape)
+            o2 = image_discriminator([img0_in, out])
+
             ae = Model(ins, [out, o2])
             ae.compile(
                     loss=["mae", "categorical_crossentropy"],

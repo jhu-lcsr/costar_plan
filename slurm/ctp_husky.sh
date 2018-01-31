@@ -80,7 +80,7 @@ fi
 
 if $train_image_encoder
 then
-  echo "Training encoder 1"
+  echo "Training encoder 1 $use_disc_cmd"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
     --features multi \
     -e 100 \
