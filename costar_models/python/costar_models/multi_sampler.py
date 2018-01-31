@@ -471,7 +471,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 raise e
 
         logCb = LogCallback(self.logName(),self.model_directory)
-        saveCb = ModelSaveCallback(self)
+        saveCb = ModelSaveCallback(model=self)
 
         cbf, cbt = self._getData(**data)
 

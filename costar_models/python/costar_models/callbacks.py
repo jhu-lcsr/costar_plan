@@ -558,7 +558,7 @@ class PredictorGoals(keras.callbacks.Callback):
 
 class ModelSaveCallback(keras.callbacks.Callback):
     def __init__(self, model, interval=5):
-        self.model = model
+        self.saved_model = model
         self.interval = interval
         self.best_val_loss = sys.float_info.max
 
@@ -567,12 +567,16 @@ class ModelSaveCallback(keras.callbacks.Callback):
             if 'val_loss' in logs:
                 if logs['val_loss'] <= self.best_val_loss:
                     print('val_loss[{}] better than {}. Saving model.'.format(
-                        logs['val_loss'], self.best_val_loss)
+                        logs['val_loss'], self.best_val_loss))
                     self.best_val_loss = logs['val_loss']
-                    self.model.save()
+                    print('Model =', self.model)
+                    print('ModelType =', type(self.model))
+                    self.saved_model.save()
                 else:
                     print('val_loss[{}] not improved. Not saving'.format(
-                        logs['val_loss'])
+                        logs['val_loss']))
             else:
-                self.model.save()
+                print('Model =', self.model)
+                print('ModelType =', type(self.model))
+                self.saved_model.saveWeights()
 
