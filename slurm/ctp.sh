@@ -28,7 +28,7 @@ export loss=$5
 export retrain=$6
 export use_disc=$7
 #export MODELDIR="$HOME/.costar/stack_$learning_rate$optimizer$dropout$noise_dim$loss"
-export MODELROOT="$HOME/.costar/"
+export MODELROOT="$HOME/.costar"
 export SUBDIR="stack_$learning_rate$optimizer$dropout$noise_dim$loss"
 
 # ----------------------------------
