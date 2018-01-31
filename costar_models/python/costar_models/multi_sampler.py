@@ -43,7 +43,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.tform_kernel_size  = [5,5]
         self.num_hypotheses = 4
         self.validation_split = 0.05
-        self.load_training_model = False
         self.save_encoder_decoder = False
 
         # For the new model setup
