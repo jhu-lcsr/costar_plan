@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import os
+import sys
 import keras
 import matplotlib.pyplot as plt
 import numpy as np
@@ -126,10 +127,10 @@ class PredictorShowImage(keras.callbacks.Callback):
                 msg += "%f,%d,%d"%(v[j],np.argmax(probs[j]),self.features[3][j])
             fig = plt.figure(figsize=(3+int(1.5*self.num_hypotheses),2))
             plt.subplot(1,2+self.num_hypotheses,1)
-            plt.title('Input Image')
+            Title('Input Image')
             Show(self.features[0][j])
             plt.subplot(1,2+self.num_hypotheses,2+self.num_hypotheses)
-            plt.title('Observed Goal')
+            Title('Observed Goal')
             Show(img[j])
             arm_target = self.targets[0][j,imglen:imglen+6]
             gripper_target = self.targets[0][j,imglen+6]
@@ -143,7 +144,7 @@ class PredictorShowImage(keras.callbacks.Callback):
                 msg += ",%f"%(grippers[j][i][0]-gripper_target)
                 plt.subplot(1,2+self.num_hypotheses,i+2)
                 Show(np.squeeze(data[j][i]))
-                plt.title('Hypothesis %d'%(i+1))
+                Title('Hypothesis %d'%(i+1))
             fig.savefig(name, bbox_inches="tight")
             for q0 in arm_target:
                 msg += ",%f"%q0
@@ -266,14 +267,14 @@ class ImageCb(keras.callbacks.Callback):
                     "%s_%s_epoch%03d_result%d.png"%(self.name,self.features_name,self.epoch,j))
             fig = plt.figure()
             plt.subplot(1,3,1)
-            plt.title('Input Image')
+            Title('Input Image')
             Show(self.features[self.show_idx][j])
             plt.subplot(1,3,3)
-            plt.title('Observed Goal')
+            Title('Observed Goal')
             Show(self.targets[0][j])
             plt.subplot(1,3,2)
             Show(np.squeeze(img[j]))
-            plt.title('Output')
+            Title('Output')
             fig.savefig(name, bbox_inches="tight")
             plt.close(fig)
 
@@ -297,20 +298,20 @@ class ImageWithFirstCb(ImageCb):
                     "%s_%s_epoch%03d_result%d.png"%(self.name,self.features_name,self.epoch,j))
             fig = plt.figure()
             plt.subplot(1,5,1)
-            plt.title('Input Image')
+            Title('Input Image')
             Show(self.features[self.show_idx][j])
             plt.subplot(1,5,4)
-            plt.title('Observed Goal')
+            Title('Observed Goal')
             Show(self.targets[0][j])
             plt.subplot(1,5,5)
-            plt.title('Observed Goal 2')
+            Title('Observed Goal 2')
             Show(self.targets[1][j])
             plt.subplot(1,5,2)
             Show(np.squeeze(img[j]))
-            plt.title('Output')
+            Title('Output')
             plt.subplot(1,5,3)
             Show(np.squeeze(img2[j]))
-            plt.title('Output 2')
+            Title('Output 2')
             fig.savefig(name, bbox_inches="tight")
             plt.close(fig)
 
@@ -373,18 +374,18 @@ class PredictorShowImageOnlyMultiStep(keras.callbacks.Callback):
             fig = plt.figure()#figsize=(3+int(1.5*self.num_hypotheses),2))
 
             plt.subplot(2,2+self.num_hypotheses,1)
-            plt.title('Input Image')
+            Title('Input Image')
             Show(self.features[0][j])
             for k in range(2):
                 # This counts off rows
                 rand_offset = (k*(2+self.num_hypotheses))
                 plt.subplot(2,2+self.num_hypotheses,2+self.num_hypotheses+rand_offset)
-                plt.title('Observed Goal')
+                Title('Observed Goal')
                 Show(np.squeeze(self.targets[k][j]))
                 for i in range(self.num_hypotheses):
                     plt.subplot(2,2+self.num_hypotheses,i+2+rand_offset)
                     Show(np.squeeze(data[k][j][i]))
-                    plt.title('Hypothesis %d'%(i+1))
+                    Title('Hypothesis %d'%(i+1))
 
             if self.verbose:
                 print(name)
@@ -467,17 +468,17 @@ class PredictorShowImageOnly(keras.callbacks.Callback):
                 rand_offset = (k*(2+self.num_hypotheses))
                 plt.subplot(self.num_random,2+self.num_hypotheses,1+rand_offset)
                 #print (self.num_random,2+self.num_hypotheses,1+rand_offset)
-                plt.title('Input Image')
+                Title('Input Image')
                 Show(self.features[0][j])
                 plt.subplot(self.num_random,2+self.num_hypotheses,2+self.num_hypotheses+rand_offset)
                 #print(self.num_random,2+self.num_hypotheses,2+self.num_hypotheses+rand_offset)
-                plt.title('Observed Goal')
+                Title('Observed Goal')
                 Show(img[j])
                 for i in range(self.num_hypotheses):
                     plt.subplot(self.num_random,2+self.num_hypotheses,i+2+rand_offset)
                     #print(self.num_random,2+self.num_hypotheses,2+i+rand_offset)
                     Show(np.squeeze(data[k][i]))
-                    plt.title('Hypothesis %d'%(i+1))
+                    Title('Hypothesis %d'%(i+1))
             if self.verbose:
                 print(name)
             fig.savefig(name, bbox_inches="tight")
@@ -554,4 +555,28 @@ class PredictorGoals(keras.callbacks.Callback):
                         self.targets[0][j,:7])
                 print("Label target = ",
                         np.argmax(self.targets[0][j,7:]))
+
+class ModelSaveCallback(keras.callbacks.Callback):
+    def __init__(self, model, interval=5):
+        self.saved_model = model
+        self.interval = interval
+        self.best_val_loss = sys.float_info.max
+
+    def on_epoch_end(self, epoch, logs, *args, **kwargs):
+        if epoch % self.interval == 0 and epoch != 0:
+            if 'val_loss' in logs:
+                if logs['val_loss'] <= self.best_val_loss:
+                    print('val_loss[{}] better than {}. Saving model.'.format(
+                        logs['val_loss'], self.best_val_loss))
+                    self.best_val_loss = logs['val_loss']
+                    print('Model =', self.model)
+                    print('ModelType =', type(self.model))
+                    self.saved_model.save()
+                else:
+                    print('val_loss[{}] not improved. Not saving'.format(
+                        logs['val_loss']))
+            else:
+                print('Model =', self.model)
+                print('ModelType =', type(self.model))
+                self.saved_model.saveWeights()
 

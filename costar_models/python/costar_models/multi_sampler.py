@@ -5,7 +5,6 @@ import keras.losses as losses
 import keras.optimizers as optimizers
 import numpy as np
 
-from keras.callbacks import ModelCheckpoint
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
 from keras.layers.embeddings import Embedding
@@ -471,14 +470,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                       " configure the tool wrong?")
                 raise e
 
-        # ===================================================================
-        # Create the callbacks and actually run the training loop.
-        modelCheckpointCb = ModelCheckpoint(
-            filepath=self.weightsName(),
-            verbose=1,
-            save_best_only=True # does not work without validation wts
-        )
         logCb = LogCallback(self.logName(),self.model_directory)
+        saveCb = ModelSaveCallback(model=self)
+
         cbf, cbt = self._getData(**data)
 
         for i, f in enumerate(cbf):
@@ -504,9 +498,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 min_idx=0,
                 max_idx=70,
                 step=10,)
-            callbacks=[modelCheckpointCb, logCb, imageCb]
+            callbacks=[saveCb, logCb, imageCb]
         else:
-            callbacks=[modelCheckpointCb, logCb,]
+            callbacks=[saveCb, logCb]
         self._fit(train_generator, test_generator, callbacks)
 
     def _fit(self, train_generator, test_generator, callbacks):
