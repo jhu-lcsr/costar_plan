@@ -23,6 +23,7 @@ export optimizer=$3
 export noise_dim=$4
 export loss=$5
 export retrain=$6
+export use_disc=$7
 #export MODELDIR="$HOME/.costar/suturing_$learning_rate$optimizer$dropout$noise_dim$loss"
 export MODELROOT="$HOME/.costar"
 export SUBDIR="suturing_$learning_rate$optimizer$dropout$noise_dim$loss"
