@@ -2,7 +2,7 @@
 
 noise_dim=0
 hd=true
-opt=adam
+opt=rmsprop
 for lr in 0.01 0.001 0.0002 0.0001
 do
   for loss in mae # logcosh
