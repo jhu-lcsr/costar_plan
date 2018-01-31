@@ -67,7 +67,7 @@ class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
                     optimizer=self.getOptimizer())
 
         ae.summary()
-        self.predictor = ae
+        self.predictor = None
         self.model = ae
         self.actor = None
 
