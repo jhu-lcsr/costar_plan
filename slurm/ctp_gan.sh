@@ -52,7 +52,7 @@ then
     --batch_size 64
 fi
 
-echo "Training encoder gan"
+echo "Training encoder gan: no wasserstein"
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --features $features \
   -e 100 \
@@ -66,8 +66,8 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --noise_dim $noise_dim \
   --loss $loss \
   --gan_method gan \
-  --batch_size 64 \
-  $wass_cmd
+  --batch_size 64
+  
 
 echo "Training conditional gan"
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
