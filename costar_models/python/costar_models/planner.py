@@ -899,7 +899,7 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
             output=False,)
 
     next_option_out = Dense(num_options,
-            activation="sigmoid", name="lnext",)(x1)
+            activation="softmax", name="lnext",)(x1)
     next_model = Model([x0in, xin, option_in], next_option_out, name="next")
     #next_model = Model([xin, option_in], next_option_out, name="next")
     return next_model
@@ -1102,7 +1102,7 @@ def LoadEncoderWeights(model, encoder, decoder, gan=False):
             continue
 
     if not loaded and not model.retrain:
-        raise e
+        raise saved_e
 
 def LoadGoalClassifierWeights(model, make_classifier_fn, img_shape):
     image_discriminator = make_classifier_fn(model, img_shape, trainable=False)

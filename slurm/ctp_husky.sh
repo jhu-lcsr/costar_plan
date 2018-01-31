@@ -24,8 +24,9 @@ export optimizer=$3
 export noise_dim=$4
 export loss=$5
 export retrain=$6
+export use_disc=$7
 #export MODELDIR="$HOME/.costar/husky_$learning_rate$optimizer$dropout$noise_dim$loss"
-export MODELROOT="$HOME/.costar/"
+export MODELROOT="$HOME/.costar"
 export SUBDIR="husky_$learning_rate$optimizer$dropout$noise_dim$loss"
 
 retrain_cmd=""
@@ -80,7 +81,7 @@ fi
 
 if $train_image_encoder
 then
-  echo "Training encoder 1"
+  echo "Training encoder 1 $use_disc_cmd"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
     --features multi \
     -e 100 \
@@ -102,6 +103,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   -e 100 \
   --model conditional_image \
   --data_file $HOME/work/$DATASET.npz \
+  --features husky \
   --lr $learning_rate \
   --dropout_rate $dropout \
   --model_directory $MODELDIR/ \

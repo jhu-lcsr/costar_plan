@@ -165,6 +165,7 @@ class AbstractAgentBasedModel(object):
         print("Loss =", loss)
         print("Retrain sub-models =", self.retrain)
         print("Load pretrained weights =", self.load_pretrained_weights)
+        print("No discriminator/classifier =", self.no_disc)
         print("-----------------------------------------------------------")
         print("------------------ Model Specific Options -----------------")
         print("dropout in hypothesis decoder =", self.hypothesis_dropout)
