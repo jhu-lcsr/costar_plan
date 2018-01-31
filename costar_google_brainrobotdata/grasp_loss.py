@@ -104,7 +104,7 @@ def gaussian_kernel_2D(size=(3, 3), center=None, sigma=1):
         sigma_tensor = tf.constant([[(2.0 * sigma ** 2)]], 'float32')
         # tf.exp requires float16, float32, float64, complex64, complex128
         kernel = tf.exp(tf.div(-((xx - center_x) ** 2 + (yy - center_y) ** 2), sigma_tensor))
-        kernel = tf.Print(kernel, [center_x, center_y, xx, yy, sigma_tensor], 'gaussian_tf')
+        # kernel = tf.Print(kernel, [center_x, center_y, xx, yy, sigma_tensor], 'gaussian_tf')
         return kernel
 
 
@@ -112,7 +112,7 @@ def segmentation_gaussian_measurement(
         y_true,
         y_pred,
         gaussian_sigma=3,
-        measurement=segmentation_losses.binary_crossentropy):
+        measurement=keras.losses.binary_crossentropy):
     """ Apply metric or loss measurement incorporating a 2D gaussian.
 
         Only works with batch size 1.
@@ -132,10 +132,17 @@ def segmentation_gaussian_measurement(
             # In that case reduce them back to 2
             y_true = K.squeeze(y_true, axis=-1)
             y_true = K.squeeze(y_true, axis=-1)
-        label = y_true[0, 0]
-        y_height_coordinate = y_true[0, 1]
-        x_width_coordinate = y_true[0, 2]
-        label = K.reshape(label, [1, 1])
+        print('y_pred: ', y_pred)
+        print('y_true: ', y_true)
+        # y_true should have shape [batch_size, 3] here,
+        # label, y_height_coordinate, x_width_coordinate become shape:
+        # [batch_size, 1]
+        label = K.expand_dims(y_true[:, 0])
+        print('label: ', label)
+        y_height_coordinate = K.expand_dims(y_true[:, 1])
+        x_width_coordinate = K.expand_dims(y_true[:, 2])
+        # label = K.reshape(label, [1, 1])
+        print('label: ', label)
         image_shape = tf.Tensor.get_shape(y_pred)
         y_true_img = tile_vector_as_image_channels(label, image_shape)
         y_true_img = K.cast(y_true_img, 'float32')
@@ -145,7 +152,13 @@ def segmentation_gaussian_measurement(
             y_pred_shape = y_pred_shape[:-1]
         if len(y_pred_shape) == 4:
             y_pred_shape = y_pred_shape[1:3]
-        weights = gaussian_kernel_2D(size=y_pred_shape, center=(y_height_coordinate, x_width_coordinate), sigma=gaussian_sigma)
+
+        def batch_gaussian(one_y_true):
+        # def batch_gaussian(y_height_coord, x_width_coord):
+            # weights = gaussian_kernel_2D(size=y_pred_shape, center=(y_height_coord, x_width_coord), sigma=gaussian_sigma)
+            # weights = gaussian_kernel_2D(size=y_pred_shape, center=(y_height_coordinate, x_width_coordinate), sigma=gaussian_sigma)
+            return gaussian_kernel_2D(size=y_pred_shape, center=(one_y_true[0], one_y_true[1]), sigma=gaussian_sigma)
+        weights = K.map_fn(batch_gaussian, y_true)
         loss_img = K.flatten(loss_img)
         weights = K.flatten(weights)
         weighted_loss_img = tf.multiply(loss_img, weights)
