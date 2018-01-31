@@ -47,7 +47,6 @@ if [[ $train_discriminator1 && $use_disc ]]
 then
   echo "Training discriminator 1"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
-    --features multi \
     -e 100 \
     --model discriminator \
     --data_file $HOME/work/$DATASET.h5f \
@@ -66,7 +65,6 @@ if $train_discriminator2
 then
   echo "Training discriminator 2"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
-    --features multi \
     -e 100 \
     --model goal_discriminator \
     --data_file $HOME/work/$DATASET.h5f \
@@ -88,7 +86,6 @@ if $train_image_encoder
 then
   echo "Training encoder 1"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
-    --features multi \
     -e 100 \
     --model pretrain_image_encoder \
     --data_file $HOME/work/$DATASET.h5f \

@@ -29,7 +29,12 @@ export MODELDIR="$HOME/.costar/${dataset}_${learning_rate}_${optimizer}_${dropou
 # Handle different Marcc layouts
 data_dir=$HOME/work/$dataset
 if [[ ! -d $data_dir ]]; then
-	data_dir=$HOME/work/dev_yb/$dataset
+  data_dir=$HOME/work/dev_yb/$dataset
+fi
+if [[ $features == husky ]]; then
+  data_dir=${data_dir}.npz
+else
+  data_dir=${data_dir}.h5f
 fi
 
 wass_cmd=''
@@ -44,7 +49,7 @@ if $train_image_encoder; then
     --features $features \
     -e 100 \
     --model discriminator \
-    --data_file $data_dir.h5f \
+    --data_file $data_dir \
     --lr $learning_rate \
     --dropout_rate $dropout \
     --model_directory $MODELDIR/ \
@@ -59,7 +64,7 @@ if $train_image_encoder; then
     --features $features \
     -e 100 \
     --model pretrain_image_encoder \
-    --data_file $data_dir.h5f \
+    --data_file $data_dir \
     --lr $learning_rate \
     --dropout_rate $dropout \
     --model_directory $MODELDIR/ \
@@ -75,7 +80,7 @@ if $train_gan_image_encoder; then
     --features $features \
     -e 100 \
     --model pretrain_image_gan \
-    --data_file $data_dir.h5f \
+    --data_file $data_dir \
     --lr $learning_rate \
     --dropout_rate $dropout \
     --model_directory $MODELDIR/ \
@@ -93,7 +98,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --features $features \
   -e 100 \
   --model conditional_image_gan \
-  --data_file $data_dir.h5f \
+  --data_file $data_dir \
   --lr $learning_rate \
   --dropout_rate $dropout \
   --model_directory $MODELDIR/ \
