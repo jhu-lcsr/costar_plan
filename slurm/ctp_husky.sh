@@ -102,6 +102,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   -e 100 \
   --model conditional_image \
   --data_file $HOME/work/$DATASET.npz \
+  --features husky \
   --lr $learning_rate \
   --dropout_rate $dropout \
   --model_directory $MODELDIR/ \
