@@ -12,7 +12,8 @@ echo "Running $@ on $SLURMD_NODENAME ..."
 
 module load tensorflow/cuda-8.0/r1.3 
 
-export train_image_encoder=false
+export train_image_encoder=true
+export train_gan_image_encoder=false
 
 export dataset=$1
 export features=$2
@@ -22,7 +23,8 @@ export optimizer=$5
 export noise_dim=$6
 export loss=$7
 export wass=$8 # 'wass
-export MODELDIR="$HOME/.costar/${dataset}_${learning_rate}_${optimizer}_${dropout}_${noise_dim}_${loss}_${wass}"
+export use_noise=$9
+export MODELDIR="$HOME/.costar/${dataset}_${learning_rate}_${optimizer}_${dropout}_${noise_dim}_${loss}_${wass}_${use_noise}"
 
 # Handle different Marcc layouts
 data_dir=$HOME/work/$dataset
@@ -32,11 +34,27 @@ fi
 
 wass_cmd=''
 if [[ $wass == wass* ]]; then wass_cmd='--wasserstein'; fi
-	
 
-if $train_image_encoder
-then
-  echo "Training encoder 1"
+use_noise_cmd=''
+if [[ $use_noise == true ]]; then use_noise_cmd='--use_noise'; fi
+	
+if $train_image_encoder; then
+  echo "Training discriminator"
+  $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
+    --features $features \
+    -e 100 \
+    --model discriminator \
+    --data_file $data_dir.h5f \
+    --lr $learning_rate \
+    --dropout_rate $dropout \
+    --model_directory $MODELDIR/ \
+    --optimizer $optimizer \
+    --steps_per_epoch 300 \
+    --noise_dim $noise_dim \
+    --loss $loss \
+    --batch_size 64
+
+  echo "Training non-gan image encoder"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
     --features $features \
     -e 100 \
@@ -46,28 +64,29 @@ then
     --dropout_rate $dropout \
     --model_directory $MODELDIR/ \
     --optimizer $optimizer \
-    --steps_per_epoch 100 \
+    --steps_per_epoch 300 \
     --noise_dim $noise_dim \
     --loss $loss \
     --batch_size 64
 fi
-
-echo "Training encoder gan: no wasserstein"
-$HOME/costar_plan/costar_models/scripts/ctp_model_tool \
-  --features $features \
-  -e 100 \
-  --model pretrain_image_gan \
-  --data_file $data_dir.h5f \
-  --lr $learning_rate \
-  --dropout_rate $dropout \
-  --model_directory $MODELDIR/ \
-  --optimizer $optimizer \
-  --steps_per_epoch 100 \
-  --noise_dim $noise_dim \
-  --loss $loss \
-  --gan_method gan \
-  --batch_size 64
-  
+if $train_gan_image_encoder; then
+  echo "Training encoder gan: no wasserstein"
+  $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
+    --features $features \
+    -e 100 \
+    --model pretrain_image_gan \
+    --data_file $data_dir.h5f \
+    --lr $learning_rate \
+    --dropout_rate $dropout \
+    --model_directory $MODELDIR/ \
+    --optimizer $optimizer \
+    --steps_per_epoch 100 \
+    --noise_dim $noise_dim \
+    --loss $loss \
+    --gan_method gan \
+    --batch_size 64 \
+    $wass_cmd
+fi
 
 echo "Training conditional gan"
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
