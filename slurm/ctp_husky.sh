@@ -25,7 +25,7 @@ export noise_dim=$4
 export loss=$5
 export retrain=$6
 #export MODELDIR="$HOME/.costar/husky_$learning_rate$optimizer$dropout$noise_dim$loss"
-export MODELROOT="$HOME/.costar/"
+export MODELROOT="$HOME/.costar"
 export SUBDIR="husky_$learning_rate$optimizer$dropout$noise_dim$loss"
 
 retrain_cmd=""
