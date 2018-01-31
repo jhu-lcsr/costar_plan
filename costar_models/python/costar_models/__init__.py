@@ -1,6 +1,4 @@
 __all__ = [
-    # Tools
-    'FastNetwork',
     # Machine Learning,
     'GMM',
     # ===========================================================================
@@ -17,7 +15,6 @@ __all__ = [
 
 # general learning utilites
 from .sampler import *
-from .fast import *
 from .gmm import *
 
 # models and utils
