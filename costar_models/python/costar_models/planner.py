@@ -899,7 +899,7 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
             output=False,)
 
     next_option_out = Dense(num_options,
-            activation="sigmoid", name="lnext",)(x1)
+            activation="softmax", name="lnext",)(x1)
     next_model = Model([x0in, xin, option_in], next_option_out, name="next")
     #next_model = Model([xin, option_in], next_option_out, name="next")
     return next_model

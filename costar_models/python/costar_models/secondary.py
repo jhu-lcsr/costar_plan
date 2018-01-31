@@ -142,6 +142,7 @@ class Secondary(PredictionSampler2):
         oin_1h = np.squeeze(ToOneHot2D(oin, self.num_options))
         o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
         o2_1h = np.squeeze(ToOneHot2D(o2, self.num_options))
+
         qa = np.squeeze(qa)
         ga = np.squeeze(ga)
         o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
@@ -271,7 +272,6 @@ class HuskySecondary(Secondary):
         oin_1h = np.squeeze(ToOneHot2D(oin, self.num_options))
         o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
         o2_1h = np.squeeze(ToOneHot2D(o2, self.num_options))
-        o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
         p_target = np.squeeze(p)
         a = np.squeeze(a)
         if self.submodel == "value":
