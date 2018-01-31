@@ -99,11 +99,6 @@ class ConditionalImageHuskyGan(ConditionalImageGan):
             image_out,
             image_out2])
 
-        # =====================================================================
-        actor = GetHuskyActorModel(h, self.num_options, pose_size,
-                self.decoder_dropout_rate)
-        actor.compile(loss="mae",optimizer=self.getOptimizer())
-        cmd = actor([h, y])
         lfn = self.loss
 
         # =====================================================================
