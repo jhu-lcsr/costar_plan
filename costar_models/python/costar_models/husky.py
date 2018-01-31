@@ -96,6 +96,68 @@ def GetHuskyActorModel(x, num_options, pose_size,
     actor = Model([x0in, xin, option_in], [pose], name="actor")
     return actor
 
+def GetHuskyPoseModel(x, num_options, pose_size,
+        dropout_rate=0.5, batchnorm=True):
+    '''
+    Make an "actor" network that takes in an encoded image and an "option"
+    label and produces the next command to execute.
+    '''
+    xin = Input([int(d) for d in x.shape[1:]], name="pose_h_in")
+    x0in = Input([int(d) for d in x.shape[1:]], name="pose_h0_in")
+
+    option_in = Input((num_options,), name="pose_o_in")
+    x = xin
+    x0 = x0in
+    if len(x.shape) > 2:
+        # Project
+        x = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="P_project",
+                constraint=None)
+        x0 = AddConv2D(x0, 32, [3,3], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="A0_project",
+                constraint=None)
+        x = Add()([x0,x])
+
+        # conv down
+        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="P_C64A",
+                constraint=None)
+        x = TileOnto(x, option_in, num_options, x.shape[1:3])
+
+        # conv across
+        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="P_C64B",
+                constraint=None)
+
+
+        x = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="P_C32A",
+                constraint=None)
+        # This is the hidden representation of the world, but it should be flat
+        # for our classifier to work.
+        x = Flatten()(x)
+
+    x = Concatenate()([x, option_in])
+
+    # Same setup as the state decoders
+    x1 = AddDense(x, 512, "lrelu", dropout_rate, constraint=None, output=False,)
+    x1 = AddDense(x1, 512, "lrelu", 0., constraint=None, output=False,)
+    pose = AddDense(x1, pose_size, "linear", 0., output=True)
+    pose = Model([x0in, xin, option_in], [pose], name="actor")
+    return pose
+
+
+
 def GetPolicyHuskyData(num_options, option, image, pose, action, label, *args,
         **kwargs):
     I = np.array(image) / 255.
@@ -113,7 +175,7 @@ def GetPolicyHuskyData(num_options, option, image, pose, action, label, *args,
     else:
         return [], []
 
-def GetConditionalHuskyData(do_all, num_options, image, pose, action, label,
+def GetConditionalHuskyData(no_disc, num_options, image, pose, action, label,
         prev_label, goal_image, goal_pose, value, *args, **kwargs):
     I = np.array(image) / 255.
     p = np.array(pose)
@@ -130,15 +192,11 @@ def GetConditionalHuskyData(do_all, num_options, image, pose, action, label,
     I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
     oin_1h = np.squeeze(ToOneHot2D(oin, num_options))
     o2_1h = np.squeeze(ToOneHot2D(o2, num_options))
-
-    if do_all:
-        o1_1h = np.squeeze(ToOneHot2D(o1, num_options))
-        return [I0, I, o1, o2, oin], [ I_target, I_target2,
-                o1_1h,
-                v,
-                action, o2_1h]
+    
+    if no_disc:
+        return [I0, I, o1, o2, oin], [I_target, I_target2,]
     else:
-        return [I0, I, o1, o2, oin], [I_target, I_target2]
+        return [I0, I, o1, o2, oin], [I_target, I_target2, o2_1h]
 
 def MakeHuskyPolicy(model, encoder, image, pose, action, option, verbose=True):
     '''

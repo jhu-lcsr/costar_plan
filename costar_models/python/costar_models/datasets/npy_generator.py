@@ -28,7 +28,6 @@ class NpzGeneratorDataset(object):
     def write(self, *args, **kwargs):
         raise NotImplementedError('this dataset does not save things')
 
-
     def load(self, success_only=False):
         '''
         Read the file; get the list of acceptable entries; split into train and

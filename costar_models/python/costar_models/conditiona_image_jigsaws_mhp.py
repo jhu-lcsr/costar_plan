@@ -23,11 +23,11 @@ from .sampler2 import *
 from .conditional_image import ConditionalImage
 from .dvrk import *
 
-class ConditionalImageJigsaws(ConditionalImage):
+class ConditionalImageJigsawsMHP(ConditionalImage):
 
     def __init__(self, *args, **kwargs):
 
-        super(ConditionalImageJigsaws, self).__init__(*args, **kwargs)
+        super(ConditionalImageJigsawsMHP, self).__init__(*args, **kwargs)
 
         self.num_options = SuturingNumOptions()
         self.PredictorCb = PredictorShowImageOnlyMultiStep
@@ -39,8 +39,8 @@ class ConditionalImageJigsaws(ConditionalImage):
         for dim in img_shape:
             img_size *= dim
 
-        img_in = Input(img_shape, name="predictor_img_in")
         img0_in = Input(img_shape, name="predictor_img0_in")
+        img_in = Input(img_shape, name="predictor_img_in")
         prev_option_in = Input((1,), name="predictor_prev_option_in")
         ins = [img0_in, img_in]
 
@@ -53,7 +53,10 @@ class ConditionalImageJigsaws(ConditionalImage):
 
         # =====================================================================
         # Load weights and stuff
-        LoadEncoderWeights(self, encoder, decoder)
+        LoadEncoderWeights(self, encoder, decoder, gan=False)
+        image_discriminator = LoadGoalClassifierWeights(self,
+                make_classifier_fn=MakeJigsawsImageClassifier,
+                img_shape=img_shape)
 
         # =====================================================================
         # Create encoded state
@@ -70,50 +73,68 @@ class ConditionalImageJigsaws(ConditionalImage):
         #next_option_out = next_model([h0, h, prev_option_in])
         #self.next_model = next_model
 
+        # create input for controlling noise output if that's what we decide
+        # that we want to do
+        if self.use_noise:
+            z = Input((self.num_hypotheses, self.noise_dim))
+            ins += [z]
+
         option_in = Input((1,), name="option_in")
         option_in2 = Input((1,), name="option_in2")
         ins += [option_in, option_in2]
 
         # --------------------------------------------------------------------
-        # Image model
-        h_dim = (12, 16)
-        y = Flatten()(OneHot(self.num_options)(option_in))
-        y2 = Flatten()(OneHot(self.num_options)(option_in2))
-        x = h
-        tform = MakeJigsawsTransform(self, h_dim=(12,16), small=True)
-        l = [h0, h, y, z1] if self.use_noise else [h0, h, y]
-        x = tform(l)
-        l = [h0, x, y2, z2] if self.use_noise else [h0, x, y]
-        x2 = tform(l)
-        image_out, image_out2 = decoder([x]), decoder([x2])
-
-        if not self.no_disc:
-            image_discriminator = LoadGoalClassifierWeights(self,
-                    make_classifier_fn=MakeJigsawsImageClassifier,
-                    img_shape=img_shape)
-            disc_out2 = image_discriminator([img0_in, image_out2])
+        # Create multiple hypothesis loss
+        lfn = MhpLossWithShape(
+                num_hypotheses=self.num_hypotheses,
+                outputs=[img_size],
+                weights=[1.0],
+                loss=[self.loss],
+                avg_weight=0.1,
+                )
+        lfn2 = MhpLossWithShape(
+                num_hypotheses=self.num_hypotheses,
+                outputs=[self.num_options],
+                weights=[1.0],
+                loss=["binary_crossentropy"],
+                avg_weight=1.,
+                )
 
         # --------------------------------------------------------------------
-        # Create multiple hypothesis loss
-        if self.no_disc:
-            disc_wt = 0.
-        else:
-            disc_wt = 1e-3
-        if self.no_disc:
-            model = Model(ins + [prev_option_in],
-                    [image_out, image_out2,])
-            model.compile(
-                    loss=[self.loss, self.loss,],
-                    loss_weights=[1., 1.,],
-                    optimizer=self.getOptimizer())
-        else:
-            model = Model(ins + [prev_option_in],
-                    [image_out, image_out2, disc_out2])
-            model.compile(
-                    loss=[self.loss, self.loss, "categorical_crossentropy"],
-                    loss_weights=[1., 1., disc_wt],
-                    optimizer=self.getOptimizer())
-        self.predictor = None
+        # Image model
+        h_dim = (12, 16)
+        multi_decoder = MakeJigsawsMultiDecoder(self, decoder,
+                self.num_hypotheses, h_dim)
+        y = Flatten()(OneHot(self.num_options)(option_in))
+        y2 = Flatten()(OneHot(self.num_options)(option_in2))
+        x = MakeJigsawsExpand(self, h, h_dim)
+        tform = MakeJigsawsTransform(self, h_dim)
+        x = tform([h0, x, y])
+        x2 = tform([h0, x, y2])
+        image_out, image_out2 = multi_decoder([x]), multi_decoder([x2])
+        multi_disc = MultiDiscriminator(self, image_out2, image_discriminator,
+                img0_in,
+                self.num_hypotheses,
+                img_shape,)
+        multi_disc.trainable = False
+        disc_out2 = multi_disc([img0_in, image_out2])
+
+        # =====================================================================
+        # Create models to train
+        predictor = Model(ins + [prev_option_in],
+                [image_out, image_out2])
+        predictor.compile(
+                loss=[self.loss, self.loss],
+                loss_weights=[1., 1.],
+                optimizer=self.getOptimizer())
+        model = Model(ins + [prev_option_in],
+                [image_out, image_out2, disc_out2])
+        model.compile(
+                loss=[lfn, lfn, lfn2],
+                loss_weights=[1., 1., 1e-3],
+                optimizer=self.getOptimizer())
+
+        self.predictor = predictor
         self.model = model
         self.model.summary()
 
@@ -132,13 +153,9 @@ class ConditionalImageJigsaws(ConditionalImage):
 
         label_1h = np.squeeze(ToOneHot2D(label, self.num_options))
         label2_1h = np.squeeze(ToOneHot2D(label2, self.num_options))
-        if self.no_disc:
-            return ([image0, image, label, goal_label, prev_label],
-                    [goal_image,
-                     goal_image2,])
-        else:
-            return ([image0, image, label, goal_label, prev_label],
-                    [goal_image,
-                     goal_image2,
-                     label2_1h,])
+        return ([image0, image, label, goal_label, prev_label],
+                [np.expand_dims(goal_image, axis=1),
+                 #np.expand_dims(goal_image2, axis=1), label_1h])#, label2_1h]
+                 np.expand_dims(goal_image2, axis=1),
+                 np.expand_dims(label2_1h, axis=1)])
 

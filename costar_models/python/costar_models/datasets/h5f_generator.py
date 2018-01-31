@@ -22,6 +22,9 @@ class H5fGeneratorDataset(NpzGeneratorDataset):
         '''
         Helper to load the file
         '''
-        f = h5f.File(filename, 'r')
-        return f
-
+        data = {}
+        with h5f.File(filename, 'r') as f:
+            for k, v in f.items():
+                data[k] = np.array(v)        
+        return data
+    

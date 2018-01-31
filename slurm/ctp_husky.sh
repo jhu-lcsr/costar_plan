@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --job-name=ctpHusky
+#SBATCH --job-name=husky
 #SBATCH --time=0-48:0:0
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
@@ -23,9 +23,29 @@ export dropout=$2
 export optimizer=$3
 export noise_dim=$4
 export loss=$5
-export MODELDIR="$HOME/.costar/husky_$learning_rate$optimizer$dropout$noise_dim$loss"
+export retrain=$6
+export use_disc=$7
+#export MODELDIR="$HOME/.costar/husky_$learning_rate$optimizer$dropout$noise_dim$loss"
+export MODELROOT="$HOME/.costar"
+export SUBDIR="husky_$learning_rate$optimizer$dropout$noise_dim$loss"
 
-if $train_discriminator
+retrain_cmd=""
+if $retrain
+then
+  retrain_cmd="--retrain"
+  SUBDIR=${SUBDIR}_retrain
+fi
+
+use_disc_cmd=""
+if [[ ! $use_disc ]]
+then
+  use_disc_cmd="--no_disc"
+  SUBDIR=${SUBDIR}_nodisc
+fi
+
+export MODELDIR="$MODELROOT/$SUBDIR"
+
+if [[ $train_discriminator && $use_disc ]]
 then
   echo "Training discriminator 1"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
@@ -61,7 +81,7 @@ fi
 
 if $train_image_encoder
 then
-  echo "Training encoder 1"
+  echo "Training encoder 1 $use_disc_cmd"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
     --features multi \
     -e 100 \
@@ -72,11 +92,10 @@ then
     --features husky \
     --model_directory $MODELDIR/ \
     --optimizer $optimizer \
-    --use_noise true \
     --steps_per_epoch 500 \
     --noise_dim $noise_dim \
     --loss $loss \
-    --batch_size 64
+    --batch_size 64 $use_disc_cmd
 fi
 
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
@@ -84,45 +103,12 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   -e 100 \
   --model conditional_image \
   --data_file $HOME/work/$DATASET.npz \
+  --features husky \
   --lr $learning_rate \
   --dropout_rate $dropout \
   --model_directory $MODELDIR/ \
   --optimizer $optimizer \
-  --use_noise true \
   --steps_per_epoch 500 \
   --loss $loss \
-  --batch_size 64
+  --batch_size 64 $retrain_cmd $use_disc_cmd
 
-if $train_gans
-then
-  if $train_encoder_gan
-  then
-    $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
-      --features multi \
-      -e 100 \
-      --model pretrain_image_gan \
-      --data_file $HOME/work/$DATASET.npz \
-      --features husky \
-      --lr $learning_rate \
-      --dropout_rate $dropout \
-      --model_directory $MODELDIR/ \
-      --optimizer $optimizer \
-      --steps_per_epoch 300 \
-      --loss $loss \
-      --batch_size 64
-  fi
-
-  $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
-    --features multi \
-    -e 100 \
-    --model conditional_image_gan \
-    --data_file $HOME/work/$DATASET.npz \
-    --features husky \
-    --lr $learning_rate \
-    --dropout_rate $dropout \
-    --model_directory $MODELDIR/ \
-    --optimizer $optimizer \
-    --steps_per_epoch 300 \
-    --loss $loss \
-    --batch_size 64
-fi

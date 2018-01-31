@@ -101,6 +101,15 @@ Some options here:
   - `--preload` will try to store the whole data set in memory for faster procesing
   - `--wasserstein` will tell the GAN to try something different (wasserstein loss)
 
+Here's a version for the "multi" dataset:
+
+```
+./costar_models/scripts/ctp_model_tool --model conditional_image_gan \
+  --dropout_rate 0.1 --data_file data.h5f --lr 0.00005 --features multi \
+  --preload --batch_size 64 --gpu_fraction 1 --wasserstein \
+  --optimizer rmsprop --steps_per_epoch 100 
+```
+
 ## Training On MARCC
 
 MARCC is our cluster for machine learning, equipped with a large set of Tesla K80 GPUs. We assume that when training on a cluster like MARCC, you will not want a full ROS workspace, so instead we assume you will install to some path $COSTAR_PLAN and just run scripts.

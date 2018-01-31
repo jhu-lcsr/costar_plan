@@ -47,7 +47,9 @@ class ConditionalImageGan(PretrainImageGan):
         self.do_all = True
         self.skip_connections = False
         self.num_generator_files = 1
- 
+        self.save_encoder_decoder = self.retrain
+        self.noise_iters = 2
+
     def _makePredictor(self, features):
         # =====================================================================
         # Create many different image decoders
@@ -76,13 +78,14 @@ class ConditionalImageGan(PretrainImageGan):
             encoder = self._makeImageEncoder(img_shape)
             decoder = self._makeImageDecoder(self.hidden_shape)
 
-        LoadEncoderWeights(self, encoder, decoder)
+        LoadEncoderWeights(self, encoder, decoder, gan=True)
 
         # create input for controlling noise output if that's what we decide
         # that we want to do
         if self.use_noise:
-            z = Input((self.num_hypotheses, self.noise_dim))
-            ins += [z]
+            z1 = Input((self.noise_dim,), name="z1_in")
+            z2 = Input((self.noise_dim,), name="z2_in")
+            ins += [z1, z2]
 
         if self.skip_connections:
             h, s32, s16, s8 = encoder([img0_in, img_in])
@@ -92,16 +95,15 @@ class ConditionalImageGan(PretrainImageGan):
 
         # =====================================================================
         # Actually get the right outputs
-        y = OneHot(self.num_options)(next_option_in)
-        y = Flatten()(y)
-        y2 = OneHot(self.num_options)(next_option2_in)
-        y2 = Flatten()(y2)
+        y = Flatten()(OneHot(self.num_options)(next_option_in))
+        y2 = Flatten()(OneHot(self.num_options)(next_option2_in))
         x = h
         tform = self._makeTransform()
-        x = tform([h0,h,y])
-        x2 = tform([h0,x,y2])
-        image_out = decoder([x])
-        image_out2 = decoder([x2])
+        l = [h0, h, y, z1] if self.use_noise else [h0, h, y]
+        x = tform(l)
+        l = [h0, x, y2, z2] if self.use_noise else [h0, x, y2]
+        x2 = tform(l)
+        image_out, image_out2 = decoder([x]), decoder([x2])
 
         # =====================================================================
         # Save
@@ -115,29 +117,32 @@ class ConditionalImageGan(PretrainImageGan):
         image_discriminator.trainable = False
         is_fake = image_discriminator([
             img0_in, img_in,
-            next_option_in, 
-            next_option2_in,
-            image_out,
-            image_out2])
+            next_option_in, next_option2_in,
+            image_out, image_out2])
 
         # =====================================================================
         # Create generator model to train
         lfn = self.loss
-        predictor = Model(ins,
-                [image_out, image_out2])
+        predictor = Model(ins, [image_out, image_out2])
         predictor.compile(
-                loss=[lfn, lfn],
+                loss=[lfn, lfn], # ignored since we don't train G
                 optimizer=self.getOptimizer())
         self.generator = predictor
 
         # =====================================================================
-        # And adversarial model 
+        # And adversarial model
+        loss = wasserstein_loss if self.use_wasserstein else "binary_crossentropy"
+        weights = [0.01, 0.01, 1.] if self.use_wasserstein else [100., 100., 1.]
+
         model = Model(ins, [image_out, image_out2, is_fake])
         model.compile(
-                loss=["mae"]*2 + ["binary_crossentropy"],
-                loss_weights=[100., 100., 1.],
+                loss=['mae', 'mae', loss],
+                loss_weights=weights,
                 optimizer=self.getOptimizer())
         self.model = model
+
+        self.discriminator.summary()
+        self.model.summary()
 
         return predictor, model, model, ins, h
 
@@ -149,7 +154,7 @@ class ConditionalImageGan(PretrainImageGan):
         # Create the next image including input image
         I0 = I[0,:,:,:]
         length = I.shape[0]
-        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
+        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1])
 
         # Extract the next goal
         I_target2, o2 = GetNextGoal(I_target, o1)
@@ -158,7 +163,7 @@ class ConditionalImageGan(PretrainImageGan):
     def _makeImageDiscriminator(self, img_shape):
         '''
         create image-only encoder to extract keypoints from the scene.
-        
+
         Params:
         -------
         img_shape: shape of the image to encode
@@ -182,7 +187,7 @@ class ConditionalImageGan(PretrainImageGan):
         #x2 = Add()([x0, xg1, xg2])
         x1 = Add()([xobs, xg1])
         x2 = Add()([xg1, xg2])
-        
+
         # -------------------------------------------------------------
         y = OneHot(self.num_options)(option)
         y = AddDense(y, 64, "lrelu", dr)
@@ -198,13 +203,14 @@ class ConditionalImageGan(PretrainImageGan):
         #x = Concatenate()([x1, x2])
         x = x2
         x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True)
-        x= AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
-        x = AddConv2D(x, 1, [1,1], 1, 0., "same", activation="sigmoid",
-                bn=False)
+        x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
+        #x = AddConv2D(x, 1, [1,1], 1, 0., "same", activation="sigmoid",
+        #        bn=False)
 
         #x = MaxPooling2D(pool_size=(8,8))(x)
-        x = AveragePooling2D(pool_size=(8,8))(x)
+        #x = AveragePooling2D(pool_size=(8,8))(x)
         x = Flatten()(x)
+        x = AddDense(x, 1, "linear", 0., output=True, bn=False)
         discrim = Model(ins, x, name="image_discriminator")
         self.lr *= 2.
         loss = wasserstein_loss if self.use_wasserstein else "binary_crossentropy"

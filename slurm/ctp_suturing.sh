@@ -14,21 +14,40 @@ echo "Running $@ on $SLURMD_NODENAME ..."
 module load tensorflow/cuda-8.0/r1.3 
 
 export DATASET="suturing_data2"
-export train_discriminator1=false
-export train_discriminator2=false
-export train_image_encoder=false
+export train_discriminator1=true
+export train_discriminator2=true
+export train_image_encoder=true
 export learning_rate=$1
 export dropout=$2
 export optimizer=$3
 export noise_dim=$4
 export loss=$5
-export MODELDIR="$HOME/.costar/suturing_$learning_rate$optimizer$dropout$noise_dim$loss"
+export retrain=$6
+export use_disc=$7
+#export MODELDIR="$HOME/.costar/suturing_$learning_rate$optimizer$dropout$noise_dim$loss"
+export MODELROOT="$HOME/.costar"
+export SUBDIR="suturing_$learning_rate$optimizer$dropout$noise_dim$loss"
 
-if $train_discriminator1
+retrain_cmd=""
+if $retrain
+then
+  retrain_cmd="--retrain"
+  SUBDIR=${SUBDIR}_retrain
+fi
+
+use_disc_cmd=""
+if [[ ! $use_disc ]]
+then
+  use_disc_cmd="--no_disc"
+  SUBDIR=${SUBDIR}_nodisc
+fi
+
+export MODELDIR="$MODELROOT/$SUBDIR"
+
+if [[ $train_discriminator1 && $use_disc ]]
 then
   echo "Training discriminator 1"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
-    --features multi \
     -e 100 \
     --model discriminator \
     --data_file $HOME/work/$DATASET.h5f \
@@ -43,11 +62,10 @@ then
     --loss $loss \
     --batch_size 64
 fi
-if $train_discriminator1
+if $train_discriminator2
 then
   echo "Training discriminator 2"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
-    --features multi \
     -e 100 \
     --model goal_discriminator \
     --data_file $HOME/work/$DATASET.h5f \
@@ -69,7 +87,6 @@ if $train_image_encoder
 then
   echo "Training encoder 1"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
-    --features multi \
     -e 100 \
     --model pretrain_image_encoder \
     --data_file $HOME/work/$DATASET.h5f \
@@ -82,7 +99,7 @@ then
     --steps_per_epoch 300 \
     --noise_dim $noise_dim \
     --loss $loss \
-    --batch_size 64
+    --batch_size 64 $use_disc
 fi
 
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
@@ -95,9 +112,8 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --model_directory $MODELDIR/ \
   --features jigsaws \
   --optimizer $optimizer \
-  --use_noise true \
   --steps_per_epoch 300 \
   --preload \
   --loss $loss \
-  --batch_size 24
+  --batch_size 64 $retrain_cmd $use_disc_cmd
 

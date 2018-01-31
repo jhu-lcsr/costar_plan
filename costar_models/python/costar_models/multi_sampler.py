@@ -45,6 +45,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.num_hypotheses = 4
         self.validation_split = 0.05
         self.load_training_model = False
+        self.save_encoder_decoder = False
 
         # For the new model setup
         self.encoder_channels = 64
@@ -108,6 +109,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.hidden_decoder = None
         self.next_model = None
         self.value_model = None
+        self.q_model = None
         self.pose_model = None
         self.transform_model = None
 
@@ -312,6 +314,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         h = Input((h_dim[0], h_dim[1], self.encoder_channels),name="h_in")
         h0 = Input((h_dim[0],h_dim[1], self.encoder_channels),name="h0_in")
         option = Input((self.num_options,),name="t_opt_in")
+        if self.use_noise:
+            z = Input((self.noise_dim,), name="z_in")
+
         x = AddConv2D(h, 64, [1,1], 1, 0.)
         x0 = AddConv2D(h0, 64, [1,1], 1, 0.)
 
@@ -321,6 +326,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # store this for skip connection
         skip = x
+
+        if self.use_noise:
+            y = AddDense(z, 32, "relu", 0., constraint=None, output=False)
+            x = TileOnto(x, y, 32, h_dim)
+            x = AddConv2D(x, 32, [5,5], 1, 0.)
 
         # Add dense information
         y = AddDense(option, 64, "relu", 0., constraint=None, output=False)
@@ -358,7 +368,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Put resulting image into the output shape
         x = AddConv2D(x, self.encoder_channels, [1, 1], stride=1,
                 dropout_rate=0.)
-        self.transform_model = Model([h0,h,option], x, name="tform")
+
+        l = [h0, h, option, z] if self.use_noise else [h0, h, option]
+        self.transform_model = Model(l, x, name="tform")
         self.transform_model.compile(loss="mae", optimizer=self.getOptimizer())
         return self.transform_model
 
@@ -511,24 +523,23 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         '''
         Save to a filename determined by the "self.name" field.
         '''
-        if self.model is not None:
+        if self.model is not None and not self.validate:
             print("----------------------------")
-            print("Saving to " + self.name + "_{predictor, actor, image_decoder}")
+            print("Saving to " + self.name + "_{predictor, ...}")
+            print(">>> SAVING TRAINING SETUP TO 'train_predictor'")
             self.model.save_weights(self.name + "_train_predictor.h5f")
             if self.predictor is not None:
                 print(">>> SAVING PREDICTOR")
                 self.predictor.save_weights(self.name + "_predictor.h5f")
-            if self.actor is not None:
-                print(">>> SAVING ACTOR")
-                self.actor.save_weights(self.name + "_actor.h5f")
-            if self.image_decoder is not None:
-                print(">>> SAVING IMAGE DECODER")
-                self.image_decoder.save_weights(self.name +
-                "_image_decoder.h5f")
-            if self.image_encoder is not None:
-                print(">>> SAVING IMAGE ENCODER")
-                self.image_encoder.save_weights(self.name + 
-                "_image_encoder.h5f")
+            if self.save_encoder_decoder:
+                if self.image_decoder is not None:
+                    print(">>> SAVING IMAGE DECODER")
+                    self.image_decoder.save_weights(self.name +
+                    "_image_decoder.h5f")
+                if self.image_encoder is not None:
+                    print(">>> SAVING IMAGE ENCODER")
+                    self.image_encoder.save_weights(self.name + 
+                    "_image_encoder.h5f")
             if self.state_encoder is not None:
                 print(">>> SAVING STATE ENCODER")
                 self.state_encoder.save_weights(self.name +
@@ -553,19 +564,28 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 print(">>> SAVING TRANSFORM")
                 self.transform_model.save_weights(self.name + 
                 "_transform.h5f")
-            if self.value_model is not None:
-                print(">>> SAVING VALUE")
-                self.value_model.save_weights(self.name + 
-                "_value.h5f")
-            if self.pose_model is not None:
-                print(">>> SAVING POSE")
-                self.pose_model.save_weights(self.name + 
-                "_pose.h5f")
-            if self.next_model is not None:
-                print(">>> SAVING NEXT")
-                self.next_model.save_weights(self.name + 
-                "_next.h5f")
-
+            if not self.validate:
+                if self.actor is not None:
+                    print(">>> SAVING ACTOR")
+                    self.actor.save_weights(self.name + "_actor.h5f")
+                if self.value_model is not None:
+                    print(">>> SAVING VALUE")
+                    self.value_model.save_weights(self.name + 
+                    "_value.h5f")
+                if self.q_model is not None:
+                    print(">>> SAVING Q MODEL")
+                    self.q_model.save_weights(self.name + 
+                    "_q.h5f")
+                if self.pose_model is not None:
+                    print(">>> SAVING POSE")
+                    self.pose_model.save_weights(self.name + 
+                    "_pose.h5f")
+                if self.next_model is not None:
+                    print(">>> SAVING NEXT")
+                    self.next_model.save_weights(self.name + 
+                    "_next.h5f")
+        elif self.validate:
+            print(">>> SKIP SAVING IN VALIDATION MODE")
         else:
             raise RuntimeError('save() failed: model not found.')
 
@@ -577,12 +597,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.model is not None:
             print("----------------------------")
             print("using " + self.name + " to load:")
-            if self.load_training_model:
-                print(">>> LOADING TRAINING SETUP")
-                self.model.load_weights(self.name + "_train_predictor.h5f")
-            if self.actor is not None:
-                print(">>> LOADING ACTOR")
-                self.actor.load_weights(self.name + "_actor.h5f")
             if self.image_decoder is not None:
                 print(">>> LOADING IMAGE DECODER")
                 self.image_decoder.load_weights(self.name +
@@ -607,21 +621,33 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 print(">>> LOADING TRANSFORM")
                 self.transform_model.load_weights(self.name + 
                 "_transform.h5f")
-            if self.value_model is not None:
-                print(">>> LOADING VALUE")
-                self.value_model.load_weights(self.name + 
-                "_value.h5f")
-            if self.next_model is not None:
-                print(">>> LOADING NEXT")
-                self.next_model.load_weights(self.name + 
-                "_next.h5f")
-            if self.pose_model is not None:
-                print(">>> LOADING POSE")
-                self.pose_model.load_weights(self.name + 
-                "_pose.h5f")
+            if not self.validate:
+                # Just don't load these
+                if self.value_model is not None:
+                    print(">>> LOADING VALUE")
+                    self.value_model.load_weights(self.name + 
+                    "_value.h5f")
+                if self.next_model is not None:
+                    print(">>> LOADING NEXT")
+                    self.next_model.load_weights(self.name + 
+                    "_next.h5f")
+                if self.q_model is not None:
+                    print(">>> LOADING Q MODEL")
+                    self.q_model.load_weights(self.name + 
+                    "_q.h5f")
+                if self.actor is not None:
+                    print(">>> LOADING ACTOR")
+                    self.actor.load_weights(self.name + "_actor.h5f")
+                if self.pose_model is not None:
+                    print(">>> LOADING POSE")
+                    self.pose_model.load_weights(self.name + 
+                    "_pose.h5f")
             if self.predictor is not None:
                 print(">>> LOADING PREDICTOR")
                 self.predictor.load_weights(self.name + "_predictor.h5f")
+            if self.load_training_model:
+                print(">>> LOADING TRAINING SETUP")
+                self.model.load_weights(self.name + "_train_predictor.h5f")
         else:
             raise RuntimeError('_loadWeights() failed: model not yet created.')
 

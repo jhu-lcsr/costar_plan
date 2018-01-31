@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --job-name=secondary
+#SBATCH --job-name=actor
 #SBATCH --time=0-48:0:0
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
@@ -25,9 +25,9 @@ export dropout=$2
 export optimizer=$3
 export noise_dim=$4
 export loss=$5
-export model=$6
+export model=actor
 
-export train_multi=false
+export train_multi=true
 export train_husky=true
 
 echo $0 $1 $2 $3 $4 $5 $6
@@ -47,6 +47,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --steps_per_epoch 500 \
   --noise_dim $noise_dim \
   --loss $loss \
+  --success_only \
   --batch_size 64
 
 export MODELDIR="$HOME/.costar/husky_$learning_rate$optimizer$dropout$noise_dim$loss"
@@ -63,6 +64,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --steps_per_epoch 500 \
   --noise_dim $noise_dim \
   --loss $loss \
+  --success_only \
   --batch_size 64
 
 

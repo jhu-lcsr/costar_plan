@@ -25,6 +25,22 @@ def ToOneHot2D(f, dim):
                 oh[i,j,idx] = 1.
     return oh
 
+
+def ToOneHot(f, dim):
+    '''
+    Convert all to one-hot vectors. If we have a "-1" label, example was
+    considered unlabeled and should just get a zero...
+    '''
+    if not len(f.shape) == 1:
+        raise RuntimeError('not acceptable')
+    shape = f.shape + (dim,)
+    oh = np.zeros(shape)
+    for i in range(f.shape[0]):
+        idx = f[i]
+        if idx >= 0:
+            oh[i,idx] = 1.
+    return oh
+
 def MakeOption1h(option, num_labels):
     opt_1h = np.zeros((1,num_labels))
     opt_1h[0,option] = 1.

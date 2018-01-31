@@ -166,7 +166,7 @@ def CombineArmAndGripperAndOption(arm_in, gripper_in, option_in, dim=64):
 def GetArmGripperEncoder(arm_size, gripper_size, dim=64):
     arm_in = Input((arm_size,))
     gripper_in = Input((gripper_size,))
-    
+
 
 def TileOnto(x,z,zlen,xsize,add=False):
     z = Reshape([1,1,zlen])(z)
@@ -196,7 +196,7 @@ def TileArmAndGripper(x, arm_in, gripper_in, tile_width, tile_height,
         #reshape_size = arm_size+gripper_size
         reshape_size = dim
     else:
-        robot = CombineArmAndGripperAndOption(arm_in, 
+        robot = CombineArmAndGripperAndOption(arm_in,
                                               gripper_in,
                                               option_in,
                                               dim=dim)
@@ -225,7 +225,7 @@ def TilePose(x, pose_in, tile_width, tile_height,
         option=None, option_in=None,
         time_distributed=None, dim=64, concatenate=False):
     pose_size = int(pose_in.shape[-1])
-    
+
 
     # handle error: options and grippers
     if option is None and option_in is not None \
@@ -300,7 +300,7 @@ def GetImageEncoder(img_shape, dim, dropout_rate,
     x = samples
 
     x = ApplyTD(Conv2D(filters,
-                kernel_size=kernel_size, 
+                kernel_size=kernel_size,
                 strides=(1, 1),
                 padding='same'))(x)
     x = ApplyTD(relu())(x)
@@ -310,7 +310,7 @@ def GetImageEncoder(img_shape, dim, dropout_rate,
     for i in range(layers):
 
         x = ApplyTD(Conv2D(filters,
-                   kernel_size=kernel_size, 
+                   kernel_size=kernel_size,
                    strides=(2, 2),
                    padding='same'))(x)
         x = ApplyTD(relu())(x)
@@ -424,7 +424,7 @@ def GetImageDecoder(dim, img_shape,
         # avoid those when learning our nice decoder.
         if upsampling == "bilinear":
             x = Conv2D(filters,
-                       kernel_size=kernel_size, 
+                       kernel_size=kernel_size,
                        strides=(1, 1),
                        padding='same')(x)
 
@@ -434,12 +434,12 @@ def GetImageDecoder(dim, img_shape,
         elif upsampling == "upsampling":
             x = UpSampling2D(size=(2,2))(x)
             x = Conv2D(filters,
-                       kernel_size=kernel_size, 
+                       kernel_size=kernel_size,
                        strides=(1, 1),
                        padding='same')(x)
         else:
             x = Conv2DTranspose(filters,
-                       kernel_size=kernel_size, 
+                       kernel_size=kernel_size,
                        strides=(2, 2),
                        padding='same')(x)
         if batchnorm:
@@ -450,7 +450,7 @@ def GetImageDecoder(dim, img_shape,
 
         height *= 2
         width *= 2
- 
+
     if skips:
         skip_in = Input((img_shape[0],img_shape[1],filters))
         x = Concatenate(axis=-1)([x,skip_in])
@@ -459,7 +459,7 @@ def GetImageDecoder(dim, img_shape,
 
     for i in range(stride1_layers):
         x = Conv2D(filters, # + num_labels
-                   kernel_size=kernel_size, 
+                   kernel_size=kernel_size,
                    strides=(1, 1),
                    padding="same")(x)
         if batchnorm:
@@ -691,7 +691,7 @@ def GetImageArmGripperDecoder(dim, img_shape,
     return decoder
 
 
-def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=True, 
+def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=True,
         leaky=True,
         relu=True,
         dropout_rate=0.,
@@ -746,7 +746,7 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
         ins += [oin]
     return Model(ins, x, name="transform%d"%idx)
 
-def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True, 
+def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True,
         idx=0,
         leaky=True,
         relu=True,
@@ -771,7 +771,7 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
     Parameters:
     -----------
     dim: size of the hidden representation
-    input_size: 
+    input_size:
     leaky: use LReLU instead of normal ReLU
     dropout_rate: amount of dropout to use (not recommended for MHP)
     dropout: use dropout (recommended FALSE for MHP)
@@ -899,7 +899,7 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
             output=False,)
 
     next_option_out = Dense(num_options,
-            activation="sigmoid", name="lnext",)(x1)
+            activation="softmax", name="lnext",)(x1)
     next_model = Model([x0in, xin, option_in], next_option_out, name="next")
     #next_model = Model([xin, option_in], next_option_out, name="next")
     return next_model
@@ -1024,7 +1024,7 @@ def GetHypothesisProbability(x, num_hypotheses, num_options, labels,
     '''
 
     #x = Conv2D(filters,
-    #        kernel_size=kernel_size, 
+    #        kernel_size=kernel_size,
     #        strides=(2, 2),
     #        padding='same',
     #        name="p_hypothesis")(x)
@@ -1077,26 +1077,39 @@ def GetActor(enc0, enc_h, supervisor, label_out, num_hypotheses, *args, **kwargs
     p_oh = K.sum(label_out, axis=1) / num_hypotheses
 
 def LoadEncoderWeights(model, encoder, decoder, gan=False):
-    if gan:
-        name = "pretrain_image_gan"
-    else:
-        name = "pretrain_image_encoder"
-    try:
-        encoder.load_weights(
-                model.makeName(name,
-                               submodel="image_encoder"))
-        decoder.load_weights(
-                model.makeName(name,
-                               submodel="image_decoder"))
-    except IOError as e:
-        if not model.retrain:
-            raise e
+    gs = "pretrain_image_gan"
+    es = "pretrain_image_encoder"
+    names = [gs, es] if gan else [es, gs]
+    loaded = False
+
+    saved_e = None
+    for name in names:
+        try:
+            e_nm = model.makeName(name, submodel="image_encoder")
+            d_nm = model.makeName(name, submodel="image_decoder")
+            print("Trying to load", e_nm)
+            encoder.load_weights(e_nm)
+            print("Trying to load", d_nm)
+            decoder.load_weights(d_nm)
+            loaded = True
+
+            if loaded:
+                print("... success!")
+                break
+
+        except IOError as e:
+            saved_e = e
+            continue
+
+    if not loaded and not model.retrain:
+        raise saved_e
 
 def LoadGoalClassifierWeights(model, make_classifier_fn, img_shape):
-    image_discriminator = make_classifier_fn(model, img_shape)
-    #image_discriminator.load_weights(
-    #        model.makeName("goal_discriminator", "classifier"))
+    image_discriminator = make_classifier_fn(model, img_shape, trainable=False)
+    image_discriminator.load_weights(
+            model.makeName("goal_discriminator", "classifier"))
     image_discriminator.trainable = False
+    print("Loaded goal classifier weights")
     return image_discriminator
 
 def LoadTransformWeights(model, tform, gan = False):
@@ -1113,10 +1126,11 @@ def LoadTransformWeights(model, tform, gan = False):
     return tform
 
 def LoadClassifierWeights(model, make_classifier_fn, img_shape):
-    image_discriminator = make_classifier_fn(model, img_shape)
+    image_discriminator = make_classifier_fn(model, img_shape, trainable=False)
     image_discriminator.load_weights(
             model.makeName("discriminator", "classifier"))
     image_discriminator.trainable = False
+    print("Loaded classifier weights")
     return image_discriminator
 
 def MultiDiscriminator(model, x, discriminator, img0, num_hypotheses, img_shape):

@@ -1,6 +1,4 @@
 __all__ = [
-    # Tools
-    'FastNetwork',
     # Machine Learning,
     'GMM',
     # ===========================================================================
@@ -8,6 +6,7 @@ __all__ = [
     "MakeModel", "GetModels", "ParseModelArgs",
     "ParseVisualizeArgs",
     "ConfigureGPU",
+    "Show",
     # ===========================================================================
     # Visualization and models
     "RobotMultiKeypointsVisualizer",
@@ -15,9 +14,6 @@ __all__ = [
     "RobotMultiPredictionSampler",
     ]
 
-# general learning utilites
-from .sampler import *
-from .fast import *
 from .gmm import *
 
 # models and utils
@@ -37,5 +33,4 @@ from .ctp_visualize_decoder import *
 from .parse import *
 from .util import GetModels, MakeModel
 from .cpu import ConfigureGPU
-
-
+from .plotting import *

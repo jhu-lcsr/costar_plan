@@ -52,6 +52,7 @@ class AbstractAgentBasedModel(object):
             use_noise=False,
             load_pretrained_weights=False,
             retrain=True,
+            no_disc=False,
             use_prev_option=True,
             success_only=False,
             submodel=None,
@@ -89,6 +90,7 @@ class AbstractAgentBasedModel(object):
         self.load_pretrained_weights = load_pretrained_weights
         self.optimizer = optimizer
         self.validation_steps = validation_steps
+        self.no_disc = no_disc
         self.validate = validate
         self.task = task
         if features == "multi":
@@ -163,6 +165,7 @@ class AbstractAgentBasedModel(object):
         print("Loss =", loss)
         print("Retrain sub-models =", self.retrain)
         print("Load pretrained weights =", self.load_pretrained_weights)
+        print("No discriminator/classifier =", self.no_disc)
         print("-----------------------------------------------------------")
         print("------------------ Model Specific Options -----------------")
         print("dropout in hypothesis decoder =", self.hypothesis_dropout)

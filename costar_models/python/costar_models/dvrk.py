@@ -26,9 +26,9 @@ from .planner import *
 from .temporary import *
 
 def SuturingNumOptions():
-    return 15
+    return 16
 
-def MakeJigsawsImageClassifier(model, img_shape):
+def MakeJigsawsImageClassifier(model, img_shape, trainable = True):
     img0 = Input(img_shape,name="img0_classifier_in")
     img = Input(img_shape,name="img_classifier_in")
     bn = True
@@ -57,6 +57,8 @@ def MakeJigsawsImageClassifier(model, img_shape):
     #x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
     x = AddDense(x, model.num_options, "softmax", 0., output=True, bn=False)
     image_encoder = Model([img0, img], x, name="classifier")
+    if not trainable:
+        image_encoder.trainable = False
     image_encoder.compile(loss="categorical_crossentropy",
                           metrics=["accuracy"],
                           optimizer=model.getOptimizer())
@@ -94,7 +96,7 @@ def MakeJigsawsMultiDecoder(model, decoder, num_images=4, h_dim=(12,16)):
 
     return mm
 
-def MakeJigsawsTransform(model, h_dim=(12,16), small=False):
+def MakeJigsawsTransform(model, h_dim=(12,16), small=True):
     '''
     This is the version made for the newer code, it is set up to use both
     the initial and current observed world and creates a transform
@@ -117,6 +119,9 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=False):
 	    h = Input((h_dim[0], h_dim[1], 64),name="h_in")
     h0 = Input((h_dim[0],h_dim[1], model.encoder_channels),name="h0_in")
     option = Input((model.num_options,),name="t_opt_in")
+    if model.use_noise:
+        z = Input((self.noise_dim,), name="z_in")
+
     x = h # This is already encoded
     x0 = AddConv2D(h0, 64, [1,1], 1, 0.)
 
@@ -128,6 +133,11 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=False):
     # store this for skip connection
     x = AddConv2D(x, 64, [5,5], 2, 0.)
     skip = x
+
+    if model.use_noise:
+        y = AddDense(z, 32, "relu", 0., constrain=None, output=False)
+        x = TileOnto(x, y, 32, h_dim)
+        x = AddConv2D(x, 32, [5,5], 1, 0.)
 
     # Add dense information
     y = AddDense(option, 64, "relu", 0., constraint=None, output=False)
@@ -163,7 +173,8 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=False):
     if small:
         x = AddConv2D(x, model.encoder_channels, [1, 1], stride=1,
                       dropout_rate=0.)
-    model.transform_model = Model([h0,h,option], x, name="tform")
+    l = [h0, h, option, z] if model.use_noise else [h0, h, option]
+    model.transform_model = Model(l, x, name="tform")
     model.transform_model.compile(loss="mae", optimizer=model.getOptimizer())
     #model.transform_model.summary()
     return model.transform_model

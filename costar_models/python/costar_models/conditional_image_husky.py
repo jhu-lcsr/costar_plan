@@ -31,7 +31,7 @@ class ConditionalImageHusky(ConditionalImage):
         self.null_option = HuskyNullOption()
 
     def _makeModel(self, image, pose, *args, **kwargs):
-       
+
         img_shape = image.shape[1:]
         pose_size = pose.shape[-1]
 
@@ -50,9 +50,6 @@ class ConditionalImageHusky(ConditionalImage):
             decoder = self._makeImageDecoder(self.hidden_shape)
 
         LoadEncoderWeights(self, encoder, decoder, gan=False)
-        image_discriminator = LoadGoalClassifierWeights(self,
-                make_classifier_fn=MakeImageClassifier,
-                img_shape=img_shape)
 
         # =====================================================================
         # Load the arm and gripper representation
@@ -61,21 +58,6 @@ class ConditionalImageHusky(ConditionalImage):
         else:
             h = encoder([img_in])
             h0 = encoder(img0_in)
-
-        next_model = GetNextModel(h, self.num_options, 128,
-                self.decoder_dropout_rate)
-        value_model = GetValueModel(h, self.num_options, 64,
-                self.decoder_dropout_rate)
-        next_model.compile(loss="mae", optimizer=self.getOptimizer())
-        value_model.compile(loss="mae", optimizer=self.getOptimizer())
-        value_out = value_model([h])
-        next_option_out = next_model([h0,h,label_in])
-
-        # create input for controlling noise output if that's what we decide
-        # that we want to do
-        if self.use_noise:
-            z = Input((self.num_hypotheses, self.noise_dim))
-            ins += [z]
 
         next_option_in = Input((1,), name="next_option_in")
         next_option_in2 = Input((1,), name="next_option_in2")
@@ -91,48 +73,34 @@ class ConditionalImageHusky(ConditionalImage):
         x2 = tform([h0,x,y2])
         image_out = decoder([x])
         image_out2 = decoder([x2])
-        disc_out2 = image_discriminator([img0_in, image_out2])
 
-        self.next_model = next_model
-        self.value_model = value_model
-        self.transform_model = tform
-
-        # =====================================================================
-        actor = GetHuskyActorModel(h, self.num_options, pose_size,
-                self.decoder_dropout_rate)
-        actor.compile(loss="mae",optimizer=self.getOptimizer())
-        cmd = actor([h, y])
-        lfn = self.loss
-        lfn2 = "logcosh"
-        val_loss = "binary_crossentropy"
+        if not self.no_disc:
+            image_discriminator = LoadGoalClassifierWeights(self,
+                    make_classifier_fn=MakeImageClassifier,
+                    img_shape=img_shape)
+            disc_out2 = image_discriminator([img0_in, image_out2])
 
         # =====================================================================
         # Create models to train
-        predictor = Model(ins + [label_in],
-                [image_out, image_out2, next_option_out, value_out])
-        predictor.compile(
-                loss=[lfn, lfn, "binary_crossentropy", val_loss],
-                loss_weights=[1., 1., 0.1, 0.1,],
-                optimizer=self.getOptimizer())
-        if self.do_all:
+        if self.no_disc:
+            disc_wt = 0.
+        else:
+            disc_wt = 1e-3
+        if self.no_disc:
             model = Model(ins + [label_in],
-                    [image_out, image_out2, next_option_out, value_out,
-                        cmd, disc_out2])
+                    [image_out, image_out2,])
             model.compile(
-                    loss=[lfn, lfn, "binary_crossentropy", val_loss,
-                        lfn2, "categorical_crossentropy"],
-                    loss_weights=[1., 1., 0.1, 0.1, 1., 1e-4],
+                    loss=[self.loss, self.loss,],
+                    loss_weights=[1., 1.,],
                     optimizer=self.getOptimizer())
         else:
             model = Model(ins + [label_in],
-                    [image_out, image_out2,
-                        ])
+                    [image_out, image_out2, disc_out2])
             model.compile(
-                    loss=lfn, 
+                    loss=[self.loss, self.loss, "categorical_crossentropy"],
+                    loss_weights=[1., 1., disc_wt],
                     optimizer=self.getOptimizer())
-        self.predictor = predictor
         self.model = model
-        self.actor = actor
 
     def _getData(self, *args, **kwargs):
-        return GetConditionalHuskyData(self.do_all, self.num_options, *args, **kwargs)
+        return GetConditionalHuskyData(self.no_disc, self.num_options, *args, **kwargs)
