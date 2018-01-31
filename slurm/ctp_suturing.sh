@@ -23,6 +23,7 @@ export optimizer=$3
 export noise_dim=$4
 export loss=$5
 export retrain=$6
+export use_disc=$7
 #export MODELDIR="$HOME/.costar/suturing_$learning_rate$optimizer$dropout$noise_dim$loss"
 export MODELROOT="$HOME/.costar"
 export SUBDIR="suturing_$learning_rate$optimizer$dropout$noise_dim$loss"
@@ -47,7 +48,6 @@ if [[ $train_discriminator1 && $use_disc ]]
 then
   echo "Training discriminator 1"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
-    --features multi \
     -e 100 \
     --model discriminator \
     --data_file $HOME/work/$DATASET.h5f \
