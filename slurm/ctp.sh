@@ -52,6 +52,7 @@ then
 fi
 
 export MODELDIR="$MODELROOT/$SUBDIR"
+mkdir $MODELDIR
 touch $MODELDIR/$SLURM_JOB_ID
 
 echo "Options are: $retrain_cmd $use_disc_cmd $1 $2 $3 $4 $5"
