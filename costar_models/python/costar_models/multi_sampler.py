@@ -597,14 +597,15 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.model is not None:
             print("----------------------------")
             print("using " + self.name + " to load:")
-            if self.image_decoder is not None:
-                print(">>> LOADING IMAGE DECODER")
-                self.image_decoder.load_weights(self.name +
-                "_image_decoder.h5f")
-            if self.image_encoder is not None:
-                print(">>> LOADING IMAGE ENCODER")
-                self.image_encoder.load_weights(self.name +
-                "_image_encoder.h5f")
+            if self.save_encoder_decoder:
+                if self.image_decoder is not None:
+                    print(">>> LOADING IMAGE DECODER")
+                    self.image_decoder.load_weights(self.name +
+                    "_image_decoder.h5f")
+                if self.image_encoder is not None:
+                    print(">>> LOADING IMAGE ENCODER")
+                    self.image_encoder.load_weights(self.name +
+                    "_image_encoder.h5f")
             if self.state_decoder is not None:
                 print(">>> LOADING STATE DECODER")
                 self.state_decoder.load_weights(self.name +
