@@ -57,7 +57,7 @@ class AbstractAgentBasedModel(object):
             success_only=False,
             submodel=None,
             gan_method="gan",
-            save_model=1,
+            save_model=True,
             hidden_size=128,
             loss="mae",
             num_generator_files=3, upsampling=None,
@@ -118,7 +118,7 @@ class AbstractAgentBasedModel(object):
         self.skip_connections = skip_connections > 0
         self.dense_representation = dense_representation
         self.gan_method = gan_method
-        self.save_model = save_model if save_model in [0,1] else 1
+        self.save_model = save_model
         self.hidden_size = hidden_size
         self.option_num = option_num
         
