@@ -13,8 +13,6 @@ __all__ = [
     "RobotMultiPredictionSampler",
     ]
 
-# general learning utilites
-from .sampler import *
 from .gmm import *
 
 # models and utils
