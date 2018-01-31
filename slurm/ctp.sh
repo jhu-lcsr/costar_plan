@@ -31,6 +31,8 @@ export use_disc=$7
 export MODELROOT="$HOME/.costar"
 export SUBDIR="stack_$learning_rate$optimizer$dropout$noise_dim$loss"
 
+echo $1 $2 $3 $4 $5 $6 $7
+
 # ----------------------------------
 # Old versions
 export train_multi_encoder=false
