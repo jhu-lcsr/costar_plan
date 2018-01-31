@@ -6,7 +6,7 @@ set -u
 
 lr=0.0001
 dr=0.1
-opt=adam
+opt=rmsprop
 noise_dim=0
 wass=wass
 loss=mae
