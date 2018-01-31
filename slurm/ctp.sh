@@ -14,9 +14,9 @@ echo "Running $@ on $SLURMD_NODENAME ..."
 module load tensorflow/cuda-8.0/r1.3 
 
 export DATASET="ctp_dec"
-export train_discriminator=true
+export train_discriminator=false
 export train_discriminator2=true
-export train_image_encoder=true
+export train_image_encoder=false
 export train_conditional_image=true
 export train_policies=false
 
@@ -51,8 +51,8 @@ then
   SUBDIR=${SUBDIR}_nodisc
 fi
 
-
 export MODELDIR="$MODELROOT/$SUBDIR"
+touch $MODELDIR/$SLURM_JOB_ID
 
 if [[ $train_discriminator && $use_disc ]]
 then
