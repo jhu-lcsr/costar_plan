@@ -4,9 +4,9 @@ import os
 import keras
 import matplotlib.pyplot as plt
 import numpy as np
+from .plotting import *
 
 DEFAULT_MODEL_DIRECTORY = os.path.expanduser('~/.costar/models')
-
 
 class LogCallback(keras.callbacks.Callback):
     def __init__(self,
@@ -127,10 +127,10 @@ class PredictorShowImage(keras.callbacks.Callback):
             fig = plt.figure(figsize=(3+int(1.5*self.num_hypotheses),2))
             plt.subplot(1,2+self.num_hypotheses,1)
             plt.title('Input Image')
-            plt.imshow(self.features[0][j])
+            Show(self.features[0][j])
             plt.subplot(1,2+self.num_hypotheses,2+self.num_hypotheses)
             plt.title('Observed Goal')
-            plt.imshow(img[j])
+            Show(img[j])
             arm_target = self.targets[0][j,imglen:imglen+6]
             gripper_target = self.targets[0][j,imglen+6]
             for i in range(self.num_hypotheses):
@@ -142,7 +142,7 @@ class PredictorShowImage(keras.callbacks.Callback):
                     msg += ",%f"%(q-q0)
                 msg += ",%f"%(grippers[j][i][0]-gripper_target)
                 plt.subplot(1,2+self.num_hypotheses,i+2)
-                plt.imshow(np.squeeze(data[j][i]))
+                Show(np.squeeze(data[j][i]))
                 plt.title('Hypothesis %d'%(i+1))
             fig.savefig(name, bbox_inches="tight")
             for q0 in arm_target:
@@ -267,12 +267,12 @@ class ImageCb(keras.callbacks.Callback):
             fig = plt.figure()
             plt.subplot(1,3,1)
             plt.title('Input Image')
-            plt.imshow(self.features[self.show_idx][j])
+            Show(self.features[self.show_idx][j])
             plt.subplot(1,3,3)
             plt.title('Observed Goal')
-            plt.imshow(self.targets[0][j])
+            Show(self.targets[0][j])
             plt.subplot(1,3,2)
-            plt.imshow(np.squeeze(img[j]))
+            Show(np.squeeze(img[j]))
             plt.title('Output')
             fig.savefig(name, bbox_inches="tight")
             plt.close(fig)
@@ -298,18 +298,18 @@ class ImageWithFirstCb(ImageCb):
             fig = plt.figure()
             plt.subplot(1,5,1)
             plt.title('Input Image')
-            plt.imshow(self.features[self.show_idx][j])
+            Show(self.features[self.show_idx][j])
             plt.subplot(1,5,4)
             plt.title('Observed Goal')
-            plt.imshow(self.targets[0][j])
+            Show(self.targets[0][j])
             plt.subplot(1,5,5)
             plt.title('Observed Goal 2')
-            plt.imshow(self.targets[1][j])
+            Show(self.targets[1][j])
             plt.subplot(1,5,2)
-            plt.imshow(np.squeeze(img[j]))
+            Show(np.squeeze(img[j]))
             plt.title('Output')
             plt.subplot(1,5,3)
-            plt.imshow(np.squeeze(img2[j]))
+            Show(np.squeeze(img2[j]))
             plt.title('Output 2')
             fig.savefig(name, bbox_inches="tight")
             plt.close(fig)
@@ -374,16 +374,16 @@ class PredictorShowImageOnlyMultiStep(keras.callbacks.Callback):
 
             plt.subplot(2,2+self.num_hypotheses,1)
             plt.title('Input Image')
-            plt.imshow(self.features[0][j])
+            Show(self.features[0][j])
             for k in range(2):
                 # This counts off rows
                 rand_offset = (k*(2+self.num_hypotheses))
                 plt.subplot(2,2+self.num_hypotheses,2+self.num_hypotheses+rand_offset)
                 plt.title('Observed Goal')
-                plt.imshow(np.squeeze(self.targets[k][j]))
+                Show(np.squeeze(self.targets[k][j]))
                 for i in range(self.num_hypotheses):
                     plt.subplot(2,2+self.num_hypotheses,i+2+rand_offset)
-                    plt.imshow(np.squeeze(data[k][j][i]))
+                    Show(np.squeeze(data[k][j][i]))
                     plt.title('Hypothesis %d'%(i+1))
 
             if self.verbose:
@@ -468,15 +468,15 @@ class PredictorShowImageOnly(keras.callbacks.Callback):
                 plt.subplot(self.num_random,2+self.num_hypotheses,1+rand_offset)
                 #print (self.num_random,2+self.num_hypotheses,1+rand_offset)
                 plt.title('Input Image')
-                plt.imshow(self.features[0][j])
+                Show(self.features[0][j])
                 plt.subplot(self.num_random,2+self.num_hypotheses,2+self.num_hypotheses+rand_offset)
                 #print(self.num_random,2+self.num_hypotheses,2+self.num_hypotheses+rand_offset)
                 plt.title('Observed Goal')
-                plt.imshow(img[j])
+                Show(img[j])
                 for i in range(self.num_hypotheses):
                     plt.subplot(self.num_random,2+self.num_hypotheses,i+2+rand_offset)
                     #print(self.num_random,2+self.num_hypotheses,2+i+rand_offset)
-                    plt.imshow(np.squeeze(data[k][i]))
+                    Show(np.squeeze(data[k][i]))
                     plt.title('Hypothesis %d'%(i+1))
             if self.verbose:
                 print(name)

@@ -14,13 +14,13 @@ from costar_models.datasets.npz import NpzDataset
 from costar_models.datasets.npy_generator import NpzGeneratorDataset
 from costar_models.datasets.h5f_generator import H5fGeneratorDataset
 
-'''
-Tool for running model training without the rest of the simulation/planning/ROS
-code. This should be more or less independent and only rely on a couple
-external features.
-'''
 
 def visualizeHiddenMain(args):
+    '''
+    Tool for running model training without the rest of the simulation/planning/ROS
+    code. This should be more or less independent and only rely on a couple
+    external features.
+    '''
     ConfigureGPU(args)
 
     data_file_info = args['data_file'].split('.')
@@ -46,14 +46,13 @@ def visualizeHiddenMain(args):
         train_generator = model.trainGenerator(dataset)
         test_generator = model.testGenerator(dataset)
 
-        if not isinstance(model, PredictionSampler2):
-            raise RuntimeError('Only sampler2, conditional_sampler, etc. are'
-                               'supported')
-
         data = next(test_generator)
         features, targets = next(train_generator)
         [I0, I, o1, o2, oin] = features
         [ I_target, I_target2, o1_1h, v, qa, ga, o2_1h] = targets
+
+        # Same as in training code
+        model.model.predict([I0, I, o1, o2, oin])
         h = model.encode(I)
         h0 = model.encode(I0)
         prev_option = model.prevOption(features)

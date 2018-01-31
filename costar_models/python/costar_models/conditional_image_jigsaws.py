@@ -26,11 +26,9 @@ from .dvrk import *
 class ConditionalImageJigsaws(ConditionalImage):
 
     def __init__(self, *args, **kwargs):
-
         super(ConditionalImageJigsaws, self).__init__(*args, **kwargs)
-
         self.num_options = SuturingNumOptions()
-        self.PredictorCb = PredictorShowImageOnlyMultiStep
+        self.PredictorCb = ImageWithFirstCb
 
     def _makeModel(self, image, *args, **kwargs):
 
