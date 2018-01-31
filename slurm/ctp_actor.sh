@@ -33,6 +33,7 @@ export train_husky=true
 echo $0 $1 $2 $3 $4 $5 $6
 echo "[STACK] Training policy $model"
 export MODELDIR="$HOME/.costar/stack_$learning_rate$optimizer$dropout$noise_dim$loss"
+mkdir $MODELDIR
 export DATASET="ctp_dec"
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --features multi \

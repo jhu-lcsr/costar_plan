@@ -119,7 +119,7 @@ class ConditionalImage(PredictionSampler2):
         if self.no_disc:
             disc_wt = 0.
         else:
-            disc_wt = 1e-2
+            disc_wt = 1e-3
         if self.no_disc:
             train_predictor = Model(ins + [label_in],
                     [image_out, image_out2])
