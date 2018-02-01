@@ -36,8 +36,7 @@ then
 fi
 
 use_disc_cmd=""
-if [[ ! $use_disc ]]
-then
+if ! $use_disc ; then
   use_disc_cmd="--no_disc"
   SUBDIR=${SUBDIR}_nodisc
 fi
@@ -49,8 +48,7 @@ touch $MODELDIR/$SLURM_JOB_ID
 export learning_rate_disc=0.01
 export learning_rate_enc=0.01
 
-if [[ $train_discriminator1 && $use_disc ]]
-then
+if $train_discriminator1 && $use_disc ; then
   echo "Training discriminator 1"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
     -e 100 \
