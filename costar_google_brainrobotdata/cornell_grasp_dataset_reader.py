@@ -4,7 +4,8 @@ Image processing of cornell grasping dataset for detecting grasping positions.
 
 Apache License 2.0 https://www.apache.org/licenses/LICENSE-2.0
 
- https://github.com/tnikolla/robot-grasp-detection
+Cornell Dataset Code based on:
+    https://github.com/tnikolla/robot-grasp-detection
 
 '''
 import tensorflow as tf
@@ -12,8 +13,8 @@ import numpy as np
 import keras
 from keras import backend as K
 import keras_contrib
-from costar_google_brainrobotdata.grasp_loss import gaussian_kernel_2D
-from costar_google_brainrobotdata.inception_preprocessing import preprocess_image
+from grasp_loss import gaussian_kernel_2D
+from inception_preprocessing import preprocess_image
 from tensorflow.python.platform import flags
 
 flags.DEFINE_integer('image_size', 224,
@@ -172,7 +173,7 @@ def approximate_gaussian_ground_truth_image(image_shape, center, grasp_theta, gr
 
         For use with the Cornell grasping dataset
 
-       see also: ground_truth_images() in build_cgd_dataset.py
+       see also: ground_truth_images() in cornell_grasp_dataset_writer.py
     """
     if sigma_divisor is None:
         sigma_divisor = FLAGS.sigma_divisor

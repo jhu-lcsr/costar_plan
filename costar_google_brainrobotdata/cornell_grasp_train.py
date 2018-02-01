@@ -4,7 +4,8 @@ Training a network on cornell grasping dataset for detecting grasping positions.
 
 Apache License 2.0 https://www.apache.org/licenses/LICENSE-2.0
 
- https://github.com/tnikolla/robot-grasp-detection
+Cornell Dataset Code Based on:
+    https://github.com/tnikolla/robot-grasp-detection
 
 '''
 import os
@@ -17,8 +18,7 @@ import datetime
 import tensorflow as tf
 import numpy as np
 from shapely.geometry import Polygon
-import grasp_img_proc
-from grasp_inf import inference
+import cornell_grasp_dataset_reader
 import time
 from tensorflow.python.platform import flags
 
@@ -44,11 +44,12 @@ from keras.callbacks import EarlyStopping
 from keras.callbacks import ModelCheckpoint
 from keras.callbacks import TensorBoard
 from keras.models import Model
-from costar_google_brainrobotdata.grasp_model import concat_images_with_tiled_vector_layer
-from costar_google_brainrobotdata.grasp_model import top_block
-from costar_google_brainrobotdata.grasp_model import create_tree_roots
-from costar_google_brainrobotdata.grasp_model import dilated_late_concat_model
-import costar_google_brainrobotdata.grasp_loss as grasp_loss
+from grasp_model import concat_images_with_tiled_vector_layer
+from grasp_model import top_block
+from grasp_model import create_tree_roots
+from grasp_model import dilated_late_concat_model
+import grasp_loss as grasp_loss
+# https://github.com/aurora95/Keras-FCN
 from keras_fcn.models import AtrousFCN_Vgg16_16s
 
 
@@ -256,18 +257,18 @@ def run_training(learning_rate=0.01, batch_size=20, num_gpus=1):
 
     # i = 0
     # for batch in tqdm(
-    #     grasp_img_proc.yield_record(
+    #     cornell_grasp_dataset_reader.yield_record(
     #         train_file, label_features, data_features,
     #         batch_size=batch_size)):
     #     i += 1
 
     parallel_model.fit_generator(
-        grasp_img_proc.yield_record(
+        cornell_grasp_dataset_reader.yield_record(
             train_file, label_features, data_features,
             batch_size=batch_size),
         steps_per_epoch=steps_per_epoch_train,
         epochs=100,
-        validation_data=grasp_img_proc.yield_record(
+        validation_data=cornell_grasp_dataset_reader.yield_record(
             validation_file, label_features,
             data_features, batch_size=val_batch_size),
         validation_steps=steps_in_val_dataset,
@@ -299,12 +300,12 @@ def old_run_training():
     if FLAGS.train_or_validation == 'train':
         print('distorted_inputs')
         data_files_ = TRAIN_FILE
-        features = grasp_img_proc.distorted_inputs(
+        features = cornell_grasp_dataset_reader.distorted_inputs(
                   [data_files_], FLAGS.num_epochs, batch_size=FLAGS.batch_size)
     else:
         print('inputs')
         data_files_ = VALIDATE_FILE
-        features = grasp_img_proc.inputs([data_files_])
+        features = cornell_grasp_dataset_reader.inputs([data_files_])
 
     # loss, x_hat, tan_hat, h_hat, w_hat, y_hat = old_loss(tan, x, y, h, w)
     train_op = tf.train.AdamOptimizer(epsilon=0.1).minimize(loss)
@@ -364,7 +365,9 @@ def old_run_training():
     coord.join(threads)
     sess.close()
 
+
 def old_loss(tan, x, y, h, w):
+    from grasp_inf import inference
     x_hat, y_hat, tan_hat, h_hat, w_hat = tf.unstack(inference(images), axis=1) # list
     # tangent of 85 degree is 11
     tan_hat_confined = tf.minimum(11., tf.maximum(-11., tan_hat))
