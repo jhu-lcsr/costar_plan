@@ -6,10 +6,12 @@
 #SBATCH --nodes=1
 #SBATCH --mem=8G
 #SBATCH --mail-type=end
-#SBATCH --mail-user=cpaxton3@jhu.edu
+#SBATCH --mail-user=cpaxton3@uuuuuu
 
 
 echo "Running $@ on $SLURMD_NODENAME ..."
+echo $1 $2 $3 $4 $5 $6 $7
+echo "use disc = $use_disc"
 
 module load tensorflow/cuda-8.0/r1.3 
 
@@ -47,6 +49,10 @@ touch $MODELDIR/$SLURM_JOB_ID
 
 export learning_rate_disc=0.01
 export learning_rate_enc=0.01
+
+echo "Options are: $retrain_cmd $use_disc_cmd $1 $2 $3 $4 $5"
+echo "Directory is $MODELDIR"
+echo "Slurm job ID = $SLURM_JOB_ID"
 
 if $train_discriminator1 && $use_disc ; then
   echo "Training discriminator 1"
