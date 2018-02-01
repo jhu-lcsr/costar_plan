@@ -32,6 +32,7 @@ export MODELROOT="$HOME/.costar"
 export SUBDIR="stack_$learning_rate$optimizer$dropout$noise_dim$loss"
 
 echo $1 $2 $3 $4 $5 $6 $7
+echo "use disc = $use_disc"
 
 # ----------------------------------
 # Old versions
@@ -63,6 +64,9 @@ echo "Options are: $retrain_cmd $use_disc_cmd $1 $2 $3 $4 $5"
 echo "Directory is $MODELDIR"
 echo "Slurm job ID = $SLURM_JOB_ID"
 
+export learning_rate_disc=0.001
+export learning_rate_enc=0.001
+
 if [[ $train_discriminator && $use_disc ]]
 then
   echo "Training discriminator 1"
@@ -71,7 +75,7 @@ then
     -e 100 \
     --model discriminator \
     --data_file $HOME/work/$DATASET.h5f \
-    --lr $learning_rate \
+    --lr $learning_rate_disc \
     --dropout_rate $dropout \
     --model_directory $MODELDIR/ \
     --optimizer $optimizer \
@@ -88,7 +92,7 @@ then
     -e 100 \
     --model goal_discriminator \
     --data_file $HOME/work/$DATASET.h5f \
-    --lr $learning_rate \
+    --lr $learning_rate_disc \
     --dropout_rate $dropout \
     --model_directory $MODELDIR/ \
     --optimizer $optimizer \
@@ -106,7 +110,7 @@ then
     -e 100 \
     --model pretrain_image_encoder \
     --data_file $HOME/work/$DATASET.h5f \
-    --lr $learning_rate \
+    --lr $learning_rate_enc \
     --dropout_rate $dropout \
     --model_directory $MODELDIR/ \
     --optimizer $optimizer \

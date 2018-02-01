@@ -555,6 +555,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         elif self.model is not None:
             items = self._getSaveLoadItems(is_save=True)
 
+            print("Saving to", self.name)
+
             for (item, name) in items:
                 if item is not None:
                     print(">>> Saving", name)
