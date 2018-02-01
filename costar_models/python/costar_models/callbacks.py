@@ -1,12 +1,13 @@
 from __future__ import print_function
 
 import os
+import sys
 import keras
 import matplotlib.pyplot as plt
 import numpy as np
+from .plotting import *
 
 DEFAULT_MODEL_DIRECTORY = os.path.expanduser('~/.costar/models')
-
 
 class LogCallback(keras.callbacks.Callback):
     def __init__(self,
@@ -50,6 +51,7 @@ class PredictorShowImage(keras.callbacks.Callback):
             name="model",
             num_hypotheses=4,
             verbose=False,
+            features_name=None,
             use_prev_option=True,
             noise_dim=64,
             use_noise=False,
@@ -125,11 +127,11 @@ class PredictorShowImage(keras.callbacks.Callback):
                 msg += "%f,%d,%d"%(v[j],np.argmax(probs[j]),self.features[3][j])
             fig = plt.figure(figsize=(3+int(1.5*self.num_hypotheses),2))
             plt.subplot(1,2+self.num_hypotheses,1)
-            plt.title('Input Image')
-            plt.imshow(self.features[0][j])
+            Title('Input Image')
+            Show(self.features[0][j])
             plt.subplot(1,2+self.num_hypotheses,2+self.num_hypotheses)
-            plt.title('Observed Goal')
-            plt.imshow(img[j])
+            Title('Observed Goal')
+            Show(img[j])
             arm_target = self.targets[0][j,imglen:imglen+6]
             gripper_target = self.targets[0][j,imglen+6]
             for i in range(self.num_hypotheses):
@@ -141,8 +143,8 @@ class PredictorShowImage(keras.callbacks.Callback):
                     msg += ",%f"%(q-q0)
                 msg += ",%f"%(grippers[j][i][0]-gripper_target)
                 plt.subplot(1,2+self.num_hypotheses,i+2)
-                plt.imshow(np.squeeze(data[j][i]))
-                plt.title('Hypothesis %d'%(i+1))
+                Show(np.squeeze(data[j][i]))
+                Title('Hypothesis %d'%(i+1))
             fig.savefig(name, bbox_inches="tight")
             for q0 in arm_target:
                 msg += ",%f"%q0
@@ -167,6 +169,7 @@ class StateCb(keras.callbacks.Callback):
     def __init__(self, predictor, features, targets,
             model_directory=DEFAULT_MODEL_DIRECTORY,
             name="model",
+            features_name=None,
             min_idx=0, max_idx=66, step=11,
             *args, **kwargs):
         '''
@@ -221,7 +224,7 @@ class ImageCb(keras.callbacks.Callback):
 
     def __init__(self, predictor, features, targets,
             model_directory=DEFAULT_MODEL_DIRECTORY,
-            name="model",
+            name="model", features_name=None,
             min_idx=0, max_idx=66, step=11, show_idx=0,
             *args, **kwargs):
         '''
@@ -235,6 +238,10 @@ class ImageCb(keras.callbacks.Callback):
         verbose: print out extra information
         '''
         self.name = name
+        if features_name is None:
+            self.features_name = "def"
+        else:
+            self.features_name = features_name
         self.predictor = predictor
         self.idxs = range(min_idx, max_idx, step)
         self.num = len(self.idxs)
@@ -257,17 +264,17 @@ class ImageCb(keras.callbacks.Callback):
             img = res
         for j in range(self.num):
             name = os.path.join(self.directory,
-                    "image_%s_epoch%03d_result%d.png"%(self.name,self.epoch,j))
+                    "%s_%s_epoch%03d_result%d.png"%(self.name,self.features_name,self.epoch,j))
             fig = plt.figure()
             plt.subplot(1,3,1)
-            plt.title('Input Image')
-            plt.imshow(self.features[self.show_idx][j])
+            Title('Input Image')
+            Show(self.features[self.show_idx][j])
             plt.subplot(1,3,3)
-            plt.title('Observed Goal')
-            plt.imshow(self.targets[0][j])
+            Title('Observed Goal')
+            Show(self.targets[0][j])
             plt.subplot(1,3,2)
-            plt.imshow(np.squeeze(img[j]))
-            plt.title('Output')
+            Show(np.squeeze(img[j]))
+            Title('Output')
             fig.savefig(name, bbox_inches="tight")
             plt.close(fig)
 
@@ -288,25 +295,104 @@ class ImageWithFirstCb(ImageCb):
             img = res
         for j in range(self.num):
             name = os.path.join(self.directory,
-                    "image_%s_epoch%03d_result%d.png"%(self.name,self.epoch,j))
+                    "%s_%s_epoch%03d_result%d.png"%(self.name,self.features_name,self.epoch,j))
             fig = plt.figure()
             plt.subplot(1,5,1)
-            plt.title('Input Image')
-            plt.imshow(self.features[self.show_idx][j])
+            Title('Input Image')
+            Show(self.features[self.show_idx][j])
             plt.subplot(1,5,4)
-            plt.title('Observed Goal')
-            plt.imshow(self.targets[0][j])
+            Title('Observed Goal')
+            Show(self.targets[0][j])
             plt.subplot(1,5,5)
-            plt.title('Observed Goal 2')
-            plt.imshow(self.targets[1][j])
+            Title('Observed Goal 2')
+            Show(self.targets[1][j])
             plt.subplot(1,5,2)
-            plt.imshow(np.squeeze(img[j]))
-            plt.title('Output')
+            Show(np.squeeze(img[j]))
+            Title('Output')
             plt.subplot(1,5,3)
-            plt.imshow(np.squeeze(img2[j]))
-            plt.title('Output 2')
+            Show(np.squeeze(img2[j]))
+            Title('Output 2')
             fig.savefig(name, bbox_inches="tight")
             plt.close(fig)
+
+class PredictorShowImageOnlyMultiStep(keras.callbacks.Callback):
+    '''
+    Save an image showing what some number of frames and associated predictions
+    will look like at the end of an epoch.
+    '''
+
+    def __init__(self, predictor, features, targets,
+            model_directory=DEFAULT_MODEL_DIRECTORY,
+            num_hypotheses=4,
+            verbose=False,
+            features_name=None,
+            noise_dim=64,
+            use_noise=False,
+            name="model",
+            use_prev_option=True,
+            min_idx=0, max_idx=66, step=11):
+        '''
+        Set up a data set we can use to output validation images.
+
+        Parameters:
+        -----------
+        predictor: model used to generate predictions
+        targets: training target info, in compressed form
+        num_hypotheses: how many outputs to expect
+        verbose: print out extra information
+        '''
+
+        if features_name is None:
+            self.features_name = "def"
+        else:
+            self.features_name = features_name
+        self.verbose = verbose
+        self.predictor = predictor
+        self.idxs = range(min_idx, max_idx, step)
+        self.num = len(self.idxs)
+        self.features = [f[self.idxs] for f in features]
+        self.targets = [np.squeeze(t[self.idxs]) for t in targets]
+        self.epoch = 0
+        self.num_hypotheses = num_hypotheses
+        self.directory = os.path.join(model_directory,'debug')
+        self.noise_dim = noise_dim
+        self.use_noise = use_noise
+        if not os.path.exists(self.directory):
+            os.makedirs(self.directory)
+
+    def on_epoch_end(self, epoch, logs={}):
+        # take the model and print it out
+        self.epoch += 1
+        data = self.predictor.predict(self.features)
+        plt.ioff()
+        if self.verbose:
+            print("============================")
+        for j in range(self.num):
+            name = os.path.join(self.directory,
+                    "%s_predictor_epoch%03d_result%d.png"%(self.features_name,
+                        self.epoch, j))
+            fig = plt.figure()#figsize=(3+int(1.5*self.num_hypotheses),2))
+
+            plt.subplot(2,2+self.num_hypotheses,1)
+            Title('Input Image')
+            Show(self.features[0][j])
+            for k in range(2):
+                # This counts off rows
+                rand_offset = (k*(2+self.num_hypotheses))
+                plt.subplot(2,2+self.num_hypotheses,2+self.num_hypotheses+rand_offset)
+                Title('Observed Goal')
+                Show(np.squeeze(self.targets[k][j]))
+                for i in range(self.num_hypotheses):
+                    plt.subplot(2,2+self.num_hypotheses,i+2+rand_offset)
+                    Show(np.squeeze(data[k][j][i]))
+                    Title('Hypothesis %d'%(i+1))
+
+            if self.verbose:
+                print(name)
+            fig.savefig(name, bbox_inches="tight")
+            plt.close(fig)
+
+
 
 class PredictorShowImageOnly(keras.callbacks.Callback):
     '''
@@ -319,6 +405,7 @@ class PredictorShowImageOnly(keras.callbacks.Callback):
             num_hypotheses=4,
             verbose=False,
             noise_dim=64,
+            features_name=None,
             use_noise=False,
             name="model",
             use_prev_option=True,
@@ -381,17 +468,17 @@ class PredictorShowImageOnly(keras.callbacks.Callback):
                 rand_offset = (k*(2+self.num_hypotheses))
                 plt.subplot(self.num_random,2+self.num_hypotheses,1+rand_offset)
                 #print (self.num_random,2+self.num_hypotheses,1+rand_offset)
-                plt.title('Input Image')
-                plt.imshow(self.features[0][j])
+                Title('Input Image')
+                Show(self.features[0][j])
                 plt.subplot(self.num_random,2+self.num_hypotheses,2+self.num_hypotheses+rand_offset)
                 #print(self.num_random,2+self.num_hypotheses,2+self.num_hypotheses+rand_offset)
-                plt.title('Observed Goal')
-                plt.imshow(img[j])
+                Title('Observed Goal')
+                Show(img[j])
                 for i in range(self.num_hypotheses):
                     plt.subplot(self.num_random,2+self.num_hypotheses,i+2+rand_offset)
                     #print(self.num_random,2+self.num_hypotheses,2+i+rand_offset)
-                    plt.imshow(np.squeeze(data[k][i]))
-                    plt.title('Hypothesis %d'%(i+1))
+                    Show(np.squeeze(data[k][i]))
+                    Title('Hypothesis %d'%(i+1))
             if self.verbose:
                 print(name)
             fig.savefig(name, bbox_inches="tight")
@@ -408,6 +495,7 @@ class PredictorGoals(keras.callbacks.Callback):
             num_hypotheses=4,
             verbose=False,
             use_prev_option=True,
+            features_name=None,
             noise_dim=64,
             name="model",
             use_noise=False,
@@ -467,4 +555,28 @@ class PredictorGoals(keras.callbacks.Callback):
                         self.targets[0][j,:7])
                 print("Label target = ",
                         np.argmax(self.targets[0][j,7:]))
+
+class ModelSaveCallback(keras.callbacks.Callback):
+    def __init__(self, model, interval=5):
+        self.saved_model = model
+        self.interval = interval
+        self.best_val_loss = sys.float_info.max
+
+    def on_epoch_end(self, epoch, logs, *args, **kwargs):
+        if epoch % self.interval == 0 and epoch != 0:
+            if 'val_loss' in logs:
+                if logs['val_loss'] <= self.best_val_loss:
+                    print('val_loss[{}] better than {}. Saving model.'.format(
+                        logs['val_loss'], self.best_val_loss))
+                    self.best_val_loss = logs['val_loss']
+                    print('Model =', self.model)
+                    print('ModelType =', type(self.model))
+                    self.saved_model.save()
+                else:
+                    print('val_loss[{}] not improved. Not saving'.format(
+                        logs['val_loss']))
+            else:
+                print('Model =', self.model)
+                print('ModelType =', type(self.model))
+                self.saved_model.saveWeights()
 

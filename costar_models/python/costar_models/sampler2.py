@@ -45,6 +45,7 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         self.hidden_shape = (8,8,self.encoder_channels)
         self.always_same_transform = False
         self.disable_option_in_encoder = False
+        self.save_encoder_decoder = False
         #self.PredictorCb = ImageCb
 
     def _makeToHidden(self, img_shape, arm_size, gripper_size, rep_size):

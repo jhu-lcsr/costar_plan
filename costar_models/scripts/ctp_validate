@@ -15,7 +15,7 @@ Tool for showing the goals of different actions given particular data.
 
 
 def main(args):
-    SetCPU(args)
+    ConfigureGPU(args)
 
     data_file_info = args['data_file'].split('.')
     data_type = data_file_info[-1]
@@ -37,21 +37,26 @@ def main(args):
 
     if 'model' in args and args['model'] is not None:
         model = args["model"]
-        if not model == "predictor":
+        model.validate = True
+        if model == "predictor":
+            model = RobotMultiPredictionSampler(taskdef=None, **args)
+            model.load(world=None,**data)
+            loss_sums = None
+            train_sum = 0
+            total_count = 0
+            for i in range(dataset.numTest()):
+                data, success = dataset.loadTest(i)
+                if success or not model.success_only:
+                    sums, tsum, count = model.validate(**data)
+                    train_sum += tsum
+                    total_count += count
+                print(i, "target s=",sums/total_count, "train =", train_sum/total_count)
+        elif model == "conditional_image":
+            model = ConditionalImage(taskdef=None, **args)
+            model.load(world=None,**data)
+            print(data.keys())
+        else:
             raise RuntimeError('Unsupported model type "%s"'%model)
-        model = RobotMultiPredictionSampler(taskdef=None, **args)
-        model.load(world=None,**data)
-        model.load(world=None,**data)
-        loss_sums = None
-        train_sum = 0
-        total_count = 0
-        for i in range(dataset.numTest()):
-            data, success = dataset.loadTest(i)
-            if success or not model.success_only:
-                sums, tsum, count = model.validate(**data)
-                train_sum += tsum
-                total_count += count
-            print(i, "target s=",sums/total_count, "train =", train_sum/total_count)
                 
     else:
         raise RuntimeError('Must specify model type to visualize')

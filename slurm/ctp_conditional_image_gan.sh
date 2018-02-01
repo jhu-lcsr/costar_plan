@@ -36,7 +36,7 @@ then
     --dropout_rate $dropout \
     --model_directory $MODELDIR/ \
     --optimizer $optimizer \
-    --use_noise true \
+    --use_noise \
     --steps_per_epoch 500 \
     --noise_dim $noise_dim \
     --loss $loss \
@@ -55,7 +55,7 @@ then
     --dropout_rate $dropout \
     --model_directory $MODELDIR/ \
     --optimizer $optimizer \
-    --use_noise true \
+    --use_noise \
     --steps_per_epoch 500 \
     --noise_dim $noise_dim \
     --loss $loss \
@@ -75,7 +75,7 @@ then
     --dropout_rate $dropout \
     --model_directory $MODELDIR/ \
     --optimizer $optimizer \
-    --use_noise true \
+    --use_noise \
     --steps_per_epoch 500 \
     --noise_dim $noise_dim \
     --loss $loss \

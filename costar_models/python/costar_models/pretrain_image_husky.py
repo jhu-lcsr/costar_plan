@@ -14,6 +14,7 @@ from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 
 from .husky_sampler import *
+from .husky import *
 
 class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
 
@@ -24,7 +25,9 @@ class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
         '''
         super(PretrainImageAutoencoderHusky, self).__init__(taskdef, *args, **kwargs)
         self.PredictorCb = ImageCb
-
+        self.num_options = HuskyNumOptions()
+        self.null_option = HuskyNumOptions()
+        self.save_encoder_decoder = True
 
     def _makeModel(self, image, *args, **kwargs):
         '''
@@ -36,35 +39,47 @@ class PretrainImageAutoencoderHusky(HuskyRobotMultiPredictionSampler):
         img0_in = Input(img_shape,name="predictor_img0_in")
         option_in = Input((1,), name="predictor_option_in")
         encoder = self._makeImageEncoder(img_shape)
-        ins = [img_in]
-        
-        enc = encoder(ins)
+        ins = [img0_in, img_in]
+
+        enc = encoder([img_in])
         decoder = self._makeImageDecoder(
                     self.hidden_shape,
                     self.skip_shape,)
         out = decoder(enc)
 
-        image_discriminator = self._makeImageEncoder(img_shape, disc=True)
+        if self.no_disc:
+            ae = Model(ins, [out])
+            ae.compile(
+                    loss=["mae"],
+                    loss_weights=[1.],
+                    optimizer=self.getOptimizer())
+        else:
+            # Discriminate on distinctive features like heading we hope
+            image_discriminator = LoadClassifierWeights(self,
+                    MakeImageClassifier,
+                    img_shape)
+            o2 = image_discriminator([img0_in, out])
 
-        #o1 = image_discriminator(ins)
-        #o2 = image_discriminator([out])
+            ae = Model(ins, [out, o2])
+            ae.compile(
+                    loss=["mae", "categorical_crossentropy"],
+                    loss_weights=[1.,1e-3],
+                    optimizer=self.getOptimizer())
 
-        encoder.summary()
-        decoder.summary()
-        image_discriminator.summary()
-
-        ae = Model(ins, [out]) #, o1, o2])
-        ae.compile(
-                loss=["mae"],# + ["categorical_crossentropy"]*2,
-                #loss_weights=[1.,1.e-2,1e-4],
-                optimizer=self.getOptimizer())
         ae.summary()
-    
-        self.predictor = ae
-        self.train_predictor = ae
+        self.predictor = None
+        self.model = ae
         self.actor = None
 
-    def _getData(self, image, *args, **kwargs):
+    def _getData(self, image, label, *args, **kwargs):
         I = np.array(image) / 255.
-        return [I], [I]
+        o1 = np.array(label)
+        I0 = I[0,:,:,:]
+        length = I.shape[0]
+        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1])
+        if self.no_disc:
+            return [I0, I], [I]
+        else:
+            o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
+            return [I0, I], [I, o1_1h]
 

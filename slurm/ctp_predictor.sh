@@ -32,7 +32,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --dropout_rate $dropout \
   --model_directory $MODELDIR/ \
   --optimizer $optimizer \
-  --use_noise true \
+  --use_noise \
   --steps_per_epoch 500 \
   --loss $loss \
   --skip_connections 1 \

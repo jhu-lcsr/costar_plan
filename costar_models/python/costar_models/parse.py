@@ -38,7 +38,7 @@ def GetModelParser():
                         default=1e-3)
     parser.add_argument('--model_directory',
                         help="models directory",
-                        default = "~/.costar/models"),
+                        default = "~/.costar/models")
     parser.add_argument('-i', '--iter',
                         help='Number of iterations to run',
                         default=100,
@@ -64,10 +64,14 @@ def GetModelParser():
     parser.add_argument("--optimizer","--opt",
                         help="optimizer to use with learning",
                         default="adam")
+    parser.add_argument("--clip_weights",
+                        help="clip the weights to [-value to +value] (0 is no clipping)",
+                        type=float,
+                        default=0.01),
     parser.add_argument("-z", "--zdim", "--noise_dim",
                         help="size of action parameterization",
                         type=int,
-                        default=0)
+                        default=1)
     parser.add_argument("-D", "--debug_model", "--dm", "--debug",
                         help="Run a short script to debug the current model.",
                         action="store_true")
@@ -127,7 +131,7 @@ def GetModelParser():
                         default=0.5)
     parser.add_argument("--use_noise",
                         help="use random noise to sample distributions",
-                        type=bool,
+                        action='store_true',
                         default=False)
     parser.add_argument("--skip_connections", "--sc",
                         help="use skip connections to generate better outputs",
@@ -149,10 +153,11 @@ def GetModelParser():
                         dest='gan_method',
                         choices=["gan", "mae", "desc"],
                         default="gan")
-    parser.add_argument("--save_model",
+    parser.add_argument("--no_save_model",
                         help="Should we save to the model file",
-                        type=int,
-                        default=1)
+                        default=True,
+                        dest='save_model',
+                        action='store_false')
     parser.add_argument("--retrain",
                         help="Retrain sub-models",
                         action="store_true")
@@ -169,11 +174,28 @@ def GetModelParser():
                         help="Choose an option to learn for the multi-policy hierarchical model",
                         type=int,
                         default=None)
-
+    parser.add_argument("--gpu_fraction",
+                        help="portion of the gpu to allocate for this job",
+                        type=float,
+                        default=1.)
+    parser.add_argument("--preload",
+                        help="preload all files into RAM", default=False,
+                        action='store_true')
+    parser.add_argument("--wasserstein",
+                        help="Use weisserstein gan loss. Sets clip_weights to 0.01",
+                        default=False,
+                        dest='use_wasserstein',
+                        action='store_true')
+    parser.add_argument("--validate",
+                        help="Validation mode.",
+                        action="store_true")
+    parser.add_argument("--no_disc",
+                        help="Disable discriminator usage with images",
+                        action="store_true")
     return parser
 
 def GetSubmodelOptions():
-    return ["all", "tform", "actor", "next"]
+    return ["q", "value", "actor", "pose", "next"]
 
 def UpsamplingOptions():
     return [None,"upsampling","conv_transpose","bilinear"]

@@ -67,34 +67,24 @@ class ConditionalSampler2(PredictionSampler2):
         label_in = Input((1,))
         ins = [img_in, arm_in, gripper_in, label_in]
 
-        encoder = self._makeImageEncoder(img_shape)
-        try:
-            encoder.load_weights(self._makeName(
-                "pretrain_image_encoder_model",
-                "image_encoder.h5f"))
-            encoder.trainable = self.retrain
-        except Exception as e:
-            raise e
-
         if self.skip_connections:
-            decoder = self._makeImageDecoder(self.hidden_shape,self.skip_shape)
+            encoder = self._makeImageEncoder2(img_shape)
+            decoder = self._makeImageDecoder2(self.hidden_shape)
         else:
+            encoder = self._makeImageEncoder(img_shape)
             decoder = self._makeImageDecoder(self.hidden_shape)
-        try:
-            decoder.load_weights(self._makeName(
-                "pretrain_image_encoder_model",
-                "image_decoder.h5f"))
-            decoder.trainable = self.retrain
-        except Exception as e:
-            raise e
 
+        LoadEncoderWeights(self, encoder, decoder)
+        image_discriminator = LoadGoalClassifierWeights(self,
+                make_classifier_fn=MakeImageClassifier,
+                img_shape=img_shape)
+
+        # =====================================================================
+        # Load the arm and gripper representation
         rep_channels = self.encoder_channels
         sencoder = self._makeStateEncoder(arm_size, gripper_size, False)
         sdecoder = self._makeStateDecoder(arm_size, gripper_size,
                 rep_channels)
-
-        # =====================================================================
-        # Load the arm and gripper representation
 
         # =====================================================================
         # combine these models together with state information and label
@@ -104,12 +94,12 @@ class ConditionalSampler2(PredictionSampler2):
         hidden_decoder = self._makeFromHidden(rep_channels)
 
         try:
-            hidden_encoder.load_weights(self._makeName(
-                "pretrain_sampler_model",
-                "hidden_encoder.h5f"))
-            hidden_decoder.load_weights(self._makeName(
-                "pretrain_sampler_model",
-                "hidden_decoder.h5f"))
+            hidden_encoder.load_weights(self.makeName(
+                "pretrain_sampler",
+                "hidden_encoder"))
+            hidden_decoder.load_weights(self.makeName(
+                "pretrain_sampler",
+                "hidden_decoder"))
             hidden_encoder.trainable = self.retrain
             hidden_decoder.trainable = self.retrain
         except Exception as e:
@@ -128,12 +118,11 @@ class ConditionalSampler2(PredictionSampler2):
             z = Input((self.num_hypotheses, self.noise_dim))
             ins += [z]
 
-        next_option_in = Input((48,), name="next_option_in")
+        next_option_in = Input((1,), name="next_option_in")
         ins += [next_option_in]
 
-        #y = OneHot(self.num_options)(next_option_in)
-        #y = Flatten()(y)
-        y = next_option_in
+        y = OneHot(self.num_options)(next_option_in)
+        y = Flatten()(y)
         x = h
         x = AddConv2D(x, self.tform_filters*2, [1,1], 1, 0.)
         for i in range(self.num_transforms):
@@ -158,19 +147,21 @@ class ConditionalSampler2(PredictionSampler2):
                       "binary_crossentropy"],
                 loss_weights=[1., 1., 0.2, 0.025, 0.1, 0.],
                 optimizer=self.getOptimizer())
-        predictor.summary()
         return predictor, predictor, actor, ins, h
 
     def _getData(self, *args, **kwargs):
-        features, targets = self._getAllData(*args, **kwargs)
-        [I, q, g, oin, q_target, g_target,] = features
+        features, targets = GetAllMultiData(self.num_options, *args, **kwargs)
+        [I, q, g, oin, label, q_target, g_target,] = features
         tt, o1, v, qa, ga, I_target = targets
+        o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-            return [I, q, g, oin, z, o1], [o1, v, I_target, q_target, g_target,
-                    o1]
+            return [I, q, g, oin, z, o1], [o1_1h, v, I_target, q_target, g_target,
+                    o1_1h,
+                    o1_1h]
         else:
-            return [I, q, g, oin, o1], [I_target, q_target, g_target, o1, o1,
+            return [I, q, g, oin, o1], [I_target, q_target, g_target, o1_1h,
+                    o1_1h,
                     v,]
 

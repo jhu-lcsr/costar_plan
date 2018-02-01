@@ -20,10 +20,11 @@ do
       for noise_dim in 0 # 1 8 32
       do
         hd=true
-        for dr in 0. 0.1 0.2 # 0.3 0.4 0.5
+        use_disc=true
+        for dr in 0.1 0.2 # 0. 0.3 0.4 0.5
         do
           echo "starting LR=$lr, Dropout=$dr, optimizer=$opt, noise=$noise_dim"
-          sbatch ctp_husky.sh $lr $dr $opt $noise_dim $loss
+          sbatch ctp_husky.sh $lr $dr $opt $noise_dim $loss false $use_disc
         done
       done
     done

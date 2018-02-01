@@ -166,7 +166,7 @@ def CombineArmAndGripperAndOption(arm_in, gripper_in, option_in, dim=64):
 def GetArmGripperEncoder(arm_size, gripper_size, dim=64):
     arm_in = Input((arm_size,))
     gripper_in = Input((gripper_size,))
-    
+
 
 def TileOnto(x,z,zlen,xsize,add=False):
     z = Reshape([1,1,zlen])(z)
@@ -196,7 +196,7 @@ def TileArmAndGripper(x, arm_in, gripper_in, tile_width, tile_height,
         #reshape_size = arm_size+gripper_size
         reshape_size = dim
     else:
-        robot = CombineArmAndGripperAndOption(arm_in, 
+        robot = CombineArmAndGripperAndOption(arm_in,
                                               gripper_in,
                                               option_in,
                                               dim=dim)
@@ -225,7 +225,7 @@ def TilePose(x, pose_in, tile_width, tile_height,
         option=None, option_in=None,
         time_distributed=None, dim=64, concatenate=False):
     pose_size = int(pose_in.shape[-1])
-    
+
 
     # handle error: options and grippers
     if option is None and option_in is not None \
@@ -300,7 +300,7 @@ def GetImageEncoder(img_shape, dim, dropout_rate,
     x = samples
 
     x = ApplyTD(Conv2D(filters,
-                kernel_size=kernel_size, 
+                kernel_size=kernel_size,
                 strides=(1, 1),
                 padding='same'))(x)
     x = ApplyTD(relu())(x)
@@ -310,7 +310,7 @@ def GetImageEncoder(img_shape, dim, dropout_rate,
     for i in range(layers):
 
         x = ApplyTD(Conv2D(filters,
-                   kernel_size=kernel_size, 
+                   kernel_size=kernel_size,
                    strides=(2, 2),
                    padding='same'))(x)
         x = ApplyTD(relu())(x)
@@ -424,7 +424,7 @@ def GetImageDecoder(dim, img_shape,
         # avoid those when learning our nice decoder.
         if upsampling == "bilinear":
             x = Conv2D(filters,
-                       kernel_size=kernel_size, 
+                       kernel_size=kernel_size,
                        strides=(1, 1),
                        padding='same')(x)
 
@@ -434,12 +434,12 @@ def GetImageDecoder(dim, img_shape,
         elif upsampling == "upsampling":
             x = UpSampling2D(size=(2,2))(x)
             x = Conv2D(filters,
-                       kernel_size=kernel_size, 
+                       kernel_size=kernel_size,
                        strides=(1, 1),
                        padding='same')(x)
         else:
             x = Conv2DTranspose(filters,
-                       kernel_size=kernel_size, 
+                       kernel_size=kernel_size,
                        strides=(2, 2),
                        padding='same')(x)
         if batchnorm:
@@ -450,7 +450,7 @@ def GetImageDecoder(dim, img_shape,
 
         height *= 2
         width *= 2
- 
+
     if skips:
         skip_in = Input((img_shape[0],img_shape[1],filters))
         x = Concatenate(axis=-1)([x,skip_in])
@@ -459,7 +459,7 @@ def GetImageDecoder(dim, img_shape,
 
     for i in range(stride1_layers):
         x = Conv2D(filters, # + num_labels
-                   kernel_size=kernel_size, 
+                   kernel_size=kernel_size,
                    strides=(1, 1),
                    padding="same")(x)
         if batchnorm:
@@ -691,7 +691,7 @@ def GetImageArmGripperDecoder(dim, img_shape,
     return decoder
 
 
-def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=True, 
+def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=True,
         leaky=True,
         relu=True,
         dropout_rate=0.,
@@ -746,7 +746,7 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
         ins += [oin]
     return Model(ins, x, name="transform%d"%idx)
 
-def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True, 
+def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True,
         idx=0,
         leaky=True,
         relu=True,
@@ -771,7 +771,7 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
     Parameters:
     -----------
     dim: size of the hidden representation
-    input_size: 
+    input_size:
     leaky: use LReLU instead of normal ReLU
     dropout_rate: amount of dropout to use (not recommended for MHP)
     dropout: use dropout (recommended FALSE for MHP)
@@ -844,6 +844,9 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     option_in = Input((1,), name="Nx_prev_o_in")
     x = xin
     x0 = x0in
+
+    # Combine these two to get information that may be obscured
+
     #x = Concatenate()([x0in, xin])
     if len(x.shape) > 2:
         # Project
@@ -896,7 +899,7 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
             output=False,)
 
     next_option_out = Dense(num_options,
-            activation="sigmoid", name="lnext",)(x1)
+            activation="softmax", name="lnext",)(x1)
     next_model = Model([x0in, xin, option_in], next_option_out, name="next")
     #next_model = Model([xin, option_in], next_option_out, name="next")
     return next_model
@@ -906,20 +909,37 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     Value for the current world
     '''
 
-    xin = Input([int(d) for d in x.shape[1:]], name="V_prev_h_in")
+    xin = Input([int(d) for d in x.shape[1:]], name="V_h_in")
+    x0in = Input([int(d) for d in x.shape[1:]], name="V_h0_in")
+    bn = batchnorm
     x = xin
+    x0 = x0in
     if len(x.shape) > 2:
         # This is the hidden representation of the world, but it should be flat
         # for our classifier to work.
+
+        x = AddConv2D(x, 64, [5,5], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="A_project",
+                constraint=None)
+        x0 = AddConv2D(x0, 64, [5,5], 1, dropout_rate, "same",
+                bn=batchnorm,
+                lrelu=True,
+                name="A0_project",
+                constraint=None)
+        x = Add()([x0,x])
+
+        x = AddConv2D(x, 64, [5,5], 2, dropout_rate, "same", lrelu=True, bn=bn)
+        x = AddConv2D(x, 64, [5,5], 2, dropout_rate, "same", lrelu=True, bn=bn)
+
         x = Flatten()(x)
 
     # Next options
-    x1 = AddDense(x, dense_size, "lrelu", dropout_rate)
-    x1 = AddDense(x1, dense_size, "lrelu", 0)
+    x = AddDense(x, 2*dense_size, "lrelu", 0)
     value_out = Dense(1,
-            activation="sigmoid", name="value",)(x1)
-    #next_model = Model([x0in, xin, option_in], value_out, name="V")
-    next_model = Model([xin], value_out, name="V")
+            activation="sigmoid", name="value",)(x)
+    next_model = Model([x0in, xin], value_out, name="V")
     return next_model
 
 
@@ -1004,7 +1024,7 @@ def GetHypothesisProbability(x, num_hypotheses, num_options, labels,
     '''
 
     #x = Conv2D(filters,
-    #        kernel_size=kernel_size, 
+    #        kernel_size=kernel_size,
     #        strides=(2, 2),
     #        padding='same',
     #        name="p_hypothesis")(x)
@@ -1055,3 +1075,81 @@ def GetActor(enc0, enc_h, supervisor, label_out, num_hypotheses, *args, **kwargs
 
     # Compute the probability of a high-level label under our distribution
     p_oh = K.sum(label_out, axis=1) / num_hypotheses
+
+def LoadEncoderWeights(model, encoder, decoder, gan=False):
+    gs = "pretrain_image_gan"
+    es = "pretrain_image_encoder"
+    names = [gs, es] if gan else [es, gs]
+    loaded = False
+
+    saved_e = None
+    for name in names:
+        try:
+            e_nm = model.makeName(name, submodel="image_encoder")
+            d_nm = model.makeName(name, submodel="image_decoder")
+            print("Trying to load", e_nm)
+            encoder.load_weights(e_nm)
+            print("Trying to load", d_nm)
+            decoder.load_weights(d_nm)
+            loaded = True
+
+            if loaded:
+                print("... success!")
+                break
+
+        except IOError as e:
+            saved_e = e
+            continue
+
+    if not loaded and not model.retrain:
+        raise saved_e
+
+def LoadGoalClassifierWeights(model, make_classifier_fn, img_shape):
+    image_discriminator = make_classifier_fn(model, img_shape, trainable=False)
+    image_discriminator.load_weights(
+            model.makeName("goal_discriminator", "classifier"))
+    image_discriminator.trainable = False
+    print("Loaded goal classifier weights")
+    return image_discriminator
+
+def LoadTransformWeights(model, tform, gan = False):
+    '''
+    Simple function to load the right transform weights.
+    '''
+    if gan:
+        append = '_gan'
+    else:
+        append = ''
+    tform.load_weights(
+            model.makeName("conditional_image" + append, "transform"))
+    tform.trainable = False
+    return tform
+
+def LoadClassifierWeights(model, make_classifier_fn, img_shape):
+    image_discriminator = make_classifier_fn(model, img_shape, trainable=False)
+    image_discriminator.load_weights(
+            model.makeName("discriminator", "classifier"))
+    image_discriminator.trainable = False
+    print("Loaded classifier weights")
+    return image_discriminator
+
+def MultiDiscriminator(model, x, discriminator, img0, num_hypotheses, img_shape):
+    img0 = Input(img_shape)
+    y = Input((num_hypotheses,) + img_shape)
+    disc = []
+    x = y
+    for i in range(num_hypotheses):
+            def _slice(y):
+                return y[:,i]
+            xi = Lambda(_slice, name="slice_%d"%i)(x)
+            print(x,xi)
+            d = discriminator([img0, xi])
+            print(d)
+            def _expand_dims(y):
+                return K.expand_dims(y,axis=1)
+            d = Lambda(_expand_dims, name="expand_dims_%d"%i)(d)
+            disc.append(d)
+    res = Concatenate(axis=1)(disc)
+    md = Model([img0, y], res, name="multi_disc")
+    md.compile(loss="mae", optimizer=model.getOptimizer())
+    return md
