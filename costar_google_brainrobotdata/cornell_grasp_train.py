@@ -48,9 +48,12 @@ from grasp_model import concat_images_with_tiled_vector_layer
 from grasp_model import top_block
 from grasp_model import create_tree_roots
 from grasp_model import dilated_late_concat_model
-import grasp_loss as grasp_loss
+
 # https://github.com/aurora95/Keras-FCN
+# TODO(ahundt) move keras_fcn directly into this repository, into keras-contrib, or make a proper installer
 from keras_fcn.models import AtrousFCN_Vgg16_16s
+
+import grasp_loss as grasp_loss
 
 
 flags.DEFINE_string('data_dir',
@@ -211,7 +214,7 @@ def run_training(learning_rate=0.01, batch_size=20, num_gpus=1, top='classificat
     else:
         label_features = ['grasp_success']
         monitor_metric_name = 'val_binary_accuracy'
-        monitor_loss_name = 'val_binary_crossentropy'
+        monitor_loss_name = 'val_loss'
         metrics = ['binary_accuracy']
         loss = keras.losses.binary_crossentropy
         model_name = 'vgg_model'
