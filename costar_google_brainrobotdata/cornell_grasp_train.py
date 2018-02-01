@@ -43,6 +43,7 @@ from keras.callbacks import CSVLogger
 from keras.callbacks import EarlyStopping
 from keras.callbacks import ModelCheckpoint
 from keras.callbacks import TensorBoard
+from keras.applications.nasnet import NASNetLarge
 from keras.models import Model
 from grasp_model import concat_images_with_tiled_vector_layer
 from grasp_model import top_block
@@ -70,7 +71,7 @@ flags.DEFINE_string('evaluate_filename', 'cornell-grasping-dataset-evaluate.tfre
 
 flags.DEFINE_float(
     'learning_rate',
-    0.01,
+    0.001,
     'Initial learning rate.'
 )
 flags.DEFINE_integer(
@@ -138,17 +139,24 @@ def dilated_vgg_model(
         classes=1,
         output_shape=None,
         trainable=False,
-        verbose=0):
-    with K.name_scope('dilated_vgg_model') as scope:
+        verbose=0,
+        image_model_name='vgg'):
+    with K.name_scope('dilated_' + image_model_name) as scope:
         # VGG16 weights are shared and not trainable
         if top == 'segmentation':
             vgg_model = AtrousFCN_Vgg16_16s(
                 input_shape=image_shapes[0], include_top=False,
                 classes=1, upsample=False)
         else:
-            vgg_model = keras.applications.vgg16.VGG16(
-                input_shape=image_shapes[0], include_top=False,
-                classes=1)
+            if image_model_name == 'vgg':
+                vgg_model = keras.applications.vgg16.VGG16(
+                    input_shape=image_shapes[0], include_top=False,
+                    classes=1)
+            elif image_model_name == 'nasnet':
+                vgg_model = keras.applications.nasnet.NASNetLarge(
+                    input_shape=image_shapes[0], include_top=False,
+                    classes=1
+                )
 
         if not trainable:
             for layer in vgg_model.layers:
@@ -194,13 +202,6 @@ def run_training(learning_rate=0.01, batch_size=20, num_gpus=1, top='classificat
 
     top: options are 'segmentation' and 'classification'.
     """
-    # create dilated_vgg_model with inputs [image], [sin_theta, cos_theta]
-    # TODO(ahundt) split vector shapes up appropriately for dense layers in dilated_late_concat_model
-    model = dilated_vgg_model(
-        image_shapes=[(FLAGS.sensor_image_height, FLAGS.sensor_image_width, 3)],
-        vector_shapes=[(4,)],
-        dropout_rate=0.5,
-        top=top)
 
     data_features = ['image/preprocessed', 'sin_cos_height_width_4']
     # see parse_and_preprocess() for the creation of these features
@@ -211,6 +212,7 @@ def run_training(learning_rate=0.01, batch_size=20, num_gpus=1, top='classificat
         loss = grasp_loss.segmentation_gaussian_binary_crossentropy
         metrics = [grasp_loss.segmentation_single_pixel_binary_accuracy, grasp_loss.mean_pred]
         model_name = 'dilated_vgg_model'
+        image_model_name = 'vgg'
     else:
         label_features = ['grasp_success']
         monitor_metric_name = 'val_binary_accuracy'
@@ -218,6 +220,15 @@ def run_training(learning_rate=0.01, batch_size=20, num_gpus=1, top='classificat
         metrics = ['binary_accuracy']
         loss = keras.losses.binary_crossentropy
         model_name = 'vgg_model'
+        image_model_name = 'vgg'
+    # create dilated_vgg_model with inputs [image], [sin_theta, cos_theta]
+    # TODO(ahundt) split vector shapes up appropriately for dense layers in dilated_late_concat_model
+    model = dilated_vgg_model(
+        image_shapes=[(FLAGS.sensor_image_height, FLAGS.sensor_image_width, 3)],
+        vector_shapes=[(4,)],
+        dropout_rate=0.5,
+        top=top,
+        image_model_name=image_model_name)
 
     print(monitor_loss_name)
     # TODO(ahundt) add a loss that changes size with how open the gripper is
@@ -244,7 +255,7 @@ def run_training(learning_rate=0.01, batch_size=20, num_gpus=1, top='classificat
     checkpoint = keras.callbacks.ModelCheckpoint(log_dir + weights_name + '-epoch-{epoch:03d}-' +
                                                  monitor_loss_name + '-{' + monitor_loss_name + ':.3f}-' +
                                                  monitor_metric_name + '-{' + monitor_metric_name + ':.3f}.h5',
-                                                 save_best_only=False, verbose=1, monitor=monitor_metric_name)
+                                                 save_best_only=True, verbose=1, monitor=monitor_metric_name)
     callbacks = callbacks + [checkpoint]
     progress_tracker = TensorBoard(log_dir=log_dir, write_graph=True,
                                    write_grads=True, write_images=True)
