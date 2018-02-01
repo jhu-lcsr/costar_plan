@@ -52,4 +52,4 @@ class EncoderDistance(object):
 
     def __call__(self, target, pred):
         encoded_targets = self.encoder.predict(target)
-	return self.loss(encoded_targets, pred)
+        return self.loss(encoded_targets, pred)
