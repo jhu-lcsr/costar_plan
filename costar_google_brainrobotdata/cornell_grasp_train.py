@@ -138,12 +138,14 @@ def dilated_vgg_model(
         verbose=0):
     with K.name_scope('dilated_vgg_model') as scope:
         # VGG16 weights are shared and not trainable
-        vgg_model = AtrousFCN_Vgg16_16s(
-            input_shape=image_shapes[0], include_top=False,
-            classes=1, upsample=False)
-        # vgg_model = keras.applications.vgg16.VGG16(
-        #     input_shape=image_shapes[0], include_top=False,
-        #     classes=1)
+        if top == 'segmentation':
+            vgg_model = AtrousFCN_Vgg16_16s(
+                input_shape=image_shapes[0], include_top=False,
+                classes=1, upsample=False)
+        else:
+            vgg_model = keras.applications.vgg16.VGG16(
+                input_shape=image_shapes[0], include_top=False,
+                classes=1)
 
         if not trainable:
             for layer in vgg_model.layers:
@@ -184,32 +186,41 @@ class PrintLogsCallback(keras.callbacks.Callback):
         print('logs:', logs)
 
 
-def run_training(learning_rate=0.01, batch_size=20, num_gpus=1):
+def run_training(learning_rate=0.01, batch_size=20, num_gpus=1, top='classification'):
+    """
+
+    top: options are 'segmentation' and 'classification'.
+    """
     # create dilated_vgg_model with inputs [image], [sin_theta, cos_theta]
     # TODO(ahundt) split vector shapes up appropriately for dense layers in dilated_late_concat_model
     model = dilated_vgg_model(
         image_shapes=[(FLAGS.sensor_image_height, FLAGS.sensor_image_width, 3)],
         vector_shapes=[(4,)],
-        dropout_rate=0.5)
+        dropout_rate=0.5,
+        top=top)
 
-    # see parse_and_preprocess() for the creation of these features
-    label_features = ['grasp_success_yx_3']
-    # label_features = ['grasp_success']
     data_features = ['image/preprocessed', 'sin_cos_height_width_4']
+    # see parse_and_preprocess() for the creation of these features
+    if top == 'segmentation':
+        label_features = ['grasp_success_yx_3']
+        monitor_loss_name = 'segmentation_gaussian_binary_crossentropy'
+        monitor_metric_name = 'val_segmentation_single_pixel_binary_accuracy'
+        loss = grasp_loss.segmentation_gaussian_binary_crossentropy
+        metrics = [grasp_loss.segmentation_single_pixel_binary_accuracy, grasp_loss.mean_pred]
+        model_name = 'dilated_vgg_model'
+    else:
+        label_features = ['grasp_success']
+        monitor_metric_name = 'val_binary_accuracy'
+        monitor_loss_name = 'val_binary_crossentropy'
+        metrics = ['binary_accuracy']
+        loss = keras.losses.binary_crossentropy
+        model_name = 'vgg_model'
 
-    monitor_loss_name = 'segmentation_gaussian_binary_crossentropy'
     print(monitor_loss_name)
-    monitor_metric_name = 'val_binary_accuracy'
-    monitor_metric_name = 'val_segmentation_single_pixel_binary_accuracy'
     # TODO(ahundt) add a loss that changes size with how open the gripper is
-    loss = grasp_loss.segmentation_gaussian_binary_crossentropy
     # loss = grasp_loss.segmentation_gaussian_measurement
-    metrics = [grasp_loss.segmentation_single_pixel_binary_accuracy, grasp_loss.mean_pred]
-    loss = keras.losses.binary_crossentropy
-    metrics = ['binary_accuracy']
 
     save_weights = ''
-    model_name = 'dilated_vgg_model'
     dataset_names_str = 'cornell_grasping'
     weights_name = timeStamped(save_weights + '-' + model_name + '-dataset_' + dataset_names_str + '-' + label_features[0])
     callbacks = []
