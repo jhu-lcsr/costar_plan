@@ -31,6 +31,8 @@ export use_disc=$7
 export MODELROOT="$HOME/.costar"
 export SUBDIR="stack_$learning_rate$optimizer$dropout$noise_dim$loss"
 
+echo $1 $2 $3 $4 $5 $6 $7
+
 # ----------------------------------
 # Old versions
 export train_multi_encoder=false
@@ -51,8 +53,13 @@ then
   SUBDIR=${SUBDIR}_nodisc
 fi
 
-
 export MODELDIR="$MODELROOT/$SUBDIR"
+mkdir $MODELDIR
+touch $MODELDIR/$SLURM_JOB_ID
+
+echo "Options are: $retrain_cmd $use_disc_cmd $1 $2 $3 $4 $5"
+echo "Directory is $MODELDIR"
+echo "Slurm job ID = $SLURM_JOB_ID"
 
 if [[ $train_discriminator && $use_disc ]]
 then

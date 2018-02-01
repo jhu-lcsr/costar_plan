@@ -45,18 +45,18 @@ def MakeImageClassifier(model, img_shape, trainable=True):
     x = img
     x0 = img0
 
-    #x0 = AddConv2D(x0, 32, [7,7], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 32, [7,7], 1, 0., "same", lrelu=disc, bn=bn)
-    #x = Add()([x0, x])
+    x0 = AddConv2D(x0, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = Add()([x0, x])
 
-    x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 128, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 32, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 32, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 32, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 128, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 128, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 128, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
 
     x = Flatten()(x)
     x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
