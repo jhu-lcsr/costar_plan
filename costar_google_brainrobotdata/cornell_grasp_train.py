@@ -186,7 +186,7 @@ def dilated_vgg_model(
 class PrintLogsCallback(keras.callbacks.Callback):
 
     def on_epoch_end(self, epoch, logs={}):
-        print('logs:', logs)
+        print('\nlogs:', logs)
 
 
 def run_training(learning_rate=0.01, batch_size=20, num_gpus=1, top='classification'):
@@ -237,15 +237,15 @@ def run_training(learning_rate=0.01, batch_size=20, num_gpus=1, top='classificat
     csv_logger = CSVLogger(weights_name + '.csv')
     callbacks = callbacks + [csv_logger]
     callbacks += [PrintLogsCallback()]
+    log_dir = './logs_cornell/' + weights_name
+    print('Enabling tensorboard in ' + log_dir)
+    mkdir_p(log_dir)
 
-    checkpoint = keras.callbacks.ModelCheckpoint(weights_name + '-epoch-{epoch:03d}-' +
+    checkpoint = keras.callbacks.ModelCheckpoint(log_dir + weights_name + '-epoch-{epoch:03d}-' +
                                                  monitor_loss_name + '-{' + monitor_loss_name + ':.3f}-' +
                                                  monitor_metric_name + '-{' + monitor_metric_name + ':.3f}.h5',
                                                  save_best_only=False, verbose=1, monitor=monitor_metric_name)
     callbacks = callbacks + [checkpoint]
-    log_dir = './tensorboard_' + weights_name
-    print('Enabling tensorboard in ' + log_dir)
-    mkdir_p(log_dir)
     progress_tracker = TensorBoard(log_dir=log_dir, write_graph=True,
                                    write_grads=True, write_images=True)
     callbacks = callbacks + [progress_tracker]
