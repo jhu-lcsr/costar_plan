@@ -4,6 +4,8 @@ set -e
 set -x
 set -u
 
+module load  
+
 lr=0.001
 dr=0.1
 opt=adam
@@ -37,4 +39,4 @@ for w in wass nowass; do
   for t in true false; do
     sbatch "$SCRIPT_DIR"/ctp_gan.sh suturing_data2 jigsaws $lr $dr $opt $noise_dim $loss $w $t
   done
-d
+done
