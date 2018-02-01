@@ -48,8 +48,7 @@ then
 fi
 
 use_disc_cmd=""
-if [[ ! $use_disc ]]
-then
+if ! $use_disc ; then
   use_disc_cmd="--no_disc"
   SUBDIR=${SUBDIR}_nodisc
 fi
@@ -65,8 +64,7 @@ echo "Slurm job ID = $SLURM_JOB_ID"
 export learning_rate_disc=0.001
 export learning_rate_enc=0.001
 
-if [[ $train_discriminator && $use_disc ]]
-then
+if $train_discriminator && $use_disc ; then
   echo "Training discriminator 1"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
     --features multi \
@@ -82,8 +80,7 @@ then
     --loss $loss \
     --batch_size 64
 fi
-if [[ $train_discriminator2 && $use_disc ]]
-then
+if $train_discriminator2 && $use_disc ; then
   echo "Training discriminator 2"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
     --features multi \
