@@ -44,6 +44,7 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
 
         # Create the encoder
         enc = encoder(img_in)
+        #enc = Dropout(self.dropout_rate)(enc)
         decoder = self._makeImageDecoder(
                     self.hidden_shape,
                     self.skip_shape,)
