@@ -115,6 +115,12 @@ class ConditionalImage(PredictionSampler2):
                     img_shape=img_shape)
             disc_out2 = image_discriminator([img0_in, image_out2])
 
+        # Create custom encoder loss
+        if self.enc_loss:
+            loss = EncoderLoss(self.encoder, self.loss)
+        else:
+            loss = self.loss
+
         # Create models to train
         if self.no_disc:
             disc_wt = 0.
