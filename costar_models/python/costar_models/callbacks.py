@@ -577,6 +577,6 @@ class ModelSaveCallback(keras.callbacks.Callback):
                         logs['val_loss']))
             else:
                 print('Model =', self.saved_model)
-                print('ModelType =', type(self.model))
+                print('ModelType =', type(self.saved_model))
                 self.saved_model.saveWeights()
 
