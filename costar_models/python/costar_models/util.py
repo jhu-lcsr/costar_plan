@@ -14,9 +14,7 @@ from .goal_sampler import RobotMultiGoalSampler
 from .multi_sequence import RobotMultiSequencePredictor
 from .image_sampler import RobotMultiImageSampler
 from .pretrain_image import PretrainImageAutoencoder
-from .pretrain_state import PretrainStateAutoencoder
 from .pretrain_sampler import PretrainSampler
-from .pretrain_minimal import PretrainMinimal
 from .pretrain_image_gan import PretrainImageGan
 
 from .sampler2 import PredictionSampler2
@@ -24,12 +22,14 @@ from .conditional_sampler2 import ConditionalSampler2
 from .conditional_image import ConditionalImage
 from .conditional_image_gan import ConditionalImageGan
 from .discriminator import Discriminator
+from .secondary import Secondary
 
 # Jigsaws stuff
 from .pretrain_image_jigsaws import PretrainImageJigsaws
 from .pretrain_image_jigsaws_gan import PretrainImageJigsawsGan
 from .conditional_image_jigsaws import ConditionalImageJigsaws
 from .conditional_image_gan_jigsaws import ConditionalImageGanJigsaws
+from .discriminator import JigsawsDiscriminator
 
 # Husky stuff
 from .husky_sampler import HuskyRobotMultiPredictionSampler
@@ -38,6 +38,8 @@ from .pretrain_image_husky_gan import PretrainImageHuskyGan
 from .conditional_image_husky import ConditionalImageHusky
 from .conditional_image_husky_gan import ConditionalImageHuskyGan
 from .discriminator import HuskyDiscriminator
+from .multi_policy import HuskyPolicy
+from .secondary import HuskySecondary
 
 def MakeModel(features, model, taskdef, **kwargs):
     '''
@@ -118,20 +120,20 @@ def MakeModel(features, model, taskdef, **kwargs):
                     **kwargs)
         elif model == "pretrain_sampler":
             model_instance = PretrainSampler(taskdef, model=model, **kwargs)
-        elif model == "predictor2" or model == "sampler2":
-            model_instance = PredictionSampler2(taskdef, model=model, **kwargs)
         elif model == "conditional_sampler2":
             model_instance = ConditionalSampler2(taskdef, model=model, **kwargs)
         elif model == "conditional_image":
             model_instance = ConditionalImage(taskdef, model=model, **kwargs)
         elif model == "conditional_image_gan":
             model_instance = ConditionalImageGan(taskdef, model=model, **kwargs)
-        elif model == "pretrain_minimal":
-            model_instance = PretrainMinimal(taskdef, model=model, **kwargs)
         elif model == "pretrain_image_gan":
             model_instance = PretrainImageGan(taskdef, model=model, **kwargs)
         elif model == "discriminator":
-            model_instance = Discriminator(taskdef, model=model, **kwargs)
+            model_instance = Discriminator(False, taskdef, model=model, **kwargs)
+        elif model == "goal_discriminator":
+            model_instance = Discriminator(True, taskdef, model=model, **kwargs)
+        elif model == "secondary":
+            model_instance = Secondary(taskdef, model=model, **kwargs)
     elif features == "jigsaws":
         '''
         These models are all meant for use with the JHU-JIGSAWS dataset. This
@@ -158,6 +160,14 @@ def MakeModel(features, model, taskdef, **kwargs):
                     model=model,
                     features=features,
                     **kwargs)
+        elif model == "discriminator":
+            model_instance = JigsawsDiscriminator(False, taskdef,
+                    features=features,
+                    model=model, **kwargs)
+        elif model == "goal_discriminator":
+            model_instance = JigsawsDiscriminator(True, taskdef,
+                    features=features,
+                    model=model, **kwargs)
     elif features == "husky":
         '''
         Husky simulator. This is a robot moving around on a 2D plane, so our
@@ -168,6 +178,11 @@ def MakeModel(features, model, taskdef, **kwargs):
                     model=model,
                     features=features,
                     **kwargs)
+        elif model == "policy":
+            model_instance = HuskyPolicy(taskdef,
+                    model=model,
+                    features=features,
+                    **kwargs)
         elif model == "pretrain_image_gan":
             model_instance = PretrainImageHuskyGan(taskdef,
                     model=model,
@@ -175,19 +190,37 @@ def MakeModel(features, model, taskdef, **kwargs):
                     **kwargs)
         elif model == "predictor":
             model_instance = HuskyRobotMultiPredictionSampler(taskdef,
+                    features=features,
                     model=model,
                     **kwargs)
         elif model == "conditional_image":
-            model_instance = ConditionalImageHusky(taskdef, model=model, **kwargs)
+            model_instance = ConditionalImageHusky(taskdef,
+                    features=features,
+                    model=model,
+                    **kwargs)
         elif model == "conditional_image_gan":
-            model_instance = ConditionalImageHuskyGan(taskdef, model=model, **kwargs)
-        elif model == "husky_discriminator":
-            model_instance = HuskyDiscriminator(taskdef, model=model, **kwargs)
+            model_instance = ConditionalImageHuskyGan(taskdef,
+                    features=features,
+                    model=model,
+                    **kwargs)
+        elif model == "discriminator":
+            model_instance = HuskyDiscriminator(False, taskdef,
+                    features=features,
+                    model=model, **kwargs)
+        elif model == "goal_discriminator":
+            model_instance = HuskyDiscriminator(True, taskdef,
+                    features=features,
+                    model=model, **kwargs)
+        elif model == "secondary":
+            model_instance = HuskySecondary(taskdef, model=model, **kwargs)
     
     # If we did not create a model then die.
     if model_instance is None:
-        raise NotImplementedError("Combination of model %s and features %s" + \
-                                  " is not currently supported by CTP.")
+        if features is None:
+            features = "n/a"
+        raise NotImplementedError("Combination of model {} and features {}"
+                                  " is not currently supported by CTP."
+                                  .format(model, features))
 
     return model_instance
 
@@ -200,18 +233,17 @@ def GetModels():
             "predictor", # sampler NN to generate image goals
             "hierarchical", # hierarchical policy for planning
             "policy", # single policy hierarchical
-            "husky_predictor", # husky multi prediction sampler implementation
             "goal_sampler", # samples goals instead of everything else
             "image_sampler", #just learn to predict goal image
             "pretrain_image_encoder", # tool for pretraining images
             "pretrain_state_encoder", # tool for pretraining states
             "pretrain_sampler", # tool for pretraining the sampler
-            "predictor2", # second version of the prediction-sampler code
-            "sampler2", # -----------------------------   (same as above)
             "conditional_sampler2", # just give the condition
             "conditional_image", # just give label and predict image
             "conditional_image_gan", # just give label and predict image
-            "pretrain_minimal",
             "pretrain_image_gan",
+            "discriminator",
+            "goal_discriminator",
+            "secondary", # train secondary models like value, actor, state, etc
             ]
 

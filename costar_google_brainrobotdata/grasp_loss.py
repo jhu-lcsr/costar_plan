@@ -15,14 +15,20 @@ def gripper_coordinate_y_pred(y_true, y_pred):
         y_pred: Predicted values with shape [batch_size, img_height, img_width, 1].
     """
     with K.name_scope(name="gripper_coordinate_y_pred") as scope:
-        yx_coordinate = tf.cast(y_true[:, 1:], tf.int32)
-        yx_shape = K.int_shape(yx_coordinate)
-        sample_index = K.expand_dims(tf.range(yx_shape[0]), axis=-1)
+        if keras.backend.ndim(y_true) == 4:
+            # sometimes the dimensions are expanded from 2 to 4
+            # to meet Keras' expectations.
+            # In that case reduce them back to 2
+            y_true = K.squeeze(y_true, axis=-1)
+            y_true = K.squeeze(y_true, axis=-1)
+        yx_coordinate = K.cast(y_true[:, 1:], 'int32')
+        yx_shape = K.shape(yx_coordinate)
+        sample_index = K.expand_dims(K.arange(yx_shape[0]), axis=-1)
         byx_coordinate = K.concatenate([sample_index, yx_coordinate], axis=-1)
 
         # maybe need to transpose yx_coordinate?
-        gripper_coordinate_y_pred = tf.gather_nd(y_pred, byx_coordinate)
-        return gripper_coordinate_y_pred
+        gripper_coordinate_y_predicted = tf.gather_nd(y_pred, byx_coordinate)
+        return gripper_coordinate_y_predicted
 
 
 def gripper_coordinate_y_true(y_true, y_pred=None):
@@ -35,7 +41,13 @@ def gripper_coordinate_y_true(y_true, y_pred=None):
         y_pred: Predicted values with shape [batch_size, img_height, img_width, 1].
     """
     with K.name_scope(name="gripper_coordinate_y_true") as scope:
-        label = tf.cast(y_true[:, :1], tf.float32)
+        if keras.backend.ndim(y_true) == 4:
+            # sometimes the dimensions are expanded from 2 to 4
+            # to meet Keras' expectations.
+            # In that case reduce them back to 2
+            y_true = K.squeeze(y_true, axis=-1)
+            y_true = K.squeeze(y_true, axis=-1)
+        label = K.cast(y_true[:, :1], 'float32')
         return label
 
 
@@ -85,14 +97,14 @@ def gaussian_kernel_2D(size=(3, 3), center=None, sigma=1):
         yy, xx = tf.meshgrid(tf.range(0, size[0]),
                              tf.range(0, size[1]),
                              indexing='ij')
-        yy = tf.cast(yy, tf.float32)
-        xx = tf.cast(xx, tf.float32)
-        center_y = tf.cast(center_y, tf.float32)
-        center_x = tf.cast(center_x, tf.float32)
-        sigma_tensor = tf.constant([[(2.0 * sigma ** 2)]], tf.float32)
+        yy = K.cast(yy, 'float32')
+        xx = K.cast(xx, 'float32')
+        center_y = K.cast(center_y, 'float32')
+        center_x = K.cast(center_x, 'float32')
+        sigma_tensor = tf.constant([[(2.0 * sigma ** 2)]], 'float32')
         # tf.exp requires float16, float32, float64, complex64, complex128
         kernel = tf.exp(tf.div(-((xx - center_x) ** 2 + (yy - center_y) ** 2), sigma_tensor))
-        kernel = tf.Print(kernel, [center_x, center_y, xx, yy, sigma_tensor], 'gaussian_tf')
+        # kernel = tf.Print(kernel, [center_x, center_y, xx, yy, sigma_tensor], 'gaussian_tf')
         return kernel
 
 
@@ -100,7 +112,7 @@ def segmentation_gaussian_measurement(
         y_true,
         y_pred,
         gaussian_sigma=3,
-        measurement=segmentation_losses.binary_crossentropy):
+        measurement=keras.losses.binary_crossentropy):
     """ Apply metric or loss measurement incorporating a 2D gaussian.
 
         Only works with batch size 1.
@@ -114,20 +126,39 @@ def segmentation_gaussian_measurement(
             with shape [1, img_height, img_width, 1].
     """
     with K.name_scope(name='grasp_segmentation_gaussian_loss') as scope:
-        label = y_true[0, 0]
-        y_height_coordinate = y_true[0, 1]
-        x_width_coordinate = y_true[0, 2]
-        label = K.reshape(label, [1, 1])
+        if keras.backend.ndim(y_true) == 4:
+            # sometimes the dimensions are expanded from 2 to 4
+            # to meet Keras' expectations.
+            # In that case reduce them back to 2
+            y_true = K.squeeze(y_true, axis=-1)
+            y_true = K.squeeze(y_true, axis=-1)
+        print('y_pred: ', y_pred)
+        print('y_true: ', y_true)
+        # y_true should have shape [batch_size, 3] here,
+        # label, y_height_coordinate, x_width_coordinate become shape:
+        # [batch_size, 1]
+        label = K.expand_dims(y_true[:, 0])
+        print('label: ', label)
+        y_height_coordinate = K.expand_dims(y_true[:, 1])
+        x_width_coordinate = K.expand_dims(y_true[:, 2])
+        # label = K.reshape(label, [1, 1])
+        print('label: ', label)
         image_shape = tf.Tensor.get_shape(y_pred)
         y_true_img = tile_vector_as_image_channels(label, image_shape)
-        y_true_img = tf.cast(y_true_img, tf.float32)
+        y_true_img = K.cast(y_true_img, 'float32')
         loss_img = measurement(y_true_img, y_pred)
         y_pred_shape = K.int_shape(y_pred)
         if len(y_pred_shape) == 3:
             y_pred_shape = y_pred_shape[:-1]
         if len(y_pred_shape) == 4:
             y_pred_shape = y_pred_shape[1:3]
-        weights = gaussian_kernel_2D(size=y_pred_shape, center=(y_height_coordinate, x_width_coordinate), sigma=gaussian_sigma)
+
+        def batch_gaussian(one_y_true):
+        # def batch_gaussian(y_height_coord, x_width_coord):
+            # weights = gaussian_kernel_2D(size=y_pred_shape, center=(y_height_coord, x_width_coord), sigma=gaussian_sigma)
+            # weights = gaussian_kernel_2D(size=y_pred_shape, center=(y_height_coordinate, x_width_coordinate), sigma=gaussian_sigma)
+            return gaussian_kernel_2D(size=y_pred_shape, center=(one_y_true[0], one_y_true[1]), sigma=gaussian_sigma)
+        weights = K.map_fn(batch_gaussian, y_true)
         loss_img = K.flatten(loss_img)
         weights = K.flatten(weights)
         weighted_loss_img = tf.multiply(loss_img, weights)
@@ -154,6 +185,12 @@ def segmentation_gaussian_measurement_batch(
             with shape [1, img_height, img_width, 1].
     """
     with K.name_scope(name='segmentation_gaussian_measurement_batch') as scope:
+        if keras.backend.ndim(y_true) == 4:
+            # sometimes the dimensions are expanded from 2 to 4
+            # to meet Keras' expectations.
+            # In that case reduce them back to 2
+            y_true = K.squeeze(y_true, axis=-1)
+            y_true = K.squeeze(y_true, axis=-1)
         y_pred_shape = tf.Tensor.get_shape(y_pred)
         batch_size = y_pred_shape[0]
         y_true = tf.split(y_true, batch_size)
@@ -175,6 +212,12 @@ def segmentation_gaussian_binary_crossentropy(
         y_pred,
         gaussian_sigma=3):
     with K.name_scope(name='segmentation_gaussian_binary_crossentropy') as scope:
+        if keras.backend.ndim(y_true) == 4:
+            # sometimes the dimensions are expanded from 2 to 4
+            # to meet Keras' expectations.
+            # In that case reduce them back to 2
+            y_true = K.squeeze(y_true, axis=-1)
+            y_true = K.squeeze(y_true, axis=-1)
         results = segmentation_gaussian_measurement_batch(
             y_true, y_pred,
             measurement=segmentation_losses.binary_crossentropy,
@@ -246,5 +289,5 @@ def mean_true(y_true, y_pred):
     """
     with K.name_scope(name='mean_true') as scope:
         if len(K.int_shape(y_true)) == 2 and K.int_shape(y_true)[1] == 3:
-            y_true = tf.cast(y_true[:, :1], tf.float32)
+            y_true = K.cast(y_true[:, :1], 'float32')
         return K.mean(y_true)

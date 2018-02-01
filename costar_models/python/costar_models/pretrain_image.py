@@ -24,6 +24,7 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
         '''
         super(PretrainImageAutoencoder, self).__init__(taskdef, *args, **kwargs)
         self.PredictorCb = ImageCb
+        self.save_encoder_decoder = True
 
     def _makePredictor(self, features):
         '''
@@ -39,36 +40,50 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
         img0_in = Input(img_shape,name="predictor_img0_in")
         option_in = Input((1,), name="predictor_option_in")
         encoder = self._makeImageEncoder(img_shape)
-        ins = [img_in]
-        
-        enc = encoder(ins)
+        ins = [img0_in, img_in]
+
+        # Create the encoder
+        enc = encoder(img_in)
+        #enc = Dropout(self.dropout_rate)(enc)
         decoder = self._makeImageDecoder(
                     self.hidden_shape,
                     self.skip_shape,)
         out = decoder(enc)
 
-        image_discriminator = self._makeImageEncoder(img_shape, disc=True)
+        if not self.no_disc:
+            # Create the discriminator to make sure this is a good image
+            image_discriminator = MakeImageClassifier(self, img_shape)
+            image_discriminator.load_weights(
+                    self.makeName("discriminator", "classifier"))
+            image_discriminator.trainable = False
+            o2 = image_discriminator([img0_in, out])
 
-        o1 = image_discriminator(ins)
-        o2 = image_discriminator([out])
-
-        encoder.summary()
-        decoder.summary()
-        image_discriminator.summary()
-
-        ae = Model(ins, [out, o1, o2])
-        ae.compile(
-                loss=["mae"] + ["categorical_crossentropy"]*2,
-                loss_weights=[1.,1.e-2,1e-4],
-                optimizer=self.getOptimizer())
+        if self.no_disc:
+            ae = Model(ins, [out])
+            ae.compile(
+                    loss=["mae"],
+                    loss_weights=[1.],
+                    optimizer=self.getOptimizer())
+        else:
+            ae = Model(ins, [out, o2])
+            ae.compile(
+                    loss=["mae"] + ["categorical_crossentropy"],
+                    loss_weights=[1.,1e-3],
+                    optimizer=self.getOptimizer())
         ae.summary()
-    
+
         return ae, ae, None, [img_in], enc
 
     def _getData(self, *args, **kwargs):
         features, targets = GetAllMultiData(self.num_options, *args, **kwargs)
         [I, q, g, oin, label, q_target, g_target,] = features
         o1 = targets[1]
-        oin_1h = np.squeeze(ToOneHot2D(oin, self.num_options))
-        return [I], [I, oin_1h, oin_1h]
+        I0 = I[0,:,:,:]
+        length = I.shape[0]
+        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1])
+        if self.no_disc:
+            return [I0, I], [I]
+        else:
+            o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
+            return [I0, I], [I, o1_1h]
 

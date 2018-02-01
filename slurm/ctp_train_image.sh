@@ -25,7 +25,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --lr 0.001 \
   --model_directory $HOME/.costar/models_N_image/ \
   --upsampling conv_transpose \
-  --use_noise true \
+  --use_noise \
   --noise_dim 8 \
   --steps_per_epoch 300  \
   --dropout_rate 0.5 \

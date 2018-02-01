@@ -14,14 +14,14 @@ from costar_models.datasets.npz import NpzDataset
 from costar_models.datasets.npy_generator import NpzGeneratorDataset
 from costar_models.datasets.h5f_generator import H5fGeneratorDataset
 
-'''
-Tool for running model training without the rest of the simulation/planning/ROS
-code. This should be more or less independent and only rely on a couple
-external features.
-'''
 
 def visualizeHiddenMain(args):
-    SetCPU(args)
+    '''
+    Tool for running model training without the rest of the simulation/planning/ROS
+    code. This should be more or less independent and only rely on a couple
+    external features.
+    '''
+    ConfigureGPU(args)
 
     data_file_info = args['data_file'].split('.')
     data_type = data_file_info[-1]
@@ -41,27 +41,36 @@ def visualizeHiddenMain(args):
 
     if 'model' in args and args['model'] is not None:
         model = MakeModel(taskdef=None, **args)
+        model.validate = True
         model.load(world=None,**data)
         train_generator = model.trainGenerator(dataset)
         test_generator = model.testGenerator(dataset)
 
-        if not isinstance(model, PredictionSampler2):
-            raise RuntimeError('Only sampler2, conditional_sampler, etc. are'
-                               'supported')
-
         data = next(test_generator)
         features, targets = next(train_generator)
-        h = model.encode(features)
+        [I0, I, o1, o2, oin] = features
+        [ I_target, I_target2, o1_1h, v, qa, ga, o2_1h] = targets
+
+        # Same as in training code
+        model.model.predict([I0, I, o1, o2, oin])
+        h = model.encode(I)
+        h0 = model.encode(I0)
         prev_option = model.prevOption(features)
         img = model.debugImage(features)
         null_option = np.ones_like(prev_option) * model.null_option
-        #p_a = model.pnext(h, null_option, features)
-        p_a = model.pnext(h, prev_option, features)
-        v = model.value(h, prev_option, features)
+        p_a = model.pnext(h0, h, prev_option)
+        v = model.value(h0, h)
 
         if not h.shape[0] == img.shape[0]:
             raise RuntimeError('something went wrong with dimensions')
-
+        print("shape =", p_a.shape)
+        action = np.argmax(p_a,axis=1)
+        print (o1)
+        print(prev_option)
+        print(action)
+        h_goal = model.transform(h0, h0, o1)
+        img_goal = model.decode(h_goal)
+        v_goal = model.value(h0, h_goal)
         print("--------------\nHidden state:\n--------------\n")
         print("shape of hidden samples =", h.shape)
         print("shape of images =", img.shape)
@@ -69,17 +78,22 @@ def visualizeHiddenMain(args):
             print("------------- %d -------------"%i)
             print("prev option =", prev_option[i])
             print("best option =", np.argmax(p_a[i]))
+            print("actual option=", o1[i])
             print("value =", v[i])
+            print("goal value =", v_goal[i])
             print(p_a[i])
             plt.figure()
-            plt.subplot(3,3,1)
-            plt.imshow(img[i])
-            for j in range(h.shape[-1]):
-                plt.subplot(3,3,j+2)
-                plt.imshow(np.squeeze(h[i,:,:,j]))
+            plt.subplot(1,5,1)
+            Show(img[i])
+            plt.subplot(1,5,2)
+            Show(np.squeeze(h[i,:,:,:3]))
+            plt.subplot(1,5,3)
+            Show(np.squeeze(h_goal[i,:,:,:3]))
+            plt.subplot(1,5,4)
+            Show(img_goal[i])
+            plt.subplot(1,5,5)
+            Show(targets[0][i])
             plt.show()
-
-
 
     else:
         raise RuntimeError('Must provide a model to load')

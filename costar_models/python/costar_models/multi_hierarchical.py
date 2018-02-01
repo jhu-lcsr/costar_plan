@@ -260,60 +260,6 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         print(ins, actor.inputs)
         #model_ins = Input(name="img_in")
 
-    def _makePolicy(self, encoder, features, arm, gripper,
-            arm_cmd, gripper_cmd, option):
-        '''
-        Create a single policy corresponding to option 
-
-        Parameters:
-        -----------
-        option: index of the policy to create
-        '''
-        img_shape = features.shape[1:]
-        arm_size = arm.shape[1]
-        arm_cmd_size = arm_cmd.shape[1]
-        print("arm_size ", arm_size, " arm_cmd_size ", arm_cmd_size)
-        if len(gripper.shape) > 1:
-            gripper_size = gripper.shape[1]
-        else:
-            gripper_size = 1
-
-        img_in = Input(img_shape,name="policy_img_in")
-        img0_in = Input(img_shape,name="policy_img0_in")
-        arm = Input((arm_size,), name="ee_in")
-        gripper = Input((gripper_size,), name="gripper_in")
-
-        ins = [img0_in, img_in, arm, gripper]
-
-        dr, bn = self.dropout_rate, self.use_batchnorm
-
-        y = Concatenate()([arm, gripper])
-
-        x = encoder(img_in)
-        x0 = encoder(img0_in)
-
-        x = Concatenate(axis=-1)([x, x0])
-        x = AddConv2D(x, 32, [3,3], 1, dr, "same", lrelu=True, bn=bn)
-
-        y = AddDense(y, 32, "relu", 0., output=True, constraint=3)
-        x = TileOnto(x, y, 32, (8,8), add=False)
-
-        x = AddConv2D(x, 32, [3,3], 1, dr, "valid", lrelu=True, bn=bn)
-
-        x = Flatten()(x)
-        #x = Concatenate()([x, arm, gripper])
-
-        x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
-        x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
-
-        arm_out = Dense(arm_cmd_size, name="arm_out")(x)
-        gripper_out = Dense(gripper_size, name="gripper_out")(x)
-
-        model = Model(ins, [arm_out, gripper_out])
-        model.compile(loss=self.loss, optimizer=self.getOptimizer())
-        model.summary()
-        return model
-
     def plotInfo(self, features, targets, axes):
         # debugging: plot every 5th image from the dataset
         subset = [f[range(0,25,5)] for f in features]
@@ -390,14 +336,8 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
             raise RuntimeError('save() failed: model not found.')
 
     def trainFromGenerators(self, train_generator, test_generator, data=None, *args, **kwargs):
-        #[features, arm, gripper, oi], [arm_cmd, gripper_cmd] = self._getData(**data)
-        features, targets = self._getAllData(**data)
-        [I, q, g, _, _, _, _] = features
-        _, _, _, qa, ga, _ = targets
-        qa, ga = np.squeeze(qa), np.squeeze(ga)
-
         if self.model is None:
-            self._makeModel(I, q, g, qa, ga, *args, **kwargs)
+            self._makeModel(**data)
         self.model.summary()
         self.model.fit_generator(
                 train_generator,
@@ -405,33 +345,6 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 epochs=self.epochs,
                 validation_steps=self.validation_steps,
                 validation_data=test_generator,)
-
-    def _makeImageClassifier(self, img_shape):
-        img = Input(img_shape,name="img_classifier_in")
-        img0 = Input(img_shape,name="img0_classifier_in")
-        bn = False
-        dr = self.dropout_rate
-        x = img
-        x0 = img0
-
-        x = AddConv2D(x, 32, [7,7], 1, dr, "same", lrelu=disc, bn=bn)
-        x0 = AddConv2D(x0, 32, [7,7], 1, dr, "same", lrelu=disc, bn=bn)
-        x = Concatenate(axis=-1)([x,x0])
-
-        x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-        x = AddConv2D(x, 32, [5,5], 1, dr, "same", lrelu=disc, bn=bn)
-        x = AddConv2D(x, 32, [5,5], 1, dr, "same", lrelu=disc, bn=bn)
-        x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-        x = AddConv2D(x, 64, [5,5], 1, dr, "same", lrelu=disc, bn=bn)
-        x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-
-        x = Flatten()(x)
-        x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
-        x = AddDense(x, self.num_options, "softmax", 0., output=True, bn=False)
-        image_encoder = Model([img0, img], x, name="Idisc")
-        image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
-        self.classifier = image_encoder
-        return image_encoder
 
     def _makeImageEncoder(self, img_shape, disc=False):
         '''
@@ -445,14 +358,9 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         '''
         img = Input(img_shape,name="img_encoder_in")
         bn = not disc and self.use_batchnorm
-        #img0 = Input(img_shape,name="img0_encoder_in")
-        dr = self.dropout_rate
+        dr = self.dropout_rate * 0.
         x = img
-        #x0 = img0
         x = AddConv2D(x, 32, [7,7], 1, 0., "same", lrelu=disc, bn=bn)
-        #x0 = AddConv2D(x0, 32, [7,7], 1, dr, "same", lrelu=disc, bn=bn)
-        #x = Concatenate(axis=-1)([x,x0])
-
         x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
         x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
         x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
@@ -507,6 +415,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
         x = rep
         dr = self.decoder_dropout_rate if self.hypothesis_dropout else 0
+        dr *= 0
         bn = self.use_batchnorm
         
         if self.use_spatial_softmax:

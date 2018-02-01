@@ -15,20 +15,16 @@ class H5fGeneratorDataset(NpzGeneratorDataset):
     takes the load function so all we need to do is implement things so they'll
     load a particular class.
     '''
-    def __init__(self, name, split=0.1, ):
-        '''
-        Set name of directory to load files from
-
-        '''
-        self.name = name 
-        self.split = split
-        self.train = []
-        self.test = []
+    def __init__(self, *args, **kwargs):
+        super(H5fGeneratorDataset, self).__init__(*args, **kwargs)
 
     def _load(self, filename):
         '''
         Helper to load the file
         '''
-        f = h5f.File(filename, 'r')
-        return f
-
+        data = {}
+        with h5f.File(filename, 'r') as f:
+            for k, v in f.items():
+                data[k] = np.array(v)        
+        return data
+    

@@ -14,16 +14,20 @@ from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 
 from .multi_sampler import *
+from .multi import *
+from .husky import *
+from .dvrk import *
 
 class Discriminator(RobotMultiPredictionSampler):
 
-    def __init__(self, taskdef, *args, **kwargs):
+    def __init__(self, goal, taskdef, *args, **kwargs):
         '''
         As in the other models, we call super() to parse arguments from the
         command line and set things like our optimizer and learning rate.
         '''
         super(Discriminator, self).__init__(taskdef, *args, **kwargs)
         self.PredictorCb = None
+        self.goal = goal
 
     def _makePredictor(self, features):
         '''
@@ -35,40 +39,90 @@ class Discriminator(RobotMultiPredictionSampler):
                 arm,
                 gripper)
 
-        disc = self._makeImageEncoder(img_shape, disc=True)
+        disc = MakeImageClassifier(self, img_shape)
         disc.summary()
    
         return None, disc, None, None, None
 
-    def _getData(self, *args, **kwargs):
-        features, targets = GetAllMultiData(self.num_options, *args, **kwargs)
-        [I, q, g, oin, label, q_target, g_target,] = features
-        o1 = targets[1]
-        oin_1h = np.squeeze(ToOneHot2D(oin, self.num_options))
-        return [I0, I], [oin_1h]
+    def _getData(self, features, label, goal_features, *args, **kwargs):
+        I = np.array(features) / 255.
+        I_target = np.array(goal_features) / 255.
+        o1_1h = np.squeeze(ToOneHot2D(np.array(label), self.num_options))
+        I0 = I[0,:,:,:]
+        length = I.shape[0]
+        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
+        if self.goal:
+            return [I0, I_target], [o1_1h]
+        else:
+            return [I0, I], [o1_1h]
 
 class HuskyDiscriminator(RobotMultiPredictionSampler):
 
-    def __init__(self, taskdef, *args, **kwargs):
+    def __init__(self, goal, taskdef, *args, **kwargs):
         '''
         As in the other models, we call super() to parse arguments from the
         command line and set things like our optimizer and learning rate.
         '''
         super(HuskyDiscriminator, self).__init__(taskdef, *args, **kwargs)
         self.PredictorCb = None
-        self.num_options = 5
+        self.goal = goal
+        self.num_options = HuskyNumOptions()
 
     def _makeModel(self, image, *args, **kwargs):
         '''
         Create model to predict possible manipulation goals.
         '''
         img_shape = image.shape[1:]
-        disc = self._makeImageEncoder(img_shape, disc=True)
+        disc = MakeImageClassifier(self, img_shape)
         disc.summary()
 
-        self.train_predictor = disc
+        self.model = disc
 
-    def _getData(self, image, *args, **kwargs):
+    def _getData(self, image, goal_image, label, *args, **kwargs):
         I = np.array(image) / 255.
-        return [I], [I]
+        I_target = np.array(goal_image) / 255.
+        o1 = np.array(label)
+        o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
+        I0 = I[0,:,:,:]
+        length = I.shape[0]
+        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
+        if self.goal:
+            return [I0, I_target], [o1_1h]
+        else:
+            return [I0, I], [o1_1h]
+
+class JigsawsDiscriminator(RobotMultiPredictionSampler):
+
+    def __init__(self, goal, taskdef, *args, **kwargs):
+        '''
+        As in the other models, we call super() to parse arguments from the
+        command line and set things like our optimizer and learning rate.
+        '''
+        super(JigsawsDiscriminator, self).__init__(taskdef, *args, **kwargs)
+        self.PredictorCb = None
+        self.num_options = SuturingNumOptions()
+        self.goal = goal
+
+    def _makeModel(self, image, *args, **kwargs):
+        '''
+        Create model to predict possible manipulation goals.
+        '''
+        img_shape = image.shape[1:]
+        disc = MakeJigsawsImageClassifier(self, img_shape)
+        disc.summary()
+
+        self.model = disc
+
+    def _getData(self, image, goal_image, label, *args, **kwargs):
+        I = np.array(image) / 255.
+        I_target = np.array(goal_image) / 255.
+        o1 = np.array(label)
+        o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
+        I0 = I[0,:,:,:]
+        length = I.shape[0]
+        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
+        if self.goal:
+            return [I0, I_target], [o1_1h]
+        else:
+            return [I0, I], [o1_1h]
 
