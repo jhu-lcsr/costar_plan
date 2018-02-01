@@ -48,6 +48,9 @@ export MODELDIR="$MODELROOT/$SUBDIR"
 mkdir $MODELDIR
 touch $MODELDIR/$SLURM_JOB_ID
 
+export learning_rate_disc=0.01
+export learning_rate_enc=0.01
+
 if [[ $train_discriminator && $use_disc ]]
 then
   echo "Training discriminator 1"

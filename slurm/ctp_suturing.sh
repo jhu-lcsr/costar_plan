@@ -16,7 +16,7 @@ module load tensorflow/cuda-8.0/r1.3
 export DATASET="suturing_data2"
 export train_discriminator1=false
 export train_discriminator2=true
-export train_image_encoder=false
+export train_image_encoder=true
 export learning_rate=$1
 export dropout=$2
 export optimizer=$3
@@ -45,6 +45,9 @@ fi
 export MODELDIR="$MODELROOT/$SUBDIR"
 mkdir $MODELDIR
 touch $MODELDIR/$SLURM_JOB_ID
+
+export learning_rate_disc=0.01
+export learning_rate_enc=0.01
 
 if [[ $train_discriminator1 && $use_disc ]]
 then
