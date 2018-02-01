@@ -14,8 +14,8 @@ echo "Running $@ on $SLURMD_NODENAME ..."
 module load tensorflow/cuda-8.0/r1.3 
 
 export DATASET="suturing_data2"
-export train_discriminator1=false
-export train_discriminator2=true
+export train_discriminator1=true
+export train_discriminator2=false
 export train_image_encoder=true
 export learning_rate=$1
 export dropout=$2
@@ -102,7 +102,7 @@ then
     --steps_per_epoch 300 \
     --noise_dim $noise_dim \
     --loss $loss \
-    --batch_size 64 $use_disc
+    --batch_size 64 $use_disc_cmd
 fi
 
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
