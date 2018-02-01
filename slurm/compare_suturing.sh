@@ -22,13 +22,12 @@ cd -
 # Start training things
 retrain=false
 use_disc=true
-#sbatch ctp_suturing.sh $lr $dr $opt $noise_dim $loss $retrain $use_disc
+sbatch ctp_suturing.sh $lr $dr $opt $noise_dim $loss $retrain $use_disc
 
 retrain=false
 use_disc=false
 sbatch ctp_suturing.sh $lr $dr $opt $noise_dim $loss $retrain $use_disc
 
-"
 retrain=true
 use_disc=true
 sbatch ctp_suturing.sh $lr $dr $opt $noise_dim $loss $retrain $use_disc
@@ -41,4 +40,3 @@ for w in wass nowass; do
     sbatch "$SCRIPT_DIR"/ctp_gan.sh suturing_data2 jigsaws $lr $dr $opt $noise_dim $loss $w $t
   done
 done
-"
