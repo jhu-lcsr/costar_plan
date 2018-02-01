@@ -42,6 +42,7 @@ export train_predictor=false
 retrain_cmd=""
 if $retrain
 then
+  echo "retrain models"
   retrain_cmd="--retrain"
   SUBDIR=${SUBDIR}_retrain
 fi
@@ -49,6 +50,7 @@ fi
 use_disc_cmd=""
 if [[ ! $use_disc ]]
 then
+  echo "no discriminator"
   use_disc_cmd="--no_disc"
   SUBDIR=${SUBDIR}_nodisc
 fi
