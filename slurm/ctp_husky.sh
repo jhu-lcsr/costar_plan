@@ -10,12 +10,14 @@
 
 
 echo "Running $@ on $SLURMD_NODENAME ..."
+echo $1 $2 $3 $4 $5 $6 $7
+echo "use disc = $use_disc"
 
 module load tensorflow/cuda-8.0/r1.3 
 
 export DATASET="husky_data"
 export train_discriminator=false
-export train_discriminator2=true
+export train_discriminator2=false
 export train_image_encoder=false
 export train_gans=false
 export train_encoder_gan=true
@@ -38,7 +40,7 @@ then
 fi
 
 use_disc_cmd=""
-if [[ ! $use_disc ]]
+if ! $use_disc ; then
 then
   use_disc_cmd="--no_disc"
   SUBDIR=${SUBDIR}_nodisc
@@ -51,8 +53,11 @@ touch $MODELDIR/$SLURM_JOB_ID
 export learning_rate_disc=0.01
 export learning_rate_enc=0.01
 
-if [[ $train_discriminator && $use_disc ]]
-then
+echo "Options are: $retrain_cmd $use_disc_cmd $1 $2 $3 $4 $5"
+echo "Directory is $MODELDIR"
+echo "Slurm job ID = $SLURM_JOB_ID"
+
+if $train_discriminator && $use_disc ; then
   echo "Training discriminator 1"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
     --features multi \
@@ -69,7 +74,7 @@ then
     --loss $loss \
     --batch_size 64
 fi
-if [[ $train_discriminator2 && $use_disc ]]
+if $train_discriminator2 && $use_disc ; then
   echo "Training discriminator 2"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
     --features multi \
