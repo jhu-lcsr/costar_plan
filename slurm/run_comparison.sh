@@ -4,7 +4,7 @@ set -e
 set -x
 set -u
 
-lr=0.0001
+lr=0.001
 dr=0.1
 opt=rmsprop
 noise_dim=4
