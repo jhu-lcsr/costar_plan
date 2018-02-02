@@ -146,16 +146,16 @@ def dilated_vgg_model(
         if top == 'segmentation':
             vgg_model = AtrousFCN_Vgg16_16s(
                 input_shape=image_shapes[0], include_top=False,
-                classes=1, upsample=False)
+                classes=classes, upsample=False)
         else:
             if image_model_name == 'vgg':
                 vgg_model = keras.applications.vgg16.VGG16(
                     input_shape=image_shapes[0], include_top=False,
-                    classes=1)
+                    classes=classes)
             elif image_model_name == 'nasnet':
                 vgg_model = keras.applications.nasnet.NASNetLarge(
                     input_shape=image_shapes[0], include_top=False,
-                    classes=1
+                    classes=classes
                 )
 
         if not trainable:
@@ -197,7 +197,7 @@ class PrintLogsCallback(keras.callbacks.Callback):
         print('\nlogs:', logs)
 
 
-def run_training(learning_rate=0.01, batch_size=20, num_gpus=1, top='classification'):
+def run_training(learning_rate=0.01, batch_size=10, num_gpus=1, top='classification'):
     """
 
     top: options are 'segmentation' and 'classification'.
@@ -217,7 +217,7 @@ def run_training(learning_rate=0.01, batch_size=20, num_gpus=1, top='classificat
         label_features = ['grasp_success']
         monitor_metric_name = 'val_binary_accuracy'
         monitor_loss_name = 'val_loss'
-        metrics = ['binary_accuracy']
+        metrics = ['binary_accuracy', grasp_loss.mean_pred, grasp_loss.mean_true]
         loss = keras.losses.binary_crossentropy
         model_name = 'vgg_model'
         image_model_name = 'vgg'
@@ -257,8 +257,12 @@ def run_training(learning_rate=0.01, batch_size=20, num_gpus=1, top='classificat
                                                  monitor_metric_name + '-{' + monitor_metric_name + ':.3f}.h5',
                                                  save_best_only=True, verbose=1, monitor=monitor_metric_name)
     callbacks = callbacks + [checkpoint]
+    # An additional useful param is write_batch_performance:
+    #  https://github.com/keras-team/keras/pull/7617
+    #  write_batch_performance=True)
     progress_tracker = TensorBoard(log_dir=log_dir, write_graph=True,
-                                   write_grads=True, write_images=True)
+                                   write_grads=True, write_images=True,
+                                   histogram_freq=1, batch_size=batch_size)
     callbacks = callbacks + [progress_tracker]
     train_file = os.path.join(FLAGS.data_dir, FLAGS.train_filename)
     validation_file = os.path.join(FLAGS.data_dir, FLAGS.evaluate_filename)
@@ -287,15 +291,19 @@ def run_training(learning_rate=0.01, batch_size=20, num_gpus=1, top='classificat
     #         batch_size=batch_size)):
     #     i += 1
 
+    # Get the validation dataset in one big numpy array for validation
+    # This lets us take advantage of tensorboard visualization
+    all_validation_data = next(cornell_grasp_dataset_reader.yield_record(
+        validation_file, label_features,
+        data_features, batch_size=samples_in_val_dataset))
+
     parallel_model.fit_generator(
         cornell_grasp_dataset_reader.yield_record(
             train_file, label_features, data_features,
             batch_size=batch_size),
         steps_per_epoch=steps_per_epoch_train,
         epochs=100,
-        validation_data=cornell_grasp_dataset_reader.yield_record(
-            validation_file, label_features,
-            data_features, batch_size=val_batch_size),
+        validation_data=all_validation_data,
         validation_steps=steps_in_val_dataset,
         callbacks=callbacks)
 
