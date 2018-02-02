@@ -18,6 +18,62 @@ negative: 2909 (36%)
 object count: 244
 object category count: 93
 
+
+From the Cornell dataset Readme
+-------------------------------
+
+The dataset file contains 5 types of files:
+1. Image files
+    Named pcdxxxxr.png
+    where xxxx ranges from 0000-1034
+    These are the original images of the objects
+2. Point cloud files
+    Named pcdxxxx.txt
+    where xxxx ranges from 0000-1034
+3. Handlabeled grasping rectangles
+    Named pcdxxxxcpos.txt for positive rectangles
+    Named pcdxxxxcneg.txt for negative rectangles
+4. Background images
+    Named pcdb_xxxx.png
+5. A mapping from each image to its background image
+    Named backgroundMapping.txt
+
+====================================================
+2. Point cloud files
+Point cloud files are in .PCD v.7 point cloud data file format
+See http://www.pointclouds.org/documentation/tutorials/pcd_file_format.php
+for more information. Each uncommented line represents a pixel in the image.
+That point in space that intersects that pixel (from pcdxxxxr.png)
+has x, y, and z coordinates (relative to the base of the robot that was
+taking the images, so for our purposes we call this "global space").
+
+You can tell which pixel each line refers to by the final column in each line
+(labelled "index").  That number is an encoding of the row and column number
+of the pixel. In all of our images, there are 640 columns and 480 rows.  Use
+the following formulas to map an index to a row, col pair.
+Note [in matlab] that index = 0 maps to row 1, col 1.
+[Note in python that index = 0 maps to row 0, col 0.]
+
+row = floor(index / 640) + 1
+col = (index MOD 640) + 1
+
+3. Grasping rectangle files contain 4 lines for each rectangle. Each line
+contains the x and y coordinate of a vertex of that rectangle separated by
+a space. The first two coordinates of a rectangle define the line
+representing the orientation of the gripper plate. Vertices are listed in
+counter-clockwise order.
+[This means what we describe as bbox/width is the gripper plate,
+ and bbox/height is the distance between gripper plates]
+
+5. The backgroundMapping file contains one line for each image in the
+dataset, giving the image name and the name of the corresponding
+background image separated by a space.
+
+Obviously, in non-research settings, you would not want to force your personal
+robot to take a background picture beforehand, so this is not a practical way
+to handle identifying objects.  However, for the sake of concentrating only on
+grasping, it is a very convenient method to subtract the backgrounds when possible.
+
 '''
 
 import os
@@ -69,6 +125,7 @@ flags.DEFINE_string('grasp_dataset', 'all', 'TODO(ahundt): integrate with brainr
 flags.DEFINE_boolean('grasp_download', False,
                      """Download the grasp_dataset to data_dir if it is not already present.""")
 flags.DEFINE_boolean('plot', False, 'plot data in matplotlib as it is traversed')
+flags.DEFINE_boolean('verbose', True, 'Print actual features for each image')
 flags.DEFINE_boolean('write', False, 'Actually write the tfrecord files if True, simply gather stats if False.')
 flags.DEFINE_boolean('shuffle', True, 'shuffle the image order before running')
 flags.DEFINE_boolean(
@@ -265,7 +322,7 @@ def bbox_info(box):
     return box_coordinates, center, tan, angle, width, height
 
 
-def get_bbox_info_list(path_pos, path_neg):
+def load_bounding_boxes_from_pos_neg_files(path_pos, path_neg):
     # list of list [y0_list, x0_list, y1_list, x1_list, ...]
     coordinates_list = [[]] * 8
     # list of centers
@@ -283,6 +340,10 @@ def get_bbox_info_list(path_pos, path_neg):
     grasp_success = []
     count_fail_success = [0, 0]
 
+    # coordinates_list: a list containing 8 total lists of floats.
+    #     Each list contains specific coordinates for the grasping box
+    #     at that index.
+    #     [x0, y0, x1, y1, x2, y2, x3, y3]
     for path_label, path in enumerate([path_neg, path_pos]):
         for box in read_label_file(path):
             coordinates, center, tan, angle, width, height = bbox_info(box)
@@ -299,9 +360,25 @@ def get_bbox_info_list(path_pos, path_neg):
             grasp_success.append(path_label)
             count_fail_success[path_label] += 1
 
-    return (coordinates_list, center_x_list, center_y_list, tan_list,
-            angle_list, cos_list, sin_list, width_list, height_list,
-            grasp_success, count_fail_success)
+    bbox_example_features = []
+    for i in range(len(center_x_list)):
+        # Build an Example proto for an example
+        feature = {}
+        for j in range(4):
+            feature['bbox/y' + str(j)] = coordinates_list[2*j][i]
+            feature['bbox/x' + str(j)] = coordinates_list[2*j+1][i]
+        feature['bbox/cy'] = center_y_list[i]
+        feature['bbox/cx'] = center_x_list[i]
+        feature['bbox/tan'] = tan_list[i]
+        feature['bbox/theta'] = angle_list[i]
+        feature['bbox/sin_theta'] = sin_list[i]
+        feature['bbox/cos_theta'] = cos_list[i]
+        feature['bbox/width'] = width_list[i]
+        feature['bbox/height'] = height_list[i]
+        feature['bbox/grasp_success'] = grasp_success[i]
+        bbox_example_features += [feature]
+
+    return (bbox_example_features, count_fail_success)
 
 
 def gaussian_kernel_2D(size=(3, 3), center=None, sigma=1):
@@ -422,6 +499,9 @@ def visualize_example(img, center_x_list, center_y_list, grasp_success, gt_image
     gt_plot_height = len(center_x_list)/2
     fig, axs = plt.subplots(gt_plot_height + 1, 4, figsize=(15, 15))
     axs[0, 0].imshow(img, zorder=0)
+    # for i in range(4):
+    #     feature['bbox/y' + str(i)] = _floats_feature(dict_bbox_lists['bbox/y' + str(i)])
+    #     feature['bbox/x' + str(i)] = _floats_feature(dict_bbox_lists['bbox/x' + str(i)])
     # axs[0, 0].arrow(np.array(center_y_list), np.array(center_x_list),
     #                 np.array(coordinates_list[0]) - np.array(coordinates_list[2]),
     #                 np.array(coordinates_list[1]) - np.array(coordinates_list[3]), c=grasp_success)
@@ -494,16 +574,15 @@ def _validate_text(text):
         return str(text)
 
 
-def _create_examples(filename, image_buffer, height, width, coordinates_list,
-                     center_y_list, center_x_list, tan_list, angle_list,
-                     sin_list, cos_list, width_list, height_list, grasp_success):
+def _create_examples(filename, image_buffer, height, width, dict_bbox_lists):
     """
-    coordinates_list: a list containing 8 total lists of floats.
-        Each list contains specific coordinates for the grasping box
-        at that index.
-        [x0, y0, x1, y1, x2, y2, x3, y3]
 
+    Create a TFRecord example which stores multiple bounding boxe copies with a single image.
     This makes lists of coordinates so that images are never repeated.
+
+    # Arguments
+
+        dict_bbox_lists: A dictionary containing lists of feature values.
 
     # Returns
 
@@ -516,82 +595,104 @@ def _create_examples(filename, image_buffer, height, width, coordinates_list,
                'image/height': _int64_feature(height),
                'image/width': _int64_feature(width)}
     for i in range(4):
-        feature['bbox/y' + str(i)] = _floats_feature(coordinates_list[2*i])
-        feature['bbox/x' + str(i)] = _floats_feature(coordinates_list[2*i+1])
-    feature['bbox/cy'] = _floats_feature(center_y_list)
-    feature['bbox/cx'] = _floats_feature(center_x_list)
-    feature['bbox/tan'] = _floats_feature(tan_list)
-    feature['bbox/theta'] = _floats_feature(angle_list)
-    feature['bbox/sin_theta'] = _floats_feature(sin_list)
-    feature['bbox/cos_theta'] = _floats_feature(cos_list)
-    feature['bbox/width'] = _floats_feature(width_list)
-    feature['bbox/height'] = _floats_feature(height_list)
-    feature['bbox/grasp_success'] = _int64_feature(grasp_success)
+        feature['bbox/y' + str(i)] = _floats_feature(dict_bbox_lists['bbox/y' + str(i)])
+        feature['bbox/x' + str(i)] = _floats_feature(dict_bbox_lists['bbox/x' + str(i)])
+    feature['bbox/cy'] = _floats_feature(dict_bbox_lists['bbox/cy'])
+    feature['bbox/cx'] = _floats_feature(dict_bbox_lists['bbox/cx'])
+    feature['bbox/tan'] = _floats_feature(dict_bbox_lists['bbox/tan'])
+    feature['bbox/theta'] = _floats_feature(dict_bbox_lists['bbox/theta'])
+    feature['bbox/sin_theta'] = _floats_feature(dict_bbox_lists['bbox/sin_theta'])
+    feature['bbox/cos_theta'] = _floats_feature(dict_bbox_lists['bbox/cos_theta'])
+    feature['bbox/width'] = _floats_feature(dict_bbox_lists['bbox/width'])
+    feature['bbox/height'] = _floats_feature(dict_bbox_lists['bbox/height'])
+    feature['bbox/grasp_success'] = _int64_feature(dict_bbox_lists['bbox/grasp_success'])
     example = tf.train.Example(features=tf.train.Features(feature=feature))
     return [example]
 
 
 def _create_examples_redundant(
-        filename, image_buffer, height, width, coordinates_list,
-        center_y_list, center_x_list, tan_list, angle_list,
-        sin_list, cos_list, width_list, height_list, grasp_success):
+        filename, image_buffer, height, width, bbox_example_features):
     """
-    coordinates_list: a list containing 8 total lists of floats.
-        Each list contains specific coordinates for the grasping box
-        at that index.
-        [x0, y0, x1, y1, x2, y2, x3, y3]
 
-    All lists of coordinates are size 1, makes dataset easier to read
-    and is not much larger because of tfrecord (protobuf)
-    size optimizations.
+    Write the same image example repeatedly, once for each single bounding box example
+
+    All lists of coordinates are size 1, makes dataset easier to read because you
+    can assume there is exactly one bounding box per image, the dataset
+    becomes substantially larger on disk. Note that this larger size is still
+    smaller than the original format from the cornell website because it is compressed.
+
+    # Arguments
+
+        bbox_example_features: A list of dictionaries, each containing example features
+            in basic numerical format (numpy array, int float).
     """
     examples = []
-    for i in range(len(center_x_list)):
+    for i, bbox_dict in enumerate(bbox_example_features):
         # Build an Example proto for an example
         feature = {'image/filename': _bytes_feature(filename),
                    'image/encoded': _bytes_feature(image_buffer),
                    'image/height': _int64_feature(height),
                    'image/width': _int64_feature(width)}
         for j in range(4):
-            feature['bbox/y' + str(j)] = _floats_feature(coordinates_list[2*j][i])
-            feature['bbox/x' + str(j)] = _floats_feature(coordinates_list[2*j+1][i])
-        feature['bbox/cy'] = _floats_feature(center_y_list[i])
-        feature['bbox/cx'] = _floats_feature(center_x_list[i])
-        feature['bbox/tan'] = _floats_feature(tan_list[i])
-        feature['bbox/theta'] = _floats_feature(angle_list[i])
-        feature['bbox/sin_theta'] = _floats_feature(sin_list[i])
-        feature['bbox/cos_theta'] = _floats_feature(cos_list[i])
-        feature['bbox/width'] = _floats_feature(width_list[i])
-        feature['bbox/height'] = _floats_feature(height_list[i])
-        feature['bbox/grasp_success'] = _int64_feature(grasp_success[i])
+            feature['bbox/y' + str(j)] = _floats_feature(bbox_dict['bbox/y' + str(j)])
+            feature['bbox/x' + str(j)] = _floats_feature(bbox_dict['bbox/x' + str(j)])
+        feature['bbox/cy'] = _floats_feature(bbox_dict['bbox/cy'])
+        feature['bbox/cx'] = _floats_feature(bbox_dict['bbox/cx'])
+        feature['bbox/tan'] = _floats_feature(bbox_dict['bbox/tan'])
+        feature['bbox/theta'] = _floats_feature(bbox_dict['bbox/theta'])
+        feature['bbox/sin_theta'] = _floats_feature(bbox_dict['bbox/sin_theta'])
+        feature['bbox/cos_theta'] = _floats_feature(bbox_dict['bbox/cos_theta'])
+        feature['bbox/width'] = _floats_feature(bbox_dict['bbox/width'])
+        feature['bbox/height'] = _floats_feature(bbox_dict['bbox/height'])
+        feature['bbox/grasp_success'] = _int64_feature(bbox_dict['bbox/grasp_success'])
         examples += [tf.train.Example(features=tf.train.Features(feature=feature))]
 
     return examples
 
 
-def _convert_to_examples(filename, path_pos, path_neg, image_buffer, height, width):
-    """
-    """
-    # get the bounding box information as lists of separate floats
-    (coordinates_list, center_x_list, center_y_list, tan_list,
-     angle_list, cos_list, sin_list, width_list, height_list,
-     grasp_success, count_fail_success) = get_bbox_info_list(path_pos, path_neg)
+def list_of_dicts_to_dict_of_lists(ld):
+    """ list of dictionaries to dictionary of lists when all keys are the same.
 
-    attempt_count = len(center_x_list)
+    source: https://stackoverflow.com/a/23551944/99379
+    """
+    return {key: [item[key] for item in ld] for key in ld[0].keys()}
+
+
+def traverse_examples_in_single_image(filename, path_pos, path_neg, image_buffer, height, width, verbose=FLAGS.verbose):
+    """
+    """
+    # get the bounding box information as lists of dictionaries storing feature data as floats and ints
+    (bbox_example_features, count_fail_success) = load_bounding_boxes_from_pos_neg_files(path_pos, path_neg)
+
+    attempt_count = len(bbox_example_features)
+    dict_bbox_lists = list_of_dicts_to_dict_of_lists(bbox_example_features)
+    if verbose:
+        print('filename: ' + filename)
+        print('image height: ' + str(height))
+        print('image width: ' + str(width))
+        print(dict_bbox_lists)
+        print('-----------------------')
 
     if FLAGS.plot:
-        gt_images = ground_truth_images([height, width], center_x_list, center_y_list, angle_list, height_list, width_list, grasp_success)
+        gt_images = ground_truth_images([height, width],
+                                        dict_bbox_lists['bbox/cx'],
+                                        dict_bbox_lists['bbox/cy'],
+                                        dict_bbox_lists['bbox/theta'],
+                                        dict_bbox_lists['bbox/height'],
+                                        dict_bbox_lists['bbox/width'],
+                                        dict_bbox_lists['bbox/grasp_success'])
         # load the image with matplotlib for display
         img = mpimg.imread(filename)
-        visualize_example(img, center_x_list, center_y_list, grasp_success, gt_images)
+        visualize_example(img,
+                          dict_bbox_lists['bbox/cx'],
+                          dict_bbox_lists['bbox/cy'],
+                          dict_bbox_lists['bbox/grasp_success'],
+                          gt_images)
 
-    create_fn = _create_examples
     if FLAGS.redundant:
-        create_fn = _create_examples_redundant
-
-    examples = create_fn(filename, image_buffer, height, width, coordinates_list, center_y_list,
-                         center_x_list, tan_list, angle_list, sin_list, cos_list, width_list,
-                         height_list, grasp_success)
+        examples = _create_examples_redundant(filename, image_buffer, height, width, bbox_example_features)
+    else:
+        examples = _create_examples(filename, image_buffer, height, width, dict_bbox_lists)
 
     return examples, attempt_count, count_fail_success
 
@@ -616,7 +717,7 @@ def traverse_dataset(filenames, eval_fraction=FLAGS.evaluate_fraction, write=FLA
         bbox_pos_path = filename[:-5]+'cpos.txt'
         bbox_neg_path = filename[:-5]+'cneg.txt'
         image_buffer, height, width = _process_image(filename, coder)
-        examples, attempt_count, count_fail_success = _convert_to_examples(
+        examples, attempt_count, count_fail_success = traverse_examples_in_single_image(
             filename, bbox_pos_path, bbox_neg_path, image_buffer, height, width)
 
         # Split the dataset in 80% for training and 20% for validation
