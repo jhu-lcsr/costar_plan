@@ -59,11 +59,27 @@ col = (index MOD 640) + 1
 
 3. Grasping rectangle files contain 4 lines for each rectangle. Each line
 contains the x and y coordinate of a vertex of that rectangle separated by
-a space. The first two coordinates of a rectangle define the line
+a space. [warning: we believe this next statement isn't correct]
+The first two coordinates of a rectangle define the line
 representing the orientation of the gripper plate. Vertices are listed in
 counter-clockwise order.
-[This means what we describe as bbox/width is the gripper plate,
- and bbox/height is the distance between gripper plates]
+
+[Begin comments by code authors]
+The above description is unclear so we provide more detailed analysis below
+from visualizing the actual *cpos.txt and *cneg.txt files,
+gripper location and orientation rectangle data:
+  - Coordinates are space separated floating point values in (x, y) order
+  - Four rows define a single rectangle
+  - Some coordinates contain NaN, and those whole rectangles must be skipped
+  - The origin (0, 0) is the coordinate at the top left of the image.
+  - points p0, p1 aka [(x0, y0), (x1, y1)] defines side 0 of the gap between the gripper plates
+  - points p1, p2 aka [(x1, y1), (x2, y2)] defines gripper plate 0
+  - points p0, p1 aka [(x2, y2), (x3, y3)] defines side 1 of the gap between the gripper plates
+  - points p1, p2 aka [(x3, y3), (x0, y0)] defines gripper plate 1
+
+  This means what we describe as bbox/width is the gripper plate,
+ and bbox/height is the distance between gripper plates
+[End comments by code authors]
 
 5. The backgroundMapping file contains one line for each image in the
 dataset, giving the image name and the name of the corresponding
@@ -86,7 +102,6 @@ import os
 import glob
 import numpy as np
 
-import numpy as np
 import tensorflow as tf
 import re
 from scipy.ndimage.filters import median_filter
@@ -95,7 +110,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.image as mpimg
-
+import matplotlib.lines as lines
 # progress bars https://github.com/tqdm/tqdm
 # import tqdm without enforcing it as a dependency
 try:
@@ -124,7 +139,7 @@ flags.DEFINE_string('data_dir',
 flags.DEFINE_string('grasp_dataset', 'all', 'TODO(ahundt): integrate with brainrobotdata or allow subsets to be specified')
 flags.DEFINE_boolean('grasp_download', False,
                      """Download the grasp_dataset to data_dir if it is not already present.""")
-flags.DEFINE_boolean('plot', False, 'plot data in matplotlib as it is traversed')
+flags.DEFINE_boolean('plot', True, 'plot data in matplotlib as it is traversed')
 flags.DEFINE_boolean('verbose', True, 'Print actual features for each image')
 flags.DEFINE_boolean('write', False, 'Actually write the tfrecord files if True, simply gather stats if False.')
 flags.DEFINE_boolean('shuffle', True, 'shuffle the image order before running')
@@ -293,6 +308,7 @@ def read_label_file(path):
             # some bounding boxes have invalid NaN coordinates, skip them
             if np.isnan(x) or np.isnan(y):
                 has_nan = True
+                print(path)
             xys.append((x, y))
             if len(xys) % 4 == 0 and len(xys) / 4 >= 1:
                 if not has_nan:
@@ -316,15 +332,15 @@ def bbox_info(box):
     for i in range(4):
         for j in range(2):
             box_coordinates.append(box[i][j])
-
-    y = [box_coordinates[0], box_coordinates[2], box_coordinates[4], box_coordinates[6]]
-    x = [box_coordinates[1], box_coordinates[3], box_coordinates[5], box_coordinates[7]]
+    box = np.array(box, dtype=np.float32)
+    y = np.squeeze(box[:, 1])
+    x = np.squeeze(box[:, 0])
     # x0 + x2 / 2
     center_x = (x[0] + x[2])/2
 
     # y0 + y2 / 2
     center_y = (y[0] + y[2])/2
-    center = (center_y, center_x)
+    center_yx = (center_y, center_x)
 
     # x1 - x0  (check if the bottom is level?)
     if (x[1] - x[0]) == 0:
@@ -334,17 +350,22 @@ def bbox_info(box):
         tan = (y[1] - y[0]) / (x[1] - x[0])
     angle = np.arctan2((y[1] - y[0]),
                        (x[1] - x[0]))
-    # gripper plate
-    width = np.sqrt((x[0] - x[1]) ** 2 + (y[0] - y[1]) ** 2)
     # distance between gripper plates
+    width = np.sqrt((x[0] - x[1]) ** 2 + (y[0] - y[1]) ** 2)
+    width2 = np.sqrt((x[2] - x[3]) ** 2 + (y[2] - y[3]) ** 2)
+    # gripper plate
     height = np.sqrt((x[1] - x[2]) ** 2 + (y[1] - y[2]) ** 2)
+    height2 = np.sqrt((x[3] - x[0]) ** 2 + (y[3] - y[0]) ** 2)
 
-    return box_coordinates, center, tan, angle, width, height
+    assert np.isclose(width, width2)
+    assert np.isclose(height, height2)
+
+    return box_coordinates, center_yx, tan, angle, width, height
 
 
 def load_bounding_boxes_from_pos_neg_files(path_pos, path_neg):
     # list of list [y0_list, x0_list, y1_list, x1_list, ...]
-    coordinates_list = [[]] * 8
+    coordinates_list = [[], [], [], [], [], [], [], []]
     # list of centers
     center_x_list = []
     center_y_list = []
@@ -366,11 +387,11 @@ def load_bounding_boxes_from_pos_neg_files(path_pos, path_neg):
     #     [x0, y0, x1, y1, x2, y2, x3, y3]
     for path_label, path in enumerate([path_neg, path_pos]):
         for box in read_label_file(path):
-            coordinates, center, tan, angle, width, height = bbox_info(box)
-            for i in range(8):
-                coordinates_list[i].append(coordinates[i])
-            center_x_list.append(center[1])
-            center_y_list.append(center[0])
+            coordinates, center_yx, tan, angle, width, height = bbox_info(box)
+            for coordinate, sublist in zip(coordinates, coordinates_list):
+                sublist.append(coordinate)
+            center_x_list.append(center_yx[1])
+            center_y_list.append(center_yx[0])
             tan_list.append(tan)
             angle_list.append(angle)
             cos_list.append(np.cos(angle))
@@ -385,8 +406,8 @@ def load_bounding_boxes_from_pos_neg_files(path_pos, path_neg):
         # Build an Example proto for an example
         feature = {}
         for j in range(4):
-            feature['bbox/y' + str(j)] = coordinates_list[2*j][i]
-            feature['bbox/x' + str(j)] = coordinates_list[2*j+1][i]
+            feature['bbox/y' + str(j)] = coordinates_list[2 * j + 1][i]
+            feature['bbox/x' + str(j)] = coordinates_list[2 * j][i]
         feature['bbox/cy'] = center_y_list[i]
         feature['bbox/cx'] = center_x_list[i]
         feature['bbox/tan'] = tan_list[i]
@@ -513,9 +534,12 @@ def ground_truth_images(
 
     return gt_images
 
-
-def visualize_example(img, center_x_list, center_y_list, grasp_success, gt_images):
+def visualize_example(img, bbox_example_features, gt_images):
     width = 3
+
+    center_x_list = [example['bbox/cx'] for example in bbox_example_features]
+    center_y_list = [example['bbox/cy'] for example in bbox_example_features]
+    grasp_success = [example['bbox/grasp_success'] for example in bbox_example_features]
     gt_plot_height = len(center_x_list)/2
     fig, axs = plt.subplots(gt_plot_height + 1, 4, figsize=(15, 15))
     axs[0, 0].imshow(img, zorder=0)
@@ -525,16 +549,30 @@ def visualize_example(img, center_x_list, center_y_list, grasp_success, gt_image
     # axs[0, 0].arrow(np.array(center_y_list), np.array(center_x_list),
     #                 np.array(coordinates_list[0]) - np.array(coordinates_list[2]),
     #                 np.array(coordinates_list[1]) - np.array(coordinates_list[3]), c=grasp_success)
-    axs[0, 0].scatter(np.array(center_y_list), np.array(center_x_list), zorder=2, c=grasp_success, alpha=0.5, lw=2)
+    axs[0, 0].scatter(np.array(center_x_list), np.array(center_y_list), zorder=2, c=grasp_success, alpha=0.5, lw=2)
     axs[0, 1].imshow(img, zorder=0)
     # axs[1, 0].scatter(data[0], data[1])
     # axs[2, 0].imshow(gt_image)
-    for i, gt_image in enumerate(gt_images):
+    for i, (gt_image, example) in enumerate(zip(gt_images, bbox_example_features)):
         h = i % gt_plot_height + 1
         w = int(i / gt_plot_height)
         axs[h, w].imshow(img, zorder=0)
         axs[h, w].imshow(gt_image, alpha=0.75, zorder=1)
         # axs[h, w*2+1].imshow(gt_image, alpha=0.75, zorder=1)
+        widths = [2, 1, 2, 1]
+        alphas = [0.5, 0.25, 0.5, 0.25]
+        if example['bbox/grasp_success']:
+            colors = ['gray', 'green', 'gray', 'green']
+        else:
+            colors = ['gray', 'purple', 'gray', 'purple']
+        for i, (color, width, alpha) in enumerate(zip(colors, widths, alphas)):
+            x_current = [example['bbox/x'+str(i)], example['bbox/x'+str((i+1)%4)]]
+            y_current = [example['bbox/y'+str(i)], example['bbox/y'+str((i+1)%4)]]
+            # axs[h, w].text(example['bbox/x'+str(i)], example['bbox/y'+str(i)], "Point:"+str(i))
+            axs[h, w].add_line(lines.Line2D(x_current, y_current, linewidth=width,
+                               color=color, zorder=i+3, alpha=alpha))
+            axs[0, 0].add_line(lines.Line2D(x_current, y_current, linewidth=width,
+                               color=color, zorder=i+3, alpha=alpha))
 
     # axs[1, 1].hist2d(data[0], data[1])
     plt.draw()
@@ -695,19 +733,15 @@ def traverse_examples_in_single_image(filename, path_pos, path_neg, image_buffer
 
     if FLAGS.plot:
         gt_images = ground_truth_images([height, width],
-                                        dict_bbox_lists['bbox/cx'],
                                         dict_bbox_lists['bbox/cy'],
+                                        dict_bbox_lists['bbox/cx'],
                                         dict_bbox_lists['bbox/theta'],
                                         dict_bbox_lists['bbox/height'],
                                         dict_bbox_lists['bbox/width'],
                                         dict_bbox_lists['bbox/grasp_success'])
         # load the image with matplotlib for display
         img = mpimg.imread(filename)
-        visualize_example(img,
-                          dict_bbox_lists['bbox/cx'],
-                          dict_bbox_lists['bbox/cy'],
-                          dict_bbox_lists['bbox/grasp_success'],
-                          gt_images)
+        visualize_example(img, bbox_example_features, gt_images)
 
     if FLAGS.redundant:
         examples = _create_examples_redundant(filename, image_buffer, height, width, bbox_example_features)
