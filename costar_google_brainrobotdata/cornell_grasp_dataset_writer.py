@@ -139,8 +139,12 @@ flags.DEFINE_string('data_dir',
 flags.DEFINE_string('grasp_dataset', 'all', 'TODO(ahundt): integrate with brainrobotdata or allow subsets to be specified')
 flags.DEFINE_boolean('grasp_download', False,
                      """Download the grasp_dataset to data_dir if it is not already present.""")
-flags.DEFINE_boolean('plot', True, 'plot data in matplotlib as it is traversed')
-flags.DEFINE_boolean('verbose', True, 'Print actual features for each image')
+flags.DEFINE_boolean('plot', False, 'Plot images and grasp bounding box data in matplotlib as it is traversed')
+flags.DEFINE_boolean('showTextBox', False,
+    """If plotting is enabled, plot extra text boxes near each grasp box
+       so you can check that gripper orientation is correct.
+    """)
+flags.DEFINE_boolean('verbose', False, 'Print actual features for each image')
 flags.DEFINE_boolean('write', False, 'Actually write the tfrecord files if True, simply gather stats if False.')
 flags.DEFINE_boolean('shuffle', True, 'shuffle the image order before running')
 flags.DEFINE_boolean(
@@ -357,8 +361,9 @@ def bbox_info(box):
     height = np.sqrt((x[1] - x[2]) ** 2 + (y[1] - y[2]) ** 2)
     height2 = np.sqrt((x[3] - x[0]) ** 2 + (y[3] - y[0]) ** 2)
 
-    assert np.isclose(width, width2)
-    assert np.isclose(height, height2)
+    # Ensure the data actually contains rectangles
+    assert np.isclose(width, width2, rtol=1e-3, atol=1e-3)
+    assert np.isclose(height, height2, rtol=1e-3, atol=1e-3)
 
     return box_coordinates, center_yx, tan, angle, width, height
 
@@ -534,7 +539,8 @@ def ground_truth_images(
 
     return gt_images
 
-def visualize_example(img, bbox_example_features, gt_images):
+
+def visualize_example(img, bbox_example_features, gt_images, showTextBox=FLAGS.showTextBox):
     width = 3
 
     center_x_list = [example['bbox/cx'] for example in bbox_example_features]
@@ -556,23 +562,43 @@ def visualize_example(img, bbox_example_features, gt_images):
     for i, (gt_image, example) in enumerate(zip(gt_images, bbox_example_features)):
         h = i % gt_plot_height + 1
         w = int(i / gt_plot_height)
-        axs[h, w].imshow(img, zorder=0)
-        axs[h, w].imshow(gt_image, alpha=0.75, zorder=1)
+        z = 0
+        axs[h, w].imshow(img, zorder=z)
+        z += 1
+        axs[h, w].imshow(gt_image, alpha=0.25, zorder=z)
+        z += 1
         # axs[h, w*2+1].imshow(gt_image, alpha=0.75, zorder=1)
-        widths = [2, 1, 2, 1]
-        alphas = [0.5, 0.25, 0.5, 0.25]
+        widths = [1, 2, 1, 2]
+        alphas = [0.25, 0.5, 0.25, 0.5]
         if example['bbox/grasp_success']:
+            # that's gap, plate, gap plate
             colors = ['gray', 'green', 'gray', 'green']
+            success_str = 'pos'
         else:
             colors = ['gray', 'purple', 'gray', 'purple']
+            success_str = 'neg'
+
+        if showTextBox:
+            axs[h, w].text(
+                    example['bbox/cx'], example['bbox/cy'],
+                    success_str, size=10, rotation=-np.rad2deg(example['bbox/theta']),
+                    ha="right", va="top",
+                    bbox=dict(boxstyle="square",
+                              ec=(1., 0.5, 0.5),
+                              fc=(1., 0.8, 0.8),
+                              ),
+                    zorder=z,
+                    )
+            z += 1
         for i, (color, width, alpha) in enumerate(zip(colors, widths, alphas)):
             x_current = [example['bbox/x'+str(i)], example['bbox/x'+str((i+1)%4)]]
             y_current = [example['bbox/y'+str(i)], example['bbox/y'+str((i+1)%4)]]
             # axs[h, w].text(example['bbox/x'+str(i)], example['bbox/y'+str(i)], "Point:"+str(i))
+
             axs[h, w].add_line(lines.Line2D(x_current, y_current, linewidth=width,
-                               color=color, zorder=i+3, alpha=alpha))
+                               color=color, zorder=z, alpha=alpha))
             axs[0, 0].add_line(lines.Line2D(x_current, y_current, linewidth=width,
-                               color=color, zorder=i+3, alpha=alpha))
+                               color=color, zorder=z, alpha=alpha))
 
     # axs[1, 1].hist2d(data[0], data[1])
     plt.draw()
