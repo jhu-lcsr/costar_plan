@@ -40,7 +40,7 @@ def _makeTrainTarget(I_target, q_target, g_target, o_target):
 def MakeImageClassifier(model, img_shape, trainable=True):
     img0 = Input(img_shape,name="img0_classifier_in")
     img = Input(img_shape,name="img_classifier_in")
-    bn = model.use_batchnorm
+    bn = model.use_batchnorm and False # disable this
     disc = True
     dr = 0.5
     x = img

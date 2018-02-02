@@ -365,6 +365,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # --------------------------------------------------------------------
         # Put resulting image into the output shape
         x = AddConv2D(x, self.encoder_channels, [1, 1], stride=1,
+                output=True,
+                activation="sigmoid",
                 dropout_rate=0.)
 
         l = [h0, h, option, z] if self.use_noise else [h0, h, option]
