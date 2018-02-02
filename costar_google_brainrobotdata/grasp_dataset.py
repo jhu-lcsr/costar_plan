@@ -1436,7 +1436,6 @@ class GraspDataset(object):
             for image_feature in image_features:
                 image = feature_op_dict[image_feature]
                 random_crop_offset = tf.cast(random_crop_offset, tf.int32)
-                depth_crop_dim_tensor = tf.cast(random_crop_offset, tf.int32)
                 if verbose:
                     print('_image_random_crop image:', image, 'random_crop_offset:', random_crop_offset)
                 if 'depth_image' in image_feature and 'xyz' not in image_feature:
@@ -2109,7 +2108,7 @@ class GraspDataset(object):
 
         # Returns
 
-            (pregrasp_op_batch, grasp_step_op_batch, simplified_grasp_command_op_batch, grasp_success_op_batch, feature_op_dicts, 
+            (pregrasp_op_batch, grasp_step_op_batch, simplified_grasp_command_op_batch, grasp_success_op_batch, feature_op_dicts,
              features_complete_list, time_ordered_feature_name_dict, num_samples)
         """
         with K.name_scope('get_training_tensors') as scope:
@@ -2136,7 +2135,7 @@ class GraspDataset(object):
             # motion commands, such as pose or transform features
             simplified_grasp_command_op_batch = self.to_training_tensor(time_ordered_feature_tensor_dicts, motion_command_feature)
 
-            return (pregrasp_op_batch, grasp_step_op_batch, simplified_grasp_command_op_batch, grasp_success_op_batch, feature_op_dicts, 
+            return (pregrasp_op_batch, grasp_step_op_batch, simplified_grasp_command_op_batch, grasp_success_op_batch, feature_op_dicts,
                     features_complete_list, time_ordered_feature_name_dict, num_samples)
 
     def get_training_tensors(
@@ -2254,7 +2253,7 @@ class GraspDataset(object):
         """
         with K.name_scope('get_training_tensors') as scope:
             # Get tensors that load the dataset from disk plus features calculated from the raw data, including transforms and point clouds
-            (pregrasp_op_batch, grasp_step_op_batch, simplified_grasp_command_op_batch, grasp_success_op_batch, feature_op_dicts, 
+            (pregrasp_op_batch, grasp_step_op_batch, simplified_grasp_command_op_batch, grasp_success_op_batch, feature_op_dicts,
                     features_complete_list, time_ordered_feature_name_dict, num_samples) = self.get_training_tensors_and_dictionaries(
                 batch_size=batch_size, random_crop=random_crop, sensor_image_dimensions=sensor_image_dimensions,
                 imagenet_preprocessing=imagenet_preprocessing, image_augmentation=image_augmentation,

@@ -849,7 +849,6 @@ def grasp_model_levine_2016_segmentation(
         pooling=pooling,
         dilation_rate=dilation_rate,
         final_pooling=final_pooling,
-        require_flatten=require_flatten,
         activation=activation,
         top=top,
         classes=classes,
