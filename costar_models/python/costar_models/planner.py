@@ -11,6 +11,7 @@ from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
 from keras.layers import UpSampling2D, Conv2DTranspose
 from keras.layers import BatchNormalization, Dropout
+from keras.layers.noise import AlphaDropout
 from keras.layers import Dense, Conv2D, Activation, Flatten
 from keras.layers import Lambda
 from keras.layers.merge import Add, Multiply

@@ -11,7 +11,6 @@ from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
 from keras.layers import UpSampling2D, Conv2DTranspose
 from keras.layers import BatchNormalization, Dropout
-from keras.layers.noise import AlphaDropout
 from keras.layers import Dense, Conv2D, Activation, Flatten
 from keras.layers.merge import Concatenate
 from keras.losses import binary_crossentropy
@@ -189,7 +188,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
             x = AddDense(x, 512, "relu", self.dropout_rate,
                     constraint=3,
                     output=True)
-            x = AlphaDropout(self.dropout_rate)(x)
+            x = Dropout(self.dropout_rate)(x)
             x = AddDense(x, 512, "relu", self.dropout_rate,
                     constraint=3,
                     output=True)
@@ -244,11 +243,11 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                     kernel_size=[5, 5], 
                     strides=(2, 2),
                     padding='same')(x)
-            x = AlphaDropout(self.dropout_rate)(x)
+            x = Dropout(self.dropout_rate)(x)
             x = LeakyReLU(0.2)(x)
         x = Flatten()(x)
         x = Dense(self.combined_dense_size)(x)
-        x = AlphaDropout(self.dropout_rate)(x)
+        x = Dropout(self.dropout_rate)(x)
         x = LeakyReLU(0.2)(x)
         label_out = Dense(self.num_options, activation="softmax",name="next_option")(x)
 

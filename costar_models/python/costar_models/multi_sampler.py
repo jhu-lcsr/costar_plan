@@ -13,7 +13,6 @@ from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 from keras.optimizers import Adam
 from matplotlib import pyplot as plt
-from keras.layers.noise import AlphaDropout
 
 from .abstract import *
 from .callbacks import *
@@ -681,7 +680,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     kernel_size=[5,5],
                     strides=(2, 2),
                     padding='same')(y)
-            y = AlphaDropout(self.dropout_rate)(y)
+            y = Dropout(self.dropout_rate)(y)
             y = LeakyReLU(0.2)(y)
             y = BatchNormalization(momentum=0.9)(y)
             y = Flatten()(y)
@@ -691,7 +690,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 y = Dense(self.combined_dense_size)(y)
                 y = BatchNormalization(momentum=0.9)(y)
                 y = LeakyReLU(0.2)(y)
-                y = AlphaDropout(self.dropout_rate)(y)
+                y = Dropout(self.dropout_rate)(y)
         arm_cmd_out = Lambda(lambda x: K.expand_dims(x, axis=1),name="arm_action")(
                 Dense(self.arm_cmd_size)(y))
         gripper_cmd_out = Lambda(lambda x: K.expand_dims(x, axis=1),name="gripper_action")(
@@ -728,7 +727,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             y = Dense(self.img_col_dim)(y)
             y = BatchNormalization(momentum=0.9)(y)
             y = LeakyReLU(0.2)(y)
-            y = AlphaDropout(self.dropout_rate)(y)
+            y = Dropout(self.dropout_rate)(y)
 
         skip_ins = []
         if self.skip_connections:
