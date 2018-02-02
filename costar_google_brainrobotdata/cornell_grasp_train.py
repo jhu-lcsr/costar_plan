@@ -135,7 +135,7 @@ def dilated_vgg_model(
         activation='sigmoid',
         final_pooling=None,
         include_top=True,
-        top='segmentation',
+        top='classification',
         classes=1,
         output_shape=None,
         trainable=False,
@@ -267,9 +267,9 @@ def run_training(learning_rate=0.01, batch_size=10, num_gpus=1, top='classificat
     train_file = os.path.join(FLAGS.data_dir, FLAGS.train_filename)
     validation_file = os.path.join(FLAGS.data_dir, FLAGS.evaluate_filename)
     # TODO(ahundt) WARNING: THE NUMBER OF TRAIN/VAL STEPS VARIES EVERY TIME THE DATASET IS CONVERTED, AUTOMATE SETTING THOSE NUMBERS
-    samples_in_training_dataset = 6404
-    samples_in_val_dataset = 1615
-    val_batch_size = 19
+    samples_in_training_dataset = 6402
+    samples_in_val_dataset = 1617
+    val_batch_size = 11
     steps_in_val_dataset, divides_evenly = np.divmod(samples_in_val_dataset, val_batch_size)
     assert divides_evenly == 0
     steps_per_epoch_train = np.ceil(float(samples_in_training_dataset) / float(batch_size))
@@ -294,8 +294,8 @@ def run_training(learning_rate=0.01, batch_size=10, num_gpus=1, top='classificat
     # Get the validation dataset in one big numpy array for validation
     # This lets us take advantage of tensorboard visualization
     all_validation_data = next(cornell_grasp_dataset_reader.yield_record(
-        validation_file, label_features,
-        data_features, batch_size=samples_in_val_dataset))
+        validation_file, label_features, data_features,
+        is_training=False, batch_size=samples_in_val_dataset))
 
     parallel_model.fit_generator(
         cornell_grasp_dataset_reader.yield_record(
