@@ -301,23 +301,43 @@ def read_label_file(path):
 
 
 def bbox_info(box):
-    # coordinates order y0, x0, y1, x1, ...
+    """ Get the bounding box coordinates, center, tangent, angle, width and height.
+
+        The bounding box consists of a polygon with coordinates
+        going around an oriented rectangle. It is important to
+        think of how this looks if the rectangle is at a 20 degree
+        angle and a 120 degree angle!
+
+        coordinates order: y0, x0, y1, x1, y2, x2, y3, x3
+        coordinate index:   0,  1,  2,  3,  4,  5,  6,  7
+    """
     box_coordinates = []
 
     for i in range(4):
         for j in range(2):
             box_coordinates.append(box[i][j])
-    center_x = (box_coordinates[1] + box_coordinates[5])/2
-    center_y = (box_coordinates[0] + box_coordinates[4])/2
+
+    y = [box_coordinates[0], box_coordinates[2], box_coordinates[4], box_coordinates[6]]
+    x = [box_coordinates[1], box_coordinates[3], box_coordinates[5], box_coordinates[7]]
+    # x0 + x2 / 2
+    center_x = (x[0] + x[2])/2
+
+    # y0 + y2 / 2
+    center_y = (y[0] + y[2])/2
     center = (center_y, center_x)
-    if (box_coordinates[3] - box_coordinates[1]) == 0:
+
+    # x1 - x0  (check if the bottom is level?)
+    if (x[1] - x[0]) == 0:
         tan = np.pi/2
     else:
-        tan = (box_coordinates[2] - box_coordinates[0]) / (box_coordinates[3] - box_coordinates[1])
-    angle = np.arctan2((box_coordinates[2] - box_coordinates[0]),
-                       (box_coordinates[3] - box_coordinates[1]))
-    width = abs(box_coordinates[5] - box_coordinates[1])
-    height = abs(box_coordinates[4] - box_coordinates[0])
+        # (y1 - y0)/ (x1 - x0)
+        tan = (y[1] - y[0]) / (x[1] - x[0])
+    angle = np.arctan2((y[1] - y[0]),
+                       (x[1] - x[0]))
+    # gripper plate
+    width = np.sqrt((x[0] - x[1]) ** 2 + (y[0] - y[1]) ** 2)
+    # distance between gripper plates
+    height = np.sqrt((x[1] - x[2]) ** 2 + (y[1] - y[2]) ** 2)
 
     return box_coordinates, center, tan, angle, width, height
 
