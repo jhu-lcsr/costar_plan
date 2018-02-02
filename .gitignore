@@ -23,3 +23,7 @@
 
 # Images
 *.png
+*.h5
+*.so
+*.ttt
+*.json

@@ -483,6 +483,19 @@ def drawLines(client_id, display_name, lines, parent_handle=-1, transform=None, 
     return ret_ints[0]
 
 
+def restore_cropped(cropped_image, crop_size, crop_offset, full_size):
+    """ Restore cropped_image to full size image with zero padding
+        First scale image back to crop_size, then padding
+    """
+
+    cropped_image = np.squeeze(cropped_image)
+    restored = np.zeros((full_size[0], full_size[1]), dtype=cropped_image.dtype)
+    scaled_crop = resize(cropped_image, (crop_size[0], crop_size[1]))
+    restored[crop_offset[0]:crop_offset[0]+crop_size[0],
+             crop_offset[1]:crop_offset[1]+crop_size[1]] = scaled_crop
+
+    return restored
+
 class VREPGraspVisualization(object):
     """ Visualize the google brain robot data grasp dataset in the V-REP robot simulator.
     """
@@ -533,17 +546,17 @@ class VREPGraspVisualization(object):
         if FLAGS.vrepVisualizePredictions is True:
             make_model_fn = define_make_model_fn()
             gt = GraspTrain()
-            (pred_model, pregrasp_op_batch, grasp_step_op_batch, 
-             simplified_grasp_command_op_batch, 
-             grasp_success_op_batch, feature_op_dicts, 
-             features_complete_list, 
-             time_ordered_feature_name_dict, 
+            (pred_model, pregrasp_op_batch, grasp_step_op_batch,
+             simplified_grasp_command_op_batch,
+             grasp_success_op_batch, feature_op_dicts,
+             features_complete_list,
+             time_ordered_feature_name_dict,
              num_samples) = gt.get_compiled_model(
                 dataset=grasp_dataset_object,
                 make_model_fn=make_model_fn)
         else:
             (feature_op_dicts, features_complete_list,
-             time_ordered_feature_name_dict, 
+             time_ordered_feature_name_dict,
              num_samples) = grasp_dataset_object.get_training_dictionaries(batch_size=batch_size)
 
         if verbose > 0:
@@ -687,6 +700,11 @@ class VREPGraspVisualization(object):
                 else:
                     preds = predictions
 
+                # get crop offset and size from dict
+                crop_offset = features_dict_np['random_crop_offset'] # 3-dim
+                crop_size = features_dict_np['rgb_random_crop_dimensions'] # 3-dim
+                # create color map
+                color_map=plt.cm.RdBu
                 # Display each point cloud
                 for img_num, (rgb, depth, xyz, current_coordinate,
                               final_coordinate, prediction) in enumerate(zip(rgb_images, depth_images,
@@ -695,6 +713,8 @@ class VREPGraspVisualization(object):
                     # depth = grasp_geometry.draw_circle(grasp_geometry.draw_circle(depth, current_coordinate), final_coordinate)
                     rgb = grasp_geometry.draw_circle(grasp_geometry.draw_circle(rgb, current_coordinate,
                                                      color=(0, 255, 255)), final_coordinate, color=(255, 255, 0))
+                    print('rgb_image_dtype:  ' + str(rgb.dtype))
+                    print('rgb_image_shape:  ' + str(rgb.shape))
                     create_point_cloud(
                         self.client_id, 'current_point_cloud',
                         transform=base_to_camera_vec_quat_7,
@@ -711,14 +731,18 @@ class VREPGraspVisualization(object):
                         prediction = prediction * 100
                         prediction = prediction + 0.5
                         print('scaled prediction_shape: ', prediction.shape, 'pred_max: ', np.max(prediction), ' pred_min:', np.min(prediction))
+                        prediction = np.squeeze(prediction)
+                        # if FLAGS.vrepVisualizeMatPlotLib:
+                        #     plt.imshow(prediction)
+                        #     plt.show()
+                        print('grey_prediction_shape: ', prediction.shape, 'pred_max: ', np.max(prediction), ' pred_min:', np.min(prediction))
+                        # To resize a one-channel image, need to squeeze singleton dim first
+                        fullsize_prediction = restore_cropped(prediction, crop_size, crop_offset, rgb.shape)
+                        # return RGBA, cut alpha channel
+                        rgb_prediction = ((color_map(fullsize_prediction)*255).astype('uint8'))[:,:,:-1]
                         if FLAGS.vrepVisualizeMatPlotLib:
-                            plt.imshow(np.squeeze(prediction))
+                            plt.imshow(rgb_prediction)
                             plt.show()
-                        rgb_prediction = img_as_ubyte(prediction)
-                        print('grey_prediction_shape: ', rgb_prediction.shape, 'pred_max: ', np.max(rgb_prediction), ' pred_min:', np.min(rgb_prediction))
-                        rgb_prediction = resize(rgb_prediction, (rgb.shape[0],rgb.shape[1]), preserve_range=False)
-                        if rgb_prediction.shape[-1] == 1:
-                            rgb_prediction = grey2rgb(rgb_prediction)
                         rgb_prediction = grasp_geometry.draw_circle(grasp_geometry.draw_circle(rgb_prediction, current_coordinate,
                                                                     color=(0, 255, 255)), final_coordinate, color=(255, 255, 0))
                         # Adjust the depth by the delta depth offset for visualization
