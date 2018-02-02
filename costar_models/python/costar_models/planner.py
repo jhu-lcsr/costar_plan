@@ -61,10 +61,6 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
             strides=(stride,stride),
             padding=padding, **kwargs)(x)
     kwargs = {}
-    if bn:
-        if name is not None:
-            kwargs['name'] = "%s_bn"%name
-        x = BatchNormalization(momentum=momentum, **kwargs)(x)
     if lrelu or activation == "lrelu":
         if name is not None:
             kwargs['name'] = "%s_lrelu"%name
@@ -77,6 +73,10 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
         if name is not None:
             kwargs['name'] = "%s_relu"%name
         x = Activation("relu", **kwargs)(x)
+    if bn:
+        if name is not None:
+            kwargs['name'] = "%s_bn"%name
+        x = BatchNormalization(momentum=momentum, **kwargs)(x)
     if dropout_rate > 0:
         if name is not None:
             kwargs['name'] = "%s_dropout%f"%(name, dropout_rate)
@@ -104,13 +104,13 @@ def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate,
             kernel_size=kernel,
             strides=(stride,stride),
             padding=padding)(x)
-    if bn:
-        x = BatchNormalization(momentum=momentum)(x)
     discriminator = False
     if discriminator:
         x = LeakyReLU(alpha=0.2)(x)
     else:
         x = Activation("relu")(x)
+    if bn:
+        x = BatchNormalization(momentum=momentum)(x)
     if dropout_rate > 0:
         x = Dropout(dropout_rate)(x)
     return x
@@ -135,12 +135,12 @@ def AddDense(x, size, activation, dropout_rate, output=False, momentum=0.9,
         x = Dense(size, kernel_constraint=maxnorm(constraint))(x)
     else:
         x = Dense(size)(x)
-    if not output and bn:
-        x = BatchNormalization(momentum=momentum)(x)
     if activation == "lrelu":
         x = LeakyReLU(alpha=0.2)(x)
     else:
         x = Activation(activation)(x)
+    if not output and bn:
+        x = BatchNormalization(momentum=momentum)(x)
     if dropout_rate > 0:
         x = Dropout(dropout_rate)(x)
     return x

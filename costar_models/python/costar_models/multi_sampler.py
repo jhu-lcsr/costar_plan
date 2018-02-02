@@ -320,7 +320,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Combine the hidden state observations
         x = Concatenate()([x, x0])
-        x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate)
+        x = AddConv2D(x, 64, [5,5], 1, 0.) # Removed this dropout
 
         # store this for skip connection
         skip = x
@@ -342,14 +342,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             def _ssm(x):
                 return spatial_softmax(x)
             x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
-            x = AddDense(x, 256, "relu", 0.,
-                    constraint=None, output=False,)
-            x = AddDense(x, int(h_dim[0] * h_dim[1] * 32/4), "relu", 0., constraint=None, output=False)
-            x = Reshape([int(h_dim[0]/2), int(h_dim[1]/2), 32])(x)
+            #x = AddDense(x, 256, "relu", 0.,
+            #        constraint=None, output=False,)
+            x = AddDense(x, int(h_dim[0] * h_dim[1] * 128/4), "relu", 0., constraint=None, output=False)
+            x = Reshape([int(h_dim[0]/2), int(h_dim[1]/2), 128])(x)
         else:
             x = AddConv2D(x, 128, [5,5], 1, 0.)
         x = AddConv2DTranspose(x, 64, [5,5], 2,
-                self.dropout_rate)
+                0.) # Removed dropout from this block
         # --- end ssm block
 
         if self.skip_connections or True:
