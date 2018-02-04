@@ -52,7 +52,7 @@ from grasp_model import dilated_late_concat_model
 
 # https://github.com/aurora95/Keras-FCN
 # TODO(ahundt) move keras_fcn directly into this repository, into keras-contrib, or make a proper installer
-from keras_fcn.models import AtrousFCN_Vgg16_16s
+from keras_contrib.applications.fully_convolutional_networks import AtrousFCN_Vgg16_16s
 
 import grasp_loss as grasp_loss
 
@@ -76,7 +76,7 @@ flags.DEFINE_float(
 )
 flags.DEFINE_integer(
     'num_epochs',
-    None,
+    300,
     'Number of epochs to run trainer.'
 )
 flags.DEFINE_integer(
@@ -157,6 +157,16 @@ def dilated_vgg_model(
                     input_shape=image_shapes[0], include_top=False,
                     classes=classes
                 )
+            elif image_model_name == 'resnet':
+                vgg_model = keras.applications.resnet50.ResNet50(
+                    input_shape=image_shapes[0], include_top=False,
+                    classes=classes)
+            elif image_model_name == 'densenet':
+                vgg_model = keras.applications.densenet.DenseNet169(
+                    input_shape=image_shapes[0], include_top=False,
+                    classes=classes)
+            else:
+                raise ValueError('Unsupported image_model_name')
 
         if not trainable:
             for layer in vgg_model.layers:
@@ -197,7 +207,7 @@ class PrintLogsCallback(keras.callbacks.Callback):
         print('\nlogs:', logs)
 
 
-def run_training(learning_rate=0.01, batch_size=10, num_gpus=1, top='classification'):
+def run_training(learning_rate=0.1, batch_size=10, num_gpus=1, top='classification', epochs=FLAGS.num_epochs):
     """
 
     top: options are 'segmentation' and 'classification'.
@@ -219,8 +229,8 @@ def run_training(learning_rate=0.01, batch_size=10, num_gpus=1, top='classificat
         monitor_loss_name = 'val_loss'
         metrics = ['binary_accuracy', grasp_loss.mean_pred, grasp_loss.mean_true]
         loss = keras.losses.binary_crossentropy
-        model_name = 'vgg_model'
-        image_model_name = 'vgg'
+        model_name = 'densenet_model'
+        image_model_name = 'densenet'
     # create dilated_vgg_model with inputs [image], [sin_theta, cos_theta]
     # TODO(ahundt) split vector shapes up appropriately for dense layers in dilated_late_concat_model
     model = dilated_vgg_model(
@@ -242,7 +252,7 @@ def run_training(learning_rate=0.01, batch_size=10, num_gpus=1, top='classificat
     optimizer = keras.optimizers.SGD(learning_rate * 1.0)
     callbacks = callbacks + [
         # Reduce the learning rate if training plateaus.
-        keras.callbacks.ReduceLROnPlateau(patience=4, verbose=1, factor=0.5, monitor=monitor_loss_name)
+        keras.callbacks.ReduceLROnPlateau(patience=20, verbose=1, factor=0.5, monitor=monitor_loss_name)
     ]
 
     csv_logger = CSVLogger(weights_name + '.csv')
@@ -302,7 +312,7 @@ def run_training(learning_rate=0.01, batch_size=10, num_gpus=1, top='classificat
             train_file, label_features, data_features,
             batch_size=batch_size),
         steps_per_epoch=steps_per_epoch_train,
-        epochs=100,
+        epochs=epochs,
         validation_data=all_validation_data,
         validation_steps=steps_in_val_dataset,
         callbacks=callbacks)
