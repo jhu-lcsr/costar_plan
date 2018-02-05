@@ -246,16 +246,24 @@ class TaskParser(object):
         self.transition_counts[key] += 1
 
     def addExample(self, t, objs, actions, seq):
-
         '''
         Call this to parse a single time step. This assumes you have properly
         called resetDemonstration() above.
         '''
+        for i, a in enumerate(actions):
+            if a.base_name is None:
+                raise RuntimeError('unnamed action')
+            if a.name is not None:
+                raise RuntimeError('instance name should not be set')
+            if (a.base_name in self.idle_tags):
+                a.object_acted_on = None
+                a.object_in_gripper = None
+            actions[i] = a
         self.data.append((t, objs, actions, seq))
 
     def process(self):
         '''
-        This
+        This function runs through the whole data set and processes it.
         '''
         prev_t = [None] * self.num_arms
         prev = [None] * self.num_arms

@@ -23,7 +23,7 @@ def getArgs():
     parser.add_argument("--alias_topic",
                         help="topic on which aliases for granular actions are"
                              " published.",
-                        default="/vr/learning/alias")
+                        default="/vr/learning/getActivityAlias")
     parser.add_argument("--task_topic",
                         help="topic on which task info was published",)
     parser.add_argument("--fake",
@@ -97,10 +97,14 @@ def main():
                 demo_topic=args.demo_topic,
                 alias_topic=args.alias_topic)
         # Add an alias so we get a clean, readable name
-        rtp.addAlias("GranularActivity_0c93aef1-fe5a-40bb-ba35-b4314ed10d42",
-                     "Stack")
-        rtp.addAlias("GranularActivity_76c3a12a-4a4c-48c2-98fd-dfe2cd1079c8",
-                     "PutDown")
+        #rtp.addAlias("GranularActivity_0c93aef1-fe5a-40bb-ba35-b4314ed10d42",
+        #             "Stack")
+        #rtp.addAlias("GranularActivity_76c3a12a-4a4c-48c2-98fd-dfe2cd1079c8",
+        #             "PutDown")
+        # Idle motions are any movement that occurs without any particular goal
+        # being associated with it - even if the parser gives us a goal we will
+        # have to ignore these.
+        rtp.addIdle("IdleMotion")
         rtp.addObjectClassParent("Cube_red", "cube")
         rtp.addObjectClassParent("Cube_blue", "cube")
         rtp.addObjectClassParent("Cube_green", "cube")
