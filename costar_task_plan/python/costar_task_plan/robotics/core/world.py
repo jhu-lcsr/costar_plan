@@ -199,8 +199,6 @@ class CostarWorld(AbstractWorld):
                 # cmd = policy.evaluate(self,
                 pass
 
-        # Done.
-
     # Create the set of dynamics used for this particular option/option
     # distribution.
     def getT(self, robot_config, *args, **kwargs):

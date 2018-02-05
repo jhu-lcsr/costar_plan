@@ -115,9 +115,11 @@ class RosTaskParser(TaskParser):
         obj_acted_on = msg.object_acted_on
         obj_in_gripper = msg.object_in_hand
         if (obj_acted_on == HandInfo.NO_OBJECT
+                or len(obj_acted_on) == 0
                 or obj_acted_on in self.ignore):
             obj_acted_on = None
         if (obj_in_gripper == HandInfo.NO_OBJECT
+                or len(obj_in_gripper) == 0
                 or obj_in_gripper in self.ignore):
             obj_in_gripper = None
         pose = self._makePose(msg.pose)
