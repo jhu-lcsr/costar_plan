@@ -11,7 +11,6 @@ from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
 from keras.layers import UpSampling2D, Conv2DTranspose
 from keras.layers import BatchNormalization, Dropout
-from keras.layers.noise import AlphaDropout
 from keras.layers import Dense, Conv2D, Activation, Flatten
 from keras.layers.merge import Concatenate
 from keras.losses import binary_crossentropy
@@ -189,7 +188,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
             x = AddDense(x, 512, "relu", self.dropout_rate,
                     constraint=3,
                     output=True)
-            x = AlphaDropout(self.dropout_rate)(x)
+            x = Dropout(self.dropout_rate)(x)
             x = AddDense(x, 512, "relu", self.dropout_rate,
                     constraint=3,
                     output=True)
@@ -244,11 +243,11 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                     kernel_size=[5, 5], 
                     strides=(2, 2),
                     padding='same')(x)
-            x = AlphaDropout(self.dropout_rate)(x)
+            x = Dropout(self.dropout_rate)(x)
             x = LeakyReLU(0.2)(x)
         x = Flatten()(x)
         x = Dense(self.combined_dense_size)(x)
-        x = AlphaDropout(self.dropout_rate)(x)
+        x = Dropout(self.dropout_rate)(x)
         x = LeakyReLU(0.2)(x)
         label_out = Dense(self.num_options, activation="softmax",name="next_option")(x)
 
@@ -362,10 +361,10 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         dr = self.dropout_rate
         x = img
         x = AddConv2D(x, 32, [7,7], 1, 0., "same", lrelu=disc, bn=bn)
-        x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+        x = AddConv2D(x, 32, [5,5], 2, 0*dr, "same", lrelu=disc, bn=bn)
         x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
         x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-        x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+        x = AddConv2D(x, 64, [5,5], 2, 0*dr, "same", lrelu=disc, bn=bn)
         x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
         x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
 
@@ -381,8 +380,9 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
             self.hidden_shape = (self.hidden_size,)
         else:
             self.encoder_channels = 8
+            # Note: I removed the BN here
             x = AddConv2D(x, self.encoder_channels, [1,1], 1, 0.*dr,
-                    "same", lrelu=disc, bn=bn)
+                    "same", lrelu=disc, activation="sigmoid", bn=False)
             self.steps_down = 3
             self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
             self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.encoder_channels)
@@ -416,6 +416,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
         x = rep
         dr = self.decoder_dropout_rate if self.hypothesis_dropout else 0
+        dr *= 0
         bn = self.use_batchnorm
         
         if self.use_spatial_softmax:

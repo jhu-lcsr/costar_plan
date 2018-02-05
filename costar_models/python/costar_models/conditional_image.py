@@ -140,6 +140,7 @@ class ConditionalImage(PredictionSampler2):
                     loss=[self.loss, self.loss, "categorical_crossentropy"],
                     loss_weights=[1., 1., disc_wt],
                     optimizer=self.getOptimizer())
+        train_predictor.summary()
         return None, train_predictor, None, ins, h
 
     def _getData(self, *args, **kwargs):
