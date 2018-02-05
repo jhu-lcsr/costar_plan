@@ -20,7 +20,6 @@ from keras.layers.core import RepeatVector
 from keras.layers import Input
 from keras.layers.merge import concatenate
 from keras.layers.merge import Concatenate
-from keras.layers.merge import _Merge
 from keras.layers.merge import Add
 from keras.models import Model
 from keras.layers import Lambda
@@ -47,7 +46,7 @@ def tile_vector_as_image_channels(vector_op, image_shape):
       image_shape: A list of integers [width, height] with the desired dimensions.
     """
     with K.name_scope('tile_vector_as_image_channels'):
-        ivs = K.int_shape(vector_op)
+        ivs = K.shape(vector_op)
         # reshape the vector into a single pixel
         vector_pixel_shape = [ivs[0], 1, 1, ivs[1]]
         vector_op = K.reshape(vector_op, vector_pixel_shape)
@@ -150,20 +149,91 @@ def add_images_with_tiled_vector_layer(images, vector, image_shape=None, vector_
     return x
 
 
-def classifier_block(input_tensor, require_flatten=True, top='classification',
+def create_tree_roots(inputs=None, input_shapes=None, make_layer_fn=None, trainable=True):
+    """ Create Inputs then independent sequences of layers
+
+    create_tree_roots works like roots of a tree taking inputs, and applying layers
+    up towards the base where model or layer data might be combined.
+
+    # Arguments
+
+        inputs: A single input tensor or list of input tensors.
+            Optional if input_shapes is specified.
+        input_shapes: A shape or list of shapes.
+            Optional if inputs is specified.
+        make_layer_fn: A function which will create either a Model
+            or the layers which make up each root.
+            If set to None, then the return value
+            root_inputs will be equal to root_logits.
+
+    # Returns
+
+        [root_inputs, root_logits]
+
+        root_inputs: A list of results for each call to Input().
+        root_logits: A list of results for each call to make_branch_fn().
+    """
+    branch_inputs = []
+    branch_logits = None
+    if inputs is not None:
+        if not isinstance(inputs, list):
+            inputs = [inputs]
+
+        branch_logits = []
+        for vector in inputs:
+            v = Input(tensor=vector)
+            branch_inputs += [v]
+            if make_layer_fn is not None:
+                v = make_layer_fn(v)
+            branch_logits += [v]
+
+    elif input_shapes is not None:
+        if not isinstance(input_shapes, list):
+            input_shapes = [input_shapes]
+
+        branch_logits = []
+        for shape in input_shapes:
+            v = Input(shape=shape)
+            branch_inputs += [v]
+            if make_layer_fn is not None:
+                v = make_layer_fn(v)
+            branch_logits += [v]
+
+    if not trainable:
+        for logit in branch_logits:
+            if isinstance(logit, Model):
+                for layer in logit.layers:
+                    layer.trainable = False
+            else:
+                raise ValueError(
+                    'Only set trainable=False Keras for Models, '
+                    'layers and lists of layers can be done later '
+                    'when the Model has been created. '
+                    'Got Type: ' + str(type(logit)))
+
+    return branch_inputs, branch_logits
+
+
+def classifier_block(input_tensor, include_top=True, top='classification',
                      classes=1, activation='sigmoid',
-                     input_shape=None, final_pooling=None, verbose=False):
-    """ Performs the final classification step for a given problem.
+                     input_shape=None, final_pooling=None, verbose=0):
+    """ Performs the final Activation for the classification of a given problem.
+
+    # Arguments
+
+        include_top: Whether to include the fully-connected
+            layer at the top of the network. Also maps to require_flatten
+            option in `keras.applications.imagenet_utils._obtain_input_shape()`.
     """
     x = input_tensor
-    if require_flatten and top == 'classification':
+    if include_top and top == 'classification':
         if verbose:
             print("    classification")
         x = Dense(units=classes, activation=activation,
                   kernel_initializer="he_normal", name='fc' + str(classes))(x)
 
-    elif require_flatten and top == 'segmentation':
-        if verbose:
+    elif include_top and top == 'segmentation':
+        if verbose > 0:
             print("    segmentation")
         x = Conv2D(classes, (1, 1), activation='linear', padding='same')(x)
 
@@ -186,6 +256,144 @@ def classifier_block(input_tensor, require_flatten=True, top='classification',
             print("    GlobalMaxPooling2D")
         x = GlobalMaxPooling2D()(x)
     return x
+
+
+def top_block(x, output_image_shape=None, top='classification', dropout_rate=0.0, include_top=True,
+              classes=1, activation='sigmoid', final_pooling=None, verbose=0):
+    """ Perform final convolutions for decision making, then apply the classification block.
+
+        The top block adds the final "decision making" layers
+        and the classifier block according to the problem type.
+        Dense layers for single prediction problems, and
+        Conv2D layers for pixel-wise prediction problems.
+
+    # Arguments
+
+        x: The input features which are expected to contain rows, columns and channels.
+        output_image_shape: The expected shape for the final output of the top_block.
+            Typically this will match the shape of x. However, if you have a segmentation
+            problem output_image_shape can be larger, and upsampling will be applied.
+        top: The type of problem you are attempting to solve,
+            'classification' or 'segmentation'.
+        include_top: Whether to include the fully-connected
+            layer at the top of the network. Also maps to require_flatten
+            option in `keras.applications.imagenet_utils._obtain_input_shape()`.
+    """
+    # Extra Global Average Pooling allows more flexible input dimensions
+    # but only use if necessary.
+    if top == 'classification':
+        feature_shape = K.int_shape(x)
+        if (feature_shape[1] > 1 or feature_shape[2] > 1):
+            x = GlobalMaxPooling2D()(x)
+            # x = Flatten()(x)
+
+        # combined full connected layers
+        if dropout_rate is not None:
+            x = Dropout(dropout_rate)(x)
+
+        x = Dense(64, activation='relu')(x)
+
+        if dropout_rate is not None:
+            x = Dropout(dropout_rate)(x)
+
+        x = Dense(64, activation='relu')(x)
+
+        if dropout_rate is not None:
+            x = Dropout(dropout_rate)(x)
+
+    elif top == 'segmentation':
+
+        if dropout_rate is not None:
+            x = Dropout(dropout_rate)(x)
+
+        x = Conv2D(64, (1, 1), activation='relu', padding='same')(x)
+
+        if dropout_rate is not None:
+            x = Dropout(dropout_rate)(x)
+
+        x = Conv2D(64, (1, 1), activation='relu', padding='same')(x)
+
+        if dropout_rate is not None:
+            x = Dropout(dropout_rate)(x)
+
+        # if the image was made smaller to save space,
+        # upsample before calculating the final output
+        if K.image_data_format() == 'channels_first':
+            batch, channel, row, col = 0, 1, 2, 3
+        else:
+            batch, row, col, channel = 0, 1, 2, 3
+
+        comb_conv_shape = K.int_shape(x)
+        iidim = (output_image_shape[row-1], output_image_shape[col-1])
+        ccdim = (comb_conv_shape[row], comb_conv_shape[col])
+        if iidim != ccdim:
+            x = UpSampling2D(size=(iidim[0]/ccdim[0], iidim[1]/ccdim[1]))(x)
+
+    # calculate the final classification output
+    x = classifier_block(x, include_top, top, classes, activation,
+                         output_image_shape, final_pooling, verbose)
+    return x
+
+
+def dilated_late_concat_model(
+        images=None, vectors=None,
+        image_shapes=None, vector_shapes=None,
+        dropout_rate=None,
+        vector_dense_filters=256,
+        dilation_rate=2,
+        activation='sigmoid',
+        final_pooling=None,
+        include_top=True,
+        top='segmentation',
+        classes=1,
+        output_shape=None,
+        create_image_tree_roots_fn=None,
+        create_vector_tree_roots_fn=None,
+        verbose=0):
+
+    if images is None and image_shapes is None:
+        raise ValueError('There must be at least one entry in the images parameter '
+                         'or the image_shapes parameter.')
+
+    if output_shape is None:
+        if images is not None:
+            output_shape = keras.backend.int_shape(images[0])[1:]
+
+        elif image_shapes is not None:
+            output_shape = image_shapes[0]
+
+    image_inputs, image_logits = create_tree_roots(
+        images, image_shapes, make_layer_fn=create_image_tree_roots_fn)
+
+    vector_inputs, vector_logits = create_tree_roots(
+        vectors, vector_shapes, make_layer_fn=create_vector_tree_roots_fn)
+
+    if vector_logits is None:
+        x = Concatenate(axis=-1)(image_logits)
+    else:
+        v = vector_logits
+        if len(vector_logits) > 1:
+            v = Concatenate(axis=0)(v)
+        else:
+            [v] = v
+        v = Dense(vector_dense_filters)(v)
+        x = concat_images_with_tiled_vector_layer(image_logits, v)
+
+    # The top block adds the final "decision making" layers
+    # and the classifier block according to the problem type.
+    # Dense layers for single prediction problems, and
+    # Conv2D layers for pixel-wise prediction problems.
+    x = top_block(x, output_shape, top, dropout_rate,
+                  include_top, classes, activation,
+                  final_pooling, verbose)
+
+    # Make a list of all inputs into the model
+    # Each of these should be a list or the empty list [].
+    inputs = image_inputs + vector_inputs
+
+    # create the model
+    model = keras.models.Model(inputs=inputs, outputs=x)
+    return model
 
 
 def grasp_model_resnet(clear_view_image_op,
@@ -426,12 +634,12 @@ def grasp_model_levine_2016(
         dilation_rate_initial_conv=1,
         pooling='max',
         dilation_rate=1,
-        activation='sigmoid',
         final_pooling='max',
-        require_flatten=True,
+        include_top=True,
+        activation='sigmoid',
         top='classification',
         classes=1,
-        verbose=False,
+        verbose=0,
         name='grasp_model_levine_2016'):
     """Model designed to match prior work.
 
@@ -457,7 +665,7 @@ def grasp_model_levine_2016(
                                                 default_size=32,
                                                 min_size=8,
                                                 data_format=K.image_data_format(),
-                                                require_flatten=require_flatten)
+                                                require_flatten=include_top)
 
         clear_view_image_input = Input(shape=input_image_shape,
                                        tensor=clear_view_image_op,
@@ -466,124 +674,133 @@ def grasp_model_levine_2016(
                                          tensor=current_time_image_op,
                                          name='current_time_image_input')
 
+        conv_counter = 1
+        maxpool_counter = 1
+        dense_counter = 1
+        dropout_counter = 1
+
         # img1 Conv 1
         clear_view_img_conv = Conv2D(64, kernel_size=(6, 6),
                                      activation='relu',
                                      strides=strides_initial_conv,
                                      dilation_rate=dilation_rate_initial_conv,
-                                     padding='same')(clear_view_image_input)
+                                     padding='same',
+                                     name='conv'+str(conv_counter))(clear_view_image_input)
+        conv_counter += 1
 
         # img2 Conv 1
         current_time_img_conv = Conv2D(64, kernel_size=(6, 6),
                                        activation='relu',
                                        strides=strides_initial_conv,
                                        dilation_rate=dilation_rate_initial_conv,
-                                       padding='same')(current_time_image_input)
-
+                                       padding='same',
+                                       name='conv'+str(conv_counter))(current_time_image_input)
+        conv_counter += 1
+        if verbose > 0:
+            print('conv2 shape:' + str(K.int_shape(current_time_img_conv)))
         if pooling == 'max':
             # img maxPool
-            clear_view_img_conv = MaxPooling2D(pool_size=(3, 3))(clear_view_img_conv)
-            current_time_img_conv = MaxPooling2D(pool_size=(3, 3))(current_time_img_conv)
+            maxpool_name_a = 'maxpool' + str(maxpool_counter)
+            clear_view_img_conv = MaxPooling2D(pool_size=(3, 3),
+                                               name=maxpool_name_a)(clear_view_img_conv)
+            maxpool_counter += 1
+            maxpool_name_b = 'maxpool' + str(maxpool_counter)
+            current_time_img_conv = MaxPooling2D(pool_size=(3, 3),
+                                                 name=maxpool_name_b)(current_time_img_conv)
+            maxpool_counter += 1
+            if verbose > 0:
+                print(maxpool_name_a, maxpool_name_b)
 
         x = Add()([clear_view_img_conv, current_time_img_conv])
 
-        # img Conv 2 - 7
-        for i in range(6):
-            x = Conv2D(64, (5, 5), padding='same', activation='relu')(x)
-
+        # img Conv 2
         x = Conv2D(64, (5, 5), padding='same', activation='relu',
-                   dilation_rate=dilation_rate)(x)
+                   dilation_rate=dilation_rate,
+                   name='conv'+str(conv_counter))(x)
+        conv_counter += 1
 
+        # img Conv 3 - 8
+        for i in range(6):
+            x = Conv2D(64, (5, 5), padding='same', activation='relu',
+                       name='conv'+str(conv_counter))(x)
+            conv_counter += 1
+
+        if verbose > 0:
+            print('pre max pool shape:' + str(K.int_shape(x)))
         if pooling == 'max':
             # img maxPool 2
-            x = MaxPooling2D(pool_size=(3, 3))(x)
+            maxpool_name = 'maxpool' + str(maxpool_counter)
+            x = MaxPooling2D(pool_size=(3, 3), name=maxpool_name)(x)
+            if verbose > 0:
+                print(maxpool_name + ' shape:' + str(K.int_shape(x)))
+            maxpool_counter += 1
 
+        if verbose > 0:
+            print('post max pool shape:' + str(K.int_shape(x)))
         if input_vector_op is not None or input_vector_op is not None:
             # Handle input command data
             vector_shape = K.int_shape(input_vector_op)[1:]
             motorData = Input(shape=vector_shape, tensor=input_vector_op, name='motion_command_vector_input')
 
             # motor full conn
-            motorConv = Dense(64, activation='relu')(motorData)
+            motorConv = Dense(64, activation='relu',
+                              name='dense'+str(dense_counter))(motorData)
+            dense_counter += 1
 
             # tile and concat the data
             x = add_images_with_tiled_vector_layer(x, motorConv)
 
             if dropout_rate is not None:
-                x = Dropout(dropout_rate)(x)
+                x = Dropout(dropout_rate, name='dropout'+str(dropout_counter))(x)
+                dropout_counter += 1
 
         # combined conv 8
-        x = Conv2D(64, (3, 3), activation='relu', padding='same')(x)
+        x = Conv2D(64, (3, 3), activation='relu', padding='same',
+                   dilation_rate=dilation_rate,
+                   name='conv'+str(conv_counter))(x)
+        conv_counter += 1
 
-        # combined conv 9 - 12
+        #TODO(dingyu95) check if this is the right number of convs, update later and make a model
+        # combined conv 10 - 12
         for i in range(2):
-            x = Conv2D(64, (3, 3), activation='relu', padding='same')(x)
+            x = Conv2D(64, (3, 3), activation='relu', padding='same',
+                       name='conv'+str(conv_counter))(x)
+            conv_counter += 1
 
         # combined conv 13
         x = Conv2D(64, (5, 5), padding='same', activation='relu',
-                   dilation_rate=dilation_rate)(x)
+                   name='conv'+str(conv_counter))(x)
+        conv_counter += 1
 
+
+        if verbose > 0:
+            print('pre max pool shape:' + str(K.int_shape(x)))
         if pooling == 'max':
             # combined maxPool
-            x = MaxPooling2D(pool_size=(2, 2))(x)
+            maxpool_name = 'maxpool' + str(maxpool_counter)
+            x = MaxPooling2D(pool_size=(2, 2), name=maxpool_name)(x)
+            if verbose > 0:
+                print(maxpool_name + ' shape:' + str(K.int_shape(x)))
+            maxpool_counter += 1
 
+        if verbose > 0:
+            print('post max pool shape:' + str(K.int_shape(x)))
+        x = Conv2D(64, (3, 3), activation='relu', padding='same',
+                   dilation_rate=dilation_rate,
+                   name='conv'+str(conv_counter))(x)
+        conv_counter += 1
         # combined conv 14 - 16
-        for i in range(3):
-            x = Conv2D(64, (3, 3), activation='relu', padding='same')(x)
+        for i in range(2):
+            x = Conv2D(64, (3, 3), activation='relu', padding='same', name='conv'+str(conv_counter))(x)
+            conv_counter += 1
 
-        # Extra Global Average Pooling allows more flexible input dimensions
-        # but only use if necessary.
-        if top == 'classification':
-            feature_shape = K.int_shape(x)
-            if (feature_shape[1] > 1 or feature_shape[2] > 1):
-                x = GlobalMaxPooling2D()(x)
-                # x = Flatten()(x)
-
-            # combined full connected layers
-            if dropout_rate is not None:
-                x = Dropout(dropout_rate)(x)
-
-            x = Dense(64, activation='relu')(x)
-
-            if dropout_rate is not None:
-                x = Dropout(dropout_rate)(x)
-
-            x = Dense(64, activation='relu')(x)
-
-            if dropout_rate is not None:
-                x = Dropout(dropout_rate)(x)
-
-        elif top == 'segmentation':
-
-            if dropout_rate is not None:
-                x = Dropout(dropout_rate)(x)
-
-            x = Conv2D(64, (1, 1), activation='relu', padding='same')(x)
-
-            if dropout_rate is not None:
-                x = Dropout(dropout_rate)(x)
-
-            x = Conv2D(64, (1, 1), activation='relu', padding='same')(x)
-
-            if dropout_rate is not None:
-                x = Dropout(dropout_rate)(x)
-
-            # if the image was made smaller to save space,
-            # upsample before calculating the final output
-            if K.image_data_format() == 'channels_first':
-                batch, channel, row, col = 0, 1, 2, 3
-            else:
-                batch, row, col, channel = 0, 1, 2, 3
-
-            comb_conv_shape = K.int_shape(x)
-            iidim = (input_image_shape[row-1], input_image_shape[col-1])
-            ccdim = (comb_conv_shape[row], comb_conv_shape[col])
-            if iidim != ccdim:
-                x = UpSampling2D(size=(iidim[0]/ccdim[0], iidim[1]/ccdim[1]))(x)
-
-        # calculate the final classification output
-        x = classifier_block(x, require_flatten, top, classes, activation,
-                             input_image_shape, final_pooling, verbose)
+        # The top block adds the final "decision making" layers
+        # and the classifier block according to the problem type.
+        # Dense layers for single prediction problems, and
+        # Conv2D layers for pixel-wise prediction problems.
+        x = top_block(x, input_image_shape, top, dropout_rate,
+                      include_top, classes, activation,
+                      final_pooling, verbose)
 
         # make a list of all inputs into the model
         inputs = [clear_view_image_input, current_time_image_input]
@@ -606,32 +823,33 @@ def grasp_model_levine_2016_segmentation(
         dilation_rate_initial_conv=1,
         pooling=None,
         dilation_rate=2,
+        final_pooling=None,
+        require_flatten=True,
         activation='sigmoid',
-        require_flatten=None,
         include_top=True,
         top='segmentation',
         classes=1,
-        verbose=False):
+        verbose=0):
     """ The levine 2016 model adapted for segmentation.
-
+    #TODO(ahundt) require_flatten is formerly include_top from keras, change to something like include_classifier_block
     Based on the prior work:
 
         Learning Hand-Eye Coordination for Robotic Grasping with Deep Learning and Large-Scale Data Collection.
     """
+    print('grasp_model_levine_2016_segmentation')
     return grasp_model_levine_2016(
-        clear_view_image_op,
-        current_time_image_op,
-        input_vector_op,
-        input_image_shape,
-        input_vector_op_shape,
-        dropout_rate,
-        strides_initial_conv,
-        dilation_rate_initial_conv,
-        pooling,
-        dilation_rate,
-        activation,
-        require_flatten,
-        include_top,
-        top,
-        classes,
-        verbose)
+        clear_view_image_op=clear_view_image_op,
+        current_time_image_op=current_time_image_op,
+        input_vector_op=input_vector_op,
+        input_image_shape=input_image_shape,
+        input_vector_op_shape=input_vector_op_shape,
+        dropout_rate=dropout_rate,
+        strides_initial_conv=strides_initial_conv,
+        dilation_rate_initial_conv=dilation_rate_initial_conv,
+        pooling=pooling,
+        dilation_rate=dilation_rate,
+        final_pooling=final_pooling,
+        activation=activation,
+        top=top,
+        classes=classes,
+        verbose=verbose)
