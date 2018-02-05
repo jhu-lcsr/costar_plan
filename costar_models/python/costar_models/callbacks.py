@@ -569,14 +569,14 @@ class ModelSaveCallback(keras.callbacks.Callback):
                     print('val_loss[{}] better than {}. Saving model.'.format(
                         logs['val_loss'], self.best_val_loss))
                     self.best_val_loss = logs['val_loss']
-                    print('Model =', self.model)
-                    print('ModelType =', type(self.model))
+                    print('Model =', self.saved_model)
+                    print('ModelType =', type(self.saved_model))
                     self.saved_model.save()
                 else:
                     print('val_loss[{}] not improved. Not saving'.format(
                         logs['val_loss']))
             else:
-                print('Model =', self.model)
-                print('ModelType =', type(self.model))
+                print('Model =', self.saved_model)
+                print('ModelType =', type(self.saved_model))
                 self.saved_model.saveWeights()
 

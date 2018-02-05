@@ -129,6 +129,9 @@ def GetModelParser():
                         help="Dropout rate to use",
                         type=float,
                         default=0.5)
+    parser.add_argument("--enc_loss",
+                        help="Add encoder loss",
+                        action="store_true")
     parser.add_argument("--use_noise",
                         help="use random noise to sample distributions",
                         action='store_true',
