@@ -61,13 +61,13 @@ flags.DEFINE_string('grasp_model', 'grasp_model_levine_2016_segmentation',
                        grasp_model_levine_2016, grasp_model, grasp_model_resnet, grasp_model_segmentation""")
 flags.DEFINE_string('save_weights', 'grasp_model_weights',
                     """Save a file with the trained model weights.""")
-flags.DEFINE_string('load_weights', None,
+#flags.DEFINE_string('load_weights', None,
 # flags.DEFINE_string('load_weights', 'grasp_model_weights.h5',
-# flags.DEFINE_string('load_weights', '2018-01-19-19-22-29_delta_depth_sin_cos_3-grasp_model_levine_2016_segmentation-dataset_062_b_063_072_a_082_b_102-epoch-001-val_loss-0.775-val_segmentation_single_pixel_binary_accuracy-0.354.h5',
+flags.DEFINE_string('load_weights', 'converted2018-01-20-06-41-24_grasp_model_weights-delta_depth_sin_cos_3-grasp_model_levine_2016-dataset_062_b_063_072_a_082_b_102-epoch-014-val_loss-0.641-val_acc-0.655.h5',
                     """Load and continue training the specified file containing model weights.""")
 flags.DEFINE_integer('epochs', 300,
                      """Epochs of training""")
-flags.DEFINE_string('grasp_dataset_eval', '097',
+flags.DEFINE_string('grasp_dataset_eval', '102',
                     """Filter the subset of 1TB Grasp datasets to evaluate.
                     097 by default. It is important to ensure that this selection
                     is completely different from the selected training datasets
@@ -79,7 +79,7 @@ flags.DEFINE_boolean('eval_per_epoch', True,
                         Weight flies for every epoch and single txt file of dataset
                         will be saved.
                      """)
-flags.DEFINE_string('pipeline_stage', 'train_eval',
+flags.DEFINE_string('pipeline_stage', 'eval',
                     """Choose to "train", "eval", or "train_eval" with the grasp_dataset
                        data for training and grasp_dataset_eval for evaluation.""")
 flags.DEFINE_float('learning_rate_scheduler_power_decay_rate', 1.5,
@@ -88,7 +88,7 @@ flags.DEFINE_float('learning_rate_scheduler_power_decay_rate', 1.5,
                       Training from scratch within an initial learning rate of 0.1 might find a
                          power decay value of 2 to be useful.
                       Fine tuning with an initial learning rate of 0.001 may consder 1.5 power decay.""")
-flags.DEFINE_float('grasp_learning_rate', 0.1,
+flags.DEFINE_float('grasp_learning_rate', 0.001,
                    """Determines the initial learning rate""")
 flags.DEFINE_integer('eval_batch_size', 1, 'batch size per compute device')
 flags.DEFINE_integer('densenet_growth_rate', 12,
@@ -486,14 +486,6 @@ class GraspTrain(object):
                 # input_image_shape=input_image_shape,
                 dropout_rate=0.0)
 
-            if not eval_per_epoch:
-                if(load_weights):
-                    if os.path.isfile(load_weights):
-                        model.load_weights(load_weights)
-                    else:
-                        raise ValueError('Could not load weights {}, '
-                                         'the file does not exist.'.format(load_weights))
-
             loss = self.gather_losses(loss)
 
             metrics, monitor_metric_name = self.gather_metrics(metric)
@@ -502,6 +494,18 @@ class GraspTrain(object):
                           loss=loss,
                           metrics=metrics,
                           target_tensors=[grasp_success_op_batch])
+
+            if not eval_per_epoch:
+                if(load_weights):
+                    if os.path.isfile(load_weights):
+                        model.load_weights(load_weights)
+                        print('load success')
+                    else:
+                        raise ValueError('Could not load weights {}, '
+                                         'the file does not exist.'.format(load_weights))
+
+            model.save_weights('converted'+load_weights)
+            return
 
             steps = float(num_samples) / float(batch_size)
 
@@ -550,14 +554,19 @@ class GraspTrain(object):
                            resize_width=FLAGS.resize_width,
                            model_name=FLAGS.grasp_model,
                            loss=FLAGS.loss,
-                           metric=FLAGS.metric,
-                           fetches=None):
+                           metric=FLAGS.metric):
         with K.name_scope('predict') as scope:
-            data = grasp_dataset.GraspDataset(dataset=dataset)
-            (pregrasp_op_batch, grasp_step_op_batch,
-             simplified_grasp_command_op_batch,
-             grasp_success_op_batch,
-             num_samples) = data.get_training_tensors(batch_size=batch_size,
+            if isinstance(dataset, str):
+                data = grasp_dataset.GraspDataset(dataset=dataset)
+            else:
+                data = dataset
+    
+            (pregrasp_op_batch, grasp_step_op_batch, 
+             simplified_grasp_command_op_batch, 
+             grasp_success_op_batch, feature_op_dicts, 
+             features_complete_list, 
+             time_ordered_feature_name_dict, 
+             num_samples) = data.get_training_tensors_and_dictionaries(batch_size=batch_size,
                                                       imagenet_preprocessing=imagenet_preprocessing,
                                                       random_crop=False,
                                                       image_augmentation=False,
@@ -570,7 +579,7 @@ class GraspTrain(object):
                 input_image_shape = [resize_height, resize_width, 3]
             else:
                 input_image_shape = [512, 640, 3]
-
+            print('input tensor shape:', K.int_shape(pregrasp_op_batch))
             ########################################################
             # End tensor configuration, begin model configuration and training
 
@@ -582,21 +591,7 @@ class GraspTrain(object):
                 # input_image_shape=input_image_shape,
                 dropout_rate=0.0)
 
-            if(load_weights):
-                if os.path.isfile(load_weights):
-                    model.load_weights(load_weights)
-                else:
-                    raise ValueError('Could not load weights {}, '
-                                     'the file does not exist.'.format(load_weights))
-
-            loss_name = 'loss'
-            if 'segmentation_single_pixel_binary_crossentropy' in loss:
-                loss = grasp_loss.segmentation_single_pixel_binary_crossentropy
-                loss_name = 'segmentation_single_pixel_binary_crossentropy'
-
-            if isinstance(loss, str) and 'segmentation_gaussian_binary_crossentropy' in loss:
-                loss = grasp_loss.segmentation_gaussian_binary_crossentropy
-                loss_name = 'segmentation_gaussian_binary_crossentropy'
+            loss = self.gather_losses(loss)
 
             metrics, monitor_metric_name = self.gather_metrics(metric)
 
@@ -604,14 +599,25 @@ class GraspTrain(object):
                           loss=loss,
                           metrics=metrics,
                           target_tensors=[grasp_success_op_batch],
-                          fetches=fetches)
+                          fetches=feature_op_dicts)
+
+            if(load_weights):
+                if os.path.isfile(load_weights):
+                    model.load_weights(load_weights, by_name=True, reshape=True)
+                else:
+                    raise ValueError('Could not load weights {}, '
+                                     'the file does not exist.'.format(load_weights))
 
             # Warning: hacky workaround to get both fetches and predictions back
             # see https://github.com/keras-team/keras/pull/9121 for details
             # TODO(ahundt) remove this hack
             model._make_predict_function = keras_workaround._make_predict_function_get_fetches.__get__(model, Model)
-
-            return model
+            return (model, pregrasp_op_batch, grasp_step_op_batch, 
+                    simplified_grasp_command_op_batch, 
+                    grasp_success_op_batch, feature_op_dicts, 
+                    features_complete_list, 
+                    time_ordered_feature_name_dict, 
+                    num_samples)
 
     def gather_metrics(self, metric):
         metrics = []
@@ -748,7 +754,8 @@ def main():
             # evaluate using weights that were just computed, if available
             gt.eval(make_model_fn=make_model_fn,
                     load_weights=load_weights,
-                    model_name=FLAGS.grasp_model)
+                    model_name=FLAGS.grasp_model,
+                    eval_per_epoch=False)
         return None
 
 if __name__ == '__main__':

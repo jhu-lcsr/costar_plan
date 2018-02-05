@@ -22,6 +22,7 @@ from .conditional_sampler2 import ConditionalSampler2
 from .conditional_image import ConditionalImage
 from .conditional_image_gan import ConditionalImageGan
 from .discriminator import Discriminator
+from .secondary import Secondary
 
 # Jigsaws stuff
 from .pretrain_image_jigsaws import PretrainImageJigsaws
@@ -38,6 +39,7 @@ from .conditional_image_husky import ConditionalImageHusky
 from .conditional_image_husky_gan import ConditionalImageHuskyGan
 from .discriminator import HuskyDiscriminator
 from .multi_policy import HuskyPolicy
+from .secondary import HuskySecondary
 
 def MakeModel(features, model, taskdef, **kwargs):
     '''
@@ -130,6 +132,8 @@ def MakeModel(features, model, taskdef, **kwargs):
             model_instance = Discriminator(False, taskdef, model=model, **kwargs)
         elif model == "goal_discriminator":
             model_instance = Discriminator(True, taskdef, model=model, **kwargs)
+        elif model == "secondary":
+            model_instance = Secondary(taskdef, model=model, **kwargs)
     elif features == "jigsaws":
         '''
         These models are all meant for use with the JHU-JIGSAWS dataset. This
@@ -207,6 +211,8 @@ def MakeModel(features, model, taskdef, **kwargs):
             model_instance = HuskyDiscriminator(True, taskdef,
                     features=features,
                     model=model, **kwargs)
+        elif model == "secondary":
+            model_instance = HuskySecondary(taskdef, model=model, **kwargs)
     
     # If we did not create a model then die.
     if model_instance is None:
@@ -238,5 +244,6 @@ def GetModels():
             "pretrain_image_gan",
             "discriminator",
             "goal_discriminator",
+            "secondary", # train secondary models like value, actor, state, etc
             ]
 

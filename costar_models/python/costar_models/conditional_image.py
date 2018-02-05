@@ -17,7 +17,7 @@ from matplotlib import pyplot as plt
 
 from .callbacks import *
 from .sampler2 import *
-from .data_utils import GetNextGoal, ToOneHot2D
+from .data_utils import GetNextGoal, ToOneHot
 from .multi import *
 
 
@@ -46,9 +46,9 @@ class ConditionalImage(PredictionSampler2):
         self.PredictorCb = ImageWithFirstCb
         self.rep_size = 256
         self.num_transforms = 3
-        self.do_all = True
         self.transform_model = None
         self.skip_connections = False
+        self.save_encoder_decoder = self.retrain
 
         if self.use_noise:
             raise NotImplementedError('noise vectors not supported for'
@@ -81,9 +81,6 @@ class ConditionalImage(PredictionSampler2):
             decoder = self._makeImageDecoder(self.hidden_shape)
 
         LoadEncoderWeights(self, encoder, decoder)
-        image_discriminator = LoadGoalClassifierWeights(self,
-                make_classifier_fn=MakeImageClassifier,
-                img_shape=img_shape)
 
         # =====================================================================
         # Load the arm and gripper representation
@@ -93,77 +90,51 @@ class ConditionalImage(PredictionSampler2):
             h = encoder([img_in])
             h0 = encoder(img0_in)
 
-        next_model = GetNextModel(h, self.num_options, 128,
-                self.decoder_dropout_rate)
-        value_model = GetValueModel(h, self.num_options, 64,
-                self.decoder_dropout_rate)
-        next_model.compile(loss="mae", optimizer=self.getOptimizer())
-        value_model.compile(loss="mae", optimizer=self.getOptimizer())
-        value_out = value_model([h])
-        next_option_out = next_model([h0,h,label_in])
-        #value_out = value_model([h,label_in])
-        #next_option_out = next_model([h,label_in])
+        if self.validate:
+            self.loadValidationModels(arm_size, gripper_size, h0, h)
 
         next_option_in = Input((1,), name="next_option_in")
         next_option_in2 = Input((1,), name="next_option_in2")
         ins += [next_option_in, next_option_in2]
 
-        y = OneHot(self.num_options)(next_option_in)
-        y = Flatten()(y)
-        y2 = OneHot(self.num_options)(next_option_in2)
-        y2 = Flatten()(y2)
-        x = h
+        # =====================================================================
+        # Apply transforms
+        y = Flatten()(OneHot(self.num_options)(next_option_in))
+        y2 = Flatten()(OneHot(self.num_options)(next_option_in2))
+
         tform = self._makeTransform()
         x = tform([h0,h,y])
         x2 = tform([h0,x,y2])
-        image_out = decoder([x])
-        image_out2 = decoder([x2])
-        #image_out = decoder([x, s32, s16, s8])
 
-        disc_out2 = image_discriminator(image_out2)
+        image_out, image_out2 = decoder([x]), decoder([x2])
 
-        # =====================================================================
-        # Store the models for next time
-        self.next_model = next_model
-        self.value_model = value_model
-        self.transform_model = tform
+        # Compute classifier on the last transform
+        if not self.no_disc:
+            image_discriminator = LoadGoalClassifierWeights(self,
+                    make_classifier_fn=MakeImageClassifier,
+                    img_shape=img_shape)
+            disc_out2 = image_discriminator([img0_in, image_out2])
 
-        # =====================================================================
-        actor = GetActorModel(h, self.num_options, arm_size, gripper_size,
-                self.decoder_dropout_rate)
-        actor.compile(loss="mae",optimizer=self.getOptimizer())
-        arm_cmd, gripper_cmd = actor([h, y])
-        lfn = self.loss
-        lfn2 = "logcosh"
-        val_loss = "binary_crossentropy"
-
-        # =====================================================================
         # Create models to train
-        predictor = Model(ins + [label_in],
-                [image_out, image_out2, next_option_out, value_out])
-        predictor.compile(
-                loss=[lfn, lfn, "binary_crossentropy", val_loss],
-                loss_weights=[1., 1., 0.1, 0.1,],
-                optimizer=self.getOptimizer())
-        if self.do_all:
+        if self.no_disc:
+            disc_wt = 0.
+        else:
+            disc_wt = 1e-3
+        if self.no_disc:
             train_predictor = Model(ins + [label_in],
-                    [image_out, image_out2, next_option_out, value_out,
-                        arm_cmd,
-                        gripper_cmd, disc_out2])
+                    [image_out, image_out2])
             train_predictor.compile(
-                    loss=[lfn, lfn, "binary_crossentropy", val_loss,
-                        lfn2, lfn2, "categorical_crossentropy"],
-                    #loss_weights=[1., 1., 0.1, 0.1, 1., 0.2, 1e-3],
-                    loss_weights=[1., 1., 0., 0., 0., 0., 1e-3],
+                    loss=[self.loss, self.loss,],
+                    loss_weights=[1., 1.,],
                     optimizer=self.getOptimizer())
         else:
             train_predictor = Model(ins + [label_in],
-                    [image_out, image_out2,
-                        ])
+                    [image_out, image_out2, disc_out2])
             train_predictor.compile(
-                    loss=lfn, 
+                    loss=[self.loss, self.loss, "categorical_crossentropy"],
+                    loss_weights=[1., 1., disc_wt],
                     optimizer=self.getOptimizer())
-        return predictor, train_predictor, actor, ins, h
+        return None, train_predictor, None, ins, h
 
     def _getData(self, *args, **kwargs):
         features, targets = GetAllMultiData(self.num_options, *args, **kwargs)
@@ -173,22 +144,54 @@ class ConditionalImage(PredictionSampler2):
         I0 = I[0,:,:,:]
         length = I.shape[0]
         I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
-        oin_1h = np.squeeze(ToOneHot2D(oin, self.num_options))
-        o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
-        o2_1h = np.squeeze(ToOneHot2D(o2, self.num_options))
+        oin_1h = ToOneHot(oin, self.num_options)
+        o1_1h = ToOneHot(o1, self.num_options)
+        o2_1h = ToOneHot(o2, self.num_options)
         qa = np.squeeze(qa)
         ga = np.squeeze(ga)
-        #print("o1 = ", o1, o1.shape, type(o1))
-        #print("o2 = ", o2, o2.shape, type(o2))
-        if self.do_all:
-            o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
+        if self.validate:
             return [I0, I, o1, o2, oin], [ I_target, I_target2, o1_1h, v, qa,
                     ga, o2_1h]
-        else:
+        elif self.no_disc:
             return [I0, I, o1, o2, oin], [I_target, I_target2]
+        else:
+            return [I0, I, o1, o2, oin], [I_target, I_target2, o2_1h]
 
 
-    def encode(self, obs):
+    def loadValidationModels(self, arm_size, gripper_size, h0, h):
+
+        arm_in = Input((arm_size,))
+        gripper_in = Input((gripper_size,))
+        arm_gripper = Concatenate()([arm_in, gripper_in])
+        label_in = Input((1,))
+
+        self.value_model = GetValueModel(h, self.num_options, 64,
+                self.decoder_dropout_rate)
+        self.value_model.compile(loss="mae", optimizer=self.getOptimizer())
+        self.value_model.load_weights(self.makeName("secondary", "value"))
+
+        self.next_model = GetNextModel(h, self.num_options, 128,
+                self.decoder_dropout_rate)
+        self.next_model.compile(loss="mae", optimizer=self.getOptimizer())
+        self.next_model.load_weights(self.makeName("secondary", "next"))
+
+        self.actor = GetActorModel(h, self.num_options, arm_size, gripper_size,
+                self.decoder_dropout_rate)
+        self.actor.compile(loss="mae",optimizer=self.getOptimizer())
+        self.actor.load_weights(self.makeName("secondary", "actor"))
+
+        self.pose_model = GetPoseModel(h, self.num_options, arm_size, gripper_size,
+                self.decoder_dropout_rate)
+        self.pose_model.compile(loss="mae",optimizer=self.getOptimizer())
+        self.pose_model.load_weights(self.makeName("secondary", "pose"))
+
+        self.q_model = GetNextModel(h, self.num_options, 128,
+                self.decoder_dropout_rate)
+        self.q_model.compile(loss="mae", optimizer=self.getOptimizer())
+        self.q_model.load_weights(self.makeName("secondary", "q"))
+
+
+    def encode(self, img):
         '''
         Encode available features into a new state
 
@@ -196,7 +199,7 @@ class ConditionalImage(PredictionSampler2):
         -----------
         [unknown]: all are parsed via _getData() function.
         '''
-        return self.image_encoder.predict(obs[1])
+        return self.image_encoder.predict(img)
 
     def decode(self, hidden):
         '''
@@ -206,43 +209,32 @@ class ConditionalImage(PredictionSampler2):
         '''
         return self.image_decoder.predict(hidden)
 
-    def prevOption(self, features):
-        '''
-        Just gets the previous option from a set of features
-        '''
-        if self.use_noise:
-            return features[4]
-        else:
-            return features[3]
-
-    def encodeInitial(self, obs):
-        '''
-        Call the encoder but only on the initial image frame
-        '''
-        return self.image_encoder.predict(obs[0])
-
-    def pnext(self, hidden, prev_option, features):
+    def pnext(self, hidden0, hidden, prev_option):
         '''
         Visualize based on hidden
         '''
-        h0 = self.encodeInitial(features)
-
-        print(self.next_model.inputs)
-        #p = self.next_model.predict([h0, hidden, prev_option])
-        p = self.next_model.predict([hidden, prev_option])
+        p = self.next_model.predict([hidden0, hidden, prev_option])
         #p = np.exp(p)
         #p /= np.sum(p)
         return p
 
-    def value(self, hidden, prev_option, features):
-        h0 = self.encodeInitial(features)
+    def value(self, hidden0, hidden):
         #v = self.value_model.predict([h0, hidden, prev_option])
-        v = self.value_model.predict([hidden, prev_option])
+        v = self.value_model.predict([hidden0, hidden])
         return v
 
-    def transform(self, hidden, option_in=-1):
-
-        raise NotImplementedError('transform() not implemented')
+    def transform(self, hidden0, hidden, option_in=-1):
+        #if option_in < 0 or option_in > self.num_options:
+        #    option_in = self.null_option
+        #oin = MakeOption1h(option_in, self.num_options)
+        if len(option_in.shape) == 1:
+            oin = ToOneHot(option_in, self.num_options)
+        else:
+            oin = option_in
+        #length = hidden.shape[0]
+        #oin = np.repeat(oin, length, axis=0)
+        h = self.transform_model.predict([hidden0, hidden, oin])
+        return h
 
     def act(self, *args, **kwargs):
         raise NotImplementedError('act() not implemented')

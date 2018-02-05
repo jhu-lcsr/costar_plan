@@ -5,7 +5,6 @@ import keras.losses as losses
 import keras.optimizers as optimizers
 import numpy as np
 
-from keras.callbacks import ModelCheckpoint
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
 from keras.layers.embeddings import Embedding
@@ -44,6 +43,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.tform_kernel_size  = [5,5]
         self.num_hypotheses = 4
         self.validation_split = 0.05
+        self.save_encoder_decoder = False
 
         # For the new model setup
         self.encoder_channels = 64
@@ -107,6 +107,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.hidden_decoder = None
         self.next_model = None
         self.value_model = None
+        self.q_model = None
+        self.pose_model = None
         self.transform_model = None
 
         # ===================================================================
@@ -136,7 +138,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             print("WARNING: skip connections were disabled and should be"
                   "enabled for the default (SSM) predictor.")
             self.skip_connections = True
-        
+
         # =====================================================================
         # Create the encoder and decoder networks -- these are sub-networks
         # that we may find useful in different situations.
@@ -165,14 +167,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         if self.skip_connections:
             skips.reverse()
-        
+
         if not self.use_prev_option:
             option_in = Input((1,),name="prev_option_in")
             ins += [option_in]
             pv_option_in = option_in
         else:
             pv_option_in = None
-            
+
         #next_option_in = Input((self.num_options,),name="next_option_in")
         #ins += [next_option_in]
 
@@ -204,10 +206,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     x = transform([enc, next_option_in])
                 else:
                     x = transform([enc])
-            
-            if self.sampling:
-                x, mu, sigma = x
-                stats.append((mu, sigma))
 
             # This maps from our latent world state back into observable images.
             if self.skip_connections:
@@ -314,6 +312,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         h = Input((h_dim[0], h_dim[1], self.encoder_channels),name="h_in")
         h0 = Input((h_dim[0],h_dim[1], self.encoder_channels),name="h0_in")
         option = Input((self.num_options,),name="t_opt_in")
+        if self.use_noise:
+            z = Input((self.noise_dim,), name="z_in")
+
         x = AddConv2D(h, 64, [1,1], 1, 0.)
         x0 = AddConv2D(h0, 64, [1,1], 1, 0.)
 
@@ -323,6 +324,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # store this for skip connection
         skip = x
+
+        if self.use_noise:
+            y = AddDense(z, 32, "relu", 0., constraint=None, output=False)
+            x = TileOnto(x, y, 32, h_dim)
+            x = AddConv2D(x, 32, [5,5], 1, 0.)
 
         # Add dense information
         y = AddDense(option, 64, "relu", 0., constraint=None, output=False)
@@ -338,8 +344,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
             x = AddDense(x, 256, "relu", 0.,
                     constraint=None, output=False,)
-            x = AddDense(x, h_dim[0] * h_dim[1] * 32/4, "relu", 0., constraint=None, output=False)
-            x = Reshape([h_dim[0]/2, h_dim[1]/2, 32])(x)
+            x = AddDense(x, int(h_dim[0] * h_dim[1] * 32/4), "relu", 0., constraint=None, output=False)
+            x = Reshape([int(h_dim[0]/2), int(h_dim[1]/2), 32])(x)
         else:
             x = AddConv2D(x, 128, [5,5], 1, 0.)
         x = AddConv2DTranspose(x, 64, [5,5], 2,
@@ -360,7 +366,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Put resulting image into the output shape
         x = AddConv2D(x, self.encoder_channels, [1, 1], stride=1,
                 dropout_rate=0.)
-        self.transform_model = Model([h0,h,option], x, name="tform")
+
+        l = [h0, h, option, z] if self.use_noise else [h0, h, option]
+        self.transform_model = Model(l, x, name="tform")
         self.transform_model.compile(loss="mae", optimizer=self.getOptimizer())
         return self.transform_model
 
@@ -384,7 +392,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     dropout_rate=self.dropout_rate,
                     leaky=True,
                     num_blocks=self.num_transforms,
-                    use_sampling=self.sampling,
                     relu=transform_relu,
                     option=options,
                     use_noise=self.use_noise,
@@ -421,23 +428,23 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 (features, arm, gripper))
 
     def _getData(self, *args, **kwargs):
-        features, targets = GetAllMultiData(*args, **kwargs)
+        features, targets = GetAllMultiData(self.num_options, *args, **kwargs)
         [I, q, g, oin, label, q_target, g_target,] = features
         features = [I, q, g, oin]
         tt, o1, v, qa, ga, I = targets
-        o1 = np.squeeze(self.toOneHot2D(o1, self.num_options))
+        o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
         if self.use_noise:
             noise_len = features[0].shape[0]
             z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
             if self.success_only:
-                return features, [z], [tt, o1]
+                return features, [z], [tt, o1_1h]
             else:
-                return features + [z], [tt, o1, v]
+                return features + [z], [tt, o1_1y, v]
         else:
             if self.success_only:
-                return features, [tt, o1]
+                return features, [tt, o1_1h]
             else:
-                return features, [tt, o1, v]
+                return features, [tt, o1_1h, v]
 
     def trainFromGenerators(self, train_generator, test_generator, data=None):
         '''
@@ -462,22 +469,22 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                       " configure the tool wrong?")
                 raise e
 
-        # ===================================================================
-        # Create the callbacks and actually run the training loop.
-        modelCheckpointCb = ModelCheckpoint(
-            filepath=self.name+"_predictor_weights.h5f",
-            verbose=1,
-            save_best_only=True # does not work without validation wts
-        )
-        logCb = LogCallback(self.name,self.model_directory)
+        logCb = LogCallback(self.logName(),self.model_directory)
+        saveCb = ModelSaveCallback(model=self)
+
         cbf, cbt = self._getData(**data)
 
         for i, f in enumerate(cbf):
             if len(f.shape) < 1:
                 raise RuntimeError('feature %d not an appropriate size!'%i)
+        if self.predictor is not None:
+            # If we have a unique model associated with visualization
+            predictor = self.predictor
+        else:
+            predictor = self.model
         if self.PredictorCb is not None:
             imageCb = self.PredictorCb(
-                self.predictor,
+                predictor,
                 name=self.name_prefix,
                 features_name=self.features,
                 features=cbf,
@@ -490,9 +497,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 min_idx=0,
                 max_idx=70,
                 step=10,)
-            callbacks=[modelCheckpointCb, logCb, imageCb]
+            callbacks=[saveCb, logCb, imageCb]
         else:
-            callbacks=[modelCheckpointCb, logCb,]
+            callbacks=[saveCb, logCb]
         self._fit(train_generator, test_generator, callbacks)
 
     def _fit(self, train_generator, test_generator, callbacks):
@@ -504,50 +511,56 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             validation_data=test_generator,
             callbacks=callbacks)
 
+    def _getSaveLoadItems(self, is_save):
+
+        items = [(self.model, 'train_predictor')]
+
+        if self.save_encoder_decoder:
+            items += [
+                (self.image_decoder, 'image_decoder'),
+                (self.image_encoder, 'image_encoder')
+            ]
+
+        items += [
+            (self.predictor, 'predictor'),
+            (self.state_encoder, 'state_encoder'),
+            (self.state_decoder, 'state_decoder'),
+            (self.hidden_encoder, 'hidden_encoder'),
+            (self.hidden_decoder, 'hidden_decoder'),
+            (self.classifier, 'classifier'),
+            (self.transform_model, 'transform'),
+            (self.transform_model, 'transform')
+        ]
+
+        if not self.validate:
+            items += [
+                (self.actor, 'actor'),
+                (self.value_model, 'value'),
+                (self.q_model, 'q'),
+                (self.pose_model, 'pose'),
+                (self.next_model, 'next')
+            ]
+
+        return items
+
+
 
     def save(self):
         '''
         Save to a filename determined by the "self.name" field.
         '''
-        if self.model is not None:
-            print("----------------------------")
-            print("Saving to " + self.name + "_{predictor, actor, image_decoder}")
-            self.model.save_weights(self.name + "_train_predictor.h5f")
-            if self.predictor is not None:
-                self.predictor.save_weights(self.name + "_predictor.h5f")
-            if self.actor is not None:
-                self.actor.save_weights(self.name + "_actor.h5f")
-            if self.image_decoder is not None:
-                self.image_decoder.save_weights(self.name +
-                "_image_decoder.h5f")
-            if self.image_encoder is not None:
-                self.image_encoder.save_weights(self.name + 
-                "_image_encoder.h5f")
-            if self.state_encoder is not None:
-                self.state_encoder.save_weights(self.name +
-                "_state_encoder.h5f")
-            if self.state_decoder is not None:
-                self.state_decoder.save_weights(self.name + 
-                "_state_decoder.h5f")
-            if self.hidden_encoder is not None:
-                self.hidden_encoder.save_weights(self.name + 
-                "_hidden_encoder.h5f")
-            if self.hidden_decoder is not None:
-                self.hidden_decoder.save_weights(self.name + 
-                "_hidden_decoder.h5f")
-            if self.classifier is not None:
-                self.classifier.save_weights(self.name + 
-                "_classifier.h5f")
-            if self.transform_model is not None:
-                self.transform_model.save_weights(self.name + 
-                "_transform.h5f")
-            if self.value_model is not None:
-                self.value_model.save_weights(self.name + 
-                "_value.h5f")
-            if self.next_model is not None:
-                self.next_model.save_weights(self.name + 
-                "_next.h5f")
+        if self.validate:
+            print(">>> SKIP SAVING IN VALIDATION MODE")
 
+        elif self.model is not None:
+            items = self._getSaveLoadItems(is_save=True)
+
+            print("Saving to", self.name)
+
+            for (item, name) in items:
+                if item is not None:
+                    print(">>> Saving", name)
+                    item.save_weights('{}_{}.h5f'.format(self.name, name))
         else:
             raise RuntimeError('save() failed: model not found.')
 
@@ -557,37 +570,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         need to overload this for specific models.
         '''
         if self.model is not None:
-            print("----------------------------")
-            print("using " + self.name + " to load")
-            self.model.load_weights(self.name + "_train_predictor.h5f")
-            if self.actor is not None:
-                self.actor.load_weights(self.name + "_actor.h5f")
-            if self.image_decoder is not None:
-                self.image_decoder.load_weights(self.name +
-                "_image_decoder.h5f")
-            if self.image_encoder is not None:
-                self.image_encoder.load_weights(self.name +
-                "_image_encoder.h5f")
-            if self.state_decoder is not None:
-                self.state_decoder.load_weights(self.name +
-                "_state_decoder.h5f")
-            if self.state_encoder is not None:
-                self.state_encoder.load_weights(self.name +
-                "_state_encoder.h5f")
-            if self.classifier is not None:
-                self.classifier.load_weights(self.name + 
-                "_classifier.h5f")
-            if self.transform_model is not None:
-                self.transform_model.load_weights(self.name + 
-                "_transform.h5f")
-            if self.value_model is not None:
-                self.value_model.load_weights(self.name + 
-                "_value.h5f")
-            if self.next_model is not None:
-                self.next_model.load_weights(self.name + 
-                "_next.h5f")
-            if self.predictor is not None:
-                self.predictor.load_weights(self.name + "_predictor.h5f")
+            print("Using", self.name, "to load:")
+            items = self._getSaveLoadItems(is_save=False)
+
+            for (item, name) in items:
+                if item is not None:
+                    print(">>> Loading", name)
+                    item.load_weights('{}_{}.h5f'.format(self.name, name))
         else:
             raise RuntimeError('_loadWeights() failed: model not yet created.')
 
@@ -617,7 +606,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             prev_option = np.ones((self.batch_size,1)) * prev
             test_features.append(prev_option)
             next_option_idx += 1
-            
+
         if self.use_next_option:
             # don't include anything from the next options...
             next_opt = np.zeros((self.batch_size,self.num_options))
@@ -639,7 +628,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 r = np.random.random()
                 opt = np.argmax(r < p)
                 print (i, r, p, opt)
-                next_probs[i,opt] = 1   
+                next_probs[i,opt] = 1
             test_features[next_option_idx] = probs
             data, arms, grippers, label, probs, v = self.predictor.predict(test_features)
 
@@ -688,7 +677,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if not self.dense_representation:
             raise RuntimeError('Not yet supported!')
             y = Conv2D(int(self.img_num_filters/4),
-                    kernel_size=[5,5], 
+                    kernel_size=[5,5],
                     strides=(2, 2),
                     padding='same')(y)
             y = Dropout(self.dropout_rate)(y)
@@ -726,7 +715,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         leaky=True,
                         skips=skips,
                         original=None,
-                        resnet_blocks=self.residual,
                         batchnorm=True,)
         decoder = Model(rep, dec)
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
@@ -740,7 +728,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             y = BatchNormalization(momentum=0.9)(y)
             y = LeakyReLU(0.2)(y)
             y = Dropout(self.dropout_rate)(y)
-    
+
         skip_ins = []
         if self.skip_connections:
             for skip in skips:
@@ -851,7 +839,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         dense=self.dense_representation,
                         dense_rep_size=self.img_col_dim,
                         skips=self.skip_connections,
-                        resnet_blocks=self.residual,
                         batchnorm=True,)
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
         decoder.summary()
@@ -887,7 +874,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             x = Concatenate()([x,y])
 
         x = AddDense(x, 64, activation, dr)
-        
+
         state_encoder = Model([arm, gripper, option], x,
                 name="state_encoder")
         state_encoder.compile(loss="mae", optimizer=self.getOptimizer())
@@ -905,7 +892,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         gripper_size: number of gripper output variables to predict
         '''
         rep_in = Input((8,8,rep_channels,))
-        dr = self.decoder_dropout_rate 
+        dr = self.decoder_dropout_rate
 
         x = rep_in
         x = AddConv2D(x, 64, [3,3], 2, dr, "same", False)
@@ -932,7 +919,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         '''
         img_in = Input(img_shape,name="predictor_img_in")
         option_in = Input((1,), name="predictor_option_in")
- 
+
 
     def _makeMergeDecoder(self, rep_size):
         '''

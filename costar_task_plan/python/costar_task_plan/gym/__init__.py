@@ -1,15 +1,9 @@
 __all__ = [
-  "FunctionEnv",
-  "StepFunctionEnv",
-  "PointEnv",
   "NeedleMasterEnv",
   "BulletSimulationEnv",
   "GazeboEnv",
   ]
 
-from function import *
-from step_function import *
-from point import *
 from needle_master import *
 from bullet import *
 from gazebo import *

@@ -30,6 +30,7 @@ class PretrainImageJigsaws(PretrainImageAutoencoder):
         super(PretrainImageJigsaws, self).__init__(taskdef, *args, **kwargs)
         self.num_generator_files = 1
         self.num_options = SuturingNumOptions()
+        self.save_encoder_decoder = True
 
     def _makePredictor(self, image):
         '''
@@ -38,8 +39,9 @@ class PretrainImageJigsaws(PretrainImageAutoencoder):
         img_shape = image.shape[1:]
 
         # Create model input
+        img0_in = Input(img_shape,name="predictor_img0_in")
         img_in = Input(img_shape,name="predictor_img_in")
-        ins = [img_in]
+        ins = [img0_in, img_in]
 
         # Create encoder and decoder
         encoder = MakeJigsawsImageEncoder(self, img_shape)
@@ -47,22 +49,29 @@ class PretrainImageJigsaws(PretrainImageAutoencoder):
                     self,
                     self.hidden_shape,
                     self.skip_shape,)
-        
+
         # Encode and connect the discriminator
-        enc = encoder(ins)
+        enc = encoder(img_in)
         image_discriminator = LoadClassifierWeights(self,
                 MakeJigsawsImageClassifier,
                 img_shape)
         out = decoder(enc)
-        o2 = image_discriminator([out])
+        o2 = image_discriminator([img0_in, out])
 
-        ae = Model(ins, [out, o2])
-        ae.compile(
-                loss=["mae", "categorical_crossentropy"],
-                loss_weights=[1.,1e-4],
-                optimizer=self.getOptimizer())
+        if self.no_disc:
+            ae = Model(ins, [out])
+            ae.compile(
+                    loss=["mae"],
+                    loss_weights=[1.],
+                    optimizer=self.getOptimizer())
+        else:
+            ae = Model(ins, [out, o2])
+            ae.compile(
+                    loss=["mae"] + ["categorical_crossentropy"],
+                    loss_weights=[1.,1e-3],
+                    optimizer=self.getOptimizer())
         ae.summary()
-    
+
         return ae, ae, None, [img_in], enc
 
     def _makeModel(self, image, *args, **kwargs):
@@ -82,5 +91,11 @@ class PretrainImageJigsaws(PretrainImageAutoencoder):
     def _getData(self, image, label, *args, **kwargs):
         I = np.array(image) / 255.
         o1 = np.array(label)
-        o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
-        return [I], [I, o1_1h]
+        I0 = I[0,:,:,:]
+        length = I.shape[0]
+        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1])
+        if self.no_disc:
+            return [I0, I], [I]
+        else:
+            o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
+            return [I0, I], [I, o1_1h]

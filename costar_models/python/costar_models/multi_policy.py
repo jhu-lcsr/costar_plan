@@ -20,6 +20,7 @@ from keras.utils.np_utils import to_categorical
 
 from .multi_hierarchical import RobotMultiHierarchical
 from .husky import *
+from .multi import *
 
 class RobotPolicy(RobotMultiHierarchical):
 
@@ -52,23 +53,24 @@ class RobotPolicy(RobotMultiHierarchical):
         # Note: we must load weights for this version of the model. There's no
         # alternative, because we're expecting to train many different models
         # here.
-        encoder.load_weights(self._makeName(
-            "pretrain_image_encoder_model",
+        encoder.load_weights(self.makeName(
+            "pretrain_image_encoder",
             #"pretrain_image_gan_model",
-            "image_encoder.h5f"))
+            "image_encoder"))
         encoder.trainable = False
 
         # Make end-to-end conditional actor
         self.model = MakeMultiPolicy(self, 
                 encoder, features, arm, gripper,
                 arm_cmd, gripper_cmd, option=self.option_num)
+        self.model.summary()
 
 
     def _getData(self, *args, **kwargs):
         '''
         Filter out the data not relevant to the current option
         '''
-        features, targets = self._getAllData(*args, **kwargs)
+        features, targets = GetAllMultiData(self.num_options, *args, **kwargs)
         [Iorig, _, _, _, label, _, _,] = features
         labels = label[:]
         # find the matches for filtering
@@ -79,7 +81,7 @@ class RobotPolicy(RobotMultiHierarchical):
             length = I.shape[0]
             I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
             [_, _, _, qa, ga, _] = [t[idx] for t in targets]
-            return [I0, I, q, g], [np.squeeze(qa), np.squeeze(ga)]
+            return [I0, I, q, g], [qa[:,0,:], ga[:,0,:]]
         else:
             return [], []
 

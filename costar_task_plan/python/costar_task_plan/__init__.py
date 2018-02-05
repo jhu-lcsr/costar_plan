@@ -25,8 +25,11 @@ except ImportError as e:
 # =============================================================================
 # Neural Nets
 # Learning, training, and utilities.
-import agent
-import trainers
+try:
+    import agent
+except ImportError, e:
+    print "[WARNING] keras/tensorflow required for some tools"
+    print e
 
 # =============================================================================
 # Task Planning
@@ -35,15 +38,10 @@ import mcts
 
 # =============================================================================
 # OpenAI Gym Environments
-# These provide the abstracted interfaces to TTS worlds, etc.
+# These provide the abstracted interfaces to worlds, etc.
 import gym
 
 # =============================================================================
 # Draw and interact with programs
 import tools
 
-# =============================================================================
-# Third Party Code
-# At some point I may contribute from these back to their parents. But not
-# right now.
-# import traj_opt
