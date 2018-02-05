@@ -72,7 +72,7 @@ class random_crop_test(tf.test.TestCase):
 
                 return rcp_proj, transform, rcp_proj_full, transform_full
 
-            def evaluate_proj(session, input_size, cropped_size, count=100, verbose=1):
+            def evaluate_proj(session, input_size, cropped_size, count=100, verbose=0):
                 (rcp_proj_tensor, transform_tensor,
                  rcp_proj_full_tensor, transform_full_tensor) = make_proj_tensors(input_size, cropped_size)
                 for i in range(count):
@@ -89,6 +89,7 @@ class random_crop_test(tf.test.TestCase):
                     self.assertAllEqual(rcp_proj.shape, cropped_size)
                     self.assertAllEqual(rcp_proj.shape, cropped_size)
 
+            evaluate_proj(sess, input_size=[8, 10, 3], cropped_size=[8, 10, 3])
             evaluate_proj(sess, input_size=[8, 10, 3], cropped_size=[4, 8, 3])
             evaluate_proj(sess, input_size=[8, 10, 3], cropped_size=[8, 10, 3])
             evaluate_proj(sess, input_size=[8, 10, 1], cropped_size=[4, 8, 1])

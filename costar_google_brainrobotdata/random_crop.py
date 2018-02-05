@@ -56,6 +56,7 @@ def crop_images(image_list, offset, size, name=None, verbose=0):
 
         # Arguments
 
+        offset: The coordinate offset from the origin at which the cropped image should begin.
         image_list: input images need to crop.
         image_intrinsics: 3*3 matrix with focal lengths, and principle points,
         size: output size of image after cropping, must be less than or equal to the image size.
@@ -103,6 +104,7 @@ def crop_image_intrinsics(camera_intrinsics_matrix, offset, name=None):
 def random_projection_transform(
         input_shape=None, output_shape=None,
         translation=True, scale=False, rotation=True,
+        horizontal_flip=True, vertical_flip=True,
         name=None, seed=None):
     """ Generate a random projection data augmentation transform.
 
@@ -158,6 +160,7 @@ def random_projection_transform(
 
         # there should always be some offset, even if it is (0, 0)
         transforms += [tf.contrib.image.translations_to_projective_transforms(offset)]
+        identity = tf.constant([1, 0, 0, 0, 1, 0, 0, 0], dtype=tf.float32)
 
         if rotation is not None and rotation is not False:
             if isinstance(rotation, bool) and rotation:
@@ -183,9 +186,24 @@ def random_projection_transform(
             scale_matrix = tf.stack(scale_matrix, axis=-1)
             transforms += [scale_matrix]
 
-        print('transforms: ', transforms)
+        batch_size = 1
+        if horizontal_flip:
+            coin = tf.less(tf.random_uniform([batch_size], 0, 1.0), 0.5)
+            shape = [-1., 0., input_width_f, 0., 1., 0., 0., 0.]
+            flip_transform = tf.convert_to_tensor(shape, dtype=tf.float32)
+            flip = tf.tile(tf.expand_dims(flip_transform, 0), [batch_size, 1])
+            noflip = tf.tile(tf.expand_dims(identity, 0), [batch_size, 1])
+            transforms.append(tf.where(coin, flip, noflip))
+
+        if vertical_flip:
+            coin = tf.less(tf.random_uniform([batch_size], 0, 1.0), 0.5)
+            shape = [1., 0., 0., 0., -1., input_height_f, 0., 0.]
+            flip_transform = tf.convert_to_tensor(shape, dtype=tf.float32)
+            flip = tf.tile(tf.expand_dims(flip_transform, 0), [batch_size, 1])
+            noflip = tf.tile(tf.expand_dims(identity, 0), [batch_size, 1])
+            transforms.append(tf.where(coin, flip, noflip))
+
         composed_transforms = tf.contrib.image.compose_transforms(*transforms)
-        print('composed_transforms', composed_transforms)
         return composed_transforms
 
 
@@ -242,19 +260,15 @@ def transform_and_crop_image(image, offset=None, size=None, transform=None, inte
     if size is None and offset is not None:
         raise ValueError('If size is None offset must also be None.')
 
-    print('image: ', image)
-    print('transform: ', transform)
-    image = tf.contrib.image.transform(image, transform)
+    image = tf.contrib.image.transform(image, transforms=transform, interpolation=interpolation)
 
     if size is not None or offset is not None:
         if size is None:
             size = tf.shape(image)
 
         if offset is None:
-            offset = tf.shape(image) - size // 2
+            offset = (tf.shape(image) - size) // 2
 
-        print('transformed_image: ', image, ' offset: ', offset, ' size: ', size)
-        image = tf.Print(image, [image, offset, size], 'image offset size')
         image = crop_images(image, offset, size)
 
     if coordinate is None:
