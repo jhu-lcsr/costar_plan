@@ -40,9 +40,9 @@ def _makeTrainTarget(I_target, q_target, g_target, o_target):
 def MakeImageClassifier(model, img_shape, trainable=True):
     img0 = Input(img_shape,name="img0_classifier_in")
     img = Input(img_shape,name="img_classifier_in")
-    bn = model.use_batchnorm and False # disable this
+    bn = model.use_batchnorm 
     disc = True
-    dr = 0.5
+    dr = model.dropout_rate
     x = img
     x0 = img0
 

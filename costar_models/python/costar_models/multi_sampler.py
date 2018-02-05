@@ -344,12 +344,15 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
             #x = AddDense(x, 256, "relu", 0.,
             #        constraint=None, output=False,)
-            x = AddDense(x, int(h_dim[0] * h_dim[1] * 128/4), "relu", 0., constraint=None, output=False)
-            x = Reshape([int(h_dim[0]/2), int(h_dim[1]/2), 128])(x)
+            x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/4),
+                         "relu",
+                         self.dropout_rate*0.,
+                         constraint=None, output=False)
+            x = Reshape([int(h_dim[0]/2), int(h_dim[1]/2), 64])(x)
         else:
             x = AddConv2D(x, 128, [5,5], 1, 0.)
         x = AddConv2DTranspose(x, 64, [5,5], 2,
-                0.) # Removed dropout from this block
+                self.dropout_rate*0.) # Removed dropout from this block
         # --- end ssm block
 
         if self.skip_connections or True:
@@ -365,7 +368,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # --------------------------------------------------------------------
         # Put resulting image into the output shape
         x = AddConv2D(x, self.encoder_channels, [1, 1], stride=1,
-                output=True, # disables batchnorm here
+                bn=False, # disables batchnorm here
                 activation="sigmoid", # outputs in [0, 1]
                 dropout_rate=0.)
 
