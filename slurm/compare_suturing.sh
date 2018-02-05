@@ -15,9 +15,9 @@ loss=mae
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-cd "$SCRIPT_DIR"/../costar_models/python
-python setup.py install --user
-cd -
+#cd "$SCRIPT_DIR"/../costar_models/python
+#python setup.py install --user
+#cd -
 
 # Start training things
 retrain=false

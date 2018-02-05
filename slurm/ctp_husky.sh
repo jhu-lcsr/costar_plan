@@ -16,9 +16,9 @@ echo "use disc = $use_disc"
 module load tensorflow/cuda-8.0/r1.3 
 
 export DATASET="husky_data"
-export train_discriminator=false
-export train_discriminator2=false
-export train_image_encoder=false
+export train_discriminator=true
+export train_discriminator2=true
+export train_image_encoder=true
 export train_gans=false
 export train_encoder_gan=true
 export learning_rate=$1
@@ -41,7 +41,6 @@ fi
 
 use_disc_cmd=""
 if ! $use_disc ; then
-then
   use_disc_cmd="--no_disc"
   SUBDIR=${SUBDIR}_nodisc
 fi

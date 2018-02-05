@@ -14,8 +14,8 @@ echo "Running $@ on $SLURMD_NODENAME ..."
 module load tensorflow/cuda-8.0/r1.3 
 
 export DATASET="ctp_dec"
-export train_discriminator=false
-export train_discriminator2=false
+export train_discriminator=true
+export train_discriminator2=true
 export train_image_encoder=true
 export train_conditional_image=true
 export train_policies=false
