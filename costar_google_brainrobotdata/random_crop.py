@@ -192,16 +192,16 @@ def random_projection_transform(
             shape = [-1., 0., input_width_f, 0., 1., 0., 0., 0.]
             flip_transform = tf.convert_to_tensor(shape, dtype=tf.float32)
             flip = tf.tile(tf.expand_dims(flip_transform, 0), [batch_size, 1])
-            noflip = tf.tile(tf.expand_dims(identity, 0), [batch_size, 1])
-            transforms.append(tf.where(coin, flip, noflip))
+            no_flip = tf.tile(tf.expand_dims(identity, 0), [batch_size, 1])
+            transforms.append(tf.where(coin, flip, no_flip))
 
         if vertical_flip:
             coin = tf.less(tf.random_uniform([batch_size], 0, 1.0), 0.5)
             shape = [1., 0., 0., 0., -1., input_height_f, 0., 0.]
             flip_transform = tf.convert_to_tensor(shape, dtype=tf.float32)
             flip = tf.tile(tf.expand_dims(flip_transform, 0), [batch_size, 1])
-            noflip = tf.tile(tf.expand_dims(identity, 0), [batch_size, 1])
-            transforms.append(tf.where(coin, flip, noflip))
+            no_flip = tf.tile(tf.expand_dims(identity, 0), [batch_size, 1])
+            transforms.append(tf.where(coin, flip, no_flip))
 
         composed_transforms = tf.contrib.image.compose_transforms(*transforms)
         return composed_transforms
