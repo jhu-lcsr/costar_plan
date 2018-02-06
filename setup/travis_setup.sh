@@ -24,15 +24,19 @@ sudo -H pip install --no-binary numpy
 sudo -H pip install h5py keras keras-rl sympy matplotlib pygame gmr networkx \
   dtw pypr gym PyPNG pybullet numba
 
-# TODO(cpaxton): come up with a better way to install tensorflow here. We want
-# to ensure that everything is configured properly for tests.
-if [ nvidia-smi ]
-then
-  sudo -H pip install tensorflow
-else
-  sudo -H pip install tensorflow
-fi
+echo "======================================================"
+echo "Installing major libraries"
 
+# Set up PCL 1.7.2
+sudo add-apt-repository --yes ppa:v-launchpad-jochen-sprickerhof-de/pcl 
+sudo apt-get update 
+sudo apt-get install -y libpcl-all 
+#sudo apt-get install -y libpcl-dev # for kinetic
+
+# Set up Opencv-nonfree
+sudo add-apt-repository --yes ppa:xqms/opencv-nonfree
+sudo apt-get update 
+sudo apt-get install -y libopencv-nonfree-dev
 echo "======================================================"
 echo "installing ROS"
 
@@ -43,12 +47,12 @@ sudo apt-key adv --keyserver ha.pool.sks-keyservers.net --recv-keys 421C365BD9FF
 sudo apt-get update -qq
 
 # install indigo
-sudo apt-get -y install ros-indigo-desktop-full
+sudo apt-get -y install ros-$ROS_DISTRO-desktop-full
 
 sudo rosdep init
 rosdep update
 
-echo "source /opt/ros/indigo/setup.bash" >> ~/.bashrc
+echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> ~/.bashrc
 source $HOME/.bashrc
 sudo apt-get -y install python-rosinstall
 
