@@ -238,7 +238,10 @@ def transform_and_crop_coordinate(coordinate, transform=None, offset=None):
         The coordinate after a tranform and crop is applied.
     """
     # TODO(ahundt) I may need to invert the coordinate transform matrix
-    projection_matrix = tf.contrib.image._flat_transforms_to_matrices(transform)
+    projection_matrix = _flat_transforms_to_matrices(transform)
+    # TODO(ahundt) replace above with the following once flat_transforms_to_matrices becomes public in tf
+    # projection_matrix = tf.contrib.image._flat_transforms_to_matrices(transform)
+
     if transform is not None:
         coordinate = tf.transpose(tf.convert_to_tensor(
             coordinate[0],
@@ -320,8 +323,8 @@ def transform_crop_and_resize_image(
 
             image = crop_images(image, offset, crop_shape)
 
-            if coordinate is not None:
-                coordinate = transform_and_crop_coordinate(transform, coordinate, offset)
+            if coordinate is not None and transform is not None:
+                coordinate = transform_and_crop_coordinate(coordinate, transform, offset)
 
         if resize_shape is not None:
             if coordinate is not None:
@@ -340,15 +343,17 @@ def transform_crop_and_resize_image(
  # tf.contrib.image._flat_transforms_to_matrices()
  # tf.contrib.image._transform_matrices_to_flat()
 
-# def _flat_transforms_to_matrices(transforms):
-#   # Make the transform(s) 2D in case the input is a single transform.
-#   transforms = array_ops.reshape(transforms, constant_op.constant([-1, 8]))
-#   num_transforms = array_ops.shape(transforms)[0]
-#   # Add a column of ones for the implicit last entry in the matrix.
-#   return array_ops.reshape(
-#       array_ops.concat(
-#           [transforms, array_ops.ones([num_transforms, 1])], axis=1),
-#       constant_op.constant([-1, 3, 3]))
+
+def _flat_transforms_to_matrices(transforms):
+    # TODO(ahundt) remove this when flat_transforms_to_matrices becomes public in tf
+    # Make the transform(s) 2D in case the input is a single transform.
+    transforms = array_ops.reshape(transforms, tf.constant([-1, 8]))
+    num_transforms = array_ops.shape(transforms)[0]
+    # Add a column of ones for the implicit last entry in the matrix.
+    return array_ops.reshape(
+        array_ops.concat(
+            [transforms, array_ops.ones([num_transforms, 1])], axis=1),
+             tf.constant([-1, 3, 3]))
 
 
 # def _transform_matrices_to_flat(transform_matrices):

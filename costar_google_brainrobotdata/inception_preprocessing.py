@@ -313,6 +313,6 @@ def preprocess_image(image, height=None, width=None,
     if is_training:
         return preprocess_for_train(image, fast_mode,
                                     add_image_summaries=add_image_summaries,
-                                    mode, data_format)
+                                    mode=mode, data_format=data_format)
     else:
-        return preprocess_for_eval(image, height, width, mode, data_format)
+        return preprocess_for_eval(image, height, width, mode=mode, data_format=data_format)

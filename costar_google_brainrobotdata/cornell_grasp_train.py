@@ -207,7 +207,7 @@ class PrintLogsCallback(keras.callbacks.Callback):
         print('\nlogs:', logs)
 
 
-def run_training(learning_rate=0.1, batch_size=10, num_gpus=1, top='classification', epochs=FLAGS.num_epochs):
+def run_training(learning_rate=0.001, batch_size=10, num_gpus=1, top='classification', epochs=300, preprocessing_mode=None):
     """
 
     top: options are 'segmentation' and 'classification'.
@@ -229,8 +229,20 @@ def run_training(learning_rate=0.1, batch_size=10, num_gpus=1, top='classificati
         monitor_loss_name = 'val_loss'
         metrics = ['binary_accuracy', grasp_loss.mean_pred, grasp_loss.mean_true]
         loss = keras.losses.binary_crossentropy
-        model_name = 'densenet_model'
-        image_model_name = 'densenet'
+        model_name = 'vgg_model'
+        image_model_name = 'vgg'
+
+    # If loading pretrained weights
+    # it is very important to preprocess
+    # in exactly the same way the model
+    # was originally trained
+    if preprocessing_mode is None:
+        if 'densenet' in model_name:
+            preprocessing_mode = 'torch'
+        else:
+            preprocessing_mode = 'caffe'
+
+
     # create dilated_vgg_model with inputs [image], [sin_theta, cos_theta]
     # TODO(ahundt) split vector shapes up appropriately for dense layers in dilated_late_concat_model
     model = dilated_vgg_model(
@@ -273,6 +285,8 @@ def run_training(learning_rate=0.1, batch_size=10, num_gpus=1, top='classificati
     progress_tracker = TensorBoard(log_dir=log_dir, write_graph=True,
                                    write_grads=True, write_images=True,
                                    histogram_freq=1, batch_size=batch_size)
+                                   # histogram_freq=0, batch_size=batch_size,
+                                   # write_batch_performance=True)
     callbacks = callbacks + [progress_tracker]
     train_file = os.path.join(FLAGS.data_dir, FLAGS.train_filename)
     validation_file = os.path.join(FLAGS.data_dir, FLAGS.evaluate_filename)
@@ -294,23 +308,33 @@ def run_training(learning_rate=0.1, batch_size=10, num_gpus=1, top='classificati
         loss=loss,
         metrics=metrics)
 
+    # this is a workaround to set the preprocessing mode
+    def choose_parse_example_proto_fn(preprocessing_mode=preprocessing_mode):
+        def chosen_parse_fn(*args, **kwargs):
+            cornell_grasp_dataset_reader.parse_and_preprocess(
+                *args, preprocessing_mode=preprocessing_mode, **kwargs)
+        return chosen_parse_fn
+
     # i = 0
     # for batch in tqdm(
     #     cornell_grasp_dataset_reader.yield_record(
     #         train_file, label_features, data_features,
-    #         batch_size=batch_size)):
+    #         batch_size=batch_size,
+    #         parse_example_proto_fn=choose_parse_example_proto_fn()))):
     #     i += 1
 
     # Get the validation dataset in one big numpy array for validation
     # This lets us take advantage of tensorboard visualization
     all_validation_data = next(cornell_grasp_dataset_reader.yield_record(
         validation_file, label_features, data_features,
-        is_training=False, batch_size=samples_in_val_dataset))
+        is_training=False, batch_size=samples_in_val_dataset,
+        parse_example_proto_fn=choose_parse_example_proto_fn()))
 
     parallel_model.fit_generator(
         cornell_grasp_dataset_reader.yield_record(
             train_file, label_features, data_features,
-            batch_size=batch_size),
+            batch_size=batch_size,
+            parse_example_proto_fn=choose_parse_example_proto_fn()),
         steps_per_epoch=steps_per_epoch_train,
         epochs=epochs,
         validation_data=all_validation_data,

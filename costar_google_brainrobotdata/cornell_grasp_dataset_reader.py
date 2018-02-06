@@ -79,13 +79,6 @@ flags.DEFINE_boolean('resize', True,
                         resize_width and resize_height flags. It is suggested that an exact factor of 2 be used
                         relative to the input image directions if random_crop is disabled or the crop dimensions otherwise.
                      """)
-flags.DEFINE_integer(
-    'bbox_height_width_divisor', None,
-    """A constant by which the bbox width and height is
-       divided by so they will be input into networks as a
-       reasonable range of values, such as 0-1.
-       For example, width is 25 and height is 45.
-       .25 = width/100, and .45 = height/100.""")
 
 FLAGS = flags.FLAGS
 
@@ -194,7 +187,7 @@ def image_preprocessing(image_buffer, train, thread_id=0):
     # image = tf.image.resize_images(image, [height, width])
     if train:
         image = distort_image(image, height, width, thread_id)
-    #else:
+    # else:
     #    image = eval_image(image, height, width)
     # image = tf.subtract(image, 0.5)
     # image = tf.multiply(image, 2.0)
@@ -286,19 +279,18 @@ def batch_inputs(data_files, train, num_epochs, batch_size,
 
 
 def height_width_sin_cos_4(height=None, width=None, sin_theta=None, cos_theta=None,
-                           features=None, height_width_divisor=None):
+                           features=None):
     """ This is the input to pixelwise grasp prediction on the cornell dataset.
 
     # Arguments
 
     features: a dictionary which should contain the features
         'bbox/height' 'bbox/width' 'bbox/sin_theta' 'bbox/cos_theta'.
-    height_width_divisor: A constant by which to divide both the height
-        and width values so they can be in the 0 to 1 range for this dataset.
     """
     sin_cos_height_width = []
     if features is not None:
-        sin_cos_height_width = [features['bbox/height']/height_width_divisor, features['bbox/width']/height_width_divisor,
+        sin_cos_height_width = [features['bbox/height'] / height_width_divisor,
+                                features['bbox/width'] / height_width_divisor,
                                 features['bbox/sin_theta'], features['bbox/cos_theta']]
     else:
         sin_cos_height_width = [sin_theta, cos_theta, height, width]
@@ -316,7 +308,7 @@ def grasp_success_yx_3(grasp_success=None, cy=None, cx=None, features=None):
 
 def parse_and_preprocess(examples_serialized, is_training, label_features_to_extract=None,
                          data_features_to_extract=None, crop_shape=None, output_shape=None,
-                         bbox_height_width_divisor=None, preprocessing_mode='tf'):
+                         preprocessing_mode='tf'):
     """
     crop_shape: The shape to which images should be cropped as an intermediate step, this
         affects how much images can be shifted when random crop is used during training.
@@ -334,11 +326,9 @@ def parse_and_preprocess(examples_serialized, is_training, label_features_to_ext
               ImageNet dataset.
     """
     if crop_shape is None:
-        crop_shape = (FLAGS.crop_height, FLAGS.crop_width)
+        crop_shape = (FLAGS.crop_height, FLAGS.crop_width, 3)
     if output_shape is None:
         output_shape = (FLAGS.resize_height, FLAGS.resize_width)
-    if bbox_height_width_divisor is None:
-        bbox_height_width_divisor = FLAGS.bbox_height_width_divisor
     if FLAGS.redundant:
         feature = parse_example_proto_redundant(examples_serialized)
     else:
@@ -444,7 +434,7 @@ def yield_record(
 
         # call the parse_example_proto_fn with the is_training flag set.
         def parse_fn_is_training(example):
-            return parse_example_proto_fn(example, is_training=is_training,
+            return parse_example_proto_fn(examples_serialized=example, is_training=is_training,
                                           label_features_to_extract=label_features_to_extract,
                                           data_features_to_extract=data_features_to_extract)
         dataset = dataset.map(
