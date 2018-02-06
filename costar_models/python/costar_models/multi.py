@@ -42,7 +42,7 @@ def MakeImageClassifier(model, img_shape, trainable=True):
     img = Input(img_shape,name="img_classifier_in")
     bn = model.use_batchnorm # disable this
     disc = True
-    dr = model.dropout_rate
+    dr = 0.5 #model.dropout_rate * 0.
     x = img
     x0 = img0
 
