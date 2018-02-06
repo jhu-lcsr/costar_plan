@@ -13,6 +13,7 @@ source ./$CTP_FILE
 export COSTAR_WS="$HOME/costar_ws"
 export COSTAR_PLAN_DIR="$HOME/costar_ws/src/costar_plan"
 
+cd $COSTAR_WS/src/
 git clone git@github.com:cpaxton/tom_robot.git
 git clone git@github.com:cpaxton/costar_plan.git
 
