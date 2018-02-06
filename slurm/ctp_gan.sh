@@ -59,9 +59,11 @@ features="$2"
 
 
 if $wass; then wass_dir=wass; else wass_dir=nowass; fi
+if $use_noise; then noise_dir=noise; else noise_dir=nonoise; fi
 
-MODELDIR="$HOME/.costar/${dataset}_${lr}_${optimizer}_${dropout}_${noise_dim}_${loss}_${wass_dir}_${use_noise}"
+MODELDIR="$HOME/.costar/${dataset}_${lr}_${optimizer}_${dropout}_${noise_dim}_${loss}_${wass_dir}_${noise_dir}"
 
+[[ ! -d $MODELDIR ]] && mkdir -p $MODELDIR
 touch $MODELDIR/$SLURM_JOB_ID
 
 # Handle different Marcc layouts
@@ -73,8 +75,8 @@ if [[ $features == husky ]]; then data_suffix=npz; else data_suffix=h5f; fi
 data_dir=${data_dir}.${data_suffix}
 
 if $wass; then wass_cmd='--wasserstein'; else wass_cmd=''; fi
-if $use_noise; then use_noise_cmd='--use_noise' else use_noise_cmd=''; fi
-if $retrain; then retrain_cmd='--retrain' else retrain_cmd=''; fi
+if $use_noise; then use_noise_cmd='--use_noise'; else use_noise_cmd=''; fi
+if $retrain; then retrain_cmd='--retrain'; else retrain_cmd=''; fi
 
 if $train_image_encoder; then
   echo "Training discriminator"
