@@ -12,7 +12,7 @@ echo "Running $@ on $SLURMD_NODENAME ..."
 
 module load tensorflow/cuda-8.0/r1.3
 
-OPTS=$(getopt -o '' --long lr:,dr:,opt:,noisedim:,loss:,wass,no-wass,noise,retrain,encoder,gan_encoder,load_model -n ctp_gan -- "$@")
+OPTS=$(getopt -o '' --long lr:,dr:,opt:,noisedim:,loss:,wass,no_wass,noise,retrain,encoder,gan_encoder,load_model -n ctp_gan -- "$@")
 
 [[ $? != 0 ]] && echo "Failed parsing options." && exit 1
 
@@ -40,7 +40,7 @@ while true; do
     --noise) use_noise=true; shift ;;
     --loss) loss="$2"; shift 2 ;;
     --wass) wass=true; shift ;;
-    --no-wass) wass=false; shift ;;
+    --no_wass) wass=false; shift ;;
     --retrain) retrain=true; shift ;;
     --encoder) train_image_encoder=true; shift ;;
     --gan_encoder) train_gan_encoder=true; shift ;;
