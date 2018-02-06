@@ -10,7 +10,7 @@ cd "$SCRIPT_DIR"/../costar_models/python
 python setup.py install --user
 cd -
 
-OPTS=$(getopt --long retrain,load_model -n start_ctp_gans -- "$@")
+OPTS=$(getopt -o '' --long retrain,load_model -n start_ctp_gans -- "$@")
 
 [[ $? != 0 ]] && echo "Failed parsing options." && exit 1
 
