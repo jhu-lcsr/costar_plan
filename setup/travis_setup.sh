@@ -30,8 +30,8 @@ echo "Installing major libraries"
 # Set up PCL 1.7.2
 sudo add-apt-repository --yes ppa:v-launchpad-jochen-sprickerhof-de/pcl 
 sudo apt-get update 
-sudo apt-get install -y libpcl-all 
-#sudo apt-get install -y libpcl-dev # for kinetic
+sudo apt-get install -y libpcl-all ros-$ROS_DISTRO-pcl-ros
+#sudo apt-get install -y libpcl-dev ros-$ROS_DISTRO-pcl-ros # for kinetic
 
 # Set up Opencv-nonfree
 sudo add-apt-repository --yes ppa:xqms/opencv-nonfree
@@ -82,10 +82,10 @@ git clone https://github.com/jhu-lcsr/costar_objects.git
 git clone https://github.com/cpaxton/dmp.git --branch indigo
 git clone https://github.com/cpaxton/robotiq_85_gripper.git
 
-
 # Need to find less complicated way to integrate the repo besides annoying ssh authentication
 # git clone https://a5a923019bfb3202ebdf3e3eb63b7866c913218d@github.com/cpaxton/costar_plan.git
-
+# git clone https://github.com/fetchrobotics/fetch_gazebo.git
+# git clone https://github.com/fetchrobotics/fetch_ros.git
 
 rosdep install -y --from-paths ./ --ignore-src --rosdistro $ROS_DISTRO
 cd $CATKIN_WS/src
