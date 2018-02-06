@@ -14,7 +14,6 @@ echo "Running $@ on $SLURMD_NODENAME ..."
 module load tensorflow/cuda-8.0/r1.3 
 
 export DATASET="ctp_dec"
-export train_discriminator=true
 export train_discriminator2=true
 export train_image_encoder=true
 export train_conditional_image=true
@@ -65,22 +64,6 @@ echo "Slurm job ID = $SLURM_JOB_ID"
 export learning_rate_disc=0.001
 export learning_rate_enc=0.001
 
-if $train_discriminator && $use_disc ; then
-  echo "Training discriminator 1"
-  $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
-    --features multi \
-    -e 100 \
-    --model discriminator \
-    --data_file $HOME/work/$DATASET.h5f \
-    --lr $learning_rate_disc \
-    --dropout_rate $dropout \
-    --model_directory $MODELDIR/ \
-    --optimizer $optimizer \
-    --steps_per_epoch 500 \
-    --noise_dim $noise_dim \
-    --loss $loss \
-    --batch_size 64
-fi
 if $train_discriminator2 && $use_disc ; then
   echo "Training discriminator 2"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
@@ -113,7 +96,7 @@ then
     --steps_per_epoch 500 \
     --noise_dim $noise_dim \
     --loss $loss \
-    --batch_size 64 $use_disc_cmd
+    --batch_size 64 --no_disc
 fi
 
 if $train_conditional_image
