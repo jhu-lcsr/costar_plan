@@ -43,7 +43,7 @@ while true; do
     --no_wass) wass=false; shift ;;
     --retrain) retrain=true; shift ;;
     --encoder) train_image_encoder=true; shift ;;
-    --gan_encoder) train_gan_encoder=true; shift ;;
+    --gan_encoder) train_gan_image_encoder=true; shift ;;
     --load_model) load_model=true; shift ;;
     --) shift; break ;;
     *) echo "Internal error!" ; exit 1 ;;
