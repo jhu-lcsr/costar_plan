@@ -14,6 +14,9 @@ OPTS=$(getopt --long retrain,load_model -n start_ctp_gans -- "$@")
 
 [[ $? != 0 ]] && echo "Failed parsing options." && exit 1
 
+echo "$OPTS"
+eval set -- "$OPTS"
+
 retrain=false
 load_model=false
 lr=0.0001
