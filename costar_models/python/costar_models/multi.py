@@ -40,7 +40,7 @@ def _makeTrainTarget(I_target, q_target, g_target, o_target):
 def MakeImageClassifier(model, img_shape, trainable=True):
     img0 = Input(img_shape,name="img0_classifier_in")
     img = Input(img_shape,name="img_classifier_in")
-    bn = model.use_batchnorm 
+    bn = model.use_batchnorm # disable this
     disc = True
     dr = model.dropout_rate
     x = img
@@ -52,7 +52,6 @@ def MakeImageClassifier(model, img_shape, trainable=True):
 
     x = AddConv2D(x, 32, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 32, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 32, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 64, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 64, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 64, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
@@ -62,7 +61,7 @@ def MakeImageClassifier(model, img_shape, trainable=True):
     x = AddConv2D(x, 128, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
 
     x = Flatten()(x)
-    x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
+    #x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
     x = AddDense(x, model.num_options, "softmax", 0., output=True, bn=False)
     image_encoder = Model([img0, img], x, name="classifier")
     if not trainable:
