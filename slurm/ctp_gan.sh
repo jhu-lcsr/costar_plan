@@ -14,6 +14,8 @@ module load tensorflow/cuda-8.0/r1.3
 
 OPTS=$(getopt -o d:f: --long dataset:,features:,lr:,dr:,opt:,noisedim:,loss:,wass,no-wass,noise,retrain,train-img-encoder,train-gan-encoder -n ctp_gan -- "$@")
 
+[[ $? != 0 ]] && echo "Failed parsing options." && exit 1
+
 train_image_encoder=false
 train_gan_image_encoder=false
 dataset=''
@@ -26,6 +28,9 @@ loss=mae
 wass=false
 use_noise=false
 retrain=false
+
+echo "$OPTS"
+eval set -- "$OPTS"
 
 while true; do
   case "$1" in
