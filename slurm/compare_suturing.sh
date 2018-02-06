@@ -35,9 +35,9 @@ sbatch ctp_suturing.sh $lr $dr $opt $noise_dim $loss $retrain $use_disc
 lr=0.0001
 dr=0.1
 opt=adam
-for w in wass nowass; do
-  for t in true false; do
-    sbatch "$SCRIPT_DIR"/ctp_gan.sh suturing_data2 jigsaws $lr $dr $opt $noise_dim $loss $w $t
+for w in --wass ''; do
+  for t in --noise ''; do
+    sbatch "$SCRIPT_DIR"/ctp_gan.sh suturing_data2 jigsaws --lr $lr --dr $dr --opt $opt --noisedim $noise_dim --loss $loss $w $t
   done
 done
 

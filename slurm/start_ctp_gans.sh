@@ -24,7 +24,6 @@ loss=mae
 while true; do
   case "$1" in
     --retrain) retrain=true; shift ;;
-    --load-model) load_model=true; shift ;;
     --) shift; break ;;
     *) echo "Internal error!" ; exit 1 ;;
   esac
@@ -33,16 +32,11 @@ done
 retrain_cmd=''
 $retrain && retrain_cmd='--retrain'
 
-for wass in true false; do
+for wass_cmd in --wass ''; do
 
-  wass_cmd=''
-  $wass && wass_cmd='--wass'
-  $wass && opt=rmsprop
+  [[ $wass ]] && opt=rmsprop
 
-  for use_noise in true false; do
-    noise_cmd=''
-    $use_noise && noise_cmd='--noise'
-
+  for noise_cmd in --noise ''; do
     sbatch "$SCRIPT_DIR"/ctp_gan.sh ctp_dec        multi   --lr $lr --dr $dr --opt $opt $wass_cmd $noise_cmd $retrain_cmd
     sbatch "$SCRIPT_DIR"/ctp_gan.sh husky_data     husky   --lr $lr --dr $dr --opt $opt $wass_cmd $noise_cmd $retrain_cmd
     sbatch "$SCRIPT_DIR"/ctp_gan.sh suturing_data2 jigsaws --lr $lr --dr $dr --opt $opt $wass_cmd $noise_cmd $retrain_cmd
