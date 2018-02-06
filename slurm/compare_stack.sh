@@ -13,9 +13,9 @@ loss=mae
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-cd "$SCRIPT_DIR"/../costar_models/python
-python setup.py install --user
-cd -
+#cd "$SCRIPT_DIR"/../costar_models/python
+#python setup.py install --user
+#cd -
 
 # Start training things
 retrain=false
@@ -33,8 +33,8 @@ sbatch ctp.sh $lr $dr $opt $noise_dim $loss $retrain $use_disc
 lr=0.0001
 dr=0.1
 opt=adam
-for w in wass nowass; do
-  for t in true false; do
-    sbatch "$SCRIPT_DIR"/ctp_gan.sh ctp_dec multi $lr $dr $opt $noise_dim $loss $w $t
+for w in --wass ''; do
+  for t in --noise ''; do
+    sbatch "$SCRIPT_DIR"/ctp_gan.sh ctp_dec multi --lr $lr --dr $dr --opt $opt --noisedim $noise_dim --loss $loss $w $t
   done
 done

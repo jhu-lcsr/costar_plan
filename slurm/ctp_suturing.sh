@@ -16,8 +16,7 @@ echo "use disc = $use_disc"
 module load tensorflow/cuda-8.0/r1.3 
 
 export DATASET="suturing_data2"
-export train_discriminator1=true
-export train_discriminator2=false
+export train_discriminator2=true
 export train_image_encoder=true
 export learning_rate=$1
 export dropout=$2
@@ -54,23 +53,6 @@ echo "Options are: $retrain_cmd $use_disc_cmd $1 $2 $3 $4 $5"
 echo "Directory is $MODELDIR"
 echo "Slurm job ID = $SLURM_JOB_ID"
 
-if $train_discriminator1 && $use_disc ; then
-  echo "Training discriminator 1"
-  $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
-    -e 100 \
-    --model discriminator \
-    --data_file $HOME/work/$DATASET.h5f \
-    --preload \
-    --features jigsaws \
-    --lr $learning_rate \
-    --dropout_rate $dropout \
-    --model_directory $MODELDIR/ \
-    --optimizer $optimizer \
-    --steps_per_epoch 150 \
-    --noise_dim $noise_dim \
-    --loss $loss \
-    --batch_size 64
-fi
 if $train_discriminator2
 then
   echo "Training discriminator 2"
@@ -108,7 +90,7 @@ then
     --steps_per_epoch 300 \
     --noise_dim $noise_dim \
     --loss $loss \
-    --batch_size 64 $use_disc_cmd
+    --batch_size 64 --no_disc
 fi
 
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \

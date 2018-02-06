@@ -7,82 +7,137 @@
 #SBATCH --mem=8G
 #SBATCH --mail-type=end
 
+# Check if running on marcc
+if [[ -z ${SLURM_JOB_ID+x} ]]; then marcc=false; else marcc=true; fi
 
-echo "Running $@ on $SLURMD_NODENAME ..."
+if $marcc; then
+  echo "Running $@ on $SLURMD_NODENAME ..."
+  module load tensorflow/cuda-8.0/r1.3
+else
+  echo "Not running on Marcc"
+fi
 
-module load tensorflow/cuda-8.0/r1.3 
+OPTS=$(getopt -o '' --long lr:,dr:,opt:,noisedim:,loss:,wass,no_wass,noise,retrain,encoder,gan_encoder,load_model,multi,husky,jigsaws -n ctp_gan -- "$@")
 
-export train_image_encoder=false
-export train_gan_image_encoder=false
+[[ $? != 0 ]] && echo "Failed parsing options." && exit 1
 
-export dataset=$1
-export features=$2
-export learning_rate=$3
-export dropout=$4
-export optimizer=$5
-export noise_dim=$6
-export loss=$7
-export wass=$8 # 'wass
-export use_noise=$9
-export MODELDIR="$HOME/.costar/${dataset}_${learning_rate}_${optimizer}_${dropout}_${noise_dim}_${loss}_${wass}_${use_noise}"
+train_image_encoder=false
+train_gan_image_encoder=false
+lr=0.001
+dropout=0.1
+optimizer=adam
+noise_dim=1
+loss=mae
+wass=false
+use_noise=false
+retrain=false
+load_model=false
+dataset=''
+features=''
+
+echo "$OPTS"
+eval set -- "$OPTS"
+
+while true; do
+  case "$1" in
+    --lr) lr="$2"; shift 2 ;;
+    --dr) dropout="$2"; shift 2 ;;
+    --opt) optimizer="$2"; shift 2 ;;
+    --noisedim) noise_dim="$2"; shift 2 ;;
+    --noise) use_noise=true; shift ;;
+    --loss) loss="$2"; shift 2 ;;
+    --wass) wass=true; shift ;;
+    --no_wass) wass=false; shift ;;
+    --retrain) retrain=true; shift ;;
+    --encoder) train_image_encoder=true; shift ;;
+    --gan_encoder) train_gan_image_encoder=true; shift ;;
+    --load_model) load_model=true; shift ;;
+    --multi) dataset=ctp_dec; features=multi; shift ;;
+    --husky) dataset=husky_data; features=husky; shift ;;
+    --jigsaws) dataset=suturing_data2; features=jigsaws; shift ;;
+    --) shift; break ;;
+    *) echo "Internal error!" ; exit 1 ;;
+  esac
+done
+
+# positional arguments
+[[ ! -z "$1" ]] && dataset="$1"
+[[ ! -z "$2" ]] && features="$2"
+
+[[ $dataset == '' ]] && echo 'Dataset is mandatory!' && exit 1
+[[ $features == '' ]] && echo 'Features are mandatory!' && exit 1
+
+if $wass; then wass_dir=wass; else wass_dir=nowass; fi
+if $use_noise; then noise_dir=noise; else noise_dir=nonoise; fi
+
+MODELDIR="$HOME/.costar/${dataset}_${lr}_${optimizer}_${dropout}_${noise_dim}_${loss}_${wass_dir}_${noise_dir}"
+
+[[ ! -d $MODELDIR ]] && mkdir -p $MODELDIR
 touch $MODELDIR/$SLURM_JOB_ID
 
-# Handle different Marcc layouts
-data_dir=$HOME/work/$dataset
-if [[ ! -d $data_dir ]]; then
-  data_dir=$HOME/work/dev_yb/$dataset
-fi
-if [[ $features == husky ]]; then
-  data_dir=${data_dir}.npz
+if $marcc; then
+  # Handle different Marcc layouts
+  data_dir=$HOME/work/$dataset
+  [[ ! -d $data_dir ]] && data_dir=$HOME/work/dev_yb/$dataset
 else
-  data_dir=${data_dir}.h5f
+  data_dir=$dataset
 fi
 
-wass_cmd=''
-if [[ $wass == wass* ]]; then wass_cmd='--wasserstein'; fi
+if [[ $features == husky ]]; then data_suffix=npz; else data_suffix=h5f; fi
+data_dir=${data_dir}.${data_suffix}
 
-use_noise_cmd=''
-if [[ $use_noise == true ]]; then use_noise_cmd='--use_noise'; fi
-	
+if $wass; then wass_cmd='--wasserstein'; else wass_cmd=''; fi
+if $use_noise; then use_noise_cmd='--use_noise'; else use_noise_cmd=''; fi
+if $retrain; then retrain_cmd='--retrain'; else retrain_cmd=''; fi
+if $load_model; then load_cmd='--load_model'; else load_cmd=''; fi
+
+if $marcc; then
+  cmd_prefix="$HOME/costar_plan/costar_models/scripts/"
+else
+  cmd_prefix='rosrun costar_models '
+fi
+
 if $train_image_encoder; then
   echo "Training discriminator"
-  $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
+  ${cmd_prefix}ctp_model_tool \
     --features $features \
     -e 100 \
     --model discriminator \
     --data_file $data_dir \
-    --lr $learning_rate \
+    --lr $lr \
     --dropout_rate $dropout \
     --model_directory $MODELDIR/ \
     --optimizer $optimizer \
     --steps_per_epoch 300 \
     --noise_dim $noise_dim \
     --loss $loss \
-    --batch_size 64
+    --batch_size 64 \
+    $load_cmd
 
   echo "Training non-gan image encoder"
-  $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
+  ${cmd_prefix}ctp_model_tool \
     --features $features \
     -e 100 \
     --model pretrain_image_encoder \
     --data_file $data_dir \
-    --lr $learning_rate \
+    --lr $lr \
     --dropout_rate $dropout \
     --model_directory $MODELDIR/ \
     --optimizer $optimizer \
     --steps_per_epoch 300 \
     --noise_dim $noise_dim \
     --loss $loss \
-    --batch_size 64
+    --batch_size 64 \
+    $load_cmd
 fi
 if $train_gan_image_encoder; then
-  echo "Training encoder gan: no wasserstein"
-  $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
+  echo "Training encoder gan"
+  ${cmd_prefix}ctp_model_tool \
     --features $features \
-    -e 100 \
+    -e 300 \
     --model pretrain_image_gan \
     --data_file $data_dir \
-    --lr $learning_rate \
+    --lr $lr \
     --dropout_rate $dropout \
     --model_directory $MODELDIR/ \
     --optimizer $optimizer \
@@ -91,16 +146,17 @@ if $train_gan_image_encoder; then
     --loss $loss \
     --gan_method gan \
     --batch_size 64 \
-    $wass_cmd
+    $wass_cmd \
+    $load_cmd
 fi
 
 echo "Training conditional gan"
-$HOME/costar_plan/costar_models/scripts/ctp_model_tool \
+  ${cmd_prefix}ctp_model_tool \
   --features $features \
   -e 100 \
   --model conditional_image_gan \
   --data_file $data_dir \
-  --lr $learning_rate \
+  --lr $lr \
   --dropout_rate $dropout \
   --model_directory $MODELDIR/ \
   --optimizer $optimizer \
@@ -109,5 +165,7 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --loss $loss \
   --gan_method gan \
   --batch_size 64 \
-  $wass_cmd
+  $wass_cmd \
+  $use_noise_cmd \
+  $load_cmd
 
