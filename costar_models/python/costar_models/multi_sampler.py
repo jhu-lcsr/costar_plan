@@ -320,7 +320,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Combine the hidden state observations
         x = Concatenate()([x, x0])
-        x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate)
+        x = AddConv2D(x, 64, [5,5], 1, 0.) # Removed this dropout
 
         # store this for skip connection
         skip = x
@@ -342,14 +342,17 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             def _ssm(x):
                 return spatial_softmax(x)
             x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
-            x = AddDense(x, 256, "relu", 0.,
-                    constraint=None, output=False,)
-            x = AddDense(x, int(h_dim[0] * h_dim[1] * 32/4), "relu", 0., constraint=None, output=False)
-            x = Reshape([int(h_dim[0]/2), int(h_dim[1]/2), 32])(x)
+            #x = AddDense(x, 256, "relu", 0.,
+            #        constraint=None, output=False,)
+            x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/4),
+                         "relu",
+                         self.dropout_rate*0.,
+                         constraint=None, output=False)
+            x = Reshape([int(h_dim[0]/2), int(h_dim[1]/2), 64])(x)
         else:
             x = AddConv2D(x, 128, [5,5], 1, 0.)
         x = AddConv2DTranspose(x, 64, [5,5], 2,
-                self.dropout_rate)
+                self.dropout_rate*0.) # Removed dropout from this block
         # --- end ssm block
 
         if self.skip_connections or True:
@@ -358,13 +361,15 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         for i in range(1):
             #x = TileOnto(x, y, self.num_options, (8,8))
             x = AddConv2D(x, 64,
-                    [7,7],
+                    [5,5],
                     stride=1,
                     dropout_rate=self.dropout_rate)
 
         # --------------------------------------------------------------------
         # Put resulting image into the output shape
         x = AddConv2D(x, self.encoder_channels, [1, 1], stride=1,
+                bn=False, # disables batchnorm here
+                activation="sigmoid", # outputs in [0, 1]
                 dropout_rate=0.)
 
         l = [h0, h, option, z] if self.use_noise else [h0, h, option]

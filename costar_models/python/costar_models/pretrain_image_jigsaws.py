@@ -52,11 +52,7 @@ class PretrainImageJigsaws(PretrainImageAutoencoder):
 
         # Encode and connect the discriminator
         enc = encoder(img_in)
-        image_discriminator = LoadClassifierWeights(self,
-                MakeJigsawsImageClassifier,
-                img_shape)
         out = decoder(enc)
-        o2 = image_discriminator([img0_in, out])
 
         if self.no_disc:
             ae = Model(ins, [out])
@@ -65,6 +61,10 @@ class PretrainImageJigsaws(PretrainImageAutoencoder):
                     loss_weights=[1.],
                     optimizer=self.getOptimizer())
         else:
+            image_discriminator = LoadClassifierWeights(self,
+                MakeJigsawsImageClassifier,
+                img_shape)
+            o2 = image_discriminator([img0_in, out])
             ae = Model(ins, [out, o2])
             ae.compile(
                     loss=["mae"] + ["categorical_crossentropy"],

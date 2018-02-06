@@ -358,13 +358,13 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         '''
         img = Input(img_shape,name="img_encoder_in")
         bn = not disc and self.use_batchnorm
-        dr = self.dropout_rate * 0.
+        dr = self.dropout_rate
         x = img
         x = AddConv2D(x, 32, [7,7], 1, 0., "same", lrelu=disc, bn=bn)
-        x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+        x = AddConv2D(x, 32, [5,5], 2, 0*dr, "same", lrelu=disc, bn=bn)
         x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
         x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-        x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+        x = AddConv2D(x, 64, [5,5], 2, 0*dr, "same", lrelu=disc, bn=bn)
         x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
         x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
 
@@ -380,8 +380,9 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
             self.hidden_shape = (self.hidden_size,)
         else:
             self.encoder_channels = 8
+            # Note: I removed the BN here
             x = AddConv2D(x, self.encoder_channels, [1,1], 1, 0.*dr,
-                    "same", lrelu=disc, bn=bn)
+                    "same", lrelu=disc, activation="sigmoid", bn=False)
             self.steps_down = 3
             self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
             self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.encoder_channels)
