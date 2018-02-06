@@ -250,7 +250,6 @@ class LfD(object):
 
             msg = PoseArray(poses=poses)
             msg.header.frame_id = self.base_link
-            print(self.pubs)
             self.pubs[name].publish(msg)
 
     def save(self, project_name):
