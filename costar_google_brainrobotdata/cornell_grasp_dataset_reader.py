@@ -16,6 +16,7 @@ import keras_contrib
 from grasp_loss import gaussian_kernel_2D
 from inception_preprocessing import preprocess_image
 from tensorflow.python.platform import flags
+import random_crop as rcp
 
 flags.DEFINE_integer('image_size', 224,
                      """Provide square images of this size.""")
@@ -53,6 +54,38 @@ flags.DEFINE_integer(
     3,
     'The width of the dataset images'
 )
+flags.DEFINE_integer('crop_width', 480,
+                     """Width to crop images""")
+flags.DEFINE_integer('crop_height', 360,
+                     """Height to crop images""")
+flags.DEFINE_boolean('random_crop', True,
+                     """random_crop will apply the tf random crop function with
+                        the parameters specified by crop_width and crop_height.
+
+                        If random crop is disabled, a fixed crop will be applied
+                        to a box on the far right of the image which is vertically
+                        centered. If no crop is desired simply set the crop_width
+                        and crop_height equal to the sensor_image_width and
+                        sensor_image_height. However, it is important to ensure
+                        that you crop images to the same size during both training
+                        and test time.
+                     """)
+flags.DEFINE_integer('resize_width', 320,
+                     """Width to resize images before prediction, if enabled.""")
+flags.DEFINE_integer('resize_height', 240,
+                     """Height to resize images before prediction, if enabled.""")
+flags.DEFINE_boolean('resize', True,
+                     """resize will resize the input images to the desired dimensions specified by the
+                        resize_width and resize_height flags. It is suggested that an exact factor of 2 be used
+                        relative to the input image directions if random_crop is disabled or the crop dimensions otherwise.
+                     """)
+flags.DEFINE_integer(
+    'bbox_height_width_divisor', None,
+    """A constant by which the bbox width and height is
+       divided by so they will be input into networks as a
+       reasonable range of values, such as 0-1.
+       For example, width is 25 and height is 45.
+       .25 = width/100, and .45 = height/100.""")
 
 FLAGS = flags.FLAGS
 
@@ -252,15 +285,23 @@ def batch_inputs(data_files, train, num_epochs, batch_size,
     return features
 
 
-def height_width_sin_cos_4(height=None, width=None, sin_theta=None, cos_theta=None, features=None):
+def height_width_sin_cos_4(height=None, width=None, sin_theta=None, cos_theta=None,
+                           features=None, height_width_divisor=None):
     """ This is the input to pixelwise grasp prediction on the cornell dataset.
+
+    # Arguments
+
+    features: a dictionary which should contain the features
+        'bbox/height' 'bbox/width' 'bbox/sin_theta' 'bbox/cos_theta'.
+    height_width_divisor: A constant by which to divide both the height
+        and width values so they can be in the 0 to 1 range for this dataset.
     """
     sin_cos_height_width = []
     if features is not None:
-        sin_cos_height_width = [features['bbox/height'], features['bbox/width'],
+        sin_cos_height_width = [features['bbox/height']/height_width_divisor, features['bbox/width']/height_width_divisor,
                                 features['bbox/sin_theta'], features['bbox/cos_theta']]
     else:
-        con_cos_height_width = [sin_theta, cos_theta, height, width]
+        sin_cos_height_width = [sin_theta, cos_theta, height, width]
     return K.concatenate(sin_cos_height_width)
 
 
@@ -273,7 +314,31 @@ def grasp_success_yx_3(grasp_success=None, cy=None, cx=None, features=None):
     return K.concatenate(combined)
 
 
-def parse_and_preprocess(examples_serialized, is_training, label_features_to_extract=None, data_features_to_extract=None):
+def parse_and_preprocess(examples_serialized, is_training, label_features_to_extract=None,
+                         data_features_to_extract=None, crop_shape=None, output_shape=None,
+                         bbox_height_width_divisor=None, preprocessing_mode='tf'):
+    """
+    crop_shape: The shape to which images should be cropped as an intermediate step, this
+        affects how much images can be shifted when random crop is used during training.
+    output_shape: The shape to which images should be resized after cropping,
+        this is also the final output shape.
+      mode: One of "caffe", "tf" or "torch".
+          - caffe: will convert the images from RGB to BGR,
+              then will zero-center each color channel with
+              respect to the ImageNet dataset,
+              without scaling.
+          - tf: will scale pixels between -1 and 1,
+              sample-wise.
+          - torch: will scale pixels between 0 and 1 and then
+              will normalize each channel with respect to the
+              ImageNet dataset.
+    """
+    if crop_shape is None:
+        crop_shape = (FLAGS.crop_height, FLAGS.crop_width)
+    if output_shape is None:
+        output_shape = (FLAGS.resize_height, FLAGS.resize_width)
+    if bbox_height_width_divisor is None:
+        bbox_height_width_divisor = FLAGS.bbox_height_width_divisor
     if FLAGS.redundant:
         feature = parse_example_proto_redundant(examples_serialized)
     else:
@@ -285,15 +350,64 @@ def parse_and_preprocess(examples_serialized, is_training, label_features_to_ext
     image = tf.image.convert_image_dtype(image, dtype=tf.float32)
     image = tf.reshape(image, sensor_image_dimensions)
     feature['image/decoded'] = image
+    input_image_shape = tf.shape(image)
 
-    image = preprocess_image(image, is_training=is_training)
+    # It is critically important if any image augmentation
+    # modifies the coordinate system of the image,
+    # such as a random crop, rotation etc, the
+    # gripper coordinate features must be updated accordingly
+    # and consistently, with visualization to ensure it isn't
+    # backwards. An example is +theta rotation vs -theta rotation.
+    grasp_center_coordinate = [feature['bbox/cy'], feature['bbox/cx']]
+    grasp_center_rotation_theta = feature['bbox/theta']
 
+    if is_training:
+        # perform image augmentation
+        # TODO(ahundt) add scaling and use that change to augment height and width parameters
+        transform, random_features = rcp.random_projection_transform(K.shape(image), crop_shape)
+        image, grasp_center_coordinate = rcp.transform_crop_and_resize_image(
+            image, crop_shape=crop_shape, resize_shape=output_shape,
+            transform=transform, coordinate=grasp_center_coordinate)
+
+        if 'random_rotation' in random_features:
+            # TODO(ahundt) validate if we must subtract or add based on the transform
+            grasp_center_rotation_theta += feature['random_rotation']
+        feature.update(random_features)
+    else:
+        # simply do a central crop then a resize when not training
+        # to match the input without  changes
+        image, grasp_center_coordinate = rcp.transform_crop_and_resize_image(
+            image, crop_shape=crop_shape, central_crop=True,
+            resize_shape=output_shape, coordinate=grasp_center_coordinate)
+
+    # perform color augmentation and scaling
+    image = preprocess_image(image, is_training=is_training, mode=preprocessing_mode)
+
+    # generate all the preprocessed features for training
     feature['image/preprocessed'] = image
+    feature['bbox/preprocessed/cy_cx_2'] = grasp_center_coordinate
+    feature['bbox/preprocessed/cy_cx_normalized_2'] = K.concatenate(
+        [grasp_center_coordinate[0] / feature['image/height'],
+         grasp_center_coordinate[1] / feature['image/width']])
+    feature['bbox/preprocessed/theta'] = grasp_center_rotation_theta
+    feature['bbox/preprocessed/sin_cos_2'] = K.concatenate(
+        K.sin(grasp_center_rotation_theta),
+        K.cos(grasp_center_rotation_theta))
+    feature['bbox/preprocessed/logarithm_height_width_2'] = K.concatenate(
+        K.log(feature['bbox/height'] + K.epsilon()),
+        K.log(feature['bbox/width'] + K.epsilon()))
 
     # TODO(ahundt) difference between "redundant" and regular proto parsing, figure out how to deal with grasp_success rename properly
     feature['grasp_success'] = feature['bbox/grasp_success']
+    grasp_success_coordinate_label = K.concatenate(
+        feature['bbox/grasp_success'],
+        grasp_center_coordinate
+    )
+    # make coordinate labels 4d because that's what keras expects
+    grasp_success_coordinate_label = K.expand_dims(K.expand_dims(grasp_success_coordinate_label))
+    feature['grasp_success_yx_3'] = grasp_success_coordinate_label
 
-    # TODO(ahundt) reenabling this and compare performance against segmentation_gaussian_measurement()
+    # TODO(ahundt) reenable this and compare performance against segmentation_gaussian_measurement()
     if False:
         feature['grasp_success_2D'] = approximate_gaussian_ground_truth_image(
             image_shape=keras.backend.int_shape(image),
@@ -302,11 +416,7 @@ def parse_and_preprocess(examples_serialized, is_training, label_features_to_ext
             grasp_width=feature['bbox/width'],
             grasp_height=feature['bbox/height'],
             label=feature['grasp_success'])
-    feature['sin_cos_height_width_4'] = height_width_sin_cos_4(features=feature)
-    # make labels 4d because that's what keras expects
-    grasp_success_coordinate_label = grasp_success_yx_3(features=feature)
-    grasp_success_coordinate_label = K.expand_dims(K.expand_dims(grasp_success_coordinate_label))
-    feature['grasp_success_yx_3'] = grasp_success_coordinate_label
+
     if label_features_to_extract is None:
         return feature
     else:

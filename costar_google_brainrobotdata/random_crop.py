@@ -104,7 +104,7 @@ def crop_image_intrinsics(camera_intrinsics_matrix, offset, name=None):
 def random_projection_transform(
         input_shape=None, output_shape=None,
         translation=True, scale=False, rotation=True,
-        horizontal_flip=True, vertical_flip=True,
+        horizontal_flip=False, vertical_flip=False,
         name=None, seed=None):
     """ Generate a random projection data augmentation transform.
 
@@ -126,8 +126,14 @@ def random_projection_transform(
         seed: A random seed.
 
     # Returns
-
-        An 8x1 random projection transform.
+        A dictionary containing features tensors representing the exact chosen random configuration.
+            'random_transform': An 8x1 random projection transform, this is always present.
+        Possible feature strings include:
+            'random_theta': an angle in radians
+            'random_scale': floatin point scale multiplier where 1.0 is constant scale
+            'random_horizontal_flip': 0 for no flip 1 for flip
+            'random_vertical_flip': 0 for no flip 1 for flip
+            'random_translation_offset': A 2D or 3D offset from the origin of the new image corner.
     """
     with tf.name_scope(name, "random_projection",
                        [input_shape, output_shape]) as name:
@@ -143,6 +149,7 @@ def random_projection_transform(
             summarize=1000)
         input_shape = control_flow_ops.with_dependencies([check], input_shape)
 
+        features = {}
         transforms = []
         input_height_f = tf.cast(input_shape[0], tf.float32)
         input_width_f = tf.cast(input_shape[1], tf.float32)
@@ -160,6 +167,7 @@ def random_projection_transform(
 
         # there should always be some offset, even if it is (0, 0)
         transforms += [tf.contrib.image.translations_to_projective_transforms(offset)]
+        features['random_translation_offset'] = offset
         identity = tf.constant([1, 0, 0, 0, 1, 0, 0, 0], dtype=tf.float32)
 
         if rotation is not None and rotation is not False:
@@ -169,6 +177,7 @@ def random_projection_transform(
 
             theta = tf.random_uniform([1], minval=rotation[0], maxval=rotation[1], seed=seed, dtype=tf.float32)
             transforms += [tf.contrib.image.angles_to_projective_transforms(theta, input_height_f, input_width_f)]
+            features['random_rotation'] = theta
 
         if scale is not None and scale is not False:
             if isinstance(scale, bool) and scale:
@@ -185,6 +194,7 @@ def random_projection_transform(
                             array_ops.zeros((1), dtypes.float32), array_ops.zeros((1), dtypes.float32)]
             scale_matrix = tf.stack(scale_matrix, axis=-1)
             transforms += [scale_matrix]
+            features['random_scale'] = s
 
         batch_size = 1
         if horizontal_flip:
@@ -193,7 +203,9 @@ def random_projection_transform(
             flip_transform = tf.convert_to_tensor(shape, dtype=tf.float32)
             flip = tf.tile(tf.expand_dims(flip_transform, 0), [batch_size, 1])
             no_flip = tf.tile(tf.expand_dims(identity, 0), [batch_size, 1])
-            transforms.append(tf.where(coin, flip, no_flip))
+            random_flip_transform = tf.where(coin, flip, no_flip)
+            transforms.append(random_flip_transform)
+            features['random_horizontal_flip'] = coin
 
         if vertical_flip:
             coin = tf.less(tf.random_uniform([batch_size], 0, 1.0), 0.5)
@@ -201,23 +213,31 @@ def random_projection_transform(
             flip_transform = tf.convert_to_tensor(shape, dtype=tf.float32)
             flip = tf.tile(tf.expand_dims(flip_transform, 0), [batch_size, 1])
             no_flip = tf.tile(tf.expand_dims(identity, 0), [batch_size, 1])
-            transforms.append(tf.where(coin, flip, no_flip))
+            random_flip_transform = tf.where(coin, flip, no_flip)
+            transforms.append(random_flip_transform)
+            features['random_vertical_flip'] = coin
 
         composed_transforms = tf.contrib.image.compose_transforms(*transforms)
-        return composed_transforms
+        return composed_transforms, features
 
 
 def transform_and_crop_coordinate(coordinate, transform=None, offset=None):
     """ Transforms a single coordinate then applies a crop offset.
 
-     See transform_and_crop().
+     You probably don't need to use this, just call random_projection_transform()
+     and then transform_and_crop_image().
 
     # Arguments
 
         coordinate: A 2D image coordinate.
         transform: A 3x3 homogenous 2D image transform matrix.
-        offset: A crop offset.
+        offset: A crop offset which is the location of (0,0) in the post-crop image.
+
+    # Returns
+
+        The coordinate after a tranform and crop is applied.
     """
+    # TODO(ahundt) I may need to invert the coordinate transform matrix
     projection_matrix = tf.contrib.image._flat_transforms_to_matrices(transform)
     if transform is not None:
         coordinate = tf.transpose(tf.convert_to_tensor(
@@ -232,24 +252,46 @@ def transform_and_crop_coordinate(coordinate, transform=None, offset=None):
     return coordinate
 
 
-def transform_and_crop_image(image, offset=None, size=None, transform=None, interpolation='BILINEAR', coordinate=None):
-    """ Project the image with a 3x3 htransform and center crop the image to the output shape.
+def resize_coordinate(coordinate, input_shape, output_shape):
+    """ Update a coordinate that changed with a tf.image.resize_images call.
 
-    For converting between transformation matrices and homogeneous transforms see:
-    transform_and_crop_coordinate()
+    Update is made based on the current input shape and a new updated output shape.
+    Warning: Do not use this with crop! This is strictly designed to work with tf.image.resize_images().
+    """
+    proportional_dimension_change = output_shape / input_shape[:2]
+    resized_coordinate = coordinate * proportional_dimension_change
+    return resized_coordinate
 
-    https://github.com/tensorflow/tensorflow/blob/r1.5/tensorflow/contrib/image/python/ops/image_ops.py
 
-    tf.contrib.image._flat_transforms_to_matrices()
-    tf.contrib.image._transform_matrices_to_flat()
+def transform_crop_and_resize_image(
+        image, offset=None, crop_shape=None, transform=None,
+        interpolation='BILINEAR', central_crop=False,
+        resize_shape=None, coordinate=None,
+        name=None):
+    """ Project the image with a 3x3 htransform, crop, then resize the image to the output shape.
+
+    A projection, then crop, then a separate resize is performed. This allows
+    random cropping to be applied with as little or as much translation as needed.
+    The resize is then applied afterward so the image can still be
+    output with whatever arbitrary dimensions the user desires.
+
+    Typically you will need to call random_projection_transform(),
+    to get the augmentation parameters, including random_translation_offset.
+    Then transform_and_crop_image() to actually perform the crop. Optionally supply
+    an image coordinate which will be updated and returned according to the changes
+    made to the image.
 
     Please note this function does not yet have an equivalent to crop_image_intrinsics.
 
     # Arguments
         offset: an offset to perform after the transform is applied,
-           if not defined it defaults to central crop which is half the
+           if not defined it defaults to 0 offset, which means cropping at the origin.
+           This is because the transform can already include the translation, and we
+           want to keep the coordinate system the same.
+        central_crop: False by default, when central_crop is True and offset is None,
+           a central crop offset will be calculated, which is half the
            size difference between the input image and offset.
-        size: The output image size, default None is the input image size.
+        crop_shape: The output image shape, default None is the input image shape.
         transform: An 8 element homogeneous projective transformation matrix.
         interpolation: Interpolation mode. Supported values: "NEAREST", "BILINEAR".
 
@@ -257,24 +299,46 @@ def transform_and_crop_image(image, offset=None, size=None, transform=None, inte
 
        cropped_image if coordinate is None, otherwise [cropped_image, new_coordinate]
     """
-    if size is None and offset is not None:
-        raise ValueError('If size is None offset must also be None.')
+    with tf.name_scope(name, "transform_and_crop_image",
+                       [image]) as name:
+        if crop_shape is None and offset is not None:
+            raise ValueError('If crop_shape is None offset must also be None.')
 
-    image = tf.contrib.image.transform(image, transforms=transform, interpolation=interpolation)
+        if transform is not None:
+            image = tf.contrib.image.transform(image, transforms=transform, interpolation=interpolation)
 
-    if size is not None or offset is not None:
-        if size is None:
-            size = tf.shape(image)
+        if crop_shape is not None or offset is not None:
+            if crop_shape is None:
+                crop_shape = tf.shape(image)
 
-        if offset is None:
-            offset = (tf.shape(image) - size) // 2
+            if offset is None and central_crop:
+                offset = (tf.shape(image) - crop_shape) // 2
+            else:
+                # in this case the random part of the
+                # random crop is built into the transform
+                offset = [0, 0, 0]
 
-        image = crop_images(image, offset, size)
+            image = crop_images(image, offset, crop_shape)
 
-    if coordinate is None:
-        return image
-    else:
-        return image, transform_and_crop_coordinate(transform, coordinate, offset)
+            if coordinate is not None:
+                coordinate = transform_and_crop_coordinate(transform, coordinate, offset)
+
+        if resize_shape is not None:
+            if coordinate is not None:
+                coordinate = resize_coordinate(coordinate, tf.shape(image), resize_shape)
+            image = tf.image.resize_images(image, resize_shape)
+
+        if coordinate is None:
+            return image
+        else:
+            return image, coordinate
+
+ # For converting between transformation matrices and homogeneous transforms see:
+ # transform_and_crop_coordinate()
+ # https://github.com/tensorflow/tensorflow/blob/r1.5/tensorflow/contrib/image/python/ops/image_ops.py
+
+ # tf.contrib.image._flat_transforms_to_matrices()
+ # tf.contrib.image._transform_matrices_to_flat()
 
 # def _flat_transforms_to_matrices(transforms):
 #   # Make the transform(s) 2D in case the input is a single transform.
