@@ -12,7 +12,7 @@ echo "Running $@ on $SLURMD_NODENAME ..."
 
 module load tensorflow/cuda-8.0/r1.3
 
-OPTS=$(getopt -o '' --long lr:,dr:,opt:,noisedim:,loss:,wass,no-wass,noise,retrain,train-img-encoder,train-gan-encoder -n ctp_gan -- "$@")
+OPTS=$(getopt -o '' --long lr:,dr:,opt:,noisedim:,loss:,wass,no-wass,noise,retrain,encoder,gan_encoder,load_model -n ctp_gan -- "$@")
 
 [[ $? != 0 ]] && echo "Failed parsing options." && exit 1
 
@@ -26,6 +26,7 @@ loss=mae
 wass=false
 use_noise=false
 retrain=false
+load_model=false
 
 echo "$OPTS"
 eval set -- "$OPTS"
@@ -41,8 +42,9 @@ while true; do
     --wass) wass=true; shift ;;
     --no-wass) wass=false; shift ;;
     --retrain) retrain=true; shift ;;
-    --train-img-encoder) train_image_encoder=true; shift ;;
-    --train-gan-encoder) train_gan_encoder=true; shift ;;
+    --encoder) train_image_encoder=true; shift ;;
+    --gan_encoder) train_gan_encoder=true; shift ;;
+    --load_model) load_model=true; shift ;;
     --) shift; break ;;
     *) echo "Internal error!" ; exit 1 ;;
   esac
@@ -77,6 +79,7 @@ data_dir=${data_dir}.${data_suffix}
 if $wass; then wass_cmd='--wasserstein'; else wass_cmd=''; fi
 if $use_noise; then use_noise_cmd='--use_noise'; else use_noise_cmd=''; fi
 if $retrain; then retrain_cmd='--retrain'; else retrain_cmd=''; fi
+if $load_model; then load_cmd='--load_model'; else load_cmd=''; fi
 
 if $train_image_encoder; then
   echo "Training discriminator"
@@ -92,7 +95,8 @@ if $train_image_encoder; then
     --steps_per_epoch 300 \
     --noise_dim $noise_dim \
     --loss $loss \
-    --batch_size 64
+    --batch_size 64 \
+    $load_cmd
 
   echo "Training non-gan image encoder"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
@@ -107,13 +111,14 @@ if $train_image_encoder; then
     --steps_per_epoch 300 \
     --noise_dim $noise_dim \
     --loss $loss \
-    --batch_size 64
+    --batch_size 64 \
+    $load_cmd
 fi
 if $train_gan_image_encoder; then
   echo "Training encoder gan"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
     --features $features \
-    -e 100 \
+    -e 300 \
     --model pretrain_image_gan \
     --data_file $data_dir \
     --lr $lr \
@@ -125,7 +130,8 @@ if $train_gan_image_encoder; then
     --loss $loss \
     --gan_method gan \
     --batch_size 64 \
-    $wass_cmd
+    $wass_cmd \
+    $load_cmd
 fi
 
 echo "Training conditional gan"
@@ -144,5 +150,6 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --gan_method gan \
   --batch_size 64 \
   $wass_cmd \
-  $use_noise_cmd
+  $use_noise_cmd \
+  $load_cmd
 
