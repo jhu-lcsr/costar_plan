@@ -12,14 +12,12 @@ echo "Running $@ on $SLURMD_NODENAME ..."
 
 module load tensorflow/cuda-8.0/r1.3
 
-OPTS=$(getopt -o d:f: --long dataset:,features:,lr:,dr:,opt:,noisedim:,loss:,wass,no-wass,noise,retrain,train-img-encoder,train-gan-encoder -n ctp_gan -- "$@")
+OPTS=$(getopt -o '' --long lr:,dr:,opt:,noisedim:,loss:,wass,no-wass,noise,retrain,train-img-encoder,train-gan-encoder -n ctp_gan -- "$@")
 
 [[ $? != 0 ]] && echo "Failed parsing options." && exit 1
 
 train_image_encoder=false
 train_gan_image_encoder=false
-dataset=''
-features=''
 lr=0.001
 dropout=0.1
 optimizer=adam
@@ -34,8 +32,6 @@ eval set -- "$OPTS"
 
 while true; do
   case "$1" in
-    -d | --dataset) dataset="$2"; shift 2 ;;
-    -f | --features) features="$2"; shift 2 ;;
     --lr) lr="$2"; shift 2 ;;
     --dr) dropout="$2"; shift 2 ;;
     --opt) optimizer="$2"; shift 2 ;;
@@ -52,6 +48,10 @@ while true; do
   esac
 done
 
+# positional arguments
+dataset="$1"
+features="$2"
+
 [[ $dataset != '' ]] && echo 'Dataset is mandatory!' && exit 1
 [[ $features != '' ]] && echo 'Features are mandatory!' && exit 1
 
@@ -64,19 +64,13 @@ touch $MODELDIR/$SLURM_JOB_ID
 data_dir=$HOME/work/$dataset
 [[ ! -d $data_dir ]] && data_dir=$HOME/work/dev_yb/$dataset
 
-data_suffix=h5f
-[[ $features == husky ]] && data_suffix=npz
+if [[ $features == husky ]]; then data_suffix=npz; else data_suffix=h5f; fi
 
 data_dir=${data_dir}.${data_suffix}
 
-wass_cmd=''
-$wass && wass_cmd='--wasserstein'
-
-use_noise_cmd=''
-$use_noise && use_noise_cmd='--use_noise'
-
-retrain_cmd=''
-$retrain && retrain_cmd='--retrain'
+if $wass; then wass_cmd='--wasserstein'; else wass_cmd=''; fi
+if $use_noise; then use_noise_cmd='--use_noise' else use_noise_cmd=''; fi
+if $retrain; then retrain_cmd='--retrain' else retrain_cmd=''; fi
 
 if $train_image_encoder; then
   echo "Training discriminator"
