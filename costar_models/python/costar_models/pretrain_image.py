@@ -44,6 +44,7 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
 
         # Create the encoder
         enc = encoder(img_in)
+        #enc = Dropout(self.dropout_rate)(enc)
         decoder = self._makeImageDecoder(
                     self.hidden_shape,
                     self.skip_shape,)
@@ -69,6 +70,7 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
                     loss=["mae"] + ["categorical_crossentropy"],
                     loss_weights=[1.,1e-3],
                     optimizer=self.getOptimizer())
+        encoder.summary()
         ae.summary()
 
         return ae, ae, None, [img_in], enc

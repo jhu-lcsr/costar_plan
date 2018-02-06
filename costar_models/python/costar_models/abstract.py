@@ -45,6 +45,7 @@ class AbstractAgentBasedModel(object):
             dropout_rate=0.5, decoder_dropout_rate=None,
             tform_dropout_rate=0.,
             validate=False,
+            enc_loss=False,
             use_batchnorm=1,
             hypothesis_dropout=False,
             dense_representation=True,
@@ -74,6 +75,7 @@ class AbstractAgentBasedModel(object):
 
         self.submodel = submodel
         self.loss = loss
+        self.enc_loss = enc_loss
         self.retrain = retrain
         self.success_only = success_only
         self.use_prev_option = use_prev_option

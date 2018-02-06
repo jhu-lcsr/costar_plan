@@ -44,3 +44,12 @@ class KLDivergenceLoss(object):
         kl_loss = -0.5 * K.sum(1 + self.sigma - K.square(self.mu) -
                 K.exp(self.sigma), axis=-1)
         return K.mean(kl_loss)
+
+class EncoderDistance(object):
+    def __init__(self, encoder, loss):
+        self.encoder = encoder
+        self.loss = keras.losses.get(loss)
+
+    def __call__(self, target, pred):
+        encoded_targets = self.encoder.predict(target)
+        return self.loss(encoded_targets, pred)

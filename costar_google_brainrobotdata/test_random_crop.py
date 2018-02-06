@@ -53,32 +53,47 @@ class random_crop_test(tf.test.TestCase):
 
             self.assertAllEqual(intrinsics_np, intrinsics_tf)
 
-    def test_crop_pointcloud(self):
-        """ Test pointcloud use random crop of tensor
-        """
+    def testRandomProjection(self):
         with self.test_session() as sess:
-            test_input = np.random.rand(30, 20, 1)
-            test_input_size_tf = tf.constant([30, 20, 1])
-            intrinsics = np.random.rand(3, 3)
-            intrinsics_tf = tf.convert_to_tensor(intrinsics)
-            crop_size_np = np.array([5, 4, 1])
-            cropped_size_tf = tf.constant([5, 4, 1])
 
-            XYZ_np = depth_image_to_point_cloud(test_input, intrinsics)
-            depth_tf = tf.convert_to_tensor(test_input)
+            def make_proj_tensors(input_size, cropped_size):
+                input_size_tf = tf.convert_to_tensor(input_size)
+                cropped_size_tf = tf.convert_to_tensor(cropped_size)
 
-            offset_tf = rcp.random_crop_offset(test_input_size_tf, cropped_size_tf)
-            rcp_crop_tf = rcp.crop_images(depth_tf, offset_tf, cropped_size_tf)
-            cropped_intrinsics_tf = rcp.crop_image_intrinsics(intrinsics_tf, offset_tf)
+                test_input = tf.random_uniform(input_size_tf)
+                test_input = tf.reshape(test_input, input_size_tf)
 
-            cropped_intrinsics_np = sess.run(cropped_intrinsics_tf)
-            rcp_crop_np = sess.run(rcp_crop_tf)
-            offset_np = sess.run(offset_tf)
+                transform_full = rcp.random_projection_transform(input_size)
+                rcp_proj_full = rcp.transform_and_crop_image(test_input, transform=transform_full)
 
-            crop_XYZ_np = depth_image_to_point_cloud(rcp_crop_np, cropped_intrinsics_np)
-            assert np.allclose(np.squeeze(crop_XYZ_np[:, :, 0]),
-                np.squeeze(XYZ_np[offset_np[1]:offset_np[1] + crop_size_np[1],
-                                  offset_np[0]:offset_np[0] + crop_size_np[0], 0]))
+                transform = rcp.random_projection_transform(input_size, cropped_size_tf)
+                rcp_proj = rcp.transform_and_crop_image(
+                    test_input, transform=transform, size=cropped_size_tf)
+
+                return rcp_proj, transform, rcp_proj_full, transform_full
+
+            def evaluate_proj(session, input_size, cropped_size, count=100, verbose=1):
+                (rcp_proj_tensor, transform_tensor,
+                 rcp_proj_full_tensor, transform_full_tensor) = make_proj_tensors(input_size, cropped_size)
+                for i in range(count):
+                    (rcp_proj, transform,
+                     rcp_proj_full, transform_full) = session.run([rcp_proj_tensor, transform_tensor,
+                                                                   rcp_proj_full_tensor, transform_full_tensor])
+                    if verbose > 0:
+                        print('rcp_crop.shape: ' + str(rcp_proj.shape) +
+                              ' cropped_size_tf:' + str(cropped_size),
+                              ' transform: ' + str(transform),
+                              'transform_full:' + str(transform_full))
+                    self.assertAllEqual(transform_full.shape, [1, 8])
+                    self.assertAllEqual(rcp_proj_full.shape, input_size)
+                    self.assertAllEqual(rcp_proj.shape, cropped_size)
+                    self.assertAllEqual(rcp_proj.shape, cropped_size)
+
+            evaluate_proj(sess, input_size=[8, 10, 3], cropped_size=[4, 8, 3])
+            evaluate_proj(sess, input_size=[8, 10, 3], cropped_size=[8, 10, 3])
+            evaluate_proj(sess, input_size=[8, 10, 1], cropped_size=[4, 8, 1])
+            evaluate_proj(sess, input_size=[8, 10, 1], cropped_size=[8, 10, 1])
+
 
 if __name__ == '__main__':
     tf.test.main()
