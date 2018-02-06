@@ -48,8 +48,10 @@ def MakeJigsawsImageClassifier(model, img_shape, trainable = True):
     x = AddConv2D(x, 64, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 64, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 64, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 128, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 128, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 128, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 128, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 128, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
 
     #x = MaxPooling2D((3,4))(x)

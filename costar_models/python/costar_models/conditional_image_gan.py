@@ -12,6 +12,7 @@ from keras.layers.embeddings import Embedding
 from keras.layers.merge import Concatenate, Multiply
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
+from keras.layers.pooling import GlobalAveragePooling2D
 from keras.optimizers import Adam
 from matplotlib import pyplot as plt
 
@@ -204,13 +205,15 @@ class ConditionalImageGan(PretrainImageGan):
         x = x2
         x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True)
         x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
-        #x = AddConv2D(x, 1, [1,1], 1, 0., "same", activation="sigmoid",
-        #        bn=False)
 
-        #x = MaxPooling2D(pool_size=(8,8))(x)
-        #x = AveragePooling2D(pool_size=(8,8))(x)
-        x = Flatten()(x)
-        x = AddDense(x, 1, "linear", 0., output=True, bn=False)
+        if self.use_wasserstein:
+            x = Flatten()(x)
+            x = AddDense(x, 1, "linear", 0., output=True, bn=False)
+        else:
+            x = AddConv2D(x, 1, [1,1], 1, 0., "same", activation="sigmoid",
+                bn=False)
+            x = GlobalAveragePooling2D()(x)
+
         discrim = Model(ins, x, name="image_discriminator")
         self.lr *= 2.
         loss = wasserstein_loss if self.use_wasserstein else "binary_crossentropy"
