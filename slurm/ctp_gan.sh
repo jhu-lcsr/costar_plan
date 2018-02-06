@@ -48,15 +48,19 @@ while true; do
   esac
 done
 
+echo "$1 $2"
+
 # positional arguments
 dataset="$1"
 features="$2"
 
-[[ $dataset != '' ]] && echo 'Dataset is mandatory!' && exit 1
-[[ $features != '' ]] && echo 'Features are mandatory!' && exit 1
+[[ $dataset == '' ]] && echo 'Dataset is mandatory!' && exit 1
+[[ $features == '' ]] && echo 'Features are mandatory!' && exit 1
 
 
-MODELDIR="$HOME/.costar/${dataset}_${lr}_${optimizer}_${dropout}_${noise_dim}_${loss}_${wass}_${use_noise}"
+if $wass; then wass_dir=wass; else wass_dir=nowass; fi
+
+MODELDIR="$HOME/.costar/${dataset}_${lr}_${optimizer}_${dropout}_${noise_dim}_${loss}_${wass_dir}_${use_noise}"
 
 touch $MODELDIR/$SLURM_JOB_ID
 
