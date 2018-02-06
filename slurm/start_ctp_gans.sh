@@ -29,12 +29,11 @@ while true; do
   esac
 done
 
-retrain_cmd=''
-$retrain && retrain_cmd='--retrain'
+if $retrain; then retrain_cmd='--retrain'; else retrain_cmd=''; fi
 
 for wass_cmd in --wass ''; do
 
-  [[ $wass ]] && opt=rmsprop
+  if $wass; then opt=rmsprop else opt=adam; fi
 
   for noise_cmd in --noise ''; do
     sbatch "$SCRIPT_DIR"/ctp_gan.sh ctp_dec        multi   --lr $lr --dr $dr --opt $opt $wass_cmd $noise_cmd $retrain_cmd
