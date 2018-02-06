@@ -17,7 +17,7 @@ else
   echo "Not running on Marcc"
 fi
 
-OPTS=$(getopt -o '' --long lr:,dr:,opt:,noisedim:,loss:,wass,no_wass,noise,retrain,encoder,gan_encoder,load_model -n ctp_gan -- "$@")
+OPTS=$(getopt -o '' --long lr:,dr:,opt:,noisedim:,loss:,wass,no_wass,noise,retrain,encoder,gan_encoder,load_model,multi,husky,jigsaws -n ctp_gan -- "$@")
 
 [[ $? != 0 ]] && echo "Failed parsing options." && exit 1
 
@@ -32,6 +32,8 @@ wass=false
 use_noise=false
 retrain=false
 load_model=false
+dataset=''
+features=''
 
 echo "$OPTS"
 eval set -- "$OPTS"
@@ -50,16 +52,17 @@ while true; do
     --encoder) train_image_encoder=true; shift ;;
     --gan_encoder) train_gan_image_encoder=true; shift ;;
     --load_model) load_model=true; shift ;;
+    --multi) dataset=ctp_dec; features=multi; shift ;;
+    --husky) dataset=husky_data; features=husky; shift ;;
+    --jigsaws) dataset=suturing_data2; features=jigsaws; shift ;;
     --) shift; break ;;
     *) echo "Internal error!" ; exit 1 ;;
   esac
 done
 
-echo "$1 $2"
-
 # positional arguments
-dataset="$1"
-features="$2"
+[[ ! -z "$1" ]] && dataset="$1"
+[[ ! -z "$2" ]] && features="$2"
 
 [[ $dataset == '' ]] && echo 'Dataset is mandatory!' && exit 1
 [[ $features == '' ]] && echo 'Features are mandatory!' && exit 1
