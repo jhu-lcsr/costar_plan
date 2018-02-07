@@ -1092,6 +1092,8 @@ def LoadEncoderWeights(model, encoder, decoder, gan=False):
             encoder.load_weights(e_nm)
             print("Trying to load", d_nm)
             decoder.load_weights(d_nm)
+            encoder.trainable = model.retrain
+            decoder.trainable = model.retrain
             loaded = True
 
             if loaded:
