@@ -137,7 +137,7 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=True):
     skip = x
 
     if model.use_noise:
-        y = AddDense(z, 32, "relu", 0., constrain=None, output=False)
+        y = AddDense(z, 32, "relu", 0., constraint=None, output=False)
         x = TileOnto(x, y, 32, h_dim)
         x = AddConv2D(x, 32, [5,5], 1, 0.)
 
