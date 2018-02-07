@@ -194,23 +194,17 @@ def MakeJigsawsImageEncoder(model, img_shape, disc=False):
     '''
     img = Input(img_shape,name="img_encoder_in")
     bn = not disc and model.use_batchnorm
-    #img0 = Input(img_shape,name="img0_encoder_in")
     dr = model.dropout_rate
     x = img
-    #x0 = img0
     x = AddConv2D(x, 32, [7,7], 1, 0., "same", lrelu=disc, bn=bn)
-    #x0 = AddConv2D(x0, 32, [7,7], 1, dr, "same", lrelu=disc, bn=bn)
-    #x = Concatenate(axis=-1)([x,x0])
-
-    x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 32, [5,5], 2, 0*dr, "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [5,5], 2, 0*dr, "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
     #x = AddConv2D(x, 128, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
     #x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-    #x = AddConv2D(x, 256, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
 
     if model.use_spatial_softmax and not disc:
         def _ssm(x):
@@ -259,6 +253,7 @@ def MakeJigsawsImageDecoder(model, hidden_shape, img_shape=None, copy=False):
 
     x = rep
     dr = model.decoder_dropout_rate if model.hypothesis_dropout else 0
+    dr *= 0
     bn = model.use_batchnorm
     
     if model.use_spatial_softmax:
@@ -270,10 +265,7 @@ def MakeJigsawsImageDecoder(model, hidden_shape, img_shape=None, copy=False):
         x = AddDense(x, int(h*w*c), "relu", dr, bn=bn)
         x = Reshape((h,w,c))(x)
 
-    #x = AddConv2DTranspose(x, 64, [5,5], 1, dr, bn=bn)
     x = AddConv2DTranspose(x, 128, [1,1], 1, 0., bn=bn)
-    #x = AddConv2DTranspose(x, 128, [5,5], 2, dr, bn=bn)
-    #x = AddConv2DTranspose(x, 128, [5,5], 1, 0., bn=bn)
     x = AddConv2DTranspose(x, 64, [5,5], 2, dr, bn=bn)
     x = AddConv2DTranspose(x, 64, [5,5], 1, 0., bn=bn)
     x = AddConv2DTranspose(x, 32, [5,5], 2, dr, bn=bn)

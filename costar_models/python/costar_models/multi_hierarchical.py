@@ -361,10 +361,10 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         dr = self.dropout_rate
         x = img
         x = AddConv2D(x, 32, [7,7], 1, 0., "same", lrelu=disc, bn=bn)
-        x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+        x = AddConv2D(x, 32, [5,5], 2, 0*dr, "same", lrelu=disc, bn=bn)
         x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
         x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-        x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+        x = AddConv2D(x, 64, [5,5], 2, 0*dr, "same", lrelu=disc, bn=bn)
         x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
         x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
 
@@ -416,6 +416,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
         x = rep
         dr = self.decoder_dropout_rate if self.hypothesis_dropout else 0
+        dr *= 0
         bn = self.use_batchnorm
         
         if self.use_spatial_softmax:
