@@ -42,13 +42,13 @@ def MakeImageClassifier(model, img_shape, trainable=True):
     img = Input(img_shape,name="img_classifier_in")
     bn = model.use_batchnorm
     disc = True
-    dr = 0.5
+    dr = 0.2
     x = img
     x0 = img0
 
-    x0 = AddConv2D(x0, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    #x0 = AddConv2D(x0, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = Add()([x0, x])
+    #x = Add()([x0, x])
 
     x = AddConv2D(x, 32, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 32, [3,3], 1, 0., "same", lrelu=disc, bn=bn)

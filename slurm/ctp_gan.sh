@@ -17,7 +17,7 @@ else
   echo "Not running on Marcc"
 fi
 
-OPTS=$(getopt -o '' --long lr:,dr:,opt:,noisedim:,loss:,wass,no_wass,noise,retrain,encoder,gan_encoder,load_model,multi,husky,jigsaws -n ctp_gan -- "$@")
+OPTS=$(getopt -o '' --long lr:,dr:,opt:,noisedim:,loss:,wass,no_wass,noise,retrain,encoder,gan_encoder,load_model,suffix:,multi,husky,jigsaws -n ctp_gan -- "$@")
 
 [[ $? != 0 ]] && echo "Failed parsing options." && exit 1
 
@@ -34,6 +34,7 @@ retrain=false
 load_model=false
 dataset=''
 features=''
+suffix=''
 
 echo "$OPTS"
 eval set -- "$OPTS"
@@ -55,6 +56,7 @@ while true; do
     --multi) dataset=ctp_dec; features=multi; shift ;;
     --husky) dataset=husky_data; features=husky; shift ;;
     --jigsaws) dataset=suturing_data2; features=jigsaws; shift ;;
+    --suffix) suffix="$2"; shift 2 ;;
     --) shift; break ;;
     *) echo "Internal error!" ; exit 1 ;;
   esac
@@ -70,12 +72,12 @@ done
 if $wass; then wass_dir=wass; else wass_dir=nowass; fi
 if $use_noise; then noise_dir=noise; else noise_dir=nonoise; fi
 
-MODELDIR="$HOME/.costar/${dataset}_${lr}_${optimizer}_${dropout}_${noise_dim}_${loss}_${wass_dir}_${noise_dir}"
+MODELDIR="$HOME/.costar/${dataset}_${lr}_${optimizer}_${dropout}_${noise_dim}_${loss}_${wass_dir}_${noise_dir}${suffix}"
 
 [[ ! -d $MODELDIR ]] && mkdir -p $MODELDIR
-touch $MODELDIR/$SLURM_JOB_ID
 
 if $marcc; then
+  touch $MODELDIR/$SLURM_JOB_ID
   # Handle different Marcc layouts
   data_dir=$HOME/work/$dataset
   [[ ! -d $data_dir ]] && data_dir=$HOME/work/dev_yb/$dataset

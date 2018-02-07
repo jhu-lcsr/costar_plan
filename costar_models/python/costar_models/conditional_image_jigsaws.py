@@ -61,13 +61,6 @@ class ConditionalImageJigsaws(ConditionalImage):
             h = encoder(img_in)
             h0 = encoder(img0_in)
 
-        # Create model for predicting label
-        #next_model = GetJigsawsNextModel(h, self.num_options, 128,
-        #        self.decoder_dropout_rate)
-        #next_model.compile(loss="mae", optimizer=self.getOptimizer())
-        #next_option_out = next_model([h0, h, prev_option_in])
-        #self.next_model = next_model
-
         option_in = Input((1,), name="option_in")
         option_in2 = Input((1,), name="option_in2")
         ins += [option_in, option_in2]

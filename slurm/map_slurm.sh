@@ -7,8 +7,10 @@ for job in $jobs; do
 done
 
 for r in $results; do
-  r2=${r##*/}
-  echo $r2
+	job="${r##*/}"
+  dir="${r%/*}"
+	dir2="${dir##*/}"
+  echo "$job $dir2"
 done
 
 
