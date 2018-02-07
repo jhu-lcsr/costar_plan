@@ -49,7 +49,7 @@ from grasp_model import concat_images_with_tiled_vector_layer
 from grasp_model import top_block
 from grasp_model import create_tree_roots
 from grasp_model import dilated_late_concat_model
-
+from cornell_grasp_dataset_reader import parse_and_preprocess
 # https://github.com/aurora95/Keras-FCN
 # TODO(ahundt) move keras_fcn directly into this repository, into keras-contrib, or make a proper installer
 from keras_contrib.applications.fully_convolutional_networks import AtrousFCN_Vgg16_16s
@@ -213,7 +213,8 @@ def run_training(learning_rate=0.001, batch_size=10, num_gpus=1, top='classifica
     top: options are 'segmentation' and 'classification'.
     """
 
-    data_features = ['image/preprocessed', 'sin_cos_height_width_4']
+    data_features = ['image/preprocessed', 'bbox/preprocessed/cy_cx_normalized_2',
+                     'bbox/preprocessed/sin_cos_2']
     # see parse_and_preprocess() for the creation of these features
     if top == 'segmentation':
         label_features = ['grasp_success_yx_3']
@@ -308,13 +309,6 @@ def run_training(learning_rate=0.001, batch_size=10, num_gpus=1, top='classifica
         loss=loss,
         metrics=metrics)
 
-    # this is a workaround to set the preprocessing mode
-    def choose_parse_example_proto_fn(preprocessing_mode=preprocessing_mode):
-        def chosen_parse_fn(*args, **kwargs):
-            cornell_grasp_dataset_reader.parse_and_preprocess(
-                *args, preprocessing_mode=preprocessing_mode, **kwargs)
-        return chosen_parse_fn
-
     # i = 0
     # for batch in tqdm(
     #     cornell_grasp_dataset_reader.yield_record(
@@ -328,7 +322,7 @@ def run_training(learning_rate=0.001, batch_size=10, num_gpus=1, top='classifica
     all_validation_data = next(cornell_grasp_dataset_reader.yield_record(
         validation_file, label_features, data_features,
         is_training=False, batch_size=samples_in_val_dataset,
-        parse_example_proto_fn=choose_parse_example_proto_fn()))
+        parse_example_proto_fn=parse_and_preprocess))
 
     parallel_model.fit_generator(
         cornell_grasp_dataset_reader.yield_record(

@@ -278,25 +278,6 @@ def batch_inputs(data_files, train, num_epochs, batch_size,
     return features
 
 
-def height_width_sin_cos_4(height=None, width=None, sin_theta=None, cos_theta=None,
-                           features=None):
-    """ This is the input to pixelwise grasp prediction on the cornell dataset.
-
-    # Arguments
-
-    features: a dictionary which should contain the features
-        'bbox/height' 'bbox/width' 'bbox/sin_theta' 'bbox/cos_theta'.
-    """
-    sin_cos_height_width = []
-    if features is not None:
-        sin_cos_height_width = [features['bbox/height'] / height_width_divisor,
-                                features['bbox/width'] / height_width_divisor,
-                                features['bbox/sin_theta'], features['bbox/cos_theta']]
-    else:
-        sin_cos_height_width = [sin_theta, cos_theta, height, width]
-    return K.concatenate(sin_cos_height_width)
-
-
 def grasp_success_yx_3(grasp_success=None, cy=None, cx=None, features=None):
     if features is not None:
         combined = [K.cast(features['bbox/grasp_success'], 'float32'),
@@ -306,7 +287,7 @@ def grasp_success_yx_3(grasp_success=None, cy=None, cx=None, features=None):
     return K.concatenate(combined)
 
 
-def parse_and_preprocess(examples_serialized, is_training, label_features_to_extract=None,
+def parse_and_preprocess(examples_serialized, is_training=True, label_features_to_extract=None,
                          data_features_to_extract=None, crop_shape=None, output_shape=None,
                          preprocessing_mode='tf'):
     """
@@ -329,6 +310,7 @@ def parse_and_preprocess(examples_serialized, is_training, label_features_to_ext
         crop_shape = (FLAGS.crop_height, FLAGS.crop_width, 3)
     if output_shape is None:
         output_shape = (FLAGS.resize_height, FLAGS.resize_width)
+        output_shape = K.constant(output_shape, 'int32')
     if FLAGS.redundant:
         feature = parse_example_proto_redundant(examples_serialized)
     else:
@@ -348,9 +330,8 @@ def parse_and_preprocess(examples_serialized, is_training, label_features_to_ext
     # gripper coordinate features must be updated accordingly
     # and consistently, with visualization to ensure it isn't
     # backwards. An example is +theta rotation vs -theta rotation.
-    grasp_center_coordinate = [feature['bbox/cy'], feature['bbox/cx']]
+    grasp_center_coordinate = K.concatenate([feature['bbox/cy'], feature['bbox/cx']])
     grasp_center_rotation_theta = feature['bbox/theta']
-
     if is_training:
         # perform image augmentation
         # TODO(ahundt) add scaling and use that change to augment height and width parameters
@@ -361,7 +342,7 @@ def parse_and_preprocess(examples_serialized, is_training, label_features_to_ext
 
         if 'random_rotation' in random_features:
             # TODO(ahundt) validate if we must subtract or add based on the transform
-            grasp_center_rotation_theta += feature['random_rotation']
+            grasp_center_rotation_theta += random_features['random_rotation']
         feature.update(random_features)
     else:
         # simply do a central crop then a resize when not training
@@ -376,23 +357,21 @@ def parse_and_preprocess(examples_serialized, is_training, label_features_to_ext
     # generate all the preprocessed features for training
     feature['image/preprocessed'] = image
     feature['bbox/preprocessed/cy_cx_2'] = grasp_center_coordinate
+    print(grasp_center_coordinate.shape)
     feature['bbox/preprocessed/cy_cx_normalized_2'] = K.concatenate(
-        [grasp_center_coordinate[0] / feature['image/height'],
-         grasp_center_coordinate[1] / feature['image/width']])
+        [tf.reshape(grasp_center_coordinate[0], (1,)) / tf.cast(feature['image/height'], tf.float32),
+         tf.reshape(grasp_center_coordinate[1], (1,)) / tf.cast(feature['image/width'], tf.float32)])
     feature['bbox/preprocessed/theta'] = grasp_center_rotation_theta
     feature['bbox/preprocessed/sin_cos_2'] = K.concatenate(
-        K.sin(grasp_center_rotation_theta),
-        K.cos(grasp_center_rotation_theta))
+        [K.sin(grasp_center_rotation_theta), K.cos(grasp_center_rotation_theta)])
     feature['bbox/preprocessed/logarithm_height_width_2'] = K.concatenate(
-        K.log(feature['bbox/height'] + K.epsilon()),
-        K.log(feature['bbox/width'] + K.epsilon()))
+        [K.log(feature['bbox/height'] + K.epsilon()),
+         K.log(feature['bbox/width'] + K.epsilon())])
 
     # TODO(ahundt) difference between "redundant" and regular proto parsing, figure out how to deal with grasp_success rename properly
     feature['grasp_success'] = feature['bbox/grasp_success']
     grasp_success_coordinate_label = K.concatenate(
-        feature['bbox/grasp_success'],
-        grasp_center_coordinate
-    )
+        [tf.cast(feature['bbox/grasp_success'], tf.float32), grasp_center_coordinate])
     # make coordinate labels 4d because that's what keras expects
     grasp_success_coordinate_label = K.expand_dims(K.expand_dims(grasp_success_coordinate_label))
     feature['grasp_success_yx_3'] = grasp_success_coordinate_label
@@ -422,7 +401,8 @@ def parse_and_preprocess(examples_serialized, is_training, label_features_to_ext
 def yield_record(
         tfrecord_filenames, label_features_to_extract, data_features_to_extract,
         parse_example_proto_fn=parse_and_preprocess, batch_size=32,
-        device='/cpu:0', is_training=True, steps=None, buffer_size=int(4e8), num_parallel_calls=20):
+        device='/cpu:0', is_training=True, steps=None, buffer_size=int(4e8),
+        num_parallel_calls=20, preprocessing_mode='tf'):
     # based_on https://github.com/visipedia/tfrecords/blob/master/iterate_tfrecords.py
     # with tf.device(device):
     with tf.Session() as sess:
@@ -436,9 +416,10 @@ def yield_record(
         def parse_fn_is_training(example):
             return parse_example_proto_fn(examples_serialized=example, is_training=is_training,
                                           label_features_to_extract=label_features_to_extract,
-                                          data_features_to_extract=data_features_to_extract)
+                                          data_features_to_extract=data_features_to_extract,
+                                          preprocessing_mode=preprocessing_mode)
         dataset = dataset.map(
-            map_func=parse_fn_is_training,
+            map_func=parse_and_preprocess,
             num_parallel_calls=num_parallel_calls)
         dataset = dataset.batch(batch_size=batch_size)  # Parse the record into tensors.
         dataset = dataset.prefetch(batch_size * 5)

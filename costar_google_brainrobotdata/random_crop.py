@@ -243,14 +243,24 @@ def transform_and_crop_coordinate(coordinate, transform=None, offset=None):
     # projection_matrix = tf.contrib.image._flat_transforms_to_matrices(transform)
 
     if transform is not None:
-        coordinate = tf.transpose(tf.convert_to_tensor(
-            coordinate[0],
-            coordinate[1],
-            1
-        ))
-        coordinate = projection_matrix * coordinate
+        if not tf.contrib.framework.is_tensor(coordinate):
+            coordinate = tf.transpose(tf.convert_to_tensor(
+                coordinate[0],
+                coordinate[1],
+                1
+            ))
+        else:
+            coordinate = tf.stack([tf.reshape(coordinate[0], (1,)),
+                                   tf.reshape(coordinate[1], (1,)),
+                                   tf.constant([1], tf.float32)], axis=-1)
+        coordinate = tf.transpose(coordinate)
+        projection_matrix = tf.squeeze(projection_matrix)
+        coordinate = tf.matmul(projection_matrix,
+                               coordinate)
         coordinate = coordinate[:2]
     if offset is not None:
+        if isinstance(offset, list):
+            offset = tf.constant([[offset[0]], [offset[1]]], tf.float32)
         coordinate = coordinate - offset
     return coordinate
 
@@ -261,8 +271,13 @@ def resize_coordinate(coordinate, input_shape, output_shape):
     Update is made based on the current input shape and a new updated output shape.
     Warning: Do not use this with crop! This is strictly designed to work with tf.image.resize_images().
     """
-    proportional_dimension_change = output_shape / input_shape[:2]
-    resized_coordinate = coordinate * proportional_dimension_change
+    if isinstance(input_shape, list):
+        input_shape = tf.constant([[input_shape[0]][input_shape[1]]], tf.float32)
+        proportional_dimension_change = output_shape / input_shape
+    else:
+        proportional_dimension_change = output_shape / input_shape[:2]
+    proportional_dimension_change = tf.cast(proportional_dimension_change, tf.float32)
+    resized_coordinate = tf.squeeze(coordinate) * proportional_dimension_change
     return resized_coordinate
 
 
@@ -325,7 +340,6 @@ def transform_crop_and_resize_image(
 
             if coordinate is not None and transform is not None:
                 coordinate = transform_and_crop_coordinate(coordinate, transform, offset)
-
         if resize_shape is not None:
             if coordinate is not None:
                 coordinate = resize_coordinate(coordinate, tf.shape(image), resize_shape)
