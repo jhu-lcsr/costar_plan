@@ -122,7 +122,7 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=True):
     h0 = Input((h_dim[0],h_dim[1], model.encoder_channels),name="h0_in")
     option = Input((model.num_options,),name="t_opt_in")
     if model.use_noise:
-        z = Input((self.noise_dim,), name="z_in")
+        z = Input((model.noise_dim,), name="z_in")
 
     x = h # This is already encoded
     x0 = AddConv2D(h0, 64, [1,1], 1, 0.)
