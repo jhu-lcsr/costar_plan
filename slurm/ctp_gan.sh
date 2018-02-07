@@ -71,8 +71,9 @@ done
 
 if $wass; then wass_dir=wass; else wass_dir=nowass; fi
 if $use_noise; then noise_dir=noise; else noise_dir=nonoise; fi
+if $retrain; then retrain_dir=retrain; else retrain_dir=noretrain; fi
 
-MODELDIR="$HOME/.costar/${dataset}_${lr}_${optimizer}_${dropout}_${noise_dim}_${loss}_${wass_dir}_${noise_dir}${suffix}"
+MODELDIR="$HOME/.costar/${dataset}_${lr}_${optimizer}_${dropout}_${noise_dim}_${loss}_${wass_dir}_${noise_dir}_${retrain_dir}${suffix}"
 
 [[ ! -d $MODELDIR ]] && mkdir -p $MODELDIR
 
