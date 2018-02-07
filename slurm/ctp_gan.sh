@@ -104,7 +104,7 @@ if $train_image_encoder; then
   echo "Training discriminator"
   ${cmd_prefix}ctp_model_tool \
     --features $features \
-    -e 100 \
+    -e 200 \
     --model discriminator \
     --data_file $data_dir \
     --lr $lr \
@@ -120,7 +120,7 @@ if $train_image_encoder; then
   echo "Training non-gan image encoder"
   ${cmd_prefix}ctp_model_tool \
     --features $features \
-    -e 100 \
+    -e 200 \
     --model pretrain_image_encoder \
     --data_file $data_dir \
     --lr $lr \
@@ -137,7 +137,7 @@ if $train_gan_image_encoder; then
   echo "Training encoder gan"
   ${cmd_prefix}ctp_model_tool \
     --features $features \
-    -e 300 \
+    -e 500 \
     --model pretrain_image_gan \
     --data_file $data_dir \
     --lr $lr \
