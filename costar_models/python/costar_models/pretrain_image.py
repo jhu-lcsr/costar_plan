@@ -71,6 +71,7 @@ class PretrainImageAutoencoder(RobotMultiPredictionSampler):
                     loss_weights=[1.,1e-3],
                     optimizer=self.getOptimizer())
         encoder.summary()
+        decoder.summary()
         ae.summary()
 
         return ae, ae, None, [img_in], enc

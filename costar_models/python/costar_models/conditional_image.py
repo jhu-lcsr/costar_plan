@@ -118,8 +118,13 @@ class ConditionalImage(PredictionSampler2):
         # Create custom encoder loss
         if self.enc_loss:
             loss = EncoderLoss(self.encoder, self.loss)
+            enc_losses = [loss, loss]
+            enc_outs = [x, x2]
+            enc_wts = [1., 1.]
         else:
-            loss = self.loss
+            enc_losses = []
+            enc_outs = []
+            enc_wts = []
 
         # Create models to train
         if self.no_disc:
@@ -128,17 +133,17 @@ class ConditionalImage(PredictionSampler2):
             disc_wt = 1e-3
         if self.no_disc:
             train_predictor = Model(ins + [label_in],
-                    [image_out, image_out2])
+                    [image_out, image_out2] + enc_outs)
             train_predictor.compile(
-                    loss=[self.loss, self.loss,],
-                    loss_weights=[1., 1.,],
+                    loss=[self.loss, self.loss,] + enc_losses,
+                    loss_weights=[1., 1.,] + enc_wts,
                     optimizer=self.getOptimizer())
         else:
             train_predictor = Model(ins + [label_in],
-                    [image_out, image_out2, disc_out2])
+                    [image_out, image_out2, disc_out2] + enc_outs)
             train_predictor.compile(
-                    loss=[self.loss, self.loss, "categorical_crossentropy"],
-                    loss_weights=[1., 1., disc_wt],
+                    loss=[self.loss, self.loss, "categorical_crossentropy"] + enc_losses,
+                    loss_weights=[1., 1., disc_wt] + enc_wts,
                     optimizer=self.getOptimizer())
         train_predictor.summary()
         return None, train_predictor, None, ins, h
@@ -246,5 +251,3 @@ class ConditionalImage(PredictionSampler2):
     def act(self, *args, **kwargs):
         raise NotImplementedError('act() not implemented')
 
-    def debugImage(self, features):
-        return features[1]
