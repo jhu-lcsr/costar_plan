@@ -13,12 +13,16 @@ function running_jobs() {
     results="$results $(find $HOME/.costar -name $job)"
   done
 
+  count=0
   for r in $results; do
     job="${r##*/}"
     dir="${r%/*}"
     dir="${dir##*/}"
     echo "$job ${jobtimes[$job]} $dir"
+    count=$((count+1))
   done
+
+  echo "$count running jobs"
 }
 
 function find_job() {
