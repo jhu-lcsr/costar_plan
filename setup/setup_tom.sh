@@ -15,11 +15,11 @@ export COSTAR_PLAN_DIR="$HOME/costar_ws/src/costar_plan"
 
 cd $COSTAR_WS/src/
 git clone git@github.com:cpaxton/tom_robot.git
-git clone git@github.com:cpaxton/costar_plan.git
+#git clone git@github.com:cpaxton/costar_plan.git
 
 # Disable things that won't work
 touch $COSTAR_WS/src/ur_modern_driver/CATKIN_IGNORE
-touch $COSTAR_PLAN_DIR/costar_gazebo_plugins/CATKIN_IGNORE
+#touch $COSTAR_PLAN_DIR/costar_gazebo_plugins/CATKIN_IGNORE
 touch $COSTAR_WS/src/robotiq/robotiq_s_model_articulated_gazebo_plugins/CATKIN_IGNORE
 touch $COSTAR_WS/src/costar_stack/costar_perception/sp_segmenter/CATKIN_IGNORE
 touch $COSTAR_WS/src/costar_stack/costar_predicator/predicator_8020_module/CATKIN_IGNORE
