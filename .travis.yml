@@ -71,7 +71,10 @@ before_install:
 # Create a catkin workspace with the package under integration.
 install:
   # Set up costasr_stack
-  - $CI_SOURCE_PATH/setup/setup_tom.sh
+  - $CI_SOURCE_PATH/setup/setup_indigo.sh
+  - wget https://raw.githubusercontent.com/cpaxton/costar_stack/master/install_indigo.sh
+  - chmod +x install_indigo.sh
+  - source ./install_indigo.sh
   - export COSTAR_WS="$HOME/costar_ws"
   - touch $COSTAR_WS/src/ur_modern_driver/CATKIN_IGNORE
   - touch $CI_SOURCE_PATH/costar_gazebo_plugins/CATKIN_IGNORE
