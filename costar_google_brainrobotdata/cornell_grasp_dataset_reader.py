@@ -36,8 +36,8 @@ flags.DEFINE_string('data_dir',
 flags.DEFINE_string('grasp_dataset', 'all', 'TODO(ahundt): integrate with brainrobotdata or allow subsets to be specified')
 flags.DEFINE_boolean('grasp_download', False,
                      """Download the grasp_dataset to data_dir if it is not already present.""")
-flags.DEFINE_string('train_filename', '/media/ding/Files/cornell-grasping-dataset-tfrecord/cornell-grasping-dataset-train.tfrecord', 'filename used for the training dataset')
-flags.DEFINE_string('evaluate_filename', '/media/ding/Files/cornell-grasping-dataset-tfrecord/cornell-grasping-dataset-evaluate.tfrecord', 'filename used for the evaluation dataset')
+flags.DEFINE_string('train_filename', 'cornell-grasping-dataset-train.tfrecord', 'filename used for the training dataset')
+flags.DEFINE_string('evaluate_filename', 'cornell-grasping-dataset-evaluate.tfrecord', 'filename used for the evaluation dataset')
 flags.DEFINE_integer('image_size', 224,
                      """DEPRECATED - this doesn't do anything right now. Provide square images of this size.""")
 flags.DEFINE_integer('num_preprocess_threads', 12,
