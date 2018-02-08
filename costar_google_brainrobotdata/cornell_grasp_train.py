@@ -328,7 +328,7 @@ def run_training(learning_rate=0.001, batch_size=10, num_gpus=1, top='classifica
         cornell_grasp_dataset_reader.yield_record(
             train_file, label_features, data_features,
             batch_size=batch_size,
-            parse_example_proto_fn=choose_parse_example_proto_fn()),
+            parse_example_proto_fn=parse_and_preprocess),
         steps_per_epoch=steps_per_epoch_train,
         epochs=epochs,
         validation_data=all_validation_data,
