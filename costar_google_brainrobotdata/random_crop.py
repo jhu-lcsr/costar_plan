@@ -271,12 +271,14 @@ def resize_coordinate(coordinate, input_shape, output_shape):
     Update is made based on the current input shape and a new updated output shape.
     Warning: Do not use this with crop! This is strictly designed to work with tf.image.resize_images().
     """
+    input_shape = tf.cast(input_shape, tf.float32)
+    output_shape = tf.cast(output_shape, tf.float32)
     if isinstance(input_shape, list):
         input_shape = tf.constant([[input_shape[0]][input_shape[1]]], tf.float32)
         proportional_dimension_change = output_shape / input_shape
     else:
         proportional_dimension_change = output_shape / input_shape[:2]
-    proportional_dimension_change = tf.cast(proportional_dimension_change, tf.float32)
+
     resized_coordinate = tf.squeeze(coordinate) * proportional_dimension_change
     return resized_coordinate
 
