@@ -373,7 +373,7 @@ def dilated_late_concat_model(
     else:
         v = vector_logits
         if len(vector_logits) > 1:
-            v = Concatenate(axis=0)(v)
+            v = Concatenate(axis=-1)(v)
         else:
             [v] = v
         v = Dense(vector_dense_filters)(v)
