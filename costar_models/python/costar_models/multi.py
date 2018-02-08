@@ -10,6 +10,7 @@ from keras.layers.pooling import MaxPooling2D, AveragePooling2D
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input
 from keras.layers import BatchNormalization, Dropout
+from keras.layers.noise import AlphaDropout
 from keras.layers import Dense, Conv2D, Activation, Flatten
 from keras.layers.merge import Add, Multiply
 from keras.layers.merge import Concatenate
@@ -39,9 +40,9 @@ def _makeTrainTarget(I_target, q_target, g_target, o_target):
 def MakeImageClassifier(model, img_shape, trainable=True):
     img0 = Input(img_shape,name="img0_classifier_in")
     img = Input(img_shape,name="img_classifier_in")
-    bn = True
+    bn = model.use_batchnorm 
     disc = True
-    dr = 0.5
+    dr = model.dropout_rate
     x = img
     x0 = img0
 
@@ -52,6 +53,8 @@ def MakeImageClassifier(model, img_shape, trainable=True):
     x = AddConv2D(x, 32, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 32, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 32, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 64, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 64, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 128, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
