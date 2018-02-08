@@ -215,6 +215,9 @@ def run_training(learning_rate=0.001, batch_size=10, num_gpus=1, top='classifica
 
     data_features = ['image/preprocessed', 'bbox/preprocessed/cy_cx_normalized_2',
                      'bbox/preprocessed/sin_cos_2']
+    image_shapes = [(FLAGS.sensor_image_height, FLAGS.sensor_image_width, 3)]
+    vector_shapes = [(2,), (2,)]
+
     # see parse_and_preprocess() for the creation of these features
     if top == 'segmentation':
         label_features = ['grasp_success_yx_3']
@@ -246,9 +249,10 @@ def run_training(learning_rate=0.001, batch_size=10, num_gpus=1, top='classifica
 
     # create dilated_vgg_model with inputs [image], [sin_theta, cos_theta]
     # TODO(ahundt) split vector shapes up appropriately for dense layers in dilated_late_concat_model
+    # TODO(ahundt) get dimensions automatically, based on configured params
     model = dilated_vgg_model(
-        image_shapes=[(FLAGS.sensor_image_height, FLAGS.sensor_image_width, 3)],
-        vector_shapes=[(4,)],
+        image_shapes=image_shapes,
+        vector_shapes=vector_shapes,
         dropout_rate=0.5,
         top=top,
         image_model_name=image_model_name)
