@@ -11,6 +11,11 @@ Cornell Dataset Code based on:
 import os
 import copy
 import numpy as np
+from tqdm import tqdm
+import matplotlib
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+import matplotlib.lines as lines
 
 import tensorflow as tf
 from tensorflow.python.platform import flags
@@ -31,8 +36,8 @@ flags.DEFINE_string('data_dir',
 flags.DEFINE_string('grasp_dataset', 'all', 'TODO(ahundt): integrate with brainrobotdata or allow subsets to be specified')
 flags.DEFINE_boolean('grasp_download', False,
                      """Download the grasp_dataset to data_dir if it is not already present.""")
-flags.DEFINE_string('train_filename', 'cornell-grasping-dataset-train.tfrecord', 'filename used for the training dataset')
-flags.DEFINE_string('evaluate_filename', 'cornell-grasping-dataset-evaluate.tfrecord', 'filename used for the evaluation dataset')
+flags.DEFINE_string('train_filename', '/media/ding/Files/cornell-grasping-dataset-tfrecord/cornell-grasping-dataset-train.tfrecord', 'filename used for the training dataset')
+flags.DEFINE_string('evaluate_filename', '/media/ding/Files/cornell-grasping-dataset-tfrecord/cornell-grasping-dataset-evaluate.tfrecord', 'filename used for the evaluation dataset')
 flags.DEFINE_integer('image_size', 224,
                      """DEPRECATED - this doesn't do anything right now. Provide square images of this size.""")
 flags.DEFINE_integer('num_preprocess_threads', 12,
@@ -52,6 +57,9 @@ flags.DEFINE_boolean(
        protobuf is the underlying TFRecord data type and it
        has optimizations eliminating repeated identical data entries.
     """)
+flags.DEFINE_boolean('showTextBox', True,
+                     """Display textBox with bbox info on image.
+                     """)
 flags.DEFINE_integer('sigma_divisor', 10,
                      """Sigma divisor for grasp success 2d labels.""")
 flags.DEFINE_integer(
@@ -350,8 +358,9 @@ def parse_and_preprocess(examples_serialized, is_training=True, label_features_t
     if is_training:
         # perform image augmentation
         # TODO(ahundt) add scaling and use that change to augment height and width parameters
-        transform, random_features = rcp.random_projection_transform(K.shape(image), crop_shape)
-        image, grasp_center_coordinate = rcp.transform_crop_and_resize_image(
+        transform, random_features = rcp.random_projection_transform(K.shape(image), crop_shape,
+                                                                     scale=True)
+        image, preprocessed_grasp_center_coordinate = rcp.transform_crop_and_resize_image(
             image, crop_shape=crop_shape, resize_shape=output_shape,
             transform=transform, coordinate=grasp_center_coordinate)
 
@@ -362,7 +371,7 @@ def parse_and_preprocess(examples_serialized, is_training=True, label_features_t
     else:
         # simply do a central crop then a resize when not training
         # to match the input without  changes
-        image, grasp_center_coordinate = rcp.transform_crop_and_resize_image(
+        image, preprocessed_grasp_center_coordinate = rcp.transform_crop_and_resize_image(
             image, crop_shape=crop_shape, central_crop=True,
             resize_shape=output_shape, coordinate=grasp_center_coordinate)
 
@@ -371,17 +380,22 @@ def parse_and_preprocess(examples_serialized, is_training=True, label_features_t
 
     # generate all the preprocessed features for training
     feature['image/preprocessed'] = image
-    feature['bbox/preprocessed/cy_cx_2'] = grasp_center_coordinate
+    feature['image/preprocessed/height'] = K.shape(image)[0]
+    feature['image/preprocessed/width'] = K.shape(image)[1]
+
+    feature['bbox/preprocessed/cy'] = preprocessed_grasp_center_coordinate[0]
+    feature['bbox/preprocessed/cx'] = preprocessed_grasp_center_coordinate[1]
     feature['bbox/preprocessed/cy_cx_normalized_2'] = K.concatenate(
-        [tf.reshape(grasp_center_coordinate[0], (1,)) / tf.cast(feature['image/height'], tf.float32),
-         tf.reshape(grasp_center_coordinate[1], (1,)) / tf.cast(feature['image/width'], tf.float32)])
+        [tf.reshape(preprocessed_grasp_center_coordinate[0], (1,)) / tf.cast(feature['image/preprocessed/height'], tf.float32),
+         tf.reshape(preprocessed_grasp_center_coordinate[1], (1,)) / tf.cast(feature['image/preprocessed/width'], tf.float32)])
     feature['bbox/preprocessed/theta'] = grasp_center_rotation_theta
     feature['bbox/preprocessed/sin_cos_2'] = K.concatenate(
         [K.sin(grasp_center_rotation_theta), K.cos(grasp_center_rotation_theta)])
+    feature['bbox/preprocessed/height'] = feature['bbox/height'] * feature['random_scale']
+    feature['bbox/preprocessed/width'] = feature['bbox/width'] * feature['random_scale']
     feature['bbox/preprocessed/logarithm_height_width_2'] = K.concatenate(
-        [K.log(feature['bbox/height'] + K.epsilon()),
-         K.log(feature['bbox/width'] + K.epsilon())])
-
+        [K.log(feature['bbox/preprocessed/height'] + K.epsilon()),
+         K.log(feature['bbox/preprocessed/width'] + K.epsilon())])
     # TODO(ahundt) difference between "redundant" and regular proto parsing, figure out how to deal with grasp_success rename properly
     feature['grasp_success'] = feature['bbox/grasp_success']
     grasp_success_coordinate_label = K.concatenate(
@@ -413,7 +427,7 @@ def parse_and_preprocess(examples_serialized, is_training=True, label_features_t
 
 
 def yield_record(
-        tfrecord_filenames, label_features_to_extract, data_features_to_extract,
+        tfrecord_filenames, label_features_to_extract=None, data_features_to_extract=None,
         parse_example_proto_fn=parse_and_preprocess, batch_size=32,
         device='/cpu:0', is_training=True, steps=None, buffer_size=int(4e8),
         num_parallel_calls=FLAGS.num_readers, preprocessing_mode='tf'):
@@ -519,23 +533,33 @@ def visualize_redundant_example(features_dicts, showTextBox=FLAGS.showTextBox):
 
     preprocessed_examples = []
     for example in features_dicts:
-        if ('bbox/preprocessed/cy_cx_2' in example):
+        if ('bbox/preprocessed/cy_cx_normalized_2' in example):
             sin_cos_2 = example['bbox/preprocessed/sin_cos_2']
             decoded_example = copy.deepcopy(example)
             # y, x ordering.
             recovered_theta = np.atan2(sin_cos_2[0], sin_cos_2[1])
-            assert np.allclose(np.array(example['bbox/theta']), recovered_theta)
-            decoded_example['bbox/theta'] = recovered_theta
-
             cy_cx_normalized_2 = example['bbox/preprocessed/cy_cx_normalized_2']
-            bbox
+            cy_cx_normalized_2[0] *= example['image/preprocessed/height']
+            cy_cx_normalized_2[1] *= example['image/preprocessed/width']
+            offset = example['random_translation_offset']
+            assert np.allclose(np.array(example['bbox/theta']), recovered_theta)
+            # change to preprocessed
+            assert np.allclose(cy_cx_normalized_2[0] + offset[0], example['bbox/cy'])
+            assert np.allclose(cy_cx_normalized_2[1] + offset[1], example['bbox/cx'])
+            decoded_example['bbox/theta'] = example['bbox/preprocessed/theta']
+            decoded_example['image/decoded'] = example['image/preprocessed']
+            decoded_example['bbox/width'] = example['bbox/preprocessed/width']
+            decoded_example['bbox/height'] = example['bbox/preprocessed/height']
+            decoded_example['bbox/cy'] = example['bbox/preprocessed/cy']
+            decoded_example['bbox/cx'] = example['bbox/preprocessed/cx']
+            decoded_example['bbox/theta'] = example['bbox/preprocessed/theta']
+            preprocessed_examples.append(decoded_example)
 
-
-
-    center_x_list = [example['bbox/cx'] for example in features_dict]
-    center_y_list = [example['bbox/cy'] for example in features_dict]
-    grasp_success = [example['bbox/grasp_success'] for example in features_dict]
-    gt_plot_height = len(center_x_list)/2
+    img = example['image/decoded']
+    center_x_list = [example['bbox/cx'] for example in features_dicts]
+    center_y_list = [example['bbox/cy'] for example in features_dicts]
+    grasp_success = [example['bbox/grasp_success'] for example in features_dicts]
+    gt_plot_height = len(center_x_list) / 2
     fig, axs = plt.subplots(gt_plot_height + 1, 4, figsize=(15, 15))
     axs[0, 0].imshow(img, zorder=0)
     # for i in range(4):
@@ -548,13 +572,13 @@ def visualize_redundant_example(features_dicts, showTextBox=FLAGS.showTextBox):
     axs[0, 1].imshow(img, zorder=0)
     # axs[1, 0].scatter(data[0], data[1])
     # axs[2, 0].imshow(gt_image)
-    for i, (gt_image, example) in enumerate(zip(gt_images, bbox_example_features)):
+    for i, example in enumerate(preprocessed_examples):
         h = i % gt_plot_height + 1
         w = int(i / gt_plot_height)
         z = 0
         axs[h, w].imshow(img, zorder=z)
         z += 1
-        axs[h, w].imshow(gt_image, alpha=0.25, zorder=z)
+        axs[h, w].imshow(example['image/decoded'], alpha=0.25, zorder=z)
         z += 1
         # axs[h, w*2+1].imshow(gt_image, alpha=0.75, zorder=1)
         widths = [1, 2, 1, 2]
@@ -579,15 +603,19 @@ def visualize_redundant_example(features_dicts, showTextBox=FLAGS.showTextBox):
                     zorder=z,
                     )
             z += 1
-        for i, (color, width, alpha) in enumerate(zip(colors, widths, alphas)):
-            x_current = [example['bbox/x'+str(i)], example['bbox/x'+str((i+1)%4)]]
-            y_current = [example['bbox/y'+str(i)], example['bbox/y'+str((i+1)%4)]]
-            # axs[h, w].text(example['bbox/x'+str(i)], example['bbox/y'+str(i)], "Point:"+str(i))
+        # bbox/x_i, y_i are not calculated according to preprocess, so use rectangle here
+        axs[h, w].add_patch(patches.Rectangle((example['bbox/cx'], example['bbox/cy']),
+                                              example['bbox/width'], example['bbox/height'],
+                                              example['bbox/theta'], fill=False))
+        # for i, (color, width, alpha) in enumerate(zip(colors, widths, alphas)):
+        #     x_current = [example['bbox/x'+str(i)], example['bbox/x'+str((i+1)%4)]]
+        #     y_current = [example['bbox/y'+str(i)], example['bbox/y'+str((i+1)%4)]]
+        #     # axs[h, w].text(example['bbox/x'+str(i)], example['bbox/y'+str(i)], "Point:"+str(i))
 
-            axs[h, w].add_line(lines.Line2D(x_current, y_current, linewidth=width,
-                               color=color, zorder=z, alpha=alpha))
-            axs[0, 0].add_line(lines.Line2D(x_current, y_current, linewidth=width,
-                               color=color, zorder=z, alpha=alpha))
+        #     axs[h, w].add_line(lines.Line2D(x_current, y_current, linewidth=width,
+        #                        color=color, zorder=z, alpha=alpha))
+        #     axs[0, 0].add_line(lines.Line2D(x_current, y_current, linewidth=width,
+        #                        color=color, zorder=z, alpha=alpha))
 
     # axs[1, 1].hist2d(data[0], data[1])
     plt.draw()
@@ -598,13 +626,12 @@ def visualize_redundant_example(features_dicts, showTextBox=FLAGS.showTextBox):
 
 
 def main(batch_size=1, is_training=True):
-    example_generator = cornell_grasp_dataset_reader.yield_record(
-        validation_file, label_features, data_features,
-        is_training=is_training, batch_size=batch_size,
-        parse_example_proto_fn=parse_and_preprocess)
+    validation_file = FLAGS.evaluate_filename
+    example_generator = yield_record(validation_file, is_training=is_training,
+                                     batch_size=batch_size)
 
     for example_dict in tqdm(example_generator):
-        visualize_example(example_dict)
+        visualize_redundant_example(example_dict)
 
 
 
