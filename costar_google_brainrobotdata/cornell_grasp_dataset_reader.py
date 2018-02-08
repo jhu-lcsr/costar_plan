@@ -8,23 +8,38 @@ Cornell Dataset Code based on:
     https://github.com/tnikolla/robot-grasp-detection
 
 '''
-import tensorflow as tf
+import os
+import copy
 import numpy as np
+
+import tensorflow as tf
+from tensorflow.python.platform import flags
+
 import keras
 from keras import backend as K
 import keras_contrib
+
 from grasp_loss import gaussian_kernel_2D
 from inception_preprocessing import preprocess_image
-from tensorflow.python.platform import flags
 import random_crop as rcp
 
+flags.DEFINE_string('data_dir',
+                    os.path.join(os.path.expanduser("~"),
+                                 '.keras', 'datasets', 'cornell_grasping'),
+                    """Path to dataset in TFRecord format
+                    (aka Example protobufs) and feature csv files.""")
+flags.DEFINE_string('grasp_dataset', 'all', 'TODO(ahundt): integrate with brainrobotdata or allow subsets to be specified')
+flags.DEFINE_boolean('grasp_download', False,
+                     """Download the grasp_dataset to data_dir if it is not already present.""")
+flags.DEFINE_string('train_filename', 'cornell-grasping-dataset-train.tfrecord', 'filename used for the training dataset')
+flags.DEFINE_string('evaluate_filename', 'cornell-grasping-dataset-evaluate.tfrecord', 'filename used for the evaluation dataset')
 flags.DEFINE_integer('image_size', 224,
-                     """Provide square images of this size.""")
+                     """DEPRECATED - this doesn't do anything right now. Provide square images of this size.""")
 flags.DEFINE_integer('num_preprocess_threads', 12,
                      """Number of preprocessing threads per tower. """
                      """Please make this a multiple of 4.""")
-flags.DEFINE_integer('num_readers', 12,
-                     """Number of parallel readers during train.""")
+flags.DEFINE_integer('num_readers', 20,
+                     """Number of parallel threads reading from the dataset.""")
 flags.DEFINE_integer('input_queue_memory_factor', 12,
                      """Size of the queue of preprocessed images. """
                      """Default is ideal but try smaller values, e.g. """
@@ -218,8 +233,8 @@ def approximate_gaussian_ground_truth_image(image_shape, center, grasp_theta, gr
     return gaussian
 
 
-def batch_inputs(data_files, train, num_epochs, batch_size,
-                 num_preprocess_threads, num_readers):
+def old_batch_inputs(data_files, train, num_epochs, batch_size,
+                     num_preprocess_threads, num_readers):
     print(train)
     if train:
         filename_queue = tf.train.string_input_producer(data_files,
@@ -357,7 +372,6 @@ def parse_and_preprocess(examples_serialized, is_training=True, label_features_t
     # generate all the preprocessed features for training
     feature['image/preprocessed'] = image
     feature['bbox/preprocessed/cy_cx_2'] = grasp_center_coordinate
-    print(grasp_center_coordinate.shape)
     feature['bbox/preprocessed/cy_cx_normalized_2'] = K.concatenate(
         [tf.reshape(grasp_center_coordinate[0], (1,)) / tf.cast(feature['image/height'], tf.float32),
          tf.reshape(grasp_center_coordinate[1], (1,)) / tf.cast(feature['image/width'], tf.float32)])
@@ -402,7 +416,7 @@ def yield_record(
         tfrecord_filenames, label_features_to_extract, data_features_to_extract,
         parse_example_proto_fn=parse_and_preprocess, batch_size=32,
         device='/cpu:0', is_training=True, steps=None, buffer_size=int(4e8),
-        num_parallel_calls=20, preprocessing_mode='tf'):
+        num_parallel_calls=FLAGS.num_readers, preprocessing_mode='tf'):
     # based_on https://github.com/visipedia/tfrecords/blob/master/iterate_tfrecords.py
     # with tf.device(device):
     with tf.Session() as sess:
@@ -473,7 +487,7 @@ def yield_record(
             pass
 
 
-def distorted_inputs(data_files, num_epochs, train=True, batch_size=None):
+def old_distorted_inputs(data_files, num_epochs, train=True, batch_size=None):
     with tf.device('/cpu:0'):
         print(train)
         features = batch_inputs(
@@ -484,7 +498,7 @@ def distorted_inputs(data_files, num_epochs, train=True, batch_size=None):
     return features
 
 
-def inputs(data_files, num_epochs=1, train=False, batch_size=1):
+def old_inputs(data_files, num_epochs=1, train=False, batch_size=1):
     with tf.device('/cpu:0'):
         print(train)
         features = batch_inputs(
@@ -493,3 +507,107 @@ def inputs(data_files, num_epochs=1, train=False, batch_size=1):
             num_readers=1)
 
     return features
+
+
+def visualize_redundant_example(features_dicts, showTextBox=FLAGS.showTextBox):
+    """ Visualize numpy dictionary containing a grasp example.
+    """
+    # TODO(ahundt) don't duplicate this in cornell_grasp_dataset_writer
+    if not isinstance(features_dicts, list):
+        features_dicts = [features_dicts]
+    width = 3
+
+    preprocessed_examples = []
+    for example in features_dicts:
+        if ('bbox/preprocessed/cy_cx_2' in example):
+            sin_cos_2 = example['bbox/preprocessed/sin_cos_2']
+            decoded_example = copy.deepcopy(example)
+            # y, x ordering.
+            recovered_theta = np.atan2(sin_cos_2[0], sin_cos_2[1])
+            assert np.allclose(np.array(example['bbox/theta']), recovered_theta)
+            decoded_example['bbox/theta'] = recovered_theta
+
+            cy_cx_normalized_2 = example['bbox/preprocessed/cy_cx_normalized_2']
+            bbox
+
+
+
+    center_x_list = [example['bbox/cx'] for example in features_dict]
+    center_y_list = [example['bbox/cy'] for example in features_dict]
+    grasp_success = [example['bbox/grasp_success'] for example in features_dict]
+    gt_plot_height = len(center_x_list)/2
+    fig, axs = plt.subplots(gt_plot_height + 1, 4, figsize=(15, 15))
+    axs[0, 0].imshow(img, zorder=0)
+    # for i in range(4):
+    #     feature['bbox/y' + str(i)] = _floats_feature(dict_bbox_lists['bbox/y' + str(i)])
+    #     feature['bbox/x' + str(i)] = _floats_feature(dict_bbox_lists['bbox/x' + str(i)])
+    # axs[0, 0].arrow(np.array(center_y_list), np.array(center_x_list),
+    #                 np.array(coordinates_list[0]) - np.array(coordinates_list[2]),
+    #                 np.array(coordinates_list[1]) - np.array(coordinates_list[3]), c=grasp_success)
+    axs[0, 0].scatter(np.array(center_x_list), np.array(center_y_list), zorder=2, c=grasp_success, alpha=0.5, lw=2)
+    axs[0, 1].imshow(img, zorder=0)
+    # axs[1, 0].scatter(data[0], data[1])
+    # axs[2, 0].imshow(gt_image)
+    for i, (gt_image, example) in enumerate(zip(gt_images, bbox_example_features)):
+        h = i % gt_plot_height + 1
+        w = int(i / gt_plot_height)
+        z = 0
+        axs[h, w].imshow(img, zorder=z)
+        z += 1
+        axs[h, w].imshow(gt_image, alpha=0.25, zorder=z)
+        z += 1
+        # axs[h, w*2+1].imshow(gt_image, alpha=0.75, zorder=1)
+        widths = [1, 2, 1, 2]
+        alphas = [0.25, 0.5, 0.25, 0.5]
+        if example['bbox/grasp_success']:
+            # that's gap, plate, gap plate
+            colors = ['gray', 'green', 'gray', 'green']
+            success_str = 'pos'
+        else:
+            colors = ['gray', 'purple', 'gray', 'purple']
+            success_str = 'neg'
+
+        if showTextBox:
+            axs[h, w].text(
+                    example['bbox/cx'], example['bbox/cy'],
+                    success_str, size=10, rotation=-np.rad2deg(example['bbox/theta']),
+                    ha="right", va="top",
+                    bbox=dict(boxstyle="square",
+                              ec=(1., 0.5, 0.5),
+                              fc=(1., 0.8, 0.8),
+                              ),
+                    zorder=z,
+                    )
+            z += 1
+        for i, (color, width, alpha) in enumerate(zip(colors, widths, alphas)):
+            x_current = [example['bbox/x'+str(i)], example['bbox/x'+str((i+1)%4)]]
+            y_current = [example['bbox/y'+str(i)], example['bbox/y'+str((i+1)%4)]]
+            # axs[h, w].text(example['bbox/x'+str(i)], example['bbox/y'+str(i)], "Point:"+str(i))
+
+            axs[h, w].add_line(lines.Line2D(x_current, y_current, linewidth=width,
+                               color=color, zorder=z, alpha=alpha))
+            axs[0, 0].add_line(lines.Line2D(x_current, y_current, linewidth=width,
+                               color=color, zorder=z, alpha=alpha))
+
+    # axs[1, 1].hist2d(data[0], data[1])
+    plt.draw()
+    plt.pause(0.25)
+
+    plt.show()
+    return width
+
+
+def main(batch_size=1, is_training=True):
+    example_generator = cornell_grasp_dataset_reader.yield_record(
+        validation_file, label_features, data_features,
+        is_training=is_training, batch_size=batch_size,
+        parse_example_proto_fn=parse_and_preprocess)
+
+    for example_dict in tqdm(example_generator):
+        visualize_example(example_dict)
+
+
+
+
+if __name__ == '__main__':
+    main()
