@@ -108,7 +108,6 @@ from scipy.ndimage.filters import median_filter
 from sklearn.preprocessing import normalize
 import matplotlib
 import matplotlib.pyplot as plt
-import numpy as np
 import matplotlib.image as mpimg
 import matplotlib.lines as lines
 # progress bars https://github.com/tqdm/tqdm
