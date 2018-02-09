@@ -430,7 +430,9 @@ def yield_record(
         tfrecord_filenames, label_features_to_extract=None, data_features_to_extract=None,
         parse_example_proto_fn=parse_and_preprocess, batch_size=32,
         device='/cpu:0', is_training=True, steps=None, buffer_size=int(4e8),
-        num_parallel_calls=FLAGS.num_readers, preprocessing_mode='tf'):
+        num_parallel_calls=None, preprocessing_mode='tf'):
+    if num_parallel_calls is None:
+        num_parallel_calls = FLAGS.num_readers
     # based_on https://github.com/visipedia/tfrecords/blob/master/iterate_tfrecords.py
     # with tf.device(device):
     with tf.Session() as sess:
@@ -523,7 +525,7 @@ def old_inputs(data_files, num_epochs=1, train=False, batch_size=1):
     return features
 
 
-def visualize_redundant_example(features_dicts, showTextBox=FLAGS.showTextBox):
+def visualize_redundant_example(features_dicts, showTextBox=False):
     """ Visualize numpy dictionary containing a grasp example.
     """
     # TODO(ahundt) don't duplicate this in cornell_grasp_dataset_writer
@@ -627,14 +629,13 @@ def visualize_redundant_example(features_dicts, showTextBox=FLAGS.showTextBox):
 
 def main(batch_size=1, is_training=True):
     validation_file = FLAGS.evaluate_filename
+
     example_generator = yield_record(validation_file, is_training=is_training,
                                      batch_size=batch_size)
 
     for example_dict in tqdm(example_generator):
-        visualize_redundant_example(example_dict)
-
-
+        visualize_redundant_example(example_dict, showTextBox=True)
 
 
 if __name__ == '__main__':
-    main()
+    tf.app.run(main=main)
