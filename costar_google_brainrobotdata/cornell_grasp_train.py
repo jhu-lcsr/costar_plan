@@ -57,18 +57,6 @@ from keras_contrib.applications.fully_convolutional_networks import AtrousFCN_Vg
 import grasp_loss as grasp_loss
 
 
-flags.DEFINE_string('data_dir',
-                    os.path.join(os.path.expanduser("~"),
-                                 '.keras', 'datasets', 'cornell_grasping'),
-                    """Path to dataset in TFRecord format
-                    (aka Example protobufs) and feature csv files.""")
-flags.DEFINE_string('grasp_dataset', 'all', 'TODO(ahundt): integrate with brainrobotdata or allow subsets to be specified')
-flags.DEFINE_boolean('grasp_download', False,
-                     """Download the grasp_dataset to data_dir if it is not already present.""")
-flags.DEFINE_string('train_filename', 'cornell-grasping-dataset-train.tfrecord', 'filename used for the training dataset')
-flags.DEFINE_string('evaluate_filename', 'cornell-grasping-dataset-evaluate.tfrecord', 'filename used for the evaluation dataset')
-
-
 flags.DEFINE_float(
     'learning_rate',
     0.001,

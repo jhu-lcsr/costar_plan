@@ -310,9 +310,10 @@ def grasp_success_yx_3(grasp_success=None, cy=None, cx=None, features=None):
     return K.concatenate(combined)
 
 
-def parse_and_preprocess(examples_serialized, is_training=True, label_features_to_extract=None,
-                         data_features_to_extract=None, crop_shape=None, output_shape=None,
-                         preprocessing_mode='tf'):
+def parse_and_preprocess(
+        examples_serialized, is_training=True, label_features_to_extract=None,
+        data_features_to_extract=None, crop_shape=None, output_shape=None,
+        preprocessing_mode='tf'):
     """
     crop_shape: The shape to which images should be cropped as an intermediate step, this
         affects how much images can be shifted when random crop is used during training.
@@ -630,10 +631,9 @@ def visualize_redundant_example(features_dicts, showTextBox=False):
 def main(batch_size=1, is_training=True):
     validation_file = FLAGS.evaluate_filename
 
-    example_generator = yield_record(validation_file, is_training=is_training,
-                                     batch_size=batch_size)
-
-    for example_dict in tqdm(example_generator):
+    for example_dict in tqdm(yield_record(
+        validation_file, is_training=is_training,
+        batch_size=batch_size)):
         visualize_redundant_example(example_dict, showTextBox=True)
 
 
