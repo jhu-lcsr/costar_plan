@@ -116,7 +116,7 @@ def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate,
     return x
 
 def AddDense(x, size, activation, dropout_rate, output=False, momentum=0.99,
-    constraint=3, bn=True):
+    constraint=None, bn=True):
     '''
     Add a single dense block with batchnorm and activation.
 
