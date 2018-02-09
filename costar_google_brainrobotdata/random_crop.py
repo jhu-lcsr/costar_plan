@@ -184,8 +184,8 @@ def random_projection_transform(
                 # choose the scale from the input to output image size difference
                 max_input_dim = input_shape[tf.argmax(input_shape)]
                 max_crop_dim = output_shape[tf.argmax(output_shape)]
-                s0 = tf.cast(input_shape[max_input_dim], dtype=tf.float32) / tf.cast(max_crop_dim, dtype=tf.float32)
-                s1 = tf.cast(output_shape[max_crop_dim], dtype=tf.float32) / tf.cast(max_input_dim, dtype=tf.float32)
+                s0 = tf.cast(max_input_dim, dtype=tf.float32) / tf.cast(max_crop_dim, dtype=tf.float32)
+                s1 = tf.cast(max_crop_dim, dtype=tf.float32) / tf.cast(max_input_dim, dtype=tf.float32)
                 scale = [s0, s1]
 
             s = tf.random_uniform([1], minval=scale[0], maxval=scale[1], seed=seed, dtype=tf.float32)

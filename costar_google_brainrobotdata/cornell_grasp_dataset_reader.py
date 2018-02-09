@@ -376,8 +376,8 @@ def parse_and_preprocess(
     if is_training:
         # perform image augmentation
         # TODO(ahundt) add scaling and use that change to augment height and width parameters
-        transform, random_features = rcp.random_projection_transform(K.shape(image), crop_shape,
-                                                                     scale=True)
+        transform, random_features = rcp.random_projection_transform(
+            K.shape(image), crop_shape, scale=True)
         image, preprocessed_grasp_center_coordinate = rcp.transform_crop_and_resize_image(
             image, crop_shape=crop_shape, resize_shape=output_shape,
             transform=transform, coordinate=grasp_center_coordinate)
@@ -514,10 +514,13 @@ def yield_record(
                 # https://keras.io/models/model/
                 #
                 # print('start list_processing')
-                outputs = ([features[feature_name] for feature_name in data_features_to_extract],
-                           [features[feature_name] for feature_name in label_features_to_extract])
+                if data_features_to_extract is not None and label_features_to_extract is not None:
+                    outputs = ([features[feature_name] for feature_name in data_features_to_extract],
+                               [features[feature_name] for feature_name in label_features_to_extract])
                 # print('done list proc, about to yield')
-                yield outputs
+                    yield outputs
+                else:
+                    yield features
                 #
 
         except tf.errors.OutOfRangeError as e:
@@ -560,7 +563,7 @@ def visualize_redundant_example(features_dicts, showTextBox=False):
             sin_cos_2 = example['bbox/preprocessed/sin_cos_2']
             decoded_example = copy.deepcopy(example)
             # y, x ordering.
-            recovered_theta = np.atan2(sin_cos_2[0], sin_cos_2[1])
+            recovered_theta = np.arctan2(sin_cos_2[0], sin_cos_2[1])
             cy_cx_normalized_2 = example['bbox/preprocessed/cy_cx_normalized_2']
             cy_cx_normalized_2[0] *= example['image/preprocessed/height']
             cy_cx_normalized_2[1] *= example['image/preprocessed/width']
