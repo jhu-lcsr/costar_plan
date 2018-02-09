@@ -352,10 +352,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         else:
             x = AddConv2D(x, 128, [5,5], 1, 0.)
         x = AddConv2DTranspose(x, 64, [5,5], 2,
-                self.dropout_rate*0.) # Removed dropout from this block
+                self.dropout_rate) # Removed dropout from this block
         # --- end ssm block
 
         if self.skip_connections or True:
+            skip = Dropout(self.dropout_rate)(skip)
             x = Concatenate()([x, skip])
 
         for i in range(1):
