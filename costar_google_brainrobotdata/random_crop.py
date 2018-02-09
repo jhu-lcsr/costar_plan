@@ -135,7 +135,7 @@ def random_projection_transform(
             'random_vertical_flip': 0 for no flip 1 for flip
             'random_translation_offset': A 2D or 3D offset from the origin of the new image corner.
     """
-    with tf.name_scope(name, "random_projection",
+    with tf.name_scope(name, "random_projection_transform",
                        [input_shape, output_shape]) as name:
         input_shape = ops.convert_to_tensor(
             input_shape, dtype=dtypes.int32, name="input_shape")
@@ -221,7 +221,7 @@ def random_projection_transform(
         return composed_transforms, features
 
 
-def transform_and_crop_coordinate(coordinate, transform=None, offset=None):
+def transform_and_crop_coordinate(coordinate, transform=None, offset=None, name=None):
     """ Transforms a single coordinate then applies a crop offset.
 
      You probably don't need to use this, just call random_projection_transform()
@@ -237,49 +237,53 @@ def transform_and_crop_coordinate(coordinate, transform=None, offset=None):
 
         The coordinate after a tranform and crop is applied.
     """
-    # TODO(ahundt) I may need to invert the coordinate transform matrix
-    projection_matrix = _flat_transforms_to_matrices(transform)
-    # TODO(ahundt) replace above with the following once flat_transforms_to_matrices becomes public in tf
-    # projection_matrix = tf.contrib.image._flat_transforms_to_matrices(transform)
+    with tf.name_scope(name, "transform_and_crop_coordinate",
+                       [coordinate, transform, offset]) as name:
+        # TODO(ahundt) I may need to invert the coordinate transform matrix
+        projection_matrix = _flat_transforms_to_matrices(transform)
+        # TODO(ahundt) replace above with the following once flat_transforms_to_matrices becomes public in tf
+        # projection_matrix = tf.contrib.image._flat_transforms_to_matrices(transform)
 
-    if transform is not None:
-        if not tf.contrib.framework.is_tensor(coordinate):
-            coordinate = tf.transpose(tf.convert_to_tensor(
-                coordinate[0],
-                coordinate[1],
-                1
-            ))
-        else:
-            coordinate = tf.stack([tf.reshape(coordinate[0], (1,)),
-                                   tf.reshape(coordinate[1], (1,)),
-                                   tf.constant([1], tf.float32)], axis=-1)
-        coordinate = tf.transpose(coordinate)
-        projection_matrix = tf.squeeze(projection_matrix)
-        coordinate = tf.matmul(projection_matrix,
-                               coordinate)
-        coordinate = coordinate[:2]
-    if offset is not None:
-        if isinstance(offset, list):
-            offset = tf.constant([[offset[0]], [offset[1]]], tf.float32)
-        coordinate = coordinate - offset
+        if transform is not None:
+            if not tf.contrib.framework.is_tensor(coordinate):
+                coordinate = tf.transpose(tf.convert_to_tensor(
+                    coordinate[0],
+                    coordinate[1],
+                    1
+                ))
+            else:
+                coordinate = tf.stack([tf.reshape(coordinate[0], (1,)),
+                                       tf.reshape(coordinate[1], (1,)),
+                                       tf.constant([1], tf.float32)], axis=-1)
+            coordinate = tf.transpose(coordinate)
+            projection_matrix = tf.squeeze(projection_matrix)
+            coordinate = tf.matmul(projection_matrix,
+                                   coordinate)
+            coordinate = coordinate[:2]
+        if offset is not None:
+            if isinstance(offset, list):
+                offset = tf.constant([[offset[0]], [offset[1]]], tf.float32)
+            coordinate = coordinate - offset
     return coordinate
 
 
-def resize_coordinate(coordinate, input_shape, output_shape):
+def resize_coordinate(coordinate, input_shape, output_shape, name=None):
     """ Update a coordinate that changed with a tf.image.resize_images call.
 
     Update is made based on the current input shape and a new updated output shape.
     Warning: Do not use this with crop! This is strictly designed to work with tf.image.resize_images().
     """
-    input_shape = tf.cast(input_shape, tf.float32)
-    output_shape = tf.cast(output_shape, tf.float32)
-    if isinstance(input_shape, list):
-        input_shape = tf.constant([[input_shape[0]][input_shape[1]]], tf.float32)
-        proportional_dimension_change = output_shape / input_shape
-    else:
-        proportional_dimension_change = output_shape / input_shape[:2]
+    with tf.name_scope(name, "resize_coordinate",
+                       [coordinate, input_shape, output_shape]) as name:
+        input_shape = tf.cast(input_shape, tf.float32)
+        output_shape = tf.cast(output_shape, tf.float32)
+        if isinstance(input_shape, list):
+            input_shape = tf.constant([[input_shape[0]][input_shape[1]]], tf.float32)
+            proportional_dimension_change = output_shape / input_shape
+        else:
+            proportional_dimension_change = output_shape / input_shape[:2]
 
-    resized_coordinate = tf.squeeze(coordinate) * proportional_dimension_change
+        resized_coordinate = tf.squeeze(coordinate) * proportional_dimension_change
     return resized_coordinate
 
 
@@ -352,15 +356,14 @@ def transform_crop_and_resize_image(
         else:
             return image, coordinate
 
- # For converting between transformation matrices and homogeneous transforms see:
- # transform_and_crop_coordinate()
- # https://github.com/tensorflow/tensorflow/blob/r1.5/tensorflow/contrib/image/python/ops/image_ops.py
-
- # tf.contrib.image._flat_transforms_to_matrices()
- # tf.contrib.image._transform_matrices_to_flat()
-
 
 def _flat_transforms_to_matrices(transforms):
+    # For converting between transformation matrices and homogeneous transforms see:
+    # transform_and_crop_coordinate()
+    # https://github.com/tensorflow/tensorflow/blob/r1.5/tensorflow/contrib/image/python/ops/image_ops.py
+
+    # tf.contrib.image._flat_transforms_to_matrices()
+    # tf.contrib.image._transform_matrices_to_flat()
     # TODO(ahundt) remove this when flat_transforms_to_matrices becomes public in tf
     # Make the transform(s) 2D in case the input is a single transform.
     transforms = array_ops.reshape(transforms, tf.constant([-1, 8]))

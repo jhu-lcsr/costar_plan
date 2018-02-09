@@ -314,7 +314,10 @@ def parse_and_preprocess(
         examples_serialized, is_training=True, label_features_to_extract=None,
         data_features_to_extract=None, crop_shape=None, output_shape=None,
         preprocessing_mode='tf'):
-    """
+    """ Parse an example and perform image preprocessing.
+
+    Right now see the code below for the specific feature strings available.
+
     crop_shape: The shape to which images should be cropped as an intermediate step, this
         affects how much images can be shifted when random crop is used during training.
     output_shape: The shape to which images should be resized after cropping,
@@ -329,6 +332,20 @@ def parse_and_preprocess(
           - torch: will scale pixels between 0 and 1 and then
               will normalize each channel with respect to the
               ImageNet dataset.
+    label_features_to_extract: return only specific
+        feature strings as the label values, default of
+        None returns all features. Specifying
+        features reduces overhead and works with
+        yield_record() for keras generator compatibility.
+    data_features_to_extract: return only specific
+        feature strings as the input values,
+        default of None returns all features. Specifying
+        features reduces overhead and works with
+        yield_record() for keras generator compatibility.
+    preprocessing_mode: string for the type of channel preprocessing,
+       see keras'
+       [preprocess_input()](https://github.com/keras-team/keras/blob/master/keras/applications/imagenet_utils.py) for details.
+
     """
     if crop_shape is None:
         crop_shape = (FLAGS.crop_height, FLAGS.crop_width, 3)
@@ -415,6 +432,7 @@ def parse_and_preprocess(
             grasp_height=feature['bbox/height'],
             label=feature['grasp_success'])
 
+    print(feature)
     if label_features_to_extract is None:
         return feature
     else:
@@ -452,7 +470,9 @@ def yield_record(
         dataset = dataset.map(
             map_func=parse_and_preprocess,
             num_parallel_calls=num_parallel_calls)
-        dataset = dataset.batch(batch_size=batch_size)  # Parse the record into tensors.
+        print(batch_size)
+        if batch_size > 1:
+            dataset = dataset.batch(batch_size=batch_size)  # Parse the record into tensors.
         dataset = dataset.prefetch(batch_size * 5)
         tensor_iterator = dataset.make_one_shot_iterator()
         #     # Construct a Reader to read examples from the .tfrecords file
@@ -507,7 +527,7 @@ def yield_record(
 def old_distorted_inputs(data_files, num_epochs, train=True, batch_size=None):
     with tf.device('/cpu:0'):
         print(train)
-        features = batch_inputs(
+        features = old_batch_inputs(
             data_files, train, num_epochs, batch_size,
             num_preprocess_threads=FLAGS.num_preprocess_threads,
             num_readers=FLAGS.num_readers)
@@ -518,7 +538,7 @@ def old_distorted_inputs(data_files, num_epochs, train=True, batch_size=None):
 def old_inputs(data_files, num_epochs=1, train=False, batch_size=1):
     with tf.device('/cpu:0'):
         print(train)
-        features = batch_inputs(
+        features = old_batch_inputs(
             data_files, train, num_epochs, batch_size,
             num_preprocess_threads=FLAGS.num_preprocess_threads,
             num_readers=1)
@@ -628,12 +648,14 @@ def visualize_redundant_example(features_dicts, showTextBox=False):
     return width
 
 
-def main(batch_size=1, is_training=True):
+def main(argv):
+    batch_size=1
+    is_training=True
     validation_file = FLAGS.evaluate_filename
 
     for example_dict in tqdm(yield_record(
-        validation_file, is_training=is_training,
-        batch_size=batch_size)):
+            validation_file, is_training=is_training,
+            batch_size=batch_size)):
         visualize_redundant_example(example_dict, showTextBox=True)
 
 
