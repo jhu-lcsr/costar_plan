@@ -34,7 +34,7 @@ out: an output tensor
 '''
 
 def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
-        lrelu=False, bn=True, momentum=0.99, name=None, constraint=None,
+        lrelu=False, bn=True, momentum=0.9, name=None, constraint=None,
         activation=None):
     '''
     Helper for creating networks. This one will add a convolutional block.
@@ -84,7 +84,7 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
     return x
 
 def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate,
-        padding="same", momentum=0.99, bn=True):
+        padding="same", momentum=0.9, bn=True):
     '''
     Helper for creating networks. This one will add a convolutional block.
 
@@ -115,8 +115,8 @@ def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate,
         x = Dropout(dropout_rate)(x)
     return x
 
-def AddDense(x, size, activation, dropout_rate, output=False, momentum=0.99,
-    constraint=None, bn=True):
+def AddDense(x, size, activation, dropout_rate, output=False, momentum=0.9,
+    constraint=3, bn=True):
     '''
     Add a single dense block with batchnorm and activation.
 

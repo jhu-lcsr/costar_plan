@@ -382,7 +382,9 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
             self.encoder_channels = 8
             # Note: I removed the BN here
             x = AddConv2D(x, self.encoder_channels, [1,1], 1, 0.*dr,
-                    "same", lrelu=disc, activation="sigmoid", bn=False)
+                    "same", lrelu=disc,
+                    #activation="relu",
+                    bn=True)
             self.steps_down = 3
             self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
             self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.encoder_channels)
