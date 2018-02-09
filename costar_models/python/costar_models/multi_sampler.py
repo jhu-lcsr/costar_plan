@@ -320,6 +320,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Combine the hidden state observations
         x = Concatenate()([x, x0])
+        x = Dropout(self.dropout_rate)(x)
         x = AddConv2D(x, 64, [5,5], 1, 0.) # Removed this dropout
 
         # store this for skip connection
