@@ -383,8 +383,8 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
             # Note: I removed the BN here
             x = AddConv2D(x, self.encoder_channels, [1,1], 1, 0.*dr,
                     "same", lrelu=disc,
-                    #activation="relu",
-                    bn=True)
+                    activation="sigmoid",
+                    bn=False)
             self.steps_down = 3
             self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
             self.hidden_shape = (self.hidden_dim,self.hidden_dim,self.encoder_channels)
@@ -430,12 +430,12 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
             x = Reshape((h,w,c))(x)
 
         #x = AddConv2DTranspose(x, 64, [5,5], 1, dr, bn=bn)
-        x = AddConv2DTranspose(x, 128, [1,1], 1, 0., bn=bn)
-        x = AddConv2DTranspose(x, 64, [5,5], 2, dr, bn=bn)
+        x = AddConv2DTranspose(x, 128, [1,1], 1, dr, bn=bn)
+        x = AddConv2DTranspose(x, 64, [5,5], 2, 0.*dr, bn=bn)
         x = AddConv2DTranspose(x, 64, [5,5], 1, 0., bn=bn)
-        x = AddConv2DTranspose(x, 32, [5,5], 2, dr, bn=bn)
+        x = AddConv2DTranspose(x, 32, [5,5], 2, 0.*dr, bn=bn)
         x = AddConv2DTranspose(x, 32, [5,5], 1, 0., bn=bn)
-        x = AddConv2DTranspose(x, 32, [5,5], 2, dr, bn=bn)
+        x = AddConv2DTranspose(x, 32, [5,5], 2, 0.*dr, bn=bn)
         x = AddConv2DTranspose(x, 32, [5,5], 1, 0., bn=bn)
         ins = rep
         x = Conv2D(3, kernel_size=[1,1], strides=(1,1),name="convert_to_rgb")(x)
