@@ -121,7 +121,7 @@ class ConditionalImage(PredictionSampler2):
             enc_losses = [loss, loss]
             enc_outs = [x, x2]
             enc_wts = [1., 1.]
-            img_loss_wt = 0.
+            img_loss_wt = 1.
         else:
             enc_losses = []
             enc_outs = []
