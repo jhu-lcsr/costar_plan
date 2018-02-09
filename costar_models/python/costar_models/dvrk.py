@@ -197,10 +197,10 @@ def MakeJigsawsImageEncoder(model, img_shape, disc=False):
     dr = model.dropout_rate
     x = img
     x = AddConv2D(x, 32, [7,7], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 32, [5,5], 2, 0*dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [5,5], 2, 0*dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
     #x = AddConv2D(x, 128, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
@@ -253,7 +253,6 @@ def MakeJigsawsImageDecoder(model, hidden_shape, img_shape=None, copy=False):
 
     x = rep
     dr = model.decoder_dropout_rate if model.hypothesis_dropout else 0
-    dr *= 0
     bn = model.use_batchnorm
     
     if model.use_spatial_softmax:
