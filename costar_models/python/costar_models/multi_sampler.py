@@ -334,7 +334,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         y = AddDense(option, 64, "relu", 0., constraint=None, output=False)
         x = TileOnto(x, y, 64, h_dim)
         x = AddConv2D(x, 64, [5,5], 1, 0.)
-        #x = AddConv2D(x, 128, [5,5], 2, 0.)
 
         # --- start ssm block
         use_ssm = True
