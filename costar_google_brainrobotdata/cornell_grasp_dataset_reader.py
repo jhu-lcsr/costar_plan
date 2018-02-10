@@ -560,8 +560,8 @@ def visualize_redundant_example(features_dicts, showTextBox=False):
     preprocessed_examples = []
     for example in features_dicts:
         if ('bbox/preprocessed/cy_cx_normalized_2' in example):
-            sin_cos_2 = example['bbox/preprocessed/sin_cos_2']
             decoded_example = copy.deepcopy(example)
+            sin_cos_2 = example['bbox/preprocessed/sin_cos_2']
             # y, x ordering.
             recovered_theta = np.arctan2(sin_cos_2[0], sin_cos_2[1])
             cy_cx_normalized_2 = example['bbox/preprocessed/cy_cx_normalized_2']
