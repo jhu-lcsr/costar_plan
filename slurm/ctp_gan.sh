@@ -17,12 +17,12 @@ else
   echo "Not running on Marcc"
 fi
 
-OPTS=$(getopt -o '' --long lr:,dr:,opt:,noisedim:,loss:,wass,no_wass,noise,retrain,encoder,gan_encoder,load_model,suffix:,multi,husky,jigsaws -n ctp_gan -- "$@")
+OPTS=$(getopt -o '' --long lr:,dr:,opt:,noisedim:,loss:,wass,no_wass,noise,retrain,gan_encoder,skip_encoder,load_model,suffix:,multi,husky,jigsaws -n ctp_gan -- "$@")
 
 [[ $? != 0 ]] && echo "Failed parsing options." && exit 1
 
-train_image_encoder=true
-train_gan_image_encoder=false
+gan_encoder=false
+skip_encoder=false
 lr=0.001
 dropout=0.1
 optimizer=adam
@@ -50,8 +50,8 @@ while true; do
     --wass) wass=true; shift ;;
     --no_wass) wass=false; shift ;;
     --retrain) retrain=true; shift ;;
-    --encoder) train_image_encoder=true; shift ;;
-    --gan_encoder) train_gan_image_encoder=true; shift ;;
+    --skip_encoder) skip_encoder=true; shift ;;
+    --gan_encoder) gan_encoder=true; shift ;;
     --load_model) load_model=true; shift ;;
     --multi) dataset=ctp_dec; features=multi; shift ;;
     --husky) dataset=husky_data; features=husky; shift ;;
@@ -71,8 +71,10 @@ done
 
 if $wass; then wass_dir=wass; else wass_dir=nowass; fi
 if $use_noise; then noise_dir=noise; else noise_dir=nonoise; fi
+if $retrain; then retrain_dir=retrain; else retrain_dir=noretrain; fi
+if $gan_encoder; then gan_dir=ganenc; else gan_dir=noganenc; fi
 
-MODELDIR="$HOME/.costar/${dataset}_${lr}_${optimizer}_${dropout}_${noise_dim}_${loss}_${wass_dir}_${noise_dir}${suffix}"
+MODELDIR="$HOME/.costar/${dataset}_${lr}_${optimizer}_${dropout}_${noise_dim}_${loss}_${wass_dir}_${noise_dir}_${gan_dir}_${retrain_dir}${suffix}"
 
 [[ ! -d $MODELDIR ]] && mkdir -p $MODELDIR
 
@@ -99,57 +101,58 @@ else
   cmd_prefix='rosrun costar_models '
 fi
 
-if $train_image_encoder; then
-  echo "Training discriminator"
-  ${cmd_prefix}ctp_model_tool \
-    --features $features \
-    -e 100 \
-    --model discriminator \
-    --data_file $data_dir \
-    --lr $lr \
-    --dropout_rate $dropout \
-    --model_directory $MODELDIR/ \
-    --optimizer $optimizer \
-    --steps_per_epoch 300 \
-    --noise_dim $noise_dim \
-    --loss $loss \
-    --batch_size 64 \
-    $load_cmd
+if ! $skip_encoder; then
+	if $gan_encoder; then
+		echo "Training gan encoder"
+		${cmd_prefix}ctp_model_tool \
+			--features $features \
+			-e 500 \
+			--model pretrain_image_gan \
+			--data_file $data_dir \
+			--lr $lr \
+			--dropout_rate $dropout \
+			--model_directory $MODELDIR/ \
+			--optimizer $optimizer \
+			--steps_per_epoch 100 \
+			--noise_dim $noise_dim \
+			--loss $loss \
+			--gan_method gan \
+			--batch_size 64 \
+			$wass_cmd \
+			$load_cmd
+	else
+		echo "Training non-gan encoder: discriminator"
+		${cmd_prefix}ctp_model_tool \
+			--features $features \
+			-e 200 \
+			--model discriminator \
+			--data_file $data_dir \
+			--lr $lr \
+			--dropout_rate $dropout \
+			--model_directory $MODELDIR/ \
+			--optimizer $optimizer \
+			--steps_per_epoch 300 \
+			--noise_dim $noise_dim \
+			--loss $loss \
+			--batch_size 64 \
+			$load_cmd
 
-  echo "Training non-gan image encoder"
-  ${cmd_prefix}ctp_model_tool \
-    --features $features \
-    -e 100 \
-    --model pretrain_image_encoder \
-    --data_file $data_dir \
-    --lr $lr \
-    --dropout_rate $dropout \
-    --model_directory $MODELDIR/ \
-    --optimizer $optimizer \
-    --steps_per_epoch 300 \
-    --noise_dim $noise_dim \
-    --loss $loss \
-    --batch_size 64 \
-    $load_cmd
-fi
-if $train_gan_image_encoder; then
-  echo "Training encoder gan"
-  ${cmd_prefix}ctp_model_tool \
-    --features $features \
-    -e 300 \
-    --model pretrain_image_gan \
-    --data_file $data_dir \
-    --lr $lr \
-    --dropout_rate $dropout \
-    --model_directory $MODELDIR/ \
-    --optimizer $optimizer \
-    --steps_per_epoch 100 \
-    --noise_dim $noise_dim \
-    --loss $loss \
-    --gan_method gan \
-    --batch_size 64 \
-    $wass_cmd \
-    $load_cmd
+		echo "Training non-gan image encoder"
+		${cmd_prefix}ctp_model_tool \
+			--features $features \
+			-e 200 \
+			--model pretrain_image_encoder \
+			--data_file $data_dir \
+			--lr $lr \
+			--dropout_rate $dropout \
+			--model_directory $MODELDIR/ \
+			--optimizer $optimizer \
+			--steps_per_epoch 300 \
+			--noise_dim $noise_dim \
+			--loss $loss \
+			--batch_size 64 \
+			$load_cmd
+	fi
 fi
 
 echo "Training conditional gan"

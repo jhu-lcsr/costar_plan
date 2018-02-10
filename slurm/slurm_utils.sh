@@ -13,12 +13,16 @@ function running_jobs() {
     results="$results $(find $HOME/.costar -name $job)"
   done
 
+  count=0
   for r in $results; do
     job="${r##*/}"
     dir="${r%/*}"
     dir="${dir##*/}"
     echo "$job ${jobtimes[$job]} $dir"
+    count=$((count+1))
   done
+
+  echo "$count running jobs"
 }
 
 function find_job() {
@@ -39,6 +43,23 @@ function cd_job() {
 function feh_job() {
   dir="$(job_dir $1)"
         feh $dir/debug
+}
+
+function clean_job_outs() {
+  declare -A job_table
+  jobs=$(sqme | tail -n+3 | awk '{print $1}')
+  for j in $jobs; do job_table[$j]=true; done
+  files="./slurm-*.out"
+  for f in $files; do
+    fjob=${f/\.\/slurm-/}
+    fjob=${fjob/\.out/}
+    if [[ ${job_table[$fjob]} == true ]]; then
+      echo Not deleting $f
+    else
+      echo Deleting $f
+      rm $f
+    fi
+  done
 }
 
 

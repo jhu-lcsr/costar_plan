@@ -320,6 +320,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Combine the hidden state observations
         x = Concatenate()([x, x0])
+        x = Dropout(self.dropout_rate)(x)
         x = AddConv2D(x, 64, [5,5], 1, 0.) # Removed this dropout
 
         # store this for skip connection
@@ -348,10 +349,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                      constraint=None, output=False)
         x = Reshape([int(h_dim[0]/2), int(h_dim[1]/2), 64])(x)
         x = AddConv2DTranspose(x, 64, [5,5], 2,
-                self.dropout_rate*0.) # Removed dropout from this block
+                self.dropout_rate) # Removed dropout from this block
         # --- end ssm block
 
         if self.skip_connections or True:
+            skip = Dropout(self.dropout_rate)(skip)
             x = Concatenate()([x, skip])
 
         for i in range(1):

@@ -13,6 +13,7 @@ from keras.layers.pooling import MaxPooling2D, AveragePooling2D
 from keras.layers.merge import Concatenate, Multiply
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
+from keras.layers.pooling import GlobalAveragePooling2D
 
 from .callbacks import *
 from .multi_sampler import *
@@ -126,12 +127,14 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
         x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True, bn=False)
         x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True, bn=False)
-        x = AddConv2D(x, 1, [1,1], 1, 0., "same",
-                activation=activation,
+
+        if self.use_wasserstein:
+            x = Flatten()(x)
+            x = AddDense(x, 1, "linear", 0., output=True, bn=False)
+        else:
+            x = AddConv2D(x, 1, [1,1], 1, 0., "same", activation="sigmoid",
                 bn=False)
-        #x = AveragePooling2D(pool_size=(16,16))(x)
-        x = AveragePooling2D(pool_size=(8,8))(x)
-        x = Flatten()(x)
+            x = GlobalAveragePooling2D()(x)
 
         discrim = Model(ins, x, name="image_discriminator")
         self.lr *= 2.
