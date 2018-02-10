@@ -21,7 +21,7 @@ OPTS=$(getopt -o '' --long lr:,dr:,opt:,noisedim:,loss:,wass,no_wass,noise,retra
 
 [[ $? != 0 ]] && echo "Failed parsing options." && exit 1
 
-train_image_encoder=false
+train_image_encoder=true
 train_gan_image_encoder=false
 lr=0.001
 dropout=0.1
@@ -71,9 +71,8 @@ done
 
 if $wass; then wass_dir=wass; else wass_dir=nowass; fi
 if $use_noise; then noise_dir=noise; else noise_dir=nonoise; fi
-if $retrain; then retrain_dir=retrain; else retrain_dir=noretrain; fi
 
-MODELDIR="$HOME/.costar/${dataset}_${lr}_${optimizer}_${dropout}_${noise_dim}_${loss}_${wass_dir}_${noise_dir}_${retrain_dir}${suffix}"
+MODELDIR="$HOME/.costar/${dataset}_${lr}_${optimizer}_${dropout}_${noise_dim}_${loss}_${wass_dir}_${noise_dir}${suffix}"
 
 [[ ! -d $MODELDIR ]] && mkdir -p $MODELDIR
 
@@ -104,7 +103,7 @@ if $train_image_encoder; then
   echo "Training discriminator"
   ${cmd_prefix}ctp_model_tool \
     --features $features \
-    -e 200 \
+    -e 100 \
     --model discriminator \
     --data_file $data_dir \
     --lr $lr \
@@ -120,7 +119,7 @@ if $train_image_encoder; then
   echo "Training non-gan image encoder"
   ${cmd_prefix}ctp_model_tool \
     --features $features \
-    -e 200 \
+    -e 100 \
     --model pretrain_image_encoder \
     --data_file $data_dir \
     --lr $lr \
@@ -137,7 +136,7 @@ if $train_gan_image_encoder; then
   echo "Training encoder gan"
   ${cmd_prefix}ctp_model_tool \
     --features $features \
-    -e 500 \
+    -e 300 \
     --model pretrain_image_gan \
     --data_file $data_dir \
     --lr $lr \

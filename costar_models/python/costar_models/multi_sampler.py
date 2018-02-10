@@ -337,20 +337,16 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         #x = AddConv2D(x, 128, [5,5], 2, 0.)
 
         # --- start ssm block
-        use_ssm = True
-        if use_ssm:
-            def _ssm(x):
-                return spatial_softmax(x)
-            x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
-            #x = AddDense(x, 256, "relu", 0.,
-            #        constraint=None, output=False,)
-            x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/4),
-                         "relu",
-                         self.dropout_rate*0.,
-                         constraint=None, output=False)
-            x = Reshape([int(h_dim[0]/2), int(h_dim[1]/2), 64])(x)
-        else:
-            x = AddConv2D(x, 128, [5,5], 1, 0.)
+        def _ssm(x):
+            return spatial_softmax(x)
+        x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
+        #x = AddDense(x, 256, "relu", 0.,
+        #        constraint=None, output=False,)
+        x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/4),
+                     "relu",
+                     self.dropout_rate*0.,
+                     constraint=None, output=False)
+        x = Reshape([int(h_dim[0]/2), int(h_dim[1]/2), 64])(x)
         x = AddConv2DTranspose(x, 64, [5,5], 2,
                 self.dropout_rate*0.) # Removed dropout from this block
         # --- end ssm block

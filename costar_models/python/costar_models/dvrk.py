@@ -150,8 +150,8 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=True):
     def _ssm(x):
         return spatial_softmax(x)
     x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
-    x = AddDense(x, 128, "relu", 0.,
-            constraint=None, output=False,)
+    #x = AddDense(x, 128, "relu", 0.,
+    #        constraint=None, output=False,)
     x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/16), "relu", model.dropout_rate, constraint=None, output=False)
     x = Reshape([int(h_dim[0]/4), int(h_dim[1]/4), 64])(x)
     x = AddConv2DTranspose(x, 64, [5,5], 2, 0.)
@@ -253,7 +253,6 @@ def MakeJigsawsImageDecoder(model, hidden_shape, img_shape=None, copy=False):
 
     x = rep
     dr = model.decoder_dropout_rate if model.hypothesis_dropout else 0
-    dr *= 0
     bn = model.use_batchnorm
     
     if model.use_spatial_softmax:
@@ -265,12 +264,12 @@ def MakeJigsawsImageDecoder(model, hidden_shape, img_shape=None, copy=False):
         x = AddDense(x, int(h*w*c), "relu", dr, bn=bn)
         x = Reshape((h,w,c))(x)
 
-    x = AddConv2DTranspose(x, 128, [1,1], 1, 0., bn=bn)
-    x = AddConv2DTranspose(x, 64, [5,5], 2, dr, bn=bn)
+    x = AddConv2DTranspose(x, 128, [1,1], 1, dr, bn=bn)
+    x = AddConv2DTranspose(x, 64, [5,5], 2, 0.*dr, bn=bn)
     x = AddConv2DTranspose(x, 64, [5,5], 1, 0., bn=bn)
-    x = AddConv2DTranspose(x, 32, [5,5], 2, dr, bn=bn)
+    x = AddConv2DTranspose(x, 32, [5,5], 2, 0.*dr, bn=bn)
     x = AddConv2DTranspose(x, 32, [5,5], 1, 0., bn=bn)
-    x = AddConv2DTranspose(x, 32, [5,5], 2, dr, bn=bn)
+    x = AddConv2DTranspose(x, 32, [5,5], 2, 0.*dr, bn=bn)
     x = AddConv2DTranspose(x, 32, [5,5], 1, 0., bn=bn)
     ins = rep
     x = Conv2D(3, kernel_size=[1,1], strides=(1,1),name="convert_to_rgb")(x)
