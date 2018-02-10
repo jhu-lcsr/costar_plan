@@ -89,7 +89,7 @@ class ConditionalImageJigsaws(ConditionalImage):
         if self.no_disc:
             disc_wt = 0.
         else:
-            disc_wt = 1e-3
+            disc_wt = 1e-4
         if self.no_disc:
             model = Model(ins + [prev_option_in],
                     [image_out, image_out2,])
