@@ -148,6 +148,7 @@ class ConditionalImage(PredictionSampler2):
                     loss_weights=[img_loss_wt, img_loss_wt, disc_wt] + enc_wts,
                     optimizer=self.getOptimizer())
         train_predictor.summary()
+        tform.summary()
         return None, train_predictor, None, ins, h
 
     def _getData(self, *args, **kwargs):
