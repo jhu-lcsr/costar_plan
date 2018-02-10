@@ -164,11 +164,13 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=True):
             dropout_rate=model.dropout_rate)
 
     x = Concatenate()([x, skip0])
-    x = AddConv2D(x, 64,
-            [5,5],
-            stride=1,
-            activation=activation_fn,
-            dropout_rate=model.dropout_rate)
+
+    for _ in range(2):
+        x = AddConv2D(x, 64,
+                [5,5],
+                stride=1,
+                activation=activation_fn,
+                dropout_rate=model.dropout_rate)
 
     # --------------------------------------------------------------------
     # Put resulting image into the output shape
