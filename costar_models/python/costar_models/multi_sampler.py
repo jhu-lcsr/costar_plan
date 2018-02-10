@@ -344,11 +344,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
             #x = AddDense(x, 256, "relu", 0.,
             #        constraint=None, output=False,)
-            x = AddDense(x, int(h_dim[0] * h_dim[1] * 32/4),
+            x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/4),
                          "lrelu",
                          self.dropout_rate*0.,
                          constraint=None, output=False)
-            x = Reshape([int(h_dim[0]/2), int(h_dim[1]/2), 32])(x)
+            x = Reshape([int(h_dim[0]/2), int(h_dim[1]/2), 64])(x)
         else:
             x = AddConv2D(x, 128, [5,5], 1, 0.)
         x = AddConv2DTranspose(x, 64, [5,5], 2,
@@ -359,7 +359,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.skip_connections or True:
             x = Concatenate()([x, skip])
 
-        for i in range(1):
+        for i in range(2):
             #x = TileOnto(x, y, self.num_options, (8,8))
             x = AddConv2D(x, 64,
                     [5,5],
