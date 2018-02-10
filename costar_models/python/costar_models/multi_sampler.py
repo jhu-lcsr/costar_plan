@@ -312,15 +312,16 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         h = Input((h_dim[0], h_dim[1], self.encoder_channels),name="h_in")
         h0 = Input((h_dim[0],h_dim[1], self.encoder_channels),name="h0_in")
         option = Input((self.num_options,),name="t_opt_in")
+        activation = self.activation_fn
         if self.use_noise:
             z = Input((self.noise_dim,), name="z_in")
 
-        x = AddConv2D(h, 64, [1,1], 1, 0., activation="lrelu")
-        x0 = AddConv2D(h0, 64, [1,1], 1, 0., activation="lrelu")
+        x = AddConv2D(h, 64, [1,1], 1, 0., activation=activation_fn)
+        x0 = AddConv2D(h0, 64, [1,1], 1, 0., activation=activation_fn)
 
         # Combine the hidden state observations
         x = Concatenate()([x, x0])
-        x = AddConv2D(x, 64, [5,5], 1, 0., activation="lrelu") # Removed this dropout
+        x = AddConv2D(x, 64, [5,5], 1, 0., activation=activation_fn) # Removed this dropout
 
         # store this for skip connection
         skip = x
@@ -333,7 +334,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Add dense information
         y = AddDense(option, 64, "lrelu", 0., constraint=None, output=False)
         x = TileOnto(x, y, 64, h_dim)
-        x = AddConv2D(x, 64, [5,5], 1, 0., activation="lrelu")
+        x = AddConv2D(x, 64, [5,5], 1, 0., activation=activation_fn)
 
         # --- start ssm block
         use_ssm = True
@@ -351,7 +352,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         else:
             x = AddConv2D(x, 128, [5,5], 1, 0.)
         x = AddConv2DTranspose(x, 64, [5,5], 2,
-                discriminator=True,
+                activation=activation_fn,
                 dropout_rate=self.dropout_rate*0.) # Removed dropout from this block
         # --- end ssm block
 
@@ -363,7 +364,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             x = AddConv2D(x, 64,
                     [5,5],
                     stride=1,
-                    activation="lrelu",
+                    activation=activation_fn,
                     dropout_rate=self.dropout_rate)
 
         # --------------------------------------------------------------------

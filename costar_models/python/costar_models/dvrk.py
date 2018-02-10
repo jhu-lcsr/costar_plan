@@ -116,62 +116,65 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=True):
 	    h = Input((h_dim[0], h_dim[1], 64),name="h_in")
     h0 = Input((h_dim[0],h_dim[1], model.encoder_channels),name="h0_in")
     option = Input((model.num_options,),name="t_opt_in")
+    activation_fn = model.activation_fn
     if model.use_noise:
         z = Input((model.noise_dim,), name="z_in")
 
     x = h # This is already encoded
-    x0 = AddConv2D(h0, 64, [1,1], 1, 0.)
+    x0 = AddConv2D(h0, 64, [1,1], 1, 0., activation=activation_fn)
 
     # Combine the hidden state observations
     x = Concatenate()([x, x0])
-    x = AddConv2D(x, 64, [5,5], 1, 0.)
+    x = AddConv2D(x, 64, [5,5], 1, 0., activation=activation_fn)
     skip0 = x
 
     # store this for skip connection
-    x = AddConv2D(x, 64, [5,5], 2, 0.)
+    x = AddConv2D(x, 64, [5,5], 2, 0., activation=activation_fn)
     skip = x
 
     if model.use_noise:
-        y = AddDense(z, 32, "relu", 0., constraint=None, output=False)
+        y = AddDense(z, 32, activation_fn, 0., constraint=None, output=False)
         x = TileOnto(x, y, 32, h_dim)
         x = AddConv2D(x, 32, [5,5], 1, 0.)
 
     # Add dense information
-    y = AddDense(option, 64, "relu", 0., constraint=None, output=False)
+    y = AddDense(option, 64, activation_fn, 0., constraint=None, output=False)
     x = TileOnto(x, y, 64, (int(h_dim[0]/2), int(h_dim[1]/2)), add=True)
-    x = AddConv2D(x, 64, [5,5], 1, 0., activation="lrelu")
+    x = AddConv2D(x, 64, [5,5], 1, 0., activation=activation_fn)
 
     # --- start ssm block
     def _ssm(x):
         return spatial_softmax(x)
     x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
     x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/16),
-                 "lrelu", 0.,
+                  activation_fn, 0.,
                   constraint=None,
                   output=False)
     x = Reshape([int(h_dim[0]/4), int(h_dim[1]/4), 64])(x)
     x = AddConv2DTranspose(x, 64, [5,5], 2, 0.,
-            discriminator=True,)
+                activation=activation_fn,)
 
     # --- end ssm block
     x = Concatenate()([x, skip])
     x = Dropout(model.dropout_rate)(x)
     x = AddConv2DTranspose(x, 64,
             [5,5],
-            discriminator=True,
             stride=2,
+            activation=activation_fn,
             dropout_rate=model.dropout_rate)
 
     x = Concatenate()([x, skip0])
     x = AddConv2D(x, 64,
             [5,5],
             stride=1,
+            activation=activation_fn,
             dropout_rate=model.dropout_rate)
 
     # --------------------------------------------------------------------
     # Put resulting image into the output shape
     if small:
         x = AddConv2D(x, model.encoder_channels, [1, 1], stride=1,
+                      activation=activation_fn,
                       dropout_rate=0.)
     l = [h0, h, option, z] if model.use_noise else [h0, h, option]
     model.transform_model = Model(l, x, name="tform")
