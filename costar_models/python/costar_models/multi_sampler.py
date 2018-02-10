@@ -312,7 +312,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         h = Input((h_dim[0], h_dim[1], self.encoder_channels),name="h_in")
         h0 = Input((h_dim[0],h_dim[1], self.encoder_channels),name="h0_in")
         option = Input((self.num_options,),name="t_opt_in")
-        activation = self.activation_fn
+        activation_fn = self.activation_fn
         if self.use_noise:
             z = Input((self.noise_dim,), name="z_in")
 
@@ -344,11 +344,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
             #x = AddDense(x, 256, "relu", 0.,
             #        constraint=None, output=False,)
-            x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/4),
+            x = AddDense(x, int(h_dim[0] * h_dim[1] * 32/4),
                          "lrelu",
                          self.dropout_rate*0.,
                          constraint=None, output=False)
-            x = Reshape([int(h_dim[0]/2), int(h_dim[1]/2), 64])(x)
+            x = Reshape([int(h_dim[0]/2), int(h_dim[1]/2), 32])(x)
         else:
             x = AddConv2D(x, 128, [5,5], 1, 0.)
         x = AddConv2DTranspose(x, 64, [5,5], 2,

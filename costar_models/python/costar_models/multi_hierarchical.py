@@ -359,14 +359,15 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         img = Input(img_shape,name="img_encoder_in")
         bn = not disc and self.use_batchnorm
         dr = self.dropout_rate
+        use_lrelu = True
         x = img
-        x = AddConv2D(x, 32, [7,7], 1, 0., "same", lrelu=disc, bn=bn)
-        x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-        x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-        x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-        x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-        x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-        x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+        x = AddConv2D(x, 32, [7,7], 1, 0., "same", lrelu=use_lrelu, bn=bn, activation=self.activation_fn)
+        x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=use_lrelu, bn=bn, activation=self.activation_fn)
+        x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=use_lrelu, bn=bn, activation=self.activation_fn)
+        x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=use_lrelu, bn=bn, activation=self.activation_fn)
+        x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=use_lrelu, bn=bn, activation=self.activation_fn)
+        x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=use_lrelu, bn=bn, activation=self.activation_fn)
+        x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=use_lrelu, bn=bn, activation=self.activation_fn)
 
         if self.use_spatial_softmax and not disc:
             def _ssm(x):
@@ -430,13 +431,13 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
             x = Reshape((h,w,c))(x)
 
         #x = AddConv2DTranspose(x, 64, [5,5], 1, dr, bn=bn)
-        x = AddConv2DTranspose(x, 128, [1,1], 1, 0., bn=bn)
-        x = AddConv2DTranspose(x, 64, [5,5], 2, dr, bn=bn)
-        x = AddConv2DTranspose(x, 64, [5,5], 1, 0., bn=bn)
-        x = AddConv2DTranspose(x, 32, [5,5], 2, dr, bn=bn)
-        x = AddConv2DTranspose(x, 32, [5,5], 1, 0., bn=bn)
-        x = AddConv2DTranspose(x, 32, [5,5], 2, dr, bn=bn)
-        x = AddConv2DTranspose(x, 32, [5,5], 1, 0., bn=bn)
+        x = AddConv2DTranspose(x, 128, [1,1], 1, 0., bn=bn, activation=self.activation_fn)
+        x = AddConv2DTranspose(x, 64, [5,5], 2, dr, bn=bn, activation=self.activation_fn)
+        x = AddConv2DTranspose(x, 64, [5,5], 1, 0., bn=bn, activation=self.activation_fn)
+        x = AddConv2DTranspose(x, 32, [5,5], 2, dr, bn=bn, activation=self.activation_fn)
+        x = AddConv2DTranspose(x, 32, [5,5], 1, 0., bn=bn, activation=self.activation_fn)
+        x = AddConv2DTranspose(x, 32, [5,5], 2, dr, bn=bn, activation=self.activation_fn)
+        x = AddConv2DTranspose(x, 32, [5,5], 1, 0., bn=bn, activation=self.activation_fn)
         ins = rep
         x = Conv2D(3, kernel_size=[1,1], strides=(1,1),name="convert_to_rgb")(x)
         x = Activation("sigmoid")(x)
