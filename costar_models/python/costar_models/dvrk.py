@@ -197,33 +197,22 @@ def MakeJigsawsImageEncoder(model, img_shape, disc=False):
     bn = not disc and model.use_batchnorm
     dr = model.dropout_rate
     x = img
-    x = AddConv2D(x, 32, [7,7], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 32, [7,7], 1, 0., "same", lrelu=disc, bn=bn, activation=model.activation_fn)
+    x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=disc, bn=bn, activation=model.activation_fn)
+    x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn, activation=model.activation_fn)
+    x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn, activation=model.activation_fn)
+    x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn, activation=model.activation_fn)
+    x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn, activation=model.activation_fn)
+    x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn, activation=model.activation_fn)
     #x = AddConv2D(x, 128, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
     #x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
 
-    if model.use_spatial_softmax and not disc:
-        def _ssm(x):
-            return spatial_softmax(x)
-        model.encoder_channels = 32
-        x = AddConv2D(x, model.encoder_channels, [1,1], 1, 0.*dr,
-                "same", lrelu=disc, bn=bn)
-        x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
-        model.hidden_shape = (model.encoder_channels*2,)
-        model.hidden_size = 2*model.encoder_channels
-        model.hidden_shape = (model.hidden_size,)
-    else:
-        model.encoder_channels = 8
-        x = AddConv2D(x, model.encoder_channels, [1,1], 1, 0.*dr,
-                "same", lrelu=disc, bn=bn)
-        model.steps_down = 3
-        model.hidden_dim = int(img_shape[0]/(2**model.steps_down))
-        model.hidden_shape = (model.hidden_dim,model.hidden_dim,model.encoder_channels)
+    model.encoder_channels = 8
+    x = AddConv2D(x, model.encoder_channels, [1,1], 1, 0.*dr,
+            "same", lrelu=disc, bn=bn, activation=model.activation_fn)
+    model.steps_down = 3
+    model.hidden_dim = int(img_shape[0]/(2**model.steps_down))
+    model.hidden_shape = (model.hidden_dim,model.hidden_dim,model.encoder_channels)
 
     if not disc:
         image_encoder = Model([img], x, name="Ienc")
@@ -265,13 +254,13 @@ def MakeJigsawsImageDecoder(model, hidden_shape, img_shape=None, copy=False):
         x = AddDense(x, int(h*w*c), "relu", dr, bn=bn)
         x = Reshape((h,w,c))(x)
 
-    x = AddConv2DTranspose(x, 128, [1,1], 1, 0., bn=bn)
-    x = AddConv2DTranspose(x, 64, [5,5], 2, dr, bn=bn)
-    x = AddConv2DTranspose(x, 64, [5,5], 1, 0., bn=bn)
-    x = AddConv2DTranspose(x, 32, [5,5], 2, dr, bn=bn)
-    x = AddConv2DTranspose(x, 32, [5,5], 1, 0., bn=bn)
-    x = AddConv2DTranspose(x, 32, [5,5], 2, dr, bn=bn)
-    x = AddConv2DTranspose(x, 32, [5,5], 1, 0., bn=bn)
+    x = AddConv2DTranspose(x, 128, [1,1], 1, 0., bn=bn, activation=model.activation_fn)
+    x = AddConv2DTranspose(x, 64, [5,5], 2, dr, bn=bn, activation=model.activation_fn)
+    x = AddConv2DTranspose(x, 64, [5,5], 1, 0., bn=bn, activation=model.activation_fn)
+    x = AddConv2DTranspose(x, 32, [5,5], 2, dr, bn=bn, activation=model.activation_fn)
+    x = AddConv2DTranspose(x, 32, [5,5], 1, 0., bn=bn, activation=model.activation_fn)
+    x = AddConv2DTranspose(x, 32, [5,5], 2, dr, bn=bn, activation=model.activation_fn)
+    x = AddConv2DTranspose(x, 32, [5,5], 1, 0., bn=bn, activation=model.activation_fn)
     ins = rep
     x = Conv2D(3, kernel_size=[1,1], strides=(1,1),name="convert_to_rgb")(x)
     x = Activation("sigmoid")(x)
