@@ -139,25 +139,28 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=True):
     # Add dense information
     y = AddDense(option, 64, "relu", 0., constraint=None, output=False)
     x = TileOnto(x, y, 64, (int(h_dim[0]/2), int(h_dim[1]/2)), add=True)
-    x = AddConv2D(x, 64, [5,5], 1, 0.)
+    x = AddConv2D(x, 64, [5,5], 1, 0., activation="lrelu")
 
     # --- start ssm block
     def _ssm(x):
         return spatial_softmax(x)
     x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
-    #x = AddDense(x, 128, "relu", 0.,
-    #        constraint=None, output=False,)
-    x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/16), "relu", model.dropout_rate, constraint=None, output=False)
+    x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/16),
+                 "lrelu", 0.,
+                  constraint=None,
+                  output=False)
     x = Reshape([int(h_dim[0]/4), int(h_dim[1]/4), 64])(x)
-    x = AddConv2DTranspose(x, 64, [5,5], 2, 0.)
+    x = AddConv2DTranspose(x, 64, [5,5], 2, 0.,
+            discriminator=True,)
 
     # --- end ssm block
     x = Concatenate()([x, skip])
-    #x = Dropout(model.dropout_rate)(x)
+    x = Dropout(model.dropout_rate)(x)
     x = AddConv2DTranspose(x, 64,
             [5,5],
+            discriminator=True,
             stride=2,
-            dropout_rate=0.*model.dropout_rate)
+            dropout_rate=model.dropout_rate)
 
     x = Concatenate()([x, skip0])
     x = AddConv2D(x, 64,

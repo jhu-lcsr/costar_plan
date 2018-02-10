@@ -315,25 +315,25 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.use_noise:
             z = Input((self.noise_dim,), name="z_in")
 
-        x = AddConv2D(h, 64, [1,1], 1, 0.)
-        x0 = AddConv2D(h0, 64, [1,1], 1, 0.)
+        x = AddConv2D(h, 64, [1,1], 1, 0., activation="lrelu")
+        x0 = AddConv2D(h0, 64, [1,1], 1, 0., activation="lrelu")
 
         # Combine the hidden state observations
         x = Concatenate()([x, x0])
-        x = AddConv2D(x, 64, [5,5], 1, 0.) # Removed this dropout
+        x = AddConv2D(x, 64, [5,5], 1, 0., activation="lrelu") # Removed this dropout
 
         # store this for skip connection
         skip = x
 
         if self.use_noise:
-            y = AddDense(z, 32, "relu", 0., constraint=None, output=False)
+            y = AddDense(z, 32, "lrelu", 0., constraint=None, output=False)
             x = TileOnto(x, y, 32, h_dim)
             x = AddConv2D(x, 32, [5,5], 1, 0.)
 
         # Add dense information
-        y = AddDense(option, 64, "relu", 0., constraint=None, output=False)
+        y = AddDense(option, 64, "lrelu", 0., constraint=None, output=False)
         x = TileOnto(x, y, 64, h_dim)
-        x = AddConv2D(x, 64, [5,5], 1, 0.)
+        x = AddConv2D(x, 64, [5,5], 1, 0., activation="lrelu")
 
         # --- start ssm block
         use_ssm = True
@@ -344,14 +344,15 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             #x = AddDense(x, 256, "relu", 0.,
             #        constraint=None, output=False,)
             x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/4),
-                         "relu",
+                         "lrelu",
                          self.dropout_rate*0.,
                          constraint=None, output=False)
             x = Reshape([int(h_dim[0]/2), int(h_dim[1]/2), 64])(x)
         else:
             x = AddConv2D(x, 128, [5,5], 1, 0.)
         x = AddConv2DTranspose(x, 64, [5,5], 2,
-                self.dropout_rate*0.) # Removed dropout from this block
+                discriminator=True,
+                dropout_rate=self.dropout_rate*0.) # Removed dropout from this block
         # --- end ssm block
 
         if self.skip_connections or True:
@@ -362,6 +363,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             x = AddConv2D(x, 64,
                     [5,5],
                     stride=1,
+                    activation="lrelu",
                     dropout_rate=self.dropout_rate)
 
         # --------------------------------------------------------------------
