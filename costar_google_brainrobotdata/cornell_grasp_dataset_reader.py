@@ -77,10 +77,10 @@ flags.DEFINE_integer(
     3,
     'The width of the dataset images'
 )
-flags.DEFINE_integer('crop_width', 480,
-                     """Width to crop images""")
-flags.DEFINE_integer('crop_height', 360,
-                     """Height to crop images""")
+flags.DEFINE_integer('crop_height', 420,
+                     """Height to crop images, resize_width and resize_height is applied next""")
+flags.DEFINE_integer('crop_width', 560,
+                     """Width to crop images, resize_width and resize_height is applied next""")
 flags.DEFINE_boolean('random_crop', True,
                      """random_crop will apply the tf random crop function with
                         the parameters specified by crop_width and crop_height.
@@ -377,7 +377,7 @@ def parse_and_preprocess(
         # perform image augmentation
         # TODO(ahundt) add scaling and use that change to augment height and width parameters
         transform, random_features = rcp.random_projection_transform(
-            K.shape(image), crop_shape, scale=True)
+            K.shape(image), crop_shape, scale=False)
         image, preprocessed_grasp_center_coordinate = rcp.transform_crop_and_resize_image(
             image, crop_shape=crop_shape, resize_shape=output_shape,
             transform=transform, coordinate=grasp_center_coordinate)
@@ -392,6 +392,8 @@ def parse_and_preprocess(
         image, preprocessed_grasp_center_coordinate = rcp.transform_crop_and_resize_image(
             image, crop_shape=crop_shape, central_crop=True,
             resize_shape=output_shape, coordinate=grasp_center_coordinate)
+
+    feature['image/transformed'] = image
 
     # perform color augmentation and scaling
     image = preprocess_image(image, is_training=is_training, mode=preprocessing_mode)
@@ -409,8 +411,11 @@ def parse_and_preprocess(
     feature['bbox/preprocessed/theta'] = grasp_center_rotation_theta
     feature['bbox/preprocessed/sin_cos_2'] = K.concatenate(
         [K.sin(grasp_center_rotation_theta), K.cos(grasp_center_rotation_theta)])
-    feature['bbox/preprocessed/height'] = feature['bbox/height'] * feature['random_scale']
-    feature['bbox/preprocessed/width'] = feature['bbox/width'] * feature['random_scale']
+    random_scale = 1.0
+    if 'random_scale' in feature:
+        random_scale = feature['random_scale']
+    feature['bbox/preprocessed/height'] = feature['bbox/height'] * random_scale
+    feature['bbox/preprocessed/width'] = feature['bbox/width'] * random_scale
     feature['bbox/preprocessed/logarithm_height_width_2'] = K.concatenate(
         [K.log(feature['bbox/preprocessed/height'] + K.epsilon()),
          K.log(feature['bbox/preprocessed/width'] + K.epsilon())])
@@ -560,18 +565,26 @@ def visualize_redundant_example(features_dicts, showTextBox=False):
     preprocessed_examples = []
     for example in features_dicts:
         if ('bbox/preprocessed/cy_cx_normalized_2' in example):
+            # Reverse the preprocessing so we can visually compare correctness
             decoded_example = copy.deepcopy(example)
             sin_cos_2 = example['bbox/preprocessed/sin_cos_2']
             # y, x ordering.
             recovered_theta = np.arctan2(sin_cos_2[0], sin_cos_2[1])
+            if 'random_rotation' in example:
+                recovered_theta += example['random_rotation']
             cy_cx_normalized_2 = example['bbox/preprocessed/cy_cx_normalized_2']
             cy_cx_normalized_2[0] *= example['image/preprocessed/height']
             cy_cx_normalized_2[1] *= example['image/preprocessed/width']
-            offset = example['random_translation_offset']
-            assert np.allclose(np.array(example['bbox/theta']), recovered_theta)
-            # change to preprocessed
-            assert np.allclose(cy_cx_normalized_2[0] + offset[0], example['bbox/cy'])
-            assert np.allclose(cy_cx_normalized_2[1] + offset[1], example['bbox/cx'])
+            if 'random_translation_offset' in example:
+                offset = example['random_translation_offset']
+                print('offset: ' + str(offset))
+            # if np.allclose(np.array(example['bbox/theta']), recovered_theta):
+            #     print('WARNING: bbox/theta: ' + str(example['bbox/theta']) +
+            #           ' feature does not match bbox/preprocessed/sin_cos_2: '
+            #           )
+            # # change to preprocessed
+            # assert np.allclose(cy_cx_normalized_2[0] + offset[0], example['bbox/cy'])
+            # assert np.allclose(cy_cx_normalized_2[1] + offset[1], example['bbox/cx'])
             decoded_example['bbox/theta'] = example['bbox/preprocessed/theta']
             decoded_example['image/decoded'] = example['image/preprocessed']
             decoded_example['bbox/width'] = example['bbox/preprocessed/width']
@@ -585,8 +598,9 @@ def visualize_redundant_example(features_dicts, showTextBox=False):
     center_x_list = [example['bbox/cx'] for example in features_dicts]
     center_y_list = [example['bbox/cy'] for example in features_dicts]
     grasp_success = [example['bbox/grasp_success'] for example in features_dicts]
-    gt_plot_height = len(center_x_list) / 2
+    gt_plot_height = int(np.ceil(float(len(center_x_list)) / 2))
     fig, axs = plt.subplots(gt_plot_height + 1, 4, figsize=(15, 15))
+    print('max: ' + str(np.max(img)) + ' min: ' + str(np.min(img)))
     axs[0, 0].imshow(img, zorder=0)
     # for i in range(4):
     #     feature['bbox/y' + str(i)] = _floats_feature(dict_bbox_lists['bbox/y' + str(i)])
@@ -596,15 +610,24 @@ def visualize_redundant_example(features_dicts, showTextBox=False):
     #                 np.array(coordinates_list[1]) - np.array(coordinates_list[3]), c=grasp_success)
     axs[0, 0].scatter(np.array(center_x_list), np.array(center_y_list), zorder=2, c=grasp_success, alpha=0.5, lw=2)
     axs[0, 1].imshow(img, zorder=0)
+    # plt.show()
     # axs[1, 0].scatter(data[0], data[1])
     # axs[2, 0].imshow(gt_image)
     for i, example in enumerate(preprocessed_examples):
         h = i % gt_plot_height + 1
         w = int(i / gt_plot_height)
         z = 0
-        axs[h, w].imshow(img, zorder=z)
+        # axs[h, w].imshow(img, zorder=z)
         z += 1
-        axs[h, w].imshow(example['image/decoded'], alpha=0.25, zorder=z)
+
+        img2 = example['image/decoded']
+        # Assuming 'tf' preprocessing mode! Changing channel range from [-1, 1] to [0, 1]
+        img2 /= 2
+        img2 += 0.5
+        print('preprocessed max: ' + str(np.max(img2)) + ' min: ' + str(np.min(img2)) + ' shape: ' + str(np.shape(img2)))
+        axs[h, w].imshow(img2, alpha=1, zorder=z)
+        # plt.show()
+        print('did I make it?')
         z += 1
         # axs[h, w*2+1].imshow(gt_image, alpha=0.75, zorder=1)
         widths = [1, 2, 1, 2]
@@ -617,9 +640,12 @@ def visualize_redundant_example(features_dicts, showTextBox=False):
             colors = ['gray', 'purple', 'gray', 'purple']
             success_str = 'neg'
 
-        if showTextBox:
+        cx = [int(example['bbox/cx'])]
+        cy = [int(example['bbox/cy'])]
+        if False:
+        # if showTextBox:
             axs[h, w].text(
-                    example['bbox/cx'], example['bbox/cy'],
+                    cx, cy,
                     success_str, size=10, rotation=-np.rad2deg(example['bbox/theta']),
                     ha="right", va="top",
                     bbox=dict(boxstyle="square",
@@ -629,10 +655,12 @@ def visualize_redundant_example(features_dicts, showTextBox=False):
                     zorder=z,
                     )
             z += 1
+
+        axs[h, w].scatter(cy, cx, zorder=2, alpha=0.5, lw=2)
         # bbox/x_i, y_i are not calculated according to preprocess, so use rectangle here
-        axs[h, w].add_patch(patches.Rectangle((example['bbox/cx'], example['bbox/cy']),
-                                              example['bbox/width'], example['bbox/height'],
-                                              example['bbox/theta'], fill=False))
+        # axs[h, w].add_patch(patches.Rectangle((example['bbox/cx'], example['bbox/cy']),
+        #                                       example['bbox/width'], example['bbox/height'],
+        #                                       example['bbox/theta'], fill=False))
         # for i, (color, width, alpha) in enumerate(zip(colors, widths, alphas)):
         #     x_current = [example['bbox/x'+str(i)], example['bbox/x'+str((i+1)%4)]]
         #     y_current = [example['bbox/y'+str(i)], example['bbox/y'+str((i+1)%4)]]
@@ -642,18 +670,20 @@ def visualize_redundant_example(features_dicts, showTextBox=False):
         #                        color=color, zorder=z, alpha=alpha))
         #     axs[0, 0].add_line(lines.Line2D(x_current, y_current, linewidth=width,
         #                        color=color, zorder=z, alpha=alpha))
+        plt.show()
 
+        print('did I make it2?')
     # axs[1, 1].hist2d(data[0], data[1])
-    plt.draw()
-    plt.pause(0.25)
+    # plt.draw()
+    # plt.pause(0.25)
 
     plt.show()
     return width
 
 
 def main(argv):
-    batch_size=1
-    is_training=True
+    batch_size = 1
+    is_training = True
     validation_file = FLAGS.evaluate_filename
 
     for example_dict in tqdm(yield_record(
