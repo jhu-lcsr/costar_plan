@@ -146,11 +146,11 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=True):
     def _ssm(x):
         return spatial_softmax(x)
     x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
-    x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/16),
+    x = AddDense(x, int(h_dim[0] * h_dim[1] * 128/16),
                   activation_fn, 0.,
                   constraint=None,
                   output=False)
-    x = Reshape([int(h_dim[0]/4), int(h_dim[1]/4), 64])(x)
+    x = Reshape([int(h_dim[0]/4), int(h_dim[1]/4), 128])(x)
     x = AddConv2DTranspose(x, 64, [5,5], 2, 0.,
                 activation=activation_fn,)
 
@@ -167,7 +167,7 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=True):
 
     for _ in range(2):
         x = AddConv2D(x, 64,
-                [5,5],
+                [7,7],
                 stride=1,
                 activation=activation_fn,
                 dropout_rate=model.dropout_rate)
