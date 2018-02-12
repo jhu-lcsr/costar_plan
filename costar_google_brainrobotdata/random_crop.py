@@ -103,7 +103,7 @@ def crop_image_intrinsics(camera_intrinsics_matrix, offset, name=None):
 
 def random_projection_transform(
         input_shape=None, output_shape=None,
-        translation=True, scale=False, rotation=True,
+        translation=False, scale=False, rotation=False,
         horizontal_flip=False, vertical_flip=False,
         name=None, seed=None):
     """ Generate a random projection data augmentation transform.
@@ -166,6 +166,8 @@ def random_projection_transform(
             offset = (0., 0.)
 
         # there should always be some offset, even if it is (0, 0)
+        # these transforms are inverted
+        # so we pass in the negative offset
         transforms += [tf.contrib.image.translations_to_projective_transforms(offset)]
         features['random_translation_offset'] = offset
         identity = tf.constant([1, 0, 0, 0, 1, 0, 0, 0], dtype=tf.float32)
@@ -218,10 +220,11 @@ def random_projection_transform(
             features['random_vertical_flip'] = coin
 
         composed_transforms = tf.contrib.image.compose_transforms(*transforms)
+        features['random_projection_transform'] = composed_transforms
         return composed_transforms, features
 
 
-def transform_and_crop_coordinate(coordinate, transform=None, offset=None, name=None):
+def transform_and_crop_coordinate(coordinate, transform=None, offset=None, inverse=True, name=None):
     """ Transforms a single coordinate then applies a crop offset.
 
      You probably don't need to use this, just call random_projection_transform()
@@ -256,6 +259,8 @@ def transform_and_crop_coordinate(coordinate, transform=None, offset=None, name=
                                        tf.reshape(coordinate[1], (1,)),
                                        tf.constant([1], tf.float32)], axis=-1)
             coordinate = tf.transpose(coordinate)
+            if inverse:
+                projection_matrix = tf.matrix_inverse(projection_matrix)
             projection_matrix = tf.squeeze(projection_matrix)
             coordinate = tf.matmul(projection_matrix,
                                    coordinate)

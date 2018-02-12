@@ -108,6 +108,34 @@ def distort_color(image, color_ordering=0, fast_mode=True, scope=None,
         return tf.clip_by_value(image, 0.0, 1.0)
 
 
+def preprocess_input_0_1(image, mode='tf', data_format=None):
+    """ Assumes images with range [0, 1]
+
+    Shifts the channel value ranges for direct input into a neural network.
+
+      image: A floating point image with range [0, 1]
+      mode: One of "caffe", "tf" or "torch".
+          - caffe: will convert the images from RGB to BGR,
+              then will zero-center each color channel with
+              respect to the ImageNet dataset,
+              without scaling.
+          - tf: will scale pixels between -1 and 1,
+              sample-wise.
+          - torch: will scale pixels between 0 and 1 and then
+              will normalize each channel with respect to the
+              ImageNet dataset.
+    """
+    if mode == 'tf':
+        image = tf.subtract(image, 0.5)
+        image = tf.multiply(image, 2.0)
+    else:
+        # shift back to 0-255
+        image *= 255.0
+        image = keras.applications.imagenet_utils.preprocess_input(
+            image, mode=mode, data_format=data_format)
+    return image
+
+
 def distorted_bounding_box_crop(image,
                                 bbox,
                                 min_object_covered=0.1,
@@ -213,8 +241,8 @@ def preprocess_for_train(image,
         if add_image_summaries:
             tf.summary.image('final_distorted_image',
                              tf.expand_dims(image, 0))
-        image = keras.applications.imagenet_utils.preprocess_input(
-            image, mode=mode, data_format=data_format)
+
+        image = preprocess_input_0_1(image, mode=mode, data_format=data_format)
         return image
 
 
@@ -265,8 +293,8 @@ def preprocess_for_eval(image, height=None, width=None,
             image = tf.image.resize_bilinear(image, [height, width],
                                              align_corners=False)
             image = tf.squeeze(image, [0])
-        image = keras.applications.imagenet_utils.preprocess_input(
-            image, mode=mode, data_format=data_format)
+
+        image = preprocess_input_0_1(image, mode=mode, data_format=data_format)
         return image
 
 
