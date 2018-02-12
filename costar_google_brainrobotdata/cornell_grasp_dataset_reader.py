@@ -373,6 +373,7 @@ def parse_and_preprocess(
     # backwards. An example is +theta rotation vs -theta rotation.
     grasp_center_coordinate = K.concatenate([feature['bbox/cy'], feature['bbox/cx']])
     grasp_center_rotation_theta = feature['bbox/theta']
+
     if is_training:
         # perform image augmentation
         # TODO(ahundt) add scaling and use that change to augment height and width parameters
@@ -407,18 +408,18 @@ def parse_and_preprocess(
     feature['bbox/preprocessed/cx'] = preprocessed_grasp_center_coordinate[1]
     feature['bbox/preprocessed/cy_cx_normalized_2'] = K.concatenate(
         [tf.reshape(preprocessed_grasp_center_coordinate[0], (1,)) / tf.cast(feature['image/preprocessed/height'], tf.float32),
-         tf.reshape(preprocessed_grasp_center_coordinate[1], (1,)) / tf.cast(feature['image/preprocessed/width'], tf.float32)])
+        tf.reshape(preprocessed_grasp_center_coordinate[1], (1,)) / tf.cast(feature['image/preprocessed/width'], tf.float32)])
     feature['bbox/preprocessed/theta'] = grasp_center_rotation_theta
     feature['bbox/preprocessed/sin_cos_2'] = K.concatenate(
         [K.sin(grasp_center_rotation_theta), K.cos(grasp_center_rotation_theta)])
-    random_scale = 1.0
+    random_scale = K.constant(1.0, 'float32')
     if 'random_scale' in feature:
         random_scale = feature['random_scale']
     feature['bbox/preprocessed/height'] = feature['bbox/height'] * random_scale
     feature['bbox/preprocessed/width'] = feature['bbox/width'] * random_scale
     feature['bbox/preprocessed/logarithm_height_width_2'] = K.concatenate(
         [K.log(feature['bbox/preprocessed/height'] + K.epsilon()),
-         K.log(feature['bbox/preprocessed/width'] + K.epsilon())])
+        K.log(feature['bbox/preprocessed/width'] + K.epsilon())])
     # TODO(ahundt) difference between "redundant" and regular proto parsing, figure out how to deal with grasp_success rename properly
     feature['grasp_success'] = feature['bbox/grasp_success']
     grasp_success_coordinate_label = K.concatenate(
@@ -475,7 +476,6 @@ def yield_record(
         dataset = dataset.map(
             map_func=parse_and_preprocess,
             num_parallel_calls=num_parallel_calls)
-        print(batch_size)
         if batch_size > 1:
             dataset = dataset.batch(batch_size=batch_size)  # Parse the record into tensors.
         dataset = dataset.prefetch(batch_size * 5)
@@ -502,9 +502,9 @@ def yield_record(
             # once outside the loop, and use `next_element` inside the loop.
             next_element = tensor_iterator.get_next()
             while True:
-                # print('start iteration')
+                print('start iteration')
                 features = sess.run(next_element)
-                # print('run complete')
+                print('run complete')
 
                 # extract the features in a specific order if
                 # features_to_extract is specified,
@@ -518,7 +518,7 @@ def yield_record(
                 # See documentation for keras.model.fit_generator()
                 # https://keras.io/models/model/
                 #
-                # print('start list_processing')
+                print('start list_processing')
                 if data_features_to_extract is not None and label_features_to_extract is not None:
                     outputs = ([features[feature_name] for feature_name in data_features_to_extract],
                                [features[feature_name] for feature_name in label_features_to_extract])
@@ -561,6 +561,7 @@ def visualize_redundant_example(features_dicts, showTextBox=False):
     if not isinstance(features_dicts, list):
         features_dicts = [features_dicts]
     width = 3
+    print('visu<<<<<<<<<<<<<<')
 
     preprocessed_examples = []
     for example in features_dicts:

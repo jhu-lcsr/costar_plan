@@ -163,7 +163,7 @@ def random_projection_transform(
             # random_crop_offset which is int32
             offset = tf.cast(offset, tf.float32)
         else:
-            offset = (0., 0.)
+            offset = tf.constant([0., 0.], dtype=tf.float32)
 
         # there should always be some offset, even if it is (0, 0)
         # these transforms are inverted
@@ -197,6 +197,8 @@ def random_projection_transform(
             scale_matrix = tf.stack(scale_matrix, axis=-1)
             transforms += [scale_matrix]
             features['random_scale'] = s
+        else:
+            features['random_scale'] = tf.constant(1.0, dtype=tf.float32)
 
         batch_size = 1
         if horizontal_flip:
