@@ -93,10 +93,10 @@ flags.DEFINE_boolean('random_crop', True,
                         that you crop images to the same size during both training
                         and test time.
                      """)
-flags.DEFINE_integer('resize_width', 320,
-                     """Width to resize images before prediction, if enabled.""")
 flags.DEFINE_integer('resize_height', 240,
                      """Height to resize images before prediction, if enabled.""")
+flags.DEFINE_integer('resize_width', 320,
+                     """Width to resize images before prediction, if enabled.""")
 flags.DEFINE_boolean('resize', True,
                      """resize will resize the input images to the desired dimensions specified by the
                         resize_width and resize_height flags. It is suggested that an exact factor of 2 be used
@@ -378,7 +378,7 @@ def parse_and_preprocess(
         # perform image augmentation
         # TODO(ahundt) add scaling and use that change to augment height and width parameters
         transform, random_features = rcp.random_projection_transform(
-            K.shape(image), crop_shape, scale=False)
+            K.shape(image), crop_shape, scale=True, rotation=K.constant([0.0, 1.0], 'float32'))
         image, preprocessed_grasp_center_coordinate = rcp.transform_crop_and_resize_image(
             image, crop_shape=crop_shape, resize_shape=output_shape,
             transform=transform, coordinate=grasp_center_coordinate)
@@ -393,6 +393,7 @@ def parse_and_preprocess(
         image, preprocessed_grasp_center_coordinate = rcp.transform_crop_and_resize_image(
             image, crop_shape=crop_shape, central_crop=True,
             resize_shape=output_shape, coordinate=grasp_center_coordinate)
+        grasp_center_rotation_theta = K.constant(0.0, 'float32')
 
     feature['image/transformed'] = image
 
@@ -565,6 +566,7 @@ def visualize_redundant_example(features_dicts, showTextBox=False):
 
     preprocessed_examples = []
     for example in features_dicts:
+        print('original example bbox/theta: ' + str(example['bbox/theta']))
         if ('bbox/preprocessed/cy_cx_normalized_2' in example):
             # Reverse the preprocessing so we can visually compare correctness
             decoded_example = copy.deepcopy(example)
@@ -592,7 +594,10 @@ def visualize_redundant_example(features_dicts, showTextBox=False):
             decoded_example['bbox/height'] = example['bbox/preprocessed/height']
             decoded_example['bbox/cy'] = example['bbox/preprocessed/cy']
             decoded_example['bbox/cx'] = example['bbox/preprocessed/cx']
-            decoded_example['bbox/theta'] = example['bbox/preprocessed/theta']
+            if 'random_projection_transform' in example:
+                print('random_projection_transform:' + str(example['random_projection_transform']))
+                print('random_rotation: ' + str(example['random_rotation']) )
+                print('bbox/preprocessed/theta: ' + str(example['bbox/preprocessed/theta']))
             preprocessed_examples.append(decoded_example)
 
     img = example['image/decoded']
@@ -646,8 +651,12 @@ def visualize_redundant_example(features_dicts, showTextBox=False):
         if False:
         # if showTextBox:
             axs[h, w].text(
-                    cx, cy,
-                    success_str, size=10, rotation=-np.rad2deg(example['bbox/theta']),
+                    int(cx[0]), int(cy[0]),
+                    success_str, size=10,
+                    # see the gripper angle
+                    rotation=float(np.rad2deg(example['bbox/theta'])),
+                    # this next one is just to see if random rotation matches actual image rotation
+                    # rotation=float(np.rad2deg(example['random_rotation'])),
                     ha="right", va="top",
                     bbox=dict(boxstyle="square",
                               ec=(1., 0.5, 0.5),
@@ -657,7 +666,7 @@ def visualize_redundant_example(features_dicts, showTextBox=False):
                     )
             z += 1
 
-        axs[h, w].scatter(cy, cx, zorder=2, alpha=0.5, lw=2)
+        axs[h, w].scatter(cx, cy, zorder=2, alpha=0.5, lw=2)
         # bbox/x_i, y_i are not calculated according to preprocess, so use rectangle here
         # axs[h, w].add_patch(patches.Rectangle((example['bbox/cx'], example['bbox/cy']),
         #                                       example['bbox/width'], example['bbox/height'],

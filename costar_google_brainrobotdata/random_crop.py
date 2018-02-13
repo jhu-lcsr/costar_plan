@@ -73,7 +73,8 @@ def crop_images(image_list, offset, size, name=None, verbose=0):
         else:
             size = ops.convert_to_tensor(size, dtype=dtypes.int32, name="size")
             image_list = ops.convert_to_tensor(image_list, name="image")
-            offset = ops.convert_to_tensor(offset, dtype=dtypes.int32, name="offset")
+            if not tf.contrib.framework.is_tensor(offset):
+                offset = ops.convert_to_tensor(offset, dtype=dtypes.int32, name="offset")
             if verbose > 0:
                 print("crop_images offset:", offset, 'size', size, 'img_list_shape', image_list.shape)
                 offset = tf.Print(offset, [offset, size, image_list.shape])
@@ -235,7 +236,7 @@ def transform_and_crop_coordinate(coordinate, transform=None, offset=None, inver
     # Arguments
 
         coordinate: A 2D image coordinate.
-        transform: A 3x3 homogenous 2D image transform matrix.
+        transform: A 3x3 homogenous 2D image transform matrix stored in shape [1, 8].
         offset: A crop offset which is the location of (0,0) in the post-crop image.
 
     # Returns
@@ -250,15 +251,18 @@ def transform_and_crop_coordinate(coordinate, transform=None, offset=None, inver
         # projection_matrix = tf.contrib.image._flat_transforms_to_matrices(transform)
 
         if transform is not None:
+            # Very important: most TF code expects y, x coordinates
+            # but the projection matrix is generated uing x, y coordinates
+            # so we swap it from (y,x) to (x,y) here.
             if not tf.contrib.framework.is_tensor(coordinate):
                 coordinate = tf.transpose(tf.convert_to_tensor(
-                    coordinate[0],
                     coordinate[1],
+                    coordinate[0],
                     1
                 ))
             else:
-                coordinate = tf.stack([tf.reshape(coordinate[0], (1,)),
-                                       tf.reshape(coordinate[1], (1,)),
+                coordinate = tf.stack([tf.reshape(coordinate[1], (1,)),
+                                       tf.reshape(coordinate[0], (1,)),
                                        tf.constant([1], tf.float32)], axis=-1)
             coordinate = tf.transpose(coordinate)
             if inverse:
@@ -266,11 +270,19 @@ def transform_and_crop_coordinate(coordinate, transform=None, offset=None, inver
             projection_matrix = tf.squeeze(projection_matrix)
             coordinate = tf.matmul(projection_matrix,
                                    coordinate)
-            coordinate = coordinate[:2]
+            coordinate = tf.squeeze(tf.transpose(coordinate))
+            # coordinate -= transform_offset
+            coordinate = tf.stack([coordinate[1], coordinate[0]])
+            # Very important: most TF code expects y, x coordinates
+            # but the projection matrix is generated uing x, y coordinates
+            # so we swap it back from (x,y) to (y,x) here.
         if offset is not None:
             if isinstance(offset, list):
                 offset = tf.constant([[offset[0]], [offset[1]]], tf.float32)
-            coordinate = coordinate - offset
+
+            coordinate = tf.Print(coordinate, [coordinate, offset], 'transform_and_crop_pre_offset: coodinate, offset')
+            coordinate = coordinate - tf.cast(offset[:2], tf.float32)
+            coordinate = tf.Print(coordinate, [coordinate, offset], 'transform_and_crop_post_offset: coodinate, offset')
     return coordinate
 
 
@@ -290,6 +302,7 @@ def resize_coordinate(coordinate, input_shape, output_shape, name=None):
         else:
             proportional_dimension_change = output_shape / input_shape[:2]
 
+        coordinate = tf.Print(coordinate, [coordinate, proportional_dimension_change], 'coordinate proportional_dim')
         resized_coordinate = tf.squeeze(coordinate) * proportional_dimension_change
     return resized_coordinate
 
@@ -330,7 +343,7 @@ def transform_crop_and_resize_image(
 
        cropped_image if coordinate is None, otherwise [cropped_image, new_coordinate]
     """
-    with tf.name_scope(name, "transform_and_crop_image",
+    with tf.name_scope(name, "transform_crop_and_resize_image",
                        [image]) as name:
         if crop_shape is None and offset is not None:
             raise ValueError('If crop_shape is None offset must also be None.')
@@ -347,7 +360,7 @@ def transform_crop_and_resize_image(
             else:
                 # in this case the random part of the
                 # random crop is built into the transform
-                offset = [0, 0, 0]
+                offset = tf.constant([0, 0, 0], tf.int32)
 
             image = crop_images(image, offset, crop_shape)
 
