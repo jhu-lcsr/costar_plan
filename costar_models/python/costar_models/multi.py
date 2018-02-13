@@ -54,11 +54,11 @@ def MakeImageClassifier(model, img_shape, trainable=True):
     x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 128, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 128, [5,5], 2, 0., "same", lrelu=disc, bn=bn)
 
     x = Flatten()(x)
-    #x = Dropout(0.5)(x)
-    x = AddDense(x, 512, "lrelu", dr, output=True, bn=False)
+    x = Dropout(0.5)(x)
+    x = AddDense(x, 1024, "lrelu", 0.5, output=True, bn=False)
     x = AddDense(x, model.num_options, "softmax", 0., output=True, bn=False)
     image_encoder = Model([img0, img], x, name="classifier")
     if not trainable:
