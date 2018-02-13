@@ -17,7 +17,7 @@ module load tensorflow/cuda-8.0/r1.3
 
 export DATASET="husky_data"
 export train_discriminator2=true
-export train_image_encoder=true
+export train_image_encoder=false
 export train_gans=false
 export train_encoder_gan=false
 export learning_rate=$1
