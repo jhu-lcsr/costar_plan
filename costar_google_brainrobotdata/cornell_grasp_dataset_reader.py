@@ -217,6 +217,18 @@ def image_preprocessing(image_buffer, train, thread_id=0):
     return image
 
 
+def height_width_sin_cos_4(height=None, width=None, sin_theta=None, cos_theta=None, features=None):
+    """ This is the input to pixelwise grasp prediction on the cornell dataset.
+    """
+    sin_cos_height_width = []
+    if features is not None:
+        sin_cos_height_width = [features['bbox/height'], features['bbox/width'],
+                                features['bbox/sin_theta'], features['bbox/cos_theta']]
+    else:
+        con_cos_height_width = [sin_theta, cos_theta, height, width]
+    return K.concatenate(sin_cos_height_width)
+
+
 def approximate_gaussian_ground_truth_image(image_shape, center, grasp_theta, grasp_width, grasp_height, label, sigma_divisor=None):
     """ Gaussian "ground truth" image approximation for a single proposed grasp at a time.
 
@@ -373,6 +385,7 @@ def parse_and_preprocess(
     # backwards. An example is +theta rotation vs -theta rotation.
     grasp_center_coordinate = K.concatenate([feature['bbox/cy'], feature['bbox/cx']])
     grasp_center_rotation_theta = feature['bbox/theta']
+    feature['sin_cos_height_width_4'] = height_width_sin_cos_4(features=feature)
 
     if is_training:
         # perform image augmentation

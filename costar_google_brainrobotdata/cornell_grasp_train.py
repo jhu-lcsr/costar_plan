@@ -204,13 +204,13 @@ def run_training(learning_rate=0.01, batch_size=10, num_gpus=1, top='classificat
 
     if features == 'preprocessed':
         data_features = ['image/preprocessed', 'bbox/preprocessed/cy_cx_normalized_2',
-                        'bbox/preprocessed/sin_cos_2', 'bbox/preprocessed/logarithm_height_width_2']
+                         'bbox/preprocessed/sin_cos_2', 'bbox/preprocessed/logarithm_height_width_2']
         image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
         vector_shapes = [(2,), (2,), (2,)]
     elif features == 'raw':
-        data_features = ['image/decoded', 'bbox/cy', 'bbox/cx', 'bbox/sin_theta', 'bbox/cos_theta', 'bbox/width', 'bbox/height']
+        data_features = ['image/decoded', 'sin_cos_height_width_4']
         image_shapes = [(FLAGS.sensor_image_height, FLAGS.sensor_image_width, 3)]
-        vector_shapes = [(1,), (1,), (1,), (1,), (1,), (1,)]
+        vector_shapes = [(4,)]
 
     # see parse_and_preprocess() for the creation of these features
     if top == 'segmentation':
