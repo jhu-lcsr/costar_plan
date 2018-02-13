@@ -195,6 +195,10 @@ def distorted_bounding_box_crop(image,
 
 def preprocess_for_train(image,
                          fast_mode=True,
+                         lower=0.75,
+                         upper=1.25,
+                         hue_max_delta=0.1,
+                         brightness_max_delta=16. / 255.,
                          scope=None,
                          add_image_summaries=True,
                          mode='tf', data_format=None):
@@ -235,7 +239,11 @@ def preprocess_for_train(image,
         # Randomly distort the colors. There are 4 ways to do it.
         image = apply_with_random_selector(
             image,
-            lambda x, ordering: distort_color(x, ordering, fast_mode),
+            lambda x, ordering:
+                distort_color(
+                    image=x, color_ordering=ordering, fast_mode=fast_mode,
+                    scope=scope, lower=lower, upper=upper, hue_max_delta=hue_max_delta,
+                    brightness_max_delta=brightness_max_delta),
             num_cases=4)
 
         if add_image_summaries:
@@ -302,6 +310,10 @@ def preprocess_image(image, height=None, width=None,
                      is_training=False,
                      bbox=None,
                      fast_mode=True,
+                     lower=0.75,
+                     upper=1.25,
+                     hue_max_delta=0.1,
+                     brightness_max_delta=16. / 255.,
                      add_image_summaries=True,
                      mode='tf', data_format=None):
     """Pre-process one image for training or evaluation.
@@ -341,6 +353,10 @@ def preprocess_image(image, height=None, width=None,
     if is_training:
         return preprocess_for_train(image, fast_mode,
                                     add_image_summaries=add_image_summaries,
-                                    mode=mode, data_format=data_format)
+                                    mode=mode, data_format=data_format,
+                                    lower=lower,
+                                    upper=upper,
+                                    hue_max_delta=hue_max_delta,
+                                    brightness_max_delta=brightness_max_delta)
     else:
         return preprocess_for_eval(image, height, width, mode=mode, data_format=data_format)

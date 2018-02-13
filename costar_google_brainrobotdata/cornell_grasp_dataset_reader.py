@@ -378,7 +378,7 @@ def parse_and_preprocess(
         # perform image augmentation
         # TODO(ahundt) add scaling and use that change to augment height and width parameters
         transform, random_features = rcp.random_projection_transform(
-            K.shape(image), crop_shape, scale=True, rotation=K.constant([0.0, 1.0], 'float32'))
+            K.shape(image), crop_shape, scale=True, rotation=True, translation=True)
         image, preprocessed_grasp_center_coordinate = rcp.transform_crop_and_resize_image(
             image, crop_shape=crop_shape, resize_shape=output_shape,
             transform=transform, coordinate=grasp_center_coordinate)
@@ -398,7 +398,10 @@ def parse_and_preprocess(
     feature['image/transformed'] = image
 
     # perform color augmentation and scaling
-    image = preprocess_image(image, is_training=is_training, mode=preprocessing_mode)
+    image = preprocess_image(
+                image, is_training=is_training, fast_mode=False,
+                lower=0.5, upper=1.5, hue_max_delta=0.2,
+                brightness_max_delta=32. / 255., mode=preprocessing_mode)
 
     # generate all the preprocessed features for training
     feature['image/preprocessed'] = image
@@ -562,7 +565,6 @@ def visualize_redundant_example(features_dicts, showTextBox=False):
     if not isinstance(features_dicts, list):
         features_dicts = [features_dicts]
     width = 3
-    print('visu<<<<<<<<<<<<<<')
 
     preprocessed_examples = []
     for example in features_dicts:
@@ -596,7 +598,7 @@ def visualize_redundant_example(features_dicts, showTextBox=False):
             decoded_example['bbox/cx'] = example['bbox/preprocessed/cx']
             if 'random_projection_transform' in example:
                 print('random_projection_transform:' + str(example['random_projection_transform']))
-                print('random_rotation: ' + str(example['random_rotation']) )
+                print('random_rotation: ' + str(example['random_rotation']))
                 print('bbox/preprocessed/theta: ' + str(example['bbox/preprocessed/theta']))
             preprocessed_examples.append(decoded_example)
 
