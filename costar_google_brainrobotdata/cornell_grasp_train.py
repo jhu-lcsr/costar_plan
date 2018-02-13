@@ -195,16 +195,22 @@ class PrintLogsCallback(keras.callbacks.Callback):
         print('\nlogs:', logs)
 
 
-def run_training(learning_rate=0.001, batch_size=10, num_gpus=1, top='classification', epochs=300, preprocessing_mode=None):
+def run_training(learning_rate=0.01, batch_size=10, num_gpus=1, top='classification', epochs=300, preprocessing_mode=None):
     """
 
     top: options are 'segmentation' and 'classification'.
     """
+    features = 'raw'
 
-    data_features = ['image/preprocessed', 'bbox/preprocessed/cy_cx_normalized_2',
-                     'bbox/preprocessed/sin_cos_2']
-    image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
-    vector_shapes = [(2,), (2,)]
+    if features == 'preprocessed':
+        data_features = ['image/preprocessed', 'bbox/preprocessed/cy_cx_normalized_2',
+                        'bbox/preprocessed/sin_cos_2', 'bbox/preprocessed/logarithm_height_width_2']
+        image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
+        vector_shapes = [(2,), (2,), (2,)]
+    elif features == 'raw':
+        data_features = ['image/decoded', 'bbox/cy', 'bbox/cx', 'bbox/sin_theta', 'bbox/cos_theta', 'bbox/width', 'bbox/height']
+        image_shapes = [(FLAGS.sensor_image_height, FLAGS.sensor_image_width, 3)]
+        vector_shapes = [(1,), (1,), (1,), (1,), (1,), (1,)]
 
     # see parse_and_preprocess() for the creation of these features
     if top == 'segmentation':
@@ -267,7 +273,7 @@ def run_training(learning_rate=0.001, batch_size=10, num_gpus=1, top='classifica
     print('Enabling tensorboard in ' + log_dir)
     mkdir_p(log_dir)
 
-    checkpoint = keras.callbacks.ModelCheckpoint(log_dir + weights_name + '-epoch-{epoch:03d}-' +
+    checkpoint = keras.callbacks.ModelCheckpoint(os.path.join(log_dir, weights_name) + '-epoch-{epoch:03d}-' +
                                                  monitor_loss_name + '-{' + monitor_loss_name + ':.3f}-' +
                                                  monitor_metric_name + '-{' + monitor_metric_name + ':.3f}.h5',
                                                  save_best_only=True, verbose=1, monitor=monitor_metric_name)
