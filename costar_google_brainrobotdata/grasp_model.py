@@ -349,6 +349,7 @@ def dilated_late_concat_model(
         output_shape=None,
         create_image_tree_roots_fn=None,
         create_vector_tree_roots_fn=None,
+        create_tree_trunk_fn=None,
         verbose=0):
 
     if images is None and image_shapes is None:
@@ -376,8 +377,11 @@ def dilated_late_concat_model(
             v = Concatenate(axis=-1)(v)
         else:
             [v] = v
-        v = Dense(vector_dense_filters)(v)
         x = concat_images_with_tiled_vector_layer(image_logits, v)
+
+    if create_tree_trunk_fn is not None:
+        print('tree_trunk_input: ' + str(x))
+        x = create_tree_trunk_fn(x)
 
     # The top block adds the final "decision making" layers
     # and the classifier block according to the problem type.

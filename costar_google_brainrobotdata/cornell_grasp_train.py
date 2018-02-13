@@ -52,7 +52,8 @@ from grasp_model import dilated_late_concat_model
 from cornell_grasp_dataset_reader import parse_and_preprocess
 # https://github.com/aurora95/Keras-FCN
 # TODO(ahundt) move keras_fcn directly into this repository, into keras-contrib, or make a proper installer
-from keras_contrib.applications.fully_convolutional_networks import AtrousFCN_Vgg16_16s
+import keras_contrib.applications.fully_convolutional_networks as fcn
+import keras_contrib.applications.densenet as densenet
 
 import grasp_loss as grasp_loss
 
@@ -132,7 +133,7 @@ def dilated_vgg_model(
     with K.name_scope('dilated_' + image_model_name) as scope:
         # VGG16 weights are shared and not trainable
         if top == 'segmentation':
-            vgg_model = AtrousFCN_Vgg16_16s(
+            vgg_model = fcn.AtrousFCN_Vgg16_16s(
                 input_shape=image_shapes[0], include_top=False,
                 classes=classes, upsample=False)
         else:
@@ -165,10 +166,19 @@ def dilated_vgg_model(
             """
             return vgg_model(tensor)
 
-        def vector_branch_dense(tensor, vector_dense_filters=vector_dense_filters):
+        def vector_branch_dense(tensor, vector_dense_filters=vector_dense_filters, num_layers=2):
             """ Vector branches that simply contain a single dense layer.
             """
-            return Dense(vector_dense_filters)(tensor)
+            x = tensor
+            for i in range(num_layers):
+                x = Dense(vector_dense_filters)(x)
+            return x
+
+        def create_tree_trunk(tensor):
+            channels = K.int_shape(tensor)[-1]
+            x, num_filters = densenet.__dense_block(tensor, nb_layers=4, nb_filter=channels,
+                                                    growth_rate=48, dropout_rate=dropout_rate)
+            return x
 
         model = dilated_late_concat_model(
             images=images, vectors=vectors,
@@ -177,6 +187,7 @@ def dilated_vgg_model(
             vector_dense_filters=vector_dense_filters,
             create_image_tree_roots_fn=create_vgg_model,
             create_vector_tree_roots_fn=vector_branch_dense,
+            create_tree_trunk_fn=create_tree_trunk,
             dilation_rate=dilation_rate,
             activation=activation,
             final_pooling=final_pooling,
