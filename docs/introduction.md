@@ -7,7 +7,7 @@ For some more information on the structure of the task planner package, check ou
 
 ## Getting started
 
-First follow the [installation guide](docs/install.md) and then try running the simulation on your own. There are two ways of doing this: interactively, through `ipython`, or via the `costar_bullet` tool.
+First follow the [installation guide](install.md) and then try running the simulation on your own. There are two ways of doing this: interactively, through `ipython`, or via the `costar_bullet` tool.
 
 You can see the available parameters for `costar_bullet` with the command:
 
