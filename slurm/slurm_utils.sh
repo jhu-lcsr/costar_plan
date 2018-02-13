@@ -112,3 +112,57 @@ function clean_job_outs() {
   done
 }
 
+# Get the latest images in a directory
+function latest_images_dir() {
+  # get all prefixes
+  declare -A image_prefixes
+  for f in $1/*; do
+    #echo $f
+    local suffix="${f##*/}"
+    #echo $suffix
+    local prefix="${suffix%_epoch*}"
+    #echo $prefix
+    image_prefixes[$prefix]=0
+  done
+
+  # Get latest epoch per prefix
+  for prefix in ${!image_prefixes[@]}; do
+    local max=0
+    for f in $1/$prefix*; do
+      # Isolate number
+      local file="${f##*/}"
+      file="${file%_result*}"
+      local num="${file##*epoch}"
+      [[ $num > $max ]] && max=$num
+    done
+    image_prefixes[$prefix]=$max
+  done
+
+  num_images=2
+  images=''
+  for prefix in ${!image_prefixes[@]}; do
+    local max=${image_prefixes[$prefix]}
+    local min=$(($max - $num_images))
+    (( $min < 0 )) && min=0
+    for ((i=$min;i<=$max;i++)); do
+      # adjust for 0s in front
+      local j=$i
+      (( $i < 100 )) && j="0"$j
+      (( $i < 10 )) && j="0"$j
+      images=$images" $1"/${prefix}_epoch${j}*
+    done
+  done
+
+  echo $images
+}
+
+# show the latest images for a job
+function feh_latest_job() {
+  local dir2="$(job_dir $1)"
+  local job="${dir2##*/}"
+  local dir="${dir2%/*}"
+  echo "Looking at latest of job $job"
+  job_descr_of_dir $dir2
+  files=$(latest_images_dir $dir/debug)
+  feh $files
+}
