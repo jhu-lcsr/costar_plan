@@ -33,25 +33,27 @@ def MakeJigsawsImageClassifier(model, img_shape, trainable = True):
     img = Input(img_shape,name="img_classifier_in")
     bn = True
     disc = True
-    dr = 0.5 #model.dropout_rate
+    dr = 0.1 #model.dropout_rate
     x = img
     x0 = img0
 
-    x = AddConv2D(x, 32, [7,7], 1, 0., "same", lrelu=disc, bn=bn)
+    x0 = AddConv2D(x0, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = Concatenate()([x0, x])
+
     x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 128, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 256, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 32, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 32, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 128, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 256, [3,3], 2, 0., "same", lrelu=disc, bn=bn)
 
     x = Flatten()(x)
     x = Dropout(0.5)(x)
-    x = AddDense(x, 512, "lrelu", 0.5, output=True, bn=False)
+    x = AddDense(x, 512, "lrelu", 0.5, output=True, bn=False, kr=1e-4)
     x = AddDense(x, model.num_options, "softmax", 0., output=True, bn=False)
     image_encoder = Model([img0, img], x, name="classifier")
     if not trainable:
@@ -156,18 +158,23 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=True):
 
     # --- end ssm block
     x = Concatenate()([x, skip])
-    x = Dropout(model.dropout_rate)(x)
+    #x = Dropout(model.dropout_rate)(x)
     x = AddConv2DTranspose(x, 64,
             [5,5],
             stride=2,
             activation=activation_fn,
-            dropout_rate=model.dropout_rate)
+            dropout_rate=model.dropout_rate*0.)
 
     x = Concatenate()([x, skip0])
 
-    for _ in range(2):
-        x = AddConv2D(x, 64,
-                [5,5],
+    for _ in range(1):
+        x = AddConv2D(x, 32,
+                [7,7],
+                stride=1,
+                activation=activation_fn,
+                dropout_rate=model.dropout_rate)
+        x = AddConv2D(x, 16,
+                [7,7],
                 stride=1,
                 activation=activation_fn,
                 dropout_rate=model.dropout_rate)

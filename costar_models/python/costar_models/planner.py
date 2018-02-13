@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import keras
 import keras.backend as K
 import keras.losses as losses
 import keras.optimizers as optimizers
@@ -120,7 +121,7 @@ def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate,
     return x
 
 def AddDense(x, size, activation, dropout_rate, output=False, momentum=MOMENTUM,
-    constraint=3, bn=True):
+    constraint=3, bn=True, kr=0., ar=0.):
     '''
     Add a single dense block with batchnorm and activation.
 
@@ -135,10 +136,29 @@ def AddDense(x, size, activation, dropout_rate, output=False, momentum=MOMENTUM,
     --------
     x: output tensor
     '''
-    if constraint is not None:
-        x = Dense(size, kernel_constraint=maxnorm(constraint))(x)
+
+    if isinstance(kr, float) and kr > 0:
+        kr = keras.regularizers.l2(kr)
+    elif isinstance(kr, float):
+        kr = None
     else:
-        x = Dense(size)(x)
+        kr = kr
+
+    if isinstance(ar, float) and ar > 0:
+        ar = keras.regularizers.l1(ar)
+    elif isinstance(ar, float):
+        ar = None
+    else:
+        ar = ar
+
+    if constraint is not None:
+        x = Dense(size, kernel_constraint=maxnorm(constraint),
+                  kernel_regularizer=kr,
+                  activity_regularizer=ar,)(x)
+    else:
+        x = Dense(size,
+                  kernel_regularizer=kr,
+                  activity_regularizer=ar,)(x)
     if activation == "lrelu":
         x = LeakyReLU(alpha=0.2)(x)
     else:
@@ -1160,3 +1180,50 @@ def MultiDiscriminator(model, x, discriminator, img0, num_hypotheses, img_shape)
     md = Model([img0, y], res, name="multi_disc")
     md.compile(loss="mae", optimizer=model.getOptimizer())
     return md
+
+def vgg16():
+    # From https://gist.github.com/baraldilorenzo/07d7802847aaad0a35d3
+    model = Sequential()
+    model.add(ZeroPadding2D((1,1),input_shape=(3,224,224)))
+    model.add(Convolution2D(64, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Convolution2D(64, 3, 3, activation='relu'))
+    model.add(MaxPooling2D((2,2), strides=(2,2)))
+
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Convolution2D(128, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Convolution2D(128, 3, 3, activation='relu'))
+    model.add(MaxPooling2D((2,2), strides=(2,2)))
+
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Convolution2D(256, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Convolution2D(256, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Convolution2D(256, 3, 3, activation='relu'))
+    model.add(MaxPooling2D((2,2), strides=(2,2)))
+
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(MaxPooling2D((2,2), strides=(2,2)))
+
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(MaxPooling2D((2,2), strides=(2,2)))
+
+    model.add(Flatten())
+    model.add(Dense(4096, activation='relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(4096, activation='relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(1000, activation='softmax'))
+    return model

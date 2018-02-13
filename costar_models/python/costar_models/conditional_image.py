@@ -120,7 +120,7 @@ class ConditionalImage(PredictionSampler2):
             loss = EncoderLoss(self.image_encoder, self.loss)
             enc_losses = [loss, loss]
             enc_outs = [x, x2]
-            enc_wts = [1., 1.]
+            enc_wts = [1e-2, 1e-2]
             img_loss_wt = 1.
         else:
             enc_losses = []

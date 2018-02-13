@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import keras
 import keras.backend as K
 import keras.losses as losses
 import keras.optimizers as optimizers
@@ -321,10 +322,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Combine the hidden state observations
         x = Concatenate()([x, x0])
-        x = AddConv2D(x, 64, [5,5], 1, 0., activation=activation_fn) # Removed this dropout
-
-        # store this for skip connection
-        skip = x
+        x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, activation=activation_fn) # Removed this dropout
 
         if self.use_noise:
             y = AddDense(z, 32, "lrelu", 0., constraint=None, output=False)
@@ -336,36 +334,45 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = TileOnto(x, y, 64, h_dim)
         x = AddConv2D(x, 64, [5,5], 1, 0., activation=activation_fn)
 
+        # store this for skip connection
+        skip = x
+
         # --- start ssm block
         use_ssm = True
         if use_ssm:
             def _ssm(x):
                 return spatial_softmax(x)
             x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
-            #x = AddDense(x, 256, "relu", 0.,
-            #        constraint=None, output=False,)
+            x = AddDense(x, 256, activation_fn, 0.,
+                    constraint=None, output=False,)
             x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/4),
-                         "lrelu",
+                         activation_fn,
                          self.dropout_rate*0.,
+                         #kr=keras.regularizers.l2(1e-8),
                          constraint=None, output=False)
             x = Reshape([int(h_dim[0]/2), int(h_dim[1]/2), 64])(x)
         else:
             x = AddConv2D(x, 128, [5,5], 1, 0.)
         x = AddConv2DTranspose(x, 64, [5,5], 2,
                 activation=activation_fn,
-                dropout_rate=self.dropout_rate*0.) # Removed dropout from this block
+                dropout_rate=self.dropout_rate) # Removed dropout from this block
         # --- end ssm block
 
         if self.skip_connections or True:
             x = Concatenate()([x, skip])
 
-        for i in range(2):
+        for i in range(1):
             #x = TileOnto(x, y, self.num_options, (8,8))
             x = AddConv2D(x, 64,
-                    [5,5],
+                    [7,7],
                     stride=1,
                     activation=activation_fn,
                     dropout_rate=self.dropout_rate)
+            #x = AddConv2D(x, 32,
+            #        [5,5],
+            #        stride=1,
+            #        activation=activation_fn,
+            #        dropout_rate=self.dropout_rate)
 
         # --------------------------------------------------------------------
         # Put resulting image into the output shape
