@@ -56,6 +56,7 @@ flags.DEFINE_boolean(
        Please note that this does not substantially affect file size because
        protobuf is the underlying TFRecord data type and it
        has optimizations eliminating repeated identical data entries.
+       See cornell_grasp_dataset_writer.py for more details.
     """)
 flags.DEFINE_boolean('showTextBox', True,
                      """Display textBox with bbox info on image.
@@ -77,11 +78,11 @@ flags.DEFINE_integer(
     3,
     'The width of the dataset images'
 )
-flags.DEFINE_integer('crop_height', 420,
+flags.DEFINE_integer('crop_height', 331,
                      """Height to crop images, resize_width and resize_height is applied next""")
-flags.DEFINE_integer('crop_width', 560,
+flags.DEFINE_integer('crop_width', 331,
                      """Width to crop images, resize_width and resize_height is applied next""")
-flags.DEFINE_boolean('random_crop', True,
+flags.DEFINE_boolean('random_crop', False,
                      """random_crop will apply the tf random crop function with
                         the parameters specified by crop_width and crop_height.
 
@@ -92,12 +93,21 @@ flags.DEFINE_boolean('random_crop', True,
                         sensor_image_height. However, it is important to ensure
                         that you crop images to the same size during both training
                         and test time.
+
+                        crop_to_gripper and random_crop cannot be enabled at the same time.
                      """)
+flags.DEFINE_boolean('crop_to_gripper', True,
+                     """crop to gripper will project and crop the image around
+                        the proposed gripper position and orientation.
+
+                        crop_to_gripper and random_crop cannot be enabled at the same time.
+                     """)
+
 flags.DEFINE_integer('resize_height', 240,
                      """Height to resize images before prediction, if enabled.""")
 flags.DEFINE_integer('resize_width', 320,
                      """Width to resize images before prediction, if enabled.""")
-flags.DEFINE_boolean('resize', True,
+flags.DEFINE_boolean('resize', False,
                      """resize will resize the input images to the desired dimensions specified by the
                         resize_width and resize_height flags. It is suggested that an exact factor of 2 be used
                         relative to the input image directions if random_crop is disabled or the crop dimensions otherwise.
@@ -313,6 +323,46 @@ def old_batch_inputs(data_files, train, num_epochs, batch_size,
     return features
 
 
+def crop_to_gripper_transform(input_image_shape, grasp_center_coordinate, grasp_center_rotation_theta, cropped_image_shape):
+    """ Transform and rotate image to be centered and aligned with proposed grasp.
+
+        Given a gripper center coodinate and rotation angle,
+        transform and rotate the image so it is centered with 0 theta.
+    """
+    grasp_center_rotation_theta = K.constant(0, 'float32')
+    transforms = []
+    input_image_shape_float = tf.cast(input_image_shape, tf.float32)
+    cropped_image_shape = tf.cast(cropped_image_shape, tf.float32)
+    # half_image_shape = (input_image_shape_float / 2)[:2]
+    half_image_shape = (cropped_image_shape / 2)[:2]
+
+    # crop_offset = -grasp_center_coordinate
+    # crop_offset = -grasp_center_coordinate
+    # crop_offset = grasp_center_coordinate
+    crop_offset = - grasp_center_coordinate + half_image_shape
+    # crop_offset = - grasp_center_coordinate - half_image_shape
+    # crop_offset = grasp_center_coordinate - half_image_shape
+    # crop_offset = half_image_shape - grasp_center_coordinate
+
+    crop_offset = crop_offset[::-1]
+    # reverse yx to xy
+    transforms += [tf.contrib.image.translations_to_projective_transforms(crop_offset)]
+    input_height_f = input_image_shape_float[0]
+    input_width_f = input_image_shape_float[1]
+    transforms += [tf.contrib.image.angles_to_projective_transforms(
+                         grasp_center_rotation_theta, input_height_f, input_width_f)]
+    transform = tf.contrib.image.compose_transforms(*transforms)
+    # TODO(ahundt) rename features random_* to a more general name, and make the same change in random_crop.py
+    features = {
+        # TODO(ahundt) should these be positive or negative?
+        'random_rotation': -grasp_center_rotation_theta,
+        'random_translation_offset': crop_offset,
+        'random_projection_transform': transform
+    }
+
+    return transform, features
+
+
 def grasp_success_yx_3(grasp_success=None, cy=None, cx=None, features=None):
     if features is not None:
         combined = [K.cast(features['bbox/grasp_success'], 'float32'),
@@ -325,6 +375,7 @@ def grasp_success_yx_3(grasp_success=None, cy=None, cx=None, features=None):
 def parse_and_preprocess(
         examples_serialized, is_training=True, label_features_to_extract=None,
         data_features_to_extract=None, crop_shape=None, output_shape=None,
+        random_crop=None, crop_to_gripper=None,
         preprocessing_mode='tf'):
     """ Parse an example and perform image preprocessing.
 
@@ -368,6 +419,12 @@ def parse_and_preprocess(
         feature = parse_example_proto_redundant(examples_serialized)
     else:
         feature = parse_example_proto(examples_serialized)
+
+    if random_crop is None:
+        random_crop = FLAGS.random_crop
+    if crop_to_gripper is None:
+        crop_to_gripper = FLAGS.crop_to_gripper
+
     # TODO(ahundt) clean up, use grasp_dataset.py as reference, possibly refactor to reuse the code
     sensor_image_dimensions = [FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels]
     image_buffer = feature['image/encoded']
@@ -390,8 +447,15 @@ def parse_and_preprocess(
     if is_training:
         # perform image augmentation
         # TODO(ahundt) add scaling and use that change to augment height and width parameters
-        transform, random_features = rcp.random_projection_transform(
-            K.shape(image), crop_shape, scale=True, rotation=True, translation=True)
+        if random_crop:
+            transform, random_features = rcp.random_projection_transform(
+                K.shape(image), crop_shape, scale=True, rotation=True, translation=True)
+        elif crop_to_gripper:
+            transform, random_features = crop_to_gripper_transform(
+                            input_image_shape, grasp_center_coordinate,
+                            grasp_center_rotation_theta, crop_shape)
+        elif random_crop and crop_to_gripper:
+            raise ValueError('random_crop and crop_to_gripper must be set separately')
         image, preprocessed_grasp_center_coordinate = rcp.transform_crop_and_resize_image(
             image, crop_shape=crop_shape, resize_shape=output_shape,
             transform=transform, coordinate=grasp_center_coordinate)
