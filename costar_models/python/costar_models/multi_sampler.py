@@ -324,9 +324,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = Concatenate()([x, x0])
         x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, activation=activation_fn) # Removed this dropout
 
-        # store this for skip connection
-        skip = x
-
         if self.use_noise:
             y = AddDense(z, 32, "lrelu", 0., constraint=None, output=False)
             x = TileOnto(x, y, 32, h_dim)
@@ -336,6 +333,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         y = AddDense(option, 64, "lrelu", 0., constraint=None, output=False)
         x = TileOnto(x, y, 64, h_dim)
         x = AddConv2D(x, 64, [5,5], 1, 0., activation=activation_fn)
+
+        # store this for skip connection
+        skip = x
 
         # --- start ssm block
         use_ssm = True
