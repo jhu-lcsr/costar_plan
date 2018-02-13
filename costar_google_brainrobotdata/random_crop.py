@@ -279,10 +279,7 @@ def transform_and_crop_coordinate(coordinate, transform=None, offset=None, inver
         if offset is not None:
             if isinstance(offset, list):
                 offset = tf.constant([[offset[0]], [offset[1]]], tf.float32)
-
-            coordinate = tf.Print(coordinate, [coordinate, offset], 'transform_and_crop_pre_offset: coodinate, offset')
             coordinate = coordinate - tf.cast(offset[:2], tf.float32)
-            coordinate = tf.Print(coordinate, [coordinate, offset], 'transform_and_crop_post_offset: coodinate, offset')
     return coordinate
 
 
@@ -302,7 +299,6 @@ def resize_coordinate(coordinate, input_shape, output_shape, name=None):
         else:
             proportional_dimension_change = output_shape / input_shape[:2]
 
-        coordinate = tf.Print(coordinate, [coordinate, proportional_dimension_change], 'coordinate proportional_dim')
         resized_coordinate = tf.squeeze(coordinate) * proportional_dimension_change
     return resized_coordinate
 

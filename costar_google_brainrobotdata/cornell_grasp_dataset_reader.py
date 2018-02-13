@@ -506,9 +506,9 @@ def yield_record(
             # once outside the loop, and use `next_element` inside the loop.
             next_element = tensor_iterator.get_next()
             while True:
-                print('start iteration')
+                # print('start iteration')
                 features = sess.run(next_element)
-                print('run complete')
+                # print('run complete')
 
                 # extract the features in a specific order if
                 # features_to_extract is specified,
@@ -522,7 +522,7 @@ def yield_record(
                 # See documentation for keras.model.fit_generator()
                 # https://keras.io/models/model/
                 #
-                print('start list_processing')
+                # print('start list_processing')
                 if data_features_to_extract is not None and label_features_to_extract is not None:
                     outputs = ([features[feature_name] for feature_name in data_features_to_extract],
                                [features[feature_name] for feature_name in label_features_to_extract])
