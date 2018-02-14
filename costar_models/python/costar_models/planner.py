@@ -43,6 +43,7 @@ RENORM=True
 
 def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
         lrelu=False, bn=True, momentum=MOMENTUM, name=None, constraint=None,
+        kr=1e-5, ar=0.,
         activation=None):
     '''
     Helper for creating networks. This one will add a convolutional block.
@@ -64,6 +65,26 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
         kwargs['name'] = "%s_conv"%name
     if constraint is not None:
         kwargs['kernel_constraint'] = maxnorm(constraint)
+
+    if isinstance(kr, float) and kr > 0:
+        kr = keras.regularizers.l2(kr)
+    elif isinstance(kr, float):
+        kr = None
+    else:
+        kr = kr
+
+    if isinstance(ar, float) and ar > 0:
+        ar = keras.regularizers.l1(ar)
+    elif isinstance(ar, float):
+        ar = None
+    else:
+        ar = ar
+
+    if ar is not None:
+        kwargs['activity_regularizer'] = ar
+    if kr is not None:
+        kwargs['kernel_regularizer'] = kr
+
     x = Conv2D(filters,
             kernel_size=kernel,
             strides=(stride,stride),
