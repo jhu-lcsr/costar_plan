@@ -195,6 +195,9 @@ def GetModelParser():
     parser.add_argument("--no_disc",
                         help="Disable discriminator usage with images",
                         action="store_true")
+    parser.add_argument("--unique_id",
+                        help="Unique id for status file",
+                        default="")
     return parser
 
 def GetSubmodelOptions():

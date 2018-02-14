@@ -61,7 +61,8 @@ def main(args):
                 pass
         if not interrupt:
             path = model.model_directory
-            with open(os.path.join(path, 'status.txt'), 'a+') as f:
+            id = model.unique_id
+            with open(os.path.join(path, 'status' + id + '.txt'), 'a+') as f:
                 f.write(" finished\n")
     else:
         pass
