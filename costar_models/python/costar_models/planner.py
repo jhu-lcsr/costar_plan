@@ -37,7 +37,7 @@ out: an output tensor
 
 # Use high momentum from TF?
 # MOMENTUM=0.9 seems to help training
-MOMENTUM=0.99
+MOMENTUM=0.9
 RENORM=True
 
 def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
@@ -84,7 +84,7 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
         if name is not None:
             kwargs['name'] = "%s_bn"%name
         if RENORM:
-	    x = BatchRenormalization(momentum=momentum, **kwargs)(x)
+	    x = BatchRenormalization(momentum=momentum, axis=-1, mode=0, **kwargs)(x)
         else:
 	    x = BatchNormalization(momentum=momentum, **kwargs)(x)
     if dropout_rate > 0:
@@ -122,9 +122,9 @@ def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate,
         x = Activation(activation)(x)
     if bn:
         if RENORM:
-            x = BatchNormalization(momentum=momentum)(x)
+            x = BatchRenormalization(momentum=momentum, axis=-1, mode=0)(x)
         else:
-            x = BatchRenormalization(momentum=momentum)(x)
+            x = BatchNormalization(momentum=momentum)(x)
     if dropout_rate > 0:
         x = Dropout(dropout_rate)(x)
     return x

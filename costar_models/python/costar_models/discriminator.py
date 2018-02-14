@@ -101,6 +101,7 @@ class JigsawsDiscriminator(RobotMultiPredictionSampler):
         super(JigsawsDiscriminator, self).__init__(taskdef, *args, **kwargs)
         self.PredictorCb = None
         self.num_options = SuturingNumOptions()
+        self.num_generator_files = 1
         self.goal = goal
 
     def _makeModel(self, image, *args, **kwargs):
