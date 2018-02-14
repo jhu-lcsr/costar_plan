@@ -121,22 +121,6 @@ if ! $skip_encoder; then
       $wass_cmd \
       $load_cmd
   else
-    echo "Training non-gan encoder: discriminator"
-    ${cmd_prefix}ctp_model_tool \
-      --features $features \
-      -e 200 \
-      --model discriminator \
-      --data_file $data_dir \
-      --lr $lr \
-      --dropout_rate $dropout \
-      --model_directory $MODELDIR/ \
-      --optimizer $optimizer \
-      --steps_per_epoch 300 \
-      --noise_dim $noise_dim \
-      --loss $loss \
-      --batch_size 64 \
-      $load_cmd
-
     echo "Training non-gan image encoder"
     ${cmd_prefix}ctp_model_tool \
       --features $features \
@@ -151,6 +135,7 @@ if ! $skip_encoder; then
       --noise_dim $noise_dim \
       --loss $loss \
       --batch_size 64 \
+      --no_disc \
       $load_cmd
   fi
 fi
