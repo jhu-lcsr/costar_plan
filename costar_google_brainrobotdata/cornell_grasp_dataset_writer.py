@@ -90,6 +90,26 @@ robot to take a background picture beforehand, so this is not a practical way
 to handle identifying objects.  However, for the sake of concentrating only on
 grasping, it is a very convenient method to subtract the backgrounds when possible.
 
+
+From the second Cornell dataset README
+--------------------------------------
+Each of the files x,y, and z contained here are formatted for the convenience of the user.
+
+Each of the four files contain 7037 lines.  Each line is a data sample using Marcus Lim's feature extraction along with Kerekes and Meusling's data and labels.  The line numbers map to a particular labelled rectangle.  So line 1 in each file refers to the first labelled rectangle, and line 200 in each file refers to the 200th labelled rectangle for example.
+
+features
+This file is formatted with rewards and features combined (x and y) and is already in the proper format to plug into SVM-Light.
+
+x.txt
+Each line has 1901 space-delimitted floating point values.  Line 1 is the first labelled rectangle's 1901 extracted features.  Line 7037 is the final labelled rectangle's 1901 extracted features.  Each line corresponds to the same line in y.txt and z.txt.
+
+
+y.txt
+Each line has the associated reward for each sample.  Line 1 has the reward for the first labelled rectangle.  Line 7037 has the reward for the final labelled rectangle.  For our purposes, each reward is either +1 or -1, meaning "good grasping rectangle" or "bad grasping rectangle."
+
+z.txt
+Each line has four space-delimitted pieces of data.  First is the image id that the rectangle is taken from (0000 through 1034).  Second is the object id (0 through 281), since most objects have multiple images.  Each object id represents a different object.  Three different bowls will have three different object ids.  Third is a short description of what the item is.  Fourth is the identifier for which background image to use if you wish to perform background subtraction.  The background image may or may not be useful for you depending on how you plan to identify the object to grasp in the image.
+
 '''
 
 import os
@@ -139,7 +159,8 @@ flags.DEFINE_string('grasp_dataset', 'all', 'TODO(ahundt): integrate with brainr
 flags.DEFINE_boolean('grasp_download', False,
                      """Download the grasp_dataset to data_dir if it is not already present.""")
 flags.DEFINE_boolean('plot', False, 'Plot images and grasp bounding box data in matplotlib as it is traversed')
-flags.DEFINE_boolean('showTextBox', False,
+flags.DEFINE_boolean(
+    'showTextBox', False,
     """If plotting is enabled, plot extra text boxes near each grasp box
        so you can check that gripper orientation is correct.
     """)
@@ -152,7 +173,11 @@ flags.DEFINE_boolean(
        Please note that this substantially affects the output file size,
        but the dataset parsing code becomes much easier to write.
     """)
-flags.DEFINE_float('evaluate_fraction', 0.2, 'proportion of dataset to be used separately for evaluation')
+flags.DEFINE_float(
+    'evaluate_fraction', 0.2,
+    """proportion of dataset to be used separately for evaluation,
+       use 0 if you want all files to be in one dataset file,
+       which makes sense if you're going to do your splits with the tensorflow Dataset API.""")
 flags.DEFINE_string('train_filename', 'cornell-grasping-dataset-train.tfrecord', 'filename used for the training dataset')
 flags.DEFINE_string('evaluate_filename', 'cornell-grasping-dataset-evaluate.tfrecord', 'filename used for the evaluation dataset')
 flags.DEFINE_string('stats_filename', 'cornell-grasping-dataset-stats.md', 'filename used for the dataset statistics file')
@@ -657,7 +682,8 @@ def _validate_text(text):
         return str(text)
 
 
-def _create_examples(filename, image_buffer, height, width, dict_bbox_lists):
+def _create_examples(
+        filename, image_id, image_buffer, height, width, dict_bbox_lists):
     """
 
     Create a TFRecord example which stores multiple bounding boxe copies with a single image.
@@ -676,7 +702,8 @@ def _create_examples(filename, image_buffer, height, width, dict_bbox_lists):
     feature = {'image/filename': _bytes_feature(filename),
                'image/encoded': _bytes_feature(image_buffer),
                'image/height': _int64_feature(height),
-               'image/width': _int64_feature(width)}
+               'image/width': _int64_feature(width),
+               'image/id': _int64_feature(image_id)}
     for i in range(4):
         feature['bbox/y' + str(i)] = _floats_feature(dict_bbox_lists['bbox/y' + str(i)])
         feature['bbox/x' + str(i)] = _floats_feature(dict_bbox_lists['bbox/x' + str(i)])
@@ -694,7 +721,7 @@ def _create_examples(filename, image_buffer, height, width, dict_bbox_lists):
 
 
 def _create_examples_redundant(
-        filename, image_buffer, height, width, bbox_example_features):
+        filename, image_id, image_buffer, height, width, bbox_example_features):
     """
 
     Write the same image example repeatedly, once for each single bounding box example
@@ -715,7 +742,8 @@ def _create_examples_redundant(
         feature = {'image/filename': _bytes_feature(filename),
                    'image/encoded': _bytes_feature(image_buffer),
                    'image/height': _int64_feature(height),
-                   'image/width': _int64_feature(width)}
+                   'image/width': _int64_feature(width),
+                   'image/id': _int64_feature(image_id)}
         for j in range(4):
             feature['bbox/y' + str(j)] = _floats_feature(bbox_dict['bbox/y' + str(j)])
             feature['bbox/x' + str(j)] = _floats_feature(bbox_dict['bbox/x' + str(j)])
@@ -731,6 +759,12 @@ def _create_examples_redundant(
         examples += [tf.train.Example(features=tf.train.Features(feature=feature))]
 
     return examples
+
+
+def get_image_id_from_filename(filename):
+    """ Get the object id from the filename, assumes all digits are part of the object id.
+    """
+    return int(list(filter(str.isdigit, filename))[0])
 
 
 def list_of_dicts_to_dict_of_lists(ld):
@@ -756,6 +790,7 @@ def traverse_examples_in_single_image(filename, path_pos, path_neg, image_buffer
         print(dict_bbox_lists)
         print('-----------------------')
 
+    # visualize this example
     if FLAGS.plot:
         gt_images = ground_truth_images([height, width],
                                         dict_bbox_lists['bbox/cy'],
@@ -768,10 +803,14 @@ def traverse_examples_in_single_image(filename, path_pos, path_neg, image_buffer
         img = mpimg.imread(filename)
         visualize_example(img, bbox_example_features, gt_images)
 
+    # get the object id from the filename
+    image_id = get_image_id_from_filename(filename)
+
+    # create the tfrecord example protobufs
     if FLAGS.redundant:
-        examples = _create_examples_redundant(filename, image_buffer, height, width, bbox_example_features)
+        examples = _create_examples_redundant(filename, image_id, image_buffer, height, width, bbox_example_features)
     else:
-        examples = _create_examples(filename, image_buffer, height, width, dict_bbox_lists)
+        examples = _create_examples(filename, image_id, image_buffer, height, width, dict_bbox_lists)
 
     return examples, attempt_count, count_fail_success
 

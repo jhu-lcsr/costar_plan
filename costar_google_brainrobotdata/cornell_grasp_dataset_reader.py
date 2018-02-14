@@ -116,14 +116,20 @@ flags.DEFINE_boolean('resize', False,
 FLAGS = flags.FLAGS
 
 
-def parse_example_proto(examples_serialized):
+def parse_example_proto(examples_serialized, have_image_id=False):
     feature_map = {
         'image/encoded': tf.FixedLenFeature([], dtype=tf.string,
                                             default_value=''),
         'image/filename': tf.FixedLenFeature([], dtype=tf.string,
                                              default_value=''),
         'image/height': tf.FixedLenFeature([], dtype=tf.int64),
-        'image/width': tf.FixedLenFeature([], dtype=tf.int64)}
+        'image/width': tf.FixedLenFeature([], dtype=tf.int64)
+    }
+
+    # TODO(ahundt) remove boolean once we are set up with k-fold cross validation of images and objects
+    if have_image_id:
+        feature_map['object/id'] = tf.FixedLenFeature([], dtype=tf.int64)
+
     for i in range(4):
         y_key = 'bbox/y' + str(i)
         x_key = 'bbox/x' + str(i)
@@ -144,7 +150,7 @@ def parse_example_proto(examples_serialized):
     return features
 
 
-def parse_example_proto_redundant(examples_serialized):
+def parse_example_proto_redundant(examples_serialized, have_image_id=False):
     """ Parse data from the tfrecord
 
     See also: _create_examples_redundant()
@@ -157,6 +163,11 @@ def parse_example_proto_redundant(examples_serialized):
         'image/height': tf.FixedLenFeature([], dtype=tf.int64),
         'image/width': tf.FixedLenFeature([], dtype=tf.int64)
     }
+
+    # TODO(ahundt) remove boolean once we are set up with k-fold cross validation of images and objects
+    if have_image_id:
+        feature_map['image/id'] = tf.FixedLenFeature([], dtype=tf.int64)
+
     for i in range(4):
         y_key = 'bbox/y' + str(i)
         x_key = 'bbox/x' + str(i)
