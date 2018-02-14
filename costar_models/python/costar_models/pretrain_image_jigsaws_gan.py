@@ -22,9 +22,6 @@ class PretrainImageJigsawsGan(PretrainImageGan):
         '''
         super(PretrainImageJigsawsGan, self).__init__(*args, **kwargs)
 
-        # This is literally the only change from the husky version
-        self.num_generator_files = 1
-
         # Also set up the number of options we expect
         self.num_options = SuturingNumOptions()
         self.save_encoder_decoder = True
