@@ -21,6 +21,7 @@ from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 from keras.optimizers import Adam
 from keras.constraints import max_norm
+from batch_renorm import BatchRenormalization
 
 '''
 PLANNER MODEL TOOLS
@@ -34,8 +35,10 @@ Returns for all tools:
 out: an output tensor
 '''
 
-# Use high momentum from TF
+# Use high momentum from TF?
+# MOMENTUM=0.9 seems to help training
 MOMENTUM=0.9
+RENORM=True
 
 def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
         lrelu=False, bn=True, momentum=MOMENTUM, name=None, constraint=None,
@@ -80,7 +83,10 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
     if bn:
         if name is not None:
             kwargs['name'] = "%s_bn"%name
-        x = BatchNormalization(momentum=momentum, **kwargs)(x)
+        if RENORM:
+	    x = BatchRenormalization(momentum=momentum, **kwargs)(x)
+        else:
+	    x = BatchNormalization(momentum=momentum, **kwargs)(x)
     if dropout_rate > 0:
         if name is not None:
             kwargs['name'] = "%s_dropout%f"%(name, dropout_rate)
@@ -115,7 +121,10 @@ def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate,
     else:
         x = Activation(activation)(x)
     if bn:
-        x = BatchNormalization(momentum=momentum)(x)
+        if RENORM:
+            x = BatchNormalization(momentum=momentum)(x)
+        else:
+            x = BatchRenormalization(momentum=momentum)(x)
     if dropout_rate > 0:
         x = Dropout(dropout_rate)(x)
     return x
