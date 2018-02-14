@@ -78,9 +78,9 @@ flags.DEFINE_integer(
     3,
     'The width of the dataset images'
 )
-flags.DEFINE_integer('crop_height', 331,
+flags.DEFINE_integer('crop_height', 224,
                      """Height to crop images, resize_width and resize_height is applied next""")
-flags.DEFINE_integer('crop_width', 331,
+flags.DEFINE_integer('crop_width', 224,
                      """Width to crop images, resize_width and resize_height is applied next""")
 flags.DEFINE_boolean('random_crop', False,
                      """random_crop will apply the tf random crop function with
@@ -103,9 +103,9 @@ flags.DEFINE_boolean('crop_to_gripper', True,
                         crop_to_gripper and random_crop cannot be enabled at the same time.
                      """)
 
-flags.DEFINE_integer('resize_height', 240,
+flags.DEFINE_integer('resize_height', 224,
                      """Height to resize images before prediction, if enabled.""")
-flags.DEFINE_integer('resize_width', 320,
+flags.DEFINE_integer('resize_width', 224,
                      """Width to resize images before prediction, if enabled.""")
 flags.DEFINE_boolean('resize', False,
                      """resize will resize the input images to the desired dimensions specified by the
@@ -329,7 +329,7 @@ def crop_to_gripper_transform(input_image_shape, grasp_center_coordinate, grasp_
         Given a gripper center coodinate and rotation angle,
         transform and rotate the image so it is centered with 0 theta.
     """
-    grasp_center_rotation_theta = K.constant(0, 'float32')
+    # grasp_center_rotation_theta = K.constant(0, 'float32')
     transforms = []
     input_image_shape_float = tf.cast(input_image_shape, tf.float32)
     cropped_image_shape = tf.cast(cropped_image_shape, tf.float32)
@@ -347,8 +347,10 @@ def crop_to_gripper_transform(input_image_shape, grasp_center_coordinate, grasp_
     crop_offset = crop_offset[::-1]
     # reverse yx to xy
     transforms += [tf.contrib.image.translations_to_projective_transforms(crop_offset)]
-    input_height_f = input_image_shape_float[0]
-    input_width_f = input_image_shape_float[1]
+    # input_height_f = input_image_shape_float[0]
+    # input_width_f = input_image_shape_float[1]
+    input_height_f = cropped_image_shape[0]
+    input_width_f = cropped_image_shape[1]
     transforms += [tf.contrib.image.angles_to_projective_transforms(
                          grasp_center_rotation_theta, input_height_f, input_width_f)]
     transform = tf.contrib.image.compose_transforms(*transforms)
@@ -535,8 +537,8 @@ def parse_and_preprocess(
 def yield_record(
         tfrecord_filenames, label_features_to_extract=None, data_features_to_extract=None,
         parse_example_proto_fn=parse_and_preprocess, batch_size=32,
-        device='/cpu:0', is_training=True, steps=None, buffer_size=int(4e8),
-        num_parallel_calls=None, preprocessing_mode='tf'):
+        device='/cpu:0', is_training=True, steps=None, buffer_size=int(1e6),
+        shuffle=True, shuffle_buffer_size=100, num_parallel_calls=None, preprocessing_mode='tf'):
     if num_parallel_calls is None:
         num_parallel_calls = FLAGS.num_readers
     # based_on https://github.com/visipedia/tfrecords/blob/master/iterate_tfrecords.py
@@ -546,6 +548,8 @@ def yield_record(
         dataset = tf.data.TFRecordDataset(
             tfrecord_filenames, buffer_size=buffer_size)
         dataset = dataset.repeat(count=steps)
+        if shuffle:
+            dataset = dataset.shuffle(shuffle_buffer_size)
         # Repeat the input indefinitely.
 
         # call the parse_example_proto_fn with the is_training flag set.

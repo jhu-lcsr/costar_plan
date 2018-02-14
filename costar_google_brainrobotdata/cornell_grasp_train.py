@@ -130,7 +130,11 @@ def dilated_vgg_model(
         trainable=False,
         verbose=0,
         image_model_name='vgg'):
-    with K.name_scope('dilated_' + image_model_name) as scope:
+    if top == 'segmentation':
+        name_prefix = 'dilated_'
+    else:
+        name_prefix = 'single_'
+    with K.name_scope(name_prefix + image_model_name) as scope:
         # VGG16 weights are shared and not trainable
         if top == 'segmentation':
             vgg_model = fcn.AtrousFCN_Vgg16_16s(
@@ -143,6 +147,11 @@ def dilated_vgg_model(
                     classes=classes)
             elif image_model_name == 'nasnet':
                 vgg_model = keras.applications.nasnet.NASNetLarge(
+                    input_shape=image_shapes[0], include_top=False,
+                    classes=classes
+                )
+            elif image_model_name == 'nasnet_mobile':
+                vgg_model = keras.applications.nasnet.NASNetMobile(
                     input_shape=image_shapes[0], include_top=False,
                     classes=classes
                 )
@@ -211,8 +220,12 @@ def run_training(learning_rate=0.01, batch_size=10, num_gpus=1, top='classificat
 
     top: options are 'segmentation' and 'classification'.
     """
-    features = 'raw'
+    features = 'preprocessed_image_raw_grasp'
 
+    if features == 'preprocessed_image_raw_grasp':
+        data_features = ['image/preprocessed', 'sin_cos_height_width_4']
+        image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
+        vector_shapes = [(4,)]
     if features == 'preprocessed':
         data_features = ['image/preprocessed', 'bbox/preprocessed/cy_cx_normalized_2',
                          'bbox/preprocessed/sin_cos_2', 'bbox/preprocessed/logarithm_height_width_2']
@@ -238,8 +251,11 @@ def run_training(learning_rate=0.01, batch_size=10, num_gpus=1, top='classificat
         monitor_loss_name = 'val_loss'
         metrics = ['binary_accuracy', grasp_loss.mean_pred, grasp_loss.mean_true]
         loss = keras.losses.binary_crossentropy
-        model_name = 'vgg_model'
+        model_name = 'vgg_dense_model'
         image_model_name = 'vgg'
+        # model_name = 'nasnet_dense_block_model'
+        # image_model_name = 'nasnet'
+        # image_model_name = 'nasnet_mobile'
 
     # If loading pretrained weights
     # it is very important to preprocess
@@ -248,8 +264,13 @@ def run_training(learning_rate=0.01, batch_size=10, num_gpus=1, top='classificat
     if preprocessing_mode is None:
         if 'densenet' in model_name:
             preprocessing_mode = 'torch'
-        else:
+        elif 'nasnet' in model_name:
+            preprocessing_mode = 'tf'
+        elif 'vgg' in model_name or 'resnet' in model_name:
             preprocessing_mode = 'caffe'
+        else:
+            raise ValueError('You need to explicitly set the preprocessing mode to '
+                             'torch, tf, or caffe for these weights')
 
 
     # create dilated_vgg_model with inputs [image], [sin_theta, cos_theta]
@@ -274,7 +295,7 @@ def run_training(learning_rate=0.01, batch_size=10, num_gpus=1, top='classificat
     optimizer = keras.optimizers.SGD(learning_rate * 1.0)
     callbacks = callbacks + [
         # Reduce the learning rate if training plateaus.
-        keras.callbacks.ReduceLROnPlateau(patience=20, verbose=1, factor=0.5, monitor=monitor_loss_name)
+        keras.callbacks.ReduceLROnPlateau(patience=12, verbose=1, factor=0.5, monitor=monitor_loss_name)
     ]
 
     csv_logger = CSVLogger(weights_name + '.csv')
@@ -293,8 +314,8 @@ def run_training(learning_rate=0.01, batch_size=10, num_gpus=1, top='classificat
     #  https://github.com/keras-team/keras/pull/7617
     #  write_batch_performance=True)
     progress_tracker = TensorBoard(log_dir=log_dir, write_graph=True,
-                                   write_grads=True, write_images=True,
-                                   histogram_freq=1, batch_size=batch_size)
+                                   write_grads=False, write_images=False,
+                                   histogram_freq=0, batch_size=batch_size)
                                    # histogram_freq=0, batch_size=batch_size,
                                    # write_batch_performance=True)
     callbacks = callbacks + [progress_tracker]
@@ -328,11 +349,13 @@ def run_training(learning_rate=0.01, batch_size=10, num_gpus=1, top='classificat
 
     # Get the validation dataset in one big numpy array for validation
     # This lets us take advantage of tensorboard visualization
+    print('loading validation data directly into memory, if you run out modify the next line')
     all_validation_data = next(cornell_grasp_dataset_reader.yield_record(
         validation_file, label_features, data_features,
         is_training=False, batch_size=samples_in_val_dataset,
         parse_example_proto_fn=parse_and_preprocess))
 
+    print('calling model.fit_generator()')
     parallel_model.fit_generator(
         cornell_grasp_dataset_reader.yield_record(
             train_file, label_features, data_features,
