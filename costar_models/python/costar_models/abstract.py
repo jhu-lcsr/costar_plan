@@ -44,7 +44,7 @@ class AbstractAgentBasedModel(object):
             steps_per_epoch=500, validation_steps=25,
             dropout_rate=0.5, decoder_dropout_rate=None,
             tform_dropout_rate=0.,
-            activation_fn="relu",
+            activation_fn="lrelu",
             validate=False,
             enc_loss=False,
             use_batchnorm=1,
@@ -62,9 +62,10 @@ class AbstractAgentBasedModel(object):
             save_model=True,
             hidden_size=128,
             loss="mae",
-            num_generator_files=3, upsampling=None,
+            num_generator_files=5, upsampling=None,
             clip_weights=0, use_wasserstein=False,
             option_num=None, # for policy model
+            unique_id="", # for status file
             task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
 
@@ -139,6 +140,9 @@ class AbstractAgentBasedModel(object):
         # None, set to 2 for testing only
         self.prev_option = 2
 
+        # Unique id for status file
+        self.unique_id = unique_id
+
         
 
         # default: store the whole model here.
@@ -149,12 +153,13 @@ class AbstractAgentBasedModel(object):
         print("==========   TRAINING CONFIGURATION REPORT   ==============")
         print("===========================================================")
         print("Name =", self.name_prefix)
-        print("Features = ", self.features)
-        print("Robot = ", self.robot)
-        print("Task = ", self.task)
-        print("Model type = ", model)
-        print("Model directory = ", self.model_directory)
-        print("Models saved with prefix = ", self.name)
+        print("Features =", self.features)
+        print("Robot =", self.robot)
+        print("Task =", self.task)
+        print("Model type =", model)
+        print("Model directory =", self.model_directory)
+        print("Models saved with prefix =", self.name)
+        print("Unique id for status file =", self.unique_id)
         print("-----------------------------------------------------------")
         print("---------------- General Training Options -----------------")
         print("Iterations =", self.iter)

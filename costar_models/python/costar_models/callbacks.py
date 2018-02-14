@@ -563,20 +563,29 @@ class ModelSaveCallback(keras.callbacks.Callback):
         self.best_val_loss = sys.float_info.max
 
     def on_epoch_end(self, epoch, logs, *args, **kwargs):
+        m = self.saved_model
+
+        # Save our status
+        path = m.model_directory
+        id = m.unique_id
+        with open(os.path.join(path, 'status' + id + '.txt'), 'w+') as f:
+            f.write(str(epoch + 1))
+
         if epoch % self.interval == 0 and epoch != 0:
+
             if 'val_loss' in logs:
                 if logs['val_loss'] <= self.best_val_loss:
                     print('val_loss[{}] better than {}. Saving model.'.format(
                         logs['val_loss'], self.best_val_loss))
                     self.best_val_loss = logs['val_loss']
-                    print('Model =', self.saved_model)
-                    print('ModelType =', type(self.saved_model))
+                    print('Model =', m)
+                    print('ModelType =', type(m))
                     self.saved_model.save()
                 else:
                     print('val_loss[{}] not improved. Not saving'.format(
                         logs['val_loss']))
             else:
-                print('Model =', self.saved_model)
-                print('ModelType =', type(self.saved_model))
-                self.saved_model.save()
+                print('Model =', m)
+                print('ModelType =', type(m))
+                m.save()
 
