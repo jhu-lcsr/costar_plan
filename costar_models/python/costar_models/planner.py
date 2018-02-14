@@ -84,9 +84,9 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
         if name is not None:
             kwargs['name'] = "%s_bn"%name
         if RENORM:
-	    x = BatchRenormalization(momentum=momentum, axis=-1, mode=0, **kwargs)(x)
+            x = BatchRenormalization(momentum=momentum, axis=-1, mode=0, **kwargs)(x)
         else:
-	    x = BatchNormalization(momentum=momentum, **kwargs)(x)
+            x = BatchNormalization(momentum=momentum, **kwargs)(x)
     if dropout_rate > 0:
         if name is not None:
             kwargs['name'] = "%s_dropout%f"%(name, dropout_rate)
