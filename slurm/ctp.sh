@@ -76,6 +76,7 @@ if $train_discriminator2 && $use_disc ; then
     --steps_per_epoch 500 \
     --noise_dim $noise_dim \
     --loss $loss \
+    --use_batchnorm 0 \
     --batch_size 64
 fi
 
@@ -93,6 +94,7 @@ then
     --optimizer $optimizer \
     --steps_per_epoch 500 \
     --noise_dim $noise_dim \
+    --use_batchnorm 0 \
     --loss $loss \
     --batch_size 64 --no_disc
 fi
@@ -109,6 +111,7 @@ then
     --model_directory $MODELDIR/ \
     --optimizer $optimizer \
     --steps_per_epoch 500 \
+    --use_batchnorm 0 \
     --loss $loss \
     --batch_size 64 $retrain_cmd $use_disc_cmd
 fi
