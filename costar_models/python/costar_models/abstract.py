@@ -65,6 +65,7 @@ class AbstractAgentBasedModel(object):
             num_generator_files=5, upsampling=None,
             clip_weights=0, use_wasserstein=False,
             option_num=None, # for policy model
+            unique_id="", # for status file
             task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
 
@@ -139,6 +140,9 @@ class AbstractAgentBasedModel(object):
         # None, set to 2 for testing only
         self.prev_option = 2
 
+        # Unique id for status file
+        self.unique_id = unique_id
+
         
 
         # default: store the whole model here.
@@ -149,12 +153,13 @@ class AbstractAgentBasedModel(object):
         print("==========   TRAINING CONFIGURATION REPORT   ==============")
         print("===========================================================")
         print("Name =", self.name_prefix)
-        print("Features = ", self.features)
-        print("Robot = ", self.robot)
-        print("Task = ", self.task)
-        print("Model type = ", model)
-        print("Model directory = ", self.model_directory)
-        print("Models saved with prefix = ", self.name)
+        print("Features =", self.features)
+        print("Robot =", self.robot)
+        print("Task =", self.task)
+        print("Model type =", model)
+        print("Model directory =", self.model_directory)
+        print("Models saved with prefix =", self.name)
+        print("Unique id for status file =", self.unique_id)
         print("-----------------------------------------------------------")
         print("---------------- General Training Options -----------------")
         print("Iterations =", self.iter)

@@ -102,57 +102,57 @@ else
 fi
 
 if ! $skip_encoder; then
-	if $gan_encoder; then
-		echo "Training gan encoder"
-		${cmd_prefix}ctp_model_tool \
-			--features $features \
-			-e 500 \
-			--model pretrain_image_gan \
-			--data_file $data_dir \
-			--lr $lr \
-			--dropout_rate $dropout \
-			--model_directory $MODELDIR/ \
-			--optimizer $optimizer \
-			--steps_per_epoch 100 \
-			--noise_dim $noise_dim \
-			--loss $loss \
-			--gan_method gan \
-			--batch_size 64 \
-			$wass_cmd \
-			$load_cmd
-	else
-		echo "Training non-gan encoder: discriminator"
-		${cmd_prefix}ctp_model_tool \
-			--features $features \
-			-e 200 \
-			--model discriminator \
-			--data_file $data_dir \
-			--lr $lr \
-			--dropout_rate $dropout \
-			--model_directory $MODELDIR/ \
-			--optimizer $optimizer \
-			--steps_per_epoch 300 \
-			--noise_dim $noise_dim \
-			--loss $loss \
-			--batch_size 64 \
-			$load_cmd
+  if $gan_encoder; then
+    echo "Training gan encoder"
+    ${cmd_prefix}ctp_model_tool \
+      --features $features \
+      -e 500 \
+      --model pretrain_image_gan \
+      --data_file $data_dir \
+      --lr $lr \
+      --dropout_rate $dropout \
+      --model_directory $MODELDIR/ \
+      --optimizer $optimizer \
+      --steps_per_epoch 100 \
+      --noise_dim $noise_dim \
+      --loss $loss \
+      --gan_method gan \
+      --batch_size 64 \
+      $wass_cmd \
+      $load_cmd
+  else
+    echo "Training non-gan encoder: discriminator"
+    ${cmd_prefix}ctp_model_tool \
+      --features $features \
+      -e 200 \
+      --model discriminator \
+      --data_file $data_dir \
+      --lr $lr \
+      --dropout_rate $dropout \
+      --model_directory $MODELDIR/ \
+      --optimizer $optimizer \
+      --steps_per_epoch 300 \
+      --noise_dim $noise_dim \
+      --loss $loss \
+      --batch_size 64 \
+      $load_cmd
 
-		echo "Training non-gan image encoder"
-		${cmd_prefix}ctp_model_tool \
-			--features $features \
-			-e 200 \
-			--model pretrain_image_encoder \
-			--data_file $data_dir \
-			--lr $lr \
-			--dropout_rate $dropout \
-			--model_directory $MODELDIR/ \
-			--optimizer $optimizer \
-			--steps_per_epoch 300 \
-			--noise_dim $noise_dim \
-			--loss $loss \
-			--batch_size 64 \
-			$load_cmd
-	fi
+    echo "Training non-gan image encoder"
+    ${cmd_prefix}ctp_model_tool \
+      --features $features \
+      -e 200 \
+      --model pretrain_image_encoder \
+      --data_file $data_dir \
+      --lr $lr \
+      --dropout_rate $dropout \
+      --model_directory $MODELDIR/ \
+      --optimizer $optimizer \
+      --steps_per_epoch 300 \
+      --noise_dim $noise_dim \
+      --loss $loss \
+      --batch_size 64 \
+      $load_cmd
+  fi
 fi
 
 echo "Training conditional gan"

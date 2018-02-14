@@ -567,7 +567,8 @@ class ModelSaveCallback(keras.callbacks.Callback):
 
         # Save our status
         path = m.model_directory
-        with open(os.path.join(path, 'status.txt'), 'w+') as f:
+        id = m.unique_id
+        with open(os.path.join(path, 'status' + id + '.txt'), 'w+') as f:
             f.write(str(epoch + 1))
 
         if epoch % self.interval == 0 and epoch != 0:
