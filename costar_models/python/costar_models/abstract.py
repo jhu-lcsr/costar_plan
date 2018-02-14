@@ -62,7 +62,7 @@ class AbstractAgentBasedModel(object):
             save_model=True,
             hidden_size=128,
             loss="mae",
-            num_generator_files=3, upsampling=None,
+            num_generator_files=5, upsampling=None,
             clip_weights=0, use_wasserstein=False,
             option_num=None, # for policy model
             task=None, robot=None, model="", model_directory="./", *args,
