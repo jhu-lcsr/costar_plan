@@ -13,8 +13,6 @@ echo "Running $@ on $SLURMD_NODENAME ..."
 echo $1 $2 $3 $4 $5 $6 $7
 echo "use disc = $use_disc"
 
-module load tensorflow/cuda-8.0/r1.3 
-
 export DATASET="suturing_data2"
 export train_discriminator2=true
 export train_image_encoder=true
