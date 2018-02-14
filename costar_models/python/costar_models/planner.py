@@ -39,7 +39,7 @@ out: an output tensor
 # Use high momentum from TF?
 # MOMENTUM=0.9 seems to help training
 MOMENTUM=0.9
-RENORM=True
+RENORM=False
 
 def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
         lrelu=False, bn=True, momentum=MOMENTUM, name=None, constraint=None,
