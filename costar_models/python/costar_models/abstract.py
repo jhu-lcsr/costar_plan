@@ -44,7 +44,7 @@ class AbstractAgentBasedModel(object):
             steps_per_epoch=500, validation_steps=25,
             dropout_rate=0.5, decoder_dropout_rate=None,
             tform_dropout_rate=0.,
-            activation_fn="lrelu",
+            activation_fn="relu",
             validate=False,
             enc_loss=False,
             use_batchnorm=1,
@@ -62,7 +62,7 @@ class AbstractAgentBasedModel(object):
             save_model=True,
             hidden_size=128,
             loss="mae",
-            num_generator_files=3, upsampling=None,
+            num_generator_files=5, upsampling=None,
             clip_weights=0, use_wasserstein=False,
             option_num=None, # for policy model
             unique_id="", # for status file

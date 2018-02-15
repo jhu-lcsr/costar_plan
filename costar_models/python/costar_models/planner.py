@@ -24,6 +24,7 @@ from keras.constraints import max_norm
 
 from .batch_renorm import BatchRenormalization
 from .permanent_dropout import *
+from .instance_normalization import InstanceNormalization
 
 '''
 PLANNER MODEL TOOLS
@@ -90,6 +91,17 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
             kernel_size=kernel,
             strides=(stride,stride),
             padding=padding, **kwargs)(x)
+
+    if bn:
+        kwargs = {}
+        if name is not None:
+            kwargs['name'] = "%s_bn"%name
+        if RENORM:
+            x = BatchRenormalization(momentum=momentum, axis=-1, mode=0, **kwargs)(x)
+        else:
+            #x = BatchNormalization(momentum=momentum, **kwargs)(x)
+            x = InstanceNormalization(momentum=momentum, axis=-1, **kwargs)(x)
+
     kwargs = {}
     if lrelu or activation == "lrelu":
         if name is not None:
@@ -103,13 +115,7 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
         if name is not None:
             kwargs['name'] = "%s_relu"%name
         x = Activation("relu", **kwargs)(x)
-    if bn:
-        if name is not None:
-            kwargs['name'] = "%s_bn"%name
-        if RENORM:
-            x = BatchRenormalization(momentum=momentum, axis=-1, mode=0, **kwargs)(x)
-        else:
-            x = BatchNormalization(momentum=momentum, **kwargs)(x)
+
     if dropout_rate > 0:
         if name is not None:
             kwargs['name'] = "%s_dropout%f"%(name, dropout_rate)
@@ -139,15 +145,17 @@ def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate,
             kernel_size=kernel,
             strides=(stride,stride),
             padding=padding)(x)
-    if discriminator or activation=="lrelu":
-        x = LeakyReLU(alpha=0.2)(x)
-    else:
-        x = Activation(activation)(x)
     if bn:
         if RENORM:
             x = BatchRenormalization(momentum=momentum, axis=-1, mode=0)(x)
         else:
-            x = BatchNormalization(momentum=momentum)(x)
+            #x = BatchNormalization(momentum=momentum)(x)
+            x = InstanceNormalization(momentum=momentum, axis=-1, **kwargs)(x)
+
+    if discriminator or activation=="lrelu":
+        x = LeakyReLU(alpha=0.2)(x)
+    else:
+        x = Activation(activation)(x)
     if dropout_rate > 0:
         x = PermanentDropout(dropout_rate)(x)
     return x
@@ -191,12 +199,15 @@ def AddDense(x, size, activation, dropout_rate, output=False, momentum=MOMENTUM,
         x = Dense(size,
                   kernel_regularizer=kr,
                   activity_regularizer=ar,)(x)
+
+    if not output and bn:
+        #x = BatchNormalization(momentum=momentum)(x)
+        x = InstanceNormalization(momentum=momentum)(x)
+
     if activation == "lrelu":
         x = LeakyReLU(alpha=0.2)(x)
     else:
         x = Activation(activation)(x)
-    if not output and bn:
-        x = BatchNormalization(momentum=momentum)(x)
     if dropout_rate > 0:
         x = PermanentDropout(dropout_rate)(x)
     return x
