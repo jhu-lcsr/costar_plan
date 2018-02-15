@@ -379,9 +379,33 @@ def kFold_split(path, is_objectwise=FLAGS.objectwise_split, num_fold=FLAGS.num_f
     last_image_id = 'first_image'  # anything not '0000'
     last_object_id = 'first_object'  # anything not '0'
     with open(path) as f:
-        if not is_objectwise:
-            for line in f:
-                image_id, object_id, _, _ = line.split()
+        for line in f:
+            image_id, object_id, _, _ = line.split()
+            if is_objectwise:
+                # objectwise split
+                if last_object_id != object_id:
+                    last_object_id = object_id
+                    object_counter += 1
+                    dst_fold = object_counter % num_fold
+                if image_id != last_image_id:
+                    last_image_id = image_id
+                    path_pos = path_cut + 'pcd' + image_id + 'cpos.txt'
+                    path_neg = path_cut + 'pcd' + image_id + 'cneg.txt'
+                    if os.path.isfile(path_neg) and os.path.isfile(path_pos):
+                        image_counter += 1
+                        example_num_list[dst_fold] += 1
+                        if fold_last_object[dst_fold] != object_id:
+                            fold_last_object[dst_fold] = object_id
+                            unique_object_num_list[dst_fold] += 1
+                        if fold_last_image[dst_fold] != image_id:
+                            fold_last_image[dst_fold] = image_id
+                            unique_image_num_list[dst_fold] += 1
+                        _, neg_pos_num = load_bounding_boxes_from_pos_neg_files(path_pos, path_neg)
+                        negative_num_list[dst_fold] += neg_pos_num[0]
+                        positive_num_list[dst_fold] += neg_pos_num[1]
+                        total_grasp_list[dst_fold] += (neg_pos_num[0] + neg_pos_num[1])
+            else:
+                # imagewize split
                 if last_object_id != object_id:
                     last_object_id = object_id
                     object_counter += 1
@@ -404,9 +428,7 @@ def kFold_split(path, is_objectwise=FLAGS.objectwise_split, num_fold=FLAGS.num_f
                         if fold_last_object[dst_fold] != object_id:
                             fold_last_object[dst_fold] = object_id
                             unique_object_num_list[dst_fold] += 1
-        else:
-            # do objectwise split
-            pass
+
 
         info_lists = [which_splits, num_splits, example_num_list, unique_image_num_list,
                       unique_object_num_list, positive_num_list, negative_num_list,
@@ -977,6 +999,10 @@ def get_stat(name, amount, total, percent_description=''):
 
 
 def main():
+
+    path = '/home/ding/.keras/datasets/cornell_grasping/01/z.txt'
+    kFold_split(path, is_objectwise=True, num_fold=5)
+    return
 
     # plt.ion()
     gd = GraspDataset()
