@@ -389,7 +389,7 @@ def parse_and_preprocess(
         examples_serialized, is_training=True, label_features_to_extract=None,
         data_features_to_extract=None, crop_shape=None, output_shape=None,
         random_crop=None, crop_to_gripper=None,
-        preprocessing_mode='tf'):
+        preprocessing_mode='tf', verbose=0):
     """ Parse an example and perform image preprocessing.
 
     Right now see the code below for the specific feature strings available.
@@ -489,9 +489,9 @@ def parse_and_preprocess(
 
     # perform color augmentation and scaling
     image = preprocess_image(
-                image, is_training=is_training, fast_mode=False,
-                lower=0.5, upper=1.5, hue_max_delta=0.2,
-                brightness_max_delta=32. / 255., mode=preprocessing_mode)
+        image, is_training=is_training, fast_mode=False,
+        lower=0.5, upper=1.5, hue_max_delta=0.2,
+        brightness_max_delta=32. / 255., mode=preprocessing_mode)
 
     # generate all the preprocessed features for training
     feature['image/preprocessed'] = image
@@ -502,7 +502,7 @@ def parse_and_preprocess(
     feature['bbox/preprocessed/cx'] = preprocessed_grasp_center_coordinate[1]
     feature['bbox/preprocessed/cy_cx_normalized_2'] = K.concatenate(
         [tf.reshape(preprocessed_grasp_center_coordinate[0], (1,)) / tf.cast(feature['image/preprocessed/height'], tf.float32),
-        tf.reshape(preprocessed_grasp_center_coordinate[1], (1,)) / tf.cast(feature['image/preprocessed/width'], tf.float32)])
+         tf.reshape(preprocessed_grasp_center_coordinate[1], (1,)) / tf.cast(feature['image/preprocessed/width'], tf.float32)])
     feature['bbox/preprocessed/theta'] = grasp_center_rotation_theta
     feature['bbox/preprocessed/sin_cos_2'] = K.concatenate(
         [K.sin(grasp_center_rotation_theta), K.cos(grasp_center_rotation_theta)])
@@ -513,7 +513,7 @@ def parse_and_preprocess(
     feature['bbox/preprocessed/width'] = feature['bbox/width'] * random_scale
     feature['bbox/preprocessed/logarithm_height_width_2'] = K.concatenate(
         [K.log(feature['bbox/preprocessed/height'] + K.epsilon()),
-        K.log(feature['bbox/preprocessed/width'] + K.epsilon())])
+         K.log(feature['bbox/preprocessed/width'] + K.epsilon())])
     # TODO(ahundt) difference between "redundant" and regular proto parsing, figure out how to deal with grasp_success rename properly
     feature['grasp_success'] = feature['bbox/grasp_success']
     grasp_success_coordinate_label = K.concatenate(
@@ -532,7 +532,9 @@ def parse_and_preprocess(
             grasp_height=feature['bbox/height'],
             label=feature['grasp_success'])
 
-    print(feature)
+    if verbose > 0:
+        print(feature)
+
     if label_features_to_extract is None:
         return feature
     else:

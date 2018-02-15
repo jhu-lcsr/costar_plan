@@ -60,12 +60,12 @@ import grasp_loss as grasp_loss
 
 flags.DEFINE_float(
     'learning_rate',
-    0.001,
+    0.01,
     'Initial learning rate.'
 )
 flags.DEFINE_integer(
     'num_epochs',
-    5,
+    1,
     'Number of epochs to run trainer.'
 )
 flags.DEFINE_integer(
@@ -133,6 +133,8 @@ def hypertree_model(
         trunk_layers=4,
         trunk_filters=None,
         vector_branch_num_layers=2):
+
+    # TODO(ahundt) deal with model names being too long due to https://github.com/keras-team/keras/issues/5253
     if top == 'segmentation':
         name_prefix = 'dilated_'
     else:
@@ -238,7 +240,7 @@ def run_training(
         validation_file=None,
         train_data=None,
         validation_data=None,
-        features='preprocessed_image_raw_grasp',
+        feature_combo_name='preprocessed_image_raw_grasp',
         image_model_name='vgg',
         **kwargs):
     """
@@ -256,7 +258,7 @@ def run_training(
 
     [image_shapes, vector_shapes, data_features, model_name,
      monitor_loss_name, label_features, monitor_metric_name,
-     loss, metrics] = feature_selection(features)
+     loss, metrics] = feature_selection(feature_combo_name, top)
 
     # see parse_and_preprocess() for the creation of these features
     model_name = image_model_name + model_name
@@ -266,11 +268,11 @@ def run_training(
     # in exactly the same way the model
     # was originally trained
     if preprocessing_mode is None:
-        if 'densenet' in model_name:
+        if 'densenet' in image_model_name:
             preprocessing_mode = 'torch'
-        elif 'nasnet' in model_name:
+        elif 'nasnet' in image_model_name:
             preprocessing_mode = 'tf'
-        elif 'vgg' in model_name or 'resnet' in model_name:
+        elif 'vgg' in image_model_name or 'resnet' in image_model_name:
             preprocessing_mode = 'caffe'
         else:
             raise ValueError('You need to explicitly set the preprocessing mode to '
@@ -293,7 +295,7 @@ def run_training(
 
     save_weights = ''
     dataset_names_str = 'cornell_grasping'
-    weights_name = timeStamped(save_weights + '-' + model_name + '-dataset_' + dataset_names_str + '-' + label_features[0])
+    run_name = timeStamped(save_weights + '-' + model_name + '-dataset_' + dataset_names_str + '-' + label_features[0])
     callbacks = []
 
     optimizer = keras.optimizers.SGD(learning_rate * 1.0)
@@ -302,14 +304,15 @@ def run_training(
         keras.callbacks.ReduceLROnPlateau(patience=12, verbose=1, factor=0.5, monitor=monitor_loss_name)
     ]
 
-    log_dir = './logs_cornell/' + weights_name
-    csv_logger = CSVLogger(log_dir + '.csv')
+    log_dir = './logs_cornell/' + run_name
+    log_dir_run_name = os.path.join(log_dir, run_name)
+    csv_logger = CSVLogger(log_dir_run_name + run_name + '.csv')
     callbacks = callbacks + [csv_logger]
     callbacks += [PrintLogsCallback()]
     print('Enabling tensorboard in ' + log_dir)
     mkdir_p(log_dir)
 
-    checkpoint = keras.callbacks.ModelCheckpoint(os.path.join(log_dir, weights_name) + '-epoch-{epoch:03d}-' +
+    checkpoint = keras.callbacks.ModelCheckpoint(log_dir_run_name + run_name + '-epoch-{epoch:03d}-' +
                                                  monitor_loss_name + '-{' + monitor_loss_name + ':.3f}-' +
                                                  monitor_metric_name + '-{' + monitor_metric_name + ':.3f}.h5',
                                                  save_best_only=True, verbose=1, monitor=monitor_metric_name)
@@ -350,7 +353,7 @@ def run_training(
     train_data, validation_data = load_dataset(
         validation_file, label_features, data_features,
         samples_in_val_dataset, train_file, batch_size,
-        val_batch_size)
+        val_batch_size, train_data=train_data, validation_data=validation_data)
 
     print('calling model.fit_generator()')
     history = parallel_model.fit_generator(
@@ -361,32 +364,33 @@ def run_training(
         validation_steps=steps_in_val_dataset,
         callbacks=callbacks)
 
-    model.save_weights(os.path.join(log_dir, weights_name + '_model.h5'))
+    model.save_weights(log_dir_run_name + run_name + '_model.h5')
 
     # hyperopt seems to be done on val_loss
     # may try 1-val_acc sometime (since the hyperopt minimizes)
-    final_val_acc = history.history['val_acc'][-1]
-    print(weights_name + ' fit complete with final val_acc: ' + str(final_val_acc))
-    return final_val_acc
+    final_val_loss = history.history['val_loss'][-1]
+    print(run_name + ' fit complete with final val_loss: ' + str(final_val_loss))
+    return final_val_loss
 
 
-def feature_selection(features, top):
-    if features == 'preprocessed_image_raw_grasp':
+def feature_selection(feature_combo_name, top):
+    print('feature_combo_name: ' + str(feature_combo_name))
+    if feature_combo_name == 'preprocessed_image_raw_grasp':
         data_features = ['image/preprocessed', 'sin_cos_height_width_4']
         image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
         vector_shapes = [(4,)]
-    if features == 'preprocessed':
+    elif feature_combo_name == 'preprocessed':
         data_features = ['image/preprocessed', 'bbox/preprocessed/cy_cx_normalized_2',
                          'bbox/preprocessed/sin_cos_2', 'bbox/preprocessed/logarithm_height_width_2']
         image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
         vector_shapes = [(2,), (2,), (2,)]
-    elif features == 'raw':
+    elif feature_combo_name == 'raw':
         data_features = ['image/decoded', 'sin_cos_height_width_4']
         image_shapes = [(FLAGS.sensor_image_height, FLAGS.sensor_image_width, 3)]
         vector_shapes = [(4,)]
     else:
-        raise ValueError('Selected feature ' + str(features) + ' does not exist. '
-                         'feature selection options are preprocessed_image_raw_grasp,'
+        raise ValueError('Selected feature ' + str(feature_combo_name) + ' does not exist. '
+                         'feature selection options are preprocessed_image_raw_grasp, '
                          'preprocessed, and raw')
 
     if top == 'segmentation':
@@ -409,7 +413,8 @@ def feature_selection(features, top):
     return image_shapes, vector_shapes, data_features, model_name, monitor_loss_name, label_features, monitor_metric_name, loss, metrics
 
 
-def load_dataset(validation_file, label_features, data_features, samples_in_val_dataset, train_file, batch_size, val_batch_size, in_memory_validation=False):
+def load_dataset(validation_file, label_features, data_features, samples_in_val_dataset, train_file, batch_size, val_batch_size,
+                 train_data=None, validation_data=None, in_memory_validation=False):
 
     if in_memory_validation:
         val_batch_size = samples_in_val_dataset

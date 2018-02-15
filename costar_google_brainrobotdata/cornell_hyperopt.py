@@ -12,7 +12,7 @@ FLAGS = flags.FLAGS
 
 def optimize(train_file=None, validation_file=None, seed=1):
     np.random.seed(seed)
-    # TODO(ahundt) hyper optimize more input features (ex: remove sin theta cos theta), optimizers, etc
+    # TODO(ahundt) hyper optimize more input feature_combo_names (ex: remove sin theta cos theta), optimizers, etc
     # continuous variables and then discrete variables
     # I'm going with super conservative values for the first run to get an idea how it works
     search_space = [
@@ -47,7 +47,7 @@ def optimize(train_file=None, validation_file=None, seed=1):
 
     load_dataset_in_advance = True
     top = 'classification'
-    features = 'preprocessed_image_raw_grasp'
+    feature_combo_name = 'preprocessed_image_raw_grasp'
     train_data = None
     validation_data = None
 
@@ -66,7 +66,7 @@ def optimize(train_file=None, validation_file=None, seed=1):
 
         [image_shapes, vector_shapes, data_features, model_name,
          monitor_loss_name, label_features, monitor_metric_name,
-         loss, metrics] = cornell_grasp_train.feature_selection(features, top)
+         loss, metrics] = cornell_grasp_train.feature_selection(feature_combo_name, top)
 
         train_data, validation_data = cornell_grasp_train.load_dataset(
             validation_file, label_features, data_features,
