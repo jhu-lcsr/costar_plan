@@ -363,6 +363,9 @@ def kFold_split(path, is_objectwise=FLAGS.objectwise_split, num_fold=FLAGS.num_f
     negative_num_list = [0 for i in range(num_fold)]
     total_grasp_list = [0 for i in range(num_fold)]
 
+    fold_last_image = ['' for i in range(num_fold)]
+    fold_last_object = ['' for i in range(num_fold)]
+
     path_cut = path[:-5]
     if not is_objectwise:
         spilt_type_list = ['imagewise'] * num_fold
@@ -379,24 +382,28 @@ def kFold_split(path, is_objectwise=FLAGS.objectwise_split, num_fold=FLAGS.num_f
         if not is_objectwise:
             for line in f:
                 image_id, object_id, _, _ = line.split()
+                if last_object_id != object_id:
+                    last_object_id = object_id
+                    object_counter += 1
                 if image_id != last_image_id:
+                    last_image_id = image_id
                     path_pos = path_cut + 'pcd' + image_id + 'cpos.txt'
                     path_neg = path_cut + 'pcd' + image_id + 'cneg.txt'
                     if os.path.isfile(path_neg) and os.path.isfile(path_pos):
                         image_counter += 1  # increment only reading new image, not new line
                         dst_fold = image_counter % num_fold
                         example_num_list[dst_fold] += 1
-                        last_image_id = image_id
-                        unique_image_num_list[dst_fold] += 1
+                        if fold_last_image[dst_fold] != image_id:
+                            fold_last_image[dst_fold] = image_id
+                            unique_image_num_list[dst_fold] += 1
                         # return a list of size 2, [neg_num, pos_num]
                         _, neg_pos_num = load_bounding_boxes_from_pos_neg_files(path_pos, path_neg)
                         negative_num_list[dst_fold] += neg_pos_num[0]
                         positive_num_list[dst_fold] += neg_pos_num[1]
                         total_grasp_list[dst_fold] += (neg_pos_num[0] + neg_pos_num[1])
-                        if object_id != last_object_id:
-                            last_object_id = object_id
+                        if fold_last_object[dst_fold] != object_id:
+                            fold_last_object[dst_fold] = object_id
                             unique_object_num_list[dst_fold] += 1
-                            object_counter += 1
         else:
             # do objectwise split
             pass
