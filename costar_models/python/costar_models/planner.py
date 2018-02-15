@@ -1012,6 +1012,7 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
 
     xin = Input([int(d) for d in x.shape[1:]], name="V_h_in")
     x0in = Input([int(d) for d in x.shape[1:]], name="V_h0_in")
+    use_lrelu = False
     bn = batchnorm
     x = xin
     x0 = x0in
@@ -1021,18 +1022,18 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
 
         x = AddConv2D(x, 64, [5,5], 1, dropout_rate, "same",
                 bn=batchnorm,
-                lrelu=True,
+                lrelu=use_lrelu,
                 name="A_project",
                 constraint=None)
         x0 = AddConv2D(x0, 64, [5,5], 1, dropout_rate, "same",
                 bn=batchnorm,
-                lrelu=True,
+                lrelu=use_lrelu,
                 name="A0_project",
                 constraint=None)
         x = Add()([x0,x])
 
-        x = AddConv2D(x, 64, [5,5], 2, dropout_rate, "same", lrelu=True, bn=bn)
-        x = AddConv2D(x, 64, [5,5], 2, dropout_rate, "same", lrelu=True, bn=bn)
+        x = AddConv2D(x, 64, [5,5], 2, dropout_rate, "same", lrelu=use_lrelu, bn=bn)
+        x = AddConv2D(x, 64, [5,5], 2, dropout_rate, "same", lrelu=use_lrelu, bn=bn)
 
         x = Flatten()(x)
 
