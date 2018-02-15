@@ -65,12 +65,12 @@ flags.DEFINE_float(
 )
 flags.DEFINE_integer(
     'num_epochs',
-    300,
+    5,
     'Number of epochs to run trainer.'
 )
 flags.DEFINE_integer(
     'batch_size',
-    64,
+    10,
     'Batch size.'
 )
 flags.DEFINE_string(
@@ -115,7 +115,7 @@ def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
     return datetime.datetime.now().strftime(fmt).format(fname=fname)
 
 
-def dilated_vgg_model(
+def hypertree_model(
         images=None, vectors=None,
         image_shapes=None, vector_shapes=None,
         dropout_rate=None,
@@ -129,53 +129,56 @@ def dilated_vgg_model(
         output_shape=None,
         trainable=False,
         verbose=0,
-        image_model_name='vgg'):
+        image_model_name='vgg',
+        trunk_layers=4,
+        trunk_filters=None,
+        vector_branch_num_layers=2):
     if top == 'segmentation':
         name_prefix = 'dilated_'
     else:
         name_prefix = 'single_'
-    with K.name_scope(name_prefix + image_model_name) as scope:
+    with K.name_scope(name_prefix + 'hypertree') as scope:
         # VGG16 weights are shared and not trainable
         if top == 'segmentation':
-            vgg_model = fcn.AtrousFCN_Vgg16_16s(
+            image_model = fcn.AtrousFCN_Vgg16_16s(
                 input_shape=image_shapes[0], include_top=False,
                 classes=classes, upsample=False)
         else:
             if image_model_name == 'vgg':
-                vgg_model = keras.applications.vgg16.VGG16(
+                image_model = keras.applications.vgg16.VGG16(
                     input_shape=image_shapes[0], include_top=False,
                     classes=classes)
             elif image_model_name == 'nasnet':
-                vgg_model = keras.applications.nasnet.NASNetLarge(
+                image_model = keras.applications.nasnet.NASNetLarge(
                     input_shape=image_shapes[0], include_top=False,
                     classes=classes
                 )
             elif image_model_name == 'nasnet_mobile':
-                vgg_model = keras.applications.nasnet.NASNetMobile(
+                image_model = keras.applications.nasnet.NASNetMobile(
                     input_shape=image_shapes[0], include_top=False,
                     classes=classes
                 )
             elif image_model_name == 'resnet':
-                vgg_model = keras.applications.resnet50.ResNet50(
+                image_model = keras.applications.resnet50.ResNet50(
                     input_shape=image_shapes[0], include_top=False,
                     classes=classes)
             elif image_model_name == 'densenet':
-                vgg_model = keras.applications.densenet.DenseNet169(
+                image_model = keras.applications.densenet.DenseNet169(
                     input_shape=image_shapes[0], include_top=False,
                     classes=classes)
             else:
                 raise ValueError('Unsupported image_model_name')
 
         if not trainable:
-            for layer in vgg_model.layers:
+            for layer in image_model.layers:
                 layer.trainable = False
 
-        def create_vgg_model(tensor):
+        def create_image_model(tensor):
             """ Image classifier weights are shared.
             """
-            return vgg_model(tensor)
+            return image_model(tensor)
 
-        def vector_branch_dense(tensor, vector_dense_filters=vector_dense_filters, num_layers=2):
+        def vector_branch_dense(tensor, vector_dense_filters=vector_dense_filters, num_layers=vector_branch_num_layers):
             """ Vector branches that simply contain a single dense layer.
             """
             x = tensor
@@ -184,9 +187,17 @@ def dilated_vgg_model(
             return x
 
         def create_tree_trunk(tensor):
-            channels = K.int_shape(tensor)[-1]
-            x, num_filters = densenet.__dense_block(tensor, nb_layers=4, nb_filter=channels,
-                                                    growth_rate=48, dropout_rate=dropout_rate)
+            x = tensor
+            if trunk_filters is None:
+                channels = K.int_shape(tensor)[-1]
+            else:
+                channels = trunk_filters
+
+            if trunk_layers is not None:
+                x, num_filters = densenet.__dense_block(
+                    x, nb_layers=trunk_layers, nb_filter=channels,
+                    growth_rate=48, dropout_rate=dropout_rate)
+
             return x
 
         model = dilated_late_concat_model(
@@ -194,7 +205,7 @@ def dilated_vgg_model(
             image_shapes=image_shapes, vector_shapes=vector_shapes,
             dropout_rate=dropout_rate,
             vector_dense_filters=vector_dense_filters,
-            create_image_tree_roots_fn=create_vgg_model,
+            create_image_tree_roots_fn=create_image_model,
             create_vector_tree_roots_fn=vector_branch_dense,
             create_tree_trunk_fn=create_tree_trunk,
             dilation_rate=dilation_rate,
@@ -215,47 +226,40 @@ class PrintLogsCallback(keras.callbacks.Callback):
         print('\nlogs:', logs)
 
 
-def run_training(learning_rate=0.01, batch_size=10, num_gpus=1, top='classification', epochs=300, preprocessing_mode=None):
+def run_training(
+        learning_rate=0.01,
+        batch_size=None,
+        num_gpus=1,
+        top='classification',
+        epochs=None,
+        preprocessing_mode=None,
+        save_model=True,
+        train_file=None,
+        validation_file=None,
+        train_data=None,
+        validation_data=None,
+        features='preprocessed_image_raw_grasp',
+        image_model_name='vgg',
+        **kwargs):
     """
 
     top: options are 'segmentation' and 'classification'.
     """
-    features = 'preprocessed_image_raw_grasp'
+    if epochs is None:
+        epochs = FLAGS.num_epochs
+    if batch_size is None:
+        batch_size = FLAGS.batch_size
+    if train_file is None:
+        train_file = os.path.join(FLAGS.data_dir, FLAGS.train_filename)
+    if validation_file is None:
+        validation_file = os.path.join(FLAGS.data_dir, FLAGS.evaluate_filename)
 
-    if features == 'preprocessed_image_raw_grasp':
-        data_features = ['image/preprocessed', 'sin_cos_height_width_4']
-        image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
-        vector_shapes = [(4,)]
-    if features == 'preprocessed':
-        data_features = ['image/preprocessed', 'bbox/preprocessed/cy_cx_normalized_2',
-                         'bbox/preprocessed/sin_cos_2', 'bbox/preprocessed/logarithm_height_width_2']
-        image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
-        vector_shapes = [(2,), (2,), (2,)]
-    elif features == 'raw':
-        data_features = ['image/decoded', 'sin_cos_height_width_4']
-        image_shapes = [(FLAGS.sensor_image_height, FLAGS.sensor_image_width, 3)]
-        vector_shapes = [(4,)]
+    [image_shapes, vector_shapes, data_features, model_name,
+     monitor_loss_name, label_features, monitor_metric_name,
+     loss, metrics] = feature_selection(features)
 
     # see parse_and_preprocess() for the creation of these features
-    if top == 'segmentation':
-        label_features = ['grasp_success_yx_3']
-        monitor_loss_name = 'segmentation_gaussian_binary_crossentropy'
-        monitor_metric_name = 'val_segmentation_single_pixel_binary_accuracy'
-        loss = grasp_loss.segmentation_gaussian_binary_crossentropy
-        metrics = [grasp_loss.segmentation_single_pixel_binary_accuracy, grasp_loss.mean_pred]
-        model_name = 'dilated_vgg_model'
-        image_model_name = 'vgg'
-    else:
-        label_features = ['grasp_success']
-        monitor_metric_name = 'val_binary_accuracy'
-        monitor_loss_name = 'val_loss'
-        metrics = ['binary_accuracy', grasp_loss.mean_pred, grasp_loss.mean_true]
-        loss = keras.losses.binary_crossentropy
-        model_name = 'vgg_dense_model'
-        image_model_name = 'vgg'
-        # model_name = 'nasnet_dense_block_model'
-        # image_model_name = 'nasnet'
-        # image_model_name = 'nasnet_mobile'
+    model_name = image_model_name + model_name
 
     # If loading pretrained weights
     # it is very important to preprocess
@@ -273,15 +277,15 @@ def run_training(learning_rate=0.01, batch_size=10, num_gpus=1, top='classificat
                              'torch, tf, or caffe for these weights')
 
 
-    # create dilated_vgg_model with inputs [image], [sin_theta, cos_theta]
+    # create hypertree_model with inputs [image], [sin_theta, cos_theta]
     # TODO(ahundt) split vector shapes up appropriately for dense layers in dilated_late_concat_model
     # TODO(ahundt) get dimensions automatically, based on configured params
-    model = dilated_vgg_model(
+    model = hypertree_model(
         image_shapes=image_shapes,
         vector_shapes=vector_shapes,
-        dropout_rate=0.5,
         top=top,
-        image_model_name=image_model_name)
+        image_model_name=image_model_name,
+        **kwargs)
 
     print(monitor_loss_name)
     # TODO(ahundt) add a loss that changes size with how open the gripper is
@@ -298,10 +302,10 @@ def run_training(learning_rate=0.01, batch_size=10, num_gpus=1, top='classificat
         keras.callbacks.ReduceLROnPlateau(patience=12, verbose=1, factor=0.5, monitor=monitor_loss_name)
     ]
 
-    csv_logger = CSVLogger(weights_name + '.csv')
+    log_dir = './logs_cornell/' + weights_name
+    csv_logger = CSVLogger(log_dir + '.csv')
     callbacks = callbacks + [csv_logger]
     callbacks += [PrintLogsCallback()]
-    log_dir = './logs_cornell/' + weights_name
     print('Enabling tensorboard in ' + log_dir)
     mkdir_p(log_dir)
 
@@ -319,15 +323,9 @@ def run_training(learning_rate=0.01, batch_size=10, num_gpus=1, top='classificat
                                    # histogram_freq=0, batch_size=batch_size,
                                    # write_batch_performance=True)
     callbacks = callbacks + [progress_tracker]
-    train_file = os.path.join(FLAGS.data_dir, FLAGS.train_filename)
-    validation_file = os.path.join(FLAGS.data_dir, FLAGS.evaluate_filename)
+
     # TODO(ahundt) WARNING: THE NUMBER OF TRAIN/VAL STEPS VARIES EVERY TIME THE DATASET IS CONVERTED, AUTOMATE SETTING THOSE NUMBERS
-    samples_in_training_dataset = 6402
-    samples_in_val_dataset = 1617
-    val_batch_size = 11
-    steps_in_val_dataset, divides_evenly = np.divmod(samples_in_val_dataset, val_batch_size)
-    assert divides_evenly == 0
-    steps_per_epoch_train = np.ceil(float(samples_in_training_dataset) / float(batch_size))
+    samples_in_val_dataset, steps_per_epoch_train, steps_in_val_dataset, val_batch_size = epoch_params(batch_size)
 
     if num_gpus > 1:
         parallel_model = keras.utils.multi_gpu_model(model, num_gpus)
@@ -349,23 +347,100 @@ def run_training(learning_rate=0.01, batch_size=10, num_gpus=1, top='classificat
 
     # Get the validation dataset in one big numpy array for validation
     # This lets us take advantage of tensorboard visualization
-    print('loading validation data directly into memory, if you run out modify the next line')
-    all_validation_data = next(cornell_grasp_dataset_reader.yield_record(
+    train_data, validation_data = load_dataset(
         validation_file, label_features, data_features,
-        is_training=False, batch_size=samples_in_val_dataset,
-        parse_example_proto_fn=parse_and_preprocess))
+        samples_in_val_dataset, train_file, batch_size,
+        val_batch_size)
 
     print('calling model.fit_generator()')
-    parallel_model.fit_generator(
-        cornell_grasp_dataset_reader.yield_record(
-            train_file, label_features, data_features,
-            batch_size=batch_size,
-            parse_example_proto_fn=parse_and_preprocess),
+    history = parallel_model.fit_generator(
+        train_data,
         steps_per_epoch=steps_per_epoch_train,
         epochs=epochs,
-        validation_data=all_validation_data,
+        validation_data=validation_data,
         validation_steps=steps_in_val_dataset,
         callbacks=callbacks)
+
+    model.save_weights(os.path.join(log_dir, weights_name + '_model.h5'))
+
+    # hyperopt seems to be done on val_loss
+    # may try 1-val_acc sometime (since the hyperopt minimizes)
+    final_val_acc = history.history['val_acc'][-1]
+    print(weights_name + ' fit complete with final val_acc: ' + str(final_val_acc))
+    return final_val_acc
+
+
+def feature_selection(features, top):
+    if features == 'preprocessed_image_raw_grasp':
+        data_features = ['image/preprocessed', 'sin_cos_height_width_4']
+        image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
+        vector_shapes = [(4,)]
+    if features == 'preprocessed':
+        data_features = ['image/preprocessed', 'bbox/preprocessed/cy_cx_normalized_2',
+                         'bbox/preprocessed/sin_cos_2', 'bbox/preprocessed/logarithm_height_width_2']
+        image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
+        vector_shapes = [(2,), (2,), (2,)]
+    elif features == 'raw':
+        data_features = ['image/decoded', 'sin_cos_height_width_4']
+        image_shapes = [(FLAGS.sensor_image_height, FLAGS.sensor_image_width, 3)]
+        vector_shapes = [(4,)]
+    else:
+        raise ValueError('Selected feature ' + str(features) + ' does not exist. '
+                         'feature selection options are preprocessed_image_raw_grasp,'
+                         'preprocessed, and raw')
+
+    if top == 'segmentation':
+        label_features = ['grasp_success_yx_3']
+        monitor_loss_name = 'segmentation_gaussian_binary_crossentropy'
+        monitor_metric_name = 'val_segmentation_single_pixel_binary_accuracy'
+        loss = grasp_loss.segmentation_gaussian_binary_crossentropy
+        metrics = [grasp_loss.segmentation_single_pixel_binary_accuracy, grasp_loss.mean_pred]
+        model_name = '_dilated_model'
+    elif top == 'classification':
+        label_features = ['grasp_success']
+        monitor_metric_name = 'val_binary_accuracy'
+        monitor_loss_name = 'val_loss'
+        metrics = ['binary_accuracy', grasp_loss.mean_pred, grasp_loss.mean_true]
+        loss = keras.losses.binary_crossentropy
+        model_name = '_dense_model'
+    else:
+        raise ValueError('Selected top ' + str(top) + ' does not exist. '
+                         'feature selection options are segmentation and classification')
+    return image_shapes, vector_shapes, data_features, model_name, monitor_loss_name, label_features, monitor_metric_name, loss, metrics
+
+
+def load_dataset(validation_file, label_features, data_features, samples_in_val_dataset, train_file, batch_size, val_batch_size, in_memory_validation=False):
+
+    if in_memory_validation:
+        val_batch_size = samples_in_val_dataset
+
+    if validation_data is None:
+        validation_data = cornell_grasp_dataset_reader.yield_record(
+            validation_file, label_features, data_features,
+            is_training=False, batch_size=val_batch_size,
+            parse_example_proto_fn=parse_and_preprocess)
+
+    if in_memory_validation:
+        print('loading validation data directly into memory, if you run out set in_memory_validation to False')
+        validation_data = next(validation_data)
+
+    if train_data is None:
+        train_data = cornell_grasp_dataset_reader.yield_record(
+            train_file, label_features, data_features,
+            batch_size=batch_size,
+            parse_example_proto_fn=parse_and_preprocess)
+    return train_data, validation_data
+
+
+def epoch_params(batch_size):
+    # TODO(ahundt) WARNING: THE NUMBER OF TRAIN/VAL STEPS VARIES EVERY TIME THE DATASET IS CONVERTED, AUTOMATE SETTING THOSE NUMBERS
+    samples_in_training_dataset = 6402
+    samples_in_val_dataset = 1617
+    val_batch_size = 11
+    steps_in_val_dataset, divides_evenly = np.divmod(samples_in_val_dataset, val_batch_size)
+    assert divides_evenly == 0
+    steps_per_epoch_train = np.ceil(float(samples_in_training_dataset) / float(batch_size))
+    return samples_in_val_dataset, steps_per_epoch_train, steps_in_val_dataset, val_batch_size
 
 
 def bboxes_to_grasps(bboxes):
