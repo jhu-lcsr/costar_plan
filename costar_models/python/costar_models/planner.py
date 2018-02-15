@@ -945,6 +945,7 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     option_in = Input((1,), name="Nx_prev_o_in")
     x = xin
     x0 = x0in
+    use_lrelu = False
 
     # Combine these two to get information that may be obscured
 
@@ -953,12 +954,12 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
         # Project
         x = AddConv2D(x, 32, [1,1], 1, dropout_rate, "same",
                 bn=batchnorm,
-                lrelu=True,
+                lrelu=use_lrelu,
                 name="Nx_project",
                 constraint=None)
         x0 = AddConv2D(x0, 32, [1,1], 1, dropout_rate, "same",
                 bn=batchnorm,
-                lrelu=True,
+                lrelu=use_lrelu,
                 name="Nx_project0",
                 constraint=None)
         x = Add()([x,x0])
@@ -971,33 +972,36 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
         # conv down
         x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "valid",
                 bn=batchnorm,
-                lrelu=True,
+                lrelu=use_lrelu,
                 name="Nx_C64A",
                 constraint=None)
         # conv across
         x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "valid",
                 bn=batchnorm,
-                lrelu=True,
+                lrelu=use_lrelu,
                 name="Nx_C64B",
                 constraint=None)
 
 
-        x = AddConv2D(x, 32, [3,3], 1, dropout_rate, "valid",
+        x = AddConv2D(x, 32, [3,3], 1, 0., "valid",
                 bn=batchnorm,
-                lrelu=True,
+                lrelu=use_lrelu,
                 name="Nx_C32A",
                 constraint=None)
         # This is the hidden representation of the world, but it should be flat
         # for our classifier to work.
         x = Flatten()(x)
 
+    x = Dropout(0.5)(x)
     x = Concatenate()([x, option_in])
 
     # Next options
-    x1 = AddDense(x, dense_size, "relu", dropout_rate, constraint=None,
-            output=False,)
+    x1 = AddDense(x, dense_size, "relu", 0., constraint=None,
+            output=True,)
+    x = Dropout(0.5)(x)
     x1 = AddDense(x1, dense_size, "relu", 0., constraint=None,
-            output=False,)
+            output=True,)
+    x = Dropout(0.5)(x)
 
     next_option_out = Dense(num_options,
             activation="softmax", name="lnext",)(x1)
@@ -1033,18 +1037,17 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
         x = Add()([x0,x])
 
         x = AddConv2D(x, 64, [5,5], 2, dropout_rate, "same", lrelu=use_lrelu, bn=bn)
-        x = AddConv2D(x, 64, [5,5], 2, dropout_rate, "same", lrelu=use_lrelu, bn=bn)
-
+        x = AddConv2D(x, 64, [5,5], 2, 0., "same", lrelu=use_lrelu, bn=bn)
         x = Flatten()(x)
 
     # Next options
-    x = AddDense(x, 2*dense_size, "lrelu", 0)
+    x = Dropout(0.5)(x)
+    x = AddDense(x, dense_size, "relu", 0, bn=False)
+    x = Dropout(0.5)(x)
     value_out = Dense(1,
             activation="sigmoid", name="value",)(x)
     next_model = Model([x0in, xin], value_out, name="V")
     return next_model
-
-
 
 
 def GetNextOptionAndValue(x, num_options, dense_size, dropout_rate=0.5, option_in=None):
