@@ -118,7 +118,6 @@ import errno
 import traceback
 import itertools
 import six
-import os
 import glob
 import numpy as np
 
@@ -156,6 +155,10 @@ flags.DEFINE_string('data_dir',
                     """Path to dataset in TFRecord format
                     (aka Example protobufs) and feature csv files.""")
 flags.DEFINE_string('grasp_dataset', 'all', 'TODO(ahundt): integrate with brainrobotdata or allow subsets to be specified')
+flags.DEFINE_boolean('objectwise_split', False,
+                     """ If enabled K-Fold split based on object, image of same object will split to same fold. Default to false, doing regular imagewise K-Fold.
+                     """)
+flags.DEFINE_integer('num_fold', 5, 'number of fold for K-Fold splits, default to 5')
 flags.DEFINE_boolean('grasp_download', False,
                      """Download the grasp_dataset to data_dir if it is not already present.""")
 flags.DEFINE_boolean('plot', False, 'Plot images and grasp bounding box data in matplotlib as it is traversed')
@@ -342,6 +345,78 @@ def read_label_file(path):
                 if not has_nan:
                     yield xys[-4], xys[-3], xys[-2], xys[-1]
                 has_nan = False
+
+
+def kFold_split(path, is_objectwise=FLAGS.objectwise_split, num_fold=FLAGS.num_fold):
+    """ K-Fold on dataset.
+        path: path to z.txt, a file match images and objects. And *pos/neg.txt, should
+        remain in same folder with z.txt.
+        is_objectwise: if True, do splits on different objects. Otherwise do splits on image.
+        num_fold: the number of splits.
+    """
+    which_splits = [i for i in range(num_fold)]
+    num_splits = [num_fold] * num_fold
+    example_num_list = [0 for i in range(num_fold)]
+    unique_image_num_list = [0 for i in range(num_fold)]
+    unique_object_num_list = [0 for i in range(num_fold)]
+    positive_num_list = [0 for i in range(num_fold)]
+    negative_num_list = [0 for i in range(num_fold)]
+    total_grasp_list = [0 for i in range(num_fold)]
+
+    path_cut = path[:-5]
+    if not is_objectwise:
+        spilt_type_list = ['imagewise'] * num_fold
+        result_path = path_cut + 'imagewise_k_fold_stat.csv'
+    else:
+        spilt_type_list = ['objectwise'] * num_fold
+        result_path = path_cut + 'objectwise_k_fold_stat.csv'
+
+    image_counter = 0
+    object_counter = 0
+    last_image_id = 'first_image'  # anything not '0000'
+    last_object_id = 'first_object'  # anything not '0'
+    with open(path) as f:
+        if not is_objectwise:
+            for line in f:
+                image_id, object_id, _, _ = line.split()
+                if image_id != last_image_id:
+                    path_pos = path_cut + 'pcd' + image_id + 'cpos.txt'
+                    path_neg = path_cut + 'pcd' + image_id + 'cneg.txt'
+                    if os.path.isfile(path_neg) and os.path.isfile(path_pos):
+                        image_counter += 1  # increment only reading new image, not new line
+                        dst_fold = image_counter % num_fold
+                        example_num_list[dst_fold] += 1
+                        last_image_id = image_id
+                        unique_image_num_list[dst_fold] += 1
+                        # return a list of size 2, [neg_num, pos_num]
+                        _, neg_pos_num = load_bounding_boxes_from_pos_neg_files(path_pos, path_neg)
+                        negative_num_list[dst_fold] += neg_pos_num[0]
+                        positive_num_list[dst_fold] += neg_pos_num[1]
+                        total_grasp_list[dst_fold] += (neg_pos_num[0] + neg_pos_num[1])
+                        if object_id != last_object_id:
+                            last_object_id = object_id
+                            unique_object_num_list[dst_fold] += 1
+                            object_counter += 1
+        else:
+            # do objectwise split
+            pass
+
+        info_lists = [which_splits, num_splits, example_num_list, unique_image_num_list,
+                      unique_object_num_list, positive_num_list, negative_num_list,
+                      total_grasp_list, spilt_type_list]
+        head_line = ('which_splits, num_splits, num_example, unique_image, unique_object,'
+                     'num_pos, num_neg, num_total_grasp, spilt_type\n')
+        # mkdir_p(result_path)
+        file_object = open(result_path, 'w+')
+        file_object.writelines(head_line)
+        for i in range(num_fold):
+            cur_line = ''
+            for single_list in info_lists:
+                cur_line += str(single_list[i]) + ','
+            file_object.writelines(cur_line + '\n')
+        file_object.close()
+
+    return
 
 
 def bbox_info(box):
@@ -895,7 +970,9 @@ def get_stat(name, amount, total, percent_description=''):
 
 
 def main():
-
+    print('my print')
+    kFold_split(path='/home/ding/.keras/datasets/cornell_grasping/01/z.txt')
+    return
     # plt.ion()
     gd = GraspDataset()
     if FLAGS.grasp_download:
