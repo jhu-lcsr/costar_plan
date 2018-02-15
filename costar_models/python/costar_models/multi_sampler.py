@@ -518,6 +518,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             train_generator,
             self.steps_per_epoch,
             epochs=self.epochs,
+            initial_epoch=self.initial_epoch,
             validation_steps=self.validation_steps,
             validation_data=test_generator,
             callbacks=callbacks)

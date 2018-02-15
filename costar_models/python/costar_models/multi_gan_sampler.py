@@ -188,7 +188,8 @@ class RobotMultiGanSampler(RobotMultiHierarchical):
                     [np.expand_dims(f,1) for f in targets],
                     callbacks=[modelCheckpointCb, imageCb],
                     validation_split=self.validation_split,
-                    epochs=self.epochs)
+                    epochs=self.epochs,
+                    initial_epoch=self.initial_epoch)
         else:
             for i in range(self.iter):
                 idx = np.random.randint(0, features[0].shape[0], size=self.batch_size)

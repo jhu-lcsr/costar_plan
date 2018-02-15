@@ -148,19 +148,19 @@ class PretrainImageGan(RobotMultiPredictionSampler):
 
         if self.gan_method == 'mae':
             # MAE
-            for i in range(self.epochs):
+            for i in range(self.initial_epoch, self.epochs):
                 for j in range(self.steps_per_epoch):
                     img, _ = next(train_generator)
                     img = img[0]
                     res = self.generator.train_on_batch(img, img)
                     print("\rEpoch {}, {}/{}: MAE loss {:.5}".format(
-                        i+1, j, self.steps_per_epoch, res), end="")
+                        i, j, self.steps_per_epoch, res), end="")
 
                 for c in callbacks:
                     c.on_epoch_end(i)
 
         elif self.gan_method == 'desc':
-            for i in range(self.epochs):
+            for i in range(self.initial_epoch, self.epochs):
                 for j in range(self.steps_per_epoch):
                     # Descriminator pass
                     img, target = next(train_generator)
@@ -178,7 +178,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                     res2 = self.discriminator.train_on_batch(inputs, is_fake)
                     self.discriminator.trainable = False
                     print("\rEpoch {}, {}/{}: D Real loss {}, Fake loss {}".format(
-                        i+1, j, self.steps_per_epoch, res1, res2), end="")
+                        i, j, self.steps_per_epoch, res1, res2), end="")
 
                 # Accuracy tests
                 img, target = next(train_generator)
@@ -198,7 +198,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         else: # actual gan
             d_iters = 10
 
-            for i in range(self.epochs):
+            for i in range(self.initial_epoch, self.epochs):
                 totals = [0, 0, 0, 0]
 
                 for j in range(self.steps_per_epoch):

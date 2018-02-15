@@ -38,11 +38,23 @@ class AbstractAgentBasedModel(object):
             name += "_%s.h5f"%self.submodel
         return name
 
-    def __init__(self, taskdef=None, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
-            clipnorm=100., show_iter=0, pretrain_iter=5,
-            optimizer="sgd", model_descriptor="model", zdim=16, features=None,
-            steps_per_epoch=500, validation_steps=25,
-            dropout_rate=0.5, decoder_dropout_rate=None,
+    def __init__(self, taskdef=None,
+            lr=1e-4,
+            epochs=500,
+            initial_epoch=0,
+            iter=1000,
+            batch_size=32,
+            clipnorm=100.,
+            show_iter=0,
+            pretrain_iter=5,
+            optimizer="sgd",
+            model_descriptor="model",
+            zdim=16,
+            features=None,
+            steps_per_epoch=500,
+            validation_steps=25,
+            dropout_rate=0.5,
+            decoder_dropout_rate=None,
             tform_dropout_rate=0.,
             activation_fn="relu",
             validate=False,
@@ -90,6 +102,7 @@ class AbstractAgentBasedModel(object):
         self.pretrain_iter = pretrain_iter
         self.noise_dim = zdim
         self.epochs = epochs
+        self.initial_epoch = initial_epoch
         self.use_batchnorm = use_batchnorm > 0
         self.batch_size = batch_size
         self.load_pretrained_weights = load_pretrained_weights
@@ -164,6 +177,7 @@ class AbstractAgentBasedModel(object):
         print("---------------- General Training Options -----------------")
         print("Iterations =", self.iter)
         print("Epochs =", self.epochs)
+        print("Initial epoch =", self.initial_epoch)
         print("Steps per epoch =", self.steps_per_epoch)
         print("Batch size =", self.batch_size)
         print("Noise dim =", self.noise_dim)
