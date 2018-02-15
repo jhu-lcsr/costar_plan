@@ -1,6 +1,16 @@
 #!/bin/bash
 # Source this file to get these utility functions
 
+function find_job() {
+  find $HOME/.costar -name '*'$1 2> /dev/null
+  find $HOME/work/dev_yb/models -name '*'$1 2> /dev/null
+}
+
+function find_job_exact() {
+  find $HOME/.costar -name $1 2> /dev/null
+  find $HOME/work/dev_yb/models -name $1 2> /dev/null
+}
+
 function running_jobs() {
   local jobs=$(sqme | tail -n+3 | awk '{print $1","$6}')
 
@@ -10,7 +20,7 @@ function running_jobs() {
     local job="${j%,*}"
     local time="${j##*,}"
     jobtimes[$job]=$time
-    local results="$results $(find $HOME/.costar -name $job)"
+    local results="$results $(find_job_exact $job)"
   done
 
   local count=0
@@ -44,7 +54,7 @@ function job_status() {
 
   for j in $all_jobs; do
     # get the last part of the dir
-    local dir="$(find $HOME/.costar -name $j)"
+    local dir="$(find_job_exact $j)"
     dir="${dir%/*}"
     dir="${dir##*/}"
     local status=UNKNOWN
@@ -61,19 +71,15 @@ function job_status() {
   done
 }
 
-function find_job() {
-        find $HOME/.costar -name '*'$1
-}
-
 function job_dir() {
-        local dir="$(find_job $1)"
-        echo $dir
+  local dir="$(find_job $1)"
+  echo $dir
 }
 
 function job_descr_of_dir() {
-    local dir="${1%/*}"
-    dir="${dir##*/}"
-    echo $dir
+  local dir="${1%/*}"
+  dir="${dir##*/}"
+  echo $dir
 }
 
 function cd_job() {
