@@ -122,18 +122,17 @@ if ! $skip_encoder; then
   $load_model || ($resume && [[ -f $status_file ]]) && load_cmd='--load_model'
 
   # Calculate epochs left
-  local epochs_left=$epochs1
+  local epochs_done=0
   if $resume && [[ -f $status_file ]]; then
     local contents=($(cat $status_file))
-    local epochs_done=${contents[0]}
-    epochs_left=$(($epochs_left - $epochs_done))
+    epochs_done=${contents[0]}
   fi
   # Check for resume after finish
   if $resume && (($epochs_left <= 0)); then
     echo Skipping pretrain_image due to resume
     echo $epochs_done/$epochs1 epochs already done
   elif $gan_encoder; then
-    echo "Training gan encoder. $epochs_done/$epochs1 done"
+    echo "Training gan encoder. $epochs_done/$epochs1 epochs done"
     ${cmd_prefix}ctp_model_tool \
       --features $features \
       -e $epochs1 \
@@ -182,9 +181,10 @@ local load_cmd=''
 $load_model || ($resume && [[ -f $status_file ]]) && load_cmd='--load_model'
 
 # Calculate epochs left
+local epochs_done=0
 if $resume && [[ -f $status_file ]]; then
   local contents=($(cat $status_file))
-  local epochs_done=${contents[0]}
+  epochs_done=${contents[0]}
 fi
 # Check for resume after finish
 if $resume && (($epochs_done >= $epochs2)); then
