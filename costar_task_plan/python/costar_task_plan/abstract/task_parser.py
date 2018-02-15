@@ -353,8 +353,9 @@ class TaskParser(object):
                         prev_added[j] = name
 
                         # compute final action
-                        if (self.sequence_ends[seq][j] in self.idle_tags
-                            or name not in self.idle_tags):
+                        if (j < len(self.sequence_ends[seq]) and (
+                            self.sequence_ends[seq][j] in self.idle_tags
+                            or name not in self.idle_tags)):
                             self.sequence_ends[seq][j] = name
                     else:
                         print("WARNING: trajectory %s of length %d was too short"%(prev[j],len(examples[j].traj)))
