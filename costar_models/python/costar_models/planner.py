@@ -45,7 +45,7 @@ RENORM=False
 
 def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
         lrelu=False, bn=True, momentum=MOMENTUM, name=None, constraint=None,
-        kr=1e-5, ar=0.,
+        kr=1e-8, ar=0.,
         activation=None):
     '''
     Helper for creating networks. This one will add a convolutional block.
@@ -100,7 +100,7 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
             x = BatchRenormalization(momentum=momentum, axis=-1, mode=0, **kwargs)(x)
         else:
             #x = BatchNormalization(momentum=momentum, **kwargs)(x)
-            x = InstanceNormalization(momentum=momentum, axis=-1, **kwargs)(x)
+            x = InstanceNormalization(axis=-1, **kwargs)(x)
 
     kwargs = {}
     if lrelu or activation == "lrelu":
@@ -125,7 +125,10 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
 def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate,
         padding="same", momentum=MOMENTUM, bn=True, 
         activation="relu",
-        discriminator=False):
+        discriminator=False,
+        name=None,
+        kr=1e-8,
+        ar=0.,):
     '''
     Helper for creating networks. This one will add a convolutional block.
 
@@ -141,16 +144,43 @@ def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate,
     --------
     x: output tensor
     '''
+
+    kwargs = {}
+    if isinstance(kr, float) and kr > 0:
+        kr = keras.regularizers.l2(kr)
+    elif isinstance(kr, float):
+        kr = None
+    else:
+        kr = kr
+
+    if isinstance(ar, float) and ar > 0:
+        ar = keras.regularizers.l1(ar)
+    elif isinstance(ar, float):
+        ar = None
+    else:
+        ar = ar
+
+    if ar is not None:
+        kwargs['activity_regularizer'] = ar
+    if kr is not None:
+        kwargs['kernel_regularizer'] = kr
+
+
+
     x = Conv2DTranspose(filters,
             kernel_size=kernel,
             strides=(stride,stride),
-            padding=padding)(x)
+            padding=padding,
+            **kwargs)(x)
     if bn:
+        kwargs = {}
+        if name is not None:
+            kwargs['name'] = "%s_bn"%name
         if RENORM:
             x = BatchRenormalization(momentum=momentum, axis=-1, mode=0)(x)
         else:
             #x = BatchNormalization(momentum=momentum)(x)
-            x = InstanceNormalization(momentum=momentum, axis=-1, **kwargs)(x)
+            x = InstanceNormalization(axis=-1, **kwargs)(x)
 
     if discriminator or activation=="lrelu":
         x = LeakyReLU(alpha=0.2)(x)
@@ -161,7 +191,7 @@ def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate,
     return x
 
 def AddDense(x, size, activation, dropout_rate, output=False, momentum=MOMENTUM,
-    constraint=3, bn=True, kr=0., ar=0.):
+    constraint=3, bn=True, kr=1e-8, ar=0.):
     '''
     Add a single dense block with batchnorm and activation.
 
@@ -202,7 +232,7 @@ def AddDense(x, size, activation, dropout_rate, output=False, momentum=MOMENTUM,
 
     if not output and bn:
         #x = BatchNormalization(momentum=momentum)(x)
-        x = InstanceNormalization(momentum=momentum)(x)
+        x = InstanceNormalization()(x)
 
     if activation == "lrelu":
         x = LeakyReLU(alpha=0.2)(x)

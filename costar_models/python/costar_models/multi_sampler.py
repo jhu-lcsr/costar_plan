@@ -570,8 +570,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
             for (item, name) in items:
                 if item is not None:
-                    print(">>> Saving", name)
-                    item.save_weights('{}_{}.h5f'.format(self.name, name))
+                    filename = '{}_{}.h5f'.format(self.name, name)
+                    print(">>> Saving", name, "to", filename)
+                    item.save_weights(filename)
         else:
             raise RuntimeError('save() failed: model not found.')
 
@@ -586,8 +587,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
             for (item, name) in items:
                 if item is not None:
-                    print(">>> Loading", name)
-                    item.load_weights('{}_{}.h5f'.format(self.name, name))
+                    filename = '{}_{}.h5f'.format(self.name, name)
+                    print(">>> Loading", name, "from", filename)
+                    item.load_weights(filename)
         else:
             raise RuntimeError('_loadWeights() failed: model not yet created.')
 
