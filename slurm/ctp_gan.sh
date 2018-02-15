@@ -35,6 +35,7 @@ load_model=false
 dataset=''
 features=''
 suffix=''
+resume=false # resume a job
 
 echo "$OPTS"
 eval set -- "$OPTS"
@@ -57,6 +58,7 @@ while true; do
     --husky) dataset=husky_data; features=husky; shift ;;
     --jigsaws) dataset=suturing_data2; features=jigsaws; shift ;;
     --suffix) suffix="$2"; shift 2 ;;
+    --resume) resume=true; shift ;;
     --) shift; break ;;
     *) echo "Internal error!" ; exit 1 ;;
   esac
@@ -74,10 +76,15 @@ if $use_noise; then noise_dir=noise; else noise_dir=nonoise; fi
 if $retrain; then retrain_dir=retrain; else retrain_dir=noretrain; fi
 if $gan_encoder; then gan_dir=ganenc; else gan_dir=noganenc; fi
 
+# Handle model directory
 MODELDIR="$HOME/.costar/${dataset}_${lr}_${optimizer}_${dropout}_${noise_dim}_${loss}_${wass_dir}_${noise_dir}_${gan_dir}_${retrain_dir}${suffix}"
 
 [[ ! -d $MODELDIR ]] && mkdir -p $MODELDIR
 
+# Get rid of old status files if not resuming
+! $resume && rm "$MODELDIR"/status*.txt
+
+# Set data directory
 if $marcc; then
   touch $MODELDIR/$SLURM_JOB_ID
   # Handle different Marcc layouts
@@ -86,14 +93,13 @@ if $marcc; then
 else
   data_dir=$dataset
 fi
-
 if [[ $features == husky ]]; then data_suffix=npz; else data_suffix=h5f; fi
 data_dir=${data_dir}.${data_suffix}
 
+# Set up command line
 if $wass; then wass_cmd='--wasserstein'; else wass_cmd=''; fi
 if $use_noise; then use_noise_cmd='--use_noise'; else use_noise_cmd=''; fi
 if $retrain; then retrain_cmd='--retrain'; else retrain_cmd=''; fi
-if $load_model; then load_cmd='--load_model'; else load_cmd=''; fi
 
 if $marcc; then
   cmd_prefix="$HOME/costar_plan/costar_models/scripts/"
@@ -101,8 +107,18 @@ else
   cmd_prefix='rosrun costar_models '
 fi
 
+# Pretrain_image_encoder
 if ! $skip_encoder; then
-  if $gan_encoder; then
+  local status_file="$MODELDIR"/status_pretrain.txt
+  # Check if we should load the model
+  local load_cmd=''
+  $load_model || ($resume && [[ -f $status_file ]]) && load_cmd='--load_model'
+
+  # Check for resume after finish
+  if $resume && grep finished $status_file; then
+    echo Skipping pretrain_image due to resume!
+  elif $gan_encoder; then
+
     echo "Training gan encoder"
     ${cmd_prefix}ctp_model_tool \
       --features $features \
@@ -118,6 +134,7 @@ if ! $skip_encoder; then
       --loss $loss \
       --gan_method gan \
       --batch_size 64 \
+      --unique_id _pretrain \
       $wass_cmd \
       $load_cmd
   else
@@ -136,26 +153,37 @@ if ! $skip_encoder; then
       --loss $loss \
       --batch_size 64 \
       --no_disc \
+      --unique_id _pretrain \
       $load_cmd
   fi
 fi
 
-echo "Training conditional gan"
-  ${cmd_prefix}ctp_model_tool \
-  --features $features \
-  -e 100 \
-  --model conditional_image_gan \
-  --data_file $data_dir \
-  --lr $lr \
-  --dropout_rate $dropout \
-  --model_directory $MODELDIR/ \
-  --optimizer $optimizer \
-  --steps_per_epoch 100 \
-  --noise_dim $noise_dim \
-  --loss $loss \
-  --gan_method gan \
-  --batch_size 64 \
-  $wass_cmd \
-  $use_noise_cmd \
-  $load_cmd
+# Actual conditional gan
+local status_file="$MODELDIR"/status_cond.txt
+# Check if we should load the model
+local load_cmd=''
+$load_model || ($resume && [[ -f $status_file ]]) && load_cmd='--load_model'
 
+if $resume && grep finished $status_file; then
+  echo Skipping conditional gan due to resume!
+else
+  echo "Training conditional gan"
+    ${cmd_prefix}ctp_model_tool \
+    --features $features \
+    -e 100 \
+    --model conditional_image_gan \
+    --data_file $data_dir \
+    --lr $lr \
+    --dropout_rate $dropout \
+    --model_directory $MODELDIR/ \
+    --optimizer $optimizer \
+    --steps_per_epoch 100 \
+    --noise_dim $noise_dim \
+    --loss $loss \
+    --gan_method gan \
+    --batch_size 64 \
+    --unique_id _cond \
+    $wass_cmd \
+    $use_noise_cmd \
+    $load_cmd
+fi
