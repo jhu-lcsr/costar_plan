@@ -89,25 +89,26 @@ def GetPoseModel(x, num_options, arm_size, gripper_size,
     ins = [img0_in, img_in, option_in, arm, gripper]
     x0, x = img0_in, img_in
     dr, bn = dropout_rate, batchnorm
+    use_lrelu = False
 
     x = Concatenate(axis=-1)([x, x0])
-    x = AddConv2D(x, 32, [3,3], 1, dr, "same", lrelu=True, bn=bn)
+    x = AddConv2D(x, 32, [3,3], 1, dr, "same", lrelu=use_lrelu, bn=bn)
 
     # Add arm, gripper
     y = Concatenate()([arm, gripper])
     y = AddDense(y, 32, "relu", 0., output=True, constraint=3)
     x = TileOnto(x, y, 32, (8,8), add=False)
-    x = AddConv2D(x, 64, [3,3], 1, dr, "valid", lrelu=True, bn=bn)
+    x = AddConv2D(x, 64, [3,3], 1, dr, "valid", lrelu=use_lrelu, bn=bn)
 
     # Add arm, gripper
     y2 = AddDense(option_in, 64, "relu", 0., output=True, constraint=3)
     x = TileOnto(x, y2, 64, (6,6), add=False)
-    x = AddConv2D(x, 128, [3,3], 1, dr, "valid", lrelu=True, bn=bn)
-    x = AddConv2D(x, 64, [3,3], 1, dr, "valid", lrelu=True, bn=bn)
+    x = AddConv2D(x, 128, [3,3], 1, dr, "valid", lrelu=use_lrelu, bn=bn)
+    x = AddConv2D(x, 64, [3,3], 1, dr, "valid", lrelu=use_lrelu, bn=bn)
 
     x = Flatten()(x)
-    x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
-    x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)    # Same setup as the state decoders
+    x = AddDense(x, 512, "relu", dr, output=True, bn=bn)
+    x = AddDense(x, 512, "relu", dr, output=True, bn=bn)    # Same setup as the state decoders
     arm = AddDense(x, arm_size, "linear", 0., output=True)
     gripper = AddDense(x, gripper_size, "sigmoid", 0., output=True)
     actor = Model(ins, [arm, gripper], name="pose")
