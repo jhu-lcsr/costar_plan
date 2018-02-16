@@ -28,6 +28,7 @@ export use_disc=$7
 #export MODELDIR="$HOME/.costar/husky_$learning_rate$optimizer$dropout$noise_dim$loss"
 export MODELROOT="$HOME/.costar"
 export SUBDIR="husky_$learning_rate$optimizer$dropout$noise_dim$loss"
+export USE_BN=1
 
 retrain_cmd=""
 if $retrain
@@ -68,6 +69,7 @@ if $train_discriminator2 && $use_disc ; then
     --steps_per_epoch 500 \
     --noise_dim $noise_dim \
     --loss $loss \
+    --use_batchnorm $USE_BN \
     --batch_size 64 --no_disc
 fi
 
@@ -87,6 +89,7 @@ then
     --steps_per_epoch 500 \
     --noise_dim $noise_dim \
     --loss $loss \
+    --use_batchnorm $USE_BN \
     --batch_size 64 --no_disc
 fi
 
@@ -102,5 +105,6 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --optimizer $optimizer \
   --steps_per_epoch 500 \
   --loss $loss \
+  --use_batchnorm $USE_BN \
   --batch_size 64 $retrain_cmd $use_disc_cmd
 
