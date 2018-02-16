@@ -9,6 +9,7 @@ import cornell_grasp_train
 import cornell_grasp_dataset_reader
 import tensorflow as tf
 import traceback
+import keras
 from tensorflow.python.platform import flags
 
 FLAGS = flags.FLAGS
@@ -214,6 +215,10 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
             # deletion must be explicit to prevent leaks
             # https://stackoverflow.com/a/16946886/99379
             del tb
+
+        # TODO(ahundt) consider shutting down dataset generators and clearing the session when there is an exception
+        # https://github.com/tensorflow/tensorflow/issues/4735#issuecomment-363748412
+        # keras.backend.clear_session()
 
         return loss
 
