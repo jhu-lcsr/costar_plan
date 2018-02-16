@@ -324,12 +324,17 @@ def run_training(
     csv_logger = CSVLogger(log_dir_run_name + run_name + '.csv')
     callbacks = callbacks + [csv_logger]
     callbacks += [PrintLogsCallback()]
-    print('Enabling tensorboard in ' + log_dir)
+    print('Writing logs for models, accuracy and tensorboard in ' + log_dir)
     mkdir_p(log_dir)
 
+    # Save the hyperparams to a json string so it is human readable
     if hyperparams is not None:
-        with open(log_dir_run_name + run_name + 'hyperparams.json', 'w') as fp:
+        with open(log_dir_run_name + run_name + '_hyperparams.json', 'w') as fp:
             json.dump(hyperparams, fp)
+
+    # Save the current model to a json string so it is human readable
+    with open(log_dir_run_name + run_name + '_model.json', 'w') as fp:
+        fp.write(model.to_json())
 
     checkpoint = keras.callbacks.ModelCheckpoint(log_dir_run_name + run_name + '-epoch-{epoch:03d}-' +
                                                  monitor_loss_name + '-{' + monitor_loss_name + ':.3f}-' +

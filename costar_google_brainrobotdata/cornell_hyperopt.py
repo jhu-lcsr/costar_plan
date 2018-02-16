@@ -189,6 +189,7 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
             loss = cornell_grasp_train.run_training(
                 train_data=train_data,
                 validation_data=validation_data,
+                hyperparams=kwargs,
                 **kwargs)
         except tf.errors.ResourceExhaustedError as exception:
             print('Hyperparams caused algorithm to run out of resources, '
