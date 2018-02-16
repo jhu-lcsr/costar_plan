@@ -209,7 +209,8 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
         kwargs = params_to_args(x, index_dict)
 
         if verbose:
-            ProgUpdate.progbar.update(ProgUpdate.hyperopt_current_update)
+            # update counts by 1 each step
+            ProgUpdate.progbar.update()
             ProgUpdate.progbar.write('Training with hyperparams: \n' + str(kwargs))
         ProgUpdate.hyperopt_current_update += 1
 
@@ -286,6 +287,7 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
 
     hyperopt.plot_convergence()
     hyperopt.plot_acquisition()
+    ProgUpdate.progbar.close()
 
 
 def main(_):
