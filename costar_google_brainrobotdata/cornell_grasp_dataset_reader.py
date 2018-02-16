@@ -456,6 +456,7 @@ def parse_and_preprocess(
     grasp_center_coordinate = K.concatenate([feature['bbox/cy'], feature['bbox/cx']])
     grasp_center_rotation_theta = feature['bbox/theta']
     feature['sin_cos_height_width_4'] = height_width_sin_cos_4(features=feature)
+    feature['sin_cos_height_3'] = feature['sin_cos_height_width_4'][:-1]
 
     if is_training:
         # perform image augmentation

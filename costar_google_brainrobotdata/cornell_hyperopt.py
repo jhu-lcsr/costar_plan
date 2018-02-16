@@ -11,7 +11,17 @@ import tensorflow as tf
 import traceback
 import keras
 from tensorflow.python.platform import flags
-from tqdm import tqdm
+
+# progress bars https://github.com/tqdm/tqdm
+# import tqdm without enforcing it as a dependency
+try:
+    from tqdm import tqdm
+except ImportError:
+
+    def tqdm(*args, **kwargs):
+        if args:
+            return args[0]
+        return kwargs.get('iterable', None)
 
 FLAGS = flags.FLAGS
 
@@ -133,25 +143,31 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
     # we can also optimize batch size.
     # This will be noticeably slower.
     batch_size = FLAGS.batch_size
+    feature_combo_name = 'image_preprocessed_height_1'
+    top = 'classification'
+    train_data = None
+    validation_data = None
 
+    # Configuring hyperparameters
     search_space, index_dict = add_param('learning_rate', (0.001, 0.1), 'continuous')
-    search_space, index_dict = add_param('dropout_rate', [0.0, 0.25, 0.5], search_space=search_space, index_dict=index_dict)
+    search_space, index_dict = add_param('dropout_rate', [0.0, 0.125, 0.2, 0.25, 0.5, 0.75], search_space=search_space, index_dict=index_dict)
     search_space, index_dict = add_param('vector_dense_filters', [2**x for x in range(6, 13)], search_space=search_space, index_dict=index_dict)
     search_space, index_dict = add_param('vector_branch_num_layers', [x for x in range(0, 5)], search_space=search_space, index_dict=index_dict)
     # leaving out 'resnet' for now, it is causing too many crashes, and nasnet_large because it needs different input dimensions.
     search_space, index_dict = add_param('image_model_name', ['vgg', 'densenet', 'nasnet_mobile'], search_space=search_space, index_dict=index_dict)
+    search_space, index_dict = add_param('vector_model_name', ['dense', 'dense_block'], search_space=search_space, index_dict=index_dict)
     search_space, index_dict = add_param('trainable', [True, False], search_space=search_space, index_dict=index_dict,
                                          enable=False)
-    search_space, index_dict = add_param('trunk_filters', [2**x for x in range(6, 12)], search_space=search_space, index_dict=index_dict)
+    search_space, index_dict = add_param('trunk_filters', [2**x for x in range(5, 12)], search_space=search_space, index_dict=index_dict)
     search_space, index_dict = add_param('trunk_layers', [x for x in range(0, 8)], search_space=search_space, index_dict=index_dict)
+    search_space, index_dict = add_param('top_block_filters', [2**x for x in range(5, 12)], search_space=search_space, index_dict=index_dict)
     search_space, index_dict = add_param('batch_size', [2**x for x in range(2, 4)], search_space=search_space, index_dict=index_dict,
                                          enable=False, required=True, default=batch_size)
+    search_space, index_dict = add_param('feature_combo_name', ['image_preprocessed_height_1'],
+                                         search_space=search_space, index_dict=index_dict,
+                                         enable=False, required=True, default=feature_combo_name)
 
-    top = 'classification'
-    feature_combo_name = 'preprocessed_image_raw_grasp'
-    train_data = None
-    validation_data = None
-
+    # Load dataset if that's done only once in advance
     if load_dataset_in_advance:
         train_file = None
         validation_file = None
@@ -189,7 +205,6 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
         progbar = tqdm(desc='hyperopt', total=total_max_steps)
 
     def train_callback(x):
-        global hyperopt_current_update
         # x is a funky 2d numpy array, so we convert it back to normal parameters
         kwargs = params_to_args(x, index_dict)
 

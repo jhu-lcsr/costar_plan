@@ -49,12 +49,13 @@ from keras.models import Model
 from grasp_model import concat_images_with_tiled_vector_layer
 from grasp_model import top_block
 from grasp_model import create_tree_roots
-from grasp_model import dilated_late_concat_model
+from grasp_model import hypertree_model
 from cornell_grasp_dataset_reader import parse_and_preprocess
 # https://github.com/aurora95/Keras-FCN
 # TODO(ahundt) move keras_fcn directly into this repository, into keras-contrib, or make a proper installer
 import keras_contrib.applications.fully_convolutional_networks as fcn
 import keras_contrib.applications.densenet as densenet
+import keras_tqdm
 
 import grasp_loss as grasp_loss
 
@@ -116,7 +117,7 @@ def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
     return datetime.datetime.now().strftime(fmt).format(fname=fname)
 
 
-def hypertree_model(
+def choose_hypertree_model(
         images=None, vectors=None,
         image_shapes=None, vector_shapes=None,
         dropout_rate=None,
@@ -126,15 +127,24 @@ def hypertree_model(
         final_pooling=None,
         include_top=True,
         top='classification',
+        top_block_filters=64,
         classes=1,
         output_shape=None,
         trainable=False,
         verbose=0,
         image_model_name='vgg',
+        vector_model_name='dense',
         trunk_layers=4,
         trunk_filters=None,
         vector_branch_num_layers=2):
     """ Construct a variety of possible models with a tree shape based on hyperparameters.
+
+    # Arguments
+
+        top_block_filters: the number of filters for the two final fully connected layers,
+            before a prediction is made based on the number of classes.
+
+    # Notes
 
     Current best 1 epoch run as of 2018-02-16:
         - note there is a bit of ambiguity so until I know I'll have case 0 and case 1.
@@ -221,12 +231,22 @@ def hypertree_model(
             """
             return image_model(tensor)
 
-        def vector_branch_dense(tensor, vector_dense_filters=vector_dense_filters, num_layers=vector_branch_num_layers):
+        def vector_branch_dense(
+                tensor, vector_dense_filters=vector_dense_filters,
+                num_layers=vector_branch_num_layers,
+                model_name=vector_model_name):
             """ Vector branches that simply contain a single dense layer.
             """
             x = tensor
-            for i in range(num_layers):
-                x = Dense(vector_dense_filters)(x)
+            if model_name == 'dense':
+                for i in range(num_layers):
+                    x = Dense(vector_dense_filters)(x)
+            elif model_name == 'dense_block':
+                densenet.__dense_block(
+                    x, nb_layers=num_layers,
+                    nb_filter=vector_dense_filters,
+                    growth_rate=48, dropout_rate=dropout_rate,
+                    ndim=1)
             return x
 
         def create_tree_trunk(tensor):
@@ -243,19 +263,18 @@ def hypertree_model(
 
             return x
 
-        model = dilated_late_concat_model(
+        model = hypertree_model(
             images=images, vectors=vectors,
             image_shapes=image_shapes, vector_shapes=vector_shapes,
             dropout_rate=dropout_rate,
-            vector_dense_filters=vector_dense_filters,
             create_image_tree_roots_fn=create_image_model,
             create_vector_tree_roots_fn=vector_branch_dense,
             create_tree_trunk_fn=create_tree_trunk,
-            dilation_rate=dilation_rate,
             activation=activation,
             final_pooling=final_pooling,
             include_top=include_top,
             top=top,
+            top_block_filters=top_block_filters,
             classes=classes,
             output_shape=output_shape,
             verbose=verbose
@@ -281,7 +300,7 @@ def run_training(
         validation_file=None,
         train_data=None,
         validation_data=None,
-        feature_combo_name='preprocessed_image_raw_grasp',
+        feature_combo_name='image_preprocessed_height_1',
         image_model_name='nasnet_mobile',
         hyperparams=None,
         **kwargs):
@@ -304,7 +323,7 @@ def run_training(
 
     [image_shapes, vector_shapes, data_features, model_name,
      monitor_loss_name, label_features, monitor_metric_name,
-     loss, metrics] = feature_selection(feature_combo_name, top)
+     loss, metrics] = choose_features_and_metrics(feature_combo_name, top)
 
     # see parse_and_preprocess() for the creation of these features
     model_name = image_model_name + model_name
@@ -324,11 +343,10 @@ def run_training(
             raise ValueError('You need to explicitly set the preprocessing mode to '
                              'torch, tf, or caffe for these weights')
 
-
-    # create hypertree_model with inputs [image], [sin_theta, cos_theta]
+    # choose hypertree_model with inputs [image], [sin_theta, cos_theta]
     # TODO(ahundt) split vector shapes up appropriately for dense layers in dilated_late_concat_model
     # TODO(ahundt) get dimensions automatically, based on configured params
-    model = hypertree_model(
+    model = choose_hypertree_model(
         image_shapes=image_shapes,
         vector_shapes=vector_shapes,
         top=top,
@@ -382,6 +400,9 @@ def run_training(
                                    # write_batch_performance=True)
     callbacks = callbacks + [progress_tracker]
 
+    # make sure the TQDM callback is always the final one
+    callbacks += [keras_tqdm.TQDMCallback()]
+
     # TODO(ahundt) WARNING: THE NUMBER OF TRAIN/VAL STEPS VARIES EVERY TIME THE DATASET IS CONVERTED, AUTOMATE SETTING THOSE NUMBERS
     samples_in_val_dataset, steps_per_epoch_train, steps_in_val_dataset, val_batch_size = epoch_params(batch_size)
 
@@ -417,19 +438,28 @@ def run_training(
         epochs=epochs,
         validation_data=validation_data,
         validation_steps=steps_in_val_dataset,
-        callbacks=callbacks)
+        callbacks=callbacks,
+        verbose=0)
 
     model.save_weights(log_dir_run_name + run_name + '_model.h5')
     return history
 
 
-def feature_selection(feature_combo_name, top):
+def choose_features_and_metrics(feature_combo_name, top):
     """ Choose the features to load from the dataset and losses to use during training
     """
-    if feature_combo_name == 'preprocessed_image_raw_grasp':
+    if feature_combo_name == 'image_preprocessed_sin_cos_height_width_4':
         data_features = ['image/preprocessed', 'sin_cos_height_width_4']
         image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
         vector_shapes = [(4,)]
+    if feature_combo_name == 'image_preprocessed_sin_cos_height_3':
+        data_features = ['image/preprocessed', 'sin_cos_height_3']
+        image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
+        vector_shapes = [(3,)]
+    if feature_combo_name == 'image_preprocessed_height_1':
+        data_features = ['image/preprocessed', 'bbox/height']
+        image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
+        vector_shapes = [(1,)]
     elif feature_combo_name == 'preprocessed':
         data_features = ['image/preprocessed', 'bbox/preprocessed/cy_cx_normalized_2',
                          'bbox/preprocessed/sin_cos_2', 'bbox/preprocessed/logarithm_height_width_2']
@@ -441,7 +471,8 @@ def feature_selection(feature_combo_name, top):
         vector_shapes = [(4,)]
     else:
         raise ValueError('Selected feature ' + str(feature_combo_name) + ' does not exist. '
-                         'feature selection options are preprocessed_image_raw_grasp, '
+                         'feature selection options are image_preprocessed_sin_cos_height_width_4, '
+                         'image_preprocessed_sin_cos_height_3, image_preprocessed_height_1,'
                          'preprocessed, and raw')
 
     if top == 'segmentation':
