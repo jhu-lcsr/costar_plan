@@ -31,6 +31,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         super(PretrainImageGan, self).__init__(*args, **kwargs)
         self.PredictorCb = ImageCb
         self.load_pretrained_weights = False
+        self.save_encoder_decoder = True
         self.noise_iters = 1
 
     def _makePredictor(self, features):

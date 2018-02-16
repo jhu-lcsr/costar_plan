@@ -48,9 +48,7 @@ function job_status() {
   # Get running jobs
   local running_jobs2=$(sqme | tail -n+3 | awk '{print $1}')
   declare -A running_jobs
-  for j in running_jobs2; do
-    running_jobs[$j]=true
-  done
+  for j in $running_jobs2; do running_jobs[$j]=true; done
 
   for j in $all_jobs; do
     # get the last part of the dir
@@ -58,14 +56,10 @@ function job_status() {
     dir="${dir%/*}"
     dir="${dir##*/}"
     local status=UNKNOWN
-    if [[ ${running_jobs[$j]} == true ]]; then
-      status=RUNNING
-    elif grep TIME "./slurm-$j.out" > /dev/null; then
-      status=TIMEOUT
-    elif grep error "./slurm-$j.out" > /dev/null; then
-      status=ERROR
-    else
-      status=SUCCESS
+    if [[ ${running_jobs[$j]} == true ]]; then status=RUNNING
+    elif grep TIME "./slurm-$j.out" > /dev/null; then status=TIMEOUT
+    elif grep error "./slurm-$j.out" > /dev/null; then status=ERROR
+    else status=SUCCESS
     fi
     echo $j $status $dir
   done
@@ -101,15 +95,23 @@ function feh_job() {
   fi
 }
 
-function clean_job_outs() {
-  declare -A job_table
-  local jobs=$(sqme | tail -n+3 | awk '{print $1}')
-  for j in $jobs; do job_table[$j]=true; done
+function del_job_outs() {
+  (($# < 1)) && echo Use \'running\' or max_job number && return 1
+  local running=false
+  if [[ $1 == 'running' ]]; then
+    running=true
+    declare -A job_table
+    local jobs=$(sqme | tail -n+3 | awk '{print $1}')
+    for j in $jobs; do job_table[$j]=true; done
+  fi
   local files="./slurm-*.out"
+  # Find matching files and delete them
   for f in $files; do
     local fjob=${f/\.\/slurm-/}
     fjob=${fjob/\.out/}
-    if [[ ${job_table[$fjob]} == true ]]; then
+    if $running && [[ ${job_table[$fjob]} == true ]]; then
+      echo Not deleting $f
+    elif ! $running && (($fjob >= $1)); then
       echo Not deleting $f
     else
       echo Deleting $f
