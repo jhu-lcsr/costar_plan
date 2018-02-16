@@ -82,7 +82,7 @@ class Secondary(PredictionSampler2):
 
         actor = None
         if self.submodel == "value":
-            model = GetValueModel(h, self.num_options, 64,
+            model = GetValueModel(h, self.num_options, 128,
                     self.decoder_dropout_rate)
             model.compile(loss="mae", optimizer=self.getOptimizer())
             self.value_model = model
@@ -205,7 +205,7 @@ class HuskySecondary(Secondary):
 
         actor = None
         if self.submodel == "value":
-            model = GetValueModel(h, self.num_options, 64,
+            model = GetValueModel(h, self.num_options, 128,
                     self.decoder_dropout_rate)
             model.compile(loss="mae", optimizer=self.getOptimizer())
             self.value_model = model
