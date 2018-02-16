@@ -133,6 +133,8 @@ def hypertree_model(
         trunk_layers=4,
         trunk_filters=None,
         vector_branch_num_layers=2):
+    if trainable is None:
+        trainable = False
 
     # TODO(ahundt) deal with model names being too long due to https://github.com/keras-team/keras/issues/5253
     if top == 'segmentation':
@@ -255,6 +257,8 @@ def run_training(
         train_file = os.path.join(FLAGS.data_dir, FLAGS.train_filename)
     if validation_file is None:
         validation_file = os.path.join(FLAGS.data_dir, FLAGS.evaluate_filename)
+    if learning_rate is None:
+        learning_rate = FLAGS.learning_rate
 
     [image_shapes, vector_shapes, data_features, model_name,
      monitor_loss_name, label_features, monitor_metric_name,
