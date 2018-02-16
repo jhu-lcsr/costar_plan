@@ -193,15 +193,16 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
                   'To avoid this entirely you might set more memory sensitive hyperparam ranges,'
                   'or add constraints to your hyperparam search so it does not choose'
                   'huge values for all the parameters at once'
-                  'Error: ' str(e))
+                  'Error: ', e)
             loss = float('inf')
             ex_type, ex, tb = sys.exc_info()
             traceback.print_tb(tb)
         except ValueError as e:
             print('Hyperparams encountered a model that failed with an invalid combination of values, '
                   'we will continue to next stage and return infinity loss for now.'
-                  'To avoid this entirely you will need to debug your model w.r.t. the current hyperparam choice.'
-                  'Error: ' str(e))
+                  'To avoid this entirely you will need to debug your model w.r.t. '
+                  'the current hyperparam choice.'
+                  'Error: ', e)
             loss = float('inf')
             ex_type, ex, tb = sys.exc_info()
             traceback.print_tb(tb)
