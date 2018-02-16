@@ -182,7 +182,7 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
 
         [image_shapes, vector_shapes, data_features, model_name,
          monitor_loss_name, label_features, monitor_metric_name,
-         loss, metrics] = cornell_grasp_train.feature_selection(feature_combo_name, top)
+         loss, metrics] = cornell_grasp_train.choose_features_and_metrics(feature_combo_name, top)
 
         train_data, validation_data = cornell_grasp_train.load_dataset(
             validation_file, label_features, data_features,
