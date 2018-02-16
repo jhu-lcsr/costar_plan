@@ -980,10 +980,6 @@ def get_stat(name, amount, total, percent_description=''):
 
 def main():
 
-    path = '/home/ding/.keras/datasets/cornell_grasping/01/z.txt'
-    kFold_split(path, is_objectwise=True, num_fold=5)
-    return
-
     # plt.ion()
     gd = GraspDataset()
     if FLAGS.grasp_download:
