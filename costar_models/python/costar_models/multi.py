@@ -124,25 +124,26 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
     arm_in = Input((arm_size,), name="ee_in")
     gripper_in = Input((gripper_size,), name="gripper_in")
     option_in = Input((48,), name="actor_o_in")
+    use_lrelu = False
 
     x0, x = x0in, xin
     #dr, bn = dropout_rate, batchnorm
     dr, bn = dropout_rate, False
 
     x = Concatenate(axis=-1)([x, x0])
-    x = AddConv2D(x, 32, [3,3], 1, dr, "same", lrelu=True, bn=bn)
+    x = AddConv2D(x, 32, [3,3], 1, dr, "same", lrelu=use_lrelu, bn=bn)
 
     # Add arm, gripper
     y = Concatenate()([arm_in, gripper_in])
     y = AddDense(y, 32, "relu", 0., output=True, constraint=3)
     x = TileOnto(x, y, 32, (8,8), add=False)
-    x = AddConv2D(x, 64, [3,3], 1, dr, "valid", lrelu=True, bn=bn)
+    x = AddConv2D(x, 64, [3,3], 1, dr, "valid", lrelu=use_lrelu, bn=bn)
 
     # Add arm, gripper
     y2 = AddDense(option_in, 64, "relu", 0., output=True, constraint=3)
     x = TileOnto(x, y2, 64, (6,6), add=False)
-    x = AddConv2D(x, 128, [3,3], 1, dr, "valid", lrelu=True, bn=bn)
-    x = AddConv2D(x, 64, [3,3], 1, dr, "valid", lrelu=True, bn=bn)
+    x = AddConv2D(x, 128, [3,3], 1, dr, "valid", lrelu=use_lrelu, bn=bn)
+    x = AddConv2D(x, 64, [3,3], 1, dr, "valid", lrelu=use_lrelu, bn=bn)
 
     x = Flatten()(x)
     x = AddDense(x, 512, "relu", dr, output=True, bn=bn)
