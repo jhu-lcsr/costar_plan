@@ -141,6 +141,7 @@ def hypertree_model(
         name_prefix = 'dilated_'
     else:
         name_prefix = 'single_'
+        dilation_rate = 1
     with K.name_scope(name_prefix + 'hypertree') as scope:
         # VGG16 weights are shared and not trainable
         if top == 'segmentation':
@@ -163,9 +164,16 @@ def hypertree_model(
                     classes=classes
                 )
             elif image_model_name == 'resnet':
-                image_model = keras.applications.resnet50.ResNet50(
+                # resnet model is special because we need to
+                # skip the average pooling part.
+                resnet_model = keras.applications.resnet50.ResNet50(
                     input_shape=image_shapes[0], include_top=False,
                     classes=classes)
+                if not trainable:
+                    for layer in resnet_model.layers:
+                        layer.trainable = False
+                # get the layer before the global average pooling
+                image_model = resnet_model.layers[-2]
             elif image_model_name == 'densenet':
                 image_model = keras.applications.densenet.DenseNet169(
                     input_shape=image_shapes[0], include_top=False,
@@ -173,7 +181,7 @@ def hypertree_model(
             else:
                 raise ValueError('Unsupported image_model_name')
 
-        if not trainable:
+        if not trainable and getattr(image_model, 'layers', None) is not None:
             for layer in image_model.layers:
                 layer.trainable = False
 
@@ -243,7 +251,7 @@ def run_training(
         train_data=None,
         validation_data=None,
         feature_combo_name='preprocessed_image_raw_grasp',
-        image_model_name='vgg',
+        image_model_name='resnet',
         **kwargs):
     """
 
@@ -359,7 +367,7 @@ def run_training(
         samples_in_val_dataset, train_file, batch_size,
         val_batch_size, train_data=train_data, validation_data=validation_data)
 
-    print('calling model.fit_generator()')
+    # print('calling model.fit_generator()')
     history = parallel_model.fit_generator(
         train_data,
         steps_per_epoch=steps_per_epoch_train,
@@ -373,12 +381,13 @@ def run_training(
     # hyperopt seems to be done on val_loss
     # may try 1-val_acc sometime (since the hyperopt minimizes)
     final_val_loss = history.history['val_loss'][-1]
-    print(run_name + ' fit complete with final val_loss: ' + str(final_val_loss))
+    # print(run_name + ' fit complete with final val_loss: ' + str(final_val_loss))
     return final_val_loss
 
 
 def feature_selection(feature_combo_name, top):
-    print('feature_combo_name: ' + str(feature_combo_name))
+    """ Choose the features to load from the dataset and losses to use during training
+    """
     if feature_combo_name == 'preprocessed_image_raw_grasp':
         data_features = ['image/preprocessed', 'sin_cos_height_width_4']
         image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
@@ -419,6 +428,8 @@ def feature_selection(feature_combo_name, top):
 
 def load_dataset(validation_file, label_features, data_features, samples_in_val_dataset, train_file, batch_size, val_batch_size,
                  train_data=None, validation_data=None, in_memory_validation=False):
+    """ Load the cornell grasping dataset from the file if it isn't already available.
+    """
 
     if in_memory_validation:
         val_batch_size = samples_in_val_dataset
@@ -442,7 +453,10 @@ def load_dataset(validation_file, label_features, data_features, samples_in_val_
 
 
 def epoch_params(batch_size):
-    # TODO(ahundt) WARNING: THE NUMBER OF TRAIN/VAL STEPS VARIES EVERY TIME THE DATASET IS CONVERTED, AUTOMATE SETTING THOSE NUMBERS
+    """ Determine the number of steps to train and validate
+
+    TODO(ahundt) WARNING: THE NUMBER OF TRAIN/VAL STEPS VARIES EVERY TIME THE DATASET IS CONVERTED, AUTOMATE SETTING THOSE NUMBERS
+    """
     samples_in_training_dataset = 6402
     samples_in_val_dataset = 1617
     val_batch_size = 11

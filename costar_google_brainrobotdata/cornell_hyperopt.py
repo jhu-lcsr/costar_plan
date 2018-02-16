@@ -7,6 +7,7 @@ import numpy as np
 import cornell_grasp_train
 import cornell_grasp_dataset_reader
 import tensorflow as tf
+import traceback
 from tensorflow.python.platform import flags
 
 FLAGS = flags.FLAGS
@@ -112,7 +113,7 @@ def params_to_args(x, index_dict):
     return kwargs
 
 
-def optimize(train_file=None, validation_file=None, seed=1):
+def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
     np.random.seed(seed)
     # TODO(ahundt) hyper optimize more input feature_combo_names (ex: remove sin theta cos theta), optimizers, etc
     # continuous variables and then discrete variables
@@ -177,28 +178,43 @@ def optimize(train_file=None, validation_file=None, seed=1):
         # x is a funky 2d numpy array, so we convert it back to normal parameters
         kwargs = params_to_args(x, index_dict)
 
-        cornell_grasp_train.run_training(
-            train_data=train_data,
-            validation_data=validation_data,
-            **kwargs)
+        if verbose:
+            print('--------------------------------------------')
+            print('Training with hyperparams: \n' + str(kwargs))
 
-        #     learning_rate=val(learning_rate_index),
-        #     batch_size=val(batch_size_index),
-        #     image_model_name=val(image_model_name_index),
-        #     vector_dense_filters=val(vector_dense_filters_index),
-        #     vector_branch_num_layers=val(vector_branch_num_layers_index),
-        #     trunk_filters=val(trunk_filters_index),
-        #     trunk_layers=val(trunk_layers_index),
-        #     train_data=train_data,
-        #     validation_data=validation_data,
-        #     dropout_rate=val(dropout_index)
-        # )
+        try:
+            loss = cornell_grasp_train.run_training(
+                train_data=train_data,
+                validation_data=validation_data,
+                **kwargs)
+        except tf.errors.ResourceExhaustedError e:
+            print('Hyperparams caused algorithm to run out of resources, '
+                  'will continue to next stage and return infinity loss for now.'
+                  'To avoid this entirely you might set more memory sensitive hyperparam ranges,'
+                  'or add constraints to your hyperparam search so it does not choose'
+                  'huge values for all the parameters at once'
+                  'Error: ' str(e))
+            loss = float('inf')
+            ex_type, ex, tb = sys.exc_info()
+            traceback.print_tb(tb)
+        except ValueError e:
+            print('Hyperparams encountered a model that failed with an invalid combination of values, '
+                  'we will continue to next stage and return infinity loss for now.'
+                  'To avoid this entirely you will need to debug your model w.r.t. the current hyperparam choice.'
+                  'Error: ' str(e))
+            loss = float('inf')
+            ex_type, ex, tb = sys.exc_info()
+            traceback.print_tb(tb)
+        finally:
+            del tb
+
+        return loss
 
     hyperopt = GPyOpt.methods.BayesianOptimization(
         f=train_callback,  # function to optimize
         domain=search_space,  # where are we going to search
         initial_design_numdata=initial_num_samples,
-        model_type="GP_MCMC",
+        model_type='GP_MCMC',
         acquisition_type='EI_MCMC',  # EI
         evaluator_type="predictive",  # Expected Improvement
         batch_size=baysean_batch_size,
