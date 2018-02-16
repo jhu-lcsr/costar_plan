@@ -28,7 +28,6 @@ class PretrainImageJigsaws(PretrainImageAutoencoder):
         command line and set things like our optimizer and learning rate.
         '''
         super(PretrainImageJigsaws, self).__init__(taskdef, *args, **kwargs)
-        self.num_generator_files = 1
         self.num_options = SuturingNumOptions()
         self.save_encoder_decoder = True
 

@@ -51,6 +51,10 @@ def GetModelParser():
                         help="Number of epochs",
                         type=int,
                         default=500,)
+    parser.add_argument('--initial_epoch',
+                        help="Where to start counting epochs",
+                        type=int,
+                        default=0) # epoch 0 = 1
     parser.add_argument('--data_file', '--file',
                         help="File name for data archive.",
                         default='data.npz')
@@ -195,6 +199,9 @@ def GetModelParser():
     parser.add_argument("--no_disc",
                         help="Disable discriminator usage with images",
                         action="store_true")
+    parser.add_argument("--unique_id",
+                        help="Unique id for status file",
+                        default="")
     return parser
 
 def GetSubmodelOptions():
