@@ -166,13 +166,13 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
             val_batch_size)
 
     # number of samples to take before trying hyperopt
-    initial_num_samples = 5  # 50
+    initial_num_samples = 50
     num_cores = 15
     baysean_batch_size = 1
     # deep learning algorithms don't give exact results
     algorithm_gives_exact_results = False
     # how many optimization steps to take after the initial sampling
-    maximum_hyperopt_steps = 10  # 100
+    maximum_hyperopt_steps = 100
 
     def train_callback(x):
         # x is a funky 2d numpy array, so we convert it back to normal parameters
@@ -225,10 +225,8 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
     hyperopt.run_optimization(max_iter=maximum_hyperopt_steps)
     x_best = hyperopt.x_opt
     # myBopt.X[np.argmin(myBopt.Y)]
-    print('optimization final best result: ' + str(x_best))
-    # print optimized model
-    print("optimized parameters: {0}".format(hyperopt.x_opt))
-    print("optimized loss: {0}".format(hyperopt.fx_opt))
+    print('Hyperparameter Optimization final best result:\n' + str(params_to_args(x_best, index_dict)))
+    print("Optimized loss: {0}".format(hyperopt.fx_opt))
 
     hyperopt.plot_convergence()
     hyperopt.plot_acquisition()
