@@ -138,8 +138,8 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
     search_space, index_dict = add_param('dropout_rate', [0.0, 0.25, 0.5], search_space=search_space, index_dict=index_dict)
     search_space, index_dict = add_param('vector_dense_filters', [2**x for x in range(6, 13)], search_space=search_space, index_dict=index_dict)
     search_space, index_dict = add_param('vector_branch_num_layers', [x for x in range(0, 5)], search_space=search_space, index_dict=index_dict)
-    # leaving out 'resnet' for now, it is causing too many crashes.
-    search_space, index_dict = add_param('image_model_name', ['vgg', 'densenet', 'nasnet_mobile', 'nasnet'], search_space=search_space, index_dict=index_dict)
+    # leaving out 'resnet' for now, it is causing too many crashes, and nasnet_large because it needs different input dimensions.
+    search_space, index_dict = add_param('image_model_name', ['vgg', 'densenet', 'nasnet_mobile'], search_space=search_space, index_dict=index_dict)
     search_space, index_dict = add_param('trainable', [True, False], search_space=search_space, index_dict=index_dict,
                                          enable=False)
     search_space, index_dict = add_param('trunk_filters', [2**x for x in range(6, 12)], search_space=search_space, index_dict=index_dict)
@@ -239,8 +239,9 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
         # may try 1-val_acc sometime (since the hyperopt minimizes)
         loss = history.history['val_loss'][-1]
         if verbose > 0:
-            acc = history.history['val_acc'][-1]
-            ProgUpdate.progbar.write('val_acc: ' + str(acc))
+            if 'val_binary_accuracy' in history.history:
+                acc = history.history['val_binary_accuracy'][-1]
+                ProgUpdate.progbar.write('val_binary_accuracy: ' + str(acc))
 
         return loss
 
