@@ -185,8 +185,8 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
 
     # defining a temporary variable scope for the callbacks
     class ProgUpdate():
-        hyperopt_current_update = 1
-        progbar = tqdm(desc='hyperopt')
+        hyperopt_current_update = 0
+        progbar = tqdm(desc='hyperopt', total=total_max_steps)
 
     def train_callback(x):
         global hyperopt_current_update
@@ -197,6 +197,8 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
             ProgUpdate.progbar.update(ProgUpdate.hyperopt_current_update)
             ProgUpdate.progbar.write('Training with hyperparams: \n' + str(kwargs))
         ProgUpdate.hyperopt_current_update += 1
+
+        history = None
 
         try:
             history = cornell_grasp_train.run_training(
@@ -235,13 +237,17 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
         if not load_dataset_in_advance:
             keras.backend.clear_session()
 
-        # hyperopt seems to be done on val_loss
-        # may try 1-val_acc sometime (since the hyperopt minimizes)
-        loss = history.history['val_loss'][-1]
-        if verbose > 0:
-            if 'val_binary_accuracy' in history.history:
-                acc = history.history['val_binary_accuracy'][-1]
-                ProgUpdate.progbar.write('val_binary_accuracy: ' + str(acc))
+        if history is not None:
+            # hyperopt seems to be done on val_loss
+            # may try 1-val_acc sometime (since the hyperopt minimizes)
+            loss = history.history['val_loss'][-1]
+            if verbose > 0:
+                if 'val_binary_accuracy' in history.history:
+                    acc = history.history['val_binary_accuracy'][-1]
+                    ProgUpdate.progbar.write('val_binary_accuracy: ' + str(acc))
+        else:
+            # we probably hit an exception so consider this infinite loss
+            loss = float('inf')
 
         return loss
 
