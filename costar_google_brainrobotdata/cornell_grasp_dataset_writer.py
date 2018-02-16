@@ -356,13 +356,16 @@ def kFold_split(path, is_objectwise=FLAGS.objectwise_split, num_fold=FLAGS.num_f
     """
     which_splits = [i for i in range(num_fold)]
     num_splits = [num_fold] * num_fold
-    example_num_list = [0 for i in range(num_fold)]
     unique_image_num_list = [0 for i in range(num_fold)]
     unique_object_num_list = [0 for i in range(num_fold)]
     positive_num_list = [0 for i in range(num_fold)]
     negative_num_list = [0 for i in range(num_fold)]
     total_grasp_list = [0 for i in range(num_fold)]
 
+    fold_last_image = ['' for i in range(num_fold)]
+    fold_last_object = ['' for i in range(num_fold)]
+
+    thing_list = [[] for i in range(num_fold)]
     path_cut = path[:-5]
     if not is_objectwise:
         spilt_type_list = ['imagewise'] * num_fold
@@ -376,35 +379,41 @@ def kFold_split(path, is_objectwise=FLAGS.objectwise_split, num_fold=FLAGS.num_f
     last_image_id = 'first_image'  # anything not '0000'
     last_object_id = 'first_object'  # anything not '0'
     with open(path) as f:
-        if not is_objectwise:
-            for line in f:
-                image_id, object_id, _, _ = line.split()
-                if image_id != last_image_id:
-                    path_pos = path_cut + 'pcd' + image_id + 'cpos.txt'
-                    path_neg = path_cut + 'pcd' + image_id + 'cneg.txt'
-                    if os.path.isfile(path_neg) and os.path.isfile(path_pos):
-                        image_counter += 1  # increment only reading new image, not new line
-                        dst_fold = image_counter % num_fold
-                        example_num_list[dst_fold] += 1
-                        last_image_id = image_id
-                        unique_image_num_list[dst_fold] += 1
-                        # return a list of size 2, [neg_num, pos_num]
-                        _, neg_pos_num = load_bounding_boxes_from_pos_neg_files(path_pos, path_neg)
-                        negative_num_list[dst_fold] += neg_pos_num[0]
-                        positive_num_list[dst_fold] += neg_pos_num[1]
-                        total_grasp_list[dst_fold] += (neg_pos_num[0] + neg_pos_num[1])
-                        if object_id != last_object_id:
-                            last_object_id = object_id
-                            unique_object_num_list[dst_fold] += 1
-                            object_counter += 1
-        else:
-            # do objectwise split
-            pass
+        for line in f:
+            image_id, object_id, obj_name, _ = line.split()
+            if image_id == last_image_id:
+                continue
+            else:
+                last_image_id = image_id
+                image_counter += 1
+            path_pos = path_cut + 'pcd' + image_id + 'cpos.txt'
+            path_neg = path_cut + 'pcd' + image_id + 'cneg.txt'
+            if os.path.isfile(path_neg) and os.path.isfile(path_pos):
+                if last_object_id != object_id:
+                    last_object_id = object_id
+                    object_counter += 1
 
-        info_lists = [which_splits, num_splits, example_num_list, unique_image_num_list,
+                if is_objectwise:
+                    dst_fold = (object_counter - 1) % num_fold  # make first idx 0
+                else:
+                    dst_fold = (image_counter - 1) % num_fold  # make first idx 0
+
+                if fold_last_object[dst_fold] != object_id:
+                    fold_last_object[dst_fold] = object_id
+                    unique_object_num_list[dst_fold] += 1
+                if fold_last_image[dst_fold] != image_id:
+                    fold_last_image[dst_fold] = image_id
+                    unique_image_num_list[dst_fold] += 1
+                thing_list[dst_fold].append(obj_name)
+                _, neg_pos_num = load_bounding_boxes_from_pos_neg_files(path_pos, path_neg)
+                negative_num_list[dst_fold] += neg_pos_num[0]
+                positive_num_list[dst_fold] += neg_pos_num[1]
+                total_grasp_list[dst_fold] += (neg_pos_num[0] + neg_pos_num[1])
+
+        info_lists = [which_splits, num_splits, unique_image_num_list,
                       unique_object_num_list, positive_num_list, negative_num_list,
                       total_grasp_list, spilt_type_list]
-        head_line = ('which_splits, num_splits, num_example, unique_image, unique_object,'
+        head_line = ('which_splits, num_splits, unique_image, unique_object,'
                      'num_pos, num_neg, num_total_grasp, spilt_type\n')
         # mkdir_p(result_path)
         file_object = open(result_path, 'w+')
