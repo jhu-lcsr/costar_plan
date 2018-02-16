@@ -11,11 +11,12 @@ import tensorflow as tf
 import traceback
 import keras
 from tensorflow.python.platform import flags
+from tqdm import tqdm
 
 FLAGS = flags.FLAGS
 
 
-def add_param(name, domain, domain_type='discrete', search_space=None, index_dict=None, enable=True, required=True, default=None):
+def add_param(name, domain, domain_type='discrete', search_space=None, index_dict=None, enable=True, required=True, default=None, verbose=1):
     """
 
     # Arguments
@@ -121,7 +122,13 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
     # continuous variables and then discrete variables
     # I'm going with super conservative values for the first run to get an idea how it works
 
-    load_dataset_in_advance = True
+    # it seems loading the dataset in advance leads
+    # to longer and longer loading times as previous
+    # models are not cleared. Extra time is required to
+    # load the dataset each time around, however, so
+    # there is a tradeoff and we need to figure out
+    # what works best
+    load_dataset_in_advance = False
     # since we adaptively initialize the dataset
     # we can also optimize batch size.
     # This will be noticeably slower.
@@ -132,7 +139,7 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
     search_space, index_dict = add_param('vector_dense_filters', [2**x for x in range(6, 13)], search_space=search_space, index_dict=index_dict)
     search_space, index_dict = add_param('vector_branch_num_layers', [x for x in range(0, 5)], search_space=search_space, index_dict=index_dict)
     # leaving out 'resnet' for now, it is causing too many crashes.
-    search_space, index_dict = add_param('image_model_name', ['vgg', 'densenet'], search_space=search_space, index_dict=index_dict)
+    search_space, index_dict = add_param('image_model_name', ['vgg', 'densenet', 'nasnet_mobile', 'nasnet'], search_space=search_space, index_dict=index_dict)
     search_space, index_dict = add_param('trainable', [True, False], search_space=search_space, index_dict=index_dict,
                                          enable=False)
     search_space, index_dict = add_param('trunk_filters', [2**x for x in range(6, 12)], search_space=search_space, index_dict=index_dict)
@@ -144,8 +151,6 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
     feature_combo_name = 'preprocessed_image_raw_grasp'
     train_data = None
     validation_data = None
-
-    optimize_batch_size = False
 
     if load_dataset_in_advance:
         train_file = None
@@ -176,17 +181,25 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
     algorithm_gives_exact_results = False
     # how many optimization steps to take after the initial sampling
     maximum_hyperopt_steps = 100
+    total_max_steps = initial_num_samples + maximum_hyperopt_steps
+
+    # defining a temporary variable scope for the callbacks
+    class ProgUpdate():
+        hyperopt_current_update = 1
+        progbar = tqdm(desc='hyperopt')
 
     def train_callback(x):
+        global hyperopt_current_update
         # x is a funky 2d numpy array, so we convert it back to normal parameters
         kwargs = params_to_args(x, index_dict)
 
         if verbose:
-            print('--------------------------------------------')
-            print('Training with hyperparams: \n' + str(kwargs))
+            ProgUpdate.progbar.update(ProgUpdate.hyperopt_current_update)
+            ProgUpdate.progbar.write('Training with hyperparams: \n' + str(kwargs))
+        ProgUpdate.hyperopt_current_update += 1
 
         try:
-            loss = cornell_grasp_train.run_training(
+            history = cornell_grasp_train.run_training(
                 train_data=train_data,
                 validation_data=validation_data,
                 hyperparams=kwargs,
@@ -219,7 +232,15 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
 
         # TODO(ahundt) consider shutting down dataset generators and clearing the session when there is an exception
         # https://github.com/tensorflow/tensorflow/issues/4735#issuecomment-363748412
-        # keras.backend.clear_session()
+        if not load_dataset_in_advance:
+            keras.backend.clear_session()
+
+        # hyperopt seems to be done on val_loss
+        # may try 1-val_acc sometime (since the hyperopt minimizes)
+        loss = history.history['val_loss'][-1]
+        if verbose > 0:
+            acc = history.history['val_acc'][-1]
+            ProgUpdate.progbar.write('val_acc: ' + str(acc))
 
         return loss
 

@@ -134,6 +134,36 @@ def hypertree_model(
         trunk_layers=4,
         trunk_filters=None,
         vector_branch_num_layers=2):
+    """ Construct a variety of possible models with a tree shape based on hyperparameters.
+
+    Current best 1 epoch run as of 2018-02-16:
+        - note there is a bit of ambiguity so until I know I'll have case 0 and case 1.
+            - two models were in that run and didn't have hyperparam records yet.
+            - The real result is probably case 1, since the files are saved each run,
+              so the data will be for the latest run.
+        - 2018-02-15-22-00-12_-vgg_dense_model-dataset_cornell_grasping-grasp_success2018-02-15-22-00-12_-vgg_dense_model-dataset_cornell_grasping-grasp_success
+        - input
+            - height_width_sin_cos_4
+        - vgg16 model
+        - val_binary_accuracy
+            - 0.9202226425
+        - lr
+            - 0.06953994
+        - vector dense layers
+            - 4 in case 0 with 64 channels
+            - 1 in case 1 with 64 channels
+        - dense block trunk case 1
+            - 5 conv blocks
+            - growth rate 48
+            - 576 input channels
+            - 816 output channels
+        - dense layers before fc1, case 1
+            - 64 output channels
+
+
+
+
+    """
     if trainable is None:
         trainable = False
 
@@ -154,7 +184,7 @@ def hypertree_model(
                 image_model = keras.applications.vgg16.VGG16(
                     input_shape=image_shapes[0], include_top=False,
                     classes=classes)
-            elif image_model_name == 'nasnet':
+            elif image_model_name == 'nasnet_large':
                 image_model = keras.applications.nasnet.NASNetLarge(
                     input_shape=image_shapes[0], include_top=False,
                     classes=classes
@@ -252,7 +282,7 @@ def run_training(
         train_data=None,
         validation_data=None,
         feature_combo_name='preprocessed_image_raw_grasp',
-        image_model_name='resnet',
+        image_model_name='nasnet_mobile',
         hyperparams=None,
         **kwargs):
     """
@@ -390,12 +420,7 @@ def run_training(
         callbacks=callbacks)
 
     model.save_weights(log_dir_run_name + run_name + '_model.h5')
-
-    # hyperopt seems to be done on val_loss
-    # may try 1-val_acc sometime (since the hyperopt minimizes)
-    final_val_loss = history.history['val_loss'][-1]
-    # print(run_name + ' fit complete with final val_loss: ' + str(final_val_loss))
-    return final_val_loss
+    return history
 
 
 def feature_selection(feature_combo_name, top):
