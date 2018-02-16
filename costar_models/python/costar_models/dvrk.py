@@ -31,7 +31,7 @@ def SuturingNumOptions():
 def MakeJigsawsImageClassifier(model, img_shape, trainable = True):
     img0 = Input(img_shape,name="img0_classifier_in")
     img = Input(img_shape,name="img_classifier_in")
-    bn = True
+    bn = model.use_batchnorm
     disc = True
     dr = 0.1 #model.dropout_rate
     x = img

@@ -26,6 +26,7 @@ export use_disc=$7
 #export MODELDIR="$HOME/.costar/suturing_$learning_rate$optimizer$dropout$noise_dim$loss"
 export MODELROOT="$HOME/.costar"
 export SUBDIR="suturing_$learning_rate$optimizer$dropout$noise_dim$loss"
+export USE_BN=1
 
 retrain_cmd=""
 if $retrain
@@ -66,6 +67,7 @@ then
     --optimizer $optimizer \
     --steps_per_epoch 150 \
     --noise_dim $noise_dim \
+    --use_batchnorm $USE_BN \
     --loss $loss \
     --batch_size 64
 fi
@@ -88,6 +90,7 @@ then
     --steps_per_epoch 300 \
     --noise_dim $noise_dim \
     --loss $loss \
+    --use_batchnorm $USE_BN \
     --batch_size 64 --no_disc
 fi
 
@@ -104,5 +107,6 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --steps_per_epoch 300 \
   --preload \
   --loss $loss \
+  --use_batchnorm $USE_BN \
   --batch_size 64 $retrain_cmd $use_disc_cmd
 
