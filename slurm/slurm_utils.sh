@@ -101,15 +101,23 @@ function feh_job() {
   fi
 }
 
-function clean_job_outs() {
-  declare -A job_table
-  local jobs=$(sqme | tail -n+3 | awk '{print $1}')
-  for j in $jobs; do job_table[$j]=true; done
+function del_job_outs() {
+  (($# < 1)) && echo Use \'running\' or max_job number && return 1
+  local running=false
+  if [[ $1 == 'running' ]]; then
+    running=true
+    declare -A job_table
+    local jobs=$(sqme | tail -n+3 | awk '{print $1}')
+    for j in $jobs; do job_table[$j]=true; done
+  fi
   local files="./slurm-*.out"
+  # Find matching files and delete them
   for f in $files; do
     local fjob=${f/\.\/slurm-/}
     fjob=${fjob/\.out/}
-    if [[ ${job_table[$fjob]} == true ]]; then
+    if $running && ${job_table[$fjob]}; then
+      echo Not deleting $f
+    elif ! $running && (($fjob >= $1)); then
       echo Not deleting $f
     else
       echo Deleting $f
