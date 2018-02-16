@@ -48,9 +48,7 @@ function job_status() {
   # Get running jobs
   local running_jobs2=$(sqme | tail -n+3 | awk '{print $1}')
   declare -A running_jobs
-  for j in running_jobs2; do
-    running_jobs[$j]=true
-  done
+  for j in running_jobs2; do running_jobs[$j]=true; done
 
   for j in $all_jobs; do
     # get the last part of the dir
@@ -115,7 +113,7 @@ function del_job_outs() {
   for f in $files; do
     local fjob=${f/\.\/slurm-/}
     fjob=${fjob/\.out/}
-    if $running && ${job_table[$fjob]}; then
+    if $running && [[ ${job_table[$fjob]} == true ]]; then
       echo Not deleting $f
     elif ! $running && (($fjob >= $1)); then
       echo Not deleting $f
