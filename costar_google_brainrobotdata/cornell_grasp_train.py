@@ -252,10 +252,13 @@ def run_training(
         validation_data=None,
         feature_combo_name='preprocessed_image_raw_grasp',
         image_model_name='resnet',
+        hyperparams=None,
         **kwargs):
     """
 
     top: options are 'segmentation' and 'classification'.
+    hyperparams: a dictionary of hyperparameter selections made for this training run.
+       If provided these values will simply be dumped to a file and not utilized in any other way.
     """
     if epochs is None:
         epochs = FLAGS.num_epochs
@@ -323,6 +326,10 @@ def run_training(
     callbacks += [PrintLogsCallback()]
     print('Enabling tensorboard in ' + log_dir)
     mkdir_p(log_dir)
+
+    if hyperparams is not None:
+        with open(log_dir_run_name + run_name + 'hyperparams.json', 'w') as fp:
+            json.dump(hyperparams, fp)
 
     checkpoint = keras.callbacks.ModelCheckpoint(log_dir_run_name + run_name + '-epoch-{epoch:03d}-' +
                                                  monitor_loss_name + '-{' + monitor_loss_name + ':.3f}-' +
