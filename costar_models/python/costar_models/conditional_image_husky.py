@@ -85,7 +85,7 @@ class ConditionalImageHusky(ConditionalImage):
         if self.no_disc:
             disc_wt = 0.
         else:
-            disc_wt = 1e-3
+            disc_wt = 1e-4
         if self.no_disc:
             model = Model(ins + [label_in],
                     [image_out, image_out2,])

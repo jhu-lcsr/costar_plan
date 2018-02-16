@@ -13,14 +13,11 @@ echo "Running $@ on $SLURMD_NODENAME ..."
 echo $1 $2 $3 $4 $5 $6 $7
 echo "use disc = $use_disc"
 
-module load tensorflow/cuda-8.0/r1.3 
-
 export DATASET="husky_data"
-export train_discriminator=false
-export train_discriminator2=false
-export train_image_encoder=false
+export train_discriminator2=true
+export train_image_encoder=true
 export train_gans=false
-export train_encoder_gan=true
+export train_encoder_gan=false
 export learning_rate=$1
 export dropout=$2
 export optimizer=$3
@@ -31,6 +28,7 @@ export use_disc=$7
 #export MODELDIR="$HOME/.costar/husky_$learning_rate$optimizer$dropout$noise_dim$loss"
 export MODELROOT="$HOME/.costar"
 export SUBDIR="husky_$learning_rate$optimizer$dropout$noise_dim$loss"
+export USE_BN=1
 
 retrain_cmd=""
 if $retrain
@@ -41,7 +39,6 @@ fi
 
 use_disc_cmd=""
 if ! $use_disc ; then
-then
   use_disc_cmd="--no_disc"
   SUBDIR=${SUBDIR}_nodisc
 fi
@@ -57,23 +54,6 @@ echo "Options are: $retrain_cmd $use_disc_cmd $1 $2 $3 $4 $5"
 echo "Directory is $MODELDIR"
 echo "Slurm job ID = $SLURM_JOB_ID"
 
-if $train_discriminator && $use_disc ; then
-  echo "Training discriminator 1"
-  $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
-    --features multi \
-    -e 100 \
-    --model discriminator \
-    --data_file $HOME/work/$DATASET.npz \
-    --features husky \
-    --lr $learning_rate \
-    --dropout_rate $dropout \
-    --model_directory $MODELDIR/ \
-    --optimizer $optimizer \
-    --steps_per_epoch 500 \
-    --noise_dim $noise_dim \
-    --loss $loss \
-    --batch_size 64
-fi
 if $train_discriminator2 && $use_disc ; then
   echo "Training discriminator 2"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
@@ -89,7 +69,8 @@ if $train_discriminator2 && $use_disc ; then
     --steps_per_epoch 500 \
     --noise_dim $noise_dim \
     --loss $loss \
-    --batch_size 64
+    --use_batchnorm $USE_BN \
+    --batch_size 64 --no_disc
 fi
 
 if $train_image_encoder
@@ -108,7 +89,8 @@ then
     --steps_per_epoch 500 \
     --noise_dim $noise_dim \
     --loss $loss \
-    --batch_size 64 $use_disc_cmd
+    --use_batchnorm $USE_BN \
+    --batch_size 64 --no_disc
 fi
 
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
@@ -123,5 +105,6 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --optimizer $optimizer \
   --steps_per_epoch 500 \
   --loss $loss \
+  --use_batchnorm $USE_BN \
   --batch_size 64 $retrain_cmd $use_disc_cmd
 

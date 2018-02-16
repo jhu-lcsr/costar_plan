@@ -40,29 +40,29 @@ def _makeTrainTarget(I_target, q_target, g_target, o_target):
 def MakeImageClassifier(model, img_shape, trainable=True):
     img0 = Input(img_shape,name="img0_classifier_in")
     img = Input(img_shape,name="img_classifier_in")
-    bn = model.use_batchnorm 
+    bn = model.use_batchnorm
     disc = True
     dr = model.dropout_rate
     x = img
     x0 = img0
 
-    x0 = AddConv2D(x0, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 32, [7,7], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 32, [5,5], 2, 0., "same", lrelu=disc, bn=bn)
+    x = Dropout(dr)(x)
     x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = Add()([x0, x])
-
-    x = AddConv2D(x, 32, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 32, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 32, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 128, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 128, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 128, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [5,5], 2, 0., "same", lrelu=disc, bn=bn)
+    x = Dropout(dr)(x)
+    x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 128, [5,5], 2, 0., "same", lrelu=disc, bn=bn)
+    x = Dropout(dr)(x)
+    x = AddConv2D(x, 128, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 128, [5,5], 2, 0., "same", lrelu=disc, bn=bn)
 
     x = Flatten()(x)
-    x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
+    x = Dropout(0.5)(x)
+    x = AddDense(x, 1024, "lrelu", 0., output=True, bn=False)
+    x = Dropout(0.5)(x)
     x = AddDense(x, model.num_options, "softmax", 0., output=True, bn=False)
     image_encoder = Model([img0, img], x, name="classifier")
     if not trainable:
@@ -89,25 +89,26 @@ def GetPoseModel(x, num_options, arm_size, gripper_size,
     ins = [img0_in, img_in, option_in, arm, gripper]
     x0, x = img0_in, img_in
     dr, bn = dropout_rate, batchnorm
+    use_lrelu = False
 
     x = Concatenate(axis=-1)([x, x0])
-    x = AddConv2D(x, 32, [3,3], 1, dr, "same", lrelu=True, bn=bn)
+    x = AddConv2D(x, 32, [3,3], 1, dr, "same", lrelu=use_lrelu, bn=bn)
 
     # Add arm, gripper
     y = Concatenate()([arm, gripper])
     y = AddDense(y, 32, "relu", 0., output=True, constraint=3)
     x = TileOnto(x, y, 32, (8,8), add=False)
-    x = AddConv2D(x, 64, [3,3], 1, dr, "valid", lrelu=True, bn=bn)
+    x = AddConv2D(x, 64, [3,3], 1, dr, "valid", lrelu=use_lrelu, bn=bn)
 
     # Add arm, gripper
     y2 = AddDense(option_in, 64, "relu", 0., output=True, constraint=3)
     x = TileOnto(x, y2, 64, (6,6), add=False)
-    x = AddConv2D(x, 128, [3,3], 1, dr, "valid", lrelu=True, bn=bn)
-    x = AddConv2D(x, 64, [3,3], 1, dr, "valid", lrelu=True, bn=bn)
+    x = AddConv2D(x, 128, [3,3], 1, dr, "valid", lrelu=use_lrelu, bn=bn)
+    x = AddConv2D(x, 64, [3,3], 1, dr, "valid", lrelu=use_lrelu, bn=bn)
 
     x = Flatten()(x)
-    x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
-    x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)    # Same setup as the state decoders
+    x = AddDense(x, 512, "relu", dr, output=True, bn=bn)
+    x = AddDense(x, 512, "relu", dr, output=True, bn=bn)    # Same setup as the state decoders
     arm = AddDense(x, arm_size, "linear", 0., output=True)
     gripper = AddDense(x, gripper_size, "sigmoid", 0., output=True)
     actor = Model(ins, [arm, gripper], name="pose")
@@ -124,29 +125,30 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
     arm_in = Input((arm_size,), name="ee_in")
     gripper_in = Input((gripper_size,), name="gripper_in")
     option_in = Input((48,), name="actor_o_in")
+    use_lrelu = False
 
     x0, x = x0in, xin
     #dr, bn = dropout_rate, batchnorm
     dr, bn = dropout_rate, False
 
     x = Concatenate(axis=-1)([x, x0])
-    x = AddConv2D(x, 32, [3,3], 1, dr, "same", lrelu=True, bn=bn)
+    x = AddConv2D(x, 32, [3,3], 1, dr, "same", lrelu=use_lrelu, bn=bn)
 
     # Add arm, gripper
     y = Concatenate()([arm_in, gripper_in])
     y = AddDense(y, 32, "relu", 0., output=True, constraint=3)
     x = TileOnto(x, y, 32, (8,8), add=False)
-    x = AddConv2D(x, 64, [3,3], 1, dr, "valid", lrelu=True, bn=bn)
+    x = AddConv2D(x, 64, [3,3], 1, dr, "valid", lrelu=use_lrelu, bn=bn)
 
     # Add arm, gripper
     y2 = AddDense(option_in, 64, "relu", 0., output=True, constraint=3)
     x = TileOnto(x, y2, 64, (6,6), add=False)
-    x = AddConv2D(x, 128, [3,3], 1, dr, "valid", lrelu=True, bn=bn)
-    x = AddConv2D(x, 64, [3,3], 1, dr, "valid", lrelu=True, bn=bn)
+    x = AddConv2D(x, 128, [3,3], 1, dr, "valid", lrelu=use_lrelu, bn=bn)
+    x = AddConv2D(x, 64, [3,3], 1, dr, "valid", lrelu=use_lrelu, bn=bn)
 
     x = Flatten()(x)
-    x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
-    x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)    # Same setup as the state decoders
+    x = AddDense(x, 512, "relu", dr, output=True, bn=bn)
+    x = AddDense(x, 512, "relu", dr, output=True, bn=bn)    # Same setup as the state decoders
 
     arm = AddDense(x, arm_size, "linear", 0., output=True)
     gripper = AddDense(x, gripper_size, "sigmoid", 0., output=True)

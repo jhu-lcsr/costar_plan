@@ -13,7 +13,6 @@ class HuskyPredictorShowImage(keras.callbacks.Callback):
     Save an image showing what some number of frames and associated predictions
     will look like at the end of an epoch.
     '''
-    
 
     def __init__(self, predictor, features, targets,
             model_directory=DEFAULT_MODEL_DIRECTORY,
@@ -36,7 +35,6 @@ class HuskyPredictorShowImage(keras.callbacks.Callback):
         self.num = len(self.idxs)
         self.features = [f[self.idxs] for f in features]
         self.targets = [np.squeeze(t[self.idxs]) for t in targets]
-        self.epoch = 0
         self.num_hypotheses = num_hypotheses
         self.directory = os.path.join(model_directory,'debug')
         if not os.path.exists(self.directory):
@@ -51,9 +49,6 @@ class HuskyPredictorShowImage(keras.callbacks.Callback):
             msg = "epoch, idx, hypothesis, pose_x, pose_y, pose_z, pose_r, pose_p, pose_y, label\n"
             self.logfile.write(msg)
 
-
-
-        self.epoch += 1
         imglen = 64*64*3
         #img = self.targets[0][:,:imglen]
         if len(self.targets[0].shape) == 2:
@@ -69,18 +64,18 @@ class HuskyPredictorShowImage(keras.callbacks.Callback):
 
         img = np.reshape(img, (self.num,64,64,3))
 
-       
-        
+
+
 
         data, poses, label, next_option, value = self.predictor.predict(self.features)
-        
+
         if self.verbose:
             print("============================")
 
 
         for j in range(self.num):
             name = os.path.join(self.directory,
-                    "predictor_epoch%d_result%d.png"%(self.epoch,j))
+                    "predictor_epoch%d_result%d.png"%(self.epoch+1,j))
             if self.verbose:
                 print("----------------")
                 print(name)
@@ -93,7 +88,7 @@ class HuskyPredictorShowImage(keras.callbacks.Callback):
             plt.imshow(img[j])
             for i in range(self.num_hypotheses):
 
-                msg = str(self.epoch) + "," + str(j) + "," + str(i) + "," + str(poses[j][i][0]) + "," + str(poses[j][i][1]) + "," + str(poses[j][i][2]) + "," + str(poses[j][i][3]) + "," + str(poses[j][i][4]) + "," + str(poses[j][i][5]) + "," + str(np.argmax(label[j][i])) + "\n"
+                msg = str(self.epoch+1) + "," + str(j) + "," + str(i) + "," + str(poses[j][i][0]) + "," + str(poses[j][i][1]) + "," + str(poses[j][i][2]) + "," + str(poses[j][i][3]) + "," + str(poses[j][i][4]) + "," + str(poses[j][i][5]) + "," + str(np.argmax(label[j][i])) + "\n"
                 self.logfile.write(msg)
                 if self.verbose:
                     print("Pose = ", poses[j][i])

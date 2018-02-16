@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+import os
 import matplotlib as mpl
 mpl.use("Agg")
 
@@ -41,10 +42,11 @@ def main(args):
             model.load(world=None,**data)
         train_generator = model.trainGenerator(dataset)
         test_generator = model.testGenerator(dataset)
+        interrupt=False
         try:
             model.trainFromGenerators(train_generator, test_generator, data)
         except KeyboardInterrupt:
-            pass
+            interrupt=True
         #except Exception as e:
         #    print(e)
         #    pass
@@ -57,6 +59,11 @@ def main(args):
                     time.sleep(0.1)
             except KeyboardInterrupt:
                 pass
+        if not interrupt:
+            path = model.model_directory
+            id = model.unique_id
+            with open(os.path.join(path, 'status' + id + '.txt'), 'a+') as f:
+                f.write(" finished\n")
     else:
         pass
 

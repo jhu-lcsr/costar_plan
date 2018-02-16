@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import keras
 import keras.backend as K
 import keras.losses as losses
 import keras.optimizers as optimizers
@@ -312,29 +313,30 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         h = Input((h_dim[0], h_dim[1], self.encoder_channels),name="h_in")
         h0 = Input((h_dim[0],h_dim[1], self.encoder_channels),name="h0_in")
         option = Input((self.num_options,),name="t_opt_in")
+        activation_fn = self.activation_fn
+        bn = self.use_batchnorm
         if self.use_noise:
             z = Input((self.noise_dim,), name="z_in")
 
-        x = AddConv2D(h, 64, [1,1], 1, 0.)
-        x0 = AddConv2D(h0, 64, [1,1], 1, 0.)
+        x = AddConv2D(h, 64, [1,1], 1, 0., activation=activation_fn, bn=bn)
+        x0 = AddConv2D(h0, 64, [1,1], 1, 0., activation=activation_fn, bn=bn)
 
         # Combine the hidden state observations
         x = Concatenate()([x, x0])
-        x = AddConv2D(x, 64, [5,5], 1, 0.) # Removed this dropout
+        x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, activation=activation_fn, bn=bn) # Removed this dropout
 
         # store this for skip connection
         skip = x
 
         if self.use_noise:
-            y = AddDense(z, 32, "relu", 0., constraint=None, output=False)
+            y = AddDense(z, 32, "lrelu", 0., constraint=None, output=False, bn=bn)
             x = TileOnto(x, y, 32, h_dim)
             x = AddConv2D(x, 32, [5,5], 1, 0.)
 
         # Add dense information
-        y = AddDense(option, 64, "relu", 0., constraint=None, output=False)
+        y = AddDense(option, 64, "lrelu", 0., constraint=None, output=False, bn=bn)
         x = TileOnto(x, y, 64, h_dim)
-        x = AddConv2D(x, 64, [5,5], 1, 0.)
-        #x = AddConv2D(x, 128, [5,5], 2, 0.)
+        x = AddConv2D(x, 64, [5,5], 1, 0., activation=activation_fn, bn=bn)
 
         # --- start ssm block
         use_ssm = True
@@ -342,27 +344,31 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             def _ssm(x):
                 return spatial_softmax(x)
             x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
-            #x = AddDense(x, 256, "relu", 0.,
-            #        constraint=None, output=False,)
+            x = AddDense(x, 256, activation_fn, 0.,
+                    constraint=10, bn=bn)
             x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/4),
-                         "relu",
+                         activation_fn, #"sigmoid",
                          self.dropout_rate*0.,
-                         constraint=None, output=False)
+                         #kr=keras.regularizers.l2(1e-8),
+                         constraint=10, bn=bn)
             x = Reshape([int(h_dim[0]/2), int(h_dim[1]/2), 64])(x)
         else:
             x = AddConv2D(x, 128, [5,5], 1, 0.)
         x = AddConv2DTranspose(x, 64, [5,5], 2,
-                self.dropout_rate*0.) # Removed dropout from this block
+                bn=bn,
+                activation=activation_fn,
+                dropout_rate=self.dropout_rate) # Removed dropout from this block
         # --- end ssm block
 
         if self.skip_connections or True:
             x = Concatenate()([x, skip])
 
         for i in range(1):
-            #x = TileOnto(x, y, self.num_options, (8,8))
             x = AddConv2D(x, 64,
-                    [5,5],
+                    [7,7],
                     stride=1,
+                    bn=bn,
+                    activation=activation_fn,
                     dropout_rate=self.dropout_rate)
 
         # --------------------------------------------------------------------
@@ -512,6 +518,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             train_generator,
             self.steps_per_epoch,
             epochs=self.epochs,
+            initial_epoch=self.initial_epoch,
             validation_steps=self.validation_steps,
             validation_data=test_generator,
             callbacks=callbacks)
@@ -564,8 +571,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
             for (item, name) in items:
                 if item is not None:
-                    print(">>> Saving", name)
-                    item.save_weights('{}_{}.h5f'.format(self.name, name))
+                    filename = '{}_{}.h5f'.format(self.name, name)
+                    print(">>> Saving", name, "to", filename)
+                    item.save_weights(filename)
         else:
             raise RuntimeError('save() failed: model not found.')
 
@@ -580,8 +588,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
             for (item, name) in items:
                 if item is not None:
-                    print(">>> Loading", name)
-                    item.load_weights('{}_{}.h5f'.format(self.name, name))
+                    filename = '{}_{}.h5f'.format(self.name, name)
+                    print(">>> Loading", name, "from", filename)
+                    item.load_weights(filename)
         else:
             raise RuntimeError('_loadWeights() failed: model not yet created.')
 
