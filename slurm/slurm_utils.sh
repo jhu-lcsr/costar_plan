@@ -48,7 +48,7 @@ function job_status() {
   # Get running jobs
   local running_jobs2=$(sqme | tail -n+3 | awk '{print $1}')
   declare -A running_jobs
-  for j in running_jobs2; do running_jobs[$j]=true; done
+  for j in $running_jobs2; do running_jobs[$j]=true; done
 
   for j in $all_jobs; do
     # get the last part of the dir
@@ -56,14 +56,10 @@ function job_status() {
     dir="${dir%/*}"
     dir="${dir##*/}"
     local status=UNKNOWN
-    if [[ ${running_jobs[$j]} == true ]]; then
-      status=RUNNING
-    elif grep TIME "./slurm-$j.out" > /dev/null; then
-      status=TIMEOUT
-    elif grep error "./slurm-$j.out" > /dev/null; then
-      status=ERROR
-    else
-      status=SUCCESS
+    if [[ ${running_jobs[$j]} == true ]]; then status=RUNNING
+    elif grep TIME "./slurm-$j.out" > /dev/null; then status=TIMEOUT
+    elif grep error "./slurm-$j.out" > /dev/null; then status=ERROR
+    else status=SUCCESS
     fi
     echo $j $status $dir
   done
