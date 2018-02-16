@@ -77,8 +77,14 @@ gripper location and orientation rectangle data:
   - points p0, p1 aka [(x2, y2), (x3, y3)] defines side 1 of the gap between the gripper plates
   - points p1, p2 aka [(x3, y3), (x0, y0)] defines gripper plate 1
 
-  This means what we describe as bbox/width is the gripper plate,
- and bbox/height is the distance between gripper plates
+
+The "gripper plate" is what we save as "bbox/width", this line actually defines
+a range of possible gripper plate positions for successful grasps. For example,
+you might imagine that a ruler could be picked up at any point along the length
+of the ruler.
+
+The "bbox/height" parameter is how open the gripper is, in other words the distance
+between the gripper plates' interior surface.
 [End comments by code authors]
 
 5. The backgroundMapping file contains one line for each image in the

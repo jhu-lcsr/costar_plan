@@ -11,6 +11,7 @@ Cornell Dataset Code Based on:
 import os
 import errno
 import sys
+import json
 import argparse
 import os.path
 import glob
@@ -133,12 +134,45 @@ def hypertree_model(
         trunk_layers=4,
         trunk_filters=None,
         vector_branch_num_layers=2):
+    """ Construct a variety of possible models with a tree shape based on hyperparameters.
+
+    Current best 1 epoch run as of 2018-02-16:
+        - note there is a bit of ambiguity so until I know I'll have case 0 and case 1.
+            - two models were in that run and didn't have hyperparam records yet.
+            - The real result is probably case 1, since the files are saved each run,
+              so the data will be for the latest run.
+        - 2018-02-15-22-00-12_-vgg_dense_model-dataset_cornell_grasping-grasp_success2018-02-15-22-00-12_-vgg_dense_model-dataset_cornell_grasping-grasp_success
+        - input
+            - height_width_sin_cos_4
+        - vgg16 model
+        - val_binary_accuracy
+            - 0.9202226425
+        - lr
+            - 0.06953994
+        - vector dense layers
+            - 4 in case 0 with 64 channels
+            - 1 in case 1 with 64 channels
+        - dense block trunk case 1
+            - 5 conv blocks
+            - growth rate 48
+            - 576 input channels
+            - 816 output channels
+        - dense layers before fc1, case 1
+            - 64 output channels
+
+
+
+
+    """
+    if trainable is None:
+        trainable = False
 
     # TODO(ahundt) deal with model names being too long due to https://github.com/keras-team/keras/issues/5253
     if top == 'segmentation':
         name_prefix = 'dilated_'
     else:
         name_prefix = 'single_'
+        dilation_rate = 1
     with K.name_scope(name_prefix + 'hypertree') as scope:
         # VGG16 weights are shared and not trainable
         if top == 'segmentation':
@@ -150,7 +184,7 @@ def hypertree_model(
                 image_model = keras.applications.vgg16.VGG16(
                     input_shape=image_shapes[0], include_top=False,
                     classes=classes)
-            elif image_model_name == 'nasnet':
+            elif image_model_name == 'nasnet_large':
                 image_model = keras.applications.nasnet.NASNetLarge(
                     input_shape=image_shapes[0], include_top=False,
                     classes=classes
@@ -161,9 +195,16 @@ def hypertree_model(
                     classes=classes
                 )
             elif image_model_name == 'resnet':
-                image_model = keras.applications.resnet50.ResNet50(
+                # resnet model is special because we need to
+                # skip the average pooling part.
+                resnet_model = keras.applications.resnet50.ResNet50(
                     input_shape=image_shapes[0], include_top=False,
                     classes=classes)
+                if not trainable:
+                    for layer in resnet_model.layers:
+                        layer.trainable = False
+                # get the layer before the global average pooling
+                image_model = resnet_model.layers[-2]
             elif image_model_name == 'densenet':
                 image_model = keras.applications.densenet.DenseNet169(
                     input_shape=image_shapes[0], include_top=False,
@@ -171,7 +212,7 @@ def hypertree_model(
             else:
                 raise ValueError('Unsupported image_model_name')
 
-        if not trainable:
+        if not trainable and getattr(image_model, 'layers', None) is not None:
             for layer in image_model.layers:
                 layer.trainable = False
 
@@ -241,11 +282,14 @@ def run_training(
         train_data=None,
         validation_data=None,
         feature_combo_name='preprocessed_image_raw_grasp',
-        image_model_name='vgg',
+        image_model_name='nasnet_mobile',
+        hyperparams=None,
         **kwargs):
     """
 
     top: options are 'segmentation' and 'classification'.
+    hyperparams: a dictionary of hyperparameter selections made for this training run.
+       If provided these values will simply be dumped to a file and not utilized in any other way.
     """
     if epochs is None:
         epochs = FLAGS.num_epochs
@@ -255,6 +299,8 @@ def run_training(
         train_file = os.path.join(FLAGS.data_dir, FLAGS.train_filename)
     if validation_file is None:
         validation_file = os.path.join(FLAGS.data_dir, FLAGS.evaluate_filename)
+    if learning_rate is None:
+        learning_rate = FLAGS.learning_rate
 
     [image_shapes, vector_shapes, data_features, model_name,
      monitor_loss_name, label_features, monitor_metric_name,
@@ -309,8 +355,17 @@ def run_training(
     csv_logger = CSVLogger(log_dir_run_name + run_name + '.csv')
     callbacks = callbacks + [csv_logger]
     callbacks += [PrintLogsCallback()]
-    print('Enabling tensorboard in ' + log_dir)
+    print('Writing logs for models, accuracy and tensorboard in ' + log_dir)
     mkdir_p(log_dir)
+
+    # Save the hyperparams to a json string so it is human readable
+    if hyperparams is not None:
+        with open(log_dir_run_name + run_name + '_hyperparams.json', 'w') as fp:
+            json.dump(hyperparams, fp)
+
+    # Save the current model to a json string so it is human readable
+    with open(log_dir_run_name + run_name + '_model.json', 'w') as fp:
+        fp.write(model.to_json())
 
     checkpoint = keras.callbacks.ModelCheckpoint(log_dir_run_name + run_name + '-epoch-{epoch:03d}-' +
                                                  monitor_loss_name + '-{' + monitor_loss_name + ':.3f}-' +
@@ -355,7 +410,7 @@ def run_training(
         samples_in_val_dataset, train_file, batch_size,
         val_batch_size, train_data=train_data, validation_data=validation_data)
 
-    print('calling model.fit_generator()')
+    # print('calling model.fit_generator()')
     history = parallel_model.fit_generator(
         train_data,
         steps_per_epoch=steps_per_epoch_train,
@@ -365,16 +420,12 @@ def run_training(
         callbacks=callbacks)
 
     model.save_weights(log_dir_run_name + run_name + '_model.h5')
-
-    # hyperopt seems to be done on val_loss
-    # may try 1-val_acc sometime (since the hyperopt minimizes)
-    final_val_loss = history.history['val_loss'][-1]
-    print(run_name + ' fit complete with final val_loss: ' + str(final_val_loss))
-    return final_val_loss
+    return history
 
 
 def feature_selection(feature_combo_name, top):
-    print('feature_combo_name: ' + str(feature_combo_name))
+    """ Choose the features to load from the dataset and losses to use during training
+    """
     if feature_combo_name == 'preprocessed_image_raw_grasp':
         data_features = ['image/preprocessed', 'sin_cos_height_width_4']
         image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
@@ -415,6 +466,8 @@ def feature_selection(feature_combo_name, top):
 
 def load_dataset(validation_file, label_features, data_features, samples_in_val_dataset, train_file, batch_size, val_batch_size,
                  train_data=None, validation_data=None, in_memory_validation=False):
+    """ Load the cornell grasping dataset from the file if it isn't already available.
+    """
 
     if in_memory_validation:
         val_batch_size = samples_in_val_dataset
@@ -438,7 +491,10 @@ def load_dataset(validation_file, label_features, data_features, samples_in_val_
 
 
 def epoch_params(batch_size):
-    # TODO(ahundt) WARNING: THE NUMBER OF TRAIN/VAL STEPS VARIES EVERY TIME THE DATASET IS CONVERTED, AUTOMATE SETTING THOSE NUMBERS
+    """ Determine the number of steps to train and validate
+
+    TODO(ahundt) WARNING: THE NUMBER OF TRAIN/VAL STEPS VARIES EVERY TIME THE DATASET IS CONVERTED, AUTOMATE SETTING THOSE NUMBERS
+    """
     samples_in_training_dataset = 6402
     samples_in_val_dataset = 1617
     val_batch_size = 11
