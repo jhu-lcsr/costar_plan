@@ -116,6 +116,7 @@ class AbstractAgentBasedModel(object):
         else:
             self.features = features
         self.robot = robot
+        self.save_train_state = True
         self.name_prefix = model
         self.clipnorm = float(clipnorm)
         self.taskdef = taskdef
