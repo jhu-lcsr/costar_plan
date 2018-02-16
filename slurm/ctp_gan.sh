@@ -116,15 +116,15 @@ fi
 ## Pretrain_image_encoder ---------------------------
 
 if ! $skip_encoder; then
-  local status_file="$MODELDIR"/status_pretrain.txt
+  status_file="$MODELDIR"/status_pretrain.txt
   # Check if we should load the model
-  local load_cmd=''
+  load_cmd=''
   $load_model || ($resume && [[ -f $status_file ]]) && load_cmd='--load_model'
 
   # Calculate epochs left
-  local epochs_done=0
+  epochs_done=0
   if $resume && [[ -f $status_file ]]; then
-    local contents=($(cat $status_file))
+    contents=($(cat $status_file))
     epochs_done=${contents[0]}
   fi
   # Check for resume after finish
@@ -175,15 +175,15 @@ fi
 
 ## Conditional gan ---------------------------------
 
-local status_file="$MODELDIR"/status_cond.txt
+status_file="$MODELDIR"/status_cond.txt
 # Check if we should load the model
-local load_cmd=''
+load_cmd=''
 $load_model || ($resume && [[ -f $status_file ]]) && load_cmd='--load_model'
 
 # Calculate epochs left
-local epochs_done=0
+epochs_done=0
 if $resume && [[ -f $status_file ]]; then
-  local contents=($(cat $status_file))
+  contents=($(cat $status_file))
   epochs_done=${contents[0]}
 fi
 # Check for resume after finish
