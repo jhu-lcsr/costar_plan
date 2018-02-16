@@ -33,18 +33,21 @@ def add_param(name, domain, domain_type='discrete', search_space=None, index_dic
         index_dict['current_index'] = 0
 
     if enable:
-        trainable_index = index_dict['current_index']
+        param_index = index_dict['current_index']
         numerical_domain = domain
+        needs_reverse_lookup = False
         lookup_as = float
         # convert string domains to a domain of integer indexes
         if domain_type == 'discrete':
             if isinstance(domain, list) and isinstance(domain[0], str):
                 numerical_domain = [i for i in range(len(domain))]
                 lookup_as = str
-            if isinstance(domain, list) and isinstance(domain[0], bool):
+                needs_reverse_lookup = True
+            elif isinstance(domain, list) and isinstance(domain[0], bool):
                 numerical_domain = [i for i in range(len(domain))]
                 lookup_as = bool
-            if isinstance(domain, list) and isinstance(domain[0], float):
+                needs_reverse_lookup = True
+            elif isinstance(domain, list) and isinstance(domain[0], float):
                 lookup_as = float
             else:
                 lookup_as = int
@@ -65,8 +68,9 @@ def add_param(name, domain, domain_type='discrete', search_space=None, index_dic
         opt_dict['enable'] = enable
         opt_dict['required'] = required
         opt_dict['default'] = default
-        opt_dict['index'] = trainable_index
+        opt_dict['index'] = param_index
         opt_dict['domain'] = domain
+        opt_dict['needs_reverse_lookup'] = needs_reverse_lookup
         index_dict[name] = opt_dict
         index_dict['current_index'] += 1
     return search_space, index_dict
@@ -87,13 +91,22 @@ def params_to_args(x, index_dict):
             continue
 
         if opt_dict['enable']:
+            arg_name = opt_dict['name']
             param_value = x[:, opt_dict['index']]
-            if opt_dict['domain'] == 'discrete':
+            if opt_dict['type'] == 'discrete':
                 # the value is an integer indexing into the lookup dict
-                kwargs[opt_dict['name']] = opt_dict['lookup_as'](opt_dict['domain'][param_value])
+                if opt_dict['needs_reverse_lookup']:
+                    domain_index = int(param_value)
+                    domain_value = opt_dict['domain'][domain_index]
+                    value = opt_dict['lookup_as'](domain_value)
+                else:
+                    value = opt_dict['lookup_as'](param_value)
+
             else:
                 # the value is a param to use directly
-                kwargs[opt_dict['name']] = opt_dict['lookup_as'](param_value)
+                value = opt_dict['lookup_as'](param_value)
+
+            kwargs[arg_name] = value
         elif opt_dict['required']:
             kwargs[opt_dict['name']] = opt_dict['default']
     return kwargs
@@ -113,8 +126,8 @@ def optimize(train_file=None, validation_file=None, seed=1):
 
     search_space, index_dict = add_param('learning_rate', (0.001, 0.1), 'continuous')
     search_space, index_dict = add_param('dropout_rate', [0.0, 0.25, 0.5], search_space=search_space, index_dict=index_dict)
-    search_space, index_dict = add_param('vector_dense_filters', [2**x for x in range(5, 10)], search_space=search_space, index_dict=index_dict)
-    search_space, index_dict = add_param('vector_branch_num_layers', [x for x in range(1, 4)], search_space=search_space, index_dict=index_dict)
+    search_space, index_dict = add_param('vector_dense_filters', [2**x for x in range(6, 13)], search_space=search_space, index_dict=index_dict)
+    search_space, index_dict = add_param('vector_branch_num_layers', [x for x in range(0, 5)], search_space=search_space, index_dict=index_dict)
     search_space, index_dict = add_param('image_model_name', ['vgg', 'resnet', 'densenet'], search_space=search_space, index_dict=index_dict)
     search_space, index_dict = add_param('trainable', [True, False], search_space=search_space, index_dict=index_dict,
                                          enable=False)
@@ -158,7 +171,7 @@ def optimize(train_file=None, validation_file=None, seed=1):
     # deep learning algorithms don't give exact results
     algorithm_gives_exact_results = False
     # how many optimization steps to take after the initial sampling
-    maximum_iterations_of_optimization = 10  # 100
+    maximum_hyperopt_steps = 10  # 100
 
     def train_callback(x):
         # x is a funky 2d numpy array, so we convert it back to normal parameters
@@ -193,7 +206,7 @@ def optimize(train_file=None, validation_file=None, seed=1):
         exact_feval=algorithm_gives_exact_results)
 
     # run the optimization, this will take a long time!
-    hyperopt.run_optimization(max_iter=maximum_iterations_of_optimization)
+    hyperopt.run_optimization(max_iter=maximum_hyperopt_steps)
     x_best = hyperopt.x_opt
     # myBopt.X[np.argmin(myBopt.Y)]
     print('optimization final best result: ' + str(x_best))
