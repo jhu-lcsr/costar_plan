@@ -93,6 +93,7 @@ class RosTaskParser(TaskParser):
                 started = [s or x.base_name == "Reach"
                            for s, x 
                            in zip(started, [left, right])]
+                print(objs)
                 print ("L=", left.base_name,
                        "R=", right.base_name,
                        "started=", started)
@@ -105,6 +106,7 @@ class RosTaskParser(TaskParser):
                 self.addExample(t, objs, actions, seq)
             elif topic == self.alias_topic:
                 self.addAlias(msg.old_name, msg.new_name)
+        asdf
 
     def _getArgs(self, skill_name):
         '''
