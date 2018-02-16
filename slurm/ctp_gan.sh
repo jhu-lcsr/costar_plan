@@ -128,7 +128,7 @@ if ! $skip_encoder; then
     epochs_done=${contents[0]}
   fi
   # Check for resume after finish
-  if $resume && (($epochs_left <= 0)); then
+  if $resume && (($epochs_done >= $epochs1 <= 0)); then
     echo Skipping pretrain_image due to resume
     echo $epochs_done/$epochs1 epochs already done
   elif $gan_encoder; then
