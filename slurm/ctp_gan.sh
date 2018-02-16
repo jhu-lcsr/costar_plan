@@ -9,7 +9,6 @@
 
 # Check if running on marcc
 if [[ -z ${SLURM_JOB_ID+x} ]]; then marcc=false; else marcc=true; fi
-
 if $marcc; then
   echo "Running $@ on $SLURMD_NODENAME ..."
   module load tensorflow/cuda-8.0/r1.3
@@ -17,7 +16,8 @@ else
   echo "Not running on Marcc"
 fi
 
-OPTS=$(getopt -o '' --long lr:,dr:,opt:,noisedim:,loss:,wass,no_wass,noise,retrain,gan_encoder,skip_encoder,load_model,suffix:,multi,husky,jigsaws -n ctp_gan -- "$@")
+## Option Processing ----
+OPTS=$(getopt -o '' --long lr:,dr:,opt:,noisedim:,loss:,wass,no_wass,noise,retrain,gan_encoder,skip_encoder,load_model,suffix:,multi,husky,jigsaws,no_resume,epochs1:,epochs2: -n ctp_gan -- "$@")
 
 [[ $? != 0 ]] && echo "Failed parsing options." && exit 1
 
@@ -35,7 +35,9 @@ load_model=false
 dataset=''
 features=''
 suffix=''
-resume=false # resume a job
+resume=true # resume a job
+epochs1=200
+epochs2=200
 
 echo "$OPTS"
 eval set -- "$OPTS"
@@ -58,7 +60,9 @@ while true; do
     --husky) dataset=husky_data; features=husky; shift ;;
     --jigsaws) dataset=suturing_data2; features=jigsaws; shift ;;
     --suffix) suffix="$2"; shift 2 ;;
-    --resume) resume=true; shift ;;
+    --no_resume) resume=false; shift ;;
+    --epochs1) epochs1="$2"; shift 2 ;;
+    --epochs2) epochs2="$2"; shift 2 ;;
     --) shift; break ;;
     *) echo "Internal error!" ; exit 1 ;;
   esac
@@ -70,6 +74,8 @@ done
 
 [[ $dataset == '' ]] && echo 'Dataset is mandatory!' && exit 1
 [[ $features == '' ]] && echo 'Features are mandatory!' && exit 1
+
+## End of option processing ---------------------
 
 if $wass; then wass_dir=wass; else wass_dir=nowass; fi
 if $use_noise; then noise_dir=noise; else noise_dir=nonoise; fi
@@ -107,22 +113,30 @@ else
   cmd_prefix='rosrun costar_models '
 fi
 
-# Pretrain_image_encoder
+## Pretrain_image_encoder ---------------------------
+
 if ! $skip_encoder; then
-  local status_file="$MODELDIR"/status_pretrain.txt
+  status_file="$MODELDIR"/status_pretrain.txt
   # Check if we should load the model
-  local load_cmd=''
+  load_cmd=''
   $load_model || ($resume && [[ -f $status_file ]]) && load_cmd='--load_model'
 
+  # Calculate epochs left
+  epochs_done=0
+  if $resume && [[ -f $status_file ]]; then
+    contents=($(cat $status_file))
+    epochs_done=${contents[0]}
+  fi
   # Check for resume after finish
-  if $resume && grep finished $status_file; then
-    echo Skipping pretrain_image due to resume!
+  if $resume && (($epochs_done >= $epochs1 <= 0)); then
+    echo Skipping pretrain_image due to resume
+    echo $epochs_done/$epochs1 epochs already done
   elif $gan_encoder; then
-
-    echo "Training gan encoder"
+    echo "Training gan encoder. $epochs_done/$epochs1 epochs done"
     ${cmd_prefix}ctp_model_tool \
       --features $features \
-      -e 500 \
+      -e $epochs1 \
+      --initial_epoch $epochs_done \
       --model pretrain_image_gan \
       --data_file $data_dir \
       --lr $lr \
@@ -138,10 +152,11 @@ if ! $skip_encoder; then
       $wass_cmd \
       $load_cmd
   else
-    echo "Training non-gan image encoder"
+    echo "Training non-gan image encoder. $epochs_done/$epochs1 epochs done"
     ${cmd_prefix}ctp_model_tool \
       --features $features \
-      -e 200 \
+      -e $epochs1 \
+      --initial_epoch $epochs_done \
       --model pretrain_image_encoder \
       --data_file $data_dir \
       --lr $lr \
@@ -158,19 +173,28 @@ if ! $skip_encoder; then
   fi
 fi
 
-# Actual conditional gan
-local status_file="$MODELDIR"/status_cond.txt
+## Conditional gan ---------------------------------
+
+status_file="$MODELDIR"/status_cond.txt
 # Check if we should load the model
-local load_cmd=''
+load_cmd=''
 $load_model || ($resume && [[ -f $status_file ]]) && load_cmd='--load_model'
 
-if $resume && grep finished $status_file; then
+# Calculate epochs left
+epochs_done=0
+if $resume && [[ -f $status_file ]]; then
+  contents=($(cat $status_file))
+  epochs_done=${contents[0]}
+fi
+# Check for resume after finish
+if $resume && (($epochs_done >= $epochs2)); then
   echo Skipping conditional gan due to resume!
 else
-  echo "Training conditional gan"
+  echo "Training conditional gan. $epochs_done/$epochs2 epochs done."
     ${cmd_prefix}ctp_model_tool \
     --features $features \
-    -e 100 \
+    -e $epochs2 \
+    --initial_epoch $epochs_done \
     --model conditional_image_gan \
     --data_file $data_dir \
     --lr $lr \
