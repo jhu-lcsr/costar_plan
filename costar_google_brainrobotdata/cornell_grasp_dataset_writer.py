@@ -339,6 +339,7 @@ def read_label_file(path):
             # some bounding boxes have invalid NaN coordinates, skip them
             if np.isnan(x) or np.isnan(y):
                 has_nan = True
+                print('this file has NaN in it')
                 print(path)
             xys.append((x, y))
             if len(xys) % 4 == 0 and len(xys) / 4 >= 1:
@@ -347,13 +348,18 @@ def read_label_file(path):
                 has_nan = False
 
 
-def kFold_split(path, is_objectwise=FLAGS.objectwise_split, num_fold=FLAGS.num_fold):
+def k_fold_split(path=FLAGS.data_dir, is_objectwise=FLAGS.objectwise_split, num_fold=FLAGS.num_fold):
     """ K-Fold on dataset.
         path: path to z.txt, a file match images and objects. And *pos/neg.txt, should
         remain in same folder with z.txt.
         is_objectwise: if True, do splits on different objects. Otherwise do splits on image.
         num_fold: the number of splits.
+
+        Return: List of image_id list for each fold
     """
+    if path[-1] != '/':
+        path += '/'
+
     which_splits = [i for i in range(num_fold)]
     num_splits = [num_fold] * num_fold
     unique_image_num_list = [0 for i in range(num_fold)]
@@ -365,29 +371,29 @@ def kFold_split(path, is_objectwise=FLAGS.objectwise_split, num_fold=FLAGS.num_f
     fold_last_image = ['' for i in range(num_fold)]
     fold_last_object = ['' for i in range(num_fold)]
 
-    thing_list = [[] for i in range(num_fold)]
-    path_cut = path[:-5]
+    fold_image_id_list = [[] for i in range(num_fold)]
+
     if not is_objectwise:
         spilt_type_list = ['imagewise'] * num_fold
-        result_path = path_cut + 'imagewise_k_fold_stat.csv'
+        result_path = path + 'imagewise_k_fold_stat.csv'
     else:
         spilt_type_list = ['objectwise'] * num_fold
-        result_path = path_cut + 'objectwise_k_fold_stat.csv'
+        result_path = path + 'objectwise_k_fold_stat.csv'
 
     image_counter = 0
     object_counter = 0
     last_image_id = 'first_image'  # anything not '0000'
     last_object_id = 'first_object'  # anything not '0'
-    with open(path) as f:
+    with open(path + 'z.txt') as f:
         for line in f:
-            image_id, object_id, obj_name, _ = line.split()
+            image_id, object_id, _, _ = line.split()
             if image_id == last_image_id:
                 continue
             else:
                 last_image_id = image_id
                 image_counter += 1
-            path_pos = path_cut + 'pcd' + image_id + 'cpos.txt'
-            path_neg = path_cut + 'pcd' + image_id + 'cneg.txt'
+            path_pos = path + 'pcd' + image_id + 'cpos.txt'
+            path_neg = path + 'pcd' + image_id + 'cneg.txt'
             if os.path.isfile(path_neg) and os.path.isfile(path_pos):
                 if last_object_id != object_id:
                     last_object_id = object_id
@@ -404,11 +410,14 @@ def kFold_split(path, is_objectwise=FLAGS.objectwise_split, num_fold=FLAGS.num_f
                 if fold_last_image[dst_fold] != image_id:
                     fold_last_image[dst_fold] = image_id
                     unique_image_num_list[dst_fold] += 1
-                thing_list[dst_fold].append(obj_name)
+
                 _, neg_pos_num = load_bounding_boxes_from_pos_neg_files(path_pos, path_neg)
                 negative_num_list[dst_fold] += neg_pos_num[0]
                 positive_num_list[dst_fold] += neg_pos_num[1]
                 total_grasp_list[dst_fold] += (neg_pos_num[0] + neg_pos_num[1])
+
+                # Store image_ids for each fold
+                fold_image_id_list[dst_fold].append(image_id)
 
         info_lists = [which_splits, num_splits, unique_image_num_list,
                       unique_object_num_list, positive_num_list, negative_num_list,
@@ -424,6 +433,40 @@ def kFold_split(path, is_objectwise=FLAGS.objectwise_split, num_fold=FLAGS.num_f
                 cur_line += str(single_list[i]) + ','
             file_object.writelines(cur_line + '\n')
         file_object.close()
+
+    return fold_image_id_list
+
+
+def k_fold_tfrecord_writer(path=FLAGS.data_dir, kFold_list=None, is_objectwise=FLAGS.objectwise_split):
+    """ Write Tfrecord based on image_id stored in kFold_list.
+
+        path: directory of where origin data is stored, not a file path.
+        kFold_list: List of image_id list for each fold, returned from kFold_split.
+        path_to_store: directory to where tfrecords are stored, not a file path,
+        default same as path.
+    """
+    if path[-1] != '/':
+        path += '/'
+
+    if is_objectwise:
+        split_type = 'objectwise'
+    else:
+        split_type = 'imagewise'
+
+    coder = ImageCoder()
+    for i, fold in enumerate(kFold_list):
+        recordPath = path + 'cornell-grasping-dataset' + split_type + '_fold_' + str(i) + '.tfrecord'
+        cur_writer = tf.python_io.TFRecordWriter(recordPath)
+        for image_id in fold:
+            bbox_pos_path = path + 'pcd' + image_id + 'cpos.txt'
+            bbox_neg_path = path + 'pcd' + image_id + 'cneg.txt'
+            image_path = path + 'pcd' + image_id + 'r.png'
+            image_buffer, height, width = _process_image(image_path, coder)
+            examples, _, _ = traverse_examples_in_single_image(
+                image_path, bbox_pos_path, bbox_neg_path, image_buffer, height, width)
+            for example in examples:
+                cur_writer.write(example.SerializeToString())
+        cur_writer.close()
 
     return
 
