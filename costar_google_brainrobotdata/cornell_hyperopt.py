@@ -187,7 +187,7 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
                 train_data=train_data,
                 validation_data=validation_data,
                 **kwargs)
-        except tf.errors.ResourceExhaustedError e:
+        except tf.errors.ResourceExhaustedError as e:
             print('Hyperparams caused algorithm to run out of resources, '
                   'will continue to next stage and return infinity loss for now.'
                   'To avoid this entirely you might set more memory sensitive hyperparam ranges,'
@@ -197,7 +197,7 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
             loss = float('inf')
             ex_type, ex, tb = sys.exc_info()
             traceback.print_tb(tb)
-        except ValueError e:
+        except ValueError as e:
             print('Hyperparams encountered a model that failed with an invalid combination of values, '
                   'we will continue to next stage and return infinity loss for now.'
                   'To avoid this entirely you will need to debug your model w.r.t. the current hyperparam choice.'
