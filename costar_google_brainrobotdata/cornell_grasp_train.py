@@ -66,7 +66,7 @@ flags.DEFINE_float(
     'Initial learning rate.'
 )
 flags.DEFINE_integer(
-    'num_epochs',
+    'epochs',
     1,
     'Number of epochs to run trainer.'
 )
@@ -121,7 +121,7 @@ def choose_hypertree_model(
         images=None, vectors=None,
         image_shapes=None, vector_shapes=None,
         dropout_rate=None,
-        vector_dense_filters=256,
+        vector_dense_filters=64,
         dilation_rate=2,
         activation='sigmoid',
         final_pooling=None,
@@ -133,10 +133,10 @@ def choose_hypertree_model(
         trainable=False,
         verbose=0,
         image_model_name='vgg',
-        vector_model_name='dense',
-        trunk_layers=4,
+        vector_model_name='dense_block',
+        trunk_layers=5,
         trunk_filters=None,
-        vector_branch_num_layers=2):
+        vector_branch_num_layers=5):
     """ Construct a variety of possible models with a tree shape based on hyperparameters.
 
     # Arguments
@@ -242,11 +242,13 @@ def choose_hypertree_model(
                 for i in range(num_layers):
                     x = Dense(vector_dense_filters)(x)
             elif model_name == 'dense_block':
+                x = keras.layers.Lambda(lambda v: keras.backend.expand_dims(v))(x)
+                keras.backend.expand_dims
                 densenet.__dense_block(
                     x, nb_layers=num_layers,
                     nb_filter=vector_dense_filters,
                     growth_rate=48, dropout_rate=dropout_rate,
-                    ndim=1)
+                    dims=0)
             return x
 
         def create_tree_trunk(tensor):
@@ -311,7 +313,7 @@ def run_training(
        If provided these values will simply be dumped to a file and not utilized in any other way.
     """
     if epochs is None:
-        epochs = FLAGS.num_epochs
+        epochs = FLAGS.epochs
     if batch_size is None:
         batch_size = FLAGS.batch_size
     if train_file is None:
@@ -561,7 +563,7 @@ def old_run_training():
         print('distorted_inputs')
         data_files_ = TRAIN_FILE
         features = cornell_grasp_dataset_reader.distorted_inputs(
-                  [data_files_], FLAGS.num_epochs, batch_size=FLAGS.batch_size)
+                  [data_files_], FLAGS.epochs, batch_size=FLAGS.batch_size)
     else:
         print('inputs')
         data_files_ = VALIDATE_FILE
@@ -618,7 +620,7 @@ def old_run_training():
                     print('image: %d | duration = %.2f | count = %d | iou = %.2f | angle_difference = %.2f' %(step, duration, count, iou, angle_diff))
             step +=1
     except tf.errors.OutOfRangeError:
-        print('Done training for %d epochs, %d steps, %.1f min.' % (FLAGS.num_epochs, step, (time.time()-start_time)/60))
+        print('Done training for %d epochs, %d steps, %.1f min.' % (FLAGS.epochs, step, (time.time()-start_time)/60))
     finally:
         coord.request_stop()
 
