@@ -145,8 +145,8 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
     x = AddConv2D(x, 64, [3,3], 1, dr, "valid", lrelu=True, bn=bn)
 
     x = Flatten()(x)
-    x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
-    x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)    # Same setup as the state decoders
+    x = AddDense(x, 512, "relu", dr, output=True, bn=bn)
+    x = AddDense(x, 512, "relu", dr, output=True, bn=bn)    # Same setup as the state decoders
 
     arm = AddDense(x, arm_size, "linear", 0., output=True)
     gripper = AddDense(x, gripper_size, "sigmoid", 0., output=True)
