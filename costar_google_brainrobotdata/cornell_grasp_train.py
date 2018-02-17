@@ -62,12 +62,12 @@ import grasp_loss as grasp_loss
 
 flags.DEFINE_float(
     'learning_rate',
-    0.01,
+    0.00584,
     'Initial learning rate.'
 )
 flags.DEFINE_integer(
     'epochs',
-    5,
+    100,
     'Number of epochs to run trainer.'
 )
 flags.DEFINE_integer(
@@ -77,8 +77,8 @@ flags.DEFINE_integer(
 )
 flags.DEFINE_string(
     'log_dir',
-    '/tmp/tf',
-    'Tensorboard log_dir.'
+    './logs_cornell/',
+    'Directory for tensorboard, model layout, model weight, csv, and hyperparam files'
 )
 flags.DEFINE_string(
     'model_path',
@@ -89,6 +89,11 @@ flags.DEFINE_string(
     'train_or_validation',
     'validation',
     'Train or evaluate the dataset'
+)
+flags.DEFINE_string(
+    'run_name',
+    '',
+    'A string that will become part of the logged directories and filenames.'
 )
 
 FLAGS = flags.FLAGS
@@ -134,18 +139,27 @@ def choose_hypertree_model(
         verbose=0,
         image_model_name='vgg',
         vector_model_name='dense_block',
-        trunk_layers=5,
-        trunk_filters=None,
+        trunk_layers=4,
+        trunk_filters=128,
         vector_branch_num_layers=5):
     """ Construct a variety of possible models with a tree shape based on hyperparameters.
 
     # Arguments
 
+        dropout_rate: a dropout rate of None will disable dropout
         top_block_filters: the number of filters for the two final fully connected layers,
             before a prediction is made based on the number of classes.
 
     # Notes
 
+    Best 1 epoch run with only gripper openness parameter:
+        - val_binary_accuracy 0.9134199238
+        - val_loss 0.2269693456
+
+        {"vector_dense_filters": 64, "vector_branch_num_layers": 2, "trainable": true,
+         "image_model_name": "vgg", "vector_model_name": "dense_block", "learning_rate": 0.005838979061490798,
+         "trunk_filters": 128, "dropout_rate": 0.0, "top_block_filters": 64, "trunk_layers": 4, "feature_combo_name":
+         "image_preprocessed_height_1"}
     Current best 1 epoch run as of 2018-02-16:
         - note there is a bit of ambiguity so until I know I'll have case 0 and case 1.
             - two models were in that run and didn't have hyperparam records yet.
@@ -169,9 +183,6 @@ def choose_hypertree_model(
             - 816 output channels
         - dense layers before fc1, case 1
             - 64 output channels
-
-
-
 
     """
     if trainable is None:
@@ -238,7 +249,11 @@ def choose_hypertree_model(
             """ Vector branches that simply contain a single dense layer.
             """
             x = tensor
-            if model_name == 'dense':
+            # create the chosen layers starting with the vector input
+            # accepting num_layers == 0 is done so hyperparam search is simpler
+            if num_layers is None or num_layers == 0:
+                return x
+            elif model_name == 'dense':
                 for i in range(num_layers):
                     x = Dense(vector_dense_filters)(x)
             elif model_name == 'dense_block':
@@ -251,14 +266,18 @@ def choose_hypertree_model(
                     dims=0)
             return x
 
-        def create_tree_trunk(tensor):
+        def create_tree_trunk(tensor, filters=trunk_filters, num_layers=trunk_layers):
             x = tensor
-            if trunk_filters is None:
+            if filters is None:
                 channels = K.int_shape(tensor)[-1]
             else:
-                channels = trunk_filters
+                channels = filters
 
-            if trunk_layers is not None:
+            # create the chosen layers starting with the combined image and vector input
+            # accepting num_layers == 0 is done so hyperparam search is simpler
+            if num_layers is None or num_layers == 0:
+                return x
+            elif num_layers is not None:
                 x, num_filters = densenet.__dense_block(
                     x, nb_layers=trunk_layers, nb_filter=channels,
                     growth_rate=48, dropout_rate=dropout_rate)
@@ -291,7 +310,7 @@ class PrintLogsCallback(keras.callbacks.Callback):
 
 
 def run_training(
-        learning_rate=0.01,
+        learning_rate=None,
         batch_size=None,
         num_gpus=1,
         top='classification',
@@ -303,7 +322,8 @@ def run_training(
         train_data=None,
         validation_data=None,
         feature_combo_name='image_preprocessed_height_1',
-        image_model_name='nasnet_mobile',
+        image_model_name='vgg',
+        log_dir=None,
         hyperparams=None,
         **kwargs):
     """
@@ -322,6 +342,8 @@ def run_training(
         validation_file = os.path.join(FLAGS.data_dir, FLAGS.evaluate_filename)
     if learning_rate is None:
         learning_rate = FLAGS.learning_rate
+    if log_dir is None:
+        log_dir = FLAGS.log_dir
 
     [image_shapes, vector_shapes, data_features, model_name,
      monitor_loss_name, label_features, monitor_metric_name,
@@ -346,8 +368,6 @@ def run_training(
                              'torch, tf, or caffe for these weights')
 
     # choose hypertree_model with inputs [image], [sin_theta, cos_theta]
-    # TODO(ahundt) split vector shapes up appropriately for dense layers in dilated_late_concat_model
-    # TODO(ahundt) get dimensions automatically, based on configured params
     model = choose_hypertree_model(
         image_shapes=image_shapes,
         vector_shapes=vector_shapes,
@@ -370,7 +390,7 @@ def run_training(
         keras.callbacks.ReduceLROnPlateau(patience=12, verbose=1, factor=0.5, monitor=monitor_loss_name)
     ]
 
-    log_dir = './logs_cornell/' + run_name
+    log_dir = os.path.join(log_dir, run_name)
     log_dir_run_name = os.path.join(log_dir, run_name)
     csv_logger = CSVLogger(log_dir_run_name + run_name + '.csv')
     callbacks = callbacks + [csv_logger]
@@ -450,6 +470,7 @@ def run_training(
 def choose_features_and_metrics(feature_combo_name, top):
     """ Choose the features to load from the dataset and losses to use during training
     """
+    # TODO(ahundt) get input dimensions automatically, based on configured params
     if feature_combo_name == 'image_preprocessed_sin_cos_height_width_4':
         data_features = ['image/preprocessed', 'sin_cos_height_width_4']
         image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
