@@ -106,7 +106,13 @@ def params_to_args(x, index_dict):
 
         if opt_dict['enable']:
             arg_name = opt_dict['name']
-            param_value = x[:, opt_dict['index']]
+            optimizer_param_column = opt_dict['index']
+            if optimizer_param_column > x.shape[-1]:
+                raise ValueError('Attempting to access optimizer_param_column' + str(optimizer_param_column) +
+                                 ' outside parameter bounds' + str(x.shape) +
+                                 ' of optimizer array with index dict: ' + str(index_dict) +
+                                 'and array x: ' + str(x))
+            param_value = x[:, optimizer_param_column]
             if opt_dict['type'] == 'discrete':
                 # the value is an integer indexing into the lookup dict
                 if opt_dict['needs_reverse_lookup']:
@@ -193,13 +199,13 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
             val_batch_size)
 
     # number of samples to take before trying hyperopt
-    initial_num_samples = 50
+    initial_num_samples = 100
     num_cores = 15
     baysean_batch_size = 1
     # deep learning algorithms don't give exact results
     algorithm_gives_exact_results = False
     # how many optimization steps to take after the initial sampling
-    maximum_hyperopt_steps = 100
+    maximum_hyperopt_steps = 200
     total_max_steps = initial_num_samples + maximum_hyperopt_steps
 
     # defining a temporary variable scope for the callbacks
