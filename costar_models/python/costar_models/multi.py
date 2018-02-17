@@ -107,8 +107,8 @@ def GetPoseModel(x, num_options, arm_size, gripper_size,
     x = AddConv2D(x, 64, [3,3], 1, dr, "valid", lrelu=use_lrelu, bn=bn)
 
     x = Flatten()(x)
-    x = AddDense(x, 512, "relu", dr, output=True, bn=False)
-    x = AddDense(x, 512, "relu", dr, output=True, bn=False)    # Same setup as the state decoders
+    x = AddDense(x, 512, "relu", 0., output=True, bn=False)
+    x = AddDense(x, 512, "relu", 0., output=True, bn=False)    # Same setup as the state decoders
     arm = AddDense(x, arm_size, "linear", 0., output=True)
     gripper = AddDense(x, gripper_size, "sigmoid", 0., output=True)
     actor = Model(ins, [arm, gripper], name="pose")

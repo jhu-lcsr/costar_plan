@@ -526,7 +526,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
     def _getSaveLoadItems(self, is_save):
 
         if self.save_train_state:
-	    items = [(self.model, 'train_predictor')]
+            items = [(self.model, 'train_predictor')]
         else:
             items = []
 
