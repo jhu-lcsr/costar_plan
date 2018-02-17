@@ -67,7 +67,7 @@ flags.DEFINE_float(
 )
 flags.DEFINE_integer(
     'epochs',
-    100,
+    5,
     'Number of epochs to run trainer.'
 )
 flags.DEFINE_integer(
@@ -139,8 +139,8 @@ def choose_hypertree_model(
         verbose=0,
         image_model_name='vgg',
         vector_model_name='dense_block',
-        trunk_layers=4,
-        trunk_filters=128,
+        trunk_layers=5,
+        trunk_filters=None,
         vector_branch_num_layers=5):
     """ Construct a variety of possible models with a tree shape based on hyperparameters.
 
