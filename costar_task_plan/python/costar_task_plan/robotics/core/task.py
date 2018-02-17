@@ -93,10 +93,11 @@ class RosTaskParser(TaskParser):
                 started = [s or x.base_name == "Reach"
                            for s, x 
                            in zip(started, [left, right])]
-                print(objs)
                 print ("L=", left.base_name,
                        "R=", right.base_name,
                        "started=", started)
+                self.printAction(left)
+                self.printAction(right)
                 actions = []
                 for s, a in zip(started, [left, right]):
                     if s:
