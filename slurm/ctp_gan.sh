@@ -35,7 +35,7 @@ load_model=false
 dataset=''
 features=''
 suffix=''
-resume=false # resume a job
+resume=true # resume a job
 epochs1=100
 epochs2=100
 
