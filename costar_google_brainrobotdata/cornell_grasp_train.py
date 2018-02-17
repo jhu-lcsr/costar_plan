@@ -67,12 +67,12 @@ flags.DEFINE_float(
 )
 flags.DEFINE_integer(
     'epochs',
-    1,
+    5,
     'Number of epochs to run trainer.'
 )
 flags.DEFINE_integer(
     'batch_size',
-    10,
+    8,
     'Batch size.'
 )
 flags.DEFINE_string(

@@ -138,6 +138,9 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
     # load the dataset each time around, however, so
     # there is a tradeoff and we need to figure out
     # what works best
+    #
+    # Note: feature_combo_name only works
+    # when load_dataset_in_advance is False
     load_dataset_in_advance = False
     # since we adaptively initialize the dataset
     # we can also optimize batch size.
@@ -149,7 +152,7 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
     validation_data = None
 
     # Configuring hyperparameters
-    search_space, index_dict = add_param('learning_rate', (0.001, 0.1), 'continuous')
+    search_space, index_dict = add_param('learning_rate', (0.0001, 0.1), 'continuous')
     search_space, index_dict = add_param('dropout_rate', [0.0, 0.125, 0.2, 0.25, 0.5, 0.75], search_space=search_space, index_dict=index_dict)
     search_space, index_dict = add_param('vector_dense_filters', [2**x for x in range(6, 13)], search_space=search_space, index_dict=index_dict)
     search_space, index_dict = add_param('vector_branch_num_layers', [x for x in range(0, 5)], search_space=search_space, index_dict=index_dict)
@@ -163,9 +166,9 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
     search_space, index_dict = add_param('top_block_filters', [2**x for x in range(5, 12)], search_space=search_space, index_dict=index_dict)
     search_space, index_dict = add_param('batch_size', [2**x for x in range(2, 4)], search_space=search_space, index_dict=index_dict,
                                          enable=False, required=True, default=batch_size)
-    search_space, index_dict = add_param('feature_combo_name', ['image_preprocessed_height_1'],
+    search_space, index_dict = add_param('feature_combo_name', ['image_preprocessed_height_1', 'image_preprocessed_sin_cos_height_3'],
                                          search_space=search_space, index_dict=index_dict,
-                                         enable=False, required=True, default=feature_combo_name)
+                                         enable=True, required=True, default=feature_combo_name)
 
     # Load dataset if that's done only once in advance
     if load_dataset_in_advance:
