@@ -454,11 +454,11 @@ def choose_features_and_metrics(feature_combo_name, top):
         data_features = ['image/preprocessed', 'sin_cos_height_width_4']
         image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
         vector_shapes = [(4,)]
-    if feature_combo_name == 'image_preprocessed_sin_cos_height_3':
+    elif feature_combo_name == 'image_preprocessed_sin_cos_height_3':
         data_features = ['image/preprocessed', 'sin_cos_height_3']
         image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
         vector_shapes = [(3,)]
-    if feature_combo_name == 'image_preprocessed_height_1':
+    elif feature_combo_name == 'image_preprocessed_height_1':
         data_features = ['image/preprocessed', 'bbox/height']
         image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
         vector_shapes = [(1,)]
