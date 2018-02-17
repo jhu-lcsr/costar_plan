@@ -167,6 +167,7 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
     search_space, index_dict = add_param('vector_model_name', ['dense', 'dense_block'], search_space=search_space, index_dict=index_dict)
     search_space, index_dict = add_param('trainable', [True, False], search_space=search_space, index_dict=index_dict,
                                          enable=True)
+    # TODO(ahundt) add a None option for trunk_filters, [None] + [2**x for x in range(5, 12)], because it will automatically match input data's filter count
     search_space, index_dict = add_param('trunk_filters', [2**x for x in range(5, 12)], search_space=search_space, index_dict=index_dict)
     search_space, index_dict = add_param('trunk_layers', [x for x in range(0, 8)], search_space=search_space, index_dict=index_dict)
     search_space, index_dict = add_param('top_block_filters', [2**x for x in range(5, 12)], search_space=search_space, index_dict=index_dict)
