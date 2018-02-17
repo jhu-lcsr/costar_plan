@@ -257,7 +257,6 @@ def choose_hypertree_model(
                 for i in range(num_layers):
                     x = Dense(vector_dense_filters)(x)
             elif model_name == 'dense_block':
-                x = keras.layers.Lambda(lambda v: keras.backend.expand_dims(v))(x)
                 keras.backend.expand_dims
                 densenet.__dense_block(
                     x, nb_layers=num_layers,
@@ -321,7 +320,7 @@ def run_training(
         validation_file=None,
         train_data=None,
         validation_data=None,
-        feature_combo_name='image_preprocessed_height_1',
+        feature_combo_name='image_preprocessed_sin_cos_height_3',
         image_model_name='vgg',
         log_dir=None,
         hyperparams=None,

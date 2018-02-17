@@ -90,7 +90,7 @@ def concat_images_with_tiled_vector_layer(images, vector, image_shape=None, vect
 
     # Params
        images: a list of images to combine, must have equal dimensions
-       vector: the 1D vector to tile onto every pixel
+       vector: the 1D vector to tile onto every pixel.
        image_shape: Tuple with 3 entries defining the shape (batch, height, width)
            images should be expected to have, do not specify the number
            of batches.
