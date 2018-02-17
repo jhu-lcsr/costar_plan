@@ -14,8 +14,8 @@ echo $1 $2 $3 $4 $5 $6 $7
 echo "use disc = $use_disc"
 
 export DATASET="husky_data"
-export train_discriminator2=true
-export train_image_encoder=true
+export train_discriminator2=false
+export train_image_encoder=false
 export train_gans=false
 export train_encoder_gan=false
 export learning_rate=$1

@@ -35,9 +35,9 @@ load_model=false
 dataset=''
 features=''
 suffix=''
-resume=true # resume a job
-epochs1=200
-epochs2=200
+resume=false # resume a job
+epochs1=100
+epochs2=100
 
 echo "$OPTS"
 eval set -- "$OPTS"
