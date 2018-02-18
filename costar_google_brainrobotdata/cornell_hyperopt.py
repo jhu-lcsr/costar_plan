@@ -203,13 +203,13 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
             val_batch_size)
 
     # number of samples to take before trying hyperopt
-    initial_num_samples = 100
+    initial_num_samples = 200
     num_cores = 15
     baysean_batch_size = 1
     # deep learning algorithms don't give exact results
     algorithm_gives_exact_results = False
     # how many optimization steps to take after the initial sampling
-    maximum_hyperopt_steps = 200
+    maximum_hyperopt_steps = 100
     total_max_steps = initial_num_samples + maximum_hyperopt_steps
 
     # defining a temporary variable scope for the callbacks
