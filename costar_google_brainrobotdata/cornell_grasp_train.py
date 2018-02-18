@@ -125,7 +125,7 @@ def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
 def choose_hypertree_model(
         images=None, vectors=None,
         image_shapes=None, vector_shapes=None,
-        dropout_rate=None,
+        dropout_rate=0.25,
         vector_dense_filters=64,
         dilation_rate=2,
         activation='sigmoid',
@@ -152,7 +152,7 @@ def choose_hypertree_model(
 
     # Notes
 
-    Best 1 epoch run with only gripper openness parameter:
+    Best 1 epoch run with only gripper openness parameter, 2018-02-17:
         - val_binary_accuracy 0.9134199238
         - val_loss 0.2269693456
 
