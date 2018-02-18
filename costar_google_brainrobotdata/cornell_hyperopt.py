@@ -159,7 +159,10 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
 
     # Configuring hyperparameters
     search_space, index_dict = add_param('learning_rate', (0.0001, 0.1), 'continuous')
-    search_space, index_dict = add_param('dropout_rate', [0.0, 0.125, 0.2, 0.25, 0.5, 0.75], search_space=search_space, index_dict=index_dict)
+    # disabled dropout rate because in one epoch tests a dropout rate of 0 allows exceptionally fast learning.
+    # TODO(ahundt) run a separate search for the best dropout rate after finding a good model
+    search_space, index_dict = add_param('dropout_rate', [0.0, 0.125, 0.2, 0.25, 0.5, 0.75], search_space=search_space, index_dict=index_dict,
+                                         enable=False, required=True, default=0.25)
     search_space, index_dict = add_param('vector_dense_filters', [2**x for x in range(6, 13)], search_space=search_space, index_dict=index_dict)
     search_space, index_dict = add_param('vector_branch_num_layers', [x for x in range(0, 5)], search_space=search_space, index_dict=index_dict)
     # leaving out 'resnet' for now, it is causing too many crashes, and nasnet_large because it needs different input dimensions.
