@@ -82,7 +82,7 @@ flags.DEFINE_integer('crop_height', 224,
                      """Height to crop images, resize_width and resize_height is applied next""")
 flags.DEFINE_integer('crop_width', 224,
                      """Width to crop images, resize_width and resize_height is applied next""")
-flags.DEFINE_boolean('random_crop', False,
+flags.DEFINE_boolean('random_crop', True,
                      """random_crop will apply the tf random crop function with
                         the parameters specified by crop_width and crop_height.
 
@@ -94,7 +94,9 @@ flags.DEFINE_boolean('random_crop', False,
                         that you crop images to the same size during both training
                         and test time.
 
-                        crop_to_gripper and random_crop cannot be enabled at the same time.
+                        If crop_to_gripper and random_crop are enabled at the same
+                        time, the translation will be limited to the width and height
+                        of the grasp rectangle bounding box.
                      """)
 flags.DEFINE_boolean('crop_to_gripper', True,
                      """crop to gripper will project and crop the image around
@@ -102,7 +104,16 @@ flags.DEFINE_boolean('crop_to_gripper', True,
 
                         crop_to_gripper and random_crop cannot be enabled at the same time.
                      """)
+flags.DEFINE_boolean(
+    'crop_to_gripper_and_rotate', True,
+    """Should the rotation be applied to the image
+       in addition to cropping to the gripper when crop_to_gripper is True?
 
+       This should be True when both crop_to_gripper and random_crop are True.
+
+       Has no effect when crop_to_gripper is False.
+    """
+)
 flags.DEFINE_integer('resize_height', 224,
                      """Height to resize images before prediction, if enabled.""")
 flags.DEFINE_integer('resize_width', 224,
@@ -340,26 +351,16 @@ def crop_to_gripper_transform(input_image_shape, grasp_center_coordinate, grasp_
         Given a gripper center coodinate and rotation angle,
         transform and rotate the image so it is centered with 0 theta.
     """
-    # grasp_center_rotation_theta = K.constant(0, 'float32')
     transforms = []
     input_image_shape_float = tf.cast(input_image_shape, tf.float32)
     cropped_image_shape = tf.cast(cropped_image_shape, tf.float32)
-    # half_image_shape = (input_image_shape_float / 2)[:2]
     half_image_shape = (cropped_image_shape / 2)[:2]
 
-    # crop_offset = -grasp_center_coordinate
-    # crop_offset = -grasp_center_coordinate
-    # crop_offset = grasp_center_coordinate
     crop_offset = - grasp_center_coordinate + half_image_shape
-    # crop_offset = - grasp_center_coordinate - half_image_shape
-    # crop_offset = grasp_center_coordinate - half_image_shape
-    # crop_offset = half_image_shape - grasp_center_coordinate
 
     crop_offset = crop_offset[::-1]
     # reverse yx to xy
     transforms += [tf.contrib.image.translations_to_projective_transforms(crop_offset)]
-    # input_height_f = input_image_shape_float[0]
-    # input_width_f = input_image_shape_float[1]
     input_height_f = cropped_image_shape[0]
     input_width_f = cropped_image_shape[1]
     transforms += [tf.contrib.image.angles_to_projective_transforms(
@@ -389,7 +390,7 @@ def parse_and_preprocess(
         examples_serialized, is_training=True, label_features_to_extract=None,
         data_features_to_extract=None, crop_shape=None, output_shape=None,
         random_crop=None, crop_to_gripper=None,
-        preprocessing_mode='tf', verbose=0):
+        preprocessing_mode='tf', seed=None, verbose=0):
     """ Parse an example and perform image preprocessing.
 
     Right now see the code below for the specific feature strings available.
@@ -460,16 +461,26 @@ def parse_and_preprocess(
 
     if is_training:
         # perform image augmentation
-        # TODO(ahundt) add scaling and use that change to augment height and width parameters
-        if random_crop:
+        # TODO(ahundt) add scaling and use that change to augment width (gripper openness) param
+        if random_crop and not crop_to_gripper:
             transform, random_features = rcp.random_projection_transform(
                 K.shape(image), crop_shape, scale=True, rotation=True, translation=True)
         elif crop_to_gripper:
+            if FLAGS.crop_to_gripper_and_rotate:
+                crop_to_gripper_theta = K.constant(0, 'float32')
+            else:
+                crop_to_gripper_theta = grasp_center_rotation_theta
             transform, random_features = crop_to_gripper_transform(
                             input_image_shape, grasp_center_coordinate,
-                            grasp_center_rotation_theta, crop_shape)
-        elif random_crop and crop_to_gripper:
-            raise ValueError('random_crop and crop_to_gripper must be set separately')
+                            crop_to_gripper_theta, crop_shape)
+            if random_crop:
+                # TODO(ahundt) need to add both random features together
+                # translation = K.concatenate(feature['bbox/width'], feature['bbox/height'])
+                translation_in_box = K.cast(feature['sin_cos_height_width_4'][-2:] // 2, 'int32')
+                translate_anywhere = K.constant([0, 0], tf.int32)
+                offset = tf.cast(rcp.random_crop_offset(translate_anywhere, translation_in_box, seed=seed), tf.int32)
+                transform, random_features = rcp.random_projection_transform(
+                    K.shape(image), crop_shape, scale=True, rotation=True, translation=offset)
         image, preprocessed_grasp_center_coordinate = rcp.transform_crop_and_resize_image(
             image, crop_shape=crop_shape, resize_shape=output_shape,
             transform=transform, coordinate=grasp_center_coordinate)
