@@ -728,6 +728,7 @@ def visualize_example(img, bbox_example_features, gt_images, showTextBox=FLAGS.s
         widths = [1, 2, 1, 2]
         alphas = [0.25, 0.5, 0.25, 0.5]
         if example['bbox/grasp_success']:
+            # gray is width, color (purple/green) is plate
             # that's gap, plate, gap plate
             colors = ['gray', 'green', 'gray', 'green']
             success_str = 'pos'
@@ -748,8 +749,8 @@ def visualize_example(img, bbox_example_features, gt_images, showTextBox=FLAGS.s
                     )
             z += 1
         for i, (color, width, alpha) in enumerate(zip(colors, widths, alphas)):
-            x_current = [example['bbox/x'+str(i)], example['bbox/x'+str((i+1)%4)]]
-            y_current = [example['bbox/y'+str(i)], example['bbox/y'+str((i+1)%4)]]
+            x_current = [example['bbox/x'+str(i)], example['bbox/x'+str((i+1) % 4)]]
+            y_current = [example['bbox/y'+str(i)], example['bbox/y'+str((i+1) % 4)]]
             # axs[h, w].text(example['bbox/x'+str(i)], example['bbox/y'+str(i)], "Point:"+str(i))
 
             axs[h, w].add_line(lines.Line2D(x_current, y_current, linewidth=width,
