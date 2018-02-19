@@ -38,6 +38,9 @@ class AbstractAgentBasedModel(object):
             name += "_%s.h5f"%self.submodel
         return name
 
+    def setValidationMode(self):
+        self.save_train_state = False
+
     def __init__(self, taskdef=None,
             lr=1e-4,
             epochs=500,

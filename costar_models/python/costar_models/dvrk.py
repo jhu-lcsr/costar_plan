@@ -50,7 +50,7 @@ def MakeJigsawsImageClassifier(model, img_shape, trainable = True):
 
     x = Flatten()(x)
     x = Dropout(0.5)(x)
-    x = AddDense(x, 1024, "lrelu", 0.5, output=True, bn=False, kr=1e-4)
+    x = AddDense(x, 1024, "lrelu", 0.5, output=True, bn=False, kr=0.)
     x = AddDense(x, model.num_options, "softmax", 0., output=True, bn=False)
     image_encoder = Model([img0, img], x, name="classifier")
     if not trainable:
