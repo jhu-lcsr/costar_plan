@@ -20,9 +20,6 @@ from .gmm import *
 from .robot_multi_models import *
 from .planner import *
 
-# neural net model
-from .gan import *
-
 # =============================================================================
 # Models for visualizing and generating results
 from .ctp_sampler_keypoints import *
