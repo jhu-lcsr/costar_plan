@@ -107,7 +107,6 @@ class RosTaskParser(TaskParser):
                 self.addExample(t, objs, actions, seq)
             elif topic == self.alias_topic:
                 self.addAlias(msg.old_name, msg.new_name)
-        asdf
 
     def _getArgs(self, skill_name):
         '''
