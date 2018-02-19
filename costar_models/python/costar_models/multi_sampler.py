@@ -346,12 +346,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
             x = AddDense(x, 256, activation_fn, 0.,
                     constraint=10, bn=False)
-            x = AddDense(x, int(h_dim[0] * h_dim[1] * 32/4),
+            x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/4),
                          activation_fn, #"sigmoid",
                          self.dropout_rate*0.,
                          #kr=keras.regularizers.l2(1e-8),
                          constraint=10, bn=False)
-            x = Reshape([int(h_dim[0]/2), int(h_dim[1]/2), 32])(x)
+            x = Reshape([int(h_dim[0]/2), int(h_dim[1]/2), 64])(x)
         else:
             x = AddConv2D(x, 128, [5,5], 1, 0.)
         x = AddConv2DTranspose(x, 64, [5,5], 2,
