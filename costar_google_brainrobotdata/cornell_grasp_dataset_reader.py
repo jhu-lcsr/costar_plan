@@ -237,6 +237,267 @@ def image_preprocessing(image_buffer, train, thread_id=0):
     # image = tf.multiply(image, 2.0)
     return image
 
+# from math import pi, cos, sin
+
+
+# class Vector:
+#     # http://www.mathopenref.com/coordpolygonarea.html
+#     # https://stackoverflow.com/a/45268241/99379
+#     def __init__(self, x, y):
+#         self.x = x
+#         self.y = y
+
+#     def __add__(self, v):
+#         if not isinstance(v, Vector):
+#             return NotImplemented
+#         return Vector(self.x + v.x, self.y + v.y)
+
+#     def __sub__(self, v):
+#         if not isinstance(v, Vector):
+#             return NotImplemented
+#         return Vector(self.x - v.x, self.y - v.y)
+
+#     def cross(self, v):
+#         if not isinstance(v, Vector):
+#             return NotImplemented
+#         return self.x*v.y - self.y*v.x
+
+
+# class Line:
+#     # ax + by + c = 0
+#     def __init__(self, v1, v2):
+#         self.a = v2.y - v1.y
+#         self.b = v1.x - v2.x
+#         self.c = v2.cross(v1)
+
+#     def __call__(self, p):
+#         return self.a*p.x + self.b*p.y + self.c
+
+#     def intersection(self, other):
+#         # http://www.mathopenref.com/coordpolygonarea.html
+#         # https://stackoverflow.com/a/45268241/99379
+#         # See e.g.     https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection#Using_homogeneous_coordinates
+#         if not isinstance(other, Line):
+#             return NotImplemented
+#         w = self.a*other.b - self.b*other.a
+#         return Vector(
+#             (self.b*other.c - self.c*other.b)/w,
+#             (self.c*other.a - self.a*other.c)/w
+#         )
+
+
+def rectangle_vertices(cx, cy, w, h, r):
+    # http://www.mathopenref.com/coordpolygonarea.html
+    # https://stackoverflow.com/a/45268241/99379
+    angle = pi*r/180
+    dx = w/2
+    dy = h/2
+    dxcos = dx*cos(angle)
+    dxsin = dx*sin(angle)
+    dycos = dy*cos(angle)
+    dysin = dy*sin(angle)
+    return (
+        Vector(cx, cy) + Vector(-dxcos - -dysin, -dxsin + -dycos),
+        Vector(cx, cy) + Vector( dxcos - -dysin,  dxsin + -dycos),
+        Vector(cx, cy) + Vector( dxcos -  dysin,  dxsin +  dycos),
+        Vector(cx, cy) + Vector(-dxcos -  dysin, -dxsin +  dycos)
+    )
+
+def intersection_area(r1, r2):
+    # http://www.mathopenref.com/coordpolygonarea.html
+    # https://stackoverflow.com/a/45268241/99379
+    # r1 and r2 are in (center, width, height, rotation) representation
+    # First convert these into a sequence of vertices
+
+    rect0 = rectangle_vertices(*r1)
+    rect1 = rectangle_vertices(*r2)
+
+    # Use the vertices of the first rectangle as
+    # starting vertices of the intersection polygon.
+    rect0 = rect0
+
+    # Loop over the edges of the second rectangle
+    for p, q in zip(rect1, rect1[1:] + rect1[:1]):
+        if len(rect0) <= 2:
+            break # No intersection
+
+        line = Line(p, q)
+
+        # Any point p with line(p) <= 0 is on the "inside" (or on the boundary),
+        # any point p with line(p) > 0 is on the "outside".
+
+        # Loop over the edges of the rect0 polygon,
+        # and determine which part is inside and which is outside.
+        new_intersection = []
+        line_values = [line(t) for t in rect0]
+        for s, t, s_value, t_value in zip(
+                rect0, rect0[1:] + rect0[:1],
+                line_values, line_values[1:] + line_values[:1]):
+            if s_value <= 0:
+                new_intersection.append(s)
+            if s_value * t_value < 0:
+                # Points are on opposite sides.
+                # Add the intersection of the lines to new_intersection.
+                intersection_point = line.intersection(Line(s, t))
+                new_intersection.append(intersection_point)
+
+        intersection = new_intersection
+
+    # Calculate area
+    if len(intersection) <= 2:
+        return 0
+
+    return 0.5 * sum(p.x*q.y - p.y*q.x for p, q in
+                     zip(intersection, intersection[1:] + intersection[:1]))
+
+
+# intersection_area(r0y0, r0x0, r0y1, r0x1, r0y2, r0x2, r0y3, r0x3, r1y0, r1x0, r1y1, r1x1, r1y2, r1x2,  r1y3, r1x3):
+def rectangle_points(r0y0, r0x0, r0y1, r0x1, r0y2, r0x2, r0y3, r0x3):
+    p0yx = K.concatenate([r0y0, r0x0])
+    p1yx = K.concatenate([r0y1, r0x1])
+    p2yx = K.concatenate([r0y2, r0x2])
+    p3yx = K.concatenate([r0y3, r0x3])
+    return [p0yx, p1yx, p2yx, p3yx]
+
+
+def rectangle_vectors(rp):
+    """
+    # Arguments
+
+    rp: rectangle points [p0yx, p1yx, p2yx, p3yx]
+    """
+    v0 = rp[1] - rp[0]
+    v1 = rp[2] - rp[1]
+    v2 = rp[3] - rp[2]
+    v3 = rp[0] - rp[3]
+
+    return [v0, v1, v2, v3]
+
+
+def rectangle_homogeneous_lines(rv):
+    """
+
+    # Arguments
+
+    rv: rectangle vectors [v0yx, v1yx, v2yx, v3yx]
+
+
+    # Returns
+
+    [r0abc, r1abc, r2abc, r3abc]
+
+    """
+    # ax + by + c = 0
+    dv = rv[0] - rv[1]
+    # TODO(ahundt) make sure cross product doesn't need to be in xy order
+    r0abc = K.concatenate([dv[0], dv[1], tf.cross(rv[0], rv[1])])
+    dv = rv[1] - rv[2]
+    r1abc = K.concatenate([dv[1], dv[2], tf.cross(rv[1], rv[2])])
+    dv = rv[2] - rv[3]
+    r2abc = K.concatenate([dv[2], dv[3], tf.cross(rv[2], rv[3])])
+    dv = rv[3] - rv[0]
+    r3abc = K.concatenate([dv[3], dv[0], tf.cross(rv[3], rv[0])])
+    return [r0abc, r1abc, r2abc, r3abc]
+
+
+def homogeneous_line_intersection(hl0abc, hl1abc):
+    """ Given two homogenous lines return the intersection point in y,x coordinates
+    """
+    a0 = hl0abc[0]
+    b0 = hl0abc[1]
+    c0 = hl0abc[2]
+    a1 = hl1abc[0]
+    b1 = hl1abc[1]
+    c1 = hl1abc[2]
+    w = a0 * b1 - b0 * a1
+    py = (c0 * a1 - a0 * c1) / w
+    px = (b0 * c1 - c0 * b1) / w
+    return [py, px]
+
+
+def line_at_point(l_abc, p_yx):
+    """
+
+    # Arguments
+
+    l_abc: a line in homogenous coodinates
+    p_yx: a point with y, x coordinates
+    """
+    return l_abc[0] * p_yx[1] + l_abc[1] * p_yx[0] + l_abc[2]
+
+
+def intersection_points(rl0, rp1):
+    """ Evaluate rectangle lines at another rectangle's points
+    """
+    lv = [
+        line_at_point(rl0[0], rp1[0]),
+        line_at_point(rl0[1], rp1[1]),
+        line_at_point(rl0[2], rp1[2]),
+        line_at_point(rl0[3], rp1[3]),
+    ]
+    return lv
+
+
+def rectangle_intersection_polygon(rp0, rl0, rp1, rl1):
+    """ Given two homogenous line rectangles, it returns the points for the polygon representing their intersection.
+
+    # Arguments
+
+    rp0: rectangle 0 defined with points
+    rl0: rectangle 0 defined with homogeneous lines
+    rp1: rectangle 1 defined with points
+    rp1: rectangle 1 defined with homogeneous lines
+
+    # Returns
+
+    [rp0, rp1, rp2, rp3]
+    """
+    # TODO(ahundt) this function is still set up for eager execution... figure it out as tf calls...
+    # http://www.mathopenref.com/coordpolygonarea.html
+    # https://stackoverflow.com/a/45268241/99379
+    # Use the vertices of the first rectangle as
+    # starting vertices of the intersection polygon.
+    for line1 in rl1:
+        line_values = [line_at_point(line1, t) for t in rp0]
+
+        # Any point p with line(p) <= 0 is on the "inside" (or on the boundary),
+        # any point p with line(p) > 0 is on the "outside".
+
+        # Loop over the edges of the rect0 polygon,
+        # and determine which part is inside and which is outside.
+        new_intersection = []
+        for s, t, s_value, t_value, line0 in zip(
+                rp0, rp0[1:] + rp0[:1],
+                line_values, line_values[1:] + line_values[:1],
+                rl0):
+
+            st_value = s_value * t_value
+            intersection_point = homogeneous_line_intersection(line1, line0)
+            if s_value <= 0:
+                new_intersection.append(s)
+            if st_value < 0:
+                # Points are on opposite sides.
+                # Add the intersection of the lines to new_intersection.
+                intersection_point = line.intersection(Line(s, t))
+                new_intersection.append(intersection_point)
+
+        intersection = new_intersection
+
+
+def polygon_area_four_points(rp):
+    """
+    # Arguments
+
+    rp: polygon defined by 4 points in y,x order
+    """
+    # partial = p0x * p1y - p0y * p1x
+    partial0 = rp[0][1] * rp[1][0] - rp[0][0] * rp[1][1]
+    partial1 = rp[1][1] * rp[2][0] - rp[1][0] * rp[2][1]
+    partial2 = rp[2][1] * rp[3][0] - rp[2][0] * rp[3][1]
+    partial3 = rp[3][1] * rp[0][0] - rp[3][0] * rp[0][1]
+    full_sum = partial0 + partial1 + partial2 + partial3
+    return 0.5 * full_sum
+
 
 def height_width_sin_cos_4(height=None, width=None, sin_theta=None, cos_theta=None, features=None):
     """ This is the input to pixelwise grasp prediction on the cornell dataset.
