@@ -129,16 +129,17 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=True):
 
     # store this for skip connection
     x = AddConv2D(x, 64, [5,5], 2, 0., activation=activation_fn)
+    h_dim_down = (int(h_dim[0]/2), int(h_dim[1]/2))
     skip = x
 
     if model.use_noise:
         y = AddDense(z, 32, activation_fn, 0., constraint=None, output=False)
-        x = TileOnto(x, y, 32, h_dim)
+        x = TileOnto(x, y, 32, h_dim_down)
         x = AddConv2D(x, 32, [5,5], 1, 0.)
 
     # Add dense information
     y = AddDense(option, 64, activation_fn, 0., constraint=None, output=False)
-    x = TileOnto(x, y, 64, (int(h_dim[0]/2), int(h_dim[1]/2)), add=True)
+    x = TileOnto(x, y, 64, h_dim_down, add=True)
     x = AddConv2D(x, 64, [5,5], 1, 0., activation=activation_fn)
 
     # --- start ssm block
