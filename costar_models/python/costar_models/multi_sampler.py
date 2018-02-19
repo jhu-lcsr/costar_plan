@@ -348,7 +348,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     constraint=10, bn=bn)
             x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/4),
                          activation_fn, #"sigmoid",
-                         self.dropout_rate*0.,
+                         self.dropout_rate,
                          #kr=keras.regularizers.l2(1e-8),
                          constraint=10, bn=bn)
             x = Reshape([int(h_dim[0]/2), int(h_dim[1]/2), 64])(x)
@@ -357,15 +357,16 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         x = AddConv2DTranspose(x, 64, [5,5], 2,
                 bn=bn,
                 activation=activation_fn,
-                dropout_rate=self.dropout_rate) # Removed dropout from this block
+                dropout_rate=0.) # Removed dropout from this block
         # --- end ssm block
 
         if self.skip_connections or True:
             x = Concatenate()([x, skip])
+            x = Dropout(self.dropout_rate)(x)
 
-        for i in range(1):
+        for i in range(2):
             x = AddConv2D(x, 64,
-                    [7,7],
+                    [5,5],
                     stride=1,
                     bn=bn,
                     activation=activation_fn,
