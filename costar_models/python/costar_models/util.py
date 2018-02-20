@@ -9,7 +9,6 @@ from .multi_policy import RobotPolicy
 
 # Model for sampling predictiosn
 from .multi_sampler import RobotMultiPredictionSampler
-from .goal_sampler import RobotMultiGoalSampler
 from .multi_sequence import RobotMultiSequencePredictor
 from .image_sampler import RobotMultiImageSampler
 from .pretrain_image import PretrainImageAutoencoder
