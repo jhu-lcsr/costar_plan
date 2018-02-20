@@ -41,6 +41,7 @@ def visualizeHiddenMain(args):
 
     if 'model' in args and args['model'] is not None:
         model = MakeModel(taskdef=None, **args)
+        model.setValidationMode()
         model.load(world=None,**data)
         train_generator = model.trainGenerator(dataset)
         test_generator = model.testGenerator(dataset)

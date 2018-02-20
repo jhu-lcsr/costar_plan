@@ -22,7 +22,6 @@ from .abstract import HierarchicalAgentBasedModel
 from .multi import *
 from .preprocess import *
 from .robot_multi_models import *
-from .split import *
 
 class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
