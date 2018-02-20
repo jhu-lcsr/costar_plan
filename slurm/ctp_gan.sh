@@ -22,7 +22,7 @@ OPTS=$(getopt -o '' --long lr:,dr:,opt:,noisedim:,loss:,wass,no_wass,noise,retra
 [[ $? != 0 ]] && echo "Failed parsing options." && exit 1
 
 gan_encoder=false
-skip_encoder=false
+skip_encoder=true
 lr=0.001
 dropout=0.1
 optimizer=adam
