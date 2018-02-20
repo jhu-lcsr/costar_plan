@@ -467,18 +467,20 @@ def rectangle_intersection_polygon(rp0, rl0, rp1, rl1):
         # and determine which part is inside and which is outside.
         new_intersection = []
         for s, t, s_value, t_value, line0 in zip(
-                rp0, rp0[1:] + rp0[:1],
-                line_values, line_values[1:] + line_values[:1],
+                rp0,
+                rp0[1:] + rp0[:1],
+                line_values,
+                line_values[1:] + line_values[:1],
                 rl0):
+
+            if s_value <= 0:
+                new_intersection.append(s)
 
             st_value = s_value * t_value
             intersection_point = homogeneous_line_intersection(line1, line0)
-            if s_value <= 0:
-                new_intersection.append(s)
             if st_value < 0:
                 # Points are on opposite sides.
                 # Add the intersection of the lines to new_intersection.
-                intersection_point = line.intersection(Line(s, t))
                 new_intersection.append(intersection_point)
 
         intersection = new_intersection
