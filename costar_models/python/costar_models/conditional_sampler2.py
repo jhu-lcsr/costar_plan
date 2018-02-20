@@ -18,7 +18,6 @@ from matplotlib import pyplot as plt
 from .abstract import *
 from .callbacks import *
 from .robot_multi_models import *
-from .split import *
 from .mhp_loss import *
 from .loss import *
 from .sampler2 import *

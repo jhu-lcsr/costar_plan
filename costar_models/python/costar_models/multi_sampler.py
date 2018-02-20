@@ -20,7 +20,6 @@ from .callbacks import *
 from .multi_hierarchical import *
 from .multi import *
 from .robot_multi_models import *
-from .split import *
 from .mhp_loss import *
 from .loss import *
 

@@ -12,7 +12,6 @@ from keras.models import Model, Sequential
 from .abstract import *
 from .callbacks import *
 from .robot_multi_models import *
-from .split import *
 from .mhp_loss import *
 from .loss import *
 from .multi_sampler import *
