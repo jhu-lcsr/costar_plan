@@ -50,7 +50,7 @@
   <build_depend>fetch_gazebo</build_depend>
   <build_depend>simple_grasping</build_depend>
 
-  <run_depend>costar_gazebo_plugins</run_depend>
+  <!--<run_depend>costar_gazebo_plugins</run_depend>-->
   <run_depend>costar_task_plan</run_depend>
   <run_depend>rgbd_launch</run_depend>
   <run_depend>roboticsgroup_gazebo_plugins</run_depend>
