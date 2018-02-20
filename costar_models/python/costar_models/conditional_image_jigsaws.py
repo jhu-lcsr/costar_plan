@@ -51,11 +51,8 @@ class ConditionalImageJigsaws(ConditionalImage):
 
         # =====================================================================
         # Create encoded state
-        if self.skip_connections:
-            h, s32, s16, s8 = encoder([img0_in, img_in])
-        else:
-            h = encoder(img_in)
-            h0 = encoder(img0_in)
+        h = encoder(img_in)
+        h0 = encoder(img0_in)
 
         option_in = Input((1,), name="option_in")
         option_in2 = Input((1,), name="option_in2")
