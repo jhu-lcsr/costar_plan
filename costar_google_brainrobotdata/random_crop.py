@@ -152,8 +152,8 @@ def random_projection_transform(
 
         features = {}
         transforms = []
-        input_height_f = tf.cast(input_shape[0], tf.float32)
-        input_width_f = tf.cast(input_shape[1], tf.float32)
+        input_height_f = tf.cast(output_shape[0], tf.float32)
+        input_width_f = tf.cast(output_shape[1], tf.float32)
 
         if translation is not None and translation is not False:
             if isinstance(translation, bool) and translation:
@@ -371,6 +371,28 @@ def transform_crop_and_resize_image(
             return image
         else:
             return image, coordinate
+
+
+def random_translation_in_bounds(grasp_center_coordinate, output_shape, max_pixels, seed=None):
+    max_pixels = tf.cast(max_pixels, tf.float32)
+    bottom_y = (grasp_center_coordinate[0] - tf.cast(output_shape[0] // 2, tf.float32))
+    bottom_x = (grasp_center_coordinate[1] - tf.cast(output_shape[1] // 2, tf.float32))
+    min_y_offset = (bottom_y - max_pixels)
+    max_y_offset = (bottom_y + max_pixels)
+    min_x_offset = (bottom_x - max_pixels)
+    max_x_offset = (bottom_x + max_pixels)
+    off_y = tf.random_uniform([1], minval=min_y_offset, maxval=max_y_offset, seed=seed, dtype=tf.float32)
+    off_x = tf.random_uniform([1], minval=min_x_offset, maxval=max_x_offset, seed=seed, dtype=tf.float32)
+    random_offset = tf.concat([-off_y, -off_x, [0.0]], axis=-1)
+    return random_offset
+
+
+def random_translation_offset(max_pixels, seed=None):
+    max_pixels = tf.cast(max_pixels, tf.float32)
+    off_y = tf.random_uniform([1], minval=-max_pixels, maxval=max_pixels, seed=seed, dtype=tf.float32)
+    off_x = tf.random_uniform([1], minval=-max_pixels, maxval=max_pixels, seed=seed, dtype=tf.float32)
+    random_offset = tf.concat([-off_y, -off_x, [0.0]], axis=-1)
+    return random_offset
 
 
 def _flat_transforms_to_matrices(transforms):

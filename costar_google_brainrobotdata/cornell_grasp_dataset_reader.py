@@ -10,6 +10,7 @@ Cornell Dataset Code based on:
 '''
 import os
 import copy
+import math
 import numpy as np
 from tqdm import tqdm
 import matplotlib
@@ -109,9 +110,21 @@ flags.DEFINE_boolean(
     """Should the rotation be applied to the image
        in addition to cropping to the gripper when crop_to_gripper is True?
 
-       This should be True when both crop_to_gripper and random_crop are True.
+       This can be True when both crop_to_gripper and random_crop are True.
+       This makes the gripper pose always be aligned as if the plates were
+       vertically oriented for a horizontal grasp of the image.
 
        Has no effect when crop_to_gripper is False.
+    """
+)
+flags.DEFINE_boolean(
+    'random_rotation', True,
+    """ Apply a random rotation to the input data.
+
+        TODO(ahundt) integrate this option, currently has no effect.
+
+        If crop_to_gripper_and_rotate is False, an arbitrary rotation will be selected.
+        If crop_to_gripper_and_rotate is True, this will be limited to 15 degrees in either direction.
     """
 )
 flags.DEFINE_integer('resize_height', 224,
@@ -297,22 +310,22 @@ def image_preprocessing(image_buffer, train, thread_id=0):
 #         )
 
 
-def rectangle_vertices(cx, cy, w, h, r):
-    # http://www.mathopenref.com/coordpolygonarea.html
-    # https://stackoverflow.com/a/45268241/99379
-    angle = pi*r/180
-    dx = w/2
-    dy = h/2
-    dxcos = dx*cos(angle)
-    dxsin = dx*sin(angle)
-    dycos = dy*cos(angle)
-    dysin = dy*sin(angle)
-    return (
-        Vector(cx, cy) + Vector(-dxcos - -dysin, -dxsin + -dycos),
-        Vector(cx, cy) + Vector( dxcos - -dysin,  dxsin + -dycos),
-        Vector(cx, cy) + Vector( dxcos -  dysin,  dxsin +  dycos),
-        Vector(cx, cy) + Vector(-dxcos -  dysin, -dxsin +  dycos)
-    )
+# def rectangle_vertices(cx, cy, w, h, r):
+#     # http://www.mathopenref.com/coordpolygonarea.html
+#     # https://stackoverflow.com/a/45268241/99379
+#     angle = pi*r/180
+#     dx = w/2
+#     dy = h/2
+#     dxcos = dx*cos(angle)
+#     dxsin = dx*sin(angle)
+#     dycos = dy*cos(angle)
+#     dysin = dy*sin(angle)
+#     return (
+#         Vector(cx, cy) + Vector(-dxcos - -dysin, -dxsin + -dycos),
+#         Vector(cx, cy) + Vector( dxcos - -dysin,  dxsin + -dycos),
+#         Vector(cx, cy) + Vector( dxcos -  dysin,  dxsin +  dycos),
+#         Vector(cx, cy) + Vector(-dxcos -  dysin, -dxsin +  dycos)
+#     )
 
 def intersection_area(r1, r2):
     # http://www.mathopenref.com/coordpolygonarea.html
@@ -608,7 +621,9 @@ def old_batch_inputs(data_files, train, num_epochs, batch_size,
     return features
 
 
-def crop_to_gripper_transform(input_image_shape, grasp_center_coordinate, grasp_center_rotation_theta, cropped_image_shape):
+def crop_to_gripper_transform(
+        input_image_shape, grasp_center_coordinate, grasp_center_rotation_theta, cropped_image_shape,
+        random_translation_max_pixels=None, random_rotation=None, seed=None):
     """ Transform and rotate image to be centered and aligned with proposed grasp.
 
         Given a gripper center coodinate and rotation angle,
@@ -622,10 +637,23 @@ def crop_to_gripper_transform(input_image_shape, grasp_center_coordinate, grasp_
     crop_offset = - grasp_center_coordinate + half_image_shape
 
     crop_offset = crop_offset[::-1]
+    if random_translation_max_pixels is not None:
+        crop_offset = crop_offset + rcp.random_translation_offset(random_translation_max_pixels)[:2]
     # reverse yx to xy
     transforms += [tf.contrib.image.translations_to_projective_transforms(crop_offset)]
     input_height_f = cropped_image_shape[0]
     input_width_f = cropped_image_shape[1]
+
+    if random_rotation is not None and random_rotation is not False:
+        if isinstance(random_rotation, bool) and random_rotation:
+            random_rotation = tf.convert_to_tensor(
+                [-math.pi, math.pi], dtype=tf.float32, name='random_theta')
+        if isinstance(random_rotation, float):
+            random_rotation = tf.convert_to_tensor(
+                [-random_rotation, random_rotation], dtype=tf.float32, name='random_theta')
+        print('random rotation: ' + str(random_rotation))
+        theta = tf.random_uniform([1], minval=random_rotation[0], maxval=random_rotation[1], seed=seed, dtype=tf.float32)
+        grasp_center_rotation_theta += theta
     transforms += [tf.contrib.image.angles_to_projective_transforms(
                          grasp_center_rotation_theta, input_height_f, input_width_f)]
     transform = tf.contrib.image.compose_transforms(*transforms)
@@ -722,43 +750,52 @@ def parse_and_preprocess(
     feature['sin_cos_height_width_4'] = height_width_sin_cos_4(features=feature)
     feature['sin_cos_height_3'] = feature['sin_cos_height_width_4'][:-1]
 
-    if is_training:
-        # perform image augmentation
-        # TODO(ahundt) add scaling and use that change to augment width (gripper openness) param
-        if random_crop and not crop_to_gripper:
-            transform, random_features = rcp.random_projection_transform(
-                K.shape(image), crop_shape, scale=True, rotation=True, translation=True)
-        elif crop_to_gripper:
-            if FLAGS.crop_to_gripper_and_rotate:
-                crop_to_gripper_theta = K.constant(0, 'float32')
-            else:
-                crop_to_gripper_theta = grasp_center_rotation_theta
-            transform, random_features = crop_to_gripper_transform(
-                            input_image_shape, grasp_center_coordinate,
-                            crop_to_gripper_theta, crop_shape)
-            if random_crop:
-                # TODO(ahundt) need to add both random features together
-                # translation = K.concatenate(feature['bbox/width'], feature['bbox/height'])
-                translation_in_box = K.cast(feature['sin_cos_height_width_4'][-2:] // 2, 'int32')
-                translate_anywhere = K.constant([0, 0], tf.int32)
-                offset = tf.cast(rcp.random_crop_offset(translate_anywhere, translation_in_box, seed=seed), tf.int32)
-                transform, random_features = rcp.random_projection_transform(
-                    K.shape(image), crop_shape, scale=True, rotation=True, translation=offset)
-        image, preprocessed_grasp_center_coordinate = rcp.transform_crop_and_resize_image(
-            image, crop_shape=crop_shape, resize_shape=output_shape,
-            transform=transform, coordinate=grasp_center_coordinate)
-
-        if 'random_rotation' in random_features:
-            # TODO(ahundt) validate if we must subtract or add based on the transform
-            grasp_center_rotation_theta += random_features['random_rotation']
-        feature.update(random_features)
-    else:
+    # perform image augmentation with projective transforms
+    # TODO(ahundt) add scaling and use that change to augment width (gripper openness) param
+    central_crop = False
+    if random_crop and not crop_to_gripper:
+        # Note: this option only works well if the crop size is similar to the input size
+        transform, random_features = rcp.random_projection_transform(
+            K.shape(image), crop_shape, scale=False, rotation=True, translation=True)
+    elif not is_training and not crop_to_gripper:
         # simply do a central crop then a resize when not training
-        # to match the input without  changes
-        image, preprocessed_grasp_center_coordinate = rcp.transform_crop_and_resize_image(
-            image, crop_shape=crop_shape, central_crop=True,
-            resize_shape=output_shape, coordinate=grasp_center_coordinate)
-        grasp_center_rotation_theta = K.constant(0.0, 'float32')
+        # to match the input without changes
+        central_crop = True
+        transform = None
+    elif crop_to_gripper:
+        # default to no rotation
+        random_rotation = None
+        if FLAGS.crop_to_gripper_and_rotate:
+            crop_to_gripper_theta = grasp_center_rotation_theta
+            # limit random rotation to 15 degrees
+            if is_training and random_crop:
+                random_rotation = math.pi / 12
+        else:
+            crop_to_gripper_theta = K.constant(0, 'float32')
+            # allow arbitrary random rotation
+            if is_training and random_crop:
+                random_rotation = True
+
+        if is_training and random_crop:
+            translation_in_box = K.cast(feature['sin_cos_height_width_4'][-2:] // 2, 'int32')
+            translation_in_box = tf.minimum(translation_in_box[0], translation_in_box[1])
+            # TODO(ahundt) add rotation and possibly scale
+        else:
+            translation_in_box = None
+
+        transform, random_features = crop_to_gripper_transform(
+            input_image_shape, grasp_center_coordinate,
+            crop_to_gripper_theta, crop_shape,
+            random_translation_max_pixels=translation_in_box,
+            random_rotation=random_rotation)
+    image, preprocessed_grasp_center_coordinate = rcp.transform_crop_and_resize_image(
+        image, crop_shape=crop_shape, resize_shape=output_shape, central_crop=central_crop,
+        transform=transform, coordinate=grasp_center_coordinate)
+
+    if 'random_rotation' in random_features:
+        # TODO(ahundt) validate if we must subtract or add based on the transform
+        grasp_center_rotation_theta += random_features['random_rotation']
+    feature.update(random_features)
 
     feature['image/transformed'] = image
 
@@ -847,7 +884,7 @@ def yield_record(
                                           data_features_to_extract=data_features_to_extract,
                                           preprocessing_mode=preprocessing_mode)
         dataset = dataset.map(
-            map_func=parse_and_preprocess,
+            map_func=parse_fn_is_training,
             num_parallel_calls=num_parallel_calls)
         if batch_size > 1:
             dataset = dataset.batch(batch_size=batch_size)  # Parse the record into tensors.
@@ -927,9 +964,11 @@ def old_inputs(data_files, num_epochs=1, train=False, batch_size=1):
     return features
 
 
-def visualize_redundant_example(features_dicts, showTextBox=False):
+def visualize_redundant_example(features_dicts, showTextBox=None):
     """ Visualize numpy dictionary containing a grasp example.
     """
+    if showTextBox is None:
+        showTextBox = FLAGS.showTextBox
     # TODO(ahundt) don't duplicate this in cornell_grasp_dataset_writer
     if not isinstance(features_dicts, list):
         features_dicts = [features_dicts]
@@ -967,7 +1006,8 @@ def visualize_redundant_example(features_dicts, showTextBox=False):
             decoded_example['bbox/cx'] = example['bbox/preprocessed/cx']
             if 'random_projection_transform' in example:
                 print('random_projection_transform:' + str(example['random_projection_transform']))
-                print('random_rotation: ' + str(example['random_rotation']))
+                if 'random_rotation' in example:
+                    print('random_rotation: ' + str(example['random_rotation']))
                 print('bbox/preprocessed/theta: ' + str(example['bbox/preprocessed/theta']))
             preprocessed_examples.append(decoded_example)
 
@@ -1019,8 +1059,7 @@ def visualize_redundant_example(features_dicts, showTextBox=False):
 
         cx = [int(example['bbox/cx'])]
         cy = [int(example['bbox/cy'])]
-        if False:
-        # if showTextBox:
+        if showTextBox:
             axs[h, w].text(
                     int(cx[0]), int(cy[0]),
                     success_str, size=10,
@@ -1064,7 +1103,7 @@ def visualize_redundant_example(features_dicts, showTextBox=False):
 
 def main(argv):
     batch_size = 1
-    is_training = True
+    is_training = False
     validation_file = FLAGS.evaluate_filename
 
     for example_dict in tqdm(yield_record(
