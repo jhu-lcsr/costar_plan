@@ -360,7 +360,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 dropout_rate=self.dropout_rate) # Removed dropout from this block
         # --- end ssm block
 
-        if self.skip_connections or True:
+        if self.skip_connections:
             x = Concatenate()([x, skip])
 
         for i in range(1):

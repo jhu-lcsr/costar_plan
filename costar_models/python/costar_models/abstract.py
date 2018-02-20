@@ -65,7 +65,7 @@ class AbstractAgentBasedModel(object):
             use_batchnorm=1,
             hypothesis_dropout=False,
             dense_representation=True,
-            skip_connections=0,
+            skip_connections=1,
             use_noise=False,
             load_pretrained_weights=False,
             retrain=True,

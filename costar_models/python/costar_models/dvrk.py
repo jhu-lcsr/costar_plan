@@ -155,15 +155,17 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=True):
                 activation=activation_fn,)
 
     # --- end ssm block
-    x = Concatenate()([x, skip])
-    #x = Dropout(model.dropout_rate)(x)
+    if model.skip_connections:
+        x = Concatenate()([x, skip])
+
     x = AddConv2DTranspose(x, 64,
             [5,5],
             stride=2,
             activation=activation_fn,
             dropout_rate=model.dropout_rate*0.)
 
-    x = Concatenate()([x, skip0])
+    if model.skip_connections:
+        x = Concatenate()([x, skip0])
 
     for _ in range(1):
         x = AddConv2D(x, 64,

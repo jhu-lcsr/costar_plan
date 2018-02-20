@@ -42,12 +42,8 @@ class ConditionalImageJigsaws(ConditionalImage):
         prev_option_in = Input((1,), name="predictor_prev_option_in")
         ins = [img0_in, img_in]
 
-        if self.skip_connections:
-            encoder = self._makeImageEncoder2(img_shape)
-            decoder = self._makeImageDecoder2(self.hidden_shape)
-        else:
-            encoder = MakeJigsawsImageEncoder(self, img_shape)
-            decoder = MakeJigsawsImageDecoder(self, self.hidden_shape)
+        encoder = MakeJigsawsImageEncoder(self, img_shape)
+        decoder = MakeJigsawsImageDecoder(self, self.hidden_shape)
 
         # =====================================================================
         # Load weights and stuff
