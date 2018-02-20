@@ -38,12 +38,25 @@ class AbstractAgentBasedModel(object):
             name += "_%s.h5f"%self.submodel
         return name
 
-    def __init__(self, taskdef=None, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
-            clipnorm=100., show_iter=0, pretrain_iter=5,
-            optimizer="sgd", model_descriptor="model", zdim=16, features=None,
-            steps_per_epoch=500, validation_steps=25,
-            dropout_rate=0.5, decoder_dropout_rate=None,
+    def __init__(self, taskdef=None,
+            lr=1e-4,
+            epochs=500,
+            initial_epoch=0,
+            iter=1000,
+            batch_size=32,
+            clipnorm=100.,
+            show_iter=0,
+            pretrain_iter=5,
+            optimizer="sgd",
+            model_descriptor="model",
+            zdim=16,
+            features=None,
+            steps_per_epoch=500,
+            validation_steps=25,
+            dropout_rate=0.5,
+            decoder_dropout_rate=None,
             tform_dropout_rate=0.,
+            activation_fn="relu",
             validate=False,
             enc_loss=False,
             use_batchnorm=1,
@@ -64,6 +77,7 @@ class AbstractAgentBasedModel(object):
             num_generator_files=3, upsampling=None,
             clip_weights=0, use_wasserstein=False,
             option_num=None, # for policy model
+            unique_id="", # for status file
             task=None, robot=None, model="", model_directory="./", *args,
             **kwargs):
 
@@ -79,6 +93,7 @@ class AbstractAgentBasedModel(object):
         self.retrain = retrain
         self.success_only = success_only
         self.use_prev_option = use_prev_option
+        self.activation_fn = activation_fn
         self.lr = lr
         self.iter = iter
         self.upsampling_method = upsampling
@@ -87,6 +102,7 @@ class AbstractAgentBasedModel(object):
         self.pretrain_iter = pretrain_iter
         self.noise_dim = zdim
         self.epochs = epochs
+        self.initial_epoch = initial_epoch
         self.use_batchnorm = use_batchnorm > 0
         self.batch_size = batch_size
         self.load_pretrained_weights = load_pretrained_weights
@@ -137,6 +153,9 @@ class AbstractAgentBasedModel(object):
         # None, set to 2 for testing only
         self.prev_option = 2
 
+        # Unique id for status file
+        self.unique_id = unique_id
+
         
 
         # default: store the whole model here.
@@ -147,16 +166,18 @@ class AbstractAgentBasedModel(object):
         print("==========   TRAINING CONFIGURATION REPORT   ==============")
         print("===========================================================")
         print("Name =", self.name_prefix)
-        print("Features = ", self.features)
-        print("Robot = ", self.robot)
-        print("Task = ", self.task)
-        print("Model type = ", model)
-        print("Model directory = ", self.model_directory)
-        print("Models saved with prefix = ", self.name)
+        print("Features =", self.features)
+        print("Robot =", self.robot)
+        print("Task =", self.task)
+        print("Model type =", model)
+        print("Model directory =", self.model_directory)
+        print("Models saved with prefix =", self.name)
+        print("Unique id for status file =", self.unique_id)
         print("-----------------------------------------------------------")
         print("---------------- General Training Options -----------------")
         print("Iterations =", self.iter)
         print("Epochs =", self.epochs)
+        print("Initial epoch =", self.initial_epoch)
         print("Steps per epoch =", self.steps_per_epoch)
         print("Batch size =", self.batch_size)
         print("Noise dim =", self.noise_dim)

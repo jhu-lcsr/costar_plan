@@ -257,6 +257,7 @@ class RobotMultiSequencePredictor(RobotMultiHierarchical):
                     [np.expand_dims(f,1) for f in targets],
                     callbacks=[modelCheckpointCb, imageCb],
                     validation_split=self.validation_split,
+                    initial_epoch=self.initial_epoch,
                     epochs=self.epochs)
         else:
             for i in range(self.iter):

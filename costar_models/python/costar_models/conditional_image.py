@@ -19,7 +19,7 @@ from .callbacks import *
 from .sampler2 import *
 from .data_utils import GetNextGoal, ToOneHot
 from .multi import *
-
+from .loss import *
 
 class ConditionalImage(PredictionSampler2):
     '''
@@ -117,30 +117,38 @@ class ConditionalImage(PredictionSampler2):
 
         # Create custom encoder loss
         if self.enc_loss:
-            loss = EncoderLoss(self.encoder, self.loss)
+            loss = EncoderLoss(self.image_encoder, self.loss)
+            enc_losses = [loss, loss]
+            enc_outs = [x, x2]
+            enc_wts = [1e-2, 1e-2]
+            img_loss_wt = 1.
         else:
-            loss = self.loss
+            enc_losses = []
+            enc_outs = []
+            enc_wts = []
+            img_loss_wt = 1.
 
         # Create models to train
         if self.no_disc:
             disc_wt = 0.
         else:
-            disc_wt = 1e-3
+            disc_wt = 1e-4
         if self.no_disc:
             train_predictor = Model(ins + [label_in],
-                    [image_out, image_out2])
+                    [image_out, image_out2] + enc_outs)
             train_predictor.compile(
-                    loss=[self.loss, self.loss,],
-                    loss_weights=[1., 1.,],
+                    loss=[self.loss, self.loss,] + enc_losses,
+                    loss_weights=[img_loss_wt, img_loss_wt] + enc_wts,
                     optimizer=self.getOptimizer())
         else:
             train_predictor = Model(ins + [label_in],
-                    [image_out, image_out2, disc_out2])
+                    [image_out, image_out2, disc_out2] + enc_outs)
             train_predictor.compile(
-                    loss=[self.loss, self.loss, "categorical_crossentropy"],
-                    loss_weights=[1., 1., disc_wt],
+                    loss=[self.loss, self.loss, "categorical_crossentropy"] + enc_losses,
+                    loss_weights=[img_loss_wt, img_loss_wt, disc_wt] + enc_wts,
                     optimizer=self.getOptimizer())
         train_predictor.summary()
+        tform.summary()
         return None, train_predictor, None, ins, h
 
     def _getData(self, *args, **kwargs):
@@ -156,13 +164,18 @@ class ConditionalImage(PredictionSampler2):
         o2_1h = ToOneHot(o2, self.num_options)
         qa = np.squeeze(qa)
         ga = np.squeeze(ga)
+        features = [I0, I, o1, o2, oin]
         if self.validate:
-            return [I0, I, o1, o2, oin], [ I_target, I_target2, o1_1h, v, qa,
-                    ga, o2_1h]
+            # Return the specific set of features that are just for validation
+            return (features,
+                    [I_target, I_target2, o1_1h, v, qa, ga, o2_1h])
         elif self.no_disc:
-            return [I0, I, o1, o2, oin], [I_target, I_target2]
+            targets = [I_target, I_target2]
         else:
-            return [I0, I, o1, o2, oin], [I_target, I_target2, o2_1h]
+            targets = [I_target, I_target2, o2_1h]
+        if self.enc_loss:
+            targets += [I_target, I_target2]
+        return features, targets
 
 
     def loadValidationModels(self, arm_size, gripper_size, h0, h):
@@ -246,5 +259,3 @@ class ConditionalImage(PredictionSampler2):
     def act(self, *args, **kwargs):
         raise NotImplementedError('act() not implemented')
 
-    def debugImage(self, features):
-        return features[1]
