@@ -177,26 +177,31 @@ class ConditionalImage(PredictionSampler2):
         arm_gripper = Concatenate()([arm_in, gripper_in])
         label_in = Input((1,))
 
-        self.value_model = GetValueModel(h, self.num_options, 64,
+        print(">>> VALUE MODEL")
+        self.value_model = GetValueModel(h, self.num_options, 128,
                 self.decoder_dropout_rate)
         self.value_model.compile(loss="mae", optimizer=self.getOptimizer())
         self.value_model.load_weights(self.makeName("secondary", "value"))
 
+        print(">>> NEXT MODEL")
         self.next_model = GetNextModel(h, self.num_options, 128,
                 self.decoder_dropout_rate)
         self.next_model.compile(loss="mae", optimizer=self.getOptimizer())
         self.next_model.load_weights(self.makeName("secondary", "next"))
 
+        print(">>> ACTOR MODEL")
         self.actor = GetActorModel(h, self.num_options, arm_size, gripper_size,
                 self.decoder_dropout_rate)
         self.actor.compile(loss="mae",optimizer=self.getOptimizer())
         self.actor.load_weights(self.makeName("secondary", "actor"))
 
+        print(">>> POSE MODEL")
         self.pose_model = GetPoseModel(h, self.num_options, arm_size, gripper_size,
                 self.decoder_dropout_rate)
         self.pose_model.compile(loss="mae",optimizer=self.getOptimizer())
         self.pose_model.load_weights(self.makeName("secondary", "pose"))
 
+        print(">>> Q MODEL")
         self.q_model = GetNextModel(h, self.num_options, 128,
                 self.decoder_dropout_rate)
         self.q_model.compile(loss="mae", optimizer=self.getOptimizer())
