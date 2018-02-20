@@ -67,6 +67,36 @@ env:
 before_install:
   - sudo sh -c "echo \"deb http://packages.ros.org/ros/ubuntu $ROS_CI_DESKTOP main\" > /etc/apt/sources.list.d/ros-latest.list"
   - wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
+  - sudo apt-get update -qq
+  - sudo apt-get install -y python-catkin-pkg python-rosdep python-wstool python-catkin-tools ros-$ROS_DISTRO-catkin
+    #- sudo apt-get install ros-indigo-moveit-ros-visualization # hack to force install
+  - source /opt/ros/$ROS_DISTRO/setup.bash
+  # Prepare rosdep to install dependencies.
+  - sudo rosdep init
+  - rosdep update
+  - mkdir -p ~/costar_ws/src
+  - cd ~/costar_ws
+  - catkin init
+  - cd ~/costar_ws/src
+  - git clone https://github.com/cpaxton/iiwa_stack.git  
+  - git clone https://github.com/ros-industrial/robotiq.git  
+  - git clone https://github.com/jhu-lcsr/ObjRecRANSAC.git  
+  - git clone https://github.com/jbohren/rqt_dot.git  
+  - git clone https://github.com/sniekum/ar_track_alvar.git  
+  - git clone https://github.com/sniekum/ar_track_alvar_msgs.git  
+  - git clone https://github.com/gt-ros-pkg/hrl-kdl.git
+  - git clone https://github.com/ThomasTimm/ur_modern_driver.git
+  - git clone git@github.com:cpaxton/costar_stack.git
+  - touch CATKIN_IGNORE costar_stack/costar_perception
+  # Create the devel/setup.bash (run catkin_make with an empty workspace) and
+  # source it to set the path variables.
+  - cd ~/costar_ws
+  # Install remaining dependencies using rosdep
+  - rosdep install -y --from-paths src --ignore-src --rosdistro $ROS_DISTRO
+  - catkin build
+  - source devel/setup.bash
+  # Add the package under integration to the workspace using a symlink.
+  - cd ~/costar_ws/src
 
 # Create a catkin workspace with the package under integration.
 install:
