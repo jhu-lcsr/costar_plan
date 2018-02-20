@@ -62,7 +62,7 @@ import grasp_loss as grasp_loss
 
 flags.DEFINE_float(
     'learning_rate',
-    0.00584,
+    0.0341,
     'Initial learning rate.'
 )
 flags.DEFINE_integer(
@@ -132,16 +132,16 @@ def choose_hypertree_model(
         final_pooling=None,
         include_top=True,
         top='classification',
-        top_block_filters=64,
+        top_block_filters=128,
         classes=1,
         output_shape=None,
         trainable=False,
         verbose=0,
         image_model_name='vgg',
         vector_model_name='dense_block',
-        trunk_layers=5,
-        trunk_filters=None,
-        vector_branch_num_layers=5):
+        trunk_layers=4,
+        trunk_filters=256,
+        vector_branch_num_layers=3):
     """ Construct a variety of possible models with a tree shape based on hyperparameters.
 
     # Arguments
@@ -151,6 +151,13 @@ def choose_hypertree_model(
             before a prediction is made based on the number of classes.
 
     # Notes
+
+    Best 1 epoch run with image_preprocessed_sin_cos_height_3 and 0.25 dropout, 2018-02-19:
+        - val_binary_accuracy 0.9115646390282378
+        - val_loss 0.26308334284290974
+        {"vector_dense_filters": 64, "vector_branch_num_layers": 3, "trainable": false,
+         "image_model_name": "vgg", "vector_model_name": "dense", "learning_rate": 0.03413896253431821, "trunk_filters": 256,
+         "top_block_filters": 128, "trunk_layers": 4, "feature_combo_name": "image_preprocessed_sin_cos_height_3"}
 
     Best 1 epoch run with only gripper openness parameter, 2018-02-17:
         - val_binary_accuracy 0.9134199238
