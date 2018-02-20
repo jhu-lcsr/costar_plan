@@ -56,12 +56,12 @@ def visualizeHiddenMain(args):
         h = model.encode(I)
         h0 = model.encode(I0)
         prev_option = model.prevOption(features)
-        img = model.debugImage(features)
         null_option = np.ones_like(prev_option) * model.null_option
         p_a = model.pnext(h0, h, prev_option)
         v = model.value(h0, h)
 
-        if not h.shape[0] == img.shape[0]:
+        print(I.shape, h.shape)
+        if not h.shape[0] == I.shape[0]:
             raise RuntimeError('something went wrong with dimensions')
         print("shape =", p_a.shape)
         action = np.argmax(p_a,axis=1)
@@ -73,7 +73,7 @@ def visualizeHiddenMain(args):
         v_goal = model.value(h0, h_goal)
         print("--------------\nHidden state:\n--------------\n")
         print("shape of hidden samples =", h.shape)
-        print("shape of images =", img.shape)
+        print("shape of images =", I.shape)
         for i in range(h.shape[0]):
             print("------------- %d -------------"%i)
             print("prev option =", prev_option[i])
@@ -84,7 +84,7 @@ def visualizeHiddenMain(args):
             print(p_a[i])
             plt.figure()
             plt.subplot(1,5,1)
-            Show(img[i])
+            Show(I[i])
             plt.subplot(1,5,2)
             Show(np.squeeze(h[i,:,:,:3]))
             plt.subplot(1,5,3)
