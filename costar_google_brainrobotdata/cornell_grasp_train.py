@@ -65,9 +65,14 @@ flags.DEFINE_float(
     0.0341,
     'Initial learning rate.'
 )
+flags.DEFINE_float(
+    'fine_tuning_learning_rate',
+    0.006,
+    'Initial learning rate.'
+)
 flags.DEFINE_integer(
     'epochs',
-    5,
+    20,
     'Number of epochs to run trainer.'
 )
 flags.DEFINE_integer(
@@ -138,7 +143,7 @@ def choose_hypertree_model(
         trainable=False,
         verbose=0,
         image_model_name='vgg',
-        vector_model_name='dense_block',
+        vector_model_name='dense',
         trunk_layers=4,
         trunk_filters=256,
         vector_branch_num_layers=3):
@@ -329,6 +334,7 @@ def run_training(
         validation_data=None,
         feature_combo_name='image_preprocessed_sin_cos_height_3',
         image_model_name='vgg',
+        optimizer_name='sgd',
         log_dir=None,
         hyperparams=None,
         **kwargs):
@@ -390,11 +396,7 @@ def run_training(
     run_name = timeStamped(save_weights + '-' + model_name + '-dataset_' + dataset_names_str + '-' + label_features[0])
     callbacks = []
 
-    optimizer = keras.optimizers.SGD(learning_rate * 1.0)
-    callbacks = callbacks + [
-        # Reduce the learning rate if training plateaus.
-        keras.callbacks.ReduceLROnPlateau(patience=12, verbose=1, factor=0.5, monitor=monitor_loss_name)
-    ]
+    callbacks, optimizer = chooseOptimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name)
 
     log_dir = os.path.join(log_dir, run_name)
     log_dir_run_name = os.path.join(log_dir, run_name)
@@ -471,6 +473,20 @@ def run_training(
 
     model.save_weights(log_dir_run_name + run_name + '_model.h5')
     return history
+
+def chooseOptimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name):
+    if optimizer_name == 'sgd':
+        optimizer = keras.optimizers.SGD(learning_rate * 1.0)
+        callbacks = callbacks + [
+            # Reduce the learning rate if training plateaus.
+            keras.callbacks.ReduceLROnPlateau(patience=12, verbose=1, factor=0.5, monitor=monitor_loss_name)
+        ]
+    elif optimizer_name == 'adam':
+        optimizer = keras.optimizers.Adam()
+    else:
+        raise ValueError('Unsupported optimizer ' + str(optimizer_name) +
+                         'try adam or sgd.')
+    return callbacks, optimizer
 
 
 def choose_features_and_metrics(feature_combo_name, top):

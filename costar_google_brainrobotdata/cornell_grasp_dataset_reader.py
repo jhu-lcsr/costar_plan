@@ -168,6 +168,8 @@ def parse_example_proto(examples_serialized, have_image_id=False):
     feature_map['bbox/width'] = tf.VarLenFeature(dtype=tf.float32)
     feature_map['bbox/height'] = tf.VarLenFeature(dtype=tf.float32)
     feature_map['bbox/grasp_success'] = tf.VarLenFeature(dtype=tf.int64)
+    # feature_map['bbox/sin_2_theta'] = tf.sin(feature_map['bbox/theta'] * 2.0)
+    # feature_map['bbox/cos_2_theta'] = tf.cos(feature_map['bbox/theta'] * 2.0)
 
     features = tf.parse_single_example(examples_serialized, feature_map)
 
@@ -206,6 +208,8 @@ def parse_example_proto_redundant(examples_serialized, have_image_id=False):
     feature_map['bbox/width'] = tf.FixedLenFeature([1], dtype=tf.float32)
     feature_map['bbox/height'] = tf.FixedLenFeature([1], dtype=tf.float32)
     feature_map['bbox/grasp_success'] = tf.FixedLenFeature([1], dtype=tf.int64)
+    # feature_map['bbox/sin_2_theta'] = tf.sin(feature_map['bbox/theta'] * 2.0)
+    # feature_map['bbox/cos_2_theta'] = tf.cos(feature_map['bbox/theta'] * 2.0)
 
     features = tf.parse_single_example(examples_serialized, feature_map)
 
@@ -327,52 +331,52 @@ def image_preprocessing(image_buffer, train, thread_id=0):
 #         Vector(cx, cy) + Vector(-dxcos -  dysin, -dxsin +  dycos)
 #     )
 
-def intersection_area(r1, r2):
-    # http://www.mathopenref.com/coordpolygonarea.html
-    # https://stackoverflow.com/a/45268241/99379
-    # r1 and r2 are in (center, width, height, rotation) representation
-    # First convert these into a sequence of vertices
+# def intersection_area(r1, r2):
+#     # http://www.mathopenref.com/coordpolygonarea.html
+#     # https://stackoverflow.com/a/45268241/99379
+#     # r1 and r2 are in (center, width, height, rotation) representation
+#     # First convert these into a sequence of vertices
 
-    rect0 = rectangle_vertices(*r1)
-    rect1 = rectangle_vertices(*r2)
+#     rect0 = rectangle_vertices(*r1)
+#     rect1 = rectangle_vertices(*r2)
 
-    # Use the vertices of the first rectangle as
-    # starting vertices of the intersection polygon.
-    rect0 = rect0
+#     # Use the vertices of the first rectangle as
+#     # starting vertices of the intersection polygon.
+#     rect0 = rect0
 
-    # Loop over the edges of the second rectangle
-    for p, q in zip(rect1, rect1[1:] + rect1[:1]):
-        if len(rect0) <= 2:
-            break # No intersection
+#     # Loop over the edges of the second rectangle
+#     for p, q in zip(rect1, rect1[1:] + rect1[:1]):
+#         if len(rect0) <= 2:
+#             break # No intersection
 
-        line = Line(p, q)
+#         line = Line(p, q)
 
-        # Any point p with line(p) <= 0 is on the "inside" (or on the boundary),
-        # any point p with line(p) > 0 is on the "outside".
+#         # Any point p with line(p) <= 0 is on the "inside" (or on the boundary),
+#         # any point p with line(p) > 0 is on the "outside".
 
-        # Loop over the edges of the rect0 polygon,
-        # and determine which part is inside and which is outside.
-        new_intersection = []
-        line_values = [line(t) for t in rect0]
-        for s, t, s_value, t_value in zip(
-                rect0, rect0[1:] + rect0[:1],
-                line_values, line_values[1:] + line_values[:1]):
-            if s_value <= 0:
-                new_intersection.append(s)
-            if s_value * t_value < 0:
-                # Points are on opposite sides.
-                # Add the intersection of the lines to new_intersection.
-                intersection_point = line.intersection(Line(s, t))
-                new_intersection.append(intersection_point)
+#         # Loop over the edges of the rect0 polygon,
+#         # and determine which part is inside and which is outside.
+#         new_intersection = []
+#         line_values = [line(t) for t in rect0]
+#         for s, t, s_value, t_value in zip(
+#                 rect0, rect0[1:] + rect0[:1],
+#                 line_values, line_values[1:] + line_values[:1]):
+#             if s_value <= 0:
+#                 new_intersection.append(s)
+#             if s_value * t_value < 0:
+#                 # Points are on opposite sides.
+#                 # Add the intersection of the lines to new_intersection.
+#                 intersection_point = line.intersection(Line(s, t))
+#                 new_intersection.append(intersection_point)
 
-        intersection = new_intersection
+#         intersection = new_intersection
 
-    # Calculate area
-    if len(intersection) <= 2:
-        return 0
+#     # Calculate area
+#     if len(intersection) <= 2:
+#         return 0
 
-    return 0.5 * sum(p.x*q.y - p.y*q.x for p, q in
-                     zip(intersection, intersection[1:] + intersection[:1]))
+#     return 0.5 * sum(p.x*q.y - p.y*q.x for p, q in
+#                      zip(intersection, intersection[1:] + intersection[:1]))
 
 
 # intersection_area(r0y0, r0x0, r0y1, r0x1, r0y2, r0x2, r0y3, r0x3, r1y0, r1x0, r1y1, r1x1, r1y2, r1x2,  r1y3, r1x3):
