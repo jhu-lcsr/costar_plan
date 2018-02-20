@@ -94,16 +94,29 @@ def visualizeHiddenMain(args):
             h_avg = np.squeeze(np.mean(h[i],axis=-1))
             h0_avg = np.squeeze(np.mean(h0[i],axis=-1))
             hg1_avg = np.squeeze(np.mean(h_goal[i],axis=-1))
+            hg2_avg = np.squeeze(np.mean(h_goal2[i],axis=-1))
             plt.subplot(3,4,2)
             Show(h0_avg)
+
+            # Show the ground truth
+            plt.subplot(3,4,3)
+            Show(targets[0][i])
+            plt.subplot(3,4,4)
+            Show(targets[1][i])
+
+            # Show the first image
             plt.subplot(3,4,6)
             Show(h_avg)
             plt.subplot(3,4,7)
             Show(hg1_avg)
             plt.subplot(3,4,8)
             Show(img_goal[i])
-            plt.subplot(3,4,4)
-            Show(targets[0][i])
+
+            # Show the second image
+            plt.subplot(3,4,11)
+            Show(hg2_avg)
+            plt.subplot(3,4,12)
+            Show(img_goal2[i])
             plt.show()
 
     else:
