@@ -39,6 +39,10 @@ def GetModelParser():
     parser.add_argument('--model_directory',
                         help="models directory",
                         default = "~/.costar/models")
+    parser.add_argument('--reqs_directory',
+                        help="directory for reading in required submodels",
+                        type = str,
+                        default = None)
     parser.add_argument('-i', '--iter',
                         help='Number of iterations to run',
                         default=100,
