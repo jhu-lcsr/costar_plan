@@ -861,6 +861,7 @@ def parse_and_preprocess(
     feature['image/preprocessed'] = image
     feature['image/preprocessed/height'] = K.shape(image)[0]
     feature['image/preprocessed/width'] = K.shape(image)[1]
+    feature['image/preprocessed/max_side'] = K.max(K.shape(image))
 
     feature['bbox/preprocessed/cy'] = preprocessed_grasp_center_coordinate[0]
     feature['bbox/preprocessed/cx'] = preprocessed_grasp_center_coordinate[1]
@@ -870,11 +871,12 @@ def parse_and_preprocess(
     feature['bbox/preprocessed/theta'] = grasp_center_rotation_theta
     feature['bbox/preprocessed/sin_cos_2'] = K.concatenate(
         [K.sin(grasp_center_rotation_theta), K.cos(grasp_center_rotation_theta)])
+    feature['bbox/preprocessed/sin2_cos2_2'] = feature['sin2_cos2_width_3'][:2]
     random_scale = K.constant(1.0, 'float32')
     if 'random_scale' in feature:
         random_scale = feature['random_scale']
-    feature['bbox/preprocessed/height'] = feature['bbox/height'] * random_scale
-    feature['bbox/preprocessed/width'] = feature['bbox/width'] * random_scale
+    feature['bbox/preprocessed/height'] = feature['bbox/height'] * random_scale / K.cast(feature['image/preprocessed/max_side'], 'float32')
+    feature['bbox/preprocessed/width'] = feature['bbox/width'] * random_scale / K.cast(feature['image/preprocessed/max_side'], 'float32')
     feature['bbox/preprocessed/logarithm_height_width_2'] = K.concatenate(
         [K.log(feature['bbox/preprocessed/height'] + K.epsilon()),
          K.log(feature['bbox/preprocessed/width'] + K.epsilon())])
@@ -885,7 +887,11 @@ def parse_and_preprocess(
     # make coordinate labels 4d because that's what keras expects
     grasp_success_coordinate_label = K.expand_dims(K.expand_dims(grasp_success_coordinate_label))
     feature['grasp_success_yx_3'] = grasp_success_coordinate_label
-    # feature['grasp_success_sin2_cos2_yx_3'] = grasp_success_coordinate_label
+    grasp_success_sin2_cos2_hw_yx_7 = K.concatenate(
+        [tf.cast(feature['bbox/grasp_success'], tf.float32), feature['bbox/preprocessed/sin2_cos2_2'],
+         feature['bbox/preprocessed/height'], feature['bbox/preprocessed/width'], preprocessed_grasp_center_coordinate])
+    feature['grasp_success_sin2_cos2_hw_yx_7'] = K.expand_dims(K.expand_dims(grasp_success_sin2_cos2_hw_yx_7))
+
 
     # TODO(ahundt) reenable this and compare performance against segmentation_gaussian_measurement()
     if False:
