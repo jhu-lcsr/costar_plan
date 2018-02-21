@@ -59,6 +59,7 @@ function job_status() {
     if [[ ${running_jobs[$j]} == true ]]; then status=RUNNING
     elif grep TIME "./slurm-$j.out" > /dev/null; then status=TIMEOUT
     elif grep error "./slurm-$j.out" > /dev/null; then status=ERROR
+    elif grep Error "./slurm-$j.out" > /dev/null; then status=ERROR
     else status=SUCCESS
     fi
     echo $j $status $dir
