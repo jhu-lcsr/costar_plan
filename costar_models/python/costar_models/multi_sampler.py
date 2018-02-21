@@ -291,7 +291,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 "categorical_crossentropy",
                 "mae"],
         optimizer=self.getOptimizer())
-        model.summary()
 
         return predictor, model, actor, ins, enc
 
@@ -813,7 +812,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 )
         self.encoder = Model(ins, [enc]+skips, name="encoder")
         self.encoder.compile(loss="mae",optimizer=self.getOptimizer())
-        self.encoder.summary()
         new_ins = []
         for idx, i in enumerate(ins):
             i2 = Input(
@@ -857,7 +855,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         skips=self.skip_connections,
                         batchnorm=True,)
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
-        decoder.summary()
         return decoder
 
     def _makeStateEncoder(self, arm_size, gripper_size, disc=False):
@@ -925,7 +922,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 name="state_decoder")
         state_decoder.compile(loss="mae", optimizer=self.getOptimizer())
         self.state_decoder = state_decoder
-        state_decoder.summary()
         return state_decoder
 
     def _makeMergeEncoder(self, img_shape, arm_shape, gripper_shape):
