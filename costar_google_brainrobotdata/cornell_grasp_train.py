@@ -120,11 +120,11 @@ flags.DEFINE_integer(
     '1',
     'num of fold used for test, must be less than flags.train_splits'
 )
-flags.DEFINE_string('load_weights', None,
+flags.DEFINE_string('load_weights', '',
                     """Load and continue training the specified file containing model weights.""")
 flags.DEFINE_string('pipeline_stage', 'train',
-                    """Choose to "train", "eval", or "train_eval" with the grasp_dataset
-                       data for training and grasp_dataset_eval for evaluation.""")
+                    """Choose to "train", "test", or "train_test" with the grasp_dataset
+                       data for training and grasp_dataset_test for testing.""")
 
 FLAGS = flags.FLAGS
 
@@ -493,12 +493,13 @@ def run_training(
 
     # Get the validation dataset in one big numpy array for validation
     # This lets us take advantage of tensorboard visualization
-    train_data, validation_data = load_dataset(
-        validation_file, label_features, data_features,
-        samples_in_val_dataset, train_file, batch_size,
-        val_batch_size, train_data=train_data, validation_data=validation_data)
+    if 'train' in FLAGS.pipeline_stage:
+        train_data, validation_data = load_dataset(
+            validation_file, label_features, data_features,
+            samples_in_val_dataset, train_file, batch_size,
+            val_batch_size, train_data=train_data, validation_data=validation_data)
 
-    if FLAGS.pipeline_stage == 'eval':
+    if 'test' in FLAGS.pipeline_stage:
         _, test_data = load_dataset(
             test_file, label_features, data_features,
             samples_in_val_dataset, train_file, batch_size,
@@ -507,9 +508,10 @@ def run_training(
         #     test_file, is_training=False, batch_size=val_batch_size,
         #     parse_example_proto_fn=cornell_grasp_dataset_reader.parse_and_preprocess)
 
-        history = parallel_model.evaluate_generator(generator=test_data, steps=1)
+        test_history = parallel_model.evaluate_generator(generator=test_data, step=1)
 
-        return history
+    if FLAGS.pipeline_stage == 'test':
+        return test_history
 
     # print('calling model.fit_generator()')
     history = parallel_model.fit_generator(
