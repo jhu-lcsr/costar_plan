@@ -536,7 +536,7 @@ def train_on_splits(train_splits=FLAGS.num_train, val_splits=FLAGS.num_validatio
         test_filenames += [os.path.join(FLAGS.data_dir,
                            'cornell-grasping-dataset' + split_type + '_fold_' + str(i) + '.tfrecord')]
     save_splits_weights = split_type + '_train:_' + str(train_splits) + '_val:_' + str(val_splits) + '_test:_' + str(test_splits)
-    # run_training(train_file=train_filenames, val_filenames=val_filenames, save_splits_weights=save_splits_weights)
+    # run_training(train_file=train_filenames, validation_file=val_filenames, save_splits_weights=save_splits_weights)
 
     return train_filenames, val_filenames, test_filenames
 
@@ -561,7 +561,7 @@ def train_k_fold(num_fold=FLAGS.num_splits, split_type='imagewise'):
             train_filenames += [os.path.join(FLAGS.data_dir,
                                 'cornell-grasping-dataset' + split_type + '_fold_' + str(j) + '.tfrecord')]
         save_splits_weights = split_type + '_train_on:_' + train_id + '_val_on:' + str(i)
-        run_training(train_file=train_filenames, val_filenames=val_filenames, save_splits_weights=save_splits_weights)
+        run_training(train_file=train_filenames, validation_file=val_filenames, save_splits_weights=save_splits_weights)
 
     return
 
