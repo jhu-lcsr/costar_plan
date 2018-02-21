@@ -520,14 +520,15 @@ def test_on_splits(model_json_path='', weights_path='', test_dataset_path=[], lo
 
     model = model_from_json(model_json_path)
     model.load_weights(weights_path)
+    # model.compile(loss=loss, metrics=[metric])
     model.compile(loss=loss, metrics=[metric])
     result = model.evaluate_generator(generator=test_data)
 
     return result
 
 
-def train_on_splits(train_splits=FLAGS.num_train, val_splits=FLAGS.num_validation,
-                    test_splits=FLAGS.num_test, split_type='imagewise'):
+def train_on_splits(train_splits=None, val_splits=None,
+                    test_splits=None, split_type='imagewise'):
     """ Training on dataset split for training
 
         train_splits: number of splits of data used for training.
@@ -537,6 +538,12 @@ def train_on_splits(train_splits=FLAGS.num_train, val_splits=FLAGS.num_validatio
         splits type desired when doing actual splits.
     """
     # must be sure that train_splits + val_splits + test_filenames = flags.num_splits
+    if train_on_splits is None:
+        train_splits = FLAGS.num_train
+    if val_splits is None:
+        val_splits = FLAGS.num_validation
+    if test_on_splits is None:
+        test_splits = FLAGS.num_test
     train_filenames = []
     val_filenames = []
     test_filenames = []
@@ -553,18 +560,20 @@ def train_on_splits(train_splits=FLAGS.num_train, val_splits=FLAGS.num_validatio
         test_filenames += [os.path.join(FLAGS.data_dir,
                            'cornell-grasping-dataset' + split_type + '_fold_' + str(i) + '.tfrecord')]
     save_splits_weights = split_type + '_train:_' + str(train_splits) + '_val:_' + str(val_splits) + '_test:_' + str(test_splits)
-    # run_training(train_file=train_filenames, validation_file=val_filenames, save_splits_weights=save_splits_weights)
+    run_training(train_file=train_filenames, validation_file=val_filenames, save_splits_weights=save_splits_weights)
 
     return train_filenames, val_filenames, test_filenames
 
 
-def train_k_fold(num_fold=FLAGS.num_splits, split_type='imagewise'):
+def train_k_fold(num_fold=None, split_type='imagewise'):
     """ Do K_Fold training
 
         num_fold: total number of fold.
         split_type: str, either 'imagewise' or 'objectwise', should be consistent with
         splits type desired when doing actual splits.
     """
+    if num_fold is None:
+        num_fold = FLAGS.num_splits
     val_filenames = []
     train_filenames = []
     train_id = ''
