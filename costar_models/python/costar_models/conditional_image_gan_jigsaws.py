@@ -177,8 +177,8 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
             x = AddDense(x, 1, "linear", 0., output=True, bn=False)
         else:
             x = Flatten()(x)
-            x = AddDense(x, 1, "linear", 0., output=True, bn=False)
-            #x = AddConv2D(x, 1, [1,1], 1, 0., "same", activation="sigmoid",
+            x = AddDense(x, 1, "sigmoid", 0., output=True, bn=False)
+            #x = AddConv2D(x, 1, [1,1], 1, 0., "same", activation="linear",
             #    bn=False)
             #x = GlobalAveragePooling2D()(x)
 
