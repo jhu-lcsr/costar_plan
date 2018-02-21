@@ -45,7 +45,7 @@ from keras.callbacks import EarlyStopping
 from keras.callbacks import ModelCheckpoint
 from keras.callbacks import TensorBoard
 from keras.applications.nasnet import NASNetLarge
-from keras.models import Model
+from keras.models import Model, model_from_json
 from grasp_model import concat_images_with_tiled_vector_layer
 from grasp_model import top_block
 from grasp_model import create_tree_roots
@@ -94,6 +94,26 @@ flags.DEFINE_string(
     'run_name',
     '',
     'A string that will become part of the logged directories and filenames.'
+)
+flags.DEFINE_integer(
+    'num_splits',
+    '5',
+    'Total number of splits, which are equal in term of either imagewise or objectwise split'
+)
+flags.DEFINE_integer(
+    'num_train',
+    '3',
+    'num of fold used for training, must be less than flags.train_splits'
+)
+flags.DEFINE_integer(
+    'num_validation',
+    '1',
+    'num of fold used for validation, must be less than flags.train_splits'
+)
+flags.DEFINE_integer(
+    'num_test',
+    '1',
+    'num of fold used for test, must be less than flags.train_splits'
 )
 
 FLAGS = flags.FLAGS
@@ -327,6 +347,7 @@ def run_training(
         validation_file=None,
         train_data=None,
         validation_data=None,
+        save_splits_weights='',
         feature_combo_name='image_preprocessed_sin_cos_height_3',
         image_model_name='vgg',
         log_dir=None,
@@ -385,9 +406,8 @@ def run_training(
     # TODO(ahundt) add a loss that changes size with how open the gripper is
     # loss = grasp_loss.segmentation_gaussian_measurement
 
-    save_weights = ''
     dataset_names_str = 'cornell_grasping'
-    run_name = timeStamped(save_weights + '-' + model_name + '-dataset_' + dataset_names_str + '-' + label_features[0])
+    run_name = timeStamped(save_splits_weights + '-' + model_name + '-dataset_' + dataset_names_str + '-' + label_features[0])
     callbacks = []
 
     optimizer = keras.optimizers.SGD(learning_rate * 1.0)
@@ -471,6 +491,79 @@ def run_training(
 
     model.save_weights(log_dir_run_name + run_name + '_model.h5')
     return history
+
+
+def test_on_splits(model_json_path='', weights_path='', test_dataset_path=[], loss='',
+                   metric='', test_batch_size=32):
+    """ Load model and weights the test on dataset splitted for test.
+    """
+    test_data = cornell_grasp_dataset_reader.yield_record(
+        test_dataset_path, is_training=False, batch_size=test_batch_size,
+        parse_example_proto_fn=parse_and_preprocess)
+
+    model = model_from_json(model_json_path)
+    model.load_weights(weights_path)
+    model.compile(loss=loss, metrics=[metric])
+    result = model.evaluate_generator(generator=test_data)
+
+    return result
+
+
+def train_on_splits(train_splits=FLAGS.num_train, val_splits=FLAGS.num_validation,
+                    test_splits=FLAGS.num_test, split_type='imagewise'):
+    """ Training on dataset split for training
+
+        train_splits: number of splits of data used for training.
+        val_splits: number of splits of data used for validation.
+        test_splits: number of splits of data used for testing.
+        split_type: str, either 'imagewise' or 'objectwise', should be consistent with
+        splits type desired when doing actual splits.
+    """
+    # must be sure that train_splits + val_splits + test_filenames = flags.num_splits
+    train_filenames = []
+    val_filenames = []
+    test_filenames = []
+
+    for i in range(train_splits):
+        train_filenames += [os.path.join(FLAGS.data_dir,
+                            'cornell-grasping-dataset' + split_type + '_fold_' + str(i) + '.tfrecord')]
+
+    for i in range(train_splits, train_splits + val_splits):
+        val_filenames += [os.path.join(FLAGS.data_dir,
+                          'cornell-grasping-dataset' + split_type + '_fold_' + str(i) + '.tfrecord')]
+
+    for i in range(train_splits + val_splits, train_splits + val_splits + test_splits):
+        test_filenames += [os.path.join(FLAGS.data_dir,
+                           'cornell-grasping-dataset' + split_type + '_fold_' + str(i) + '.tfrecord')]
+    save_splits_weights = split_type + '_train:_' + str(train_splits) + '_val:_' + str(val_splits) + '_test:_' + str(test_splits)
+    # run_training(train_file=train_filenames, val_filenames=val_filenames, save_splits_weights=save_splits_weights)
+
+    return train_filenames, val_filenames, test_filenames
+
+
+def train_k_fold(num_fold=FLAGS.num_splits, split_type='imagewise'):
+    """ Do K_Fold training
+
+        num_fold: total number of fold.
+        split_type: str, either 'imagewise' or 'objectwise', should be consistent with
+        splits type desired when doing actual splits.
+    """
+    val_filenames = []
+    train_filenames = []
+    train_id = ''
+    for i in range(num_fold):
+        val_filenames = [os.path.join(FLAGS.data_dir,
+                         'cornell-grasping-dataset' + split_type + '_fold_' + str(i) + '.tfrecord')]
+        for j in range(num_fold):
+            if j == i:
+                continue
+            train_id += str(j)
+            train_filenames += [os.path.join(FLAGS.data_dir,
+                                'cornell-grasping-dataset' + split_type + '_fold_' + str(j) + '.tfrecord')]
+        save_splits_weights = split_type + '_train_on:_' + train_id + '_val_on:' + str(i)
+        run_training(train_file=train_filenames, val_filenames=val_filenames, save_splits_weights=save_splits_weights)
+
+    return
 
 
 def choose_features_and_metrics(feature_combo_name, top):
