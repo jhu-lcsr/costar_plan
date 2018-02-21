@@ -131,7 +131,9 @@ class AbstractAgentBasedModel(object):
         self.clipnorm = float(clipnorm)
         self.taskdef = taskdef
         self.model_directory = os.path.expanduser(model_directory)
-        self.reqs_directory = os.path.expanduser(reqs_directory)
+        self.reqs_directory = None
+        if reqs_directory is not None:
+            self.reqs_directory = os.path.expanduser(reqs_directory)
         self.name = self.makeName(self.name_prefix)
         self.num_generator_files = num_generator_files
         self.dropout_rate = dropout_rate
