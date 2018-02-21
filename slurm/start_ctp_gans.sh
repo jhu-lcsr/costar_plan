@@ -70,7 +70,7 @@ for wass_cmd in --wass ''; do
             $load_cmd $skip_cmd $suffix_cmd $resume_cmd
         }
         call_ctp ctp_dec multi
-        call_ctp husky_data husky
+        #call_ctp husky_data husky
         call_ctp suturing_data2 jigsaws
       done
 
