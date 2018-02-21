@@ -162,7 +162,7 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=True):
     if model.skip_connections:
         x = Concatenate()([x, skip])
 
-    x = AddConv2DTranspose(x, 64,
+    x = AddConv2DTranspose(x, 128,
             [5,5],
             stride=2,
             activation=activation_fn,
@@ -172,7 +172,7 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=True):
         x = Concatenate()([x, skip0])
 
     for _ in range(1):
-        x = AddConv2D(x, 64,
+        x = AddConv2D(x, 128,
                 [5,5],
                 stride=1,
                 activation=activation_fn,
