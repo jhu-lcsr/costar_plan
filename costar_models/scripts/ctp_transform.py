@@ -49,7 +49,7 @@ def visualizeHiddenMain(args):
         data = next(test_generator)
         features, targets = next(train_generator)
         [I0, I, o1, o2, oin] = features
-        [ I_target, I_target2, o1_1h, v, qa, ga, o2_1h] = targets
+        [ I_target, I_target2, o1_1h, value, qa, ga, o2_1h] = targets
 
         # Same as in training code
         model.model.predict([I0, I, o1, o2, oin])
@@ -83,7 +83,7 @@ def visualizeHiddenMain(args):
             print("prev option =", prev_option[i])
             print("best option =", np.argmax(p_a[i]), np.argmax(p_a2[i]))
             print("actual option=", o1[i], o2[i])
-            print("value =", v[i])
+            print("value =", v[i], "actual =", value[i])
             print("goal value =", v_goal[i], v_goal2[i])
             print(p_a[i])
             plt.figure()
