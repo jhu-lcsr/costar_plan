@@ -208,8 +208,6 @@ def parse_example_proto_redundant(examples_serialized, have_image_id=False):
     feature_map['bbox/width'] = tf.FixedLenFeature([1], dtype=tf.float32)
     feature_map['bbox/height'] = tf.FixedLenFeature([1], dtype=tf.float32)
     feature_map['bbox/grasp_success'] = tf.FixedLenFeature([1], dtype=tf.int64)
-    # feature_map['bbox/sin_2_theta'] = tf.sin(feature_map['bbox/theta'] * 2.0)
-    # feature_map['bbox/cos_2_theta'] = tf.cos(feature_map['bbox/theta'] * 2.0)
 
     features = tf.parse_single_example(examples_serialized, feature_map)
 
@@ -529,15 +527,51 @@ def polygon_area_four_points(rp):
     return 0.5 * full_sum
 
 
-def height_width_sin_cos_4(height=None, width=None, sin_theta=None, cos_theta=None, features=None):
+def sin_cos_height_width_4(height=None, width=None, sin_theta=None, cos_theta=None, features=None):
     """ This is the input to pixelwise grasp prediction on the cornell dataset.
     """
     sin_cos_height_width = []
     if features is not None:
-        sin_cos_height_width = [features['bbox/height'], features['bbox/width'],
-                                features['bbox/sin_theta'], features['bbox/cos_theta']]
+        sin_cos_height_width = [features['bbox/sin_theta'], features['bbox/cos_theta'],
+                                features['bbox/height'], features['bbox/width']]
     else:
         con_cos_height_width = [sin_theta, cos_theta, height, width]
+    return K.concatenate(sin_cos_height_width)
+
+
+def sin_cos_width_3(width=None, sin_theta=None, cos_theta=None, features=None):
+    """ This is the input to pixelwise grasp prediction on the cornell dataset.
+    """
+    sin_cos_height_width = []
+    if features is not None:
+        sin_cos_height_width = [features['bbox/sin_theta'], features['bbox/cos_theta'],
+                                features['bbox/width']]
+    else:
+        con_cos_height_width = [sin_theta, cos_theta, width]
+    return K.concatenate(sin_cos_height_width)
+
+
+def sin2_cos2_height_width_4(height=None, width=None, sin_theta=None, cos_theta=None, features=None):
+    """ This is the input to pixelwise grasp prediction on the cornell dataset.
+    """
+    sin_cos_height_width = []
+    if features is not None:
+        sin_cos_height_width = [features['bbox/sin_theta'], features['bbox/cos_theta'],
+                                features['bbox/height'], features['bbox/width']]
+    else:
+        con_cos_height_width = [sin_theta, cos_theta, height, width]
+    return K.concatenate(sin_cos_height_width)
+
+
+def sin2_cos2_width_3(width=None, sin_theta=None, cos_theta=None, features=None):
+    """ This is the input to pixelwise grasp prediction on the cornell dataset.
+    """
+    sin_cos_height_width = []
+    if features is not None:
+        sin_cos_height_width = [features['bbox/sin_theta'], features['bbox/cos_theta'],
+                                features['bbox/width']]
+    else:
+        con_cos_height_width = [sin_theta, cos_theta, width]
     return K.concatenate(sin_cos_height_width)
 
 
@@ -718,6 +752,14 @@ def parse_and_preprocess(
        see keras'
        [preprocess_input()](https://github.com/keras-team/keras/blob/master/keras/applications/imagenet_utils.py) for details.
 
+
+    # Returns
+
+        features
+
+
+      width is space between the gripper plates
+     height is range of possible gripper positions along the line
     """
     if crop_shape is None:
         crop_shape = (FLAGS.crop_height, FLAGS.crop_width, 3)
@@ -751,8 +793,14 @@ def parse_and_preprocess(
     # backwards. An example is +theta rotation vs -theta rotation.
     grasp_center_coordinate = K.concatenate([feature['bbox/cy'], feature['bbox/cx']])
     grasp_center_rotation_theta = feature['bbox/theta']
-    feature['sin_cos_height_width_4'] = height_width_sin_cos_4(features=feature)
-    feature['sin_cos_height_3'] = feature['sin_cos_height_width_4'][:-1]
+    feature_map['bbox/sin2_theta'] = tf.sin(feature_map['bbox/theta'] * 2.0)
+    feature_map['bbox/cos2_theta'] = tf.cos(feature_map['bbox/theta'] * 2.0)
+    feature['sin_cos_height_width_4'] = sin_cos_height_width_4(features=feature)
+    feature['sin2_cos2_height_width_4'] = sin2_cos2_height_width_4(features=feature)
+    # width is space between the gripper plates
+    # height is range of possible gripper positions along the line
+    feature['sin_cos_width_3'] = sin_cos_width_3(features=feature)
+    feature['sin2_cos2_width_3'] = sin2_cos2_width_3(features=feature)
 
     # perform image augmentation with projective transforms
     # TODO(ahundt) add scaling and use that change to augment width (gripper openness) param
@@ -783,7 +831,7 @@ def parse_and_preprocess(
         if is_training and random_crop:
             translation_in_box = K.cast(feature['sin_cos_height_width_4'][-2:] // 2, 'int32')
             translation_in_box = tf.minimum(translation_in_box[0], translation_in_box[1])
-            # TODO(ahundt) add rotation and possibly scale
+            # TODO(ahundt) possibly add scale
         else:
             translation_in_box = None
 

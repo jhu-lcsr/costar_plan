@@ -72,19 +72,24 @@ gripper location and orientation rectangle data:
   - Four rows define a single rectangle
   - Some coordinates contain NaN, and those whole rectangles must be skipped
   - The origin (0, 0) is the coordinate at the top left of the image.
-  - points p0, p1 aka [(x0, y0), (x1, y1)] defines side 0 of the gap between the gripper plates
-  - points p1, p2 aka [(x1, y1), (x2, y2)] defines gripper plate 0
-  - points p0, p1 aka [(x2, y2), (x3, y3)] defines side 1 of the gap between the gripper plates
-  - points p1, p2 aka [(x3, y3), (x0, y0)] defines gripper plate 1
+  - points p0, p1 aka [(x0, y0), (x1, y1)] defines side 0 of the gap between the gripper plates aka "width"
+  - points p1, p2 aka [(x1, y1), (x2, y2)] defines gripper plate 0 aka "height"
+  - points p0, p1 aka [(x2, y2), (x3, y3)] defines side 1 of the gap between the gripper plates aka "width"
+  - points p1, p2 aka [(x3, y3), (x0, y0)] defines gripper plate 1 aka "height"
 
 
-The "gripper plate" is what we save as "bbox/width", this line actually defines
+The "gripper plate" is what we save as "bbox/height", this line actually defines
 a range of possible gripper plate positions for successful grasps. For example,
 you might imagine that a ruler could be picked up at any point along the length
 of the ruler.
 
-The "bbox/height" parameter is how open the gripper is, in other words the distance
+The "bbox/width" parameter is how open the gripper is, in other words the distance
 between the gripper plates' interior surface.
+
+
+max width between gripper plates: 149.0
+max height range of gripper positions: 229.49894515618436
+
 [End comments by code authors]
 
 5. The backgroundMapping file contains one line for each image in the
@@ -168,7 +173,7 @@ flags.DEFINE_boolean('objectwise_split', False,
 flags.DEFINE_integer('num_fold', 5, 'number of fold for K-Fold splits, default to 5')
 flags.DEFINE_boolean('grasp_download', False,
                      """Download the grasp_dataset to data_dir if it is not already present.""")
-flags.DEFINE_boolean('plot', False, 'Plot images and grasp bounding box data in matplotlib as it is traversed')
+flags.DEFINE_boolean('plot', True, 'Plot images and grasp bounding box data in matplotlib as it is traversed')
 flags.DEFINE_boolean(
     'showTextBox', False,
     """If plotting is enabled, plot extra text boxes near each grasp box
@@ -477,6 +482,9 @@ def k_fold_tfrecord_writer(path=FLAGS.data_dir, kFold_list=None, is_objectwise=F
 
     return
 
+MAX_WIDTH = 0
+MAX_HEIGHT = 0
+
 
 def bbox_info(box):
     """ Get the bounding box coordinates, center, tangent, angle, width and height.
@@ -522,6 +530,15 @@ def bbox_info(box):
     # Ensure the data actually contains rectangles
     assert np.isclose(width, width2, rtol=1e-3, atol=1e-3)
     assert np.isclose(height, height2, rtol=1e-3, atol=1e-3)
+
+    # TODO: clean this stat up
+    global MAX_WIDTH
+    global MAX_HEIGHT
+    MAX_WIDTH = max(MAX_WIDTH, width)
+    MAX_HEIGHT = max(MAX_HEIGHT, height)
+    print_max_width_height = True
+    if print_max_width_height:
+        print("current width: " + str(width) + "current height: " + str(height) + " MAX_WIDTH: " + str(MAX_WIDTH) + " MAX_HEIGHT: " + str(MAX_HEIGHT))
 
     return box_coordinates, center_yx, tan, angle, width, height
 

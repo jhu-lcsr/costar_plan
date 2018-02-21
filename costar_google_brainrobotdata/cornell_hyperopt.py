@@ -152,7 +152,7 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
     # we can also optimize batch size.
     # This will be noticeably slower.
     batch_size = FLAGS.batch_size
-    feature_combo_name = 'image_preprocessed_height_1'
+    feature_combo_name = 'image_preprocessed_width_1'
     top = 'classification'
     train_data = None
     validation_data = None
@@ -176,7 +176,7 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
     search_space, index_dict = add_param('top_block_filters', [2**x for x in range(5, 12)], search_space=search_space, index_dict=index_dict)
     search_space, index_dict = add_param('batch_size', [2**x for x in range(2, 4)], search_space=search_space, index_dict=index_dict,
                                          enable=False, required=True, default=batch_size)
-    search_space, index_dict = add_param('feature_combo_name', ['image_preprocessed_height_1', 'image_preprocessed_sin_cos_height_3'],
+    search_space, index_dict = add_param('feature_combo_name', ['image_preprocessed_width_1', 'image_preprocessed_sin_cos_width_3'],
                                          search_space=search_space, index_dict=index_dict,
                                          enable=True, required=True, default=feature_combo_name)
 
