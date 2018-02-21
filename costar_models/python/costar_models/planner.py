@@ -42,6 +42,7 @@ out: an output tensor
 # MOMENTUM=0.9 seems to help training
 MOMENTUM=0.9
 RENORM=False
+PERMANENT_DROPOUT=False
 
 def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
         lrelu=False, bn=True, momentum=MOMENTUM, name=None, constraint=None,
@@ -119,8 +120,10 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
     if dropout_rate > 0:
         if name is not None:
             kwargs['name'] = "%s_dropout%f"%(name, dropout_rate)
-        #x = PermanentDropout(dropout_rate, **kwargs)(x)
-        x = Dropout(dropout_rate, **kwargs)(x)
+        if PERMANENT_DROPOUT:
+	    x = PermanentDropout(dropout_rate, **kwargs)(x)
+        else:
+            x = Dropout(dropout_rate, **kwargs)(x)
     return x
 
 def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate,
@@ -188,8 +191,10 @@ def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate,
     else:
         x = Activation(activation)(x)
     if dropout_rate > 0:
-        #x = PermanentDropout(dropout_rate)(x)
-        x = Dropout(dropout_rate)(x)
+        if PERMANENT_DROPOUT:
+            x = PermanentDropout(dropout_rate)(x)
+        else:
+            x = Dropout(dropout_rate)(x)
     return x
 
 def AddDense(x, size, activation, dropout_rate, output=False, momentum=MOMENTUM,
@@ -241,8 +246,10 @@ def AddDense(x, size, activation, dropout_rate, output=False, momentum=MOMENTUM,
     else:
         x = Activation(activation)(x)
     if dropout_rate > 0:
-        #x = PermanentDropout(dropout_rate)(x)
-        x = Dropout(dropout_rate)(x)
+        if PERMANENT_DROPOUT:
+            x = PermanentDropout(dropout_rate)(x)
+        else:
+            x = Dropout(dropout_rate)(x)
     return x
 
 def CombinePose(pose_in, dim=64):

@@ -16,6 +16,8 @@ from .dvrk import *
 from .data_utils import *
 from .pretrain_image_gan import wasserstein_loss
 
+import costar_models.planner as planner
+
 class ConditionalImageGanJigsaws(ConditionalImageGan):
     '''
     Version of the sampler that only produces results conditioned on a
@@ -29,6 +31,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
 
         self.num_options = 16
         self.save_encoder_decoder = self.retrain
+        planner.PERMANENT_DROPOUT = True
 
     def _makeModel(self, image, *args, **kwargs):
 

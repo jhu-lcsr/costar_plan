@@ -124,11 +124,11 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=True):
 
     # Combine the hidden state observations
     x = Concatenate()([x, x0])
-    x = AddConv2D(x, 64, [5,5], 1, 0., activation=activation_fn)
+    x = AddConv2D(x, 64, [5,5], 1, model.dropout_rate, activation=activation_fn)
     skip0 = x
 
     # store this for skip connection
-    x = AddConv2D(x, 64, [5,5], 2, 0., activation=activation_fn)
+    x = AddConv2D(x, 64, [5,5], 2, model.dropout_rate, activation=activation_fn)
     h_dim_down = (int(h_dim[0]/2), int(h_dim[1]/2))
     skip = x
 
@@ -148,10 +148,12 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=True):
     x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
     x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/16),
                   activation_fn, 0.,
-                  constraint=None,
+                  constraint=10,
+                  bn=False,
                   output=False)
     x = Reshape([int(h_dim[0]/4), int(h_dim[1]/4), 64])(x)
-    x = AddConv2DTranspose(x, 64, [5,5], 2, 0.,
+    x = AddConv2DTranspose(x, 64, [5,5], 2,
+                model.dropout_rate,
                 activation=activation_fn,)
 
     # --- end ssm block
@@ -162,7 +164,7 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=True):
             [5,5],
             stride=2,
             activation=activation_fn,
-            dropout_rate=model.dropout_rate*0.)
+            dropout_rate=model.dropout_rate)
 
     if model.skip_connections:
         x = Concatenate()([x, skip0])
