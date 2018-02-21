@@ -20,7 +20,6 @@ from .callbacks import *
 from .multi_hierarchical import *
 from .multi import *
 from .robot_multi_models import *
-from .split import *
 from .mhp_loss import *
 from .loss import *
 
@@ -292,7 +291,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 "categorical_crossentropy",
                 "mae"],
         optimizer=self.getOptimizer())
-        model.summary()
 
         return predictor, model, actor, ins, enc
 
@@ -346,12 +344,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
             x = AddDense(x, 256, activation_fn, 0.,
                     constraint=10, bn=False)
-            x = AddDense(x, int(h_dim[0] * h_dim[1] * 32/4),
+            x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/4),
                          activation_fn, #"sigmoid",
                          self.dropout_rate*0.,
                          #kr=keras.regularizers.l2(1e-8),
                          constraint=10, bn=False)
-            x = Reshape([int(h_dim[0]/2), int(h_dim[1]/2), 32])(x)
+            x = Reshape([int(h_dim[0]/2), int(h_dim[1]/2), 64])(x)
         else:
             x = AddConv2D(x, 128, [5,5], 1, 0.)
         x = AddConv2DTranspose(x, 64, [5,5], 2,
@@ -360,7 +358,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 dropout_rate=self.dropout_rate) # Removed dropout from this block
         # --- end ssm block
 
-        if self.skip_connections or True:
+        if self.skip_connections:
             x = Concatenate()([x, skip])
 
         for i in range(1):
@@ -814,7 +812,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 )
         self.encoder = Model(ins, [enc]+skips, name="encoder")
         self.encoder.compile(loss="mae",optimizer=self.getOptimizer())
-        self.encoder.summary()
         new_ins = []
         for idx, i in enumerate(ins):
             i2 = Input(
@@ -858,7 +855,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         skips=self.skip_connections,
                         batchnorm=True,)
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
-        decoder.summary()
         return decoder
 
     def _makeStateEncoder(self, arm_size, gripper_size, disc=False):
@@ -926,7 +922,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 name="state_decoder")
         state_decoder.compile(loss="mae", optimizer=self.getOptimizer())
         self.state_decoder = state_decoder
-        state_decoder.summary()
         return state_decoder
 
     def _makeMergeEncoder(self, img_shape, arm_shape, gripper_shape):

@@ -19,7 +19,6 @@ from keras.optimizers import Adam
 
 from .abstract import AbstractAgentBasedModel
 from .robot_multi_models import *
-from .split import *
 
 class RobotMultiLSTMRegression(AbstractAgentBasedModel):
     '''
