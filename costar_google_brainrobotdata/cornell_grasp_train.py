@@ -45,17 +45,18 @@ from keras.callbacks import EarlyStopping
 from keras.callbacks import ModelCheckpoint
 from keras.callbacks import TensorBoard
 from keras.applications.nasnet import NASNetLarge
-from keras.models import Model, model_from_json
+from keras.models import Model
+from keras.models import model_from_json
 from grasp_model import concat_images_with_tiled_vector_layer
 from grasp_model import top_block
 from grasp_model import create_tree_roots
-from grasp_model import hypertree_model
-from cornell_grasp_dataset_reader import parse_and_preprocess
+from grasp_model import choose_hypertree_model
 # https://github.com/aurora95/Keras-FCN
 # TODO(ahundt) move keras_fcn directly into this repository, into keras-contrib, or make a proper installer
 import keras_contrib.applications.fully_convolutional_networks as fcn
 import keras_contrib.applications.densenet as densenet
 import keras_tqdm
+from cornell_grasp_dataset_reader import parse_and_preprocess
 
 import grasp_loss as grasp_loss
 
@@ -147,193 +148,6 @@ def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
     return datetime.datetime.now().strftime(fmt).format(fname=fname)
 
 
-def choose_hypertree_model(
-        images=None, vectors=None,
-        image_shapes=None, vector_shapes=None,
-        dropout_rate=0.25,
-        vector_dense_filters=64,
-        dilation_rate=2,
-        activation='sigmoid',
-        final_pooling=None,
-        include_top=True,
-        top='classification',
-        top_block_filters=128,
-        classes=1,
-        output_shape=None,
-        trainable=False,
-        verbose=0,
-        image_model_name='vgg',
-        vector_model_name='dense',
-        trunk_layers=4,
-        trunk_filters=256,
-        vector_branch_num_layers=3):
-    """ Construct a variety of possible models with a tree shape based on hyperparameters.
-
-    # Arguments
-
-        dropout_rate: a dropout rate of None will disable dropout
-        top_block_filters: the number of filters for the two final fully connected layers,
-            before a prediction is made based on the number of classes.
-
-    # Notes
-
-    Best 1 epoch run with image_preprocessed_sin_cos_height_3 and 0.25 dropout, 2018-02-19:
-        - val_binary_accuracy 0.9115646390282378
-        - val_loss 0.26308334284290974
-        {"vector_dense_filters": 64, "vector_branch_num_layers": 3, "trainable": false,
-         "image_model_name": "vgg", "vector_model_name": "dense", "learning_rate": 0.03413896253431821, "trunk_filters": 256,
-         "top_block_filters": 128, "trunk_layers": 4, "feature_combo_name": "image_preprocessed_sin_cos_height_3"}
-
-    Best 1 epoch run with only gripper openness parameter, 2018-02-17:
-        - val_binary_accuracy 0.9134199238
-        - val_loss 0.2269693456
-
-        {"vector_dense_filters": 64, "vector_branch_num_layers": 2, "trainable": true,
-         "image_model_name": "vgg", "vector_model_name": "dense_block", "learning_rate": 0.005838979061490798,
-         "trunk_filters": 128, "dropout_rate": 0.0, "top_block_filters": 64, "trunk_layers": 4, "feature_combo_name":
-         "image_preprocessed_height_1"}
-    Current best 1 epoch run as of 2018-02-16:
-        - note there is a bit of ambiguity so until I know I'll have case 0 and case 1.
-            - two models were in that run and didn't have hyperparam records yet.
-            - The real result is probably case 1, since the files are saved each run,
-              so the data will be for the latest run.
-        - 2018-02-15-22-00-12_-vgg_dense_model-dataset_cornell_grasping-grasp_success2018-02-15-22-00-12_-vgg_dense_model-dataset_cornell_grasping-grasp_success
-        - input
-            - height_width_sin_cos_4
-        - vgg16 model
-        - val_binary_accuracy
-            - 0.9202226425
-        - lr
-            - 0.06953994
-        - vector dense layers
-            - 4 in case 0 with 64 channels
-            - 1 in case 1 with 64 channels
-        - dense block trunk case 1
-            - 5 conv blocks
-            - growth rate 48
-            - 576 input channels
-            - 816 output channels
-        - dense layers before fc1, case 1
-            - 64 output channels
-
-    """
-    if trainable is None:
-        trainable = False
-
-    # TODO(ahundt) deal with model names being too long due to https://github.com/keras-team/keras/issues/5253
-    if top == 'segmentation':
-        name_prefix = 'dilated_'
-    else:
-        name_prefix = 'single_'
-        dilation_rate = 1
-    with K.name_scope(name_prefix + 'hypertree') as scope:
-        # VGG16 weights are shared and not trainable
-        if top == 'segmentation':
-            image_model = fcn.AtrousFCN_Vgg16_16s(
-                input_shape=image_shapes[0], include_top=False,
-                classes=classes, upsample=False)
-        else:
-            if image_model_name == 'vgg':
-                image_model = keras.applications.vgg16.VGG16(
-                    input_shape=image_shapes[0], include_top=False,
-                    classes=classes)
-            elif image_model_name == 'nasnet_large':
-                image_model = keras.applications.nasnet.NASNetLarge(
-                    input_shape=image_shapes[0], include_top=False,
-                    classes=classes
-                )
-            elif image_model_name == 'nasnet_mobile':
-                image_model = keras.applications.nasnet.NASNetMobile(
-                    input_shape=image_shapes[0], include_top=False,
-                    classes=classes
-                )
-            elif image_model_name == 'resnet':
-                # resnet model is special because we need to
-                # skip the average pooling part.
-                resnet_model = keras.applications.resnet50.ResNet50(
-                    input_shape=image_shapes[0], include_top=False,
-                    classes=classes)
-                if not trainable:
-                    for layer in resnet_model.layers:
-                        layer.trainable = False
-                # get the layer before the global average pooling
-                image_model = resnet_model.layers[-2]
-            elif image_model_name == 'densenet':
-                image_model = keras.applications.densenet.DenseNet169(
-                    input_shape=image_shapes[0], include_top=False,
-                    classes=classes)
-            else:
-                raise ValueError('Unsupported image_model_name')
-
-        if not trainable and getattr(image_model, 'layers', None) is not None:
-            for layer in image_model.layers:
-                layer.trainable = False
-
-        def create_image_model(tensor):
-            """ Image classifier weights are shared.
-            """
-            return image_model(tensor)
-
-        def vector_branch_dense(
-                tensor, vector_dense_filters=vector_dense_filters,
-                num_layers=vector_branch_num_layers,
-                model_name=vector_model_name):
-            """ Vector branches that simply contain a single dense layer.
-            """
-            x = tensor
-            # create the chosen layers starting with the vector input
-            # accepting num_layers == 0 is done so hyperparam search is simpler
-            if num_layers is None or num_layers == 0:
-                return x
-            elif model_name == 'dense':
-                for i in range(num_layers):
-                    x = Dense(vector_dense_filters)(x)
-            elif model_name == 'dense_block':
-                keras.backend.expand_dims
-                densenet.__dense_block(
-                    x, nb_layers=num_layers,
-                    nb_filter=vector_dense_filters,
-                    growth_rate=48, dropout_rate=dropout_rate,
-                    dims=0)
-            return x
-
-        def create_tree_trunk(tensor, filters=trunk_filters, num_layers=trunk_layers):
-            x = tensor
-            if filters is None:
-                channels = K.int_shape(tensor)[-1]
-            else:
-                channels = filters
-
-            # create the chosen layers starting with the combined image and vector input
-            # accepting num_layers == 0 is done so hyperparam search is simpler
-            if num_layers is None or num_layers == 0:
-                return x
-            elif num_layers is not None:
-                x, num_filters = densenet.__dense_block(
-                    x, nb_layers=trunk_layers, nb_filter=channels,
-                    growth_rate=48, dropout_rate=dropout_rate)
-
-            return x
-
-        model = hypertree_model(
-            images=images, vectors=vectors,
-            image_shapes=image_shapes, vector_shapes=vector_shapes,
-            dropout_rate=dropout_rate,
-            create_image_tree_roots_fn=create_image_model,
-            create_vector_tree_roots_fn=vector_branch_dense,
-            create_tree_trunk_fn=create_tree_trunk,
-            activation=activation,
-            final_pooling=final_pooling,
-            include_top=include_top,
-            top=top,
-            top_block_filters=top_block_filters,
-            classes=classes,
-            output_shape=output_shape,
-            verbose=verbose
-        )
-    return model
-
-
 class PrintLogsCallback(keras.callbacks.Callback):
 
     def on_epoch_end(self, epoch, logs={}):
@@ -353,7 +167,7 @@ def run_training(
         train_data=None,
         validation_data=None,
         save_splits_weights='',
-        feature_combo_name='image_preprocessed_sin_cos_width_3',
+        feature_combo_name='image_preprocessed_sin2_cos2_width_3',
         image_model_name='vgg',
         optimizer_name='sgd',
         log_dir=None,
@@ -592,7 +406,7 @@ def train_k_fold(num_fold=None, split_type='imagewise'):
     return
 
 
-def choose_features_and_metrics(feature_combo_name, top):
+def choose_features_and_metrics(feature_combo_name, problem_type):
     """ Choose the features to load from the dataset and losses to use during training
     """
     # TODO(ahundt) get input dimensions automatically, based on configured params
@@ -601,6 +415,10 @@ def choose_features_and_metrics(feature_combo_name, top):
         image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
         vector_shapes = [(4,)]
     elif feature_combo_name == 'image_preprocessed_sin_cos_width_3':
+        data_features = ['image/preprocessed', 'sin_cos_width_3']
+        image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
+        vector_shapes = [(3,)]
+    elif feature_combo_name == 'image_preprocessed_sin2_cos2_width_3':
         data_features = ['image/preprocessed', 'sin_cos_width_3']
         image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
         vector_shapes = [(3,)]
@@ -623,14 +441,21 @@ def choose_features_and_metrics(feature_combo_name, top):
                          'image_preprocessed_sin_cos_height_3, image_preprocessed_height_1,'
                          'preprocessed, and raw')
 
-    if top == 'segmentation':
+    if problem_type == 'segmentation':
         label_features = ['grasp_success_yx_3']
         monitor_loss_name = 'segmentation_gaussian_binary_crossentropy'
         monitor_metric_name = 'val_segmentation_single_pixel_binary_accuracy'
         loss = grasp_loss.segmentation_gaussian_binary_crossentropy
         metrics = [grasp_loss.segmentation_single_pixel_binary_accuracy, grasp_loss.mean_pred]
         model_name = '_dilated_model'
-    elif top == 'classification':
+    elif problem_type == 'classification':
+        label_features = ['grasp_success']
+        monitor_metric_name = 'val_binary_accuracy'
+        monitor_loss_name = 'val_loss'
+        metrics = ['binary_accuracy', grasp_loss.mean_pred, grasp_loss.mean_true]
+        loss = keras.losses.binary_crossentropy
+        model_name = '_dense_model'
+    elif problem_type == 'grasp_regression':
         label_features = ['grasp_success']
         monitor_metric_name = 'val_binary_accuracy'
         monitor_loss_name = 'val_loss'
