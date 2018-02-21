@@ -353,7 +353,7 @@ def run_training(
         train_data=None,
         validation_data=None,
         save_splits_weights='',
-        feature_combo_name='image_preprocessed_sin_cos_height_3',
+        feature_combo_name='image_preprocessed_sin_cos_width_3',
         image_model_name='vgg',
         optimizer_name='sgd',
         log_dir=None,
