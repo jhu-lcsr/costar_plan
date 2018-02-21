@@ -793,8 +793,8 @@ def parse_and_preprocess(
     # backwards. An example is +theta rotation vs -theta rotation.
     grasp_center_coordinate = K.concatenate([feature['bbox/cy'], feature['bbox/cx']])
     grasp_center_rotation_theta = feature['bbox/theta']
-    feature_map['bbox/sin2_theta'] = tf.sin(feature_map['bbox/theta'] * 2.0)
-    feature_map['bbox/cos2_theta'] = tf.cos(feature_map['bbox/theta'] * 2.0)
+    feature['bbox/sin2_theta'] = tf.sin(feature['bbox/theta'] * 2.0)
+    feature['bbox/cos2_theta'] = tf.cos(feature['bbox/theta'] * 2.0)
     feature['sin_cos_height_width_4'] = sin_cos_height_width_4(features=feature)
     feature['sin2_cos2_height_width_4'] = sin2_cos2_height_width_4(features=feature)
     # width is space between the gripper plates
@@ -885,6 +885,7 @@ def parse_and_preprocess(
     # make coordinate labels 4d because that's what keras expects
     grasp_success_coordinate_label = K.expand_dims(K.expand_dims(grasp_success_coordinate_label))
     feature['grasp_success_yx_3'] = grasp_success_coordinate_label
+    # feature['grasp_success_sin2_cos2_yx_3'] = grasp_success_coordinate_label
 
     # TODO(ahundt) reenable this and compare performance against segmentation_gaussian_measurement()
     if False:
