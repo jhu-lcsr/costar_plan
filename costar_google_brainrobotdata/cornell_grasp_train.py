@@ -44,18 +44,12 @@ from keras.callbacks import CSVLogger
 from keras.callbacks import EarlyStopping
 from keras.callbacks import ModelCheckpoint
 from keras.callbacks import TensorBoard
-from keras.applications.nasnet import NASNetLarge
 from keras.models import Model
 from keras.models import model_from_json
 from grasp_model import concat_images_with_tiled_vector_layer
 from grasp_model import top_block
 from grasp_model import create_tree_roots
 from grasp_model import choose_hypertree_model
-# https://github.com/aurora95/Keras-FCN
-# TODO(ahundt) move keras_fcn directly into this repository, into keras-contrib, or make a proper installer
-import keras_contrib.applications.fully_convolutional_networks as fcn
-import keras_contrib.applications.densenet as densenet
-import keras_tqdm
 from cornell_grasp_dataset_reader import parse_and_preprocess
 
 import grasp_loss as grasp_loss
@@ -249,7 +243,7 @@ def run_training(
     with open(log_dir_run_name + run_name + '_model.json', 'w') as fp:
         fp.write(model.to_json())
 
-    checkpoint = keras.callbacks.ModelCheckpoint(log_dir_run_name + run_name + '-epoch-{epoch:03d}-' +
+    checkpoint = keras.callbacks.ModelCheckpoint(log_dir_run_name + '-epoch-{epoch:03d}-' +
                                                  monitor_loss_name + '-{' + monitor_loss_name + ':.3f}-' +
                                                  monitor_metric_name + '-{' + monitor_metric_name + ':.3f}.h5',
                                                  save_best_only=True, verbose=1, monitor=monitor_metric_name)
@@ -463,7 +457,7 @@ def choose_features_and_metrics(feature_combo_name, problem_type):
         loss = keras.losses.binary_crossentropy
         model_name = '_dense_model'
     else:
-        raise ValueError('Selected top ' + str(top) + ' does not exist. '
+        raise ValueError('Selected problem_type ' + str(problem_type) + ' does not exist. '
                          'feature selection options are segmentation and classification')
     return image_shapes, vector_shapes, data_features, model_name, monitor_loss_name, label_features, monitor_metric_name, loss, metrics
 
