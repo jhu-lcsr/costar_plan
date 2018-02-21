@@ -168,7 +168,6 @@ class ConditionalImageGan(PretrainImageGan):
         option2 = Input((1,),name="disc2_options")
         ins = [img0, img, option, option2, img_goal, img_goal2]
         dr = self.dropout_rate
-        dr = 0
 
         x0 = AddConv2D(img0, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
         xobs = AddConv2D(img, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
