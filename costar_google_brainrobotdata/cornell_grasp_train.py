@@ -120,6 +120,11 @@ flags.DEFINE_integer(
     '1',
     'num of fold used for test, must be less than flags.train_splits'
 )
+flags.DEFINE_string('load_weights', None,
+                    """Load and continue training the specified file containing model weights.""")
+flags.DEFINE_string('pipeline_stage', 'train',
+                    """Choose to "train", "eval", or "train_eval" with the grasp_dataset
+                       data for training and grasp_dataset_eval for evaluation.""")
 
 FLAGS = flags.FLAGS
 
@@ -352,12 +357,14 @@ def run_training(
         validation_file=None,
         train_data=None,
         validation_data=None,
+        test_file=None,
         save_splits_weights='',
         feature_combo_name='image_preprocessed_sin_cos_width_3',
         image_model_name='vgg',
         optimizer_name='sgd',
         log_dir=None,
         hyperparams=None,
+        load_weights=None,
         **kwargs):
     """
 
@@ -373,10 +380,14 @@ def run_training(
         train_file = os.path.join(FLAGS.data_dir, FLAGS.train_filename)
     if validation_file is None:
         validation_file = os.path.join(FLAGS.data_dir, FLAGS.evaluate_filename)
+    if test_file is None:
+        test_file = os.path.join(FLAGS.data_dir, FLAGS.test_filename)
     if learning_rate is None:
         learning_rate = FLAGS.learning_rate
     if log_dir is None:
         log_dir = FLAGS.log_dir
+    if load_weights is None:
+        load_weights = FLAGS.load_weights
 
     [image_shapes, vector_shapes, data_features, model_name,
      monitor_loss_name, label_features, monitor_metric_name,
@@ -407,7 +418,13 @@ def run_training(
         top=top,
         image_model_name=image_model_name,
         **kwargs)
-
+    if(load_weights is not None and load_weights != ''):
+        if os.path.isfile(load_weights):
+            model.load_weights(load_weights)
+        else:
+            print('Could not load weights {}, '
+                    'the file does not exist, '
+                    'starting fresh....'.format(load_weights))
     print(monitor_loss_name)
     # TODO(ahundt) add a loss that changes size with how open the gripper is
     # loss = grasp_loss.segmentation_gaussian_measurement
@@ -481,6 +498,19 @@ def run_training(
         samples_in_val_dataset, train_file, batch_size,
         val_batch_size, train_data=train_data, validation_data=validation_data)
 
+    if FLAGS.pipeline_stage == 'eval':
+        _, test_data = load_dataset(
+            test_file, label_features, data_features,
+            samples_in_val_dataset, train_file, batch_size,
+            val_batch_size, train_data=None, validation_data=None)
+        # test_data = cornell_grasp_dataset_reader.yield_record(
+        #     test_file, is_training=False, batch_size=val_batch_size,
+        #     parse_example_proto_fn=cornell_grasp_dataset_reader.parse_and_preprocess)
+
+        history = parallel_model.evaluate_generator(generator=test_data, steps=1)
+
+        return history
+
     # print('calling model.fit_generator()')
     history = parallel_model.fit_generator(
         train_data,
@@ -510,7 +540,7 @@ def chooseOptimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name)
     return callbacks, optimizer
 
 
-def test_on_splits(model_json_path='', weights_path='', test_dataset_path=[], loss='',
+def test_on_splits(model_path='', weights_path='', test_dataset_path=[], loss='',
                    metric='', test_batch_size=32):
     """ Load model and weights the test on dataset splitted for test.
     """
@@ -518,7 +548,15 @@ def test_on_splits(model_json_path='', weights_path='', test_dataset_path=[], lo
         test_dataset_path, is_training=False, batch_size=test_batch_size,
         parse_example_proto_fn=parse_and_preprocess)
 
-    model = model_from_json(model_json_path)
+    if(load_weights):
+        if os.path.isfile(load_weights):
+            model.load_weights(load_weights)
+        else:
+            print('Could not load weights {}, '
+                    'the file does not exist, '
+                    'starting fresh....'.format(load_weights))
+
+    # model = model_from_json(model_json_path)
     model.load_weights(weights_path)
     # model.compile(loss=loss, metrics=[metric])
     model.compile(loss=loss, metrics=[metric])
