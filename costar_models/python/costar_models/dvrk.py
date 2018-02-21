@@ -146,6 +146,8 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=True):
     def _ssm(x):
         return spatial_softmax(x)
     x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
+    x = AddDense(x, 256, activation_fn, 0.,
+                 constraint=10, bn=False)
     x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/16),
                   activation_fn, 0.,
                   constraint=10,
