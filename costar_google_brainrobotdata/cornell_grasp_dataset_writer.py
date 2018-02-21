@@ -161,6 +161,7 @@ flags.DEFINE_string('data_dir',
                     """Path to dataset in TFRecord format
                     (aka Example protobufs) and feature csv files.""")
 flags.DEFINE_string('grasp_dataset', 'all', 'TODO(ahundt): integrate with brainrobotdata or allow subsets to be specified')
+flags.DEFINE_boolean('is_fold_splits', False, 'if enabled spliting the data to num_fold fold')
 flags.DEFINE_boolean('objectwise_split', False,
                      """ If enabled K-Fold split based on object, image of same object will split to same fold. Default to false, doing regular imagewise K-Fold.
                      """)
@@ -1029,6 +1030,10 @@ def get_stat(name, amount, total, percent_description=''):
 
 
 def main():
+    if FLAGS.is_fold_splits:
+        k_fold_list = k_fold_split()
+        k_fold_tfrecord_writer(kFold_list=k_fold_list)
+        return
 
     # plt.ion()
     gd = GraspDataset()

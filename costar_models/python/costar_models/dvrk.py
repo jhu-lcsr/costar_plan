@@ -50,7 +50,7 @@ def MakeJigsawsImageClassifier(model, img_shape, trainable = True):
 
     x = Flatten()(x)
     x = Dropout(0.5)(x)
-    x = AddDense(x, 1024, "lrelu", 0.5, output=True, bn=False, kr=1e-4)
+    x = AddDense(x, 1024, "lrelu", 0.5, output=True, bn=False, kr=0.)
     x = AddDense(x, model.num_options, "softmax", 0., output=True, bn=False)
     image_encoder = Model([img0, img], x, name="classifier")
     if not trainable:
@@ -129,16 +129,17 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=True):
 
     # store this for skip connection
     x = AddConv2D(x, 64, [5,5], 2, 0., activation=activation_fn)
+    h_dim_down = (int(h_dim[0]/2), int(h_dim[1]/2))
     skip = x
 
     if model.use_noise:
         y = AddDense(z, 32, activation_fn, 0., constraint=None, output=False)
-        x = TileOnto(x, y, 32, h_dim)
-        x = AddConv2D(x, 32, [5,5], 1, 0.)
+        x = TileOnto(x, y, 32, h_dim_down)
+        x = AddConv2D(x, 64, [5,5], 1, 0.)
 
     # Add dense information
     y = AddDense(option, 64, activation_fn, 0., constraint=None, output=False)
-    x = TileOnto(x, y, 64, (int(h_dim[0]/2), int(h_dim[1]/2)), add=True)
+    x = TileOnto(x, y, 64, h_dim_down, add=False)
     x = AddConv2D(x, 64, [5,5], 1, 0., activation=activation_fn)
 
     # --- start ssm block
@@ -165,13 +166,8 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=True):
     x = Concatenate()([x, skip0])
 
     for _ in range(1):
-        x = AddConv2D(x, 32,
-                [7,7],
-                stride=1,
-                activation=activation_fn,
-                dropout_rate=model.dropout_rate)
-        x = AddConv2D(x, 16,
-                [7,7],
+        x = AddConv2D(x, 64,
+                [5,5],
                 stride=1,
                 activation=activation_fn,
                 dropout_rate=model.dropout_rate)
