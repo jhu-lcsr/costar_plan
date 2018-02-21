@@ -69,25 +69,34 @@ def visualizeHiddenMain(args):
         # Compute effects of first action
         #h_goal = model.transform(h0, h, o1)
         h_goal = model.transform(h0, h, action)
-
-        # Compute next action
         p_a2 = model.pnext(h0, h_goal, action)
         action2 = np.argmax(p_a2,axis=1)
 
         # Comute effects of next action
         #h_goal2 = model.transform(h0, h_goal, o2)
-        h_goal2 = model.transform(h0, h_goal, action)
+        h_goal2 = model.transform(h0, h_goal, action2)
+        p_a3 = model.pnext(h0, h_goal2, action2)
+        action3 = np.argmax(p_a3,axis=1)
+
+        # Comute effects of next action
+        h_goal3 = model.transform(h0, h_goal, action3)
+        p_a4 = model.pnext(h0, h_goal3, action3)
+        action4 = np.argmax(p_a4,axis=1)
+
+        # Compute values and images
         img_goal = model.decode(h_goal)
         img_goal2 = model.decode(h_goal2)
+        img_goal3 = model.decode(h_goal3)
         v_goal = model.value(h0, h_goal)
         v_goal2 = model.value(h0, h_goal2)
+        v_goal3 = model.value(h0, h_goal3)
         print("--------------\nHidden state:\n--------------\n")
         print("shape of hidden samples =", h.shape)
         print("shape of images =", I.shape)
         for i in range(h.shape[0]):
             print("------------- %d -------------"%i)
             print("prev option =", prev_option[i])
-            print("best option =", action[i], action2[i])
+            print("best option =", action[i], action2[i], action3[i])
             print("actual option=", o1[i], o2[i])
             print("value =", v[i], "actual =", value[i])
             print("goal value =", v_goal[i], v_goal2[i])
@@ -98,36 +107,44 @@ def visualizeHiddenMain(args):
             print(pa_idx1)
             print(pa_idx2)
             plt.figure()
-            plt.subplot(3,4,5)
+            plt.subplot(4,4,5)
             Show(I[i])
-            plt.subplot(3,4,1)
+            plt.subplot(4,4,1)
             Show(I0[i])
             h_avg = np.squeeze(np.mean(h[i],axis=-1))
             h0_avg = np.squeeze(np.mean(h0[i],axis=-1))
             hg1_avg = np.squeeze(np.mean(h_goal[i],axis=-1))
             hg2_avg = np.squeeze(np.mean(h_goal2[i],axis=-1))
-            plt.subplot(3,4,2)
+            hg3_avg = np.squeeze(np.mean(h_goal3[i],axis=-1))
+            plt.subplot(4,4,2)
             Show(h0_avg)
 
             # Show the ground truth
-            plt.subplot(3,4,3)
+            plt.subplot(4,4,3)
             Show(targets[0][i])
-            plt.subplot(3,4,4)
+            plt.subplot(4,4,4)
             Show(targets[1][i])
 
             # Show the first image
-            plt.subplot(3,4,6)
+            plt.subplot(4,4,6)
             Show(h_avg)
-            plt.subplot(3,4,7)
+            plt.subplot(4,4,7)
             Show(hg1_avg)
-            plt.subplot(3,4,8)
+            plt.subplot(4,4,8)
             Show(img_goal[i])
 
             # Show the second image
-            plt.subplot(3,4,11)
+            plt.subplot(4,4,11)
             Show(hg2_avg)
-            plt.subplot(3,4,12)
+            plt.subplot(4,4,12)
             Show(img_goal2[i])
+
+            # Show the third image
+            plt.subplot(4,4,15)
+            Show(hg3_avg)
+            plt.subplot(4,4,16)
+            Show(img_goal3[i])
+
             plt.show()
 
     else:
