@@ -953,17 +953,17 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     #x = Concatenate()([x0in, xin])
     if len(x.shape) > 2:
         # Project
-        x = AddConv2D(x, 32, [1,1], 1, dropout_rate, "same",
+        x = AddConv2D(x, 32, [4,4], 1, 0., "same",
                 bn=bn,
                 lrelu=use_lrelu,
                 name="Nx_project",
                 constraint=None)
-        x0 = AddConv2D(x0, 32, [1,1], 1, dropout_rate, "same",
+        x0 = AddConv2D(x0, 32, [4,4], 1, 0., "same",
                 bn=bn,
                 lrelu=use_lrelu,
                 name="Nx_project0",
                 constraint=None)
-        x = Add()([x,x0])
+        x = Concatenate()([x,x0])
 
         if num_options > 0:
             option_x = OneHot(num_options)(option_in)
@@ -971,30 +971,25 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
             x = TileOnto(x, option_x, num_options, x.shape[1:3])
 
         # conv down
-        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "valid",
+        x = AddConv2D(x, 64, [4,4], 2, 0., "same",
                 bn=bn,
                 lrelu=use_lrelu,
                 name="Nx_C64A",
                 constraint=None)
         # conv across
-        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "valid",
+        x = AddConv2D(x, 64, [4,4], 2, 0., "same",
                 bn=bn,
                 lrelu=use_lrelu,
                 name="Nx_C64B",
                 constraint=None)
 
 
-        x = AddConv2D(x, 32, [3,3], 1, 0., "valid",
-                bn=bn,
-                lrelu=use_lrelu,
-                name="Nx_C32A",
-                constraint=None)
         # This is the hidden representation of the world, but it should be flat
         # for our classifier to work.
         x = Flatten()(x)
 
     x = Dropout(0.5)(x)
-    x = Concatenate()([x, option_in])
+    x = Concatenate()([x, option_x])
 
     # Next options
     x1 = AddDense(x, dense_size, "relu", 0., constraint=None,
