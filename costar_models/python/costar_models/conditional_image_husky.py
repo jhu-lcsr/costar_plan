@@ -42,22 +42,15 @@ class ConditionalImageHusky(ConditionalImage):
         label_in = Input((1,))
         ins = [img0_in, img_in]
 
-        if self.skip_connections:
-            encoder = self._makeImageEncoder2(img_shape)
-            decoder = self._makeImageDecoder2(self.hidden_shape)
-        else:
-            encoder = self._makeImageEncoder(img_shape)
-            decoder = self._makeImageDecoder(self.hidden_shape)
+        encoder = self._makeImageEncoder(img_shape)
+        decoder = self._makeImageDecoder(self.hidden_shape)
 
         LoadEncoderWeights(self, encoder, decoder, gan=False)
 
         # =====================================================================
         # Load the arm and gripper representation
-        if self.skip_connections:
-            h, s32, s16, s8 = encoder([img0_in, img_in])
-        else:
-            h = encoder([img_in])
-            h0 = encoder(img0_in)
+        h = encoder([img_in])
+        h0 = encoder(img0_in)
 
         next_option_in = Input((1,), name="next_option_in")
         next_option_in2 = Input((1,), name="next_option_in2")

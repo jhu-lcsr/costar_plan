@@ -46,7 +46,6 @@ class ConditionalImageGan(PretrainImageGan):
         self.rep_size = 256
         self.num_transforms = 3
         self.do_all = True
-        self.skip_connections = False
         self.save_encoder_decoder = self.retrain
         self.noise_iters = 2
 
@@ -71,12 +70,8 @@ class ConditionalImageGan(PretrainImageGan):
         next_option2_in = Input((1,), name="next_option2_in")
         ins = [img0_in, img_in, next_option_in, next_option2_in]
 
-        if self.skip_connections:
-            encoder = self._makeImageEncoder2(img_shape)
-            decoder = self._makeImageDecoder2(self.hidden_shape)
-        else:
-            encoder = self._makeImageEncoder(img_shape)
-            decoder = self._makeImageDecoder(self.hidden_shape)
+        encoder = self._makeImageEncoder(img_shape)
+        decoder = self._makeImageDecoder(self.hidden_shape)
 
         LoadEncoderWeights(self, encoder, decoder, gan=True)
 
@@ -87,11 +82,8 @@ class ConditionalImageGan(PretrainImageGan):
             z2 = Input((self.noise_dim,), name="z2_in")
             ins += [z1, z2]
 
-        if self.skip_connections:
-            h, s32, s16, s8 = encoder([img0_in, img_in])
-        else:
-            h = encoder([img_in])
-            h0 = encoder(img0_in)
+        h = encoder([img_in])
+        h0 = encoder(img0_in)
 
         # =====================================================================
         # Actually get the right outputs

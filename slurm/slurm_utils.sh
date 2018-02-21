@@ -175,3 +175,8 @@ function feh_latest_job() {
   files=$(latest_images_dir $dir/debug)
   feh $files
 }
+
+function feh_latest_dir() {
+  files=$(latest_images_dir *$1/debug)
+  feh $files
+}

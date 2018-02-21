@@ -29,8 +29,8 @@ gan_encoder=false
 skip_encoder=false
 suffix=''
 resume=true # resume a job
-epochs1=200
-epochs2=200
+epochs1=100
+epochs2=100
 
 while true; do
   case "$1" in

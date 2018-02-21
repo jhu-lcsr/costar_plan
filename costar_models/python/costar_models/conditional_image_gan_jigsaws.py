@@ -52,11 +52,8 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
 
         # =====================================================================
         # Create outputs
-        if self.skip_connections:
-            h, s32, s16, s8 = encoder([img0_in, img_in])
-        else:
-            h = encoder(img_in)
-            h0 = encoder(img0_in)
+        h = encoder(img_in)
+        h0 = encoder(img0_in)
 
         if self.use_noise:
             z1 = Input((self.noise_dim,), name="z1_in")

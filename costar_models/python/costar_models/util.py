@@ -3,14 +3,12 @@ from .multi_regression_model import RobotMultiFFRegression
 from .multi_tcn_regression_model import RobotMultiTCNRegression
 from .multi_lstm_regression import RobotMultiLSTMRegression
 from .multi_conv_lstm_regression import RobotMultiConvLSTMRegression
-from .multi_trajectory_sampler import RobotMultiTrajectorySampler
 from .multi_autoencoder_model import RobotMultiAutoencoder
 from .multi_hierarchical import RobotMultiHierarchical
 from .multi_policy import RobotPolicy
 
 # Model for sampling predictiosn
 from .multi_sampler import RobotMultiPredictionSampler
-from .goal_sampler import RobotMultiGoalSampler
 from .multi_sequence import RobotMultiSequencePredictor
 from .image_sampler import RobotMultiImageSampler
 from .pretrain_image import PretrainImageAutoencoder
