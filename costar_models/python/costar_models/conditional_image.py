@@ -235,6 +235,10 @@ class ConditionalImage(PredictionSampler2):
         #p /= np.sum(p)
         return p
 
+    def q(self, hidden0, hidden, prev_option):
+        p = self.q_model.predict([hidden0, hidden, prev_option])
+        return p
+
     def value(self, hidden0, hidden):
         #v = self.value_model.predict([h0, hidden, prev_option])
         v = self.value_model.predict([hidden0, hidden])

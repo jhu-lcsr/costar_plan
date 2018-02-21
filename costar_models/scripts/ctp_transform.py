@@ -46,6 +46,7 @@ def visualizeHiddenMain(args):
         train_generator = model.trainGenerator(dataset)
         test_generator = model.testGenerator(dataset)
 
+        np.random.seed(0)
         data = next(test_generator)
         features, targets = next(train_generator)
         [I0, I, o1, o2, oin] = features
@@ -55,22 +56,27 @@ def visualizeHiddenMain(args):
         model.model.predict([I0, I, o1, o2, oin])
         h = model.encode(I)
         h0 = model.encode(I0)
-        prev_option = model.prevOption(features)
+        prev_option = oin
         null_option = np.ones_like(prev_option) * model.null_option
         p_a = model.pnext(h0, h, prev_option)
+        q = model.q(h0, h, prev_option)
         v = model.value(h0, h)
 
         if not h.shape[0] == I.shape[0]:
             raise RuntimeError('something went wrong with dimensions')
         print("shape =", p_a.shape)
         action = np.argmax(p_a,axis=1)
-        print(o1)
-        print(prev_option)
-        print(action)
-        print(o2)
-        h_goal = model.transform(h0, h, o1)
+        # Compute effects of first action
+        #h_goal = model.transform(h0, h, o1)
+        h_goal = model.transform(h0, h, action)
+
+        # Compute next action
         p_a2 = model.pnext(h0, h_goal, action)
-        h_goal2 = model.transform(h0, h_goal, o2)
+        action2 = np.argmax(p_a2,axis=1)
+
+        # Comute effects of next action
+        #h_goal2 = model.transform(h0, h_goal, o2)
+        h_goal2 = model.transform(h0, h_goal, action)
         img_goal = model.decode(h_goal)
         img_goal2 = model.decode(h_goal2)
         v_goal = model.value(h0, h_goal)
@@ -81,11 +87,16 @@ def visualizeHiddenMain(args):
         for i in range(h.shape[0]):
             print("------------- %d -------------"%i)
             print("prev option =", prev_option[i])
-            print("best option =", np.argmax(p_a[i]), np.argmax(p_a2[i]))
+            print("best option =", action[i], action2[i])
             print("actual option=", o1[i], o2[i])
             print("value =", v[i], "actual =", value[i])
             print("goal value =", v_goal[i], v_goal2[i])
-            print(p_a[i])
+            pa_idx1 = sorted(range(len(p_a[i])), key = lambda k: p_a[i,k])
+            pa_idx2 = sorted(range(len(p_a2[i])), key = lambda k: p_a2[i,k])
+            pa_idx1.reverse()
+            pa_idx2.reverse()
+            print(pa_idx1)
+            print(pa_idx2)
             plt.figure()
             plt.subplot(3,4,5)
             Show(I[i])
