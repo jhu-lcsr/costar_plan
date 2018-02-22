@@ -914,6 +914,7 @@ def parse_and_preprocess(
         [K.cast(feature['bbox/grasp_success'], 'float32'), feature['bbox/preprocessed/sin2_cos2_2'],
          feature['bbox/preprocessed/height'], feature['bbox/preprocessed/width'], feature['bbox/preprocessed/cy_cx_normalized_2']])
     feature['grasp_success_sin2_cos2_hw_norm_yx_7'] = grasp_success_sin2_cos2_hw_norm_yx_7
+    feature['grasp_success_sin2_cos2_hw_5'] = grasp_success_sin2_cos2_hw_norm_yx_7[:5]
 
     # TODO(ahundt) reenable this and compare performance against segmentation_gaussian_measurement()
     if False:

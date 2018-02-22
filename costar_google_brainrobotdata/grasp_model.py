@@ -375,15 +375,29 @@ def hypertree_model(
     vector_inputs, vector_logits = create_tree_roots(
         vectors, vector_shapes, make_layer_fn=create_vector_tree_roots_fn)
 
-    if vector_logits is None:
-        x = Concatenate(axis=-1)(image_logits)
+    if vector_logits is None and isinstance(image_logits, list):
+        # combine image inputs
+        if len(image_logits) > 1:
+            x = Concatenate(axis=-1)(image_logits)
+        else:
+            [x] = image_logits
     else:
+        # combine vector inputs
         v = vector_logits
         if len(vector_logits) > 1:
             v = Concatenate(axis=-1)(v)
-        else:
+        elif isinstance(v, list):
             [v] = v
-        x = concat_images_with_tiled_vector_layer(image_logits, v)
+        else:
+            raise ValueError(
+                'Unknown configuration of '
+                'input vectors, you will need '
+                'to look at the code and see what '
+                'went wrong with v: ' + str(v))
+
+        if v is not None:
+            # combine image and vector inputs
+            x = concat_images_with_tiled_vector_layer(image_logits, v)
 
     if create_tree_trunk_fn is not None:
         x = create_tree_trunk_fn(x)

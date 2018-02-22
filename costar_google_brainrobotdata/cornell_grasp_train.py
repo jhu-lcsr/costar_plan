@@ -162,7 +162,7 @@ def run_training(
         train_data=None,
         validation_data=None,
         save_splits_weights='',
-        feature_combo_name='image_preprocessed_sin2_cos2_width_3',
+        feature_combo_name='image/preprocessed',
         problem_name='grasp_regression',
         image_model_name='vgg',
         optimizer_name='sgd',
@@ -173,10 +173,18 @@ def run_training(
 
     top: options are 'segmentation' and 'classification'.
     problem_name: options are 'grasp_regression', 'grasp_classification',
-        'pixelwise_grasp_regression', 'pixelwise_grasp_classification'.
+        'pixelwise_grasp_regression', 'pixelwise_grasp_classification',
+        'image_center_grasp_regression'. Image center grasp regression is
+        a pretraining step for pixel
         Make sure this is properly coordinated with 'top' param.
+    feature_combo_name: The name for the combination of input features being utilized.
+        Options include 'image_preprocessed', image_preprocessed_width_1,
+        image_preprocessed_sin2_cos2_width_3
+        'grasp_regression', image_center_grasp_regression.
+        See choose_features_and_metrics() for details.
     hyperparams: a dictionary of hyperparameter selections made for this training run.
-       If provided these values will simply be dumped to a file and not utilized in any other way.
+       If provided these values will simply be dumped to a file and
+       not utilized in any other way.
     """
     if epochs is None:
         epochs = FLAGS.epochs
@@ -202,16 +210,7 @@ def run_training(
     # it is very important to preprocess
     # in exactly the same way the model
     # was originally trained
-    if preprocessing_mode is None:
-        if 'densenet' in image_model_name:
-            preprocessing_mode = 'torch'
-        elif 'nasnet' in image_model_name:
-            preprocessing_mode = 'tf'
-        elif 'vgg' in image_model_name or 'resnet' in image_model_name:
-            preprocessing_mode = 'caffe'
-        else:
-            raise ValueError('You need to explicitly set the preprocessing mode to '
-                             'torch, tf, or caffe for these weights')
+    choose_preprocessing_mode(preprocessing_mode, image_model_name)
 
     # choose hypertree_model with inputs [image], [sin_theta, cos_theta]
     model = choose_hypertree_model(
@@ -242,11 +241,11 @@ def run_training(
 
     # Save the hyperparams to a json string so it is human readable
     if hyperparams is not None:
-        with open(log_dir_run_name + run_name + '_hyperparams.json', 'w') as fp:
+        with open(log_dir_run_name + '_hyperparams.json', 'w') as fp:
             json.dump(hyperparams, fp)
 
     # Save the current model to a json string so it is human readable
-    with open(log_dir_run_name + run_name + '_model.json', 'w') as fp:
+    with open(log_dir_run_name + '_model.json', 'w') as fp:
         fp.write(model.to_json())
 
     checkpoint = keras.callbacks.ModelCheckpoint(log_dir_run_name + '-epoch-{epoch:03d}-' +
@@ -307,6 +306,23 @@ def run_training(
 
     model.save_weights(log_dir_run_name + run_name + '_model.h5')
     return history
+
+
+def choose_preprocessing_mode(preprocessing_mode, image_model_name):
+    # If loading pretrained weights
+    # it is very important to preprocess
+    # in exactly the same way the model
+    # was originally trained
+    if preprocessing_mode is None:
+        if 'densenet' in image_model_name:
+            preprocessing_mode = 'torch'
+        elif 'nasnet' in image_model_name:
+            preprocessing_mode = 'tf'
+        elif 'vgg' in image_model_name or 'resnet' in image_model_name:
+            preprocessing_mode = 'caffe'
+        else:
+            raise ValueError('You need to explicitly set the preprocessing mode to '
+                             'torch, tf, or caffe for these weights')
 
 
 def chooseOptimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name):
@@ -413,7 +429,10 @@ def choose_features_and_metrics(feature_combo_name, problem_name):
     classes = 1
 
     # TODO(ahundt) get input dimensions automatically, based on configured params
-    if feature_combo_name == 'image_preprocessed_sin2_cos2_height_width_4':
+    if feature_combo_name == 'image/preprocessed' or feature_combo_name == 'image_preprocessed':
+        data_features = ['image/preprocessed']
+        vector_shapes = None
+    elif feature_combo_name == 'image_preprocessed_sin2_cos2_height_width_4':
         # don't use this one as an input! height appears highly correlated with grasp_success.
         data_features = ['image/preprocessed', 'preprocessed_sin2_cos2_height_width_4']
         vector_shapes = [(4,)]
@@ -461,6 +480,14 @@ def choose_features_and_metrics(feature_combo_name, problem_name):
         loss = keras.losses.mean_squared_error
         model_name = '_regression_model'
         classes = 7
+    elif problem_name == 'image_center_grasp_regression':
+        label_features = ['grasp_success_sin2_cos2_hw_5']
+        monitor_metric_name = 'val_mean_squared_error'
+        monitor_loss_name = 'val_loss'
+        metrics = [keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
+        loss = keras.losses.mean_squared_error
+        model_name = '_center_regression_model'
+        classes = 5
     else:
         raise ValueError('Selected problem_name ' + str(problem_name) + ' does not exist. '
                          'feature selection options are segmentation and classification')
