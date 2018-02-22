@@ -124,7 +124,7 @@ class ConditionalImageGan(PretrainImageGan):
         # =====================================================================
         # And adversarial model
         loss = wasserstein_loss if self.use_wasserstein else "binary_crossentropy"
-        weights = [0.01, 0.01, 1.] if self.use_wasserstein else [100., 100., 1.]
+        weights = [0.1, 0.1, 1.] if self.use_wasserstein else [100., 100., 1.]
 
         model = Model(ins, [image_out, image_out2, is_fake])
         model.compile(
@@ -208,9 +208,11 @@ class ConditionalImageGan(PretrainImageGan):
             x = Flatten()(x)
             x = AddDense(x, 1, "linear", 0., output=True, bn=False)
         else:
-            x = AddConv2D(x, 1, [1,1], 1, 0., "same", activation="sigmoid",
-                bn=False)
-            x = GlobalAveragePooling2D()(x)
+            #x = AddConv2D(x, 1, [1,1], 1, 0., "same", activation="sigmoid",
+            #    bn=False)
+            #x = GlobalAveragePooling2D()(x)
+            x = Flatten()(x)
+            x = AddDense(x, 1, "sigmoid", 0., output=True, bn=False, perm_drop=True)
 
         discrim = Model(ins, x, name="image_discriminator")
         self.lr *= 2.

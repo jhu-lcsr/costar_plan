@@ -45,9 +45,7 @@ RENORM=False
 
 def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
         lrelu=False, bn=True, momentum=MOMENTUM, name=None, constraint=None,
-        kr=0., ar=0.,
-        activation=None,
-        perm_drop=False):
+        kr=0., ar=0., activation=None, perm_drop=False):
     '''
     Helper for creating networks. This one will add a convolutional block.
 
@@ -1013,7 +1011,8 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
 
     next_option_out = Dense(num_options,
             activation="softmax", name="lnext",)(x1)
-    next_model = Model([x0in, xin, option_in], next_option_out, name="next")
+    done_out = Dense(1, activation="sigmoid", name="done",)(x1)
+    next_model = Model([x0in, xin, option_in], [next_option_out, done_out], name="next")
     #next_model = Model([xin, option_in], next_option_out, name="next")
     return next_model
 

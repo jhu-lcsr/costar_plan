@@ -12,8 +12,8 @@
 echo "Running $@ on $SLURMD_NODENAME ..."
 
 export DATASET="ctp_dec"
-export train_discriminator2=false
-export train_image_encoder=false
+export train_discriminator2=true
+export train_image_encoder=true
 export train_conditional_image=true
 export train_policies=false
 
@@ -24,6 +24,7 @@ export noise_dim=$4
 export loss=$5
 export retrain=$6
 export use_disc=$7
+export use_skips=$8
 #export MODELDIR="$HOME/.costar/stack_$learning_rate$optimizer$dropout$noise_dim$loss"
 export MODELROOT="$HOME/.costar"
 export SUBDIR="stack_$learning_rate$optimizer$dropout$noise_dim$loss"
@@ -191,7 +192,7 @@ then
       --steps_per_epoch 500 \
       --loss $loss \
       --option_num $opt \
-      --skip_connections 1 \
+      --skip_connections $use_skips \
       --success_only \
       --batch_size 64
     done

@@ -124,7 +124,7 @@ class ConditionalImage(PredictionSampler2):
         if self.no_disc:
             disc_wt = 0.
         else:
-            disc_wt = 1e-4
+            disc_wt = 1e-3
         if self.no_disc:
             train_predictor = Model(ins + [label_in],
                     [image_out, image_out2] + enc_outs)
@@ -230,10 +230,10 @@ class ConditionalImage(PredictionSampler2):
         '''
         Visualize based on hidden
         '''
-        p = self.next_model.predict([hidden0, hidden, prev_option])
+        p, done = self.next_model.predict([hidden0, hidden, prev_option])
         #p = np.exp(p)
         #p /= np.sum(p)
-        return p
+        return p, done
 
     def q(self, hidden0, hidden, prev_option):
         p = self.q_model.predict([hidden0, hidden, prev_option])
