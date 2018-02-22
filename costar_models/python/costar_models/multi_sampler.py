@@ -350,12 +350,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             def _ssm(x):
                 return spatial_softmax(x)
             x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
+            x = Concatenate(axis=-1)([x, y])
             x = AddDense(x,
-                    256,
-                    activation_fn, 0.,
+                    512,
+                    self.activation_fn, 0.,
                     constraint=None, bn=False)
             x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/4),
-                         activation_fn,
+                         self.activation_fn,
                          self.dropout_rate*0.,
                          constraint=None, bn=False)
             x = Reshape([int(h_dim[0]/2), int(h_dim[1]/2), 64])(x)
@@ -376,7 +377,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Convolution to merge information from "skip": 6-9 convolutions
         for i in range(1):
-            x = AddConv2D(x, 64, [5,5], stride=1, dropout_rate=dropout_rate, **kwargs)
+            x = AddConv2D(x, 64, [5,5], stride=1, dropout_rate=self.dropout_rate, **kwargs)
 
         # --------------------------------------------------------------------
         # Put resulting image into the output shape
