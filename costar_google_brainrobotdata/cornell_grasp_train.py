@@ -38,6 +38,7 @@ except ImportError:
 from keras import backend as K
 import keras
 import keras_contrib
+import keras_tqdm
 from keras.layers import Input, Dense, Concatenate
 from keras.callbacks import ReduceLROnPlateau
 from keras.callbacks import CSVLogger
@@ -162,6 +163,7 @@ def run_training(
         validation_data=None,
         save_splits_weights='',
         feature_combo_name='image_preprocessed_sin2_cos2_width_3',
+        problem_name='grasp_regression',
         image_model_name='vgg',
         optimizer_name='sgd',
         log_dir=None,
@@ -170,6 +172,9 @@ def run_training(
     """
 
     top: options are 'segmentation' and 'classification'.
+    problem_name: options are 'grasp_regression', 'grasp_classification',
+        'pixelwise_grasp_regression', 'pixelwise_grasp_classification'.
+        Make sure this is properly coordinated with 'top' param.
     hyperparams: a dictionary of hyperparameter selections made for this training run.
        If provided these values will simply be dumped to a file and not utilized in any other way.
     """
@@ -188,7 +193,7 @@ def run_training(
 
     [image_shapes, vector_shapes, data_features, model_name,
      monitor_loss_name, label_features, monitor_metric_name,
-     loss, metrics] = choose_features_and_metrics(feature_combo_name, top)
+     loss, metrics, classes] = choose_features_and_metrics(feature_combo_name, problem_name)
 
     # see parse_and_preprocess() for the creation of these features
     model_name = image_model_name + model_name
@@ -213,6 +218,7 @@ def run_training(
         image_shapes=image_shapes,
         vector_shapes=vector_shapes,
         top=top,
+        classes=classes,
         image_model_name=image_model_name,
         **kwargs)
 
@@ -400,34 +406,32 @@ def train_k_fold(num_fold=None, split_type='imagewise'):
     return
 
 
-def choose_features_and_metrics(feature_combo_name, problem_type):
+def choose_features_and_metrics(feature_combo_name, problem_name):
     """ Choose the features to load from the dataset and losses to use during training
     """
+    image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
+    classes = 1
+
     # TODO(ahundt) get input dimensions automatically, based on configured params
-    if feature_combo_name == 'image_preprocessed_sin_cos_height_width_4':
-        data_features = ['image/preprocessed', 'sin_cos_height_width_4']
-        image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
+    if feature_combo_name == 'image_preprocessed_sin2_cos2_height_width_4':
+        # don't use this one as an input! height appears highly correlated with grasp_success.
+        data_features = ['image/preprocessed', 'preprocessed_sin2_cos2_height_width_4']
         vector_shapes = [(4,)]
     elif feature_combo_name == 'image_preprocessed_sin_cos_width_3':
-        data_features = ['image/preprocessed', 'sin_cos_width_3']
-        image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
+        data_features = ['image/preprocessed', 'preprocessed_sin_cos_width_3']
         vector_shapes = [(3,)]
     elif feature_combo_name == 'image_preprocessed_sin2_cos2_width_3':
-        data_features = ['image/preprocessed', 'sin_cos_width_3']
-        image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
+        data_features = ['image/preprocessed', 'preprocessed_sin2_cos2_width_3']
         vector_shapes = [(3,)]
     elif feature_combo_name == 'image_preprocessed_width_1':
         data_features = ['image/preprocessed', 'bbox/width']
-        image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
         vector_shapes = [(1,)]
     elif feature_combo_name == 'preprocessed':
         data_features = ['image/preprocessed', 'bbox/preprocessed/cy_cx_normalized_2',
                          'bbox/preprocessed/sin_cos_2', 'bbox/preprocessed/logarithm_height_width_2']
-        image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
         vector_shapes = [(2,), (2,), (2,)]
     elif feature_combo_name == 'raw':
         data_features = ['image/decoded', 'sin_cos_height_width_4']
-        image_shapes = [(FLAGS.sensor_image_height, FLAGS.sensor_image_width, 3)]
         vector_shapes = [(4,)]
     else:
         raise ValueError('Selected feature ' + str(feature_combo_name) + ' does not exist. '
@@ -435,31 +439,32 @@ def choose_features_and_metrics(feature_combo_name, problem_type):
                          'image_preprocessed_sin_cos_height_3, image_preprocessed_height_1,'
                          'preprocessed, and raw')
 
-    if problem_type == 'segmentation':
+    if problem_name == 'segmentation' or problem_name == 'grasp_segmentation' or problem_name == 'pixelwise_grasp_classification':
         label_features = ['grasp_success_yx_3']
         monitor_loss_name = 'segmentation_gaussian_binary_crossentropy'
         monitor_metric_name = 'val_segmentation_single_pixel_binary_accuracy'
         loss = grasp_loss.segmentation_gaussian_binary_crossentropy
         metrics = [grasp_loss.segmentation_single_pixel_binary_accuracy, grasp_loss.mean_pred]
         model_name = '_dilated_model'
-    elif problem_type == 'classification':
+    elif problem_name == 'classification' or problem_name == 'grasp_classification':
         label_features = ['grasp_success']
         monitor_metric_name = 'val_binary_accuracy'
         monitor_loss_name = 'val_loss'
         metrics = ['binary_accuracy', grasp_loss.mean_pred, grasp_loss.mean_true]
         loss = keras.losses.binary_crossentropy
         model_name = '_dense_model'
-    elif problem_type == 'grasp_regression':
-        label_features = ['grasp_success']
-        monitor_metric_name = 'val_binary_accuracy'
+    elif problem_name == 'grasp_regression':
+        label_features = ['grasp_success_sin2_cos2_hw_norm_yx_7']
+        monitor_metric_name = 'val_mean_squared_error'
         monitor_loss_name = 'val_loss'
-        metrics = ['binary_accuracy', grasp_loss.mean_pred, grasp_loss.mean_true]
-        loss = keras.losses.binary_crossentropy
-        model_name = '_dense_model'
+        metrics = [keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
+        loss = keras.losses.mean_squared_error
+        model_name = '_regression_model'
+        classes = 7
     else:
-        raise ValueError('Selected problem_type ' + str(problem_type) + ' does not exist. '
+        raise ValueError('Selected problem_name ' + str(problem_name) + ' does not exist. '
                          'feature selection options are segmentation and classification')
-    return image_shapes, vector_shapes, data_features, model_name, monitor_loss_name, label_features, monitor_metric_name, loss, metrics
+    return image_shapes, vector_shapes, data_features, model_name, monitor_loss_name, label_features, monitor_metric_name, loss, metrics, classes
 
 
 def load_dataset(validation_file, label_features, data_features, samples_in_val_dataset, train_file, batch_size, val_batch_size,

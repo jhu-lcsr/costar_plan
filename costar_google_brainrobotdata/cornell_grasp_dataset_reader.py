@@ -871,10 +871,14 @@ def parse_and_preprocess(
     feature['bbox/preprocessed/theta'] = grasp_center_rotation_theta
     feature['bbox/preprocessed/sin_cos_2'] = K.concatenate(
         [K.sin(grasp_center_rotation_theta), K.cos(grasp_center_rotation_theta)])
-    feature['bbox/preprocessed/sin2_cos2_2'] = feature['sin2_cos2_width_3'][:2]
+    feature['bbox/preprocessed/sin2_cos2_2'] = K.concatenate(
+        [K.sin(grasp_center_rotation_theta * 2.0), K.cos(grasp_center_rotation_theta * 2.0)])
     random_scale = K.constant(1.0, 'float32')
     if 'random_scale' in feature:
         random_scale = feature['random_scale']
+
+    # preprocessed height and width are divided by the longest side in the input image
+    # plus they are also scaled if augmentation does scaling.
     feature['bbox/preprocessed/height'] = feature['bbox/height'] * random_scale / K.cast(feature['image/preprocessed/max_side'], 'float32')
     feature['bbox/preprocessed/width'] = feature['bbox/width'] * random_scale / K.cast(feature['image/preprocessed/max_side'], 'float32')
     feature['bbox/preprocessed/logarithm_height_width_2'] = K.concatenate(
@@ -887,11 +891,23 @@ def parse_and_preprocess(
     # make coordinate labels 4d because that's what keras expects
     grasp_success_coordinate_label = K.expand_dims(K.expand_dims(grasp_success_coordinate_label))
     feature['grasp_success_yx_3'] = grasp_success_coordinate_label
+    # preprocessing adds some extra normalization and incorporates changes in the values due to augmentatation.
+    feature['preprocessed_sin_cos_width_3'] = K.concatenate([feature['bbox/preprocessed/sin_cos_2'], feature['bbox/preprocessed/width']])
+    feature['preprocessed_sin2_cos2_width_3'] = K.concatenate([feature['bbox/preprocessed/sin2_cos2_2'], feature['bbox/preprocessed/width']])
+    feature['preprocessed_sin2_cos2_height_width_4'] = K.concatenate(
+        [feature['bbox/preprocessed/sin2_cos2_2'], feature['bbox/preprocessed/height'], feature['bbox/preprocessed/width']])
+
+    # This feature should be useful for pixelwise predictions
     grasp_success_sin2_cos2_hw_yx_7 = K.concatenate(
         [tf.cast(feature['bbox/grasp_success'], tf.float32), feature['bbox/preprocessed/sin2_cos2_2'],
          feature['bbox/preprocessed/height'], feature['bbox/preprocessed/width'], preprocessed_grasp_center_coordinate])
     feature['grasp_success_sin2_cos2_hw_yx_7'] = K.expand_dims(K.expand_dims(grasp_success_sin2_cos2_hw_yx_7))
 
+    # This feature should be useful for grasp regression
+    grasp_success_sin2_cos2_hw_norm_yx_7 = K.concatenate(
+        [tf.cast(feature['bbox/grasp_success'], tf.float32), feature['bbox/preprocessed/sin2_cos2_2'],
+         feature['bbox/preprocessed/cy_cx_normalized_2'], preprocessed_grasp_center_coordinate])
+    feature['grasp_success_sin2_cos2_hw_norm_yx_7'] = grasp_success_sin2_cos2_hw_yx_7
 
     # TODO(ahundt) reenable this and compare performance against segmentation_gaussian_measurement()
     if False:
