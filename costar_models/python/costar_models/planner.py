@@ -42,12 +42,12 @@ out: an output tensor
 # MOMENTUM=0.9 seems to help training
 MOMENTUM=0.9
 RENORM=False
-PERMANENT_DROPOUT=False
 
 def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
         lrelu=False, bn=True, momentum=MOMENTUM, name=None, constraint=None,
         kr=0., ar=0.,
-        activation=None):
+        activation=None,
+        perm_drop=False):
     '''
     Helper for creating networks. This one will add a convolutional block.
 
@@ -120,7 +120,7 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
     if dropout_rate > 0:
         if name is not None:
             kwargs['name'] = "%s_dropout%f"%(name, dropout_rate)
-        if PERMANENT_DROPOUT:
+        if perm_drop:
 	    x = PermanentDropout(dropout_rate, **kwargs)(x)
         else:
             x = Dropout(dropout_rate, **kwargs)(x)
@@ -132,7 +132,8 @@ def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate,
         discriminator=False,
         name=None,
         kr=0.,
-        ar=0.,):
+        ar=0.,
+        perm_drop=False):
     '''
     Helper for creating networks. This one will add a convolutional block.
 
@@ -191,14 +192,18 @@ def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate,
     else:
         x = Activation(activation)(x)
     if dropout_rate > 0:
-        if PERMANENT_DROPOUT:
+        if perm_drop:
             x = PermanentDropout(dropout_rate)(x)
         else:
             x = Dropout(dropout_rate)(x)
     return x
 
 def AddDense(x, size, activation, dropout_rate, output=False, momentum=MOMENTUM,
-    constraint=3, bn=True, kr=0., ar=0.):
+    constraint=3,
+    bn=True,
+    kr=0.,
+    ar=0.,
+    perm_drop=False):
     '''
     Add a single dense block with batchnorm and activation.
 
@@ -246,7 +251,7 @@ def AddDense(x, size, activation, dropout_rate, output=False, momentum=MOMENTUM,
     else:
         x = Activation(activation)(x)
     if dropout_rate > 0:
-        if PERMANENT_DROPOUT:
+        if perm_drop:
             x = PermanentDropout(dropout_rate)(x)
         else:
             x = Dropout(dropout_rate)(x)

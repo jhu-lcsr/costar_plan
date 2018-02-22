@@ -47,11 +47,11 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         img_in = Input(img_shape,name="predictor_img_in")
         test_in = Input(img_shape, name="descriminator_test_in")
 
-        encoder = self._makeImageEncoder(img_shape)
+        encoder = self._makeImageEncoder(img_shape, perm_drop=True)
         enc = encoder([img_in])
         decoder = self._makeImageDecoder(
                 self.hidden_shape,
-                self.skip_shape, False)
+                self.skip_shape, False, perm_drop=True)
 
         if self.load_pretrained_weights:
             try:
@@ -113,7 +113,6 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         img0 = Input(img_shape,name="img0_encoder_in")
         ins = [img, img0]
         dr = self.dropout_rate
-        dr = 0
 
         if self.use_wasserstein:
             loss = wasserstein_loss
@@ -122,19 +121,27 @@ class PretrainImageGan(RobotMultiPredictionSampler):
             loss = "binary_crossentropy"
             activation = "sigmoid"
 
-        x = AddConv2D(img, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        x0 = AddConv2D(img0, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        x = Add()([x, x0])
-        x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
-        x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True, bn=False)
-        x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True, bn=False)
+        # common arguments
+        kwargs = { "dropout_rate" : dr,
+                   "padding" : "same",
+                   "lrelu" : True,
+                   "bn" : False,
+                   "perm_drop" : True,
+                 }
+
+        x  = AddConv2D(img,  64, [4,4], 1, **kwargs)
+        x0 = AddConv2D(img0, 64, [4,4], 1, **kwargs)
+        x  = Add()([x, x0])
+        x  = AddConv2D(x,    64, [4,4], 2, **kwargs)
+        x  = AddConv2D(x,   128, [4,4], 2, **kwargs)
+        x  = AddConv2D(x,   256, [4,4], 2, **kwargs)
 
         if self.use_wasserstein:
             x = Flatten()(x)
-            x = AddDense(x, 1, "linear", 0., output=True, bn=False)
+            x = AddDense(x, 1, "linear", 0., output=True, bn=False, perm_drop=True)
         else:
             x = AddConv2D(x, 1, [1,1], 1, 0., "same", activation="sigmoid",
-                bn=False)
+                bn=False, perm_drop=True)
             x = GlobalAveragePooling2D()(x)
 
         discrim = Model(ins, x, name="image_discriminator")
