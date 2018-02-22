@@ -121,7 +121,7 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
         if name is not None:
             kwargs['name'] = "%s_dropout%f"%(name, dropout_rate)
         if PERMANENT_DROPOUT:
-	    x = PermanentDropout(dropout_rate, **kwargs)(x)
+            x = PermanentDropout(dropout_rate, **kwargs)(x)
         else:
             x = Dropout(dropout_rate, **kwargs)(x)
     return x
@@ -1008,7 +1008,8 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
 
     next_option_out = Dense(num_options,
             activation="softmax", name="lnext",)(x1)
-    next_model = Model([x0in, xin, option_in], next_option_out, name="next")
+    done_out = Dense(1, activation="sigmoid", name="done",)(x1)
+    next_model = Model([x0in, xin, option_in], [next_option_out, done_out], name="next")
     #next_model = Model([xin, option_in], next_option_out, name="next")
     return next_model
 
