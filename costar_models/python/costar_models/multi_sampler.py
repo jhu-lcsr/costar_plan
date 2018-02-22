@@ -351,10 +351,11 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 return spatial_softmax(x)
             x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
             x = Concatenate(axis=-1)([x, y])
-            x = AddDense(x,
-                    512,
-                    self.activation_fn, 0.,
-                    constraint=None, bn=False)
+            #x = AddDense(x,
+            #        256,
+            #        self.activation_fn, 0.,
+            #        constraint=None, bn=False)
+            #x = Concatenate(axis=-1)([x, y])
             x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/4),
                          self.activation_fn,
                          self.dropout_rate*0.,
