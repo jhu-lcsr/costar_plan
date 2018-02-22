@@ -141,15 +141,16 @@ class Secondary(PredictionSampler2):
         qa = np.squeeze(qa)
         ga = np.squeeze(ga)
         o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
+        done = np.ones_like(oin) - (oin == o1)
         if self.submodel == "value":
             outs = [v]
         elif self.submodel == "next":
-            outs = [o1_1h]
+            outs = [o1_1h, done]
         elif self.submodel == "q":
             if len(v.shape) == 1:
                 v = np.expand_dims(v,axis=1)
             vs = np.repeat(v, self.num_options, axis=1)
-            outs = [o1_1h * vs]
+            outs = [o1_1h * vs, done]
         elif self.submodel == "actor":
             outs = [qa, ga]
         elif self.submodel == "pose":
