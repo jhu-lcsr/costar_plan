@@ -396,8 +396,9 @@ def k_fold_split(path=FLAGS.data_dir, is_objectwise=FLAGS.objectwise_split, num_
     object_counter = 0
     last_image_id = 'first_image'  # anything not '0000'
     last_object_id = 'first_object'  # anything not '0'
-    with open(path + 'z.txt') as f:
-        for line in f:
+    z_path = os.path.join(path, 'z.txt')
+    with open(z_path, mode='r') as f:
+        for line in tqdm(f, desc='Loading files and grasps'):
             image_id, object_id, _, _ = line.split()
             if image_id == last_image_id:
                 continue
@@ -466,7 +467,7 @@ def k_fold_tfrecord_writer(path=FLAGS.data_dir, kFold_list=None, is_objectwise=F
         split_type = 'imagewise'
 
     coder = ImageCoder()
-    for i, fold in enumerate(kFold_list):
+    for i, fold in enumerate(tqdm(kFold_list, desc='Writing datasets')):
         recordPath = path + 'cornell-grasping-dataset' + split_type + '_fold_' + str(i) + '.tfrecord'
         cur_writer = tf.python_io.TFRecordWriter(recordPath)
         for image_id in fold:
@@ -1047,15 +1048,14 @@ def get_stat(name, amount, total, percent_description=''):
 
 
 def main():
+    gd = GraspDataset()
+    if FLAGS.grasp_download:
+        gd.download(dataset=FLAGS.grasp_dataset)
+
     if FLAGS.is_fold_splits:
         k_fold_list = k_fold_split()
         k_fold_tfrecord_writer(kFold_list=k_fold_list)
         return
-
-    # plt.ion()
-    gd = GraspDataset()
-    if FLAGS.grasp_download:
-        gd.download(dataset=FLAGS.grasp_dataset)
 
     # Creating a list with all the image paths
     png_filenames, _, _ = get_cornell_grasping_dataset_filenames()
