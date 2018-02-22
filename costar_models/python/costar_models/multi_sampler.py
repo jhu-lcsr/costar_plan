@@ -294,7 +294,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         return predictor, model, actor, ins, enc
 
-    def _makeTransform(self, h_dim=(8,8)):
+    def _makeTransform(self, h_dim=(8,8), perm_drop=False):
         '''
         This is the version made for the newer code, it is set up to use both
         the initial and current observed world and creates a transform
@@ -311,19 +311,26 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         h = Input((h_dim[0], h_dim[1], self.encoder_channels),name="h_in")
         h0 = Input((h_dim[0],h_dim[1], self.encoder_channels),name="h0_in")
         option = Input((self.num_options,),name="t_opt_in")
-        activation_fn = self.activation_fn
         bn = self.use_batchnorm
+
+        # Common arguments
+        kwargs = {
+                "activation" : self.activation_fn,
+                "bn" : self.use_batchnorm,
+                "perm_drop" : perm_drop,
+                }
+
         if self.use_noise:
             z = Input((self.noise_dim,), name="z_in")
 
         # 2 x "decoder" convolutions
-        x = AddConv2D(h, 64, [1,1], 1, 0., activation=activation_fn, bn=bn)
-        x0 = AddConv2D(h0, 64, [1,1], 1, 0., activation=activation_fn, bn=bn)
+        x = AddConv2D(h, 64, [1,1], 1, 0., **kwargs)
+        x0 = AddConv2D(h0, 64, [1,1], 1, 0., **kwargs)
 
         # Combine the hidden state observations
         x = Concatenate()([x, x0])
         # 1 convolution to merge h, h0
-        x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, activation=activation_fn, bn=bn) # Removed this dropout
+        x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, **kwargs) # Removed this dropout
 
         # store this for skip connection
         skip = x
@@ -331,13 +338,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.use_noise:
             y = AddDense(z, 32, "lrelu", 0., constraint=None, output=False, bn=bn)
             x = TileOnto(x, y, 32, h_dim)
-            x = AddConv2D(x, 32, [5,5], 1, 0.)
+            x = AddConv2D(x, 32, [5,5], 1, 0., **kwargs)
 
-        # Add dense information
         # Add convolution to incorporate action info -- 2 + 1 + 1 = 4
-        y = AddDense(option, 64, "lrelu", 0., constraint=None, output=False, bn=bn)
+        y = AddDense(option, 64, "lrelu", 0., constraint=None, output=False, bn=bn, perm_drop=perm_drop)
         x = TileOnto(x, y, 64, h_dim)
-        x = AddConv2D(x, 64, [5,5], 1, 0., activation=activation_fn, bn=bn)
+        x = AddConv2D(x, 64, [5,5], 1, 0., **kwargs)
 
         # --- start ssm block
         if self.use_ssm:
@@ -357,13 +363,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             # U-net scale down
             # 2x optional convolutions to replace the missing ones from the SSM
             # block
-            x = AddConv2D(x, 64, [5,5], 2, 0.)
-            x = AddConv2D(x, 64, [5,5], 1, 0.)
+            x = AddConv2D(x, 64, [5,5], 2, 0., **kwargs)
+            x = AddConv2D(x, 64, [5,5], 1, 0., **kwargs)
         # Transpose conv back up to 8x8: 4 + 1 = 5 (or 7, or 8)
         x = AddConv2DTranspose(x, 64, [5,5], 2,
-                bn=bn,
-                activation=activation_fn,
-                dropout_rate=self.dropout_rate) # Removed dropout from this block
+                dropout_rate=self.dropout_rate,
+                **kwargs) # Removed dropout from this block
         # --- end ssm block
 
         if self.skip_connections:
@@ -371,12 +376,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Convolution to merge information from "skip": 6-9 convolutions
         for i in range(1):
-            x = AddConv2D(x, 64,
-                    [5,5],
-                    stride=1,
-                    bn=bn,
-                    activation=activation_fn,
-                    dropout_rate=self.dropout_rate)
+            x = AddConv2D(x, 64, [5,5], stride=1, dropout_rate=dropout_rate, **kwargs)
 
         # --------------------------------------------------------------------
         # Put resulting image into the output shape

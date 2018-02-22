@@ -119,13 +119,13 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
         if name is not None:
             kwargs['name'] = "%s_dropout%f"%(name, dropout_rate)
         if perm_drop:
-	    x = PermanentDropout(dropout_rate, **kwargs)(x)
+            x = PermanentDropout(dropout_rate, **kwargs)(x)
         else:
             x = Dropout(dropout_rate, **kwargs)(x)
     return x
 
 def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate,
-        padding="same", momentum=MOMENTUM, bn=True, 
+        padding="same", momentum=MOMENTUM, bn=True,
         activation="relu",
         discriminator=False,
         name=None,

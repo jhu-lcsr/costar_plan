@@ -90,7 +90,7 @@ class ConditionalImageGan(PretrainImageGan):
         y = Flatten()(OneHot(self.num_options)(next_option_in))
         y2 = Flatten()(OneHot(self.num_options)(next_option2_in))
         x = h
-        tform = self._makeTransform()
+        tform = self._makeTransform(perm_drop=True)
         l = [h0, h, y, z1] if self.use_noise else [h0, h, y]
         x = tform(l)
         l = [h0, x, y2, z2] if self.use_noise else [h0, x, y2]
