@@ -316,11 +316,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.use_noise:
             z = Input((self.noise_dim,), name="z_in")
 
+        # 2 x "decoder" convolutions
         x = AddConv2D(h, 64, [1,1], 1, 0., activation=activation_fn, bn=bn)
         x0 = AddConv2D(h0, 64, [1,1], 1, 0., activation=activation_fn, bn=bn)
 
         # Combine the hidden state observations
         x = Concatenate()([x, x0])
+        # 1 convolution to merge h, h0
         x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, activation=activation_fn, bn=bn) # Removed this dropout
 
         # store this for skip connection
@@ -332,13 +334,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             x = AddConv2D(x, 32, [5,5], 1, 0.)
 
         # Add dense information
+        # Add convolution to incorporate action info -- 2 + 1 + 1 = 4
         y = AddDense(option, 64, "lrelu", 0., constraint=None, output=False, bn=bn)
         x = TileOnto(x, y, 64, h_dim)
         x = AddConv2D(x, 64, [5,5], 1, 0., activation=activation_fn, bn=bn)
 
         # --- start ssm block
-        use_ssm = True
-        if use_ssm:
+        if self.use_ssm:
             def _ssm(x):
                 return spatial_softmax(x)
             x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
@@ -351,7 +353,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                          constraint=None, bn=False)
             x = Reshape([int(h_dim[0]/2), int(h_dim[1]/2), 64])(x)
         else:
-            x = AddConv2D(x, 128, [5,5], 1, 0.)
+            # U-net scale down
+            # 2x optional convolutions to replace the missing ones from the SSM
+            # block
+            x = AddConv2D(x, 64, [5,5], 2, 0.)
+            x = AddConv2D(x, 64, [5,5], 1, 0.)
+        # Transpose conv back up to 8x8: 4 + 1 = 5 (or 7, or 8)
         x = AddConv2DTranspose(x, 64, [5,5], 2,
                 bn=bn,
                 activation=activation_fn,
@@ -361,6 +368,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.skip_connections:
             x = Concatenate()([x, skip])
 
+        # Convolution to merge information from "skip": 6-9 convolutions
         for i in range(1):
             x = AddConv2D(x, 64,
                     [5,5],
@@ -371,6 +379,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # --------------------------------------------------------------------
         # Put resulting image into the output shape
+        # Encode again -- 1x1 convolution -- 7-10 convolutions total
         x = AddConv2D(x, self.encoder_channels, [1, 1], stride=1,
                 bn=False, # disables batchnorm here
                 activation="sigmoid", # outputs in [0, 1]
