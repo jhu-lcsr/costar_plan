@@ -865,9 +865,9 @@ def parse_and_preprocess(
 
     feature['bbox/preprocessed/cy'] = preprocessed_grasp_center_coordinate[0]
     feature['bbox/preprocessed/cx'] = preprocessed_grasp_center_coordinate[1]
-    feature['bbox/preprocessed/cy_cx_normalized_2'] = K.concatenate(
-        [tf.reshape(preprocessed_grasp_center_coordinate[0], (1,)) / tf.cast(feature['image/preprocessed/height'], tf.float32),
-         tf.reshape(preprocessed_grasp_center_coordinate[1], (1,)) / tf.cast(feature['image/preprocessed/width'], tf.float32)])
+    cyn = tf.reshape(preprocessed_grasp_center_coordinate[0], (1,)) / K.cast(feature['image/preprocessed/height'], 'float32')
+    cxn = tf.reshape(preprocessed_grasp_center_coordinate[1], (1,)) / K.cast(feature['image/preprocessed/width'], 'float32')
+    feature['bbox/preprocessed/cy_cx_normalized_2'] = K.concatenate([cyn, cxn])
     feature['bbox/preprocessed/theta'] = grasp_center_rotation_theta
     feature['bbox/preprocessed/sin_cos_2'] = K.concatenate(
         [K.sin(grasp_center_rotation_theta), K.cos(grasp_center_rotation_theta)])
@@ -903,11 +903,17 @@ def parse_and_preprocess(
          feature['bbox/preprocessed/height'], feature['bbox/preprocessed/width'], preprocessed_grasp_center_coordinate])
     feature['grasp_success_sin2_cos2_hw_yx_7'] = K.expand_dims(K.expand_dims(grasp_success_sin2_cos2_hw_yx_7))
 
+    # print('>>>>CREATE CXN: ' + str(cxn) + ' CYN: ' + str(cyn))
+    # cxn = tf.Print(cxn, [cxn, cyn, feature['bbox/preprocessed/cy_cx_normalized_2']], '>>>> CXN CYN combined ')
+    # v = K.constant([0.5], 'float32')
+    # v1 = K.constant([0.05], 'float32')
+    # v2 = K.constant([100], 'float32')
     # This feature should be useful for grasp regression
+
     grasp_success_sin2_cos2_hw_norm_yx_7 = K.concatenate(
-        [tf.cast(feature['bbox/grasp_success'], tf.float32), feature['bbox/preprocessed/sin2_cos2_2'],
-         feature['bbox/preprocessed/cy_cx_normalized_2'], preprocessed_grasp_center_coordinate])
-    feature['grasp_success_sin2_cos2_hw_norm_yx_7'] = grasp_success_sin2_cos2_hw_yx_7
+        [K.cast(feature['bbox/grasp_success'], 'float32'), feature['bbox/preprocessed/sin2_cos2_2'],
+         feature['bbox/preprocessed/height'], feature['bbox/preprocessed/width'], feature['bbox/preprocessed/cy_cx_normalized_2']])
+    feature['grasp_success_sin2_cos2_hw_norm_yx_7'] = grasp_success_sin2_cos2_hw_norm_yx_7
 
     # TODO(ahundt) reenable this and compare performance against segmentation_gaussian_measurement()
     if False:
@@ -1053,6 +1059,15 @@ def visualize_redundant_example(features_dicts, showTextBox=None):
     for example in features_dicts:
         print('original example bbox/theta: ' + str(example['bbox/theta']))
         if ('bbox/preprocessed/cy_cx_normalized_2' in example):
+            if 'random_projection_transform' in example:
+                print('bbox/preprocessed/cy_cx_normalized_2: ' + str(example['bbox/preprocessed/cy_cx_normalized_2']))
+                print('bbox/preprocessed/cy: ' + str(example['bbox/preprocessed/cy']))
+                print('bbox/preprocessed/cx: ' + str(example['bbox/preprocessed/cx']))
+                print('bbox/preprocessed/width: ' + str(example['bbox/preprocessed/width']))
+                print('bbox/preprocessed/height: ' + str(example['bbox/preprocessed/height']))
+                print('image/preprocessed/width: ' + str(example['image/preprocessed/width']))
+                print('image/preprocessed/height: ' + str(example['image/preprocessed/height']))
+                print('grasp_success_sin2_cos2_hw_norm_yx_7: ' + str(example['grasp_success_sin2_cos2_hw_norm_yx_7']))
             # Reverse the preprocessing so we can visually compare correctness
             decoded_example = copy.deepcopy(example)
             sin_cos_2 = example['bbox/preprocessed/sin_cos_2']
