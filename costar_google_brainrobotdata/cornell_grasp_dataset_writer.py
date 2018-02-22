@@ -405,8 +405,8 @@ def k_fold_split(path=FLAGS.data_dir, is_objectwise=FLAGS.objectwise_split, num_
             else:
                 last_image_id = image_id
                 image_counter += 1
-            path_pos = path + 'pcd' + image_id + 'cpos.txt'
-            path_neg = path + 'pcd' + image_id + 'cneg.txt'
+            path_pos = path + image_id[:2] + '/pcd' + image_id + 'cpos.txt'
+            path_neg = path + image_id[:2] + '/pcd' + image_id + 'cneg.txt'
             if os.path.isfile(path_neg) and os.path.isfile(path_pos):
                 if last_object_id != object_id:
                     last_object_id = object_id
@@ -471,9 +471,9 @@ def k_fold_tfrecord_writer(path=FLAGS.data_dir, kFold_list=None, is_objectwise=F
         recordPath = path + 'cornell-grasping-dataset' + split_type + '_fold_' + str(i) + '.tfrecord'
         cur_writer = tf.python_io.TFRecordWriter(recordPath)
         for image_id in fold:
-            bbox_pos_path = path + 'pcd' + image_id + 'cpos.txt'
-            bbox_neg_path = path + 'pcd' + image_id + 'cneg.txt'
-            image_path = path + 'pcd' + image_id + 'r.png'
+            bbox_pos_path = path + image_id[:2] + '/pcd' + image_id + 'cpos.txt'
+            bbox_neg_path = path + image_id[:2] + '/pcd' + image_id + 'cneg.txt'
+            image_path = path + image_id[:2] + '/pcd' + image_id + 'r.png'
             image_buffer, height, width = _process_image(image_path, coder)
             examples, _, _ = traverse_examples_in_single_image(
                 image_path, bbox_pos_path, bbox_neg_path, image_buffer, height, width)
