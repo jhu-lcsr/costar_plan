@@ -294,7 +294,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         return predictor, model, actor, ins, enc
 
-    def _makeTransform(self, h_dim=(8,8)):
+    def _makeTransform(self, h_dim=(8,8), perm_drop=False):
         '''
         This is the version made for the newer code, it is set up to use both
         the initial and current observed world and creates a transform
@@ -311,17 +311,24 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         h = Input((h_dim[0], h_dim[1], self.encoder_channels),name="h_in")
         h0 = Input((h_dim[0],h_dim[1], self.encoder_channels),name="h0_in")
         option = Input((self.num_options,),name="t_opt_in")
-        activation_fn = self.activation_fn
         bn = self.use_batchnorm
+
+        # Common arguments
+        kwargs = {
+                "activation" : self.activation_fn,
+                "bn" : self.use_batchnorm,
+                "perm_drop" : perm_drop,
+                }
+
         if self.use_noise:
             z = Input((self.noise_dim,), name="z_in")
 
-        x = AddConv2D(h, 64, [1,1], 1, 0., activation=activation_fn, bn=bn)
-        x0 = AddConv2D(h0, 64, [1,1], 1, 0., activation=activation_fn, bn=bn)
+        x = AddConv2D(h, 64, [1,1], 1, 0., **kwargs)
+        x0 = AddConv2D(h0, 64, [1,1], 1, 0., **kwargs)
 
         # Combine the hidden state observations
         x = Concatenate()([x, x0])
-        x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, activation=activation_fn, bn=bn) # Removed this dropout
+        x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, **kwargs) # Removed this dropout
 
         # store this for skip connection
         skip = x
@@ -329,12 +336,12 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         if self.use_noise:
             y = AddDense(z, 32, "lrelu", 0., constraint=None, output=False, bn=bn)
             x = TileOnto(x, y, 32, h_dim)
-            x = AddConv2D(x, 32, [5,5], 1, 0.)
+            x = AddConv2D(x, 32, [5,5], 1, 0., **kwargs)
 
         # Add dense information
-        y = AddDense(option, 64, "lrelu", 0., constraint=None, output=False, bn=bn)
+        y = AddDense(option, 64, "lrelu", 0., constraint=None, output=False, bn=bn, perm_drop=perm_drop)
         x = TileOnto(x, y, 64, h_dim)
-        x = AddConv2D(x, 64, [5,5], 1, 0., activation=activation_fn, bn=bn)
+        x = AddConv2D(x, 64, [5,5], 1, 0., **kwargs)
 
         # --- start ssm block
         use_ssm = True
@@ -342,32 +349,26 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             def _ssm(x):
                 return spatial_softmax(x)
             x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
-            x = AddDense(x, 256, activation_fn, 0.,
+            x = AddDense(x, 256, self.activation_fn, 0.,
                     constraint=None, bn=False)
             x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/4),
-                         activation_fn, #"sigmoid",
+                         self.activation_fn, #"sigmoid",
                          self.dropout_rate*0.,
                          #kr=keras.regularizers.l2(1e-8),
                          constraint=None, bn=False)
             x = Reshape([int(h_dim[0]/2), int(h_dim[1]/2), 64])(x)
         else:
-            x = AddConv2D(x, 128, [5,5], 1, 0.)
+            x = AddConv2D(x, 128, [5,5], 1, 0., **kwargs)
         x = AddConv2DTranspose(x, 64, [5,5], 2,
-                bn=bn,
-                activation=activation_fn,
-                dropout_rate=self.dropout_rate) # Removed dropout from this block
+                dropout_rate=self.dropout_rate,
+                **kwargs) # Removed dropout from this block
         # --- end ssm block
 
         if self.skip_connections:
             x = Concatenate()([x, skip])
 
         for i in range(1):
-            x = AddConv2D(x, 64,
-                    [5,5],
-                    stride=1,
-                    bn=bn,
-                    activation=activation_fn,
-                    dropout_rate=self.dropout_rate)
+            x = AddConv2D(x, 64, [5,5], stride=1, dropout_rate=dropout_rate, **kwargs)
 
         # --------------------------------------------------------------------
         # Put resulting image into the output shape
