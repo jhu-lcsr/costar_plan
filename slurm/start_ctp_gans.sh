@@ -10,7 +10,7 @@ cd "$SCRIPT_DIR"/../costar_models/python
 python setup.py install --user
 cd -
 
-OPTS=$(getopt -o '' --long retrain,load_model,gan_encoder,skip_encoder,suffix:,no_resume,epochs1:,epochs2: -n start_ctp_gans -- "$@")
+OPTS=$(getopt -o '' --long retrain,load_model,gan_encoder,skip_encoder,suffix:,no_resume,epochs1:,epochs2:,skip_cond -n start_ctp_gans -- "$@")
 
 [[ $? != 0 ]] && echo "Failed parsing options." && exit 1
 
@@ -31,6 +31,7 @@ suffix=''
 resume=true # resume a job
 epochs1=100
 epochs2=100
+skip_cond_cmd=''
 
 while true; do
   case "$1" in
@@ -38,6 +39,7 @@ while true; do
     --encoder) gan_encoder=false; shift ;;
     --gan_encoder) gan_encoder=true; shift ;;
     --skip_encoder) skip_encoder=true; shift ;;
+    --skip_cond) skip_cond_cmd='--skip_cond'; shift ;;
     --load_model) load_model=true; shift ;;
     --suffix) suffix="$2"; shift 2 ;;
     --no_resume) resume=false; shift ;;
@@ -62,12 +64,12 @@ for wass_cmd in --wass ''; do
       # double the epochs for gan encoder
       [[ $gan_cmd == '--gan_encoder' ]] && epochs1=$(($epochs1 * 2))
 
-      for retrain_cmd in --retrain ''; do
+      for retrain_cmd in ''; do # --retrain
         function call_ctp() {
           sbatch "$SCRIPT_DIR"/ctp_gan.sh "$1" "$2" --lr $lr --dr $dr \
             --opt $opt --epochs1 $epochs1 --epochs2 $epochs2 \
             $wass_cmd $noise_cmd $retrain_cmd $gan_cmd \
-            $load_cmd $skip_cmd $suffix_cmd $resume_cmd
+            $load_cmd $skip_cmd $suffix_cmd $resume_cmd $skip_cond_cmd
         }
         call_ctp ctp_dec multi
         #call_ctp husky_data husky
