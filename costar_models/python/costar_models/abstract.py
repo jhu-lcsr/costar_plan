@@ -66,6 +66,7 @@ class AbstractAgentBasedModel(object):
             validate=False,
             enc_loss=False,
             use_batchnorm=1,
+            use_ssm=1,
             hypothesis_dropout=False,
             dense_representation=True,
             skip_connections=1,
@@ -148,6 +149,7 @@ class AbstractAgentBasedModel(object):
         else:
             self.decoder_dropout_rate = 0.
         self.skip_connections = skip_connections > 0
+        self.use_ssm = use_ssm > 0
         self.dense_representation = dense_representation
         self.gan_method = gan_method
         self.save_model = save_model
