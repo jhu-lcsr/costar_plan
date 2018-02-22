@@ -71,6 +71,8 @@ class Secondary(PredictionSampler2):
         h = encoder([img_in])
         h0 = encoder(img0_in)
 
+        # ====================================================================
+        # Compute the option
         y = OneHot(self.num_options)(next_option_in)
         y = Flatten()(y)
 
