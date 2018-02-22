@@ -12,6 +12,7 @@ import os
 import errno
 import sys
 import json
+import csv
 import argparse
 import os.path
 import glob
@@ -358,6 +359,9 @@ def run_training(
         train_data=None,
         validation_data=None,
         test_file=None,
+        train_size=None,
+        val_size=None,
+        test_size=None,
         save_splits_weights='',
         feature_combo_name='image_preprocessed_sin_cos_width_3',
         image_model_name='vgg',
@@ -365,6 +369,7 @@ def run_training(
         log_dir=None,
         hyperparams=None,
         load_weights=None,
+        pipeline=None,
         **kwargs):
     """
 
@@ -388,6 +393,8 @@ def run_training(
         log_dir = FLAGS.log_dir
     if load_weights is None:
         load_weights = FLAGS.load_weights
+    if pipeline is None:
+        pipeline = FLAGS.pipeline_stage
 
     [image_shapes, vector_shapes, data_features, model_name,
      monitor_loss_name, label_features, monitor_metric_name,
@@ -473,6 +480,13 @@ def run_training(
     # TODO(ahundt) WARNING: THE NUMBER OF TRAIN/VAL STEPS VARIES EVERY TIME THE DATASET IS CONVERTED, AUTOMATE SETTING THOSE NUMBERS
     samples_in_val_dataset, steps_per_epoch_train, steps_in_val_dataset, val_batch_size = epoch_params(batch_size)
 
+    if pipeline != 'test' and train_size is not None and val_size is not None:
+        val_batch_size = 11
+        samples_in_val_dataset = val_size
+        steps_per_epoch_train, steps_in_val_dataset = epoch_params_for_splits(
+            train_batch=batch_size, samples_train=train_size,
+            val_batch=val_batch_size, samples_val=val_size)
+
     if num_gpus > 1:
         parallel_model = keras.utils.multi_gpu_model(model, num_gpus)
     else:
@@ -493,24 +507,26 @@ def run_training(
 
     # Get the validation dataset in one big numpy array for validation
     # This lets us take advantage of tensorboard visualization
-    if 'train' in FLAGS.pipeline_stage:
+    if 'train' in pipeline:
         train_data, validation_data = load_dataset(
             validation_file, label_features, data_features,
             samples_in_val_dataset, train_file, batch_size,
             val_batch_size, train_data=train_data, validation_data=validation_data)
 
-    if 'test' in FLAGS.pipeline_stage:
+    if 'test' in pipeline:
+        test_batch_size = 2  # if batch_size = 1 tensor will be dim(3) instead of dim(4)
+        test_step = epoch_params_for_splits(samples_test=test_size, test_batch=test_batch_size)
         _, test_data = load_dataset(
             test_file, label_features, data_features,
-            samples_in_val_dataset, train_file, batch_size,
-            val_batch_size, train_data=None, validation_data=None)
+            test_size, train_file, batch_size,
+            test_batch_size, train_data=None, validation_data=None)
         # test_data = cornell_grasp_dataset_reader.yield_record(
         #     test_file, is_training=False, batch_size=val_batch_size,
         #     parse_example_proto_fn=cornell_grasp_dataset_reader.parse_and_preprocess)
 
-        test_history = parallel_model.evaluate_generator(generator=test_data, step=1)
+        test_history = parallel_model.evaluate_generator(generator=test_data, steps=test_step)
 
-    if FLAGS.pipeline_stage == 'test':
+    if pipeline == 'test':
         return test_history
 
     # print('calling model.fit_generator()')
@@ -542,34 +558,10 @@ def chooseOptimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name)
     return callbacks, optimizer
 
 
-def test_on_splits(model_path='', weights_path='', test_dataset_path=[], loss='',
-                   metric='', test_batch_size=32):
-    """ Load model and weights the test on dataset splitted for test.
-    """
-    test_data = cornell_grasp_dataset_reader.yield_record(
-        test_dataset_path, is_training=False, batch_size=test_batch_size,
-        parse_example_proto_fn=parse_and_preprocess)
-
-    if(load_weights):
-        if os.path.isfile(load_weights):
-            model.load_weights(load_weights)
-        else:
-            print('Could not load weights {}, '
-                    'the file does not exist, '
-                    'starting fresh....'.format(load_weights))
-
-    # model = model_from_json(model_json_path)
-    model.load_weights(weights_path)
-    # model.compile(loss=loss, metrics=[metric])
-    model.compile(loss=loss, metrics=[metric])
-    result = model.evaluate_generator(generator=test_data)
-
-    return result
-
-
-def train_on_splits(train_splits=None, val_splits=None,
-                    test_splits=None, split_type='imagewise'):
-    """ Training on dataset split for training
+def train_on_splits(train_splits=None, val_splits=None, test_splits=None, split_type='imagewise',
+                    csv_path='_k_fold_stat.csv', load_weights='', pipeline='train'):
+    """ Training/Testing on dataset split for training, to choose whether to train or test or both,
+        change pipeline to different str, train, test, train_test
 
         train_splits: number of splits of data used for training.
         val_splits: number of splits of data used for validation.
@@ -578,56 +570,83 @@ def train_on_splits(train_splits=None, val_splits=None,
         splits type desired when doing actual splits.
     """
     # must be sure that train_splits + val_splits + test_filenames = flags.num_splits
-    if train_on_splits is None:
+    cur_csv_path = os.path.join(FLAGS.data_dir, split_type + csv_path)
+    csv_reader = csv.DictReader(open(cur_csv_path))
+    unique_image_num = []
+    for row in csv_reader:
+        unique_image_num.append(int(row[' unique_image']))
+
+    if train_splits is None:
         train_splits = FLAGS.num_train
     if val_splits is None:
         val_splits = FLAGS.num_validation
-    if test_on_splits is None:
+    if test_splits is None:
         test_splits = FLAGS.num_test
+    if pipeline is None:
+        pipeline = FLAGS.pipeline_stage
     train_filenames = []
     val_filenames = []
     test_filenames = []
 
+    train_size = 0
+    val_size = 0
+    test_size = 0
     for i in range(train_splits):
+        train_size += unique_image_num[i]
         train_filenames += [os.path.join(FLAGS.data_dir,
                             'cornell-grasping-dataset' + split_type + '_fold_' + str(i) + '.tfrecord')]
 
     for i in range(train_splits, train_splits + val_splits):
+        val_size += unique_image_num[i]
         val_filenames += [os.path.join(FLAGS.data_dir,
                           'cornell-grasping-dataset' + split_type + '_fold_' + str(i) + '.tfrecord')]
 
     for i in range(train_splits + val_splits, train_splits + val_splits + test_splits):
+        test_size += unique_image_num[i]
         test_filenames += [os.path.join(FLAGS.data_dir,
                            'cornell-grasping-dataset' + split_type + '_fold_' + str(i) + '.tfrecord')]
     save_splits_weights = split_type + '_train:_' + str(train_splits) + '_val:_' + str(val_splits) + '_test:_' + str(test_splits)
-    run_training(train_file=train_filenames, validation_file=val_filenames, save_splits_weights=save_splits_weights)
+    run_training(train_file=train_filenames, validation_file=val_filenames, test_file=test_filenames,
+                 train_size=train_size, val_size=val_size, test_size=test_size, pipeline=pipeline,
+                 save_splits_weights=save_splits_weights, load_weights=load_weights)
 
     return train_filenames, val_filenames, test_filenames
 
 
-def train_k_fold(num_fold=None, split_type='imagewise'):
+def train_k_fold(num_fold=None, split_type='imagewise', csv_path='_k_fold_stat.csv'):
     """ Do K_Fold training
 
         num_fold: total number of fold.
         split_type: str, either 'imagewise' or 'objectwise', should be consistent with
         splits type desired when doing actual splits.
     """
+    cur_csv_path = os.path.join(FLAGS.data_dir, split_type + csv_path)
+    csv_reader = csv.DictReader(open(cur_csv_path))
+    unique_image_num = []
+    for row in csv_reader:
+        unique_image_num.append(int(row[' unique_image']))
     if num_fold is None:
         num_fold = FLAGS.num_splits
     val_filenames = []
     train_filenames = []
     train_id = ''
+    val_size = 0
+    train_size = 0
     for i in range(num_fold):
         val_filenames = [os.path.join(FLAGS.data_dir,
                          'cornell-grasping-dataset' + split_type + '_fold_' + str(i) + '.tfrecord')]
+        val_size = unique_image_num[i]
         for j in range(num_fold):
             if j == i:
                 continue
             train_id += str(j)
             train_filenames += [os.path.join(FLAGS.data_dir,
                                 'cornell-grasping-dataset' + split_type + '_fold_' + str(j) + '.tfrecord')]
+            train_size += unique_image_num[j]
         save_splits_weights = split_type + '_train_on:_' + train_id + '_val_on:' + str(i)
-        run_training(train_file=train_filenames, validation_file=val_filenames, save_splits_weights=save_splits_weights)
+        run_training(train_file=train_filenames, validation_file=val_filenames, save_splits_weights=save_splits_weights,
+                     train_size=train_size, val_size=val_size)
+        train_size = 0
 
     return
 
@@ -721,6 +740,24 @@ def epoch_params(batch_size):
     assert divides_evenly == 0
     steps_per_epoch_train = np.ceil(float(samples_in_training_dataset) / float(batch_size))
     return samples_in_val_dataset, steps_per_epoch_train, steps_in_val_dataset, val_batch_size
+
+
+def epoch_params_for_splits(train_batch=None, samples_train=None,
+                            val_batch=None, samples_val=None,
+                            test_batch=None, samples_test=None):
+
+    returns = []
+    if samples_train is not None and train_batch is not None:
+        steps_train = np.ceil(float(samples_train) / float(train_batch))
+        returns.append(steps_train)
+    if samples_val is not None and val_batch is not None:
+        steps_val = np.ceil(float(samples_val) / float(val_batch))
+        returns.append(steps_val)
+    if samples_test is not None and test_batch is not None:
+        steps_test = np.ceil(float(samples_test) / float(test_batch))
+        returns.append(steps_test)
+
+    return returns
 
 
 def bboxes_to_grasps(bboxes):
