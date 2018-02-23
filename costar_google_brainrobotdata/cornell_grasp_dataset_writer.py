@@ -203,7 +203,7 @@ flags.DEFINE_float(
        use 0 if you want all files to be in one dataset file,
        which makes sense if you're going to do your splits with the tensorflow Dataset API.
        Only applies when is_fold_splits is False.""")
-flags.DEFINE_string('filename_base', 'cornell-grasping-dataset', 'base of the filename used for the dataset tfrecords and csv files')
+flags.DEFINE_string('tfrecord_filename_base', 'cornell-grasping-dataset', 'base of the filename used for the dataset tfrecords and csv files')
 flags.DEFINE_string('train_filename', 'cornell-grasping-dataset-train.tfrecord', 'filename used for the training dataset')
 flags.DEFINE_string('evaluate_filename', 'cornell-grasping-dataset-evaluate.tfrecord', 'filename used for the evaluation dataset')
 flags.DEFINE_string('stats_filename', 'cornell-grasping-dataset-stats.md', 'filename used for the dataset statistics file')
@@ -371,7 +371,7 @@ def read_label_file(path):
                 has_nan = False
 
 
-def k_fold_split(path=FLAGS.data_dir, split_type=FLAGS.split_type, num_fold=FLAGS.num_fold, filename_base=FLAGS.filename_base):
+def k_fold_split(path=FLAGS.data_dir, split_type=FLAGS.split_type, num_fold=FLAGS.num_fold, tfrecord_filename_base=FLAGS.tfrecord_filename_base):
     """ K-Fold on dataset.
         path: path to z.txt, a file match images and objects. And *pos/neg.txt, should
         remain in same folder with z.txt.
@@ -398,10 +398,10 @@ def k_fold_split(path=FLAGS.data_dir, split_type=FLAGS.split_type, num_fold=FLAG
 
     if split_type == 'imagewise':
         spilt_type_list = ['imagewise'] * num_fold
-        result_path = os.path.join(path, filename_base + '-imagewise-k-fold-stat.csv')
+        result_path = os.path.join(path, tfrecord_filename_base + '-imagewise-k-fold-stat.csv')
     elif split_type == 'objectwise':
         spilt_type_list = ['objectwise'] * num_fold
-        result_path = os.path.join(path, filename_base + '-objectwise-k-fold-stat.csv')
+        result_path = os.path.join(path, tfrecord_filename_base + '-objectwise-k-fold-stat.csv')
     else:
         raise ValueError('Unsupported split type: ' + str(split_type) +
                          ' options are objectwise and imagewise.')
@@ -464,7 +464,7 @@ def k_fold_split(path=FLAGS.data_dir, split_type=FLAGS.split_type, num_fold=FLAG
     return fold_image_id_list
 
 
-def k_fold_tfrecord_writer(path=FLAGS.data_dir, kFold_list=None, split_type=FLAGS.split_type, filename_base=FLAGS.filename_base):
+def k_fold_tfrecord_writer(path=FLAGS.data_dir, kFold_list=None, split_type=FLAGS.split_type, tfrecord_filename_base=FLAGS.tfrecord_filename_base):
     """ Write Tfrecord based on image_id stored in kFold_list.
 
         path: directory of where origin data is stored, not a file path.
@@ -481,7 +481,7 @@ def k_fold_tfrecord_writer(path=FLAGS.data_dir, kFold_list=None, split_type=FLAG
 
     coder = ImageCoder()
     for i, fold in enumerate(tqdm(kFold_list, desc='Writing datasets ' + split_type)):
-        recordPath = path + filename_base + '-' + split_type + '-fold-' + str(i) + '.tfrecord'
+        recordPath = path + tfrecord_filename_base + '-' + split_type + '-fold-' + str(i) + '.tfrecord'
         cur_writer = tf.python_io.TFRecordWriter(recordPath)
         for image_id in fold:
             bbox_pos_path = path + image_id[:2] + '/pcd' + image_id + 'cpos.txt'
