@@ -46,7 +46,7 @@ class PredictorShowImage(keras.callbacks.Callback):
 
     variables = ["x","y","z","roll","pitch","yaw","gripper"]
 
-    def __init__(self, predictor, features, targets,
+    def __init__(self, saved_model, predictor, features, targets,
             model_directory=DEFAULT_MODEL_DIRECTORY,
             name="model",
             num_hypotheses=4,
@@ -66,6 +66,7 @@ class PredictorShowImage(keras.callbacks.Callback):
         num_hypotheses: how many outputs to expect
         verbose: print out extra information
         '''
+        self.saved_model = saved_model
         self.verbose = verbose
         self.use_prev_option = use_prev_option
         self.predictor = predictor
@@ -104,11 +105,8 @@ class PredictorShowImage(keras.callbacks.Callback):
                                'are you sure you meant to use this callback'
                                'and not a normal image callback?')
         img = np.reshape(img, (self.num,64,64,3))
-        if self.use_noise:
-            #z= np.random.random((self.targets[0].shape[0], self.num_hypotheses, self.noise_dim))
-            data, arms, grippers, label, probs, v = self.predictor.predict(self.features)
-        else:
-            data, arms, grippers, label, probs, v = self.predictor.predict(self.features)
+        features = self.saved_model.addNoiseIfNeeded(self.features)
+        data, arms, grippers, label, probs, v = self.predictor.predict(features)
         plt.ioff()
         if self.verbose:
             print("============================")
@@ -164,7 +162,7 @@ class StateCb(keras.callbacks.Callback):
     Just predict state information from our models
     '''
 
-    def __init__(self, predictor, features, targets,
+    def __init__(self, saved_model, predictor, features, targets,
             model_directory=DEFAULT_MODEL_DIRECTORY,
             name="model",
             features_name=None,
@@ -180,6 +178,7 @@ class StateCb(keras.callbacks.Callback):
         targets: training target info, in compressed form
         verbose: print out extra information
         '''
+        self.saved_model = saved_model
         self.predictor = predictor
         self.idxs = range(min_idx, max_idx, step)
         self.num = len(self.idxs)
@@ -191,7 +190,8 @@ class StateCb(keras.callbacks.Callback):
             os.makedirs(self.directory)
 
     def on_epoch_end(self, epoch, logs={}):
-        res = self.predictor.predict(self.features)
+        features = self.saved_model.addNoiseIfNeeded(self.features)
+        res = self.predictor.predict(features)
         show_label = False
         if not isinstance(res, list):
             arm = res
@@ -218,7 +218,7 @@ class ImageCb(keras.callbacks.Callback):
     target, and predicted target image.
     '''
 
-    def __init__(self, predictor, features, targets,
+    def __init__(self, saved_model, predictor, features, targets,
             model_directory=DEFAULT_MODEL_DIRECTORY,
             name="model", features_name=None,
             min_idx=0, max_idx=66, step=11, show_idx=0,
@@ -238,6 +238,7 @@ class ImageCb(keras.callbacks.Callback):
             self.features_name = "def"
         else:
             self.features_name = features_name
+        self.saved_model = saved_model
         self.predictor = predictor
         self.idxs = range(min_idx, max_idx, step)
         self.num = len(self.idxs)
@@ -249,7 +250,8 @@ class ImageCb(keras.callbacks.Callback):
             os.makedirs(self.directory)
 
     def on_epoch_end(self, epoch, logs={}):
-        res = self.predictor.predict(self.features)
+        features = self.saved_model.addNoiseIfNeeded(self.features)
+        res = self.predictor.predict(features)
         if isinstance(res, list):
             img = res[0]
             if len(res) == 4:
@@ -277,7 +279,8 @@ class ImageWithFirstCb(ImageCb):
         super(ImageWithFirstCb, self).__init__(show_idx=1, *args, **kwargs)
 
     def on_epoch_end(self, epoch, logs={}):
-        res = self.predictor.predict(self.features)
+        features = self.saved_model.addNoiseIfNeeded(self.features)
+        res = self.predictor.predict(features)
         if isinstance(res, list):
             img = res[0]
             img2 = res[1]
@@ -314,7 +317,7 @@ class PredictorShowImageOnlyMultiStep(keras.callbacks.Callback):
     will look like at the end of an epoch.
     '''
 
-    def __init__(self, predictor, features, targets,
+    def __init__(self, saved_model, predictor, features, targets,
             model_directory=DEFAULT_MODEL_DIRECTORY,
             num_hypotheses=4,
             verbose=False,
@@ -340,6 +343,7 @@ class PredictorShowImageOnlyMultiStep(keras.callbacks.Callback):
         else:
             self.features_name = features_name
         self.verbose = verbose
+        self.saved_model = saved_model
         self.predictor = predictor
         self.idxs = range(min_idx, max_idx, step)
         self.num = len(self.idxs)
@@ -354,7 +358,8 @@ class PredictorShowImageOnlyMultiStep(keras.callbacks.Callback):
 
     def on_epoch_end(self, epoch, logs={}):
         # take the model and print it out
-        data = self.predictor.predict(self.features)
+        features = self.saved_model.addNoiseIfNeeded(self.features)
+        data = self.predictor.predict(features)
         plt.ioff()
         if self.verbose:
             print("============================")
@@ -391,7 +396,7 @@ class PredictorShowImageOnly(keras.callbacks.Callback):
     will look like at the end of an epoch.
     '''
 
-    def __init__(self, predictor, features, targets,
+    def __init__(self, saved_model, predictor, features, targets,
             model_directory=DEFAULT_MODEL_DIRECTORY,
             num_hypotheses=4,
             verbose=False,
@@ -412,6 +417,7 @@ class PredictorShowImageOnly(keras.callbacks.Callback):
         verbose: print out extra information
         '''
         self.verbose = verbose
+        self.saved_model = saved_model
         self.predictor = predictor
         self.idxs = range(min_idx, max_idx, step)
         self.num = len(self.idxs)
@@ -479,7 +485,7 @@ class PredictorGoals(keras.callbacks.Callback):
     will look like at the end of an epoch.
     '''
 
-    def __init__(self, predictor, features, targets,
+    def __init__(self, saved_model, predictor, features, targets,
             model_directory=DEFAULT_MODEL_DIRECTORY,
             num_hypotheses=4,
             verbose=False,
@@ -500,6 +506,7 @@ class PredictorGoals(keras.callbacks.Callback):
         verbose: print out extra information
         '''
         self.verbose = verbose
+        self.saved_model = saved_model
         self.predictor = predictor
         self.idxs = range(min_idx, max_idx, step)
         self.num = len(self.idxs)
