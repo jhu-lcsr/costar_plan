@@ -159,8 +159,8 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=True, perm_drop=False):
               activation_fn, 0., constraint=None, bn=False, output=False)
         x = Reshape([int(h_dim[0]/4), int(h_dim[1]/4), 64])(x)
     else:
-        x = AddConv2D(x, 64, [5,5], 2, 0., **kwargs)
-        x = AddConv2D(x, 64, [5,5], 1, 0., **kwargs)
+        x = AddConv2D(x, 64, [5,5], 2, **kwargs_dr0)
+        x = AddConv2D(x, 64, [5,5], 1, **kwargs_dr0)
     x = AddConv2DTranspose(x, 64, [5,5], 2, **kwargs)
 
     # --- end ssm block
