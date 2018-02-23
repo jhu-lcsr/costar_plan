@@ -398,7 +398,7 @@ def train_k_fold(num_fold=None, split_type='imagewise', csv_path='-k-fold-stat.c
             train_filenames += [os.path.join(FLAGS.data_dir,
                                 'cornell-grasping-dataset' + split_type + '-fold-' + str(j) + '.tfrecord')]
             train_size += unique_image_num[j]
-        save_splits_weights = split_type + '_train_on:_' + train_id + '_val_on:' + str(i)
+        save_splits_weights = split_type + '_train_on_' + train_id + '_val_on_' + str(i)
         run_training(train_files=train_filenames, validation_files=val_filenames, save_splits_weights=save_splits_weights,
                      train_size=train_size, val_size=val_size)
         train_size = 0
