@@ -14,8 +14,8 @@ echo $1 $2 $3 $4 $5 $6 $7
 echo "use disc = $use_disc"
 
 export DATASET="suturing_data2"
-export train_discriminator2=false
-export train_image_encoder=false
+export train_discriminator2=true
+export train_image_encoder=true
 export learning_rate=$1
 export dropout=$2
 export optimizer=$3
@@ -23,6 +23,7 @@ export noise_dim=$4
 export loss=$5
 export retrain=$6
 export use_disc=$7
+export use_skips=$8
 #export MODELDIR="$HOME/.costar/suturing_$learning_rate$optimizer$dropout$noise_dim$loss"
 export MODELROOT="$HOME/.costar"
 export SUBDIR="suturing_$learning_rate$optimizer$dropout$noise_dim$loss"
@@ -108,5 +109,6 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --preload \
   --loss $loss \
   --use_batchnorm $USE_BN \
+  --skip_connections $use_skips \
   --batch_size 64 $retrain_cmd $use_disc_cmd
 

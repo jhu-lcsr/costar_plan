@@ -19,9 +19,12 @@ class AbstractAgentBasedModel(object):
     '''
 
     def makeName(self, prefix, submodel=None):
-        name = os.path.join(self.model_directory, prefix) + "_model"
+        dir = self.model_directory
+        if submodel is not None and self.reqs_directory is not None:
+            dir = self.reqs_directory
+        name = os.path.join(dir, prefix) + "_model"
         if self.features is not None:
-            name += "_%s"%self.features   
+            name += "_%s"%self.features
         if submodel is not None:
             name += "_%s.h5f"%submodel
         return name
@@ -65,7 +68,7 @@ class AbstractAgentBasedModel(object):
             use_batchnorm=1,
             hypothesis_dropout=False,
             dense_representation=True,
-            skip_connections=0,
+            skip_connections=1,
             use_noise=False,
             load_pretrained_weights=False,
             retrain=True,
@@ -81,8 +84,12 @@ class AbstractAgentBasedModel(object):
             clip_weights=0, use_wasserstein=False,
             option_num=None, # for policy model
             unique_id="", # for status file
-            task=None, robot=None, model="", model_directory="./", *args,
-            **kwargs):
+            task=None,
+            robot=None,
+            model="",
+            model_directory="./",
+            reqs_directory=None,
+            *args, **kwargs):
 
         if lr == 0 or lr < 1e-30:
             raise RuntimeError('You probably did not mean to set ' + \
@@ -124,6 +131,9 @@ class AbstractAgentBasedModel(object):
         self.clipnorm = float(clipnorm)
         self.taskdef = taskdef
         self.model_directory = os.path.expanduser(model_directory)
+        self.reqs_directory = None
+        if reqs_directory is not None:
+            self.reqs_directory = os.path.expanduser(reqs_directory)
         self.name = self.makeName(self.name_prefix)
         self.num_generator_files = num_generator_files
         self.dropout_rate = dropout_rate
@@ -143,7 +153,7 @@ class AbstractAgentBasedModel(object):
         self.save_model = save_model
         self.hidden_size = hidden_size
         self.option_num = option_num
-        
+
         if self.noise_dim < 1:
             self.use_noise = False
 
@@ -160,7 +170,7 @@ class AbstractAgentBasedModel(object):
         # Unique id for status file
         self.unique_id = unique_id
 
-        
+
 
         # default: store the whole model here.
         # NOTE: this may not actually be where you want to save it.
@@ -175,6 +185,7 @@ class AbstractAgentBasedModel(object):
         print("Task =", self.task)
         print("Model type =", model)
         print("Model directory =", self.model_directory)
+        print("Reqs directory =", self.reqs_directory)
         print("Models saved with prefix =", self.name)
         print("Unique id for status file =", self.unique_id)
         print("-----------------------------------------------------------")
@@ -239,9 +250,9 @@ class AbstractAgentBasedModel(object):
     def _getData(self, *args, **kwargs):
         '''
         This function should process all the data you need for a generator.
-        ''' 
+        '''
         raise NotImplementedError('_getData() requires a dataset.')
-        
+
     def trainGenerator(self, dataset):
         return self._yieldLoop(dataset.sampleTrain)
 
@@ -254,7 +265,7 @@ class AbstractAgentBasedModel(object):
 
     def _yieldLoop(self, sampleFn):
       '''
-      This helper function runs in a loop infinitely, executing some callable 
+      This helper function runs in a loop infinitely, executing some callable
       to extract a set of feature information from a dataset file, and then
       performs any necessary preprocessing on it.
 
@@ -430,7 +441,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         self.baseline = None
         # All low-level policies pi(x,o) --> u
         self.policies = []
-       
+
     def _makeSupervisor(self, feature):
         '''
         This needs to create a supervisor. This one maps from input to the

@@ -42,6 +42,7 @@ out: an output tensor
 # MOMENTUM=0.9 seems to help training
 MOMENTUM=0.9
 RENORM=False
+PERMANENT_DROPOUT=False
 
 def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
         lrelu=False, bn=True, momentum=MOMENTUM, name=None, constraint=None,
@@ -119,8 +120,10 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
     if dropout_rate > 0:
         if name is not None:
             kwargs['name'] = "%s_dropout%f"%(name, dropout_rate)
-        #x = PermanentDropout(dropout_rate, **kwargs)(x)
-        x = Dropout(dropout_rate, **kwargs)(x)
+        if PERMANENT_DROPOUT:
+            x = PermanentDropout(dropout_rate, **kwargs)(x)
+        else:
+            x = Dropout(dropout_rate, **kwargs)(x)
     return x
 
 def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate,
@@ -188,8 +191,10 @@ def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate,
     else:
         x = Activation(activation)(x)
     if dropout_rate > 0:
-        #x = PermanentDropout(dropout_rate)(x)
-        x = Dropout(dropout_rate)(x)
+        if PERMANENT_DROPOUT:
+            x = PermanentDropout(dropout_rate)(x)
+        else:
+            x = Dropout(dropout_rate)(x)
     return x
 
 def AddDense(x, size, activation, dropout_rate, output=False, momentum=MOMENTUM,
@@ -241,8 +246,10 @@ def AddDense(x, size, activation, dropout_rate, output=False, momentum=MOMENTUM,
     else:
         x = Activation(activation)(x)
     if dropout_rate > 0:
-        #x = PermanentDropout(dropout_rate)(x)
-        x = Dropout(dropout_rate)(x)
+        if PERMANENT_DROPOUT:
+            x = PermanentDropout(dropout_rate)(x)
+        else:
+            x = Dropout(dropout_rate)(x)
     return x
 
 def CombinePose(pose_in, dim=64):
@@ -953,17 +960,17 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     #x = Concatenate()([x0in, xin])
     if len(x.shape) > 2:
         # Project
-        x = AddConv2D(x, 32, [1,1], 1, dropout_rate, "same",
+        x = AddConv2D(x, 32, [4,4], 1, 0., "same",
                 bn=bn,
                 lrelu=use_lrelu,
                 name="Nx_project",
                 constraint=None)
-        x0 = AddConv2D(x0, 32, [1,1], 1, dropout_rate, "same",
+        x0 = AddConv2D(x0, 32, [4,4], 1, 0., "same",
                 bn=bn,
                 lrelu=use_lrelu,
                 name="Nx_project0",
                 constraint=None)
-        x = Add()([x,x0])
+        x = Concatenate()([x,x0])
 
         if num_options > 0:
             option_x = OneHot(num_options)(option_in)
@@ -971,30 +978,25 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
             x = TileOnto(x, option_x, num_options, x.shape[1:3])
 
         # conv down
-        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "valid",
+        x = AddConv2D(x, 64, [4,4], 2, 0., "same",
                 bn=bn,
                 lrelu=use_lrelu,
                 name="Nx_C64A",
                 constraint=None)
         # conv across
-        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "valid",
+        x = AddConv2D(x, 64, [4,4], 2, 0., "same",
                 bn=bn,
                 lrelu=use_lrelu,
                 name="Nx_C64B",
                 constraint=None)
 
 
-        x = AddConv2D(x, 32, [3,3], 1, 0., "valid",
-                bn=bn,
-                lrelu=use_lrelu,
-                name="Nx_C32A",
-                constraint=None)
         # This is the hidden representation of the world, but it should be flat
         # for our classifier to work.
         x = Flatten()(x)
 
     x = Dropout(0.5)(x)
-    x = Concatenate()([x, option_in])
+    x = Concatenate()([x, option_x])
 
     # Next options
     x1 = AddDense(x, dense_size, "relu", 0., constraint=None,
@@ -1006,7 +1008,8 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
 
     next_option_out = Dense(num_options,
             activation="softmax", name="lnext",)(x1)
-    next_model = Model([x0in, xin, option_in], next_option_out, name="next")
+    done_out = Dense(1, activation="sigmoid", name="done",)(x1)
+    next_model = Model([x0in, xin, option_in], [next_option_out, done_out], name="next")
     #next_model = Model([xin, option_in], next_option_out, name="next")
     return next_model
 
@@ -1018,27 +1021,27 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     xin = Input([int(d) for d in x.shape[1:]], name="V_h_in")
     x0in = Input([int(d) for d in x.shape[1:]], name="V_h0_in")
     use_lrelu = False
-    bn = batchnorm and False
+    bn = batchnorm
     x = xin
     x0 = x0in
     if len(x.shape) > 2:
         # This is the hidden representation of the world, but it should be flat
         # for our classifier to work.
 
-        x = AddConv2D(x, 64, [5,5], 1, dropout_rate, "same",
+        x = AddConv2D(x, 32, [4,4], 1, 0., "same",
                 bn=bn,
                 lrelu=use_lrelu,
                 name="A_project",
                 constraint=None)
-        x0 = AddConv2D(x0, 64, [5,5], 1, dropout_rate, "same",
+        x0 = AddConv2D(x0, 32, [4,4], 1, 0., "same",
                 bn=bn,
                 lrelu=use_lrelu,
                 name="A0_project",
                 constraint=None)
-        x = Add()([x0,x])
+        x = Concatenate()([x0,x])
 
-        x = AddConv2D(x, 64, [5,5], 2, dropout_rate, "same", lrelu=use_lrelu, bn=bn)
-        x = AddConv2D(x, 64, [5,5], 2, 0., "same", lrelu=use_lrelu, bn=bn)
+        x = AddConv2D(x, 64, [4,4], 2, 0., "same", lrelu=use_lrelu, bn=bn)
+        x = AddConv2D(x, 64, [4,4], 2, 0., "same", lrelu=use_lrelu, bn=bn)
         x = Flatten()(x)
 
     # Next options

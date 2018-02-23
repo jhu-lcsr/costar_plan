@@ -21,7 +21,6 @@ from .abstract import *
 from .callbacks import *
 from .multi_hierarchical import *
 from .robot_multi_models import *
-from .split import *
 from .mhp_loss import *
 
 class RobotMultiSequencePredictor(RobotMultiHierarchical):

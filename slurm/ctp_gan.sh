@@ -17,12 +17,12 @@ else
 fi
 
 ## Option Processing ----
-OPTS=$(getopt -o '' --long lr:,dr:,opt:,noisedim:,loss:,wass,no_wass,noise,retrain,gan_encoder,skip_encoder,load_model,suffix:,multi,husky,jigsaws,no_resume,epochs1:,epochs2: -n ctp_gan -- "$@")
+OPTS=$(getopt -o '' --long lr:,dr:,opt:,noisedim:,loss:,wass,no_wass,noise,retrain,gan_encoder,skip_encoder,load_model,suffix:,multi,husky,jigsaws,no_resume,epochs1:,epochs2:,pretrain_dir: -n ctp_gan -- "$@")
 
 [[ $? != 0 ]] && echo "Failed parsing options." && exit 1
 
 gan_encoder=false
-skip_encoder=true
+skip_encoder=false
 lr=0.001
 dropout=0.1
 optimizer=adam
@@ -38,6 +38,7 @@ suffix=''
 resume=true # resume a job
 epochs1=100
 epochs2=100
+pretrain_dir=''
 
 echo "$OPTS"
 eval set -- "$OPTS"
@@ -63,6 +64,7 @@ while true; do
     --no_resume) resume=false; shift ;;
     --epochs1) epochs1="$2"; shift 2 ;;
     --epochs2) epochs2="$2"; shift 2 ;;
+    --pretrain_dir) pretrain_dir="$2"; shift 2 ;;
     --) shift; break ;;
     *) echo "Internal error!" ; exit 1 ;;
   esac
@@ -180,6 +182,9 @@ status_file="$MODELDIR"/status_cond.txt
 load_cmd=''
 $load_model || ($resume && [[ -f $status_file ]]) && load_cmd='--load_model'
 
+req_dir_cmd=''
+[[ $pretrain_dir ]] && req_dir_cmd="--req_directory $pretrain_dir"
+
 # Calculate epochs left
 epochs_done=0
 if $resume && [[ -f $status_file ]]; then
@@ -209,5 +214,6 @@ else
     --unique_id _cond \
     $wass_cmd \
     $use_noise_cmd \
-    $load_cmd
+    $load_cmd \
+    $req_dir_cmd
 fi

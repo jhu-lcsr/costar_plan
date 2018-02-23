@@ -22,7 +22,6 @@ from .abstract import *
 from .husky_callbacks import *
 from .multi_hierarchical import *
 from .robot_multi_models import *
-from .split import *
 from .mhp_loss import *
 from .multi_sampler import *
 

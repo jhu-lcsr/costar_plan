@@ -46,7 +46,6 @@ class ConditionalImageGan(PretrainImageGan):
         self.rep_size = 256
         self.num_transforms = 3
         self.do_all = True
-        self.skip_connections = False
         self.save_encoder_decoder = self.retrain
         self.noise_iters = 2
 
@@ -71,12 +70,8 @@ class ConditionalImageGan(PretrainImageGan):
         next_option2_in = Input((1,), name="next_option2_in")
         ins = [img0_in, img_in, next_option_in, next_option2_in]
 
-        if self.skip_connections:
-            encoder = self._makeImageEncoder2(img_shape)
-            decoder = self._makeImageDecoder2(self.hidden_shape)
-        else:
-            encoder = self._makeImageEncoder(img_shape)
-            decoder = self._makeImageDecoder(self.hidden_shape)
+        encoder = self._makeImageEncoder(img_shape)
+        decoder = self._makeImageDecoder(self.hidden_shape)
 
         LoadEncoderWeights(self, encoder, decoder, gan=True)
 
@@ -87,11 +82,8 @@ class ConditionalImageGan(PretrainImageGan):
             z2 = Input((self.noise_dim,), name="z2_in")
             ins += [z1, z2]
 
-        if self.skip_connections:
-            h, s32, s16, s8 = encoder([img0_in, img_in])
-        else:
-            h = encoder([img_in])
-            h0 = encoder(img0_in)
+        h = encoder([img_in])
+        h0 = encoder(img0_in)
 
         # =====================================================================
         # Actually get the right outputs
@@ -132,7 +124,7 @@ class ConditionalImageGan(PretrainImageGan):
         # =====================================================================
         # And adversarial model
         loss = wasserstein_loss if self.use_wasserstein else "binary_crossentropy"
-        weights = [0.01, 0.01, 1.] if self.use_wasserstein else [100., 100., 1.]
+        weights = [0.1, 0.1, 1.] if self.use_wasserstein else [100., 100., 1.]
 
         model = Model(ins, [image_out, image_out2, is_fake])
         model.compile(
@@ -175,8 +167,7 @@ class ConditionalImageGan(PretrainImageGan):
         option = Input((1,),name="disc_options")
         option2 = Input((1,),name="disc2_options")
         ins = [img0, img, option, option2, img_goal, img_goal2]
-        dr = self.dropout_rate
-        dr = 0
+        dr = self.dropout_rate*0.
 
         x0 = AddConv2D(img0, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
         xobs = AddConv2D(img, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
@@ -209,9 +200,11 @@ class ConditionalImageGan(PretrainImageGan):
             x = Flatten()(x)
             x = AddDense(x, 1, "linear", 0., output=True, bn=False)
         else:
-            x = AddConv2D(x, 1, [1,1], 1, 0., "same", activation="sigmoid",
-                bn=False)
-            x = GlobalAveragePooling2D()(x)
+            #x = AddConv2D(x, 1, [1,1], 1, 0., "same", activation="sigmoid",
+            #    bn=False)
+            #x = GlobalAveragePooling2D()(x)
+            x = Flatten()(x)
+            x = AddDense(x, 1, "sigmoid", 0., output=True, bn=False)
 
         discrim = Model(ins, x, name="image_discriminator")
         self.lr *= 2.

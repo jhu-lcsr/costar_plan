@@ -6,6 +6,7 @@ import keras.optimizers as optimizers
 import numpy as np
 
 from keras.layers.pooling import MaxPooling2D, AveragePooling2D
+from keras.layers.pooling import GlobalAveragePooling2D
 from keras.layers import Input, RepeatVector, Reshape
 from keras.layers.merge import Concatenate, Multiply
 from keras.models import Model, Sequential
@@ -15,6 +16,8 @@ from .conditional_image_gan import ConditionalImageGan
 from .dvrk import *
 from .data_utils import *
 from .pretrain_image_gan import wasserstein_loss
+
+import costar_models.planner as planner
 
 class ConditionalImageGanJigsaws(ConditionalImageGan):
     '''
@@ -29,6 +32,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
 
         self.num_options = 16
         self.save_encoder_decoder = self.retrain
+        planner.PERMANENT_DROPOUT = True
 
     def _makeModel(self, image, *args, **kwargs):
 
@@ -52,11 +56,8 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
 
         # =====================================================================
         # Create outputs
-        if self.skip_connections:
-            h, s32, s16, s8 = encoder([img0_in, img_in])
-        else:
-            h = encoder(img_in)
-            h0 = encoder(img0_in)
+        h = encoder(img_in)
+        h0 = encoder(img0_in)
 
         if self.use_noise:
             z1 = Input((self.noise_dim,), name="z1_in")
@@ -99,7 +100,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         # And adversarial model
         model = Model(ins, [image_out, image_out2, is_fake])
         loss = wasserstein_loss if self.use_wasserstein else "binary_crossentropy"
-        weights = [0.01, 0.01, 1.] if self.use_wasserstein else [100., 100., 1.]
+        weights = [0.1, 0.1, 1.] if self.use_wasserstein else [100., 100., 1.]
         model.compile(
                 loss=["mae", "mae", loss],
                 loss_weights=weights,
@@ -139,8 +140,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         option = Input((1,),name="disc_options")
         option2 = Input((1,),name="disc2_options")
         ins = [img0, img, option, option2, img_goal, img_goal2]
-        dr = self.dropout_rate
-        dr = 0
+        dr = self.dropout_rate * 0.
         img_size = (96, 128)
 
         x0 = AddConv2D(img0, 32, [4,4], 1, dr, "same", lrelu=True, bn=False)
@@ -172,8 +172,16 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         #x = AveragePooling2D(pool_size=(12,16))(x)
         #x = AveragePooling2D(pool_size=(24,32))(x)
         x = x2
-        x = Flatten()(x)
-        x = AddDense(x, 1, "linear", 0., output=True, bn=False)
+        if self.use_wasserstein:
+            x = Flatten()(x)
+            x = AddDense(x, 1, "linear", 0., output=True, bn=False)
+        else:
+            x = Flatten()(x)
+            x = AddDense(x, 1, "sigmoid", 0., output=True, bn=False)
+            #x = AddConv2D(x, 1, [1,1], 1, 0., "same", activation="linear",
+            #    bn=False)
+            #x = GlobalAveragePooling2D()(x)
+
         discrim = Model(ins, x, name="image_discriminator")
         self.lr *= 2.
         loss = wasserstein_loss if self.use_wasserstein else "binary_crossentropy"

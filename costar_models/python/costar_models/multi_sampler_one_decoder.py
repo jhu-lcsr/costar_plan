@@ -20,7 +20,6 @@ from matplotlib import pyplot as plt
 from .abstract import *
 from .multi_hierarchical import *
 from .robot_multi_models import *
-from .split import *
 from .mhp_loss import *
 
 class RobotMultiPredictionSampler(RobotMultiHierarchical):
