@@ -72,20 +72,20 @@ def visualizeHiddenMain(args):
         #h_goal = model.transform(h0, h, o1)
         h_goal = model.transform(h0, h, action)
         p_a2, done2 = model.pnext(h0, h_goal, action)
-        q_a2, _ = model.q(h0, h, prev_option)
+        q_a2, _ = model.q(h0, h_goal, action)
         action2 = np.argmax(p_a2,axis=1)
 
         # Comute effects of next action
         #h_goal2 = model.transform(h0, h_goal, o2)
         h_goal2 = model.transform(h0, h_goal, action2)
         p_a3, done3 = model.pnext(h0, h_goal2, action2)
-        q_a3, _ = model.q(h0, h, prev_option)
+        q_a3, _ = model.q(h0, h, action2)
         action3 = np.argmax(p_a3,axis=1)
 
         # Comute effects of next action
-        h_goal3 = model.transform(h0, h_goal, action3)
+        h_goal3 = model.transform(h0, h_goal2, action3)
         p_a4, done4 = model.pnext(h0, h_goal3, action3)
-        q_a4, _ = model.q(h0, h, prev_option)
+        q_a4, _ = model.q(h0, h,action3)
         action4 = np.argmax(p_a4,axis=1)
 
         # Compute values and images
@@ -114,13 +114,13 @@ def visualizeHiddenMain(args):
             qa_idx3 = GetOrderedList(q_a3[i])
             print(" --- 1 ---")
             print(pa_idx1)
-            qrint(qa_idx1)
+            print(qa_idx1)
             print(" --- 2 ---")
             print(pa_idx2)
-            qrint(qa_idx2)
+            print(qa_idx2)
             print(" --- 3 ---")
             print(pa_idx3)
-            qrint(qa_idx3)
+            print(qa_idx3)
 
             plt.figure()
             plt.subplot(4,4,5)
