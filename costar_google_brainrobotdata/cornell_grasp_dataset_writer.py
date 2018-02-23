@@ -1070,8 +1070,6 @@ def main():
     if FLAGS.is_fold_splits:
         # k_fold_list is a list of lists of filenames
         k_fold_list = k_fold_split()
-        print(k_fold_list)
-        return
         k_fold_tfrecord_writer(kFold_list=k_fold_list)
         return
 
