@@ -140,9 +140,11 @@ function latest_images_dir() {
     for f in $1/$prefix*; do
       # Isolate number
       local file="${f##*/}"
-      file="${file%_result*}"
-      local num="${file##*epoch}"
-      [[ $num > $max ]] && max=$num
+      #file="${file%_result*}"
+      #local num="${file##*epoch}"
+      #num=$(echo $num | sed 's/^0*//') # remove leading 0s
+      num=$(echo $file | sed 's/^.*epoch0*\([0-9]*\).*/\1/')
+      (($num > $max)) && max=$num
     done
     image_prefixes[$prefix]=$max
   done

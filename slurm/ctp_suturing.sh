@@ -14,7 +14,7 @@ echo $1 $2 $3 $4 $5 $6 $7 $8 $9
 echo "use disc = $use_disc"
 
 export DATASET="suturing_data2"
-export train_discriminator2=true
+export train_discriminator2=false
 export train_image_encoder=true
 export learning_rate=$1
 export dropout=$2

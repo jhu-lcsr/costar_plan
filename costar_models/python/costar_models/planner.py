@@ -1314,3 +1314,8 @@ def vgg16():
     model.add(Dropout(0.5))
     model.add(Dense(1000, activation='softmax'))
     return model
+
+def GetOrderedList(p):
+    pidx = sorted(range(len(p)), key = lambda k: p[k])
+    pidx.reverse()
+    return pidx
