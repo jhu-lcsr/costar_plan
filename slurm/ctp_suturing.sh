@@ -14,7 +14,7 @@ echo $1 $2 $3 $4 $5 $6 $7 $8 $9
 echo "use disc = $use_disc"
 
 export DATASET="suturing_data2"
-export train_discriminator2=false
+export train_discriminator2=true
 export train_image_encoder=true
 export learning_rate=$1
 export dropout=$2
@@ -27,7 +27,7 @@ export use_skips=$8
 export use_ssm=$9
 #export MODELDIR="$HOME/.costar/suturing_$learning_rate$optimizer$dropout$noise_dim$loss"
 export MODELROOT="$HOME/.costar"
-export SUBDIR="suturing_$learning_rate$optimizer$dropout$noise_dim$loss$use_skips"
+export SUBDIR="suturing_$learning_rate$optimizer$dropout$noise_dim${loss}_skip${use_skips}_ssm${use_ssm}"
 export USE_BN=1
 
 retrain_cmd=""

@@ -14,7 +14,7 @@ echo $1 $2 $3 $4 $5 $6 $7 $8 $9
 echo "use disc = $use_disc"
 
 export DATASET="husky_data"
-export train_discriminator2=false
+export train_discriminator2=true
 export train_image_encoder=true
 export train_gans=true
 export train_encoder_gan=false
@@ -29,7 +29,7 @@ export use_skips=$8
 export use_ssm=$9
 #export MODELDIR="$HOME/.costar/husky_$learning_rate$optimizer$dropout$noise_dim$loss"
 export MODELROOT="$HOME/.costar"
-export SUBDIR="husky_$learning_rate$optimizer$dropout$noise_dim$loss$use_skips"
+export SUBDIR="husky_$learning_rate$optimizer$dropout$noise_dim${loss}_skip${use_skips}_ssm${use_ssm}"
 export USE_BN=1
 
 retrain_cmd=""
