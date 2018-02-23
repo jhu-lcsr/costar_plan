@@ -199,12 +199,12 @@ def optimize(seed=1, verbose=1):
     # how many optimization steps to take after the initial sampling
     maximum_hyperopt_steps = 100
     total_max_steps = initial_num_samples + maximum_hyperopt_steps
+    # defining a temporary variable scope for the callbacks
+    class ProgUpdate():
+        hyperopt_current_update = 0
+        progbar = tqdm(desc='hyperopt', total=total_max_steps)
 
     def train_callback(x):
-        # defining a temporary variable scope for the callbacks
-        class ProgUpdate():
-            hyperopt_current_update = 0
-            progbar = tqdm(desc='hyperopt', total=total_max_steps)
         # x is a funky 2d numpy array, so we convert it back to normal parameters
         kwargs = hyperoptions.params_to_args(x)
 
@@ -263,8 +263,6 @@ def optimize(seed=1, verbose=1):
             # we probably hit an exception so consider this infinite loss
             loss = float('inf')
 
-        if total_max_steps == ProgUpdate.hyperopt_current_update:
-            ProgUpdate.progbar.close()
         return loss
 
     hyperopt = GPyOpt.methods.BayesianOptimization(
@@ -287,6 +285,7 @@ def optimize(seed=1, verbose=1):
 
     hyperopt.plot_convergence()
     hyperopt.plot_acquisition()
+    ProgUpdate.progbar.close()
 
 
 def main(_):
