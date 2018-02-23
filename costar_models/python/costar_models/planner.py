@@ -1320,7 +1320,7 @@ def GetOrderedList(p):
     pidx.reverse()
     return pidx
 
-def PrintTopQ(idx, q, i=0, n=4):
+def PrintTopQ(idx, p, q, i=0, n=4):
     print("Best options =")
     for j in range(n):
-        print(idx[j], q[i,idx[j]])
+        print(idx[j], p[i, idx[j]], q[i,idx[j]])
