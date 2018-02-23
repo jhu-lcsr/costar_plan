@@ -19,6 +19,7 @@ Contents:
     - [3.1 Data collection](docs/collect_data.md): data collection with a real or simulated robot
     - [3.2 MARCC instructions](docs/marcc.md): learning models using JHU's MARCC cluste
     - [3.3 Generative Adversarial Models](docs/learning_gan.md)
+    - [3.4 SLURM Utilities](docs/slurm_utils.md): tools for using slurm on MARCC
   - [4. Creating and training a custom task](docs/task_learning.md): overview of task representations
     - [4.1 Generating a task from data](docs/generate_task_model.md): generate task from demonstrations
     - [4.2 Task Learning](docs/task_learning_experiments.md): specific details
