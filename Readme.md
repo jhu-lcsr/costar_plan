@@ -38,7 +38,8 @@ Package/folder layout:
   - [CoSTAR Task Plan](costar_task_plan/Readme.md): the high-level python planning library
   - [CoSTAR Gazebo Plugins](costar_gazebo_plugins/Readme.md): assorted plugins for integration
   - [CoSTAR Models](costar_models/Readme.md): tools for learning deep neural networks
-  - [Costar Task Plan - Tom](ctp_tom/Readme.md): specific bringup and scenarios for the TOM robot from TU Munich
+  - [CTP Tom](ctp_tom/Readme.md): specific bringup and scenarios for the TOM robot from TU Munich
+  - [CTP Visual](ctp_visual/Readme.md): visual robot task planner
   - `setup`: contains setup scripts
   - `slurm`: contains SLURM scripts for running on MARCC
   - `command`: contains scripts with example CTP command-line calls
