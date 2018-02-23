@@ -166,21 +166,30 @@ flags.DEFINE_string('data_dir',
                     """Path to dataset in TFRecord format
                     (aka Example protobufs) and feature csv files.""")
 flags.DEFINE_string('grasp_dataset', 'all', 'TODO(ahundt): integrate with brainrobotdata or allow subsets to be specified')
-flags.DEFINE_boolean('is_fold_splits', False, 'if enabled spliting the data to num_fold fold')
-flags.DEFINE_boolean('objectwise_split', False,
-                     """ If enabled K-Fold split based on object, image of same object will split to same fold. Default to false, doing regular imagewise K-Fold.
-                     """)
-flags.DEFINE_integer('num_fold', 5, 'number of fold for K-Fold splits, default to 5')
+flags.DEFINE_boolean('is_fold_splits', True, 'If enabled the dataset will be split into num_fold separate files.')
+flags.DEFINE_string(
+    'split_type', 'objectwise',
+    """
+    Options are 'imagewise' and 'objectwise'.
+    If 'objectwise' each file in the kfold split will
+    contain separate objects. If 'imagewise',
+    different images may contain the same object while
+    still being placed in separate splits.
+    Default to false, creating k tfrecord files with an
+    objectwise split.
+    This parameter only has effect when is_fold_splits is true.
+    """)
+flags.DEFINE_integer('num_fold', 10, 'number of fold for K-Fold splits, default to 5')
 flags.DEFINE_boolean('grasp_download', False,
                      """Download the grasp_dataset to data_dir if it is not already present.""")
-flags.DEFINE_boolean('plot', True, 'Plot images and grasp bounding box data in matplotlib as it is traversed')
+flags.DEFINE_boolean('plot', False, 'Plot images and grasp bounding box data in matplotlib as it is traversed')
 flags.DEFINE_boolean(
     'showTextBox', False,
     """If plotting is enabled, plot extra text boxes near each grasp box
        so you can check that gripper orientation is correct.
     """)
 flags.DEFINE_boolean('verbose', False, 'Print actual features for each image')
-flags.DEFINE_boolean('write', False, 'Actually write the tfrecord files if True, simply gather stats if False.')
+flags.DEFINE_boolean('write', True, 'Actually write the tfrecord files if True, simply gather stats if False.')
 flags.DEFINE_boolean('shuffle', True, 'shuffle the image order before running')
 flags.DEFINE_boolean(
     'redundant', True,
@@ -192,7 +201,9 @@ flags.DEFINE_float(
     'evaluate_fraction', 0.2,
     """proportion of dataset to be used separately for evaluation,
        use 0 if you want all files to be in one dataset file,
-       which makes sense if you're going to do your splits with the tensorflow Dataset API.""")
+       which makes sense if you're going to do your splits with the tensorflow Dataset API.
+       Only applies when is_fold_splits is False.""")
+flags.DEFINE_string('filename_base', 'cornell-grasping-dataset', 'base of the filename used for the dataset tfrecords and csv files')
 flags.DEFINE_string('train_filename', 'cornell-grasping-dataset-train.tfrecord', 'filename used for the training dataset')
 flags.DEFINE_string('evaluate_filename', 'cornell-grasping-dataset-evaluate.tfrecord', 'filename used for the evaluation dataset')
 flags.DEFINE_string('stats_filename', 'cornell-grasping-dataset-stats.md', 'filename used for the dataset statistics file')
@@ -360,11 +371,11 @@ def read_label_file(path):
                 has_nan = False
 
 
-def k_fold_split(path=FLAGS.data_dir, is_objectwise=FLAGS.objectwise_split, num_fold=FLAGS.num_fold):
+def k_fold_split(path=FLAGS.data_dir, split_type=FLAGS.split_type, num_fold=FLAGS.num_fold, filename_base=FLAGS.filename_base):
     """ K-Fold on dataset.
         path: path to z.txt, a file match images and objects. And *pos/neg.txt, should
         remain in same folder with z.txt.
-        is_objectwise: if True, do splits on different objects. Otherwise do splits on image.
+        split_type: if True, do splits on different objects. Otherwise do splits on image.
         num_fold: the number of splits.
 
         Return: List of image_id list for each fold
@@ -385,12 +396,15 @@ def k_fold_split(path=FLAGS.data_dir, is_objectwise=FLAGS.objectwise_split, num_
 
     fold_image_id_list = [[] for i in range(num_fold)]
 
-    if not is_objectwise:
+    if split_type == 'imagewise':
         spilt_type_list = ['imagewise'] * num_fold
-        result_path = path + 'imagewise_k_fold_stat.csv'
-    else:
+        result_path = os.path.join(path, filename_base + '-imagewise-k-fold-stat.csv')
+    elif split_type == 'objectwise':
         spilt_type_list = ['objectwise'] * num_fold
-        result_path = path + 'objectwise_k_fold_stat.csv'
+        result_path = os.path.join(path, filename_base + '-objectwise-k-fold-stat.csv')
+    else:
+        raise ValueError('Unsupported split type: ' + str(split_type) +
+                         ' options are objectwise and imagewise.')
 
     image_counter = 0
     object_counter = 0
@@ -412,9 +426,9 @@ def k_fold_split(path=FLAGS.data_dir, is_objectwise=FLAGS.objectwise_split, num_
                     last_object_id = object_id
                     object_counter += 1
 
-                if is_objectwise:
+                if split_type == 'objectwise':
                     dst_fold = (object_counter - 1) % num_fold  # make first idx 0
-                else:
+                elif split_type == 'imagewise':
                     dst_fold = (image_counter - 1) % num_fold  # make first idx 0
 
                 if fold_last_object[dst_fold] != object_id:
@@ -450,7 +464,7 @@ def k_fold_split(path=FLAGS.data_dir, is_objectwise=FLAGS.objectwise_split, num_
     return fold_image_id_list
 
 
-def k_fold_tfrecord_writer(path=FLAGS.data_dir, kFold_list=None, is_objectwise=FLAGS.objectwise_split):
+def k_fold_tfrecord_writer(path=FLAGS.data_dir, kFold_list=None, split_type=FLAGS.split_type, filename_base=FLAGS.filename_base):
     """ Write Tfrecord based on image_id stored in kFold_list.
 
         path: directory of where origin data is stored, not a file path.
@@ -461,14 +475,13 @@ def k_fold_tfrecord_writer(path=FLAGS.data_dir, kFold_list=None, is_objectwise=F
     if path[-1] != '/':
         path += '/'
 
-    if is_objectwise:
-        split_type = 'objectwise'
-    else:
-        split_type = 'imagewise'
+    if split_type != 'imagewise' and split_type != 'objectwise':
+        raise ValueError('Unsupported split type: ' + str(split_type) +
+                         ' options are objectwise and imagewise.')
 
     coder = ImageCoder()
-    for i, fold in enumerate(tqdm(kFold_list, desc='Writing datasets')):
-        recordPath = path + 'cornell-grasping-dataset' + split_type + '_fold_' + str(i) + '.tfrecord'
+    for i, fold in enumerate(tqdm(kFold_list, desc='Writing datasets ' + split_type)):
+        recordPath = path + filename_base + '-' + split_type + '-fold-' + str(i) + '.tfrecord'
         cur_writer = tf.python_io.TFRecordWriter(recordPath)
         for image_id in fold:
             bbox_pos_path = path + image_id[:2] + '/pcd' + image_id + 'cpos.txt'
@@ -537,8 +550,8 @@ def bbox_info(box):
     global MAX_HEIGHT
     MAX_WIDTH = max(MAX_WIDTH, width)
     MAX_HEIGHT = max(MAX_HEIGHT, height)
-    print_max_width_height = True
-    if print_max_width_height:
+    print_max_width_height = FLAGS.verbose
+    if print_max_width_height > 0:
         print("current width: " + str(width) + "current height: " + str(height) + " MAX_WIDTH: " + str(MAX_WIDTH) + " MAX_HEIGHT: " + str(MAX_HEIGHT))
 
     return box_coordinates, center_yx, tan, angle, width, height
@@ -1053,6 +1066,7 @@ def main():
         gd.download(dataset=FLAGS.grasp_dataset)
 
     if FLAGS.is_fold_splits:
+        # k_fold_list is a list of lists of filenames
         k_fold_list = k_fold_split()
         k_fold_tfrecord_writer(kFold_list=k_fold_list)
         return

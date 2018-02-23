@@ -53,6 +53,7 @@ from grasp_model import top_block
 from grasp_model import create_tree_roots
 from grasp_model import choose_hypertree_model
 from cornell_grasp_dataset_reader import parse_and_preprocess
+from callbacks import EvaluateInputGenerator
 
 import grasp_loss as grasp_loss
 
@@ -99,12 +100,12 @@ flags.DEFINE_string(
 )
 flags.DEFINE_integer(
     'num_splits',
-    '5',
+    '10',
     'Total number of splits, which are equal in term of either imagewise or objectwise split'
 )
 flags.DEFINE_integer(
     'num_train',
-    '3',
+    '8',
     'num of fold used for training, must be less than flags.train_splits'
 )
 flags.DEFINE_integer(
@@ -119,9 +120,13 @@ flags.DEFINE_integer(
 )
 flags.DEFINE_string('load_weights', '',
                     """Load and continue training the specified file containing model weights.""")
-flags.DEFINE_string('pipeline_stage', 'train',
-                    """Choose to "train", "test", or "train_test" with the grasp_dataset
+flags.DEFINE_string('pipeline_stage', 'train_test',
+                    """Choose to "train", "test", "train_test", or "kfold" with the grasp_dataset
                        data for training and grasp_dataset_test for testing.""")
+flags.DEFINE_string(
+    'kfold_split_type', 'objectwise',
+    """Options are imagewise and objectwise, this is the type of split chosen when the tfrecords were generated.""")
+flags.DEFINE_string('tfrecord_filename_base', 'cornell-grasping-dataset', 'base of the filename used for the dataset tfrecords and csv files')
 
 FLAGS = flags.FLAGS
 
@@ -163,11 +168,8 @@ def run_training(
         epochs=None,
         preprocessing_mode=None,
         save_model=True,
-        train_file=None,
-        validation_file=None,
         train_data=None,
         validation_data=None,
-        test_file=None,
         train_size=None,
         val_size=None,
         test_size=None,
@@ -202,12 +204,6 @@ def run_training(
         epochs = FLAGS.epochs
     if batch_size is None:
         batch_size = FLAGS.batch_size
-    if train_file is None:
-        train_file = os.path.join(FLAGS.data_dir, FLAGS.train_filename)
-    if validation_file is None:
-        validation_file = os.path.join(FLAGS.data_dir, FLAGS.evaluate_filename)
-    if test_file is None:
-        test_file = os.path.join(FLAGS.data_dir, FLAGS.test_filename)
     if learning_rate is None:
         learning_rate = FLAGS.learning_rate
     if log_dir is None:
@@ -228,7 +224,7 @@ def run_training(
     # it is very important to preprocess
     # in exactly the same way the model
     # was originally trained
-    choose_preprocessing_mode(preprocessing_mode, image_model_name)
+    preprocessing_mode = choose_preprocessing_mode(preprocessing_mode, image_model_name)
 
     # choose hypertree_model with inputs [image], [sin_theta, cos_theta]
     model = choose_hypertree_model(
@@ -238,13 +234,14 @@ def run_training(
         classes=classes,
         image_model_name=image_model_name,
         **kwargs)
+
     if(load_weights is not None and load_weights != ''):
         if os.path.isfile(load_weights):
             model.load_weights(load_weights)
         else:
             print('Could not load weights {}, '
-                    'the file does not exist, '
-                    'starting fresh....'.format(load_weights))
+                  'the file does not exist, '
+                  'starting fresh....'.format(load_weights))
     print(monitor_loss_name)
     # TODO(ahundt) add a loss that changes size with how open the gripper is
     # loss = grasp_loss.segmentation_gaussian_measurement
@@ -272,10 +269,12 @@ def run_training(
     with open(log_dir_run_name + '_model.json', 'w') as fp:
         fp.write(model.to_json())
 
-    checkpoint = keras.callbacks.ModelCheckpoint(log_dir_run_name + '-epoch-{epoch:03d}-' +
-                                                 monitor_loss_name + '-{' + monitor_loss_name + ':.3f}-' +
-                                                 monitor_metric_name + '-{' + monitor_metric_name + ':.3f}.h5',
-                                                 save_best_only=True, verbose=1, monitor=monitor_metric_name)
+    checkpoint = keras.callbacks.ModelCheckpoint(
+        log_dir_run_name + '-epoch-{epoch:03d}-' +
+        monitor_loss_name + '-{' + monitor_loss_name + ':.3f}-' +
+        monitor_metric_name + '-{' + monitor_metric_name + ':.3f}.h5',
+        save_best_only=True, verbose=1, monitor=monitor_metric_name)
+
     callbacks = callbacks + [checkpoint]
     # An additional useful param is write_batch_performance:
     #  https://github.com/keras-team/keras/pull/7617
@@ -290,16 +289,6 @@ def run_training(
     # make sure the TQDM callback is always the final one
     callbacks += [keras_tqdm.TQDMCallback()]
 
-    # TODO(ahundt) WARNING: THE NUMBER OF TRAIN/VAL STEPS VARIES EVERY TIME THE DATASET IS CONVERTED, AUTOMATE SETTING THOSE NUMBERS
-    samples_in_val_dataset, steps_per_epoch_train, steps_in_val_dataset, val_batch_size = epoch_params(batch_size)
-
-    if pipeline != 'test' and train_size is not None and val_size is not None:
-        val_batch_size = 11
-        samples_in_val_dataset = val_size
-        steps_per_epoch_train, steps_in_val_dataset = epoch_params_for_splits(
-            train_batch=batch_size, samples_train=train_size,
-            val_batch=val_batch_size, samples_val=val_size)
-
     if num_gpus > 1:
         parallel_model = keras.utils.multi_gpu_model(model, num_gpus)
     else:
@@ -310,57 +299,47 @@ def run_training(
         loss=loss,
         metrics=metrics)
 
-    # i = 0
-    # for batch in tqdm(
-    #     cornell_grasp_dataset_reader.yield_record(
-    #         train_file, label_features, data_features,
-    #         batch_size=batch_size,
-    #         parse_example_proto_fn=choose_parse_example_proto_fn()))):
-    #     i += 1
+    train_data, train_steps, validation_data, validation_steps, test_data, test_steps = load_dataset(
+        label_features=label_features, data_features=data_features, batch_size=batch_size,
+        train_data=train_data, validation_data=validation_data, preprocessing_mode=preprocessing_mode)
 
     # Get the validation dataset in one big numpy array for validation
     # This lets us take advantage of tensorboard visualization
     if 'train' in pipeline:
-        train_data, validation_data = load_dataset(
-            validation_file, label_features, data_features,
-            samples_in_val_dataset, train_file, batch_size,
-            val_batch_size, train_data=train_data, validation_data=validation_data)
+        if 'test' in pipeline:
+            # we need this callback to be at the beginning!
+            callbacks = [EvaluateInputGenerator(generator=test_data,
+                                                steps=test_steps,
+                                                metrics_prefix='test',
+                                                verbose=0)] + callbacks
 
-    if 'test' in pipeline:
-        test_batch_size = 2  # if batch_size = 1 tensor will be dim(3) instead of dim(4)
-        test_step = epoch_params_for_splits(samples_test=test_size, test_batch=test_batch_size)
-        _, test_data = load_dataset(
-            test_file, label_features, data_features,
-            test_size, train_file, batch_size,
-            test_batch_size, train_data=None, validation_data=None)
-        # test_data = cornell_grasp_dataset_reader.yield_record(
-        #     test_file, is_training=False, batch_size=val_batch_size,
-        #     parse_example_proto_fn=cornell_grasp_dataset_reader.parse_and_preprocess)
+        # print('calling model.fit_generator()')
+        history = parallel_model.fit_generator(
+            train_data,
+            steps_per_epoch=train_steps,
+            epochs=epochs,
+            validation_data=validation_data,
+            validation_steps=validation_steps,
+            callbacks=callbacks,
+            verbose=0)
 
-        test_history = parallel_model.evaluate_generator(generator=test_data, steps=test_step)
+    elif pipeline == 'test':
+        test_history = parallel_model.evaluate_generator(generator=test_data, steps=test_steps)
+
+    model.save_weights(log_dir_run_name + '_model_weights.h5')
 
     if pipeline == 'test':
         return test_history
-
-    # print('calling model.fit_generator()')
-    history = parallel_model.fit_generator(
-        train_data,
-        steps_per_epoch=steps_per_epoch_train,
-        epochs=epochs,
-        validation_data=validation_data,
-        validation_steps=steps_in_val_dataset,
-        callbacks=callbacks,
-        verbose=0)
-
-    model.save_weights(log_dir_run_name + run_name + '_model.h5')
-    return history
+    else:
+        return history
 
 
 def choose_preprocessing_mode(preprocessing_mode, image_model_name):
-    # If loading pretrained weights
+    """ Choose preprocessing for specific pretrained weights
     # it is very important to preprocess
     # in exactly the same way the model
     # was originally trained
+    """
     if preprocessing_mode is None:
         if 'densenet' in image_model_name:
             preprocessing_mode = 'torch'
@@ -371,6 +350,7 @@ def choose_preprocessing_mode(preprocessing_mode, image_model_name):
         else:
             raise ValueError('You need to explicitly set the preprocessing mode to '
                              'torch, tf, or caffe for these weights')
+    return preprocessing_mode
 
 
 def chooseOptimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name):
@@ -388,62 +368,7 @@ def chooseOptimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name)
     return callbacks, optimizer
 
 
-def train_on_splits(train_splits=None, val_splits=None, test_splits=None, split_type='imagewise',
-                    csv_path='_k_fold_stat.csv', load_weights='', pipeline='train'):
-    """ Training/Testing on dataset split for training, to choose whether to train or test or both,
-        change pipeline to different str, train, test, train_test
-
-        train_splits: number of splits of data used for training.
-        val_splits: number of splits of data used for validation.
-        test_splits: number of splits of data used for testing.
-        split_type: str, either 'imagewise' or 'objectwise', should be consistent with
-        splits type desired when doing actual splits.
-    """
-    # must be sure that train_splits + val_splits + test_filenames = flags.num_splits
-    cur_csv_path = os.path.join(FLAGS.data_dir, split_type + csv_path)
-    csv_reader = csv.DictReader(open(cur_csv_path))
-    unique_image_num = []
-    for row in csv_reader:
-        unique_image_num.append(int(row[' unique_image']))
-
-    if train_splits is None:
-        train_splits = FLAGS.num_train
-    if val_splits is None:
-        val_splits = FLAGS.num_validation
-    if test_splits is None:
-        test_splits = FLAGS.num_test
-    if pipeline is None:
-        pipeline = FLAGS.pipeline_stage
-    train_filenames = []
-    val_filenames = []
-    test_filenames = []
-
-    train_size = 0
-    val_size = 0
-    test_size = 0
-    for i in range(train_splits):
-        train_size += unique_image_num[i]
-        train_filenames += [os.path.join(FLAGS.data_dir,
-                            'cornell-grasping-dataset' + split_type + '_fold_' + str(i) + '.tfrecord')]
-
-    for i in range(train_splits, train_splits + val_splits):
-        val_size += unique_image_num[i]
-        val_filenames += [os.path.join(FLAGS.data_dir,
-                          'cornell-grasping-dataset' + split_type + '_fold_' + str(i) + '.tfrecord')]
-
-    for i in range(train_splits + val_splits, train_splits + val_splits + test_splits):
-        test_size += unique_image_num[i]
-        test_filenames += [os.path.join(FLAGS.data_dir,
-                           'cornell-grasping-dataset' + split_type + '_fold_' + str(i) + '.tfrecord')]
-    save_splits_weights = split_type + '_train:_' + str(train_splits) + '_val:_' + str(val_splits) + '_test:_' + str(test_splits)
-    run_training(train_file=train_filenames, validation_file=val_filenames, test_file=test_filenames,
-                 train_size=train_size, val_size=val_size, test_size=test_size, pipeline=pipeline,
-                 save_splits_weights=save_splits_weights, load_weights=load_weights)
-
-    return train_filenames, val_filenames, test_filenames
-
-
-def train_k_fold(num_fold=None, split_type='imagewise', csv_path='_k_fold_stat.csv'):
+def train_k_fold(num_fold=None, split_type='imagewise', csv_path='-k-fold-stat.csv'):
     """ Do K_Fold training
 
         num_fold: total number of fold.
@@ -464,17 +389,17 @@ def train_k_fold(num_fold=None, split_type='imagewise', csv_path='_k_fold_stat.c
     train_size = 0
     for i in range(num_fold):
         val_filenames = [os.path.join(FLAGS.data_dir,
-                         'cornell-grasping-dataset' + split_type + '_fold_' + str(i) + '.tfrecord')]
+                         'cornell-grasping-dataset' + split_type + '-fold-' + str(i) + '.tfrecord')]
         val_size = unique_image_num[i]
         for j in range(num_fold):
             if j == i:
                 continue
             train_id += str(j)
             train_filenames += [os.path.join(FLAGS.data_dir,
-                                'cornell-grasping-dataset' + split_type + '_fold_' + str(j) + '.tfrecord')]
+                                'cornell-grasping-dataset' + split_type + '-fold-' + str(j) + '.tfrecord')]
             train_size += unique_image_num[j]
         save_splits_weights = split_type + '_train_on:_' + train_id + '_val_on:' + str(i)
-        run_training(train_file=train_filenames, validation_file=val_filenames, save_splits_weights=save_splits_weights,
+        run_training(train_files=train_filenames, validation_files=val_filenames, save_splits_weights=save_splits_weights,
                      train_size=train_size, val_size=val_size)
         train_size = 0
 
@@ -553,19 +478,26 @@ def choose_features_and_metrics(feature_combo_name, problem_name):
     return image_shapes, vector_shapes, data_features, model_name, monitor_loss_name, label_features, monitor_metric_name, loss, metrics, classes
 
 
-def load_dataset(validation_file, label_features, data_features, samples_in_val_dataset, train_file, batch_size, val_batch_size,
-                 train_data=None, validation_data=None, in_memory_validation=False):
+def load_dataset(label_features, data_features,
+                 batch_size, val_batch_size=1, test_batch_size=1,
+                 train_data=None, validation_data=None, test_data=None, in_memory_validation=False,
+                 preprocessing_mode='tf'):
     """ Load the cornell grasping dataset from the file if it isn't already available.
     """
+    train_filenames, train_size, val_filenames, val_size, test_filenames, test_size = epoch_params()
+    train_steps, val_steps, test_steps = epoch_params_for_splits(
+        train_batch=batch_size, val_batch=val_batch_size, test_batch=test_batch_size,
+        samples_train=train_size, samples_val=val_size, samples_test=test_size)
 
     if in_memory_validation:
-        val_batch_size = samples_in_val_dataset
+        val_batch_size = val_size
 
     if validation_data is None:
         validation_data = cornell_grasp_dataset_reader.yield_record(
-            validation_file, label_features, data_features,
+            val_filenames, label_features, data_features,
             is_training=False, batch_size=val_batch_size,
-            parse_example_proto_fn=parse_and_preprocess)
+            parse_example_proto_fn=parse_and_preprocess,
+            preprocessing_mode=preprocessing_mode)
 
     if in_memory_validation:
         print('loading validation data directly into memory, if you run out set in_memory_validation to False')
@@ -573,24 +505,81 @@ def load_dataset(validation_file, label_features, data_features, samples_in_val_
 
     if train_data is None:
         train_data = cornell_grasp_dataset_reader.yield_record(
-            train_file, label_features, data_features,
+            train_filenames, label_features, data_features,
             batch_size=batch_size,
-            parse_example_proto_fn=parse_and_preprocess)
-    return train_data, validation_data
+            parse_example_proto_fn=parse_and_preprocess,
+            preprocessing_mode=preprocessing_mode)
+
+    if test_data is None:
+        test_data = cornell_grasp_dataset_reader.yield_record(
+            test_filenames, label_features, data_features,
+            batch_size=test_batch_size,
+            parse_example_proto_fn=parse_and_preprocess,
+            preprocessing_mode=preprocessing_mode)
+
+    return train_data, train_steps, validation_data, val_steps, test_data, test_steps
 
 
-def epoch_params(batch_size):
-    """ Determine the number of steps to train and validate
+def epoch_params(train_splits=None, val_splits=None, test_splits=None, split_type=None,
+                 csv_path='-k-fold-stat.csv', data_dir=None, tfrecord_filename_base=None):
+    """ Determine the number of steps to train, validate, and test
 
     TODO(ahundt) WARNING: THE NUMBER OF TRAIN/VAL STEPS VARIES EVERY TIME THE DATASET IS CONVERTED, AUTOMATE SETTING THOSE NUMBERS
     """
-    samples_in_training_dataset = 6402
-    samples_in_val_dataset = 1617
-    val_batch_size = 11
-    steps_in_val_dataset, divides_evenly = np.divmod(samples_in_val_dataset, val_batch_size)
-    assert divides_evenly == 0
-    steps_per_epoch_train = np.ceil(float(samples_in_training_dataset) / float(batch_size))
-    return samples_in_val_dataset, steps_per_epoch_train, steps_in_val_dataset, val_batch_size
+    if data_dir is None:
+        data_dir = FLAGS.data_dir
+
+    if split_type is None:
+        split_type = FLAGS.kfold_split_type
+
+    if tfrecord_filename_base is None:
+        tfrecord_filename_base = FLAGS.tfrecord_filename_base
+    # must be sure that train_splits + val_splits + test_filenames = flags.num_splits
+    cur_csv_path = os.path.join(data_dir, tfrecord_filename_base + '-' + split_type + csv_path)
+    with open(cur_csv_path) as csv_file:
+        csv_reader = csv.DictReader(csv_file)
+        unique_image_num = []
+        for row in csv_reader:
+            unique_image_num.append(int(row[' num_total_grasp']))
+
+        if train_splits is None:
+            train_splits = FLAGS.num_train
+        if val_splits is None:
+            val_splits = FLAGS.num_validation
+        if test_splits is None:
+            test_splits = FLAGS.num_test
+
+        train_filenames = []
+        val_filenames = []
+        test_filenames = []
+
+        train_size = 0
+        val_size = 0
+        test_size = 0
+        for i in range(train_splits):
+            train_size += unique_image_num[i]
+            train_filenames += [os.path.join(data_dir,
+                                tfrecord_filename_base + '-' + split_type + '-fold-' + str(i) + '.tfrecord')]
+
+        for i in range(train_splits, train_splits + val_splits):
+            val_size += unique_image_num[i]
+            val_filenames += [os.path.join(data_dir,
+                              tfrecord_filename_base + '-' + split_type + '-fold-' + str(i) + '.tfrecord')]
+
+        for i in range(train_splits + val_splits, train_splits + val_splits + test_splits):
+            test_size += unique_image_num[i]
+            test_filenames += [os.path.join(data_dir,
+                               tfrecord_filename_base + '-' + split_type + '-fold-' + str(i) + '.tfrecord')]
+
+        return train_filenames, train_size, val_filenames, val_size, test_filenames, test_size
+
+        # samples_in_training_dataset = 6402
+        # samples_in_val_dataset = 1617
+        # val_batch_size = 11
+        # steps_in_val_dataset, divides_evenly = np.divmod(samples_in_val_dataset, val_batch_size)
+        # assert divides_evenly == 0
+        # steps_per_epoch_train = np.ceil(float(samples_in_training_dataset) / float(batch_size))
+        # return samples_in_val_dataset, steps_per_epoch_train, steps_in_val_dataset, val_batch_size
 
 
 def epoch_params_for_splits(train_batch=None, samples_train=None,
@@ -599,14 +588,19 @@ def epoch_params_for_splits(train_batch=None, samples_train=None,
 
     returns = []
     if samples_train is not None and train_batch is not None:
-        steps_train = np.ceil(float(samples_train) / float(train_batch))
+        # for training, just do a little more than once through the dataset if needed
+        steps_train = int(np.ceil(float(samples_train) / float(train_batch)))
         returns.append(steps_train)
     if samples_val is not None and val_batch is not None:
-        steps_val = np.ceil(float(samples_val) / float(val_batch))
-        returns.append(steps_val)
+        steps_in_val_dataset, divides_evenly = np.divmod(samples_val, val_batch)
+        # If this fails you need to fix the batch size so it divides evenly!
+        assert divides_evenly == 0
+        returns.append(steps_in_val_dataset)
     if samples_test is not None and test_batch is not None:
-        steps_test = np.ceil(float(samples_test) / float(test_batch))
-        returns.append(steps_test)
+        steps_in_test_dataset, divides_evenly = np.divmod(samples_test, test_batch)
+        # If this fails you need to fix the batch size so it divides evenly!
+        assert divides_evenly == 0
+        returns.append(steps_in_test_dataset)
 
     return returns
 
