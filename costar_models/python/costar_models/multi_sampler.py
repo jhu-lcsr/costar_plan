@@ -505,7 +505,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             predictor = self.model
         if self.PredictorCb is not None:
             imageCb = self.PredictorCb(
-                predictor,
+                saved_model=self,
+                predictor=predictor,
                 name=self.name_prefix,
                 features_name=self.features,
                 features=cbf,
@@ -1044,3 +1045,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         return sums, train_sum, length
 
+
+    def addNoiseIfNeeded(self, in_data):
+        if not self.use_noise:
+            return in_data
+        out = [in_data] if type(in_data).__name__ != 'list' else in_data[:]
+        sz = out[0].shape[0]
+        for _ in range(self.noise_iters):
+            x = np.random.random((sz, self.noise_dim))
+            out.append(x)
+        return out
