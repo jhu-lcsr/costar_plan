@@ -26,113 +26,121 @@ except ImportError:
 FLAGS = flags.FLAGS
 
 
-def add_param(name, domain, domain_type='discrete', search_space=None, index_dict=None, enable=True, required=True, default=None, verbose=1):
-    """
+class HyperparameterOptions(object):
 
-    # Arguments
+    def __init__(self, verbose=1):
+        self.index_dict = {}
+        self.search_space = []
+        self.verbose = verbose
 
-        search_space: list of hyperparameter configurations required by BayseanOptimizer
-        index_dict: dictionary that will be used to lookup real values
-            and types when we get the hyperopt callback with ints or floats
-        enable: this parameter will be part of hyperparameter search
-        required: this parameter must be passed to the model
-        default: default value if required
+    def add_param(self, name, domain, domain_type='discrete', enable=True, required=True, default=None):
+        """
 
-    """
-    if search_space is None:
-        search_space = []
-    if index_dict is None:
-        index_dict = {'current_index': 0}
-    if 'current_index' not in index_dict:
-        index_dict['current_index'] = 0
+        # Arguments
 
-    if enable:
-        param_index = index_dict['current_index']
-        numerical_domain = domain
-        needs_reverse_lookup = False
-        lookup_as = float
-        # convert string domains to a domain of integer indexes
-        if domain_type == 'discrete':
-            if isinstance(domain, list) and isinstance(domain[0], str):
-                numerical_domain = [i for i in range(len(domain))]
-                lookup_as = str
-                needs_reverse_lookup = True
-            elif isinstance(domain, list) and isinstance(domain[0], bool):
-                numerical_domain = [i for i in range(len(domain))]
-                lookup_as = bool
-                needs_reverse_lookup = True
-            elif isinstance(domain, list) and isinstance(domain[0], float):
-                lookup_as = float
-            else:
-                lookup_as = int
+            search_space: list of hyperparameter configurations required by BayseanOptimizer
+            index_dict: dictionary that will be used to lookup real values
+                and types when we get the hyperopt callback with ints or floats
+            enable: this parameter will be part of hyperparameter search
+            required: this parameter must be passed to the model
+            default: default value if required
 
-        opt_dict = {
-            'name': name,
-            'type': domain_type,
-            'domain': numerical_domain}
+        """
+        if self.search_space is None:
+            self.search_space = []
+        if self.index_dict is None:
+            self.index_dict = {'current_index': 0}
+        if 'current_index' not in self.index_dict:
+            self.index_dict['current_index'] = 0
 
         if enable:
-            search_space += [opt_dict]
-            # create a second version for us to construct the real function call
-            opt_dict = copy.deepcopy(opt_dict)
-            opt_dict['lookup_as'] = lookup_as
-        else:
-            opt_dict['lookup_as'] = None
-
-        opt_dict['enable'] = enable
-        opt_dict['required'] = required
-        opt_dict['default'] = default
-        opt_dict['index'] = param_index
-        opt_dict['domain'] = domain
-        opt_dict['needs_reverse_lookup'] = needs_reverse_lookup
-        index_dict[name] = opt_dict
-        index_dict['current_index'] += 1
-    return search_space, index_dict
-
-
-def params_to_args(x, index_dict):
-    """ Convert GPyOpt Bayesian Optimizer params back into function call arguments
-
-    Arguments:
-
-        x: the callback parameter of the GPyOpt Bayesian Optimizer
-        index_dict: a dictionary with all the information necessary to convert back to function call arguments
-    """
-    # x is a funky 2d numpy array, so we convert it back to normal parameters
-    kwargs = {}
-    for key, opt_dict in six.iteritems(index_dict):
-        if key == 'current_index':
-            continue
-
-        if opt_dict['enable']:
-            arg_name = opt_dict['name']
-            optimizer_param_column = opt_dict['index']
-            if optimizer_param_column > x.shape[-1]:
-                raise ValueError('Attempting to access optimizer_param_column' + str(optimizer_param_column) +
-                                 ' outside parameter bounds' + str(x.shape) +
-                                 ' of optimizer array with index dict: ' + str(index_dict) +
-                                 'and array x: ' + str(x))
-            param_value = x[:, optimizer_param_column]
-            if opt_dict['type'] == 'discrete':
-                # the value is an integer indexing into the lookup dict
-                if opt_dict['needs_reverse_lookup']:
-                    domain_index = int(param_value)
-                    domain_value = opt_dict['domain'][domain_index]
-                    value = opt_dict['lookup_as'](domain_value)
+            param_index = self.index_dict['current_index']
+            numerical_domain = domain
+            needs_reverse_lookup = False
+            lookup_as = float
+            # convert string domains to a domain of integer indexes
+            if domain_type == 'discrete':
+                if isinstance(domain, list) and isinstance(domain[0], str):
+                    numerical_domain = [i for i in range(len(domain))]
+                    lookup_as = str
+                    needs_reverse_lookup = True
+                elif isinstance(domain, list) and isinstance(domain[0], bool):
+                    numerical_domain = [i for i in range(len(domain))]
+                    lookup_as = bool
+                    needs_reverse_lookup = True
+                elif isinstance(domain, list) and isinstance(domain[0], float):
+                    lookup_as = float
                 else:
+                    lookup_as = int
+
+            opt_dict = {
+                'name': name,
+                'type': domain_type,
+                'domain': numerical_domain}
+
+            if enable:
+                self.search_space += [opt_dict]
+                # create a second version for us to construct the real function call
+                opt_dict = copy.deepcopy(opt_dict)
+                opt_dict['lookup_as'] = lookup_as
+            else:
+                opt_dict['lookup_as'] = None
+
+            opt_dict['enable'] = enable
+            opt_dict['required'] = required
+            opt_dict['default'] = default
+            opt_dict['index'] = param_index
+            opt_dict['domain'] = domain
+            opt_dict['needs_reverse_lookup'] = needs_reverse_lookup
+            self.index_dict[name] = opt_dict
+            self.index_dict['current_index'] += 1
+
+    def params_to_args(self, x):
+        """ Convert GPyOpt Bayesian Optimizer params back into function call arguments
+
+        Arguments:
+
+            x: the callback parameter of the GPyOpt Bayesian Optimizer
+            index_dict: a dictionary with all the information necessary to convert back to function call arguments
+        """
+        # x is a funky 2d numpy array, so we convert it back to normal parameters
+        kwargs = {}
+        for key, opt_dict in six.iteritems(self.index_dict):
+            if key == 'current_index':
+                continue
+
+            if opt_dict['enable']:
+                arg_name = opt_dict['name']
+                optimizer_param_column = opt_dict['index']
+                if optimizer_param_column > x.shape[-1]:
+                    raise ValueError('Attempting to access optimizer_param_column' + str(optimizer_param_column) +
+                                     ' outside parameter bounds' + str(x.shape) +
+                                     ' of optimizer array with index dict: ' + str(self.index_dict) +
+                                     'and array x: ' + str(x))
+                param_value = x[:, optimizer_param_column]
+                if opt_dict['type'] == 'discrete':
+                    # the value is an integer indexing into the lookup dict
+                    if opt_dict['needs_reverse_lookup']:
+                        domain_index = int(param_value)
+                        domain_value = opt_dict['domain'][domain_index]
+                        value = opt_dict['lookup_as'](domain_value)
+                    else:
+                        value = opt_dict['lookup_as'](param_value)
+
+                else:
+                    # the value is a param to use directly
                     value = opt_dict['lookup_as'](param_value)
 
-            else:
-                # the value is a param to use directly
-                value = opt_dict['lookup_as'](param_value)
+                kwargs[arg_name] = value
+            elif opt_dict['required']:
+                kwargs[opt_dict['name']] = opt_dict['default']
+        return kwargs
 
-            kwargs[arg_name] = value
-        elif opt_dict['required']:
-            kwargs[opt_dict['name']] = opt_dict['default']
-    return kwargs
+    def get_domain(self):
+        return self.search_space
 
 
-def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
+def optimize(seed=1, verbose=1):
     np.random.seed(seed)
     # TODO(ahundt) hyper optimize more input feature_combo_names (ex: remove sin theta cos theta), optimizers, etc
     # continuous variables and then discrete variables
@@ -157,50 +165,30 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
     train_data = None
     validation_data = None
 
+    hyperoptions = HyperparameterOptions()
     # Configuring hyperparameters
-    search_space, index_dict = add_param('learning_rate', (0.0001, 0.1), 'continuous')
+    hyperoptions.add_param('learning_rate', (0.0001, 0.1), 'continuous',
+                           enable=False, required=True, default=0.0341)
     # disabled dropout rate because in one epoch tests a dropout rate of 0 allows exceptionally fast learning.
     # TODO(ahundt) run a separate search for the best dropout rate after finding a good model
-    search_space, index_dict = add_param('dropout_rate', [0.0, 0.125, 0.2, 0.25, 0.5, 0.75], search_space=search_space, index_dict=index_dict,
-                                         enable=False, required=True, default=0.25)
-    search_space, index_dict = add_param('vector_dense_filters', [2**x for x in range(6, 13)], search_space=search_space, index_dict=index_dict)
-    search_space, index_dict = add_param('vector_branch_num_layers', [x for x in range(0, 5)], search_space=search_space, index_dict=index_dict)
+    hyperoptions.add_param('dropout_rate', [0.0, 0.125, 0.2, 0.25, 0.5, 0.75],
+                           enable=False, required=True, default=0.25)
+    hyperoptions.add_param('vector_dense_filters', [2**x for x in range(6, 13)])
+    hyperoptions.add_param('vector_branch_num_layers', [x for x in range(0, 5)])
     # leaving out 'resnet' for now, it is causing too many crashes, and nasnet_large because it needs different input dimensions.
-    search_space, index_dict = add_param('image_model_name', ['vgg', 'densenet', 'nasnet_mobile'], search_space=search_space, index_dict=index_dict)
-    search_space, index_dict = add_param('vector_model_name', ['dense', 'dense_block'], search_space=search_space, index_dict=index_dict)
-    search_space, index_dict = add_param('trainable', [True, False], search_space=search_space, index_dict=index_dict,
-                                         enable=True)
+    hyperoptions.add_param('image_model_name', ['vgg', 'densenet', 'nasnet_mobile'])
+    hyperoptions.add_param('vector_model_name', ['dense', 'dense_block'])
+    hyperoptions.add_param('trainable', [True, False], enable=True)
     # TODO(ahundt) add a None option for trunk_filters, [None] + [2**x for x in range(5, 12)], because it will automatically match input data's filter count
-    search_space, index_dict = add_param('trunk_filters', [2**x for x in range(5, 12)], search_space=search_space, index_dict=index_dict)
-    search_space, index_dict = add_param('trunk_layers', [x for x in range(0, 8)], search_space=search_space, index_dict=index_dict)
-    search_space, index_dict = add_param('top_block_filters', [2**x for x in range(5, 12)], search_space=search_space, index_dict=index_dict)
-    search_space, index_dict = add_param('batch_size', [2**x for x in range(2, 4)], search_space=search_space, index_dict=index_dict,
-                                         enable=False, required=True, default=batch_size)
-    search_space, index_dict = add_param('feature_combo_name', ['image_preprocessed_width_1', 'image_preprocessed_sin_cos_width_3'],
-                                         search_space=search_space, index_dict=index_dict,
-                                         enable=True, required=True, default=feature_combo_name)
-
-    # Load dataset if that's done only once in advance
-    if load_dataset_in_advance:
-        train_file = None
-        validation_file = None
-        # we load the dataset in advance here because it takes a long time!
-        if train_file is None:
-            train_file = os.path.join(FLAGS.data_dir, FLAGS.train_filename)
-        if validation_file is None:
-            validation_file = os.path.join(FLAGS.data_dir, FLAGS.evaluate_filename)
-
-        [samples_in_val_dataset, steps_per_epoch_train,
-         steps_in_val_dataset, val_batch_size] = cornell_grasp_train.epoch_params(batch_size)
-
-        [image_shapes, vector_shapes, data_features, model_name,
-         monitor_loss_name, label_features, monitor_metric_name,
-         loss, metrics] = cornell_grasp_train.choose_features_and_metrics(feature_combo_name, top)
-
-        train_data, validation_data = cornell_grasp_train.load_dataset(
-            validation_file, label_features, data_features,
-            samples_in_val_dataset, train_file, batch_size,
-            val_batch_size)
+    hyperoptions.add_param('trunk_filters', [2**x for x in range(5, 12)])
+    hyperoptions.add_param('trunk_layers', [x for x in range(0, 8)])
+    hyperoptions.add_param('top_block_filters', [2**x for x in range(5, 12)])
+    hyperoptions.add_param('batch_size', [2**x for x in range(2, 4)],
+                           enable=False, required=True, default=batch_size)
+    hyperoptions.add_param('feature_combo_name', ['image_preprocessed_width_1', 'image_preprocessed_sin_cos_width_3'],
+                           enable=True, required=True, default=feature_combo_name)
+    hyperoptions.add_param('preprocessing_mode', ['tf', 'caffe', 'torch'],
+                           enable=True, required=True, default='tf')
 
     # number of samples to take before trying hyperopt
     initial_num_samples = 200
@@ -212,14 +200,13 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
     maximum_hyperopt_steps = 100
     total_max_steps = initial_num_samples + maximum_hyperopt_steps
 
-    # defining a temporary variable scope for the callbacks
-    class ProgUpdate():
-        hyperopt_current_update = 0
-        progbar = tqdm(desc='hyperopt', total=total_max_steps)
-
     def train_callback(x):
+        # defining a temporary variable scope for the callbacks
+        class ProgUpdate():
+            hyperopt_current_update = 0
+            progbar = tqdm(desc='hyperopt', total=total_max_steps)
         # x is a funky 2d numpy array, so we convert it back to normal parameters
-        kwargs = params_to_args(x, index_dict)
+        kwargs = hyperoptions.params_to_args(x)
 
         if verbose:
             # update counts by 1 each step
@@ -231,8 +218,6 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
 
         try:
             history = cornell_grasp_train.run_training(
-                train_data=train_data,
-                validation_data=validation_data,
                 hyperparams=kwargs,
                 **kwargs)
         except tf.errors.ResourceExhaustedError as exception:
@@ -278,11 +263,13 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
             # we probably hit an exception so consider this infinite loss
             loss = float('inf')
 
+        if total_max_steps == ProgUpdate.hyperopt_current_update:
+            ProgUpdate.progbar.close()
         return loss
 
     hyperopt = GPyOpt.methods.BayesianOptimization(
         f=train_callback,  # function to optimize
-        domain=search_space,  # where are we going to search
+        domain=hyperoptions.get_domain(),  # where are we going to search
         initial_design_numdata=initial_num_samples,
         model_type='GP_MCMC',
         acquisition_type='EI_MCMC',  # EI
@@ -295,12 +282,11 @@ def optimize(train_file=None, validation_file=None, seed=1, verbose=1):
     hyperopt.run_optimization(max_iter=maximum_hyperopt_steps)
     x_best = hyperopt.x_opt
     # myBopt.X[np.argmin(myBopt.Y)]
-    print('Hyperparameter Optimization final best result:\n' + str(params_to_args(x_best, index_dict)))
+    print('Hyperparameter Optimization final best result:\n' + str(hyperoptions.params_to_args(x_best)))
     print("Optimized loss: {0}".format(hyperopt.fx_opt))
 
     hyperopt.plot_convergence()
     hyperopt.plot_acquisition()
-    ProgUpdate.progbar.close()
 
 
 def main(_):

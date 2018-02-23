@@ -969,8 +969,7 @@ def yield_record(
         dataset = dataset.map(
             map_func=parse_fn_is_training,
             num_parallel_calls=num_parallel_calls)
-        if batch_size > 1:
-            dataset = dataset.batch(batch_size=batch_size)  # Parse the record into tensors.
+        dataset = dataset.batch(batch_size=batch_size)  # Parse the record into tensors.
         dataset = dataset.prefetch(batch_size * 5)
         tensor_iterator = dataset.make_one_shot_iterator()
         #     # Construct a Reader to read examples from the .tfrecords file

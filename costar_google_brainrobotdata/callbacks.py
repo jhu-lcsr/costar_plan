@@ -83,8 +83,7 @@ class EvaluateInputGenerator(keras.callbacks.Callback):
         self.metrics_prefix = metrics_prefix
 
     def on_epoch_end(self, epoch, logs={}):
-        results = self.model.evaluate_generator(self.generator, steps=int(self.num_steps),
-                                                verbose=self.verbose)
+        results = self.model.evaluate_generator(self.generator, steps=int(self.num_steps))
         metrics_str = '\n'
         for result, name in zip(results, self.model.metrics_names):
             metric_name = self.metrics_prefix + '_' + name

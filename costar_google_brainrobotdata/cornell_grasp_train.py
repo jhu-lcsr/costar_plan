@@ -324,14 +324,11 @@ def run_training(
             verbose=0)
 
     elif pipeline == 'test':
-        test_history = parallel_model.evaluate_generator(generator=test_data, steps=test_steps)
+        history = parallel_model.evaluate_generator(generator=test_data, steps=test_steps)
 
     model.save_weights(log_dir_run_name + '_model_weights.h5')
 
-    if pipeline == 'test':
-        return test_history
-    else:
-        return history
+    return history
 
 
 def choose_preprocessing_mode(preprocessing_mode, image_model_name):
@@ -345,7 +342,9 @@ def choose_preprocessing_mode(preprocessing_mode, image_model_name):
             preprocessing_mode = 'torch'
         elif 'nasnet' in image_model_name:
             preprocessing_mode = 'tf'
-        elif 'vgg' in image_model_name or 'resnet' in image_model_name:
+        elif 'vgg' in image_model_name:
+            preprocessing_mode = 'tf'
+        elif 'resnet' in image_model_name:
             preprocessing_mode = 'caffe'
         else:
             raise ValueError('You need to explicitly set the preprocessing mode to '
