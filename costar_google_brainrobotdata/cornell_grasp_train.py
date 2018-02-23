@@ -119,7 +119,9 @@ flags.DEFINE_integer(
     'num of fold used for test, must be less than flags.train_splits'
 )
 flags.DEFINE_string('load_weights', '',
-                    """Load and continue training the specified file containing model weights.""")
+                    """Path to hdf5 file containing model weights to load and continue training.""")
+flags.DEFINE_string('load_hyperparams', '',
+                    """Load hyperparams from a json file.""")
 flags.DEFINE_string('pipeline_stage', 'train_test',
                     """Choose to "train", "test", "train_test", or "kfold" with the grasp_dataset
                        data for training and grasp_dataset_test for testing.""")
@@ -708,7 +710,13 @@ def old_loss(tan, x, y, h, w):
 
 
 def main(_):
-    run_training()
+    kwargs = {}
+    hyperparams = None
+    if FLAGS.load_hyperparams is not None and FLAGS.load_hyperparams:
+        with open(FLAGS.load_hyperparams, mode='r') as hyperparams:
+            kwargs = json.load(hyperparams)
+            hyperparams = kwargs
+    run_training(hyperparams=hyperparams, **kwargs)
 
 if __name__ == '__main__':
     # next FLAGS line might be needed in tf 1.4 but not tf 1.5
