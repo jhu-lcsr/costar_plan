@@ -150,7 +150,7 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=True, perm_drop=False):
     x = AddConv2D(x, 64, [5,5], 1, **kwargs_dr0)
 
     # --- start ssm block
-    if self.use_ssm:
+    if model.use_ssm:
         def _ssm(x):
             return spatial_softmax(x)
         x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
