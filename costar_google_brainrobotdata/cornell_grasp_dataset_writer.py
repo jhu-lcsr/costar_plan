@@ -160,6 +160,8 @@ from tensorflow.python.keras._impl.keras.utils.data_utils import _hash_file
 import keras
 from keras import backend as K
 
+import grasp_utilities
+
 
 flags.DEFINE_string('data_dir',
                     os.path.join(os.path.expanduser("~"),
@@ -212,32 +214,6 @@ flags.DEFINE_string('stats_filename', 'cornell-grasping-dataset-stats.md', 'file
 
 FLAGS = flags.FLAGS
 FLAGS(sys.argv)
-
-
-def mkdir_p(path):
-    """Create the specified path on the filesystem like the `mkdir -p` command
-
-    Creates one or more filesystem directory levels as needed,
-    and does not return an error if the directory already exists.
-    """
-    # http://stackoverflow.com/questions/600268/mkdir-p-functionality-in-python
-    try:
-        os.makedirs(path)
-    except OSError as exc:  # Python >2.5
-        if exc.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else:
-            raise
-
-
-def is_sequence(arg):
-    """Returns true if arg is a list or another Python Sequence, and false otherwise.
-
-        source: https://stackoverflow.com/a/17148334/99379
-    """
-    return (not hasattr(arg, "strip") and
-            hasattr(arg, "__getitem__") or
-            hasattr(arg, "__iter__"))
 
 
 class GraspDataset(object):
@@ -302,7 +278,7 @@ class GraspDataset(object):
                 data_dir = FLAGS.data_dir
             else:
                 data_dir = self.data_dir
-        mkdir_p(data_dir)
+        grasp_utilities.mkdir_p(data_dir)
         print('Downloading datasets to: ', data_dir)
 
         url_prefix = ''

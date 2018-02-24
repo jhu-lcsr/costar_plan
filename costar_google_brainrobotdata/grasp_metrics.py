@@ -1,0 +1,438 @@
+
+import os
+import copy
+import math
+import numpy as np
+from tqdm import tqdm
+
+import tensorflow as tf
+from tensorflow.python.platform import flags
+from shapely.geometry import Polygon
+
+# class Vector:
+#     # http://www.mathopenref.com/coordpolygonarea.html
+#     # https://stackoverflow.com/a/45268241/99379
+#     def __init__(self, x, y):
+#         self.x = x
+#         self.y = y
+
+#     def __add__(self, v):
+#         if not isinstance(v, Vector):
+#             return NotImplemented
+#         return Vector(self.x + v.x, self.y + v.y)
+
+#     def __sub__(self, v):
+#         if not isinstance(v, Vector):
+#             return NotImplemented
+#         return Vector(self.x - v.x, self.y - v.y)
+
+#     def cross(self, v):
+#         if not isinstance(v, Vector):
+#             return NotImplemented
+#         return self.x*v.y - self.y*v.x
+
+
+# class Line:
+#     # ax + by + c = 0
+#     def __init__(self, v1, v2):
+#         self.a = v2.y - v1.y
+#         self.b = v1.x - v2.x
+#         self.c = v2.cross(v1)
+
+#     def __call__(self, p):
+#         return self.a*p.x + self.b*p.y + self.c
+
+#     def intersection(self, other):
+#         # http://www.mathopenref.com/coordpolygonarea.html
+#         # https://stackoverflow.com/a/45268241/99379
+#         # See e.g.     https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection#Using_homogeneous_coordinates
+#         if not isinstance(other, Line):
+#             return NotImplemented
+#         w = self.a*other.b - self.b*other.a
+#         return Vector(
+#             (self.b*other.c - self.c*other.b)/w,
+#             (self.c*other.a - self.a*other.c)/w
+#         )
+
+
+# def rectangle_vertices(cx, cy, w, h, theta):
+#     # http://www.mathopenref.com/coordpolygonarea.html
+#     # https://stackoverflow.com/a/45268241/99379
+#     dx = w/2
+#     dy = h/2
+#     dxcos = dx*cos(theta)
+#     dxsin = dx*sin(theta)
+#     dycos = dy*cos(theta)
+#     dysin = dy*sin(theta)
+#     return (
+#         Vector(cx, cy) + Vector(-dxcos - -dysin, -dxsin + -dycos),
+#         Vector(cx, cy) + Vector( dxcos - -dysin,  dxsin + -dycos),
+#         Vector(cx, cy) + Vector( dxcos -  dysin,  dxsin +  dycos),
+#         Vector(cx, cy) + Vector(-dxcos -  dysin, -dxsin +  dycos)
+#     )
+
+# def intersection_area(r1, r2):
+#     # http://www.mathopenref.com/coordpolygonarea.html
+#     # https://stackoverflow.com/a/45268241/99379
+#     # r1 and r2 are in (center, width, height, rotation) representation
+#     # First convert these into a sequence of vertices
+
+#     rect0 = rectangle_vertices(*r1)
+#     rect1 = rectangle_vertices(*r2)
+
+#     # Use the vertices of the first rectangle as
+#     # starting vertices of the intersection polygon.
+#     rect0 = rect0
+
+#     # Loop over the edges of the second rectangle
+#     for p, q in zip(rect1, rect1[1:] + rect1[:1]):
+#         if len(rect0) <= 2:
+#             break # No intersection
+
+#         line = Line(p, q)
+
+#         # Any point p with line(p) <= 0 is on the "inside" (or on the boundary),
+#         # any point p with line(p) > 0 is on the "outside".
+
+#         # Loop over the edges of the rect0 polygon,
+#         # and determine which part is inside and which is outside.
+#         new_intersection = []
+#         line_values = [line(t) for t in rect0]
+#         for s, t, s_value, t_value in zip(
+#                 rect0, rect0[1:] + rect0[:1],
+#                 line_values, line_values[1:] + line_values[:1]):
+#             if s_value <= 0:
+#                 new_intersection.append(s)
+#             if s_value * t_value < 0:
+#                 # Points are on opposite sides.
+#                 # Add the intersection of the lines to new_intersection.
+#                 intersection_point = line.intersection(Line(s, t))
+#                 new_intersection.append(intersection_point)
+
+#         intersection = new_intersection
+
+#     # Calculate area
+#     if len(intersection) <= 2:
+#         return 0
+
+#     return 0.5 * sum(p.x*q.y - p.y*q.x for p, q in
+#                      zip(intersection, intersection[1:] + intersection[:1]))
+
+
+# intersection_area(r0y0, r0x0, r0y1, r0x1, r0y2, r0x2, r0y3, r0x3, r1y0, r1x0, r1y1, r1x1, r1y2, r1x2,  r1y3, r1x3):
+def rectangle_points(r0y0, r0x0, r0y1, r0x1, r0y2, r0x2, r0y3, r0x3):
+    p0yx = np.array([r0y0, r0x0])
+    p1yx = np.array([r0y1, r0x1])
+    p2yx = np.array([r0y2, r0x2])
+    p3yx = np.array([r0y3, r0x3])
+    return [p0yx, p1yx, p2yx, p3yx]
+
+
+def rectangle_vectors(rp):
+    """
+    # Arguments
+
+    rp: rectangle points [p0yx, p1yx, p2yx, p3yx]
+    """
+    v0 = rp[1] - rp[0]
+    v1 = rp[2] - rp[1]
+    v2 = rp[3] - rp[2]
+    v3 = rp[0] - rp[3]
+
+    return [v0, v1, v2, v3]
+
+
+def rectangle_homogeneous_lines(rv):
+    """
+
+    # Arguments
+
+    rv: rectangle vectors [v0yx, v1yx, v2yx, v3yx]
+
+
+    # Returns
+
+    [r0abc, r1abc, r2abc, r3abc]
+
+    """
+    # ax + by + c = 0
+    dv = rv[0] - rv[1]
+    # TODO(ahundt) make sure cross product doesn't need to be in xy order
+    r0abc = K.concatenate([dv[0], dv[1], tf.cross(rv[0], rv[1])])
+    dv = rv[1] - rv[2]
+    r1abc = K.concatenate([dv[1], dv[2], tf.cross(rv[1], rv[2])])
+    dv = rv[2] - rv[3]
+    r2abc = K.concatenate([dv[2], dv[3], tf.cross(rv[2], rv[3])])
+    dv = rv[3] - rv[0]
+    r3abc = K.concatenate([dv[3], dv[0], tf.cross(rv[3], rv[0])])
+    return [r0abc, r1abc, r2abc, r3abc]
+
+
+def homogeneous_line_intersection(hl0abc, hl1abc):
+    """ Given two homogenous lines return the intersection point in y,x coordinates
+    """
+    a0 = hl0abc[0]
+    b0 = hl0abc[1]
+    c0 = hl0abc[2]
+    a1 = hl1abc[0]
+    b1 = hl1abc[1]
+    c1 = hl1abc[2]
+    w = a0 * b1 - b0 * a1
+    py = (c0 * a1 - a0 * c1) / w
+    px = (b0 * c1 - c0 * b1) / w
+    return [py, px]
+
+
+def line_at_point(l_abc, p_yx):
+    """
+
+    # Arguments
+
+    l_abc: a line in homogenous coodinates
+    p_yx: a point with y, x coordinates
+    """
+    return l_abc[0] * p_yx[1] + l_abc[1] * p_yx[0] + l_abc[2]
+
+
+def intersection_points(rl0, rp1):
+    """ Evaluate rectangle lines at another rectangle's points
+    """
+    lv = [
+        line_at_point(rl0[0], rp1[0]),
+        line_at_point(rl0[1], rp1[1]),
+        line_at_point(rl0[2], rp1[2]),
+        line_at_point(rl0[3], rp1[3]),
+    ]
+    return lv
+
+
+def rectangle_intersection_polygon(rp0, rl0, rp1, rl1):
+    """ Given two homogenous line rectangles, it returns the points for the polygon representing their intersection.
+
+    # Arguments
+
+    rp0: rectangle 0 defined with points
+    rl0: rectangle 0 defined with homogeneous lines
+    rp1: rectangle 1 defined with points
+    rp1: rectangle 1 defined with homogeneous lines
+
+    # Returns
+
+    Intersection polygon consisting of up to 8 points.
+    """
+    # TODO(ahundt) this function is still set up for eager execution... figure it out as tf calls...
+    # http://www.mathopenref.com/coordpolygonarea.html
+    # https://stackoverflow.com/a/45268241/99379
+    # Use the vertices of the first rectangle as
+    # starting vertices of the intersection polygon.
+    intersection = []
+    for line1 in rl1:
+        line_values = [line_at_point(line1, t) for t in rp0]
+
+        # Any point p with line(p) <= 0 is on the "inside" (or on the boundary),
+        # any point p with line(p) > 0 is on the "outside".
+
+        # Loop over the edges of the rect0 polygon,
+        # and determine which part is inside and which is outside.
+        new_intersection = []
+        # points in rp0 rotated around by one
+        rp0_rot = rp0[1:] + rp0[:1]
+        line_values_rot = line_values[1:] + line_values[:1]
+        for s, t, s_value, t_value, line0 in zip(
+                rp0, rp0_rot, line_values, line_values_rot, rl0):
+
+            if s_value <= 0:
+                new_intersection.append(s)
+
+            st_value = s_value * t_value
+            intersection_point = homogeneous_line_intersection(line1, line0)
+            if st_value < 0:
+                # Points are on opposite sides.
+                # Add the intersection of the lines to new_intersection.
+                new_intersection.append(intersection_point)
+
+        intersection = new_intersection
+
+    return intersection
+
+
+def polygon_area_four_points(rp):
+    """
+    # Arguments
+
+    rp: polygon defined by 4 points in y,x order
+    """
+    # partial = p0x * p1y - p0y * p1x
+    partial0 = rp[0][1] * rp[1][0] - rp[0][0] * rp[1][1]
+    partial1 = rp[1][1] * rp[2][0] - rp[1][0] * rp[2][1]
+    partial2 = rp[2][1] * rp[3][0] - rp[2][0] * rp[3][1]
+    partial3 = rp[3][1] * rp[0][0] - rp[3][0] * rp[0][1]
+    full_sum = partial0 + partial1 + partial2 + partial3
+    return 0.5 * full_sum
+
+
+def polygon_area(poly):
+    # Calculate area
+    if len(poly) <= 2:
+        return 0
+
+    poly_rot = poly[1:] + poly[:1]
+
+    return 0.5 * sum(p[1]*q[0] - p[0]*q[1] for p, q in zip(poly, poly_rot))
+
+
+def rectangle_vertices(h, w, sin_theta, cos_theta, cy, cx):
+    """ Get the vertices from a parameterized bounding box.
+
+    y, x ordering.
+
+    # http://www.mathopenref.com/coordpolygonarea.html
+    # https://stackoverflow.com/a/45268241/99379
+    """
+    # normalizing because this may be using the output of the neural network,
+    # so we turn it into an x y coordinate on the unit circle without changing
+    # the vector.
+    sc_theta = np.linalg.norm(np.array([sin_theta, cos_theta]))
+    sin_theta = sc_theta[0]
+    cos_theta = sc_theta[1]
+
+    dx = w/2
+    dy = h/2
+    dxcos = dx * cos_theta
+    dxsin = dx * sin_theta
+    dycos = dy * cos_theta
+    dysin = dy * sin_theta
+    return [
+        np.array([cy, cx]) + np.array([-dxsin + -dycos, -dxcos - -dysin]),
+        np.array([cy, cx]) + np.array([ dxsin + -dycos,  dxcos - -dysin]),
+        np.array([cy, cx]) + np.array([ dxsin +  dycos,  dxcos -  dysin]),
+        np.array([cy, cx]) + np.array([-dxsin +  dycos, -dxcos -  dysin])
+    ]
+
+
+def parse_rectangle_params(hw_st_ct_cy_cx):
+    rect_vertices = rectangle_vertices(
+        hw_st_ct_cy_cx[0],  # height
+        hw_st_ct_cy_cx[1],  # width
+        hw_st_ct_cy_cx[2],  # sin theta
+        hw_st_ct_cy_cx[3],  # cos theta
+        hw_st_ct_cy_cx[4],  # center y
+        hw_st_ct_cy_cx[5])  # center x
+    rect_hlines = rectangle_homogeneous_lines(rect_vertices)
+    return rect_vertices, rect_hlines
+
+
+def intersection_over_union(true_rp, pred_rp, true_rl, pred_rl):
+    """ Intersection over union of two oriented rectangles.
+
+    Also known as the jaccard metric.
+
+    # Arguments
+
+        true_rp: oriented rectanle 0 points
+        pred_rp: oriented rectangle 1 points
+        true_rl: oriented rectangle 0 homogeneous lines
+        pred_rl: oriented rectangle 1 homogeneous lines
+    """
+    true_area = polygon_area_four_points(true_rp)
+    pred_area = polygon_area_four_points(pred_rp)
+    intersection_polygon = rectangle_intersection_polygon(true_rp, true_rl, pred_rp, pred_rl)
+    intersection_area = polygon_area(intersection_polygon)
+
+    iou = intersection_area / (true_area + pred_area - intersection_area)
+    return iou
+
+
+def shapely_intersection_over_union(rect0_points, rect1_points):
+    """ Find the intersection over union of two polygons using shapely
+    """
+    p0 = Polygon(rect0_points)
+    p1 = Polygon(rect1_points)
+    intersection_area = p0.intersection(p1).area
+    iou = intersection_area / (p0.area + p1.area - intersection_area)
+    return iou
+
+
+def angle_difference_less_than_threshold(
+        true_y_sin_theta, true_x_cos_theta,
+        pred_y_sin_theta, pred_x_cos_theta,
+        angle_threshold=None):
+    """ Returns true if the angle difference is less than the threshold, false otherwise.
+    """
+    if angle_threshold is None:
+        angle_threshold = np.radians(30.0)
+    # normalize the prediction but keep the vector direction the same
+    true_y_sin_theta, true_x_cos_theta = np.linalg.norm(np.array([true_y_sin_theta, true_x_cos_theta]))
+    true_angle = np.arctan2(true_y_sin_theta, true_x_cos_theta)
+    # normalize the prediction but keep the vector direction the same
+    pred_y_sin_theta, pred_x_cos_theta = np.linalg.norm(np.array([pred_y_sin_theta, pred_x_cos_theta]))
+    pred_angle = np.arctan2(pred_y_sin_theta, pred_x_cos_theta)
+    return np.abs(pred_angle - true_angle) <= angle_threshold
+
+
+def jaccard_score(y_true, y_pred, angle_threshold=None, iou_threshold=0.25):
+    """
+
+    # Arguments
+
+        Feature format:
+        [grasp_success, sin_theta, cos_theta, height, width, center_y, center_x]
+        [            0,         1,         2,      3,     4,        5,        6]
+
+        y_true: a numpy array of features
+        y_pred: a numpy array of features
+        angle_threshold: The maximum allowed difference in
+            angles for a grasp to be considered successful.
+            Default of None maps to 30 degrees.
+        theta_multiplier: Either 1.0 or 2.0.
+            If it is 1.0 theta angles are compared directly.
+            If it is 2.0 (the default), angles that are off by 180 degrees
+            are considered equal, which is the case for a gripper with two plates.
+
+
+    """
+
+    predicted_success = np.rint(y_pred[0])
+    if predicted_success != int(y_true[0]):
+        # grasp success prediction doesn't match, return 0 score
+        return 0.0
+    elif predicted_success == 0:
+        # The success prediction correctly matches the ground truth and both are False.
+        # Any true negative where failure to grasp is predicted correctly
+        # gets credit regardless of box contents
+        return 1.0
+    else:
+        # We're looking at a successful grasp and we've correctly predicted grasp_success.
+        # First check if the angles are close enough to matching the angle_threshold.
+        true_y_sin_theta = y_true[1]
+        true_x_cos_theta = y_true[2]
+        pred_y_sin_theta = y_pred[1]
+        pred_x_cos_theta = y_pred[2]
+
+        # if they aren't close enough return 0.0
+        if not angle_difference_less_than_threshold(
+                true_y_sin_theta, true_x_cos_theta,
+                pred_y_sin_theta, pred_x_cos_theta, angle_threshold):
+            return 0.0
+
+        # We passed all the other checks so
+        # let's find out if the grasp boxes match
+        # via the jaccard distance.
+        true_rp, _ = parse_rectangle_params(y_true[1:])
+        pred_rp, _ = parse_rectangle_params(y_true[1:])
+
+        iou = shapely_intersection_over_union(true_rp, pred_rp)
+        if iou >= iou_threshold:
+            # passed iou threshold
+            return 1.0
+        else:
+            # didn't meet iou threshold
+            return 0.0
+
+
+def grasp_jaccard(y_true, y_pred):
+    """ Calculates the jaccard metric score in a manner compatible with tf and keras metrics.
+
+        This is an IOU metric with angle difference and IOU score thresholds.
+    """
+    return tf.map_fn(lambda yt, yp: tf.py_func(jaccard_score, [yt, yp], [tf.float32]), [y_true, y_pred])

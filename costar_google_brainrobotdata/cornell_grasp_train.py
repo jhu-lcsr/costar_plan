@@ -55,18 +55,20 @@ from grasp_model import choose_hypertree_model
 from cornell_grasp_dataset_reader import parse_and_preprocess
 from callbacks import EvaluateInputGenerator
 
-import grasp_loss as grasp_loss
+import grasp_loss
+import grasp_metrics
+import grasp_utilities
 
 
 flags.DEFINE_float(
     'learning_rate',
-    0.0341,
+    0.01,
     'Initial learning rate.'
 )
 flags.DEFINE_float(
     'fine_tuning_learning_rate',
-    0.006,
-    'Initial learning rate.'
+    0.001,
+    'Initial learning rate, this is the learning rate used if load_weights is passed.'
 )
 flags.DEFINE_integer(
     'epochs',
@@ -75,7 +77,7 @@ flags.DEFINE_integer(
 )
 flags.DEFINE_integer(
     'batch_size',
-    8,
+    16,
     'Batch size.'
 )
 flags.DEFINE_string(
@@ -123,8 +125,10 @@ flags.DEFINE_integer(
     '1',
     'num of fold used for test, must be less than flags.train_splits'
 )
-flags.DEFINE_string('load_weights', '',
-                    """Load and continue training the specified file containing model weights.""")
+flags.DEFINE_string('load_weights', None,
+                    """Path to hdf5 file containing model weights to load and continue training.""")
+flags.DEFINE_string('load_hyperparams', None,
+                    """Load hyperparams from a json file.""")
 flags.DEFINE_string('pipeline_stage', 'train_test',
                     """Choose to "train", "test", "train_test", or "kfold" with the grasp_dataset
                        data for training and grasp_dataset_test for testing.""")
@@ -132,37 +136,39 @@ flags.DEFINE_string(
     'kfold_split_type', 'objectwise',
     """Options are imagewise and objectwise, this is the type of split chosen when the tfrecords were generated.""")
 flags.DEFINE_string('tfrecord_filename_base', 'cornell-grasping-dataset', 'base of the filename used for the dataset tfrecords and csv files')
+flags.DEFINE_string(
+    'feature_combo', '',
+    """
+    feature_combo: The name for the combination of input features being utilized.
+        Options include 'image_preprocessed', image_preprocessed_width_1,
+        'image_preprocessed_sin2_cos2_width_3'
+        'grasp_regression', image_center_grasp_regression.
+        See choose_features_and_metrics() for details.
+    """
+)
+flags.DEFINE_string(
+    'problem_type', 'grasp_classification',
+    """Choose between different formulations of the grasping task.
+    Problem type options are 'segmentation', 'classification',
+    'image_center_grasp_regression',
+    'grasp_regression' which tries to predict successful grasp bounding boxes,
+    'grasp_classification'
+    'grasp_segmentation' which tries to classify input grasp parameters at each pixel.
+    'pixelwise_grasp_regression' which tries to predict successful grasp bounding boxes at each pixel.
+
+    """
+)
+flags.DEFINE_boolean(
+    'fine_tuning', False,
+    """ If true the model will be fine tuned.
+
+        This means that any imagenet weights will be made trainable,
+        and the learning rate will be set to fine_tuning_learning_rate.
+    """)
 
 FLAGS = flags.FLAGS
 
 # TODO(ahundt) put these utility functions in utils somewhere
-
-
-def mkdir_p(path):
-    """Create the specified path on the filesystem like the `mkdir -p` command
-
-    Creates one or more filesystem directory levels as needed,
-    and does not return an error if the directory already exists.
-    """
-    # http://stackoverflow.com/questions/600268/mkdir-p-functionality-in-python
-    try:
-        os.makedirs(path)
-    except OSError as exc:  # Python >2.5
-        if exc.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else:
-            raise
-
-
-# http://stackoverflow.com/a/5215012/99379
-def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
-    return datetime.datetime.now().strftime(fmt).format(fname=fname)
-
-
-class PrintLogsCallback(keras.callbacks.Callback):
-
-    def on_epoch_end(self, epoch, logs={}):
-        print('\nlogs:', logs)
 
 
 def run_training(
@@ -182,7 +188,7 @@ def run_training(
         test_size=None,
         save_splits_weights='',
         feature_combo_name='image_preprocessed_sin2_cos2_width_3',
-        problem_name='grasp_classification',
+        problem_name=None,
         image_model_name='vgg',
         optimizer_name='sgd',
         log_dir=None,
@@ -212,13 +218,18 @@ def run_training(
     if batch_size is None:
         batch_size = FLAGS.batch_size
     if learning_rate is None:
-        learning_rate = FLAGS.learning_rate
+        if load_weights is None:
+            learning_rate = FLAGS.learning_rate
+        else:
+            learning_rate = FLAGS.fine_tuning_learning_rate
     if log_dir is None:
         log_dir = FLAGS.log_dir
     if load_weights is None:
         load_weights = FLAGS.load_weights
     if pipeline is None:
         pipeline = FLAGS.pipeline_stage
+    if problem_name is None:
+        problem_name = FLAGS.problem_type
 
     [image_shapes, vector_shapes, data_features, model_name,
      monitor_loss_name, label_features, monitor_metric_name,
@@ -254,7 +265,7 @@ def run_training(
     # loss = grasp_loss.segmentation_gaussian_measurement
 
     dataset_names_str = 'cornell_grasping'
-    run_name = timeStamped(save_splits_weights + '-' + model_name + '-dataset_' + dataset_names_str + '-' + label_features[0])
+    run_name = grasp_utilities.timeStamped(save_splits_weights + '-' + model_name + '-dataset_' + dataset_names_str + '-' + label_features[0])
     callbacks = []
 
     callbacks, optimizer = chooseOptimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name)
@@ -263,9 +274,9 @@ def run_training(
     log_dir_run_name = os.path.join(log_dir, run_name)
     csv_logger = CSVLogger(log_dir_run_name + run_name + '.csv')
     callbacks = callbacks + [csv_logger]
-    callbacks += [PrintLogsCallback()]
+    callbacks += [callbacks.PrintLogsCallback()]
     print('Writing logs for models, accuracy and tensorboard in ' + log_dir)
-    mkdir_p(log_dir)
+    grasp_utilities.mkdir_p(log_dir)
 
     # Save the hyperparams to a json string so it is human readable
     if hyperparams is not None:
@@ -428,6 +439,7 @@ def choose_features_and_metrics(feature_combo_name, problem_name):
     image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
     classes = 1
 
+    # Configure the input data dimensions
     # TODO(ahundt) get input dimensions automatically, based on configured params
     if feature_combo_name == 'image/preprocessed' or feature_combo_name == 'image_preprocessed':
         data_features = ['image/preprocessed']
@@ -458,6 +470,7 @@ def choose_features_and_metrics(feature_combo_name, problem_name):
                          'image_preprocessed_sin_cos_height_3, image_preprocessed_height_1,'
                          'preprocessed, and raw')
 
+    # Configure the chosen problem type
     if problem_name == 'segmentation' or problem_name == 'grasp_segmentation' or problem_name == 'pixelwise_grasp_classification':
         label_features = ['grasp_success_yx_3']
         monitor_loss_name = 'segmentation_gaussian_binary_crossentropy'
@@ -474,23 +487,27 @@ def choose_features_and_metrics(feature_combo_name, problem_name):
         model_name = '_dense_model'
     elif problem_name == 'grasp_regression':
         label_features = ['grasp_success_sin2_cos2_hw_norm_yx_7']
-        monitor_metric_name = 'val_mean_squared_error'
+        monitor_metric_name = 'grasp_jaccard'
         monitor_loss_name = 'val_loss'
-        metrics = [keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
+        metrics = [grasp_metrics.grasp_jaccard, keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
         loss = keras.losses.mean_squared_error
         model_name = '_regression_model'
         classes = 7
     elif problem_name == 'image_center_grasp_regression':
         label_features = ['grasp_success_sin2_cos2_hw_5']
-        monitor_metric_name = 'val_mean_squared_error'
+        monitor_metric_name = 'grasp_jaccard'
         monitor_loss_name = 'val_loss'
-        metrics = [keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
+        metrics = [grasp_metrics.grasp_jaccard, keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
         loss = keras.losses.mean_squared_error
         model_name = '_center_regression_model'
         classes = 5
+    elif problem_name == 'pixelwise_grasp_regression':
+        raise NotImplementedError
     else:
         raise ValueError('Selected problem_name ' + str(problem_name) + ' does not exist. '
-                         'feature selection options are segmentation and classification')
+                         'feature selection options are segmentation and classification, '
+                         'image_center_grasp_regression, grasp_regression, grasp_classification'
+                         'grasp_segmentation')
     return image_shapes, vector_shapes, data_features, model_name, monitor_loss_name, label_features, monitor_metric_name, loss, metrics, classes
 
 
@@ -650,24 +667,41 @@ def epoch_params_for_splits(train_batch=None, samples_train=None,
     return returns
 
 
-def bboxes_to_grasps(bboxes):
+def old_bboxes_to_grasps(bboxes):
     # converting and scaling bounding boxes into grasps, g = {x, y, tan, h, w}
     box = tf.unstack(bboxes, axis=1)
     x = (box[0] + (box[4] - box[0])/2) * 0.35
     y = (box[1] + (box[5] - box[1])/2) * 0.47
-    tan = (box[3] -box[1]) / (box[2] -box[0]) *0.47/0.35
-    h = tf.sqrt(tf.pow((box[2] -box[0])*0.35, 2) + tf.pow((box[3] -box[1])*0.47, 2))
-    w = tf.sqrt(tf.pow((box[6] -box[0])*0.35, 2) + tf.pow((box[7] -box[1])*0.47, 2))
+    tan = (box[3] - box[1]) / (box[2] - box[0]) * 0.47/0.35
+    h = tf.sqrt(tf.pow((box[2] - box[0]) * 0.35, 2) + tf.pow((box[3] - box[1]) * 0.47, 2))
+    w = tf.sqrt(tf.pow((box[6] - box[0]) * 0.35, 2) + tf.pow((box[7] - box[1]) * 0.47, 2))
     return x, y, tan, h, w
 
 
-def grasp_to_bbox(x, y, tan, h, w):
+def old_grasp_to_bbox(x, y, tan, h, w):
     theta = tf.atan(tan)
-    edge1 = (x -w/2*tf.cos(theta) +h/2*tf.sin(theta), y -w/2*tf.sin(theta) -h/2*tf.cos(theta))
-    edge2 = (x +w/2*tf.cos(theta) +h/2*tf.sin(theta), y +w/2*tf.sin(theta) -h/2*tf.cos(theta))
-    edge3 = (x +w/2*tf.cos(theta) -h/2*tf.sin(theta), y +w/2*tf.sin(theta) +h/2*tf.cos(theta))
-    edge4 = (x -w/2*tf.cos(theta) -h/2*tf.sin(theta), y -w/2*tf.sin(theta) +h/2*tf.cos(theta))
+    edge1 = (x - w / 2 * tf.cos(theta) + h / 2 * tf.sin(theta), y - w / 2 * tf.sin(theta) - h / 2 * tf.cos(theta))
+    edge2 = (x + w / 2 * tf.cos(theta) + h / 2 * tf.sin(theta), y + w / 2 * tf.sin(theta) - h / 2 * tf.cos(theta))
+    edge3 = (x + w / 2 * tf.cos(theta) - h / 2 * tf.sin(theta), y + w / 2 * tf.sin(theta) + h / 2 * tf.cos(theta))
+    edge4 = (x - w / 2 * tf.cos(theta) - h / 2 * tf.sin(theta), y - w / 2 * tf.sin(theta) + h / 2 * tf.cos(theta))
     return [edge1, edge2, edge3, edge4]
+
+
+def old_iou(bbox_value, bbox_model):
+    bbox_value = np.reshape(bbox_value, -1)
+    bbox_value = [(bbox_value[0] * 0.35, bbox_value[1] * 0.47),
+                  (bbox_value[2] * 0.35, bbox_value[3] * 0.47),
+                  (bbox_value[4] * 0.35, bbox_value[5] * 0.47),
+                  (bbox_value[6] * 0.35, bbox_value[7] * 0.47)]
+    p1 = Polygon(bbox_value)
+    p2 = Polygon(bbox_model)
+    iou = p1.intersection(p2).area / (p1.area + p2.area - p1.intersection(p2).area)
+    return iou
+
+
+def old_angle_diff(tan_model, tan_value):
+    angle_diff = np.abs(np.arctan(tan_model)*180/np.pi - np.arctan(tan_value)*180/np.pi)
+    return angle_diff
 
 
 def old_run_training():
@@ -719,19 +753,15 @@ def old_run_training():
                 if step % 1000 == 0:
                     saver_g.save(sess, FLAGS.model_path)
             else:
-                bbox_hat = grasp_to_bbox(x_hat, y_hat, tan_hat, h_hat, w_hat)
+                bbox_hat = old_grasp_to_bbox(x_hat, y_hat, tan_hat, h_hat, w_hat)
                 bbox_value, bbox_model, tan_value, tan_model = sess.run([bboxes, bbox_hat, tan, tan_hat])
-                bbox_value = np.reshape(bbox_value, -1)
-                bbox_value = [(bbox_value[0]*0.35,bbox_value[1]*0.47),(bbox_value[2]*0.35,bbox_value[3]*0.47),(bbox_value[4]*0.35,bbox_value[5]*0.47),(bbox_value[6]*0.35,bbox_value[7]*0.47)]
-                p1 = Polygon(bbox_value)
-                p2 = Polygon(bbox_model)
-                iou = p1.intersection(p2).area / (p1.area +p2.area -p1.intersection(p2).area)
-                angle_diff = np.abs(np.arctan(tan_model)*180/np.pi -np.arctan(tan_value)*180/np.pi)
-                duration = time.time() -start_batch
+                iou = old_iou(bbox_value, bbox_model)
+                angle_diff = old_angle_diff(tan_model, tan_value)
+                duration = time.time() - start_batch
                 if angle_diff < 30. and iou >= 0.25:
-                    count+=1
+                    count += 1
                     print('image: %d | duration = %.2f | count = %d | iou = %.2f | angle_difference = %.2f' %(step, duration, count, iou, angle_diff))
-            step +=1
+            step += 1
     except tf.errors.OutOfRangeError:
         print('Done training for %d epochs, %d steps, %.1f min.' % (FLAGS.epochs, step, (time.time()-start_time)/60))
     finally:
@@ -743,17 +773,22 @@ def old_run_training():
 
 def old_loss(tan, x, y, h, w):
     from grasp_inf import inference
-    x_hat, y_hat, tan_hat, h_hat, w_hat = tf.unstack(inference(images), axis=1) # list
+    x_hat, y_hat, tan_hat, h_hat, w_hat = tf.unstack(inference(images), axis=1)  # list
     # tangent of 85 degree is 11
     tan_hat_confined = tf.minimum(11., tf.maximum(-11., tan_hat))
     tan_confined = tf.minimum(11., tf.maximum(-11., tan))
     # Loss function
     gamma = tf.constant(10.)
-    loss = tf.reduce_sum(tf.pow(x_hat -x, 2) +tf.pow(y_hat -y, 2) + gamma*tf.pow(tan_hat_confined - tan_confined, 2) +tf.pow(h_hat -h, 2) +tf.pow(w_hat -w, 2))
+    loss = tf.reduce_sum(tf.pow(x_hat - x, 2) + tf.pow(y_hat - y, 2) +
+                         gamma * tf.pow(tan_hat_confined - tan_confined, 2) +
+                         tf.pow(h_hat - h, 2) + tf.pow(w_hat - w, 2))
     return loss, x_hat, tan_hat, h_hat, w_hat, y_hat
 
 
 def main(_):
+    hyperparams, kwargs = grasp_utilities.load_hyperparams_json(
+        FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.fine_tuning_learning_rate)
+    run_training(hyperparams=hyperparams, **kwargs)
     if FLAGS.train_mode == 'k_fold':
         train_k_fold()
     elif FLAGS.train_mode == 'train':
@@ -763,4 +798,6 @@ if __name__ == '__main__':
     # next FLAGS line might be needed in tf 1.4 but not tf 1.5
     # FLAGS._parse_flags()
     tf.app.run(main=main)
+    print('grasp_train.py run complete, original command: ', sys.argv)
+    sys.exit()
     # tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)

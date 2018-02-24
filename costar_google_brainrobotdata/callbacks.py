@@ -93,3 +93,11 @@ class EvaluateInputGenerator(keras.callbacks.Callback):
 
         if self.verbose > 0:
             print(metrics_str)
+
+
+class PrintLogsCallback(keras.callbacks.Callback):
+    """ Prints the log data at the end of each epoch.
+    """
+    def on_epoch_end(self, epoch, logs={}):
+        print('')
+        print('logs: ' + str(logs))
