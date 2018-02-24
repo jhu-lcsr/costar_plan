@@ -626,6 +626,20 @@ def grasp_to_bbox(x, y, tan, h, w):
     return [edge1, edge2, edge3, edge4]
 
 
+def old_iou(bbox_value, bbox_model):
+    bbox_value = np.reshape(bbox_value, -1)
+    bbox_value = [(bbox_value[0]*0.35,bbox_value[1]*0.47),(bbox_value[2]*0.35,bbox_value[3]*0.47),(bbox_value[4]*0.35,bbox_value[5]*0.47),(bbox_value[6]*0.35,bbox_value[7]*0.47)]
+    p1 = Polygon(bbox_value)
+    p2 = Polygon(bbox_model)
+    iou = p1.intersection(p2).area / (p1.area +p2.area -p1.intersection(p2).area)
+    return iou
+
+
+def old_angle_diff(tan_model, tan_value):
+    angle_diff = np.abs(np.arctan(tan_model)*180/np.pi -np.arctan(tan_value)*180/np.pi)
+    return angle_diff
+
+
 def old_run_training():
     print(FLAGS.train_or_validation)
     if FLAGS.train_or_validation == 'train':
