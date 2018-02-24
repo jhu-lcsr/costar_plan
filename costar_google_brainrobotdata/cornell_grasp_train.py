@@ -691,12 +691,8 @@ def old_run_training():
             else:
                 bbox_hat = grasp_to_bbox(x_hat, y_hat, tan_hat, h_hat, w_hat)
                 bbox_value, bbox_model, tan_value, tan_model = sess.run([bboxes, bbox_hat, tan, tan_hat])
-                bbox_value = np.reshape(bbox_value, -1)
-                bbox_value = [(bbox_value[0]*0.35,bbox_value[1]*0.47),(bbox_value[2]*0.35,bbox_value[3]*0.47),(bbox_value[4]*0.35,bbox_value[5]*0.47),(bbox_value[6]*0.35,bbox_value[7]*0.47)]
-                p1 = Polygon(bbox_value)
-                p2 = Polygon(bbox_model)
-                iou = p1.intersection(p2).area / (p1.area +p2.area -p1.intersection(p2).area)
-                angle_diff = np.abs(np.arctan(tan_model)*180/np.pi -np.arctan(tan_value)*180/np.pi)
+                iou = old_iou(bbox_value, bbox_model)
+                angle_diff = old_angle_diff(tan_model, tan_value)
                 duration = time.time() -start_batch
                 if angle_diff < 30. and iou >= 0.25:
                     count+=1
@@ -709,6 +705,7 @@ def old_run_training():
 
     coord.join(threads)
     sess.close()
+
 
 
 def old_loss(tan, x, y, h, w):
