@@ -466,10 +466,10 @@ def k_fold_split(path=FLAGS.data_dir, split_type=FLAGS.split_type, num_fold=FLAG
             fold_image_id_list[dst_fold].append(image_id)
 
     info_lists = [which_splits, num_splits, unique_image_num_list,
-                    unique_object_num_list, positive_num_list, negative_num_list,
-                    total_grasp_list, spilt_type_list]
+                  unique_object_num_list, positive_num_list, negative_num_list,
+                  total_grasp_list, spilt_type_list]
     head_line = ('which_splits, num_splits, unique_image, unique_object,'
-                    'num_pos, num_neg, num_total_grasp, spilt_type\n')
+                 'num_pos, num_neg, num_total_grasp, spilt_type\n')
     # mkdir_p(result_path)
     file_object = open(result_path, 'w+')
     file_object.writelines(head_line)
@@ -477,7 +477,7 @@ def k_fold_split(path=FLAGS.data_dir, split_type=FLAGS.split_type, num_fold=FLAG
         cur_line = ''
         for single_list in info_lists:
             cur_line += str(single_list[i]) + ','
-        file_object.writelines(cur_line + '\n')
+        file_object.writelines(cur_line[:-1] + '\n')
     file_object.close()
 
     return fold_image_id_list
