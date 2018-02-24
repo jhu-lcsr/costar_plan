@@ -37,11 +37,6 @@ except ImportError, e:
 import mcts
 
 # =============================================================================
-# OpenAI Gym Environments
-# These provide the abstracted interfaces to worlds, etc.
-import gym
-
-# =============================================================================
 # Draw and interact with programs
 import tools
 
