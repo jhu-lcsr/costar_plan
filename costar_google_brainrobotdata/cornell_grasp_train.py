@@ -53,7 +53,9 @@ from grasp_model import top_block
 from grasp_model import create_tree_roots
 from grasp_model import choose_hypertree_model
 from cornell_grasp_dataset_reader import parse_and_preprocess
+
 from callbacks import EvaluateInputGenerator
+from callbacks import PrintLogsCallback
 
 import grasp_loss
 import grasp_metrics
@@ -67,12 +69,17 @@ flags.DEFINE_float(
 )
 flags.DEFINE_float(
     'fine_tuning_learning_rate',
-    0.001,
+    0.0005,
     'Initial learning rate, this is the learning rate used if load_weights is passed.'
 )
 flags.DEFINE_integer(
+    'fine_tuning_epochs',
+    100,
+    'Number of epochs to run trainer with all weights marked as trainable.'
+)
+flags.DEFINE_integer(
     'epochs',
-    20,
+    100,
     'Number of epochs to run trainer.'
 )
 flags.DEFINE_integer(
@@ -93,17 +100,12 @@ flags.DEFINE_string(
 flags.DEFINE_string(
     'train_or_validation',
     'validation',
-    'Train or evaluate the dataset'
+    'deprecated, does nothing. Train or evaluate the dataset'
 )
 flags.DEFINE_string(
     'run_name',
     '',
     'A string that will become part of the logged directories and filenames.'
-)
-flags.DEFINE_string(
-    'train_mode',
-    'train',
-    'options: k_fold, train. To choose run train/val/test or k_fold training'
 )
 flags.DEFINE_integer(
     'num_splits',
@@ -130,10 +132,10 @@ flags.DEFINE_string('load_weights', None,
 flags.DEFINE_string('load_hyperparams', None,
                     """Load hyperparams from a json file.""")
 flags.DEFINE_string('pipeline_stage', 'train_test',
-                    """Choose to "train", "test", "train_test", or "kfold" with the grasp_dataset
+                    """Choose to "train", "test", "train_test", or "train_test_kfold" with the grasp_dataset
                        data for training and grasp_dataset_test for testing.""")
 flags.DEFINE_string(
-    'kfold_split_type', 'objectwise',
+    'split_dataset', 'objectwise',
     """Options are imagewise and objectwise, this is the type of split chosen when the tfrecords were generated.""")
 flags.DEFINE_string('tfrecord_filename_base', 'cornell-grasping-dataset', 'base of the filename used for the dataset tfrecords and csv files')
 flags.DEFINE_string(
@@ -178,7 +180,6 @@ def run_training(
         top='classification',
         epochs=None,
         preprocessing_mode=None,
-        save_model=True,
         train_data=None,
         validation_data=None,
         train_filenames=None,
@@ -274,7 +275,7 @@ def run_training(
     log_dir_run_name = os.path.join(log_dir, run_name)
     csv_logger = CSVLogger(log_dir_run_name + run_name + '.csv')
     callbacks = callbacks + [csv_logger]
-    callbacks += [callbacks.PrintLogsCallback()]
+    callbacks += [PrintLogsCallback()]
     print('Writing logs for models, accuracy and tensorboard in ' + log_dir)
     grasp_utilities.mkdir_p(log_dir)
 
@@ -349,8 +350,11 @@ def run_training(
             callbacks=callbacks,
             verbose=0)
 
-    elif pipeline == 'test':
+    elif 'test' in pipeline:
         history = parallel_model.evaluate_generator(generator=test_data, steps=test_steps)
+    else:
+        raise ValueError('unknown pipeline configuration ' + pipeline + ' chosen, try '
+                         'train, test, train_test, or train_test_kfold')
 
     model.save_weights(log_dir_run_name + '_model_weights.h5')
 
@@ -359,9 +363,9 @@ def run_training(
 
 def choose_preprocessing_mode(preprocessing_mode, image_model_name):
     """ Choose preprocessing for specific pretrained weights
-    # it is very important to preprocess
-    # in exactly the same way the model
-    # was originally trained
+    it is very important to preprocess
+    in exactly the same way the model
+    was originally trained
     """
     if preprocessing_mode is None:
         if 'densenet' in image_model_name:
@@ -393,14 +397,18 @@ def chooseOptimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name)
     return callbacks, optimizer
 
 
-def train_k_fold(num_fold=None, split_type=FLAGS.kfold_split_type,
-                 tfrecord_filename_base=FLAGS.tfrecord_filename_base, csv_path='-k-fold-stat.csv'):
+def train_k_fold(num_fold=None, split_type=None,
+                 tfrecord_filename_base=None, csv_path='-k-fold-stat.csv'):
     """ Do K_Fold training
 
         num_fold: total number of fold.
         split_type: str, either 'imagewise' or 'objectwise', should be consistent with
         splits type desired when doing actual splits.
     """
+    if split_type is None:
+        split_type = FLAGS.split_dataset
+    if tfrecord_filename_base is None:
+        tfrecord_filename_base = FLAGS.tfrecord_filename_base
     cur_csv_path = os.path.join(FLAGS.data_dir, tfrecord_filename_base + '-' + split_type + csv_path)
     csv_reader = csv.DictReader(open(cur_csv_path))
     unique_image_num = []
@@ -520,7 +528,7 @@ def load_dataset(label_features=None, data_features=None, train_filenames=None, 
     # When runing k-fold, filenames are passed in as arguments
     if train_filenames is not None and train_size != 0:
 
-        train_steps, val_steps = epoch_params_for_splits(
+        train_steps, val_steps, _ = epoch_params_for_splits(
             train_batch=batch_size, val_batch=val_batch_size,
             samples_train=train_size, samples_val=val_size)
 
@@ -592,7 +600,7 @@ def epoch_params(train_splits=None, val_splits=None, test_splits=None, split_typ
         data_dir = FLAGS.data_dir
 
     if split_type is None:
-        split_type = FLAGS.kfold_split_type
+        split_type = FLAGS.split_dataset
 
     if tfrecord_filename_base is None:
         tfrecord_filename_base = FLAGS.tfrecord_filename_base
@@ -649,22 +657,24 @@ def epoch_params_for_splits(train_batch=None, samples_train=None,
                             test_batch=None, samples_test=None):
 
     returns = []
+    steps_train = None
+    steps_val = None
+    steps_test = None
     if samples_train is not None and train_batch is not None:
         # for training, just do a little more than once through the dataset if needed
         steps_train = int(np.ceil(float(samples_train) / float(train_batch)))
-        returns.append(steps_train)
     if samples_val is not None and val_batch is not None:
         steps_in_val_dataset, divides_evenly = np.divmod(samples_val, val_batch)
         # If this fails you need to fix the batch size so it divides evenly!
         assert divides_evenly == 0
-        returns.append(steps_in_val_dataset)
+        steps_val = steps_in_val_dataset
     if samples_test is not None and test_batch is not None:
         steps_in_test_dataset, divides_evenly = np.divmod(samples_test, test_batch)
         # If this fails you need to fix the batch size so it divides evenly!
         assert divides_evenly == 0
-        returns.append(steps_in_test_dataset)
+        steps_test = steps_in_test_dataset
 
-    return returns
+    return steps_train, steps_val, steps_test
 
 
 def old_bboxes_to_grasps(bboxes):
@@ -789,9 +799,9 @@ def main(_):
     hyperparams, kwargs = grasp_utilities.load_hyperparams_json(
         FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.fine_tuning_learning_rate)
     run_training(hyperparams=hyperparams, **kwargs)
-    if FLAGS.train_mode == 'k_fold':
+    if 'k_fold' in FLAGS.pipeline_stage:
         train_k_fold()
-    elif FLAGS.train_mode == 'train':
+    else:
         run_training()
 
 if __name__ == '__main__':
