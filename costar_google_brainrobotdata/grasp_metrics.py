@@ -423,12 +423,16 @@ def jaccard_score(y_true, y_pred, angle_threshold=None, iou_threshold=0.25):
 
         iou = shapely_intersection_over_union(true_rp, pred_rp)
         if iou >= iou_threshold:
+            # passed iou threshold
             return 1.0
         else:
+            # didn't meet iou threshold
             return 0.0
 
 
-def jaccard_score_tf(y_true, y_pred):
+def grasp_jaccard(y_true, y_pred):
+    """ Calculates the jaccard metric score in a manner compatible with tf and keras metrics.
+
+        This is an IOU metric with angle difference and IOU score thresholds.
     """
-    """
-    return tf.py_func(jaccard_score, [y_true, y_pred])
+    return tf.map_fn(lambda yt, yp: tf.py_func(jaccard_score, [yt, yp], [tf.float32]), [y_true, y_pred])
