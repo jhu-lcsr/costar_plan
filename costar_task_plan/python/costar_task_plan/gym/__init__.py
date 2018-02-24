@@ -1,11 +1,9 @@
 __all__ = [
   "NeedleMasterEnv",
-  "BulletSimulationEnv",
   "GazeboEnv",
   ]
 
 from needle_master import *
-from bullet import *
 from gazebo import *
 
 # -----------------------------------------------------------------------------

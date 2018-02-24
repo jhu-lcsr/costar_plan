@@ -7,6 +7,8 @@ from gym.spaces import Box
 
 import numpy as np
 
+from .client import CostarBulletSimulation
+
 class BulletSimulationEnv(gym.Env, utils.EzPickle):
 
     def __init__(self, verbose=False, *args, **kwargs):
