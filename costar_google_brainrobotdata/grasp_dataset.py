@@ -49,6 +49,7 @@ import grasp_geometry_tf
 import depth_image_encoding
 import random_crop as rcp
 import inception_preprocessing
+import grasp_utilities
 from grasp_median_filter import grasp_dataset_median_filter
 
 # DATASET LOADING CONFIGURATION COMMAND LINE PARAMETERS, see GraspDataset()
@@ -251,32 +252,6 @@ flags.DEFINE_string('grasp_datasets_batch_algorithm', 'proportional',
 FLAGS = flags.FLAGS
 
 
-def mkdir_p(path):
-    """Create the specified path on the filesystem like the `mkdir -p` command
-
-    Creates one or more filesystem directory levels as needed,
-    and does not return an error if the directory already exists.
-    """
-    # http://stackoverflow.com/questions/600268/mkdir-p-functionality-in-python
-    try:
-        os.makedirs(path)
-    except OSError as exc:  # Python >2.5
-        if exc.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else:
-            raise
-
-
-def is_sequence(arg):
-    """Returns true if arg is a list or another Python Sequence, and false otherwise.
-
-        source: https://stackoverflow.com/a/17148334/99379
-    """
-    return (not hasattr(arg, "strip") and
-            hasattr(arg, "__getitem__") or
-            hasattr(arg, "__iter__"))
-
-
 class GraspDataset(object):
     """Google Grasping Dataset - about 1TB total size
         https://sites.google.com/site/brainrobotdata/home/grasping-dataset
@@ -363,7 +338,7 @@ class GraspDataset(object):
                 data_dir = FLAGS.data_dir
             else:
                 data_dir = self.data_dir
-        mkdir_p(data_dir)
+        grasp_utilities.mkdir_p(data_dir)
         print('Downloading datasets to: ', data_dir)
 
         url_prefix = 'https://storage.googleapis.com/brain-robotics-data/'
@@ -2301,7 +2276,7 @@ class GraspDataset(object):
         """
         if tf_session is None:
             tf_session = tf.Session()
-        mkdir_p(FLAGS.visualization_dir)
+        grasp_utilities.mkdir_p(FLAGS.visualization_dir)
 
         batch_size = 1
         (feature_op_dicts, features_complete_list,
@@ -2455,7 +2430,7 @@ class GraspDataset(object):
 
         if save_file is True:
             save_dir = FLAGS.data_dir
-            mkdir_p(save_dir)
+            grasp_utilities.mkdir_p(save_dir)
             if filename is None:
                 filename = 'grasp_dataset_' + self.dataset + '_statistics.txt'
             complete_path = os.path.join(save_dir, filename)

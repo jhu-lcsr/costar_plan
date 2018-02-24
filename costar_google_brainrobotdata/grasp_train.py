@@ -38,6 +38,7 @@ from tensorflow.python.platform import flags
 import grasp_dataset
 import grasp_model
 import grasp_loss
+import grasp_utilities
 import keras_workaround
 from callbacks import EvaluateInputTensor
 
@@ -131,14 +132,11 @@ flags.DEFINE_integer('early_stopping', None,
                      """Stop training if the monitored loss does not improve after the specified number of epochs.
                         Values of 0 or None will disable early stopping.
                      """)
+flags.DEFINE_string('load_hyperparams', None,
+                    """Load hyperparams from a json file. Only applies to grasp_model_hypertree""")
 
 flags.FLAGS._parse_flags()
 FLAGS = flags.FLAGS
-
-
-# http://stackoverflow.com/a/5215012/99379
-def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
-    return datetime.datetime.now().strftime(fmt).format(fname=fname)
 
 
 class GraspTrain(object):
@@ -191,7 +189,8 @@ class GraspTrain(object):
               model_name=FLAGS.grasp_model,
               loss=FLAGS.loss,
               metric=FLAGS.metric,
-              early_stopping=FLAGS.early_stopping):
+              early_stopping=FLAGS.early_stopping,
+              hyperparams=None):
         """Train the grasping dataset
 
         This function depends on https://github.com/fchollet/keras/pull/6928
@@ -235,7 +234,7 @@ class GraspTrain(object):
             ########################################################
             # End tensor configuration, begin model configuration and training
 
-            weights_name = timeStamped(save_weights + '-' + model_name + '-dataset_' + dataset_names_str)
+            run_name = grasp_utilities.timeStamped(save_weights + '-' + model_name + '-dataset_' + dataset_names_str)
 
             # ###############learning rate scheduler####################
             # source: https://github.com/aurora95/Keras-FCN/blob/master/train.py
@@ -332,10 +331,13 @@ class GraspTrain(object):
                 early_stopper = EarlyStopping(monitor=monitor_loss_name, min_delta=0.001, patience=32)
                 callbacks = callbacks + [early_stopper]
 
+            log_dir = os.path.join(log_dir, run_name)
+            log_dir_run_name = os.path.join(log_dir, run_name)
+            print('Writing logs for models, accuracy and tensorboard in ' + log_dir)
+            grasp_utilities.mkdir_p(log_dir)
+
             if FLAGS.progress_tracker == 'tensorboard':
-                print('Enabling tensorboard...')
-                log_dir = './tensorboard_' + weights_name
-                grasp_dataset.mkdir_p(log_dir)
+                print('Enabling tensorboard in ' + str(log_dir))
                 progress_tracker = TensorBoard(log_dir=log_dir, write_graph=True,
                                                write_grads=True, write_images=True)
                 callbacks = callbacks + [progress_tracker]
@@ -357,13 +359,15 @@ class GraspTrain(object):
                     keras.callbacks.ReduceLROnPlateau(patience=4, verbose=1, factor=0.5, monitor=monitor_loss_name)
                 ]
 
-            csv_logger = CSVLogger(weights_name + '.csv')
+            csv_logger = CSVLogger(log_dir_run_name + '.csv')
             callbacks = callbacks + [csv_logger]
+            callbacks += [callbacks.PrintLogsCallback()]
 
-            checkpoint = keras.callbacks.ModelCheckpoint(weights_name + '-epoch-{epoch:03d}-' +
-                                                         monitor_loss_name + '-{' + monitor_loss_name + ':.3f}-' +
-                                                         monitor_metric_name + '-{' + monitor_metric_name + ':.3f}.h5',
-                                                         save_best_only=False, verbose=1, monitor=monitor_metric_name)
+            checkpoint = keras.callbacks.ModelCheckpoint(
+                log_dir_run_name + '-epoch-{epoch:03d}-' +
+                monitor_loss_name + '-{' + monitor_loss_name + ':.3f}-' +
+                monitor_metric_name + '-{' + monitor_metric_name + ':.3f}.h5',
+                save_best_only=False, verbose=1, monitor=monitor_metric_name)
             callbacks = callbacks + [checkpoint]
 
             # progress bar
@@ -403,6 +407,15 @@ class GraspTrain(object):
             print('Available metrics: ' + str(model.metrics_names))
 
             model.summary()
+
+            # Save the hyperparams to a json string so it is human readable
+            if hyperparams is not None:
+                with open(log_dir_run_name + '_hyperparams.json', 'w') as fp:
+                    json.dump(hyperparams, fp)
+
+            # Save the current model to a json string so it is human readable
+            with open(log_dir_run_name + '_model.json', 'w') as fp:
+                fp.write(model.to_json())
 
             try:
                 model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=callbacks, verbose=0)
@@ -649,7 +662,7 @@ class GraspTrain(object):
         return loss
 
 
-def define_make_model_fn(grasp_model_name=FLAGS.grasp_model):
+def choose_make_model_fn(grasp_model_name=FLAGS.grasp_model):
     """ Select the Neural Network Model to use.
 
         Gets a command line specified function that
@@ -716,6 +729,11 @@ def define_make_model_fn(grasp_model_name=FLAGS.grasp_model):
         def make_model_fn(*a, **kw):
             return grasp_model.grasp_model_levine_2016(
                 *a, **kw)
+    elif grasp_model_name == 'grasp_model_hypertree':
+        def make_model_fn(*a, **kw):
+            if FLAGS.load_hyperparams
+            return grasp_model.choose_hypertree_model(
+                *a, **kw)
     else:
         available_functions = globals()
         if grasp_model_name in available_functions:
@@ -736,11 +754,11 @@ def main():
     with K.get_session() as sess:
         # Read command line arguments selecting the Keras model to train.
         # The specific Keras Model varies based on the command line arguments.
-        # Based on the selection define_make_model_fn()
+        # Based on the selection choose_make_model_fn()
         # will create a function that can be called later
         # to actually create a Keras Model object.
         # This is done so GraspTrain doesn't need specific code for every possible Keras Model.
-        make_model_fn = define_make_model_fn()
+        make_model_fn = choose_make_model_fn()
 
         # Weights file to load, if any
         load_weights = FLAGS.load_weights
@@ -762,7 +780,7 @@ def main():
         return None
 
 if __name__ == '__main__':
-    FLAGS._parse_flags()
-    main()
+    # FLAGS._parse_flags()
+    tf.app.run(main=main)
     print('grasp_train.py run complete, original command: ', sys.argv)
     sys.exit()
