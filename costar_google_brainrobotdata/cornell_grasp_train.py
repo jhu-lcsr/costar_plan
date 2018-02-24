@@ -98,6 +98,11 @@ flags.DEFINE_string(
     '',
     'A string that will become part of the logged directories and filenames.'
 )
+flags.DEFINE_string(
+    'train_mode',
+    'train',
+    'options: k_fold, train. To choose run train/val/test or k_fold training'
+)
 flags.DEFINE_integer(
     'num_splits',
     '10',
@@ -170,7 +175,9 @@ def run_training(
         save_model=True,
         train_data=None,
         validation_data=None,
+        train_filenames=None,
         train_size=None,
+        val_filenames=None,
         val_size=None,
         test_size=None,
         save_splits_weights='',
@@ -299,9 +306,17 @@ def run_training(
         loss=loss,
         metrics=metrics)
 
-    train_data, train_steps, validation_data, validation_steps, test_data, test_steps = load_dataset(
-        label_features=label_features, data_features=data_features, batch_size=batch_size,
-        train_data=train_data, validation_data=validation_data, preprocessing_mode=preprocessing_mode)
+    if all([train_filenames, train_size, val_filenames, val_size]):
+        train_data, train_steps, validation_data, validation_steps = load_dataset(
+            train_filenames=train_filenames, train_size=train_size,
+            val_filenames=val_filenames, val_size=val_size,
+            label_features=label_features, data_features=data_features, batch_size=batch_size,
+            train_data=train_data, validation_data=validation_data, preprocessing_mode=preprocessing_mode
+        )
+    else:
+        train_data, train_steps, validation_data, validation_steps, test_data, test_steps = load_dataset(
+            label_features=label_features, data_features=data_features, batch_size=batch_size,
+            train_data=train_data, validation_data=validation_data, preprocessing_mode=preprocessing_mode)
 
     # Get the validation dataset in one big numpy array for validation
     # This lets us take advantage of tensorboard visualization
@@ -367,18 +382,19 @@ def chooseOptimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name)
     return callbacks, optimizer
 
 
-def train_k_fold(num_fold=None, split_type='imagewise', csv_path='-k-fold-stat.csv'):
+def train_k_fold(num_fold=None, split_type=FLAGS.kfold_split_type,
+                 tfrecord_filename_base=FLAGS.tfrecord_filename_base, csv_path='-k-fold-stat.csv'):
     """ Do K_Fold training
 
         num_fold: total number of fold.
         split_type: str, either 'imagewise' or 'objectwise', should be consistent with
         splits type desired when doing actual splits.
     """
-    cur_csv_path = os.path.join(FLAGS.data_dir, split_type + csv_path)
+    cur_csv_path = os.path.join(FLAGS.data_dir, tfrecord_filename_base + '-' + split_type + csv_path)
     csv_reader = csv.DictReader(open(cur_csv_path))
     unique_image_num = []
     for row in csv_reader:
-        unique_image_num.append(int(row[' unique_image']))
+        unique_image_num.append(int(row[' num_total_grasp']))  # file writer repeat each image for num_grasp
     if num_fold is None:
         num_fold = FLAGS.num_splits
     val_filenames = []
@@ -388,18 +404,19 @@ def train_k_fold(num_fold=None, split_type='imagewise', csv_path='-k-fold-stat.c
     train_size = 0
     for i in range(num_fold):
         val_filenames = [os.path.join(FLAGS.data_dir,
-                         'cornell-grasping-dataset' + split_type + '-fold-' + str(i) + '.tfrecord')]
+                         tfrecord_filename_base + '-' + split_type + '-fold-' + str(i) + '.tfrecord')]
         val_size = unique_image_num[i]
         for j in range(num_fold):
             if j == i:
                 continue
             train_id += str(j)
             train_filenames += [os.path.join(FLAGS.data_dir,
-                                'cornell-grasping-dataset' + split_type + '-fold-' + str(j) + '.tfrecord')]
+                                tfrecord_filename_base + '-' + split_type + '-fold-' + str(j) + '.tfrecord')]
             train_size += unique_image_num[j]
-        save_splits_weights = split_type + '_train_on_' + train_id + '_val_on_' + str(i)
-        run_training(train_files=train_filenames, validation_files=val_filenames, save_splits_weights=save_splits_weights,
-                     train_size=train_size, val_size=val_size)
+        save_splits_weights = split_type + '-train-on-' + train_id + '-val-on-' + str(i)
+        print('run kflod train, train on splits: ' + train_id + ',   val on split: ' + str(i))
+        run_training(train_filenames=train_filenames, val_filenames=val_filenames, pipeline='train',
+                     train_size=train_size, val_size=val_size, save_splits_weights=save_splits_weights)
         train_size = 0
 
     return
@@ -477,46 +494,75 @@ def choose_features_and_metrics(feature_combo_name, problem_name):
     return image_shapes, vector_shapes, data_features, model_name, monitor_loss_name, label_features, monitor_metric_name, loss, metrics, classes
 
 
-def load_dataset(label_features, data_features,
-                 batch_size, val_batch_size=1, test_batch_size=1,
+def load_dataset(label_features=None, data_features=None, train_filenames=None, train_size=0,
+                 val_filenames=None, val_size=0, batch_size=None, val_batch_size=1, test_batch_size=1,
                  train_data=None, validation_data=None, test_data=None, in_memory_validation=False,
                  preprocessing_mode='tf'):
     """ Load the cornell grasping dataset from the file if it isn't already available.
     """
-    train_filenames, train_size, val_filenames, val_size, test_filenames, test_size = epoch_params()
-    train_steps, val_steps, test_steps = epoch_params_for_splits(
-        train_batch=batch_size, val_batch=val_batch_size, test_batch=test_batch_size,
-        samples_train=train_size, samples_val=val_size, samples_test=test_size)
+    # When runing k-fold, filenames are passed in as arguments
+    if train_filenames is not None and train_size != 0:
 
-    if in_memory_validation:
-        val_batch_size = val_size
+        train_steps, val_steps = epoch_params_for_splits(
+            train_batch=batch_size, val_batch=val_batch_size,
+            samples_train=train_size, samples_val=val_size)
 
-    if validation_data is None:
-        validation_data = cornell_grasp_dataset_reader.yield_record(
-            val_filenames, label_features, data_features,
-            is_training=False, batch_size=val_batch_size,
-            parse_example_proto_fn=parse_and_preprocess,
-            preprocessing_mode=preprocessing_mode)
+        if train_data is None:
+            train_data = cornell_grasp_dataset_reader.yield_record(
+                train_filenames, label_features, data_features,
+                batch_size=batch_size,
+                parse_example_proto_fn=parse_and_preprocess,
+                preprocessing_mode=preprocessing_mode)
 
-    if in_memory_validation:
-        print('loading validation data directly into memory, if you run out set in_memory_validation to False')
-        validation_data = next(validation_data)
+        if validation_data is None:
+            validation_data = cornell_grasp_dataset_reader.yield_record(
+                val_filenames, label_features, data_features,
+                is_training=False, batch_size=val_batch_size,
+                parse_example_proto_fn=parse_and_preprocess,
+                preprocessing_mode=preprocessing_mode)
 
-    if train_data is None:
-        train_data = cornell_grasp_dataset_reader.yield_record(
-            train_filenames, label_features, data_features,
-            batch_size=batch_size,
-            parse_example_proto_fn=parse_and_preprocess,
-            preprocessing_mode=preprocessing_mode)
+        if in_memory_validation:
+            print('loading validation data directly into memory, if you run out set in_memory_validation to False')
+            validation_data = next(validation_data)
 
-    if test_data is None:
-        test_data = cornell_grasp_dataset_reader.yield_record(
-            test_filenames, label_features, data_features,
-            batch_size=test_batch_size,
-            parse_example_proto_fn=parse_and_preprocess,
-            preprocessing_mode=preprocessing_mode)
+        return train_data, train_steps, validation_data, val_steps
 
-    return train_data, train_steps, validation_data, val_steps, test_data, test_steps
+    else:
+        # when do regular train/val/test filenames are generated inside
+        train_filenames, train_size, val_filenames, val_size, test_filenames, test_size = epoch_params()
+        train_steps, val_steps, test_steps = epoch_params_for_splits(
+            train_batch=batch_size, val_batch=val_batch_size, test_batch=test_batch_size,
+            samples_train=train_size, samples_val=val_size, samples_test=test_size)
+
+        if in_memory_validation:
+            val_batch_size = val_size
+
+        if validation_data is None:
+            validation_data = cornell_grasp_dataset_reader.yield_record(
+                val_filenames, label_features, data_features,
+                is_training=False, batch_size=val_batch_size,
+                parse_example_proto_fn=parse_and_preprocess,
+                preprocessing_mode=preprocessing_mode)
+
+        if in_memory_validation:
+            print('loading validation data directly into memory, if you run out set in_memory_validation to False')
+            validation_data = next(validation_data)
+
+        if train_data is None:
+            train_data = cornell_grasp_dataset_reader.yield_record(
+                train_filenames, label_features, data_features,
+                batch_size=batch_size,
+                parse_example_proto_fn=parse_and_preprocess,
+                preprocessing_mode=preprocessing_mode)
+
+        if test_data is None:
+            test_data = cornell_grasp_dataset_reader.yield_record(
+                test_filenames, label_features, data_features,
+                batch_size=test_batch_size,
+                parse_example_proto_fn=parse_and_preprocess,
+                preprocessing_mode=preprocessing_mode)
+
+        return train_data, train_steps, validation_data, val_steps, test_data, test_steps
 
 
 def epoch_params(train_splits=None, val_splits=None, test_splits=None, split_type=None,
@@ -708,7 +754,10 @@ def old_loss(tan, x, y, h, w):
 
 
 def main(_):
-    run_training()
+    if FLAGS.train_mode == 'k_fold':
+        train_k_fold()
+    elif FLAGS.train_mode == 'train':
+        run_training()
 
 if __name__ == '__main__':
     # next FLAGS line might be needed in tf 1.4 but not tf 1.5
