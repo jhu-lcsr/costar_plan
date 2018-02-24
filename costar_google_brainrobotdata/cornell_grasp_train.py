@@ -606,7 +606,7 @@ def epoch_params_for_splits(train_batch=None, samples_train=None,
     return returns
 
 
-def bboxes_to_grasps(bboxes):
+def old_bboxes_to_grasps(bboxes):
     # converting and scaling bounding boxes into grasps, g = {x, y, tan, h, w}
     box = tf.unstack(bboxes, axis=1)
     x = (box[0] + (box[4] - box[0])/2) * 0.35
@@ -617,7 +617,7 @@ def bboxes_to_grasps(bboxes):
     return x, y, tan, h, w
 
 
-def grasp_to_bbox(x, y, tan, h, w):
+def old_grasp_to_bbox(x, y, tan, h, w):
     theta = tf.atan(tan)
     edge1 = (x -w/2*tf.cos(theta) +h/2*tf.sin(theta), y -w/2*tf.sin(theta) -h/2*tf.cos(theta))
     edge2 = (x +w/2*tf.cos(theta) +h/2*tf.sin(theta), y +w/2*tf.sin(theta) -h/2*tf.cos(theta))
@@ -628,7 +628,10 @@ def grasp_to_bbox(x, y, tan, h, w):
 
 def old_iou(bbox_value, bbox_model):
     bbox_value = np.reshape(bbox_value, -1)
-    bbox_value = [(bbox_value[0]*0.35,bbox_value[1]*0.47),(bbox_value[2]*0.35,bbox_value[3]*0.47),(bbox_value[4]*0.35,bbox_value[5]*0.47),(bbox_value[6]*0.35,bbox_value[7]*0.47)]
+    bbox_value = [(bbox_value[0] * 0.35, bbox_value[1] * 0.47),
+                  (bbox_value[2] * 0.35, bbox_value[3] * 0.47),
+                  (bbox_value[4] * 0.35, bbox_value[5] * 0.47),
+                  (bbox_value[6] * 0.35, bbox_value[7] * 0.47)]
     p1 = Polygon(bbox_value)
     p2 = Polygon(bbox_model)
     iou = p1.intersection(p2).area / (p1.area +p2.area -p1.intersection(p2).area)
@@ -689,7 +692,7 @@ def old_run_training():
                 if step % 1000 == 0:
                     saver_g.save(sess, FLAGS.model_path)
             else:
-                bbox_hat = grasp_to_bbox(x_hat, y_hat, tan_hat, h_hat, w_hat)
+                bbox_hat = old_grasp_to_bbox(x_hat, y_hat, tan_hat, h_hat, w_hat)
                 bbox_value, bbox_model, tan_value, tan_model = sess.run([bboxes, bbox_hat, tan, tan_hat])
                 iou = old_iou(bbox_value, bbox_model)
                 angle_diff = old_angle_diff(tan_model, tan_value)
@@ -707,7 +710,6 @@ def old_run_training():
     sess.close()
 
 
-
 def old_loss(tan, x, y, h, w):
     from grasp_inf import inference
     x_hat, y_hat, tan_hat, h_hat, w_hat = tf.unstack(inference(images), axis=1) # list
@@ -716,7 +718,9 @@ def old_loss(tan, x, y, h, w):
     tan_confined = tf.minimum(11., tf.maximum(-11., tan))
     # Loss function
     gamma = tf.constant(10.)
-    loss = tf.reduce_sum(tf.pow(x_hat -x, 2) +tf.pow(y_hat -y, 2) + gamma*tf.pow(tan_hat_confined - tan_confined, 2) +tf.pow(h_hat -h, 2) +tf.pow(w_hat -w, 2))
+    loss = tf.reduce_sum(tf.pow(x_hat - x, 2) + tf.pow(y_hat - y, 2) +
+                         gamma * tf.pow(tan_hat_confined - tan_confined, 2) +
+                         tf.pow(h_hat - h, 2) + tf.pow(w_hat - w, 2))
     return loss, x_hat, tan_hat, h_hat, w_hat, y_hat
 
 
