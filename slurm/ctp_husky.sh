@@ -10,11 +10,11 @@
 
 
 echo "Running $@ on $SLURMD_NODENAME ..."
-echo $1 $2 $3 $4 $5 $6 $7
+echo $1 $2 $3 $4 $5 $6 $7 $8 $9
 echo "use disc = $use_disc"
 
 export DATASET="husky_data"
-export train_discriminator2=true
+export train_discriminator2=false
 export train_image_encoder=true
 export train_gans=true
 export train_encoder_gan=false
@@ -26,9 +26,10 @@ export loss=$5
 export retrain=$6
 export use_disc=$7
 export use_skips=$8
+export use_ssm=$9
 #export MODELDIR="$HOME/.costar/husky_$learning_rate$optimizer$dropout$noise_dim$loss"
 export MODELROOT="$HOME/.costar"
-export SUBDIR="husky_$learning_rate$optimizer$dropout$noise_dim$loss"
+export SUBDIR="husky_$learning_rate$optimizer$dropout$noise_dim$loss$use_skips"
 export USE_BN=1
 
 retrain_cmd=""
@@ -108,5 +109,6 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --loss $loss \
   --use_batchnorm $USE_BN \
   --skip_connections $use_skips \
+  --use_ssm $use_ssm \
   --batch_size 64 $retrain_cmd $use_disc_cmd
 

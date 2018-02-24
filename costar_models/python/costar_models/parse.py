@@ -148,6 +148,10 @@ def GetModelParser():
                         help="use skip connections to generate better outputs",
                         type=int,
                         default=1)
+    parser.add_argument("--use_ssm", "--ssm",
+                        help="use spatial softmax to compute global information",
+                        type=int,
+                        default=1)
     parser.add_argument("--decoder_dropout_rate", "--ddr",
                         help="specify a separate dropout for the model decoder",
                         #type=float,

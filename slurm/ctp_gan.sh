@@ -17,7 +17,7 @@ else
 fi
 
 ## Option Processing ----
-OPTS=$(getopt -o '' --long lr:,dr:,opt:,noisedim:,loss:,wass,no_wass,noise,retrain,gan_encoder,skip_encoder,load_model,suffix:,multi,husky,jigsaws,no_resume,epochs1:,epochs2:,pretrain_dir: -n ctp_gan -- "$@")
+OPTS=$(getopt -o '' --long lr:,dr:,opt:,noisedim:,loss:,wass,no_wass,noise,retrain,gan_encoder,skip_encoder,load_model,suffix:,multi,husky,jigsaws,no_resume,epochs1:,epochs2:,enc_dir:,skip_cond -n ctp_gan -- "$@")
 
 [[ $? != 0 ]] && echo "Failed parsing options." && exit 1
 
@@ -38,7 +38,8 @@ suffix=''
 resume=true # resume a job
 epochs1=100
 epochs2=100
-pretrain_dir=''
+enc_dir=''
+skip_cond=false
 
 echo "$OPTS"
 eval set -- "$OPTS"
@@ -55,6 +56,7 @@ while true; do
     --no_wass) wass=false; shift ;;
     --retrain) retrain=true; shift ;;
     --skip_encoder) skip_encoder=true; shift ;;
+    --skip_cond) skip_cond=true; shift ;;
     --gan_encoder) gan_encoder=true; shift ;;
     --load_model) load_model=true; shift ;;
     --multi) dataset=ctp_dec; features=multi; shift ;;
@@ -64,7 +66,7 @@ while true; do
     --no_resume) resume=false; shift ;;
     --epochs1) epochs1="$2"; shift 2 ;;
     --epochs2) epochs2="$2"; shift 2 ;;
-    --pretrain_dir) pretrain_dir="$2"; shift 2 ;;
+    --enc_dir) enc_dir="$2"; shift 2 ;;
     --) shift; break ;;
     *) echo "Internal error!" ; exit 1 ;;
   esac
@@ -177,43 +179,46 @@ fi
 
 ## Conditional gan ---------------------------------
 
-status_file="$MODELDIR"/status_cond.txt
-# Check if we should load the model
-load_cmd=''
-$load_model || ($resume && [[ -f $status_file ]]) && load_cmd='--load_model'
+if ! $skip_cond; then
 
-req_dir_cmd=''
-[[ $pretrain_dir ]] && req_dir_cmd="--req_directory $pretrain_dir"
+  status_file="$MODELDIR"/status_cond.txt
+  # Check if we should load the model
+  load_cmd=''
+  $load_model || ($resume && [[ -f $status_file ]]) && load_cmd='--load_model'
 
-# Calculate epochs left
-epochs_done=0
-if $resume && [[ -f $status_file ]]; then
-  contents=($(cat $status_file))
-  epochs_done=${contents[0]}
-fi
-# Check for resume after finish
-if $resume && (($epochs_done >= $epochs2)); then
-  echo Skipping conditional gan due to resume!
-else
-  echo "Training conditional gan. $epochs_done/$epochs2 epochs done."
-    ${cmd_prefix}ctp_model_tool \
-    --features $features \
-    -e $epochs2 \
-    --initial_epoch $epochs_done \
-    --model conditional_image_gan \
-    --data_file $data_dir \
-    --lr $lr \
-    --dropout_rate $dropout \
-    --model_directory $MODELDIR/ \
-    --optimizer $optimizer \
-    --steps_per_epoch 100 \
-    --noise_dim $noise_dim \
-    --loss $loss \
-    --gan_method gan \
-    --batch_size 64 \
-    --unique_id _cond \
-    $wass_cmd \
-    $use_noise_cmd \
-    $load_cmd \
-    $req_dir_cmd
+  req_dir_cmd=''
+  [[ $enc_dir ]] && req_dir_cmd="--req_directory $enc_dir"
+
+  # Calculate epochs left
+  epochs_done=0
+  if $resume && [[ -f $status_file ]]; then
+    contents=($(cat $status_file))
+    epochs_done=${contents[0]}
+  fi
+  # Check for resume after finish
+  if $resume && (($epochs_done >= $epochs2)); then
+    echo Skipping conditional gan due to resume!
+  else
+    echo "Training conditional gan. $epochs_done/$epochs2 epochs done."
+      ${cmd_prefix}ctp_model_tool \
+      --features $features \
+      -e $epochs2 \
+      --initial_epoch $epochs_done \
+      --model conditional_image_gan \
+      --data_file $data_dir \
+      --lr $lr \
+      --dropout_rate $dropout \
+      --model_directory $MODELDIR/ \
+      --optimizer $optimizer \
+      --steps_per_epoch 100 \
+      --noise_dim $noise_dim \
+      --loss $loss \
+      --gan_method gan \
+      --batch_size 64 \
+      --unique_id _cond \
+      $wass_cmd \
+      $use_noise_cmd \
+      $load_cmd \
+      $req_dir_cmd
+  fi
 fi

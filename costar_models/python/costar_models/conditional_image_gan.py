@@ -70,8 +70,8 @@ class ConditionalImageGan(PretrainImageGan):
         next_option2_in = Input((1,), name="next_option2_in")
         ins = [img0_in, img_in, next_option_in, next_option2_in]
 
-        encoder = self._makeImageEncoder(img_shape)
-        decoder = self._makeImageDecoder(self.hidden_shape)
+        encoder = self._makeImageEncoder(img_shape, perm_drop=True)
+        decoder = self._makeImageDecoder(self.hidden_shape, perm_drop=True)
 
         LoadEncoderWeights(self, encoder, decoder, gan=True)
 
@@ -90,7 +90,7 @@ class ConditionalImageGan(PretrainImageGan):
         y = Flatten()(OneHot(self.num_options)(next_option_in))
         y2 = Flatten()(OneHot(self.num_options)(next_option2_in))
         x = h
-        tform = self._makeTransform()
+        tform = self._makeTransform(perm_drop=True)
         l = [h0, h, y, z1] if self.use_noise else [h0, h, y]
         x = tform(l)
         l = [h0, x, y2, z2] if self.use_noise else [h0, x, y2]
@@ -167,12 +167,20 @@ class ConditionalImageGan(PretrainImageGan):
         option = Input((1,),name="disc_options")
         option2 = Input((1,),name="disc2_options")
         ins = [img0, img, option, option2, img_goal, img_goal2]
-        dr = self.dropout_rate*0.
+        dr = self.dropout_rate
 
-        x0 = AddConv2D(img0, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        xobs = AddConv2D(img, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        xg1 = AddConv2D(img_goal, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        xg2 = AddConv2D(img_goal2, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
+        # common arguments
+        kwargs = { "dropout_rate" : dr,
+                   "padding" : "same",
+                   "lrelu" : True,
+                   "bn" : False,
+                   "perm_drop" : True,
+                 }
+
+        x0   = AddConv2D(img0,      64, [4,4], 1, **kwargs)
+        xobs = AddConv2D(img,       64, [4,4], 1, **kwargs)
+        xg1  = AddConv2D(img_goal,  64, [4,4], 1, **kwargs)
+        xg2  = AddConv2D(img_goal2, 64, [4,4], 1, **kwargs)
 
         #x1 = Add()([x0, xobs, xg1])
         #x2 = Add()([x0, xg1, xg2])
@@ -181,20 +189,20 @@ class ConditionalImageGan(PretrainImageGan):
 
         # -------------------------------------------------------------
         y = OneHot(self.num_options)(option)
-        y = AddDense(y, 64, "lrelu", dr)
+        y = AddDense(y, 64, "lrelu", dr, perm_drop=True)
         x1 = TileOnto(x1, y, 64, (64,64), add=True)
-        x1 = AddConv2D(x1, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
+        x1 = AddConv2D(x1, 64, [4,4], 2, **kwargs)
 
         # -------------------------------------------------------------
         y = OneHot(self.num_options)(option2)
-        y = AddDense(y, 64, "lrelu", dr)
+        y = AddDense(y, 64, "lrelu", dr, perm_drop=True)
         x2 = TileOnto(x2, y, 64, (64,64), add=True)
-        x2 = AddConv2D(x2, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
+        x2 = AddConv2D(x2, 64, [4,4], 2, **kwargs)
 
         #x = Concatenate()([x1, x2])
         x = x2
-        x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True)
-        x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
+        x = AddConv2D(x, 128, [4,4], 2, **kwargs)
+        x = AddConv2D(x, 256, [4,4], 2, **kwargs)
 
         if self.use_wasserstein:
             x = Flatten()(x)
@@ -204,13 +212,12 @@ class ConditionalImageGan(PretrainImageGan):
             #    bn=False)
             #x = GlobalAveragePooling2D()(x)
             x = Flatten()(x)
-            x = AddDense(x, 1, "sigmoid", 0., output=True, bn=False)
+            x = AddDense(x, 1, "sigmoid", 0., output=True, bn=False, perm_drop=True)
 
         discrim = Model(ins, x, name="image_discriminator")
         self.lr *= 2.
         loss = wasserstein_loss if self.use_wasserstein else "binary_crossentropy"
-        discrim.compile(loss=loss, loss_weights=[1.],
-                optimizer=self.getOptimizer())
+        discrim.compile(loss=loss, optimizer=self.getOptimizer())
         self.lr *= 0.5
         self.image_discriminator = discrim
         return discrim
