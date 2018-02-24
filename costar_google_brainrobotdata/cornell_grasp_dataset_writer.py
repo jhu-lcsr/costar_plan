@@ -131,6 +131,7 @@ import itertools
 import six
 import glob
 import numpy as np
+from random import shuffle
 
 import tensorflow as tf
 import re
@@ -371,7 +372,8 @@ def read_label_file(path):
                 has_nan = False
 
 
-def k_fold_split(path=FLAGS.data_dir, split_type=FLAGS.split_type, num_fold=FLAGS.num_fold, tfrecord_filename_base=FLAGS.tfrecord_filename_base):
+def k_fold_split(path=FLAGS.data_dir, split_type=FLAGS.split_type, num_fold=FLAGS.num_fold,
+                 tfrecord_filename_base=FLAGS.tfrecord_filename_base, do_shuffle=FLAGS.shuffle):
     """ K-Fold on dataset.
         path: path to z.txt, a file match images and objects. And *pos/neg.txt, should
         remain in same folder with z.txt.
@@ -413,7 +415,22 @@ def k_fold_split(path=FLAGS.data_dir, split_type=FLAGS.split_type, num_fold=FLAG
     z_path = os.path.join(path, 'z.txt')
 
     z_txt_array = np.lib.arraysetops.unique(np.genfromtxt(z_path, dtype='str'), axis=0)
-    np.random.shuffle(z_txt_array)
+    if do_shuffle:
+        if split_type == 'imagewise':
+            np.random.shuffle(z_txt_array)
+        elif split_type == 'objectwise':
+            z_txt_list = []
+            new_z_txt_array = []
+            for line in z_txt_array:
+                if line[1] != last_object_id:
+                    last_object_id = line[1]
+                    z_txt_list.append(list(line))
+                else:
+                    z_txt_list[-1].extend(line)
+            shuffle(z_txt_list)
+            for line in z_txt_list:
+                [new_z_txt_array.append(line[i:i + 4]) for i in range(0, len(line), 4)]
+                z_txt_array = new_z_txt_array
     for line in tqdm(z_txt_array, desc='Loading files and grasps'):
         image_id, object_id, _, _ = line
         if image_id == last_image_id:
