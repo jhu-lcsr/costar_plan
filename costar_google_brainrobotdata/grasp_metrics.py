@@ -5,9 +5,11 @@ import math
 import numpy as np
 from tqdm import tqdm
 
+import keras
 import tensorflow as tf
 from tensorflow.python.platform import flags
 from shapely.geometry import Polygon
+import sklearn
 
 # class Vector:
 #     # http://www.mathopenref.com/coordpolygonarea.html
@@ -292,9 +294,7 @@ def rectangle_vertices(h, w, sin_theta, cos_theta, cy, cx):
     # normalizing because this may be using the output of the neural network,
     # so we turn it into an x y coordinate on the unit circle without changing
     # the vector.
-    sc_theta = np.linalg.norm(np.array([sin_theta, cos_theta]))
-    sin_theta = sc_theta[0]
-    cos_theta = sc_theta[1]
+    sin_theta, cos_theta = normalize_sin_theta_cos_theta(sin_theta, cos_theta)
 
     dx = w/2
     dy = h/2
@@ -310,7 +310,7 @@ def rectangle_vertices(h, w, sin_theta, cos_theta, cy, cx):
     ]
 
 
-def parse_rectangle_params(hw_st_ct_cy_cx):
+def parse_rectangle_vertices(hw_st_ct_cy_cx):
     rect_vertices = rectangle_vertices(
         hw_st_ct_cy_cx[0],  # height
         hw_st_ct_cy_cx[1],  # width
@@ -318,6 +318,11 @@ def parse_rectangle_params(hw_st_ct_cy_cx):
         hw_st_ct_cy_cx[3],  # cos theta
         hw_st_ct_cy_cx[4],  # center y
         hw_st_ct_cy_cx[5])  # center x
+    return rect_vertices
+
+
+def parse_rectangle_params(hw_st_ct_cy_cx):
+    rect_vertices = parse_rectangle_vertices(hw_st_ct_cy_cx)
     rect_hlines = rectangle_homogeneous_lines(rect_vertices)
     return rect_vertices, rect_hlines
 
@@ -343,31 +348,48 @@ def intersection_over_union(true_rp, pred_rp, true_rl, pred_rl):
     return iou
 
 
-def shapely_intersection_over_union(rect0_points, rect1_points):
+def shapely_intersection_over_union(rect0_points, rect1_points, verbose=0):
     """ Find the intersection over union of two polygons using shapely
     """
     p0 = Polygon(rect0_points)
     p1 = Polygon(rect1_points)
     intersection_area = p0.intersection(p1).area
     iou = intersection_area / (p0.area + p1.area - intersection_area)
+    if verbose > 0:
+        print('iou: ' + str(iou))
     return iou
+
+
+def normalize_sin_theta_cos_theta(sin_theta, cos_theta):
+    # normalize the prediction but keep the vector direction the same
+    arr = sklearn.preprocessing.normalize(np.array([[sin_theta, cos_theta]], dtype=np.float))
+    sin_theta = arr[0, 0]
+    cos_theta = arr[0, 1]
+    return sin_theta, cos_theta
 
 
 def angle_difference_less_than_threshold(
         true_y_sin_theta, true_x_cos_theta,
         pred_y_sin_theta, pred_x_cos_theta,
-        angle_threshold=None):
+        angle_threshold=None, verbose=0):
     """ Returns true if the angle difference is less than the threshold, false otherwise.
     """
     if angle_threshold is None:
         angle_threshold = np.radians(30.0)
+    # print('ad0 ' + str(true_y_sin_theta) + ' cos: ' + str(true_x_cos_theta))
     # normalize the prediction but keep the vector direction the same
-    true_y_sin_theta, true_x_cos_theta = np.linalg.norm(np.array([true_y_sin_theta, true_x_cos_theta]))
+    true_y_sin_theta, true_x_cos_theta = normalize_sin_theta_cos_theta(true_y_sin_theta, true_x_cos_theta)
+    # print('ad1')
     true_angle = np.arctan2(true_y_sin_theta, true_x_cos_theta)
+    # print('ad2')
     # normalize the prediction but keep the vector direction the same
-    pred_y_sin_theta, pred_x_cos_theta = np.linalg.norm(np.array([pred_y_sin_theta, pred_x_cos_theta]))
+    pred_y_sin_theta, pred_x_cos_theta = normalize_sin_theta_cos_theta(pred_y_sin_theta, pred_x_cos_theta)
     pred_angle = np.arctan2(pred_y_sin_theta, pred_x_cos_theta)
-    return np.abs(pred_angle - true_angle) <= angle_threshold
+    # print('pred angle: ' + str(pred_angle) + ' true angle: ' + str(true_angle))
+    is_within_angle_threshold = np.abs(pred_angle - true_angle) <= angle_threshold
+    if verbose > 0:
+        print('is_within_angle_threshold: ' + str(is_within_angle_threshold))
+    return is_within_angle_threshold
 
 
 def jaccard_score(y_true, y_pred, angle_threshold=None, iou_threshold=0.25):
@@ -391,17 +413,21 @@ def jaccard_score(y_true, y_pred, angle_threshold=None, iou_threshold=0.25):
 
 
     """
-
+    # print('0')
     predicted_success = np.rint(y_pred[0])
+    # print('1')
     if predicted_success != int(y_true[0]):
+        # print('2')
         # grasp success prediction doesn't match, return 0 score
         return 0.0
     elif predicted_success == 0:
+        # print('3')
         # The success prediction correctly matches the ground truth and both are False.
         # Any true negative where failure to grasp is predicted correctly
         # gets credit regardless of box contents
         return 1.0
     else:
+        # print('4')
         # We're looking at a successful grasp and we've correctly predicted grasp_success.
         # First check if the angles are close enough to matching the angle_threshold.
         true_y_sin_theta = y_true[1]
@@ -409,19 +435,23 @@ def jaccard_score(y_true, y_pred, angle_threshold=None, iou_threshold=0.25):
         pred_y_sin_theta = y_pred[1]
         pred_x_cos_theta = y_pred[2]
 
+        # print('5')
         # if they aren't close enough return 0.0
         if not angle_difference_less_than_threshold(
                 true_y_sin_theta, true_x_cos_theta,
                 pred_y_sin_theta, pred_x_cos_theta, angle_threshold):
             return 0.0
 
+        # print('6')
         # We passed all the other checks so
         # let's find out if the grasp boxes match
         # via the jaccard distance.
-        true_rp, _ = parse_rectangle_params(y_true[1:])
-        pred_rp, _ = parse_rectangle_params(y_true[1:])
+        true_rp = parse_rectangle_vertices(y_true[1:])
+        pred_rp = parse_rectangle_vertices(y_pred[1:])
 
+        # print('7')
         iou = shapely_intersection_over_union(true_rp, pred_rp)
+        # print('8')
         if iou >= iou_threshold:
             # passed iou threshold
             return 1.0
@@ -430,9 +460,28 @@ def jaccard_score(y_true, y_pred, angle_threshold=None, iou_threshold=0.25):
             return 0.0
 
 
+def grasp_jaccard_batch(y_true, y_pred):
+    # print('y_true.shape: ' + str(y_true.shape))
+    # print('y_pred.shape: ' + str(y_pred.shape))
+    scores = []
+    for i in range(y_true.shape[0]):
+        # print(' i: ' + str(i))
+        this_true = y_true[i, :]
+        this_pred = y_pred[i, :]
+        # print('this_true: ' + str(this_true))
+        # print('this_pred: ' + str(this_pred))
+        score = jaccard_score(this_true, this_pred)
+        # print('score:' + str(score))
+        scores += [score]
+    scores = np.array(scores, dtype=np.float32)
+    # print('scores.shape: ' + str(scores.shape))
+    return scores
+
+
 def grasp_jaccard(y_true, y_pred):
     """ Calculates the jaccard metric score in a manner compatible with tf and keras metrics.
 
         This is an IOU metric with angle difference and IOU score thresholds.
     """
-    return tf.map_fn(lambda yt, yp: tf.py_func(jaccard_score, [yt, yp], [tf.float32]), [y_true, y_pred])
+    scores = tf.py_func(func=grasp_jaccard_batch, inp=[y_true, y_pred], Tout=tf.float32, stateful=False)
+    return scores

@@ -1,4 +1,5 @@
 import keras
+import sys
 
 
 class EvaluateInputTensor(keras.callbacks.Callback):
@@ -15,7 +16,7 @@ class EvaluateInputTensor(keras.callbacks.Callback):
     because it defines the validation variables required by many other callbacks,
     and Callbacks are made in order.
 
-    #TODO(ahundt) replace when https://github.com/keras-team/keras/pull/9105 is available
+    #TODO(ahundt) replace when https://github.com/keras-team/keras/pull/9105 is resolved
 
     # Arguments
         model: Keras model on which to call model.evaluate().
@@ -101,3 +102,53 @@ class PrintLogsCallback(keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs={}):
         print('')
         print('logs: ' + str(logs))
+
+
+class FineTuningCallback(keras.callbacks.Callback):
+    """ Switch to fine tuning mode at the specified epoch
+
+    Unlocks layers to make them trainable and resets the learning rate
+    to a new initial value.
+
+    # TODO(ahundt) update when https://github.com/keras-team/keras/issues/9477 is resolved.
+
+    # Arguments
+
+        epoch: The epoch at which to enable fine tuning
+        layers: Integer for the min index in model.layers which will
+            have trainable set to True, along with all layers after it.
+        learning_rate: The new fine tuning learning rate to reset to.
+        verbose: int. 0: quiet, 1: update messages.
+    """
+
+    def __init__(self, epoch=100, layers=0, learning_rate=0.0001, verbose=1, output_file=sys.stderr):
+        super(FineTuningCallback, self).__init__()
+        self.epoch = epoch
+        self.layers = layers
+        self.learning_rate = learning_rate
+        self.verbose = verbose
+        self.output_file = output_file
+
+    def on_epoch_end(self, epoch, logs=None):
+        logs = logs or {}
+        logs['lr'] = keras.backend.get_value(self.model.optimizer.lr)
+        # fine_tuning = epoch >= self.epoch
+        # logs['fine_tuning'] = fine_tuning
+        if epoch == self.epoch:
+            if self.verbose > 0:
+                print('\n\n--------------------------------------------------------\n'
+                      'Epoch %05d Fine tuning initialized with a new '
+                      'learning rate of %s.' % (epoch + 1, self.learning_rate))
+            for layer in self.model.layers[self.layers:]:
+                layer.trainable = True
+            self.model.compile(self.model.optimizer, self.model.loss, self.model.metrics)
+            if self.verbose > 1:
+                print('\n\nepoch:' + str(epoch) + ' self.epoch: ' + str(self.epoch) + ' lr: ' + str(logs['lr']) +
+                      ' self.learning_rate: ' + str(self.learning_rate) + ' float(K.get_value(self.model.optimizer.lr)): ' +
+                      str(float(keras.backend.get_value(self.model.optimizer.lr))) + ' what is going on?0\n\n')
+            keras.backend.set_value(self.model.optimizer.lr, self.learning_rate)
+
+        if self.verbose > 1:
+            print('\n\nepoch:' + str(epoch) + ' self.epoch: ' + str(self.epoch) + ' lr: ' + str(logs['lr']) +
+                  ' self.learning_rate: ' + str(self.learning_rate) + ' float(K.get_value(self.model.optimizer.lr)): ' +
+                  str(float(keras.backend.get_value(self.model.optimizer.lr))) + ' what is going on?1\n\n')
