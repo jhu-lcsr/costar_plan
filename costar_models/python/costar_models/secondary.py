@@ -236,7 +236,12 @@ class HuskySecondary(Secondary):
             metrics=[]
 
         model.summary()
-        self.model = model
+        # =====================================================================
+        train_predictor = Model(ins, outs)
+        train_predictor.compile(loss=loss,
+                metrics=metrics,
+                optimizer=self.getOptimizer())
+        return None, train_predictor, actor, ins, h
 
     def _getData(self, image, pose, action, label,
         prev_label, goal_image, goal_pose, value, *args, **kwargs):
