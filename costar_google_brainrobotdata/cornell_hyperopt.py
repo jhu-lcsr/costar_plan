@@ -164,11 +164,25 @@ def optimize(seed=1, verbose=1):
     top = 'classification'
     train_data = None
     validation_data = None
+    learning_rate_enabled = False
 
     hyperoptions = HyperparameterOptions()
     # Configuring hyperparameters
-    hyperoptions.add_param('learning_rate', (0.0001, 0.1), 'continuous',
-                           enable=False, required=True, default=0.0341)
+
+    # The trainable flag referrs to the imagenet pretrained network being trainable or not trainable.
+    # We are defaulting to a reasonable learning rate found by prior searches and disabling trainability so that
+    # we can restrict the search to more model improvements due to the outsized effects of these changes on performance
+    # during the random search phase. We plan to run a separate search on enabling trainable models on one of the best models
+    # found when trainable is false. This is due to limitations in processing time availability at the time of writing and
+    # multi stage training not yet being configurable during hyperopt.
+    hyperoptions.add_param('trainable', [True, False], enable=False)
+
+    # Learning rates are exponential so we take a uniform random
+    # input and map it from 1 to 3e-5 on an exponential scale.
+    # with a base of 0.9.
+    # Therefore the value 50 is 0.9^50 == 0.005 (approx).
+    hyperoptions.add_param('learning_rate', (0.0, 100), 'continuous',
+                           enable=learning_rate_enabled, required=True, default=0.01)
     # disabled dropout rate because in one epoch tests a dropout rate of 0 allows exceptionally fast learning.
     # TODO(ahundt) run a separate search for the best dropout rate after finding a good model
     hyperoptions.add_param('dropout_rate', [0.0, 0.125, 0.2, 0.25, 0.5, 0.75],
@@ -178,7 +192,6 @@ def optimize(seed=1, verbose=1):
     # leaving out 'resnet' for now, it is causing too many crashes, and nasnet_large because it needs different input dimensions.
     hyperoptions.add_param('image_model_name', ['vgg', 'densenet', 'nasnet_mobile'])
     hyperoptions.add_param('vector_model_name', ['dense', 'dense_block'])
-    hyperoptions.add_param('trainable', [True, False], enable=True)
     # TODO(ahundt) add a None option for trunk_filters, [None] + [2**x for x in range(5, 12)], because it will automatically match input data's filter count
     hyperoptions.add_param('trunk_filters', [2**x for x in range(5, 12)])
     hyperoptions.add_param('trunk_layers', [x for x in range(0, 8)])
@@ -207,6 +220,11 @@ def optimize(seed=1, verbose=1):
     def train_callback(x):
         # x is a funky 2d numpy array, so we convert it back to normal parameters
         kwargs = hyperoptions.params_to_args(x)
+
+        if learning_rate_enabled:
+            # Learning rates are exponential so we take a uniform random
+            # input and map it from 1 to 3e-5 on an exponential scale.
+            kwargs['learning_rate'] = 0.9 ** kwargs['learning_rate']
 
         if verbose:
             # update counts by 1 each step
