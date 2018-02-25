@@ -667,23 +667,33 @@ def parse_and_preprocess(
     if verbose > 0:
         print(feature)
 
-    if label_features_to_extract is None:
-        return feature
-    else:
-        # strip out all features that aren't needed to reduce processing time
-        simplified_feature = {}
-        for feature_name in data_features_to_extract:
-            simplified_feature[feature_name] = feature[feature_name]
-        for feature_name in label_features_to_extract:
-            simplified_feature[feature_name] = feature[feature_name]
-        return simplified_feature
+    return feature
+
+
+def filter_features(feature_map, label_features_to_extract, data_features_to_extract):
+    """ Strip out all features that aren't needed to reduce processing time.
+    """
+    simplified_feature = {}
+    for feature_name in data_features_to_extract:
+        simplified_feature[feature_name] = feature_map[feature_name]
+    for feature_name in label_features_to_extract:
+        simplified_feature[feature_name] = feature_map[feature_name]
+    return simplified_feature
 
 
 def yield_record(
         tfrecord_filenames, label_features_to_extract=None, data_features_to_extract=None,
         parse_example_proto_fn=parse_and_preprocess, batch_size=32,
         device='/cpu:0', is_training=True, steps=None, buffer_size=int(1e6),
-        shuffle=True, shuffle_buffer_size=100, num_parallel_calls=None, preprocessing_mode='tf'):
+        shuffle=True, shuffle_buffer_size=100, num_parallel_calls=None, preprocessing_mode='tf',
+        success_only=False):
+    """ TFRecord data generator configured for the cornell grasping dataset.
+
+    # Arguments
+
+        is_training: performs additional data augmentation when true.
+        success_only: filters out any grasps that aren't labeled as successful grasps.
+    """
     if num_parallel_calls is None:
         num_parallel_calls = FLAGS.num_readers
     # based_on https://github.com/visipedia/tfrecords/blob/master/iterate_tfrecords.py
@@ -705,6 +715,18 @@ def yield_record(
                                           preprocessing_mode=preprocessing_mode)
         dataset = dataset.map(
             map_func=parse_fn_is_training,
+            num_parallel_calls=num_parallel_calls)
+
+        if success_only:
+            # success_only mode skipps all grasps labeled a failure.
+            dataset = dataset.filter(lambda x: x['grasp_success'] == 1)
+
+        def get_simplified_features(feature_map):
+            return filter_features(feature_map,
+                                   label_features_to_extract,
+                                   data_features_to_extract)
+        dataset = dataset.map(
+            map_func=get_simplified_features,
             num_parallel_calls=num_parallel_calls)
         dataset = dataset.batch(batch_size=batch_size)  # Parse the record into tensors.
         dataset = dataset.prefetch(batch_size * 5)
