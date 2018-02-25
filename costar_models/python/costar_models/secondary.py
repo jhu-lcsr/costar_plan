@@ -99,7 +99,7 @@ class Secondary(PredictionSampler2):
             model.compile(loss="mae", optimizer=self.getOptimizer())
             outs = model([h0,h,label_in])
             self.next_model = model
-            loss = "binary_crossentropy"
+            loss = "categorical_crossentropy"
             metrics=["accuracy"]
         elif self.submodel == "actor":
             actor = GetActorModel(h, self.num_options, arm_size, gripper_size,
