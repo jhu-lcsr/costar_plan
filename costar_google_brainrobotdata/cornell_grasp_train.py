@@ -400,6 +400,129 @@ def run_training(
     return history
 
 
+def get_compiled_model(learning_rate=None,
+                       batch_size=None,
+                       num_gpus=1,
+                       top='classification',
+                       epochs=None,
+                       preprocessing_mode=None,
+                       input_filenames=None,
+                       feature_combo_name='image_preprocessed_sin2_cos2_width_3',
+                       problem_name=None,
+                       image_model_name='vgg',
+                       optimizer_name='sgd',
+                       log_dir=None,
+                       hyperparams=None,
+                       load_weights=None,
+                       **kwargs):
+    """
+    Get a compiled model instance and input data.
+    input_filenames: path to tfrecord want to load.
+
+    top: options are 'segmentation' and 'classification'.
+    problem_name: options are 'grasp_regression', 'grasp_classification',
+        'pixelwise_grasp_regression', 'pixelwise_grasp_classification',
+        'image_center_grasp_regression'. Image center grasp regression is
+        a pretraining step for pixel
+        Make sure this is properly coordinated with 'top' param.
+    feature_combo_name: The name for the combination of input features being utilized.
+        Options include 'image_preprocessed', image_preprocessed_width_1,
+        image_preprocessed_sin2_cos2_width_3
+        'grasp_regression', image_center_grasp_regression.
+        See choose_features_and_metrics() for details.
+    hyperparams: a dictionary of hyperparameter selections made for this training run.
+       If provided these values will simply be dumped to a file and
+       not utilized in any other way.
+    """
+    if epochs is None:
+        epochs = FLAGS.epochs
+    if batch_size is None:
+        batch_size = FLAGS.batch_size
+    if log_dir is None:
+        log_dir = FLAGS.log_dir
+    if learning_rate is None:
+        if load_weights is None:
+            learning_rate = FLAGS.learning_rate
+        else:
+            learning_rate = FLAGS.fine_tuning_learning_rate
+    if load_weights is None:
+        load_weights = FLAGS.load_weights
+    if problem_name is None:
+        problem_name = FLAGS.problem_type
+
+    [image_shapes, vector_shapes, data_features, model_name,
+     monitor_loss_name, label_features, monitor_metric_name,
+     loss, metrics, classes] = choose_features_and_metrics(feature_combo_name, problem_name)
+
+    # see parse_and_preprocess() for the creation of these features
+    model_name = image_model_name + model_name
+
+    # If loading pretrained weights
+    # it is very important to preprocess
+    # in exactly the same way the model
+    # was originally trained
+    preprocessing_mode = choose_preprocessing_mode(preprocessing_mode, image_model_name)
+
+    # choose hypertree_model with inputs [image], [sin_theta, cos_theta]
+    model = choose_hypertree_model(
+        image_shapes=image_shapes,
+        vector_shapes=vector_shapes,
+        top=top,
+        classes=classes,
+        image_model_name=image_model_name,
+        **kwargs)
+
+    if(load_weights is not None and load_weights != ''):
+        if os.path.isfile(load_weights):
+            model.load_weights(load_weights)
+        else:
+            print('Could not load weights {}, '
+                  'the file does not exist, '
+                  'starting fresh....'.format(load_weights))
+    print(monitor_loss_name)
+    # TODO(ahundt) add a loss that changes size with how open the gripper is
+    # loss = grasp_loss.segmentation_gaussian_measurement
+
+    dataset_names_str = 'cornell_grasping'
+    run_name = grasp_utilities.timeStamped(model_name + '-dataset_' + dataset_names_str + '-' + label_features[0])
+
+    # Save the current model to a json string so it is human readable
+    log_dir_run_name = os.path.join(log_dir, run_name)
+    with open(log_dir_run_name + '_model.json', 'w') as fp:
+        fp.write(model.to_json())
+
+    if num_gpus > 1:
+        parallel_model = keras.utils.multi_gpu_model(model, num_gpus)
+    else:
+        parallel_model = model
+
+    parallel_model.compile(
+        optimizer=optimizer_name,
+        loss=loss,
+        metrics=metrics)
+
+    return parallel_model, data_features
+
+
+def model_predict(model, data_features, input_filenames, preprocessing_mode):
+    """ Make predictions given model and data.
+        model: compiled model instance.
+        input_data: generator instance.
+    """
+    input_data = cornell_grasp_dataset_reader.yield_record(
+        input_filenames, batch_size=1, is_training=False,
+        parse_example_proto_fn=parse_and_preprocess, preprocessing_mode=preprocessing_mode)
+
+    for example_dict in tqdm(input_data):
+        sess = K.get_session()
+        init_g = tf.global_variables_initializer()
+        init_l = tf.local_variables_initializer()
+        sess.run(init_g)
+        sess.run(init_l)
+        predict_input = [example_dict[data_features[0]], example_dict[data_features[1]]]
+        result = model.predict_on_batch(predict_input)
+
+
 def choose_preprocessing_mode(preprocessing_mode, image_model_name):
     """ Choose preprocessing for specific pretrained weights
     it is very important to preprocess
