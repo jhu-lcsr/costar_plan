@@ -309,7 +309,7 @@ def sin2_cos2_width_3(width=None, sin_theta=None, cos_theta=None, features=None)
         sin_cos_height_width = [features['bbox/sin_theta'], features['bbox/cos_theta'],
                                 features['bbox/width']]
     else:
-        con_cos_height_width = [sin_theta, cos_theta, width]
+        sin_cos_height_width = [sin_theta, cos_theta, width]
     return K.concatenate(sin_cos_height_width)
 
 
