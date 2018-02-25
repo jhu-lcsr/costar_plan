@@ -174,12 +174,8 @@ class HuskySecondary(Secondary):
         pose_in = Input((pose_size,))
         ins = [img0_in, img_in, pose_in]
 
-        if self.skip_connections:
-            encoder = self._makeImageEncoder2(img_shape)
-            decoder = self._makeImageDecoder2(self.hidden_shape)
-        else:
-            encoder = self._makeImageEncoder(img_shape)
-            decoder = self._makeImageDecoder(self.hidden_shape)
+        encoder = self._makeImageEncoder(img_shape)
+        decoder = self._makeImageDecoder(self.hidden_shape)
 
         LoadEncoderWeights(self, encoder, decoder, gan=False)
         image_discriminator = LoadGoalClassifierWeights(self,
