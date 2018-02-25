@@ -56,6 +56,7 @@ from cornell_grasp_dataset_reader import parse_and_preprocess
 
 from callbacks import EvaluateInputGenerator
 from callbacks import PrintLogsCallback
+from callbacks import FineTuningCallback
 
 import grasp_loss
 import grasp_metrics
@@ -196,6 +197,10 @@ def run_training(
         hyperparams=None,
         load_weights=None,
         pipeline=None,
+        run_name=None,
+        fine_tuning_learning_rate=None,
+        fine_tuning=None,
+        fine_tuning_epochs=None,
         **kwargs):
     """
 
@@ -231,6 +236,14 @@ def run_training(
         pipeline = FLAGS.pipeline_stage
     if problem_name is None:
         problem_name = FLAGS.problem_type
+    if run_name is None:
+        run_name = FLAGS.run_name
+    if fine_tuning_learning_rate is None:
+        fine_tuning_learning_rate = FLAGS.fine_tuning_learning_rate
+    if fine_tuning is None:
+        fine_tuning = FLAGS.fine_tuning
+    if fine_tuning_epochs is None:
+        fine_tuning_epochs = FLAGS.fine_tuning_epochs
 
     [image_shapes, vector_shapes, data_features, model_name,
      monitor_loss_name, label_features, monitor_metric_name,
@@ -266,7 +279,7 @@ def run_training(
     # loss = grasp_loss.segmentation_gaussian_measurement
 
     dataset_names_str = 'cornell_grasping'
-    run_name = grasp_utilities.timeStamped(save_splits_weights + '-' + model_name + '-dataset_' + dataset_names_str + '-' + label_features[0])
+    run_name = grasp_utilities.timeStamped(run_name + save_splits_weights + '-' + model_name + '-dataset_' + dataset_names_str + '-' + label_features[0])
     callbacks = []
 
     callbacks, optimizer = chooseOptimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name)
@@ -307,6 +320,9 @@ def run_training(
 
     # make sure the TQDM callback is always the final one
     callbacks += [keras_tqdm.TQDMCallback()]
+
+    #TODO(ahundt) enable when https://github.com/keras-team/keras/pull/9105 is resolved
+    # callbacks += [FineTuningCallback(epoch=0)]
 
     if num_gpus > 1:
         parallel_model = keras.utils.multi_gpu_model(model, num_gpus)
@@ -349,6 +365,29 @@ def run_training(
             validation_steps=validation_steps,
             callbacks=callbacks,
             verbose=0)
+
+        #  TODO(ahundt) remove when FineTuningCallback https://github.com/keras-team/keras/pull/9105 is resolved
+        if fine_tuning:
+            # do fine tuning stage after initial training
+            _, optimizer = chooseOptimizer(optimizer_name, fine_tuning_learning_rate, [], monitor_loss_name)
+
+            for layer in parallel_model.layers:
+                layer.trainable = True
+
+            parallel_model.compile(
+                optimizer=optimizer,
+                loss=loss,
+                metrics=metrics)
+
+            history = parallel_model.fit_generator(
+                train_data,
+                steps_per_epoch=train_steps,
+                epochs=fine_tuning_epochs,
+                validation_data=validation_data,
+                validation_steps=validation_steps,
+                callbacks=callbacks,
+                verbose=0,
+                initial_epoch=epochs)
 
     elif 'test' in pipeline:
         history = parallel_model.evaluate_generator(generator=test_data, steps=test_steps)
