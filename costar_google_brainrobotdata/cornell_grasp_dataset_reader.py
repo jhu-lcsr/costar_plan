@@ -808,14 +808,14 @@ def visualize_redundant_example(features_dicts, showTextBox=None):
                 print('grasp_success_sin2_cos2_hw_norm_yx_7: ' + str(example['grasp_success_sin2_cos2_hw_norm_yx_7']))
             # Reverse the preprocessing so we can visually compare correctness
             decoded_example = copy.deepcopy(example)
-            sin_cos_2 = example['bbox/preprocessed/sin_cos_2']
+            sin_cos_2 = np.squeeze(example['bbox/preprocessed/sin_cos_2'])
             # y, x ordering.
             recovered_theta = np.arctan2(sin_cos_2[0], sin_cos_2[1])
             if 'random_rotation' in example:
                 recovered_theta += example['random_rotation']
-            cy_cx_normalized_2 = example['bbox/preprocessed/cy_cx_normalized_2']
-            cy_cx_normalized_2[0] *= example['image/preprocessed/height']
-            cy_cx_normalized_2[1] *= example['image/preprocessed/width']
+            cy_cx_normalized_2 = np.squeeze(example['bbox/preprocessed/cy_cx_normalized_2'])
+            cy_cx_normalized_2[0] *= np.squeeze(example['image/preprocessed/height'])
+            cy_cx_normalized_2[1] *= np.squeeze(example['image/preprocessed/width'])
             if 'random_translation_offset' in example:
                 offset = example['random_translation_offset']
                 print('offset: ' + str(offset))
@@ -839,14 +839,14 @@ def visualize_redundant_example(features_dicts, showTextBox=None):
                 print('bbox/preprocessed/theta: ' + str(example['bbox/preprocessed/theta']))
             preprocessed_examples.append(decoded_example)
 
-    img = example['image/decoded']
+    img = np.squeeze(example['image/decoded'])
     center_x_list = [example['bbox/cx'] for example in features_dicts]
     center_y_list = [example['bbox/cy'] for example in features_dicts]
     grasp_success = [example['bbox/grasp_success'] for example in features_dicts]
     gt_plot_height = int(np.ceil(float(len(center_x_list)) / 2))
     fig, axs = plt.subplots(gt_plot_height + 1, 4, figsize=(15, 15))
     print('max: ' + str(np.max(img)) + ' min: ' + str(np.min(img)))
-    axs[0, 0].imshow(img, zorder=0)
+    axs[0, 0].imshow(np.squeeze(img), zorder=0)
     # for i in range(4):
     #     feature['bbox/y' + str(i)] = _floats_feature(dict_bbox_lists['bbox/y' + str(i)])
     #     feature['bbox/x' + str(i)] = _floats_feature(dict_bbox_lists['bbox/x' + str(i)])
@@ -854,7 +854,7 @@ def visualize_redundant_example(features_dicts, showTextBox=None):
     #                 np.array(coordinates_list[0]) - np.array(coordinates_list[2]),
     #                 np.array(coordinates_list[1]) - np.array(coordinates_list[3]), c=grasp_success)
     axs[0, 0].scatter(np.array(center_x_list), np.array(center_y_list), zorder=2, c=grasp_success, alpha=0.5, lw=2)
-    axs[0, 1].imshow(img, zorder=0)
+    axs[0, 1].imshow(np.squeeze(img), zorder=0)
     # plt.show()
     # axs[1, 0].scatter(data[0], data[1])
     # axs[2, 0].imshow(gt_image)
@@ -865,14 +865,13 @@ def visualize_redundant_example(features_dicts, showTextBox=None):
         # axs[h, w].imshow(img, zorder=z)
         z += 1
 
-        img2 = example['image/decoded']
+        img2 = np.squeeze(example['image/decoded'])
         # Assuming 'tf' preprocessing mode! Changing channel range from [-1, 1] to [0, 1]
         img2 /= 2
         img2 += 0.5
         print('preprocessed max: ' + str(np.max(img2)) + ' min: ' + str(np.min(img2)) + ' shape: ' + str(np.shape(img2)))
         axs[h, w].imshow(img2, alpha=1, zorder=z)
         # plt.show()
-        print('did I make it?')
         z += 1
         # axs[h, w*2+1].imshow(gt_image, alpha=0.75, zorder=1)
         widths = [1, 2, 1, 2]
@@ -920,7 +919,6 @@ def visualize_redundant_example(features_dicts, showTextBox=None):
         #                        color=color, zorder=z, alpha=alpha))
         plt.show()
 
-        print('did I make it2?')
     # axs[1, 1].hist2d(data[0], data[1])
     # plt.draw()
     # plt.pause(0.25)
