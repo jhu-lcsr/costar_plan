@@ -67,6 +67,7 @@ class HuskyDiscriminator(RobotMultiPredictionSampler):
         self.PredictorCb = None
         self.goal = goal
         self.num_options = HuskyNumOptions()
+        self.null_options = HuskyNullOption()
 
     def _makeModel(self, image, *args, **kwargs):
         '''
