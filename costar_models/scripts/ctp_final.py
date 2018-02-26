@@ -15,6 +15,8 @@ from costar_models.datasets.npz import NpzDataset
 from costar_models.datasets.npy_generator import NpzGeneratorDataset
 from costar_models.datasets.h5f_generator import H5fGeneratorDataset
 
+from costar_models.planner import *
+from costar_models.multi import *
 
 def main(args):
     '''
@@ -48,6 +50,14 @@ def main(args):
         train_generator = model.trainGenerator(dataset)
         test_generator = model.testGenerator(dataset)
 
+        print(">>> GOAL_CLASSIFIER")
+        image_discriminator = LoadGoalClassifierWeights(model,
+                make_classifier_fn=MakeImageClassifier,
+                img_shape=(64, 64, 3))
+        image_discriminator.compile(loss="categorical_crossentropy",
+                                metrics=["accuracy"],
+                                optimizer=model.getOptimizer())
+
         show = False
         correct_g1 = 0
         correct_g2 = 0
@@ -65,8 +75,8 @@ def main(args):
                 prev_option = np.array([oin[i]])
                 h = model.encode(xi)
                 h0 = model.encode(x0)
-                p_a, done1 = model.pnext(h0, h, prev_option)
-                v2 = model.value(h0, h)
+                #p_a, done1 = model.pnext(h0, h, prev_option)
+                #v2 = model.value(h0, h)
                 h_goal = model.transform(h0, h, np.array([o1[i]]))
                 h_goal2 = model.transform(h0, h_goal, np.array([o2[i]]))
                 xg = model.decode(h_goal)
@@ -77,12 +87,12 @@ def main(args):
                     plt.subplot(1,4,3); plt.imshow(xg[0])
                     plt.subplot(1,4,4); plt.imshow(xg2[0])
                     plt.show()
-                res1 = np.argmax(model.discriminator.predict([x0, xg]), axis=1)
-                res2 = np.argmax(model.discriminator.predict([x0, xg2]), axis=1)
+                res1 = np.argmax(image_discriminator.predict([x0, xg]), axis=1)
+                res2 = np.argmax(image_discriminator.predict([x0, xg2]), axis=1)
                 if res1[0] == o1[i]:
                     correct_g1 += 1
                 if res2[0] == o2[i]:
-                    correct_g2 += 2
+                    correct_g2 += 1
                 total += 1
                 print(correct_g1, "/", total, correct_g2, "/", total, "...", o1[i], o2[i], res1[0], res2[0])
 

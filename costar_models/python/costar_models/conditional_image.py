@@ -216,25 +216,6 @@ class ConditionalImage(PredictionSampler2):
         self.q_model.compile(loss="mae", optimizer=self.getOptimizer())
         #self.q_model.load_weights(self.makeName("secondary", "q"))
 
-
-    def encode(self, img):
-        '''
-        Encode available features into a new state
-
-        Parameters:
-        -----------
-        [unknown]: all are parsed via _getData() function.
-        '''
-        return self.image_encoder.predict(img)
-
-    def decode(self, hidden):
-        '''
-        Decode features and produce a set of visualizable images or other
-        feature outputs.
-
-        '''
-        return self.image_decoder.predict(hidden)
-
     def pnext(self, hidden0, hidden, prev_option):
         '''
         Visualize based on hidden
@@ -265,19 +246,6 @@ class ConditionalImage(PredictionSampler2):
         #v = self.value_model.predict([h0, hidden, prev_option])
         v = self.value_model.predict([hidden0, hidden])
         return v
-
-    def transform(self, hidden0, hidden, option_in=-1):
-        #if option_in < 0 or option_in > self.num_options:
-        #    option_in = self.null_option
-        #oin = MakeOption1h(option_in, self.num_options)
-        if len(option_in.shape) == 1:
-            oin = ToOneHot(option_in, self.num_options)
-        else:
-            oin = option_in
-        #length = hidden.shape[0]
-        #oin = np.repeat(oin, length, axis=0)
-        h = self.transform_model.predict([hidden0, hidden, oin])
-        return h
 
     def act(self, *args, **kwargs):
         raise NotImplementedError('act() not implemented')
