@@ -86,6 +86,7 @@ def GetStackManager():
     for color in ["red", "blue", "yellow", "green"]:
         name = "grab_%s"%color
         req = _makeSmartGraspRequest(color)
+        sm.addRequest(name, "/costar/SmartGrasp")
 
 def _makeSmartGraspRequest(color):
     '''
