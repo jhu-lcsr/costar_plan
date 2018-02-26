@@ -28,8 +28,8 @@ def main(_):
     FLAGS.split_dataset = 'objectwise'
     FLAGS.epochs = 100
 
-    hyperparams, kwargs = grasp_utilities.load_hyperparams_json(
-        FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.fine_tuning_learning_rate,
+    hyperparams = grasp_utilities.load_hyperparams_json(
+        FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.learning_rate,
         feature_combo_name=feature_combo)
 
     if 'k_fold' in FLAGS.pipeline_stage:
@@ -37,13 +37,13 @@ def main(_):
             problem_name=problem_type,
             feature_combo_name=feature_combo,
             hyperparams=hyperparams,
-            **kwargs)
+            **hyperparams)
     else:
         cornell_grasp_train.run_training(
             problem_name=problem_type,
             feature_combo_name=feature_combo,
             hyperparams=hyperparams,
-            **kwargs)
+            **hyperparams)
 
 if __name__ == '__main__':
     # next FLAGS line might be needed in tf 1.4 but not tf 1.5

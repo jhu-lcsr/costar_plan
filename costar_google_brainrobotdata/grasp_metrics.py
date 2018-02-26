@@ -442,7 +442,7 @@ def angle_difference_less_than_threshold(
         print('angle_difference: ' + str(int(np.degrees(angle_difference))) +
               ' threshold: ' + str(int(np.degrees(angle_threshold))) +
               ' is_within_angle_threshold: ' + str(is_within_angle_threshold) +
-              'units: degrees ')
+              ' units: degrees ')
     return is_within_angle_threshold
 
 

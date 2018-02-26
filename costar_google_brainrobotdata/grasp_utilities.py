@@ -27,8 +27,12 @@ def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
     return datetime.datetime.now().strftime(fmt).format(fname=fname)
 
 
-def load_hyperparams_json(hyperparams_file, fine_tuning=False, fine_tuning_learning_rate=0.001, feature_combo_name=None):
+def load_hyperparams_json(hyperparams_file, fine_tuning=False, learning_rate=None, feature_combo_name=None):
     """ Load hyperparameters from a json file
+
+    # Returns
+
+    Hyperparams
     """
     kwargs = {}
     hyperparams = None
@@ -38,7 +42,7 @@ def load_hyperparams_json(hyperparams_file, fine_tuning=False, fine_tuning_learn
             hyperparams = kwargs
     if fine_tuning:
         kwargs['trainable'] = True
-        kwargs['learning_rate'] = fine_tuning_learning_rate
+        kwargs['learning_rate'] = learning_rate
         # TODO(ahundt) should we actually write the fine tuning settings out to the hyperparams log?
         # hyperparams = kwargs
 
@@ -53,7 +57,7 @@ def load_hyperparams_json(hyperparams_file, fine_tuning=False, fine_tuning_learn
         kwargs.pop('feature_combo_name')
         if 'feature_combo_name' in hyperparams:
             hyperparams.pop('feature_combo_name')
-    return hyperparams, kwargs
+    return kwargs
 
 
 def is_sequence(arg):

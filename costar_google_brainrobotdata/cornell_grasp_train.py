@@ -224,10 +224,7 @@ def run_training(
     if batch_size is None:
         batch_size = FLAGS.batch_size
     if learning_rate is None:
-        if load_weights is None:
-            learning_rate = FLAGS.learning_rate
-        else:
-            learning_rate = FLAGS.fine_tuning_learning_rate
+        learning_rate = FLAGS.learning_rate
     if log_dir is None:
         log_dir = FLAGS.log_dir
     if load_weights is None:
