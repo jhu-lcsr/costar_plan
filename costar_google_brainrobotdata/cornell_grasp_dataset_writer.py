@@ -464,7 +464,10 @@ def k_fold_split(path=FLAGS.data_dir, split_type=FLAGS.split_type, num_fold=FLAG
     return fold_image_id_list
 
 
-def k_fold_tfrecord_writer(path=FLAGS.data_dir, kFold_list=None, split_type=FLAGS.split_type, tfrecord_filename_base=FLAGS.tfrecord_filename_base):
+def k_fold_tfrecord_writer(
+        path=FLAGS.data_dir, kFold_list=None,
+        split_type=FLAGS.split_type, tfrecord_filename_base=FLAGS.tfrecord_filename_base,
+        write=FLAGS.write):
     """ Write Tfrecord based on image_id stored in kFold_list.
 
         path: directory of where origin data is stored, not a file path.
@@ -479,8 +482,12 @@ def k_fold_tfrecord_writer(path=FLAGS.data_dir, kFold_list=None, split_type=FLAG
         raise ValueError('Unsupported split type: ' + str(split_type) +
                          ' options are objectwise and imagewise.')
 
+    status = 'Traversing dataset '
+    if write:
+        status = 'Writing dataset '
+
     coder = ImageCoder()
-    for i, fold in enumerate(tqdm(kFold_list, desc='Writing datasets ' + split_type)):
+    for i, fold in enumerate(tqdm(kFold_list, desc=status + split_type)):
         recordPath = path + tfrecord_filename_base + '-' + split_type + '-fold-' + str(i) + '.tfrecord'
         cur_writer = tf.python_io.TFRecordWriter(recordPath)
         for image_id in fold:
