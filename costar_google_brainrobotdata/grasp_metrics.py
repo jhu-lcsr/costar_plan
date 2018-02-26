@@ -283,7 +283,7 @@ def polygon_area(poly):
     return 0.5 * sum(p[1]*q[0] - p[0]*q[1] for p, q in zip(poly, poly_rot))
 
 
-def rectangle_vertices(h, w, sin_theta, cos_theta, cy, cx):
+def rectangle_vertices(sin_theta, cos_theta, h, w, cy, cx):
     """ Get the vertices from a parameterized bounding box.
 
     y, x ordering.
@@ -310,23 +310,63 @@ def rectangle_vertices(h, w, sin_theta, cos_theta, cy, cx):
     ]
 
 
-def parse_rectangle_vertices(hw_st_ct_cy_cx):
+def encode_theta(theta):
+    """ Encodes theta in radians to handle gripper symmetry in 0 to 1 domain
+    """
+    norm_sin2_cos2 = np.array([
+        np.sin(theta * 2) / 2 + 0.5,
+        np.cos(theta * 2) / 2 + 0.5])
+    return norm_sin2_cos2
+
+
+def denorm_sin2_cos2(norm_sin2_cos2):
+    """ Undo normalization step of `encode_theta_np()`
+
+    # Arguments
+
+        norm_sin2_cos2: normalized sin(2*theta) cos(2*theta)
+
+    # Returns
+
+        return actual sin(2*theta) cos(2*theta)
+    """
+    return (norm_sin2_cos2 - 0.5) * 2
+
+
+def decode_sin2_cos2(norm_sin2_cos2):
+    """ Decodes the result of encode_theta_np() back into an angle theta in radians.
+    """
+    # rescale and shift from (0, 1) range
+    # back to (-1, 1) range
+    sin2, cos2 = denorm_sin2_cos2(norm_sin2_cos2)
+    # normalize the values so they are on the unit circle
+    sin2, cos2 = normalize_sin_theta_cos_theta(sin2, cos2)
+    # extract 2x the angle
+    theta2 = np.arctan2(sin2, cos2)
+    # return the angle
+    return theta2 / 2
+
+
+def parse_rectangle_vertices(s2t_c2t_hw_cycx):
     """ Convert a dimensions, angle, grasp center, based rectangle to vertices.
 
-    hw_st_ct_cy_cx: [height, width, sin theta, cos theta, center x, center y]
+    s2t_c2t_hw_cycx: [height, width, sin(2*theta), cos(2*theta), center x, center y]
     """
+    theta = decode_sin2_cos2(
+        s2t_c2t_hw_cycx[:2]  # sin(2*theta), cos(2*theta)
+    )
     rect_vertices = rectangle_vertices(
-        hw_st_ct_cy_cx[0],  # height
-        hw_st_ct_cy_cx[1],  # width
-        hw_st_ct_cy_cx[2],  # sin theta
-        hw_st_ct_cy_cx[3],  # cos theta
-        hw_st_ct_cy_cx[4],  # center y
-        hw_st_ct_cy_cx[5])  # center x
+        np.sin(theta),       # sin(theta)
+        np.cos(theta),       # cos(theta)
+        s2t_c2t_hw_cycx[2],  # height
+        s2t_c2t_hw_cycx[3],  # width
+        s2t_c2t_hw_cycx[4],  # center y
+        s2t_c2t_hw_cycx[5])  # center x
     return rect_vertices
 
 
-def parse_rectangle_params(hw_st_ct_cy_cx):
-    rect_vertices = parse_rectangle_vertices(hw_st_ct_cy_cx)
+def parse_rectangle_params(s2t_c2t_hw_cycx):
+    rect_vertices = parse_rectangle_vertices(s2t_c2t_hw_cycx)
     rect_hlines = rectangle_homogeneous_lines(rect_vertices)
     return rect_vertices, rect_hlines
 
@@ -358,6 +398,7 @@ def shapely_intersection_over_union(rect0_points, rect1_points, verbose=0):
     p0 = Polygon(rect0_points)
     p1 = Polygon(rect1_points)
     intersection_area = p0.intersection(p1).area
+
     iou = intersection_area / (p0.area + p1.area - intersection_area)
     if verbose > 0:
         print('iou: ' + str(iou))
@@ -365,7 +406,11 @@ def shapely_intersection_over_union(rect0_points, rect1_points, verbose=0):
 
 
 def normalize_sin_theta_cos_theta(sin_theta, cos_theta):
-    # normalize the prediction but keep the vector direction the same
+    """ Put sin(theta) cos(theta) on the unit circle.
+
+    Output values will be in (-1, 1).
+    normalize the prediction but keep the vector direction the same
+    """
     arr = sklearn.preprocessing.normalize(np.array([[sin_theta, cos_theta]], dtype=np.float))
     sin_theta = arr[0, 0]
     cos_theta = arr[0, 1]
@@ -379,6 +424,7 @@ def angle_difference_less_than_threshold(
     """ Returns true if the angle difference is less than the threshold, false otherwise.
     """
     if angle_threshold is None:
+        # TODO(ahundt) consider totally
         angle_threshold = np.radians(30.0)
     # print('ad0 ' + str(true_y_sin_theta) + ' cos: ' + str(true_x_cos_theta))
     # normalize the prediction but keep the vector direction the same
@@ -390,23 +436,31 @@ def angle_difference_less_than_threshold(
     pred_y_sin_theta, pred_x_cos_theta = normalize_sin_theta_cos_theta(pred_y_sin_theta, pred_x_cos_theta)
     pred_angle = np.arctan2(pred_y_sin_theta, pred_x_cos_theta)
     # print('pred angle: ' + str(pred_angle) + ' true angle: ' + str(true_angle))
-    is_within_angle_threshold = np.abs(pred_angle - true_angle) <= angle_threshold
+    angle_difference = np.abs(pred_angle - true_angle)
+    is_within_angle_threshold = angle_difference <= angle_threshold
     if verbose > 0:
-        print('is_within_angle_threshold: ' + str(is_within_angle_threshold))
+        print('angle_difference: ' + str(int(np.degrees(angle_difference))) +
+              ' threshold: ' + str(int(np.degrees(angle_threshold))) +
+              ' is_within_angle_threshold: ' + str(is_within_angle_threshold) +
+              'units: degrees ')
     return is_within_angle_threshold
 
 
-def jaccard_score(y_true, y_pred, angle_threshold=None, iou_threshold=0.25):
+def jaccard_score(y_true, y_pred, angle_threshold=None, iou_threshold=0.25, verbose=0):
     """
 
     # Arguments
 
-        Feature formats accepted:
-        [grasp_success, sin_theta, cos_theta, height, width, center_y, center_x]
-        [            0,         1,         2,      3,     4,        5,        6]
 
-        [sin_theta, cos_theta, height, width, center_y, center_x]
-        [        0,         1,      2,     3,        4,        5]
+        Feature formats accepted:
+
+        grasp_success_norm_sin2_cos2_hw_5
+            [grasp_success, sin_theta, cos_theta, height, width, center_y, center_x]
+            [            0,         1,         2,      3,     4,        5,        6]
+
+        norm_sin2_cos2_hw_5
+            [sin_theta, cos_theta, height, width, center_y, center_x]
+            [        0,         1,      2,     3,        4,        5]
 
 
         y_true: a numpy array of features
@@ -454,7 +508,9 @@ def jaccard_score(y_true, y_pred, angle_threshold=None, iou_threshold=0.25):
         # if they aren't close enough return 0.0
         if not angle_difference_less_than_threshold(
                 true_y_sin_theta, true_x_cos_theta,
-                pred_y_sin_theta, pred_x_cos_theta, angle_threshold):
+                pred_y_sin_theta, pred_x_cos_theta,
+                angle_threshold,
+                verbose):
             return 0.0
 
         # print('6')
@@ -466,6 +522,8 @@ def jaccard_score(y_true, y_pred, angle_threshold=None, iou_threshold=0.25):
 
         # print('7')
         iou = shapely_intersection_over_union(true_rp, pred_rp)
+        if verbose:
+            print('iou: ' + str(iou))
         # print('8')
         if iou >= iou_threshold:
             # passed iou threshold
@@ -475,18 +533,26 @@ def jaccard_score(y_true, y_pred, angle_threshold=None, iou_threshold=0.25):
             return 0.0
 
 
-def grasp_jaccard_batch(y_true, y_pred):
+def grasp_jaccard_batch(y_true, y_pred, verbose=0):
     # print('y_true.shape: ' + str(y_true.shape))
     # print('y_pred.shape: ' + str(y_pred.shape))
     scores = []
     for i in range(y_true.shape[0]):
         # print(' i: ' + str(i))
+        # TODO(ahundt) comment the next few lines when not debugging
+        verbose = 0
+        if np.random.randint(0, 1000) % 1000 == 0:
+            verbose = 1
+            print('')
+            print('')
+            print('grasp_metrics.py sample of ground_truth and prediction:')
         this_true = y_true[i, :]
         this_pred = y_pred[i, :]
-        # print('this_true: ' + str(this_true))
-        # print('this_pred: ' + str(this_pred))
-        score = jaccard_score(this_true, this_pred)
-        # print('score:' + str(score))
+        score = jaccard_score(this_true, this_pred, verbose=verbose)
+        if verbose:
+            print('s2t_c2t_hw_cycx_true: ' + str(this_true))
+            print('s2t_c2t_hw_cycx_pred: ' + str(this_pred))
+            print('score:' + str(score))
         scores += [score]
     scores = np.array(scores, dtype=np.float32)
     # print('scores.shape: ' + str(scores.shape))
@@ -499,11 +565,14 @@ def grasp_jaccard(y_true, y_pred):
         This is an IOU metric with angle difference and IOU score thresholds.
 
         Feature formats accepted as a 2d array containing a batch of data ordered as:
-        [grasp_success, sin_theta, cos_theta, height, width, center_y, center_x]
+        [grasp_success, sin_2theta, cos_2theta, height, width, center_y, center_x]
         [            0,         1,         2,      3,     4,        5,        6]
 
-        [sin_theta, cos_theta, height, width, center_y, center_x]
+        [sin_2theta, cos_2theta, height, width, center_y, center_x]
         [        0,         1,      2,     3,        4,        5]
+
+        It is very important to be aware that sin(2*theta) and cos(2*theta) are expected,
+        additionally all coordinates and height/width are normalized by the network's input dimensions.
     """
     scores = tf.py_func(func=grasp_jaccard_batch, inp=[y_true, y_pred], Tout=tf.float32, stateful=False)
     return scores

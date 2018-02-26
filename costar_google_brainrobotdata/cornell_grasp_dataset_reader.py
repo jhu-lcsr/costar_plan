@@ -649,8 +649,12 @@ def parse_and_preprocess(
     feature['bbox/preprocessed/theta'] = grasp_center_rotation_theta
     feature['bbox/preprocessed/sin_cos_2'] = K.concatenate(
         [K.sin(grasp_center_rotation_theta), K.cos(grasp_center_rotation_theta)])
-    feature['bbox/preprocessed/sin2_cos2_2'] = K.concatenate(
-        [K.sin(grasp_center_rotation_theta * 2.0), K.cos(grasp_center_rotation_theta * 2.0)])
+    # Here we are mapping sin(theta) cos(theta) such that:
+    #  - every 180 degrees is a rotation because the grasp plates are symmetrical
+    #  - the values are from 0 to 1 so sigmoid can correctly approximate them
+    feature['bbox/preprocessed/norm_sin2_cos2_2'] = K.concatenate(
+        [K.sin(grasp_center_rotation_theta * 2.0) / 2 + 0.5,
+         K.cos(grasp_center_rotation_theta * 2.0) / 2 + 0.5])
     random_scale = K.constant(1.0, 'float32')
     if 'random_scale' in feature:
         random_scale = feature['random_scale']
@@ -671,13 +675,13 @@ def parse_and_preprocess(
     feature['grasp_success_yx_3'] = grasp_success_coordinate_label
     # preprocessing adds some extra normalization and incorporates changes in the values due to augmentatation.
     feature['preprocessed_sin_cos_width_3'] = K.concatenate([feature['bbox/preprocessed/sin_cos_2'], feature['bbox/preprocessed/width']])
-    feature['preprocessed_sin2_cos2_width_3'] = K.concatenate([feature['bbox/preprocessed/sin2_cos2_2'], feature['bbox/preprocessed/width']])
+    feature['preprocessed_sin2_cos2_width_3'] = K.concatenate([feature['bbox/preprocessed/norm_sin2_cos2_2'], feature['bbox/preprocessed/width']])
     feature['preprocessed_sin2_cos2_height_width_4'] = K.concatenate(
-        [feature['bbox/preprocessed/sin2_cos2_2'], feature['bbox/preprocessed/height'], feature['bbox/preprocessed/width']])
+        [feature['bbox/preprocessed/norm_sin2_cos2_2'], feature['bbox/preprocessed/height'], feature['bbox/preprocessed/width']])
 
     # This feature should be useful for pixelwise predictions
     grasp_success_sin2_cos2_hw_yx_7 = K.concatenate(
-        [tf.cast(feature['bbox/grasp_success'], tf.float32), feature['bbox/preprocessed/sin2_cos2_2'],
+        [tf.cast(feature['bbox/grasp_success'], tf.float32), feature['bbox/preprocessed/norm_sin2_cos2_2'],
          feature['bbox/preprocessed/height'], feature['bbox/preprocessed/width'], preprocessed_grasp_center_coordinate])
     feature['grasp_success_sin2_cos2_hw_yx_7'] = K.expand_dims(K.expand_dims(grasp_success_sin2_cos2_hw_yx_7))
 
@@ -688,13 +692,13 @@ def parse_and_preprocess(
     # v2 = K.constant([100], 'float32')
     # This feature should be useful for grasp regression
 
-    grasp_success_sin2_cos2_hw_norm_yx_7 = K.concatenate(
-        [K.cast(feature['bbox/grasp_success'], 'float32'), feature['bbox/preprocessed/sin2_cos2_2'],
+    grasp_success_norm_sin2_cos2_hw_yx_7 = K.concatenate(
+        [K.cast(feature['bbox/grasp_success'], 'float32'), feature['bbox/preprocessed/norm_sin2_cos2_2'],
          feature['bbox/preprocessed/height'], feature['bbox/preprocessed/width'], feature['bbox/preprocessed/cy_cx_normalized_2']])
-    feature['grasp_success_sin2_cos2_hw_norm_yx_7'] = grasp_success_sin2_cos2_hw_norm_yx_7
-    feature['sin2_cos2_hw_norm_yx_6'] = grasp_success_sin2_cos2_hw_norm_yx_7[1:]
-    feature['grasp_success_sin2_cos2_hw_5'] = grasp_success_sin2_cos2_hw_norm_yx_7[:5]
-    feature['sin2_cos2_hw_4'] = grasp_success_sin2_cos2_hw_norm_yx_7[1:5]
+    feature['grasp_success_norm_sin2_cos2_hw_yx_7'] = grasp_success_norm_sin2_cos2_hw_yx_7
+    feature['norm_sin2_cos2_hw_yx_6'] = grasp_success_norm_sin2_cos2_hw_yx_7[1:]
+    feature['grasp_success_norm_sin2_cos2_hw_5'] = grasp_success_norm_sin2_cos2_hw_yx_7[:5]
+    feature['sin2_cos2_hw_4'] = grasp_success_norm_sin2_cos2_hw_yx_7[1:5]
 
     # TODO(ahundt) reenable pixelwise gaussians but with separate success and failure layers and compare performance against segmentation_gaussian_measurement()
     if False:
@@ -906,7 +910,7 @@ def visualize_redundant_example(features_dicts, showTextBox=None):
             print_feature(example, 'bbox/preprocessed/cx')
             print_feature(example, 'bbox/preprocessed/width')
             print_feature(example, 'bbox/preprocessed/height')
-            print_feature(example, 'grasp_success_sin2_cos2_hw_norm_yx_7')
+            print_feature(example, 'grasp_success_norm_sin2_cos2_hw_yx_7')
             # Reverse the preprocessing so we can visually compare correctness
             decoded_example = copy.deepcopy(example)
             sin_cos_2 = np.squeeze(example['bbox/preprocessed/sin_cos_2'])

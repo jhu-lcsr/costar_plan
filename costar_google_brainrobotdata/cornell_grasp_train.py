@@ -646,7 +646,7 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
     elif problem_name == 'grasp_regression':
         # predicting a single grasp proposal
         success_only = True
-        label_features = ['sin2_cos2_hw_norm_yx_6']
+        label_features = ['norm_sin2_cos2_hw_yx_6']
         monitor_metric_name = 'grasp_jaccard'
         monitor_loss_name = 'val_loss'
         metrics = [grasp_metrics.grasp_jaccard, keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
@@ -655,7 +655,7 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         classes = 6
     elif problem_name == 'image_center_grasp_regression':
         # predicting a single grasp proposal at the image center
-        label_features = ['grasp_success_sin2_cos2_hw_5']
+        label_features = ['grasp_success_norm_sin2_cos2_hw_5']
         monitor_metric_name = 'grasp_jaccard'
         monitor_loss_name = 'val_loss'
         metrics = [grasp_metrics.grasp_jaccard, keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
