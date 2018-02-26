@@ -548,24 +548,29 @@ def train_k_fold(num_fold=None, split_type=None,
     val_size = 0
     train_size = 0
     log_dir = os.path.join(log_dir, grasp_utilities.timeStamped(run_name + '-kfold'))
-
+    # 2k files, but k folds, so read two file at a time
     for i in tqdm(range(num_fold), desc='Training k_fold'):
         val_filenames = [os.path.join(FLAGS.data_dir,
-                         tfrecord_filename_base + '-' + split_type + '-fold-' + str(i) + '.tfrecord')]
-        val_size = unique_image_num[i]
+                         tfrecord_filename_base + '-' + split_type + '-fold-' + str(2 * i) + '.tfrecord'),
+                         os.path.join(FLAGS.data_dir,
+                         tfrecord_filename_base + '-' + split_type + '-fold-' + str(2 * i + 1) + '.tfrecord')]
+        val_size = unique_image_num[2 * i] + unique_image_num[2 * i + 1]
         for j in range(num_fold):
             if j == i:
                 continue
             train_id += str(j)
             train_filenames += [os.path.join(FLAGS.data_dir,
-                                tfrecord_filename_base + '-' + split_type + '-fold-' + str(j) + '.tfrecord')]
-            train_size += unique_image_num[j]
+                                tfrecord_filename_base + '-' + split_type + '-fold-' + str(2 * j) + '.tfrecord'),
+                                os.path.join(FLAGS.data_dir,
+                                tfrecord_filename_base + '-' + split_type + '-fold-' + str(2 * j + 1) + '.tfrecord')]
+            train_size += unique_image_num[j] + unique_image_num[2 * j + 1]
         save_splits_weights = run_name + '-' + split_type + '-train-on-' + train_id + '-val-on-' + str(i)
         print('run kfold train, train on splits: ' + train_id + ',   val on split: ' + str(i))
         run_training(train_filenames=train_filenames, val_filenames=val_filenames, pipeline='train_val',
                      train_size=train_size, val_size=val_size,
                      log_dir=log_dir, run_name=save_splits_weights,
                      **kwargs)
+        train_id = ''
         train_size = 0
 
     return
@@ -933,7 +938,7 @@ def main(_):
     hyperparams, kwargs = grasp_utilities.load_hyperparams_json(
         FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.fine_tuning_learning_rate)
     if 'k_fold' in FLAGS.pipeline_stage:
-        train_k_fold(hyperparams=hyperparams, **kwargs)
+        train_k_fold(hyperparams=hyperparams)  # , **kwargs)
     else:
         run_training(hyperparams=hyperparams, **kwargs)
 
