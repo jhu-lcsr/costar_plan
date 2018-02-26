@@ -188,7 +188,6 @@ def run_training(
         val_size=None,
         test_filenames=None,
         test_size=None,
-        save_splits_weights='',
         feature_combo_name=None,
         problem_name=None,
         image_model_name='vgg',
