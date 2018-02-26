@@ -39,6 +39,10 @@ def GetModelParser():
     parser.add_argument('--model_directory',
                         help="models directory",
                         default = "~/.costar/models")
+    parser.add_argument('--reqs_directory',
+                        help="directory for reading in required submodels",
+                        type = str,
+                        default = None)
     parser.add_argument('-i', '--iter',
                         help='Number of iterations to run',
                         default=100,
@@ -143,7 +147,11 @@ def GetModelParser():
     parser.add_argument("--skip_connections", "--sc",
                         help="use skip connections to generate better outputs",
                         type=int,
-                        default=0)
+                        default=1)
+    parser.add_argument("--use_ssm", "--ssm",
+                        help="use spatial softmax to compute global information",
+                        type=int,
+                        default=1)
     parser.add_argument("--decoder_dropout_rate", "--ddr",
                         help="specify a separate dropout for the model decoder",
                         #type=float,

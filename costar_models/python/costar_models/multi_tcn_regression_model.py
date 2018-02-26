@@ -19,7 +19,6 @@ from matplotlib import pyplot as plt
 
 from .abstract import AbstractAgentBasedModel
 from .robot_multi_models import *
-from .split import *
 
 class RobotMultiTCNRegression(AbstractAgentBasedModel):
     '''

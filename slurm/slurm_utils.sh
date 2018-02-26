@@ -59,6 +59,7 @@ function job_status() {
     if [[ ${running_jobs[$j]} == true ]]; then status=RUNNING
     elif grep TIME "./slurm-$j.out" > /dev/null; then status=TIMEOUT
     elif grep error "./slurm-$j.out" > /dev/null; then status=ERROR
+    elif grep Error "./slurm-$j.out" > /dev/null; then status=ERROR
     else status=SUCCESS
     fi
     echo $j $status $dir
@@ -172,5 +173,10 @@ function feh_latest_job() {
   echo "Looking at latest of job $job"
   job_descr_of_dir $dir2
   files=$(latest_images_dir $dir/debug)
+  feh $files
+}
+
+function feh_latest_dir() {
+  files=$(latest_images_dir *$1/debug)
   feh $files
 }
