@@ -57,16 +57,18 @@ def GetPoses():
     return poses
 
 def GetGraspPose():
-    pass
-
+    # Grasp from the top, centered (roughly)
+    pose = kdl.Frame(
+            kdl.Rotation.Quaternion(1.,0.,0.,0.),
+            kdl.Vector(-0.22001116007522364, -0.02, -0.01))
+    return pose
 
 def GetTowerPoses():
     pose1 = kdl.Frame(
             kdl.Rotation.Quaternion(0.580, 0.415, -0.532, 0.456),
             kdl.Vector(0.533, -0.202, 0.234))
     
-    poses = {"tower1": pose1,
-            }
+    poses = {"tower1": pose1,}
     return poses
 
 def _makeSmartPlaceRequest(poses, name):
@@ -84,17 +86,12 @@ def _makeSmartGraspRequest(color):
     Helper function to create a grasp request via smartmove.
     '''
     req = SmartMove()
-    req.pose = None
+    req.pose = pm.toMsg(GetGraspPose())
     if not color in ["red", "blue", "green", "yellow"]:
         raise RuntimeError("color %s not recognized" % color)
     req.obj_class = "%s_cube" % color
 
     return req
-
-def TestStackTask():
-    '''
-    Create the necessary services and all that.
-    '''
 
 def MakeStackTask():
     '''
